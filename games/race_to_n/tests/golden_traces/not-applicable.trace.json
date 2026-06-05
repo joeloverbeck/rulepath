@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "trace_id": "not-applicable",
+  "fixture_kind": "not_applicable",
+  "purpose": "race_to_n_not_applicable_surfaces",
+  "note": "Records explicit hidden-information and stochastic-game-event not-applicable rationale for the perfect-information Race to N rules.",
+  "migration_update_note": "Migrated from legacy key-value not-applicable.trace to Trace Schema v1 JSON; rationale is unchanged.",
+  "game_id": "race_to_n",
+  "rules_version": "race_to_n-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "race_to_21",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "checkpoints": [
+    { "id": "not-applicable", "after_command_index": null }
+  ],
+  "expected_state_hashes": { "not_applicable": "rationale-only trace" },
+  "expected_effect_hashes": { "not_applicable": "rationale-only trace" },
+  "expected_action_tree_hashes": { "not_applicable": "rationale-only trace" },
+  "expected_public_view_hashes": { "not_applicable": "rationale-only trace" },
+  "expected_private_view_hashes": {
+    "not_applicable": "race_to_n is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "not_applicable": "rationale-only trace" },
+  "expected_terminal_state": { "not_applicable": "rationale-only trace" },
+  "not_applicable": {
+    "hidden_information": "race_to_n is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "race_to_n game rules use no randomness; bot-action.trace.json covers bot RNG.",
+    "private_view_hashes": "race_to_n has no private-view API.",
+    "preview_hashes": "race_to_n has no Rust preview surface in Gate 2."
+  }
+}

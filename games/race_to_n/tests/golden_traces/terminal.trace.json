@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "trace_id": "terminal",
+  "fixture_kind": "commands",
+  "purpose": "terminal_replay",
+  "note": "Seven max-add actions reach the exact target and bind terminal outcome/effect order.",
+  "migration_update_note": "Migrated from legacy key-value terminal.trace to Trace Schema v1 JSON; expected hashes are unchanged.",
+  "game_id": "race_to_n",
+  "rules_version": "race_to_n-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "race_to_21",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat-0", "action_path": ["add-3"], "freshness_token": "1", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat-1", "action_path": ["add-3"], "freshness_token": "2", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat-0", "action_path": ["add-3"], "freshness_token": "3", "expect": "applied" },
+    { "index": 3, "actor_seat": "seat-1", "action_path": ["add-3"], "freshness_token": "4", "expect": "applied" },
+    { "index": 4, "actor_seat": "seat-0", "action_path": ["add-3"], "freshness_token": "5", "expect": "applied" },
+    { "index": 5, "actor_seat": "seat-1", "action_path": ["add-3"], "freshness_token": "6", "expect": "applied" },
+    { "index": 6, "actor_seat": "seat-0", "action_path": ["add-3"], "freshness_token": "7", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 6 }
+  ],
+  "expected_state_hashes": { "final": 3256403188665508531 },
+  "expected_effect_hashes": { "final": 736896495286043826 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 15202890270124712315 },
+  "expected_private_view_hashes": {
+    "not_applicable": "race_to_n is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": true, "winner": "seat_0" },
+  "expected_terminal_state": { "terminal": true, "winner": "seat_0" },
+  "not_applicable": {
+    "hidden_information": "race_to_n is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "race_to_n game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "race_to_n has no private-view API.",
+    "preview_hashes": "race_to_n has no Rust preview surface in Gate 2."
+  }
+}

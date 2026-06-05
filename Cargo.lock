@@ -20,6 +20,9 @@ version = "0.1.0"
 [[package]]
 name = "fixture-check"
 version = "0.1.0"
+dependencies = [
+ "race_to_n",
+]
 
 [[package]]
 name = "game-stdlib"
@@ -39,6 +42,10 @@ dependencies = [
 [[package]]
 name = "replay-check"
 version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "race_to_n",
+]
 
 [[package]]
 name = "rule-coverage"
@@ -47,6 +54,9 @@ version = "0.1.0"
 [[package]]
 name = "seed-reducer"
 version = "0.1.0"
+dependencies = [
+ "race_to_n",
+]
 
 [[package]]
 name = "simulate"
@@ -60,6 +70,9 @@ dependencies = [
 [[package]]
 name = "trace-viewer"
 version = "0.1.0"
+dependencies = [
+ "race_to_n",
+]
 
 [[package]]
 name = "wasm-api"

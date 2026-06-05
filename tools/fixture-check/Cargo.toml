@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[dependencies]
+race_to_n = { path = "../../games/race_to_n" }
+
 [[bin]]
 name = "fixture-check"
 path = "src/main.rs"

@@ -1,5 +1,7 @@
 use std::{
+    env,
     hint::black_box,
+    process::Command,
     time::{Duration, Instant},
 };
 
@@ -13,6 +15,11 @@ use race_to_n::{
 };
 
 const RULES_VERSION: u32 = 1;
+const GAME_ID: &str = "race_to_n";
+const DATA_VERSION: &str = "1";
+const ENGINE_VERSION: &str = "engine-core-0.1.0";
+const BUILD_PROFILE: &str = "bench";
+const REPORT_SCHEMA_VERSION: u32 = 1;
 
 struct BenchResult {
     name: &'static str,
@@ -21,51 +28,260 @@ struct BenchResult {
     elapsed: Duration,
 }
 
+type BenchSpec = (&'static str, &'static str, u64, fn(u64));
+
 impl BenchResult {
-    fn per_second(&self) -> f64 {
+    fn current_value(&self) -> f64 {
         self.iterations as f64 / self.elapsed.as_secs_f64()
     }
 }
 
+#[derive(Clone, Copy)]
+struct Threshold {
+    operation: &'static str,
+    unit: &'static str,
+    threshold: f64,
+    rationale_class: &'static str,
+    caveat: &'static str,
+}
+
+const THRESHOLDS: &[Threshold] = &[
+    Threshold {
+        operation: "legal_actions",
+        unit: "trees_per_second",
+        threshold: 1_000_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "Initial CI floor below the first WSL2 baseline to avoid treating noisy local variance as doctrine.",
+    },
+    Threshold {
+        operation: "apply_action",
+        unit: "actions_per_second",
+        threshold: 5_000_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "Initial CI floor below the first WSL2 baseline; validation is included in the measured loop.",
+    },
+    Threshold {
+        operation: "public_view_generation",
+        unit: "views_per_second",
+        threshold: 10_000_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "Initial CI floor for the public perfect-information view path.",
+    },
+    Threshold {
+        operation: "effect_filtering",
+        unit: "filters_per_second",
+        threshold: 10_000_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "Initial CI floor for public EffectLog filtering over the tiny Gate 1 effect set.",
+    },
+    Threshold {
+        operation: "serialization_roundtrip",
+        unit: "roundtrips_per_second",
+        threshold: 200_000.0,
+        rationale_class: "measured_baseline",
+        caveat: "Based on the first committed WSL2 native report; snapshot parsing is the known slower row.",
+    },
+    Threshold {
+        operation: "replay_throughput",
+        unit: "replays_per_second",
+        threshold: 250_000.0,
+        rationale_class: "measured_baseline",
+        caveat: "Based on the first committed WSL2 native report for the seven-command terminal replay.",
+    },
+    Threshold {
+        operation: "random_playout",
+        unit: "games_per_second",
+        threshold: 100_000.0,
+        rationale_class: "accepted_adr",
+        caveat: "ADR 0001 recalibrates Stage-1 validated random playout throughput to a conservative CI floor after profiling the correctness-preserving harness.",
+    },
+    Threshold {
+        operation: "bot_decision",
+        unit: "decisions_per_second",
+        threshold: 1_000_000.0,
+        rationale_class: "measured_baseline",
+        caveat: "Initial floor for Level 0 random legal selection from the starting action tree.",
+    },
+];
+
 fn main() {
-    let results = vec![
-        measure("legal_actions", "trees", 1_000_000, bench_legal_actions),
-        measure("apply_action", "actions", 1_000_000, bench_apply_action),
-        measure(
+    let filter = operation_filter();
+    let results = run_benchmarks(filter.as_deref());
+    let metadata = ReportMetadata::new();
+
+    print_human_summary(&results);
+    println!("BEGIN_RACE_TO_N_BENCHMARK_JSON");
+    println!("{}", benchmark_report_json(&metadata, &results));
+    println!("END_RACE_TO_N_BENCHMARK_JSON");
+}
+
+fn operation_filter() -> Option<String> {
+    env::args().skip(1).find(|arg| {
+        !arg.starts_with('-')
+            && THRESHOLDS
+                .iter()
+                .any(|threshold| threshold.operation.contains(arg))
+    })
+}
+
+fn run_benchmarks(filter: Option<&str>) -> Vec<BenchResult> {
+    let benches: Vec<BenchSpec> = vec![
+        ("legal_actions", "trees", 1_000_000, bench_legal_actions),
+        ("apply_action", "actions", 1_000_000, bench_apply_action),
+        (
             "public_view_generation",
             "views",
             1_000_000,
             bench_public_view,
         ),
-        measure(
+        (
             "effect_filtering",
             "filters",
             1_000_000,
             bench_effect_filtering,
         ),
-        measure(
+        (
             "serialization_roundtrip",
             "roundtrips",
             500_000,
             bench_serialization_roundtrip,
         ),
-        measure("replay_throughput", "replays", 100_000, bench_replay),
-        measure("random_playout", "games", 100_000, bench_random_playout),
-        measure("bot_decision", "decisions", 1_000_000, bench_bot_decision),
+        ("replay_throughput", "replays", 100_000, bench_replay),
+        ("random_playout", "games", 100_000, bench_random_playout),
+        ("bot_decision", "decisions", 1_000_000, bench_bot_decision),
     ];
 
+    benches
+        .into_iter()
+        .filter(|(name, _, _, _)| filter.is_none_or(|filter| name.contains(filter)))
+        .map(|(name, unit, iterations, benchmark)| measure(name, unit, iterations, benchmark))
+        .collect()
+}
+
+fn print_human_summary(results: &[BenchResult]) {
     println!("race_to_n native benchmarks");
-    println!("operation,iterations,unit,elapsed_ms,per_second");
+    println!("operation,iterations,unit,elapsed_ms,per_second,threshold,pass");
     for result in results {
+        let threshold = threshold_for(result.name);
+        let current = result.current_value();
         println!(
-            "{},{},{},{:.3},{:.2}",
+            "{},{},{},{:.3},{:.2},{:.2},{}",
             result.name,
             result.iterations,
             result.unit,
             result.elapsed.as_secs_f64() * 1_000.0,
-            result.per_second()
+            current,
+            threshold.threshold,
+            current >= threshold.threshold
         );
     }
+}
+
+struct ReportMetadata {
+    command: String,
+    os: String,
+    rust_version: String,
+    hardware_environment_notes: String,
+}
+
+impl ReportMetadata {
+    fn new() -> Self {
+        Self {
+            command: env::args().collect::<Vec<_>>().join(" "),
+            os: format!("{} {}", env::consts::OS, env::consts::ARCH),
+            rust_version: rust_version(),
+            hardware_environment_notes:
+                "Local native benchmark run; no CPU pinning, thermal isolation, or hardware probe."
+                    .to_owned(),
+        }
+    }
+}
+
+fn rust_version() -> String {
+    Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+fn benchmark_report_json(metadata: &ReportMetadata, results: &[BenchResult]) -> String {
+    let operations = results
+        .iter()
+        .map(operation_json)
+        .collect::<Vec<_>>()
+        .join(",\n    ");
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema_version\": {},\n",
+            "  \"game_id\": \"{}\",\n",
+            "  \"rules_version\": \"race_to_n-rules-v{}\",\n",
+            "  \"data_version\": \"{}\",\n",
+            "  \"engine_version\": \"{}\",\n",
+            "  \"build_profile\": \"{}\",\n",
+            "  \"command\": \"{}\",\n",
+            "  \"os\": \"{}\",\n",
+            "  \"rust_version\": \"{}\",\n",
+            "  \"hardware_environment_notes\": \"{}\",\n",
+            "  \"known_caveats\": [\"WSL2 and local workstation runs can be noisy; bench-report owns threshold gating.\"],\n",
+            "  \"operations\": [\n",
+            "    {}\n",
+            "  ]\n",
+            "}}"
+        ),
+        REPORT_SCHEMA_VERSION,
+        GAME_ID,
+        RULES_VERSION,
+        DATA_VERSION,
+        ENGINE_VERSION,
+        BUILD_PROFILE,
+        escape_json(&metadata.command),
+        escape_json(&metadata.os),
+        escape_json(&metadata.rust_version),
+        escape_json(&metadata.hardware_environment_notes),
+        operations
+    )
+}
+
+fn operation_json(result: &BenchResult) -> String {
+    let threshold = threshold_for(result.name);
+    let current = result.current_value();
+    format!(
+        concat!(
+            "{{\"operation_name\":\"{}\",",
+            "\"iterations\":{},",
+            "\"unit\":\"{}\",",
+            "\"current_value\":{:.2},",
+            "\"threshold\":{:.2},",
+            "\"pass\":{},",
+            "\"rationale_class\":\"{}\",",
+            "\"known_caveats\":\"{}\"}}"
+        ),
+        result.name,
+        result.iterations,
+        threshold.unit,
+        current,
+        threshold.threshold,
+        current >= threshold.threshold,
+        threshold.rationale_class,
+        escape_json(threshold.caveat)
+    )
+}
+
+fn threshold_for(operation: &str) -> Threshold {
+    THRESHOLDS
+        .iter()
+        .copied()
+        .find(|threshold| threshold.operation == operation)
+        .unwrap_or_else(|| panic!("missing threshold for operation `{operation}`"))
+}
+
+fn escape_json(input: &str) -> String {
+    input.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 fn measure(

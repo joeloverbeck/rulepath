@@ -5,7 +5,7 @@
 - Spec ID: `gate-2-trace-replay-benchmark-hardening`
 - Roadmap stage: 1 hardening / repository discipline after Gate 1
 - Roadmap build gate: Gate 2
-- Status: Planned
+- Status: Done
 - Suggested landing path: `specs/gate-2-trace-replay-benchmark-hardening.md`
 - Prepared: 2026-06-05
 - Owner: `joeloverbeck`
@@ -47,9 +47,11 @@ This spec is an implementation plan. It is subordinate to the foundation set in 
 
 This identity uncertainty has since been resolved locally: at reassessment (2026-06-05) `git rev-parse HEAD` on `main` returns the reviewed/manifest commit `b2038fa72d1695b493887b404c92c915a1ff2e6c`, so the spec was prepared against current `main`. If the spec is landed from a different checkout, re-verify `main` HEAD before deriving tickets.
 
-### Current gate finding
+### Planning-time gate finding
 
-Gate 0 and Gate 1 are archived as `Done`. `specs/README.md` lists Gate 2 as `Not started` and not yet specced. Gate 2 is therefore the lowest non-done gate. The correct next spec is:
+At planning time, Gate 0 and Gate 1 were archived as `Done`, and `specs/README.md`
+listed Gate 2 as `Not started` and not yet specced. Gate 2 was therefore the
+lowest non-done gate. The correct next spec was:
 
 `Spec: Gate 2 — Trace, Replay, Fixture, and Benchmark Hardening`
 
@@ -892,8 +894,45 @@ The following are explicitly forbidden in Gate 2:
 | `rule-coverage` is structural only | accepted | Semantic proof remains tests/traces/replay, not doc parsing. |
 | `trace-viewer` is CLI-only in Gate 2 | accepted | Browser replay viewer belongs to Gate 3. |
 
-## Outcome placeholder
+## 13. Done outcome
 
-Status remains `Planned`.
+Status: `Done`
 
-Do not add a `Done` outcome section until Gate 2 implementation passes all exit criteria and acceptance evidence.
+Closeout date: 2026-06-05
+
+Gate 2 exit criteria and acceptance evidence passed. Gate 3 may be planned next,
+but remains a separate spec/work packet.
+
+### Closeout evidence
+
+| Evidence | Command or review | Result |
+|---|---|---|
+| formatting | `cargo fmt --all --check` | pass |
+| lint | `cargo clippy --workspace --all-targets -- -D warnings` | pass |
+| workspace tests | `cargo test --workspace` | pass |
+| game tests | `cargo test -p race_to_n` | pass |
+| replay check | `cargo run -p replay-check -- --game race_to_n --all` | pass: all five Trace Schema v1 golden traces replayed |
+| corrupted replay drift | corrupted `/tmp/rulepath-capstone-corrupt-trace.json` then `cargo run -p replay-check -- --game race_to_n --trace /tmp/rulepath-capstone-corrupt-trace.json` | expected fail: state hash drift reported non-zero |
+| fixture check | `cargo run -p fixture-check -- --game race_to_n` | pass |
+| malformed fixture | malformed `/tmp/rulepath-capstone-malformed.trace.json` then `cargo run -p fixture-check -- --game race_to_n --trace /tmp/rulepath-capstone-malformed.trace.json` | expected fail: malformed trace JSON object |
+| rule coverage | `cargo run -p rule-coverage -- --game race_to_n` | pass |
+| rule-coverage drift cases | `cargo test -p rule-coverage` | pass: deleted row, unknown ID, blank evidence, and missing rationale tests cover drift rejection |
+| quick simulation | `cargo run -p simulate -- --game race_to_n --games 1000` | pass: 1000 games, average length 10.90 |
+| injected simulation failure report | `cargo run -p simulate -- --game race_to_n --games 1 --start-seed 7 --action-cap 64 --inject-failure-seed 7 --failure-report-out /tmp/rulepath-capstone-failure.json` | expected fail: machine-readable report written with seed, hashes, command stream, and failure reason |
+| seed-reducer failure-report mode | `cargo run -p seed-reducer -- --game race_to_n --failure-report /tmp/rulepath-capstone-failure.json` | pass: normalized simulate command emitted; minimization honestly marked unavailable |
+| seed-reducer trace reproducer | `cargo run -p seed-reducer -- --game race_to_n --seed 9 --commands seat_0:add-1,seat_1:add-2` | pass: Trace Schema v1 reproducer emitted |
+| generated reproducer fixture validation | `cargo run -p fixture-check -- --game race_to_n --trace /tmp/rulepath-capstone-seed-reducer-trace.json` | pass |
+| generated reproducer replay validation | `cargo run -p replay-check -- --game race_to_n --trace /tmp/rulepath-capstone-seed-reducer-trace.json` | pass |
+| benchmark report | `cargo bench -p race_to_n \| tee /tmp/rulepath-capstone-benchmark-report.txt` | pass: structured marked JSON report produced |
+| benchmark threshold gate | `cargo run -p bench-report -- --input /tmp/rulepath-capstone-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json` | pass: 8 operations above thresholds |
+| benchmark threshold miss | temporary `/tmp/rulepath-capstone-too-high-thresholds.json` then `cargo run -p bench-report -- --input /tmp/rulepath-capstone-benchmark-report.txt --thresholds /tmp/rulepath-capstone-too-high-thresholds.json` | expected fail: `random_playout` below threshold reported non-zero |
+| Stage-1 playout decision | `random_playout` in `/tmp/rulepath-capstone-benchmark-report.txt` plus `docs/adr/0001-stage-1-random-playout-budget.md` | pass: 110,346.71 games/sec vs accepted 100,000 games/sec floor |
+| focused benchmark smoke | `cargo bench -p race_to_n -- legal_actions` | pass |
+| engine boundary | `bash scripts/boundary-check.sh` | pass |
+| WASM smoke | `npm --prefix apps/web run smoke:wasm` | pass |
+| web build | `npm --prefix apps/web run build` | pass |
+| UI smoke | `npm --prefix apps/web run smoke:ui` | pass |
+| docs links | `node scripts/check-doc-links.mjs` | pass |
+| no YAML / no legacy traces | `find games/race_to_n docs reports -name '*.yml' -o -name '*.yaml' -o -name '*.trace'` | pass: no results |
+| private/licensed content review | `rg -n "private licensed\|licensed private\|proprietary\|copyright\|scan\|font\|asset" games/race_to_n docs/TRACE-SCHEMA-v1.md docs/TESTING-REPLAY-BENCHMARKING.md` | pass: hits are policy/source-review text documenting no copied/private content |
+| whitespace | `git diff --check` | pass |

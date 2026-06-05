@@ -45,8 +45,23 @@ jobs:
       - name: race_to_n quick simulation
         run: cargo run -p simulate -- --game race_to_n --games 1000
 
+      - name: Gate 2 replay drift check
+        run: cargo run -p replay-check -- --game race_to_n --all
+
+      - name: Gate 2 fixture validation
+        run: cargo run -p fixture-check -- --game race_to_n
+
+      - name: Gate 2 rule coverage drift check
+        run: cargo run -p rule-coverage -- --game race_to_n
+
       - name: race_to_n bench smoke
         run: cargo bench -p race_to_n -- legal_actions
+
+      - name: Gate 2 benchmark threshold check
+        run: |
+          set -euo pipefail
+          cargo bench -p race_to_n | tee /tmp/race_to_n-benchmark-report.txt
+          cargo run -p bench-report -- --input /tmp/race_to_n-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
