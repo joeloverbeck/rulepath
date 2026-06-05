@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[dependencies]
+engine-core = { path = "../../crates/engine-core" }
+race_to_n = { path = "../../games/race_to_n" }
+
 [[bin]]
 name = "replay-check"
 path = "src/main.rs"

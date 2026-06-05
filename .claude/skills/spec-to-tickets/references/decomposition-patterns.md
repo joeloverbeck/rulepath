@@ -30,6 +30,8 @@ Most deliverables get their own ticket. These categories are exempt from per-del
 
 ## Ticket shapes
 
+**Trailing-shape co-occurrence**: a single spec closeout deliverable often bundles docs-finalization **and** exit-evidence; split it into both shapes below — a cross-cutting docs ticket (Deps = the surface-citing implementation tickets) plus a capstone (Deps = the leaf set, including the docs ticket). The `Done`-status flip (spec Status → `Done` and the `specs/README.md` index row) defaults to the **capstone**, since it is gated on exit evidence passing; the docs ticket carries doc content and any earlier `Planned` update, not the completion flip — unless the spec's §Documentation-updates assigns the index flip to the docs ticket, in which case the §Cross-cutting docs ticket `Deps: <capstone>` exception applies.
+
 ### Capstone integration ticket
 
 A single trailing ticket whose scope IS the spec's §Exit criteria / §Acceptance evidence, exercising every prior implementation ticket end-to-end. It introduces no new production logic; it exercises the pipeline the earlier tickets composed.
@@ -42,7 +44,7 @@ A single trailing ticket whose scope IS the spec's §Exit criteria / §Acceptanc
 
 ### Cross-cutting docs ticket
 
-A single trailing ticket whose Files to Touch are markdown docs (READMEs, architectural docs, skill reference files, the `specs/README.md` index status flip) that must land atomically once all upstream implementation tickets ship.
+A single trailing ticket whose Files to Touch are markdown docs (READMEs, architectural docs, skill reference files, `specs/README.md` index updates — see the §Ticket shapes `Done`-flip default) that must land atomically once all upstream implementation tickets ship.
 
 - One Files-to-Touch entry per docs surface the deliverable names.
 - Acceptance criteria as grep-proofs against the post-implementation tree (exact-string matches for new/renamed symbols, count assertions for status-line updates).

@@ -1,4 +1,4 @@
-name: CI
+name: Gate 1 game smoke
 
 on:
   pull_request:
@@ -7,8 +7,8 @@ on:
       - main
 
 jobs:
-  smoke:
-    name: Gate 0 + Gate 1 smoke
+  game-smoke:
+    name: Simulation, replay, fixtures, boundary, web, docs
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -27,26 +27,17 @@ jobs:
       - name: Install web dependencies
         run: npm --prefix apps/web ci
 
-      - name: Rust format
-        run: cargo fmt --all --check
-
-      - name: Rust lint
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - name: Rust build
-        run: cargo build --workspace
-
-      - name: Rust tests
-        run: cargo test --workspace
-
-      - name: race_to_n rule, golden, replay, and serialization tests
-        run: cargo test -p race_to_n
-
       - name: race_to_n quick simulation
         run: cargo run -p simulate -- --game race_to_n --games 1000
 
-      - name: race_to_n bench smoke
-        run: cargo bench -p race_to_n -- legal_actions
+      - name: Replay drift check
+        run: cargo run -p replay-check -- --game race_to_n --all
+
+      - name: Fixture validation
+        run: cargo run -p fixture-check -- --game race_to_n
+
+      - name: Rule coverage drift check
+        run: cargo run -p rule-coverage -- --game race_to_n
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh

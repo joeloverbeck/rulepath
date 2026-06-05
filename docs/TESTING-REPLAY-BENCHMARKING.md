@@ -38,29 +38,50 @@ Rule tests live in Rust first. UI smoke tests do not replace rule tests.
 
 ## 3. Golden traces
 
-Golden traces are executable historical evidence. They SHOULD include:
+Golden traces are executable historical evidence. Trace Schema v1 is defined in
+[TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md). That document is the canonical field
+authority for trace JSON and replay fixtures; this section states testing
+doctrine only.
+
+Trace Schema v1 includes:
 
 ```text
+schema_version
+trace_id
+fixture_kind
+purpose
+note
+migration_update_note
 game_id
 rules_version
 engine_version
 data_version
-schema_version
 seed
-seats/options/variant
-action_stream
+variant
+options
+seats
+commands
 checkpoints
 expected_state_hashes
 expected_effect_hashes
-expected_legal_action_hashes
-expected_public_view_hashes for selected viewers
-notes explaining why the trace exists
-migration/update note when changed
+expected_action_tree_hashes
+expected_public_view_hashes
+expected_private_view_hashes when applicable
+expected_diagnostics when applicable
+expected_outcome
+expected_terminal_state
+not_applicable
 ```
 
 Update golden traces only when rule behavior, effect contracts, view projection, serialization, hash format, or trace format intentionally changes. The update note MUST explain why.
 
 Golden trace drift without explanation is a failure, not noise.
+
+`fixture-check` owns structural Trace Schema v1 validation, static-data version
+checks, migration/update-note enforcement, and fixture hygiene. `replay-check`
+owns executing trace setup/options/commands through the game's Rust behavior and
+comparing replay surfaces against expected hashes. `trace-viewer` is a
+viewer-safe triage aid for humans; it is not rule authority.
 
 ## 4. Replay determinism
 
@@ -149,6 +170,28 @@ state/effect/view hash at failure
 failure reason
 replay command
 ```
+
+## 7.1 Seed reduction
+
+Seed reduction starts as an honest reproducer normalizer, not a fuzzing framework.
+
+`seed-reducer` v0 MUST:
+
+- consume `simulate` machine-readable failure reports;
+- accept explicit seed plus command-stream input;
+- preserve the exact seed, variant/options, command stream, hashes, and failure reason;
+- emit a normalized replay/simulation command;
+- emit a Trace Schema v1 reproducer when enough command-stream context exists;
+- state that minimization is unavailable when no failure predicate is supplied.
+
+`seed-reducer` MUST NOT claim delta-debugging, fuzzing, shrinking, or minimization
+when it only normalized a reproducer. Bounded prefix minimization MAY be added only
+when the tool has an explicit failure predicate it can rerun deterministically.
+
+Simulation failure reports SHOULD be machine-readable and stable enough for
+`seed-reducer` to preserve the exact seed, command stream, failure reason, and
+replay command. Human failure text may be helpful, but it does not replace the
+machine-readable reproducer contract.
 
 ## 8. Visibility and no-leak tests
 
@@ -267,11 +310,11 @@ Do not optimize without a benchmark target. Do not claim performance without ben
 
 ## 15. Provisional performance budgets
 
-Initial native targets, to be replaced by measured baselines:
+Initial native targets, to be replaced by measured baselines or accepted ADRs:
 
 | Stage | Example | Native target |
 |---:|---|---:|
-| 1 | `race_to_n` / Nim | 500,000+ games/sec |
+| 1 | `race_to_n` / Nim | 100,000+ validated random playouts/sec; accepted by [ADR 0001](adr/0001-stage-1-random-playout-budget.md) |
 | 2 | `three_marks` | 300,000+ games/sec |
 | 3 | `column_four` | 100,000+ games/sec |
 | 4 | `directional_flip` | 30,000+ games/sec |
@@ -291,7 +334,16 @@ Public latency targets:
 | authored policy bot | under 250 ms | under 500 ms with UI thinking feedback |
 | replay step | smooth at 1x | no dropped UI events in stepped mode |
 
-If a game exceeds budget, document why and create benchmark work. Do not hide unknown performance.
+Gate 2 treats accepted per-game benchmark budgets as binding. Benchmark threshold
+failures are hard failures; if a game exceeds budget, document why, create
+benchmark work, and keep the failing threshold visible. Do not hide unknown
+performance.
+
+Threshold enforcement runs on the scheduled / manual / `main`-push benchmark
+lane, not on pull requests. Pull requests run a non-gating benchmark smoke
+because shared CI runners are not a valid throughput-gating environment. See
+[ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). This relocates enforcement; it
+does not weaken any threshold value.
 
 ## 16. Benchmark report contents
 
@@ -312,6 +364,14 @@ known bottlenecks
 comparison to prior release
 ```
 
+Machine-readable benchmark reports SHOULD also include pass/fail threshold
+results for each stable operation name. Human summaries may explain caveats, but
+they do not replace the threshold result.
+
+For Gate 2 benchmark gates, `bench-report` owns threshold enforcement. It MUST
+fail non-zero when a stable operation falls below its committed threshold, and
+CI MUST treat that failure as blocking.
+
 ## 17. CI expectations
 
 CI SHOULD run:
@@ -324,10 +384,20 @@ CI SHOULD run:
 - serialization tests;
 - visibility/no-leak tests;
 - quick simulations;
+- fixture/static-data validation;
+- replay drift checks;
+- rule-coverage drift checks;
 - static data validation;
 - docs link checks where practical;
 - WASM build smoke;
 - UI smoke for exposed games.
+
+Gate 2 benchmark-report threshold checks MUST hard-fail the scheduled / manual /
+`main`-push benchmark lane when required thresholds fail, including the accepted
+Stage 1 `race_to_n` threshold recorded in
+[ADR 0001](adr/0001-stage-1-random-playout-budget.md). Pull requests run a
+non-gating benchmark smoke instead; the lane split is defined in
+[ADR 0002](adr/0002-ci-benchmark-gating-lanes.md).
 
 Full fuzzing and expensive benchmarks MAY run nightly or manually.
 

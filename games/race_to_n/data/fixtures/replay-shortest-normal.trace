@@ -1,2 +1,0 @@
-source=tests/golden_traces/shortest-normal.trace
-purpose=replay fixture seed for GAT1RACTON-008 shortest normal trace

@@ -45,24 +45,53 @@ Do not optimize without benchmark evidence. Do not accept regressions without ra
 
 | Benchmark/smoke | Command | Environment | Notes |
 |---|---|---|---|
-| full native benchmark set | `cargo bench -p race_to_n` | native | Runs `games/race_to_n/benches/race_to_n.rs` with `harness = false`. |
-| single-case smoke | `cargo bench -p race_to_n -- legal_actions` | native | Cargo resolves the same bench target; the custom harness still prints the full native table. |
+| full native benchmark set | `cargo bench -p race_to_n` | native | Runs `games/race_to_n/benches/race_to_n.rs` with `harness = false` and emits a human table plus marked JSON report. |
+| single-case smoke | `cargo bench -p race_to_n -- legal_actions` | native | Cargo resolves the same bench target; the custom harness prints the filtered human table plus marked JSON report. |
+| threshold gate | `cargo run -p bench-report -- --input <report> --thresholds games/race_to_n/benches/thresholds.json` | native/CI | Hard-fails if any stable operation is below its accepted threshold. |
+
+## Structured report and threshold gate
+
+The custom harness prints a human-readable table and a machine-readable JSON
+block between `BEGIN_RACE_TO_N_BENCHMARK_JSON` and
+`END_RACE_TO_N_BENCHMARK_JSON`.
+
+The JSON report includes schema, game/rules/data/engine versions, build profile,
+command, OS, Rust version, environment caveats, and one row per stable operation:
+`operation_name`, `iterations`, `unit`, `current_value`, `threshold`, `pass`,
+`rationale_class`, and `known_caveats`.
+
+`games/race_to_n/benches/thresholds.json` is the committed threshold authority.
+`tools/bench-report` reads either the marked harness output or the raw JSON block
+and hard-fails when a report value is below the committed threshold. CI wires the
+full native benchmark report into `bench-report`; this is the Gate 2 benchmark
+acceptance surface.
+
+CI runs this gate on two lanes per [ADR 0002](../../../docs/adr/0002-ci-benchmark-gating-lanes.md):
+pull requests run a non-gating bench smoke (`cargo bench -p race_to_n -- legal_actions`,
+no `bench-report`), while the scheduled / manual / `main`-push lane runs the full
+report through `bench-report` and hard-fails. The thresholds below are unchanged;
+only the enforcement lane moved. The thresholds are calibrated from WSL2 native
+runs (see the Current column); the first GitHub `ubuntu-latest` exposure measured
+`random_playout` ~66,058, `serialization_roundtrip` ~195,236, and
+`replay_throughput` ~233,478 games/roundtrips/replays per sec — below the
+WSL2-derived floors — which is why threshold gating does not run on shared PR
+runners.
 
 ## Native benchmark section
 
 | Operation | Target | Baseline | Current | Regression threshold | Status | Notes |
 |---|---:|---:|---:|---:|---|---|
 | setup | no formal Gate 1 target | no previous baseline | covered inside playout/replay setup | 10% from first committed baseline | no standalone baseline | Setup is intentionally included in replay/playout costs for this tiny game. |
-| legal action generation | measured | no previous baseline | 2,198,273.77 trees/sec | 10% from first committed baseline | no previous baseline | `legal_actions`, 1,000,000 iterations. |
+| legal action generation | measured | no previous baseline | 2,229,464.03 trees/sec | 1,000,000 trees/sec hard floor | pass | `legal_actions`, 1,000,000 iterations. |
 | preview generation | not applicable | not applicable | not applicable | not applicable | not applicable | `race_to_n` has no separate preview engine beyond legal action metadata. |
 | validation | measured with apply/replay | no previous baseline | covered inside apply/replay numbers | 10% from first committed baseline | no standalone baseline | Normal validation is executed before every apply and replay step. |
-| apply action/state transition | measured | no previous baseline | 12,797,460.98 actions/sec | 10% from first committed baseline | no previous baseline | `apply_action`, 1,000,000 iterations, includes validation. |
-| public/private view generation | measured | no previous baseline | 76,324,231.13 views/sec | 10% from first committed baseline | no previous baseline | `public_view_generation`; private view is not applicable because the game is perfect information. |
-| effect filtering | measured | no previous baseline | 61,531,645.73 filters/sec | 10% from first committed baseline | no previous baseline | `EffectLog::since` over public effects. |
-| serialization/deserialization | measured | no previous baseline | 314,686.27 roundtrips/sec | 10% from first committed baseline | no previous baseline | `RaceSnapshot::to_json` fixture parsed with `RaceSnapshot::from_json` and hashed. |
-| replay throughput | measured | no previous baseline | 381,794.66 replays/sec | 10% from first committed baseline | no previous baseline | Seven-command deterministic terminal replay. |
-| random playout throughput | 500,000 games/sec Stage-1 budget | no previous baseline | 134,277.09 games/sec | Stage-1 budget plus 10% from first committed baseline | fail vs Stage-1 budget | Below TESTING §15 Stage-1 budget on this WSL2 run. |
-| bot decision latency | measured | no previous baseline | 1,681,023.74 decisions/sec | 10% from first committed baseline | no previous baseline | `RaceRandomBot::select_action` on the initial legal tree. |
+| apply action/state transition | measured | no previous baseline | 13,223,070.56 actions/sec | 5,000,000 actions/sec hard floor | pass | `apply_action`, 1,000,000 iterations, includes validation. |
+| public/private view generation | measured | no previous baseline | 79,694,610.25 views/sec | 10,000,000 views/sec hard floor | pass | `public_view_generation`; private view is not applicable because the game is perfect information. |
+| effect filtering | measured | no previous baseline | 68,173,296.52 filters/sec | 10,000,000 filters/sec hard floor | pass | `EffectLog::since` over public effects. |
+| serialization/deserialization | measured | no previous baseline | 316,309.13 roundtrips/sec | 200,000 roundtrips/sec hard floor | pass | `RaceSnapshot::to_json` fixture parsed with `RaceSnapshot::from_json` and hashed. |
+| replay throughput | measured | no previous baseline | 396,321.82 replays/sec | 250,000 replays/sec hard floor | pass | Seven-command deterministic terminal replay. |
+| random playout throughput | 100,000 games/sec accepted Stage-1 validated-playout floor | no previous baseline | 109,870.94 games/sec full report | 100,000 games/sec hard floor from ADR 0001 | pass | ADR 0001 recalibrates the provisional 500,000 target after profiling the full correctness-preserving harness. |
+| bot decision latency | measured | no previous baseline | 1,736,308.07 decisions/sec | 1,000,000 decisions/sec hard floor | pass | `RaceRandomBot::select_action` on the initial legal tree. |
 | candidate extraction if Level 2 | not applicable | not applicable | not applicable | not applicable | not applicable | Gate 1 bot is Level 0 random legal only. |
 | hidden-info view filtering if applicable | not applicable | not applicable | not applicable | not applicable | not applicable | `race_to_n` has no hidden state. |
 
@@ -98,21 +127,21 @@ Do not optimize without benchmark evidence. Do not accept regressions without ra
 
 | Bottleneck | Evidence | Affected operation | Planned response | Requires ADR/ledger? |
 |---|---|---|---|---:|
-| Random playout below Stage-1 budget | `random_playout` = 134,277.09 games/sec vs 500,000 games/sec target | random playout throughput | Track as Gate 1 perf follow-up; do not optimize without a targeted benchmark/profile. | no |
+| Random playout provisional target mismatch | `random_playout` measured around 108,000-140,000 validated games/sec vs the old 500,000 games/sec provisional target | random playout throughput | ADR 0001 accepts 100,000 games/sec as the Gate 2 hard floor for the correctness-preserving harness. | yes |
 | Snapshot JSON parsing dominates serialization row | `serialization_roundtrip` = 314,686.27 roundtrips/sec, slower than view/apply rows | serialization/deserialization | Keep as baseline unless replay/storage usage proves this hot. | no |
 
 ## Comparison to previous release
 
 | Operation | Previous | Current | Change | Accept? | Rationale |
 |---|---:|---:|---:|---:|---|
-| legal action generation | no previous baseline | 2,198,273.77 trees/sec | not applicable | yes | First benchmark report. |
-| apply action/state transition | no previous baseline | 12,797,460.98 actions/sec | not applicable | yes | First benchmark report. |
-| public/private view generation | no previous baseline | 76,324,231.13 views/sec | not applicable | yes | First benchmark report. |
-| effect filtering | no previous baseline | 61,531,645.73 filters/sec | not applicable | yes | First benchmark report. |
-| serialization/deserialization | no previous baseline | 314,686.27 roundtrips/sec | not applicable | yes | First benchmark report. |
-| replay throughput | no previous baseline | 381,794.66 replays/sec | not applicable | yes | First benchmark report. |
-| random playout throughput | no previous baseline | 134,277.09 games/sec | not applicable | no vs Stage-1 budget | First benchmark report, but below the stated Stage-1 target. |
-| bot decision latency | no previous baseline | 1,681,023.74 decisions/sec | not applicable | yes | First benchmark report. |
+| legal action generation | no previous baseline | 2,229,464.03 trees/sec | not applicable | yes | First Gate 2 structured benchmark report. |
+| apply action/state transition | no previous baseline | 13,223,070.56 actions/sec | not applicable | yes | First Gate 2 structured benchmark report. |
+| public/private view generation | no previous baseline | 79,694,610.25 views/sec | not applicable | yes | First Gate 2 structured benchmark report. |
+| effect filtering | no previous baseline | 68,173,296.52 filters/sec | not applicable | yes | First Gate 2 structured benchmark report. |
+| serialization/deserialization | no previous baseline | 316,309.13 roundtrips/sec | not applicable | yes | First Gate 2 structured benchmark report. |
+| replay throughput | no previous baseline | 396,321.82 replays/sec | not applicable | yes | First Gate 2 structured benchmark report. |
+| random playout throughput | no previous baseline | 109,870.94 games/sec full report | not applicable | yes vs accepted 100,000 floor | ADR 0001 recalibrates the provisional target to match validated playout evidence. |
+| bot decision latency | no previous baseline | 1,736,308.07 decisions/sec | not applicable | yes | First Gate 2 structured benchmark report. |
 
 ## Trace/data/hash compatibility notes
 
@@ -128,7 +157,7 @@ Do not optimize without benchmark evidence. Do not accept regressions without ra
 
 | Regression | Amount | Accepted? | Rationale | Follow-up |
 |---|---:|---:|---|---|
-| Stage-1 random playout budget miss | 134,277.09 current vs 500,000 target | no | This is a miss against the target, not an accepted regression. | Reassess in Gate 1 closeout or create a perf follow-up before claiming Stage-1 budget met. |
+| Stage-1 random playout budget recalibration | 109,870.94 full-report current vs 100,000 accepted threshold | yes | ADR 0001 replaces the provisional 500,000 target for validated random playouts after profiling showed the old target did not match the correctness-preserving harness. | Keep `bench-report` hard-failing below 100,000 games/sec. |
 
 Regressions accepted for public polish, correctness, visibility safety, replay compatibility, or accessibility MUST be explicit. Silent regressions are not allowed.
 
@@ -136,7 +165,7 @@ Regressions accepted for public polish, correctness, visibility safety, replay c
 
 | TODO | Blocks public release? | Required evidence | Owner |
 |---|---:|---|---|
-| Resolve or explicitly waive Stage-1 random playout budget miss | yes for claiming Stage-1 budget met | `random_playout` at or above 500,000 games/sec, or an approved doctrine/spec adjustment | Gate 1 closeout |
+| Maintain accepted Stage-1 random playout threshold | yes for Gate 2 benchmark gating | `random_playout` at or above 100,000 games/sec under `cargo bench -p race_to_n`, enforced by `bench-report` | Gate 2 |
 | Add WASM/browser smoke benchmarks once the browser surface exists | no for this native ticket; yes before public web release | Browser smoke report for load, view/action tree, apply, bot turn, and render/effects | GAT1RACTON-011/012 follow-up |
 
 ## Review checklist

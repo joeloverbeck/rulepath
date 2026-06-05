@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "trace_id": "bot-action",
+  "fixture_kind": "bot",
+  "purpose": "bot_action_replay",
+  "note": "Level 0 random legal bot choice from a deterministic seed binds bot RNG selection to normal validation.",
+  "migration_update_note": "Migrated from legacy key-value bot-action.trace to Trace Schema v1 JSON; expected hashes are unchanged.",
+  "game_id": "race_to_n",
+  "rules_version": "race_to_n-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "race_to_21",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    {
+      "index": 0,
+      "actor_seat": "seat-0",
+      "action_path": ["add-1"],
+      "freshness_token": "1",
+      "expect": "applied",
+      "producer": {
+        "bot_policy": "random_legal",
+        "bot_policy_version": "level-0",
+        "bot_seed": 7
+      }
+    }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 0 }
+  ],
+  "expected_state_hashes": { "final": 4954817074678372285 },
+  "expected_effect_hashes": { "final": 2696394215910361352 },
+  "expected_action_tree_hashes": { "final": 8451402319224114161 },
+  "expected_public_view_hashes": { "all": 3154950469214524667 },
+  "expected_private_view_hashes": {
+    "not_applicable": "race_to_n is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null },
+  "expected_terminal_state": { "terminal": false, "winner": null },
+  "not_applicable": {
+    "hidden_information": "race_to_n is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "race_to_n game rules use no randomness; bot RNG is recorded in producer metadata for this trace.",
+    "private_view_hashes": "race_to_n has no private-view API.",
+    "preview_hashes": "race_to_n has no Rust preview surface in Gate 2."
+  }
+}

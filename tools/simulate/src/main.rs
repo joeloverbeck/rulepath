@@ -1,4 +1,4 @@
-use std::{env, process, time::Instant};
+use std::{env, fs, path::PathBuf, process, time::Instant};
 
 use engine_core::{
     Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
@@ -12,6 +12,7 @@ use race_to_n::{
 const GAME_ID: &str = "race_to_n";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
+const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DEFAULT_GAMES: u64 = 1_000;
 const DEFAULT_ACTION_CAP: usize = 64;
 const BOT_POLICY_VERSION: &str = "race_to_n-random-legal-v1";
@@ -33,6 +34,7 @@ struct Config {
     start_seed: u64,
     action_cap: usize,
     inject_failure_seed: Option<u64>,
+    failure_report_out: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -43,6 +45,7 @@ impl Default for Config {
             start_seed: 0,
             action_cap: DEFAULT_ACTION_CAP,
             inject_failure_seed: None,
+            failure_report_out: None,
         }
     }
 }
@@ -115,6 +118,12 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
             "--inject-failure-seed" => {
                 config.inject_failure_seed = Some(parse_u64(&mut args, "--inject-failure-seed")?)
             }
+            "--failure-report-out" => {
+                config.failure_report_out = Some(PathBuf::from(parse_value(
+                    &mut args,
+                    "--failure-report-out",
+                )?))
+            }
             _ => return Err(format!("unknown argument: {arg}\n\n{}", help_text())),
         }
     }
@@ -155,7 +164,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 fn help_text() -> String {
     format!(
         "simulate 0.1.0\n\
-         Usage: simulate --game {GAME_ID} [--games N] [--start-seed N] [--action-cap N]\n\
+         Usage: simulate --game {GAME_ID} [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
     )
 }
@@ -175,7 +184,17 @@ fn run_simulation(config: Config) -> Result<String, String> {
                     RaceSeat::Seat1 => summary.seat_1_wins += 1,
                 }
             }
-            Err(failure) => return Err(format_failure(&failure)),
+            Err(failure) => {
+                if let Some(path) = &config.failure_report_out {
+                    fs::write(path, failure_report_json(&config, &failure)).map_err(|error| {
+                        format!(
+                            "failed to write failure report `{}`: {error}\n",
+                            path.display()
+                        )
+                    })?;
+                }
+                return Err(format_failure(&failure));
+            }
         }
     }
 
@@ -487,6 +506,69 @@ fn format_failure(failure: &SimulationFailure) -> String {
     )
 }
 
+fn failure_report_json(config: &Config, failure: &SimulationFailure) -> String {
+    let commands = failure
+        .command_stream
+        .iter()
+        .map(|command| format!("\"{}\"", escape_json(command)))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        concat!(
+            "{{\n",
+            "  \"schema_version\": 1,\n",
+            "  \"report_kind\": \"simulation_failure\",\n",
+            "  \"game_id\": \"{}\",\n",
+            "  \"rules_version\": \"race_to_n-rules-v{}\",\n",
+            "  \"data_version\": \"{}\",\n",
+            "  \"engine_version\": \"{}\",\n",
+            "  \"seed\": {},\n",
+            "  \"start_seed\": {},\n",
+            "  \"games_requested\": {},\n",
+            "  \"options\": {{\"variant\": \"race_to_21\", \"action_cap\": {}}},\n",
+            "  \"variant\": \"race_to_21\",\n",
+            "  \"bot_policy_versions\": [\"{}\"],\n",
+            "  \"turn_index\": {},\n",
+            "  \"action_index\": {},\n",
+            "  \"actor\": \"{}\",\n",
+            "  \"chosen_action_path\": \"{}\",\n",
+            "  \"command_stream\": [{}],\n",
+            "  \"state_hash\": \"{}\",\n",
+            "  \"effect_hash\": \"{}\",\n",
+            "  \"view_hash\": \"{}\",\n",
+            "  \"failure_reason\": \"{}\",\n",
+            "  \"replay_command\": \"{}\"\n",
+            "}}\n"
+        ),
+        GAME_ID,
+        RULES_VERSION,
+        DATA_VERSION,
+        ENGINE_VERSION,
+        failure.seed,
+        config.start_seed,
+        config.games,
+        failure.action_cap,
+        BOT_POLICY_VERSION,
+        failure.turn_index,
+        failure.action_index,
+        escape_json(&failure.actor),
+        escape_json(&failure.chosen_action_path),
+        commands,
+        failure.state_hash.0,
+        failure.effect_hash.0,
+        failure.view_hash.0,
+        escape_json(&failure.failure_reason),
+        escape_json(&format!(
+            "cargo run -p simulate -- --game {GAME_ID} --games 1 --start-seed {} --action-cap {}",
+            failure.seed, failure.action_cap
+        ))
+    )
+}
+
+fn escape_json(input: &str) -> String {
+    input.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -520,5 +602,30 @@ mod tests {
         assert!(error.contains(
             "replay_command=cargo run -p simulate -- --game race_to_n --games 1 --start-seed 7 --action-cap 64"
         ));
+    }
+
+    #[test]
+    fn failure_report_json_carries_seed_reducer_contract_fields() {
+        let config = Config {
+            games: 1,
+            start_seed: 7,
+            inject_failure_seed: Some(7),
+            ..Config::default()
+        };
+        let failure = run_one_game(&config, 7).expect_err("injected failure");
+        let report = failure_report_json(&config, &failure);
+
+        assert!(report.contains("\"report_kind\": \"simulation_failure\""));
+        assert!(report.contains("\"game_id\": \"race_to_n\""));
+        assert!(report.contains("\"rules_version\": \"race_to_n-rules-v1\""));
+        assert!(report.contains("\"engine_version\": \"engine-core-0.1.0\""));
+        assert!(report.contains("\"seed\": 7"));
+        assert!(report.contains("\"variant\": \"race_to_21\""));
+        assert!(report.contains("\"command_stream\""));
+        assert!(report.contains("\"state_hash\""));
+        assert!(report.contains("\"effect_hash\""));
+        assert!(report.contains("\"view_hash\""));
+        assert!(report.contains("\"failure_reason\": \"injected failure\""));
+        assert!(report.contains("\"replay_command\""));
     }
 }

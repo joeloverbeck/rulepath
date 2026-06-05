@@ -1,0 +1,41 @@
+name: Gate 2 benchmarks
+
+# Benchmark lanes (see docs/adr/0002-ci-benchmark-gating-lanes.md):
+# - pull_request runs a non-gating bench smoke (compile + run, no thresholds),
+#   because shared GitHub runners are not a valid throughput-gating environment.
+# - schedule / workflow_dispatch / push-to-main run the hard-failing threshold
+#   gate via bench-report against games/race_to_n/benches/thresholds.json.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  bench-smoke:
+    name: Bench smoke (non-gating)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: race_to_n bench smoke
+        run: cargo bench -p race_to_n -- legal_actions
+
+  bench-gate:
+    name: Benchmark threshold gate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run benchmarks and enforce thresholds
+        run: |
+          set -euo pipefail
+          cargo bench -p race_to_n | tee /tmp/race_to_n-benchmark-report.txt
+          cargo run -p bench-report -- --input /tmp/race_to_n-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json

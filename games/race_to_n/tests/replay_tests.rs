@@ -1,17 +1,14 @@
-use engine_core::{
-    ActionPath, ActionTree, CommandEnvelope, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
-};
-use race_to_n::{
-    apply_action, legal_action_tree, project_view, setup_match, validate_command, RaceEffect,
-    RaceRandomBot, RaceSnapshot, RaceState, SetupOptions,
-};
+use engine_core::HashValue;
+use race_to_n::replay_support::{replay_bot_action, replay_commands, replay_invalid};
 
 #[derive(Debug)]
 struct TraceFixture {
     id: String,
     kind: String,
     note: String,
+    migration_update_note: String,
+    game_id: String,
+    rules_version: String,
     seed: u64,
     commands: Vec<String>,
     bot_seed: Option<u64>,
@@ -24,222 +21,173 @@ struct TraceFixture {
     expected_diagnostic_hash: Option<u64>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct ReplayHashes {
-    state_hash: HashValue,
-    effect_hash: HashValue,
-    action_tree_hash: HashValue,
-    view_hash: HashValue,
-    diagnostic_hash: Option<HashValue>,
-    outcome: Option<race_to_n::RaceSeat>,
-}
+fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {
+    assert_eq!(number_field(input, "schema_version"), 1);
+    assert_eq!(string_field(input, "variant"), "race_to_21");
+    assert!(input.contains("\"not_applicable\""));
+    assert!(input.contains("\"hidden_information\""));
+    assert!(input.contains("\"stochastic_game_events\""));
 
-fn seats() -> Vec<SeatId> {
-    vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())]
-}
-
-fn actor_for_state(state: &RaceState) -> engine_core::Actor {
-    engine_core::Actor {
-        seat_id: state.seats[state.active_seat.index()].clone(),
+    let kind = string_field(input, "fixture_kind");
+    let commands = action_paths(input);
+    TraceFixture {
+        id: string_field(input, "trace_id"),
+        kind,
+        note: string_field(input, "note"),
+        migration_update_note: string_field(input, "migration_update_note"),
+        game_id: string_field(input, "game_id"),
+        rules_version: string_field(input, "rules_version"),
+        seed: number_field(input, "seed"),
+        bot_seed: optional_number_field(input, "bot_seed"),
+        invalid_command: command_with_expect(input, "invalid_action"),
+        stale_command: command_with_expect(input, "stale_action"),
+        expected_state_hash: final_hash(input, "expected_state_hashes"),
+        expected_effect_hash: final_hash(input, "expected_effect_hashes"),
+        expected_action_tree_hash: final_hash(input, "expected_action_tree_hashes"),
+        expected_view_hash: public_view_hash(input),
+        expected_diagnostic_hash: optional_diagnostic_hash(input),
+        commands,
     }
 }
 
-fn command_for_state(state: &RaceState, segment: String) -> CommandEnvelope {
-    CommandEnvelope {
-        actor: actor_for_state(state),
-        action_path: ActionPath {
-            segments: vec![segment],
-        },
-        freshness_token: state.freshness_token,
-        rules_version: RulesVersion(1),
+fn string_field(input: &str, key: &str) -> String {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    parse_string_at(input, start).unwrap_or_else(|| panic!("field `{key}` must be a string"))
+}
+
+fn optional_number_field(input: &str, key: &str) -> Option<u64> {
+    let needle = format!("\"{key}\":");
+    input.find(&needle).map(|start| {
+        parse_number_at(input, start + needle.len())
+            .unwrap_or_else(|| panic!("field `{key}` must be a number"))
+    })
+}
+
+fn number_field(input: &str, key: &str) -> u64 {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    parse_number_at(input, start).unwrap_or_else(|| panic!("field `{key}` must be a number"))
+}
+
+fn final_hash(input: &str, section: &str) -> u64 {
+    let section_body = object_body(input, section);
+    number_field(&section_body, "final")
+}
+
+fn public_view_hash(input: &str) -> u64 {
+    let section_body = object_body(input, "expected_public_view_hashes");
+    number_field(&section_body, "all")
+}
+
+fn optional_diagnostic_hash(input: &str) -> Option<u64> {
+    input.find("\"expected_diagnostics\":").map(|start| {
+        let tail = &input[start..];
+        number_field(tail, "hash")
+    })
+}
+
+fn action_paths(input: &str) -> Vec<String> {
+    let mut commands = Vec::new();
+    let mut remaining = input;
+    while let Some(offset) = remaining.find("\"action_path\":") {
+        remaining = &remaining[offset + "\"action_path\":".len()..];
+        let open = remaining.find('[').expect("action_path must be an array");
+        let close = remaining[open..]
+            .find(']')
+            .expect("action_path array must close")
+            + open;
+        commands.push(parse_first_array_string(&remaining[open + 1..close]));
+        remaining = &remaining[close + 1..];
     }
+    commands
 }
 
-fn replay_commands(seed: u64, commands: &[String]) -> ReplayHashes {
-    let mut state = setup_match(Seed(seed), &seats(), &SetupOptions::default()).unwrap();
-    let mut effects = Vec::new();
-
-    for segment in commands {
-        let command = command_for_state(&state, segment.clone());
-        let action = validate_command(&state, &command).expect("trace command validates");
-        effects.extend(apply_action(&mut state, action));
-    }
-
-    hashes_for_state(&state, &effects, None)
+fn command_with_expect(input: &str, expected_code: &str) -> Option<String> {
+    input
+        .find(&format!(
+            "\"expected_diagnostic_code\": \"{expected_code}\""
+        ))
+        .map(|code_offset| {
+            let before = &input[..code_offset];
+            let action_offset = before
+                .rfind("\"action_path\":")
+                .expect("diagnostic command has action_path");
+            action_paths(&before[action_offset..])
+                .pop()
+                .expect("diagnostic command action path parses")
+        })
 }
 
-fn replay_bot_action(seed: u64, bot_seed: u64) -> ReplayHashes {
-    let mut state = setup_match(Seed(seed), &seats(), &SetupOptions::default()).unwrap();
-    let bot = RaceRandomBot::new(Seed(bot_seed));
-    let action_path = bot
-        .select_action(&state, state.active_seat)
-        .expect("bot action selected");
-    let command = CommandEnvelope {
-        actor: actor_for_state(&state),
-        action_path,
-        freshness_token: state.freshness_token,
-        rules_version: RulesVersion(1),
-    };
-    let action = validate_command(&state, &command).expect("bot action validates");
-    let effects = apply_action(&mut state, action);
-
-    hashes_for_state(&state, &effects, None)
-}
-
-fn replay_invalid(seed: u64, invalid: &str, stale: &str) -> ReplayHashes {
-    let state = setup_match(Seed(seed), &seats(), &SetupOptions::default()).unwrap();
-    let invalid_diagnostic =
-        validate_command(&state, &command_for_state(&state, invalid.to_owned()))
-            .expect_err("invalid command rejected");
-    let stale_command = CommandEnvelope {
-        actor: actor_for_state(&state),
-        action_path: ActionPath {
-            segments: vec![stale.to_owned()],
-        },
-        freshness_token: state.freshness_token.next(),
-        rules_version: RulesVersion(1),
-    };
-    let stale_diagnostic =
-        validate_command(&state, &stale_command).expect_err("stale command rejected");
-    let diagnostic_hash = HashValue::from_stable_bytes(
-        format!(
-            "{}:{}|{}:{}",
-            invalid_diagnostic.code,
-            invalid_diagnostic.message,
-            stale_diagnostic.code,
-            stale_diagnostic.message
-        )
-        .as_bytes(),
-    );
-
-    hashes_for_state(&state, &[], Some(diagnostic_hash))
-}
-
-fn hashes_for_state(
-    state: &RaceState,
-    effects: &[EffectEnvelope<RaceEffect>],
-    diagnostic_hash: Option<HashValue>,
-) -> ReplayHashes {
-    let actor = actor_for_state(state);
-    ReplayHashes {
-        state_hash: RaceSnapshot::from_state(state).stable_hash(),
-        effect_hash: effect_hash(effects),
-        action_tree_hash: action_tree_hash(&legal_action_tree(state, &actor)),
-        view_hash: project_view(state).stable_hash(),
-        diagnostic_hash,
-        outcome: state.winner,
-    }
-}
-
-fn effect_hash(effects: &[EffectEnvelope<RaceEffect>]) -> HashValue {
-    let bytes = effects
-        .iter()
-        .map(effect_json)
-        .collect::<Vec<_>>()
-        .join("\n");
-    HashValue::from_stable_bytes(bytes.as_bytes())
-}
-
-fn effect_json(effect: &EffectEnvelope<RaceEffect>) -> String {
-    match &effect.payload {
-        RaceEffect::ActionStarted { actor, amount } => {
-            format!("ActionStarted:{}:{amount}", actor.as_str())
-        }
-        RaceEffect::CounterAdvanced {
-            actor,
-            from,
-            to,
-            amount,
-        } => format!(
-            "CounterAdvanced:{}:{}:{}:{amount}",
-            actor.as_str(),
-            from.0,
-            to.0
-        ),
-        RaceEffect::TurnChanged { next_actor } => {
-            format!("TurnChanged:{}", next_actor.as_str())
-        }
-        RaceEffect::GameEnded { winner } => format!("GameEnded:{}", winner.as_str()),
-        RaceEffect::ActionCompleted { actor } => format!("ActionCompleted:{}", actor.as_str()),
-    }
-}
-
-fn action_tree_hash(tree: &ActionTree) -> HashValue {
-    let bytes = tree
-        .root
-        .choices
-        .iter()
-        .map(|choice| choice.segment.as_str())
-        .collect::<Vec<_>>()
-        .join("|");
-    HashValue::from_stable_bytes(bytes.as_bytes())
-}
-
-fn parse_fixture(input: &str) -> TraceFixture {
-    let mut fixture = TraceFixture {
-        id: String::new(),
-        kind: String::new(),
-        note: String::new(),
-        seed: 0,
-        commands: Vec::new(),
-        bot_seed: None,
-        invalid_command: None,
-        stale_command: None,
-        expected_state_hash: 0,
-        expected_effect_hash: 0,
-        expected_action_tree_hash: 0,
-        expected_view_hash: 0,
-        expected_diagnostic_hash: None,
-    };
-
-    for line in input.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let (key, value) = line.split_once('=').expect("fixture line is key=value");
-        let value = value.trim();
-        match key.trim() {
-            "id" => fixture.id = value.to_owned(),
-            "kind" => fixture.kind = value.to_owned(),
-            "note" => fixture.note = value.to_owned(),
-            "seed" => fixture.seed = value.parse().expect("seed parses"),
-            "commands" => {
-                fixture.commands = if value.is_empty() {
-                    Vec::new()
-                } else {
-                    value.split(',').map(str::to_owned).collect()
-                };
+fn object_body(input: &str, key: &str) -> String {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let open = input[start..]
+        .find('{')
+        .unwrap_or_else(|| panic!("field `{key}` must be an object"))
+        + start;
+    let mut depth = 0_u32;
+    for (offset, ch) in input[open..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return input[open..=open + offset].to_owned();
+                }
             }
-            "bot_seed" => fixture.bot_seed = Some(value.parse().expect("bot seed parses")),
-            "invalid_command" => fixture.invalid_command = Some(value.to_owned()),
-            "stale_command" => fixture.stale_command = Some(value.to_owned()),
-            "expected_state_hash" => {
-                fixture.expected_state_hash = value.parse().expect("state hash parses");
-            }
-            "expected_effect_hash" => {
-                fixture.expected_effect_hash = value.parse().expect("effect hash parses");
-            }
-            "expected_action_tree_hash" => {
-                fixture.expected_action_tree_hash = value.parse().expect("tree hash parses");
-            }
-            "expected_view_hash" => {
-                fixture.expected_view_hash = value.parse().expect("view hash parses");
-            }
-            "expected_diagnostic_hash" => {
-                fixture.expected_diagnostic_hash =
-                    Some(value.parse().expect("diagnostic hash parses"));
-            }
-            "not_applicable" => {}
-            other => panic!("unknown fixture key {other}"),
+            _ => {}
         }
     }
+    panic!("object `{key}` must close");
+}
 
-    fixture
+fn parse_string_at(input: &str, start: usize) -> Option<String> {
+    let tail = input[start..].trim_start();
+    let tail = tail.strip_prefix('"')?;
+    let end = tail.find('"')?;
+    Some(tail[..end].to_owned())
+}
+
+fn parse_number_at(input: &str, start: usize) -> Option<u64> {
+    let tail = input[start..].trim_start();
+    let digits = tail
+        .chars()
+        .take_while(|ch| ch.is_ascii_digit())
+        .collect::<String>();
+    if digits.is_empty() {
+        None
+    } else {
+        digits.parse().ok()
+    }
+}
+
+fn parse_first_array_string(input: &str) -> String {
+    parse_string_at(input, 0).expect("array must contain a string path segment")
 }
 
 fn assert_fixture(fixture: TraceFixture) {
     assert!(!fixture.note.is_empty(), "{} has a trace note", fixture.id);
+    assert!(
+        !fixture.migration_update_note.is_empty(),
+        "{} has a migration/update note",
+        fixture.id
+    );
+    assert_eq!(fixture.game_id, "race_to_n", "{} game id", fixture.id);
+    assert_eq!(
+        fixture.rules_version, "race_to_n-rules-v1",
+        "{} rules version",
+        fixture.id
+    );
     let hashes = match fixture.kind.as_str() {
         "commands" => replay_commands(fixture.seed, &fixture.commands),
         "bot" => replay_bot_action(
@@ -303,19 +251,21 @@ fn replay_reproduces_hashes_for_same_inputs() {
 #[test]
 fn golden_traces_match_expected_hashes() {
     for fixture in [
-        include_str!("golden_traces/shortest-normal.trace"),
-        include_str!("golden_traces/terminal.trace"),
-        include_str!("golden_traces/bot-action.trace"),
-        include_str!("golden_traces/invalid-stale-diagnostic.trace"),
+        include_str!("golden_traces/shortest-normal.trace.json"),
+        include_str!("golden_traces/terminal.trace.json"),
+        include_str!("golden_traces/bot-action.trace.json"),
+        include_str!("golden_traces/invalid-stale-diagnostic.trace.json"),
     ] {
-        assert_fixture(parse_fixture(fixture));
+        assert_fixture(parse_trace_schema_v1_fixture(fixture));
     }
 }
 
 #[test]
 fn trace_set_records_not_applicable_hidden_and_stochastic_rationale() {
-    let note = include_str!("golden_traces/not-applicable.trace");
+    let note = include_str!("golden_traces/not-applicable.trace.json");
 
-    assert!(note.contains("redacted-hidden-info=not-applicable"));
-    assert!(note.contains("stochastic-game-event=not-applicable"));
+    assert!(note.contains("\"fixture_kind\": \"not_applicable\""));
+    assert!(note.contains("\"hidden_information\""));
+    assert!(note.contains("\"stochastic_game_events\""));
+    assert!(note.contains("perfect-information"));
 }

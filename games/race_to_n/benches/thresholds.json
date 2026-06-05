@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "game_id": "race_to_n",
+  "rules_version": "race_to_n-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "legal_actions",
+      "unit": "trees_per_second",
+      "threshold": 1000000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "Initial CI floor below the first WSL2 baseline to avoid treating noisy local variance as doctrine."
+    },
+    {
+      "operation_name": "apply_action",
+      "unit": "actions_per_second",
+      "threshold": 5000000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "Initial CI floor below the first WSL2 baseline; validation is included in the measured loop."
+    },
+    {
+      "operation_name": "public_view_generation",
+      "unit": "views_per_second",
+      "threshold": 10000000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "Initial CI floor for the public perfect-information view path."
+    },
+    {
+      "operation_name": "effect_filtering",
+      "unit": "filters_per_second",
+      "threshold": 10000000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "Initial CI floor for public EffectLog filtering over the tiny Gate 1 effect set."
+    },
+    {
+      "operation_name": "serialization_roundtrip",
+      "unit": "roundtrips_per_second",
+      "threshold": 200000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Based on the first committed WSL2 native report; snapshot parsing is the known slower row."
+    },
+    {
+      "operation_name": "replay_throughput",
+      "unit": "replays_per_second",
+      "threshold": 250000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Based on the first committed WSL2 native report for the seven-command terminal replay."
+    },
+    {
+      "operation_name": "random_playout",
+      "unit": "games_per_second",
+      "threshold": 100000,
+      "rationale_class": "accepted_adr",
+      "rationale": "ADR 0001 recalibrates Stage-1 validated random playout throughput to a conservative CI floor after profiling the correctness-preserving harness."
+    },
+    {
+      "operation_name": "bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 1000000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor for Level 0 random legal selection from the starting action tree."
+    }
+  ]
+}

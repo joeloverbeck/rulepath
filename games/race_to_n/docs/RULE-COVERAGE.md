@@ -42,6 +42,12 @@ This matrix maps every stable rule ID in `RULES.md` to implementation and eviden
 | `games/race_to_n/tests/serialization_tests.rs` | public view, snapshot, replay JSON round trips |
 | `games/race_to_n/tests/bot_tests.rs` | bot legality, determinism, no direct mutation |
 | `tools/simulate` | random legal playouts with per-action invariant checks |
+| `tools/replay-check` | Trace Schema v1 replay drift gate over all golden traces |
+| `tools/fixture-check` | Trace Schema v1 fixture/static-data validation and migration-note enforcement |
+| `tools/trace-viewer` | human-readable Trace Schema v1 triage summaries with replay annotations |
+| `tools/rule-coverage` | structural coverage drift checker for this matrix |
+| `tools/seed-reducer` | deterministic failure-report normalizer and Trace Schema v1 reproducer emitter |
+| `tools/bench-report` | hard-failing benchmark threshold checker for marked benchmark reports |
 | `apps/web/scripts/smoke-ui.mjs` | browser boundary smoke over WASM API |
 | `games/race_to_n/benches/race_to_n.rs` | native benchmark coverage |
 
@@ -92,8 +98,13 @@ This matrix maps every stable rule ID in `RULES.md` to implementation and eviden
 |---|---|---|---|
 | quick simulation | `cargo run -p simulate -- --game race_to_n --games 1000` | `R-TURN-*`, `R-ACTION-001`, `R-END-001`, `R-RNG-001` | covered |
 | exit simulation | `cargo run -p simulate -- --game race_to_n --games 100000` | `R-TURN-*`, `R-ACTION-001`, `R-END-001`, `R-RNG-001` | covered |
+| replay drift gate | `cargo run -p replay-check -- --game race_to_n --all` | `R-RNG-002`, trace hash surfaces, terminal/outcome replay | covered |
+| fixture/schema gate | `cargo run -p fixture-check -- --game race_to_n` | Trace Schema v1 fixture integrity, static data versioning, migration notes | covered |
+| rule coverage gate | `cargo run -p rule-coverage -- --game race_to_n` | exactly one coverage row per stable rule ID; no silent unsupported gaps | covered |
+| trace triage viewer | `cargo run -p trace-viewer -- --game race_to_n --trace games/race_to_n/tests/golden_traces/shortest-normal.trace.json` | viewer-safe trace metadata, commands, checkpoints, hashes, diagnostics, rationales | covered |
+| seed reproducer normalizer | `cargo run -p seed-reducer -- --game race_to_n --failure-report <report>` | simulation failure report to deterministic replay/simulation command and trace reproducer | covered |
 | native benchmarks | `cargo bench -p race_to_n` | legal actions, apply, view/effects, serialization/replay, playout, bot latency | covered |
-| Stage-1 perf budget | `BENCHMARKS.md` | random playout throughput | intentionally-deferred | Current measured WSL2 playout throughput is below the 500,000 games/sec target; the miss is recorded in `BENCHMARKS.md`. |
+| Stage-1 perf budget | `BENCHMARKS.md`; `docs/adr/0001-stage-1-random-playout-budget.md`; `cargo run -p bench-report -- --input <report> --thresholds games/race_to_n/benches/thresholds.json` | random playout throughput | covered | ADR 0001 accepts a 100,000 games/sec validated-playout floor and `bench-report` hard-fails below it. |
 
 ## Review Checklist
 
