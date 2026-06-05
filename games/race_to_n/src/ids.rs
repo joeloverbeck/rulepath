@@ -26,4 +26,19 @@ impl RaceSeat {
             Self::Seat1 => Self::Seat0,
         }
     }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Seat0 => "seat_0",
+            Self::Seat1 => "seat_1",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "seat_0" => Some(Self::Seat0),
+            "seat_1" => Some(Self::Seat1),
+            _ => None,
+        }
+    }
 }

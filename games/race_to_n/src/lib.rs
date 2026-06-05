@@ -7,6 +7,7 @@ pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
+pub mod visibility;
 
 use engine_core::{
     ActionTree, Actor, CommandEnvelope, DeterministicRng, Diagnostic, EffectEnvelope, Game, SeatId,
@@ -18,8 +19,9 @@ pub use effects::RaceEffect;
 pub use ids::RaceSeat;
 pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
-pub use state::{CounterValue, FoundationView, RaceState};
+pub use state::{CounterValue, RaceReplayJson, RaceSnapshot, RaceState};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{project_view, PublicView};
 
 #[derive(Clone, Debug, Default)]
 pub struct RaceToN;
@@ -29,7 +31,7 @@ impl Game for RaceToN {
     type State = RaceState;
     type ValidatedAction = ValidatedAction;
     type Effect = RaceEffect;
-    type View = FoundationView;
+    type View = PublicView;
 
     fn setup(
         &self,
@@ -62,12 +64,7 @@ impl Game for RaceToN {
     }
 
     fn project_view(&self, state: &Self::State, _viewer: &Viewer) -> Self::View {
-        FoundationView {
-            counter: state.counter,
-            active_seat: state.active_seat,
-            winner: state.winner,
-            freshness_token: state.freshness_token,
-        }
+        project_view(state)
     }
 }
 
