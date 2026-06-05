@@ -3,6 +3,7 @@
 use std::{
     cell::{Cell, RefCell},
     collections::BTreeMap,
+    slice, str,
 };
 
 use engine_core::{
@@ -21,6 +22,7 @@ const RULES_VERSION: u32 = 1;
 thread_local! {
     static MATCHES: RefCell<BTreeMap<String, MatchRecord>> = const { RefCell::new(BTreeMap::new()) };
     static NEXT_MATCH_ID: Cell<u64> = const { Cell::new(1) };
+    static LAST_OUTPUT: RefCell<String> = const { RefCell::new(String::new()) };
 }
 
 #[derive(Clone, Debug)]
@@ -372,6 +374,175 @@ pub extern "C" fn rulepath_placeholder_version_ptr() -> *const u8 {
 #[no_mangle]
 pub extern "C" fn rulepath_placeholder_version_len() -> usize {
     PLACEHOLDER_VERSION.len()
+}
+
+#[no_mangle]
+pub extern "C" fn rulepath_alloc(len: usize) -> *mut u8 {
+    let mut buffer = Vec::<u8>::with_capacity(len);
+    let ptr = buffer.as_mut_ptr();
+    std::mem::forget(buffer);
+    ptr
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `ptr` must have been returned by `rulepath_alloc` with the same `len`, and it
+/// must not be used after this call.
+pub unsafe extern "C" fn rulepath_dealloc(ptr: *mut u8, len: usize) {
+    if !ptr.is_null() && len > 0 {
+        drop(unsafe { Vec::from_raw_parts(ptr, 0, len) });
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rulepath_last_output_ptr() -> *const u8 {
+    LAST_OUTPUT.with(|output| output.borrow().as_ptr())
+}
+
+#[no_mangle]
+pub extern "C" fn rulepath_last_output_len() -> usize {
+    LAST_OUTPUT.with(|output| output.borrow().len())
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `game_ptr..game_ptr + game_len` must be a valid UTF-8 buffer for the duration
+/// of the call.
+pub unsafe extern "C" fn rulepath_new_match(
+    game_ptr: *const u8,
+    game_len: usize,
+    seed: u64,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    write_result(game_id.and_then(|game_id| new_match(&game_id, seed)))
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `match_ptr..match_ptr + match_len` must be a valid UTF-8 buffer for the
+/// duration of the call.
+pub unsafe extern "C" fn rulepath_get_view(match_ptr: *const u8, match_len: usize) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    write_result(match_id.and_then(|match_id| get_view(&match_id, None)))
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `match_ptr..match_ptr + match_len` and `seat_ptr..seat_ptr + seat_len` must
+/// be valid UTF-8 buffers for the duration of the call.
+pub unsafe extern "C" fn rulepath_get_action_tree(
+    match_ptr: *const u8,
+    match_len: usize,
+    seat_ptr: *const u8,
+    seat_len: usize,
+) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    let seat = unsafe { read_string(seat_ptr, seat_len) };
+    write_result(
+        match_id.and_then(|match_id| seat.and_then(|seat| get_action_tree(&match_id, &seat))),
+    )
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `match_ptr`, `seat_ptr`, and `path_ptr` with their lengths must be valid
+/// UTF-8 buffers for the duration of the call.
+pub unsafe extern "C" fn rulepath_apply_action(
+    match_ptr: *const u8,
+    match_len: usize,
+    seat_ptr: *const u8,
+    seat_len: usize,
+    path_ptr: *const u8,
+    path_len: usize,
+    freshness_token: u64,
+) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    let seat = unsafe { read_string(seat_ptr, seat_len) };
+    let path = unsafe { read_string(path_ptr, path_len) };
+    write_result(match_id.and_then(|match_id| {
+        seat.and_then(|seat| {
+            path.and_then(|path| apply_action(&match_id, &seat, &path, freshness_token))
+        })
+    }))
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `match_ptr..match_ptr + match_len` and `seat_ptr..seat_ptr + seat_len` must
+/// be valid UTF-8 buffers for the duration of the call.
+pub unsafe extern "C" fn rulepath_run_bot_turn(
+    match_ptr: *const u8,
+    match_len: usize,
+    seat_ptr: *const u8,
+    seat_len: usize,
+    bot_seed: u64,
+) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    let seat = unsafe { read_string(seat_ptr, seat_len) };
+    write_result(
+        match_id
+            .and_then(|match_id| seat.and_then(|seat| run_bot_turn(&match_id, &seat, bot_seed))),
+    )
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `match_ptr..match_ptr + match_len` must be valid UTF-8. If `viewer_len` is
+/// nonzero, `viewer_ptr..viewer_ptr + viewer_len` must also be valid UTF-8.
+pub unsafe extern "C" fn rulepath_get_effects(
+    match_ptr: *const u8,
+    match_len: usize,
+    since_cursor: u64,
+    viewer_ptr: *const u8,
+    viewer_len: usize,
+) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    let viewer = if viewer_len == 0 {
+        Ok(None)
+    } else {
+        unsafe { read_string(viewer_ptr, viewer_len) }.map(Some)
+    };
+    write_result(match_id.and_then(|match_id| {
+        viewer.and_then(|viewer| get_effects(&match_id, since_cursor, viewer.as_deref()))
+    }))
+}
+
+unsafe fn read_string(ptr: *const u8, len: usize) -> Result<String, String> {
+    if ptr.is_null() && len > 0 {
+        return Err(
+            "{\"code\":\"invalid_pointer\",\"message\":\"input pointer is null\"}".to_owned(),
+        );
+    }
+    let bytes = unsafe { slice::from_raw_parts(ptr, len) };
+    str::from_utf8(bytes)
+        .map(str::to_owned)
+        .map_err(|_| "{\"code\":\"invalid_utf8\",\"message\":\"input is not utf-8\"}".to_owned())
+}
+
+fn write_result(result: Result<String, String>) -> i32 {
+    match result {
+        Ok(output) => {
+            write_output(output);
+            0
+        }
+        Err(error) => {
+            write_output(error);
+            1
+        }
+    }
+}
+
+fn write_output(output: String) {
+    LAST_OUTPUT.with(|last| {
+        *last.borrow_mut() = output;
+    });
 }
 
 #[cfg(test)]
