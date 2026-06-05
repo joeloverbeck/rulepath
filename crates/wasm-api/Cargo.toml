@@ -6,7 +6,9 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+ai-core = { path = "../ai-core" }
 engine-core = { path = "../engine-core" }
+race_to_n = { path = "../../games/race_to_n" }
 
 [lib]
 path = "src/lib.rs"

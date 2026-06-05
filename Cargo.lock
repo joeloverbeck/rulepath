@@ -65,5 +65,7 @@ version = "0.1.0"
 name = "wasm-api"
 version = "0.1.0"
 dependencies = [
+ "ai-core",
  "engine-core",
+ "race_to_n",
 ]
