@@ -1,6 +1,6 @@
 # GAT0REPSKE-001: Workspace manifest and four placeholder crates
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — introduces the root workspace `Cargo.toml` and four placeholder crates: `crates/engine-core`, `crates/game-stdlib`, `crates/ai-core`, `crates/wasm-api`.
@@ -87,3 +87,21 @@ Placeholder libs that may depend on `engine-core` only. `ai-core` carries a bot-
 1. `cargo tree -p engine-core` — dependency-direction proof.
 2. `cargo test` — full workspace build + smoke tests.
 3. `grep -rniE "board|card|deck|grid|suit|resource|capture|hand|pile|trick|pot|auction|betting|drafting" crates/engine-core/src` — noun-free proof (expect 0 matches).
+
+## Outcome
+
+Completed: 2026-06-05
+
+What changed:
+- Added the root Rust workspace manifest with the four Gate 0 placeholder crate members.
+- Added `engine-core` with generic contract-only placeholder types and no Rulepath crate dependencies.
+- Added empty/linkage placeholder crates for `game-stdlib`, `ai-core`, and `wasm-api`; each has a trivial smoke test.
+
+Deviations from original plan:
+- None.
+
+Verification results:
+- `cargo build` passed.
+- `cargo test` passed.
+- `cargo tree -p engine-core` showed only `engine-core` with no Rulepath dependencies.
+- `rg -n -i "board|card|deck|grid|suit|resource|capture|hand|pile|trick|pot|auction|betting|drafting" crates/engine-core/src` returned no matches.
