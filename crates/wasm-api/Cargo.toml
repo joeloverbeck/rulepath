@@ -10,3 +10,4 @@ engine-core = { path = "../engine-core" }
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
