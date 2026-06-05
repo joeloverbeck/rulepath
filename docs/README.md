@@ -34,6 +34,14 @@ This set contains foundation-level repository law only. It intentionally does **
 4. Per-game documents must conform to this set.
 5. Agent instructions and temporary task notes do not override foundation law.
 
+## Implementation specs
+
+Implementation planning lives **outside** this foundation set, in
+[`../specs/`](../specs/). Each roadmap gate gets one spec, and
+[`../specs/README.md`](../specs/README.md) is the living index and progress
+tracker. Specs conform to this foundation set and never override it; this set
+remains foundation-level repository law only.
+
 ## Default posture
 
 When in doubt:

@@ -29,6 +29,8 @@ V1/v2 exclude hosted multiplayer, accounts, databases, matchmaking, chat, ranked
 
 Every stage and gate must satisfy [OFFICIAL-GAME-CONTRACT.md](OFFICIAL-GAME-CONTRACT.md) for any official game and the universal invariants in [FOUNDATIONS.md](FOUNDATIONS.md).
 
+> Implementation progress and the per-gate spec for each gate are tracked in [`../specs/README.md`](../specs/README.md). The ladder above is law; that index is the mutable progress tracker. This document is not edited to record which gates are done.
+
 ## 2. Per-stage requirements
 
 Each official game stage MUST produce or verify:
