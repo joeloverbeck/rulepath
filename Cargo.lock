@@ -51,6 +51,11 @@ version = "0.1.0"
 [[package]]
 name = "simulate"
 version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "race_to_n",
+]
 
 [[package]]
 name = "trace-viewer"

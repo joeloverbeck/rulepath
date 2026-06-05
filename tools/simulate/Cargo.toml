@@ -5,6 +5,11 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[dependencies]
+ai-core = { path = "../../crates/ai-core" }
+engine-core = { path = "../../crates/engine-core" }
+race_to_n = { path = "../../games/race_to_n" }
+
 [[bin]]
 name = "simulate"
 path = "src/main.rs"
