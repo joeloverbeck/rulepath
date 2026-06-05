@@ -1,6 +1,6 @@
 # GAT0REPSKE-005: Gate-0 exit verification and index status flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — verification capstone plus a `specs/README.md` index status edit.
@@ -73,3 +73,27 @@ Edit `specs/README.md` to flip the Gate 0 row Status from `Planned` to `Done`.
 1. `grep -rniE "board|card|deck|grid|suit|resource|capture" crates/engine-core/src; cargo tree -p engine-core` — boundary review.
 2. `cargo test` plus the WASM and `apps/web` build commands — exit-criteria mirror.
 3. `grep -n "gate-0-repository-skeleton" specs/README.md` — narrow post-edit proof that the Gate 0 row Status reads `Done`.
+
+## Outcome
+
+Completed: 2026-06-05
+
+What changed:
+- Ran the integrated Gate 0 exit checks against the composed workspace, tool, WASM/web, CI-script, boundary, and docs surfaces.
+- Flipped the Gate 0 row in `specs/README.md` from `Planned` to `Done`.
+
+Deviations from original plan:
+- The WASM-load smoke used the checked-in Node instantiation script from GAT0REPSKE-002 instead of browser automation, matching the project's current no-browser-harness state.
+- GitHub-hosted CI was not run from this local checkout; the workflow lanes were verified locally.
+
+Verification results:
+- `npm --prefix apps/web ci` passed.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
+- `cargo test --workspace` passed.
+- `bash scripts/boundary-check.sh` passed and showed `engine-core` with no Rulepath crate dependency.
+- `npm --prefix apps/web run smoke:wasm` passed and printed `rulepath-wasm-api/0.1.0`.
+- `npm --prefix apps/web run build` passed.
+- `node scripts/check-doc-links.mjs` passed and checked 17 Markdown files.
+- `specs/README.md` Gate 0 row reads `Done`.

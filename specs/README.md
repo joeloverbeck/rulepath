@@ -23,7 +23,7 @@ record progress; this table is.
 
 | Stage | Gate | Spec | Status |
 |---:|---|---|---|
-| 0 | Gate 0 | [`gate-0-repository-skeleton.md`](gate-0-repository-skeleton.md) | Planned |
+| 0 | Gate 0 | [`gate-0-repository-skeleton.md`](gate-0-repository-skeleton.md) | Done |
 | 1 | Gate 1 | `race_to_n` — not yet specced | Not started |
 | 1 | Gate 2 | trace/replay/benchmark hardening — not yet specced | Not started |
 | 1 | Gate 3 | WASM/static web shell — not yet specced | Not started |
