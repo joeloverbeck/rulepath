@@ -1,0 +1,2 @@
+redacted-hidden-info=not-applicable: race_to_n is perfect-information and has no hidden state to redact.
+stochastic-game-event=not-applicable: race_to_n game rules use no randomness; bot-action.trace covers bot RNG.

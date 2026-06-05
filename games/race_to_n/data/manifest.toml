@@ -1,0 +1,8 @@
+game_id = "race_to_n"
+display_name = "Race to 21"
+readiness = "foundation-smoke"
+rules_version = 1
+data_version = 1
+schema_version = 1
+counter_name = "counter"
+seat_name = "seat"

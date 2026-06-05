@@ -1,0 +1,9 @@
+id=terminal
+kind=commands
+note=Seven max-add actions reach the exact target and bind terminal outcome/effect order.
+seed=1
+commands=add-3,add-3,add-3,add-3,add-3,add-3,add-3
+expected_state_hash=3256403188665508531
+expected_effect_hash=736896495286043826
+expected_action_tree_hash=14695981039346656037
+expected_view_hash=15202890270124712315

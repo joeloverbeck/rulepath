@@ -1,0 +1,7 @@
+variant_id = "race_to_21"
+display_name = "Race to 21"
+target = 21
+max_add = 3
+seat_count = 2
+first_seat = 0
+ending = "mover_reaches_target"

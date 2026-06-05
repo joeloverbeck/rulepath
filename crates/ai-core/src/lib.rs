@@ -1,6 +1,10 @@
 //! Bot-facing placeholder contracts.
 
+mod random_legal;
+
 use engine_core::{ActionPath, Diagnostic, Viewer};
+
+pub use random_legal::RandomLegalBot;
 
 pub trait Bot {
     fn select_action(&self, viewer: &Viewer) -> Result<ActionPath, Diagnostic>;

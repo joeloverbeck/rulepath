@@ -163,7 +163,7 @@ MUST NOT:
 
 | Mechanic shape | Games exerting pressure | Status | Current decision | Next gate |
 |---|---|---|---|---|
-| tiny numeric turn race | `race_to_n` | `local-only` | Keep local; proves plumbing only. | None. |
+| tiny numeric turn race | `race_to_n` | `local-only` | Keep local; proves plumbing only. Confirmed 2026-06-05 after Gate 1 docs finalization; first official use, no `game-stdlib` promotion. | None. |
 | fixed 2D occupancy | `three_marks`, later `column_four` | `repeated-shape candidate` after Stage 3 | Compare, do not extract until Stage 4 pressure. | Stage 4 review. |
 | simple line/pattern detection | `three_marks`, `column_four` | `repeated-shape candidate` after Stage 3 | Compare exact shape; no kernel change. | Stage 4 review. |
 | gravity placement into a column | `column_four` | `local-only` | Too specific for early extraction. | None unless repeated. |

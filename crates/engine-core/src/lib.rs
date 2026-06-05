@@ -3,6 +3,22 @@
 //! This crate is intentionally minimal at Gate 0. It defines contract-only
 //! vocabulary and has no dependencies on other Rulepath crates.
 
+mod action;
+mod game;
+mod replay;
+mod rng;
+
+pub use action::{
+    ActionChoice, ActionMetadata, ActionNode, ActionPreview, ActionTree, FreshnessToken,
+};
+pub use game::Game;
+pub use replay::{
+    Checkpoint, DataVersion, EffectCursor, EffectLog, EngineVersion, HashSurface, HashValue,
+    LoggedEffect, ReplayHashSet, ReplayRecord, SeatAssignment, SerializationContract,
+    StableSerialize, UnknownFieldPolicy, ViewHash,
+};
+pub use rng::{DeterministicRng, SeededRng};
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct GameId(pub String);
 
@@ -48,6 +64,7 @@ pub struct ActionPath {
 pub struct CommandEnvelope {
     pub actor: Actor,
     pub action_path: ActionPath,
+    pub freshness_token: FreshnessToken,
     pub rules_version: RulesVersion,
 }
 
@@ -76,10 +93,12 @@ mod tests {
             action_path: ActionPath {
                 segments: vec!["choose".to_owned()],
             },
+            freshness_token: FreshnessToken(7),
             rules_version: RulesVersion(1),
         };
 
         assert_eq!(envelope.rules_version, RulesVersion(1));
         assert_eq!(envelope.actor.seat_id, SeatId("seat-a".to_owned()));
+        assert_eq!(envelope.freshness_token, FreshnessToken(7));
     }
 }
