@@ -6,7 +6,7 @@ Rulepath must feel like a polished playable consumer game site, not a diagnostic
 
 ## 1. Public UI target
 
-The public app should provide:
+The public app SHOULD provide:
 
 - polished game picker;
 - clear match setup;
@@ -30,47 +30,64 @@ Default mode is play mode. Debug tools are deliberate, secondary, and non-domina
 
 ## 2. Visual direction
 
-Public visuals should feel like a cozy board-game table: warm, tactile, inviting, original, polished, readable, and slightly handcrafted without clutter.
+Public visuals should feel like a cozy premium board-game table: warm, tactile, inviting, original, polished, readable, and slightly handcrafted without clutter.
 
 Prefer:
 
 - warm surfaces and soft depth;
 - premium abstract components;
 - clear hierarchy;
-- satisfying restrained motion;
+- restrained satisfying motion;
 - original SVG icons and components;
 - color plus shape, not color alone;
 - readable typography;
 - respectful empty states;
 - concise help.
 
-Avoid proprietary mimicry, casino vibes, SaaS dashboard coldness, debug-console dominance, pasted-on screenshots, aggressive skeuomorphism, and trade-dress imitation.
+Avoid:
+
+- proprietary mimicry;
+- casino vibes;
+- SaaS-dashboard coldness;
+- debug-console dominance;
+- pasted screenshots/scans;
+- aggressive skeuomorphism;
+- trade-dress imitation;
+- raw JSON as public UX.
 
 ## 3. Ownership split
 
-React/TypeScript owns app shell, menus, game picker, setup, settings, panels, replay controls, accessibility wrappers, local safe storage, WASM integration, and dev inspector UI.
+| Area | Owner |
+|---|---|
+| Legal action trees | Rust/WASM |
+| Validation and diagnostics | Rust/WASM |
+| Public/private views | Rust/WASM |
+| Safe previews | Rust/WASM |
+| Semantic effects | Rust/WASM |
+| Bot decisions and explanations | Rust/WASM |
+| Replay authority | Rust/WASM |
+| App shell, layout, panels | React/TypeScript |
+| Renderer mapping and animation timelines | React/TypeScript renderer, driven by Rust effects |
+| Accessibility wrappers and focus management | React/TypeScript, using Rust labels/actions |
+| Local safe import/export UI | React/TypeScript, using Rust serialization contracts |
 
-Rust/WASM owns legal action trees, validation, state transitions, public/private views, safe previews, semantic effects, bot decisions, replay, diagnostics, and deterministic simulation.
-
-The renderer owns visual mapping, hit targets derived from Rust legal choices, animation timelines, resize behavior, reduced-motion variants, and debug overlays.
-
-The renderer must not decide legality.
+The renderer MUST NOT decide legality.
 
 ## 4. React + SVG default
 
-V1 uses React + SVG as the default renderer because early ladder games have modest object counts, SVG scales cleanly, SVG is inspectable, debug overlays and accessibility hooks are easier, and a cozy abstract board style fits SVG well.
+V1 uses React + SVG as the default renderer because early ladder games have modest object counts, SVG scales cleanly, SVG is inspectable, debug overlays and accessibility hooks are easier, and the cozy abstract board style fits vector presentation.
 
-Canvas may replace or supplement SVG only after measured SVG pressure such as high object count, heavy animation load, or DOM overhead. Canvas adoption requires profiling notes, accessibility plan, debug overlay plan, renderer-boundary preservation, and reduced-motion behavior.
+Canvas MAY supplement or replace SVG only after profiling shows SVG pressure such as high object count, heavy animation load, or DOM overhead. Canvas adoption requires profiling notes, accessibility plan, debug overlay plan, renderer-boundary preservation, and reduced-motion behavior.
 
-PixiJS may be introduced later only after strong UI-performance evidence or ADR. It is a legitimate renderer for heavier GPU-accelerated 2D scenes, not a v1 default.
+PixiJS MAY be introduced later only after strong UI-performance evidence or ADR. It is a legitimate renderer for heavier GPU-accelerated 2D scenes, not a v1 default.
 
-## 5. UI data inputs
+## 5. Browser payload rules
 
 The browser may receive only viewer-safe payloads.
 
 | Payload | Produced by | Contains | Must not contain |
 |---|---|---|---|
-| Public view | Rust | visible state for one viewer | hidden state for other seats |
+| Public/private view | Rust | visible state for one viewer | hidden state for other seats |
 | Action tree | Rust | legal choices/action paths for actor/viewer | unsafe illegal branches or hidden reasons |
 | Preview | Rust | viewer-safe cost/effect estimate and next choices | hidden identities or actual hidden state |
 | Effect log | Rust | viewer-filtered semantic effects | unauthorized hidden outcomes |
@@ -96,9 +113,9 @@ renderer animates effects
 renderer settles to public view
 ```
 
-Stale submissions must be rejected gracefully with a safe diagnostic and a refreshed action tree.
+Stale submissions MUST be rejected gracefully with a safe diagnostic and refreshed action tree.
 
-## 7. Legal controls
+## 7. Legal-only controls
 
 Normal mode:
 
@@ -108,11 +125,23 @@ Normal mode:
 - large or compound consequences require confirmation;
 - no raw command editing exists.
 
-Learning/debug mode may show disabled choices and Rust-supplied reasons, but only when viewer-safe and clearly labeled.
+Learning/debug mode MAY show disabled choices and Rust-supplied reasons, but only when viewer-safe and clearly labeled.
+
+Bad:
+
+```text
+TypeScript computes that a column is full and disables it.
+```
+
+Good:
+
+```text
+Rust returns only legal columns; TypeScript renders those controls.
+```
 
 ## 8. Progressive construction
 
-Compound actions must be built through staged legal choices, not raw command objects.
+Compound actions MUST be built through staged legal choices, not raw command objects.
 
 ```text
 choose action type
@@ -123,33 +152,49 @@ choose action type
   -> confirm
 ```
 
-At every stage Rust owns legal next choices; UI owns presentation, grouping, focus, and affordances.
+At every stage, Rust owns legal next choices. UI owns presentation, grouping, focus, and affordance quality.
 
 ## 9. Rust-generated previews
 
-Previews may include visible cost, expected visible effects, next choices, disabled reason, confirmation requirement, and animation hint tags.
+Previews MAY include visible cost, expected visible effects, next choices, disabled reason, confirmation requirement, and animation hint tags.
 
-Previews must not include hidden card identities, hidden commitments, opponent private information, future random outcomes, bot-only internal facts, or TypeScript-guessed consequences.
+Previews MUST NOT include hidden card identities, hidden commitments, opponent private information, future random outcomes, bot-only internal facts, or TypeScript-guessed consequences.
 
 ## 10. Effect-log-driven animation
 
-Animation must be driven by semantic effects emitted by Rust. Effects are the authoritative cause; visual timelines are presentation.
+Animation MUST be driven by semantic effects emitted by Rust. Effects are authoritative cause; animation timelines are presentation.
 
-State diffs may diagnose missing effect coverage, but must not become the causal source for normal animation.
+The scheduler MUST handle:
 
-The scheduler must handle grouped effects, simultaneous effects, reveal batches, and reduced motion.
+- ordered effects;
+- grouped effects;
+- simultaneous/reveal batches;
+- redacted effects;
+- reduced-motion mode;
+- interruption by replay stepping;
+- settle-to-view reconciliation.
+
+State diffs MAY diagnose missing effect coverage in dev mode. They MUST NOT become normal animation authority.
 
 ## 11. Settle-to-view rule
 
-After animations complete, the renderer must settle to the latest viewer-safe public view.
+After animations complete, the renderer MUST settle to the latest viewer-safe public view.
 
-A dev assertion mode should detect visual state mismatches, missing effect coverage, lingering objects, illegal hit targets, and hidden data appearing in DOM/logs/local storage.
+Dev assertion mode SHOULD detect:
 
-## 12. Hidden information safety
+- visual state mismatch;
+- missing effect coverage;
+- lingering objects;
+- illegal hit targets;
+- hidden data in DOM/logs/local storage;
+- unsafe test IDs;
+- stale action controls after a rejected command.
 
-The browser must not receive unauthorized hidden state in:
+## 12. Hidden-information safety
 
-- public views;
+The browser MUST NOT receive unauthorized hidden state in:
+
+- public/private views;
 - action trees;
 - previews;
 - effect logs;
@@ -175,51 +220,76 @@ Good:
 <div data-visible-kind="face_down_card" class="card back">
 ```
 
-Full-state inspectors are local-dev-only and must not ship hidden state to unauthorized public browsers.
+Full-state inspectors are local-dev-only and must be excluded from public builds or guarded at the data-source level. A CSS toggle is not a data boundary.
 
 ## 13. Dev inspector boundary
 
-Dev UI is required early, but public play must not be debug-first.
+Dev UI is required early, but public play MUST NOT be debug-first.
 
-Dev toggle may show seed, versions, current actor/phase, legal action count, action tree, selected path, public view, effect log, command log, replay controls, timings, bot decision timing, bot candidate ranking, and visibility selector for local developer builds.
+Dev toggle MAY show seed, versions, current actor/phase, legal action count, action tree, selected path, public view, effect log, command log, replay controls, timings, bot decision timing, bot candidate ranking, and visibility selector for local developer builds.
 
-Any inspector that exposes internal state must be excluded from public builds or guarded at the data-source level. A CSS toggle is not a data boundary.
+Any inspector that exposes internal state MUST be excluded from public builds or must receive data only through the same viewer-safe projection as public UI.
 
 ## 14. Replay UI
 
-Replay UI should step command by command, show semantic effects, show action/bot explanations when safe, support speed control and pause, and allow export/import of public-safe replay data.
+Replay UI SHOULD:
 
-Replay rendering must use command/effect data and public views, not guessed diffs.
+- step command by command;
+- show semantic effects;
+- show action/bot explanations when safe;
+- support pause and speed control;
+- support reduced motion;
+- expose seed/version/variant metadata;
+- allow export/import of public-safe replay data.
+
+Replay rendering MUST use command/effect data and public views, not guessed diffs.
 
 ## 15. Bot explanation UI
 
-Public mode should offer a small “why?” or recent-bot-action affordance for non-random bots. It should show a concise reason and relevant visible fact.
+Public mode SHOULD offer a small “why?” or recent-bot-action affordance for non-random bots. It should show a concise reason and relevant visible fact.
 
-Dev mode may show candidate rankings, priority vectors, tie-break seeds, filtered candidate counts, and timing. Dev output must be viewer-safe and must not expose hidden information or hidden-state-derived evaluations.
+Dev mode MAY show candidate rankings, priority vectors, tie-break seeds, filtered candidate counts, and timing. Dev output MUST be viewer-safe and MUST NOT expose hidden information or hidden-state-derived evaluations.
 
 ## 16. Accessibility baseline
 
-Public games should provide visible focus, keyboard-accessible action selection where practical, text labels for icons, sufficient contrast, no reliance on color alone, scalable layout, reduced-motion mode, screen-reader state summaries, and screen-reader legal-action summaries.
+Public games SHOULD provide:
 
-Accessibility is easier because Rust supplies explicit action trees and public views.
+- visible focus;
+- keyboard-accessible action selection where practical;
+- accessible names for controls and SVG elements;
+- text labels for icons;
+- sufficient contrast;
+- no reliance on color alone;
+- scalable layout;
+- reduced-motion mode;
+- screen-reader state summaries;
+- screen-reader legal-action summaries.
 
-## 17. Responsiveness baseline
+Accessibility is easier because Rust supplies explicit action trees and public views. Use that structure rather than trying to make arbitrary SVG clicks understandable after the fact.
 
-Public games should support desktop, tablet, and phone portrait for simple games where practical. Complex games may require larger screens, but Rulepath should say so clearly and degrade gracefully.
+## 17. Responsive behavior
 
-Side panels should collapse; logs and action panels should be readable; touch targets should be safe; board/card sizes should remain playable.
+Simple public games SHOULD support desktop, tablet, and phone portrait where practical.
 
-## 18. Public game acceptance checklist
+Complex games MAY require larger screens, but Rulepath should say so clearly and degrade gracefully.
 
-A web-exposed game is acceptable only when it satisfies the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants) (effect-driven animation that settles to the public view, no hidden information shipped or exposed, play-first non-debug UI, and original/neutral public assets), plus these UI-specific items:
+Side panels should collapse. Logs and action panels should remain readable. Touch targets should be safe. Board/card sizes should remain playable.
+
+## 18. UI acceptance check
+
+A web-exposed game is acceptable only when:
 
 - default view is playable, pleasant, and not debug-dominated;
 - every gameplay click maps to a Rust legal choice;
 - illegal moves are not clickable in normal mode;
 - compound actions use progressive construction;
 - previews and diagnostics come from Rust;
+- semantic effects drive animation;
+- renderer settles to latest public view;
 - replay can step through actions;
 - bot choices have public-safe explanations when non-random;
 - dev inspectors are safe and secondary;
 - reduced motion works;
-- basic focus/keyboard behavior exists where practical.
+- basic focus/keyboard behavior exists where practical;
+- hidden information is absent from browser payloads, DOM, local storage, test IDs, logs, and replay exports;
+- visuals are original and avoid proprietary presentation.

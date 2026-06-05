@@ -1,42 +1,46 @@
-# Rulepath Documentation
+# Rulepath Foundation Documents
 
-This is the index for the Rulepath foundation document set. Start with the constitution, then read the area docs relevant to your work. Shared protocols and checklist items live once in `INVARIANTS.md`; other docs link to it rather than restate it.
+Status: replacement foundation set for the Rulepath repository.
 
-## Constitution
+Rulepath is a Rust-first, public playable, portfolio-quality web app for card and board games. It is also a disciplined route toward later private stress tests and long-term engine research. When those goals compete, the polished public playable product wins.
 
-- [FOUNDATIONS.md](FOUNDATIONS.md) — repository constitution. The priority order and §1–§12 principles, including the §12 stop conditions. Supersede only by accepted ADR.
+Read these documents in this order.
 
-## Shared invariants
+| Order | Document | Purpose |
+|---:|---|---|
+| 1 | [FOUNDATIONS.md](FOUNDATIONS.md) | Constitution: product priority, hard authority rules, universal invariants, stop conditions. |
+| 2 | [ARCHITECTURE.md](ARCHITECTURE.md) | Workspace shape, dependency direction, Rust/WASM boundary, action/view/effect/replay/determinism model. |
+| 3 | [ENGINE-GAME-DATA-BOUNDARY.md](ENGINE-GAME-DATA-BOUNDARY.md) | The exact boundary between `engine-core`, `game-stdlib`, `games/*`, static data, formats, and future DSL pressure. |
+| 4 | [OFFICIAL-GAME-CONTRACT.md](OFFICIAL-GAME-CONTRACT.md) | What it means for a game to be official; requirements-first workflow from rules research through bots and UI. |
+| 5 | [MECHANIC-ATLAS.md](MECHANIC-ATLAS.md) | Mechanic inventory, primitive-pressure ledger, second-use comparison, third-use hard gate. |
+| 6 | [AI-BOTS.md](AI-BOTS.md) | Bot law, levels, hidden-information safety, Level 2 strategy evidence workflow, explanations, personalities. |
+| 7 | [UI-INTERACTION.md](UI-INTERACTION.md) | Public visual target, legal-only interaction, previews, effect-driven animation, replay UI, accessibility. |
+| 8 | [TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md) | Test taxonomy, golden traces, deterministic replay/hash discipline, no-leak tests, benchmarks, CI. |
+| 9 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
+| 10 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
+| 11 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
+| 12 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
+| 13 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
 
-- [INVARIANTS.md](INVARIANTS.md) — single source of truth for the failing-test protocol, the kernel-change protocol, and the universal acceptance invariants referenced throughout the set.
+## What belongs in this set
 
-## Architecture & boundaries
+This set contains foundation-level repository law only. It intentionally does **not** include per-game templates, per-task templates, implementation tickets, code, asset files, proprietary rules text, screenshots, fonts, or private-game material.
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — architectural law: repository shape, dependency direction, ownership table, `engine-core` contract, WASM API, view/effect/replay/determinism models.
-- [DATA-RUST-BOUNDARY.md](DATA-RUST-BOUNDARY.md) — what static data may and may not contain; typed-content pipeline, format table, behavior-looking-field detection.
+## Decision hierarchy
 
-## Authoring, testing, bots, UI
+1. Accepted ADRs may supersede foundation documents only when the ADR explicitly names the affected sections and updates the documents.
+2. [FOUNDATIONS.md](FOUNDATIONS.md) is the constitution.
+3. Area documents define operational law for their domain.
+4. Per-game documents must conform to this set.
+5. Agent instructions and temporary task notes do not override foundation law.
 
-- [AUTHORING-MODEL.md](AUTHORING-MODEL.md) — authoring law for game modules, per-game docs, static content, source notes, rule coverage, and naming.
-- [TESTING-AND-BENCHMARKING.md](TESTING-AND-BENCHMARKING.md) — correctness and performance law: test categories, golden traces, no-leak tests, benchmark doctrine and budgets.
-- [AI-BOTS.md](AI-BOTS.md) — bot law: levels, fairness, candidate model, policy nodes, lexicographic priorities, explanations, no-leak requirements.
-- [UI-INTERACTION.md](UI-INTERACTION.md) — public web app and interaction law: visual direction, action lifecycle, previews, effect-log animation, dev inspector boundary, accessibility.
+## Default posture
 
-## Process & roadmap
+When in doubt:
 
-- [ROADMAP.md](ROADMAP.md) — the staged mechanic ladder and build-gate order (merged), with a stage↔gate crosswalk.
-- [MECHANIC-ATLAS.md](MECHANIC-ATLAS.md) — primitive-pressure law: when a repeated mechanic may be promoted to `game-stdlib`, and the third-use hard gate.
-- [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) — operational law for coding agents: roles, task structure, and per-area protocols.
-
-## Policy & reference
-
-- [IP-POLICY.md](IP-POLICY.md) — public repository and website IP law.
-- [SOURCES.md](SOURCES.md) — supporting bibliography for the foundation set.
-
-## Decisions
-
-- [adr/](adr/) — Architecture Decision Records. Use [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) for new decisions.
-
-## Templates
-
-Per-game and per-task document templates live in [`../templates/`](../templates/).
+- keep `engine-core` generic and noun-free;
+- keep rules in typed Rust game modules;
+- keep TypeScript presentation-only;
+- keep public games polished and fully supported;
+- keep private licensed experiments late, isolated, optional, and non-architectural;
+- stop and reassess rather than generalize casually.

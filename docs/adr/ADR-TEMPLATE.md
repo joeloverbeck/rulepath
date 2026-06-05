@@ -9,20 +9,26 @@ Decision owner: <name or role>
 Related documents:
 
 - `docs/FOUNDATIONS.md`
-- `docs/INVARIANTS.md`
 - `docs/ARCHITECTURE.md`
-- `docs/DATA-RUST-BOUNDARY.md`
+- `docs/ENGINE-GAME-DATA-BOUNDARY.md`
+- `docs/OFFICIAL-GAME-CONTRACT.md`
 - `docs/MECHANIC-ATLAS.md`
-- <other docs>
+- `docs/AI-BOTS.md`
+- `docs/UI-INTERACTION.md`
+- `docs/TESTING-REPLAY-BENCHMARKING.md`
+- `docs/ROADMAP.md`
+- `docs/IP-POLICY.md`
+- `docs/AGENT-DISCIPLINE.md`
 
 ## Context
 
 What pressure exists?
 
-- Which implemented games are affected?
+- Which implemented official games are affected?
 - Which tests, traces, simulations, benchmarks, or UI constraints exposed the issue?
 - What current rule or architecture is insufficient?
 - Why is an ADR required instead of a local game-module change?
+- Does this support public playable Rulepath before research/private stress tests?
 
 ## Decision
 
@@ -52,19 +58,20 @@ Operational requirements:
 
 ## Determinism impact
 
-- Does the decision affect RNG, order of iteration, clocks, floating point, parallelism, serialization order, or replay?
+- Does the decision affect RNG, iteration order, clocks, floating point, parallelism, serialization order, replay, or hashes?
 - What tests prove determinism?
 
 ## Replay/hash impact
 
-- Does this change command streams, state hashes, effect hashes, public view hashes, or trace format?
+- Does this change command streams, state hashes, effect hashes, action-tree hashes, public/private view hashes, trace format, or migration rules?
 - Are existing golden traces preserved, migrated, or intentionally updated?
 - What migration note is required?
 
 ## Visibility impact
 
-- Does this expose, filter, store, log, serialize, preview, or animate private information?
+- Does this expose, filter, store, log, serialize, preview, animate, explain, or rank private information?
 - How are public/private views and hidden-information tests affected?
+- Could browser payloads, DOM, local storage, logs, bot explanations, candidate rankings, or replay exports leak hidden information?
 
 ## Data/Rust boundary impact
 
@@ -72,22 +79,32 @@ Operational requirements:
 - Does behavior remain in typed Rust?
 - Are unknown fields rejected?
 - Are behavior-looking fields blocked?
+- Does the decision create DSL pressure?
 
 ## `engine-core` contamination risk
 
 - Does the change add game nouns, mechanic nouns, strategy, renderer concerns, networking, storage, or private content to `engine-core`?
 - Why can this not live in `games/*`?
 - Why can this not live in `game-stdlib` after earned pressure?
+- What already implemented official games require it?
+
+## `game-stdlib` / primitive-pressure impact
+
+- Which games exert pressure?
+- Is this first, second, or third use?
+- Is there a primitive-pressure ledger entry?
+- Are examples, anti-examples, tests, benchmarks, and back-ports required?
 
 ## UI impact
 
-- Does this change action trees, previews, effect-log animation, renderer boundaries, accessibility, reduced motion, or dev inspector behavior?
+- Does this change action trees, previews, effect-log animation, renderer boundaries, accessibility, reduced motion, responsive behavior, or dev inspector behavior?
 - Does TypeScript remain presentation-only?
 
 ## Bot impact
 
-- Does this change bot views, legal action APIs, candidate ranking, explanation output, benchmarks, or no-leak tests?
+- Does this change bot views, legal action APIs, candidate ranking, explanation output, hidden-information safety, benchmarks, or public bot levels?
 - Does any Level 2 bot require a strategy evidence pack update?
+- Does it introduce any v1/v2-excluded AI technique?
 
 ## IP impact
 
@@ -102,11 +119,25 @@ Operational requirements:
 
 ## Migration notes
 
-- Existing docs to update:
-- Existing games to back-port:
-- Existing traces to preserve or update:
-- Existing data/schema versions to bump:
-- Existing public UI behavior to migrate:
+Existing docs to update:
+
+- <docs>
+
+Existing games to back-port:
+
+- <games>
+
+Existing traces to preserve or update:
+
+- <traces>
+
+Existing data/schema versions to bump:
+
+- <versions>
+
+Existing public UI behavior to migrate:
+
+- <behavior>
 
 ## Review checklist
 
@@ -123,4 +154,4 @@ Before accepting this ADR, verify:
 - bots remain fair and explainable;
 - benchmarks exist for hot paths;
 - IP/public-private boundaries are preserved;
-- templates and affected docs are updated.
+- affected foundation docs and per-game docs are updated.

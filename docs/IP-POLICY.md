@@ -6,7 +6,7 @@ This is operational engineering policy, not legal advice. It is deliberately con
 
 ## 1. Public allowed
 
-Public Rulepath may include:
+Public Rulepath MAY include:
 
 - public-domain/classic games;
 - original games;
@@ -23,7 +23,7 @@ Public Rulepath may include:
 
 ## 2. Public forbidden unless explicitly permissioned
 
-Public Rulepath must not include:
+Public Rulepath MUST NOT include:
 
 - copied rulebook prose;
 - proprietary card text;
@@ -38,23 +38,23 @@ Public Rulepath must not include:
 - public test fixtures containing proprietary data;
 - public docs that make Rulepath look secretly focused on private licensed games.
 
-## 3. Game ideas versus expression
+## 3. Ideas, systems, and expression
 
-Game ideas, methods, procedures, systems, and mechanics are different from expressive text, art, logos, component design, and presentation.
+Rulepath policy distinguishes game mechanics from expression:
 
-Rulepath policy:
-
-- mechanics may be implemented when lawful and safely presented;
-- expression must be original, permissioned, or compatibly licensed;
-- public naming and visuals must avoid affiliation confusion;
+- mechanics and abstract procedures may be implemented when lawful and safely presented;
+- expressive text, art, card wording, graphic layout, logos, distinctive component design, and presentation must be original, permissioned, public-domain, or compatibly licensed;
+- public naming and visuals must avoid source confusion;
 - when unsure, omit and request human/legal review.
+
+This policy remains conservative even where the law may allow more.
 
 ## 4. Public rules documentation
 
-Every public game must have:
+Every public game MUST have:
 
-- original-language rules summary;
-- source notes with URLs and consulted dates;
+- original-language Rulepath rules summary;
+- source notes with URLs/bibliographic identifiers and consulted dates;
 - chosen variant statement;
 - known ambiguities and resolutions;
 - rule coverage matrix;
@@ -64,25 +64,34 @@ Default: do not quote. Summarize in original language.
 
 ## 5. Common names and neutral names
 
-Common descriptive names may be used when safe. Neutral names should be used when a commercial title, trademark, trade dress, or product identity creates avoidable risk.
+Common descriptive names MAY be used when safe. Neutral names SHOULD be used when a commercial title, trademark, trade dress, or product identity creates avoidable risk.
 
 Examples:
 
 | Risk profile | Safer Rulepath ID/name |
 |---|---|
-| generic Tic-Tac-Toe is usually safe, but neutral portfolio naming is cleaner | `three_marks` |
+| take-away counter game | `race_to_n` or `nim_lite` |
+| Tic-Tac-Toe-like placement | `three_marks` |
 | commercial four-in-a-row brand risk | `column_four` |
 | Reversi/Othello ambiguity | `directional_flip` |
 | Checkers/Draughts variant ambiguity | `draughts_lite` |
 | War-like card comparison | `high_card_duel` |
-| Poker subset | `poker_lite` |
-| proprietary hidden-role/bluffing games | original names only |
+| simple draw/stand scoring | `blackjack_lite` |
+| resource economy microgame | `token_bazaar` or `resource_race` |
+| simultaneous commitment | `secret_draft` or original name |
+| poker subset | `poker_lite` |
+| trick-taking | `plain_tricks` |
+| bluffing/claims | original name only |
 
 ## 6. Original prose and assets
 
-Public rules text must be written for Rulepath. Public assets must be original, project-owned, generated-reviewed, or compatibly licensed.
+Public rules text MUST be written for Rulepath.
 
-Do not imitate proprietary boards, cards, component shapes, icons, color schemes, marketing copy, screenshots, or table presentation.
+Public assets MUST be original, project-owned, generated-reviewed, public-domain, or compatibly licensed.
+
+Do not imitate proprietary boards, cards, component shapes, iconography, color schemes, marketing copy, screenshots, or table presentation.
+
+Original does not mean lavish. Simple original SVG components are better than risky imitation.
 
 ## 7. AI-generated asset review
 
@@ -94,40 +103,66 @@ AI-generated assets require review for:
 - unclear rights terms;
 - license compatibility;
 - inappropriate style imitation;
-- source-identifying resemblance.
+- source-identifying resemblance;
+- inability to edit/replace later.
 
-Generated assets should be editable and replaceable. Keep prompts and review notes when practical.
+Generated assets SHOULD be editable and replaceable. Keep prompts and review notes when practical.
 
-## 8. Font and file licensing warning
+Do not assume AI output is safe because it is “new.”
 
-Never include font files unless redistribution rights are verified and license notes are preserved. Prefer system fonts or open-licensed fonts loaded and distributed according to their license.
+## 8. Fonts
 
-Do not ship unknown files just because they appear in a design mockup, asset pack, copied website, or AI output.
+Never include font files unless redistribution rights are verified and license notes are preserved.
+
+Prefer system fonts or open-licensed fonts loaded and distributed according to their license.
+
+Do not ship unknown font files from design mockups, copied websites, asset packs, or AI output.
+
+Font licenses can differ for desktop, web, app embedding, redistribution, and modification. Verify the actual use.
 
 ## 9. Private licensed experiments
 
 Private licensed experiments are late red-team tests only.
 
-They must:
+They MUST:
 
 - live in private repositories, private submodules, or local-only folders;
 - be excluded from public CI;
 - be excluded from public builds;
 - be excluded from public docs except generic process notes;
-- not leak names, card text, assets, scenarios, screenshots, IDs, or presentation;
+- avoid leaking names, card text, assets, scenarios, screenshots, IDs, or presentation;
 - load private data only from private/local sources;
-- have build separation and `.gitignore` safeguards;
+- have build separation and ignore safeguards;
 - undergo kernel-contamination review.
 
-They must not be foundation cases, public tests, public assets, public WASM modules, or reasons to add game nouns to `engine-core`.
+They MUST NOT be foundation cases, public tests, public assets, public WASM modules, or reasons to add game nouns to `engine-core`.
 
 ## 10. Public web build rule
 
 If it ships to an unauthorized browser, it has shipped.
 
-Do not bundle private licensed modules into public JS/WASM. Do not rely on credentials, hidden routes, feature flags, admin toggles, or CSS hiding to protect bundled private content. Build public and private artifacts separately. Inspect public bundles before release.
+Do not bundle private licensed modules into public JS/WASM. Do not rely on credentials, hidden routes, feature flags, admin toggles, or CSS hiding to protect bundled private content.
 
-## 11. Release checklist
+Public and private artifacts MUST be built separately. Inspect public bundles before release.
+
+## 11. Source notes checklist
+
+Before public exposure, each game source note SHOULD answer:
+
+```text
+What sources were consulted?
+When were they consulted?
+What variant was selected?
+What deviations did Rulepath make?
+What names/IDs are public-facing?
+Are rules prose and assets original or permissioned?
+Are generated/external assets reviewed?
+Are font licenses verified?
+Is any content private or proprietary?
+What human/legal review questions remain?
+```
+
+## 12. Release checklist
 
 Before public release, verify:
 
@@ -135,7 +170,7 @@ Before public release, verify:
 - rules docs use original prose;
 - source notes exist;
 - chosen variants are documented;
-- assets are original/compatible;
+- assets are original/compatible/generated-reviewed;
 - no proprietary text appears in static data;
 - no screenshots/scans of commercial components are used;
 - public traces contain no licensed data;
@@ -146,7 +181,7 @@ Before public release, verify:
 - font licenses are verified;
 - AI-generated assets have review notes.
 
-## 12. Human/legal review triggers
+## 13. Human/legal review triggers
 
 Human/legal review is required when:
 

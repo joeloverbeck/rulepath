@@ -2,77 +2,70 @@
 
 Status: bot law and operational architecture.
 
-Rulepath bots exist to make public games enjoyable, testable, and demonstrable. The goal is competent, explainable, fair, non-superhuman play. The goal is not generic superhuman AI.
+Rulepath bots exist to make public games enjoyable, testable, and demonstrable. They are product opponents and simulation drivers, not a research-AI showcase.
+
+The goal is competent, explainable, fair, human-plausible, non-superhuman play. The goal is not a generic bot that plays every game.
 
 ## 1. Core bot law
 
-Bots must:
+Bots MUST:
 
 - consume the same legal action API as humans;
 - choose an action path through normal validation;
 - never mutate state directly;
 - never choose illegal actions;
-- be deterministic under seed, rules version, view, policy version, and limits;
+- be deterministic under seed, rules version, data version, view, policy version, and declared limits;
 - never use information unavailable to a real player in that seat;
 - produce viewer-safe explanations for non-random public bots;
 - have legality tests, determinism tests, simulations, and latency benchmarks.
 
-Testing tools may inspect internal state. Such tools are not public bots and must not implement the public bot trait.
+Testing tools may inspect internal state. Such tools are not public bots and MUST NOT implement the public bot trait.
 
-## 2. No omniscient bots
+## 2. Bot levels
 
-A bot must not receive opponent hands, face-down identities, hidden commitments, unrevealed deck order, secret roles, private logs, future random outcomes, or full-state shortcuts unavailable to its seat.
+| Level | Name | Required for | Allowed techniques | Required evidence |
+|---:|---|---|---|---|
+| 0 | Random legal | Every official game | Random choice among legal actions using deterministic seeded tie-break | many-seed legality tests, simulation support, minimal explanation. |
+| 1 | Rule-informed baseline | Serious public demos | Obvious tactics: win now, block immediate loss, obey forced rules, avoid visibly nonsensical choices, prefer direct visible value | rule-informed tests, deterministic output, simple explanations, latency benchmark. |
+| 2 | Authored policy | Polished public games | Candidate extraction, ordered tactical priorities, phase-aware policy nodes, lexicographic ranking, bounded tie-breakers, deterministic seeded tie-break | completed strategy evidence pack, explanation examples, simulations, benchmarks. |
+| 3 | Shallow deterministic search | Small perfect-information games only | Minimax/alpha-beta/iterative deepening with strict deterministic limits and fallback | ADR only if broad; otherwise documented limits, evaluator tests, latency budgets, deterministic transposition behavior. |
 
-Hidden-information bots may use:
+Level 3 is not a default escalation path. It is allowed only where game size, perfect information, and benchmarks make it safe.
+
+## 3. Explicit v1/v2 exclusions
+
+Public v1/v2 MUST NOT use:
+
+- MCTS;
+- ISMCTS;
+- Monte Carlo playout bots;
+- ML policy/value models;
+- reinforcement learning;
+- LLM move selection at runtime.
+
+Future use requires ADR addressing playout speed, action abstraction, deterministic seeding, memory, latency, hidden-information fairness, explanation quality, public UX, training/evaluation data, replay/hash implications, and why authored policy or shallow deterministic search is insufficient.
+
+## 4. Information boundary
+
+A bot MUST receive only the allowed bot view for its seat. It MUST NOT receive opponent hands, face-down identities, hidden commitments, unrevealed deck order, secret roles, private logs, future random outcomes, full-state shortcuts, or hidden-state-derived candidate rankings.
+
+Hidden-information bots MAY use:
 
 - public information;
 - their own private information;
 - rules and variant metadata;
 - remembered observations from their own legal view;
+- legal inference from public history;
 - belief models over legal possibilities;
 - sampled possibilities generated from legal information, not copied from actual hidden state.
 
+They may infer. They may not peek.
+
 No-leak tests are mandatory for hidden-information bots.
 
-## 3. Bot levels
+## 5. Game-specific strategy modules
 
-### Level 0: random legal bot
-
-Required for every official game.
-
-Purpose: prove legal action generation, stress transitions, drive simulations, find crashes, and provide an immediate automated opponent.
-
-Requirements: legal action API only, deterministic seeded tie-break, many-seed legality tests, simulation support, minimal explanation such as “random legal choice.”
-
-### Level 1: rule-informed baseline bot
-
-Required for serious public demos.
-
-Use obvious rule knowledge: win immediately, block immediate loss, obey forced rules, avoid visibly nonsensical choices, prefer direct visible points/material/resources when the rule connection is clear.
-
-This bot may be weak. It should not look broken.
-
-### Level 2: authored policy bot
-
-Preferred default for polished public games.
-
-Use candidate extraction, ordered tactical priorities, phase-aware policy nodes, lexicographic ranking, small bounded scoring tie-breakers, deterministic seeded tie-break, explanation examples, and debug candidate rankings.
-
-A Level 2 bot requires a completed strategy evidence pack before coding.
-
-### Level 3: shallow deterministic search
-
-Allowed only for small perfect-information games where benchmarks prove it fits.
-
-Allowed techniques include minimax, alpha-beta, iterative deepening with strict deterministic limits, and controlled transposition tables. Requirements: documented evaluator, latency benchmarks, deterministic limits, fallback policy, explanation that search was used, and no hidden-information search unless future ADR defines a fair information-set approach.
-
-## 4. Explicit v1/v2 exclusions
-
-Public v1/v2 must not use MCTS, ISMCTS, Monte Carlo-style bots, ML, or RL. Future use requires ADR that addresses playout speed, action abstraction, deterministic seeding, memory, latency, hidden-information fairness, explanation quality, public UX, and why authored policy or shallow search is insufficient.
-
-## 5. Game-specific policy modules
-
-Do not build “one bot plays every game.” The legal action API is generic; strategy is game-specific.
+Do not build “one bot plays every game.” The action-tree API is generic; strategy is game-specific.
 
 Preferred flow:
 
@@ -84,51 +77,53 @@ legal action tree
   -> lexicographic ranking
   -> small bounded tie-breakers
   -> deterministic seeded tie-break
-  -> chosen action path + explanation
+  -> chosen action path + viewer-safe explanation
 ```
 
-## 6. Crate ownership
+`ai-core` may provide traits and policy composition utilities. `games/*` owns game-specific strategy.
 
-| Location | Owns |
-|---|---|
-| `ai-core` | bot traits, random legal bot, deterministic RNG utilities, policy-node helpers, lexicographic rank helpers, candidate/ranking structures, instrumentation, decision limits, simulation hooks |
-| `games/*/bots.rs` or equivalent | game-specific tactical policies, phase policies, style profiles, scoring tie-breakers, explanation text, tests, benchmarks |
-| `tools/simulate` | playout harness, seed failure reporting, simulation metrics, benchmark integration |
-| `apps/web` | display of bot name, timing, explanation, and dev-mode candidate ranking |
-
-`ai-core` must not contain game strategy.
-
-## 7. Candidate model
+## 6. Candidate model
 
 A candidate is a legal action path plus policy annotations.
 
-A candidate may include action path, public label, phase, tactical tags, visible immediate effects, rule-mandatory flag, explanation fragments, priority vector, bounded tie-break score, seed tie-break key, timing, and dev diagnostic notes.
+A candidate MAY include:
 
-A candidate must not include hidden information unavailable to the bot seat.
+- action path;
+- public label;
+- phase;
+- tactical tags;
+- visible immediate effects;
+- rule-mandatory flag;
+- explanation fragments;
+- priority vector;
+- bounded tie-break score;
+- deterministic tie-break key;
+- timing;
+- dev diagnostic notes.
 
-## 8. Policy node types
+A candidate MUST NOT include hidden information unavailable to the bot seat or viewer.
 
-Useful node types:
+## 7. Policy node types
 
 | Node | Purpose |
 |---|---|
-| mandatory filter | obey forced rules before preference |
-| immediate tactic | win now, block immediate loss, avoid immediate terminal loss |
-| phase priority | select different priorities by phase/round/state |
-| positional preference | prefer visible strategic positions or structures |
-| resource policy | evaluate visible costs/gains |
-| denial policy | block visible opponent threats |
-| risk posture | cautious/aggressive style under allowed information |
-| bounded evaluator | small tie-break after lexicographic categories |
-| fallback | ensure legal choice exists, usually random legal among finalists |
+| Mandatory filter | Enforce forced rules before preference. |
+| Immediate tactic | Win now, block immediate loss, avoid visible terminal loss. |
+| Phase priority | Select different priorities by phase/round/state. |
+| Positional preference | Prefer visible strategic structures. |
+| Resource/accounting policy | Evaluate visible costs/gains. |
+| Denial policy | Block visible opponent threats. |
+| Risk posture | Cautious/aggressive style under allowed information. |
+| Bounded evaluator | Small tie-break after higher priority categories. |
+| Fallback | Ensure a legal choice exists, usually random legal among finalists. |
 
-Nodes should be small enough to test and explain.
+Nodes SHOULD be small enough to test and explain.
 
-## 9. Lexicographic priorities
+## 8. Lexicographic priorities over weight soup
 
-Prefer lexicographic priority vectors over giant weighted sums.
+Prefer lexicographic priority vectors over large weighted sums.
 
-Example priority order:
+Example order:
 
 ```text
 terminal win
@@ -136,7 +131,7 @@ avoid terminal loss
 mandatory rule compliance
 immediate tactical gain
 opponent denial
-positional preference
+position/tempo preference
 style preference
 small bounded tie-break
 seeded random tie-break
@@ -144,54 +139,100 @@ seeded random tie-break
 
 A better earlier category beats later categories. This makes behavior testable and explanations intelligible.
 
-## 10. Small bounded scoring tie-breakers
-
-Small scoring is allowed as a tie-breaker after higher priorities. It must be documented, bounded, game-specific, tested, and explainable.
+Small scoring is allowed only as a bounded tie-break after higher priorities. It MUST be documented, game-specific, tested, explainable, and benchmarked if costly.
 
 Forbidden weight soup:
 
-- dozens of magic weights with no priority rationale;
+- dozens of magic weights without priority rationale;
 - style profiles implemented only by multiplying weights;
 - tactical conditions hidden in static data;
-- scores that cannot produce clear explanations;
+- scores that cannot produce explanations;
 - knob tuning without simulations and benchmarks.
 
-## 11. Strategy evidence pack
+## 9. Competent-player document intake
 
-Before a Level 2 bot is coded, fill `templates/BOT-STRATEGY-EVIDENCE-PACK.md`.
+For games with meaningful strategy, a competent-player document SHOULD be produced before a Level 2 bot.
 
-The pack must include sources consulted, competent-player principles, tactical priorities, phase model, candidate features, lexicographic ranking plan, permitted tie-breakers, forbidden hidden information, decision examples, explanation examples, known weaknesses, test plan, benchmark plan, and public UX note.
+The bot author must convert it into a Level 2 strategy evidence pack. The pack MUST include:
+
+```text
+game id / rules version / variant
+sources and play observations
+competent-player principles
+novice traps
+phase model
+tactical priority order
+candidate extraction plan
+candidate features and visible facts
+lexicographic ranking plan
+bounded tie-breakers
+risk posture/personality knobs
+forbidden hidden information
+belief model if hidden information exists
+sample decisions
+sample explanations
+known weaknesses
+difficulty limits if any
+test plan
+benchmark plan
+public UX note
+policy versioning plan
+```
 
 No evidence pack, no Level 2 bot.
 
-## 12. Explanation contract
+## 10. Explanation contract
 
-Every non-random bot decision should produce a viewer-safe explanation with:
+Every non-random bot decision SHOULD produce a viewer-safe explanation with:
 
-- policy name/version;
+- bot policy name/version;
 - chosen priority reason;
 - relevant visible fact;
 - tie-break note if applicable;
 - hidden-info disclaimer when relevant;
-- whether fallback or search was used.
+- search/limit note if Level 3 was used;
+- fallback note if fallback was used.
 
-Good: “Chose the center column because no immediate win/block exists and the policy prefers central threats.”
+Good:
 
-Bad: “Chose this because score = 37.42.”
+```text
+Chose the center column because no immediate win or block exists and this policy prefers central threats.
+```
 
-Forbidden: “Folded because the opponent has a flush” unless that fact is publicly visible.
+Bad:
 
-## 13. Public and debug affordances
+```text
+Chose this because score = 37.42.
+```
 
-Public mode should expose a small “why?” or recent-bot-action affordance. It should be concise and not turn the game into a debug console.
+Forbidden:
 
-Dev mode may show candidate rankings, priority vectors, selected node, timing, tie-break seed/counter, filtered counts, and fallback flags.
+```text
+Folded because the opponent has the ace.
+```
 
-Debug output must be viewer-safe.
+Unless the ace is publicly visible or legally known to that bot and viewer, that explanation leaks hidden information.
 
-## 14. Hidden-information policy
+## 11. Personality and difficulty
 
-Hidden-information bot docs must state:
+One strong default bot personality comes first. Optional profiles MAY come later.
+
+Profiles SHOULD vary:
+
+- policy order;
+- risk posture;
+- candidate preferences;
+- bounded tie-breakers;
+- allowed search limits where Level 3 is legal;
+- explanation tone.
+
+Profiles MUST NOT cheat, inspect hidden state, inject arbitrary random blunders by default, hide huge weight soup, or bypass validation.
+
+Difficulty MAY vary through reduced tactical layers, smaller limits, documented imperfect heuristics, or weaker priority ordering. Difficulty MUST NOT vary through hidden-state access.
+
+## 12. Hidden-information bot policy
+
+Hidden-information bot docs MUST state:
 
 - exact input view;
 - memory model;
@@ -199,42 +240,49 @@ Hidden-information bot docs must state:
 - forbidden information;
 - no-leak tests;
 - explanation redaction rules;
-- candidate-ranking redaction rules.
+- candidate-ranking redaction rules;
+- replay/export safety checks.
 
-Sampled determinizations must be generated from the bot’s legal information. They must not peek at actual hidden state.
+Sampled determinizations, if ever allowed by ADR, must be generated from the bot’s legal information. They must not copy actual hidden state.
 
-## 15. Style profiles
+## 13. Public and dev affordances
 
-One strong default bot personality comes first. Optional profiles may come later.
+Public mode SHOULD expose a small “why?” or recent-bot-action affordance for non-random bots. It should be concise and should not turn the game into a debug console.
 
-Profiles should vary policy order, risk posture, tie-break preferences, explanation tone, and bounded evaluators. Profiles must not cheat, use hidden information, inject random blunders by default, or become weight dumps.
+Dev mode MAY show candidate rankings, priority vectors, selected node, timings, tie-break seeds/counters, filtered counts, and fallback flags.
 
-## 16. Simulation and benchmarks
+Dev output MUST be viewer-safe. Candidate rankings MUST NOT contain hidden facts or hidden-state-derived labels.
 
-Every game must support native CLI simulation. Simulations should record games completed, terminal outcomes, turn/action caps, illegal action attempts, invariant failures, average length, playout throughput, bot decision latency, seed, and command stream of failures.
+## 14. Tests and benchmarks
 
-Non-trivial bots need benchmarks for legal action generation, candidate extraction, action selection latency, playout throughput, allocations where practical, and serialization/replay overhead when relevant.
+Every bot needs:
 
-Native Rust benchmarks are primary. Browser/WASM smoke measurements are secondary.
+- many-seed legality tests;
+- deterministic output tests;
+- normal validation path tests;
+- explanation smoke tests for non-random bots;
+- simulation tests;
+- latency benchmarks.
 
-## 17. Bot docs and tests
+Hidden-information bots additionally require no-leak tests for bot view, memory, belief model, explanations, candidate rankings, serialized payloads, logs, previews, and replay exports.
 
-Every non-random bot must document strategy level, policy name/version, information access, decision order, style profiles if any, scoring terms, tie-break method, known weaknesses, benchmark numbers, legality tests, no-leak tests when relevant, explanation examples, and public suitability.
+Non-trivial bots SHOULD benchmark legal action generation, candidate extraction, action selection latency, playout throughput, allocations where practical, and serialization/replay overhead where relevant.
 
-Every bot must have many-seed legality tests, determinism tests, explanation smoke tests, simulation tests, and latency benchmarks.
+Native Rust benchmarks are primary. Browser/WASM measurements are smoke evidence.
 
-Hidden-information bots additionally require no-leak tests for bot view, explanations, candidate rankings, serialized payloads, logs, previews, and sampling code.
+## 15. Acceptance check for public bots
 
-## 18. Acceptance checklist
+Before a bot becomes a default public opponent, verify:
 
-Before a bot becomes a default public opponent, verify the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants) (the bot uses the normal legal action API and allowed view only, validates through the normal engine path, and receives no unauthorized hidden state), plus these bot-specific items:
-
+- it uses the normal legal action API;
+- it validates through the normal engine path;
+- it receives only the allowed view;
+- it is deterministic under declared inputs;
 - legality tests pass over many seeds;
-- determinism tests pass;
-- latency benchmarks pass or documented UI thinking feedback exists;
+- latency fits the public UX or uses documented thinking feedback;
 - explanations are clear and viewer-safe;
-- candidate rankings are dev-only and viewer-safe;
-- Level 2 bot has strategy evidence pack;
+- Level 2 has a strategy evidence pack;
+- hidden-information games have no-leak tests;
 - no weight soup exists;
 - no public MCTS/ISMCTS/Monte Carlo/ML/RL slipped in;
 - docs and known weaknesses are honest.
