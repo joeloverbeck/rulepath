@@ -3,7 +3,7 @@
 - Spec ID: `gate-0-repository-skeleton`
 - Roadmap stage: 0
 - Roadmap build gate: Gate 0
-- Status: Planned
+- Status: Done
 - Date: 2026-06-05
 - Owner: joeloverbeck
 
@@ -208,3 +208,28 @@ Recorded so they can be corrected in one line:
 4. `wasm-api` builds via the standard `wasm-bindgen`/`wasm-pack`-style toolchain
    — assuming the conventional Rust→WASM path; the exact tool is an
    implementation choice for the WB2 AGENT-TASK, not fixed by this spec.
+
+## Outcome
+
+Completed: 2026-06-05
+
+What changed:
+- Gate 0 repository skeleton landed as a Rust workspace with the four placeholder crates, seven placeholder tool crates, `benches/`, and empty `games/`.
+- `wasm-api` builds to a `wasm32-unknown-unknown` artifact, and `apps/web` builds as a React/TypeScript shell that loads the placeholder artifact.
+- CI smoke checks, boundary checks, and docs link checks were added.
+- `specs/README.md` records Gate 0 as `Done`.
+
+Deviations from original plan:
+- The WASM proof uses the installed `wasm32-unknown-unknown` target directly instead of `wasm-pack`/`wasm-bindgen`.
+- The WASM-load smoke is a Node WebAssembly instantiation script rather than browser automation.
+
+Verification results:
+- `npm --prefix apps/web ci` passed.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
+- `cargo test --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run build` passed.
+- `node scripts/check-doc-links.mjs` passed.
