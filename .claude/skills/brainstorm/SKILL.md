@@ -234,7 +234,7 @@ Design doc written to docs/plans/YYYY-MM-DD-<topic>-design.md
 
 What would you like to do next?
 1. Record the decision as an ADR (write to docs/adr/)
-2. Decompose into agent tasks (write to tasks/ from templates/AGENT-TASK.md)
+2. Decompose into tickets (`/reassess-spec`, then `/spec-to-tickets` → `tickets/<PREFIX>-NNN.md`)
 3. Start implementing directly
 4. Done for now — I'll review the design doc later
 ```
