@@ -8,7 +8,7 @@ on:
 
 jobs:
   smoke:
-    name: Gate 0 smoke
+    name: Gate 0 + Gate 1 smoke
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -39,6 +39,15 @@ jobs:
       - name: Rust tests
         run: cargo test --workspace
 
+      - name: race_to_n rule, golden, replay, and serialization tests
+        run: cargo test -p race_to_n
+
+      - name: race_to_n quick simulation
+        run: cargo run -p simulate -- --game race_to_n --games 1000
+
+      - name: race_to_n bench smoke
+        run: cargo bench -p race_to_n -- legal_actions
+
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
 
@@ -47,6 +56,9 @@ jobs:
 
       - name: Web build
         run: npm --prefix apps/web run build
+
+      - name: race_to_n UI smoke
+        run: npm --prefix apps/web run smoke:ui
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
