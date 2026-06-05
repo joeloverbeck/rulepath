@@ -1,6 +1,7 @@
 //! `race_to_n` foundation crate.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod rules;
@@ -15,6 +16,7 @@ use engine_core::{
 };
 
 pub use actions::legal_action_tree;
+pub use bots::RaceRandomBot;
 pub use effects::RaceEffect;
 pub use ids::RaceSeat;
 pub use rules::{apply_action, validate_command, ValidatedAction};
