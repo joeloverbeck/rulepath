@@ -1,6 +1,6 @@
 # GAT0REPSKE-004: CI smoke pipeline and boundary gates
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — CI configuration only; no crate or source behavior change.
@@ -77,3 +77,28 @@ If the boundary gate is scripted rather than inlined, a small `scripts/boundary-
 1. `grep -rniE "board|card|deck|grid|suit|resource|capture" crates/engine-core/src && echo FAIL || echo OK; cargo tree -p engine-core` — boundary gate run locally.
 2. `cargo fmt --check && cargo clippy && cargo test` plus the WASM and `apps/web` build commands — local mirror of the full pipeline.
 3. Push to a branch (or run via `act`) to exercise the workflow end-to-end — the workflow can only be fully validated in the CI runtime.
+
+## Outcome
+
+Completed: 2026-06-05
+
+What changed:
+- Added `.github/workflows/ci.yml` with blocking Gate 0 smoke checks for Rust format, clippy, workspace build/test, engine boundary, WASM smoke, web build, and docs link checking.
+- Added `scripts/boundary-check.sh` to fail closed on forbidden `engine-core` mechanic nouns or forbidden `engine-core` Rulepath dependencies.
+- Added `scripts/check-doc-links.mjs` as a dependency-free internal Markdown link checker over `docs/` and `specs/`.
+
+Deviations from original plan:
+- The docs link check is implemented with a small local Node script rather than an external link-checker dependency.
+- Full GitHub-hosted workflow execution was not run locally; the workflow was validated by running its command lanes in the checkout.
+
+Verification results:
+- `npm --prefix apps/web ci` passed.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
+- `cargo test --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.
+- Temporary negative check with `crates/engine-core/src/__boundary_negative_check.rs` containing `card` made `bash scripts/boundary-check.sh` fail with `engine-core contains mechanic vocabulary`; the temporary file was removed and the positive boundary check passed again.
+- `npm --prefix apps/web run smoke:wasm` passed and printed `rulepath-wasm-api/0.1.0`.
+- `npm --prefix apps/web run build` passed.
+- `node scripts/check-doc-links.mjs` passed and checked 17 Markdown files.

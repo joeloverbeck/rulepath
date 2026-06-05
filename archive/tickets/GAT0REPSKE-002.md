@@ -1,6 +1,6 @@
 # GAT0REPSKE-002: `wasm-api` WASM artifact and `apps/web` shell
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — extends `crates/wasm-api` with a WASM build surface and a placeholder exported call; adds the `apps/web` React/TypeScript presentation shell.
@@ -80,3 +80,24 @@ React/TypeScript shell: build tooling (`package.json` + bundler config), an entr
 1. `wasm-pack build crates/wasm-api --target web` (or the project-chosen equivalent toolchain) — WASM artifact build.
 2. `npm --prefix apps/web run build` (or chosen equivalent) — web shell production build.
 3. Load-smoke command/runbook (browser or headless) — a narrower boundary than a full e2e because no gameplay exists yet.
+
+## Outcome
+
+Completed: 2026-06-05
+
+What changed:
+- Extended `wasm-api` with a direct `wasm32-unknown-unknown` export surface for a placeholder version string.
+- Added `apps/web` as a React/TypeScript/Vite shell that loads the generated WASM artifact and renders the Rust-returned placeholder string.
+- Added an `apps/web` Node smoke script that instantiates the same WASM artifact and asserts the placeholder return value.
+- Added web generated-output ignores for `dist/`, `node_modules/`, and the copied public WASM artifact.
+
+Deviations from original plan:
+- Used the installed `wasm32-unknown-unknown` target directly instead of `wasm-pack`/`wasm-bindgen`, because those CLIs were not installed and the ticket allowed an equivalent project-chosen toolchain.
+- The load smoke is a Node WASM instantiation script rather than browser automation; it proves the placeholder artifact loads and returns the expected string.
+
+Verification results:
+- `cargo test -p wasm-api` passed.
+- `cargo build -p wasm-api --target wasm32-unknown-unknown --release` passed and produced `target/wasm32-unknown-unknown/release/wasm_api.wasm`.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:wasm` passed and printed `rulepath-wasm-api/0.1.0`.
+- `rg -n -i "legal|legality|rule state|validate|apply|hidden|decision|action tree|command envelope" apps/web/src` returned no matches.

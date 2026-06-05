@@ -1,0 +1,10 @@
+[package]
+name = "rule-coverage"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "rule-coverage"
+path = "src/main.rs"

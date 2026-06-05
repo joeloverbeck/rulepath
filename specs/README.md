@@ -23,7 +23,7 @@ record progress; this table is.
 
 | Stage | Gate | Spec | Status |
 |---:|---|---|---|
-| 0 | Gate 0 | [`gate-0-repository-skeleton.md`](gate-0-repository-skeleton.md) | Planned |
+| 0 | Gate 0 | [`gate-0-repository-skeleton.md`](../archive/specs/gate-0-repository-skeleton.md) | Done |
 | 1 | Gate 1 | `race_to_n` — not yet specced | Not started |
 | 1 | Gate 2 | trace/replay/benchmark hardening — not yet specced | Not started |
 | 1 | Gate 3 | WASM/static web shell — not yet specced | Not started |
@@ -46,8 +46,10 @@ Status values: `Not started` → `Planned` (spec written) → `In progress`
 
 ## Spec format
 
-Each spec follows this structure (see `gate-0-repository-skeleton.md` as the
-canonical example). Use explicit `not applicable` rows over silent omissions.
+Each spec follows this structure (see
+[`gate-0-repository-skeleton.md`](../archive/specs/gate-0-repository-skeleton.md)
+as the canonical example). Use explicit `not applicable` rows over silent
+omissions.
 
 1. **Header** — Spec ID, stage, gate, status, date, owner, authority order.
 2. **Objective** — what the gate achieves, sourced from ROADMAP.

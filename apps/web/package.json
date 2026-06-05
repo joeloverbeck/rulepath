@@ -1,0 +1,21 @@
+{
+  "name": "@rulepath/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:wasm": "cargo build -p wasm-api --target wasm32-unknown-unknown --release && mkdir -p public && install -m 0644 ../../target/wasm32-unknown-unknown/release/wasm_api.wasm public/wasm_api.wasm",
+    "build": "npm run build:wasm && tsc --noEmit && vite build",
+    "smoke:wasm": "npm run build:wasm && node scripts/smoke-load-wasm.mjs"
+  },
+  "dependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  },
+  "devDependencies": {}
+}

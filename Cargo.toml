@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/engine-core",
+    "crates/game-stdlib",
+    "crates/ai-core",
+    "crates/wasm-api",
+    "tools/simulate",
+    "tools/replay-check",
+    "tools/trace-viewer",
+    "tools/rule-coverage",
+    "tools/bench-report",
+    "tools/seed-reducer",
+    "tools/fixture-check",
+]
+
+[workspace.package]
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/joeloverbeck/rulepath"
