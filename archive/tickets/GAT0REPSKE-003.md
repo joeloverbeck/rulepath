@@ -1,6 +1,6 @@
 # GAT0REPSKE-003: `tools/*`, `benches/`, and `games/` placeholders
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — adds seven `tools/*` placeholder crates, a `benches/` placeholder, and an empty `games/` placeholder; registers the new crate members in the workspace.
@@ -89,3 +89,22 @@ Add the tool (and any bench) members to the root `Cargo.toml` created by GAT0REP
 1. `for t in simulate replay-check trace-viewer rule-coverage bench-report seed-reducer fixture-check; do cargo run -p $t -- --help || exit 1; done`
 2. `cargo build` — full workspace build with new members.
 3. `ls games/` — narrow check that `games/` holds only a placeholder (no crate).
+
+## Outcome
+
+Completed: 2026-06-05
+
+What changed:
+- Added seven placeholder binary crates under `tools/`: `simulate`, `replay-check`, `trace-viewer`, `rule-coverage`, `bench-report`, `seed-reducer`, and `fixture-check`.
+- Registered the seven tool crates as workspace members without removing the four crate members from GAT0REPSKE-001.
+- Added `benches/README.md` and an empty `games/.gitkeep` placeholder.
+
+Deviations from original plan:
+- None.
+
+Verification results:
+- `cargo fmt --all` passed.
+- `cargo build` passed over the workspace with all tool members.
+- `cargo test` passed over the workspace.
+- `cargo run -p <tool> -- --help` passed for all seven tools and printed placeholder help/version output.
+- `find games -maxdepth 2 -type f -print | sort` returned only `games/.gitkeep`.

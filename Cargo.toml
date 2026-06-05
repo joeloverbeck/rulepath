@@ -5,6 +5,13 @@ members = [
     "crates/game-stdlib",
     "crates/ai-core",
     "crates/wasm-api",
+    "tools/simulate",
+    "tools/replay-check",
+    "tools/trace-viewer",
+    "tools/rule-coverage",
+    "tools/bench-report",
+    "tools/seed-reducer",
+    "tools/fixture-check",
 ]
 
 [workspace.package]

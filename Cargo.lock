@@ -10,7 +10,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bench-report"
+version = "0.1.0"
+
+[[package]]
 name = "engine-core"
+version = "0.1.0"
+
+[[package]]
+name = "fixture-check"
 version = "0.1.0"
 
 [[package]]
@@ -19,6 +27,26 @@ version = "0.1.0"
 dependencies = [
  "engine-core",
 ]
+
+[[package]]
+name = "replay-check"
+version = "0.1.0"
+
+[[package]]
+name = "rule-coverage"
+version = "0.1.0"
+
+[[package]]
+name = "seed-reducer"
+version = "0.1.0"
+
+[[package]]
+name = "simulate"
+version = "0.1.0"
+
+[[package]]
+name = "trace-viewer"
+version = "0.1.0"
 
 [[package]]
 name = "wasm-api"
