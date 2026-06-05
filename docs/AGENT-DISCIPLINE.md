@@ -1,8 +1,8 @@
-# AGENT DISCIPLINE
+# Rulepath Agent Discipline
 
 Status: coding-agent operating law.
 
-Claude Code, Codex, and similar tools are expected to help implement the first games. They are accelerators, not unattended architects.
+Claude Code, Codex, and similar tools are expected to help implement Rulepath. They are accelerators, not unattended architects.
 
 ## 1. Agent role
 
@@ -14,11 +14,12 @@ Agents MAY:
 - write simulations;
 - write benchmarks;
 - refactor narrow modules;
-- port bounded code from TypeScript to Rust;
+- port bounded code from TypeScript to Rust when behavior belongs in Rust;
 - generate docs from existing code;
 - build UI components against stable contracts;
 - improve diagnostics;
-- analyze failures.
+- analyze failures;
+- update rule coverage matrices.
 
 Agents MUST NOT:
 
@@ -30,7 +31,10 @@ Agents MUST NOT:
 - implement private licensed content in public files;
 - rewrite tests blindly;
 - optimize without benchmarks;
-- produce sprawling changes without a bounded target.
+- produce sprawling changes without a bounded target;
+- make bots omniscient;
+- put rule legality in TypeScript;
+- make public docs or names look like a private licensed-game project.
 
 ## 2. Required task structure
 
@@ -59,16 +63,16 @@ Non-goals:
 Forbidden changes:
   What kernel changes are forbidden?
   What data formats are forbidden?
-  What IP boundaries apply?
+  What DSL/YAML/IP/UI/bot boundaries apply?
 
 Tests:
-  What unit/rule/golden/property/simulation/UI tests are required?
+  What unit/rule/golden/property/simulation/visibility/UI tests are required?
 
 Benchmarks:
   What benchmark must exist or not regress?
 
 Docs:
-  What rules/source/coverage/UI/AI docs must be added or updated?
+  What RULES/SOURCES/RULE-COVERAGE/UI/AI/BENCHMARKS docs must be added or updated?
 
 Output:
   Provide complete files or coherent complete sections, not diffs.
@@ -86,7 +90,10 @@ Do not give agents tasks like:
 - “add YAML support for this special case”;
 - “fix all failing tests” without validating the tests;
 - “clean up the architecture”;
-- “make it fast” without benchmark targets.
+- “make it fast” without benchmark targets;
+- “add MCTS”;
+- “implement multiplayer”;
+- “add a private game module to public repo”.
 
 These tasks create sludge.
 
@@ -95,25 +102,25 @@ These tasks create sludge.
 Use bounded tasks like:
 
 ```text
-Implement Stage 1 four-in-a-row in games/four_in_a_row.
-Use typed Rust only. Do not modify engine-core except to fix documented bugs.
+Implement Stage 3 `column_four` in games/column_four.
+Use typed Rust only. Do not modify engine-core except to fix documented generic bugs.
 Add unit tests for line detection, golden traces for two games, random bot legality tests,
-CLI simulation support, and a benchmark for legal action generation.
-Update RULES.md and RULE-COVERAGE.md in the game module.
+CLI simulation support, and benchmarks for legal action generation and bot choice.
+Update RULES.md, SOURCES.md, RULE-COVERAGE.md, UI.md, AI.md, and BENCHMARKS.md.
 Output complete files or coherent complete sections, not diffs.
 ```
 
 ```text
-Add viewer-filtered effect log tests for the Stage 4 card smoke game.
-Do not alter rule behavior unless a test proves the current behavior is wrong.
+Add viewer-filtered effect log tests for Stage 6 `high_card_duel`.
+Do not alter rule behavior unless a valid test proves current behavior is wrong.
 First determine whether failing tests are valid, then whether the issue is SUT or test suite.
 Add regression coverage for any bug found.
 ```
 
 ```text
-Refactor repeated grid-coordinate helpers from tic_tac_toe and four_in_a_row into game-stdlib.
-Do not add grid concepts to engine-core.
-Back-port both games to the helper and prove all existing traces still pass.
+Refactor repeated coordinate/line helpers from `three_marks`, `column_four`, and `directional_flip`
+into game-stdlib. Do not add grid concepts to engine-core. Back-port all three games and prove
+existing traces still pass or document intentional trace changes.
 ```
 
 ## 5. Failing-test protocol
@@ -138,6 +145,7 @@ Any change to `engine-core` MUST answer:
 - Does it introduce any game-specific noun?
 - Does it preserve determinism?
 - Does it preserve visibility boundaries?
+- Does it affect replay hashes or compatibility?
 - Does it require ADR?
 
 Default answer: do not change `engine-core`.
@@ -149,13 +157,67 @@ Agents MUST use the allowed v1 static formats unless instructed otherwise:
 - TOML for manifests/config;
 - JSON for traces/interchange;
 - RON for Rust-shaped static fixtures;
-- CSV for tables.
+- CSV for tables;
+- Postcard/binary Serde only for non-hand-authored internal artifacts when approved.
 
 Agents MUST NOT add YAML without ADR.
 
 Agents MUST NOT turn static data into behavior.
 
-## 8. IP protocol
+Suspicious fields include:
+
+```text
+when
+if
+then
+else
+selector
+condition
+trigger
+script
+loop
+foreach
+priority_expression
+ai_condition
+```
+
+## 8. DSL protocol
+
+Agents MUST NOT create a DSL.
+
+A future DSL requires ADR and must be typed, compiled/lowered, source-span-aware, deterministic, formatted, linted, versioned, tested, benchmarked, documented with examples/anti-examples, and unable to silently depend on hidden defaults.
+
+A DSL MUST NOT be introduced merely to make one monster game possible.
+
+## 9. Bot protocol
+
+Agents implementing bots MUST:
+
+- use normal legal action API;
+- use allowed bot views only;
+- avoid omniscient state;
+- implement deterministic tie-breaking;
+- add legality tests over many seeds;
+- add latency benchmarks;
+- document strategy and information access;
+- produce explanation examples for non-random bots;
+- avoid weight soup.
+
+Agents MUST NOT present a cheating diagnostic tool as a bot.
+
+## 10. UI protocol
+
+Agents implementing UI MUST:
+
+- map controls from Rust legal action trees;
+- avoid TypeScript rule legality;
+- drive animations from semantic effects;
+- keep debug panels behind a dev toggle;
+- protect hidden information in DOM, local storage, logs, and payloads;
+- support reduced motion where animation is added;
+- use original assets and neutral presentation.
+
+## 11. IP protocol
 
 Agents MUST:
 
@@ -164,15 +226,16 @@ Agents MUST:
 - avoid copied rulebook prose;
 - avoid proprietary card text/assets;
 - use neutral names for trademark-risk games;
-- keep private licensed experiments out of public files.
+- keep private licensed experiments out of public files;
+- leave a TODO for human review when unsure.
 
-If an agent is unsure whether content is safe, it MUST omit the content and leave a TODO for human review.
+If an agent is unsure whether content is safe, it MUST omit the content and ask for human review.
 
-## 9. Output protocol
+## 12. Output protocol
 
-For code corrections, agents SHOULD output complete files or coherent complete sections.
+For code corrections, agents SHOULD output complete files or coherent complete sections. Do not output diffs as the primary artifact.
 
-Do not output diffs as the primary artifact.
+For documentation corrections, agents SHOULD output whole Markdown files when practical.
 
 For large work, agents SHOULD report:
 
@@ -184,26 +247,28 @@ For large work, agents SHOULD report:
 - unresolved questions;
 - commands to run.
 
-## 10. Review checklist
+## 13. Review checklist
 
 Before accepting agent output, verify:
 
 - `engine-core` has no game nouns;
 - rule behavior is Rust, not untyped data;
+- TypeScript does not decide legality;
 - tests cover the change;
 - golden traces updated only when rule change is intentional;
 - replay remains deterministic;
 - hidden information is safe;
-- bots use legal action API;
+- bots use legal action API and allowed views;
 - benchmarks exist for hot paths;
 - public files contain no licensed data;
 - docs match implementation;
-- ADR exists for major decisions.
+- ADR exists for major decisions;
+- output is bounded and coherent.
 
-## 11. Why this is strict
+## 14. Why strictness is required
 
-Public developer guidance from major board-game platforms recognizes AI tools as useful for bounded tasks such as boilerplate, tests, refactoring, trace analysis, and UI code, while warning that they do not reliably implement meaningful complete games unattended. This project should exploit agent speed without surrendering architecture.
+Major board-game platform guidance treats AI tools as useful for bounded tasks such as boilerplate, tests, refactoring, trace analysis, and UI code, while warning that they do not reliably implement meaningful complete games unattended. Rulepath should exploit agent speed without surrendering architecture.
 
 ## Source notes
 
-See `SOURCES.md`, especially Board Game Arena AI-development guidance, Board Game Arena bot guidance, the testing doctrine, and ADR doctrine.
+See `SOURCES.md`, especially Board Game Arena AI-development guidance, Board Game Arena bot guidance, testing doctrine, data-format sources, and ADR doctrine.

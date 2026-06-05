@@ -1,158 +1,218 @@
-# UI DOCTRINE
+# Rulepath UI Doctrine
 
 Status: public web app and rendering law.
 
-The public web app matters from the beginning, but it MUST NOT drive engine architecture. The UI is a client of the Rust engine.
+The public UI matters from the beginning. It must feel like a polished playable consumer site, not a diagnostic harness. The UI is still a client of the Rust engine: it presents legal actions and semantic effects; it does not decide rules.
 
-## 1. Product goal
+## 1. Product target
 
-The UI should make a public playable site feel clear, pleasant, and trustworthy.
+The public web app SHOULD provide:
 
-It SHOULD provide:
-
-- game picker;
+- polished game picker;
+- clear match setup;
 - readable board/card presentation;
-- clear legal moves;
+- obvious legal moves;
 - progressive action construction for compound moves;
 - effect-log-driven animation;
 - replay viewer;
 - human vs bot;
 - local hotseat;
 - bot vs bot replay;
-- debug/developer tools;
+- local replay save/load;
+- dev/debug toggle;
 - responsive layout;
-- original assets.
+- original assets;
+- accessible interaction where practical.
 
-It MUST NOT implement rules or infer legality.
+The default mode SHOULD be play mode. Debug tools are visible when intentionally enabled.
 
-## 2. Initial app architecture
+## 2. Ownership split
 
-Recommended v1 shape:
+React/TypeScript owns:
+
+- app shell;
+- routes/pages if any;
+- menus;
+- game picker;
+- match setup;
+- panels;
+- settings;
+- replay controls;
+- accessibility wrappers;
+- WASM integration;
+- local storage of safe replay artifacts;
+- dev inspector UI.
+
+Rust/WASM owns:
+
+- legal actions;
+- validation;
+- state transitions;
+- public/private views;
+- previews;
+- semantic effects;
+- bot decisions;
+- replay;
+- deterministic simulation.
+
+The renderer owns:
+
+- visual representation;
+- hit targets mapped from legal action choices;
+- animation timelines;
+- resize behavior;
+- mapping public view/effects to visuals;
+- reduced-motion variants;
+- debug overlays when enabled.
+
+The renderer MUST NOT decide legality.
+
+## 3. Recommended v1 architecture
 
 ```text
-React/TypeScript shell
-  -> WASM engine package
-  -> game session controller
-  -> board renderer boundary
-  -> panels: actions, log, replay, inspectors, settings
+React app shell
+  -> session controller
+  -> batched WASM API
+  -> public-view store
+  -> legal-action tree store
+  -> effect queue
+  -> renderer adapter
+  -> panels: actions, log, replay, help, settings, dev inspectors
 ```
 
-React SHOULD own:
+The session controller coordinates calls to Rust. It should be boring.
 
-- app layout;
-- menus;
-- match setup;
-- game picker;
-- action panels;
-- inspector panels;
-- replay controls;
-- settings;
-- logs;
-- accessibility wrappers.
+The renderer adapter receives only viewer-safe public view data, action affordances derived from Rust legal action trees, and viewer-filtered semantic effects.
 
-The renderer SHOULD own:
+## 4. V1 renderer choice: React + SVG
 
-- board coordinates;
-- piece/card visuals;
-- animation timelines;
-- pointer hit targets;
-- resize behavior;
-- visual state derived from public views and effect logs.
+Use React + SVG as the default v1 board/card renderer.
 
-The renderer MUST NOT decide whether an action is legal.
+Reasons:
 
-## 3. Rendering recommendation
+- early ladder games have modest object counts;
+- SVG scales cleanly;
+- SVG is inspectable in the DOM;
+- SVG supports crisp abstract boards, icons, coordinates, highlights, and overlays;
+- accessibility labels and debug overlays are easier than with pure canvas;
+- it avoids adopting a heavier game renderer before measured pressure exists.
 
-### v1 default: React + SVG board renderer
+This is a default, not a religion. Keep the renderer boundary clean.
 
-Use a React shell with a clearly separated SVG board renderer for the first playable version.
+## 5. Canvas policy
 
-Why:
-
-- SVG is a web-standard vector format designed for clean rendering at any size.
-- SVG elements are scriptable and inspectable through the DOM.
-- Board games usually have modest object counts in early ladder stages.
-- SVG supports crisp abstract boards, icons, coordinates, highlights, and simple animations without committing early to a game-rendering engine.
-- SVG makes debug overlays and accessibility labels easier than a pure canvas from day one.
-
-This is a recommendation, not a religion. Keep the renderer boundary clean so the project can swap renderer technology later.
-
-### When to consider Canvas
-
-Canvas MAY replace or supplement SVG when measured needs justify it:
+Canvas MAY replace or supplement SVG only when measured needs justify it, such as:
 
 - hundreds/thousands of moving objects;
 - heavy animation load;
-- particle/visual effects;
+- particle-like effects;
 - custom low-level drawing;
-- SVG DOM overhead becomes measurable.
+- measurable SVG DOM overhead;
+- visual effects that SVG cannot deliver cleanly.
 
-Canvas should not be adopted merely because it feels more “game-like.”
+Canvas SHOULD NOT be adopted merely because it feels more “game-like”.
 
-### When to consider PixiJS
+Canvas adoption requires:
+
+- benchmark or profiling note;
+- accessibility plan;
+- debug overlay plan;
+- renderer-boundary preservation;
+- reduced-motion behavior.
+
+## 6. PixiJS policy
 
 PixiJS MAY be considered after SVG/Canvas pressure is real.
 
 Use PixiJS only if:
 
-- board rendering has become graphically demanding;
-- WebGL/WebGPU acceleration is actually useful;
+- public presentation genuinely needs heavier graphics;
+- WebGL/WebGPU acceleration is useful;
+- object counts or animation load justify bundle complexity;
 - the renderer boundary already exists;
-- debug and accessibility costs are accepted;
-- bundle complexity is justified by measured benefit.
+- accessibility/debug tradeoffs are accepted explicitly;
+- ADR or UI technical note records the reason.
 
-Do not start with PixiJS before simple games prove the UI contract.
+Do not start with PixiJS before the early ladder proves the UI contract.
 
-## 4. Effect-log-driven animation
+## 7. Effect-log-driven animation
 
 The UI MUST animate semantic effects emitted by Rust.
 
 Correct pipeline:
 
 ```text
-Player chooses action
+player chooses action path
   -> Rust validates and applies command
-  -> Rust emits effect log
-  -> UI receives effects
+  -> Rust emits semantic effects
+  -> UI receives viewer-filtered effects
   -> renderer schedules animations
-  -> rendered state settles to new public view
+  -> renderer settles to new viewer-safe public view
 ```
 
 Forbidden pipeline:
 
 ```text
-Rust mutates state
-  -> UI diffs old/new public views
+old view + new view
+  -> UI diffs state
   -> UI guesses causality
-  -> animation bugs accumulate
+  -> animations gradually become wrong
 ```
 
-State diffs MAY be used for debugging, not primary animation causality.
+State diffs MAY be used in diagnostics to detect missing effect coverage. They MUST NOT be the primary animation source.
 
-## 5. Legal action UI
+## 8. Legal action UI
 
-For simple games, the board MAY directly expose all legal cells/moves.
+Normal player mode:
 
-For compound games, the UI MUST use progressive construction:
+- illegal choices are not clickable;
+- legal choices are visible and understandable;
+- the player is not flooded with irrelevant illegal choices;
+- stale submissions are rejected gracefully;
+- confirmation is used when consequences are large or compound;
+- hidden information is not exposed through disabled controls or tooltips.
+
+Learning/debug mode:
+
+- MAY show disabled illegal choices;
+- SHOULD show Rust-provided reasons;
+- MUST NOT leak hidden information;
+- SHOULD make clear it is not the default play experience.
+
+Simple actions may be direct: click a legal cell, column, card, or button.
+
+Compound actions MUST use progressive construction:
 
 ```text
 choose action type
-  -> choose target
-  -> choose pieces/cards/resources
+  -> choose target/source
+  -> choose additional pieces/cards/resources
   -> preview cost/effects
   -> confirm
 ```
 
-Required UI behavior:
+## 9. Previews
 
-- legal choices are obvious;
-- illegal choices are not clickable in player mode;
-- learning/debug mode MAY show disabled choices with reasons;
-- stale actions are rejected gracefully;
-- pending reaction/waiting states are clear;
-- hidden information remains hidden.
+Previews are Rust-generated and viewer-safe.
 
-## 6. Effect log and explanation panel
+Previews MAY include:
+
+- cost summary;
+- legal next choices;
+- visible expected effects;
+- disabled reason for the selected partial action;
+- whether confirmation is required;
+- animation hint tags.
+
+Previews MUST NOT include:
+
+- hidden card identities;
+- unrevealed commitments;
+- opponent private information;
+- real hidden state used by bots;
+- guessed rule consequences from TypeScript.
+
+## 10. Effect log and explanation panel
 
 The UI SHOULD show a human-readable log derived from semantic effects and explanation templates.
 
@@ -162,83 +222,124 @@ Every log entry SHOULD answer:
 - what action was chosen;
 - what changed;
 - why a forced transition occurred when relevant;
-- what choice is now pending.
+- what choice is pending now;
+- what information is private/redacted when relevant.
 
-The UI MUST NOT generate authoritative rules explanations from arbitrary state diffs. It should render authored templates supplied by game modules and effect types.
+The UI MUST NOT generate authoritative rules explanations from arbitrary state diffs.
 
-## 7. Debug/developer UI
+## 11. Debug/developer UI
 
-Debug UI is required early.
+Debug UI is required early but must not dominate public play.
 
-The web app SHOULD include:
+The web app SHOULD include a visible dev toggle with:
 
 - seed display;
-- game/rules version display;
-- current player/phase display;
+- game/rules/data version display;
+- current actor/phase display;
 - legal action count;
 - action tree inspector;
+- selected action path inspector;
 - public view inspector;
-- state inspector in local/dev builds only;
 - effect log inspector;
 - command log inspector;
 - replay controls;
 - performance timings;
 - bot decision timing;
-- visibility mode selector for local debugging.
+- bot candidate ranking when available;
+- visibility mode selector in local developer builds only.
 
-Debug UI MUST NOT ship hidden private state to unauthorized remote browsers. Local developer builds may expose internal state.
+State inspectors that expose internal state MUST be local/dev-only. They MUST NOT ship hidden private state to unauthorized remote browsers.
 
-## 8. Visual doctrine
+## 12. Visual doctrine
 
 Public visuals MUST be original.
 
 Prefer:
 
-- clean abstract boards;
+- clean abstract premium style;
 - readable typography;
 - responsive layouts;
-- simple motion with clear timing;
+- clear state hierarchy;
+- restrained but satisfying motion;
 - original SVG icons;
-- colorblind-safe encodings;
 - shape plus color, not color alone;
-- pleasant but restrained effects.
+- colorblind-safe palettes;
+- meaningful hover/focus/selection states;
+- reduced-motion support.
 
 Avoid:
 
-- mimicking proprietary boards/cards/components;
+- mimicking proprietary boards, cards, components, iconography, colors, or trade dress;
 - trademark-forward presentation;
 - noisy animations that obscure rules;
-- clever UI that hides legal choices;
-- beautiful boards with broken replay/debug tools.
+- skeuomorphic clutter that hurts readability;
+- beautiful boards with broken replay/debug tools;
+- debug-first layouts in public mode.
 
-## 9. Accessibility baseline
+## 13. Accessibility baseline
 
 The UI SHOULD provide:
 
 - keyboard-accessible action selection where practical;
+- visible focus states;
 - sufficient contrast;
 - text labels for icons;
 - scalable layout;
 - reduced-motion mode;
-- screen-reader-friendly summaries for state and legal actions;
+- screen-reader-friendly state summaries;
+- screen-reader-friendly legal-action summaries;
 - no reliance on color alone.
 
-Accessibility is easier when public views and action trees are explicit.
+Accessibility is easier because Rust provides explicit public views and action trees.
 
-## 10. Initial public site policy
+## 14. Responsiveness policy
 
-Initial public web app:
+Every public game SHOULD support:
 
-- static site first;
-- no accounts;
-- no database;
-- no hosted multiplayer;
-- load Rust/WASM engine package;
-- support local play and bots;
-- save/load local replays;
-- expose game picker and replay viewer.
+- desktop landscape;
+- tablet landscape/portrait;
+- phone portrait for simple games where practical;
+- flexible side panels;
+- collapsible logs/action panels;
+- readable board/card sizes;
+- touch-safe target sizes.
 
-Do not add network infrastructure to make the UI seem more serious. A correct static demo beats a fragile multiplayer shell.
+The public app SHOULD degrade gracefully. A complex game may require a larger screen, but the site should say so cleanly.
+
+## 15. Public site modes
+
+Initial modes:
+
+- human vs bot;
+- local hotseat;
+- bot vs bot replay;
+- replay viewer.
+
+Not initial modes:
+
+- accounts;
+- matchmaking;
+- hosted multiplayer;
+- chat;
+- ranked play;
+- cloud saves.
+
+## 16. UI acceptance checklist
+
+A public web game is acceptable only when:
+
+- the default view is playable and pleasant;
+- legal moves are obvious;
+- illegal moves are not clickable in normal mode;
+- compound moves are progressively constructed;
+- Rust generates previews and diagnostics;
+- animations are driven by semantic effects;
+- replay can step through actions;
+- hidden information is not shipped to unauthorized viewers;
+- bot choices can be inspected in dev mode;
+- reduced-motion mode exists;
+- basic keyboard/focus behavior exists where practical;
+- public assets are original and neutral.
 
 ## Source notes
 
