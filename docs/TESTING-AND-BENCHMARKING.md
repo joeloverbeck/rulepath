@@ -2,106 +2,68 @@
 
 Status: correctness and performance law.
 
-A game is not implemented when it appears to work in the UI. It is implemented when its rules, replay, visibility, bots, docs, traces, and performance are covered.
+A game is not implemented when it appears to work in the UI. It is implemented when rules, replay, visibility, bots, docs, traces, and performance are covered.
 
-## 1. Definition of done for every game
+## 1. Definition of done for every official game
 
-Every implemented game MUST have:
+Every official game must have:
 
 - typed Rust rules;
 - structured rules documentation;
 - source notes;
+- mechanic inventory;
 - rule coverage matrix;
 - unit tests;
 - rule tests;
 - golden trace tests;
 - property/invariant tests;
-- fuzz/simulation tests;
+- simulation/fuzz tests;
 - deterministic replay tests;
 - serialization tests;
 - AI legal-action tests;
 - CLI simulation support;
 - benchmark coverage;
-- game module README or docs;
 - UI metadata;
 - replay support;
-- UI smoke tests once exposed in the web app.
+- UI smoke tests once web-exposed.
 
-Hidden-information games additionally MUST have:
+Hidden-information games additionally require public/private view tests and no-leak tests for logs, previews, serialization, bot views, explanations, candidate rankings, UI payloads, DOM-safe fixtures, local storage, and replay exports.
 
-- public/private view tests;
-- no-leak tests for logs;
-- no-leak tests for previews;
-- no-leak tests for serialization;
-- no-leak tests for bot views;
-- no-leak tests for UI payloads and DOM-safe fixtures;
-- replay tests for stochastic hidden setup.
+## 2. Test categories
 
-Games with bots additionally MUST have:
-
-- bot legality tests over many seeds;
-- bot determinism tests;
-- bot decision latency benchmarks;
-- bot documentation;
-- explanation examples;
-- no-leak tests for bot explanations/candidate rankings when hidden information exists.
-
-## 2. Test category table
-
-| Category | Required? | Purpose |
+| Category | Required | Purpose |
 |---|---|---|
-| Unit tests | yes | pure helper correctness |
-| Rule tests | yes | named rule scenarios |
-| Golden traces | yes | accidental rule drift detection |
-| Property/invariant tests | yes | broad state validity |
-| Simulation/fuzz tests | yes | many legal playouts and failure seeds |
-| Replay tests | yes | seed + commands reproduce hashes |
-| Serialization tests | yes | snapshots/views/replays round trip safely |
-| Visibility tests | hidden-info games | public/private safety |
-| Bot legality tests | games with bots | bots only choose legal actions |
-| Bot latency benchmarks | non-trivial bots | public responsiveness |
-| UI smoke tests | web-exposed games | browser integration |
-| Benchmark coverage | yes | performance visibility |
+| Unit tests | yes | Pure helper correctness. |
+| Rule tests | yes | Named rule scenarios tied to `RULES.md`. |
+| Golden traces | yes | Detect unplanned rule/effect/view/hash drift. |
+| Property/invariant tests | yes | Broad validity over many states/actions. |
+| Simulation/fuzz tests | yes | Many legal playouts, failures with seeds. |
+| Replay tests | yes | Seed + options + commands reproduce hashes. |
+| Visibility/no-leak tests | hidden-info games | Public/private safety. |
+| Serialization tests | yes | Internal snapshots, public views, replays round-trip safely. |
+| AI legal-action tests | games with bots | Bots choose only legal action paths. |
+| UI smoke tests | web-exposed games | Browser integration, not rule authority. |
+| Mechanic atlas/primitive tests | promoted helpers | Shared helpers covered across examples/anti-examples. |
+| Benchmarks | yes | Performance visibility and regression detection. |
 
-## 3. Unit tests
+## 3. Rule tests
 
-Use small pure-function tests for:
+Rule tests should reference rule sections by name or stable ID. They should fail with clear diagnostics.
 
-- win detection;
-- scoring;
-- movement validity;
-- pattern detection;
-- directional scanning;
-- hand evaluation;
-- resource accounting;
-- visibility projection helpers;
-- action-tree construction helpers;
-- static data validation.
-
-Unit tests SHOULD avoid browser/WASM setup.
-
-## 4. Rule tests
-
-Rule tests are scenario tests for named rules.
-
-Each rule test SHOULD reference the `RULES.md` section it covers.
-
-Example rule-test names:
+Examples:
 
 ```text
-rule_3_2_occupied_cells_are_not_legal
-rule_4_1_forced_capture_must_continue
-rule_6_3_opponent_hand_is_hidden
-rule_9_5_raise_must_meet_minimum
+rule_3_occupied_positions_are_not_legal
+rule_4_forced_capture_must_continue
+rule_6_opponent_private_cards_are_hidden
+rule_9_minimum_raise_is_enforced
 ```
 
-Rule tests SHOULD fail with clear diagnostics, not merely mismatched snapshots.
+Rule tests live in Rust first. UI smoke tests do not replace rule tests.
 
-## 5. Golden trace tests
+## 4. Golden traces
 
-Golden traces record known action sequences and expected hashes/effects.
-
-A golden trace SHOULD include:
+A golden trace should include:
 
 ```text
 game_id
@@ -109,8 +71,7 @@ rules_version
 engine_version
 data_version
 seed
-players/seats
-options/variant
+seats/options/variant
 action_stream
 checkpoints
 expected_state_hashes
@@ -120,155 +81,119 @@ expected_public_view_hashes for selected viewers
 notes explaining why the trace exists
 ```
 
-Golden traces MUST be updated only when rule behavior intentionally changes or trace format changes. The update note must say why.
+Update golden traces only when rule behavior, effect contracts, view projection, or trace format intentionally changes. The update note must explain why.
 
-## 6. Property/invariant tests
+## 5. Property and invariant tests
 
-Property tests SHOULD assert invariants such as:
+Property/invariant tests should assert:
 
 - legal actions never produce invalid states;
 - legal action generation never panics;
-- terminal states have no normal legal actions unless the game defines post-game actions;
+- terminal states do not expose normal gameplay actions unless explicitly defined;
 - total pieces/cards/resources are conserved where applicable;
 - scores stay within expected bounds;
 - mandatory moves are enforced;
-- hidden information is not visible to unauthorized viewers;
+- public/private visibility is safe;
 - serialization round trips preserve state;
 - replay hashes are deterministic;
-- action trees contain no duplicate unstable IDs unless intentionally allowed.
+- action trees use stable IDs and do not duplicate choices unexpectedly.
 
-## 7. Simulation/fuzz tests
+## 6. Simulation and fuzz tests
 
-Random legal simulations MUST exist for every game.
-
-Simulation SHOULD:
+Every game must support random legal simulation. Simulations should:
 
 - run many seeds;
 - enforce turn/action caps;
 - check invariants after every action;
-- validate bot actions through the normal path;
+- validate bot actions through normal path;
 - record failing seed and command stream;
-- export minimal reproducible trace where practical;
-- measure average length and terminal outcomes.
+- export minimal reproducible traces where practical;
+- measure terminal outcomes, average length, and throughput.
 
-Simulation failure output SHOULD include:
+Failure output should include game id, rules version, seed, options, bot policy versions, turn/action index, actor, chosen action path, command stream so far, hash at failure, failure reason, and replay command.
 
-```text
-game_id
-rules_version
-seed
-bot_policy_versions
-options
-turn/action index
-actor
-chosen action path
-command stream so far
-state/effect hash
-invariant failure or panic
-replay command
-```
+## 7. Replay tests
 
-## 8. Deterministic replay tests
+Replay tests must prove seed + options + command stream reproduces state hashes, effect hashes, legal-action hashes, public-view hashes, outcome, and terminal state.
 
-Replay tests MUST prove that seed + options + command stream reproduces:
+Each game should have at least:
 
-- state hashes;
-- effect hashes;
-- legal action hashes at checkpoints;
-- public view hashes at checkpoints;
-- outcome;
-- terminal state.
+- one short normal trace;
+- one terminal trace;
+- one bot-action trace;
+- one invalid/stale diagnostic trace when applicable;
+- one stochastic trace when random setup exists;
+- one redacted hidden-information trace when applicable.
 
-Replay tests SHOULD include at least:
+## 8. Visibility and no-leak tests
 
-- one short normal game;
-- one game reaching terminal condition;
-- one trace involving bot action;
-- one trace involving stochastic setup when applicable;
-- one trace involving hidden-information redaction when applicable.
+Hidden-information games must prove unauthorized viewers cannot see:
 
-## 9. Visibility and no-leak tests
-
-Required for hidden-information games.
-
-Test that unauthorized viewers cannot see:
-
-- opponent hand/card identities;
-- face-down card identities;
-- secret commitments before reveal;
-- hidden roles;
-- hidden deck order;
+- opponent private components;
+- face-down identities;
+- hidden commitments before reveal;
+- secret roles;
+- hidden random order;
 - private logs;
-- hidden bot inputs;
-- hidden reasons in diagnostics;
-- hidden data in serialized public views;
-- hidden data in UI payload fixtures.
+- hidden diagnostics;
+- bot-only input data;
+- hidden information in serialized public views;
+- hidden information in UI payload fixtures and DOM-safe attributes.
 
-No-leak tests SHOULD search serialized payloads for known hidden IDs and fail if found.
+Tests should search serialized public payloads for known hidden IDs and fail if found.
 
-## 10. Serialization tests
+## 9. Serialization tests
 
-Test:
+Test internal snapshot round trip, public view JSON round trip, replay JSON round trip, compact snapshot round trip if used, version field presence, unknown/newer version behavior, stable hash serialization, and public/private export separation.
 
-- internal snapshot round trip;
-- public view JSON round trip;
-- replay JSON round trip;
-- optional compact snapshot round trip if used;
-- version fields present;
-- unknown/newer version behavior explicit;
-- stable hash serialization;
-- public/private mode separation.
+Public replay interchange should remain readable JSON unless ADR says otherwise.
 
-## 11. AI legal-action tests
+## 10. AI legal-action tests
 
 For every bot:
 
-- sample many states/seeds;
-- request action from bot;
+- sample many states and seeds;
+- request action from bot using allowed view;
 - validate action through normal engine path;
-- reject if bot bypasses legal action tree;
 - assert deterministic output for fixed seed/view/limits where applicable;
-- assert explanation exists for non-random bots.
+- assert explanation exists for non-random bots;
+- reject direct state mutation or bypassed validation.
 
-Hidden-information bot tests MUST pass bot view, not internal state.
+Hidden-information bots must receive bot view, not internal full state.
 
-## 12. UI smoke tests
+## 11. UI smoke tests
 
-Once a game is web-exposed, UI smoke tests SHOULD cover:
+Once web-exposed, a game should cover:
 
 - load game picker;
 - start match;
-- display board/state;
+- display public view;
 - display legal actions;
 - apply one human action;
-- display semantic effect log;
+- show semantic effects;
 - run one bot turn;
-- replay command stream;
-- dev toggle opens without breaking play;
+- step replay;
+- open dev toggle safely;
 - reduced-motion mode does not block play;
-- basic responsiveness.
+- basic responsive layout.
 
-UI smoke tests MUST NOT become the primary rule tests. Rules are tested in Rust first.
+UI smoke tests must not become primary rule tests.
 
-## 13. Rule coverage matrix
+## 12. Mechanic atlas and primitive tests
 
-Every game MUST maintain `docs/RULE-COVERAGE.md` or equivalent.
+Promoted `game-stdlib` helpers must have:
 
-Suggested columns:
+- unit tests;
+- property tests where useful;
+- examples and anti-examples;
+- tests from each back-ported game;
+- trace preservation or migration notes;
+- benchmarks before/after extraction;
+- documentation of limits.
 
-| Rule section | Summary | Implementation module | Unit tests | Rule tests | Golden traces | Property/simulation coverage | Notes |
-|---|---|---|---|---|---|---|---|
+A third official game must not proceed through duplicated mechanic code without ledger decision.
 
-Every omitted rule MUST be marked:
-
-- not applicable to chosen variant;
-- intentionally deferred;
-- unsupported;
-- open question.
-
-No silent rule gaps.
-
-## 14. Failing-test protocol
+## 13. Failing-test protocol
 
 When tests fail:
 
@@ -278,13 +203,11 @@ When tests fail:
 4. Add or update regression coverage.
 5. Report what changed.
 
-Agents and humans MUST NOT delete, weaken, or rewrite tests merely to get green output.
+Humans and agents must not delete, weaken, or rewrite tests merely to get green output.
 
-## 15. Native-first benchmark doctrine
+## 14. Native-first benchmark doctrine
 
-Benchmark from native Rust first.
-
-Browser measurements are useful only after the native engine is correct and measurable.
+Benchmark native Rust first. Browser measurements are useful after the native engine is correct and measurable.
 
 Measure at least:
 
@@ -300,22 +223,24 @@ Measure at least:
 - bot decision latency;
 - WASM smoke performance for public games.
 
-## 16. Provisional performance budgets
+Do not optimize without a benchmark target.
 
-These are starting targets, not promises. Replace them with measured baselines once games exist.
+## 15. Provisional performance budgets
 
-| Stage | Example | Native target | Notes |
-|---:|---|---:|---|
-| 1 | `race_to_n` / Nim | 500,000+ games/sec | tiny smoke games should be extremely fast |
-| 2 | `three_marks` | 300,000+ games/sec | tiny grid |
-| 3 | `column_four` | 100,000+ games/sec | gravity and line checks |
-| 4 | `directional_flip` | 30,000+ games/sec | directional scanning and flips |
-| 5 | `draughts_lite` | 10,000+ games/sec | action trees and continuations |
-| 6 | `high_card_duel` / `blackjack_lite` | 20,000+ hands/sec | shuffle and hidden views |
-| 9 | `poker_lite` | 2,000+ hands/sec | hand evaluation and betting dominate |
-| 14 | event-driven asymmetric game | 100+ turns/sec | complex games need realistic budgets |
+Initial native targets, to be replaced by measured baselines:
 
-Latency budgets for public play:
+| Stage | Example | Native target |
+|---:|---|---:|
+| 1 | `race_to_n` / Nim | 500,000+ games/sec |
+| 2 | `three_marks` | 300,000+ games/sec |
+| 3 | `column_four` | 100,000+ games/sec |
+| 4 | `directional_flip` | 30,000+ games/sec |
+| 5 | `draughts_lite` | 10,000+ games/sec |
+| 6 | `high_card_duel` / `blackjack_lite` | 20,000+ hands/sec |
+| 9 | `poker_lite` | 2,000+ hands/sec |
+| 14 | `event_frontier` | 100+ turns/sec |
+
+Public latency targets:
 
 | Operation | Early games | Complex games |
 |---|---:|---:|
@@ -323,14 +248,14 @@ Latency budgets for public play:
 | preview | under 16 ms | under 100 ms |
 | apply action | under 16 ms | under 100 ms |
 | random/legal bot | under 100 ms | under 250 ms |
-| heuristic policy bot | under 250 ms | under 500 ms with UI thinking feedback |
+| authored policy bot | under 250 ms | under 500 ms with UI thinking feedback |
 | replay step | smooth at 1x | no dropped UI events in stepped mode |
 
-If a game exceeds budget, document why and create a benchmark issue. Do not optimize blindly.
+If a game exceeds budget, document why and create benchmark work. Do not hide unknown performance.
 
-## 17. Benchmark reporting
+## 16. Benchmark report template
 
-Each game SHOULD publish benchmark notes:
+Each game benchmark note should include:
 
 ```text
 hardware
@@ -347,48 +272,18 @@ known bottlenecks
 comparison to prior release
 ```
 
-CI MAY run quick benchmarks or regression smoke. Full benchmarks may run nightly or manually.
+Use `templates/GAME-BENCHMARKS.md` for per-game docs.
 
-## 18. CI expectations
+## 17. CI expectations
 
-CI SHOULD run:
+CI should run formatting, linting, unit/rule tests, golden trace tests, replay tests, serialization tests, visibility/no-leak tests, quick simulations, static data validation, docs link checks where practical, WASM build smoke, and UI smoke for exposed games.
 
-- formatting;
-- linting;
-- unit/rule tests;
-- golden trace tests;
-- serialization tests;
-- visibility/no-leak tests;
-- quick simulations;
-- docs link checks where practical;
-- static data schema validation;
-- WASM build smoke;
-- web UI smoke for exposed games.
+Full fuzzing and expensive benchmarks may run nightly or manually.
 
-Full fuzzing and expensive benchmarks MAY run nightly or manually.
+## 18. IP-safe fixtures and traces
 
-## 19. Test data and IP
+Public fixtures, traces, snapshots, and benchmark data must contain only public-domain/classic neutral data, original content, or permissioned content.
 
-Golden traces and fixtures MUST avoid licensed data unless they are private-only.
+Private licensed traces must not be public CI dependencies or public artifacts.
 
-Public traces SHOULD use neutral game IDs and original content.
-
-Private licensed traces MUST NOT be public CI dependencies or public artifacts.
-
-## 20. Performance anti-patterns
-
-MUST NOT:
-
-- measure only browser speed;
-- serialize JSON in inner playout loops;
-- cross JS/WASM boundary per rule operation;
-- clone huge states blindly without benchmark evidence;
-- allow unordered-map iteration to affect deterministic output;
-- hide slow behavior in generic interpreters;
-- add complex bots before legal/action/replay benchmarks exist;
-- optimize without a benchmark target;
-- accept “it feels fast” as evidence.
-
-## Source notes
-
-See `SOURCES.md`, especially OpenSpiel, Regular Boardgames, Regular Games, deterministic replay/command sources, Rust/WASM, and Board Game Arena guidance.
+Before public release, inspect traces and bundles for proprietary IDs, prose, card text, assets, screenshots, and private module names.

@@ -1,70 +1,90 @@
-# Data/Rust Boundary
+# Rulepath Data/Rust Boundary
 
-Status: project law. This document is intentionally strict because the boundary is the most likely place for architecture rot.
+Status: project law. Supersede only by accepted ADR.
 
-Rulepath is game-agnostic at the engine contract level. Rulepath is not data-driven at the rule-behavior level.
+## 1. Canonical boundary statement
 
-Typed Rust owns behavior in v1.
+Rulepath is data-driven for game content, parameters, presentation metadata, fixtures, traces, and typed variant selection. Rulepath is not data-driven for rule behavior in v1/v2. Game behavior is typed Rust in game modules or in promoted typed Rust helpers.
 
-## 1. One-sentence rule
+Use phrases such as typed content-driven game modules, typed static content, and data-driven content and parameters. Do not use “data-driven rules” except when explicitly warning against it.
 
-Static files may describe content and parameters; they must not become an untyped programming language.
+Static files may describe content and parameters. Static files must not become an untyped programming language.
 
 ## 2. Ownership summary
 
 | Layer | Allowed responsibility | Forbidden responsibility |
 |---|---|---|
 | `engine-core` | generic contracts and infrastructure | game nouns, mechanics, rule helpers, content language |
-| `game-stdlib` | earned reusable typed mechanics | speculative universal behavior engine |
-| `games/*` Rust | behavior, validation, transitions, visibility, bots | browser shell, generic kernel policy |
-| `games/*/data` | typed content, labels, fixtures, tables, variants | selectors, loops, triggers, rule branches, exception logic |
+| `game-stdlib` | earned reusable typed mechanics after pressure | speculative universal behavior engine |
+| `games/*` Rust | setup, validation, transitions, visibility, effects, bots, variant behavior | browser shell, generic kernel policy |
+| `games/*/data` | typed content, labels, fixtures, tables, typed variants, metadata | selectors, loops, triggers, rule branches, exception logic |
 | `apps/web` | rendering and presentation | legality, hidden-state authority, behavior |
 
-## 3. Allowed static data
+## 3. Allowed data
 
-Static data MAY include:
+Static data may include:
 
-- game manifests;
-- display names;
-- icon IDs;
-- theme tokens;
-- board labels;
-- coordinate labels;
-- original/public card IDs;
-- non-proprietary display text for original or public games;
-- deck composition;
-- initial setup constants;
+- manifests;
+- display names and short descriptions;
+- icon IDs and theme tokens;
+- coordinate labels and help text;
+- original/public component IDs;
+- deck/list composition for original/public games;
+- setup constants;
 - scoring tables;
 - typed variant selection among compiled Rust variants;
 - localization strings;
-- explanation templates;
+- explanation templates keyed to Rust effects/actions;
 - UI metadata;
+- fixtures;
 - golden traces;
-- benchmark fixtures.
+- replay summaries;
+- benchmark fixtures and reports;
+- source notes and rule coverage tables.
 
-Allowed data MUST deserialize into typed Rust structures or validated browser-facing schemas.
+Allowed data must deserialize into typed Rust structures or strict browser-facing schemas. Unknown fields must be rejected by default.
 
-## 4. Forbidden static data
+## 4. Forbidden data
 
-Static data MUST NOT include:
+Static data must not include:
 
 - selectors as strings;
 - rule branches;
 - loops;
 - triggers;
-- conditional card effects;
-- tactical AI conditions;
-- exception logic;
+- conditional effects;
 - mandatory action rules;
+- exception logic;
+- tactical AI conditions;
+- procedural mutation instructions;
+- arbitrary expressions;
 - hidden default behavior;
-- arbitrary expression languages;
 - nested untyped objects interpreted as behavior;
 - behavior encoded by naming convention;
 - YAML behavior.
 
-## 5. Variant nuance
+Behavior-looking fields are banned unless an ADR and typed lowering policy explicitly permits them. Suspicious names include `when`, `if`, `then`, `else`, `selector`, `condition`, `trigger`, `script`, `loop`, `foreach`, `priority_expression`, `ai_condition`, `effect_script`, `rule`, and `requires`.
 
-Variant flags in data are allowed only when they deserialize into typed Rust enums whose behavior is implemented and tested in Rust.
+## 5. Typed static content pipeline
+
+Every static file consumed by Rust should follow this path:
+
+```text
+file bytes
+  -> approved parser
+  -> typed schema deserialization
+  -> unknown-field rejection
+  -> semantic validation with source-located diagnostics
+  -> version/hash recording
+  -> read-only typed content structure
+  -> Rust behavior consumes typed values
+```
+
+Validation should detect duplicate IDs, missing IDs, unknown references, invalid ranges, invalid localization keys, invalid UI metadata references, composition totals that fail invariants, private/proprietary IDs in public builds, and behavior-looking field names.
+
+## 6. Variant enum rules
+
+Variant selection in data is allowed only when it maps to a documented Rust enum or equivalent typed value whose behavior is implemented and tested in Rust.
 
 Good:
 
@@ -72,174 +92,129 @@ Good:
 variant = "misere"
 ```
 
-where Rust has a documented and tested `Variant::Misere` implementation.
+This is acceptable only if Rust has a documented, tested `Misere` variant and all behavior lives in Rust.
 
 Bad:
 
 ```text
-if_last_move_takes_final_token_then = "current_player_loses"
+if_final_token_taken = "current_player_loses"
 ```
 
-because the data is now defining rule behavior.
+That data defines behavior and is forbidden.
 
-## 6. Card/effect identity nuance
+Variant combinations must be enumerated, validated, covered in rule docs, included in data versioning, and represented in traces where they affect replay.
 
-Card or effect identity may be data-listed only when it maps to compiled Rust behavior.
+## 7. Card/effect identity nuance
+
+A static file may list an effect or component identity only when the identity maps to compiled Rust behavior.
 
 Good:
 
 ```text
 card_id = "draw_two"
-effect = "DrawTwo"
+effect_id = "DrawTwo"
 ```
 
-where Rust has `EffectId::DrawTwo` or equivalent, documented and tested.
+This is acceptable only if Rust defines, documents, tests, and version-controls `DrawTwo` behavior.
 
 Bad:
 
 ```text
 effect:
-  when: "played"
-  select: "current_player.deck.top(2)"
-  then:
-    - move: "$selected"
-      to: "current_player.hand"
+  when: played
+  select: current_player.deck.top(2)
+  then: move selected to current_player.hand
 ```
 
-because the data defines selectors, behavior, and mutation.
+That defines selectors, behavior, and mutation. It is forbidden.
 
-## 7. Format decision table
+Card text for public games must be original or permissioned. Static content IDs must not smuggle proprietary text into public builds.
 
-| Format | Use for | Do not use for |
-|---|---|---|
-| TOML | manifests, simple options, metadata, narrow variants | complex nested rules, selectors, procedures |
-| JSON | browser payload fixtures, golden traces, replay summaries, machine reports | hand-authored behavior, rule logic |
-| RON | Rust-shaped fixtures, enum-heavy setup data, complex typed static content | untyped behavior or hidden DSLs |
-| CSV | tabular card lists, scoring tables, coverage matrices, benchmark exports | procedural effects or nested state machines |
-| Postcard or binary Serde | compact internal snapshots/caches, non-hand-authored replay artifacts | hand-authored rules, public docs |
-| YAML | not default in v1 | any behavior; any use without ADR |
+## 8. UI metadata boundary
 
-`serde_yaml` being unmaintained strengthens the default ban, but maintenance status is not the only reason. The stronger reason is that YAML previously becomes an accidental untyped programming language too easily.
+UI metadata may include labels, icon IDs, short help, layout hints, coordinate labels, visual tags, theme tokens, action grouping tags, accessibility labels, and explanation-template IDs.
 
-## 8. Static data import pipeline
+UI metadata must not include legality, hidden behavior, tactical AI conditions, rule consequences not supplied by Rust previews/effects, hidden identities in public payloads, or any field whose meaning changes game state.
 
-Every static file consumed by Rust SHOULD follow this path:
+The UI may group, sort, and decorate Rust-provided legal choices. It must not invent legality.
 
-```text
-file bytes
-  -> parser for approved format
-  -> typed schema deserialize
-  -> semantic validation with diagnostics
-  -> version/hash recording
-  -> read-only game content structure
-  -> Rust behavior consumes typed values
-```
+## 9. Explanation templates boundary
 
-Validation SHOULD detect:
-
-- missing IDs;
-- duplicate IDs;
-- references to unknown typed variants;
-- invalid numeric ranges;
-- invalid localization keys;
-- invalid UI metadata references;
-- deck/list totals that fail invariants;
-- proprietary/private IDs in public builds;
-- behavior-looking fields such as `when`, `if`, `then`, `selector`, `trigger`, `condition`, `loop`, `script`.
-
-## 9. UI metadata boundary
-
-UI metadata MAY include:
-
-- labels;
-- short help text;
-- icon IDs;
-- layout hints;
-- coordinate labels;
-- piece shapes;
-- theme tokens;
-- action grouping tags;
-- accessibility labels;
-- explanation-template IDs.
-
-UI metadata MUST NOT include:
-
-- rule legality;
-- hidden behavior;
-- hidden card/piece identities in public payloads;
-- tactical AI conditions;
-- action consequences not supplied by Rust effects/previews.
-
-## 10. Explanation templates
-
-Templates are presentation text, not source-of-truth rules.
+Explanation templates are presentation text. They are not source-of-truth rules.
 
 Good:
 
 ```text
-move_piece = "Move {piece} from {from} to {to}."
-change_score = "{seat} gains {amount} point(s)."
+move_visible_item = "{actor} moves {item} from {from} to {to}."
+score_change = "{seat} gains {amount} point(s)."
 ```
 
 Bad:
 
 ```text
-when phase == "reaction" and actor.has("shield") then cancel_attack
+when phase == reaction and actor.has(shield) then cancel_attack
 ```
 
-Templates MUST be keyed to semantic actions/effects emitted by Rust.
+Templates must be keyed to semantic actions/effects emitted by Rust. Templates must be viewer-safe and must not reveal hidden information through interpolation.
 
-## 11. Game-specific data is allowed
+## 10. Data format table
 
-Data-driven content may be game-specific. That does not violate engine agnosticism.
+| Format | Use for | Do not use for |
+|---|---|---|
+| TOML | manifests, simple options, metadata, narrow typed variants | complex nested rules, selectors, procedures |
+| JSON | browser payload fixtures, golden traces, replay summaries, machine reports | hand-authored behavior, rule logic |
+| RON | Rust-shaped fixtures, enum-heavy setup data, complex typed static content | untyped behavior or hidden DSLs |
+| CSV | tabular card lists, scoring tables, coverage matrices, benchmark exports | procedural effects or nested state machines |
+| Postcard or binary Serde | compact non-hand-authored internal snapshots/caches when approved | hand-authored rules or public text interchange by default |
+| YAML | not default in v1/v2 | any behavior; any use without ADR |
 
-Correct distinction:
+The `serde_yaml` maintenance status strengthens the YAML ban. The deeper reason is that YAML too easily becomes an accidental untyped programming language.
 
-- `engine-core` must be game-agnostic;
-- `games/token_bazaar/data/cards.csv` may be specific to `token_bazaar`;
-- Rust in `games/token_bazaar` interprets that typed content through game-specific behavior;
-- no universal untyped content language is created.
+## 11. Unknown-field rejection
 
-## 12. Review checklist for new static data
+All hand-authored data schemas must reject unknown fields unless an ADR grants a narrow migration exception.
+
+Unknown fields are dangerous because agents and humans can believe they are changing behavior when Rust ignores them. Validation diagnostics should name the file, field, path, and nearest known alternatives.
+
+## 12. Behavior-looking field detection
+
+Static validators should scan for suspicious field names and values. A field is suspicious when a reviewer must read it as code to understand behavior.
+
+A suspicious field must resolve to one of:
+
+- renamed as presentation/content;
+- moved into typed Rust behavior;
+- converted into a typed enum value with Rust implementation;
+- rejected;
+- escalated to ADR.
+
+Do not add comments saying “not a DSL” while leaving humans to learn procedural semantics.
+
+## 13. ADR triggers
+
+ADR is required for:
+
+- introducing YAML anywhere;
+- introducing a new hand-authored data format;
+- adding selectors, expressions, or rule-like conditions;
+- changing unknown-field policy;
+- moving repeated mechanics into `game-stdlib` before normal pressure;
+- introducing a DSL;
+- adding binary formats to public replay interchange;
+- changing replay hashes or data-version semantics;
+- allowing static data to select among behavior more broadly than a typed documented enum.
+
+## 14. Review checklist
 
 A static-data addition is acceptable only when all answers are yes:
 
-- Does it deserialize into typed Rust or a strict schema?
-- Is every field content/parameter/metadata rather than behavior?
+- Does it deserialize into typed Rust or strict viewer-safe schema?
+- Are unknown fields rejected?
+- Is every field content, parameter, fixture, trace, or metadata rather than behavior?
 - Are behavior IDs backed by compiled Rust implementations?
-- Are variants typed enums with tests?
-- Are unknown fields rejected by default?
+- Are variants typed enums with tests and rule docs?
 - Are diagnostics source-located enough for humans and agents?
 - Are hashes/version fields updated for replay?
 - Is public/private build separation preserved?
 - Would a reviewer understand the behavior without reading the data as code?
-
-## 13. ADR triggers
-
-An ADR is required for:
-
-- introducing YAML anywhere;
-- introducing a new hand-authored data format;
-- adding expression parsing;
-- adding selectors;
-- moving repeated mechanics into `game-stdlib` before two-game pressure;
-- adding a DSL;
-- adding binary formats to public replay interchange;
-- changing replay hashes or data-version semantics.
-
-## 14. Anti-patterns
-
-MUST NOT:
-
-- encode behavior in `id` naming conventions;
-- add `script`, `selector`, `condition`, `trigger`, `when`, `if`, `then`, `foreach`, or equivalent fields;
-- hide exception rules in card rows;
-- implement tactical AI by data weights and conditions;
-- bypass Rust validation for data-defined commands;
-- add YAML because it is convenient for one file;
-- call a format “not a DSL” when humans must learn its semantics to understand behavior;
-- create a universal content language before the game ladder proves the shapes.
-
-## Source notes
-
-See `SOURCES.md`, especially serde_yaml, TOML, JSON, RON, CSV, Postcard, Ludii, Regular Boardgames, Regular Games, and Board Game Arena AI-development guidance.
+- Does the addition avoid approving “data-driven rules” as a project direction?

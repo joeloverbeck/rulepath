@@ -1,12 +1,12 @@
 # Rulepath Architecture
 
-Status: architectural law. Supersede only by ADR.
+Status: architectural law. Supersede only by accepted ADR.
 
-Rulepath uses a Rust-workspace-first architecture with a React/TypeScript public web app. Rust is the source of truth for rules, legality, visibility, replay, and bots. TypeScript is the presentation client.
+Rulepath uses a Rust-workspace-first architecture with a React/TypeScript public web app. Rust is the source of truth for behavior, legality, visibility, replay, and bots. TypeScript is the presentation client.
 
-This is not an engine-demo architecture. The public site must feel polished, but polish must be built on deterministic Rust contracts rather than browser-side rule guesses.
+## 1. Repository shape
 
-## 1. Recommended repository shape
+Recommended initial shape:
 
 ```text
 /
@@ -29,156 +29,83 @@ This is not an engine-demo architecture. The public site must feel polished, but
     web/
   tools/
     simulate/
-    trace-viewer/
     replay-check/
+    trace-viewer/
     rule-coverage/
     bench-report/
     seed-reducer/
+    fixture-check/
   benches/
   docs/
-    FOUNDATIONS.md
-    ARCHITECTURE.md
-    DATA-RUST-BOUNDARY.md
-    AUTHORING-MODEL.md
-    GAME-LADDER.md
-    IMPLEMENTATION-ORDER.md
-    UI-DOCTRINE.md
-    VISUAL-INTERACTION-CONTRACT.md
-    AI-DOCTRINE.md
-    BOT-POLICY-ARCHITECTURE.md
-    TESTING-AND-BENCHMARKING.md
-    MULTIPLAYER-POLICY.md
-    IP-POLICY.md
-    AGENT-DISCIPLINE.md
-    SOURCES.md
     adr/
+  templates/
 ```
 
-This shape MAY change by ADR. The ownership rule MUST NOT change: Rust owns behavior; TypeScript owns public presentation.
+This shape may change by ADR. The ownership rule must not change: Rust owns behavior; TypeScript owns presentation.
 
 ## 2. Dependency direction
 
 Recommended dependency direction:
 
 ```text
-apps/web  -> wasm-api package boundary
-wasm-api  -> games registry + engine-core contracts
-ai-core   -> engine-core contracts
-games/*   -> engine-core + ai-core traits + optional game-stdlib
+apps/web -> wasm-api package boundary
+wasm-api -> games registry + engine-core contracts
+ai-core -> engine-core contracts
+games/* -> engine-core + ai-core traits + optional game-stdlib
 game-stdlib -> engine-core contracts only when necessary
-engine-core -> no project crate with game mechanics
+engine-core -> no Rulepath crate with game mechanics
 ```
 
-`engine-core` MUST NOT depend on `game-stdlib`, `ai-core`, `wasm-api`, `apps/web`, or `games/*`.
-
-`game-stdlib` SHOULD remain optional. A game may implement local mechanics without extracting a shared primitive.
+`engine-core` must not depend on `game-stdlib`, `ai-core`, `wasm-api`, `apps/web`, or `games/*`.
 
 ## 3. Ownership table
 
 | Area | Owns | Must not own |
 |---|---|---|
-| `engine-core` | generic identities, seeds, action trees, commands, diagnostics, effects, replay, visibility contracts, serialization contracts, hashes | game nouns, rules, mechanics, bot strategy, UI, networking, storage |
-| `game-stdlib` | earned reusable mechanics after repeated pressure | speculative abstractions, kernel law, game-specific exceptions |
-| `ai-core` | bot traits, random legal bot, deterministic RNG use, policy helpers, instrumentation, bounded search helpers after ADR or gate | game strategy, hidden-state cheating, UI code |
-| `games/*` | game nouns, rules, state, actions, visibility, effects, bots, UI metadata, docs, tests, traces, benchmarks | generic kernel contracts, browser shell, networking |
-| `wasm-api` | thin batched API from browser to Rust | rule logic, chatty rule-loop calls, hidden-state leakage |
-| `apps/web` | app shell, layout, menus, renderer integration, panels, settings, accessibility, replay UI | rule legality, hidden-state authority, bot decisions |
-| `tools/*` | simulation, replay, trace, coverage, benchmark, seed reduction | public UI polish, game behavior not present in games |
+| `engine-core` | identities, versions, seeds, actor/viewer contracts, action tree contracts, commands, diagnostics, effect contracts, replay/hash contracts, visibility contracts, serialization boundaries | game nouns, rules, mechanics, bot strategy, renderer metadata, networking, accounts, persistence |
+| `game-stdlib` | earned reusable typed helpers after primitive-pressure evidence | speculative abstractions, kernel law, game-specific exceptions |
+| `ai-core` | bot traits, random legal bot, deterministic bot RNG, policy helpers, candidate/ranking structures, instrumentation, decision limits | game strategy, hidden-state cheating, UI code |
+| `games/*` | game nouns, rules, state, actions, visibility, effects, variants, game-specific bots, UI metadata, docs, tests, traces, benchmarks | kernel contracts, browser shell, networking |
+| `wasm-api` | thin batched browser-facing API over Rust | rule logic, hidden-state leakage, chatty hot-loop crossings |
+| `apps/web` | app shell, game picker, setup, layout, renderer integration, panels, settings, replay UI, accessibility | rule legality, bot decisions, hidden-state authority |
+| `tools/*` | simulation, replay checking, trace inspection, coverage, benchmark reports, seed reduction, fixture validation | public UI polish, game behavior not present in games |
 
-## 4. `engine-core`
+## 4. Engine-core allowed and forbidden responsibilities
 
-`engine-core` is deliberately small.
+`engine-core` may contain:
 
-It MAY contain:
-
-- `GameId`, `RulesVersion`, `GameManifestId`;
-- `MatchId`, `PlayerId`, `SeatId`, viewer identity;
+- `GameId`, `RulesVersion`, `ManifestVersion`, `MatchId`, `SeatId`, `PlayerId`, viewer identity;
 - deterministic seed and RNG contracts;
-- action tree/action path/command contracts;
-- diagnostics and stale-action errors;
+- action tree, action path, command, freshness token, and diagnostic contracts;
 - semantic effect log contracts;
-- replay/checkpoint/hash contracts;
+- replay, checkpoint, version, hash, and migration contracts;
 - visibility/public-view contracts;
-- serialization/versioning hooks;
-- generic capability tags that are not game nouns.
+- serialization hooks and generic errors.
 
-It MUST NOT contain:
+`engine-core` must not contain board, grid, card, deck, pile, hand, suit, faction, scenario, trick, pot, resource, role, combat, territory, movement, adjacency, line, capture, flip, promotion, or similar game nouns.
 
-- terms such as board, grid, card, deck, pile, hand, suit, faction, scenario, trick, pot, resource, market, role, combat, territory, movement, adjacency, line, capture, flip, promotion;
-- helper functions for a single game;
-- bot priorities or search evaluation;
-- renderer metadata;
-- TypeScript or web concepts;
-- account, lobby, database, matchmaking, or server persistence;
-- public or private licensed content.
+Any kernel change must answer:
 
-### Kernel-change default
+1. Which implemented official games need it?
+2. Why can it not live in `games/*`?
+3. Why can it not live in `game-stdlib`?
+4. Does it introduce a game noun?
+5. Does it preserve determinism, visibility, replay hashes, and serialization compatibility?
+6. Does it require ADR?
 
 Default answer: do not change `engine-core`.
 
-A kernel change MUST answer:
+## 5. Game-stdlib role
 
-1. Which implemented games need it?
-2. Why can this not live in `games/*`?
-3. Why can this not live in `game-stdlib`?
-4. Does the change introduce any game noun?
-5. Does it preserve deterministic replay?
-6. Does it preserve visibility boundaries?
-7. Does it require ADR?
+`game-stdlib` contains typed helpers only after earned pressure. It may eventually hold narrow helpers for repeated mechanic shapes such as spatial topology, directional scanning, typed zones, deterministic shuffle helpers, counters, graph maps, simultaneous choice, drafting, auction/betting accounting, or reaction windows.
 
-## 5. `game-stdlib`
+Promotion requires the mechanic atlas and primitive-pressure ledger. A helper extracted for one hypothetical future game is forbidden without ADR.
 
-`game-stdlib` contains reusable mechanics only after evidence.
+A third official game with the same mechanic shape may not proceed until the ledger records reuse, promotion, or explicit deferral with rationale.
 
-It MAY eventually contain:
+## 6. Game module shape
 
-- grids and coordinates;
-- line/pattern detection;
-- zones and piles;
-- deck helpers and deterministic shuffle helpers;
-- tracks, counters, resources;
-- graph maps and area-control helpers;
-- simultaneous-choice helpers;
-- drafting helpers;
-- auction/betting accounting helpers;
-- reaction-window helpers.
-
-Extraction rule:
-
-1. Implement the first game locally.
-2. Implement the second game honestly.
-3. Identify the repeated shape.
-4. Extract a narrow tested helper.
-5. Back-port both games.
-6. Preserve traces or intentionally update them with notes.
-7. Document the abstraction and its limits.
-
-A helper extracted for one hypothetical future game is forbidden without ADR.
-
-## 6. `ai-core`
-
-`ai-core` contains reusable bot infrastructure, not game strategy.
-
-It SHOULD contain:
-
-- bot traits;
-- random legal bot;
-- deterministic bot RNG handling;
-- policy-composition helpers;
-- lexicographic priority helpers;
-- candidate ranking/instrumentation structures;
-- decision limits;
-- simulation hooks;
-- optional minimax/alpha-beta helpers for small perfect-information games after benchmarks;
-- benchmark instrumentation.
-
-It MUST NOT contain game-specific priorities, hidden-state peeking, UI calls, or monster-game logic.
-
-## 7. `games/*`
-
-Each game module owns its world.
-
-Recommended shape:
+Recommended game module shape:
 
 ```text
 games/<game_id>/
@@ -192,14 +119,15 @@ games/<game_id>/
     rules.rs
     visibility.rs
     effects.rs
+    variants.rs
     bots.rs
     ui.rs
-    variants.rs
   data/
     manifest.toml
     variants.toml
     fixtures/
   docs/
+    MECHANICS.md
     RULES.md
     SOURCES.md
     RULE-COVERAGE.md
@@ -215,148 +143,74 @@ games/<game_id>/
     bot_tests.rs
 ```
 
-Game-specific types are not a smell inside a game. They are the point.
+Concrete file names may vary. Required responsibilities do not: setup, legal action tree or legal actions, action validation, transition application, terminal/outcome detection, semantic effect emission, public/private view projection, serialization, random legal bot, docs, tests, traces, benchmarks, and mechanic inventory.
 
-A game module MUST provide:
+## 7. WASM API shape
 
-- setup;
-- legal action tree or flat legal actions;
-- validation from action path to command;
-- transition application;
-- terminal/outcome detection;
-- effect emission;
-- public/private view projection;
-- serialization support;
-- random legal bot;
-- docs, tests, traces, benchmarks.
-
-## 8. `wasm-api`
-
-`wasm-api` is a thin batched browser-facing boundary.
-
-It SHOULD expose operations conceptually like:
+`wasm-api` is a batched boundary. It should expose operations conceptually like:
 
 ```text
-list_games() -> GameCatalog
-new_match(game_id, seed, seats, options) -> MatchHandle
-load_match(snapshot_or_replay) -> MatchHandle
-get_public_view(match, viewer) -> PublicViewPayload
-get_action_tree(match, viewer) -> ActionTreePayload
-preview_action(match, viewer, action_path, view_token) -> PreviewPayload
-apply_action(match, viewer, action_path, view_token) -> ApplyResultPayload
-run_bot_turn(match, bot_seat, limits) -> ApplyResultPayload
-get_effects(match, since_cursor, viewer) -> EffectLogPayload
-get_replay(match) -> ReplayPayload
-serialize_match(match, mode, viewer) -> SnapshotPayload
+list_games -> game catalog
+new_match(game id, seed, seats, options) -> match handle
+load_match(snapshot or replay) -> match handle
+get_public_view(match, viewer) -> viewer-safe payload
+get_action_tree(match, viewer) -> legal choices + freshness token
+preview_action(match, viewer, partial/full action path, freshness token) -> safe preview or diagnostic
+apply_action(match, viewer, action path, freshness token) -> apply result, view, effects, diagnostics
+run_bot_turn(match, bot seat, limits) -> apply result
+get_effects(match, since cursor, viewer) -> viewer-filtered effects
+get_replay(match) -> replay payload
+serialize_match(match, mode, viewer) -> snapshot/export payload
 ```
 
-It MUST avoid chatty hot-loop crossings. Do not call JavaScript for each rule step. Do not serialize full internal state on every animation frame.
+The API must avoid crossing the JS/WASM boundary inside rule hot loops. Payloads sent to the browser must be viewer-safe.
 
-Payloads sent to the browser MUST be viewer-safe.
+## 8. Public/private view model
 
-## 9. `apps/web`
+Internal state and viewer-safe views are different types. A browser view must be safe to send to that viewer; do not ship hidden state and rely on UI hiding.
 
-`apps/web` is the public playable shell.
+Visibility contracts must cover hidden components, face-down identities, secret commitments, unrevealed random outcomes, private logs, previews, diagnostics, bot information access, serialization/export, dev inspectors, and replay redaction.
 
-It SHOULD contain:
+## 9. Action tree, action path, and command model
 
-- game picker;
-- match setup;
-- Rust/WASM loader;
-- session controller;
-- renderer boundary;
-- action panels;
-- effect log panel;
-- replay viewer;
-- bot/hotseat controls;
-- settings;
-- dev toggle and inspector panels;
-- responsive layout;
-- original assets.
-
-It MUST NOT implement rule legality.
-
-Debug panels MUST be behind a visible dev toggle or local-dev mode. They must not dominate the default public experience.
-
-## 10. Core transition model
-
-The architecture preserves this conceptual separation:
+Core transition separation:
 
 ```text
 setup(seed, seats, options) -> internal state
-legal_action_tree(state, actor_viewer) -> legal action tree
-preview(action_path, actor, state) -> safe preview or diagnostic
-validate(action_path, actor, state, view_token) -> command or diagnostic
+legal action tree(state, actor/viewer) -> legal choice structure
+preview(action path, actor/viewer, state) -> safe preview or diagnostic
+validate(action path, actor, state, freshness token) -> command or diagnostic
 apply(command, state, rng) -> new state + semantic effects
-public_view(state, viewer) -> viewer-safe projection
-replay(seed, options, command stream) -> same states/effects/hashes
+public view(state, viewer) -> viewer-safe projection
+replay(seed, options, command stream) -> same states, effects, and hashes
 ```
 
-Concrete Rust APIs MAY differ. This separation MUST remain.
-
-## 11. Action model
-
-Simple games MAY expose flat legal actions. Compound games MUST expose action trees or progressive construction.
-
-Core concepts:
+Concepts:
 
 | Concept | Meaning |
 |---|---|
-| `ActionTree` | legal choice structure at a decision point |
-| `ActionNode` | point where the actor chooses among options |
-| `ActionChoice` | selectable option with label, tags, accessibility text, and optional preview hook |
-| `ActionPath` | selected path through the tree |
-| `PartialAction` | accumulated choices before confirmation |
-| `Command` | validated action ready to apply |
-| `ActionDiagnostic` | reason a path is invalid, disabled, stale, hidden, or unavailable |
-| `ViewToken` | freshness/version marker used to reject stale UI submissions gracefully |
+| Action tree | Legal choice structure at a decision point. |
+| Action node | A point where the actor chooses among options. |
+| Action choice | Selectable legal option with label, tags, accessibility text, and optional preview hook. |
+| Action path | Selected path through the legal tree. |
+| Partial action | Accumulated choices before confirmation. |
+| Command | Validated action ready to apply. |
+| Diagnostic | Rust-supplied reason a path is stale, invalid, disabled, hidden, or unavailable. |
+| Freshness token | Version marker used to reject stale UI submissions gracefully. |
 
-The UI MAY hide illegal choices in normal mode. Developer mode SHOULD expose disabled choices and reasons when useful.
+Simple games may expose flat actions. Compound games must expose action trees or progressive construction.
 
-## 12. Effect model
+## 10. Semantic effect log model
 
-Effects are semantic facts emitted by Rust. They are not animations.
+Effects are semantic facts emitted by Rust. They are not animations. The renderer schedules animations from effects and then settles to the new public view.
 
-Effects SHOULD support:
+Effects must be deterministic, ordered, hashable, replayable, and viewer-filtered. Effects must not leak hidden information.
 
-- replay;
-- human-readable logs;
-- animation scheduling;
-- debugging;
-- explanation templates;
-- visibility filtering;
-- trace hashing.
+Effect contracts should support action start/completion, actor choice, placement/removal/movement of visible items, reveal/redaction, counter or score changes, ownership changes, phase/turn changes, random samples when visible or replay-relevant, commitments/reveals, pending responses, and game end. Game modules may define game-specific semantic payloads through generic contracts.
 
-Examples of generic effect kinds are acceptable only when they remain generic:
+## 11. Replay, version, and hash model
 
-```text
-ActionStarted
-ActorChosen
-ItemPlaced
-ItemMoved
-ItemRemoved
-ItemRevealed
-CounterChanged
-ScoreChanged
-OwnershipChanged
-PhaseChanged
-TurnChanged
-RandomSampled
-ChoiceCommitted
-ChoiceRevealed
-ActionCompleted
-GameEnded
-```
-
-Game modules MAY define game-specific semantic effects as long as they are emitted through generic contracts and filtered for viewers.
-
-Effects MUST be deterministic. Effects MUST be visibility-filtered. Effects MUST NOT leak hidden information.
-
-## 13. Replay and versioning
-
-Replay is first-class.
-
-A replay SHOULD include:
+Replay is first-class. A replay should include:
 
 - game id;
 - rules version;
@@ -367,46 +221,27 @@ A replay SHOULD include:
 - options/variants;
 - ordered command stream;
 - optional checkpoints;
-- state, effect, and legal-action hashes at checkpoints;
+- state, effect, legal-action, and public-view hashes at checkpoints;
 - serialization version;
 - source-build metadata when available.
 
-Breaking replay compatibility REQUIRES ADR or explicit migration notes.
+Breaking replay compatibility requires ADR or explicit migration notes. Golden traces must fail loudly on unplanned drift.
 
-## 14. Visibility model
+## 12. Determinism model
 
-Internal state and viewer-safe views are different types.
-
-Visibility contracts MUST cover:
-
-- hidden hands;
-- face-down cards;
-- secret commitments;
-- unrevealed random outcomes;
-- private logs;
-- previews;
-- bot information access;
-- serialization/export;
-- dev inspectors;
-- replay redaction.
-
-A browser view MUST be safe to send to that viewer. Do not ship hidden state to the browser and rely on UI hiding.
-
-## 15. Determinism model
-
-The engine MUST produce identical results for identical game version, seed, seats, options, static data version, and command stream.
+Identical game version, seed, seats, options, static data version, and command stream must produce identical states, effects, views, action trees, and hashes.
 
 Rules:
 
-- all randomness MUST pass through the engine RNG contract;
-- random samples SHOULD be logged when player-visible or replay-relevant;
-- floating-point logic MUST NOT determine rule outcomes unless an ADR defines exact constraints;
-- wall-clock time, OS randomness, browser APIs, unordered-map iteration, and thread scheduling MUST NOT affect rules;
-- serialization order for hashes MUST be stable.
+- all randomness passes through the Rust RNG contract;
+- random samples are logged when visible or replay-relevant;
+- wall-clock time, OS randomness, browser APIs, unordered iteration, and thread scheduling must not affect rules;
+- floating-point values must not decide rule outcomes unless an ADR defines exact constraints;
+- serialization order used for hashes must be stable.
 
-## 16. Web deployment model
+## 13. Local-first static deployment
 
-The initial web app SHOULD deploy as static files:
+Initial deployment is static:
 
 ```text
 index.html
@@ -416,50 +251,47 @@ assets/*.wasm
 assets/game-data/*
 ```
 
-No accounts, database, hosted multiplayer, matchmaking, or server deployment belong in the initial architecture.
+V1/v2 includes human vs bot, local hotseat, bot vs bot replay, replay viewer, and local replay import/export. It does not include accounts, database, hosted multiplayer, matchmaking, chat, ranked play, server persistence, or public server deployment.
 
-Rust/WASM is a deployment boundary, not a rules boundary. Rust remains the source of truth.
+## 14. Future authoritative server multiplayer
 
-## 17. Tools are not optional
+Future hosted multiplayer must use an authoritative Rust server running the same rule code natively.
 
-Tooling SHOULD include:
+Future flow:
 
-- `simulate`: native bot/random playouts;
-- `replay-check`: command log replay and hash comparison;
-- `trace-viewer`: command/effect/state trace inspection;
-- `rule-coverage`: rules-to-tests coverage report;
-- `bench-report`: benchmark summaries;
-- `seed-reducer`: failure seed minimization where practical;
-- `fixture-check`: static data schema validation.
+```text
+client proposes action path
+server validates against authoritative Rust state
+server applies command through Rust
+server appends command and effects
+server sends each client filtered view and effects
+client renders and reconciles
+```
 
-## 18. Architecture acceptance checklist
+Browser clients may preview locally through WASM. Server validation remains authoritative.
+
+Do not confuse deterministic command logs with a commitment to peer-to-peer lockstep. Hidden-information games are safer with a server that sends only viewer-allowed data.
+
+Persistence, accounts, abuse handling, matchmaking, and networking require later ADRs.
+
+## 15. Architecture acceptance checklist
 
 Before accepting a major change, verify:
 
 - `engine-core` has no game nouns;
 - Rust owns behavior;
 - no behavior is hidden in untyped data;
-- action trees and diagnostics are generated by Rust;
-- effects are semantic, deterministic, and filterable;
+- game modules own game-specific rules and nouns;
+- `game-stdlib` changes have atlas/ledger support;
+- action trees and diagnostics come from Rust;
+- effects are semantic, deterministic, replayable, and filterable;
 - public views are viewer-safe;
-- replay is deterministic;
+- replay/hash behavior is stable or explicitly migrated;
 - bots use legal action APIs and allowed views;
 - WASM API is batched;
 - TypeScript has no rule legality;
-- tests/traces/benchmarks exist;
-- no public licensed content is bundled;
-- ADR exists for architecture changes.
-
-## 19. Comparative-system lessons
-
-- boardgame.io proves that a pragmatic web turn-based-game framework can expose state, logs, plugins, multiplayer, a lobby, AI hooks, and React bindings without requiring a universal tabletop language.
-- VASSAL proves that a huge module ecosystem can scale partly by not enforcing rules. Rulepath chooses the harder path, so it must pay with tests, legal-action generation, replay, performance, and game-specific implementations.
-- Ludii proves that broad generality requires formal ludemic language/tooling discipline.
-- Regular Boardgames and Regular Games prove that efficient general descriptions require compiler, automata, optimization, and benchmark culture.
-- OpenSpiel proves that serious AI/search infrastructure benefits from fast procedural game cores, but it is not a public UI architecture.
-
-These precedents justify incrementalism. They do not justify building a DSL in v1.
-
-## Source notes
-
-See `SOURCES.md` for source details and links.
+- v1/v2 remain local-first;
+- public UI is not debug-first;
+- tests, traces, simulations, and benchmarks exist;
+- public builds contain no private licensed content;
+- ADR exists for architecture-changing decisions.

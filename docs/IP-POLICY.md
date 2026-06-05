@@ -2,217 +2,159 @@
 
 Status: public repository and public website IP law.
 
-This is an operational engineering policy, not legal advice. It is deliberately stricter than the bare minimum because Rulepath's goal is a clean public portfolio, not a risky public adaptation.
+This is operational engineering policy, not legal advice. It is deliberately conservative because Rulepath is a public portfolio, not a risky adaptation showcase.
 
 ## 1. Public allowed
 
-The public repository and public website MAY include:
+Public Rulepath may include:
 
 - public-domain/classic games;
 - original games;
 - permissioned games;
 - neutral implementations of abstract mechanics;
-- original rules summaries written in Rulepath's own words;
+- original rules summaries;
 - original graphics/icons/assets;
-- compatible open-licensed assets with preserved license notes;
+- compatible open-licensed assets with license notes;
+- AI-generated assets after review;
 - citations/links to public rules sources;
-- deliberate documented variants;
-- generic engine primitives;
+- documented variants;
+- generic engine contracts and earned primitives;
 - public benchmark traces containing no proprietary data.
 
 ## 2. Public forbidden unless explicitly permissioned
 
-The public repository and public website MUST NOT include:
+Public Rulepath must not include:
 
-- copyrighted rulebook prose copied from published games;
+- copied rulebook prose;
 - proprietary card text;
 - proprietary board art;
 - proprietary icons;
 - proprietary fonts or font files without verified redistribution rights;
-- screenshots or scans of proprietary components as assets;
+- screenshots or scans of commercial components;
 - trademark-forward presentation;
 - trade-dress mimicry;
-- licensed game modules;
-- private licensed game data;
-- hidden licensed modules bundled in public builds;
+- private licensed modules;
+- hidden licensed modules bundled in public JS/WASM;
 - public test fixtures containing proprietary data;
-- private licensed WASM modules;
-- public docs that make the project look secretly focused on a private licensed game.
+- public docs that make Rulepath look secretly focused on private licensed games.
 
-## 3. Game ideas vs expression
+## 3. Game ideas versus expression
 
-U.S. copyright sources distinguish game ideas, methods, procedures, and systems from expressive text and art. That supports implementing neutral mechanics, but it does not make copying prose, assets, card text, names-as-branding, or trade dress acceptable.
+Game ideas, methods, procedures, systems, and mechanics are different from expressive text, art, logos, component design, and presentation.
 
-Rulepath policy is simple:
+Rulepath policy:
 
 - mechanics may be implemented when lawful and safely presented;
 - expression must be original, permissioned, or compatibly licensed;
 - public naming and visuals must avoid affiliation confusion;
-- when unsure, omit and ask for human/legal review.
+- when unsure, omit and request human/legal review.
 
 ## 4. Public rules documentation
 
-Every public game MUST have structured rules documentation in the repo.
-
-Required:
+Every public game must have:
 
 - original-language rules summary;
-- rules-source notes with citations/links where appropriate;
-- variant statement;
-- rule coverage matrix mapping rules to tests and modules;
-- known ambiguities and chosen resolutions;
-- no copied rulebook prose except tiny reviewed references if explicitly approved by a human.
+- source notes with URLs and consulted dates;
+- chosen variant statement;
+- known ambiguities and resolutions;
+- rule coverage matrix;
+- statement that no rule prose/assets were copied unless explicitly reviewed and permissioned.
 
-Default behavior: do not quote. Summarize in original language.
+Default: do not quote. Summarize in original language.
 
-## 5. Classic and public-domain games
+## 5. Common names and neutral names
 
-Classic mechanics are not automatically risk-free in every presentation.
+Common descriptive names may be used when safe. Neutral names should be used when a commercial title, trademark, trade dress, or product identity creates avoidable risk.
 
-For classic games:
+Examples:
 
-- verify rules from reputable public sources;
-- document the chosen variant;
-- write original prose;
-- use original assets;
-- avoid trademark-forward names when neutral names are safer;
-- avoid mimicking a proprietary product's layout, iconography, colors, component style, or marketing copy.
-
-Safer naming examples:
-
-| Riskier/commercial-forward | Safer Rulepath public ID |
+| Risk profile | Safer Rulepath ID/name |
 |---|---|
-| commercial Four-in-a-Row name | `column_four` |
-| Tic-Tac-Toe as generic title is usually safe, but still plain | `three_marks` |
+| generic Tic-Tac-Toe is usually safe, but neutral portfolio naming is cleaner | `three_marks` |
+| commercial four-in-a-row brand risk | `column_four` |
 | Reversi/Othello ambiguity | `directional_flip` |
 | Checkers/Draughts variant ambiguity | `draughts_lite` |
-| War | `high_card_duel` |
+| War-like card comparison | `high_card_duel` |
 | Poker subset | `poker_lite` |
 | proprietary hidden-role/bluffing games | original names only |
 
-## 6. Trademark and trade-dress presentation
+## 6. Original prose and assets
 
-Names, logos, trade dress, and source-identifying presentation create avoidable risk.
+Public rules text must be written for Rulepath. Public assets must be original, project-owned, generated-reviewed, or compatibly licensed.
 
-Rulepath SHOULD:
+Do not imitate proprietary boards, cards, component shapes, icons, color schemes, marketing copy, screenshots, or table presentation.
 
-- use neutral names for abstract mechanics;
-- avoid logos and commercial product styling;
-- avoid marketing copy that suggests affiliation;
-- avoid screenshots or component mimicry;
-- clarify when a game is an original variant;
-- use clean abstract premium visuals rather than imitation.
+## 7. AI-generated asset review
 
-## 7. Assets
-
-Public assets MUST be:
-
-- original;
-- project-owned;
-- explicitly licensed for compatible use;
-- generated under clear rights terms and reviewed;
-- or from sources whose licenses are compatible with repository distribution.
-
-Do not include font files unless licensing and redistribution rights are verified. Prefer system fonts or web-safe open-licensed fonts loaded according to their license.
-
-AI-generated assets MUST be reviewed for:
+AI-generated assets require review for:
 
 - recognizable proprietary similarity;
+- logos or accidental text;
 - trade-dress mimicry;
 - unclear rights terms;
-- accidental logos/text;
-- license compatibility.
+- license compatibility;
+- inappropriate style imitation;
+- source-identifying resemblance.
 
-## 8. Public source notes in game modules
+Generated assets should be editable and replaceable. Keep prompts and review notes when practical.
 
-Each public game SHOULD include `games/<game>/docs/SOURCES.md` with:
+## 8. Font and file licensing warning
 
-- rules sources consulted;
-- date consulted;
-- variant chosen;
-- deviations from common variants;
-- statement that rule prose was rewritten;
-- asset authorship/licensing notes;
-- trademark/presentation risk notes if relevant.
+Never include font files unless redistribution rights are verified and license notes are preserved. Prefer system fonts or open-licensed fonts loaded and distributed according to their license.
 
-Template:
-
-```text
-Source: <name + URL>
-Consulted: YYYY-MM-DD
-Used for: rule verification / variant comparison / historical note
-Copied prose/assets: none
-Variant chosen: <description>
-Rulepath deviations: <description>
-Public name rationale: <description>
-Asset status: original / licensed / generated-reviewed
-```
+Do not ship unknown files just because they appear in a design mockup, asset pack, copied website, or AI output.
 
 ## 9. Private licensed experiments
 
-Private licensed experiments MAY exist only as late-stage red-team tests.
+Private licensed experiments are late red-team tests only.
 
-They MUST:
+They must:
 
 - live in private repositories, private submodules, or local-only folders;
 - be excluded from public CI;
 - be excluded from public builds;
-- be excluded from public docs except generic architecture notes;
-- never leak proprietary names, card text, assets, scenarios, screenshots, or presentation;
-- load private data only from local/private sources;
-- have a clear `.gitignore` and build separation plan;
+- be excluded from public docs except generic process notes;
+- not leak names, card text, assets, scenarios, screenshots, IDs, or presentation;
+- load private data only from private/local sources;
+- have build separation and `.gitignore` safeguards;
 - undergo kernel-contamination review.
 
-They MUST NOT:
-
-- be foundation cases;
-- be required for public tests;
-- be bundled into public WASM;
-- be hidden in a public hosted app by credentials;
-- motivate kernel nouns;
-- dictate public ladder priorities;
-- appear in public screenshots or marketing.
+They must not be foundation cases, public tests, public assets, public WASM modules, or reasons to add game nouns to `engine-core`.
 
 ## 10. Public web build rule
 
-If data or code ships to an unauthorized browser, it has shipped.
+If it ships to an unauthorized browser, it has shipped.
 
-Therefore:
-
-- do not bundle private licensed modules into public JS/WASM;
-- do not include private assets in public static files;
-- do not rely on UI hiding, admin credentials, feature flags, or route guards to protect bundled licensed content;
-- build public and private artifacts separately;
-- inspect public bundles for private IDs before release.
+Do not bundle private licensed modules into public JS/WASM. Do not rely on credentials, hidden routes, feature flags, admin toggles, or CSS hiding to protect bundled private content. Build public and private artifacts separately. Inspect public bundles before release.
 
 ## 11. Release checklist
 
-Before a public release, verify:
+Before public release, verify:
 
 - game names are neutral or permissioned;
 - rules docs use original prose;
 - source notes exist;
+- chosen variants are documented;
 - assets are original/compatible;
 - no proprietary text appears in static data;
 - no screenshots/scans of commercial components are used;
 - public traces contain no licensed data;
-- public WASM/JS bundles contain no private module IDs;
+- public JS/WASM contains no private module IDs;
 - private folders are excluded from public CI/build;
-- README/marketing copy does not imply affiliation;
-- `engine-core` contains no private-game nouns.
+- README and public copy do not imply affiliation;
+- `engine-core` contains no private-game nouns;
+- font licenses are verified;
+- AI-generated assets have review notes.
 
-## 12. Human review triggers
+## 12. Human/legal review triggers
 
-Human review is required when:
+Human/legal review is required when:
 
-- a public implementation resembles a commercial product presentation;
-- a game has living trademark/product identity risk;
-- an asset is generated or sourced externally;
-- a rule summary is close to a source's wording;
+- a public implementation resembles a commercial presentation;
+- a name has living trademark/product identity risk;
+- an asset is generated or externally sourced;
+- rules wording is close to source wording;
 - a private experiment needs any public-facing mention;
 - a dependency bundles fonts/assets;
-- a trace or fixture may contain licensed content.
-
-## Source notes
-
-See `SOURCES.md`, especially U.S. Copyright Office Games, USPTO Copyright Basics, Baker v. Selden, public rules sources, and UI/original-asset guidance.
+- a trace or fixture may contain licensed content;
+- trade dress, logo, packaging, component layout, or distinctive visual identity may be implicated.

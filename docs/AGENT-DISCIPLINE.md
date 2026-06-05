@@ -1,131 +1,79 @@
 # Rulepath Agent Discipline
 
-Status: coding-agent operating law.
+Status: operational law for coding agents and AI-assisted documentation work.
 
-Claude Code, Codex, and similar tools are expected to help implement Rulepath. They are accelerators, not unattended architects.
+Claude Code, Codex, and similar agents are allowed accelerators. They are not unattended architects. Rulepath work given to an agent MUST be bounded, testable, source-grounded, and explicit about forbidden changes.
 
 ## 1. Agent role
 
 Agents MAY:
 
-- implement bounded game modules;
-- add tests;
-- add golden traces;
-- write simulations;
-- write benchmarks;
-- refactor narrow modules;
-- port bounded code from TypeScript to Rust when behavior belongs in Rust;
-- generate docs from existing code;
-- build UI components against stable contracts;
-- improve diagnostics;
-- analyze failures;
-- update rule coverage matrices.
+- implement bounded game-module behavior in typed Rust;
+- add tests, traces, simulations, and benchmarks;
+- write or update per-game documentation from verified rules and implemented behavior;
+- build UI components against stable Rust/WASM contracts;
+- improve diagnostics, replay tooling, or benchmark reports;
+- refactor narrow code after the mechanic atlas and primitive-pressure process permit it.
 
 Agents MUST NOT:
 
 - invent major architecture without ADR;
-- generalize the engine from one game;
+- generalize from one game;
 - add game nouns to `engine-core`;
-- add YAML behavior;
+- make static data procedural;
+- add YAML by convenience;
 - create a DSL without ADR;
-- implement private licensed content in public files;
-- rewrite tests blindly;
-- optimize without benchmarks;
-- produce sprawling changes without a bounded target;
-- make bots omniscient;
-- put rule legality in TypeScript;
-- make public docs or names look like a private licensed-game project.
+- put legality in TypeScript;
+- let bots inspect hidden information unavailable to their seat;
+- add private licensed content to public files;
+- delete or weaken tests just to get green output;
+- optimize without benchmark evidence;
+- produce sprawling unreviewable changes.
 
 ## 2. Required task structure
 
-Every agent task SHOULD include:
+Every agent task SHOULD state:
 
-```text
-Context:
-  What project law applies?
-  What source documents should be followed?
+- context: which foundation documents, ADRs, game docs, and source notes apply;
+- target: exact crate, game, doc, or template being changed;
+- stage: ladder gate and mechanics being proved;
+- goal: observable behavior or document outcome;
+- non-goals: areas that must not be touched;
+- forbidden changes: kernel, data-format, DSL, UI, bot, IP, and primitive boundaries;
+- sources/docs: required rules, source notes, coverage rows, templates, and ADRs;
+- tests: required unit, rule, golden, property, simulation, replay, visibility, bot, and UI smoke tests;
+- benchmarks: required baseline or non-regression evidence;
+- docs: required updates to `RULES.md`, `SOURCES.md`, `RULE-COVERAGE.md`, `AI.md`, `UI.md`, `BENCHMARKS.md`, and mechanic inventories;
+- output format: complete files or coherent complete sections, not diffs.
 
-Target:
-  Which crate/module/game is being changed?
+Use `templates/AGENT-TASK.md` for repeatable prompts.
 
-Stage:
-  Which game-ladder stage is this?
+## 3. Good and bad tasks
 
-Mechanics:
-  Which mechanics are being tested?
+Good tasks are narrow:
 
-Goal:
-  What behavior should exist when complete?
+> Implement Stage 3 `column_four` legal action generation, validation, semantic effects, golden traces, Level 1 bot legality tests, and per-game docs. Do not modify `engine-core`. Update the mechanic inventory and primitive-pressure notes. Output complete files or coherent sections, not diffs.
 
-Non-goals:
-  What must not be touched?
+> Add viewer-filtered effect-log tests for `high_card_duel`. First decide whether failing tests are still valid, then whether the issue is the SUT or tests. Add regression coverage for any bug found.
 
-Forbidden changes:
-  What kernel changes are forbidden?
-  What data formats are forbidden?
-  What DSL/YAML/IP/UI/bot boundaries apply?
+> Compare `three_marks`, `column_four`, and `directional_flip` mechanic inventories. Prepare a primitive-pressure ledger entry for coordinate and line/direction helpers. Do not extract until the ledger says reuse, promote, or defer.
 
-Tests:
-  What unit/rule/golden/property/simulation/visibility/UI tests are required?
-
-Benchmarks:
-  What benchmark must exist or not regress?
-
-Docs:
-  What RULES/SOURCES/RULE-COVERAGE/UI/AI/BENCHMARKS docs must be added or updated?
-
-Output:
-  Provide complete files or coherent complete sections, not diffs.
-```
-
-## 3. Bad tasks
-
-Do not give agents tasks like:
+Bad tasks are vague or architecture-seeking:
 
 - “make the engine support any board game”;
 - “generalize this”;
-- “make the UI feel good”;
+- “add YAML support for convenience”;
 - “finish the bot”;
-- “support this huge game”;
-- “add YAML support for this special case”;
-- “fix all failing tests” without validating the tests;
-- “clean up the architecture”;
-- “make it fast” without benchmark targets;
+- “make the UI feel good”;
+- “fix all tests” without validating test intent;
 - “add MCTS”;
 - “implement multiplayer”;
-- “add a private game module to public repo”.
+- “clean up the architecture”;
+- “port a private licensed game into the public repo.”
 
-These tasks create sludge.
+## 4. Failing-test protocol
 
-## 4. Good tasks
-
-Use bounded tasks like:
-
-```text
-Implement Stage 3 `column_four` in games/column_four.
-Use typed Rust only. Do not modify engine-core except to fix documented generic bugs.
-Add unit tests for line detection, golden traces for two games, random bot legality tests,
-CLI simulation support, and benchmarks for legal action generation and bot choice.
-Update RULES.md, SOURCES.md, RULE-COVERAGE.md, UI.md, AI.md, and BENCHMARKS.md.
-Output complete files or coherent complete sections, not diffs.
-```
-
-```text
-Add viewer-filtered effect log tests for Stage 6 `high_card_duel`.
-Do not alter rule behavior unless a valid test proves current behavior is wrong.
-First determine whether failing tests are valid, then whether the issue is SUT or test suite.
-Add regression coverage for any bug found.
-```
-
-```text
-Refactor repeated coordinate/line helpers from `three_marks`, `column_four`, and `directional_flip`
-into game-stdlib. Do not add grid concepts to engine-core. Back-port all three games and prove
-existing traces still pass or document intentional trace changes.
-```
-
-## 5. Failing-test protocol
-
-When tests fail, agents MUST follow this protocol:
+When tests fail, agents and humans MUST:
 
 1. determine whether the failing tests are still valid;
 2. determine whether the issue is in the system under test or the test suite;
@@ -133,142 +81,131 @@ When tests fail, agents MUST follow this protocol:
 4. add or update regression coverage;
 5. report what changed.
 
-Agents MUST NOT delete, weaken, or rewrite tests merely to get green output.
+Tests MUST NOT be deleted, weakened, renamed away, or rewritten merely to get green output.
 
-## 6. Kernel-change protocol
+## 5. Kernel-change protocol
 
-Any change to `engine-core` MUST answer:
+Any `engine-core` change MUST answer:
 
-- Which implemented games need it?
-- Why can this not live in a game module?
-- Why can this not live in `game-stdlib`?
-- Does it introduce any game-specific noun?
-- Does it preserve determinism?
-- Does it preserve visibility boundaries?
-- Does it affect replay hashes or compatibility?
+- Which already implemented games require this?
+- Why can the change not live inside `games/*`?
+- Why can the change not live inside `game-stdlib` after earned pressure?
+- Does it introduce any game noun, mechanic noun, strategy, renderer concern, network concern, or storage concern?
+- Does it preserve deterministic replay, visibility boundaries, serialization compatibility, and hashes?
 - Does it require ADR?
 
 Default answer: do not change `engine-core`.
 
-## 7. Data-format protocol
+## 6. Data-format protocol
 
-Agents MUST use the allowed v1 static formats unless instructed otherwise:
+Agents MUST use approved v1 data formats only:
 
-- TOML for manifests/config;
-- JSON for traces/interchange;
-- RON for Rust-shaped static fixtures;
+- TOML for manifests and simple configuration;
+- JSON for traces, replay interchange, fixtures, and machine reports;
+- RON for Rust-shaped fixtures and enum-heavy typed content;
 - CSV for tables;
-- Postcard/binary Serde only for non-hand-authored internal artifacts when approved.
+- Postcard or equivalent compact Serde formats only for approved non-hand-authored internal artifacts.
 
-Agents MUST NOT add YAML without ADR.
+Agents MUST reject unknown fields by default and flag behavior-looking fields such as `when`, `if`, `then`, `else`, `selector`, `condition`, `trigger`, `script`, `loop`, `foreach`, `priority_expression`, and `ai_condition`.
 
-Agents MUST NOT turn static data into behavior.
+Agents MUST NOT use the phrase “data-driven rules” approvingly. In Rulepath, the approved boundary is data-driven content and parameters, with typed Rust behavior.
 
-Suspicious fields include:
-
-```text
-when
-if
-then
-else
-selector
-condition
-trigger
-script
-loop
-foreach
-priority_expression
-ai_condition
-```
-
-## 8. DSL protocol
+## 7. DSL protocol
 
 Agents MUST NOT create a DSL.
 
-A future DSL requires ADR and must be typed, compiled/lowered, source-span-aware, deterministic, formatted, linted, versioned, tested, benchmarked, documented with examples/anti-examples, and unable to silently depend on hidden defaults.
+A future DSL requires ADR and MUST address typed semantics, lowering/compilation, source spans, formatting, linting, versioning, tests, benchmarks, examples, anti-examples, determinism, replay/hash implications, visibility, hidden defaults, and migration.
 
-A DSL MUST NOT be introduced merely to make one monster game possible.
+A DSL MUST NOT be introduced to rescue one complex game or private experiment.
+
+## 8. Primitive-pressure protocol
+
+Agents MUST update per-game mechanic inventories and the repo-level mechanic atlas when mechanics repeat.
+
+Hard gate: a third official game with the same mechanic shape MUST NOT proceed until the primitive-pressure ledger says one of:
+
+- reuse an existing primitive;
+- promote a narrow typed helper;
+- explicitly defer with rationale;
+- require ADR.
+
+Agents MUST NOT “clean up” repeated mechanics into `engine-core`. Earned helpers belong in `game-stdlib`, and only after the atlas process permits them.
 
 ## 9. Bot protocol
 
 Agents implementing bots MUST:
 
-- use normal legal action API;
-- use allowed bot views only;
-- avoid omniscient state;
+- use the same legal action API as humans;
+- choose legal action paths through normal validation;
+- use only the allowed view for that seat;
 - implement deterministic tie-breaking;
+- avoid omniscient state, hidden-state shortcuts, and weight soup;
 - add legality tests over many seeds;
-- add latency benchmarks;
-- document strategy and information access;
-- produce explanation examples for non-random bots;
-- avoid weight soup.
+- add determinism tests, explanation examples, and latency benchmarks;
+- add no-leak tests for hidden-information games;
+- provide or update a strategy evidence pack before Level 2 authored policy bots.
 
-Agents MUST NOT present a cheating diagnostic tool as a bot.
+Diagnostic full-state tools are allowed locally. They are not public bots.
 
 ## 10. UI protocol
 
 Agents implementing UI MUST:
 
-- map controls from Rust legal action trees;
-- avoid TypeScript rule legality;
-- drive animations from semantic effects;
+- build controls from Rust legal action trees;
+- request Rust previews for partial/compound actions;
+- submit action paths with freshness markers;
+- animate from viewer-filtered semantic effects;
+- settle visual state to the latest public view;
 - keep debug panels behind a dev toggle;
-- protect hidden information in DOM, local storage, logs, and payloads;
-- support reduced motion where animation is added;
-- use original assets and neutral presentation.
+- protect hidden information in DOM, logs, local storage, payloads, test IDs, and replay exports;
+- support reduced motion when animations are added;
+- avoid proprietary mimicry and debug-console-first layouts.
+
+TypeScript MUST NOT decide legality.
 
 ## 11. IP protocol
 
 Agents MUST:
 
 - write original rules summaries;
-- cite/link sources where appropriate;
-- avoid copied rulebook prose;
-- avoid proprietary card text/assets;
-- use neutral names for trademark-risk games;
-- keep private licensed experiments out of public files;
-- leave a TODO for human review when unsure.
+- cite consulted rules sources;
+- avoid copied rulebook prose, proprietary card text, proprietary assets, screenshots, scans, fonts without verified redistribution rights, and trade dress;
+- use neutral names when commercial trademark or presentation risk exists;
+- keep private licensed experiments out of public files, public CI, public docs, public traces, and public bundles;
+- leave a human/legal review note when unsure.
 
-If an agent is unsure whether content is safe, it MUST omit the content and ask for human review.
+If content ships to an unauthorized browser, it has shipped.
 
 ## 12. Output protocol
 
-For code corrections, agents SHOULD output complete files or coherent complete sections. Do not output diffs as the primary artifact.
+Agents SHOULD output complete files or coherent complete sections. Diffs are not the primary deliverable.
 
-For documentation corrections, agents SHOULD output whole Markdown files when practical.
-
-For large work, agents SHOULD report:
+For substantial work, report:
 
 - files changed;
-- tests added;
-- benchmarks added;
-- docs added;
+- tests added or updated;
+- traces added or intentionally changed;
+- simulations and benchmarks run;
+- docs updated;
 - boundary decisions;
 - unresolved questions;
-- commands to run.
+- commands a human should run.
 
 ## 13. Review checklist
 
-Before accepting agent output, verify:
+Before accepting agent work, verify:
 
-- `engine-core` has no game nouns;
-- rule behavior is Rust, not untyped data;
+- Rust owns behavior;
+- no behavior moved into untyped data;
+- `engine-core` remains noun-free;
+- `game-stdlib` changes are earned by mechanic-atlas pressure;
 - TypeScript does not decide legality;
-- tests cover the change;
-- golden traces updated only when rule change is intentional;
+- semantic effects drive animation;
 - replay remains deterministic;
 - hidden information is safe;
-- bots use legal action API and allowed views;
-- benchmarks exist for hot paths;
-- public files contain no licensed data;
-- docs match implementation;
-- ADR exists for major decisions;
-- output is bounded and coherent.
-
-## 14. Why strictness is required
-
-Major board-game platform guidance treats AI tools as useful for bounded tasks such as boilerplate, tests, refactoring, trace analysis, and UI code, while warning that they do not reliably implement meaningful complete games unattended. Rulepath should exploit agent speed without surrendering architecture.
-
-## Source notes
-
-See `SOURCES.md`, especially Board Game Arena AI-development guidance, Board Game Arena bot guidance, testing doctrine, data-format sources, and ADR doctrine.
+- bots use legal action APIs and allowed views;
+- tests, traces, simulations, and benchmarks cover the change;
+- public files contain no licensed/private content;
+- documentation matches implementation;
+- ADRs exist for major decisions;
+- output is bounded and reviewable.

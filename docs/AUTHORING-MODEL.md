@@ -1,62 +1,57 @@
 # Rulepath Authoring Model
 
-Status: authoring law for game modules, docs, static data, and future language pressure.
+Status: authoring law for official game modules, docs, static content, and agent work.
 
-The first real authors may be humans assisted by Claude Code, Codex, or similar agents. Therefore the authoring model MUST be typed, explicit, testable, and hostile to accidental mini-languages.
+Rulepath game authoring is typed, explicit, testable, and hostile to accidental mini-languages. Humans and agents write game behavior in Rust; static files supply typed content and parameters.
 
-## 1. V1 behavior model
+## 1. V1/V2 behavior model
 
-In v1, game behavior MUST be written in typed Rust game modules.
+Game behavior must be written in typed Rust game modules or in narrow typed Rust helpers promoted through the mechanic atlas.
 
 Allowed behavior locations:
 
-- `games/<game>/src/setup.rs`;
-- `games/<game>/src/actions.rs`;
-- `games/<game>/src/rules.rs`;
-- `games/<game>/src/visibility.rs`;
-- `games/<game>/src/effects.rs`;
-- `games/<game>/src/bots.rs`;
-- narrow helpers in `game-stdlib` after extraction is justified.
+- `games/<game_id>/src/setup.rs` or equivalent;
+- `games/<game_id>/src/actions.rs` or equivalent;
+- `games/<game_id>/src/rules.rs` or equivalent;
+- `games/<game_id>/src/visibility.rs` or equivalent;
+- `games/<game_id>/src/effects.rs` or equivalent;
+- `games/<game_id>/src/bots.rs` or equivalent;
+- `game-stdlib` helpers after pressure and review.
 
 Forbidden behavior locations:
 
-- TOML;
-- JSON;
-- RON;
-- CSV;
-- YAML;
+- TOML, JSON, RON, CSV, YAML;
 - UI metadata;
 - localization strings;
 - explanation templates;
 - TypeScript renderer code;
 - `engine-core`.
 
-## 2. Game module authoring contract
+## 2. Typed Rust game module authoring
 
-Every game module SHOULD define a typed model for:
+Every official game module should define typed models for:
 
 - game state;
 - seat/player mapping;
-- phases;
+- phases or turn model;
 - action payloads or action-path decoding;
 - validated commands;
-- effect payloads;
+- semantic effects;
 - visibility projection;
-- terminal outcome and scoring;
-- variant enums;
+- scoring and terminal outcome;
+- typed variants;
 - bot policy hooks;
 - UI metadata hooks.
 
-Rules SHOULD read like rules. Avoid generic factories that make simple rules mysterious.
+Rules should read like rules. Verbose local game code is acceptable. A contaminated kernel is not.
 
-Verbose local game code is acceptable. A contaminated kernel is not.
+## 3. Required per-game docs
 
-## 3. Required docs inside every game
-
-Every game SHOULD contain:
+Every official game must maintain:
 
 ```text
-games/<game>/docs/
+games/<game_id>/docs/
+  MECHANICS.md
   RULES.md
   SOURCES.md
   RULE-COVERAGE.md
@@ -65,270 +60,160 @@ games/<game>/docs/
   BENCHMARKS.md
 ```
 
-### `RULES.md`
+Use the templates in `/templates` when creating the game.
 
-MUST include:
-
-- game purpose and chosen variant;
-- components/state vocabulary;
-- setup;
-- turn sequence;
-- legal actions;
-- forced actions;
-- scoring;
-- terminal conditions;
-- visibility rules;
-- bot-relevant strategic notes;
-- known ambiguities and chosen resolutions.
-
-Rules text MUST be written in original language. Do not copy rulebook prose.
-
-### `SOURCES.md`
-
-MUST include:
-
-- sources consulted;
-- date consulted;
-- variant notes;
-- deviations from common variants;
-- proof notes that public rules prose and assets are original;
-- asset authorship/licensing notes.
-
-### `RULE-COVERAGE.md`
-
-MUST map rule sections to implementation modules, unit tests, rule tests, golden traces, property tests, and known gaps.
-
-Suggested table:
-
-| Rule section | Summary | Implementation | Unit tests | Rule tests | Golden traces | Notes |
-|---|---|---|---|---|---|---|
-
-Every omitted rule MUST be marked as not applicable, intentionally deferred, unsupported, or open question.
-
-### `AI.md`
-
-MUST document every non-random bot:
-
-- strategy level;
-- information access;
-- decision order;
-- tie-break rules;
-- style profiles if any;
-- known weaknesses;
-- latency benchmark notes;
-- explanation examples;
-- no-leak tests for hidden-information games.
-
-### `UI.md`
-
-MUST document:
-
-- renderer assumptions;
-- legal action mapping;
-- progressive construction if any;
-- effect-to-animation mapping;
-- accessibility labels;
-- reduced-motion behavior;
-- debug-mode payloads;
-- hidden-information safeguards.
-
-### `BENCHMARKS.md`
-
-MUST document:
-
-- hardware;
-- Rust version;
-- build profile;
-- engine version;
-- game rules version;
-- benchmark command;
-- baseline numbers;
-- regression threshold;
-- known bottlenecks.
-
-## 4. Static data authoring
-
-Static data is allowed for content and parameters.
-
-Use:
-
-- TOML for manifests and simple configuration;
-- JSON for traces, replay interchange, browser fixtures, reports;
-- RON for Rust-shaped fixtures and enum-heavy static content;
-- CSV for tables;
-- Postcard or another compact binary Serde format only for non-hand-authored internal snapshots/caches.
-
-Do not use YAML by default.
-
-Static files MUST be schema-validated or deserialized into strongly typed Rust structures.
-
-Static files MUST NOT contain behavior.
-
-See `DATA-RUST-BOUNDARY.md` for binding law.
-
-## 5. Source-note authoring
-
-Public classic implementations require careful source notes.
-
-A source note SHOULD include:
+## 4. Recommended game shape
 
 ```text
-Source: <name and URL>
-Consulted: YYYY-MM-DD
-Used for: rule verification only
-Copied prose: none
-Variant choice: <chosen variant>
-Deviations: <project-specific changes>
-Assets: original/project-owned/licensed separately
+games/<game_id>/
+  src/
+    lib.rs
+    ids.rs
+    state.rs
+    setup.rs
+    actions.rs
+    rules.rs
+    visibility.rs
+    effects.rs
+    variants.rs
+    bots.rs
+    ui.rs
+  data/
+    manifest.toml
+    variants.toml
+    fixtures/
+  docs/
+    MECHANICS.md
+    RULES.md
+    SOURCES.md
+    RULE-COVERAGE.md
+    AI.md
+    UI.md
+    BENCHMARKS.md
+  tests/
+    golden_traces/
 ```
 
-Source notes are not a permission slip to copy prose, art, icons, card text, or trade dress.
+Concrete file names may vary, but responsibilities must stay explicit. Do not hide core rule behavior behind generic factories unless the mechanic atlas justifies the helper.
 
-## 6. Rule coverage authoring
+## 5. Game content and data authoring
 
-Rule coverage is part of authoring, not QA polish after the fact.
+Static content is allowed for manifests, metadata, labels, typed variants, original component IDs, deck/list composition, scoring tables, fixtures, traces, and UI/explanation templates.
 
-A new rule SHOULD be added in this order:
+Static content must:
 
-1. Write or update the rule summary.
-2. Add source/variant notes if needed.
-3. Add rule coverage row.
-4. Add focused unit/rule tests.
+- use approved formats from `DATA-RUST-BOUNDARY.md`;
+- reject unknown fields;
+- deserialize into typed structures;
+- receive semantic validation;
+- participate in data versioning and replay hashes when behavior-affecting parameters change;
+- avoid behavior-looking fields.
+
+Static content must not encode rule branches, procedural effects, selectors, triggers, loops, tactical AI conditions, or hidden defaults.
+
+## 6. Source notes
+
+Every public game needs source notes before public exposure.
+
+Each source note should record:
+
+```text
+Source: name + URL
+Consulted: YYYY-MM-DD
+Used for: rule verification / variant comparison / historical note
+Copied prose/assets: none
+Variant choice: chosen variant
+Rulepath deviations: any deliberate changes
+Public name rationale: common name safe or neutral name chosen
+Asset status: original / project-owned / licensed / generated-reviewed
+```
+
+Source notes are not permission to copy prose, art, card text, screenshots, iconography, or trade dress.
+
+## 7. Rule coverage
+
+Rule coverage is part of authoring, not late QA polish.
+
+A new rule should be added in this order:
+
+1. Update `RULES.md` with original-language rule text.
+2. Update `SOURCES.md` and variant notes.
+3. Update `RULE-COVERAGE.md`.
+4. Add unit/rule tests.
 5. Add or update golden traces.
-6. Add invariants/simulation coverage.
+6. Add invariant/simulation coverage.
 7. Implement typed Rust behavior.
-8. Update UI metadata/previews/effects.
-9. Update bot policy if relevant.
-10. Benchmark if the rule affects hot paths.
+8. Update effects, previews, UI metadata, and bot policy as needed.
+9. Benchmark affected hot paths.
 
-## 7. Reusable primitive extraction
+Every omitted rule must be marked not applicable, intentionally deferred, unsupported, or open.
 
-A reusable primitive SHOULD enter `game-stdlib` only when repeated pressure exists.
+## 8. Mechanic inventory requirement
 
-Extraction checklist:
+Every official game must include `MECHANICS.md` using `templates/GAME-MECHANICS.md`.
 
-- two implemented games have the same shape, or an ADR exists;
-- the abstraction has a small name and clear limits;
-- no game-specific noun enters the helper;
-- both original games are back-ported;
-- existing traces still pass or intentional changes are documented;
-- benchmarks do not regress unexpectedly;
-- docs explain examples and anti-examples.
+The inventory must classify mechanics across topology/spatial model, components/zones, action shape, turn/phase model, randomness/chance, visibility, resources, movement/capture/placement, pattern/directional scanning, commitment/reveal, reaction/pending response, scoring/outcome, effect shape, UI pattern, bot pattern, and benchmark pressure.
 
-Examples of likely earned primitives:
+After updating a game inventory, update the repo-level mechanic atlas or primitive-pressure ledger when repeated shape appears. A third official game may not reimplement an already repeated mechanic shape without ledger decision.
 
-- after `three_marks`, `column_four`, and `directional_flip`: coordinates and line/direction scanning helpers;
-- after card smoke and trick-taking: typed zone/deck helpers;
-- after resources and betting: counters/payment/accounting helpers;
-- after simultaneous choice and bluffing: commitments/reveal helpers;
-- after reaction-window pressure in multiple games: pending-response helpers.
-
-## 8. Future DSL policy
+## 9. Future DSL policy
 
 No DSL at project start.
 
-A DSL MAY be proposed only when multiple Rust game modules show repeated, painful, stable behavior shapes that cannot be maintained cleanly in typed Rust plus `game-stdlib`.
+A future DSL may be proposed only after multiple Rust modules show repeated, painful, stable behavior shapes that typed Rust plus `game-stdlib` cannot maintain cleanly.
 
-A DSL proposal MUST include:
+A DSL proposal must include problem cases, rejected Rust/helper alternatives, grammar or typed schema, static typing model, deterministic lowering, source spans, formatter, linter, versioning and migration, tests, benchmarks, replay/hash implications, examples, anti-examples, hidden-default prevention, agent-safety plan, and public/private data policy.
 
-- problem cases from implemented games;
-- rejected Rust/helper alternatives;
-- grammar or typed schema;
-- static typing model;
-- deterministic lowering/compilation;
-- source span diagnostics;
-- formatter plan;
-- linter plan;
-- versioning and migration plan;
-- test harness;
-- benchmark harness;
-- replay/hash implications;
-- examples and anti-examples;
-- hidden-default prevention;
-- agent safety plan;
-- IP/public-private data plan.
+A DSL must not be introduced to make one monster game possible.
 
-A DSL MUST NOT be introduced to make one monster game possible.
+## 10. Public naming policy
 
-## 9. Game-specific content and public naming
+Public game IDs and names should be neutral when commercial trademark or trade-dress risk exists. Common descriptive names may be used when safe.
 
-Public games SHOULD use neutral names when a classic game's commercial name creates trademark or trade-dress risk.
+Recommended IDs:
 
-Recommended pattern:
-
-| Mechanic | Safer public ID |
+| Mechanic family | Safer Rulepath ID |
 |---|---|
 | take-away counter game | `race_to_n` or `nim_lite` |
 | Tic-Tac-Toe-like placement | `three_marks` |
-| Four-in-a-Row-like gravity alignment | `column_four` |
-| Reversi-style flipping | `directional_flip` |
-| Checkers/draughts-style movement | `draughts_lite` |
-| War-like high-card comparison | `high_card_duel` |
-| resource economy microgame | `token_bazaar` |
+| gravity four-in-a-row | `column_four` |
+| directional flipping | `directional_flip` |
+| checkers/draughts-like movement | `draughts_lite` |
+| War-like comparison | `high_card_duel` |
+| simple draw/stand scoring | `blackjack_lite` |
+| resource economy microgame | `token_bazaar` or `resource_race` |
+| simultaneous commitment | `secret_draft` or original name |
 | poker subset | `poker_lite` |
-| hidden-claim bluffing | original name only |
+| trick-taking | `plain_tricks` |
+| bluffing/claims | original name only |
 
-## 10. Private licensed modules
+## 11. Private licensed modules policy
 
-Private licensed experiments MUST live outside the public repository and public builds.
+Private licensed experiments are late, isolated, optional, and never architecture-driving.
 
-They MAY exist only if:
+They must live outside public repository artifacts and public builds. Public CI must not require them. Public docs must not leak proprietary names, scenarios, text, assets, or IDs. Public WASM/JS must not bundle them. Local/private builds must load private data only from private sources.
 
-- public CI does not require them;
-- public docs do not leak proprietary names, text, assets, or scenarios;
-- public WASM does not bundle them;
-- local/private builds load them from private sources;
-- the public app cannot fetch or reveal them;
-- they do not force game nouns into `engine-core`.
+Do not hide private licensed content in a public static build behind credentials or feature flags. If it ships to an unauthorized browser, it has shipped.
 
-Do not hide private licensed content in a public build behind credentials. If it ships to an unauthorized browser, it has shipped.
+## 12. Agent authoring task template
 
-## 11. Authoring task template
+Use `templates/AGENT-TASK.md` for agent work. Every authoring task should state context, target game/module, ladder stage, mechanics, goal, non-goals, forbidden changes, sources/docs, tests, benchmarks, docs, output format, and review checklist.
 
-Every game-authoring task SHOULD specify:
+Agents must output complete files or coherent complete sections, not diffs. They must follow the failing-test protocol and must not invent architecture.
 
-```text
-Context:
-  Which foundation documents apply?
-Target:
-  Which game/module is being changed?
-Ladder stage:
-  Which stage and mechanics are being proven?
-Goal:
-  What behavior should exist when complete?
-Rules:
-  Which RULES.md sections and sources apply?
-Non-goals:
-  What must not be touched?
-Forbidden changes:
-  Which kernel/data/DSL/IP boundaries are forbidden?
-Data:
-  Which static files and schemas may be used?
-Tests:
-  Which unit/rule/golden/property/simulation/visibility/UI tests are required?
-Benchmarks:
-  Which benchmark must exist or not regress?
-Docs:
-  Which docs must be updated?
-Output:
-  Complete files or coherent complete sections, not diffs.
-```
+## 13. Authoring acceptance checklist
 
-## 12. Authoring anti-patterns
+Before calling a game official, verify:
 
-MUST NOT:
-
-- make a generic engine feature from one game;
-- encode rules in data;
-- encode rules in UI;
-- add hidden default behavior;
-- add YAML to solve a local convenience issue;
-- introduce a DSL before Rust pressure exists;
-- copy rulebook prose;
-- make public docs feel like a private licensed adaptation plan;
-- let agents rewrite tests without validating test intent;
-- ship a game without rule coverage and traces.
-
-## Source notes
-
-See `SOURCES.md`, especially VASSAL, Ludii, Regular Boardgames, Regular Games, data-format sources, Board Game Arena AI-development guidance, and copyright/IP sources.
+- typed Rust owns behavior;
+- static data is content/parameters only;
+- per-game docs are complete;
+- source notes and public naming are safe;
+- rule coverage has no silent gaps;
+- mechanic inventory is complete;
+- atlas/ledger pressure is updated;
+- random legal bot exists;
+- non-random bots have docs, tests, explanations, and benchmarks;
+- traces, replay, visibility, serialization, simulations, benchmarks, and UI smoke tests exist;
+- `engine-core` remains noun-free;
+- no private licensed content ships publicly.
