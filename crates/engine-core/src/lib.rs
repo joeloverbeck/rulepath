@@ -4,10 +4,18 @@
 //! vocabulary and has no dependencies on other Rulepath crates.
 
 mod action;
+mod game;
+mod replay;
 mod rng;
 
 pub use action::{
     ActionChoice, ActionMetadata, ActionNode, ActionPreview, ActionTree, FreshnessToken,
+};
+pub use game::Game;
+pub use replay::{
+    Checkpoint, DataVersion, EffectCursor, EffectLog, EngineVersion, HashSurface, HashValue,
+    LoggedEffect, ReplayHashSet, ReplayRecord, SeatAssignment, SerializationContract,
+    StableSerialize, UnknownFieldPolicy, ViewHash,
 };
 pub use rng::{DeterministicRng, SeededRng};
 
