@@ -2,93 +2,170 @@
 
 Game ID: `<game_id>`
 
-Public name: <display name>
+Public display name: `<display_name>`
 
-Variant: <chosen variant>
+Implemented variant: `<variant>`
 
-Rules version: <version>
+Rules version: `<rules_version>`
+
+Prepared by: `<name/agent>`
+
+Created: YYYY-MM-DD
 
 Last updated: YYYY-MM-DD
 
-## 1. Purpose and scope
+## Rule authority
 
-Describe the game in original Rulepath prose.
+This document is the original Rulepath rules summary for the implemented variant. It MUST be written in original Rulepath prose.
 
-State what variant is implemented and what is intentionally out of scope.
+Do not copy rulebook prose, card text, UI text, source examples, screenshots, scans, or proprietary presentation. Sources belong in `GAME-SOURCES.md`; this document states the Rulepath implementation contract.
 
-## 2. Components and state vocabulary
+Stable rule IDs are requirements. They MUST remain stable after implementation unless intentionally migrated with a migration note and corresponding updates in `GAME-RULE-COVERAGE.md`, traces, tests, and docs.
 
-Define only the terms needed for this game.
+Suggested rule-ID prefixes:
 
-| Term | Meaning |
+- `R-SCOPE-001`
+- `R-COMP-001`
+- `R-SETUP-001`
+- `R-TURN-001`
+- `R-ACTION-001`
+- `R-RESTRICT-001`
+- `R-SCORE-001`
+- `R-END-001`
+- `R-VIS-001`
+- `R-RNG-001`
+- `R-VAR-001`
+- `R-AMB-001`
+
+## Metadata
+
+| Field | Value |
 |---|---|
-| <term> | <definition> |
+| game id | `<game_id>` |
+| public display name | `<display_name>` |
+| variant | `<variant>` |
+| rules version | `<rules_version>` |
+| source note | `<path/to/GAME-SOURCES.md>` |
+| coverage matrix | `<path/to/GAME-RULE-COVERAGE.md>` |
+| mechanic inventory | `<path/to/GAME-MECHANICS.md>` |
+| implementation admission | `<path/to/GAME-IMPLEMENTATION-ADMISSION.md>` |
 
-## 3. Setup
+## Purpose and scope
 
-- Players/seats:
-- Initial state:
-- Random setup, if any:
-- Variant parameters:
-- First player / starting condition:
-
-## 4. Turn sequence
-
-Describe the full turn or round sequence.
-
-1. <step>
-2. <step>
-
-## 5. Legal actions
-
-| Situation | Legal actions | Notes |
+| Rule ID | Rule statement | Notes |
 |---|---|---|
-| <state/phase> | <actions> | <notes> |
+| `R-SCOPE-001` | `<original Rulepath description of what the game is and what experience the implemented variant supports>` | `<notes>` |
+| `R-SCOPE-002` | `<public role: scaffolding, showcase, hidden-info proof, original portfolio game, etc.>` | `<notes>` |
 
-## 6. Forced actions and restrictions
+## Implemented variant
 
-Document all mandatory choices, disabled choices, stale action behavior, and illegal action diagnostics.
-
-## 7. Scoring
-
-- Points/resources scored:
-- Timing:
-- Tiebreakers:
-- Variant-specific changes:
-
-## 8. Terminal conditions
-
-| Condition | Outcome |
-|---|---|
-| <condition> | <outcome> |
-
-## 9. Visibility
-
-| Information | Visible to whom | When |
+| Rule ID | Rule statement | Source/rationale link |
 |---|---|---|
-| <item> | <viewer> | <timing> |
+| `R-VAR-001` | `<exact variant implemented>` | `GAME-SOURCES.md#...` |
+| `R-VAR-002` | `<variant parameters, player count, setup options, or scoring options>` | `GAME-SOURCES.md#...` |
 
-Include hidden information, public logs, private logs, previews, replay export, and bot views.
+## Components and game-local vocabulary
 
-## 10. Bot-relevant strategy notes
+Define only terms needed for this game. Game nouns belong here or in `games/*`, not in `engine-core`.
 
-These are not rule authority. They guide `AI.md` and strategy evidence packs.
+| Rule ID | Term/component | Original Rulepath definition | Visibility | Notes |
+|---|---|---|---|---|
+| `R-COMP-001` | `<term>` | `<definition>` | public / private / mixed / not applicable | `<notes>` |
 
-- Immediate tactics:
-- Common mistakes:
-- Useful heuristics:
-- Hidden-information limits:
+## Setup
 
-## 11. Known ambiguities
+| Rule ID | Setup rule | Deterministic/random? | Visibility | Notes |
+|---|---|---|---|---|
+| `R-SETUP-001` | `<players/seats and initial state>` | deterministic / random | public/private/mixed | `<notes>` |
+| `R-SETUP-002` | `<first player or starting condition>` | deterministic / random | public/private/mixed | `<notes>` |
+| `R-SETUP-003` | `<variant parameters or setup constants>` | deterministic / random | public/private/mixed | `<notes>` |
 
-| Ambiguity | Chosen resolution | Source / rationale | Tests |
+## Turn, round, and phase sequence
+
+| Rule ID | Situation/phase | Active seat(s) | Required sequence | Advances when |
+|---|---|---|---|---|
+| `R-TURN-001` | `<situation>` | `<seat>` | `<steps in original prose>` | `<advance condition>` |
+| `R-TURN-002` | `<cleanup/end-of-turn rule>` | `<seat>` | `<steps>` | `<advance condition>` |
+
+## Legal actions
+
+Rust MUST generate legal actions. TypeScript MUST NOT decide legality.
+
+| Rule ID | Situation | Legal action(s) | Action shape | Rust-owned validation notes |
+|---|---|---|---|---|
+| `R-ACTION-001` | `<state/phase>` | `<legal choices>` | flat / action tree / progressive / simultaneous / reaction | `<notes>` |
+| `R-ACTION-002` | `<state/phase>` | `<legal choices>` | flat / action tree / progressive / simultaneous / reaction | `<notes>` |
+
+## Forced actions and restrictions
+
+| Rule ID | Situation | Forced action/restriction | Illegal/stale diagnostic expectation | Notes |
+|---|---|---|---|---|
+| `R-RESTRICT-001` | `<situation>` | `<mandatory/disabled choice>` | `<viewer-safe diagnostic>` | `<notes>` |
+| `R-RESTRICT-002` | `<situation>` | `<mandatory/disabled choice>` | `<viewer-safe diagnostic>` | `<notes>` |
+
+## Scoring and accounting
+
+| Rule ID | Scoring/accounting rule | Timing | Tiebreaker/edge case | Notes |
+|---|---|---|---|---|
+| `R-SCORE-001` | `<points/resources/counters/pots/etc.>` | `<when>` | `<tie/edge>` | `<notes>` |
+
+## Terminal conditions
+
+| Rule ID | Terminal condition | Outcome | Tie handling | Notes |
+|---|---|---|---|---|
+| `R-END-001` | `<condition>` | `<winner/loss/draw/shared outcome>` | `<tie>` | `<notes>` |
+| `R-END-002` | `<condition>` | `<winner/loss/draw/shared outcome>` | `<tie>` | `<notes>` |
+
+## Visibility and private information
+
+Public/browser payloads MUST NOT reveal hidden information through public views, action trees, previews, diagnostics, effect logs, DOM attributes, test IDs, logs, local storage, replay exports, bot explanations, candidate rankings, or dev inspectors.
+
+| Rule ID | Information | Visible to whom | When visible | Surfaces requiring protection | Notes |
+|---|---|---|---|---|---|
+| `R-VIS-001` | `<information>` | all / acting seat / owning seat / no one until reveal / dev-only test harness | `<timing>` | public view, action tree, preview, diagnostics, effect log, DOM, logs, storage, replay export, bot explanation, candidate ranking, dev inspector | `<notes>` |
+| `R-VIS-002` | `<information>` | `<viewer>` | `<timing>` | `<surfaces>` | `<notes>` |
+
+## Replay and randomness notes
+
+| Rule ID | Randomness/replay rule | Seed/log/hash requirement | Visibility | Notes |
+|---|---|---|---|---|
+| `R-RNG-001` | `<random setup/draw/event/sample or not applicable>` | `<determinism requirement>` | `<visibility>` | `<notes>` |
+| `R-RNG-002` | `<replay/hash requirement>` | `<requirement>` | `<visibility>` | `<notes>` |
+
+## Bot-relevant non-authoritative strategy notes
+
+These notes are not rule authority. They guide `COMPETENT-PLAYER.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, and `GAME-AI.md`. Strategy claims MUST be checked against rule IDs above.
+
+| Situation | Practical note | Rule IDs checked | Hidden-info limit |
 |---|---|---|---|
-| <ambiguity> | <resolution> | <source/rationale> | <tests> |
+| `<situation>` | `<strategy note>` | `<rule_ids>` | `<limit>` |
 
-## 12. Chosen resolutions and deviations
+## Known ambiguities and chosen resolutions
 
-State how this Rulepath implementation differs from common variants or source references.
+| Rule ID | Ambiguity | Chosen resolution | Source/rationale | Tests/traces required | Notes |
+|---|---|---|---|---|---|
+| `R-AMB-001` | `<ambiguity>` | `<resolution>` | `GAME-SOURCES.md#...` / `<design rationale>` | `<tests/traces>` | `<notes>` |
 
-## 13. Rule coverage link
+## Rulepath deviations from common variants
 
-See `RULE-COVERAGE.md` for implementation and test mapping.
+| Rule ID | Common variant behavior | Rulepath behavior | Why | Public note needed? |
+|---|---|---|---|---:|
+| `R-VAR-003` | `<common behavior>` | `<Rulepath behavior>` | `<reason>` | yes/no |
+
+## Explicit out-of-scope variants
+
+| Rule ID | Out-of-scope variant/rule | Reason out of scope | Future review trigger |
+|---|---|---|---|
+| `R-VAR-004` | `<variant/rule>` | `<reason>` | `<trigger or none>` |
+
+## Rule coverage link
+
+The implementation and evidence mapping lives in `GAME-RULE-COVERAGE.md`.
+
+Every rule ID in this document MUST appear in `GAME-RULE-COVERAGE.md`. Silent gaps are not allowed.
+
+## Rule-ID migration notes
+
+| Old rule ID | New rule ID(s) | Reason | Coverage/traces updated? | Date |
+|---|---|---|---:|---|
+| `<old_id>` | `<new_id>` | `<reason>` | yes/no/not applicable | YYYY-MM-DD |

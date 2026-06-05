@@ -1,105 +1,187 @@
-# Primitive Pressure Ledger
+# Primitive Pressure Ledger: <candidate_name>
 
-Candidate name: <candidate primitive>
+Candidate name: `<candidate_name>`
 
 Status: local-only | repeated-shape candidate | extraction required | promoted primitive | rejected/deferred with rationale | ADR-required
 
 Last updated: YYYY-MM-DD
 
+Prepared by: `<name/agent>`
+
+## Hard gate
+
+A third official game with the same mechanic shape is blocked until this ledger records one of:
+
+- reuse of an existing primitive;
+- promotion to a narrow typed primitive;
+- explicit defer/reject with rationale;
+- `ADR-required`.
+
+This ledger is not a universal behavior-language proposal. It is evidence for or against a narrow typed helper.
+
 ## Mechanic shape
 
-Describe the repeated mechanic shape in prose.
+Describe the repeated mechanic shape in prose. Avoid game-specific brand names. Avoid adding game nouns to `engine-core`.
 
-Do not describe a universal behavior language. Do not use game-specific brand names.
+- `<mechanic_shape_description>`
 
 ## Games exerting pressure
 
-| Game | Ladder stage | Local implementation | Pressure type | Notes |
-|---|---:|---|---|---|
-| <game> | <stage> | <module/helper> | first / second / third / benchmark / bug | <notes> |
+| Game | Roadmap stage/gate | Local implementation area | Pressure type | Status at time of review | Notes |
+|---|---:|---|---|---|---|
+| `<game_id>` | `<stage>` | `<module/helper>` | first / second / third / benchmark / bug / maintenance | `<status>` | `<notes>` |
 
 ## Local implementations compared
 
-| Aspect | Game A | Game B | Game C | Same shape? |
-|---|---|---|---|---:|
-| state shape | <notes> | <notes> | <notes> | yes/no |
-| action shape | <notes> | <notes> | <notes> | yes/no |
-| validation | <notes> | <notes> | <notes> | yes/no |
-| effects | <notes> | <notes> | <notes> | yes/no |
-| visibility | <notes> | <notes> | <notes> | yes/no |
-| UI pattern | <notes> | <notes> | <notes> | yes/no |
-| bot use | <notes> | <notes> | <notes> | yes/no |
-| benchmark pressure | <notes> | <notes> | <notes> | yes/no |
+| Aspect | Game A | Game B | Game C | Same shape? | Notes |
+|---|---|---|---|---:|---|
+| state shape | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| action shape | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| validation | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| transitions | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| diagnostics | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| semantic effects | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| visibility | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| UI pattern | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| bot use | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| replay/hash impact | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| benchmark pressure | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 
 ## Similarities
 
-- <similarity>
+- `<similarity>`
 
 ## Differences
 
-- <difference>
+- `<difference>`
 
 ## Extraction decision
 
 Decision: reuse / promote / defer / reject / ADR-required
 
+| Decision factor | Finding |
+|---|---|
+| repeated shape is real? | yes/no/unclear |
+| helper can stay narrow and typed? | yes/no/unclear |
+| helper belongs in `game-stdlib`? | yes/no/unclear |
+| would contaminate `engine-core`? | yes/no/unclear |
+| static-data behavior risk? | none/low/medium/high |
+| replay/hash impact acceptable? | yes/no/unclear |
+| visibility/no-leak impact acceptable? | yes/no/unclear/not applicable |
+| examples and anti-examples known? | yes/no |
+| benchmarks support extraction? | yes/no/not needed |
+| ADR required? | yes/no |
+
 Rationale:
 
-- <rationale>
+- `<rationale>`
 
 ## Rejected alternatives
 
-| Alternative | Why rejected |
-|---|---|
-| <alternative> | <reason> |
+| Alternative | Why rejected | Notes |
+|---|---|---|
+| `<alternative>` | `<reason>` | `<notes>` |
 
 ## API sketch in prose only
 
-Describe the narrow typed helper without writing implementation code.
+Do not write implementation code here. Describe the narrow typed helper contract in prose.
 
-- Inputs:
-- Outputs:
-- Error/diagnostic behavior:
-- Determinism requirements:
-- Visibility requirements:
-- Non-goals:
-- Examples:
-- Anti-examples:
+| Aspect | Prose sketch |
+|---|---|
+| inputs | `<inputs>` |
+| outputs | `<outputs>` |
+| error/diagnostic behavior | `<diagnostics>` |
+| determinism requirements | `<determinism>` |
+| replay/hash requirements | `<replay_hash>` |
+| visibility requirements | `<visibility>` |
+| effect/log requirements | `<effects>` |
+| bot-facing notes | `<bot_notes>` |
+| non-goals | `<non_goals>` |
+| good-fit examples | `<examples>` |
+| anti-examples | `<anti_examples>` |
+
+## Determinism and replay impact
+
+| Impact | Required action | Tests/traces |
+|---|---|---|
+| action ordering | `<action>` | `<tests/traces>` |
+| diagnostics | `<action>` | `<tests/traces>` |
+| semantic effects | `<action>` | `<tests/traces>` |
+| trace hashes | preserve / migrate with rationale / not affected | `<tests/traces>` |
+| serialization | `<action>` | `<tests>` |
+| seed/randomness | `<action>` | `<tests>` |
+
+## Visibility and no-leak impact
+
+| Surface | Impact | Required safeguard/test |
+|---|---|---|
+| public view | none / `<impact>` | `<test>` |
+| action tree | none / `<impact>` | `<test>` |
+| preview | none / `<impact>` | `<test>` |
+| diagnostics | none / `<impact>` | `<test>` |
+| effect log | none / `<impact>` | `<test>` |
+| DOM/test IDs/local storage/replay export | none / `<impact>` | `<test>` |
+| bot explanations/candidate rankings | none / `<impact>` | `<test>` |
+| dev inspector | none / `<impact>` | `<test>` |
+
+## UI and effect impact
+
+| Area | Impact | Required update |
+|---|---|---|
+| semantic effect names/payloads | `<impact>` | `<update>` |
+| animation mapping | `<impact>` | `<update>` |
+| Rust-generated previews | `<impact>` | `<update>` |
+| UI controls/action tree mapping | `<impact>` | `<update>` |
+| reduced-motion behavior | `<impact>` | `<update>` |
+| accessibility labels/summaries | `<impact>` | `<update>` |
+
+## Bot impact
+
+| Bot level | Impact | Required update/tests |
+|---|---|---|
+| Level 0 random legal | `<impact>` | `<tests>` |
+| Level 1 baseline | `<impact>` | `<tests>` |
+| Level 2 authored policy | `<impact>` | `<evidence/tests>` |
+| Level 3 shallow deterministic search | `<impact>` | `<tests/not applicable>` |
 
 ## Tests required
 
-| Test | Required before promotion? | Notes |
-|---|---:|---|
-| unit tests | yes | <notes> |
-| compatibility tests in each back-ported game | yes | <notes> |
-| golden trace preservation/update notes | yes | <notes> |
-| property tests | yes/no | <notes> |
-| visibility/no-leak tests | if relevant | <notes> |
-| benchmark tests | yes | <notes> |
+| Test | Required before promotion? | Required before reuse? | Notes |
+|---|---:|---:|---|
+| primitive unit tests | yes/no | yes/no | `<notes>` |
+| compatibility tests in each back-ported game | yes/no | yes/no | `<notes>` |
+| named rule tests remain mapped | yes/no | yes/no | `<notes>` |
+| golden trace preservation/update notes | yes/no | yes/no | `<notes>` |
+| property/invariant tests | yes/no | yes/no | `<notes>` |
+| replay/hash tests | yes/no | yes/no | `<notes>` |
+| serialization tests | yes/no | yes/no | `<notes>` |
+| visibility/no-leak tests | if relevant | if relevant | `<notes>` |
+| bot tests | if relevant | if relevant | `<notes>` |
+| benchmark tests | yes/no | yes/no | `<notes>` |
 
 ## Traces affected
 
-| Trace | Preserve or update? | Reason |
-|---|---|---|
-| <trace> | preserve/update | <reason> |
+| Trace | Game | Preserve or update? | Reason | Rule IDs/mechanics |
+|---|---|---|---|---|
+| `<trace_file>` | `<game_id>` | preserve / update with behavior rationale / update with format rationale | `<reason>` | `<ids>` |
 
 ## Benchmarks affected
 
-| Benchmark | Expected impact | Required threshold |
-|---|---|---:|
-| <benchmark> | <impact> | <threshold> |
+| Benchmark | Game(s) | Expected impact | Required threshold | Status |
+|---|---|---|---:|---|
+| `<benchmark>` | `<games>` | `<impact>` | `<threshold>` | `<status>` |
 
 ## Examples
 
 Good fits:
 
-- <example>
+- `<example>`
 
 ## Anti-examples
 
 Not a fit:
 
-- <anti-example>
+- `<anti_example>`
 
 ## ADR need
 
@@ -107,15 +189,23 @@ ADR required? yes/no
 
 Reason:
 
-- <reason>
+- `<reason>`
+
+ADR is required if the proposal changes architecture, replay/hash semantics, data policy, kernel boundaries, browser authority, bot policy class, or public/private content policy.
 
 ## Review checklist
 
-- Third-game hard gate satisfied.
+- Third-game hard gate is satisfied or the game is blocked.
+- Repeated shape was compared across actual official games.
 - No game noun enters `engine-core`.
 - Helper belongs in `game-stdlib` or stays local.
 - No untyped behavior language is created.
+- Static data remains typed content/parameters/metadata/fixtures/traces/reports only.
 - Existing games are back-ported if promoted.
-- Traces are preserved or intentionally updated.
+- Golden traces are preserved or intentionally updated with rationale.
+- Replay/hash and serialization impacts are recorded.
+- Visibility/no-leak impacts are covered.
+- UI/effect and bot impacts are covered.
 - Benchmarks are measured.
 - Examples and anti-examples are documented.
+- ADR need is explicit.

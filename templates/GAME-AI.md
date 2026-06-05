@@ -2,102 +2,194 @@
 
 Game ID: `<game_id>`
 
-Rules version: <version>
+Implemented variant: `<variant>`
+
+Rules version: `<rules_version>`
 
 Last updated: YYYY-MM-DD
 
+Prepared by: `<name/agent>`
+
+## Purpose
+
+This document is the per-game bot registry and status document. It records what bots exist, what information they access, how they explain decisions, how they are tested, and whether they are suitable for the public default.
+
+It MUST NOT duplicate the full Level 2 strategy evidence pack. Link to the pack instead.
+
+A Level 2 authored-policy bot requires completed `COMPETENT-PLAYER.md` and `BOT-STRATEGY-EVIDENCE-PACK.md` before coding.
+
 ## Bot summary
 
-| Bot | Level | Public default? | Information access | Status |
-|---|---:|---:|---|---|
-| random legal | 0 | no/yes | legal action tree only | required |
-| baseline | 1 | no/yes | allowed seat view | <status> |
-| authored policy | 2 | no/yes | allowed seat view | requires strategy evidence pack |
-| shallow search | 3 | no/yes | allowed seat view | small perfect-information only |
+| Bot | Level | Policy/version | Public default? | Information access | Status | Evidence |
+|---|---:|---|---:|---|---|---|
+| random legal | 0 | `<policy_version>` | no/yes | legal action tree only | required / implemented / tested | `<tests/benchmarks>` |
+| baseline | 1 | `<policy_version>` | no/yes | allowed seat view | not planned / planned / implemented / tested | `<tests/benchmarks>` |
+| authored policy | 2 | `<policy_version>` | no/yes | allowed seat view | blocked by evidence pack / planned / implemented / tested | `<pack_path>` |
+| shallow deterministic search | 3 | `<policy_version>` | no/yes | allowed seat view | not allowed / ADR-needed / planned / implemented | `<evidence>` |
+
+Public v1/v2 bots MUST NOT use MCTS, ISMCTS, Monte Carlo-style bots, ML, or RL.
 
 ## Level 0: random legal bot
 
-- Legal action API used:
-- Deterministic seed behavior:
-- Simulation tests:
-- Known limitations:
-- Explanation text:
+Required for every official game.
+
+| Item | Decision/evidence |
+|---|---|
+| legal action API used | `<api>` |
+| deterministic seed behavior | `<seed_rule>` |
+| action selection method | random legal among legal action paths using deterministic seed |
+| simulation tests | `<tests/runs>` |
+| legality tests | `<tests>` |
+| replay/hash tests | `<tests>` |
+| known limitations | random; not competent |
+| public explanation text | `random legal choice` / `<text>` |
+| benchmark evidence | `<benchmarks>` |
 
 ## Level 1: rule-informed baseline bot
 
-- Policy name/version:
-- Decision order:
-- Immediate tactics:
-- Mandatory rule handling:
-- Tie-break method:
-- Explanation examples:
-- Tests:
-- Benchmarks:
+Required for serious public demos unless explicitly deferred by roadmap gate.
+
+| Item | Decision/evidence |
+|---|---|
+| policy name/version | `<policy>` |
+| decision order summary | `<summary>` |
+| immediate tactics | win/block/forced compliance/material/resource gain/avoid immediate loss / `<game_specific>` |
+| mandatory rule handling | `<handling>` |
+| tie-break method | deterministic seeded tie-break / bounded tie-break |
+| information access | allowed seat view only |
+| explanation examples | `<examples>` |
+| tests | `<tests>` |
+| benchmarks | `<benchmarks>` |
+| public suitability | suitable / not suitable / constrained |
 
 ## Level 2: authored policy bot
 
-Required evidence pack: `BOT-STRATEGY-EVIDENCE-PACK.md` instance at <path>.
+Level 2 is the preferred public default for polished games when strategy matters.
 
-- Policy name/version:
-- Phase model:
-- Candidate extraction:
-- Tactical priorities:
-- Lexicographic ranking plan:
-- Bounded scoring tie-breakers:
-- Deterministic seeded tie-break:
-- Explanation contract:
-- Public default suitability:
+Required evidence pack: `<path/to/BOT-STRATEGY-EVIDENCE-PACK.md>`
 
-## Information access
+Competent-player analysis: `<path/to/COMPETENT-PLAYER.md>`
 
-| Information | Human seat sees? | Bot sees? | Notes / tests |
-|---|---:|---:|---|
-| <information> | yes/no | yes/no | <notes> |
+| Item | Summary only |
+|---|---|
+| policy name/version | `<policy>` |
+| evidence pack status | missing / incomplete / complete / reviewed |
+| phase model | `<summary>` |
+| candidate extraction | `<summary>` |
+| lexicographic priority vector | `<summary>` |
+| bounded scoring tie-breakers | none / `<summary>` |
+| deterministic seeded tie-break | `<summary>` |
+| style profiles | none / `<summary>` |
+| explanation contract | `<summary>` |
+| known weaknesses | `<summary>` |
+| public default suitability | yes/no/constrained |
+
+Do not code Level 2 before the evidence pack is complete.
+
+## Level 3: shallow deterministic search
+
+Allowed only for small perfect-information games where the foundation docs and benchmarks permit it.
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| perfect-information game | yes/no | `<evidence>` |
+| small enough search space | yes/no | `<benchmarks>` |
+| deterministic limits | yes/no | `<limits>` |
+| documented evaluator | yes/no | `<doc>` |
+| fallback policy | yes/no | `<policy>` |
+| explanation says search was used | yes/no | `<example>` |
+| no hidden-information search | yes/no/not applicable | `<tests>` |
+| ADR required? | yes/no | `<reason>` |
+
+## Exact information access table
+
+| Information | Human acting seat sees? | Bot sees? | Public observer sees? | Tests/notes |
+|---|---:|---:|---:|---|
+| legal action tree | yes/no | yes/no | yes/no | `<tests>` |
+| public board/state | yes/no | yes/no | yes/no | `<tests>` |
+| own private hand/role/zone | yes/no/not applicable | yes/no/not applicable | no/not applicable | `<tests>` |
+| opponent private hand/role/zone | no/not applicable | no/not applicable | no/not applicable | `<tests>` |
+| unrevealed deck/order/future random outcome | no/not applicable | no | no | `<tests>` |
+| private logs | yes/no/not applicable | yes/no/not applicable | no/not applicable | `<tests>` |
+| dev/test full state | no for public bot | no for public bot | no | `<tests>` |
+| `<information>` | yes/no | yes/no | yes/no | `<tests>` |
 
 Bots MUST NOT receive actual hidden information unavailable to the acting seat.
 
-## Decision order
+## Decision order summary
 
-1. <priority>
-2. <priority>
-3. <fallback>
+For each non-random bot, summarize order without duplicating full evidence.
+
+| Bot | Decision order |
+|---|---|
+| baseline | 1. `<priority>` 2. `<priority>` 3. deterministic fallback |
+| authored policy | see evidence pack; summary: `<summary>` |
+| shallow search | search under strict limits, then fallback: `<summary>` |
 
 ## Style profiles
 
-One strong default bot comes first. Optional style profiles MAY be added later.
+One strong default bot comes first. Optional profiles MAY be added later.
 
-| Profile | Policy variation | Hidden-info safe? | Status |
-|---|---|---:|---|
-| <profile> | <variation> | yes/no | <status> |
+| Profile | Applies to bot | Policy variation | Hidden-info safe? | Status | Tests |
+|---|---|---|---:|---|---|
+| default | `<bot>` | strongest public policy | yes/no | `<status>` | `<tests>` |
+| `<profile>` | `<bot>` | `<variation>` | yes/no | `<status>` | `<tests>` |
 
-## Explanations
+## Explanation examples
 
-| Situation | Example explanation | Hidden-info safe? |
-|---|---|---:|
-| <situation> | <explanation> | yes |
+| Bot | Situation | Example explanation | Hidden-info safe? | Test |
+|---|---|---|---:|---|
+| random legal | `<situation>` | `<example>` | yes/no | `<test>` |
+| baseline | `<situation>` | `<example>` | yes/no | `<test>` |
+| authored policy | `<situation>` | `<example>` | yes/no | `<test>` |
 
-Public mode MAY show a small “why?” affordance or recent-bot-action explanation. Full candidate ranking is dev-mode only.
+Public mode MAY show a small “why?” affordance or recent-bot-action explanation. Full candidate ranking is dev-mode only and MUST be viewer-safe.
 
 ## Known weaknesses
 
-- <weakness>
+| Bot | Weakness | Why acceptable | Mitigation/future trigger |
+|---|---|---|---|
+| `<bot>` | `<weakness>` | `<rationale>` | `<mitigation>` |
 
-Do not hide weaknesses behind magic weights. Document them.
+Do not hide weaknesses behind magic weights.
 
 ## Tests
 
-| Test | Purpose | Status |
-|---|---|---|
-| legality over seeds | bot chooses only legal action paths | <status> |
-| determinism | fixed seed/view/limits produce fixed decision | <status> |
-| explanation smoke | non-random bots explain decisions | <status> |
-| no-leak view | hidden-info games only | <status> |
-| no-leak explanation/ranking | hidden-info games only | <status> |
+| Test | Purpose | Bot(s) | Status | Notes |
+|---|---|---|---|---|
+| legality over seeds | bot chooses only legal action paths | all | not started / partial / covered | `<notes>` |
+| determinism | fixed seed/view/rules/policy/limits produce fixed decision | non-random | not started / partial / covered | `<notes>` |
+| no-leak input view | hidden-info games only | all public bots | not applicable / not started / covered | `<notes>` |
+| no-leak explanation/ranking | hidden-info games only | non-random | not applicable / not started / covered | `<notes>` |
+| replay/hash | bot decisions reproduce in replay | all | not started / partial / covered | `<notes>` |
+| explanation smoke | non-random bots explain decisions | baseline/Level 2/Level 3 | not started / partial / covered | `<notes>` |
+| decision examples | policy examples choose expected actions | Level 2 | not applicable / not started / covered | `<notes>` |
 
 ## Benchmarks
 
-| Benchmark | Target | Current baseline | Notes |
-|---|---:|---:|---|
-| legal action generation | <target> | <baseline> | <notes> |
-| bot decision latency | <target> | <baseline> | <notes> |
-| playout throughput | <target> | <baseline> | <notes> |
+| Benchmark | Target | Current baseline | Bot(s) | Status | Notes |
+|---|---:|---:|---|---|---|
+| legal action generation | `<target>` | `<baseline>` | all | `<status>` | `<notes>` |
+| candidate extraction | `<target>` | `<baseline>` | Level 2 | `<status>` | `<notes>` |
+| bot decision latency | `<target>` | `<baseline>` | non-random | `<status>` | `<notes>` |
+| playout throughput | `<target>` | `<baseline>` | all | `<status>` | `<notes>` |
+| explanation generation | `<target>` | `<baseline>` | non-random | `<status>` | `<notes>` |
+| WASM/browser smoke | `<target>` | `<baseline>` | public bots | `<status>` | `<notes>` |
+
+## Simulation metrics
+
+| Run | Bots | Seeds/games | Metrics recorded | Failures | Notes |
+|---|---|---:|---|---|---|
+| `<run>` | `<bots>` | `<count>` | completed games, terminal outcomes, turn/action caps, illegal attempts, invariant failures, average length, playout throughput, bot latency, failing seed command streams | `<failures>` | `<notes>` |
+
+## Public default suitability
+
+| Check | Status | Notes |
+|---|---|---|
+| bot is legal and deterministic | yes/no | `<notes>` |
+| bot does not look broken | yes/no | `<notes>` |
+| bot is fair under information rules | yes/no/not applicable | `<notes>` |
+| explanations are safe and useful | yes/no | `<notes>` |
+| latency fits public UX | yes/no | `<notes>` |
+| known weaknesses acceptable | yes/no | `<notes>` |
+| public default decision | yes/no/constrained | `<notes>` |

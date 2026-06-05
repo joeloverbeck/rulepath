@@ -2,66 +2,140 @@
 
 Game ID: `<game_id>`
 
-Rules version: <version>
+Implemented variant: `<variant>`
 
-Data version: <version>
+Rules version: `<rules_version>`
 
-Engine version: <version>
+Data/manifest version: `<data_or_manifest_version>`
+
+Engine version: `<engine_version>`
+
+Benchmark report version: `<benchmark_report_version>`
+
+Prepared by: `<name/agent>`
 
 Last updated: YYYY-MM-DD
 
-## Environment
+## Benchmark doctrine
+
+Native Rust benchmarks are primary for rule, replay, simulation, and bot hot paths. WASM/browser smoke benchmarks are required when web-exposed behavior, renderer integration, or JS/WASM boundary behavior is relevant.
+
+Do not optimize without benchmark evidence. Do not accept regressions without rationale.
+
+## Hardware and environment
 
 | Field | Value |
 |---|---|
-| Hardware | <CPU/RAM/device> |
-| OS | <OS/version> |
-| Rust version | <version> |
-| Build profile | debug / release / bench |
-| Target | native / wasm smoke |
-| Engine version | <version/hash> |
-| Rules version | <version> |
-| Data version | <version> |
+| machine/device | `<machine>` |
+| CPU | `<cpu>` |
+| RAM | `<ram>` |
+| OS/version | `<os>` |
+| Rust version | `<rust_version>` |
+| Cargo profile | debug / release / bench |
+| target | native / wasm32 / browser smoke |
+| browser/version if applicable | `<browser>` |
+| build artifact/hash | `<artifact_or_hash>` |
+| engine version/hash | `<engine_version_or_hash>` |
+| rules version | `<rules_version>` |
+| data/manifest version | `<data_or_manifest_version>` |
+| benchmark date | YYYY-MM-DD |
+| thermal/power notes | `<notes>` |
 
 ## Commands
 
-| Benchmark | Command | Notes |
-|---|---|---|
-| <benchmark> | <command> | <notes> |
+| Benchmark/smoke | Command | Environment | Notes |
+|---|---|---|---|
+| `<benchmark>` | `<command>` | native / wasm / browser | `<notes>` |
 
-## Baseline numbers
+## Native benchmark section
 
-| Operation | Target | Baseline | Regression threshold | Notes |
-|---|---:|---:|---:|---|
-| setup | <target> | <baseline> | <threshold> | <notes> |
-| legal action generation | <target> | <baseline> | <threshold> | <notes> |
-| preview | <target> | <baseline> | <threshold> | <notes> |
-| apply action | <target> | <baseline> | <threshold> | <notes> |
-| public/private view generation | <target> | <baseline> | <threshold> | <notes> |
-| effect filtering | <target> | <baseline> | <threshold> | <notes> |
-| serialization/deserialization | <target> | <baseline> | <threshold> | <notes> |
-| replay throughput | <target> | <baseline> | <threshold> | <notes> |
-| random playout throughput | <target> | <baseline> | <threshold> | <notes> |
-| bot decision latency | <target> | <baseline> | <threshold> | <notes> |
+| Operation | Target | Baseline | Current | Regression threshold | Status | Notes |
+|---|---:|---:|---:|---:|---|---|
+| setup | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| legal action generation | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| preview generation | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| validation | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| apply action/state transition | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| public/private view generation | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| effect filtering | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| serialization/deserialization | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| replay throughput | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| random playout throughput | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| bot decision latency | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| candidate extraction if Level 2 | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<notes>` |
+| hidden-info view filtering if applicable | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<notes>` |
+
+## WASM/browser smoke benchmark section
+
+| Operation | Target | Baseline | Current | Regression threshold | Status | Notes |
+|---|---:|---:|---:|---:|---|---|
+| WASM package load/init | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| start match from browser | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| fetch public view/action tree | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| preview from browser | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| apply one action through WASM | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| render/effect smoke | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| bot turn through browser shell | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<notes>` |
+| replay step smoke | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+| reduced-motion smoke | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
+
+## Benchmark validity notes
+
+| Concern | Applies? | Notes/mitigation |
+|---|---:|---|
+| debug build accidentally measured | yes/no | `<notes>` |
+| hardware differs from baseline | yes/no | `<notes>` |
+| browser/device differs from baseline | yes/no | `<notes>` |
+| benchmark data/rules version changed | yes/no | `<notes>` |
+| trace format/hash changed | yes/no | `<notes>` |
+| sample size too small | yes/no | `<notes>` |
+| noisy measurements | yes/no | `<notes>` |
+| hidden-info redaction path not included | yes/no/not applicable | `<notes>` |
+| bot policy version changed | yes/no/not applicable | `<notes>` |
 
 ## Bottlenecks
 
-| Bottleneck | Evidence | Planned response |
-|---|---|---|
-| <bottleneck> | <benchmark/profile> | <response> |
-
-## Trace and data versions
-
-- Golden traces included:
-- Data/schema versions:
-- Hash compatibility notes:
+| Bottleneck | Evidence | Affected operation | Planned response | Requires ADR/ledger? |
+|---|---|---|---|---:|
+| `<bottleneck>` | `<benchmark/profile>` | `<operation>` | `<response>` | yes/no |
 
 ## Comparison to previous release
 
-| Operation | Previous | Current | Change | Accept? |
-|---|---:|---:|---:|---:|
-| <operation> | <previous> | <current> | <change> | yes/no |
+| Operation | Previous | Current | Change | Accept? | Rationale |
+|---|---:|---:|---:|---:|---|
+| `<operation>` | `<previous>` | `<current>` | `<change>` | yes/no | `<rationale>` |
 
-## Notes
+## Trace/data/hash compatibility notes
 
-Document anomalous results, hardware differences, disabled benchmarks, or accepted regressions with rationale.
+| Artifact | Version/hash | Compatible? | Notes/action |
+|---|---|---:|---|
+| golden traces | `<version/hash>` | yes/no | `<notes>` |
+| replay export format | `<version/hash>` | yes/no | `<notes>` |
+| serialized state/checkpoint | `<version/hash>` | yes/no | `<notes>` |
+| data/manifest | `<version/hash>` | yes/no | `<notes>` |
+| bot policy | `<version/hash>` | yes/no | `<notes>` |
+
+## Accepted regressions
+
+| Regression | Amount | Accepted? | Rationale | Follow-up |
+|---|---:|---:|---|---|
+| `<regression>` | `<amount>` | yes/no | `<rationale>` | `<follow_up>` |
+
+Regressions accepted for public polish, correctness, visibility safety, replay compatibility, or accessibility MUST be explicit. Silent regressions are not allowed.
+
+## Benchmark TODOs that block public release
+
+| TODO | Blocks public release? | Required evidence | Owner |
+|---|---:|---|---|
+| `<todo>` | yes/no | `<evidence>` | `<owner>` |
+
+## Review checklist
+
+- Benchmark report records rules, data/manifest, and engine versions.
+- Native benchmarks cover setup, legal actions, preview, validation, apply action, view generation, effect filtering, serialization, replay, playout, and bot latency where applicable.
+- WASM/browser smoke covers public web hot paths where relevant.
+- Regression thresholds are explicit.
+- Benchmark validity caveats are recorded.
+- Trace/data/hash compatibility is recorded.
+- Accepted regressions have rationale.
+- Public-release-blocking benchmark TODOs are explicit.

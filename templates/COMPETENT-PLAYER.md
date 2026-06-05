@@ -1,0 +1,150 @@
+# <game_id> Competent Player Analysis
+
+Game ID: `<game_id>`
+
+Implemented variant: `<variant>`
+
+Rules version checked: `<rules_version>`
+
+Prepared by: `<name/agent>`
+
+Date: YYYY-MM-DD
+
+## Purpose and authority
+
+This document is human/LLM-authored strategy analysis for the implemented Rulepath variant. It feeds Level 2 bot design.
+
+This document is not rule authority. Strategy claims MUST be checked against `GAME-RULES.md`. If a strategy claim conflicts with rules, the rules win and this document must be corrected.
+
+Do not copy external strategy prose. Summarize in original language and record sources.
+
+## Sources and consulted strategy references
+
+| Source/reference | URL/reference | Date consulted | Source quality | Used for | Copied prose status | Notes |
+|---|---|---|---|---|---|---|
+| `<source>` | `<url_or_reference>` | YYYY-MM-DD | expert guide / rules authority / community discussion / self-play observation / human analysis / unverified | strategy / tactics / terminology / common mistakes / examples | none | `<notes>` |
+
+## Rules cross-check
+
+| Strategy area | Rule IDs checked | Any uncertainty? | Notes |
+|---|---|---:|---|
+| `<area>` | `<rule_ids>` | yes/no | `<notes>` |
+
+## Competent-player summary
+
+In original Rulepath prose, summarize what competent play means for this game and variant.
+
+- `<summary_point>`
+
+## Phases and situations
+
+| Phase/situation | What competent players notice | Important rule IDs | Notes |
+|---|---|---|---|
+| `<phase_or_situation>` | `<observations>` | `<rule_ids>` | `<notes>` |
+
+## Immediate tactics
+
+| Tactic | Situation | Why it matters | Rule IDs | Bot feature candidate? |
+|---|---|---|---|---:|
+| `<tactic>` | `<situation>` | `<reason>` | `<rule_ids>` | yes/no |
+
+Examples: immediate win, immediate block, forced rule compliance, obvious material/point gain, avoiding immediate terminal loss.
+
+## Threats to block
+
+| Threat | How a player detects it from visible information | Blocking response candidates | Rule IDs | Hidden-info risk |
+|---|---|---|---|---|
+| `<threat>` | `<visible_signal>` | `<responses>` | `<rule_ids>` | none / low / medium / high |
+
+## Positional, resource, card, and tempo principles
+
+Fill only relevant rows. Use explicit `not applicable` where needed.
+
+| Principle type | Principle | Visible evidence | Rule IDs | Notes |
+|---|---|---|---|---|
+| positional | `<principle>` / not applicable | `<evidence>` | `<rule_ids>` | `<notes>` |
+| resource/accounting | `<principle>` / not applicable | `<evidence>` | `<rule_ids>` | `<notes>` |
+| card/hand/deck | `<principle>` / not applicable | `<evidence>` | `<rule_ids>` | `<notes>` |
+| tempo/initiative | `<principle>` / not applicable | `<evidence>` | `<rule_ids>` | `<notes>` |
+| risk/control | `<principle>` / not applicable | `<evidence>` | `<rule_ids>` | `<notes>` |
+
+## Common beginner mistakes
+
+| Mistake | Why it is bad | How competent play avoids it | Rule IDs | Bot test implied? |
+|---|---|---|---|---:|
+| `<mistake>` | `<reason>` | `<avoidance>` | `<rule_ids>` | yes/no |
+
+## Risk posture
+
+| Situation | Cautious posture | Aggressive posture | Recommended default | Notes |
+|---|---|---|---|---|
+| `<situation>` | `<behavior>` | `<behavior>` | cautious / balanced / aggressive | `<notes>` |
+
+## Visible signals
+
+| Signal | Visible to whom | Strategic meaning | Bot feature candidate | Notes |
+|---|---|---|---:|---|
+| `<signal>` | all / acting seat / owning seat / public observer | `<meaning>` | yes/no | `<notes>` |
+
+## Hidden/private information boundary
+
+| Information | Human seat sees? | Competent inference allowed? | Bot may use? | Forbidden peeking risk | Notes |
+|---|---:|---:|---:|---|---|
+| `<information>` | yes/no | yes/no | yes/no | none / low / medium / high | `<notes>` |
+
+Competent inference is allowed only from legal information: public information, the player's own private information, remembered observations from legal views, and rule/variant knowledge. Actual hidden state, future random outcomes, unrevealed deck order, secret roles, opponent private hands, hidden commitments, and private logs are forbidden.
+
+## Inference allowed vs forbidden peeking
+
+| Scenario | Allowed inference | Forbidden shortcut | Test implied |
+|---|---|---|---|
+| `<scenario>` | `<allowed>` | `<forbidden>` | `<test>` |
+
+## Strategy examples
+
+| Example ID | Situation | Candidate choices | Competent choice | Explanation | Rule IDs |
+|---|---|---|---|---|---|
+| `S-EX-001` | `<situation>` | `<choices>` | `<choice>` | `<explanation>` | `<rule_ids>` |
+
+## Anti-examples
+
+| Anti-example ID | Bad choice | Why it is bad | Rule IDs | Bot guard/test implied |
+|---|---|---|---|---|
+| `S-BAD-001` | `<choice>` | `<reason>` | `<rule_ids>` | `<test>` |
+
+## Known hard problems
+
+| Problem | Why hard | Out-of-scope for current bot? | Notes |
+|---|---|---:|---|
+| `<problem>` | `<reason>` | yes/no | `<notes>` |
+
+## Out-of-scope advanced strategy
+
+| Strategy idea | Why out of scope | Future trigger |
+|---|---|---|
+| `<advanced_strategy>` | `<reason>` | `<trigger>` |
+
+## Translation to candidate Level 2 bot features
+
+These are candidates for `BOT-STRATEGY-EVIDENCE-PACK.md`; they are not yet a policy.
+
+| Candidate feature | Derived from | Visible to bot? | Used for | Hidden-info risk | Test implied |
+|---|---|---:|---|---|---|
+| `<feature>` | `<section/example>` | yes/no | candidate extraction / priority / tie-break / explanation / style profile | none / low / medium / high | `<test>` |
+
+## Tests implied by strategy claims
+
+| Strategy claim | Rule IDs | Test type | Test name placeholder | Notes |
+|---|---|---|---|---|
+| `<claim>` | `<rule_ids>` | unit / named rule / bot decision / simulation / no-leak / explanation / benchmark | `<test_name>` | `<notes>` |
+
+## Review checklist
+
+- All strategy prose is original.
+- Sources are recorded and not copied.
+- Strategy claims are checked against `GAME-RULES.md`.
+- Hidden-information boundaries are explicit.
+- Allowed inference and forbidden peeking are separated.
+- Examples and anti-examples are concrete enough to test.
+- Candidate bot features are evidence, not a hidden implementation plan.
+- This document is linked from the Level 2 bot evidence pack if Level 2 is pursued.
