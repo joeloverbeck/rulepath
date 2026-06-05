@@ -339,6 +339,12 @@ failures are hard failures; if a game exceeds budget, document why, create
 benchmark work, and keep the failing threshold visible. Do not hide unknown
 performance.
 
+Threshold enforcement runs on the scheduled / manual / `main`-push benchmark
+lane, not on pull requests. Pull requests run a non-gating benchmark smoke
+because shared CI runners are not a valid throughput-gating environment. See
+[ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). This relocates enforcement; it
+does not weaken any threshold value.
+
 ## 16. Benchmark report contents
 
 Each game benchmark note SHOULD include:
@@ -386,9 +392,12 @@ CI SHOULD run:
 - WASM build smoke;
 - UI smoke for exposed games.
 
-Gate 2 benchmark smoke and benchmark-report threshold checks MUST hard-fail CI
-when required thresholds fail, including the accepted Stage 1 `race_to_n`
-threshold recorded in [ADR 0001](adr/0001-stage-1-random-playout-budget.md).
+Gate 2 benchmark-report threshold checks MUST hard-fail the scheduled / manual /
+`main`-push benchmark lane when required thresholds fail, including the accepted
+Stage 1 `race_to_n` threshold recorded in
+[ADR 0001](adr/0001-stage-1-random-playout-budget.md). Pull requests run a
+non-gating benchmark smoke instead; the lane split is defined in
+[ADR 0002](adr/0002-ci-benchmark-gating-lanes.md).
 
 Full fuzzing and expensive benchmarks MAY run nightly or manually.
 

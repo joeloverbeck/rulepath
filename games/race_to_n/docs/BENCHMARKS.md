@@ -66,6 +66,17 @@ and hard-fails when a report value is below the committed threshold. CI wires th
 full native benchmark report into `bench-report`; this is the Gate 2 benchmark
 acceptance surface.
 
+CI runs this gate on two lanes per [ADR 0002](../../../docs/adr/0002-ci-benchmark-gating-lanes.md):
+pull requests run a non-gating bench smoke (`cargo bench -p race_to_n -- legal_actions`,
+no `bench-report`), while the scheduled / manual / `main`-push lane runs the full
+report through `bench-report` and hard-fails. The thresholds below are unchanged;
+only the enforcement lane moved. The thresholds are calibrated from WSL2 native
+runs (see the Current column); the first GitHub `ubuntu-latest` exposure measured
+`random_playout` ~66,058, `serialization_roundtrip` ~195,236, and
+`replay_throughput` ~233,478 games/roundtrips/replays per sec — below the
+WSL2-derived floors — which is why threshold gating does not run on shared PR
+runners.
+
 ## Native benchmark section
 
 | Operation | Target | Baseline | Current | Regression threshold | Status | Notes |
