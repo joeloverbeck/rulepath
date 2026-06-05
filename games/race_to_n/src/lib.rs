@@ -1,28 +1,28 @@
 //! `race_to_n` foundation crate.
 
+pub mod actions;
+pub mod effects;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
 use engine_core::{
-    ActionTree, Actor, CommandEnvelope, DeterministicRng, Diagnostic, EffectEnvelope,
-    FreshnessToken, Game, SeatId, Seed, Viewer,
+    ActionTree, Actor, CommandEnvelope, DeterministicRng, Diagnostic, EffectEnvelope, Game, SeatId,
+    Seed, Viewer,
 };
 
+pub use actions::legal_action_tree;
+pub use effects::RaceEffect;
 pub use ids::RaceSeat;
+pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CounterValue, FoundationView, RaceState};
 pub use variants::{Manifest, Variant, VariantCatalog};
 
 #[derive(Clone, Debug, Default)]
 pub struct RaceToN;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ValidatedAction;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RaceEffect;
 
 impl Game for RaceToN {
     type Setup = SetupOptions;
@@ -40,28 +40,25 @@ impl Game for RaceToN {
         setup_match(seed, seats, setup)
     }
 
-    fn legal_action_tree(&self, state: &Self::State, _actor: &Actor) -> ActionTree {
-        ActionTree::flat(state.freshness_token, Vec::new())
+    fn legal_action_tree(&self, state: &Self::State, actor: &Actor) -> ActionTree {
+        legal_action_tree(state, actor)
     }
 
     fn validate(
         &self,
-        _state: &Self::State,
-        _command: &CommandEnvelope,
+        state: &Self::State,
+        command: &CommandEnvelope,
     ) -> Result<Self::ValidatedAction, Diagnostic> {
-        Err(Diagnostic {
-            code: "rules_not_implemented".to_owned(),
-            message: "legal actions are added by GAT1RACTON-005".to_owned(),
-        })
+        validate_command(state, command)
     }
 
     fn apply(
         &self,
-        _state: &mut Self::State,
-        _action: Self::ValidatedAction,
+        state: &mut Self::State,
+        action: Self::ValidatedAction,
         _rng: &mut dyn DeterministicRng,
     ) -> Vec<EffectEnvelope<Self::Effect>> {
-        Vec::new()
+        apply_action(state, action)
     }
 
     fn project_view(&self, state: &Self::State, _viewer: &Viewer) -> Self::View {
@@ -69,7 +66,7 @@ impl Game for RaceToN {
             counter: state.counter,
             active_seat: state.active_seat,
             winner: state.winner,
-            freshness_token: FreshnessToken(state.freshness_token.0),
+            freshness_token: state.freshness_token,
         }
     }
 }
