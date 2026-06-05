@@ -1,7 +1,10 @@
-use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
+use engine_core::{
+    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
+    StableSerialize,
+};
 use race_to_n::{
-    apply_action, legal_action_tree, setup_match, validate_command, CounterValue, RaceSeat,
-    SetupOptions,
+    apply_action, legal_action_tree, project_view, setup_match, validate_command, CounterValue,
+    RaceSeat, RaceSnapshot, SetupOptions,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -23,6 +26,20 @@ fn command_for(state_seat: RaceSeat, segment: String, token: FreshnessToken) -> 
         freshness_token: token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn action_tree_hash(state_counter: u8) -> HashValue {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
+    state.counter = CounterValue(state_counter);
+    let tree = legal_action_tree(&state, &actor_for(state.active_seat));
+    let stable_segments = tree
+        .root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+    HashValue::from_stable_bytes(stable_segments.as_bytes())
 }
 
 #[test]
@@ -75,5 +92,63 @@ fn applying_each_generated_legal_action_preserves_invariants() {
                 }
             }
         }
+    }
+}
+
+#[test]
+fn replay_hash_inputs_are_deterministic_across_repeated_construction() {
+    for counter in 0..=21 {
+        let mut left = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
+        left.counter = CounterValue(counter);
+        if counter == 21 {
+            left.winner = Some(RaceSeat::Seat0);
+        }
+        let right = left.clone();
+
+        assert_eq!(
+            RaceSnapshot::from_state(&left).stable_hash(),
+            RaceSnapshot::from_state(&right).stable_hash()
+        );
+        assert_eq!(
+            project_view(&left).stable_hash(),
+            project_view(&right).stable_hash()
+        );
+        assert_eq!(action_tree_hash(counter), action_tree_hash(counter));
+    }
+}
+
+#[test]
+fn serialization_round_trip_preserves_reachable_states() {
+    for counter in 0..=21 {
+        let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
+        state.counter = CounterValue(counter);
+        if counter == 21 {
+            state.winner = Some(RaceSeat::Seat0);
+        }
+        let snapshot = RaceSnapshot::from_state(&state);
+        let parsed = RaceSnapshot::from_json(&snapshot.to_json()).expect("snapshot parses");
+
+        assert_eq!(parsed.into_state(), state);
+    }
+}
+
+#[test]
+fn action_tree_ids_are_stable_and_unique() {
+    for counter in 0..21 {
+        let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
+        state.counter = CounterValue(counter);
+        let tree = legal_action_tree(&state, &actor_for(state.active_seat));
+        let ids = tree
+            .root
+            .choices
+            .iter()
+            .map(|choice| choice.segment.as_str())
+            .collect::<Vec<_>>();
+        let mut sorted = ids.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+
+        assert_eq!(ids.len(), sorted.len());
+        assert!(ids.iter().all(|id| id.starts_with("add-")));
     }
 }

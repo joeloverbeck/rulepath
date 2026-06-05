@@ -1,0 +1,2 @@
+source=tests/golden_traces/bot-action.trace
+purpose=replay fixture seed for GAT1RACTON-008 bot-action trace
