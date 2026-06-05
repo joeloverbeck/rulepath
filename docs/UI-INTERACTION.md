@@ -211,19 +211,15 @@ Side panels should collapse; logs and action panels should be readable; touch ta
 
 ## 18. Public game acceptance checklist
 
-A web-exposed game is acceptable only when:
+A web-exposed game is acceptable only when it satisfies the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants) (effect-driven animation that settles to the public view, no hidden information shipped or exposed, play-first non-debug UI, and original/neutral public assets), plus these UI-specific items:
 
 - default view is playable, pleasant, and not debug-dominated;
 - every gameplay click maps to a Rust legal choice;
 - illegal moves are not clickable in normal mode;
 - compound actions use progressive construction;
 - previews and diagnostics come from Rust;
-- animations are driven by semantic effects;
-- renderer settles to public view;
 - replay can step through actions;
-- hidden information is not shipped or exposed;
 - bot choices have public-safe explanations when non-random;
 - dev inspectors are safe and secondary;
 - reduced motion works;
-- basic focus/keyboard behavior exists where practical;
-- public assets are original and neutral.
+- basic focus/keyboard behavior exists where practical.

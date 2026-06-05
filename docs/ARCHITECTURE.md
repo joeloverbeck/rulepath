@@ -84,16 +84,7 @@ engine-core -> no Rulepath crate with game mechanics
 
 `engine-core` must not contain board, grid, card, deck, pile, hand, suit, faction, scenario, trick, pot, resource, role, combat, territory, movement, adjacency, line, capture, flip, promotion, or similar game nouns.
 
-Any kernel change must answer:
-
-1. Which implemented official games need it?
-2. Why can it not live in `games/*`?
-3. Why can it not live in `game-stdlib`?
-4. Does it introduce a game noun?
-5. Does it preserve determinism, visibility, replay hashes, and serialization compatibility?
-6. Does it require ADR?
-
-Default answer: do not change `engine-core`.
+Any kernel change must answer the [kernel-change protocol](INVARIANTS.md#2-kernel-change-protocol). Default answer: do not change `engine-core`.
 
 ## 5. Game-stdlib role
 
@@ -276,22 +267,9 @@ Persistence, accounts, abuse handling, matchmaking, and networking require later
 
 ## 15. Architecture acceptance checklist
 
-Before accepting a major change, verify:
+Before accepting a major change, verify the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants), plus these architecture-specific items:
 
-- `engine-core` has no game nouns;
-- Rust owns behavior;
-- no behavior is hidden in untyped data;
 - game modules own game-specific rules and nouns;
-- `game-stdlib` changes have atlas/ledger support;
 - action trees and diagnostics come from Rust;
 - effects are semantic, deterministic, replayable, and filterable;
-- public views are viewer-safe;
-- replay/hash behavior is stable or explicitly migrated;
-- bots use legal action APIs and allowed views;
-- WASM API is batched;
-- TypeScript has no rule legality;
-- v1/v2 remain local-first;
-- public UI is not debug-first;
-- tests, traces, simulations, and benchmarks exist;
-- public builds contain no private licensed content;
-- ADR exists for architecture-changing decisions.
+- v1/v2 remain local-first.

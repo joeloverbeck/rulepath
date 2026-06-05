@@ -203,10 +203,8 @@ Agents must output complete files or coherent complete sections, not diffs. They
 
 ## 13. Authoring acceptance checklist
 
-Before calling a game official, verify:
+Before calling a game official, verify the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants), plus these authoring-completeness items:
 
-- typed Rust owns behavior;
-- static data is content/parameters only;
 - per-game docs are complete;
 - source notes and public naming are safe;
 - rule coverage has no silent gaps;
@@ -214,6 +212,4 @@ Before calling a game official, verify:
 - atlas/ledger pressure is updated;
 - random legal bot exists;
 - non-random bots have docs, tests, explanations, and benchmarks;
-- traces, replay, visibility, serialization, simulations, benchmarks, and UI smoke tests exist;
-- `engine-core` remains noun-free;
-- no private licensed content ships publicly.
+- traces, replay, visibility, serialization, simulations, benchmarks, and UI smoke tests exist.

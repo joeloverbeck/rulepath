@@ -195,15 +195,7 @@ A third official game must not proceed through duplicated mechanic code without 
 
 ## 13. Failing-test protocol
 
-When tests fail:
-
-1. Determine whether the failing tests are still valid.
-2. Determine whether the issue is in the system under test or the test suite.
-3. Fix the issue.
-4. Add or update regression coverage.
-5. Report what changed.
-
-Humans and agents must not delete, weaken, or rewrite tests merely to get green output.
+Follow the [failing-test protocol](INVARIANTS.md#1-failing-test-protocol). Humans and agents must not delete, weaken, or rewrite tests merely to get green output.
 
 ## 14. Native-first benchmark doctrine
 

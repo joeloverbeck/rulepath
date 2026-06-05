@@ -2,13 +2,15 @@
 
 ## Context
 
-Foundation documents to follow:
+Foundation documents to follow (see `docs/README.md` for the full index):
 
 - `docs/FOUNDATIONS.md`
+- `docs/INVARIANTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DATA-RUST-BOUNDARY.md`
 - `docs/AUTHORING-MODEL.md`
 - `docs/MECHANIC-ATLAS.md`
+- `docs/ROADMAP.md`
 - `docs/UI-INTERACTION.md`
 - `docs/AI-BOTS.md`
 - `docs/TESTING-AND-BENCHMARKING.md`

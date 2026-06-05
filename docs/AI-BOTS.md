@@ -227,11 +227,8 @@ Hidden-information bots additionally require no-leak tests for bot view, explana
 
 ## 18. Acceptance checklist
 
-Before a bot becomes a default public opponent, verify:
+Before a bot becomes a default public opponent, verify the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants) (the bot uses the normal legal action API and allowed view only, validates through the normal engine path, and receives no unauthorized hidden state), plus these bot-specific items:
 
-- it uses normal legal action API;
-- it never receives unauthorized hidden state;
-- it validates through normal engine path;
 - legality tests pass over many seeds;
 - determinism tests pass;
 - latency benchmarks pass or documented UI thinking feedback exists;

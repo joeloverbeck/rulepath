@@ -73,28 +73,11 @@ Bad tasks are vague or architecture-seeking:
 
 ## 4. Failing-test protocol
 
-When tests fail, agents and humans MUST:
-
-1. determine whether the failing tests are still valid;
-2. determine whether the issue is in the system under test or the test suite;
-3. fix the issue;
-4. add or update regression coverage;
-5. report what changed.
-
-Tests MUST NOT be deleted, weakened, renamed away, or rewritten merely to get green output.
+Agents and humans must follow the [failing-test protocol](INVARIANTS.md#1-failing-test-protocol): tests must not be deleted, weakened, renamed away, or rewritten merely to get green output.
 
 ## 5. Kernel-change protocol
 
-Any `engine-core` change MUST answer:
-
-- Which already implemented games require this?
-- Why can the change not live inside `games/*`?
-- Why can the change not live inside `game-stdlib` after earned pressure?
-- Does it introduce any game noun, mechanic noun, strategy, renderer concern, network concern, or storage concern?
-- Does it preserve deterministic replay, visibility boundaries, serialization compatibility, and hashes?
-- Does it require ADR?
-
-Default answer: do not change `engine-core`.
+Any `engine-core` change must answer the [kernel-change protocol](INVARIANTS.md#2-kernel-change-protocol). Default answer: do not change `engine-core`.
 
 ## 6. Data-format protocol
 
@@ -193,19 +176,4 @@ For substantial work, report:
 
 ## 13. Review checklist
 
-Before accepting agent work, verify:
-
-- Rust owns behavior;
-- no behavior moved into untyped data;
-- `engine-core` remains noun-free;
-- `game-stdlib` changes are earned by mechanic-atlas pressure;
-- TypeScript does not decide legality;
-- semantic effects drive animation;
-- replay remains deterministic;
-- hidden information is safe;
-- bots use legal action APIs and allowed views;
-- tests, traces, simulations, and benchmarks cover the change;
-- public files contain no licensed/private content;
-- documentation matches implementation;
-- ADRs exist for major decisions;
-- output is bounded and reviewable.
+Before accepting agent work, verify the [universal acceptance invariants](INVARIANTS.md#3-universal-acceptance-invariants). They cover Rust behavior ownership, noun-free `engine-core`, earned `game-stdlib`, no behavior in untyped data, TypeScript with no legality, effect-driven animation, deterministic replay, hidden-information safety, fair bots, test/trace/simulation/benchmark coverage, no licensed/private content, documentation matching implementation, ADRs for major decisions, and bounded reviewable output.

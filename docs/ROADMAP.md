@@ -1,18 +1,46 @@
-# Rulepath Game Ladder
+# Rulepath Roadmap
 
-Status: staged mechanic ladder and public product law.
+Status: staged mechanic ladder, build-gate order, and public product law.
+
+This document merges two complementary views of the same progression:
+
+- the **product mechanic ladder** — what each official game first proves and its public product role;
+- the **build gate order** — the order in which infrastructure and games are built and the admit/build/exit conditions per gate.
+
+The two numberings deliberately differ: the build gates insert non-game gates (skeleton, trace/replay hardening, WASM/web shell) that have no mechanic-ladder equivalent. The crosswalk below maps them. A stage or gate may be skipped only by ADR.
 
 The ladder builds a polished public playable site while earning mechanic complexity through observable stages. It is not a disguised path toward private licensed games and not a promise of arbitrary tabletop support.
 
-Each stage must update docs, tests, traces, simulations, benchmarks, mechanic inventory, and boundary review. A stage may be skipped only by ADR.
+V1/v2 excludes hosted multiplayer, accounts, databases, matchmaking, DSL work, YAML, public MCTS/ISMCTS/Monte Carlo bots, ML/RL, and private monster-game work.
 
-## Global gate
+## Stage/gate crosswalk
 
-Before a stage is complete, it must have:
+| Ladder stage | Build gate(s) | Game / focus |
+|---:|---|---|
+| 0 | Gate 0 | repository skeleton |
+| 1 | Gate 1, Gate 2, Gate 3 | `race_to_n` / Nim, then trace/replay/benchmark hardening and the WASM/web shell |
+| 2 | Gate 4 | `three_marks` |
+| 3 | Gate 5 | `column_four` |
+| 4 | Gate 6 | `directional_flip` + earned extraction decision |
+| 5 | Gate 7 | `draughts_lite` |
+| 6 | Gate 8 | `high_card_duel` / `blackjack_lite` |
+| 7 | Gate 9 | `token_bazaar` / `resource_race` |
+| 8 | Gate 9 | `secret_draft` / commitment microgame |
+| 9 | Gate 10 | `poker_lite` |
+| 10 | Gate 10 | `plain_tricks` |
+| 11 | Gate 11 | `masked_claims` |
+| 12 | Gate 12 | `flood_watch` |
+| 13 | Gate 13 | `frontier_control` |
+| 14 | Gate 14 | `event_frontier` |
+| Appendix | Gate P | private monster-game red-team |
+
+## Per-stage gate (every stage and gate)
+
+Every stage and gate must satisfy the [universal acceptance invariants](INVARIANTS.md) and, in addition, produce/verify the per-game deliverables:
 
 - typed Rust rules;
 - per-game docs and source/IP notes;
-- `MECHANICS.md` and repo atlas update;
+- `MECHANICS.md` and repo mechanic-atlas update;
 - rule coverage matrix;
 - unit/rule/golden/property/simulation/replay/serialization tests;
 - CLI simulation;
@@ -20,11 +48,15 @@ Before a stage is complete, it must have:
 - random legal bot;
 - UI metadata;
 - UI smoke tests once web-exposed;
-- no game-specific contamination of `engine-core`.
+- updated boundary review (Rust owns behavior, TypeScript owns no legality, `engine-core` noun-free, static data typed content/parameters only, replay deterministic, bots use legal APIs and allowed views, IP boundaries preserved).
 
 A third repeated mechanic shape must resolve through the primitive-pressure ledger before proceeding.
 
-## Overview
+Stop conditions for the whole repository are defined in `docs/FOUNDATIONS.md` §12.
+
+---
+
+# Part A — Product mechanic ladder
 
 | Stage | Candidate | First proves | Product role |
 |---:|---|---|---|
@@ -300,3 +332,141 @@ Mechanic atlas pressure: public atlas may record generic pressure without privat
 Exit gate: public Rulepath can stop the experiment without damage.
 
 Not allowed: public build leakage, public CI dependency, public docs naming licensed games, kernel nouns, full private vertical slice before public ladder.
+
+---
+
+# Part B — Build gate order
+
+This is gate order, not a ticket plan. Rulepath allows complexity through gates. At every gate, docs, tests, traces, simulations, benchmarks, mechanic atlas updates, and boundary review are required (see the per-stage gate above and the [universal acceptance invariants](INVARIANTS.md)).
+
+## Gate 0: skeleton
+
+Admit: no implementation exists.
+
+Build shape: Rust workspace, empty or placeholder `engine-core`, empty or placeholder `game-stdlib`, `ai-core` trait shell, `wasm-api` shell, React/TypeScript web shell, tools placeholders, docs, templates, ADR folder, CI smoke.
+
+Required ADRs before serious build: Rust core + WASM shell; engine/data/game boundary; typed Rust behavior/no DSL/no YAML; action tree/effect-log UI; bot fairness; static local-first app; public ladder/IP isolation.
+
+Exit: `cargo test` or equivalent workspace smoke runs, web shell builds, placeholder WASM loads, docs are present, `engine-core` is noun-free.
+
+## Gate 1: tiny game
+
+Admit: skeleton passes.
+
+Build: `race_to_n` or Nim with setup, state, legal actions, validation, commands, effects, terminal outcome, deterministic seed handling, replay, random legal bot, CLI simulation, golden traces, benchmark, minimal web display.
+
+Exit: human vs random bot works; 100,000 native random games complete; replay reproduces state/effect/action-tree hashes; browser displays legal actions and effect log; per-game docs and mechanic inventory exist.
+
+## Gate 2: trace, replay, and benchmark hardening
+
+Admit: tiny game exists and exposes drift risks.
+
+Build: trace serialization, replay checker, stable hashes, benchmark harness, failure seed/command output, seed-reduction plan, fixture validation.
+
+Exit: failing simulations can be replayed from seed and command log; golden traces fail loudly on rule drift; benchmark report records versions, command, hardware, and thresholds.
+
+## Gate 3: WASM/static web shell
+
+Admit: native replay and benchmarks are solid enough.
+
+Build: batched WASM API, game picker, match setup, public view store, action tree store, effect queue, replay controls, dev toggle, safe local replay import/export.
+
+Exit: static site plays the tiny game with no backend; human vs bot, hotseat when applicable, bot vs bot replay, and replay viewer work; dev toggle shows safe diagnostics; no rule legality exists in TypeScript.
+
+## Gate 4: `three_marks`
+
+Admit: web shell can play tiny game.
+
+Build: neutral Tic-Tac-Toe-like game with local spatial model, occupancy, simple win/draw detection, SVG board, direct legal target highlighting, random legal bot, Level 1 baseline bot, docs/tests/traces/benchmarks.
+
+Exit: occupied positions are never legal; win/draw detection is covered; bot wins/blocks immediate threats; UI is pleasant and accessible where practical; no spatial primitive enters `engine-core`.
+
+## Gate 5: `column_four` public polish
+
+Admit: `three_marks` is correct and pleasant.
+
+Build: gravity-constrained alignment game with legal column interaction, hover/drop preview, semantic drop/win effects, polished responsive SVG renderer, Level 1 and preferably Level 2 bot, replay viewer polish, UI smoke tests.
+
+Exit: public page looks like a polished playable game; legal columns only are clickable; animations are effect-log-driven; bot explanations are available; benchmarks and UI smoke tests pass; mechanic atlas records repeated coordinate/line pressure.
+
+## Gate 6: `directional_flip` and earned extraction decision
+
+Admit: `column_four` is showcase-quality.
+
+Build: directional flipping game with directional scanning tests, grouped multi-piece effects, replay animation, greedy bot, trace/replay/benchmark coverage.
+
+Decision: compare `three_marks`, `column_four`, and `directional_flip`. Reuse, promote, or defer coordinate/line/directional helpers through the primitive-pressure ledger.
+
+Exit: flips replay and animate correctly; any extracted helper is narrow, typed, tested, documented, back-ported, benchmarked, and not in `engine-core`.
+
+## Gate 7: `draughts_lite` action trees
+
+Admit: grid/directional pressure resolved.
+
+Build: movement/capture/mandatory-continuation game with action trees, progressive UI, forced rules, stale diagnostics, action tree inspector, random and rule-informed bot. Shallow deterministic search only if benchmarks allow.
+
+Exit: forced multi-step actions replay correctly; UI guides path construction and confirmation; action tree inspector is usable; bot legality and latency tests pass.
+
+## Gate 8: cards, chance, hidden information
+
+Admit: compound actions and replay are stable.
+
+Build: `high_card_duel`; add `blackjack_lite` only if it adds useful pressure. Implement deterministic shuffle, private/public views, draw/reveal effects, no-leak tests, serialization tests, bot-view tests, private hand UI.
+
+Exit: hidden identities never leak through views, logs, previews, serialization, bot views, UI payloads, DOM fixtures, local storage, or replay exports; seed replay reproduces random samples.
+
+## Gate 9: resources, simultaneous choice, drafting
+
+Admit: hidden information is safe.
+
+Build: original resource economy and commitment/drafting microgames. Add explicit resource effects, waiting states, reveal phases, hand/list passing, valuation bots, invariant tests.
+
+Exit: resource accounting is effect-visible; simultaneous choices remain hidden until reveal; bots use allowed views; invariant/no-leak tests and benchmarks pass; atlas updated.
+
+## Gate 10: betting and tricks
+
+Admit: resources, hidden info, action trees, and card zones are proven.
+
+Build: `poker_lite` and one scoped trick-taking game when ready. Variant scope must be written before coding. Implement pot/accounting tests, hand evaluator tests, follow-suit tests, hidden-info tests, bot legality/latency benchmarks.
+
+Exit: betting/trick rules are correct for chosen variants; bots finish games without hidden-state cheating; UI remains understandable; native benchmarks exist.
+
+## Gate 11: bluffing and reactions
+
+Admit: card games and hidden-info bots are stable.
+
+Build: original bluffing/reaction microgames with claims, challenges, pending responses, conditional resolution, cancellation/replacement if scoped, no-leak tests, baseline policy bot.
+
+Exit: logs explain who may respond and why; bots respond legally; hidden claims do not leak; reaction-window abstraction has repeated pressure or ADR before promotion.
+
+## Gate 12: cooperative pressure
+
+Admit: reactions and event-like resolution are understood enough.
+
+Build: original cooperative event-pressure game with shared outcome, event deck, role powers, environment automation, multi-action budgets, scenario setup, cooperative bot baseline, replayable automation effects.
+
+Exit: role powers live in game module; automation is deterministic and effect-log-driven; shared win/loss tested; public UI explains pressure clearly.
+
+## Gate 13: asymmetric area control
+
+Admit: cooperative event pressure and simulation tooling are stable.
+
+Build: original graph-map/area-control microgame with faction-specific actions/scoring/UI affordances, per-faction bots, simulation metrics.
+
+Exit: no faction nouns enter `engine-core`; each faction has random and baseline bot; effect logs stay readable; simulations produce useful metrics.
+
+## Gate 14: event-driven asymmetric scenario
+
+Admit: area-control asymmetry works publicly.
+
+Build: original public scenario/event-driven asymmetric game with event decks, eligibility/initiative, periodic scoring/reset, asymmetric victory, large action trees, scripted policy bots, robust rule coverage, long-game replay/debug tools.
+
+Exit: action tree UI remains usable; scripted bots are demo-coherent; debug/replay tools diagnose long games; public Rulepath stands without private experiments; every repeated mechanic has ledger resolution.
+
+## Gate P: private monster-game red-team
+
+Admit: Gate 14 is complete and public Rulepath is coherent without private work.
+
+Build: optional private vertical slice in private repo/submodule/local-only folder. No public build, public CI dependency, public docs naming, public assets, or full bot at first. Strict kernel-contamination review.
+
+Exit: no kernel contamination; missing abstractions are documented without private names; performance is measurable; public Rulepath can abandon the private experiment without damage.

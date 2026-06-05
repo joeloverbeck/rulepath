@@ -9,6 +9,7 @@ Decision owner: <name or role>
 Related documents:
 
 - `docs/FOUNDATIONS.md`
+- `docs/INVARIANTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DATA-RUST-BOUNDARY.md`
 - `docs/MECHANIC-ATLAS.md`
