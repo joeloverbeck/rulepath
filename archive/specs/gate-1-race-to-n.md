@@ -3,7 +3,7 @@
 - Spec ID: `gate-1-race-to-n`
 - Roadmap stage: 1
 - Roadmap build gate: Gate 1
-- Status: Planned
+- Status: Done
 - Date: 2026-06-05
 - Owner: joeloverbeck
 
@@ -178,6 +178,23 @@ Mapped row-for-row to ROADMAP.md §5 (Gate 1) "Exit":
 | replay reproduces hashes | Replay tests prove seed + options + command stream reproduce identical state, effect, action-tree, and public-view hashes (ARCHITECTURE §8; TESTING §4). |
 | invalid/stale diagnostics are tested | Validation emits viewer-safe diagnostics for invalid paths; a freshness token rejects stale submissions; both are covered by tests and one diagnostic golden trace. |
 | per-game docs and mechanic inventory exist | `games/race_to_n/docs/*` are filled with no silent gaps; `MECHANICS.md` + the mechanic-atlas `race_to_n` row exist. |
+
+## 5.1 Closeout Evidence
+
+Recorded 2026-06-05 before flipping `specs/README.md` Gate 1 to `Done`.
+
+| Criterion/evidence | Command or review | Result |
+|---|---|---|
+| workspace tests, including rule/golden/replay/serialization/bot/sim/wasm tests | `cargo test --workspace` | passed |
+| 100,000 native random games | `cargo run -p simulate -- --game race_to_n --games 100000` | passed; `games_run=100000`, `seat_0_wins=49743`, `seat_1_wins=50257`, `average_length=10.92` |
+| web human-vs-bot/stale diagnostic path | `npm --prefix apps/web run smoke:ui` | passed; output recorded `counter=2`, `effects=8`, `diagnostic=stale_action` |
+| web build | `npm --prefix apps/web run build` | passed |
+| engine boundary | `bash scripts/boundary-check.sh` | passed; `engine-core` boundary check passed |
+| docs links | `node scripts/check-doc-links.mjs` | passed; checked 17 markdown files |
+| no open coverage rows | `grep -nE '\bopen\b' games/race_to_n/docs/RULE-COVERAGE.md` | no matches |
+| no TypeScript legality terms in app source | `grep -rniE 'legal\|isValid\|canPlay' apps/web/src` | no matches |
+| mechanic atlas confirmation | `grep -n 'race_to_n' docs/MECHANIC-ATLAS.md` | row reads `local-only`; no `game-stdlib` promotion |
+| benchmark evidence | `cargo bench -p race_to_n` and `games/race_to_n/docs/BENCHMARKS.md` | benchmark coverage exists; Stage-1 random-playout budget miss is recorded, not silently claimed |
 
 ## 6. Acceptance evidence
 
