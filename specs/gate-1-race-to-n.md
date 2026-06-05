@@ -51,7 +51,9 @@ plus ROADMAP §2 per-stage requirements.
 - Minimal **generic** contract growth in `engine-core`, driven by what
   `race_to_n` actually exercises: action tree / action path, deterministic RNG
   contract, effect cursor/log, a generic `Game`-style entry contract over an
-  opaque game-defined payload, state/effect/action-tree/view hash contract, and
+  opaque game-defined payload, a freshness-token contract (a generic version
+  marker for graceful stale-submission rejection, ARCHITECTURE §5),
+  state/effect/action-tree/view hash contract, and
   the replay/command-stream + serialization boundary. All noun-free
   (FOUNDATIONS §3); each addition clears the AGENT-DISCIPLINE §5 kernel-change
   protocol.
@@ -63,8 +65,10 @@ plus ROADMAP §2 per-stage requirements.
   100,000+ seeds, per-action invariant checks, and failure seed/command output
   (OFFICIAL-GAME-CONTRACT §1; TESTING §7).
 - Native benchmark coverage for `race_to_n` (legal-action generation, apply,
-  view projection, random-playout throughput) against the Stage-1 budget
-  (TESTING §15: 500,000+ games/sec native target).
+  view projection / effect filtering, serialization + replay throughput,
+  random-playout throughput, and random-bot decision latency) against the
+  Stage-1 budget — the OFFICIAL-GAME-CONTRACT §1 / TESTING §14 "measure at
+  least" floor (TESTING §15: 500,000+ games/sec native target).
 - The full per-game evidence set: unit, named rule, golden trace, property/
   invariant, simulation, replay/hash, and serialization tests (TESTING §1).
 - A **minimal WASM vertical slice**: a thin batched `wasm-api` surface
@@ -155,7 +159,7 @@ forbidden-changes before coding (AGENT-DISCIPLINE §2).
 | WB3 | **`games/race_to_n` core rules.** Setup, ids, state, flat legal action generation, validation (emitting viewer-safe `Diagnostic`s + freshness-token rejection of stale submissions), transitions, terminal/outcome detection, semantic effects, public-view projection, serialization, variant. Forbidden: any mechanic noun in `engine-core`. | WB2 | yes |
 | WB4 | **Level 0 random legal bot.** Generic random-legal-bot in `ai-core` over the deterministic RNG contract + Rust-supplied legal paths; `race_to_n` wires it; bot legality + determinism tests (AI-BOTS; TESTING §10). | WB3 | yes |
 | WB5 | **Replay, hashing, golden traces, serialization tests.** Seed + options + command stream reproduce state/effect/action-tree/view hashes; ≥1 shortest-normal and ≥1 terminal golden trace; one bot-action trace; one invalid/stale diagnostic trace; replay + serialization round-trip tests; property/invariant tests. | WB3, WB4 | yes |
-| WB6 | **Native simulation + benchmarks.** Wire `tools/simulate` to run 100,000+ random `race_to_n` games with per-action invariant checks and failure seed/command output; native benchmark hitting the Stage-1 budget; fill `BENCHMARKS.md` (TESTING §15–16). | WB3, WB4 | yes |
+| WB6 | **Native simulation + benchmarks.** Wire `tools/simulate` to run 100,000+ random `race_to_n` games with per-action invariant checks and failure seed/command output; native benchmarks covering the OFFICIAL-GAME-CONTRACT §1 / TESTING §14 floor (legal actions, apply, view/effect filtering, serialization + replay throughput, random-playout throughput, random-bot decision latency) hitting the Stage-1 budget; fill `BENCHMARKS.md` (TESTING §15–16). Pin the benchmark home (a top-level `benches/` workspace crate per ARCHITECTURE §1, currently a non-member placeholder, or an in-crate `games/race_to_n/benches/` criterion target) and wire it into the workspace. | WB3, WB4 | yes |
 | WB7 | **Minimal WASM vertical slice + bare web harness + UI smoke.** Batched `wasm-api` surface; `apps/web` bare harness (human vs random bot, no polish); `UI.md` (minimal); UI smoke covering load, start, display legal actions, one human action, one bot turn, semantic effects, and the stale-submission diagnostic path. Forbidden: TypeScript legality; any Gate-3 shell scope. | WB3, WB4 | yes |
 | WB8 | **Docs finalize + CI wiring + index flip.** Close `RULE-COVERAGE.md` (no `open` rows), finalize `AI.md`, confirm the `race_to_n` mechanic-atlas row stays `local-only`; extend CI with race_to_n rule/golden/replay/serialization/quick-sim/UI-smoke/bench-smoke; flip the `specs/README.md` index status to `Done`. | WB1–WB7 | yes |
 
@@ -187,7 +191,7 @@ Mapped row-for-row to ROADMAP.md §5 (Gate 1) "Exit":
 | replay/hash tests | yes | Seed + commands reproduce state/effect/action-tree/view hashes (TESTING §4). |
 | serialization tests | yes | Snapshot + public-view + replay JSON round trips; version-field presence; unknown-field rejection (TESTING §9). |
 | bot legality tests | yes | Random legal bot chooses legal paths through normal validation; deterministic for fixed seed/view/limits (TESTING §10). |
-| benchmarks | yes | Native legal-action/apply/view/throughput benchmarks vs Stage-1 budget (TESTING §15). |
+| benchmarks | yes | Native benchmarks for legal-action gen, apply, view/effect filtering, serialization + replay throughput, random-playout throughput, and random-bot decision latency vs Stage-1 budget (OFFICIAL-GAME-CONTRACT §1; TESTING §14–15). |
 | UI smoke | yes (web-exposed) | Bare harness: load, start, legal actions, one human action, one bot turn, effects, stale-submission path (TESTING §11). |
 | boundary review | yes | Written confirmation: Rust holds all behavior; no legality in TypeScript; `engine-core` stays noun-free; dependency edges per ARCHITECTURE §2. |
 | visibility/no-leak tests | no (n/a) | `race_to_n` is perfect-information; no hidden state exists to leak. View projection is wholly public; recorded as `not-applicable` with rationale. |
