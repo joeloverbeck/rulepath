@@ -29,6 +29,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "race_to_n"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
+
+[[package]]
 name = "replay-check"
 version = "0.1.0"
 

@@ -5,6 +5,7 @@ members = [
     "crates/game-stdlib",
     "crates/ai-core",
     "crates/wasm-api",
+    "games/race_to_n",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",
