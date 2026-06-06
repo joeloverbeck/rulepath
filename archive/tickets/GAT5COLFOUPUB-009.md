@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-009: Column Four Rust test suite
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/column_four/tests/` (integration tests); unit tests within `games/column_four/src/*`
@@ -84,3 +84,26 @@ Backfill any §18 unit cases not already covered by 003–008 (e.g. turn-alterna
 1. `cargo test -p column_four`
 2. `cargo test --workspace`
 3. `cargo clippy -p column_four --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/tests/rules.rs` for cross-module rule coverage: legal columns, full-column rejection, gravity, turn alternation, stale/wrong/invalid/unknown/terminal diagnostics, horizontal/vertical/rising/falling wins, draw, terminal no-actions, and win-over-draw precedence.
+- Added `games/column_four/tests/replay.rs` for deterministic replay hash equality, projection hash reuse, replay JSON stable serialization, and unknown-field rejection.
+- Added `games/column_four/tests/visibility.rs` for public-view no-leak checks, explicit perfect-information private status, stable serialization, stable cell order, terminal no-actions, and public piece token metadata.
+- Added `games/column_four/tests/bots.rs` for Level 0 and Level 2 legal action validation across seeds, deterministic Level 2 explanations, no score/candidate/debug leakage, and terminal no-action behavior.
+- Added `games/column_four/tests/property.rs` for many-seed random legal playout termination within the 42-ply bound.
+
+Deviations from original plan:
+
+- None. Golden trace fixtures, simulation tool registration, and benchmark coverage remain deferred to their dedicated tickets.
+
+Verification results:
+
+- Passed: `cargo test -p column_four`
+- Passed: `cargo test --workspace`
+- Passed: `cargo clippy -p column_four --all-targets -- -D warnings`
+- Passed: `cargo fmt --all --check`
