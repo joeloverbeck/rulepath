@@ -6,6 +6,13 @@ Last reviewed: 2026-06-05.
 
 These sources inform Rulepath architecture, authoring discipline, bot policy, UI policy, data-format policy, replay model, and IP caution. They are precedents and warnings, not text to copy. Game-specific source notes must still document exact rules sources, chosen variants, naming rationale, and asset status.
 
+## Game-specific source notes
+
+| Game | Source note | Status |
+|---|---|---|
+| `race_to_n` | `games/race_to_n/docs/SOURCES.md` | completed for Gate 1 |
+| `three_marks` | `games/three_marks/docs/SOURCES.md` | completed for Gate 4; covers original Rulepath naming, public-domain/classic-family context, variant choice, and asset posture |
+
 ## Source-use rules
 
 Rulepath source notes MUST:

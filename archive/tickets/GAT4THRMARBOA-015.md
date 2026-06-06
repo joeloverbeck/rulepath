@@ -87,3 +87,23 @@ Edit the existing `three_marks` atlas rows (lines ~167-168) in place to record f
 1. `cargo run -p rule-coverage -- --game three_marks`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. The full evidence end-to-end (exit criteria) is the capstone GAT4THRMARBOA-016; doc-validation + link/boundary checks are the correct boundary for the docs diff.
+
+## Outcome
+
+Status: Done
+Date: 2026-06-06
+
+Changes:
+- Added the Three Marks cross-cutting docs: rule coverage, mechanics, AI, UI, benchmarks, and admission checklist.
+- Updated the mechanic atlas to record Three Marks board occupancy and line detection as first-use local-only mechanics with extraction deferred.
+- Updated the repo source index with the Three Marks game-specific source posture.
+
+Ordering note:
+- `cargo run -p rule-coverage -- --game three_marks` depends on the multi-game `rule-coverage` support from GAT4THRMARBOA-014, so this ticket was verified with the 014 tool changes present and committed as a separate docs-only archive step.
+
+Verification:
+- `cargo run -p rule-coverage -- --game three_marks`
+- `node scripts/check-doc-links.mjs`
+- `bash scripts/boundary-check.sh`
+- `cargo test --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`

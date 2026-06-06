@@ -164,8 +164,8 @@ MUST NOT:
 | Mechanic shape | Games exerting pressure | Status | Current decision | Next gate |
 |---|---|---|---|---|
 | tiny numeric turn race | `race_to_n` | `local-only` | Keep local; proves plumbing only. Confirmed 2026-06-05 after Gate 1 docs finalization; first official use, no `game-stdlib` promotion. | None. |
-| fixed 2D occupancy | `three_marks`, later `column_four` | `repeated-shape candidate` after Stage 3 | Compare, do not extract until Stage 4 pressure. | Stage 4 review. |
-| simple line/pattern detection | `three_marks`, `column_four` | `repeated-shape candidate` after Stage 3 | Compare exact shape; no kernel change. | Stage 4 review. |
+| fixed 2D occupancy | `three_marks`, later `column_four` | `first-use local-only` | Three Marks records the first implemented fixed-grid occupancy shape; keep local and compare after `column_four`, with no `game-stdlib` promotion from one game. | Stage 4 review. |
+| simple line/pattern detection | `three_marks`, `column_four` | `first-use local-only` | Three Marks records the first implemented row/column/diagonal line scan; keep local and defer extraction until repeated pressure is proven. | Stage 4 review. |
 | gravity placement into a column | `column_four` | `local-only` | Too specific for early extraction. | None unless repeated. |
 | directional scanning and grouped flips | `directional_flip` | `local-only` initially | Inventory after implementation; may combine with line/scan pressure. | Stage 4 exit. |
 | movement/capture/forced continuation | `draughts_lite` | `local-only` initially | Keep game-local until repeated. | Stage 5 exit. |
