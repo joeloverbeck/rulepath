@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-015: Documentation + specs index/status flips (Gate 3 closeout)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation + spec/index status updates only; no Rust/crate/app-logic change.
@@ -132,3 +132,24 @@ GAT3WASMSTAWEB-013/-014 pass.
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n "Gate 3" specs/README.md`
 3. A docs-link + status-grep boundary is correct here: behavior is verified by the upstream tickets; this ticket only ships prose + status flips.
+
+## Outcome
+
+Completed on 2026-06-06.
+
+Changes:
+
+- Added `docs/WASM-CLIENT-BOUNDARY.md` as the Gate 3 WASM client contract, operation-group, replay-safety, and developer-panel whitelist record.
+- Added `apps/web/README.md` with build, preview, smoke, static-serving, and system-Chrome E2E notes.
+- Updated `progress.md`, `docs/README.md`, and `games/race_to_n/docs/UI.md` for the Gate 3 shell.
+- Flipped `specs/README.md` Gate 3 to `Done` and `specs/gate-3-wasm-static-web-shell.md` status to `Done`.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `grep -n "Gate 3" specs/README.md`
+- `grep -nE "^- Status: Done|\\*\\*Status\\*\\*: Done|Status: Done" specs/gate-3-wasm-static-web-shell.md`

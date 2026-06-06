@@ -12,7 +12,7 @@
 - Spec ID: `gate-3-wasm-static-web-shell`
 - Roadmap stage: 1 (Gates 1–3 — `race_to_n`, trace/replay hardening, WASM shell; "plumbing proof")
 - Roadmap build gate: Gate 3 — WASM/static web shell
-- Status: Planned
+- Status: Done
 - Date: 2026-06-06
 - Owner: `joeloverbeck`
 - Target game for this gate: `race_to_n` only
