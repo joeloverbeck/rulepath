@@ -3,15 +3,16 @@ import type { ActionChoice, ActionTree, PublicView } from "../wasm/client";
 type ActionControlsProps = {
   actionTree: ActionTree | null;
   view: PublicView | null;
+  actorSeat: "seat_0" | "seat_1" | null;
   pending: boolean;
   onChoice: (choice: ActionChoice) => void;
   onRestart: () => void;
 };
 
-export function ActionControls({ actionTree, view, pending, onChoice, onRestart }: ActionControlsProps) {
+export function ActionControls({ actionTree, view, actorSeat, pending, onChoice, onRestart }: ActionControlsProps) {
   const choices = actionTree?.choices ?? [];
   const isTerminal = view?.winner !== null && view?.winner !== undefined;
-  const isActorTurn = view?.active_seat === "seat_0";
+  const isActorTurn = actorSeat !== null && view?.active_seat === actorSeat;
   const controlsDisabled = pending || !isActorTurn || isTerminal;
 
   return (

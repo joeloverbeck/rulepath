@@ -185,6 +185,29 @@ h2 {
   font-size: 0.9rem;
 }
 
+.mode-controls {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.mode-controls p {
+  margin: 4px 0 0;
+  color: #60736b;
+}
+
+.mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 10px;
+}
+
 .region {
   display: grid;
   gap: 14px;
@@ -513,13 +536,23 @@ h2 {
   }
 
   .effect-heading,
-  .action-panel-heading {
+  .action-panel-heading,
+  .mode-controls {
     align-items: start;
     flex-direction: column;
   }
 
   .motion-field {
     width: 100%;
+  }
+
+  .mode-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .mode-actions button {
+    flex: 1 1 140px;
   }
 
   .scoreboard {

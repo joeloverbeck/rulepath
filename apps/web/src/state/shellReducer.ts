@@ -16,6 +16,7 @@ export type PendingOperation =
   | "startMatch"
   | "applyAction"
   | "submitStale"
+  | "botTurn"
   | "importReplay"
   | "stepReplay"
   | null;
@@ -79,6 +80,8 @@ export type ShellAction =
   | { type: "replayImported"; replayId: string; document: ReplayDocument | null; step: ReplayStep | null }
   | { type: "replayStepped"; step: ReplayStep }
   | { type: "replayReset"; step: ReplayStep }
+  | { type: "botTurnStarted" }
+  | { type: "autoplayStarted" }
   | { type: "autoplayPaused" }
   | { type: "devPanelToggled" }
   | { type: "reducedMotionChanged"; reducedMotion: boolean }
@@ -252,10 +255,21 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           : state.replay,
         pendingOperation: null,
       };
+    case "botTurnStarted":
+      return {
+        ...state,
+        pendingOperation: "botTurn",
+      };
+    case "autoplayStarted":
+      return {
+        ...state,
+        autoplay: { running: true },
+      };
     case "autoplayPaused":
       return {
         ...state,
         autoplay: { running: false },
+        pendingOperation: state.pendingOperation === "botTurn" ? null : state.pendingOperation,
       };
     case "devPanelToggled":
       return {

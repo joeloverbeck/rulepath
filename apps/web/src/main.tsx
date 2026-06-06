@@ -7,8 +7,9 @@ import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
 import { MatchSetup } from "./components/MatchSetup";
+import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
-import { initialShellState, shellReducer, type RefreshPayload } from "./state/shellReducer";
+import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import { loadApi, type ActionChoice, type ApiError, type PublicView } from "./wasm/client";
 
 type AppTextState = {
@@ -27,15 +28,17 @@ function App() {
   const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic } = state;
   const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
   const latestEffect = effects.at(-1) ?? null;
+  const humanActorSeat = view ? humanSeatForMode(state.setup.playMode, view) : null;
 
   const refresh = useCallback(
     (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
       const nextView = loadedApi.getView(loadedMatchId);
       const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor);
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
+      const nextActorSeat = humanSeatForMode(state.setup.playMode, nextView);
       const nextTree =
-        nextView.active_seat === "seat_0" && nextView.winner === null
-          ? loadedApi.getActionTree(loadedMatchId, "seat_0")
+        nextActorSeat && nextView.winner === null
+          ? loadedApi.getActionTree(loadedMatchId, nextActorSeat)
           : { freshness_token: nextView.freshness_token, choices: [] };
 
       const payload: RefreshPayload = {
@@ -46,7 +49,7 @@ function App() {
       };
       dispatch({ type: "refreshed", payload });
     },
-    [],
+    [state.setup.playMode],
   );
 
   useEffect(() => {
@@ -92,21 +95,57 @@ function App() {
       if (!api || !matchId || !view) {
         return;
       }
+      const actorSeat = humanSeatForMode(state.setup.playMode, view);
+      if (!actorSeat) {
+        return;
+      }
       dispatch({ type: "diagnosticCleared" });
       const tokenBeforeAction = view.freshness_token;
       try {
-        const afterHuman = api.applyAction(matchId, "seat_0", choice.segment, tokenBeforeAction);
+        const afterHuman = api.applyAction(matchId, actorSeat, choice.segment, tokenBeforeAction);
         dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
-        if (afterHuman.winner === null && afterHuman.active_seat === "seat_1") {
-          api.runBotTurn(matchId, "seat_1", tokenBeforeAction + 101);
+        if (
+          state.setup.playMode === "human_vs_bot" &&
+          afterHuman.winner === null &&
+          botSeatForMode(state.setup.playMode, afterHuman.active_seat)
+        ) {
+          api.runBotTurn(matchId, afterHuman.active_seat, botSeed(afterHuman));
         }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
         dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
       }
     },
-    [api, effectCursor, matchId, refresh, view],
+    [api, effectCursor, matchId, refresh, state.setup.playMode, view],
   );
+
+  const runBotStep = useCallback(() => {
+    if (!api || !matchId || !view || view.winner !== null || !botSeatForMode(state.setup.playMode, view.active_seat)) {
+      return;
+    }
+    dispatch({ type: "botTurnStarted" });
+    try {
+      api.runBotTurn(matchId, view.active_seat, botSeed(view));
+      refresh(api, matchId, effectCursor);
+    } catch (error: unknown) {
+      dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+    }
+  }, [api, effectCursor, matchId, refresh, state.setup.playMode, view]);
+
+  useEffect(() => {
+    if (
+      !state.autoplay.running ||
+      state.setup.playMode !== "bot_vs_bot" ||
+      state.pendingOperation !== null ||
+      !view ||
+      view.winner !== null
+    ) {
+      return;
+    }
+    const delay = state.reducedMotion ? 80 : 520;
+    const timer = window.setTimeout(runBotStep, delay);
+    return () => window.clearTimeout(timer);
+  }, [runBotStep, state.autoplay.running, state.pendingOperation, state.reducedMotion, state.setup.playMode, view]);
 
   const textState = useMemo<AppTextState>(
     () => ({
@@ -162,9 +201,20 @@ function App() {
         <ActionControls
           actionTree={actionTree}
           view={view}
+          actorSeat={humanActorSeat}
           pending={state.pendingOperation !== null}
           onChoice={playChoice}
           onRestart={start}
+        />
+
+        <ModeControls
+          playMode={state.setup.playMode}
+          view={view}
+          autoplayRunning={state.autoplay.running}
+          pending={state.pendingOperation !== null}
+          onBotStep={runBotStep}
+          onAutoplayStart={() => dispatch({ type: "autoplayStarted" })}
+          onAutoplayPause={() => dispatch({ type: "autoplayPaused" })}
         />
 
         {diagnostic ? (
@@ -204,3 +254,27 @@ createRoot(rootElement).render(
     <App />
   </React.StrictMode>,
 );
+
+function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): "seat_0" | "seat_1" | null {
+  if (view.winner !== null) {
+    return null;
+  }
+  if (playMode === "hotseat") {
+    return view.active_seat;
+  }
+  if (playMode === "human_vs_bot" && view.active_seat === "seat_0") {
+    return "seat_0";
+  }
+  return null;
+}
+
+function botSeatForMode(playMode: SetupPlayMode, seat: "seat_0" | "seat_1"): boolean {
+  if (playMode === "bot_vs_bot") {
+    return true;
+  }
+  return playMode === "human_vs_bot" && seat === "seat_1";
+}
+
+function botSeed(view: PublicView): number {
+  return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
+}

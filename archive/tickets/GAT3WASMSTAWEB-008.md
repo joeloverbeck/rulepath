@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-008: Play modes — human-vs-bot, hotseat, bot-vs-bot autoplay
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); all bot decisions come from the Rust `run_bot_turn` op.
@@ -120,3 +120,27 @@ reducer's active actor + mode.
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. Full per-mode rendered-DOM assertions are the Puppeteer harness's job (GAT3WASMSTAWEB-013); node smoke + the no-decision grep-proof are the correct boundary for mode wiring.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added reducer actions/state for bot-turn pending, autoplay start, and autoplay pause.
+- Added `ModeControls` for human-vs-bot manual bot turn, bot-vs-bot step, and bot-vs-bot start/pause controls.
+- Made `ActionControls` actor-seat-aware so hotseat can use the active human seat's Rust action tree.
+- Replaced the hardwired Seat 0 human / Seat 1 bot path in `main.tsx` with mode-driven human/bot seat scheduling.
+- Bot turns route through `RulepathApi.runBotTurn`; TypeScript only schedules when to request a bot turn.
+- Added reduced-motion-aware autoplay pacing.
+- Extended `smoke-ui.mjs` to cover Rust catalog, hotseat turn alternation, and bot-vs-bot bot steps in addition to the existing human-vs-bot flow.
+
+Deviations from original plan:
+
+- Per-mode rendered-DOM assertions remain deferred to the browser harness ticket; the existing smoke command now covers the mode flows through the Rust/WASM API boundary.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed and reported modes `human_vs_bot`, `hotseat`, and `bot_vs_bot`.
+- `grep -rnE "select.*action|score|policy|legal_additions" apps/web/src/components/ModeControls.tsx` returned no matches.
