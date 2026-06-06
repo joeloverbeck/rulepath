@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useReducer } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
+import { ActionControls } from "./components/ActionControls";
 import { GamePicker } from "./components/GamePicker";
 import { MatchSetup } from "./components/MatchSetup";
+import { RaceBoard } from "./components/RaceBoard";
 import { initialShellState, shellReducer, type RefreshPayload } from "./state/shellReducer";
 import { loadApi, type ActionChoice, type ApiError, type EffectEntry, type PublicView } from "./wasm/client";
 
@@ -37,8 +39,9 @@ function describeEffect(entry: EffectEntry): string {
 
 function App() {
   const [state, dispatch] = useReducer(shellReducer, initialShellState);
-  const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic, staleToken } = state;
+  const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic } = state;
   const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
+  const latestEffect = effects.at(-1) ?? null;
 
   const refresh = useCallback(
     (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
@@ -116,18 +119,6 @@ function App() {
     [api, effectCursor, matchId, refresh, view],
   );
 
-  const submitStale = useCallback(() => {
-    if (!api || !matchId) {
-      return;
-    }
-    try {
-      api.applyAction(matchId, "seat_0", "add-1", staleToken ?? 0);
-    } catch (error: unknown) {
-      dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
-    }
-    refresh(api, matchId, effectCursor);
-  }, [api, effectCursor, matchId, refresh, staleToken]);
-
   const textState = useMemo<AppTextState>(
     () => ({
       mode: state.mode === "play" || state.mode === "replay" ? "playing" : state.mode === "setup" ? "ready" : state.mode,
@@ -177,66 +168,15 @@ function App() {
         <>
 
       <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
-        <div className="scoreboard">
-          <div>
-            <span>Counter</span>
-            <strong data-testid="counter">{view ? `${view.counter} / ${view.target}` : "-- / 21"}</strong>
-          </div>
-          <div>
-            <span>Turn</span>
-            <strong data-testid="turn">{view?.winner ? `${view.winner} won` : view?.active_seat ?? "--"}</strong>
-          </div>
-          <div>
-            <span>Token</span>
-            <strong>{view?.freshness_token ?? "--"}</strong>
-          </div>
-        </div>
+        <RaceBoard view={view} latestEffect={latestEffect} />
 
-        <div className="board" aria-label="counter track">
-          <div className="track">
-            <div
-              className="track-fill"
-              style={{ width: `${view ? (view.counter / view.target) * 100 : 0}%` }}
-            />
-          </div>
-          <div className="marker-row">
-            <span>0</span>
-            <span>21</span>
-          </div>
-        </div>
-
-        <div className="controls" aria-label="Rust action choices">
-          {!matchId ? (
-            <button type="button" className="primary" onClick={start} disabled={!api} data-testid="start-match">
-              Start Match
-            </button>
-          ) : (
-            <>
-              {(actionTree?.choices ?? []).map((choice) => (
-                <button
-                  type="button"
-                  key={choice.segment}
-                  onClick={() => playChoice(choice)}
-                  disabled={view?.active_seat !== "seat_0" || view?.winner !== null}
-                  data-testid={`choice-${choice.segment}`}
-                >
-                  {choice.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={submitStale}
-                disabled={staleToken === null}
-                data-testid="stale-action"
-              >
-                Submit Stale
-              </button>
-              <button type="button" onClick={start}>
-                Restart
-              </button>
-            </>
-          )}
-        </div>
+        <ActionControls
+          actionTree={actionTree}
+          view={view}
+          pending={state.pendingOperation !== null}
+          onChoice={playChoice}
+          onRestart={start}
+        />
 
         {diagnostic ? (
           <div className="diagnostic" role="status" data-testid="diagnostic">

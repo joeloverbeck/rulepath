@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-006: Race-to-N renderer and action-tree-driven legal controls
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); renders Rust-supplied view/action-tree data.
@@ -122,3 +122,25 @@ button from the main action row (it moves to the dev panel in GAT3WASMSTAWEB-010
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. Role/label DOM assertions are the Puppeteer harness's job (GAT3WASMSTAWEB-013); node smoke + typecheck are the correct boundary for renderer wiring + the no-legality grep-proof.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `RaceBoard` to render the Rust-projected counter, target, active/terminal status, freshness token, SVG progress track, and latest effect summary.
+- Added `ActionControls` to render exactly the Rust action-tree choices as buttons with Rust-provided labels/accessibility labels.
+- Removed the permanent stale-action demo button from normal play.
+- Updated `main.tsx` to mount the new board and action controls in the play surface.
+- Added baseline board/action-panel styles.
+
+Deviations from original plan:
+
+- None. Stale-action relocation remains deferred to the dev-panel ticket.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed with version `rulepath-wasm-api/0.1.0`, match `race_to_n-1`, counter `2`, `8` effects, and stale-action diagnostic coverage.
+- `grep -rnE "legal_additions|add-?[123].*legal|counter \+ [0-9]" apps/web/src/components` returned no matches.

@@ -110,6 +110,80 @@ h2 {
   padding: 18px;
 }
 
+.race-board {
+  display: grid;
+  gap: 16px;
+}
+
+.counter-stage {
+  overflow: hidden;
+  border: 1px solid #c7d4ce;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(235, 241, 237, 0.92)),
+    #f7faf7;
+}
+
+.counter-stage svg {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+}
+
+.counter-rail {
+  fill: #dbe4de;
+}
+
+.counter-fill {
+  fill: #2b8068;
+  transition: width 180ms ease;
+}
+
+.counter-token {
+  fill: #f5c46b;
+  stroke: #8b6730;
+  stroke-width: 3;
+}
+
+.counter-value {
+  fill: #17221e;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.counter-stage text {
+  fill: #61736c;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.board-status {
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #f9faf7;
+  color: #33433d;
+  font-weight: 700;
+}
+
+.action-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.action-panel-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.action-panel-heading p {
+  margin: 0;
+  color: #60736b;
+  font-size: 0.9rem;
+}
+
 .region {
   display: grid;
   gap: 14px;
