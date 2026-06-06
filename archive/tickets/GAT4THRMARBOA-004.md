@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-004: Three Marks semantic effects
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new `games/three_marks/src/effects.rs`; effect coverage in `tests/rule_tests.rs`
@@ -76,3 +76,26 @@ Add effect assertions: placement emits mark-placed + turn/terminal effects; win 
 1. `cargo test -p three_marks --test rule_tests`
 2. `cargo test -p three_marks && bash scripts/boundary-check.sh`
 3. Replay-step effect projection is verified in 007; rule-test-level emission checks are the correct boundary for the effect-definition diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/src/effects.rs` with typed semantic effects for setup completion, mark placement, active-player change, placement rejection, line completion, draw, game end, and bot-chosen-action payloads.
+- Changed Three Marks apply output from the temporary unit effect placeholder to `ThreeMarksEffect`.
+- Added a richer `validate_command_with_effects` path that returns viewer-safe rejection effects alongside diagnostics while preserving the existing `validate_command` API for the generic `Game` trait.
+- Extended rule tests to assert mark placement, turn-change, win-line, draw, game-ended, and rejection effect payloads.
+
+Deviations from original plan:
+
+- Setup-complete and bot-chose-action effect variants are defined for downstream consumers, but setup emission and bot explanation population are wired in later tickets.
+- Terminal hash references use the existing stable snapshot summary until replay/hash support is refined in GAT4THRMARBOA-007.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo test -p three_marks --test rule_tests`
+- `cargo test -p three_marks`
+- `bash scripts/boundary-check.sh`

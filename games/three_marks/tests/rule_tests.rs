@@ -2,8 +2,9 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, Game, RulesVersion, SeatId, Seed,
 };
 use three_marks::{
-    apply_action, legal_action_tree, setup_match, validate_command, CellId, CellOccupancy,
-    SetupOptions, TerminalOutcome, ThreeMarks, ThreeMarksSeat, ValidatedAction,
+    apply_action, legal_action_tree, setup_match, validate_command, validate_command_with_effects,
+    CellId, CellOccupancy, RejectionReason, SetupOptions, TerminalOutcome, ThreeMarks,
+    ThreeMarksEffect, ThreeMarksSeat, ValidatedAction,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -85,9 +86,17 @@ fn validation_rejects_occupied_invalid_stale_wrong_actor_and_terminal_without_mu
 
     place(&mut state, 0, "place/r1c1");
     let before_occupied = state.clone();
-    let occupied = validate_command(&state, &command(1, "place/r1c1", state.freshness_token))
-        .expect_err("occupied cell rejected");
-    assert_eq!(occupied.code, "occupied_cell");
+    let occupied =
+        validate_command_with_effects(&state, &command(1, "place/r1c1", state.freshness_token))
+            .expect_err("occupied cell rejected");
+    assert_eq!(occupied.diagnostic.code, "occupied_cell");
+    assert!(matches!(
+        occupied.effects[0].payload,
+        ThreeMarksEffect::PlacementRejected {
+            reason: RejectionReason::Occupied,
+            ..
+        }
+    ));
     assert_eq!(state, before_occupied);
 
     state.terminal_outcome = Some(TerminalOutcome::Draw);
@@ -105,7 +114,24 @@ fn valid_action_places_mark_advances_turn_ply_and_token() {
         .expect("placement validates");
     let effects = apply_action(&mut state, action);
 
-    assert!(effects.is_empty());
+    assert_eq!(effects.len(), 2);
+    assert!(matches!(
+        effects[0].payload,
+        ThreeMarksEffect::MarkPlaced {
+            seat: ThreeMarksSeat::Seat0,
+            cell: CellId::R2C2,
+            ply: 1,
+            ..
+        }
+    ));
+    assert!(matches!(
+        effects[1].payload,
+        ThreeMarksEffect::ActivePlayerChanged {
+            previous_seat: ThreeMarksSeat::Seat0,
+            active_seat: ThreeMarksSeat::Seat1,
+            ply: 1
+        }
+    ));
     assert_eq!(
         state.occupancy(CellId::R2C2),
         CellOccupancy::Occupied(ThreeMarksSeat::Seat0)
@@ -183,6 +209,7 @@ fn row_column_and_diagonal_wins_report_ordered_line_cells() {
 #[test]
 fn full_board_without_line_is_draw() {
     let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
+    let mut effects = Vec::new();
     for (seat_index, segment) in [
         (0, "place/r1c1"),
         (1, "place/r1c2"),
@@ -194,11 +221,28 @@ fn full_board_without_line_is_draw() {
         (1, "place/r3c1"),
         (0, "place/r3c3"),
     ] {
-        place(&mut state, seat_index, segment);
+        let action = validate_command(&state, &command(seat_index, segment, state.freshness_token))
+            .expect("placement validates");
+        effects = apply_action(&mut state, action);
     }
 
     assert_eq!(state.ply_count, 9);
     assert_eq!(state.terminal_outcome, Some(TerminalOutcome::Draw));
+    assert!(matches!(
+        effects[1].payload,
+        ThreeMarksEffect::DrawReached {
+            final_ply: 9,
+            full_board: true
+        }
+    ));
+    assert!(matches!(
+        effects[2].payload,
+        ThreeMarksEffect::GameEnded {
+            outcome: TerminalOutcome::Draw,
+            final_ply: 9,
+            ..
+        }
+    ));
     assert!(legal_segments(&state, 0).is_empty());
     assert!(legal_segments(&state, 1).is_empty());
 }
@@ -230,7 +274,14 @@ fn game_impl_uses_rules_surface() {
         state.occupancy(CellId::R1C1),
         CellOccupancy::Occupied(ThreeMarksSeat::Seat0)
     );
-    assert!(effects.is_empty());
+    assert!(matches!(
+        effects[0].payload,
+        ThreeMarksEffect::MarkPlaced {
+            seat: ThreeMarksSeat::Seat0,
+            cell: CellId::R1C1,
+            ..
+        }
+    ));
 }
 
 #[test]
@@ -242,7 +293,7 @@ fn direct_validated_action_can_drive_terminal_state() {
     state.cells[CellId::R2C2.index()] = CellOccupancy::Occupied(ThreeMarksSeat::Seat1);
     state.ply_count = 4;
 
-    apply_action(
+    let effects = apply_action(
         &mut state,
         ValidatedAction {
             actor: ThreeMarksSeat::Seat0,
@@ -259,4 +310,26 @@ fn direct_validated_action_can_drive_terminal_state() {
             }
         })
     );
+    assert!(matches!(
+        effects[1].payload,
+        ThreeMarksEffect::LineCompleted {
+            winning_seat: ThreeMarksSeat::Seat0,
+            line: three_marks::WinningLine {
+                cells: [CellId::R1C1, CellId::R1C2, CellId::R1C3]
+            }
+        }
+    ));
+    assert!(matches!(
+        effects[2].payload,
+        ThreeMarksEffect::GameEnded {
+            outcome: TerminalOutcome::Win {
+                seat: ThreeMarksSeat::Seat0,
+                line: three_marks::WinningLine {
+                    cells: [CellId::R1C1, CellId::R1C2, CellId::R1C3]
+                }
+            },
+            final_ply: 5,
+            ..
+        }
+    ));
 }

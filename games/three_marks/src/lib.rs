@@ -1,6 +1,7 @@
 //! `three_marks` board-smoke crate.
 
 pub mod actions;
+pub mod effects;
 pub mod ids;
 pub mod rules;
 pub mod setup;
@@ -13,8 +14,9 @@ use engine_core::{
 };
 
 pub use actions::legal_action_tree;
+pub use effects::{RejectionReason, ThreeMarksEffect};
 pub use ids::{CellId, ThreeMarksSeat};
-pub use rules::{apply_action, validate_command, ValidatedAction};
+pub use rules::{apply_action, validate_command, validate_command_with_effects, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, TerminalOutcome, ThreeMarksSnapshot, ThreeMarksState, WinningLine};
 pub use variants::{Manifest, Variant, VariantCatalog};
@@ -26,7 +28,7 @@ impl Game for ThreeMarks {
     type Setup = SetupOptions;
     type State = ThreeMarksState;
     type ValidatedAction = ValidatedAction;
-    type Effect = ();
+    type Effect = ThreeMarksEffect;
     type View = ();
 
     fn setup(
