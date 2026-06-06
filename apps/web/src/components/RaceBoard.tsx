@@ -1,8 +1,8 @@
-import type { EffectEntry, PublicView } from "../wasm/client";
+import type { EffectEntry, RacePublicView } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
 
 type RaceBoardProps = {
-  view: PublicView | null;
+  view: RacePublicView | null;
   latestEffect: EffectEntry | null;
 };
 

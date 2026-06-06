@@ -1,5 +1,5 @@
 import type { SetupPlayMode } from "../state/shellReducer";
-import type { PublicView } from "../wasm/client";
+import type { PublicView, SeatId } from "../wasm/client";
 
 type ModeControlsProps = {
   playMode: SetupPlayMode;
@@ -20,7 +20,7 @@ export function ModeControls({
   onAutoplayStart,
   onAutoplayPause,
 }: ModeControlsProps) {
-  const terminal = view?.winner !== null && view?.winner !== undefined;
+  const terminal = isTerminalView(view);
   const activeSeat = view?.active_seat ?? null;
   const botActive = activeSeat ? isBotSeat(playMode, activeSeat) : false;
   const canRunBot = Boolean(view && botActive && !terminal && !pending);
@@ -62,7 +62,7 @@ export function ModeControls({
   );
 }
 
-function isBotSeat(playMode: SetupPlayMode, seat: "seat_0" | "seat_1"): boolean {
+function isBotSeat(playMode: SetupPlayMode, seat: SeatId): boolean {
   if (playMode === "bot_vs_bot") {
     return true;
   }
@@ -83,6 +83,16 @@ function modeLabel(playMode: SetupPlayMode): string {
   }
 }
 
-function seatLabel(seat: "seat_0" | "seat_1"): string {
+function seatLabel(seat: SeatId): string {
   return seat === "seat_0" ? "Seat 0" : "Seat 1";
+}
+
+function isTerminalView(view: PublicView | null): boolean {
+  if (!view) {
+    return false;
+  }
+  if ("winner" in view) {
+    return view.winner !== null;
+  }
+  return view.terminal_kind !== "non_terminal";
 }

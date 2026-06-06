@@ -1,6 +1,6 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
-import type { EffectEntry } from "../wasm/client";
+import type { EffectEntry, PublicView } from "../wasm/client";
 
 type ReplayViewerProps = {
   replay: ReplaySessionState | null;
@@ -30,18 +30,12 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
           </div>
 
           <div className="replay-snapshot">
-            <div>
-              <span>Counter</span>
-              <strong>{step.view.counter} / {step.view.target}</strong>
-            </div>
-            <div>
-              <span>Turn</span>
-              <strong>{step.view.winner ? `${step.view.winner} won` : step.view.active_seat}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{step.done ? "Complete" : "In progress"}</strong>
-            </div>
+            {snapshotItems(step.view, step.done).map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
           </div>
 
           <ol className="replay-effects">
@@ -75,4 +69,20 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
       </div>
     </section>
   );
+}
+
+function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {
+  if ("counter" in view) {
+    return [
+      { label: "Counter", value: `${view.counter} / ${view.target}` },
+      { label: "Turn", value: view.winner ? `${view.winner} won` : view.active_seat },
+      { label: "Status", value: done ? "Complete" : "In progress" },
+    ];
+  }
+
+  return [
+    { label: "Board", value: `${view.board_rows} x ${view.board_columns}` },
+    { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat },
+    { label: "Status", value: view.status_label },
+  ];
 }

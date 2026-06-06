@@ -28,6 +28,7 @@ export function GamePicker({ games, selectedGameId, onSelect }: GamePickerProps)
               <span>{game.display_name}</span>
               <small>
                 rules {game.rules_version} / schema {game.schema_version}
+                {game.variants?.length ? ` / ${game.variants.join(", ")}` : ""}
               </small>
             </button>
           ))

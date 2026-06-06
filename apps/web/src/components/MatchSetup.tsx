@@ -51,7 +51,7 @@ export function MatchSetup({
           <strong>{selectedGame?.display_name ?? "No game selected"}</strong>
           <small>
             {selectedGame
-              ? `rules ${selectedGame.rules_version} / schema ${selectedGame.schema_version}`
+              ? gameMetadata(selectedGame)
               : "Load the Rust catalog to continue"}
           </small>
         </div>
@@ -101,4 +101,10 @@ export function MatchSetup({
       </button>
     </section>
   );
+}
+
+function gameMetadata(game: GameCatalogEntry): string {
+  const version = `rules ${game.rules_version} / schema ${game.schema_version}`;
+  const variants = game.variants?.length ? ` / ${game.variants.join(", ")}` : "";
+  return `${version}${variants}`;
 }

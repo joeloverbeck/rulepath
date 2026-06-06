@@ -76,3 +76,23 @@ Render the catalog (both games) from Rust metadata; allow starting a `three_mark
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. Full board-interaction smoke is added in 013; build + picker/start smoke is the correct boundary for the catalog/setup diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+Changes:
+- Widened the web WASM client types for multi-game catalog entries, optional variant ids, Race-to-N views, and Three Marks public views.
+- Updated the picker/setup UI to display Rust catalog metadata for both games, including the `three_marks_standard` variant surfaced by the WASM registry.
+- Kept Race-to-N rendering unchanged while adding a neutral Rust-view summary for started non-Race matches until the Three Marks board renderer lands in GAT4THRMARBOA-011.
+- Generalized shared action, mode, replay, and effect-display components so they use active-seat/freshness/terminal discriminants instead of Race-only `winner`/counter assumptions.
+- Extended `smoke-ui` to assert the Rust catalog includes `three_marks` and that a `three_marks_standard` match starts and returns a Three Marks view.
+
+Deviations:
+- `shellReducer.ts` needed no edit; its existing catalog/selected-game/setup state already carried the selected game through start-match.
+- The neutral Three Marks play surface intentionally does not render or play the board; board interaction remains scoped to GAT4THRMARBOA-011 and GAT4THRMARBOA-013.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
