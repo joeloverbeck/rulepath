@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "trace_id": "wasm-exported",
+  "fixture_kind": "commands",
+  "purpose": "wasm_exported_replay",
+  "note": "Replay fixture matching the Gate 3 WASM replay export shape.",
+  "migration_update_note": "Added for Gate 3 WASM replay export/import compatibility; expected hashes are produced by the existing Race to N replay support.",
+  "game_id": "race_to_n",
+  "rules_version": "race_to_n-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "race_to_21",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    {
+      "index": 0,
+      "actor_seat": "seat-0",
+      "action_path": ["add-1"],
+      "freshness_token": "0",
+      "expect": "applied"
+    }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 0 }
+  ],
+  "expected_state_hashes": { "final": 4954817074678372285 },
+  "expected_effect_hashes": { "final": 2696394215910361352 },
+  "expected_action_tree_hashes": { "final": 8451402319224114161 },
+  "expected_public_view_hashes": { "all": 3154950469214524667 },
+  "expected_private_view_hashes": {
+    "not_applicable": "race_to_n is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null },
+  "expected_terminal_state": { "terminal": false, "winner": null },
+  "not_applicable": {
+    "hidden_information": "race_to_n is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "race_to_n game rules use no randomness; bot RNG is not replayed from exported documents because resolved commands are recorded.",
+    "private_view_hashes": "race_to_n has no private-view API.",
+    "preview_hashes": "race_to_n has no Rust preview surface in Gate 3."
+  }
+}

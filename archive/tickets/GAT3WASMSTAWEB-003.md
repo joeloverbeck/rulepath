@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-003: Replay export/import/step WASM ops on the Gate 2 trace schema
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api` gains replay export/import/step ops and command-stream capture in the match store; reuses `engine-core` `CommandEnvelope`/`EffectLog` and `games/race_to_n` `replay_support`. No `engine-core`/`game-stdlib` change; no mechanic noun enters the kernel.
@@ -162,3 +162,33 @@ Round-trip, fail-closed import, deterministic step/reset, and no-leak export tes
 1. `cargo test -p wasm-api`
 2. `cargo build -p wasm-api --target wasm32-unknown-unknown --release`
 3. `cargo run -p replay-check -- <path-to-exported-replay>` — confirms Gate 2 / Gate 3 replay-format agreement (narrower than full pipeline because cross-tool agreement is the specific risk here).
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Extended `MatchRecord` with seed and applied command capture for successful human and bot actions.
+- Added a separate in-memory replay store so imported replay documents get replay handles without becoming authoritative live matches.
+- Added Rust replay operations: `export_replay`, `import_replay`, `replay_step`, and `replay_reset`.
+- Added corresponding raw WASM externs and typed TypeScript client wrappers.
+- Export now emits a Trace Schema v1-shaped Race-to-N replay document with command records and expected hashes from the existing Rust replay support.
+- Import validates size, JSON shape, supported game, schema version, rules version, command shape, and reconstruction through Rust before storing a replay handle.
+- Step/reset reconstruct through Rust from the recorded command stream and return viewer-safe public views plus semantic effects.
+- Added `games/race_to_n/tests/golden_traces/wasm-exported.trace.json` as a reusable exported-shape fixture accepted by `replay-check`.
+
+Deviations from original plan:
+
+- Imported replay documents are stored in a replay-only store, not the live match store, to preserve the ticket invariant that imports never auto-store as authoritative match state.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p wasm-api` passed: 10 tests.
+- `cargo build -p wasm-api --target wasm32-unknown-unknown --release` passed.
+- `cargo test -p race_to_n` passed.
+- `cargo run -p replay-check -- --game race_to_n --trace games/race_to_n/tests/golden_traces/wasm-exported.trace.json` passed.
+- `cargo run -p replay-check -- --game race_to_n --all` passed.
+- `cargo clippy -p wasm-api --all-targets -- -D warnings` passed.
+- `npm --prefix apps/web run build` passed.

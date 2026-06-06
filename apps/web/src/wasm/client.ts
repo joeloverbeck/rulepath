@@ -37,6 +37,10 @@ type WasmExports = {
     viewerPtr: number,
     viewerLen: number,
   ) => number;
+  rulepath_export_replay: (matchPtr: number, matchLen: number) => number;
+  rulepath_import_replay: (docPtr: number, docLen: number) => number;
+  rulepath_replay_step: (replayPtr: number, replayLen: number, cursor: number) => number;
+  rulepath_replay_reset: (replayPtr: number, replayLen: number) => number;
 };
 
 export type MatchCreated = {
@@ -82,6 +86,58 @@ export type EffectEntry = {
 export type ApiError = {
   code: string;
   message: string;
+};
+
+export type ReplayCommand = {
+  index: number;
+  actor_seat: string;
+  action_path: string[];
+  freshness_token: string;
+  expect: "applied";
+};
+
+export type ReplayDocument = {
+  schema_version: number;
+  trace_id: string;
+  fixture_kind: string;
+  purpose: string;
+  note: string;
+  migration_update_note: string;
+  game_id: string;
+  rules_version: string;
+  engine_version: string;
+  data_version: string;
+  seed: number;
+  variant: string;
+  options: Record<string, never>;
+  seats: { seat_id: string; player_id: string }[];
+  commands: ReplayCommand[];
+  checkpoints: { id: string; after_command_index: number }[];
+  expected_state_hashes: { final: number };
+  expected_effect_hashes: { final: number };
+  expected_action_tree_hashes: { final: number };
+  expected_public_view_hashes: { all: number };
+  expected_private_view_hashes: { not_applicable: string };
+  expected_outcome: { terminal: boolean; winner: string | null };
+  expected_terminal_state: { terminal: boolean; winner: string | null };
+  not_applicable: Record<string, string>;
+};
+
+export type ReplayImportSummary = {
+  replay_id: string;
+  game_id: string;
+  command_count: number;
+  final_view: PublicView;
+  effect_count: number;
+};
+
+export type ReplayStep = {
+  replay_id: string;
+  cursor: number;
+  command_count: number;
+  done: boolean;
+  view: PublicView;
+  effects: EffectEntry["effect"][];
 };
 
 type EncodedArg = {
@@ -145,6 +201,30 @@ export class RulepathApi {
     return this.invokeJson<EffectEntry[]>((args) =>
       this.exports.rulepath_get_effects(args[0].ptr, args[0].len, BigInt(sinceCursor), 0, 0),
     [matchId]);
+  }
+
+  exportReplay(matchId: string): ReplayDocument {
+    return this.invokeJson<ReplayDocument>((args) =>
+      this.exports.rulepath_export_replay(args[0].ptr, args[0].len),
+    [matchId]);
+  }
+
+  importReplay(doc: string): ReplayImportSummary {
+    return this.invokeJson<ReplayImportSummary>((args) =>
+      this.exports.rulepath_import_replay(args[0].ptr, args[0].len),
+    [doc]);
+  }
+
+  replayStep(replayId: string, cursor: number): ReplayStep {
+    return this.invokeJson<ReplayStep>((args) =>
+      this.exports.rulepath_replay_step(args[0].ptr, args[0].len, cursor),
+    [replayId]);
+  }
+
+  replayReset(replayId: string): ReplayStep {
+    return this.invokeJson<ReplayStep>((args) =>
+      this.exports.rulepath_replay_reset(args[0].ptr, args[0].len),
+    [replayId]);
   }
 
   private invokeJson<T>(call: (args: EncodedArg[]) => number, values: string[]): T {
