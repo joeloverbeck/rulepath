@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "game_id": "three_marks",
+  "rules_version": "three_marks-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "legal_actions",
+      "unit": "trees_per_second",
+      "threshold": 250000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for the tiny fixed-board legal action tree."
+    },
+    {
+      "operation_name": "apply_action",
+      "unit": "actions_per_second",
+      "threshold": 250000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native full-report measurement for validation plus placement application."
+    },
+    {
+      "operation_name": "public_view_generation",
+      "unit": "views_per_second",
+      "threshold": 200000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native full-report measurement for Rust-projected board view generation."
+    },
+    {
+      "operation_name": "replay_step_projection",
+      "unit": "projections_per_second",
+      "threshold": 500000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "Initial floor for board-aware replay step projection."
+    },
+    {
+      "operation_name": "serialization_roundtrip",
+      "unit": "roundtrips_per_second",
+      "threshold": 25000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native full-report measurement for public-view serialization round trips."
+    },
+    {
+      "operation_name": "replay_throughput",
+      "unit": "replays_per_second",
+      "threshold": 25000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native full-report measurement for deterministic five-command win replay."
+    },
+    {
+      "operation_name": "random_playout",
+      "unit": "games_per_second",
+      "threshold": 50000,
+      "rationale_class": "measured_baseline_adr_followup_required",
+      "rationale": "First local native full report measured below the visible Stage 2 Three Marks 300,000+ games/sec target. This provisional floor is not a target change; GAT4THRMARBOA-015 must document the miss and any accepted recalibration requires ADR discipline."
+    },
+    {
+      "operation_name": "level0_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 150000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native full-report measurement for seeded random legal selection from the starting action tree."
+    },
+    {
+      "operation_name": "level1_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 35000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native full-report measurement for deterministic priority-policy selection from the starting board."
+    }
+  ]
+}

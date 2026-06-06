@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-008: Three Marks native benchmarks + thresholds
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/three_marks/benches/three_marks.rs`, `benches/thresholds.json`; `games/three_marks/Cargo.toml` `[[bench]]` entry
@@ -81,3 +81,28 @@ Add `[[bench]] name = "three_marks" harness = false` and the criterion dev-depen
 1. `cargo bench -p three_marks -- legal_actions`
 2. `cargo build --workspace && cargo run -p bench-report -- --game three_marks`
 3. A full `cargo bench -p three_marks` is the authoritative measurement; the `legal_actions` smoke lane is the correct fast boundary for CI/iteration.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/benches/three_marks.rs` custom native benchmark harness with a marked JSON report.
+- Added `games/three_marks/benches/thresholds.json` with `schema_version: 1`, Three Marks identity/version metadata, and thresholds for legal actions, apply, public view generation, replay step projection, serialization round-trip, replay throughput, random playout, Level 0 bot decisions, and Level 1 bot decisions.
+- Registered `[[bench]] name = "three_marks" harness = false` in `games/three_marks/Cargo.toml`.
+
+Deviations from original plan:
+
+- `tools/bench-report` currently accepts `--input` and `--thresholds`, not `--game`; verification used `cargo run -p bench-report -- --input /tmp/three_marks_bench.json --thresholds games/three_marks/benches/thresholds.json`.
+- The first full local native report missed the visible Stage 2 `random_playout` target: about 60,159 games/sec versus 300,000 games/sec. The committed threshold keeps that miss explicit with `rationale_class: measured_baseline_adr_followup_required`; this is a provisional measured floor, not a silent target change. GAT4THRMARBOA-015 must document the miss, and any accepted target recalibration requires ADR discipline.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo bench -p three_marks -- legal_actions`
+- `cargo bench -p three_marks > /tmp/three_marks_bench.txt`
+- `awk '/BEGIN_THREE_MARKS_BENCHMARK_JSON/{flag=1;next}/END_THREE_MARKS_BENCHMARK_JSON/{flag=0}flag' /tmp/three_marks_bench.txt > /tmp/three_marks_bench.json`
+- `cargo run -p bench-report -- --input /tmp/three_marks_bench.json --thresholds games/three_marks/benches/thresholds.json`
+- `cargo build --workspace`
+- `bash scripts/boundary-check.sh`
