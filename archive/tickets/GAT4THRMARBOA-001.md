@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-001: Three Marks rules research & IP source docs
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new docs `games/three_marks/docs/RULES.md`, `games/three_marks/docs/SOURCES.md` (no code surfaces)
@@ -75,3 +75,23 @@ Record consulted sources and consulted date (2026-06-06) from spec §19.2; how e
 1. `test -f games/three_marks/docs/RULES.md && test -f games/three_marks/docs/SOURCES.md`
 2. `grep -niE "draw|row, column, or diagonal|r1c1|three_marks_standard" games/three_marks/docs/RULES.md`
 3. A narrower (grep/manual) boundary is correct here: there is no compiled surface to exercise, and `tools/rule-coverage` validation of RULE-COVERAGE.md is deferred to GAT4THRMARBOA-014/015.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/docs/RULES.md` with original Rulepath rules prose for `three_marks_standard`, rules version `three_marks-rules-v1`, stable rule IDs, cell IDs `r1c1` through `r3c3`, setup, turn order, legal placement, occupied-cell illegality, win/draw/terminal behavior, visibility, replay notes, ambiguity resolutions, and excluded variants.
+- Added `games/three_marks/docs/SOURCES.md` with consulted sources and consulted date 2026-06-06, how sources were used, no-copy posture, public naming rationale, chosen/excluded variants, ambiguity log, asset/font posture, and rule-source cross-reference.
+
+Deviations from original plan:
+
+- None. No Rust code, static data, tests, workspace metadata, engine code, or UI code was changed.
+
+Verification results:
+
+- `test -f games/three_marks/docs/RULES.md && test -f games/three_marks/docs/SOURCES.md`
+- `grep -niE "draw|row, column, or diagonal|r1c1|three_marks_standard" games/three_marks/docs/RULES.md`
+- `grep -iE "three_marks_standard|three_marks-rules-v1" games/three_marks/docs/RULES.md`
+- `rg -n "copied|2026-06-06|Three Marks|three_marks_standard|movement|misere|larger|generalized|r1c1" games/three_marks/docs/SOURCES.md games/three_marks/docs/RULES.md`
