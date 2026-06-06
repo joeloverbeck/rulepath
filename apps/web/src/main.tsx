@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useReducer } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
+import { AppShell } from "./components/AppShell";
+import { GamePicker } from "./components/GamePicker";
+import { MatchSetup } from "./components/MatchSetup";
 import { initialShellState, shellReducer, type RefreshPayload } from "./state/shellReducer";
 import { loadApi, type ActionChoice, type ApiError, type EffectEntry, type PublicView } from "./wasm/client";
 
@@ -35,6 +38,7 @@ function describeEffect(entry: EffectEntry): string {
 function App() {
   const [state, dispatch] = useReducer(shellReducer, initialShellState);
   const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic, staleToken } = state;
+  const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
 
   const refresh = useCallback(
     (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
@@ -65,7 +69,7 @@ function App() {
         if (cancelled) {
           return;
         }
-        dispatch({ type: "wasmLoaded", api: loadedApi, version: loadedApi.version() });
+        dispatch({ type: "wasmLoaded", api: loadedApi, version: loadedApi.version(), catalog: loadedApi.listGames() });
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -82,7 +86,7 @@ function App() {
   }, []);
 
   const start = useCallback(() => {
-    if (!api) {
+    if (!api || !state.selectedGameId) {
       return;
     }
     dispatch({ type: "matchStarting" });
@@ -151,18 +155,28 @@ function App() {
   }, [textState]);
 
   return (
-    <main className="shell">
-      <section className="topbar" aria-label="WASM status">
-        <div>
-          <p className="eyebrow">Rulepath</p>
-          <h1>race_to_n</h1>
-        </div>
-        <p className="wasm-status" data-testid="wasm-status">
-          {version}
-        </p>
-      </section>
+    <AppShell version={version}>
+      {!matchId ? (
+        <>
+          <GamePicker
+            games={state.catalog}
+            selectedGameId={state.selectedGameId}
+            onSelect={(gameId) => dispatch({ type: "gameSelected", gameId })}
+          />
+          <MatchSetup
+            selectedGame={selectedGame}
+            seed={state.setup.seed}
+            playMode={state.setup.playMode}
+            canStart={Boolean(api && state.selectedGameId)}
+            onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
+            onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
+            onStart={start}
+          />
+        </>
+      ) : (
+        <>
 
-      <section className="play-surface" aria-label="race_to_n play surface">
+      <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
         <div className="scoreboard">
           <div>
             <span>Counter</span>
@@ -238,7 +252,9 @@ function App() {
           {effects.length === 0 ? <li>No effects yet</li> : effects.map((entry) => <li key={entry.cursor}>{describeEffect(entry)}</li>)}
         </ol>
       </section>
-    </main>
+        </>
+      )}
+    </AppShell>
   );
 }
 

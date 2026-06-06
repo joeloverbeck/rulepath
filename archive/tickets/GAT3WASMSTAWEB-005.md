@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-005: App shell, game picker, and match setup regions
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); consumes the `list_games` WASM op from GAT3WASMSTAWEB-002.
@@ -118,3 +118,25 @@ pre-match `setup` mode.
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. Rendered DOM assertions are deferred to the Puppeteer harness (GAT3WASMSTAWEB-013); here the node smoke + typecheck are the correct boundary for region wiring.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `RulepathApi.listGames()` and a typed `GameCatalogEntry` wrapper for the Rust `rulepath_list_games` op.
+- Added `AppShell`, `GamePicker`, and `MatchSetup` region components.
+- Updated the reducer to store Rust catalog entries, select the first loaded game, and track setup seed/play mode.
+- Updated `main.tsx` to load the catalog during WASM bootstrap, render picker/setup before a match, and start matches from setup-selected game state.
+- Added baseline styles for the shell regions, picker, setup fields, mode chooser, and seat-role display.
+
+Deviations from original plan:
+
+- Rendered click-path assertions remain deferred to the later browser smoke ticket as planned; the existing `smoke:ui` command is still a Node/WASM smoke in this repo.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed with version `rulepath-wasm-api/0.1.0`, match `race_to_n-1`, counter `2`, `8` effects, and stale-action diagnostic coverage.
+- `grep -rnE '"race_to_n"|Race to 21' apps/web/src/components` returned no matches.

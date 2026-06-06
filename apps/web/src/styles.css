@@ -36,6 +36,17 @@ button:disabled {
   opacity: 0.7;
 }
 
+input {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid #9aacb4;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  color: #17221e;
+  font: inherit;
+}
+
 .shell {
   min-height: 100vh;
   display: grid;
@@ -97,6 +108,144 @@ h2 {
   border-radius: 8px;
   background: #ffffff;
   padding: 18px;
+}
+
+.region {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #c2cec8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.region-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.muted {
+  margin: 0;
+  color: #63756f;
+}
+
+.game-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.game-option,
+.mode-option {
+  min-height: 74px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  text-align: left;
+}
+
+.game-option.selected,
+.mode-option.selected {
+  border-color: #1f6d59;
+  background: #edf6f1;
+}
+
+.game-option small,
+.mode-option small,
+.setup-summary small {
+  color: #65766f;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.setup-region {
+  gap: 16px;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 12px;
+}
+
+.setup-summary,
+.field {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.setup-summary span,
+.field span,
+.seat-roles span {
+  color: #687973;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.setup-summary strong {
+  font-size: 1.2rem;
+}
+
+.mode-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.mode-picker legend {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+  color: #687973;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.mode-option {
+  border: 1px solid #d0dbd5;
+  border-radius: 6px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.mode-option input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.mode-option span {
+  font-weight: 800;
+}
+
+.seat-roles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.seat-roles div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.setup-start {
+  justify-self: start;
+  min-width: 180px;
 }
 
 .scoreboard {
@@ -219,6 +368,12 @@ h2 {
   }
 
   .scoreboard {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-grid,
+  .mode-picker,
+  .seat-roles {
     grid-template-columns: 1fr;
   }
 

@@ -2,6 +2,7 @@ import type {
   ActionTree,
   ApiError,
   EffectEntry,
+  GameCatalogEntry,
   PublicView,
   ReplayDocument,
   ReplayStep,
@@ -19,12 +20,7 @@ export type PendingOperation =
   | "stepReplay"
   | null;
 
-export type GameCatalogEntry = {
-  game_id: string;
-  display_name: string;
-  rules_version: number;
-  schema_version: number;
-};
+export type SetupPlayMode = "human_vs_bot" | "hotseat" | "bot_vs_bot";
 
 export type ReplaySessionState = {
   replayId: string;
@@ -41,6 +37,7 @@ export type ShellState = {
   selectedGameId: string;
   setup: {
     seed: number;
+    playMode: SetupPlayMode;
   };
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
@@ -71,6 +68,8 @@ export type ShellAction =
   | { type: "wasmLoaded"; api: RulepathApi; version: string; catalog?: GameCatalogEntry[] }
   | { type: "wasmLoadFailed"; message: string }
   | { type: "gameSelected"; gameId: string }
+  | { type: "setupSeedChanged"; seed: number }
+  | { type: "setupPlayModeChanged"; playMode: SetupPlayMode }
   | { type: "matchStarting" }
   | { type: "matchStarted"; matchId: string }
   | { type: "refreshed"; payload: RefreshPayload }
@@ -90,9 +89,10 @@ export const initialShellState: ShellState = {
   api: null,
   version: "Loading wasm-api...",
   catalog: [],
-  selectedGameId: "race_to_n",
+  selectedGameId: "",
   setup: {
     seed: 1,
+    playMode: "human_vs_bot",
   },
   matchId: null,
   actorSeat: "seat_0",
@@ -115,12 +115,14 @@ export const initialShellState: ShellState = {
 export function shellReducer(state: ShellState, action: ShellAction): ShellState {
   switch (action.type) {
     case "wasmLoaded":
+      const catalog = action.catalog ?? state.catalog;
       return {
         ...state,
-        mode: "ready",
+        mode: catalog.length > 0 ? "setup" : "ready",
         api: action.api,
         version: action.version,
-        catalog: action.catalog ?? state.catalog,
+        catalog,
+        selectedGameId: state.selectedGameId || catalog[0]?.game_id || "",
         pendingOperation: null,
       };
     case "wasmLoadFailed":
@@ -145,6 +147,22 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         staleToken: null,
         replay: null,
         autoplay: { running: false },
+      };
+    case "setupSeedChanged":
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          seed: action.seed,
+        },
+      };
+    case "setupPlayModeChanged":
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          playMode: action.playMode,
+        },
       };
     case "matchStarting":
       return {
