@@ -90,3 +90,25 @@ The trace produced by the generalized WASM export path for `three_marks`, with `
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm && cargo test --workspace`
 3. Browser-rendered board interaction is verified in 011/013; ABI/operation-group smoke is the correct boundary for the registry diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+Changes:
+- Added `three_marks` to the WASM API dependency set, static game registry, catalog output, match store, action/view/effect dispatch, bot turn path, and replay import/export/reset/step operations.
+- Preserved Race to N behavior while adding game-specific wrappers for Three Marks state/effects and Rust-validated `place/<cell>` action paths.
+- Added the release WASM smoke coverage for `three_marks` catalog/start/action/bot/effects/replay flow.
+- Added `games/three_marks/tests/golden_traces/wasm-exported.trace.json` with Rust-computed state/effect/action-tree/public-view/replay hashes and perfect-information `not_applicable` rows.
+
+Deviations:
+- The Three Marks catalog row includes a `variants` array so the standard variant is discoverable by the next web setup ticket; the Race to N row is unchanged.
+- Native `replay-check --game three_marks` support remains in GAT4THRMARBOA-014 as scoped; this ticket locks the exported trace fixture and WASM import/export path.
+
+Verification:
+- `cargo test -p wasm-api`
+- `npm --prefix apps/web run smoke:wasm`
+- `cargo fmt --all --check`
+- `bash scripts/boundary-check.sh`
+- `cargo test --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`

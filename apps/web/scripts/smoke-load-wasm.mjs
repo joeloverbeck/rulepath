@@ -50,6 +50,7 @@ for (const op of ["new_match", "get_view", "apply_action", "export_replay", "imp
 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "list_games includes race_to_n");
+assert(catalog.some((game) => game.game_id === "three_marks"), "list_games includes three_marks");
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),
@@ -147,12 +148,74 @@ try {
 assert(staleDiagnostic?.code === "stale_action", "stale submission returns typed diagnostic");
 assert(typeof staleDiagnostic.message === "string", "stale diagnostic is message-only public output");
 
+const threeCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 7n),
+  ["three_marks"],
+);
+assert(threeCreated.match_id, "three_marks new_match returns a match id");
+assert(threeCreated.variant_id === "three_marks_standard", "three_marks starts standard variant");
+
+const threeView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [threeCreated.match_id],
+);
+assert(threeView.game_id === "three_marks", "three_marks view is game-specific");
+assert(threeView.variant_id === "three_marks_standard", "three_marks view reports standard variant");
+assert(threeView.board_rows === 3 && threeView.board_columns === 3, "three_marks projects a 3x3 board");
+
+const threeTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [threeCreated.match_id, "seat_0"],
+);
+const firstPlacement = threeTree.choices.find((choice) => choice.segment === "place/r1c1");
+assert(firstPlacement, "three_marks action tree exposes placement actions");
+
+const threeAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(threeTree.freshness_token),
+    ),
+  [threeCreated.match_id, "seat_0", firstPlacement.segment],
+);
+assert(threeAfterHuman.view.ply_count === 1, "three_marks human placement advances ply");
+assert(threeAfterHuman.effects.some((effect) => effect.payload.type === "mark_placed"), "three_marks emits semantic placement effects");
+
+const threeAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 44n),
+  [threeCreated.match_id, threeAfterHuman.view.active_seat],
+);
+assert(threeAfterBot.view.ply_count === 2, "three_marks bot turn applies a Rust-selected placement");
+assert(threeAfterBot.effects.some((effect) => effect.payload.type === "bot_chose_action"), "three_marks bot emits a semantic bot-choice effect");
+
+const threeExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [threeCreated.match_id],
+);
+assert(threeExportedReplay.game_id === "three_marks", "three_marks export_replay preserves game id");
+assert(threeExportedReplay.expected_replay_hashes.final, "three_marks export includes replay hash");
+
+const threeImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(threeExportedReplay)],
+);
+assert(threeImportedReplay.game_id === "three_marks", "three_marks import_replay preserves game id");
+assert(threeImportedReplay.command_count === threeExportedReplay.commands.length, "three_marks import preserves command count");
+
 console.log(
   JSON.stringify({
     version,
     operations: featureReport.operations.length,
     games: catalog.length,
     match_id: created.match_id,
+    three_marks_match_id: threeCreated.match_id,
     effects: effects.length,
     diagnostic: staleDiagnostic.code,
     replay_cursor: replayStep.cursor,
