@@ -1,9 +1,10 @@
-use engine_core::{CommandEnvelope, Diagnostic};
+use engine_core::{CommandEnvelope, Diagnostic, EffectEnvelope};
 
 use crate::{
     actions::{actor_seat, parse_drop_segment},
+    effects::{display_from_anchor, display_to_anchor, public_effect, ColumnFourEffect},
     ids::{CellId, ColumnFourSeat, ColumnId, RowId},
-    state::{CellOccupancy, ColumnFourState, TerminalOutcome, WinningLine},
+    state::{CellOccupancy, ColumnFourSnapshot, ColumnFourState, TerminalOutcome, WinningLine},
 };
 
 const BOARD_COLUMNS: usize = 7;
@@ -61,24 +62,69 @@ pub fn validate_command(
     Ok(ValidatedAction { actor, column })
 }
 
-pub fn apply_action(state: &mut ColumnFourState, action: ValidatedAction) {
+pub fn apply_action(
+    state: &mut ColumnFourState,
+    action: ValidatedAction,
+) -> Vec<EffectEnvelope<ColumnFourEffect>> {
     let landing = landing_cell(state, action.column)
         .expect("validated column action must have a landing cell");
 
     state.set_occupancy(landing, CellOccupancy::Occupied(action.actor));
     state.ply_count += 1;
     state.freshness_token = state.freshness_token.next();
+    let mut effects = vec![
+        public_effect(ColumnFourEffect::DropAccepted {
+            seat: action.actor,
+            column: action.column,
+            ply: state.ply_count,
+        }),
+        public_effect(ColumnFourEffect::PieceLanded {
+            seat: action.actor,
+            column: action.column,
+            row: landing.row,
+            cell: landing,
+            display_from_anchor: display_from_anchor(action.column),
+            display_to_anchor: display_to_anchor(landing),
+        }),
+    ];
 
     if let Some(line) = winning_line(state, action.actor) {
-        state.terminal_outcome = Some(TerminalOutcome::Win {
+        let outcome = TerminalOutcome::Win {
             seat: action.actor,
             line,
-        });
+        };
+        state.terminal_outcome = Some(outcome);
+        effects.push(public_effect(ColumnFourEffect::WinDetected {
+            winning_seat: action.actor,
+            line,
+        }));
+        effects.push(public_effect(ColumnFourEffect::GameEnded {
+            outcome,
+            final_ply: state.ply_count,
+            terminal_hash_ref: ColumnFourSnapshot::from_state(state).stable_summary(),
+        }));
     } else if state.cells.iter().all(|cell| !cell.is_empty()) {
         state.terminal_outcome = Some(TerminalOutcome::Draw);
+        effects.push(public_effect(ColumnFourEffect::DrawDetected {
+            final_ply: state.ply_count,
+            full_board: true,
+        }));
+        effects.push(public_effect(ColumnFourEffect::GameEnded {
+            outcome: TerminalOutcome::Draw,
+            final_ply: state.ply_count,
+            terminal_hash_ref: ColumnFourSnapshot::from_state(state).stable_summary(),
+        }));
     } else {
+        let previous_seat = action.actor;
         state.active_seat = action.actor.other();
+        effects.push(public_effect(ColumnFourEffect::ActivePlayerChanged {
+            previous_seat,
+            active_seat: state.active_seat,
+            ply: state.ply_count,
+        }));
     }
+
+    effects
 }
 
 pub fn legal_columns(state: &ColumnFourState) -> Vec<ColumnId> {

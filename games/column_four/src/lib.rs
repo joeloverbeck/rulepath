@@ -1,6 +1,7 @@
 //! `column_four` public-polish crate.
 
 pub mod actions;
+pub mod effects;
 pub mod ids;
 pub mod rules;
 pub mod setup;
@@ -10,6 +11,7 @@ pub mod variants;
 pub mod visibility;
 
 pub use actions::{actor_seat, legal_action_tree};
+pub use effects::{bot_chose_action_effect, public_effect, ColumnFourEffect};
 pub use ids::{CellId, ColumnFourSeat, ColumnId, RowId};
 pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};

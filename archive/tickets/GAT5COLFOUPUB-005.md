@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-005: Column Four semantic effects & effect log
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/column_four/src/effects.rs`
@@ -69,3 +69,27 @@ Define the typed `ColumnFourEffect` enum and emission points: drop accepted; pie
 1. `cargo test -p column_four effects`
 2. `cargo test -p column_four`
 3. `cargo clippy -p column_four --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/src/effects.rs` with viewer-safe `ColumnFourEffect` variants for drop accepted, piece landed, active player changed, win detected, draw detected, game ended, and bot chose action.
+- Added public effect helpers and Rust-computed display anchors for column-top to landing-cell animation.
+- Updated `apply_action` to return ordered `EffectEnvelope<ColumnFourEffect>` values while preserving the existing deterministic state transition.
+- Added tests for non-terminal effect order, landing-anchor correctness, terminal win/draw effect coverage without turn advance, and bot rationale no-leak shape.
+
+Deviations from original plan:
+
+- No `EffectLog` accumulator was introduced in this slice; the game returns the generic engine `EffectEnvelope` sequence directly, matching the existing `three_marks` application shape.
+
+Verification results:
+
+- Passed: `cargo test -p column_four effects`
+- Passed: `cargo test -p column_four`
+- Passed: `cargo clippy -p column_four --all-targets -- -D warnings`
+- Passed: `cargo fmt --all --check`
+- Passed: `bash scripts/boundary-check.sh`
+- Manual/no-leak review: effects contain public rule facts and viewer-safe bot rationale only; no candidate rankings, score arrays, debug payloads, hidden state, or internal state dumps are emitted.
