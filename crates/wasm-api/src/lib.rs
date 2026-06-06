@@ -15,9 +15,22 @@ use race_to_n::{
     RaceRandomBot, RaceSeat, RaceState, SetupOptions,
 };
 
-const PLACEHOLDER_VERSION: &str = "rulepath-wasm-api/0.1.0";
+const API_VERSION: &str = "rulepath-wasm-api/0.1.0";
 const GAME_RACE_TO_N: &str = "race_to_n";
+const GAME_RACE_TO_N_DISPLAY_NAME: &str = "Race to 21";
 const RULES_VERSION: u32 = 1;
+const SCHEMA_VERSION: u32 = 1;
+const SUPPORTED_OPERATIONS: &[&str] = &[
+    "feature_report",
+    "list_games",
+    "new_match",
+    "get_view",
+    "get_action_tree",
+    "apply_action",
+    "run_bot_turn",
+    "get_effects",
+];
+const FEATURE_FLAGS: &[&str] = &["catalog", "match_store", "legal_action_tree", "effects"];
 
 thread_local! {
     static MATCHES: RefCell<BTreeMap<String, MatchRecord>> = const { RefCell::new(BTreeMap::new()) };
@@ -38,7 +51,33 @@ enum RegisteredGame {
 }
 
 pub fn placeholder_version() -> &'static str {
-    PLACEHOLDER_VERSION
+    API_VERSION
+}
+
+pub fn list_games() -> Result<String, String> {
+    let games = [RegisteredGame::RaceToN]
+        .iter()
+        .map(|game| match game {
+            RegisteredGame::RaceToN => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{}}}",
+                escape_json(GAME_RACE_TO_N),
+                escape_json(GAME_RACE_TO_N_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION
+            ),
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    Ok(format!("[{games}]"))
+}
+
+pub fn feature_report() -> Result<String, String> {
+    Ok(format!(
+        "{{\"api_version\":\"{}\",\"operations\":{},\"features\":{}}}",
+        escape_json(API_VERSION),
+        string_array_json(SUPPORTED_OPERATIONS),
+        string_array_json(FEATURE_FLAGS)
+    ))
 }
 
 pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
@@ -366,14 +405,33 @@ fn escape_json(input: &str) -> String {
     input.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
+fn string_array_json(values: &[&str]) -> String {
+    let body = values
+        .iter()
+        .map(|value| format!("\"{}\"", escape_json(value)))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
 #[no_mangle]
 pub extern "C" fn rulepath_placeholder_version_ptr() -> *const u8 {
-    PLACEHOLDER_VERSION.as_ptr()
+    API_VERSION.as_ptr()
 }
 
 #[no_mangle]
 pub extern "C" fn rulepath_placeholder_version_len() -> usize {
-    PLACEHOLDER_VERSION.len()
+    API_VERSION.len()
+}
+
+#[no_mangle]
+pub extern "C" fn rulepath_feature_report() -> i32 {
+    write_result(feature_report())
+}
+
+#[no_mangle]
+pub extern "C" fn rulepath_list_games() -> i32 {
+    write_result(list_games())
 }
 
 #[no_mangle]
@@ -555,6 +613,39 @@ mod tests {
     }
 
     #[test]
+    fn list_games_reports_race_to_n() {
+        let games = list_games().expect("games listed");
+        assert_eq!(
+            games,
+            "[{\"game_id\":\"race_to_n\",\"display_name\":\"Race to 21\",\"rules_version\":1,\"schema_version\":1}]"
+        );
+    }
+
+    #[test]
+    fn feature_report_lists_ops() {
+        let report = feature_report().expect("feature report returned");
+        assert!(report.contains("\"api_version\":\"rulepath-wasm-api/0.1.0\""));
+        for operation in SUPPORTED_OPERATIONS {
+            assert!(
+                report.contains(&format!("\"{operation}\"")),
+                "missing operation {operation} in {report}"
+            );
+        }
+        assert!(report.contains(
+            "\"features\":[\"catalog\",\"match_store\",\"legal_action_tree\",\"effects\"]"
+        ));
+    }
+
+    #[test]
+    fn new_ops_use_status_output_convention() {
+        assert_eq!(rulepath_feature_report(), 0);
+        assert!(last_output_string().contains("\"api_version\":\"rulepath-wasm-api/0.1.0\""));
+
+        assert_eq!(rulepath_list_games(), 0);
+        assert!(last_output_string().contains("\"game_id\":\"race_to_n\""));
+    }
+
+    #[test]
     fn surface_drives_minimal_turn_loop() {
         let created = new_match("race_to_n", 11).expect("match created");
         let match_id = extract_match_id(&created);
@@ -602,5 +693,9 @@ mod tests {
             .and_then(|rest| rest.split('"').next())
             .expect("match id is present")
             .to_owned()
+    }
+
+    fn last_output_string() -> String {
+        LAST_OUTPUT.with(|last| last.borrow().clone())
     }
 }

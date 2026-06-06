@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-002: Add feature/version report + list_games WASM ops
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` gains a feature/version report op and a `list_games` op (new public fns + `#[no_mangle]` extern wrappers). No `engine-core`/`game-stdlib`/`games/*` change; no mechanic noun enters the kernel.
@@ -130,3 +130,26 @@ and that they route through the status convention.
 1. `cargo test -p wasm-api`
 2. `cargo build -p wasm-api --target wasm32-unknown-unknown --release`
 3. `cargo clippy -p wasm-api --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added Rust-owned `list_games()` metadata output for the registered `race_to_n` game with display name, rules version, and schema version.
+- Added `feature_report()` with the shared API version, supported operation names, and feature flags.
+- Added `rulepath_list_games` and `rulepath_feature_report` extern wrappers routed through `write_result`.
+- Kept the placeholder version extern compatibility path, but made it read the same `API_VERSION` constant as the feature report.
+- Added unit tests for the new JSON shapes and status/output convention.
+
+Deviations from original plan:
+
+- The placeholder version externs were retained because the existing TypeScript client and smoke scripts still consume them. They now share the same version source as `feature_report`.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p wasm-api` passed: 6 tests.
+- `cargo build -p wasm-api --target wasm32-unknown-unknown --release` passed.
+- `cargo clippy -p wasm-api --all-targets -- -D warnings` passed.
