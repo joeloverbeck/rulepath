@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-012: WASM/API smoke upgrade (version/features, list_games, replay)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — extends the node WASM smoke scripts (`apps/web/scripts`); no Rust/crate change.
@@ -105,3 +105,21 @@ that the WASM smoke cannot reach.
 1. `cd apps/web && npm run smoke:wasm`
 2. `cd apps/web && npm run build`
 3. The direct-ABI smoke is the correct boundary for bridge coverage; rendered-shell flows are verified separately in GAT3WASMSTAWEB-013.
+
+## Outcome
+
+Completed on 2026-06-06.
+
+Changes:
+
+- Upgraded `smoke-load-wasm.mjs` from a version-only check to a raw-ABI smoke covering required exports, `feature_report`, `list_games`, match creation, public view, action tree, legal action application, bot turn, effects, stale diagnostics, and replay export/import/reset/step.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run build`
+- `grep -nE "feature_report|list_games|export_replay|import_replay|replay_step" apps/web/scripts/smoke-load-wasm.mjs`
