@@ -175,6 +175,161 @@ h2 {
   font-weight: 700;
 }
 
+.three-marks-board {
+  display: grid;
+  gap: 14px;
+}
+
+.three-marks-banner {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.turn-pill {
+  border: 1px solid #9eb0a8;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #284237;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.three-marks-grid {
+  width: min(100%, 540px);
+  aspect-ratio: 1;
+  justify-self: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  border: 1px solid #bcc9c2;
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(230, 237, 232, 0.95)),
+    #f6f8f5;
+}
+
+.three-cell {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid #bcc9c2;
+  border-radius: 8px;
+  background: #ffffff;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.three-cell.empty:not(:disabled) {
+  border-color: #2b8068;
+  background: #eff7f3;
+}
+
+.three-cell.empty:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: #e4f2eb;
+}
+
+.three-cell.occupied {
+  cursor: default;
+  opacity: 1;
+}
+
+.three-cell.winning {
+  border-color: #b45f06;
+  box-shadow: inset 0 0 0 3px rgba(180, 95, 6, 0.22);
+}
+
+.three-cell:disabled {
+  cursor: default;
+}
+
+.empty-dot {
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #d4ded8;
+}
+
+.mark {
+  width: 64%;
+  height: 64%;
+}
+
+.mark-seat-0 circle {
+  fill: #2b8068;
+}
+
+.mark-seat-0 .mark-cutout {
+  fill: #ffffff;
+}
+
+.mark-seat-1 path {
+  fill: none;
+  stroke: #9a4f31;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.cell-coord {
+  position: absolute;
+  inset-block-end: 7px;
+  inset-inline-end: 8px;
+  color: #63756f;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.three-marks-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.three-marks-status div,
+.bot-note {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #f9faf7;
+}
+
+.three-marks-status span,
+.bot-note span {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bot-note {
+  border-color: #c6b48d;
+  background: #fff9e8;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .action-panel {
   display: grid;
   gap: 12px;
@@ -665,7 +820,8 @@ h2 {
 }
 
 .reduced-motion .counter-fill,
-.reduced-motion .effect-entry {
+.reduced-motion .effect-entry,
+.reduced-motion .three-cell {
   transition: none;
   animation: none;
 }
@@ -715,6 +871,20 @@ h2 {
   }
 
   .scoreboard {
+    grid-template-columns: 1fr;
+  }
+
+  .three-marks-banner {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .three-marks-grid {
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .three-marks-status {
     grid-template-columns: 1fr;
   }
 

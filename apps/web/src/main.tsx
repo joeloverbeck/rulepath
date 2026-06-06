@@ -12,8 +12,17 @@ import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
+import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
-import { loadApi, type ActionChoice, type ApiError, type PublicView, type RacePublicView, type SeatId } from "./wasm/client";
+import {
+  loadApi,
+  type ActionChoice,
+  type ApiError,
+  type PublicView,
+  type RacePublicView,
+  type SeatId,
+  type ThreeMarksPublicView,
+} from "./wasm/client";
 
 type AppTextState = {
   mode: "loading" | "ready" | "playing" | "error";
@@ -261,6 +270,14 @@ function App() {
       <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
         {state.selectedGameId === "race_to_n" ? (
           <RaceBoard view={isRaceView(view) ? view : null} latestEffect={latestEffect} />
+        ) : isThreeMarksView(view) ? (
+          <ThreeMarksBoard
+            view={view}
+            latestEffect={latestEffect}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : (
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
@@ -374,6 +391,10 @@ function botSeed(view: PublicView): number {
 
 function isRaceView(view: PublicView | null): view is RacePublicView {
   return Boolean(view && "counter" in view);
+}
+
+function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "three_marks");
 }
 
 function isTerminalView(view: PublicView): boolean {

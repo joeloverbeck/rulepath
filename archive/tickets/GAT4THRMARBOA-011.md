@@ -78,3 +78,24 @@ Select `ThreeMarksBoard` by discriminant; keep the dev panel / generic action li
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. Full board/click/win/draw/keyboard/reduced-motion assertions live in the 013 browser smoke; build + render smoke is the correct boundary for the renderer diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+Changes:
+- Added `ThreeMarksBoard.tsx`, a board-first 3x3 renderer driven by the Rust Three Marks public view.
+- Rendered Rust-provided cell occupancy, legal targets, active-seat/status/freshness, winning-line state, and bot-choice effect explanations without adding TS legality.
+- Wired `main.tsx` to select the Three Marks renderer by view discriminant while keeping Race-to-N on `RaceBoard`.
+- Added fixed-grid board styling, visible legal targets, occupied/inert states, color-plus-shape marks, winning-cell emphasis, screen-reader summary, and reduced-motion-safe transitions.
+- Extended Three Marks semantic effect feedback in the existing effect log.
+
+Deviations:
+- `AppShell.tsx` did not need a code change; active renderer selection already belongs to `main.tsx`, where the play surface is composed.
+- Browser smoke authoring remains in GAT4THRMARBOA-013, but this ticket used a one-off local Puppeteer probe to verify the new board renders nine cells and dispatches a Rust legal placement.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- One-off local Puppeteer probe: selected Three Marks, started a match, confirmed 9 board cells, clicked `r1c1`, and confirmed `render_game_to_text()` still reported `game: "three_marks"` after the Rust view update.
