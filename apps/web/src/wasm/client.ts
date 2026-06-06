@@ -99,7 +99,59 @@ export type ThreeMarksPublicView = {
   replay_step_index: number | null;
 };
 
-export type PublicView = RacePublicView | ThreeMarksPublicView;
+export type ColumnFourCellView = {
+  cell: string;
+  row: number;
+  column: number;
+  occupancy: "empty" | "occupied";
+  owner: SeatId | null;
+  piece_token_key: string | null;
+  piece_shape_label: string | null;
+};
+
+export type ColumnFourColumnView = {
+  column: string;
+  column_id: string;
+  label: string;
+  is_full: boolean;
+  legal_action_segment: string | null;
+  landing_preview: string | null;
+};
+
+export type ColumnFourLegalTargetView = {
+  column: string;
+  action_segment: string;
+  label: string;
+  accessibility_label: string;
+  freshness_token: number;
+  landing_preview: string;
+};
+
+export type ColumnFourPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "column_four";
+  display_name: string;
+  variant_id: string;
+  rules_version_label: string;
+  board_rows: number;
+  board_columns: number;
+  cells: ColumnFourCellView[];
+  columns: ColumnFourColumnView[];
+  active_seat: SeatId | null;
+  ply_count: number;
+  status_label: string;
+  freshness_token: number;
+  legal_targets: ColumnFourLegalTargetView[];
+  terminal_kind: "non_terminal" | "win" | "draw";
+  winning_seat: SeatId | null;
+  winning_line: string[];
+  private_view_status: string;
+  hidden_fields: string[];
+  replay_step_index: number | null;
+};
+
+export type PublicView = RacePublicView | ThreeMarksPublicView | ColumnFourPublicView;
 
 export type ActionChoice = {
   segment: string;

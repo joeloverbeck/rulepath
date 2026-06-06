@@ -1,6 +1,7 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
-import type { EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
+import type { ColumnFourPublicView, EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
+import { ColumnFourBoard } from "./ColumnFourBoard";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
@@ -16,6 +17,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const latestReplayEffect = effects.at(-1);
   const latestEntry: EffectEntry | null = latestReplayEffect && step ? { cursor: step.cursor, effect: latestReplayEffect } : null;
   const threeMarksView: ThreeMarksPublicView | null = step && isThreeMarksView(step.view) ? step.view : null;
+  const columnFourView: ColumnFourPublicView | null = step && isColumnFourView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -46,6 +48,17 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
             <div className="replay-board">
               <ThreeMarksBoard
                 view={threeMarksView}
+                latestEffect={latestEntry}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : columnFourView ? (
+            <div className="replay-board">
+              <ColumnFourBoard
+                view={columnFourView}
                 latestEffect={latestEntry}
                 reducedMotion={reducedMotion}
                 pending={false}
@@ -114,6 +127,10 @@ function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView
   return Boolean(view && "game_id" in view && view.game_id === "three_marks");
 }
 
+function isColumnFourView(view: PublicView | null): view is ColumnFourPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "column_four");
+}
+
 function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {
   if ("counter" in view) {
     return [
@@ -125,7 +142,7 @@ function snapshotItems(view: PublicView, done: boolean): { label: string; value:
 
   return [
     { label: "Board", value: `${view.board_rows} x ${view.board_columns}` },
-    { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat },
+    { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat ?? "terminal" },
     { label: "Status", value: view.status_label },
   ];
 }

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
 import { ActionControls } from "./components/ActionControls";
+import { ColumnFourBoard } from "./components/ColumnFourBoard";
 import { DevPanel } from "./components/DevPanel";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
@@ -18,6 +19,7 @@ import {
   loadApi,
   type ActionChoice,
   type ApiError,
+  type ColumnFourPublicView,
   type PublicView,
   type RacePublicView,
   type ReplayDocument,
@@ -130,12 +132,14 @@ function App() {
       try {
         const afterHuman = api.applyAction(matchId, actorSeat, choice.segment, tokenBeforeAction);
         dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
+        const afterHumanSeat = afterHuman.active_seat;
         if (
           state.setup.playMode === "human_vs_bot" &&
           !isTerminalView(afterHuman) &&
-          botSeatForMode(state.setup.playMode, afterHuman.active_seat)
+          afterHumanSeat &&
+          botSeatForMode(state.setup.playMode, afterHumanSeat)
         ) {
-          api.runBotTurn(matchId, afterHuman.active_seat, botSeed(afterHuman));
+          api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
         }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
@@ -146,7 +150,14 @@ function App() {
   );
 
   const runBotStep = useCallback(() => {
-    if (!api || !matchId || !view || isTerminalView(view) || !botSeatForMode(state.setup.playMode, view.active_seat)) {
+    if (
+      !api ||
+      !matchId ||
+      !view ||
+      isTerminalView(view) ||
+      !view.active_seat ||
+      !botSeatForMode(state.setup.playMode, view.active_seat)
+    ) {
       return;
     }
     dispatch({ type: "botTurnStarted" });
@@ -272,6 +283,14 @@ function App() {
       <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
         {state.selectedGameId === "race_to_n" ? (
           <RaceBoard view={isRaceView(view) ? view : null} latestEffect={latestEffect} />
+        ) : isColumnFourView(view) ? (
+          <ColumnFourBoard
+            view={view}
+            latestEffect={latestEffect}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -284,14 +303,16 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        <ActionControls
-          actionTree={actionTree}
-          view={view}
-          actorSeat={humanActorSeat}
-          pending={state.pendingOperation !== null}
-          onChoice={playChoice}
-          onRestart={start}
-        />
+        {isColumnFourView(view) ? null : (
+          <ActionControls
+            actionTree={actionTree}
+            view={view}
+            actorSeat={humanActorSeat}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+            onRestart={start}
+          />
+        )}
 
         <ModeControls
           playMode={state.setup.playMode}
@@ -372,7 +393,7 @@ function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): SeatId | n
     return null;
   }
   if (playMode === "hotseat") {
-    return view.active_seat;
+    return view.active_seat ?? null;
   }
   if (playMode === "human_vs_bot" && view.active_seat === "seat_0") {
     return "seat_0";
@@ -407,6 +428,10 @@ function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView
   return Boolean(view && "game_id" in view && view.game_id === "three_marks");
 }
 
+function isColumnFourView(view: PublicView | null): view is ColumnFourPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "column_four");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -425,7 +450,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   }
   return {
     game_id: view.game_id,
-    active_seat: view.active_seat,
+    active_seat: view.active_seat ?? "seat_0",
     freshness_token: view.freshness_token,
     status: view.status_label,
   };
