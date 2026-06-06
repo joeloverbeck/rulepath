@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-001: Column Four rules research & IP source docs
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new docs `games/column_four/docs/RULES.md`, `games/column_four/docs/SOURCES.md` (no code surfaces)
@@ -75,3 +75,23 @@ Record (per `templates/GAME-SOURCES.md` and spec §17.5): general public-knowled
 1. `test -f games/column_four/docs/RULES.md && test -f games/column_four/docs/SOURCES.md`
 2. `grep -niE "gravity|lowest empty row|four contiguous|draw|column_four_standard|r1c1|r6c7" games/column_four/docs/RULES.md`
 3. A narrower (grep/manual) boundary is correct here: there is no compiled surface to exercise, and `tools/rule-coverage` validation of RULE-COVERAGE.md is deferred to GAT5COLFOUPUB-013.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/docs/RULES.md` with original Rulepath rules prose, stable `CF-*` rule IDs, the `column_four_standard` identity, the `column_four-rules-v1` rules version, bottom-origin coordinates from `r1c1` through `r6c7`, legal-column rules, gravity/landing, terminal resolution, diagnostics, perfect-information visibility, replay notes, bot notes, ambiguity decisions, and excluded variants.
+- Added `games/column_four/docs/SOURCES.md` with consulted-source notes, neutral naming rationale, IP/trademark/trade-dress posture, accessibility/reduced-motion references, asset/font provenance status, human/legal review triggers, and a source-to-rule-ID cross-reference.
+
+Deviations from original plan:
+
+- None. This ticket remained documentation-only and did not touch Rust, static data, tests, web code, `engine-core`, or `game-stdlib`.
+
+Verification results:
+
+- Passed: `test -f games/column_four/docs/RULES.md && test -f games/column_four/docs/SOURCES.md`
+- Passed: `grep -niE "gravity|lowest empty row|four contiguous|draw|column_four_standard|r1c1|r6c7" games/column_four/docs/RULES.md`
+- Passed: `node scripts/check-doc-links.mjs`
+- Manual review: docs use neutral product naming, original Rulepath prose, no copied source prose/assets, no public commercial branding, and no trade-dress assets.
