@@ -33,11 +33,17 @@ jobs:
       - name: three_marks quick simulation
         run: cargo run -p simulate -- --game three_marks --games 1000
 
+      - name: column_four quick simulation
+        run: cargo run -p simulate -- --game column_four --games 1000
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
 
       - name: Three Marks replay drift check
         run: cargo run -p replay-check -- --game three_marks --all
+
+      - name: Column Four replay drift check
+        run: cargo run -p replay-check -- --game column_four --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
@@ -45,11 +51,17 @@ jobs:
       - name: Three Marks fixture validation
         run: cargo run -p fixture-check -- --game three_marks
 
+      - name: Column Four fixture validation
+        run: cargo run -p fixture-check -- --game column_four
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
 
       - name: Three Marks rule coverage drift check
         run: cargo run -p rule-coverage -- --game three_marks
+
+      - name: Column Four rule coverage drift check
+        run: cargo run -p rule-coverage -- --game column_four
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
@@ -66,7 +78,7 @@ jobs:
       - name: Static preview smoke
         run: npm --prefix apps/web run smoke:preview
 
-      - name: Browser shell + a11y/no-leak E2E
+      - name: Browser shell + a11y/no-leak E2E including column_four
         run: npm --prefix apps/web run smoke:e2e
 
       - name: Docs link check
