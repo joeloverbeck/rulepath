@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-007: Three Marks replay support, hashes, golden traces + replay/serialization tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/three_marks/src/replay_support.rs`, hash surfaces; new `tests/replay_tests.rs`, `tests/serialization_tests.rs`, `tests/golden_traces/*.trace.json`
@@ -92,3 +92,27 @@ Shortest-normal win (five-ply), representative draw (nine-ply), terminal, occupi
 1. `cargo test -p three_marks --test replay_tests --test serialization_tests`
 2. `cargo test -p three_marks && bash scripts/boundary-check.sh`
 3. `replay-check --game three_marks` is exercised in 014 (tool generalization); crate-level replay/serialization tests are the correct boundary for the replay-support diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/src/replay_support.rs` with deterministic replay helpers, replay hash surfaces, effect/action-tree/view/replay hashes, diagnostic hashes, default seats, command creation, bot replay, diagnostic replay, and board-aware step projections.
+- Added `ThreeMarksReplayJson` stable serialization and round-trip parsing.
+- Added replay tests proving deterministic hash reproduction, terminal outcome, board-aware projection, and golden trace drift detection.
+- Added serialization tests for public view round-trip/unknown-field rejection, replay JSON round-trip, stable serialization order, and replay-ready command envelopes.
+- Added golden Trace Schema v1 fixtures for shortest win, draw, terminal, occupied diagnostic, stale diagnostic, Level 1 bot action, and not-applicable surfaces.
+
+Deviations from original plan:
+
+- The `wasm-exported` trace remains deferred to GAT4THRMARBOA-009.
+- `tools/replay-check --game three_marks` remains deferred to GAT4THRMARBOA-014; this ticket proves the crate-level replay/hash surfaces and conformant fixtures.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo test -p three_marks --test replay_tests --test serialization_tests`
+- `cargo test -p three_marks`
+- `bash scripts/boundary-check.sh`
