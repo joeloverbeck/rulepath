@@ -5,6 +5,7 @@ import { feedbackForEffect } from "./effectFeedback";
 type ColumnFourBoardProps = {
   view: ColumnFourPublicView;
   latestEffect: EffectEntry | null;
+  effects?: EffectEntry[];
   reducedMotion: boolean;
   pending: boolean;
   interactive?: boolean;
@@ -18,6 +19,7 @@ const BOARD_PAD = 18;
 export function ColumnFourBoard({
   view,
   latestEffect,
+  effects = latestEffect ? [latestEffect] : [],
   reducedMotion,
   pending,
   interactive = true,
@@ -36,8 +38,8 @@ export function ColumnFourBoard({
   );
   const boardWidth = BOARD_PAD * 2 + view.board_columns * CELL_SIZE + (view.board_columns - 1) * CELL_GAP;
   const boardHeight = BOARD_PAD * 2 + view.board_rows * CELL_SIZE + (view.board_rows - 1) * CELL_GAP;
-  const botEffect = latestEffect?.effect.payload.type === "bot_chose_action" ? latestEffect : null;
-  const landedCell = landedCellFromEffect(latestEffect);
+  const botEffect = latestEffectOfType(effects, "bot_chose_action");
+  const landedCell = landedCellFromEffects(effects);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
 
   return (
@@ -149,12 +151,23 @@ export function ColumnFourBoard({
   );
 }
 
-function landedCellFromEffect(entry: EffectEntry | null): string | null {
-  if (!entry || entry.effect.payload.type !== "piece_landed") {
+function landedCellFromEffects(entries: EffectEntry[]): string | null {
+  const entry = latestEffectOfType(entries, "piece_landed");
+  if (!entry) {
     return null;
   }
   const cell = entry.effect.payload.cell;
   return typeof cell === "string" ? cell : null;
+}
+
+function latestEffectOfType(entries: EffectEntry[], type: string): EffectEntry | null {
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (entry.effect.payload.type === type) {
+      return entry;
+    }
+  }
+  return null;
 }
 
 function Piece({ owner, x, y, label }: { owner: "seat_0" | "seat_1"; x: number; y: number; label: string }) {

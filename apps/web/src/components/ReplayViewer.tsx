@@ -18,6 +18,9 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const latestEntry: EffectEntry | null = latestReplayEffect && step ? { cursor: step.cursor, effect: latestReplayEffect } : null;
   const threeMarksView: ThreeMarksPublicView | null = step && isThreeMarksView(step.view) ? step.view : null;
   const columnFourView: ColumnFourPublicView | null = step && isColumnFourView(step.view) ? step.view : null;
+  const replayEffectEntries: EffectEntry[] = step
+    ? effects.map((effect, index) => ({ cursor: step.cursor + index, effect }))
+    : [];
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -60,6 +63,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
               <ColumnFourBoard
                 view={columnFourView}
                 latestEffect={latestEntry}
+                effects={replayEffectEntries}
                 reducedMotion={reducedMotion}
                 pending={false}
                 interactive={false}

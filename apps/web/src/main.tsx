@@ -287,6 +287,7 @@ function App() {
           <ColumnFourBoard
             view={view}
             latestEffect={latestEffect}
+            effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
