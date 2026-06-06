@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-006: Three Marks bots — Level 0 random legal + Level 1 rule-informed priority policy
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/three_marks/src/bots.rs`; new `tests/bot_tests.rs`
@@ -81,3 +81,28 @@ All §15.5 tests: many-seed Level 0 legality, fixed-seed Level 0 determinism, Le
 1. `cargo test -p three_marks --test bot_tests`
 2. `cargo test -p three_marks && bash scripts/boundary-check.sh`
 3. Decision-latency benchmarking is deferred to 008; correctness/legality/determinism tests are the right boundary for the policy diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/src/bots.rs` with `ThreeMarksRandomBot`, `ThreeMarksLevel1Bot`, stable policy ids, `BotDecision`, and bot-chosen-action semantic effects.
+- Reused `ai-core::RandomLegalBot` for Level 0 without changing `ai-core`.
+- Implemented a deterministic Level 1 game-local priority policy: immediate win, immediate block, fork creation, fork blocking subset, center, opposite corner, corner, side, and stable fallback.
+- Added viewer-safe explanations for bot choices and ensured bot decisions return normal action paths that validate through the ordinary Rust command path.
+- Added `games/three_marks/tests/bot_tests.rs` covering Level 0 legality/determinism/no-action diagnostics, Level 1 win/block/fork/center/opposite-corner/corner/side behavior, deterministic explanations, safe effect payloads, and normal validation.
+- Added the `ai-core` dependency to the `three_marks` crate.
+
+Deviations from original plan:
+
+- Fork handling is the documented local subset: create the first stable fork-creating legal cell and block the first stable opponent fork-creating legal cell when that cell is itself legal. No minimax, alpha-beta, MCTS, Monte Carlo playouts, ML, RL, runtime LLM move choice, or generic search framework was added.
+- Decision latency benchmarking remains deferred to GAT4THRMARBOA-008.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo test -p three_marks --test bot_tests`
+- `cargo test -p three_marks`
+- `bash scripts/boundary-check.sh`

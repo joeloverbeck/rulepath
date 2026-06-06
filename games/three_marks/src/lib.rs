@@ -1,6 +1,7 @@
 //! `three_marks` board-smoke crate.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod rules;
@@ -16,6 +17,7 @@ use engine_core::{
 };
 
 pub use actions::legal_action_tree;
+pub use bots::{BotDecision, ThreeMarksLevel1Bot, ThreeMarksRandomBot};
 pub use effects::{RejectionReason, ThreeMarksEffect};
 pub use ids::{CellId, ThreeMarksSeat};
 pub use rules::{apply_action, validate_command, validate_command_with_effects, ValidatedAction};

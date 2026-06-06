@@ -71,6 +71,7 @@ dependencies = [
 name = "three_marks"
 version = "0.1.0"
 dependencies = [
+ "ai-core",
  "engine-core",
 ]
 
