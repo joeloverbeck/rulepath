@@ -9,6 +9,8 @@ import { GamePicker } from "./components/GamePicker";
 import { MatchSetup } from "./components/MatchSetup";
 import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
+import { ReplayImportExport } from "./components/ReplayImportExport";
+import { ReplayViewer } from "./components/ReplayViewer";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import { loadApi, type ActionChoice, type ApiError, type PublicView } from "./wasm/client";
 
@@ -132,6 +134,49 @@ function App() {
     }
   }, [api, effectCursor, matchId, refresh, state.setup.playMode, view]);
 
+  const exportCurrentReplay = useCallback(() => {
+    if (!api || !matchId) {
+      throw { code: "no_match", message: "Start a match before exporting a replay." } satisfies ApiError;
+    }
+    return api.exportReplay(matchId);
+  }, [api, matchId]);
+
+  const importReplay = useCallback(
+    (documentText: string) => {
+      if (!api) {
+        throw { code: "wasm_not_ready", message: "WASM API is not ready." } satisfies ApiError;
+      }
+      dispatch({ type: "pendingOperationChanged", pendingOperation: "importReplay" });
+      try {
+        const imported = api.importReplay(documentText);
+        const step = api.replayReset(imported.replay_id);
+        dispatch({ type: "replayImported", replayId: imported.replay_id, document: null, step });
+      } catch (error: unknown) {
+        dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+        throw error;
+      }
+    },
+    [api],
+  );
+
+  const stepReplay = useCallback(() => {
+    if (!api || !state.replay) {
+      return;
+    }
+    dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
+    const step = api.replayStep(state.replay.replayId, state.replay.cursor + 1);
+    dispatch({ type: "replayStepped", step });
+  }, [api, state.replay]);
+
+  const resetReplay = useCallback(() => {
+    if (!api || !state.replay) {
+      return;
+    }
+    dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
+    const step = api.replayReset(state.replay.replayId);
+    dispatch({ type: "replayReset", step });
+  }, [api, state.replay]);
+
   useEffect(() => {
     if (
       !state.autoplay.running ||
@@ -230,6 +275,13 @@ function App() {
         reducedMotion={state.reducedMotion}
         override={motion.override}
         onOverrideChange={motion.setOverride}
+      />
+      <ReplayImportExport canExport={Boolean(matchId)} onExport={exportCurrentReplay} onImport={importReplay} />
+      <ReplayViewer
+        replay={state.replay}
+        reducedMotion={state.reducedMotion}
+        onStep={stepReplay}
+        onReset={resetReplay}
       />
         </>
       )}

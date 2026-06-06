@@ -104,6 +104,28 @@ const effects = invoke(
 );
 assert(effects.length > 0, "semantic effects are available");
 
+const exportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [created.match_id],
+);
+assert(exportedReplay.commands.length > 0, "run exports a replay command stream");
+
+const importedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(exportedReplay)],
+);
+assert(importedReplay.replay_id, "replay import returns a replay handle");
+const replayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [importedReplay.replay_id],
+);
+assert(replayReset.cursor === 0, "replay reset returns cursor zero");
+const replayStep = invoke(
+  (args) => wasm.rulepath_replay_step(args[0].ptr, args[0].len, 1),
+  [importedReplay.replay_id],
+);
+assert(replayStep.cursor === 1 && replayStep.view.counter > 0, "replay step returns Rust-projected view");
+
 let staleDiagnostic = null;
 try {
   invoke(
@@ -185,5 +207,6 @@ console.log(
     effects: effects.length,
     diagnostic: staleDiagnostic.code,
     modes: ["human_vs_bot", "hotseat", "bot_vs_bot"],
+    replay_cursor: replayStep.cursor,
   }),
 );

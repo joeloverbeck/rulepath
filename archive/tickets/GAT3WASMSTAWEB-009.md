@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-009: Replay viewer and safe local import/export UI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); all replay validation/projection comes from the Rust replay ops (GAT3WASMSTAWEB-003).
@@ -128,3 +128,25 @@ in the (secondary) replay surface.
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. The deterministic replay-hash round trip is verified in Rust (GAT3WASMSTAWEB-003); this ticket's correct boundary is the UI delegating to those ops, exercised by node smoke.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `ReplayImportExport` for exporting the current run through Rust and importing pasted replay documents through Rust validation.
+- Added `ReplayViewer` for Rust-projected reset/step views, cursor progress, and effect summaries.
+- Wired `main.tsx` to call `exportReplay`, `importReplay`, `replayReset`, and `replayStep`; replay state enters the reducer only after Rust import validation succeeds.
+- Added replay UI styles.
+- Extended `smoke-ui.mjs` to export a generated run, re-import it, reset it, and step through Rust-projected replay state.
+
+Deviations from original plan:
+
+- The imported replay document remains opaque in UI state (`document: null`) to avoid treating pasted JSON as authoritative TypeScript state.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed and reported `replay_cursor: 1`.
+- `grep -rnE "dangerouslySetInnerHTML|localStorage\.setItem\(.*replay|JSON\.parse\(.*authoritative" apps/web/src/components/ReplayImportExport.tsx` returned no matches.

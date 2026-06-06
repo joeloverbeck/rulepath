@@ -208,6 +208,94 @@ h2 {
   gap: 10px;
 }
 
+.replay-io,
+.replay-viewer {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #c2cec8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.replay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.replay-document-field {
+  display: grid;
+  gap: 7px;
+}
+
+.replay-document-field span {
+  color: #687973;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.replay-document-field textarea {
+  min-height: 160px;
+  resize: vertical;
+  border: 1px solid #9aacb4;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.replay-progress {
+  display: grid;
+  gap: 8px;
+  color: #33433d;
+  font-weight: 800;
+}
+
+.replay-progress progress {
+  width: 100%;
+}
+
+.replay-snapshot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.replay-snapshot div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.replay-snapshot span {
+  color: #687973;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.replay-effects {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.replay-effects li {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #f9faf7;
+}
+
 .region {
   display: grid;
   gap: 14px;
@@ -560,6 +648,10 @@ h2 {
   }
 
   .effect-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .replay-snapshot {
     grid-template-columns: 1fr;
   }
 
