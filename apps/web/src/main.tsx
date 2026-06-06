@@ -1,92 +1,19 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-
-type WasmExports = {
-  memory: WebAssembly.Memory;
-  rulepath_placeholder_version_ptr: () => number;
-  rulepath_placeholder_version_len: () => number;
-  rulepath_alloc: (len: number) => number;
-  rulepath_dealloc: (ptr: number, len: number) => void;
-  rulepath_last_output_ptr: () => number;
-  rulepath_last_output_len: () => number;
-  rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
-  rulepath_get_view: (matchPtr: number, matchLen: number) => number;
-  rulepath_get_action_tree: (
-    matchPtr: number,
-    matchLen: number,
-    seatPtr: number,
-    seatLen: number,
-  ) => number;
-  rulepath_apply_action: (
-    matchPtr: number,
-    matchLen: number,
-    seatPtr: number,
-    seatLen: number,
-    pathPtr: number,
-    pathLen: number,
-    freshnessToken: bigint,
-  ) => number;
-  rulepath_run_bot_turn: (
-    matchPtr: number,
-    matchLen: number,
-    seatPtr: number,
-    seatLen: number,
-    botSeed: bigint,
-  ) => number;
-  rulepath_get_effects: (
-    matchPtr: number,
-    matchLen: number,
-    sinceCursor: bigint,
-    viewerPtr: number,
-    viewerLen: number,
-  ) => number;
-};
-
-type MatchCreated = {
-  match_id: string;
-  game_id: string;
-};
-
-type PublicView = {
-  counter: number;
-  target: number;
-  max_add: number;
-  active_seat: "seat_0" | "seat_1";
-  winner: "seat_0" | "seat_1" | null;
-  freshness_token: number;
-};
-
-type ActionChoice = {
-  segment: string;
-  label: string;
-  accessibility_label: string;
-};
-
-type ActionTree = {
-  freshness_token: number;
-  choices: ActionChoice[];
-};
-
-type EffectEntry = {
-  cursor: number;
-  effect: {
-    payload: {
-      type: string;
-      actor?: string;
-      next_actor?: string;
-      winner?: string;
-      from?: number;
-      to?: number;
-      amount?: number;
-    };
-  };
-};
-
-type ApiError = {
-  code: string;
-  message: string;
-};
+import { AppShell } from "./components/AppShell";
+import { ActionControls } from "./components/ActionControls";
+import { DevPanel } from "./components/DevPanel";
+import { EffectLog } from "./components/EffectLog";
+import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
+import { GamePicker } from "./components/GamePicker";
+import { MatchSetup } from "./components/MatchSetup";
+import { ModeControls } from "./components/ModeControls";
+import { RaceBoard } from "./components/RaceBoard";
+import { ReplayImportExport } from "./components/ReplayImportExport";
+import { ReplayViewer } from "./components/ReplayViewer";
+import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
+import { loadApi, type ActionChoice, type ApiError, type PublicView } from "./wasm/client";
 
 type AppTextState = {
   mode: "loading" | "ready" | "playing" | "error";
@@ -98,162 +25,34 @@ type AppTextState = {
   diagnostic: ApiError | null;
 };
 
-class RulepathApi {
-  private readonly encoder = new TextEncoder();
-  private readonly decoder = new TextDecoder();
-
-  constructor(private readonly exports: WasmExports) {}
-
-  version(): string {
-    const ptr = this.exports.rulepath_placeholder_version_ptr();
-    const len = this.exports.rulepath_placeholder_version_len();
-    return this.read(ptr, len);
-  }
-
-  newMatch(gameId: string, seed: number): MatchCreated {
-    return this.invokeJson<MatchCreated>((args) =>
-      this.exports.rulepath_new_match(args[0].ptr, args[0].len, BigInt(seed)),
-    [gameId]);
-  }
-
-  getView(matchId: string): PublicView {
-    return this.invokeJson<PublicView>((args) =>
-      this.exports.rulepath_get_view(args[0].ptr, args[0].len),
-    [matchId]);
-  }
-
-  getActionTree(matchId: string, seat: string): ActionTree {
-    return this.invokeJson<ActionTree>((args) =>
-      this.exports.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
-    [matchId, seat]);
-  }
-
-  applyAction(matchId: string, seat: string, path: string, freshnessToken: number): PublicView {
-    const response = this.invokeJson<{ view: PublicView }>((args) =>
-      this.exports.rulepath_apply_action(
-        args[0].ptr,
-        args[0].len,
-        args[1].ptr,
-        args[1].len,
-        args[2].ptr,
-        args[2].len,
-        BigInt(freshnessToken),
-      ),
-    [matchId, seat, path]);
-    return response.view;
-  }
-
-  runBotTurn(matchId: string, seat: string, seed: number): PublicView {
-    const response = this.invokeJson<{ view: PublicView }>((args) =>
-      this.exports.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, BigInt(seed)),
-    [matchId, seat]);
-    return response.view;
-  }
-
-  getEffects(matchId: string, sinceCursor: number): EffectEntry[] {
-    return this.invokeJson<EffectEntry[]>((args) =>
-      this.exports.rulepath_get_effects(args[0].ptr, args[0].len, BigInt(sinceCursor), 0, 0),
-    [matchId]);
-  }
-
-  private invokeJson<T>(call: (args: EncodedArg[]) => number, values: string[]): T {
-    const args = values.map((value) => this.write(value));
-    try {
-      const status = call(args);
-      const output = this.lastOutput();
-      const parsed = JSON.parse(output) as T | ApiError;
-      if (status !== 0) {
-        throw parsed;
-      }
-      return parsed as T;
-    } finally {
-      for (const arg of args) {
-        this.exports.rulepath_dealloc(arg.ptr, arg.len);
-      }
-    }
-  }
-
-  private write(value: string): EncodedArg {
-    const bytes = this.encoder.encode(value);
-    const ptr = this.exports.rulepath_alloc(bytes.length);
-    new Uint8Array(this.exports.memory.buffer, ptr, bytes.length).set(bytes);
-    return { ptr, len: bytes.length };
-  }
-
-  private lastOutput(): string {
-    const ptr = this.exports.rulepath_last_output_ptr();
-    const len = this.exports.rulepath_last_output_len();
-    return this.read(ptr, len);
-  }
-
-  private read(ptr: number, len: number): string {
-    return this.decoder.decode(new Uint8Array(this.exports.memory.buffer, ptr, len));
-  }
-}
-
-type EncodedArg = {
-  ptr: number;
-  len: number;
-};
-
-async function loadApi(): Promise<RulepathApi> {
-  const response = await fetch("/wasm_api.wasm");
-  if (!response.ok) {
-    throw new Error(`Unable to load wasm-api artifact: ${response.status}`);
-  }
-
-  const bytes = await response.arrayBuffer();
-  const { instance } = await WebAssembly.instantiate(bytes, {});
-  return new RulepathApi(instance.exports as WasmExports);
-}
-
-function describeEffect(entry: EffectEntry): string {
-  const payload = entry.effect.payload;
-  switch (payload.type) {
-    case "action_started":
-      return `${entry.cursor}: ${payload.actor} started add-${payload.amount}`;
-    case "counter_advanced":
-      return `${entry.cursor}: ${payload.actor} moved ${payload.from} to ${payload.to}`;
-    case "turn_changed":
-      return `${entry.cursor}: turn changed to ${payload.next_actor}`;
-    case "game_ended":
-      return `${entry.cursor}: ${payload.winner} won`;
-    case "action_completed":
-      return `${entry.cursor}: ${payload.actor} completed`;
-    default:
-      return `${entry.cursor}: ${payload.type}`;
-  }
-}
-
 function App() {
-  const [api, setApi] = useState<RulepathApi | null>(null);
-  const [version, setVersion] = useState("Loading wasm-api...");
-  const [matchId, setMatchId] = useState<string | null>(null);
-  const [view, setView] = useState<PublicView | null>(null);
-  const [tree, setTree] = useState<ActionTree | null>(null);
-  const [effects, setEffects] = useState<EffectEntry[]>([]);
-  const [lastCursor, setLastCursor] = useState(0);
-  const [diagnostic, setDiagnostic] = useState<ApiError | null>(null);
-  const [staleToken, setStaleToken] = useState<number | null>(null);
-  const [mode, setMode] = useState<AppTextState["mode"]>("loading");
+  const [state, dispatch] = useReducer(shellReducer, initialShellState);
+  const motion = useReducedMotionPreference();
+  const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic, staleToken } = state;
+  const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
+  const latestEffect = effects.at(-1) ?? null;
+  const humanActorSeat = view ? humanSeatForMode(state.setup.playMode, view) : null;
 
   const refresh = useCallback(
-    (loadedApi: RulepathApi, loadedMatchId: string, sinceCursor: number) => {
+    (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
       const nextView = loadedApi.getView(loadedMatchId);
       const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor);
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
+      const nextActorSeat = humanSeatForMode(state.setup.playMode, nextView);
       const nextTree =
-        nextView.active_seat === "seat_0" && nextView.winner === null
-          ? loadedApi.getActionTree(loadedMatchId, "seat_0")
+        nextActorSeat && nextView.winner === null
+          ? loadedApi.getActionTree(loadedMatchId, nextActorSeat)
           : { freshness_token: nextView.freshness_token, choices: [] };
 
-      setView(nextView);
-      setTree(nextTree);
-      setEffects((current) => [...current, ...nextEffects].slice(-12));
-      setLastCursor(newestCursor);
-      setMode("playing");
+      const payload: RefreshPayload = {
+        view: nextView,
+        actionTree: nextTree,
+        effects: nextEffects,
+        effectCursor: newestCursor,
+      };
+      dispatch({ type: "refreshed", payload });
     },
-    [],
+    [state.setup.playMode],
   );
 
   useEffect(() => {
@@ -264,14 +63,20 @@ function App() {
         if (cancelled) {
           return;
         }
-        setApi(loadedApi);
-        setVersion(loadedApi.version());
-        setMode("ready");
+        dispatch({
+          type: "wasmLoaded",
+          api: loadedApi,
+          version: loadedApi.version(),
+          catalog: loadedApi.listGames(),
+          featureReport: loadedApi.featureReport(),
+        });
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setVersion(error instanceof Error ? error.message : "Unable to load wasm-api artifact");
-          setMode("error");
+          dispatch({
+            type: "wasmLoadFailed",
+            message: error instanceof Error ? error.message : "Unable to load wasm-api artifact",
+          });
         }
       });
 
@@ -280,55 +85,135 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    dispatch({ type: "reducedMotionChanged", reducedMotion: motion.reducedMotion });
+  }, [motion.reducedMotion]);
+
   const start = useCallback(() => {
-    if (!api) {
+    if (!api || !state.selectedGameId) {
       return;
     }
-    setDiagnostic(null);
-    const created = api.newMatch("race_to_n", 1);
-    setMatchId(created.match_id);
-    setEffects([]);
-    setLastCursor(0);
-    setStaleToken(null);
+    dispatch({ type: "matchStarting" });
+    const created = api.newMatch(state.selectedGameId, state.setup.seed);
+    dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
-  }, [api, refresh]);
+  }, [api, refresh, state.selectedGameId, state.setup.seed]);
 
   const playChoice = useCallback(
     (choice: ActionChoice) => {
       if (!api || !matchId || !view) {
         return;
       }
-      setDiagnostic(null);
+      const actorSeat = humanSeatForMode(state.setup.playMode, view);
+      if (!actorSeat) {
+        return;
+      }
+      dispatch({ type: "diagnosticCleared" });
       const tokenBeforeAction = view.freshness_token;
       try {
-        const afterHuman = api.applyAction(matchId, "seat_0", choice.segment, tokenBeforeAction);
-        setStaleToken(tokenBeforeAction);
-        if (afterHuman.winner === null && afterHuman.active_seat === "seat_1") {
-          api.runBotTurn(matchId, "seat_1", tokenBeforeAction + 101);
+        const afterHuman = api.applyAction(matchId, actorSeat, choice.segment, tokenBeforeAction);
+        dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
+        if (
+          state.setup.playMode === "human_vs_bot" &&
+          afterHuman.winner === null &&
+          botSeatForMode(state.setup.playMode, afterHuman.active_seat)
+        ) {
+          api.runBotTurn(matchId, afterHuman.active_seat, botSeed(afterHuman));
         }
-        refresh(api, matchId, lastCursor);
+        refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
-        setDiagnostic(error as ApiError);
+        dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
       }
     },
-    [api, lastCursor, matchId, refresh, view],
+    [api, effectCursor, matchId, refresh, state.setup.playMode, view],
   );
 
-  const submitStale = useCallback(() => {
+  const runBotStep = useCallback(() => {
+    if (!api || !matchId || !view || view.winner !== null || !botSeatForMode(state.setup.playMode, view.active_seat)) {
+      return;
+    }
+    dispatch({ type: "botTurnStarted" });
+    try {
+      api.runBotTurn(matchId, view.active_seat, botSeed(view));
+      refresh(api, matchId, effectCursor);
+    } catch (error: unknown) {
+      dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+    }
+  }, [api, effectCursor, matchId, refresh, state.setup.playMode, view]);
+
+  const exportCurrentReplay = useCallback(() => {
     if (!api || !matchId) {
+      throw { code: "no_match", message: "Start a match before exporting a replay." } satisfies ApiError;
+    }
+    return api.exportReplay(matchId);
+  }, [api, matchId]);
+
+  const importReplay = useCallback(
+    (documentText: string) => {
+      if (!api) {
+        throw { code: "wasm_not_ready", message: "WASM API is not ready." } satisfies ApiError;
+      }
+      dispatch({ type: "pendingOperationChanged", pendingOperation: "importReplay" });
+      try {
+        const imported = api.importReplay(documentText);
+        const step = api.replayReset(imported.replay_id);
+        dispatch({ type: "replayImported", replayId: imported.replay_id, document: null, step });
+      } catch (error: unknown) {
+        dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+        throw error;
+      }
+    },
+    [api],
+  );
+
+  const stepReplay = useCallback(() => {
+    if (!api || !state.replay) {
+      return;
+    }
+    dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
+    const step = api.replayStep(state.replay.replayId, state.replay.cursor + 1);
+    dispatch({ type: "replayStepped", step });
+  }, [api, state.replay]);
+
+  const resetReplay = useCallback(() => {
+    if (!api || !state.replay) {
+      return;
+    }
+    dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
+    const step = api.replayReset(state.replay.replayId);
+    dispatch({ type: "replayReset", step });
+  }, [api, state.replay]);
+
+  const submitStale = useCallback(() => {
+    if (!api || !matchId || staleToken === null) {
       return;
     }
     try {
-      api.applyAction(matchId, "seat_0", "add-1", staleToken ?? 0);
+      api.applyAction(matchId, "seat_0", actionTree?.choices[0]?.segment ?? "add-1", staleToken);
     } catch (error: unknown) {
-      setDiagnostic(error as ApiError);
+      dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
     }
-    refresh(api, matchId, lastCursor);
-  }, [api, lastCursor, matchId, refresh, staleToken]);
+    refresh(api, matchId, effectCursor);
+  }, [actionTree, api, effectCursor, matchId, refresh, staleToken]);
+
+  useEffect(() => {
+    if (
+      !state.autoplay.running ||
+      state.setup.playMode !== "bot_vs_bot" ||
+      state.pendingOperation !== null ||
+      !view ||
+      view.winner !== null
+    ) {
+      return;
+    }
+    const delay = state.reducedMotion ? 80 : 520;
+    const timer = window.setTimeout(runBotStep, delay);
+    return () => window.clearTimeout(timer);
+  }, [runBotStep, state.autoplay.running, state.pendingOperation, state.reducedMotion, state.setup.playMode, view]);
 
   const textState = useMemo<AppTextState>(
     () => ({
-      mode,
+      mode: state.mode === "play" || state.mode === "replay" ? "playing" : state.mode === "setup" ? "ready" : state.mode,
       version,
       matchId,
       view: view
@@ -340,11 +225,11 @@ function App() {
             freshness_token: view.freshness_token,
           }
         : null,
-      choices: tree?.choices.map((choice) => choice.segment) ?? [],
-      effects: effects.map(describeEffect),
+      choices: actionTree?.choices.map((choice) => choice.segment) ?? [],
+      effects: effects.map(summarizeEffect),
       diagnostic,
     }),
-    [diagnostic, effects, matchId, mode, tree, version, view],
+    [actionTree, diagnostic, effects, matchId, state.mode, version, view],
   );
 
   useEffect(() => {
@@ -353,78 +238,48 @@ function App() {
   }, [textState]);
 
   return (
-    <main className="shell">
-      <section className="topbar" aria-label="WASM status">
-        <div>
-          <p className="eyebrow">Rulepath</p>
-          <h1>race_to_n</h1>
-        </div>
-        <p className="wasm-status" data-testid="wasm-status">
-          {version}
-        </p>
-      </section>
+    <AppShell version={version} reducedMotion={state.reducedMotion}>
+      {!matchId ? (
+        <>
+          <GamePicker
+            games={state.catalog}
+            selectedGameId={state.selectedGameId}
+            onSelect={(gameId) => dispatch({ type: "gameSelected", gameId })}
+          />
+          <MatchSetup
+            selectedGame={selectedGame}
+            seed={state.setup.seed}
+            playMode={state.setup.playMode}
+            canStart={Boolean(api && state.selectedGameId)}
+            onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
+            onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
+            onStart={start}
+          />
+        </>
+      ) : (
+        <>
 
-      <section className="play-surface" aria-label="race_to_n play surface">
-        <div className="scoreboard">
-          <div>
-            <span>Counter</span>
-            <strong data-testid="counter">{view ? `${view.counter} / ${view.target}` : "-- / 21"}</strong>
-          </div>
-          <div>
-            <span>Turn</span>
-            <strong data-testid="turn">{view?.winner ? `${view.winner} won` : view?.active_seat ?? "--"}</strong>
-          </div>
-          <div>
-            <span>Token</span>
-            <strong>{view?.freshness_token ?? "--"}</strong>
-          </div>
-        </div>
+      <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
+        <RaceBoard view={view} latestEffect={latestEffect} />
 
-        <div className="board" aria-label="counter track">
-          <div className="track">
-            <div
-              className="track-fill"
-              style={{ width: `${view ? (view.counter / view.target) * 100 : 0}%` }}
-            />
-          </div>
-          <div className="marker-row">
-            <span>0</span>
-            <span>21</span>
-          </div>
-        </div>
+        <ActionControls
+          actionTree={actionTree}
+          view={view}
+          actorSeat={humanActorSeat}
+          pending={state.pendingOperation !== null}
+          onChoice={playChoice}
+          onRestart={start}
+        />
 
-        <div className="controls" aria-label="Rust action choices">
-          {!matchId ? (
-            <button type="button" className="primary" onClick={start} disabled={!api} data-testid="start-match">
-              Start Match
-            </button>
-          ) : (
-            <>
-              {(tree?.choices ?? []).map((choice) => (
-                <button
-                  type="button"
-                  key={choice.segment}
-                  onClick={() => playChoice(choice)}
-                  disabled={view?.active_seat !== "seat_0" || view.winner !== null}
-                  data-testid={`choice-${choice.segment}`}
-                >
-                  {choice.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={submitStale}
-                disabled={staleToken === null}
-                data-testid="stale-action"
-              >
-                Submit Stale
-              </button>
-              <button type="button" onClick={start}>
-                Restart
-              </button>
-            </>
-          )}
-        </div>
+        <ModeControls
+          playMode={state.setup.playMode}
+          view={view}
+          autoplayRunning={state.autoplay.running}
+          pending={state.pendingOperation !== null}
+          onBotStep={runBotStep}
+          onAutoplayStart={() => dispatch({ type: "autoplayStarted" })}
+          onAutoplayPause={() => dispatch({ type: "autoplayPaused" })}
+        />
 
         {diagnostic ? (
           <div className="diagnostic" role="status" data-testid="diagnostic">
@@ -434,13 +289,41 @@ function App() {
         ) : null}
       </section>
 
-      <section className="effects" aria-label="semantic effects">
-        <h2>Effects</h2>
-        <ol data-testid="effects">
-          {effects.length === 0 ? <li>No effects yet</li> : effects.map((entry) => <li key={entry.cursor}>{describeEffect(entry)}</li>)}
-        </ol>
-      </section>
-    </main>
+      <EffectLog
+        effects={effects}
+        reducedMotion={state.reducedMotion}
+        override={motion.override}
+        onOverrideChange={motion.setOverride}
+      />
+      <ReplayImportExport canExport={Boolean(matchId)} onExport={exportCurrentReplay} onImport={importReplay} />
+      <ReplayViewer
+        replay={state.replay}
+        reducedMotion={state.reducedMotion}
+        onStep={stepReplay}
+        onReset={resetReplay}
+      />
+        </>
+      )}
+      <DevPanel
+        open={state.devPanelOpen}
+        featureReport={state.featureReport}
+        selectedGameName={selectedGame?.display_name ?? null}
+        matchId={matchId}
+        seed={state.setup.seed}
+        playMode={state.setup.playMode}
+        view={view}
+        actionTree={actionTree}
+        effectCursor={effectCursor}
+        effectCount={effects.length}
+        pendingOperation={state.pendingOperation}
+        replayId={state.replay?.replayId ?? null}
+        replayCursor={state.replay?.cursor ?? null}
+        diagnostic={diagnostic}
+        canSubmitStale={Boolean(api && matchId && staleToken !== null)}
+        onToggle={() => dispatch({ type: "devPanelToggled" })}
+        onSubmitStale={submitStale}
+      />
+    </AppShell>
   );
 }
 
@@ -461,3 +344,27 @@ createRoot(rootElement).render(
     <App />
   </React.StrictMode>,
 );
+
+function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): "seat_0" | "seat_1" | null {
+  if (view.winner !== null) {
+    return null;
+  }
+  if (playMode === "hotseat") {
+    return view.active_seat;
+  }
+  if (playMode === "human_vs_bot" && view.active_seat === "seat_0") {
+    return "seat_0";
+  }
+  return null;
+}
+
+function botSeatForMode(playMode: SetupPlayMode, seat: "seat_0" | "seat_1"): boolean {
+  if (playMode === "bot_vs_bot") {
+    return true;
+  }
+  return playMode === "human_vs_bot" && seat === "seat_1";
+}
+
+function botSeed(view: PublicView): number {
+  return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
+}

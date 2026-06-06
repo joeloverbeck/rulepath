@@ -104,6 +104,28 @@ const effects = invoke(
 );
 assert(effects.length > 0, "semantic effects are available");
 
+const exportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [created.match_id],
+);
+assert(exportedReplay.commands.length > 0, "run exports a replay command stream");
+
+const importedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(exportedReplay)],
+);
+assert(importedReplay.replay_id, "replay import returns a replay handle");
+const replayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [importedReplay.replay_id],
+);
+assert(replayReset.cursor === 0, "replay reset returns cursor zero");
+const replayStep = invoke(
+  (args) => wasm.rulepath_replay_step(args[0].ptr, args[0].len, 1),
+  [importedReplay.replay_id],
+);
+assert(replayStep.cursor === 1 && replayStep.view.counter > 0, "replay step returns Rust-projected view");
+
 let staleDiagnostic = null;
 try {
   invoke(
@@ -124,6 +146,59 @@ try {
 }
 assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust diagnostic");
 
+const catalog = invoke(() => wasm.rulepath_list_games(), []);
+assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
+
+const hotseat = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 2n),
+  ["race_to_n"],
+);
+const hotseatSeat0 = invoke(
+  (args) => wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [hotseat.match_id, "seat_0"],
+);
+assert(hotseatSeat0.choices.length > 0, "hotseat seat_0 gets Rust choices");
+invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      0n,
+    ),
+  [hotseat.match_id, "seat_0", hotseatSeat0.choices[0].segment],
+);
+const hotseatView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [hotseat.match_id],
+);
+const hotseatSeat1 = invoke(
+  (args) => wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [hotseat.match_id, hotseatView.active_seat],
+);
+assert(hotseatView.active_seat === "seat_1", "hotseat alternates to seat_1");
+assert(hotseatSeat1.choices.length > 0, "hotseat active seat gets Rust choices");
+
+const botVsBot = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 3n),
+  ["race_to_n"],
+);
+const botStep0 = invoke(
+  (args) => wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 300n),
+  [botVsBot.match_id, "seat_0"],
+);
+assert(botStep0.view.counter > 0, "bot-vs-bot first step advances through Rust bot");
+if (!botStep0.view.winner) {
+  const botStep1 = invoke(
+    (args) => wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 301n),
+    [botVsBot.match_id, botStep0.view.active_seat],
+  );
+  assert(botStep1.view.counter >= botStep0.view.counter, "bot-vs-bot second step advances or holds terminal");
+}
+
 console.log(
   JSON.stringify({
     version,
@@ -131,5 +206,7 @@ console.log(
     counter: afterBot.view.counter,
     effects: effects.length,
     diagnostic: staleDiagnostic.code,
+    modes: ["human_vs_bot", "hotseat", "bot_vs_bot"],
+    replay_cursor: replayStep.cursor,
   }),
 );

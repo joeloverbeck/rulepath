@@ -1,0 +1,275 @@
+import { createReadStream } from "node:fs";
+import { access, readFile } from "node:fs/promises";
+import http from "node:http";
+import { dirname, extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+import puppeteer from "puppeteer";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const distDir = join(__dirname, "..", "dist");
+const mountPath = "/rulepath/";
+const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome";
+const forbiddenLeakTerms = [
+  "hidden_state",
+  "private_state",
+  "secret",
+  "internal_state",
+  "hole_card",
+  "candidate_ranking",
+  "bot_explanation",
+];
+
+await access(executablePath);
+
+const server = http.createServer(async (request, response) => {
+  if (!request.url?.startsWith(mountPath)) {
+    response.writeHead(404);
+    response.end("not found");
+    return;
+  }
+
+  const relativeUrl = request.url.slice(mountPath.length).split("?")[0] || "index.html";
+  const safePath = normalize(relativeUrl).replace(/^(\.\.[/\\])+/, "");
+  const filePath = join(distDir, safePath);
+
+  try {
+    await readFile(filePath);
+    response.writeHead(200, { "Content-Type": contentTypeFor(filePath) });
+    createReadStream(filePath).pipe(response);
+  } catch {
+    response.writeHead(200, { "Content-Type": "text/html" });
+    createReadStream(join(distDir, "index.html")).pipe(response);
+  }
+});
+
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+let browser;
+try {
+  const { port } = server.address();
+  const baseUrl = `http://127.0.0.1:${port}${mountPath}`;
+  browser = await puppeteer.launch({
+    executablePath,
+    headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  const page = await browser.newPage();
+  const consoleMessages = [];
+  page.on("console", (message) => consoleMessages.push(message.text()));
+  page.on("pageerror", (error) => consoleMessages.push(error.message));
+  await page.setViewport({ width: 390, height: 820 });
+  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+
+  await waitForText(page, "Race to 21");
+  await assertNamedControls(page);
+  await assertNoLeak(page, consoleMessages, "initial DOM");
+
+  await focusByText(page, "Start Match");
+  await assertFocusedVisible(page);
+  await page.keyboard.press("Enter");
+  await waitForText(page, "Choose a Rust-supplied action");
+
+  await focusByText(page, "Add 1");
+  await assertFocusedVisible(page);
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => {
+    const counter = document.querySelector('[data-testid="counter"]')?.textContent ?? "";
+    return !counter.startsWith("0 /");
+  });
+  await assertNonColorCues(page);
+
+  await focusByText(page, "Developer panel");
+  await assertFocusedVisible(page);
+  await page.keyboard.press("Enter");
+  await waitForText(page, "Operations");
+  await focusByText(page, "Submit Stale Action");
+  await page.keyboard.press("Enter");
+  await waitForText(page, "stale_action");
+
+  await focusByText(page, "Export Current Run");
+  await page.keyboard.press("Enter");
+  const replayText = await page.waitForFunction(() => document.querySelector("textarea")?.value || "");
+  const replayExport = await replayText.jsonValue();
+  assertNoForbiddenTerms(replayExport, "replay export");
+  assert(
+    replayExport.includes('"expected_private_view_hashes"') && replayExport.includes('"not_applicable"'),
+    "replay export marks private views explicitly not applicable for this perfect-information game",
+  );
+  await focusByText(page, "Import Replay");
+  await page.keyboard.press("Enter");
+  await waitForText(page, "Replay viewer");
+  await focusByText(page, "Step");
+  await page.keyboard.press("Enter");
+  await waitForText(page, "Cursor 1 /");
+
+  await page.select(".motion-field select", "reduce");
+  await page.waitForFunction(() => document.querySelector(".effect-entry.reduced"));
+  await assertReducedMotion(page);
+  await assertStorageClean(page);
+  await assertNoLeak(page, consoleMessages, "played DOM");
+  assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
+
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced" }));
+} finally {
+  if (browser) {
+    await browser.close();
+  }
+  await new Promise((resolve) => server.close(resolve));
+}
+
+async function assertNamedControls(page) {
+  const unnamedControls = await page.evaluate(() =>
+    Array.from(document.querySelectorAll("button, input, select, textarea"))
+      .filter((element) => {
+        const label = element.labels?.[0]?.textContent ?? "";
+        const text = element.textContent ?? "";
+        const aria = element.getAttribute("aria-label") ?? "";
+        const title = element.getAttribute("title") ?? "";
+        return `${label}${text}${aria}${title}`.trim().length === 0;
+      })
+      .map((element) => element.outerHTML),
+  );
+  assert(unnamedControls.length === 0, `all controls have accessible names: ${unnamedControls.join("\n")}`);
+}
+
+async function assertFocusedVisible(page) {
+  const focusStyle = await page.evaluate(() => {
+    const element = document.activeElement;
+    if (!element) {
+      return null;
+    }
+    const style = window.getComputedStyle(element);
+    const wrapperStyle = element.closest("label") ? window.getComputedStyle(element.closest("label")) : null;
+    return {
+      tag: element.tagName,
+      text: element.textContent,
+      outlineWidth: style.outlineWidth,
+      outlineStyle: style.outlineStyle,
+      wrapperOutlineWidth: wrapperStyle?.outlineWidth ?? "0px",
+      wrapperOutlineStyle: wrapperStyle?.outlineStyle ?? "none",
+    };
+  });
+  assert(Boolean(focusStyle), "focus target exists");
+  assert(
+    focusStyle.outlineStyle !== "none" ||
+      focusStyle.outlineWidth !== "0px" ||
+      focusStyle.wrapperOutlineStyle !== "none" ||
+      focusStyle.wrapperOutlineWidth !== "0px",
+    `focused control has visible focus: ${JSON.stringify(focusStyle)}`,
+  );
+}
+
+async function assertNonColorCues(page) {
+  const cues = await page.evaluate(() => ({
+    status: document.querySelector('[data-testid="turn"]')?.textContent ?? "",
+    effectTitles: Array.from(document.querySelectorAll('[data-testid="effects"] strong')).map((element) =>
+      element.textContent?.trim(),
+    ),
+    diagnostic: document.querySelector('[data-testid="diagnostic"]')?.textContent ?? "",
+  }));
+  assert(cues.status.length > 0, "turn status has text cue");
+  assert(cues.effectTitles.some(Boolean), "effects include text labels, not only color");
+}
+
+async function assertReducedMotion(page) {
+  const reduced = await page.evaluate(() => {
+    const shellReduced = document.querySelector(".reduced-motion") !== null;
+    const animatedEntries = Array.from(document.querySelectorAll(".effect-entry")).map((element) => {
+      const style = window.getComputedStyle(element);
+      return { animation: style.animationName, transition: style.transitionProperty };
+    });
+    return { shellReduced, animatedEntries };
+  });
+  assert(reduced.shellReduced, "reduced-motion class is present");
+  assert(
+    reduced.animatedEntries.every((entry) => entry.animation === "none"),
+    "effect entries disable animation under reduced motion",
+  );
+}
+
+async function assertStorageClean(page) {
+  const storage = await page.evaluate(() => ({
+    local: Object.fromEntries(Array.from({ length: localStorage.length }, (_, index) => {
+      const key = localStorage.key(index);
+      return [key, key ? localStorage.getItem(key) : null];
+    })),
+    session: Object.fromEntries(Array.from({ length: sessionStorage.length }, (_, index) => {
+      const key = sessionStorage.key(index);
+      return [key, key ? sessionStorage.getItem(key) : null];
+    })),
+  }));
+  const localEntries = Object.entries(storage.local);
+  assert(
+    localEntries.every(([key, value]) => key === "rulepath.reducedMotion" && (value === "reduce" || value === "motion")),
+    `localStorage contains only the reduced-motion UI preference: ${JSON.stringify(storage.local)}`,
+  );
+  assert(Object.keys(storage.session).length === 0, "sessionStorage remains empty");
+}
+
+async function assertNoLeak(page, consoleMessages, label) {
+  const surface = await page.evaluate(() => {
+    const attributes = Array.from(document.querySelectorAll("*")).flatMap((element) =>
+      Array.from(element.attributes).map((attribute) => `${attribute.name}=${attribute.value}`),
+    );
+    const testIds = Array.from(document.querySelectorAll("[data-testid]")).map((element) =>
+      element.getAttribute("data-testid"),
+    );
+    const devPanel = document.querySelector(".dev-panel")?.textContent ?? "";
+    return [document.body.textContent ?? "", attributes.join("\n"), testIds.join("\n"), devPanel].join("\n");
+  });
+  assertNoForbiddenTerms(surface, label);
+  assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`);
+}
+
+function assertNoForbiddenTerms(surface, label) {
+  const lower = surface.toLowerCase();
+  const hits = forbiddenLeakTerms.filter((term) => lower.includes(term));
+  assert(hits.length === 0, `${label} contains forbidden leak terms: ${hits.join(", ")}`);
+}
+
+async function focusByText(page, text) {
+  for (let index = 0; index < 40; index += 1) {
+    const focused = await page.evaluate((expected) => {
+      const element = document.activeElement;
+      const focusable = element?.matches("button, input, select, textarea, a[href]") ?? false;
+      return {
+        text: element?.textContent ?? "",
+        label: element?.labels?.[0]?.textContent ?? "",
+        disabled: element?.disabled ?? false,
+        matches: focusable && `${element?.textContent ?? ""} ${element?.labels?.[0]?.textContent ?? ""}`.includes(expected),
+      };
+    }, text);
+    if (focused.matches && !focused.disabled) {
+      return;
+    }
+    await page.keyboard.press("Tab");
+  }
+  throw new Error(`Unable to focus control by text: ${text}`);
+}
+
+async function waitForText(page, text) {
+  await page.waitForFunction((expected) => document.body.textContent?.includes(expected), {}, text);
+}
+
+function contentTypeFor(path) {
+  switch (extname(path)) {
+    case ".html":
+      return "text/html";
+    case ".js":
+      return "text/javascript";
+    case ".css":
+      return "text/css";
+    case ".wasm":
+      return "application/wasm";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}

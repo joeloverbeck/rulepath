@@ -26,7 +26,7 @@ record progress; this table is.
 | 0 | Gate 0 | [`gate-0-repository-skeleton.md`](../archive/specs/gate-0-repository-skeleton.md) | Done |
 | 1 | Gate 1 | [`gate-1-race-to-n.md`](../archive/specs/gate-1-race-to-n.md) | Done |
 | 1 | Gate 2 | [`gate-2-trace-replay-benchmark-hardening.md`](../archive/specs/gate-2-trace-replay-benchmark-hardening.md) | Done |
-| 1 | Gate 3 | WASM/static web shell — not yet specced | Not started |
+| 1 | Gate 3 | [`gate-3-wasm-static-web-shell.md`](../archive/specs/gate-3-wasm-static-web-shell.md) | Done |
 | 2 | Gate 4 | `three_marks` — not yet specced | Not started |
 | 3 | Gate 5 | `column_four` — not yet specced | Not started |
 | 4 | Gate 6 | `directional_flip` — not yet specced | Not started |
