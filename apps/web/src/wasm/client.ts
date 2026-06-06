@@ -6,6 +6,7 @@ type WasmExports = {
   rulepath_dealloc: (ptr: number, len: number) => void;
   rulepath_last_output_ptr: () => number;
   rulepath_last_output_len: () => number;
+  rulepath_feature_report: () => number;
   rulepath_list_games: () => number;
   rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
   rulepath_get_view: (matchPtr: number, matchLen: number) => number;
@@ -54,6 +55,12 @@ export type GameCatalogEntry = {
   display_name: string;
   rules_version: number;
   schema_version: number;
+};
+
+export type FeatureReport = {
+  api_version: string;
+  operations: string[];
+  features: string[];
 };
 
 export type PublicView = {
@@ -167,6 +174,10 @@ export class RulepathApi {
 
   listGames(): GameCatalogEntry[] {
     return this.invokeJson<GameCatalogEntry[]>(() => this.exports.rulepath_list_games(), []);
+  }
+
+  featureReport(): FeatureReport {
+    return this.invokeJson<FeatureReport>(() => this.exports.rulepath_feature_report(), []);
   }
 
   newMatch(gameId: string, seed: number): MatchCreated {

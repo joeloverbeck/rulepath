@@ -2,6 +2,7 @@ import type {
   ActionTree,
   ApiError,
   EffectEntry,
+  FeatureReport,
   GameCatalogEntry,
   PublicView,
   ReplayDocument,
@@ -35,6 +36,7 @@ export type ShellState = {
   api: RulepathApi | null;
   version: string;
   catalog: GameCatalogEntry[];
+  featureReport: FeatureReport | null;
   selectedGameId: string;
   setup: {
     seed: number;
@@ -66,7 +68,7 @@ export type RefreshPayload = {
 };
 
 export type ShellAction =
-  | { type: "wasmLoaded"; api: RulepathApi; version: string; catalog?: GameCatalogEntry[] }
+  | { type: "wasmLoaded"; api: RulepathApi; version: string; catalog?: GameCatalogEntry[]; featureReport?: FeatureReport }
   | { type: "wasmLoadFailed"; message: string }
   | { type: "gameSelected"; gameId: string }
   | { type: "setupSeedChanged"; seed: number }
@@ -92,6 +94,7 @@ export const initialShellState: ShellState = {
   api: null,
   version: "Loading wasm-api...",
   catalog: [],
+  featureReport: null,
   selectedGameId: "",
   setup: {
     seed: 1,
@@ -125,6 +128,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         api: action.api,
         version: action.version,
         catalog,
+        featureReport: action.featureReport ?? state.featureReport,
         selectedGameId: state.selectedGameId || catalog[0]?.game_id || "",
         pendingOperation: null,
       };

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
 import { ActionControls } from "./components/ActionControls";
+import { DevPanel } from "./components/DevPanel";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
@@ -27,7 +28,7 @@ type AppTextState = {
 function App() {
   const [state, dispatch] = useReducer(shellReducer, initialShellState);
   const motion = useReducedMotionPreference();
-  const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic } = state;
+  const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic, staleToken } = state;
   const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
   const latestEffect = effects.at(-1) ?? null;
   const humanActorSeat = view ? humanSeatForMode(state.setup.playMode, view) : null;
@@ -62,7 +63,13 @@ function App() {
         if (cancelled) {
           return;
         }
-        dispatch({ type: "wasmLoaded", api: loadedApi, version: loadedApi.version(), catalog: loadedApi.listGames() });
+        dispatch({
+          type: "wasmLoaded",
+          api: loadedApi,
+          version: loadedApi.version(),
+          catalog: loadedApi.listGames(),
+          featureReport: loadedApi.featureReport(),
+        });
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -177,6 +184,18 @@ function App() {
     dispatch({ type: "replayReset", step });
   }, [api, state.replay]);
 
+  const submitStale = useCallback(() => {
+    if (!api || !matchId || staleToken === null) {
+      return;
+    }
+    try {
+      api.applyAction(matchId, "seat_0", actionTree?.choices[0]?.segment ?? "add-1", staleToken);
+    } catch (error: unknown) {
+      dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+    }
+    refresh(api, matchId, effectCursor);
+  }, [actionTree, api, effectCursor, matchId, refresh, staleToken]);
+
   useEffect(() => {
     if (
       !state.autoplay.running ||
@@ -285,6 +304,25 @@ function App() {
       />
         </>
       )}
+      <DevPanel
+        open={state.devPanelOpen}
+        featureReport={state.featureReport}
+        selectedGameName={selectedGame?.display_name ?? null}
+        matchId={matchId}
+        seed={state.setup.seed}
+        playMode={state.setup.playMode}
+        view={view}
+        actionTree={actionTree}
+        effectCursor={effectCursor}
+        effectCount={effects.length}
+        pendingOperation={state.pendingOperation}
+        replayId={state.replay?.replayId ?? null}
+        replayCursor={state.replay?.cursor ?? null}
+        diagnostic={diagnostic}
+        canSubmitStale={Boolean(api && matchId && staleToken !== null)}
+        onToggle={() => dispatch({ type: "devPanelToggled" })}
+        onSubmitStale={submitStale}
+      />
     </AppShell>
   );
 }

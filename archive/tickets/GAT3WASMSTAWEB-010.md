@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-010: Dev/replay panel — viewer-safe and secondary
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); consumes the feature/version report op (GAT3WASMSTAWEB-002).
@@ -128,3 +128,25 @@ Dev-panel visibility state + transition; mount `DevPanel` as a secondary surface
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. The repo-wide no-leak review is GAT3WASMSTAWEB-014's boundary; here the component-scoped grep-proof + node smoke verify the panel's field whitelist.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added typed `FeatureReport` and `RulepathApi.featureReport()` for the Rust feature/version report.
+- Stored the feature report in reducer state during WASM bootstrap.
+- Added a collapsible `DevPanel` that renders viewer-safe summaries only: API/features, game, match, setup, mode, actor/freshness, action count, effect cursor/count, pending state, replay metadata, and normalized diagnostics.
+- Re-homed the stale-action demo into the dev panel behind the labeled toggle.
+- Added subordinate dev-panel styles.
+
+Deviations from original plan:
+
+- None. Repo-wide no-leak assertions remain the later ticket boundary.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed with mode and replay coverage.
+- `grep -rnE "JSON.stringify\\(state\\)|fullState|internalState|backtrace|panic" apps/web/src/components/DevPanel.tsx` returned no matches.
