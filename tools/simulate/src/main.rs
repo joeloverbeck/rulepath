@@ -8,8 +8,10 @@ use race_to_n::{
     apply_action, legal_action_tree, project_view, setup_match, validate_command, RaceEffect,
     RaceRandomBot, RaceSeat, RaceSnapshot, RaceState, SetupOptions,
 };
+use three_marks::{ThreeMarksRandomBot, ThreeMarksSeat};
 
 const GAME_ID: &str = "race_to_n";
+const GAME_THREE_MARKS: &str = "three_marks";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -128,9 +130,9 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         }
     }
 
-    if config.game != GAME_ID {
+    if config.game != GAME_ID && config.game != GAME_THREE_MARKS {
         return Err(format!(
-            "unsupported game: {}\nonly {GAME_ID} is available at Gate 1\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}\n",
             config.game
         ));
     }
@@ -162,14 +164,17 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 }
 
 fn help_text() -> String {
-    format!(
-        "simulate 0.1.0\n\
-         Usage: simulate --game {GAME_ID} [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+    "simulate 0.1.0\n\
+         Usage: simulate --game <race_to_n|three_marks> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
-    )
+        .to_owned()
 }
 
 fn run_simulation(config: Config) -> Result<String, String> {
+    if config.game == GAME_THREE_MARKS {
+        return run_three_marks_simulation(config);
+    }
+
     let started = Instant::now();
     let mut summary = Summary::default();
 
@@ -203,6 +208,102 @@ fn run_simulation(config: Config) -> Result<String, String> {
         &summary,
         started.elapsed().as_secs_f64(),
     ))
+}
+
+fn run_three_marks_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut seat_0_wins = 0_u64;
+    let mut seat_1_wins = 0_u64;
+    let mut draws = 0_u64;
+    let mut total_actions = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (outcome, actions) = run_one_three_marks_game(&config, seed)?;
+        games_run += 1;
+        total_actions += actions as u64;
+        match outcome {
+            Some(ThreeMarksSeat::Seat0) => seat_0_wins += 1,
+            Some(ThreeMarksSeat::Seat1) => seat_1_wins += 1,
+            None => draws += 1,
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=three_marks\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         seat_0_wins={seat_0_wins}\n\
+         seat_1_wins={seat_1_wins}\n\
+         draws={draws}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
+    ))
+}
+
+fn run_one_three_marks_game(
+    config: &Config,
+    seed: u64,
+) -> Result<(Option<ThreeMarksSeat>, usize), String> {
+    let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+    let mut state =
+        three_marks::setup_match(Seed(seed), &seats, &three_marks::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+
+    for action_index in 0..config.action_cap {
+        if let Some(outcome) = state.terminal_outcome {
+            return Ok((three_marks_winner(outcome), action_index));
+        }
+
+        let actor_seat = state.active_seat;
+        let actor = Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        };
+        let bot = ThreeMarksRandomBot::new(Seed(bot_seed(seed, action_index)));
+        let action_path = bot
+            .select_action(&state, actor_seat)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = CommandEnvelope {
+            actor,
+            action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let validated = three_marks::validate_command(&state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        three_marks::apply_action(&mut state, validated);
+    }
+
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id=three_marks\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         action_cap={}\n\
+         failure_reason=action cap reached before terminal outcome\n\
+         replay_command=cargo run -p simulate -- --game three_marks --games 1 --start-seed {seed} --action-cap {}\n",
+        config.action_cap, config.action_cap
+    ))
+}
+
+fn three_marks_winner(outcome: three_marks::TerminalOutcome) -> Option<ThreeMarksSeat> {
+    match outcome {
+        three_marks::TerminalOutcome::Win { seat, .. } => Some(seat),
+        three_marks::TerminalOutcome::Draw => None,
+    }
 }
 
 fn run_one_game(config: &Config, seed: u64) -> Result<GameOutcome, Box<SimulationFailure>> {

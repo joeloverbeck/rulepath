@@ -1,9 +1,5 @@
 use std::{collections::BTreeMap, env, fs, process};
 
-const RULES_PATH: &str = "games/race_to_n/docs/RULES.md";
-const COVERAGE_PATH: &str = "games/race_to_n/docs/RULE-COVERAGE.md";
-const BENCHMARKS_PATH: &str = "games/race_to_n/docs/BENCHMARKS.md";
-
 fn main() {
     if let Err(error) = run(env::args().skip(1)) {
         eprintln!("{error}");
@@ -13,17 +9,43 @@ fn main() {
 
 fn run(args: impl IntoIterator<Item = String>) -> Result<(), String> {
     let config = Config::parse(args)?;
-    if config.game != "race_to_n" {
-        return Err(format!("unsupported game `{}`", config.game));
-    }
+    let game = resolve_game(&config.game)?;
     check_docs(
-        &fs::read_to_string(RULES_PATH).map_err(|error| format!("{RULES_PATH}: {error}"))?,
-        &fs::read_to_string(COVERAGE_PATH).map_err(|error| format!("{COVERAGE_PATH}: {error}"))?,
-        &fs::read_to_string(BENCHMARKS_PATH)
-            .map_err(|error| format!("{BENCHMARKS_PATH}: {error}"))?,
+        &fs::read_to_string(game.rules_path)
+            .map_err(|error| format!("{}: {error}", game.rules_path))?,
+        &fs::read_to_string(game.coverage_path)
+            .map_err(|error| format!("{}: {error}", game.coverage_path))?,
+        &fs::read_to_string(game.benchmarks_path)
+            .map_err(|error| format!("{}: {error}", game.benchmarks_path))?,
     )?;
-    println!("rule-coverage: race_to_n coverage matrix passed");
+    println!("rule-coverage: {} coverage matrix passed", game.game_id);
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct RegisteredGame {
+    game_id: &'static str,
+    rules_path: &'static str,
+    coverage_path: &'static str,
+    benchmarks_path: &'static str,
+}
+
+fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
+    match game {
+        "race_to_n" => Ok(RegisteredGame {
+            game_id: "race_to_n",
+            rules_path: "games/race_to_n/docs/RULES.md",
+            coverage_path: "games/race_to_n/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/race_to_n/docs/BENCHMARKS.md",
+        }),
+        "three_marks" => Ok(RegisteredGame {
+            game_id: "three_marks",
+            rules_path: "games/three_marks/docs/RULES.md",
+            coverage_path: "games/three_marks/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/three_marks/docs/BENCHMARKS.md",
+        }),
+        _ => Err(format!("unsupported game `{game}`")),
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -39,7 +61,7 @@ impl Config {
             match arg.as_str() {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
-                    println!("usage: rule-coverage --game race_to_n");
+                    println!("usage: rule-coverage --game <race_to_n|three_marks>");
                     process::exit(0);
                 }
                 "--game" => {
@@ -148,7 +170,7 @@ fn extract_rule_ids(input: &str) -> Vec<String> {
 fn is_rule_id(value: &str) -> bool {
     let parts = value.split('-').collect::<Vec<_>>();
     parts.len() == 3
-        && parts[0] == "R"
+        && matches!(parts[0], "R" | "TM")
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())
         && parts[2].len() == 3

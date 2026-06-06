@@ -87,3 +87,27 @@ Replace the hardcoded `GAME_ID`/`game != "race_to_n"` gate with a resolver dispa
 1. `cargo run -p simulate -- --game three_marks --games 1000 && cargo run -p replay-check -- --game three_marks --all`
 2. `cargo run -p fixture-check -- --game three_marks && cargo run -p rule-coverage -- --game three_marks`
 3. `cargo test --workspace` is the full-pipeline boundary (tool unit tests + game crates); the per-tool CLI invocations are the targeted evidence commands.
+
+## Outcome
+
+Status: Done
+Date: 2026-06-06
+
+Changes:
+- Added closed `race_to_n` / `three_marks` game resolution to `simulate`, `replay-check`, `fixture-check`, and `rule-coverage`.
+- Wired the Three Marks crate into the simulation, replay, and fixture tools while preserving the race_to_n paths.
+- Parameterized trace, fixture, manifest, variant, and docs paths per registered game.
+- Routed Three Marks replay diagnostics through the correct replay helper for stale vs occupied-cell diagnostics and allowed documented trace metadata in fixture validation.
+
+Verification:
+- `cargo run -p simulate -- --game three_marks --games 1000`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `cargo run -p fixture-check -- --game three_marks`
+- `cargo run -p rule-coverage -- --game three_marks`
+- `cargo run -p simulate -- --game race_to_n --games 1000`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p fixture-check -- --game race_to_n`
+- `cargo run -p rule-coverage -- --game race_to_n`
+- `cargo test --workspace`
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
