@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-002: Three Marks crate scaffold — identity, state, setup, variants, static data
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/three_marks` (`lib.rs`, `ids.rs`, `state.rs`, `setup.rs`, `variants.rs`), new static data (`data/manifest.toml`, `data/variants.toml`), workspace `Cargo.toml` member addition
@@ -102,3 +102,27 @@ Deterministic initial state for `three_marks_standard`: empty board, active seat
 1. `cargo build -p three_marks && cargo test -p three_marks`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. Full rule/property coverage is intentionally out of this ticket's boundary (lands in 003); the setup unit test is the correct verification depth for a scaffold diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks` as a workspace crate with `Cargo.toml`, `src/lib.rs`, `src/ids.rs`, `src/state.rs`, `src/setup.rs`, `src/variants.rs`, typed static data, and `data/fixtures/.gitkeep`.
+- Registered `games/three_marks` in the root workspace.
+- Added game-local identity constants, stable cell IDs `r1c1` through `r3c3`, two-seat identity, deterministic setup, empty-board state, terminal outcome scaffolding, a stable snapshot byte surface, and strict flat TOML loaders that reject unknown and behavior-looking fields.
+
+Deviations from original plan:
+
+- The scaffold intentionally does not implement the `engine_core::Game` trait yet because legal action generation, validation, effects, and view projection land in later tickets. No action/rules/effects modules were added in this ticket.
+- Static data remains metadata-oriented; fixed rule meaning stays in Rust code.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo build -p three_marks`
+- `cargo test -p three_marks setup`
+- `cargo test -p three_marks`
+- `cargo build --workspace`
+- `bash scripts/boundary-check.sh`

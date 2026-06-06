@@ -6,6 +6,7 @@ members = [
     "crates/ai-core",
     "crates/wasm-api",
     "games/race_to_n",
+    "games/three_marks",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",
