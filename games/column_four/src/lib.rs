@@ -3,6 +3,7 @@
 pub mod actions;
 pub mod effects;
 pub mod ids;
+pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod state;

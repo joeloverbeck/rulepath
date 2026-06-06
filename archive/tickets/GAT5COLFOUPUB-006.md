@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-006: Column Four replay support (Rust-owned projection)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/column_four/src/replay_support.rs`
@@ -69,3 +69,26 @@ Implement command-stream reconstruction and per-cursor projection reusing the 00
 1. `cargo test -p column_four replay`
 2. `cargo test -p column_four`
 3. `cargo clippy -p column_four --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/src/replay_support.rs` with command-stream replay, default seats, command construction, per-step projections, stable state/effect/action-tree/view/replay hashes, effect stable strings, and a schema-shaped `ColumnFourReplayJson`.
+- Reused the Rust `project_view` projection for replay view hashes and per-step public-view projection evidence.
+- Exported the replay module from the crate root.
+- Added tests for identical replay hash reproduction, terminal outcome/projection evidence, schema fields (`column_four`, `column_four-rules-v1`, `column_four_standard`), unknown-field rejection, and stable hash equality for repeated command streams.
+
+Deviations from original plan:
+
+- Golden trace fixtures and tool registration remain deferred to GAT5COLFOUPUB-010 and GAT5COLFOUPUB-013, as scoped by this ticket.
+
+Verification results:
+
+- Passed: `cargo test -p column_four replay`
+- Passed: `cargo test -p column_four`
+- Passed: `cargo clippy -p column_four --all-targets -- -D warnings`
+- Passed: `cargo fmt --all --check`
+- Passed: `cargo build --workspace`
