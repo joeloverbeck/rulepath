@@ -83,3 +83,29 @@ On aggregate-green evidence: flip `specs/gate-4-three-marks-board-smoke.md` Stat
 1. `cargo test --workspace && bash scripts/boundary-check.sh`
 2. `cargo run -p simulate -- --game three_marks --games 1000 && cargo run -p replay-check -- --game three_marks --all && cargo run -p fixture-check -- --game three_marks && cargo run -p rule-coverage -- --game three_marks && npm --prefix apps/web run smoke:e2e`
 3. These aggregate commands ARE the exit-criteria boundary; per-surface narrower checks live in their owning tickets (002-015).
+
+## Outcome
+
+Status: Done
+Date: 2026-06-06
+
+Changes:
+- Added Three Marks simulation, replay, fixture, and rule-coverage steps to the gate smoke workflow.
+- Flipped the Gate 4 spec and spec index status to `Done`.
+- Recorded aggregate completion evidence and the boundary review in the Gate 4 spec.
+
+Verification:
+- `cargo run -p simulate -- --game three_marks --games 1000`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `cargo run -p fixture-check -- --game three_marks`
+- `cargo run -p rule-coverage -- --game three_marks`
+- `cargo run -p simulate -- --game race_to_n --games 1000`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p fixture-check -- --game race_to_n`
+- `cargo run -p rule-coverage -- --game race_to_n`
+- `cargo test --workspace`
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `npm --prefix apps/web run smoke:e2e`

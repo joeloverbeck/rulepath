@@ -3,7 +3,7 @@
 Spec ID: `gate-4-three-marks-board-smoke`  
 Roadmap stage: 2  
 Roadmap build gate: Gate 4 (`three_marks`)  
-Status: Planned  
+Status: Done  
 Date: 2026-06-06  
 Owner: joeloverbeck  
 Target game id: `three_marks`  
@@ -770,6 +770,35 @@ Gate 4 acceptance requires concrete artifacts. Silent omissions are not allowed;
 | Movement/capture/sliding | Documented as explicitly deferred/not applicable. | Required not-applicable row |
 | Hosted/network play | Documented as forbidden/not applicable. | Required not-applicable row |
 | Level 2/Level 3 bots | Documented as deferred/not required. | Required not-applicable row |
+
+### 21.1 Completion evidence
+
+Status: Done on 2026-06-06 after the Gate 4 ticket set was archived and the aggregate evidence passed.
+
+Commands:
+
+- `cargo run -p simulate -- --game three_marks --games 1000`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `cargo run -p fixture-check -- --game three_marks`
+- `cargo run -p rule-coverage -- --game three_marks`
+- `cargo run -p simulate -- --game race_to_n --games 1000`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p fixture-check -- --game race_to_n`
+- `cargo run -p rule-coverage -- --game race_to_n`
+- `cargo test --workspace`
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+
+Boundary review:
+
+- `engine-core` remains noun-free for board/grid/cell/coordinate/line/pattern/occupancy primitives by `scripts/boundary-check.sh` and direct source review.
+- `game-stdlib` did not receive a board/grid helper; fixed-position occupancy and line detection remain local to `games/three_marks`.
+- `wasm-api` and `apps/web` transport and render Rust-owned game views/actions/replay projections; TypeScript does not decide legality, win/draw, bot choice, or diagnostics.
+- Static data remains typed metadata/content; game behavior lives in Rust.
+- Race to N simulation, replay, fixture, and rule-coverage checks passed after Three Marks registration.
 
 ---
 
