@@ -1,0 +1,11 @@
+{
+  "fixture_id": "column_four_standard_gate5",
+  "game_id": "column_four",
+  "variant": "column_four_standard",
+  "rules_version": "column_four-rules-v1",
+  "purpose": "Gate 5 Column Four replay and fixture coverage metadata.",
+  "trace_directory": "games/column_four/tests/golden_traces",
+  "trace_schema_version": 1,
+  "fixture_kinds": ["commands", "terminal", "diagnostic", "bot"],
+  "notes": "Fixture metadata only; behavior is owned by Rust tests and replay fixtures."
+}

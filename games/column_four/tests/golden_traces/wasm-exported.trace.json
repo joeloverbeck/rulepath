@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "trace_id": "column-four-wasm-exported",
+  "fixture_kind": "commands",
+  "purpose": "wasm_exported_command_replay",
+  "note": "A short public command stream represents the same JSON command shape the WASM bridge exports.",
+  "migration_update_note": "Initial Column Four Trace Schema v1 fixture; expected hashes are established by GAT5COLFOUPUB-010.",
+  "game_id": "column_four",
+  "rules_version": "column_four-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 11,
+  "variant": "column_four_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["drop/c4"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["drop/c3"], "freshness_token": "1", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat_0", "action_path": ["drop/c4"], "freshness_token": "2", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 2 }
+  ],
+  "expected_state_hashes": { "final": 3077100955446760059 },
+  "expected_effect_hashes": { "final": 13377435954677877442 },
+  "expected_action_tree_hashes": { "final": 7484632560849494922 },
+  "expected_public_view_hashes": { "all": 7549899616650256413 },
+  "expected_replay_hashes": { "final": 17914370280232611095 },
+  "expected_private_view_hashes": {
+    "not_applicable": "column_four is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "column_four is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "column_four game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "column_four has no private-view API.",
+    "preview_hashes": "column_four has no Rust preview surface in Gate 5."
+  }
+}
