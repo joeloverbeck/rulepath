@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "trace_id": "three-marks-draw",
+  "fixture_kind": "terminal",
+  "purpose": "representative_draw_replay",
+  "note": "Nine applied placements fill the board without a line and prove draw replay projection.",
+  "migration_update_note": "Initial Three Marks Trace Schema v1 fixture; expected hashes are established by GAT4THRMARBOA-007.",
+  "game_id": "three_marks",
+  "rules_version": "three_marks-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "three_marks_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["place/r1c1"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["place/r1c2"], "freshness_token": "1", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat_0", "action_path": ["place/r1c3"], "freshness_token": "2", "expect": "applied" },
+    { "index": 3, "actor_seat": "seat_1", "action_path": ["place/r2c2"], "freshness_token": "3", "expect": "applied" },
+    { "index": 4, "actor_seat": "seat_0", "action_path": ["place/r2c1"], "freshness_token": "4", "expect": "applied" },
+    { "index": 5, "actor_seat": "seat_1", "action_path": ["place/r2c3"], "freshness_token": "5", "expect": "applied" },
+    { "index": 6, "actor_seat": "seat_0", "action_path": ["place/r3c2"], "freshness_token": "6", "expect": "applied" },
+    { "index": 7, "actor_seat": "seat_1", "action_path": ["place/r3c1"], "freshness_token": "7", "expect": "applied" },
+    { "index": 8, "actor_seat": "seat_0", "action_path": ["place/r3c3"], "freshness_token": "8", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 8 }
+  ],
+  "expected_state_hashes": { "final": 13666016804862366645 },
+  "expected_effect_hashes": { "final": 15898185767849038190 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 5109758469995093522 },
+  "expected_replay_hashes": { "final": 3077301739997182042 },
+  "expected_private_view_hashes": {
+    "not_applicable": "three_marks is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": true, "winner": null, "draw": true },
+  "expected_terminal_state": { "terminal": true, "winner": null, "draw": true },
+  "not_applicable": {
+    "hidden_information": "three_marks is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "three_marks game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "three_marks has no private-view API.",
+    "preview_hashes": "three_marks has no Rust preview surface in Gate 4."
+  }
+}

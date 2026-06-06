@@ -1,6 +1,7 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
-import type { EffectEntry } from "../wasm/client";
+import type { EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
+import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
   replay: ReplaySessionState | null;
@@ -12,6 +13,9 @@ type ReplayViewerProps = {
 export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayViewerProps) {
   const step = replay?.step ?? null;
   const effects = step?.effects ?? [];
+  const latestReplayEffect = effects.at(-1);
+  const latestEntry: EffectEntry | null = latestReplayEffect && step ? { cursor: step.cursor, effect: latestReplayEffect } : null;
+  const threeMarksView: ThreeMarksPublicView | null = step && isThreeMarksView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -30,19 +34,26 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
           </div>
 
           <div className="replay-snapshot">
-            <div>
-              <span>Counter</span>
-              <strong>{step.view.counter} / {step.view.target}</strong>
-            </div>
-            <div>
-              <span>Turn</span>
-              <strong>{step.view.winner ? `${step.view.winner} won` : step.view.active_seat}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{step.done ? "Complete" : "In progress"}</strong>
-            </div>
+            {snapshotItems(step.view, step.done).map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
           </div>
+
+          {threeMarksView ? (
+            <div className="replay-board">
+              <ThreeMarksBoard
+                view={threeMarksView}
+                latestEffect={latestEntry}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : null}
 
           <ol className="replay-effects">
             {effects.length === 0 ? (
@@ -75,4 +86,46 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
       </div>
     </section>
   );
+}
+
+function PlacementSequence({ replay }: { replay: ReplaySessionState }) {
+  const commands = replay.document?.commands ?? [];
+  if (commands.length === 0) {
+    return null;
+  }
+
+  return (
+    <ol className="placement-sequence" aria-label="Replay command sequence">
+      {commands.map((command) => {
+        const isCurrent = command.index < replay.cursor;
+        return (
+          <li key={command.index} className={isCurrent ? "current" : ""}>
+            <span>{command.index + 1}</span>
+            <strong>{command.actor_seat}</strong>
+            <code>{command.action_path.join("/")}</code>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "three_marks");
+}
+
+function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {
+  if ("counter" in view) {
+    return [
+      { label: "Counter", value: `${view.counter} / ${view.target}` },
+      { label: "Turn", value: view.winner ? `${view.winner} won` : view.active_seat },
+      { label: "Status", value: done ? "Complete" : "In progress" },
+    ];
+  }
+
+  return [
+    { label: "Board", value: `${view.board_rows} x ${view.board_columns}` },
+    { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat },
+    { label: "Status", value: view.status_label },
+  ];
 }

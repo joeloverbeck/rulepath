@@ -148,6 +148,20 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
+assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+
+const threeMarks = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
+  ["three_marks"],
+);
+assert(threeMarks.match_id, "three_marks start match returns a match id");
+assert(threeMarks.variant_id === "three_marks_standard", "three_marks standard variant starts");
+const threeView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [threeMarks.match_id],
+);
+assert(threeView.game_id === "three_marks", "three_marks Rust view is returned");
+assert(threeView.variant_id === "three_marks_standard", "three_marks Rust view reports selected variant");
 
 const hotseat = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 2n),

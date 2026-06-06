@@ -35,8 +35,44 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "game_ended":
       return {
         title: "Game ended",
-        detail: `${payload.winner} won the match.`,
+        detail: payload.winner ? `${payload.winner} won the match.` : "The match ended.",
         tone: "terminal",
+      };
+    case "mark_placed":
+      return {
+        title: "Mark placed",
+        detail: `${payload.seat} placed on ${payload.cell}.`,
+        tone: "movement",
+      };
+    case "active_player_changed":
+      return {
+        title: "Turn changed",
+        detail: `${payload.active_seat} is now active.`,
+        tone: "turn",
+      };
+    case "line_completed":
+      return {
+        title: "Line completed",
+        detail: `${payload.winning_seat} completed a line.`,
+        tone: "terminal",
+      };
+    case "draw_reached":
+      return {
+        title: "Draw reached",
+        detail: "The board is full without a winner.",
+        tone: "terminal",
+      };
+    case "bot_chose_action":
+      return {
+        title: "Bot chose action",
+        detail: `${payload.policy_id} selected ${payload.action_id}.`,
+        tone: "neutral",
+      };
+    case "placement_rejected":
+      return {
+        title: "Placement rejected",
+        detail: String(payload.label ?? payload.reason ?? "Rejected"),
+        tone: "neutral",
       };
     case "action_completed":
       return {

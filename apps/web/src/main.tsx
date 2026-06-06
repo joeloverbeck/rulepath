@@ -12,14 +12,31 @@ import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
+import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
-import { loadApi, type ActionChoice, type ApiError, type PublicView } from "./wasm/client";
+import {
+  loadApi,
+  type ActionChoice,
+  type ApiError,
+  type PublicView,
+  type RacePublicView,
+  type ReplayDocument,
+  type SeatId,
+  type ThreeMarksPublicView,
+} from "./wasm/client";
 
 type AppTextState = {
   mode: "loading" | "ready" | "playing" | "error";
   version: string;
   matchId: string | null;
-  view: Pick<PublicView, "counter" | "target" | "active_seat" | "winner" | "freshness_token"> | null;
+  view:
+    | {
+        game_id: string;
+        active_seat: SeatId;
+        freshness_token: number;
+        status: string;
+      }
+    | null;
   choices: string[];
   effects: string[];
   diagnostic: ApiError | null;
@@ -40,7 +57,7 @@ function App() {
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
       const nextActorSeat = humanSeatForMode(state.setup.playMode, nextView);
       const nextTree =
-        nextActorSeat && nextView.winner === null
+        nextActorSeat && !isTerminalView(nextView)
           ? loadedApi.getActionTree(loadedMatchId, nextActorSeat)
           : { freshness_token: nextView.freshness_token, choices: [] };
 
@@ -115,7 +132,7 @@ function App() {
         dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
         if (
           state.setup.playMode === "human_vs_bot" &&
-          afterHuman.winner === null &&
+          !isTerminalView(afterHuman) &&
           botSeatForMode(state.setup.playMode, afterHuman.active_seat)
         ) {
           api.runBotTurn(matchId, afterHuman.active_seat, botSeed(afterHuman));
@@ -129,7 +146,7 @@ function App() {
   );
 
   const runBotStep = useCallback(() => {
-    if (!api || !matchId || !view || view.winner !== null || !botSeatForMode(state.setup.playMode, view.active_seat)) {
+    if (!api || !matchId || !view || isTerminalView(view) || !botSeatForMode(state.setup.playMode, view.active_seat)) {
       return;
     }
     dispatch({ type: "botTurnStarted" });
@@ -155,9 +172,10 @@ function App() {
       }
       dispatch({ type: "pendingOperationChanged", pendingOperation: "importReplay" });
       try {
+        const parsedDocument = parseReplayDocument(documentText);
         const imported = api.importReplay(documentText);
         const step = api.replayReset(imported.replay_id);
-        dispatch({ type: "replayImported", replayId: imported.replay_id, document: null, step });
+        dispatch({ type: "replayImported", replayId: imported.replay_id, document: parsedDocument, step });
       } catch (error: unknown) {
         dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
         throw error;
@@ -202,7 +220,7 @@ function App() {
       state.setup.playMode !== "bot_vs_bot" ||
       state.pendingOperation !== null ||
       !view ||
-      view.winner !== null
+      isTerminalView(view)
     ) {
       return;
     }
@@ -216,15 +234,7 @@ function App() {
       mode: state.mode === "play" || state.mode === "replay" ? "playing" : state.mode === "setup" ? "ready" : state.mode,
       version,
       matchId,
-      view: view
-        ? {
-            counter: view.counter,
-            target: view.target,
-            active_seat: view.active_seat,
-            winner: view.winner,
-            freshness_token: view.freshness_token,
-          }
-        : null,
+      view: view ? textView(view, state.selectedGameId) : null,
       choices: actionTree?.choices.map((choice) => choice.segment) ?? [],
       effects: effects.map(summarizeEffect),
       diagnostic,
@@ -260,7 +270,19 @@ function App() {
         <>
 
       <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
-        <RaceBoard view={view} latestEffect={latestEffect} />
+        {state.selectedGameId === "race_to_n" ? (
+          <RaceBoard view={isRaceView(view) ? view : null} latestEffect={latestEffect} />
+        ) : isThreeMarksView(view) ? (
+          <ThreeMarksBoard
+            view={view}
+            latestEffect={latestEffect}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
+        ) : (
+          <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
+        )}
 
         <ActionControls
           actionTree={actionTree}
@@ -345,8 +367,8 @@ createRoot(rootElement).render(
   </React.StrictMode>,
 );
 
-function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): "seat_0" | "seat_1" | null {
-  if (view.winner !== null) {
+function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): SeatId | null {
+  if (isTerminalView(view)) {
     return null;
   }
   if (playMode === "hotseat") {
@@ -358,7 +380,7 @@ function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): "seat_0" |
   return null;
 }
 
-function botSeatForMode(playMode: SetupPlayMode, seat: "seat_0" | "seat_1"): boolean {
+function botSeatForMode(playMode: SetupPlayMode, seat: SeatId): boolean {
   if (playMode === "bot_vs_bot") {
     return true;
   }
@@ -367,4 +389,78 @@ function botSeatForMode(playMode: SetupPlayMode, seat: "seat_0" | "seat_1"): boo
 
 function botSeed(view: PublicView): number {
   return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
+}
+
+function parseReplayDocument(documentText: string): ReplayDocument | null {
+  try {
+    return JSON.parse(documentText) as ReplayDocument;
+  } catch {
+    return null;
+  }
+}
+
+function isRaceView(view: PublicView | null): view is RacePublicView {
+  return Boolean(view && "counter" in view);
+}
+
+function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "three_marks");
+}
+
+function isTerminalView(view: PublicView): boolean {
+  if ("winner" in view) {
+    return view.winner !== null;
+  }
+  return view.terminal_kind !== "non_terminal";
+}
+
+function textView(view: PublicView, fallbackGameId: string): AppTextState["view"] {
+  if ("counter" in view) {
+    return {
+      game_id: fallbackGameId || "race_to_n",
+      active_seat: view.active_seat,
+      freshness_token: view.freshness_token,
+      status: view.winner ? `${view.winner} won` : `${view.counter} / ${view.target}`,
+    };
+  }
+  return {
+    game_id: view.game_id,
+    active_seat: view.active_seat,
+    freshness_token: view.freshness_token,
+    status: view.status_label,
+  };
+}
+
+function GenericGameSurface({
+  view,
+  selectedGameName,
+}: {
+  view: PublicView | null;
+  selectedGameName: string;
+}) {
+  const boardShape = view && "board_rows" in view ? `${view.board_rows} x ${view.board_columns}` : "Rust view";
+  const status = view ? ("status_label" in view ? view.status_label : `${view.active_seat} to move`) : "Ready";
+
+  return (
+    <section className="race-board generic-board" aria-label={`${selectedGameName} match`}>
+      <div className="scoreboard">
+        <div>
+          <span>Game</span>
+          <strong>{selectedGameName}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong data-testid="turn">{status}</strong>
+        </div>
+        <div>
+          <span>Token</span>
+          <strong>{view?.freshness_token ?? "--"}</strong>
+        </div>
+      </div>
+
+      <div className="board-status" role="status">
+        <span data-testid="three-marks-started">{view ? `${boardShape} match started from Rust` : "Waiting for Rust view"}</span>
+      </div>
+    </section>
+  );
 }

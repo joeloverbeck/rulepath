@@ -280,10 +280,8 @@ fn validate_report(report: &Report, thresholds: &ThresholdSet) -> Result<(), Str
 }
 
 fn extract_json_object(input: &str) -> Option<String> {
-    if let Some(start) = input.find("BEGIN_RACE_TO_N_BENCHMARK_JSON") {
-        let after_start = &input[start + "BEGIN_RACE_TO_N_BENCHMARK_JSON".len()..];
-        let end = after_start.find("END_RACE_TO_N_BENCHMARK_JSON")?;
-        return Some(after_start[..end].trim().to_owned());
+    if let Some(body) = extract_marked_json(input) {
+        return Some(body);
     }
     let trimmed = input.trim();
     if trimmed.starts_with('{') && trimmed.ends_with('}') {
@@ -291,6 +289,35 @@ fn extract_json_object(input: &str) -> Option<String> {
     } else {
         None
     }
+}
+
+/// Pull the JSON body out of a `BEGIN_<GAME>_BENCHMARK_JSON` / `END_<GAME>_BENCHMARK_JSON`
+/// block. The `<GAME>` token varies per game (`RACE_TO_N`, `THREE_MARKS`, ...), so the
+/// markers are matched structurally rather than by a fixed game name.
+fn extract_marked_json(input: &str) -> Option<String> {
+    const SUFFIX: &str = "_BENCHMARK_JSON";
+    let (_, begin_end) = marker_position(input, "BEGIN_", SUFFIX, 0)?;
+    let (end_start, _) = marker_position(input, "END_", SUFFIX, begin_end)?;
+    Some(input[begin_end..end_start].trim().to_owned())
+}
+
+/// Find a `<prefix><token><suffix>` marker at or after `from`, where `<token>` is a
+/// contiguous, whitespace-free game identifier. Returns the marker's (start, end) byte
+/// offsets. The whitespace check rejects an unrelated earlier `prefix` occurrence.
+fn marker_position(input: &str, prefix: &str, suffix: &str, from: usize) -> Option<(usize, usize)> {
+    let mut search = from;
+    while let Some(rel) = input[search..].find(prefix) {
+        let start = search + rel;
+        let token_start = start + prefix.len();
+        if let Some(srel) = input[token_start..].find(suffix) {
+            let token = &input[token_start..token_start + srel];
+            if !token.is_empty() && !token.contains(char::is_whitespace) {
+                return Some((start, token_start + srel + suffix.len()));
+            }
+        }
+        search = token_start;
+    }
+    None
 }
 
 fn validate_json_nesting(input: &str) -> Result<(), String> {
@@ -559,6 +586,16 @@ mod tests {
     fn marked_harness_output_is_accepted() {
         let input = format!(
             "human summary\nBEGIN_RACE_TO_N_BENCHMARK_JSON\n{}\nEND_RACE_TO_N_BENCHMARK_JSON\n",
+            valid_report()
+        );
+
+        validate(&input).unwrap();
+    }
+
+    #[test]
+    fn marked_harness_output_is_accepted_for_other_games() {
+        let input = format!(
+            "human summary\nBEGIN_THREE_MARKS_BENCHMARK_JSON\n{}\nEND_THREE_MARKS_BENCHMARK_JSON\n",
             valid_report()
         );
 

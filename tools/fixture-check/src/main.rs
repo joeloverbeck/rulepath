@@ -5,9 +5,6 @@ use std::{
     process,
 };
 
-const TRACE_DIR: &str = "games/race_to_n/tests/golden_traces";
-const FIXTURE_DIR: &str = "games/race_to_n/data/fixtures";
-
 const BEHAVIOR_KEYS: &[&str] = &[
     "when",
     "if",
@@ -50,6 +47,7 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_effect_hashes",
     "expected_action_tree_hashes",
     "expected_public_view_hashes",
+    "expected_replay_hashes",
     "expected_private_view_hashes",
     "expected_diagnostics",
     "expected_outcome",
@@ -67,6 +65,9 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "bot_policy",
     "bot_policy_version",
     "bot_seed",
+    "bot_level",
+    "policy_id",
+    "wasm_exported_trace",
     "id",
     "after_command_index",
     "final",
@@ -76,6 +77,8 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "hash",
     "terminal",
     "winner",
+    "draw",
+    "kind",
     "hidden_information",
     "stochastic_game_events",
     "private_view_hashes",
@@ -92,20 +95,24 @@ fn main() {
 
 fn run(args: Vec<String>) -> Result<(), String> {
     let config = Config::parse(args)?;
-    if config.game != "race_to_n" {
-        return Err(format!("unsupported game `{}`", config.game));
-    }
+    let game = resolve_game(&config.game)?;
 
     let mut failures = Vec::new();
     let mut seen_ids = HashSet::new();
 
     if let Some(trace) = &config.trace {
-        collect(validate_trace_path(trace, &mut seen_ids), &mut failures);
+        collect(
+            validate_trace_path(game, trace, &mut seen_ids),
+            &mut failures,
+        );
     } else {
-        collect(validate_static_data(), &mut failures);
-        collect(reject_yaml_paths(), &mut failures);
-        for path in trace_paths()? {
-            collect(validate_trace_path(&path, &mut seen_ids), &mut failures);
+        collect(validate_static_data(game), &mut failures);
+        collect(reject_yaml_paths(game), &mut failures);
+        for path in trace_paths(game)? {
+            collect(
+                validate_trace_path(game, &path, &mut seen_ids),
+                &mut failures,
+            );
         }
     }
 
@@ -114,6 +121,41 @@ fn run(args: Vec<String>) -> Result<(), String> {
         Ok(())
     } else {
         Err(failures.join("\n\n"))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct RegisteredGame {
+    game_id: &'static str,
+    rules_version: &'static str,
+    trace_dir: &'static str,
+    fixture_dir: &'static str,
+    manifest_path: &'static str,
+    variants_path: &'static str,
+    variant_id: &'static str,
+}
+
+fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
+    match game {
+        "race_to_n" => Ok(RegisteredGame {
+            game_id: "race_to_n",
+            rules_version: "race_to_n-rules-v1",
+            trace_dir: "games/race_to_n/tests/golden_traces",
+            fixture_dir: "games/race_to_n/data/fixtures",
+            manifest_path: "games/race_to_n/data/manifest.toml",
+            variants_path: "games/race_to_n/data/variants.toml",
+            variant_id: "race_to_21",
+        }),
+        "three_marks" => Ok(RegisteredGame {
+            game_id: "three_marks",
+            rules_version: "three_marks-rules-v1",
+            trace_dir: "games/three_marks/tests/golden_traces",
+            fixture_dir: "games/three_marks/data/fixtures",
+            manifest_path: "games/three_marks/data/manifest.toml",
+            variants_path: "games/three_marks/data/variants.toml",
+            variant_id: "three_marks_standard",
+        }),
+        _ => Err(format!("unsupported game `{game}`")),
     }
 }
 
@@ -165,15 +207,17 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
-    println!("  fixture-check --game race_to_n");
-    println!("  fixture-check --game race_to_n --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks>");
+    println!("  fixture-check --game <race_to_n|three_marks> --trace <path>");
 }
 
-fn trace_paths() -> Result<Vec<PathBuf>, String> {
+fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
     let mut paths = Vec::new();
-    for entry in fs::read_dir(TRACE_DIR).map_err(|error| format!("{TRACE_DIR}: {error}"))? {
+    for entry in
+        fs::read_dir(game.trace_dir).map_err(|error| format!("{}: {error}", game.trace_dir))?
+    {
         let path = entry
-            .map_err(|error| format!("{TRACE_DIR}: {error}"))?
+            .map_err(|error| format!("{}: {error}", game.trace_dir))?
             .path();
         if path.extension().and_then(|value| value.to_str()) == Some("json") {
             paths.push(path);
@@ -181,48 +225,81 @@ fn trace_paths() -> Result<Vec<PathBuf>, String> {
     }
     paths.sort();
     if paths.is_empty() {
-        return Err(format!("{TRACE_DIR}: no .json traces found"));
+        return Err(format!("{}: no .json traces found", game.trace_dir));
     }
     Ok(paths)
 }
 
-fn validate_static_data() -> Result<(), String> {
-    let manifest = race_to_n::load_manifest().map_err(|error| {
-        format!("games/race_to_n/data/manifest.toml: manifest parse failed: {error}")
-    })?;
-    let variants = race_to_n::load_variants().map_err(|error| {
-        format!("games/race_to_n/data/variants.toml: variants parse failed: {error}")
-    })?;
+fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
+    let (
+        manifest_game_id,
+        manifest_rules_version,
+        manifest_data_version,
+        manifest_schema_version,
+        selected_variant,
+    ) = match game.game_id {
+        "race_to_n" => {
+            let manifest = race_to_n::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = race_to_n::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "three_marks" => {
+            let manifest = three_marks::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = three_marks::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        _ => unreachable!("resolved games only"),
+    };
 
-    if manifest.game_id != "race_to_n" {
+    if manifest_game_id != game.game_id {
         return Err(format!(
-            "games/race_to_n/data/manifest.toml: game_id must be race_to_n, got `{}`",
-            manifest.game_id
+            "{}: game_id must be {}, got `{}`",
+            game.manifest_path, game.game_id, manifest_game_id
         ));
     }
-    if manifest.rules_version != 1 {
+    if manifest_rules_version != 1 {
         return Err(format!(
-            "games/race_to_n/data/manifest.toml: rules_version `{}` does not map to race_to_n-rules-v1",
-            manifest.rules_version
+            "{}: rules_version `{}` does not map to {}",
+            game.manifest_path, manifest_rules_version, game.rules_version
         ));
     }
-    if manifest.data_version != 1 || manifest.schema_version != 1 {
-        return Err(
-            "games/race_to_n/data/manifest.toml: data_version and schema_version must be 1"
-                .to_owned(),
-        );
-    }
-    if variants.selected.id != "race_to_21" {
+    if manifest_data_version != 1 || manifest_schema_version != 1 {
         return Err(format!(
-            "games/race_to_n/data/variants.toml: selected variant must be race_to_21, got `{}`",
-            variants.selected.id
+            "{}: data_version and schema_version must be 1",
+            game.manifest_path
+        ));
+    }
+    if selected_variant != game.variant_id {
+        return Err(format!(
+            "{}: selected variant must be {}, got `{}`",
+            game.variants_path, game.variant_id, selected_variant
         ));
     }
     Ok(())
 }
 
-fn reject_yaml_paths() -> Result<(), String> {
-    for root in [TRACE_DIR, FIXTURE_DIR, "reports"] {
+fn reject_yaml_paths(game: RegisteredGame) -> Result<(), String> {
+    for root in [game.trace_dir, game.fixture_dir, "reports"] {
         let root_path = Path::new(root);
         if !root_path.exists() {
             continue;
@@ -257,13 +334,22 @@ fn walk_files(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(files)
 }
 
-fn validate_trace_path(path: &Path, seen_ids: &mut HashSet<String>) -> Result<(), String> {
+fn validate_trace_path(
+    game: RegisteredGame,
+    path: &Path,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
     let input = fs::read_to_string(path)
         .map_err(|error| format!("{}: failed to read: {error}", path.display()))?;
-    validate_trace(path, &input, seen_ids)
+    validate_trace(game, path, &input, seen_ids)
 }
 
-fn validate_trace(path: &Path, input: &str, seen_ids: &mut HashSet<String>) -> Result<(), String> {
+fn validate_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
     validate_json_object(path, input)?;
     let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
     for key in keys {
@@ -322,13 +408,18 @@ fn validate_trace(path: &Path, input: &str, seen_ids: &mut HashSet<String>) -> R
     if required_number(path, input, "schema_version")? != 1 {
         return Err(format!("{}: schema_version must be 1", path.display()));
     }
-    if required_string(path, input, "game_id")? != "race_to_n" {
-        return Err(format!("{}: game_id must be race_to_n", path.display()));
-    }
-    if required_string(path, input, "rules_version")? != "race_to_n-rules-v1" {
+    if required_string(path, input, "game_id")? != game.game_id {
         return Err(format!(
-            "{}: rules_version must be race_to_n-rules-v1",
-            path.display()
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if required_string(path, input, "rules_version")? != game.rules_version {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
         ));
     }
     if required_string(path, input, "data_version")? != "1" {
@@ -502,7 +593,12 @@ mod tests {
 
     fn validate_one(input: &str) -> Result<(), String> {
         let mut seen = HashSet::new();
-        validate_trace(Path::new("fixture.trace.json"), input, &mut seen)
+        validate_trace(
+            resolve_game("race_to_n").unwrap(),
+            Path::new("fixture.trace.json"),
+            input,
+            &mut seen,
+        )
     }
 
     #[test]
@@ -532,8 +628,10 @@ mod tests {
     #[test]
     fn duplicate_id_fails() {
         let mut seen = HashSet::new();
-        validate_trace(Path::new("first.trace.json"), VALID, &mut seen).unwrap();
-        let err = validate_trace(Path::new("second.trace.json"), VALID, &mut seen).unwrap_err();
+        let game = resolve_game("race_to_n").unwrap();
+        validate_trace(game, Path::new("first.trace.json"), VALID, &mut seen).unwrap();
+        let err =
+            validate_trace(game, Path::new("second.trace.json"), VALID, &mut seen).unwrap_err();
 
         assert!(err.contains("duplicate trace_id `shortest-normal`"));
     }

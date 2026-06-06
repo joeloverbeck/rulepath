@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "trace_id": "three-marks-not-applicable",
+  "fixture_kind": "not_applicable",
+  "purpose": "not_applicable_replay_surfaces",
+  "note": "Documents hidden-information, stochastic rule-event, private-view, and preview surfaces that are not applicable to Three Marks.",
+  "migration_update_note": "Initial Three Marks Trace Schema v1 not-applicable fixture.",
+  "game_id": "three_marks",
+  "rules_version": "three_marks-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "three_marks_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": null }
+  ],
+  "expected_state_hashes": { "final": 0 },
+  "expected_effect_hashes": { "final": 0 },
+  "expected_action_tree_hashes": { "final": 0 },
+  "expected_public_view_hashes": { "all": 0 },
+  "expected_replay_hashes": { "final": 0 },
+  "expected_private_view_hashes": {
+    "not_applicable": "three_marks is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "three_marks is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "three_marks game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "three_marks has no private-view API.",
+    "preview_hashes": "three_marks has no Rust preview surface in Gate 4.",
+    "wasm_exported_trace": "The WASM-exported trace is produced in GAT4THRMARBOA-009."
+  }
+}

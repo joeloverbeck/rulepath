@@ -1,0 +1,7 @@
+variant_id = "three_marks_standard"
+display_name = "Three Marks"
+rules_version_label = "three_marks-rules-v1"
+seat_count = 2
+first_seat = 0
+cell_id_scheme = "r1c1_to_r3c3"
+ending = "line_win_or_full_board_draw"

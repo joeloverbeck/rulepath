@@ -9,6 +9,7 @@ repository.workspace = true
 ai-core = { path = "../ai-core" }
 engine-core = { path = "../engine-core" }
 race_to_n = { path = "../../games/race_to_n" }
+three_marks = { path = "../../games/three_marks" }
 
 [lib]
 path = "src/lib.rs"

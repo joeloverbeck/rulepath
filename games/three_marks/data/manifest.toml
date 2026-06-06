@@ -1,0 +1,11 @@
+game_id = "three_marks"
+display_name = "Three Marks"
+readiness = "foundation-smoke"
+rules_version = 1
+rules_version_label = "three_marks-rules-v1"
+data_version = 1
+schema_version = 1
+board_name = "board"
+cell_name = "cell"
+mark_name = "mark"
+seat_name = "seat"

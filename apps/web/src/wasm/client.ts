@@ -48,6 +48,7 @@ type WasmExports = {
 export type MatchCreated = {
   match_id: string;
   game_id: string;
+  variant_id?: string;
 };
 
 export type GameCatalogEntry = {
@@ -55,6 +56,7 @@ export type GameCatalogEntry = {
   display_name: string;
   rules_version: number;
   schema_version: number;
+  variants?: string[];
 };
 
 export type FeatureReport = {
@@ -63,14 +65,41 @@ export type FeatureReport = {
   features: string[];
 };
 
-export type PublicView = {
+export type SeatId = "seat_0" | "seat_1";
+
+export type RacePublicView = {
   counter: number;
   target: number;
   max_add: number;
-  active_seat: "seat_0" | "seat_1";
-  winner: "seat_0" | "seat_1" | null;
+  active_seat: SeatId;
+  winner: SeatId | null;
   freshness_token: number;
 };
+
+export type ThreeMarksPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "three_marks";
+  display_name: string;
+  variant_id: string;
+  rules_version_label: string;
+  board_rows: number;
+  board_columns: number;
+  cells: string[];
+  active_seat: SeatId;
+  ply_count: number;
+  status_label: string;
+  freshness_token: number;
+  legal_targets: string[];
+  terminal_kind: "non_terminal" | "win" | "draw";
+  winning_seat: SeatId | null;
+  winning_line: string[];
+  private_view_status: string;
+  hidden_fields: string[];
+  replay_step_index: number | null;
+};
+
+export type PublicView = RacePublicView | ThreeMarksPublicView;
 
 export type ActionChoice = {
   segment: string;
@@ -86,11 +115,12 @@ export type ActionTree = {
 export type EffectEntry = {
   cursor: number;
   effect: {
-    payload: {
-      type: string;
-      actor?: string;
-      next_actor?: string;
-      winner?: string;
+      payload: {
+        type: string;
+        [key: string]: unknown;
+        actor?: string;
+        next_actor?: string;
+        winner?: string;
       from?: number;
       to?: number;
       amount?: number;
@@ -133,8 +163,9 @@ export type ReplayDocument = {
   expected_action_tree_hashes: { final: number };
   expected_public_view_hashes: { all: number };
   expected_private_view_hashes: { not_applicable: string };
-  expected_outcome: { terminal: boolean; winner: string | null };
-  expected_terminal_state: { terminal: boolean; winner: string | null };
+  expected_replay_hashes?: { final: number };
+  expected_outcome: { terminal: boolean; winner: string | null; kind?: string };
+  expected_terminal_state: { terminal: boolean; winner: string | null; kind?: string };
   not_applicable: Record<string, string>;
 };
 

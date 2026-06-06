@@ -6,9 +6,14 @@ use std::{
 };
 
 use engine_core::HashValue;
-use race_to_n::replay_support::{replay_bot_action, replay_commands, replay_invalid, ReplayHashes};
-
-const DEFAULT_TRACE_DIR: &str = "games/race_to_n/tests/golden_traces";
+use race_to_n::replay_support::{
+    replay_bot_action as race_replay_bot_action, replay_commands as race_replay_commands,
+    replay_invalid as race_replay_invalid,
+};
+use three_marks::replay_support::{
+    replay_bot_action as three_replay_bot_action, replay_commands as three_replay_commands,
+    replay_diagnostic as three_replay_diagnostic, replay_stale as three_replay_stale,
+};
 
 fn main() {
     if let Err(error) = run(env::args().skip(1).collect()) {
@@ -19,9 +24,7 @@ fn main() {
 
 fn run(args: Vec<String>) -> Result<(), String> {
     let config = Config::parse(args)?;
-    if config.game != "race_to_n" {
-        return Err(format!("unsupported game `{}`", config.game));
-    }
+    let game = resolve_game(&config.game)?;
     if config.legacy_migration {
         return Err("legacy migration import is not implemented by replay-check".to_owned());
     }
@@ -30,7 +33,7 @@ fn run(args: Vec<String>) -> Result<(), String> {
     let mut seen_ids = HashSet::new();
     let mut failures = Vec::new();
     for path in trace_paths {
-        match check_trace_path(&path, &mut seen_ids) {
+        match check_trace_path(game, &path, &mut seen_ids) {
             Ok(()) => {}
             Err(error) => failures.push(error),
         }
@@ -42,6 +45,40 @@ fn run(args: Vec<String>) -> Result<(), String> {
     } else {
         Err(failures.join("\n\n"))
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct RegisteredGame {
+    game_id: &'static str,
+    rules_version: &'static str,
+    trace_dir: &'static str,
+}
+
+fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
+    match game {
+        "race_to_n" => Ok(RegisteredGame {
+            game_id: "race_to_n",
+            rules_version: "race_to_n-rules-v1",
+            trace_dir: "games/race_to_n/tests/golden_traces",
+        }),
+        "three_marks" => Ok(RegisteredGame {
+            game_id: "three_marks",
+            rules_version: "three_marks-rules-v1",
+            trace_dir: "games/three_marks/tests/golden_traces",
+        }),
+        _ => Err(format!("unsupported game `{game}`")),
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ActualHashes {
+    state_hash: HashValue,
+    effect_hash: HashValue,
+    action_tree_hash: HashValue,
+    view_hash: HashValue,
+    diagnostic_hash: Option<HashValue>,
+    terminal: bool,
+    winner: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -104,10 +141,13 @@ impl Config {
             return Ok(vec![trace.clone()]);
         }
 
-        let directory = self
-            .directory
-            .clone()
-            .unwrap_or_else(|| PathBuf::from(DEFAULT_TRACE_DIR));
+        let directory = self.directory.clone().unwrap_or_else(|| {
+            PathBuf::from(
+                resolve_game(&self.game)
+                    .expect("config game resolves")
+                    .trace_dir,
+            )
+        });
         let mut paths = Vec::new();
         for entry in fs::read_dir(&directory)
             .map_err(|error| format!("failed to read `{}`: {error}", directory.display()))?
@@ -140,19 +180,23 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
-    println!("  replay-check --game race_to_n --trace <path>");
-    println!("  replay-check --game race_to_n --directory <dir>");
-    println!("  replay-check --game race_to_n --all");
+    println!("  replay-check --game <race_to_n|three_marks> --trace <path>");
+    println!("  replay-check --game <race_to_n|three_marks> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks> --all");
 }
 
-fn check_trace_path(path: &Path, seen_ids: &mut HashSet<String>) -> Result<(), String> {
+fn check_trace_path(
+    game: RegisteredGame,
+    path: &Path,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
     let input = fs::read_to_string(path)
         .map_err(|error| format!("{}: failed to read: {error}", path.display()))?;
     let trace = Trace::parse(path, &input)?;
     if !seen_ids.insert(trace.trace_id.clone()) {
         return Err(trace.failure("duplicate trace_id in checked trace set"));
     }
-    trace.check()
+    trace.check(game)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -261,15 +305,14 @@ impl Trace {
                 "winner",
             )?,
         };
-        trace.validate_versions_and_required_surfaces()?;
         Ok(trace)
     }
 
-    fn validate_versions_and_required_surfaces(&self) -> Result<(), String> {
-        if self.game_id != "race_to_n" {
+    fn validate_versions_and_required_surfaces(&self, game: RegisteredGame) -> Result<(), String> {
+        if self.game_id != game.game_id {
             return Err(self.failure(&format!("unsupported trace game_id `{}`", self.game_id)));
         }
-        if self.rules_version != "race_to_n-rules-v1" {
+        if self.rules_version != game.rules_version {
             return Err(self.failure(&format!(
                 "unsupported rules_version `{}`",
                 self.rules_version
@@ -304,8 +347,9 @@ impl Trace {
         Ok(())
     }
 
-    fn check(&self) -> Result<(), String> {
-        let Some(actual) = self.actual_hashes()? else {
+    fn check(&self, game: RegisteredGame) -> Result<(), String> {
+        self.validate_versions_and_required_surfaces(game)?;
+        let Some(actual) = self.actual_hashes(game)? else {
             println!(
                 "{} {}: not-applicable trace accepted",
                 self.path.display(),
@@ -357,18 +401,16 @@ impl Trace {
             return Err(self.failure("unexpected diagnostic hash produced by replay"));
         }
 
-        let actual_terminal = actual.outcome.is_some();
-        if Some(actual_terminal) != self.expected_terminal {
+        if Some(actual.terminal) != self.expected_terminal {
             return Err(self.failure(&format!(
-                "terminal mismatch at checkpoint final: expected {:?}, actual {actual_terminal}",
-                self.expected_terminal
+                "terminal mismatch at checkpoint final: expected {:?}, actual {}",
+                self.expected_terminal, actual.terminal
             )));
         }
-        let actual_winner = actual.outcome.map(|winner| winner.as_str().to_owned());
-        if actual_winner != self.expected_winner {
+        if actual.winner != self.expected_winner {
             return Err(self.failure(&format!(
                 "outcome mismatch at checkpoint final: expected {:?}, actual {:?}",
-                self.expected_winner, actual_winner
+                self.expected_winner, actual.winner
             )));
         }
 
@@ -376,15 +418,23 @@ impl Trace {
         Ok(())
     }
 
-    fn actual_hashes(&self) -> Result<Option<ReplayHashes>, String> {
-        match self.fixture_kind.as_str() {
-            "commands" | "terminal" => Ok(Some(replay_commands(self.seed, &self.commands))),
-            "bot" => Ok(Some(replay_bot_action(
+    fn actual_hashes(&self, game: RegisteredGame) -> Result<Option<ActualHashes>, String> {
+        match game.game_id {
+            "race_to_n" => self.race_actual_hashes(),
+            "three_marks" => self.three_actual_hashes(),
+            _ => unreachable!("resolved games only"),
+        }
+    }
+
+    fn race_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let Some(hashes) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" => Some(race_replay_commands(self.seed, &self.commands)),
+            "bot" => Some(race_replay_bot_action(
                 self.seed,
                 self.bot_seed
                     .ok_or_else(|| self.failure("bot trace missing producer bot_seed"))?,
-            ))),
-            "invalid" | "diagnostic" => Ok(Some(replay_invalid(
+            )),
+            "invalid" | "diagnostic" => Some(race_replay_invalid(
                 self.seed,
                 self.invalid_command
                     .as_deref()
@@ -392,10 +442,59 @@ impl Trace {
                 self.stale_command
                     .as_deref()
                     .ok_or_else(|| self.failure("invalid trace missing stale command"))?,
-            ))),
-            "not_applicable" => Ok(None),
-            other => Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
-        }
+            )),
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: hashes.state_hash,
+            effect_hash: hashes.effect_hash,
+            action_tree_hash: hashes.action_tree_hash,
+            view_hash: hashes.view_hash,
+            diagnostic_hash: hashes.diagnostic_hash,
+            terminal: hashes.outcome.is_some(),
+            winner: hashes.outcome.map(|winner| winner.as_str().to_owned()),
+        }))
+    }
+
+    fn three_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let Some(hashes) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" => Some(three_replay_commands(self.seed, &self.commands)),
+            "bot" => Some(three_replay_bot_action(self.seed)),
+            "diagnostic" => {
+                if let Some(stale) = self.stale_command.as_deref() {
+                    Some(three_replay_stale(self.seed, stale))
+                } else {
+                    let diagnostic = self
+                        .commands
+                        .last()
+                        .cloned()
+                        .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
+                    let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+                    Some(three_replay_diagnostic(self.seed, &setup, &diagnostic))
+                }
+            }
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: hashes.state_hash,
+            effect_hash: hashes.effect_hash,
+            action_tree_hash: hashes.action_tree_hash,
+            view_hash: hashes.view_hash,
+            diagnostic_hash: hashes.diagnostic_hash,
+            terminal: hashes.terminal,
+            winner: hashes.outcome.and_then(|outcome| match outcome {
+                three_marks::TerminalOutcome::Win { seat, .. } => Some(seat.as_str().to_owned()),
+                three_marks::TerminalOutcome::Draw => None,
+            }),
+        }))
     }
 
     fn compare_hash(
@@ -493,6 +592,7 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_effect_hashes",
         "expected_action_tree_hashes",
         "expected_public_view_hashes",
+        "expected_replay_hashes",
         "expected_private_view_hashes",
         "expected_diagnostics",
         "expected_outcome",
@@ -779,14 +879,14 @@ mod tests {
     #[test]
     fn valid_trace_passes() {
         let trace = Trace::parse(Path::new("shortest-normal.trace.json"), VALID).unwrap();
-        trace.check().unwrap();
+        trace.check(resolve_game("race_to_n").unwrap()).unwrap();
     }
 
     #[test]
     fn corrupted_hash_fails() {
         let corrupted = VALID.replace("4954817074678372285", "4954817074678372286");
         let trace = Trace::parse(Path::new("shortest-normal.trace.json"), &corrupted).unwrap();
-        let error = trace.check().unwrap_err();
+        let error = trace.check(resolve_game("race_to_n").unwrap()).unwrap_err();
 
         assert!(error.contains("state hash drift"));
         assert!(error.contains("expected: 4954817074678372286"));

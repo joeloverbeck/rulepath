@@ -1,9 +1,9 @@
-import type { ActionChoice, ActionTree, PublicView } from "../wasm/client";
+import type { ActionChoice, ActionTree, PublicView, SeatId } from "../wasm/client";
 
 type ActionControlsProps = {
   actionTree: ActionTree | null;
   view: PublicView | null;
-  actorSeat: "seat_0" | "seat_1" | null;
+  actorSeat: SeatId | null;
   pending: boolean;
   onChoice: (choice: ActionChoice) => void;
   onRestart: () => void;
@@ -11,7 +11,7 @@ type ActionControlsProps = {
 
 export function ActionControls({ actionTree, view, actorSeat, pending, onChoice, onRestart }: ActionControlsProps) {
   const choices = actionTree?.choices ?? [];
-  const isTerminal = view?.winner !== null && view?.winner !== undefined;
+  const isTerminal = isTerminalView(view);
   const isActorTurn = actorSeat !== null && view?.active_seat === actorSeat;
   const controlsDisabled = pending || !isActorTurn || isTerminal;
 
@@ -45,4 +45,14 @@ export function ActionControls({ actionTree, view, actorSeat, pending, onChoice,
       </div>
     </section>
   );
+}
+
+function isTerminalView(view: PublicView | null): boolean {
+  if (!view) {
+    return false;
+  }
+  if ("winner" in view) {
+    return view.winner !== null;
+  }
+  return view.terminal_kind !== "non_terminal";
 }

@@ -30,14 +30,26 @@ jobs:
       - name: race_to_n quick simulation
         run: cargo run -p simulate -- --game race_to_n --games 1000
 
+      - name: three_marks quick simulation
+        run: cargo run -p simulate -- --game three_marks --games 1000
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
+
+      - name: Three Marks replay drift check
+        run: cargo run -p replay-check -- --game three_marks --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
 
+      - name: Three Marks fixture validation
+        run: cargo run -p fixture-check -- --game three_marks
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
+
+      - name: Three Marks rule coverage drift check
+        run: cargo run -p rule-coverage -- --game three_marks
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
