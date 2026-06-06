@@ -1601,3 +1601,28 @@ Gate 3 conclusion: keyboard/focus/accessibility/reduced-motion requirements are 
 ## Appendix B — Gate 3 one-sentence success definition
 
 Gate 3 succeeds when a reviewer can build the static app locally, open it in a browser, select and play Race-to-N through Rust/WASM legal actions and bot turns, inspect safe replay/dev information, export/import and step a replay, verify keyboard/reduced-motion basics, and see a coherent public-presentable shell with no TypeScript rule authority and no backend.
+
+## Outcome
+
+Completed on 2026-06-06.
+
+What changed:
+
+- Added the typed TypeScript WASM client and kept the raw ABI behind that module.
+- Added Rust WASM catalog, feature report, and replay operation groups.
+- Built the reducer-backed React shell with game picker, setup, Race to 21 board, Rust action controls, effect log, play modes, replay UI, developer panel, reduced-motion handling, and base-aware static WASM loading.
+- Added raw-ABI, shell-state, static-dist, rendered-browser, accessibility, and no-leak smoke coverage.
+- Documented the WASM client boundary, web commands/static serving, Race to 21 UI status, replay safety, and developer-panel whitelist.
+
+Deviations:
+
+- Puppeteer uses system Chrome by default through `/usr/bin/google-chrome` or `PUPPETEER_EXECUTABLE_PATH`; Puppeteer browser download was skipped during installation because the environment already has Chrome.
+- The replay/no-leak review whitelists `expected_private_view_hashes.not_applicable` as the schema's explicit perfect-information marker.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:preview`
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run build`
+- `node scripts/check-doc-links.mjs`
