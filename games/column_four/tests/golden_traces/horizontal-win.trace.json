@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "trace_id": "column-four-horizontal-win",
+  "fixture_kind": "commands",
+  "purpose": "horizontal_win_replay",
+  "note": "Seat_0 completes the bottom-row horizontal line across columns one through four.",
+  "migration_update_note": "Initial Column Four Trace Schema v1 fixture; expected hashes are established by GAT5COLFOUPUB-010.",
+  "game_id": "column_four",
+  "rules_version": "column_four-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 3,
+  "variant": "column_four_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["drop/c1"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["drop/c1"], "freshness_token": "1", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat_0", "action_path": ["drop/c2"], "freshness_token": "2", "expect": "applied" },
+    { "index": 3, "actor_seat": "seat_1", "action_path": ["drop/c2"], "freshness_token": "3", "expect": "applied" },
+    { "index": 4, "actor_seat": "seat_0", "action_path": ["drop/c3"], "freshness_token": "4", "expect": "applied" },
+    { "index": 5, "actor_seat": "seat_1", "action_path": ["drop/c3"], "freshness_token": "5", "expect": "applied" },
+    { "index": 6, "actor_seat": "seat_0", "action_path": ["drop/c4"], "freshness_token": "6", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 6 }
+  ],
+  "expected_state_hashes": { "final": 11714840577993666397 },
+  "expected_effect_hashes": { "final": 12384136324972132347 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 1081769302893956693 },
+  "expected_replay_hashes": { "final": 182266735753928447 },
+  "expected_private_view_hashes": {
+    "not_applicable": "column_four is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": true, "winner": "seat_0", "draw": false },
+  "expected_terminal_state": { "terminal": true, "winner": "seat_0", "draw": false },
+  "not_applicable": {
+    "hidden_information": "column_four is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "column_four game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "column_four has no private-view API.",
+    "preview_hashes": "column_four has no Rust preview surface in Gate 5."
+  }
+}

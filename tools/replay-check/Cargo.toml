@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+column_four = { path = "../../games/column_four" }
 engine-core = { path = "../../crates/engine-core" }
 race_to_n = { path = "../../games/race_to_n" }
 three_marks = { path = "../../games/three_marks" }

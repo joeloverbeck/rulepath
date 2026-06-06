@@ -1,0 +1,15 @@
+game_id = "column_four"
+display_name = "Column Four"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "column_four-rules-v1"
+data_version = 1
+schema_version = 1
+board_name = "board"
+column_name = "column"
+row_name = "row"
+cell_name = "cell"
+piece_name = "piece"
+seat_name = "seat"
+board_columns = 7
+board_rows = 6

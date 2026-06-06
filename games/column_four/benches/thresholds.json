@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "game_id": "column_four",
+  "rules_version": "column_four-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "legal_actions",
+      "unit": "trees_per_second",
+      "threshold": 200000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for the seven-column legal action tree."
+    },
+    {
+      "operation_name": "apply_action",
+      "unit": "actions_per_second",
+      "threshold": 200000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for validation plus gravity placement."
+    },
+    {
+      "operation_name": "public_view_generation",
+      "unit": "views_per_second",
+      "threshold": 100000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for Rust-projected public board views."
+    },
+    {
+      "operation_name": "replay_step_projection",
+      "unit": "projections_per_second",
+      "threshold": 45000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for replay step board/effect projection."
+    },
+    {
+      "operation_name": "serialization_roundtrip",
+      "unit": "roundtrips_per_second",
+      "threshold": 50000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for replay JSON serialization round trips."
+    },
+    {
+      "operation_name": "replay_throughput",
+      "unit": "replays_per_second",
+      "threshold": 4000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for deterministic seven-command win replay."
+    },
+    {
+      "operation_name": "random_playout",
+      "unit": "games_per_second",
+      "threshold": 10000,
+      "rationale_class": "measured_baseline_provisional_target_miss",
+      "rationale": "First local native smoke measurement missed the provisional 100,000+ games/sec target; BENCHMARKS.md keeps the miss visible."
+    },
+    {
+      "operation_name": "level0_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 100000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for seeded random legal selection."
+    },
+    {
+      "operation_name": "level2_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 4000,
+      "rationale_class": "measured_baseline",
+      "rationale": "Initial floor below the first local native smoke measurement for authored tactical selection."
+    }
+  ]
+}

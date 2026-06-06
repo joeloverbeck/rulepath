@@ -1,0 +1,9 @@
+variant_id = "column_four_standard"
+display_name = "Column Four"
+rules_version_label = "column_four-rules-v1"
+seat_count = 2
+first_seat = 0
+board_columns = 7
+board_rows = 6
+cell_id_scheme = "r1c1_to_r6c7_bottom_to_top"
+ending = "four_line_win_or_full_board_draw"

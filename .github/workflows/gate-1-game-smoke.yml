@@ -33,11 +33,17 @@ jobs:
       - name: three_marks quick simulation
         run: cargo run -p simulate -- --game three_marks --games 1000
 
+      - name: column_four quick simulation
+        run: cargo run -p simulate -- --game column_four --games 1000
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
 
       - name: Three Marks replay drift check
         run: cargo run -p replay-check -- --game three_marks --all
+
+      - name: Column Four replay drift check
+        run: cargo run -p replay-check -- --game column_four --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
@@ -45,29 +51,39 @@ jobs:
       - name: Three Marks fixture validation
         run: cargo run -p fixture-check -- --game three_marks
 
+      - name: Column Four fixture validation
+        run: cargo run -p fixture-check -- --game column_four
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
 
       - name: Three Marks rule coverage drift check
         run: cargo run -p rule-coverage -- --game three_marks
 
+      - name: Column Four rule coverage drift check
+        run: cargo run -p rule-coverage -- --game column_four
+
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
 
-      - name: WASM smoke
-        run: npm --prefix apps/web run smoke:wasm
-
-      - name: Web build
+      - name: Build web artifacts
         run: npm --prefix apps/web run build
 
+      - name: WASM smoke
+        run: node apps/web/scripts/smoke-load-wasm.mjs
+
       - name: race_to_n UI smoke
-        run: npm --prefix apps/web run smoke:ui
+        run: node apps/web/scripts/smoke-ui.mjs
 
       - name: Static preview smoke
-        run: npm --prefix apps/web run smoke:preview
+        run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Browser shell + a11y/no-leak E2E
-        run: npm --prefix apps/web run smoke:e2e
+      - name: Browser shell + a11y/no-leak E2E including column_four
+        run: |
+          node apps/web/e2e/shell.smoke.mjs
+          node apps/web/e2e/a11y-noleak.smoke.mjs
+          node apps/web/e2e/three-marks.smoke.mjs
+          node apps/web/e2e/column-four.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs

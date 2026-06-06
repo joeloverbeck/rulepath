@@ -51,6 +51,7 @@ for (const op of ["new_match", "get_view", "apply_action", "export_replay", "imp
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "list_games includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "list_games includes three_marks");
+assert(catalog.some((game) => game.game_id === "column_four"), "list_games includes column_four");
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),
@@ -209,6 +210,157 @@ const threeImportedReplay = invoke(
 assert(threeImportedReplay.game_id === "three_marks", "three_marks import_replay preserves game id");
 assert(threeImportedReplay.command_count === threeExportedReplay.commands.length, "three_marks import preserves command count");
 
+const columnCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
+  ["column_four"],
+);
+assert(columnCreated.match_id, "column_four new_match returns a match id");
+assert(columnCreated.variant_id === "column_four_standard", "column_four starts standard variant");
+
+const columnView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [columnCreated.match_id],
+);
+assert(columnView.game_id === "column_four", "column_four view is game-specific");
+assert(columnView.variant_id === "column_four_standard", "column_four view reports standard variant");
+assert(columnView.board_rows === 6 && columnView.board_columns === 7, "column_four projects a 7x6 board");
+assert(columnView.cells.length === 42, "column_four projects 42 cells");
+assert(columnView.legal_targets.length === 7, "column_four starts with seven legal columns");
+assert(columnView.private_view_status === "not_applicable_perfect_information", "column_four private view is explicitly not applicable");
+assert(columnView.hidden_fields.length === 0, "column_four exposes no hidden fields");
+
+const columnTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [columnCreated.match_id, "seat_0"],
+);
+assert(columnTree.choices.length === 7, "column_four action tree exposes seven legal columns");
+assert(columnTree.choices.some((choice) => choice.segment === "drop/c4"), "column_four action tree exposes center drop");
+
+const columnAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(columnTree.freshness_token),
+    ),
+  [columnCreated.match_id, "seat_0", "drop/c4"],
+);
+assert(columnAfterHuman.view.ply_count === 1, "column_four human drop advances ply");
+assert(columnAfterHuman.view.cells.some((cell) => cell.cell === "r1c4" && cell.owner === "seat_0"), "column_four drop lands in Rust-projected cell");
+assert(columnAfterHuman.effects.some((effect) => effect.payload.type === "piece_landed"), "column_four emits semantic landing effect");
+
+let columnStaleDiagnostic = null;
+try {
+  invoke(
+    (args) =>
+      wasm.rulepath_apply_action(
+        args[0].ptr,
+        args[0].len,
+        args[1].ptr,
+        args[1].len,
+        args[2].ptr,
+        args[2].len,
+        BigInt(columnTree.freshness_token),
+      ),
+    [columnCreated.match_id, "seat_1", "drop/c3"],
+  );
+} catch (error) {
+  columnStaleDiagnostic = error.diagnostic;
+}
+assert(columnStaleDiagnostic?.code === "stale_action", "column_four stale submission returns typed diagnostic");
+
+const columnFullCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 14n),
+  ["column_four"],
+);
+for (let index = 0; index < 6; index += 1) {
+  invoke(
+    (args) =>
+      wasm.rulepath_apply_action(
+        args[0].ptr,
+        args[0].len,
+        args[1].ptr,
+        args[1].len,
+        args[2].ptr,
+        args[2].len,
+        BigInt(index),
+      ),
+    [columnFullCreated.match_id, index % 2 === 0 ? "seat_0" : "seat_1", "drop/c1"],
+  );
+}
+let fullColumnDiagnostic = null;
+try {
+  invoke(
+    (args) =>
+      wasm.rulepath_apply_action(
+        args[0].ptr,
+        args[0].len,
+        args[1].ptr,
+        args[1].len,
+        args[2].ptr,
+        args[2].len,
+        6n,
+      ),
+    [columnFullCreated.match_id, "seat_0", "drop/c1"],
+  );
+} catch (error) {
+  fullColumnDiagnostic = error.diagnostic;
+}
+assert(fullColumnDiagnostic?.code === "full_column", "column_four full column returns typed diagnostic");
+
+const columnBotCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 15n),
+  ["column_four"],
+);
+const columnAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 44n),
+  [columnBotCreated.match_id, "seat_0"],
+);
+assert(columnAfterBot.view.ply_count === 1, "column_four bot turn applies a Rust-selected drop");
+assert(columnAfterBot.effects.some((effect) => effect.payload.type === "bot_chose_action"), "column_four bot emits semantic bot-choice effect");
+assert(columnAfterBot.effects.some((effect) => typeof effect.payload.rationale === "string"), "column_four bot rationale is public prose");
+
+const columnEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n, 0, 0),
+  [columnBotCreated.match_id],
+);
+assert(columnEffects.some((entry) => entry.effect.payload.type === "bot_chose_action"), "column_four effect log returns bot effect");
+
+const columnExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [columnBotCreated.match_id],
+);
+assert(columnExportedReplay.game_id === "column_four", "column_four export_replay preserves game id");
+assert(columnExportedReplay.rules_version === "column_four-rules-v1", "column_four export_replay preserves rules version");
+assert(columnExportedReplay.expected_replay_hashes.final, "column_four export includes replay hash");
+
+const columnImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(columnExportedReplay)],
+);
+assert(columnImportedReplay.game_id === "column_four", "column_four import_replay preserves game id");
+assert(columnImportedReplay.command_count === columnExportedReplay.commands.length, "column_four import preserves command count");
+
+const columnReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [columnImportedReplay.replay_id],
+);
+assert(columnReplayReset.cursor === 0, "column_four replay reset returns cursor zero");
+assert(columnReplayReset.view.ply_count === 0, "column_four replay reset projects initial state");
+
+const columnReplayStep = invoke(
+  (args) => wasm.rulepath_replay_step(args[0].ptr, args[0].len, 1),
+  [columnImportedReplay.replay_id],
+);
+assert(columnReplayStep.cursor === 1, "column_four replay step advances to requested cursor");
+assert(columnReplayStep.view.ply_count === 1, "column_four replay step projects applied drop");
+
 console.log(
   JSON.stringify({
     version,
@@ -216,9 +368,12 @@ console.log(
     games: catalog.length,
     match_id: created.match_id,
     three_marks_match_id: threeCreated.match_id,
+    column_four_match_id: columnCreated.match_id,
     effects: effects.length,
     diagnostic: staleDiagnostic.code,
+    column_diagnostic: columnStaleDiagnostic.code,
     replay_cursor: replayStep.cursor,
+    column_replay_cursor: columnReplayStep.cursor,
   }),
 );
 

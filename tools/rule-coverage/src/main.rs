@@ -44,6 +44,12 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             coverage_path: "games/three_marks/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/three_marks/docs/BENCHMARKS.md",
         }),
+        "column_four" => Ok(RegisteredGame {
+            game_id: "column_four",
+            rules_path: "games/column_four/docs/RULES.md",
+            coverage_path: "games/column_four/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/column_four/docs/BENCHMARKS.md",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -61,7 +67,7 @@ impl Config {
             match arg.as_str() {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
-                    println!("usage: rule-coverage --game <race_to_n|three_marks>");
+                    println!("usage: rule-coverage --game <race_to_n|three_marks|column_four>");
                     process::exit(0);
                 }
                 "--game" => {
@@ -170,7 +176,7 @@ fn extract_rule_ids(input: &str) -> Vec<String> {
 fn is_rule_id(value: &str) -> bool {
     let parts = value.split('-').collect::<Vec<_>>();
     parts.len() == 3
-        && matches!(parts[0], "R" | "TM")
+        && matches!(parts[0], "R" | "TM" | "CF")
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())
         && parts[2].len() == 3

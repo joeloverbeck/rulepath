@@ -18,3 +18,30 @@ Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and c
   - `npm --prefix apps/web run smoke:e2e`
   - `npm --prefix apps/web run build`
 - Boundary notes: TypeScript remains presentation-only; legal actions, validation, effects, bots, replay projection, diagnostics, and public views come from Rust/WASM.
+
+## Gate 5 Column Four public polish
+
+- Completed on 2026-06-06 for `column_four` / Column Four.
+- Added a full official game crate with local typed grid/column/gravity/line rules, public view projection, semantic effects, replay support, golden traces, fixtures, Level 0 and Level 2 bots, native benchmarks, WASM registration, CLI tool registration, and a first-class React/SVG board.
+- Added the browser proof surface: seven Rust-legal column controls, Rust landing previews, effect-log-driven landed-piece animation, terminal win/draw display, public bot rationale, replay projection, keyboard path, reduced-motion handling, and DOM/storage/console/replay no-leak checks.
+- Updated CI gates to run Column Four simulation, replay drift, fixture validation, rule coverage, WASM smoke, browser E2E, and benchmark lanes.
+- Acceptance evidence:
+  - `cargo test --workspace`
+  - `cargo run -p simulate -- --game column_four --games 1000`
+  - `cargo run -p replay-check -- --game column_four --all`
+  - `cargo run -p fixture-check -- --game column_four`
+  - `cargo run -p rule-coverage -- --game column_four`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:e2e`
+  - `bash scripts/boundary-check.sh`
+  - `node scripts/check-doc-links.mjs`
+- ROADMAP Gate 5 exit mapping:
+  - public page feels polished: `ColumnFourBoard` plus `column-four.smoke.mjs`
+  - legal columns only are clickable: Rust legal targets, full-column inertness smoke, fixture/replay coverage
+  - previews are Rust-safe: hover/focus preview from Rust `landing_preview`
+  - animations come from semantic effects: landed-piece class from Rust `piece_landed`; reduced-motion smoke
+  - bot explanations are available: Level 2 public rationale in bot effects and browser smoke
+  - replay viewer smoke passes: export/import/step renders `ColumnFourBoard`
+  - benchmark and UI smoke coverage exists: `cargo bench -p column_four` plus `smoke:e2e`
+  - mechanic atlas records repeated coordinate/line pressure: `docs/MECHANIC-ATLAS.md`
+- Boundary notes: fixed-grid, coordinate/targeted placement, line detection, terminal-line highlighting, column actions, and gravity are recorded as local or repeated-shape pressure only. No `engine-core` or `game-stdlib` extraction occurred.

@@ -7,6 +7,7 @@ repository.workspace = true
 
 [dependencies]
 ai-core = { path = "../ai-core" }
+column_four = { path = "../../games/column_four" }
 engine-core = { path = "../engine-core" }
 race_to_n = { path = "../../games/race_to_n" }
 three_marks = { path = "../../games/three_marks" }

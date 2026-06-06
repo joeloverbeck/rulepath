@@ -39,7 +39,7 @@ Steps 1–7 are the audit. Step 8 (follow-up implementation) fires only if the u
    - Outcomes that diverged from what the skill intended
    - Steps not exercised this session (mark "not exercised" — do not speculate about them)
 
-   **Self-audit** (target is `skill-audit` itself): use evidence from any prior audit invocation(s) this session. If there were none, report "No session evidence available — self-audit with no prior invocations" and skip steps 3–6.
+   **Self-audit** (target is `skill-audit` itself): use evidence from any prior audit invocation(s) this session — including any Step 8 follow-up-implementation phase, not just the Steps 1–7 audit phase (the cascade scan, post-edit verification, and cross-skill scan run in Step 8 and often surface the richest self-audit evidence). If there were none, report "No session evidence available — self-audit with no prior invocations" and skip steps 3–6.
 
 4. **Cross-check alignment.** For each finding, check whether the skill contradicts or fails to implement:
    - Principles from `docs/FOUNDATIONS.md` (reference by § number, including the §12 stop conditions)
@@ -56,7 +56,7 @@ Steps 1–7 are the audit. Step 8 (follow-up implementation) fires only if the u
    - **MEDIUM** — friction that cost non-trivial improvisation or non-obvious judgment to work around; the right outcome still emerged, but the path wasn't smooth.
    - **LOW** — wording refinement, coverage gap, or polish that didn't block progress.
 
-   **Pre-finalization verification** — before finalizing any finding tagged MEDIUM or higher whose Suggestion or Skill-gap field claims content is absent, missing, or undocumented, or mis-cites a specific location (phrasings like "Add X", "there is no documented Y", "the skill never mentions Z", "§W currently reads…"), verify the claim by a Read or grep of the cited file/section *before* writing the finding. The 30-second check keeps the report's premises true to the file's actual state, rather than to which content you happened to load. LOW findings are exempt from the mandatory check, but verify ad-hoc when you're unsure a claim holds.
+   **Pre-finalization verification** — before finalizing any finding tagged MEDIUM or higher whose Suggestion or Skill-gap field claims content is absent, missing, or undocumented, or mis-cites a specific location (phrasings like "Add X", "there is no documented Y", "the skill never mentions Z", "§W currently reads…"), verify the claim by a Read or grep of the cited file/section *before* writing the finding. The 30-second check keeps the report's premises true to the file's actual state, rather than to which content you happened to load. For MEDIUM+ absence/miscitation claims this fresh check is **required** and **in-context content does not discharge it** when that content is partial or loaded earlier in the session — this case overrides Step 1's general "a Read is satisfied by in-context content" allowance. LOW findings are exempt from the mandatory check, but verify ad-hoc when you're unsure a claim holds.
 
 7. **Present the report** using the template below. Output it to the conversation — do not write a file, do not modify the target.
 
@@ -131,7 +131,7 @@ After the report, the user may ask you to implement specific findings (or all of
 
 ## Cross-skill note
 
-This repo currently has one sibling skill, `brainstorm`. A cross-skill check matters only when a follow-up edit introduces or changes terminology, a convention, or an output path that `brainstorm` also relies on — in that case, grep `brainstorm` for the affected token and record the outcome (`Scanned brainstorm via grep for <token> — no inconsistencies`, or name what was adjusted). When no edit touches a shared surface, omit any cross-skill section entirely. As the skill ecosystem grows, extend the scan to the relevant siblings.
+This repo has several sibling skills — enumerate the current set with `ls .claude/skills/` rather than assuming a fixed list (at audit time it includes `brainstorm`, `reassess-spec`, `skill-audit`, and `spec-to-tickets`). A cross-skill check matters only when a follow-up edit introduces or changes terminology, a convention, or an output path a sibling also relies on — in that case, grep each affected sibling for the token and record the outcome (`Scanned <sibling> via grep for <token> — no inconsistencies`, or name what was adjusted). Pay particular attention to the spec/ticket pipeline coupling: `brainstorm` → `reassess-spec` → `spec-to-tickets` share the canonical-spec section set and the `specs/` → `tickets/` output paths, so an edit to any one that touches that surface should be checked against the others. When no edit touches a shared surface, omit any cross-skill section entirely.
 
 ## Auxiliary investigation and announcements
 

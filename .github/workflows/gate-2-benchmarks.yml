@@ -4,7 +4,7 @@ name: Gate 2 benchmarks
 # - pull_request runs a non-gating bench smoke (compile + run, no thresholds),
 #   because shared GitHub runners are not a valid throughput-gating environment.
 # - schedule / workflow_dispatch / push-to-main run the hard-failing threshold
-#   gate via bench-report against games/race_to_n/benches/thresholds.json.
+#   gate via bench-report against each game threshold file.
 on:
   pull_request:
   push:
@@ -29,6 +29,9 @@ jobs:
       - name: three_marks bench smoke
         run: cargo bench -p three_marks -- legal_actions
 
+      - name: column_four bench smoke
+        run: cargo bench -p column_four -- legal_actions
+
   bench-gate:
     name: Benchmark threshold gate
     if: github.event_name != 'pull_request'
@@ -44,3 +47,5 @@ jobs:
           cargo run -p bench-report -- --input /tmp/race_to_n-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json
           cargo bench -p three_marks | tee /tmp/three_marks-benchmark-report.txt
           cargo run -p bench-report -- --input /tmp/three_marks-benchmark-report.txt --thresholds games/three_marks/benches/thresholds.json
+          cargo bench -p column_four | tee /tmp/column_four-benchmark-report.txt
+          cargo run -p bench-report -- --input /tmp/column_four-benchmark-report.txt --thresholds games/column_four/benches/thresholds.json

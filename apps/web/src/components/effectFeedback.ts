@@ -44,6 +44,18 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.seat} placed on ${payload.cell}.`,
         tone: "movement",
       };
+    case "drop_accepted":
+      return {
+        title: "Drop accepted",
+        detail: `${payload.seat} chose ${payload.column}.`,
+        tone: "neutral",
+      };
+    case "piece_landed":
+      return {
+        title: "Piece landed",
+        detail: `${payload.seat} landed on ${payload.cell}.`,
+        tone: "movement",
+      };
     case "active_player_changed":
       return {
         title: "Turn changed",
@@ -56,7 +68,14 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.winning_seat} completed a line.`,
         tone: "terminal",
       };
+    case "win_detected":
+      return {
+        title: "Win detected",
+        detail: `${payload.winning_seat} completed a line.`,
+        tone: "terminal",
+      };
     case "draw_reached":
+    case "draw_detected":
       return {
         title: "Draw reached",
         detail: "The board is full without a winner.",

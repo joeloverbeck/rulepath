@@ -112,6 +112,8 @@ Classify the spec into exactly one of four classes. Classification drives which 
 
 **Hybrid specs**: apply the union of applicable substeps, using the most rigorous classification's checklist for shared substeps.
 
+**Externally-generated / commit-pinned specs**: when the spec carries generation-harness scaffolding — a commit-pinned evidence ledger (lists of raw source URLs at a fixed SHA), "exact-commit workflow" / fetch-discipline boilerplate, contamination checks, or references to a foreign repository — treat stripping that scaffolding as an expected HIGH Issue at Step 5, and route any genuine provenance into a normal source-reference section. This is orthogonal to the (a)–(d) class: tag it alongside whichever class the spec's deliverables fall under.
+
 **Re-reassessment shortcut**: if the same spec was reassessed earlier this session and not externally modified, Steps 2–3 may scope to only the references affected by the triggering change. Step 1 still applies.
 
 ## Step 1: Mandatory Reads
@@ -138,7 +140,7 @@ Extract every concrete codebase reference from the spec:
 - **Code / tree / schema examples** (Rust signatures, JSON/TOML schema snippets, directory trees) — extract for fidelity checking.
 - **Verification surfaces / thresholds** — exit-criteria rows, acceptance-evidence categories, benchmark thresholds, and severity mappings (warning vs blocker per FOUNDATIONS §11).
 
-**Reference-count checkpoint**: before Step 3, emit a one-line note with the exact reference count and the tracking decision — e.g. `Reference count: 12 — mental tracking sufficient` or `Reference count: 23 — TaskCreate recommended`. Use an exact integer (not `~20` or `20+`); the >15 threshold-decision must be reproducible. For specs with >15 references spanning unrelated areas, consider `TaskCreate` per-reference tracking; for tightly-clustered sets, mental tracking is acceptable. A fixed closed set checked by one presence grep counts as 1 reference, not N.
+**Reference-count checkpoint**: before Step 3, emit a one-line note with the exact reference count and the tracking decision — e.g. `Reference count: 12 — mental tracking sufficient` or `Reference count: 23 — TaskCreate recommended`. Use an exact integer (not `~20` or `20+`); the >15 threshold-decision must be reproducible. For specs with >15 references spanning unrelated areas, consider `TaskCreate` per-reference tracking; for tightly-clustered sets, mental tracking is acceptable. A fixed closed set checked by one presence grep counts as 1 reference, not N. A source/evidence ledger — a closed list of URLs/paths cited as provenance rather than as validation targets (common in externally-generated specs) — likewise counts as 1 reference; the exact-integer count then covers only the remaining genuine references.
 
 **Source-document engagement checkpoint** (when source documents are cited): emit a one-line note naming each source and its per-document adjudication counts — `Source-document engagement: <doc>: N claims enumerated, M adjudicated (accept / reject / defer), (N-M) unadjudicated flagged as findings.` When no source document is cited, emit `Source-document engagement: N/A — no external source cited`.
 
