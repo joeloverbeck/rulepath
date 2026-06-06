@@ -14,11 +14,13 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gate 3 complete** — the static WebAssembly web shell is playable, with one
-game shipped: **Race to 21** (`race_to_n`). Gates 4 and beyond (more games) are
-not yet started. See [`specs/README.md`](specs/README.md) for the live
-gate-by-gate progress tracker and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the
-full staged ladder.
+**Gate 5 complete** — Rulepath now ships three local-playable official games:
+**Race to 21** (`race_to_n`), **Three Marks** (`three_marks`), and **Column
+Four** (`column_four`). Column Four is the first public showcase target: a
+polished Rust/WASM-owned column-drop board with legal-only controls, replay,
+bot rationale, accessibility/no-leak smoke, and benchmark coverage. See
+[`specs/README.md`](specs/README.md) for the live gate-by-gate progress tracker
+and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full staged ladder.
 
 ## Play it locally
 
@@ -76,7 +78,8 @@ cargo build --workspace
 cargo test --workspace
 ```
 
-**Per-game checks** (current game: `race_to_n`)
+**Per-game checks** (replace the game id as needed; current official games are
+`race_to_n`, `three_marks`, and `column_four`)
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000

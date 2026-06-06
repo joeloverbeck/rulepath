@@ -164,9 +164,12 @@ MUST NOT:
 | Mechanic shape | Games exerting pressure | Status | Current decision | Next gate |
 |---|---|---|---|---|
 | tiny numeric turn race | `race_to_n` | `local-only` | Keep local; proves plumbing only. Confirmed 2026-06-05 after Gate 1 docs finalization; first official use, no `game-stdlib` promotion. | None. |
-| fixed 2D occupancy | `three_marks`, later `column_four` | `first-use local-only` | Three Marks records the first implemented fixed-grid occupancy shape; keep local and compare after `column_four`, with no `game-stdlib` promotion from one game. | Stage 4 review. |
-| simple line/pattern detection | `three_marks`, `column_four` | `first-use local-only` | Three Marks records the first implemented row/column/diagonal line scan; keep local and defer extraction until repeated pressure is proven. | Stage 4 review. |
-| gravity placement into a column | `column_four` | `local-only` | Too specific for early extraction. | None unless repeated. |
+| fixed 2D occupancy | `three_marks`, `column_four` | `repeated-shape candidate` | Column Four is the second implemented public-grid occupancy game after Three Marks. Keep both implementations local; do not promote board/grid/cell vocabulary to `engine-core` or `game-stdlib` in Gate 5. | Gate 6 `directional_flip` comparison. |
+| simple line/pattern detection | `three_marks`, `column_four` | `repeated-shape candidate` | Three Marks has fixed 3-in-line groups; Column Four has length-four directional scans under gravity. Similarity is real, but differences still justify local duplication. | Gate 6 `directional_flip` comparison. |
+| coordinate/targeted placement | `three_marks`, `column_four` | `repeated-shape candidate` | Three Marks targets cells directly; Column Four targets columns and Rust projects the landing cell. Record second-use pressure without extracting a placement primitive. | Gate 6 comparison. |
+| column actions | `column_four` | `local-only` | First clear official use of column-targeted actions. Too specific for early extraction. | None unless repeated. |
+| gravity placement into a column | `column_four` | `local-only` | First clear official gravity/drop placement. Too specific for early extraction. | None unless repeated. |
+| terminal line highlighting | `three_marks`, `column_four` | `repeated-shape candidate` | Both board renderers highlight a Rust-provided terminal line, but line size and geometry differ. UI/effect shape stays game-local. | Gate 6 comparison. |
 | directional scanning and grouped flips | `directional_flip` | `local-only` initially | Inventory after implementation; may combine with line/scan pressure. | Stage 4 exit. |
 | movement/capture/forced continuation | `draughts_lite` | `local-only` initially | Keep game-local until repeated. | Stage 5 exit. |
 | deterministic shuffle and hidden draw | `high_card_duel` | `local-only` initially | Keep local until second card/hidden-info game. | Stage 8/9 review. |

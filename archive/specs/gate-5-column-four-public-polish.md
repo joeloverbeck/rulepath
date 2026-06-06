@@ -5,7 +5,7 @@
 **Spec ID:** `gate-5-column-four-public-polish`  
 **Stage:** 3  
 **Gate:** Gate 5 — Column Four public polish  
-**Status:** Planned  
+**Status**: Done
 **Date:** 2026-06-06  
 **Owner:** joeloverbeck  
 **Authority order:** `docs/FOUNDATIONS.md` → the `docs/README.md` foundation set → `docs/ROADMAP.md` (Gate 5) → this spec. Where this spec and a foundation document disagree, the foundation document wins.  
@@ -122,7 +122,7 @@ The repository is already beyond a skeleton. It has a Rust workspace, a thin WAS
 
 The current state relevant to Gate 5 is:
 
-- `specs/README.md` records Gates 0 through 4 as done and Gate 5 as `column_four`, not started.
+- `specs/README.md` records Gates 0 through 5 as done and points Gate 5 at the archived completion spec.
 - `docs/ROADMAP.md` identifies Gate 5 as the first true showcase after `three_marks`. Its expected pressure points are gravity, legal column targets, Rust-safe previews, line detection under gravity, effect-log-driven drop animation, win-line effects, bot explanations, replay viewer smoke, benchmarks, UI smoke, and atlas updates.
 - `docs/FOUNDATIONS.md` is the governing contract. It says Rulepath is Rust-first, deterministic, replayable, testable, portfolio-quality, and public-facing. It also says Rust owns game behavior and TypeScript/React only presents viewer-safe state and submits actions.
 - `docs/ENGINE-GAME-DATA-BOUNDARY.md` forbids `engine-core` from learning concrete mechanic nouns such as board, grid, cell, coordinate, adjacency, line, card, hand, trick, pot, auction, and similar game concepts. Those belong in games, or later in `game-stdlib` only after enough repeated pressure is documented.
@@ -1386,7 +1386,7 @@ Gate 5 must update all status surfaces that would otherwise mislead a reader aft
 
 Required review/update surfaces:
 
-- `specs/README.md` — the Gate 5 index row still reads `column_four — not yet specced — Not started`; because this spec now exists, flip it to `Planned` with a link to this file now (per the index's `Not started → Planned (spec written)` lifecycle), then to `Done` when the §B exit criteria pass with evidence. Archive/reference the spec per the existing archival workflow on completion.
+- `specs/README.md` — Gate 5 must read `Done` with a link to the archived spec after §B exit criteria pass with evidence.
 - Root `README.md` — available games and public status should include `Column Four` if it becomes public-facing.
 - `docs/ROADMAP.md` — Gate 5 completion/status surface should be updated if the roadmap tracks completion.
 - `progress.md` — if it remains the living tracker, record Gate 5 completion evidence and do not leave it stuck at Gate 3.

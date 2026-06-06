@@ -164,6 +164,10 @@ Not allowed: grid primitive in `engine-core`; speculative `game-stdlib` extracti
 
 Purpose: make the first “Rulepath is real” public milestone.
 
+Status: completed on 2026-06-06. The mutable progress index is
+[`../specs/README.md`](../specs/README.md); this note records the accepted Gate 5
+evidence without changing the ladder.
+
 Proves:
 
 - gravity-constrained placement;
@@ -184,6 +188,18 @@ Exit:
 - replay viewer smoke passes;
 - benchmark and UI smoke coverage exists;
 - mechanic atlas records repeated coordinate/line pressure.
+
+Completion evidence:
+
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game column_four --games 1000`
+- `cargo run -p replay-check -- --game column_four --all`
+- `cargo run -p fixture-check -- --game column_four`
+- `cargo run -p rule-coverage -- --game column_four`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:e2e`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
 
 Not allowed: debug-first public screen, TypeScript legality, early Canvas/PixiJS without evidence, `engine-core` grid nouns.
 
