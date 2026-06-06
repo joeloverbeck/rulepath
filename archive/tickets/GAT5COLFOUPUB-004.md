@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-004: Column Four public view & visibility projection
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/column_four/src/visibility.rs`, `games/column_four/src/ui.rs`
@@ -75,3 +75,26 @@ Typed UI metadata sufficient for legal controls, neutral column labels (`Column 
 1. `cargo test -p column_four visibility`
 2. `cargo test -p column_four`
 3. `cargo clippy -p column_four --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/src/visibility.rs` with a Rust-owned `PublicView` projection carrying schema/rules identity, board dimensions, stable cell occupancy, column summaries, active seat, ply, status, freshness token, legal column targets, terminal state, winning line, explicit perfect-information private status, empty hidden fields, and stable serialization summary.
+- Added `games/column_four/src/ui.rs` with neutral piece-token, cell-layout, and column-control metadata, including labels and accessibility names for `Column 1` through `Column 7`.
+- Exported the new projection/UI types from `games/column_four/src/lib.rs`.
+- Added focused tests for required public-view fields, Rust-provided landing previews, legal-target equality with the rule engine, terminal win/draw projection, empty hidden fields, no debug/internal/candidate strings in the stable view summary, stable cell/column order, and neutral column control labels.
+
+Deviations from original plan:
+
+- The ticket implemented a typed Rust projection and `StableSerialize` summary, not a full JSON parser. The browser/WASM JSON bridge remains deferred to the WASM/web tickets.
+
+Verification results:
+
+- Passed: `cargo test -p column_four visibility`
+- Passed: `cargo test -p column_four`
+- Passed: `cargo clippy -p column_four --all-targets -- -D warnings`
+- Passed: `cargo fmt --all --check`
+- Manual/no-leak review: public view fields are viewer-safe for a perfect-information game; private status is `not_applicable_perfect_information`; hidden fields are empty; no bot candidate-ranking or internal/debug fields are projected.

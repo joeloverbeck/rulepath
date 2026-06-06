@@ -5,14 +5,20 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{actor_seat, legal_action_tree};
 pub use ids::{CellId, ColumnFourSeat, ColumnId, RowId};
 pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, ColumnFourSnapshot, ColumnFourState, TerminalOutcome, WinningLine};
+pub use ui::{cell_layout, column_control, piece_token};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    project_view, CellView, ColumnSummaryView, LegalColumnTargetView, PublicView, TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
