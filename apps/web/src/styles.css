@@ -459,6 +459,57 @@ h2 {
   background: #f9faf7;
 }
 
+.replay-board {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfb;
+}
+
+.placement-sequence {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.placement-sequence li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: center;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.placement-sequence li.current {
+  border-color: #2b8068;
+  background: #eff7f3;
+}
+
+.placement-sequence span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #dfe9e3;
+  color: #284237;
+  font-weight: 800;
+}
+
+.placement-sequence code {
+  color: #60736b;
+  font-size: 0.82rem;
+}
+
 .dev-panel {
   display: grid;
   gap: 12px;

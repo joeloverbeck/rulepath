@@ -1,6 +1,7 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
-import type { EffectEntry, PublicView } from "../wasm/client";
+import type { EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
+import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
   replay: ReplaySessionState | null;
@@ -12,6 +13,9 @@ type ReplayViewerProps = {
 export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayViewerProps) {
   const step = replay?.step ?? null;
   const effects = step?.effects ?? [];
+  const latestReplayEffect = effects.at(-1);
+  const latestEntry: EffectEntry | null = latestReplayEffect && step ? { cursor: step.cursor, effect: latestReplayEffect } : null;
+  const threeMarksView: ThreeMarksPublicView | null = step && isThreeMarksView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -37,6 +41,19 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
               </div>
             ))}
           </div>
+
+          {threeMarksView ? (
+            <div className="replay-board">
+              <ThreeMarksBoard
+                view={threeMarksView}
+                latestEffect={latestEntry}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : null}
 
           <ol className="replay-effects">
             {effects.length === 0 ? (
@@ -69,6 +86,32 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
       </div>
     </section>
   );
+}
+
+function PlacementSequence({ replay }: { replay: ReplaySessionState }) {
+  const commands = replay.document?.commands ?? [];
+  if (commands.length === 0) {
+    return null;
+  }
+
+  return (
+    <ol className="placement-sequence" aria-label="Replay command sequence">
+      {commands.map((command) => {
+        const isCurrent = command.index < replay.cursor;
+        return (
+          <li key={command.index} className={isCurrent ? "current" : ""}>
+            <span>{command.index + 1}</span>
+            <strong>{command.actor_seat}</strong>
+            <code>{command.action_path.join("/")}</code>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "three_marks");
 }
 
 function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {

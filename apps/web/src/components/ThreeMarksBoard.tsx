@@ -6,7 +6,8 @@ type ThreeMarksBoardProps = {
   latestEffect: EffectEntry | null;
   reducedMotion: boolean;
   pending: boolean;
-  onChoice: (choice: ActionChoice) => void;
+  interactive?: boolean;
+  onChoice?: (choice: ActionChoice) => void;
 };
 
 type CellModel = {
@@ -27,7 +28,14 @@ type LegalTarget = {
   freshnessToken: number;
 };
 
-export function ThreeMarksBoard({ view, latestEffect, reducedMotion, pending, onChoice }: ThreeMarksBoardProps) {
+export function ThreeMarksBoard({
+  view,
+  latestEffect,
+  reducedMotion,
+  pending,
+  interactive = true,
+  onChoice,
+}: ThreeMarksBoardProps) {
   const cells = view.cells.map(parseCell).sort((left, right) => left.row - right.row || left.column - right.column);
   const legalTargets = new Map(view.legal_targets.map((target) => {
     const parsed = parseLegalTarget(target);
@@ -61,7 +69,7 @@ export function ThreeMarksBoard({ view, latestEffect, reducedMotion, pending, on
           const legal = legalTargets.get(cell.id) ?? null;
           const occupied = cell.owner !== null;
           const winning = winningCells.has(cell.id);
-          const disabled = pending || terminal || !legal;
+          const disabled = pending || terminal || !legal || !interactive;
           return (
             <button
               type="button"
@@ -71,7 +79,7 @@ export function ThreeMarksBoard({ view, latestEffect, reducedMotion, pending, on
               aria-label={legal?.accessibilityLabel ?? cellLabel(cell)}
               data-testid={`three-cell-${cell.id}`}
               onClick={() => {
-                if (legal) {
+                if (legal && onChoice) {
                   onChoice({
                     segment: legal.actionSegment,
                     label: legal.label,
@@ -110,7 +118,13 @@ export function ThreeMarksBoard({ view, latestEffect, reducedMotion, pending, on
       ) : null}
 
       <div className="board-status" role="status">
-        <span>{feedback ? feedback.detail : "Choose a highlighted cell to place a mark."}</span>
+        <span>
+          {feedback
+            ? feedback.detail
+            : interactive
+              ? "Choose a highlighted cell to place a mark."
+              : "Replay board is projected by Rust at this cursor."}
+        </span>
       </div>
     </section>
   );

@@ -20,6 +20,7 @@ import {
   type ApiError,
   type PublicView,
   type RacePublicView,
+  type ReplayDocument,
   type SeatId,
   type ThreeMarksPublicView,
 } from "./wasm/client";
@@ -171,9 +172,10 @@ function App() {
       }
       dispatch({ type: "pendingOperationChanged", pendingOperation: "importReplay" });
       try {
+        const parsedDocument = parseReplayDocument(documentText);
         const imported = api.importReplay(documentText);
         const step = api.replayReset(imported.replay_id);
-        dispatch({ type: "replayImported", replayId: imported.replay_id, document: null, step });
+        dispatch({ type: "replayImported", replayId: imported.replay_id, document: parsedDocument, step });
       } catch (error: unknown) {
         dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
         throw error;
@@ -387,6 +389,14 @@ function botSeatForMode(playMode: SetupPlayMode, seat: SeatId): boolean {
 
 function botSeed(view: PublicView): number {
   return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
+}
+
+function parseReplayDocument(documentText: string): ReplayDocument | null {
+  try {
+    return JSON.parse(documentText) as ReplayDocument;
+  } catch {
+    return null;
+  }
 }
 
 function isRaceView(view: PublicView | null): view is RacePublicView {

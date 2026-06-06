@@ -71,3 +71,23 @@ For a Three Marks replay, render the board at the current step via `ThreeMarksBo
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:e2e`
 3. The replay-step assertion is finalized in the 013 browser smoke; build + e2e step render is the correct boundary for the replay-view diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+Changes:
+- Extended `ReplayViewer.tsx` to render a Three Marks board for Rust replay reset/step projections using `ThreeMarksBoard`.
+- Added a replay command sequence display from the imported/exported replay document while keeping the board state itself sourced from Rust replay projection.
+- Added read-only mode to `ThreeMarksBoard` for replay rendering so replay cells are not interactive.
+- Preserved imported replay documents in shell state for display-only sequence metadata.
+- Added replay-board and placement-sequence styling.
+
+Deviations:
+- `ThreeMarksBoard.tsx`, `main.tsx`, and `styles.css` were touched in addition to `ReplayViewer.tsx` to support read-only board reuse, document preservation, and replay layout.
+- Full persistent browser smoke assertions remain in GAT4THRMARBOA-013; this ticket used a one-off local Puppeteer probe for the new Three Marks replay board path.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:e2e`
+- One-off local Puppeteer probe: selected Three Marks, made a placement, exported/imported the replay, confirmed a replay board rendered at cursor 0, stepped to cursor 1, confirmed `r1c1` was occupied from the Rust replay projection, and confirmed a placement sequence rendered.
