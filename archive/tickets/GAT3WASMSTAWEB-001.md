@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-001: Extract typed TypeScript WASM client module
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); no Rust crate touched.
@@ -118,3 +118,23 @@ globals stay unchanged in this ticket.
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. A narrower unit test is not the correct boundary here: the behavior is unchanged and is proven by the existing build + smoke pipeline exercising the real WASM artifact.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `apps/web/src/wasm/client.ts` as the dedicated TypeScript WASM client module.
+- Moved raw WASM exports, memory encode/decode, `last_output` handling, JSON parsing, `ApiError` normalization, `RulepathApi`, `loadApi`, and exported result types out of `apps/web/src/main.tsx`.
+- Left `main.tsx` importing typed client surfaces only; no Rust crate or behavior logic changed.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `grep -rnE "rulepath_|memory\.buffer|WasmExports" apps/web/src --include=*.tsx --include=*.ts | grep -v "src/wasm/"` returned no matches.
+- `npm --prefix apps/web run smoke:ui` passed with version `rulepath-wasm-api/0.1.0`, match `race_to_n-1`, counter `2`, `8` effects, and stale-action diagnostic coverage.
