@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-003: Three Marks actions, rules, win/draw/terminal detection + rule/property tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/three_marks/src/actions.rs`, `src/rules.rs`, application path in `src/lib.rs`; new `tests/rule_tests.rs`, `tests/property_tests.rs`
@@ -85,3 +85,26 @@ All §15.1 rule tests (initial board empty, correct active player, legal moves e
 1. `cargo test -p three_marks --test rule_tests --test property_tests`
 2. `cargo test -p three_marks && bash scripts/boundary-check.sh`
 3. WASM/CLI end-to-end exercise is deferred (009/014); crate-level rule+property tests are the correct verification boundary for the rule-logic diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/src/actions.rs` with flat Rust-generated placement actions, one `place/<cell>` choice per empty cell for the active actor, stable cell metadata, and terminal/wrong-actor empty action trees.
+- Added `games/three_marks/src/rules.rs` with fail-closed validation for terminal, stale, unknown actor, wrong actor, invalid path/cell, and occupied-cell submissions; legal placement application; turn alternation; ply/freshness advancement; row, column, main diagonal, anti-diagonal win detection; full-board draw detection; and exact winning-line reporting.
+- Wired `ThreeMarks` through the generic `engine_core::Game` trait for setup, legal action tree, validation, and apply. Effects and view projection remain placeholders for later tickets.
+- Added rule and property tests for legal action generation, rejection/no-mutation behavior, turn advancement, row/column/diagonal wins, draw, terminal no-actions, game-trait wiring, stable unique action IDs, mark-count bounds, and bounded termination.
+
+Deviations from original plan:
+
+- Semantic effects remain out of scope and return an empty effect list until GAT4THRMARBOA-004.
+- View projection remains out of scope and uses the unit view placeholder until GAT4THRMARBOA-005.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo test -p three_marks --test rule_tests --test property_tests`
+- `cargo test -p three_marks`
+- `bash scripts/boundary-check.sh`

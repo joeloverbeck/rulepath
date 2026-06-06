@@ -1,14 +1,66 @@
 //! `three_marks` board-smoke crate.
 
+pub mod actions;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+use engine_core::{
+    ActionTree, Actor, CommandEnvelope, DeterministicRng, Diagnostic, EffectEnvelope, Game, SeatId,
+    Seed, Viewer,
+};
+
+pub use actions::legal_action_tree;
 pub use ids::{CellId, ThreeMarksSeat};
+pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, TerminalOutcome, ThreeMarksSnapshot, ThreeMarksState, WinningLine};
 pub use variants::{Manifest, Variant, VariantCatalog};
+
+#[derive(Clone, Debug, Default)]
+pub struct ThreeMarks;
+
+impl Game for ThreeMarks {
+    type Setup = SetupOptions;
+    type State = ThreeMarksState;
+    type ValidatedAction = ValidatedAction;
+    type Effect = ();
+    type View = ();
+
+    fn setup(
+        &self,
+        seed: Seed,
+        seats: &[SeatId],
+        setup: &Self::Setup,
+    ) -> Result<Self::State, Diagnostic> {
+        setup_match(seed, seats, setup)
+    }
+
+    fn legal_action_tree(&self, state: &Self::State, actor: &Actor) -> ActionTree {
+        legal_action_tree(state, actor)
+    }
+
+    fn validate(
+        &self,
+        state: &Self::State,
+        command: &CommandEnvelope,
+    ) -> Result<Self::ValidatedAction, Diagnostic> {
+        validate_command(state, command)
+    }
+
+    fn apply(
+        &self,
+        state: &mut Self::State,
+        action: Self::ValidatedAction,
+        _rng: &mut dyn DeterministicRng,
+    ) -> Vec<EffectEnvelope<Self::Effect>> {
+        apply_action(state, action)
+    }
+
+    fn project_view(&self, _state: &Self::State, _viewer: &Viewer) -> Self::View {}
+}
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
