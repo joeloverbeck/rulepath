@@ -30,6 +30,14 @@ button:hover:not(:disabled) {
   background: #eef5f1;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #b45f06;
+  outline-offset: 2px;
+}
+
 button:disabled {
   color: #7b8984;
   cursor: not-allowed;
@@ -459,6 +467,11 @@ h2 {
   border-radius: 6px;
   padding: 12px;
   cursor: pointer;
+}
+
+.mode-option:focus-within {
+  outline: 3px solid #b45f06;
+  outline-offset: 2px;
 }
 
 .mode-option input {

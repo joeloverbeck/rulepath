@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-014: Accessibility, reduced-motion, and no-leak review + smoke
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — accessibility checks + a hidden-info no-leak review over the rendered shell (`apps/web`); no Rust/crate change.
@@ -128,3 +128,23 @@ smoke reveals in the existing region/renderer/panel components.
 1. `cd apps/web && npm run smoke:e2e`
 2. `cd apps/web && npm run build`
 3. The no-leak negative test is the correct boundary: it asserts the *absence* of forbidden data across browser surfaces, which a positive functional smoke cannot prove.
+
+## Outcome
+
+Completed on 2026-06-06.
+
+Changes:
+
+- Added `a11y-noleak.smoke.mjs` and wired `smoke:e2e` to run it after the rendered-shell smoke.
+- Added the Gate 3 no-leak/accessibility checklist under `apps/web/e2e`.
+- Added visible focus styles for standard controls and custom mode radio labels.
+
+Deviations:
+
+- The no-leak storage check allows only the existing `rulepath.reducedMotion` UI preference with `reduce` or `motion`; it rejects other local/session storage.
+- The replay export check whitelists `expected_private_view_hashes.not_applicable` as an explicit schema marker for this perfect-information game, while still rejecting private/hidden payload vocabulary.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run build`
