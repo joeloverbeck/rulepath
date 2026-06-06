@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-011: Base-aware WASM asset loading + preview/static-serve + dist smoke
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — build/config + TypeScript asset loading only (`apps/web`).
@@ -111,3 +111,24 @@ built output, a match starts, legal actions render, human + bot turn apply.
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:preview`
 3. A served-dist smoke (not a unit test) is the correct boundary: the risk is asset-path resolution under static serving, which only appears against built output.
+
+## Outcome
+
+Completed on 2026-06-06.
+
+Changes:
+
+- Replaced the hardcoded root WASM fetch with a URL derived from Vite `BASE_URL`.
+- Set the web Vite base to relative static-serving mode and added Vite env typing.
+- Added `preview` and `smoke:preview` scripts plus a nested `/rulepath/` static `dist` smoke that loads the built index, fetches the built WASM artifact, starts a match, applies a human action, and runs a bot turn.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:preview` (passed with escalation because the sandbox blocked binding the temporary localhost server)
+- `grep -rn "\"/wasm_api.wasm\"" apps/web/src` (no matches)
+- `npm --prefix apps/web run smoke:ui`

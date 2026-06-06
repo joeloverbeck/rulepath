@@ -6,8 +6,10 @@
   "scripts": {
     "build:wasm": "cargo build -p wasm-api --target wasm32-unknown-unknown --release && mkdir -p public && install -m 0644 ../../target/wasm32-unknown-unknown/release/wasm_api.wasm public/wasm_api.wasm",
     "build": "npm run build:wasm && tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
     "smoke:wasm": "npm run build:wasm && node scripts/smoke-load-wasm.mjs",
-    "smoke:ui": "npm run build && node scripts/smoke-ui.mjs"
+    "smoke:ui": "npm run build && node scripts/smoke-ui.mjs",
+    "smoke:preview": "npm run build && node scripts/smoke-preview.mjs"
   },
   "dependencies": {
     "@types/react": "^19.0.0",

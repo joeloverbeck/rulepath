@@ -286,7 +286,7 @@ export class RulepathApi {
 }
 
 export async function loadApi(): Promise<RulepathApi> {
-  const response = await fetch("/wasm_api.wasm");
+  const response = await fetch(wasmArtifactUrl());
   if (!response.ok) {
     throw new Error(`Unable to load wasm-api artifact: ${response.status}`);
   }
@@ -294,4 +294,9 @@ export async function loadApi(): Promise<RulepathApi> {
   const bytes = await response.arrayBuffer();
   const { instance } = await WebAssembly.instantiate(bytes, {});
   return new RulepathApi(instance.exports as WasmExports);
+}
+
+function wasmArtifactUrl(): URL {
+  const base = new URL(import.meta.env.BASE_URL, window.location.href);
+  return new URL("wasm_api.wasm", base);
 }
