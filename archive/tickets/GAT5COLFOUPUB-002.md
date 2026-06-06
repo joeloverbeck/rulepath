@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-002: Column Four crate skeleton & workspace wiring
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new crate `games/column_four` (`Cargo.toml`, `src/lib.rs`, `src/ids.rs`, `src/state.rs`, `src/setup.rs`, `src/variants.rs`), `games/column_four/data/manifest.toml`, `games/column_four/data/variants.toml`; modify root `Cargo.toml` workspace members
@@ -86,3 +86,27 @@ Add `"games/column_four",` to root `Cargo.toml` `[workspace].members`.
 1. `cargo build -p column_four`
 2. `cargo test -p column_four`
 3. `bash scripts/boundary-check.sh` — the boundary check is the correct narrow surface for the kernel-cleanliness invariant.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four` as a workspace member and new Rust library crate.
+- Added typed local game vocabulary under `games/column_four/src/`: `ColumnFourSeat`, `ColumnId`, `RowId`, `CellId`, `CellOccupancy`, `ColumnFourState`, `ColumnFourSnapshot`, setup options, setup construction, manifest parsing, variant parsing, and `column_four_standard` metadata.
+- Added static data files `games/column_four/data/manifest.toml` and `games/column_four/data/variants.toml` with typed metadata and dimensions only.
+- Added unit coverage for deterministic empty setup, wrong seat-count rejection, static data parsing, unknown-field rejection, behavior-looking-key rejection, and variant metadata.
+
+Deviations from original plan:
+
+- None. The slice stayed at crate skeleton/static-data scope and did not add action parsing, gravity application, legal move generation, terminal detection, views, effects, replay, bots, tools, or web code.
+
+Verification results:
+
+- Passed: `cargo build -p column_four`
+- Passed: `cargo test -p column_four`
+- Passed: `grep -q '"games/column_four"' Cargo.toml`
+- Passed: `bash scripts/boundary-check.sh`
+- Passed: `cargo fmt --all --check`
+- Passed static-data behavior-key audit: `rg -n "\b(when|if|then|else|selector|condition|trigger|script|loop|foreach|priority_expression|ai_condition|effect_script|rule|requires|valid_if|on_play|on_reveal)\b" games/column_four/data` returned no matches.
