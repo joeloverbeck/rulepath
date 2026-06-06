@@ -2,12 +2,13 @@ import type { ReactNode } from "react";
 
 type AppShellProps = {
   version: string;
+  reducedMotion: boolean;
   children: ReactNode;
 };
 
-export function AppShell({ version, children }: AppShellProps) {
+export function AppShell({ version, reducedMotion, children }: AppShellProps) {
   return (
-    <main className="shell">
+    <main className={reducedMotion ? "shell reduced-motion" : "shell"}>
       <header className="topbar">
         <div>
           <p className="eyebrow">Rulepath</p>

@@ -1,4 +1,5 @@
 import type { EffectEntry, PublicView } from "../wasm/client";
+import { feedbackForEffect } from "./effectFeedback";
 
 type RaceBoardProps = {
   view: PublicView | null;
@@ -53,15 +54,5 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
 }
 
 function effectSummary(entry: EffectEntry): string {
-  const payload = entry.effect.payload;
-  switch (payload.type) {
-    case "counter_advanced":
-      return `${payload.actor} moved from ${payload.from} to ${payload.to}`;
-    case "turn_changed":
-      return `Turn changed to ${payload.next_actor}`;
-    case "game_ended":
-      return `${payload.winner} won`;
-    default:
-      return payload.type;
-  }
+  return feedbackForEffect(entry).detail;
 }

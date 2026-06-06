@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-007: Effect log, effect-driven feedback, and reduced motion
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); renders Rust semantic effects.
@@ -113,3 +113,25 @@ and reduced-motion preference state; mount `EffectLog`.
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. Reduced-motion emulation in a real browser is the Puppeteer harness's job (GAT3WASMSTAWEB-013); node smoke + the effect-driven grep-proof are the correct boundary here.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `effectFeedback.ts` to map Rust semantic effect payload types to viewer-safe feedback text and tones.
+- Added `useReducedMotionPreference()` to honor `prefers-reduced-motion` with a safe local override.
+- Added `EffectLog` with chronological effect entries, newest-entry feedback, motion override control, and reduced-motion-friendly rendering.
+- Wired reduced-motion state through the reducer and `AppShell`.
+- Replaced the inline effect `<ol>` in `main.tsx` with `EffectLog`; `RaceBoard` now reuses the same effect feedback mapping for its latest-effect summary.
+
+Deviations from original plan:
+
+- None. Real-browser reduced-motion assertions remain deferred to the browser smoke/a11y tickets.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed with version `rulepath-wasm-api/0.1.0`, match `race_to_n-1`, counter `2`, `8` effects, and stale-action diagnostic coverage.
+- `grep -rnE "prevView|previousView|diff" apps/web/src/components/effectFeedback.ts` returned no matches.

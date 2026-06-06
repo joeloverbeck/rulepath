@@ -3,11 +3,13 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
 import { ActionControls } from "./components/ActionControls";
+import { EffectLog } from "./components/EffectLog";
+import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
 import { MatchSetup } from "./components/MatchSetup";
 import { RaceBoard } from "./components/RaceBoard";
 import { initialShellState, shellReducer, type RefreshPayload } from "./state/shellReducer";
-import { loadApi, type ActionChoice, type ApiError, type EffectEntry, type PublicView } from "./wasm/client";
+import { loadApi, type ActionChoice, type ApiError, type PublicView } from "./wasm/client";
 
 type AppTextState = {
   mode: "loading" | "ready" | "playing" | "error";
@@ -19,26 +21,9 @@ type AppTextState = {
   diagnostic: ApiError | null;
 };
 
-function describeEffect(entry: EffectEntry): string {
-  const payload = entry.effect.payload;
-  switch (payload.type) {
-    case "action_started":
-      return `${entry.cursor}: ${payload.actor} started add-${payload.amount}`;
-    case "counter_advanced":
-      return `${entry.cursor}: ${payload.actor} moved ${payload.from} to ${payload.to}`;
-    case "turn_changed":
-      return `${entry.cursor}: turn changed to ${payload.next_actor}`;
-    case "game_ended":
-      return `${entry.cursor}: ${payload.winner} won`;
-    case "action_completed":
-      return `${entry.cursor}: ${payload.actor} completed`;
-    default:
-      return `${entry.cursor}: ${payload.type}`;
-  }
-}
-
 function App() {
   const [state, dispatch] = useReducer(shellReducer, initialShellState);
+  const motion = useReducedMotionPreference();
   const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic } = state;
   const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
   const latestEffect = effects.at(-1) ?? null;
@@ -88,6 +73,10 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    dispatch({ type: "reducedMotionChanged", reducedMotion: motion.reducedMotion });
+  }, [motion.reducedMotion]);
+
   const start = useCallback(() => {
     if (!api || !state.selectedGameId) {
       return;
@@ -134,7 +123,7 @@ function App() {
           }
         : null,
       choices: actionTree?.choices.map((choice) => choice.segment) ?? [],
-      effects: effects.map(describeEffect),
+      effects: effects.map(summarizeEffect),
       diagnostic,
     }),
     [actionTree, diagnostic, effects, matchId, state.mode, version, view],
@@ -146,7 +135,7 @@ function App() {
   }, [textState]);
 
   return (
-    <AppShell version={version}>
+    <AppShell version={version} reducedMotion={state.reducedMotion}>
       {!matchId ? (
         <>
           <GamePicker
@@ -186,12 +175,12 @@ function App() {
         ) : null}
       </section>
 
-      <section className="effects" aria-label="semantic effects">
-        <h2>Effects</h2>
-        <ol data-testid="effects">
-          {effects.length === 0 ? <li>No effects yet</li> : effects.map((entry) => <li key={entry.cursor}>{describeEffect(entry)}</li>)}
-        </ol>
-      </section>
+      <EffectLog
+        effects={effects}
+        reducedMotion={state.reducedMotion}
+        override={motion.override}
+        onOverrideChange={motion.setOverride}
+      />
         </>
       )}
     </AppShell>
