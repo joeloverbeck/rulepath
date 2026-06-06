@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-013: Browser UI E2E smoke harness (Puppeteer)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — adds a browser E2E smoke harness + dev dependency (`apps/web`); no Rust/crate change.
@@ -122,3 +122,23 @@ critical flow. Assert the normal page is not raw-JSON-dominated.
 1. `cd apps/web && npm run smoke:e2e`
 2. `cd apps/web && npm run build`
 3. A rendered-browser harness (not the node ABI smoke) is the correct boundary for shell behavior; raw-ABI coverage stays in GAT3WASMSTAWEB-012.
+
+## Outcome
+
+Completed on 2026-06-06.
+
+Changes:
+
+- Added Puppeteer as an `apps/web` dev dependency and introduced `npm run smoke:e2e`.
+- Added `apps/web/e2e/shell.smoke.mjs`, which serves built `dist` under `/rulepath/`, launches system Chrome, and drives the rendered shell through picker/setup, keyboard start, Rust action controls, human/bot play, effect log, developer stale diagnostic, replay export/import/step, bot-vs-bot step/autoplay, and reduced-motion styling.
+
+Deviations:
+
+- The harness uses `/usr/bin/google-chrome` by default and honors `PUPPETEER_EXECUTABLE_PATH`; Puppeteer was installed with browser download scripts skipped because the environment already has system Chrome.
+- The live game display name is `Race to 21`; the harness asserts that current catalog text rather than the draft ticket's `Race-to-N` wording.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run build`
+- `grep -nE "picker|setup|choice|bot|replay|reduced" apps/web/e2e/shell.smoke.mjs`
