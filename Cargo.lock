@@ -29,6 +29,7 @@ version = "0.1.0"
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
+ "column_four",
  "race_to_n",
  "three_marks",
 ]
@@ -52,6 +53,7 @@ dependencies = [
 name = "replay-check"
 version = "0.1.0"
 dependencies = [
+ "column_four",
  "engine-core",
  "race_to_n",
  "three_marks",
@@ -73,6 +75,7 @@ name = "simulate"
 version = "0.1.0"
 dependencies = [
  "ai-core",
+ "column_four",
  "engine-core",
  "race_to_n",
  "three_marks",

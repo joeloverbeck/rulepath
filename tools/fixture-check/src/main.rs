@@ -62,6 +62,8 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expect",
     "expected_diagnostic_code",
     "producer",
+    "kind",
+    "level",
     "bot_policy",
     "bot_policy_version",
     "bot_seed",
@@ -155,6 +157,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/three_marks/data/variants.toml",
             variant_id: "three_marks_standard",
         }),
+        "column_four" => Ok(RegisteredGame {
+            game_id: "column_four",
+            rules_version: "column_four-rules-v1",
+            trace_dir: "games/column_four/tests/golden_traces",
+            fixture_dir: "games/column_four/data/fixtures",
+            manifest_path: "games/column_four/data/manifest.toml",
+            variants_path: "games/column_four/data/variants.toml",
+            variant_id: "column_four_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -207,8 +218,8 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
-    println!("  fixture-check --game <race_to_n|three_marks>");
-    println!("  fixture-check --game <race_to_n|three_marks> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -258,6 +269,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = three_marks::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "column_four" => {
+            let manifest = column_four::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = column_four::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (

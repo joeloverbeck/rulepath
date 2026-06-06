@@ -5,7 +5,8 @@ use std::{
     process,
 };
 
-use engine_core::HashValue;
+use column_four::replay_support::replay_commands as column_replay_commands;
+use engine_core::{ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed};
 use race_to_n::replay_support::{
     replay_bot_action as race_replay_bot_action, replay_commands as race_replay_commands,
     replay_invalid as race_replay_invalid,
@@ -65,6 +66,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "three_marks",
             rules_version: "three_marks-rules-v1",
             trace_dir: "games/three_marks/tests/golden_traces",
+        }),
+        "column_four" => Ok(RegisteredGame {
+            game_id: "column_four",
+            rules_version: "column_four-rules-v1",
+            trace_dir: "games/column_four/tests/golden_traces",
         }),
         _ => Err(format!("unsupported game `{game}`")),
     }
@@ -180,9 +186,9 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
-    println!("  replay-check --game <race_to_n|three_marks> --trace <path>");
-    println!("  replay-check --game <race_to_n|three_marks> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four> --trace <path>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four> --all");
 }
 
 fn check_trace_path(
@@ -422,6 +428,7 @@ impl Trace {
         match game.game_id {
             "race_to_n" => self.race_actual_hashes(),
             "three_marks" => self.three_actual_hashes(),
+            "column_four" => self.column_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -495,6 +502,75 @@ impl Trace {
                 three_marks::TerminalOutcome::Draw => None,
             }),
         }))
+    }
+
+    fn column_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let (commands, diagnostic_hash) = if self.fixture_kind == "diagnostic" {
+            let diagnostic = self
+                .commands
+                .last()
+                .cloned()
+                .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
+            let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+            (
+                setup.clone(),
+                Some(self.column_diagnostic_hash(&setup, &diagnostic)?),
+            )
+        } else {
+            (self.commands.clone(), None)
+        };
+
+        let Some(hashes) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" | "bot" | "diagnostic" => {
+                Some(column_replay_commands(self.seed, &commands))
+            }
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: hashes.state_hash,
+            effect_hash: hashes.effect_hash,
+            action_tree_hash: hashes.action_tree_hash,
+            view_hash: hashes.view_hash,
+            diagnostic_hash,
+            terminal: hashes.terminal,
+            winner: hashes.outcome.and_then(|outcome| match outcome {
+                column_four::TerminalOutcome::Win { seat, .. } => Some(seat.as_str().to_owned()),
+                column_four::TerminalOutcome::Draw => None,
+            }),
+        }))
+    }
+
+    fn column_diagnostic_hash(
+        &self,
+        setup_commands: &[String],
+        diagnostic_command: &str,
+    ) -> Result<HashValue, String> {
+        let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+        let mut state = column_four::setup_match(
+            Seed(self.seed),
+            &seats,
+            &column_four::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        for segment in setup_commands {
+            let command = column_command_for_state(&state, segment.clone());
+            let action =
+                column_four::validate_command(&state, &command).map_err(diagnostic_string)?;
+            column_four::apply_action(&mut state, action);
+        }
+        let mut command = column_command_for_state(&state, diagnostic_command.to_owned());
+        if self.stale_command.as_deref() == Some(diagnostic_command) {
+            command.freshness_token = state.freshness_token.next();
+        }
+        let diagnostic = column_four::validate_command(&state, &command)
+            .expect_err("diagnostic trace command must reject");
+        Ok(HashValue::from_stable_bytes(
+            format!("{}:{}", diagnostic.code, diagnostic.message).as_bytes(),
+        ))
     }
 
     fn compare_hash(
@@ -598,6 +674,7 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_outcome",
         "expected_terminal_state",
         "not_applicable",
+        "producer",
     ];
     for key in top_level_keys(input)? {
         if !allowed.contains(&key.as_str()) {
@@ -858,6 +935,26 @@ fn parse_number_at(input: &str, start: usize) -> Option<u64> {
 
 fn parse_first_array_string(input: &str) -> String {
     parse_string_at(input, 0).expect("array must contain a string path segment")
+}
+
+fn column_command_for_state(
+    state: &column_four::ColumnFourState,
+    segment: String,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[state.active_seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: vec![segment],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn diagnostic_string(diagnostic: engine_core::Diagnostic) -> String {
+    format!("{}: {}", diagnostic.code, diagnostic.message)
 }
 
 fn parse_error(path: &Path, trace_id: &str, reason: &str) -> String {
