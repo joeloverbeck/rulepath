@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-008: Column Four bots — Level 0 random-legal & Level 2 tactical
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/column_four/src/bots.rs`
@@ -71,3 +71,27 @@ Implement `ColumnFourRandomBot` (Level 0) delegating to `ai_core::RandomLegalBot
 1. `cargo test -p column_four bots`
 2. `cargo test -p column_four`
 3. `cargo clippy -p column_four --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/src/bots.rs` with `ColumnFourRandomBot`, `ColumnFourLevel2Bot`, shared `BotDecision`, policy ids, legal-action-path parsing, Level 0 delegation to `ai_core::RandomLegalBot`, and Level 2 lexicographic tactical candidate ranking.
+- Level 2 uses the documented `column_four_tactical_v1` priorities: immediate win, immediate block, safety, visible threat pressure, opponent pressure denial, center preference, and deterministic seeded tie-break.
+- Bot decisions emit viewer-safe `BotChoseAction` effects through the existing semantic effect helper.
+- Added focused bot tests for Level 0 legality/determinism/terminal no-action, Level 2 immediate win, immediate block, safe/block behavior, center preference, determinism, no-leak rationale, effect emission, full-column avoidance, parser rejection, and validation-path preservation.
+
+Deviations from original plan:
+
+- None. The implementation uses bounded one-ply successor evaluation only and adds no search/solver/ML infrastructure.
+
+Verification results:
+
+- Passed: `cargo test -p column_four bots`
+- Passed: `cargo test -p column_four`
+- Passed: `cargo clippy -p column_four --all-targets -- -D warnings`
+- Passed: `cargo fmt --all --check`
+- Passed/no matches: `grep -niE "minimax|negamax|alpha_beta|mcts|ismcts|monte_carlo|tablebase" games/column_four/src/bots.rs`
+- Manual no-leak/search review: bot rationale strings contain public prose only and do not expose candidate rankings, score arrays, search internals, hidden state, or debug fields.
