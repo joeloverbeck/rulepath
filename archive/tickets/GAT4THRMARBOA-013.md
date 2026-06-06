@@ -80,3 +80,21 @@ Add Three Marks rows for keyboard, reduced motion, color-plus-shape, and DOM no-
 1. `npm --prefix apps/web run build && node apps/web/e2e/three-marks.smoke.mjs`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `smoke:e2e` is the correct full-pipeline boundary (it builds the WASM+shell and runs every browser smoke); the standalone node invocation is the fast iteration lane.
+
+## Outcome
+
+Completed: 2026-06-06
+
+Changes:
+- Added `apps/web/e2e/three-marks.smoke.mjs`, covering picker load, Three Marks start, nine-cell board render, legal cell click, occupied-cell inertness, bot response, replay board step, hotseat win highlight, hotseat draw, reduced motion, keyboard activation, dev-panel-secondary posture, and DOM/test-id no-leak vocabulary checks.
+- Chained the Three Marks browser smoke into `npm --prefix apps/web run smoke:e2e`.
+- Updated the no-leak/accessibility checklist with Three Marks keyboard, color-plus-shape, replay-board, public-cell test-id, and bot-explanation rows.
+- Added `data-testid="turn"` to the Three Marks board status pill so automated and assistive status checks can use the same public status text.
+
+Deviations:
+- `apps/web/src/components/ThreeMarksBoard.tsx` was touched to add the status test hook required by the smoke; no renderer behavior changed.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `node e2e/three-marks.smoke.mjs` from `apps/web`
+- `npm --prefix apps/web run smoke:e2e`

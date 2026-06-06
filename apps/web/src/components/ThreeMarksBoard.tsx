@@ -57,7 +57,9 @@ export function ThreeMarksBoard({
           <p className="eyebrow">Three Marks</p>
           <h2 id="three-marks-heading">{view.status_label}</h2>
         </div>
-        <span className="turn-pill">{terminalLabel(view)}</span>
+        <span className="turn-pill" data-testid="turn">
+          {terminalLabel(view)}
+        </span>
       </div>
 
       <p className="sr-only" aria-live="polite">
