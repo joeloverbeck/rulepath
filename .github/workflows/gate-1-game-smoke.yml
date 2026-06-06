@@ -51,5 +51,11 @@ jobs:
       - name: race_to_n UI smoke
         run: npm --prefix apps/web run smoke:ui
 
+      - name: Static preview smoke
+        run: npm --prefix apps/web run smoke:preview
+
+      - name: Browser shell + a11y/no-leak E2E
+        run: npm --prefix apps/web run smoke:e2e
+
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
