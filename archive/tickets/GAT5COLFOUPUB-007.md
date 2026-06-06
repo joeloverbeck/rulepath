@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-007: Column Four bot strategy docs (Level 2 policy)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new docs `games/column_four/docs/COMPETENT-PLAYER.md`, `games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md` (no code surfaces)
@@ -74,3 +74,24 @@ From `templates/BOT-STRATEGY-EVIDENCE-PACK.md`: the policy priorities with ratio
 1. `test -f games/column_four/docs/COMPETENT-PLAYER.md && test -f games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
 2. `grep -niE "priority|win|block|center|tie-break|seed" games/column_four/docs/COMPETENT-PLAYER.md`
 3. A grep/manual boundary is correct: no compiled surface exists yet; bot legality is exercised in 008/009.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/docs/COMPETENT-PLAYER.md` with original strategy analysis, rules cross-checks, immediate tactics, threat/block descriptions, center preference, risk posture, visible signals, no-hidden-info boundary, examples, anti-examples, and implied bot tests.
+- Added `games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md` defining the `column_four_tactical_v1` Level 2 authored policy input view, legal action API, candidate extraction plan, phase model, lexicographic priority vector, bounded tie-breaks, deterministic seeded tie-break, explanation contract, exclusions, known weaknesses, tests, and benchmark budget.
+
+Deviations from original plan:
+
+- None. This ticket remained documentation-only; executable bot implementation and legality/determinism tests remain in GAT5COLFOUPUB-008/009.
+
+Verification results:
+
+- Passed: `test -f games/column_four/docs/COMPETENT-PLAYER.md && test -f games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
+- Passed: `grep -niE "minimax|negamax|alpha-beta|mcts|ismcts|monte carlo|tablebase|ml/rl|llm" games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
+- Passed: `grep -niE "priority|win|block|center|tie-break|seed" games/column_four/docs/COMPETENT-PLAYER.md`
+- Passed: `node scripts/check-doc-links.mjs`
+- Manual policy review: priority vector and tie-breaks match the Gate 5 spec; explanations are viewer-safe and explicitly forbid score arrays, candidate rankings, and search internals.
