@@ -36,6 +36,8 @@ Most deliverables get their own ticket. These categories are exempt from per-del
 
 A single trailing ticket whose scope IS the spec's §Exit criteria / §Acceptance evidence, exercising every prior implementation ticket end-to-end. It introduces no new production logic; it exercises the pipeline the earlier tickets composed.
 
+**Deliverable-doubles-as-capstone**: the "no new production logic" constraint applies to *acceptance-only* capstones. When the gate's own verification harness is itself a deliverable (e.g. a browser-E2E smoke ticket that adds a Puppeteer dependency + harness code), that ticket MAY serve as the capstone even though it ships new test infrastructure — note the dual role in the Step 4 table. And when no single ticket exercises the whole gate end-to-end, acceptance MAY be distributed across the trailing tickets (e.g. ABI smoke + browser smoke + a11y/no-leak + docs/status-flip); record the distribution in the Step 6 deliverable-coverage mapping instead of forcing a synthetic capstone.
+
 - Its acceptance criteria enumerate the spec's exit-criteria / acceptance-evidence bullets as test sub-cases.
 - Re-enumerate expected counts from a fixture at test start rather than hardcoding (hardcoded counts go stale).
 - **Files to Touch** — `_TEMPLATE.md` makes the section mandatory, but a capstone introduces no production logic, so it is either the new e2e/smoke/golden-trace test the ticket adds, or `None — verification-only` when the gate is exercised purely by running existing scripts (simulation CLI, replay-check) plus a manual runbook. Do NOT list the upstream tickets' files — the capstone exercises them, it does not modify them.
