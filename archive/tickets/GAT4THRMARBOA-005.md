@@ -1,6 +1,6 @@
 # GAT4THRMARBOA-005: Three Marks public view projection + UI metadata + visibility tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/three_marks/src/visibility.rs`, `src/ui.rs`; new `tests/visibility_tests.rs`
@@ -83,3 +83,27 @@ Public-view-safety tests: positive contract (legal targets / occupancy / owner /
 1. `cargo test -p three_marks --test visibility_tests`
 2. `cargo test -p three_marks && bash scripts/boundary-check.sh`
 3. Public-view *hash* stability across replay is exercised in 007; view-level safety/round-trip tests are the correct boundary for the projection diff.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/three_marks/src/visibility.rs` with a Rust-projected public view containing game identity, board dimensions, ordered cell occupancy/owner/mark metadata, active seat, ply/status, freshness, Rust legal targets, terminal win/draw state, explicit perfect-information private-view status, and replay step scaffolding.
+- Added deterministic public-view serialization and parser round-trip support for the projected view.
+- Added `games/three_marks/src/ui.rs` with game-local mark token and cell layout metadata. The metadata carries presentation keys only and no legality/rule logic.
+- Updated the `ThreeMarks` `Game` implementation to return `PublicView` from `project_view`.
+- Added `tests/visibility_tests.rs` covering board/target completeness, terminal win/draw projection, viewer-safe no-debug/internal data posture, explicit empty private surface, serialization round-trip, and unknown-field rejection.
+
+Deviations from original plan:
+
+- Replay-specific step content remains scaffolded with `replay_step_index: None`; replay stepping and hash evidence are deferred to GAT4THRMARBOA-007.
+- The stable view JSON uses ordered scalar fields plus ordered encoded string arrays to avoid adding parser dependencies in this ticket.
+
+Verification results:
+
+- `cargo fmt --all --check`
+- `cargo test -p three_marks --test visibility_tests`
+- `cargo test -p three_marks`
+- `bash scripts/boundary-check.sh`

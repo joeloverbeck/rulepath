@@ -6,7 +6,9 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 use engine_core::{
     ActionTree, Actor, CommandEnvelope, DeterministicRng, Diagnostic, EffectEnvelope, Game, SeatId,
@@ -20,6 +22,7 @@ pub use rules::{apply_action, validate_command, validate_command_with_effects, V
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, TerminalOutcome, ThreeMarksSnapshot, ThreeMarksState, WinningLine};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{project_view, CellView, LegalTargetView, PublicView, TerminalView};
 
 #[derive(Clone, Debug, Default)]
 pub struct ThreeMarks;
@@ -29,7 +32,7 @@ impl Game for ThreeMarks {
     type State = ThreeMarksState;
     type ValidatedAction = ValidatedAction;
     type Effect = ThreeMarksEffect;
-    type View = ();
+    type View = PublicView;
 
     fn setup(
         &self,
@@ -61,7 +64,9 @@ impl Game for ThreeMarks {
         apply_action(state, action)
     }
 
-    fn project_view(&self, _state: &Self::State, _viewer: &Viewer) -> Self::View {}
+    fn project_view(&self, state: &Self::State, viewer: &Viewer) -> Self::View {
+        project_view(state, viewer)
+    }
 }
 
 pub fn load_manifest() -> Result<Manifest, String> {
