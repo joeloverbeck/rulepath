@@ -1,6 +1,6 @@
 # GAT3WASMSTAWEB-004: Reducer/state-machine shell state model
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/presentation only (`apps/web`); no Rust crate touched.
@@ -117,3 +117,23 @@ preserving current observable behavior and the `render_game_to_text` smoke globa
 1. `cd apps/web && npm run build`
 2. `cd apps/web && npm run smoke:ui`
 3. A unit-test framework is intentionally not introduced here: the reducer's behavior is exercised end-to-end by `smoke:ui` against the real WASM client, the correct verification boundary for a presentation-state change.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `apps/web/src/state/shellReducer.ts` with a single typed shell state, explicit reducer actions, mode coverage for load/setup/play/replay/error, pending operations, replay session state, autoplay state, dev-panel state, reduced-motion state, diagnostics, Rust views/action trees/effects, and effect cursor.
+- Replaced the scattered Rust-truth `useState` calls in `apps/web/src/main.tsx` with `useReducer(shellReducer, initialShellState)`.
+- Ported WASM load, match start, refresh, action apply, stale diagnostic, and stale submit flows to reducer dispatches while preserving the current rendered controls and `render_game_to_text` shape.
+
+Deviations from original plan:
+
+- No test framework was added; verification stayed with the existing TypeScript build and smoke flow as planned.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed with version `rulepath-wasm-api/0.1.0`, match `race_to_n-1`, counter `2`, `8` effects, and stale-action diagnostic coverage.
+- `grep -nE "useState<" apps/web/src/main.tsx | grep -iE "view|tree|effects|cursor"` returned no matches.

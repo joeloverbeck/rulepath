@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import { RulepathApi, loadApi, type ActionChoice, type ActionTree, type ApiError, type EffectEntry, type PublicView } from "./wasm/client";
+import { initialShellState, shellReducer, type RefreshPayload } from "./state/shellReducer";
+import { loadApi, type ActionChoice, type ApiError, type EffectEntry, type PublicView } from "./wasm/client";
 
 type AppTextState = {
   mode: "loading" | "ready" | "playing" | "error";
@@ -32,19 +33,11 @@ function describeEffect(entry: EffectEntry): string {
 }
 
 function App() {
-  const [api, setApi] = useState<RulepathApi | null>(null);
-  const [version, setVersion] = useState("Loading wasm-api...");
-  const [matchId, setMatchId] = useState<string | null>(null);
-  const [view, setView] = useState<PublicView | null>(null);
-  const [tree, setTree] = useState<ActionTree | null>(null);
-  const [effects, setEffects] = useState<EffectEntry[]>([]);
-  const [lastCursor, setLastCursor] = useState(0);
-  const [diagnostic, setDiagnostic] = useState<ApiError | null>(null);
-  const [staleToken, setStaleToken] = useState<number | null>(null);
-  const [mode, setMode] = useState<AppTextState["mode"]>("loading");
+  const [state, dispatch] = useReducer(shellReducer, initialShellState);
+  const { api, version, matchId, view, actionTree, effects, effectCursor, diagnostic, staleToken } = state;
 
   const refresh = useCallback(
-    (loadedApi: RulepathApi, loadedMatchId: string, sinceCursor: number) => {
+    (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
       const nextView = loadedApi.getView(loadedMatchId);
       const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor);
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
@@ -53,11 +46,13 @@ function App() {
           ? loadedApi.getActionTree(loadedMatchId, "seat_0")
           : { freshness_token: nextView.freshness_token, choices: [] };
 
-      setView(nextView);
-      setTree(nextTree);
-      setEffects((current) => [...current, ...nextEffects].slice(-12));
-      setLastCursor(newestCursor);
-      setMode("playing");
+      const payload: RefreshPayload = {
+        view: nextView,
+        actionTree: nextTree,
+        effects: nextEffects,
+        effectCursor: newestCursor,
+      };
+      dispatch({ type: "refreshed", payload });
     },
     [],
   );
@@ -70,14 +65,14 @@ function App() {
         if (cancelled) {
           return;
         }
-        setApi(loadedApi);
-        setVersion(loadedApi.version());
-        setMode("ready");
+        dispatch({ type: "wasmLoaded", api: loadedApi, version: loadedApi.version() });
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setVersion(error instanceof Error ? error.message : "Unable to load wasm-api artifact");
-          setMode("error");
+          dispatch({
+            type: "wasmLoadFailed",
+            message: error instanceof Error ? error.message : "Unable to load wasm-api artifact",
+          });
         }
       });
 
@@ -90,34 +85,31 @@ function App() {
     if (!api) {
       return;
     }
-    setDiagnostic(null);
-    const created = api.newMatch("race_to_n", 1);
-    setMatchId(created.match_id);
-    setEffects([]);
-    setLastCursor(0);
-    setStaleToken(null);
+    dispatch({ type: "matchStarting" });
+    const created = api.newMatch(state.selectedGameId, state.setup.seed);
+    dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
-  }, [api, refresh]);
+  }, [api, refresh, state.selectedGameId, state.setup.seed]);
 
   const playChoice = useCallback(
     (choice: ActionChoice) => {
       if (!api || !matchId || !view) {
         return;
       }
-      setDiagnostic(null);
+      dispatch({ type: "diagnosticCleared" });
       const tokenBeforeAction = view.freshness_token;
       try {
         const afterHuman = api.applyAction(matchId, "seat_0", choice.segment, tokenBeforeAction);
-        setStaleToken(tokenBeforeAction);
+        dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
         if (afterHuman.winner === null && afterHuman.active_seat === "seat_1") {
           api.runBotTurn(matchId, "seat_1", tokenBeforeAction + 101);
         }
-        refresh(api, matchId, lastCursor);
+        refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
-        setDiagnostic(error as ApiError);
+        dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
       }
     },
-    [api, lastCursor, matchId, refresh, view],
+    [api, effectCursor, matchId, refresh, view],
   );
 
   const submitStale = useCallback(() => {
@@ -127,14 +119,14 @@ function App() {
     try {
       api.applyAction(matchId, "seat_0", "add-1", staleToken ?? 0);
     } catch (error: unknown) {
-      setDiagnostic(error as ApiError);
+      dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
     }
-    refresh(api, matchId, lastCursor);
-  }, [api, lastCursor, matchId, refresh, staleToken]);
+    refresh(api, matchId, effectCursor);
+  }, [api, effectCursor, matchId, refresh, staleToken]);
 
   const textState = useMemo<AppTextState>(
     () => ({
-      mode,
+      mode: state.mode === "play" || state.mode === "replay" ? "playing" : state.mode === "setup" ? "ready" : state.mode,
       version,
       matchId,
       view: view
@@ -146,11 +138,11 @@ function App() {
             freshness_token: view.freshness_token,
           }
         : null,
-      choices: tree?.choices.map((choice) => choice.segment) ?? [],
+      choices: actionTree?.choices.map((choice) => choice.segment) ?? [],
       effects: effects.map(describeEffect),
       diagnostic,
     }),
-    [diagnostic, effects, matchId, mode, tree, version, view],
+    [actionTree, diagnostic, effects, matchId, state.mode, version, view],
   );
 
   useEffect(() => {
@@ -206,12 +198,12 @@ function App() {
             </button>
           ) : (
             <>
-              {(tree?.choices ?? []).map((choice) => (
+              {(actionTree?.choices ?? []).map((choice) => (
                 <button
                   type="button"
                   key={choice.segment}
                   onClick={() => playChoice(choice)}
-                  disabled={view?.active_seat !== "seat_0" || view.winner !== null}
+                  disabled={view?.active_seat !== "seat_0" || view?.winner !== null}
                   data-testid={`choice-${choice.segment}`}
                 >
                   {choice.label}
