@@ -1,6 +1,6 @@
 # GAT5COLFOUPUB-003: Column Four rules core — gravity, legality, terminal, diagnostics
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/column_four/src/actions.rs`, `games/column_four/src/rules.rs`, `games/column_four/src/state.rs`
@@ -82,3 +82,28 @@ Extend state with the apply-action transition (place → land → mutate → res
 1. `cargo test -p column_four`
 2. `cargo build --workspace`
 3. `cargo clippy -p column_four --all-targets -- -D warnings` — lint the new behavior surface.
+
+## Outcome
+
+Completed: 2026-06-06
+
+What changed:
+
+- Added `games/column_four/src/actions.rs` with Rust-owned legal action tree generation for active actors, one legal action per non-full column, column action parsing, and actor-seat mapping.
+- Added `games/column_four/src/rules.rs` with command validation, required public diagnostic codes, gravity landing, occupancy mutation, terminal resolution, legal-column calculation, horizontal/vertical/rising-diagonal/falling-diagonal win detection, draw detection, win-precedence, and deterministic multi-line tie-break behavior.
+- Extended `games/column_four/src/state.rs` with `WinningLine`, `TerminalOutcome`, state occupancy mutation helpers, terminal storage, and stable snapshot summaries that include terminal state.
+- Added focused unit coverage for legal-column filtering, inactive actor legal-tree emptiness, stale/not-active/invalid-path/unknown-column/full-column/terminal diagnostics, gravity landing, all four win directions, deterministic multi-line tie-break, draw, win-over-draw precedence, and terminal no-actions.
+
+Deviations from original plan:
+
+- Semantic effects were intentionally not added to `apply_action`; they remain in GAT5COLFOUPUB-005. This ticket stores the terminal outcome and winning line needed by later view/effect/replay tickets.
+
+Verification results:
+
+- Passed: `cargo test -p column_four rules`
+- Passed: `cargo test -p column_four actions`
+- Passed: `cargo test -p column_four`
+- Passed: `cargo clippy -p column_four --all-targets -- -D warnings`
+- Passed: `cargo fmt --all --check`
+- Passed: `cargo build --workspace`
+- Passed: `bash scripts/boundary-check.sh`

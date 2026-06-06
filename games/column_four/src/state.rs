@@ -1,7 +1,7 @@
 use engine_core::{FreshnessToken, SeatId};
 
 use crate::{
-    ids::{CellId, ColumnFourSeat},
+    ids::{CellId, ColumnFourSeat, ColumnId, RowId},
     variants::Variant,
 };
 
@@ -17,6 +17,20 @@ impl CellOccupancy {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct WinningLine {
+    pub cells: [CellId; 4],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum TerminalOutcome {
+    Win {
+        seat: ColumnFourSeat,
+        line: WinningLine,
+    },
+    Draw,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ColumnFourState {
     pub variant: Variant,
@@ -24,6 +38,7 @@ pub struct ColumnFourState {
     pub active_seat: ColumnFourSeat,
     pub seats: [SeatId; 2],
     pub ply_count: u8,
+    pub terminal_outcome: Option<TerminalOutcome>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -34,6 +49,17 @@ impl ColumnFourState {
 
     pub fn occupancy(&self, cell: CellId) -> CellOccupancy {
         self.cells[cell.index()]
+    }
+
+    pub fn set_occupancy(&mut self, cell: CellId, occupancy: CellOccupancy) {
+        self.cells[cell.index()] = occupancy;
+    }
+
+    pub fn cell(row_index: usize, column_index: usize) -> Option<CellId> {
+        Some(CellId::new(
+            RowId::from_index(row_index)?,
+            ColumnId::from_index(column_index)?,
+        ))
     }
 }
 
@@ -47,6 +73,7 @@ pub struct ColumnFourSnapshot {
     pub active_seat: ColumnFourSeat,
     pub seats: [SeatId; 2],
     pub ply_count: u8,
+    pub terminal_outcome: Option<TerminalOutcome>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -61,6 +88,7 @@ impl ColumnFourSnapshot {
             active_seat: state.active_seat,
             seats: state.seats.clone(),
             ply_count: state.ply_count,
+            terminal_outcome: state.terminal_outcome,
             freshness_token: state.freshness_token,
         }
     }
@@ -72,6 +100,7 @@ impl ColumnFourSnapshot {
             active_seat: self.active_seat,
             seats: self.seats,
             ply_count: self.ply_count,
+            terminal_outcome: self.terminal_outcome,
             freshness_token: self.freshness_token,
         }
     }
@@ -89,7 +118,7 @@ impl ColumnFourSnapshot {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "schema={};rules={};rules_label={};variant={};seat_count={};first_seat={};columns={};rows={};cell_scheme={};ending={};cells={};active={};seat_0={};seat_1={};ply={};freshness={}",
+            "schema={};rules={};rules_label={};variant={};seat_count={};first_seat={};columns={};rows={};cell_scheme={};ending={};cells={};active={};seat_0={};seat_1={};ply={};terminal={};freshness={}",
             self.schema_version,
             self.rules_version,
             self.rules_version_label,
@@ -105,6 +134,7 @@ impl ColumnFourSnapshot {
             self.seats[0].0,
             self.seats[1].0,
             self.ply_count,
+            terminal_summary(self.terminal_outcome),
             self.freshness_token.0
         )
     }
@@ -120,5 +150,20 @@ fn occupancy_summary(occupancy: CellOccupancy) -> &'static str {
     match occupancy {
         CellOccupancy::Empty => "empty",
         CellOccupancy::Occupied(seat) => seat.as_str(),
+    }
+}
+
+fn terminal_summary(outcome: Option<TerminalOutcome>) -> String {
+    match outcome {
+        None => "none".to_owned(),
+        Some(TerminalOutcome::Draw) => "draw".to_owned(),
+        Some(TerminalOutcome::Win { seat, line }) => format!(
+            "win:{}:{}-{}-{}-{}",
+            seat.as_str(),
+            line.cells[0].as_string(),
+            line.cells[1].as_string(),
+            line.cells[2].as_string(),
+            line.cells[3].as_string()
+        ),
     }
 }

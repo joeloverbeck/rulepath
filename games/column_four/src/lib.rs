@@ -1,13 +1,17 @@
 //! `column_four` public-polish crate.
 
+pub mod actions;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+pub use actions::{actor_seat, legal_action_tree};
 pub use ids::{CellId, ColumnFourSeat, ColumnId, RowId};
+pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
-pub use state::{CellOccupancy, ColumnFourSnapshot, ColumnFourState};
+pub use state::{CellOccupancy, ColumnFourSnapshot, ColumnFourState, TerminalOutcome, WinningLine};
 pub use variants::{Manifest, Variant, VariantCatalog};
 
 pub fn load_manifest() -> Result<Manifest, String> {
@@ -51,6 +55,7 @@ mod tests {
         assert_eq!(state.seats[0], seats[0]);
         assert_eq!(state.seats[1], seats[1]);
         assert_eq!(state.ply_count, 0);
+        assert_eq!(state.terminal_outcome, None);
         assert_eq!(state.freshness_token, FreshnessToken(0));
         assert!(state.cells.iter().all(|cell| cell.is_empty()));
     }

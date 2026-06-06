@@ -49,6 +49,7 @@ pub fn setup_match(
         )?,
         seats: [seats[0].clone(), seats[1].clone()],
         ply_count: 0,
+        terminal_outcome: None,
         freshness_token: FreshnessToken(0),
     })
 }
@@ -70,6 +71,7 @@ mod tests {
         assert!(left.cells.iter().all(|cell| cell.is_empty()));
         assert_eq!(left.active_seat, ColumnFourSeat::Seat0);
         assert_eq!(left.ply_count, 0);
+        assert_eq!(left.terminal_outcome, None);
         assert_eq!(left.freshness_token, FreshnessToken(0));
     }
 
