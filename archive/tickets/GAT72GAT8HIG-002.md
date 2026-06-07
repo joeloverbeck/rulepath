@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-002: High Card Duel RULES.md + SOURCES.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — per-game docs only (`games/high_card_duel/docs/RULES.md`, `games/high_card_duel/docs/SOURCES.md`)
@@ -99,3 +99,24 @@ declaration. No copied prose.
 1. `grep -oE "HCD-[A-Z]+-[0-9]+" games/high_card_duel/docs/RULES.md | sort -u`
 2. `node scripts/check-doc-links.mjs`
 3. Doc-grep is the correct boundary — rule prose has no compiled surface until the rules tickets (004–008) consume these IDs.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/high_card_duel/docs/RULES.md` with the original Rulepath rules contract for `high_card_duel_standard`.
+- Defined the canonical stable rule IDs for setup, round flow, legal actions, and diagnostics: `HCD-SETUP-001..005`, `HCD-ROUND-001..013`, `HCD-ACT-001..008`, and `HCD-DIAG-001..006`.
+- Documented the local 24-card numeric-rank deck, deterministic shuffle contract, private hand/commitment visibility, six-round terminal structure, viewer projections, effect families, replay/export no-leak posture, and bot hidden-information boundary.
+- Added `games/high_card_duel/docs/SOURCES.md` with source-use notes, War-not-copied rationale, original-rule declaration, IP/trade-dress review, ambiguity log, variant choices, and rule-family rationale.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `grep -oE "HCD-[A-Z]+-[0-9]+" games/high_card_duel/docs/RULES.md | sort -u` returned the 32 specified setup/round/action/diagnostic IDs.
+- `grep -c "HCD-" games/high_card_duel/docs/RULES.md` returned `32`.
+- `node scripts/check-doc-links.mjs` passed.
