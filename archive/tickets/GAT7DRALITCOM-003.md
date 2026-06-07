@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-003: Conditional `game-stdlib` board-space primitive extraction
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/game-stdlib/src/lib.rs` and a new board-space module (`crates/game-stdlib/src/board_space.rs` or equivalent): rule-agnostic rectangular-coordinate helper. CONDITIONAL on GAT7DRALITCOM-002.
@@ -77,3 +77,22 @@ Export the module from `crates/game-stdlib/src/lib.rs`; retain `placeholder_vers
 1. `cargo test -p game-stdlib`
 2. `cargo test --workspace && bash scripts/boundary-check.sh`
 3. Workspace-wide tests are the correct boundary because the load-bearing invariant is "existing games do not regress"; a crate-scoped run alone would not prove the no-migration constraint.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Replaced the `game-stdlib` placeholder surface with an exported `board_space` module.
+- Added `Dimensions`, `Coord`, `CoordIdError`, `Parity`, and `RowMajor` for behavior-free rectangular board-space use.
+- Added helper coverage for nonzero dimensions, one-based coordinates, bounds checks, deterministic row-major iteration, stable `rNcM` parse/format, signed offsets, row-major indexes, and generic parity.
+
+Deviations from original plan:
+- None. GAT7DRALITCOM-002 chose `promote`, so this ticket was applicable.
+
+Verification:
+- `cargo test -p game-stdlib` passed (10 unit tests).
+- `cargo fmt --all --check` passed after formatting the new module.
+- `cargo test --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -iE "capture|king|dark|forced|promot" crates/game-stdlib/src/board_space.rs` produced no matches.
