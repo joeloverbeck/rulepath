@@ -1,0 +1,15 @@
+game_id = "directional_flip"
+display_name = "Directional Flip"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "directional_flip-rules-v1"
+data_version = 1
+schema_version = 1
+board_name = "board"
+row_name = "row"
+column_name = "column"
+cell_name = "cell"
+disc_name = "disc"
+seat_name = "seat"
+board_columns = 8
+board_rows = 8

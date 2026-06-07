@@ -1,6 +1,6 @@
 # GAT6DIRFLI-004: Crate skeleton & workspace wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new crate `games/directional_flip` (`Cargo.toml`, `src/lib.rs`, `src/ids.rs`, `src/state.rs`, `src/setup.rs`, `src/variants.rs`, `data/*`); workspace registration in root `Cargo.toml`.
@@ -95,3 +95,29 @@ Add `games/directional_flip` to root `Cargo.toml` `members`.
 1. `cargo build -p directional_flip`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. A build + boundary check is the correct boundary here; behavioral tests arrive with the rules engine (GAT6DIRFLI-005/012).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added the `games/directional_flip` crate with `Cargo.toml`, `src/lib.rs`, `src/ids.rs`, `src/state.rs`, `src/setup.rs`, and `src/variants.rs`.
+- Added typed local seats, rows, columns, 64 stable cell ids, 8 by 8 occupancy state, snapshot stable summary support, setup options, and standard setup constructor.
+- Added inert static data in `data/manifest.toml`, `data/variants.toml`, and `data/fixtures/directional_flip_standard.fixture.json`.
+- Registered `games/directional_flip` in the root workspace and updated `Cargo.lock`.
+
+Deviations from original plan:
+
+- No `game-stdlib` dependency was added because GAT6DIRFLI-002 decided `defer-reject` and GAT6DIRFLI-003 closed as not applicable.
+- Rules, legality, flip resolution, forced pass, views, effects, bots, WASM, and tools remain out of scope for later tickets.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo build -p directional_flip` passed.
+- `grep -q 'games/directional_flip' Cargo.toml` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `cargo test -p directional_flip` passed: 5 tests passed.
+- `rg -n "when|selector|condition|trigger|script|loop|valid_if|on_play|on_reveal" games/directional_flip/data` returned no behavior-looking data keys.

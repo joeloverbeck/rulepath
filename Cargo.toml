@@ -8,6 +8,7 @@ members = [
     "games/race_to_n",
     "games/three_marks",
     "games/column_four",
+    "games/directional_flip",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",

@@ -1,0 +1,10 @@
+variant_id = "directional_flip_standard"
+display_name = "Directional Flip"
+rules_version_label = "directional_flip-rules-v1"
+seat_count = 2
+first_seat = 0
+board_columns = 8
+board_rows = 8
+cell_id_scheme = "r1c1_to_r8c8_top_to_bottom"
+opening = "seat_0:r4c5,r5c4;seat_1:r4c4,r5c5"
+ending = "no_legal_placement_double_forced_pass_or_no_continuation"
