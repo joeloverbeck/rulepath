@@ -1,10 +1,33 @@
 # GAT7DRALITCOM-017: Tool registration & RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/simulate/src/main.rs`, `tools/replay-check/src/main.rs`, `tools/fixture-check/src/main.rs`, `tools/rule-coverage/src/main.rs`, `tools/bench-report/src/main.rs` (register `draughts_lite`), `games/draughts_lite/docs/RULE-COVERAGE.md` (new).
 **Deps**: 014, 015
+
+## Outcome
+
+Registered `draughts_lite` in the standard verification toolchain:
+
+1. `simulate` now runs Draughts Lite random legal games and reports `seat_0_wins`, `seat_1_wins`, and `bounded_nonterminal_at_cap` without inventing a draw rule.
+2. `replay-check` now preserves multi-segment Trace Schema v1 action paths and validates all Draughts Lite golden traces, including the WASM-exported trace.
+3. `fixture-check` validates the Draughts Lite fixture, manifest, and variant static data.
+4. `rule-coverage` resolves Draughts Lite docs, accepts the `DL-*` rule-id prefix, and validates the new coverage matrix.
+5. `RULE-COVERAGE.md` maps the Draughts Lite rule IDs to implementation, tests, traces, tool coverage, unsupported rows, and intentionally deferred UI evidence.
+
+`bench-report` Draughts Lite registration landed in GAT7DRALITCOM-015 and remains covered by the workspace test suite.
+
+Verification passed on 2026-06-07:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p rule-coverage`
+3. `cargo run -p simulate -- --game draughts_lite --games 1000`
+4. `cargo run -p replay-check -- --game draughts_lite --all`
+5. `cargo run -p fixture-check -- --game draughts_lite`
+6. `cargo run -p rule-coverage -- --game draughts_lite`
+7. `bash scripts/boundary-check.sh`
+8. `cargo test --workspace`
 
 ## Problem
 

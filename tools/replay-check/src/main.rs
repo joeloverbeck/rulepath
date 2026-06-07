@@ -10,6 +10,10 @@ use directional_flip::replay_support::{
     replay_commands as directional_replay_commands,
     replay_from_state as directional_replay_from_state,
 };
+use draughts_lite::replay_support::{
+    diagnostic_hash as draughts_diagnostic_hash, replay_commands as draughts_replay_commands,
+    replay_from_state as draughts_replay_from_state,
+};
 use engine_core::{ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed};
 use race_to_n::replay_support::{
     replay_bot_action as race_replay_bot_action, replay_commands as race_replay_commands,
@@ -80,6 +84,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "directional_flip",
             rules_version: "directional_flip-rules-v1",
             trace_dir: "games/directional_flip/tests/golden_traces",
+        }),
+        "draughts_lite" => Ok(RegisteredGame {
+            game_id: "draughts_lite",
+            rules_version: "draughts_lite-rules-v1",
+            trace_dir: "games/draughts_lite/tests/golden_traces",
         }),
         _ => Err(format!("unsupported game `{game}`")),
     }
@@ -228,10 +237,10 @@ struct Trace {
     data_version: String,
     migration_update_note: String,
     seed: u64,
-    commands: Vec<String>,
+    commands: Vec<Vec<String>>,
     bot_seed: Option<u64>,
-    invalid_command: Option<String>,
-    stale_command: Option<String>,
+    invalid_command: Option<Vec<String>>,
+    stale_command: Option<Vec<String>>,
     expected_state_hash: Option<u64>,
     expected_effect_hash: Option<u64>,
     expected_action_tree_hash: Option<u64>,
@@ -446,13 +455,17 @@ impl Trace {
             "three_marks" => self.three_actual_hashes(),
             "column_four" => self.column_actual_hashes(),
             "directional_flip" => self.directional_actual_hashes(),
+            "draughts_lite" => self.draughts_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
 
     fn race_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
         let Some(hashes) = (match self.fixture_kind.as_str() {
-            "commands" | "terminal" => Some(race_replay_commands(self.seed, &self.commands)),
+            "commands" | "terminal" => Some(race_replay_commands(
+                self.seed,
+                &single_segments(&self.commands)?,
+            )),
             "bot" => Some(race_replay_bot_action(
                 self.seed,
                 self.bot_seed
@@ -460,12 +473,16 @@ impl Trace {
             )),
             "invalid" | "diagnostic" => Some(race_replay_invalid(
                 self.seed,
-                self.invalid_command
-                    .as_deref()
-                    .ok_or_else(|| self.failure("invalid trace missing invalid command"))?,
-                self.stale_command
-                    .as_deref()
-                    .ok_or_else(|| self.failure("invalid trace missing stale command"))?,
+                &single_segment(
+                    self.invalid_command
+                        .as_ref()
+                        .ok_or_else(|| self.failure("invalid trace missing invalid command"))?,
+                )?,
+                &single_segment(
+                    self.stale_command
+                        .as_ref()
+                        .ok_or_else(|| self.failure("invalid trace missing stale command"))?,
+                )?,
             )),
             "not_applicable" => None,
             other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
@@ -486,18 +503,23 @@ impl Trace {
 
     fn three_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
         let Some(hashes) = (match self.fixture_kind.as_str() {
-            "commands" | "terminal" => Some(three_replay_commands(self.seed, &self.commands)),
+            "commands" | "terminal" => Some(three_replay_commands(
+                self.seed,
+                &single_segments(&self.commands)?,
+            )),
             "bot" => Some(three_replay_bot_action(self.seed)),
             "diagnostic" => {
-                if let Some(stale) = self.stale_command.as_deref() {
-                    Some(three_replay_stale(self.seed, stale))
+                if let Some(stale) = self.stale_command.as_ref() {
+                    Some(three_replay_stale(self.seed, &single_segment(stale)?))
                 } else {
                     let diagnostic = self
                         .commands
                         .last()
                         .cloned()
                         .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
-                    let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+                    let setup =
+                        single_segments(&self.commands[..self.commands.len().saturating_sub(1)])?;
+                    let diagnostic = single_segment(&diagnostic)?;
                     Some(three_replay_diagnostic(self.seed, &setup, &diagnostic))
                 }
             }
@@ -536,10 +558,11 @@ impl Trace {
         } else {
             (self.commands.clone(), None)
         };
+        let command_segments = single_segments(&commands)?;
 
         let Some(hashes) = (match self.fixture_kind.as_str() {
             "commands" | "terminal" | "bot" | "diagnostic" => {
-                Some(column_replay_commands(self.seed, &commands))
+                Some(column_replay_commands(self.seed, &command_segments))
             }
             "not_applicable" => None,
             other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
@@ -563,8 +586,8 @@ impl Trace {
 
     fn column_diagnostic_hash(
         &self,
-        setup_commands: &[String],
-        diagnostic_command: &str,
+        setup_commands: &[Vec<String>],
+        diagnostic_command: &[String],
     ) -> Result<HashValue, String> {
         let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
         let mut state = column_four::setup_match(
@@ -573,13 +596,14 @@ impl Trace {
             &column_four::SetupOptions::default(),
         )
         .map_err(diagnostic_string)?;
-        for segment in setup_commands {
-            let command = column_command_for_state(&state, segment.clone());
+        for path in setup_commands {
+            let command = column_command_for_state(&state, single_segment(path)?);
             let action =
                 column_four::validate_command(&state, &command).map_err(diagnostic_string)?;
             column_four::apply_action(&mut state, action);
         }
-        let mut command = column_command_for_state(&state, diagnostic_command.to_owned());
+        let diagnostic_segment = single_segment(diagnostic_command)?;
+        let mut command = column_command_for_state(&state, diagnostic_segment);
         if self.stale_command.as_deref() == Some(diagnostic_command) {
             command.freshness_token = state.freshness_token.next();
         }
@@ -608,7 +632,7 @@ impl Trace {
 
         let Some(hashes) = (match self.fixture_kind.as_str() {
             "commands" | "terminal" | "bot" | "diagnostic" => {
-                Some(self.directional_replay_hashes(&commands))
+                Some(self.directional_replay_hashes(&single_segments(&commands)?))
             }
             "not_applicable" => None,
             other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
@@ -632,8 +656,8 @@ impl Trace {
 
     fn directional_diagnostic_hash(
         &self,
-        setup_commands: &[String],
-        diagnostic_command: &str,
+        setup_commands: &[Vec<String>],
+        diagnostic_command: &[String],
     ) -> Result<HashValue, String> {
         let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
         let mut state = directional_flip::setup_match(
@@ -642,8 +666,8 @@ impl Trace {
             &directional_flip::SetupOptions::default(),
         )
         .map_err(diagnostic_string)?;
-        for segment in setup_commands {
-            let command = directional_command_for_state(&state, segment.clone());
+        for path in setup_commands {
+            let command = directional_command_for_state(&state, single_segment(path)?);
             let action =
                 directional_flip::validate_command(&state, &command).map_err(diagnostic_string)?;
             directional_flip::apply_action(&mut state, action);
@@ -653,7 +677,8 @@ impl Trace {
             .as_deref()
             .and_then(directional_flip::DirectionalFlipSeat::parse)
             .unwrap_or(state.active_seat);
-        let mut command = directional_command_for_seat(&state, actor_seat, diagnostic_command);
+        let diagnostic_segment = single_segment(diagnostic_command)?;
+        let mut command = directional_command_for_seat(&state, actor_seat, &diagnostic_segment);
         if let Some(freshness_token) = self.diagnostic_freshness_token {
             command.freshness_token = engine_core::FreshnessToken(freshness_token);
         }
@@ -681,6 +706,94 @@ impl Trace {
                 directional_replay_custom(self.seed, full_board_terminal_state(), commands)
             }
             _ => directional_replay_commands(self.seed, commands),
+        }
+    }
+
+    fn draughts_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let (commands, diagnostic_hash) = if self.fixture_kind == "diagnostic" {
+            let diagnostic = self
+                .commands
+                .last()
+                .cloned()
+                .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
+            let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+            (
+                setup.clone(),
+                Some(self.draughts_diagnostic_hash(&setup, &diagnostic)?),
+            )
+        } else {
+            (self.commands.clone(), None)
+        };
+
+        let Some(hashes) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" | "bot" | "diagnostic" => {
+                Some(self.draughts_replay_hashes(&commands))
+            }
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: hashes.state_hash,
+            effect_hash: hashes.effect_hash,
+            action_tree_hash: hashes.action_tree_hash,
+            view_hash: hashes.view_hash,
+            diagnostic_hash,
+            terminal: hashes.terminal,
+            winner: hashes.outcome.map(|outcome| match outcome {
+                draughts_lite::TerminalOutcome::Win { seat } => seat.as_str().to_owned(),
+            }),
+        }))
+    }
+
+    fn draughts_diagnostic_hash(
+        &self,
+        setup_commands: &[Vec<String>],
+        diagnostic_command: &[String],
+    ) -> Result<HashValue, String> {
+        let mut state = draughts_initial_state(&self.trace_id, self.seed);
+        for path in setup_commands {
+            let command = draughts_command_for_state(&state, state.active_seat, path.clone());
+            let action =
+                draughts_lite::validate_command(&state, &command).map_err(diagnostic_string)?;
+            draughts_lite::apply_action(&mut state, action);
+        }
+        let actor_seat = self
+            .diagnostic_actor_seat
+            .as_deref()
+            .and_then(parse_draughts_trace_seat)
+            .unwrap_or(state.active_seat);
+        let mut command =
+            draughts_command_for_state(&state, actor_seat, diagnostic_command.to_vec());
+        if let Some(freshness_token) = self.diagnostic_freshness_token {
+            command.freshness_token = engine_core::FreshnessToken(freshness_token);
+        }
+        let diagnostic = draughts_lite::validate_command(&state, &command)
+            .expect_err("diagnostic trace command must reject");
+        Ok(draughts_diagnostic_hash(&[diagnostic]))
+    }
+
+    fn draughts_replay_hashes(&self, commands: &[Vec<String>]) -> draughts_lite::ReplayHashes {
+        match self.trace_id.as_str() {
+            "draughts-lite-mandatory-capture-suppresses-quiet"
+            | "draughts-lite-quiet-while-capture-diagnostic"
+            | "draughts-lite-single-capture"
+            | "draughts-lite-multi-jump"
+            | "draughts-lite-illegal-continuation-diagnostic"
+            | "draughts-lite-forced-continuation-branch"
+            | "draughts-lite-promotion-quiet"
+            | "draughts-lite-promotion-during-capture-stop"
+            | "draughts-lite-path-after-promotion-stop-diagnostic"
+            | "draughts-lite-terminal-no-pieces"
+            | "draughts-lite-terminal-no-legal-moves" => {
+                let mut state = draughts_initial_state(&self.trace_id, self.seed);
+                let initial_snapshot =
+                    draughts_lite::DraughtsLiteSnapshot::from_state(&state).stable_summary();
+                draughts_replay_from_state(self.seed, initial_snapshot, commands, &mut state)
+            }
+            _ => draughts_replay_commands(self.seed, commands),
         }
     }
 
@@ -943,7 +1056,7 @@ fn optional_string_or_null_in_object(
     Ok(parse_string_at(&body, tail_start))
 }
 
-fn action_paths(input: &str) -> Vec<String> {
+fn action_paths(input: &str) -> Vec<Vec<String>> {
     let mut commands = Vec::new();
     let mut remaining = input;
     while let Some(offset) = remaining.find("\"action_path\":") {
@@ -953,13 +1066,13 @@ fn action_paths(input: &str) -> Vec<String> {
             .find(']')
             .expect("action_path array must close")
             + open;
-        commands.push(parse_first_array_string(&remaining[open + 1..close]));
+        commands.push(parse_array_strings(&remaining[open + 1..close]));
         remaining = &remaining[close + 1..];
     }
     commands
 }
 
-fn command_with_expect(input: &str, expected_code: &str) -> Option<String> {
+fn command_with_expect(input: &str, expected_code: &str) -> Option<Vec<String>> {
     input
         .find(&format!(
             "\"expected_diagnostic_code\": \"{expected_code}\""
@@ -1052,8 +1165,41 @@ fn parse_number_at(input: &str, start: usize) -> Option<u64> {
     }
 }
 
-fn parse_first_array_string(input: &str) -> String {
-    parse_string_at(input, 0).expect("array must contain a string path segment")
+fn parse_array_strings(input: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut index = 0;
+    while index < input.len() {
+        let rest = input[index..].trim_start();
+        if rest.is_empty() {
+            break;
+        }
+        let skipped = input[index..].len() - rest.len();
+        index += skipped;
+        if input[index..].starts_with(',') {
+            index += 1;
+            continue;
+        }
+        let value = parse_string_at(input, index).expect("array item must be a string");
+        let (_, next) = parse_json_string_at(input, index).expect("array item string parses");
+        values.push(value);
+        index = next;
+    }
+    values
+}
+
+fn single_segments(commands: &[Vec<String>]) -> Result<Vec<String>, String> {
+    commands.iter().map(|path| single_segment(path)).collect()
+}
+
+fn single_segment(path: &[String]) -> Result<String, String> {
+    if path.len() == 1 {
+        Ok(path[0].clone())
+    } else {
+        Err(format!(
+            "expected one-segment command path, got [{}]",
+            path.join(",")
+        ))
+    }
 }
 
 fn column_command_for_state(
@@ -1104,6 +1250,155 @@ fn directional_replay_custom(
     let initial_snapshot =
         directional_flip::DirectionalFlipSnapshot::from_state(&state).stable_summary();
     directional_replay_from_state(seed, initial_snapshot, commands, &mut state)
+}
+
+fn draughts_command_for_state(
+    state: &draughts_lite::DraughtsLiteState,
+    seat: draughts_lite::DraughtsLiteSeat,
+    action_path: Vec<String>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: action_path,
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn parse_draughts_trace_seat(value: &str) -> Option<draughts_lite::DraughtsLiteSeat> {
+    match value {
+        "seat-0" => Some(draughts_lite::DraughtsLiteSeat::Seat0),
+        "seat-1" => Some(draughts_lite::DraughtsLiteSeat::Seat1),
+        _ => draughts_lite::DraughtsLiteSeat::parse(value),
+    }
+}
+
+fn draughts_initial_state(trace_id: &str, seed: u64) -> draughts_lite::DraughtsLiteState {
+    match trace_id {
+        "draughts-lite-mandatory-capture-suppresses-quiet"
+        | "draughts-lite-quiet-while-capture-diagnostic"
+        | "draughts-lite-single-capture" => draughts_empty_state(
+            draughts_lite::DraughtsLiteSeat::Seat0,
+            vec![
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 3, 2),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 4, 3),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 2, 8, 7),
+            ],
+        ),
+        "draughts-lite-multi-jump" | "draughts-lite-illegal-continuation-diagnostic" => {
+            draughts_empty_state(
+                draughts_lite::DraughtsLiteSeat::Seat0,
+                vec![
+                    draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 3, 2),
+                    draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 4, 3),
+                    draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 2, 6, 5),
+                    draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 3, 8, 7),
+                ],
+            )
+        }
+        "draughts-lite-forced-continuation-branch" => draughts_empty_state(
+            draughts_lite::DraughtsLiteSeat::Seat0,
+            vec![
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 3, 2),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 4, 3),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 2, 6, 3),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 3, 6, 5),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 4, 8, 7),
+            ],
+        ),
+        "draughts-lite-promotion-quiet" => draughts_empty_state(
+            draughts_lite::DraughtsLiteSeat::Seat0,
+            vec![
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 7, 2),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 6, 7),
+            ],
+        ),
+        "draughts-lite-promotion-during-capture-stop"
+        | "draughts-lite-path-after-promotion-stop-diagnostic" => draughts_empty_state(
+            draughts_lite::DraughtsLiteSeat::Seat0,
+            vec![
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 6, 3),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 7, 4),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 2, 7, 6),
+            ],
+        ),
+        "draughts-lite-terminal-no-pieces" => draughts_empty_state(
+            draughts_lite::DraughtsLiteSeat::Seat0,
+            vec![
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 3, 2),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 4, 3),
+            ],
+        ),
+        "draughts-lite-terminal-no-legal-moves" => draughts_empty_state(
+            draughts_lite::DraughtsLiteSeat::Seat0,
+            vec![
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 1, 1, 2),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat0, 2, 3, 4),
+                draughts_man(draughts_lite::DraughtsLiteSeat::Seat1, 1, 2, 1),
+            ],
+        ),
+        _ => draughts_lite::setup_match(
+            Seed(seed),
+            &vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())],
+            &draughts_lite::SetupOptions::default(),
+        )
+        .expect("draughts setup succeeds"),
+    }
+}
+
+fn draughts_coord(row: u8, col: u8) -> game_stdlib::board_space::Coord {
+    game_stdlib::board_space::Coord::checked(row, col).unwrap()
+}
+
+fn draughts_piece_id(
+    owner: draughts_lite::DraughtsLiteSeat,
+    ordinal: u8,
+) -> draughts_lite::PieceId {
+    draughts_lite::PieceId::new(owner, ordinal).unwrap()
+}
+
+fn draughts_man(
+    owner: draughts_lite::DraughtsLiteSeat,
+    ordinal: u8,
+    row: u8,
+    col: u8,
+) -> draughts_lite::Piece {
+    draughts_lite::Piece {
+        id: draughts_piece_id(owner, ordinal),
+        owner,
+        kind: draughts_lite::PieceKind::Man,
+        cell: draughts_coord(row, col),
+    }
+}
+
+fn draughts_empty_state(
+    active_seat: draughts_lite::DraughtsLiteSeat,
+    mut pieces: Vec<draughts_lite::Piece>,
+) -> draughts_lite::DraughtsLiteState {
+    let board = draughts_lite::ids::board_dimensions();
+    pieces.sort_by_key(|piece| piece.id);
+    let mut cells = draughts_lite::DraughtsLiteState::empty_cells();
+    for piece in &pieces {
+        cells[piece.cell.row_col_index(board).unwrap()] =
+            draughts_lite::CellOccupancy::Occupied(piece.id);
+    }
+
+    draughts_lite::DraughtsLiteState {
+        variant: draughts_lite::Variant::draughts_lite_standard(),
+        board,
+        cells,
+        pieces,
+        active_seat,
+        seats: [SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())],
+        ply_count: 0,
+        command_count: 0,
+        terminal_outcome: None,
+        freshness_token: engine_core::FreshnessToken(0),
+    }
 }
 
 fn directional_cell(

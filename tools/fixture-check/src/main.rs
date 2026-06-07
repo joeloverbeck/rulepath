@@ -175,6 +175,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/directional_flip/data/variants.toml",
             variant_id: "directional_flip_standard",
         }),
+        "draughts_lite" => Ok(RegisteredGame {
+            game_id: "draughts_lite",
+            rules_version: "draughts_lite-rules-v1",
+            trace_dir: "games/draughts_lite/tests/golden_traces",
+            fixture_dir: "games/draughts_lite/data/fixtures",
+            manifest_path: "games/draughts_lite/data/manifest.toml",
+            variants_path: "games/draughts_lite/data/variants.toml",
+            variant_id: "draughts_lite_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -227,8 +236,10 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip>");
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip> --trace <path>");
+    println!(
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite>"
+    );
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -308,6 +319,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = directional_flip::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "draughts_lite" => {
+            let manifest = draughts_lite::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = draughts_lite::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (
