@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-002: Primitive-pressure reopen decision & ledger/atlas update
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — decision/documentation only (`games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `docs/MECHANIC-ATLAS.md`). Outcome gates GAT7DRALITCOM-003 (`game-stdlib`) and informs GAT7DRALITCOM-005.
@@ -75,3 +75,21 @@ Supersede the standing rows: update "fixed 2D occupancy", "coordinate/targeted p
 1. `node scripts/check-doc-links.mjs`
 2. `git diff --stat docs/MECHANIC-ATLAS.md` — confirm the standing rows are edited in place (superseded), not appended below.
 3. A docs/decision ticket's correct verification boundary is link integrity + a manual atlas-row diff review; code-level proof belongs to GAT7DRALITCOM-003.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Added `games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md` recording the Gate 7 decision to promote a narrow behavior-free rectangular board-space primitive into `game-stdlib`.
+- Superseded the `docs/MECHANIC-ATLAS.md` rows for `fixed 2D occupancy`, `coordinate/targeted placement`, and `movement/capture/forced continuation`.
+- Recorded the boundary that only dimensions, coordinates, bounds, row-major iteration, signed offsets, stable `rNcM` parse/format, and generic parity are promotable; draughts movement, capture, continuation, promotion, occupancy, effects, UI, WASM, and bot policy remain game-local.
+- Recorded the retrofit policy: no forced retrofit of `three_marks`, `column_four`, or `directional_flip` during Gate 7.
+
+Deviations from original plan:
+- The decision outcome is `promote`; GAT7DRALITCOM-003 is applicable.
+
+Verification:
+- `node scripts/check-doc-links.mjs` passed (`Checked 22 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- Manual atlas diff review confirmed the required rows were edited in place rather than duplicated.
