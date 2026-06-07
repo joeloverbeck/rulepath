@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-011: No-leak test suite — visibility / property / serialization
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/tests/{visibility.rs,property.rs,serialization.rs}`
@@ -105,3 +105,19 @@ internal schemas; public export has no hidden fields; import semantics.
 1. `cargo test -p high_card_duel --test visibility --test property --test serialization`
 2. `cargo test -p high_card_duel`
 3. This suite is the correct native boundary; browser-surface no-leak is proven separately in 019.
+
+## Outcome (2026-06-07)
+
+Implemented the cross-cutting no-leak suite for High Card Duel:
+
+1. Extended `tests/visibility.rs` with observer/seat effect-filter coverage for the public commit effect plus the actor-private commit confirmation.
+2. Extended `tests/property.rs` with seed-swept observer projection no-leak checks, monotonic round progression, exact-once reveal coverage, and public replay export checks against unrevealed card identities.
+3. Added `tests/serialization.rs` for integration-level unknown-field rejection, stable public/seat view serialization, stable internal trace/public export serialization, and redacted public import semantics.
+
+Deviations: none. This ticket remains test-only.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p high_card_duel --test visibility --test property --test serialization` — passed; includes `public_projection_never_grows_hidden_fields_across_seeds`, `public_replay_export_never_contains_unrevealed_internal_card_identities`, and `effect_filtering_returns_correct_sets_for_observer_seat0_seat1`.
+3. `cargo test -p high_card_duel` — passed.

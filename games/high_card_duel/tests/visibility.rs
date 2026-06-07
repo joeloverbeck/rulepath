@@ -1,6 +1,6 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, Viewer,
-    VisibilityScope,
+    ActionPath, Actor, CommandEnvelope, EffectCursor, EffectLog, FreshnessToken, RulesVersion,
+    SeatId, Seed, Viewer, VisibilityScope,
 };
 use high_card_duel::{
     apply_action, cards_revealed_effect, commit_face_down_effect, commit_segment,
@@ -251,4 +251,33 @@ fn terminal_public_view_still_hides_unused_deck_tail() {
         .contains(&hidden_tail.stable_id()));
     assert!(public_view.stable_summary().contains("hcd:r04:a"));
     assert!(public_view.stable_summary().contains("hcd:r04:b"));
+}
+
+#[test]
+fn effect_filtering_returns_correct_sets_for_observer_seat0_seat1() {
+    let mut state =
+        setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let lead_card = state.hand_for(HighCardDuelSeat::Seat0)[0];
+    let effects = {
+        let command = command(0, lead_card, state.freshness_token);
+        let action = validate_command(&state, &command).expect("command validates");
+        apply_action(&mut state, action)
+    };
+    let mut log = EffectLog::new();
+    for effect in effects {
+        log.push(effect);
+    }
+
+    let observer = log.since(EffectCursor(0), &viewer(None));
+    let seat_0 = log.since(EffectCursor(0), &viewer(Some(0)));
+    let seat_1 = log.since(EffectCursor(0), &viewer(Some(1)));
+
+    assert_eq!(observer.len(), 1);
+    assert_eq!(observer[0].envelope.payload.kind(), "hcd_commit_face_down");
+    assert_eq!(seat_0.len(), 2);
+    assert!(seat_0
+        .iter()
+        .any(|entry| entry.envelope.payload.kind() == "hcd_own_commit_confirmed"));
+    assert_eq!(seat_1.len(), 1);
+    assert_eq!(seat_1[0].envelope.payload.kind(), "hcd_commit_face_down");
 }
