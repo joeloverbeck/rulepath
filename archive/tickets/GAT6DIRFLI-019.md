@@ -1,6 +1,6 @@
 # GAT6DIRFLI-019: CI workflow integration
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None (CI configuration — `.github/workflows/*.yml`). No Rust/engine surface.
@@ -72,3 +72,17 @@ In `.github/workflows/gate-2-benchmarks.yml`, add the directional-flip benchmark
 1. `cargo test --workspace && cargo run -p simulate -- --game directional_flip --games 1000`
 2. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && bash scripts/boundary-check.sh`
 3. Re-running the lane's underlying commands locally is the correct boundary; the workflow YAML itself is validated by review + the next CI run.
+
+## Outcome
+
+Completed 2026-06-07. Added Directional Flip to the existing Gate 1 smoke lane for simulation, replay-check, fixture-check, rule-coverage, and browser E2E. Added Directional Flip to the Gate 2 benchmark smoke and threshold-report lane using the existing benchmark/report pattern and the baseline-pending thresholds from `games/directional_flip/benches/thresholds.json`.
+
+Verification:
+
+1. `cargo test --workspace`
+2. `cargo run -p simulate -- --game directional_flip --games 1000`
+3. `cargo run -p replay-check -- --game directional_flip --all`
+4. `npm --prefix apps/web run smoke:wasm`
+5. `npm --prefix apps/web run smoke:ui`
+6. `bash scripts/boundary-check.sh`
+7. `git diff --check`

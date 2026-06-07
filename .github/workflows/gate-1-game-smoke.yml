@@ -36,6 +36,9 @@ jobs:
       - name: column_four quick simulation
         run: cargo run -p simulate -- --game column_four --games 1000
 
+      - name: directional_flip quick simulation
+        run: cargo run -p simulate -- --game directional_flip --games 1000
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
 
@@ -44,6 +47,9 @@ jobs:
 
       - name: Column Four replay drift check
         run: cargo run -p replay-check -- --game column_four --all
+
+      - name: Directional Flip replay drift check
+        run: cargo run -p replay-check -- --game directional_flip --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
@@ -54,6 +60,9 @@ jobs:
       - name: Column Four fixture validation
         run: cargo run -p fixture-check -- --game column_four
 
+      - name: Directional Flip fixture validation
+        run: cargo run -p fixture-check -- --game directional_flip
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
 
@@ -62,6 +71,9 @@ jobs:
 
       - name: Column Four rule coverage drift check
         run: cargo run -p rule-coverage -- --game column_four
+
+      - name: Directional Flip rule coverage drift check
+        run: cargo run -p rule-coverage -- --game directional_flip
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
@@ -78,12 +90,13 @@ jobs:
       - name: Static preview smoke
         run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Browser shell + a11y/no-leak E2E including column_four
+      - name: Browser shell + a11y/no-leak E2E including column_four and directional_flip
         run: |
           node apps/web/e2e/shell.smoke.mjs
           node apps/web/e2e/a11y-noleak.smoke.mjs
           node apps/web/e2e/three-marks.smoke.mjs
           node apps/web/e2e/column-four.smoke.mjs
+          node apps/web/e2e/directional-flip.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
