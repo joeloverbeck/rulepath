@@ -1,6 +1,6 @@
 # GAT71BOASPA-002: Back-port `column_four` cell/coordinate identity to `game-stdlib::board_space`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/column_four` (`src/ids.rs`, `src/rules.rs` as needed, `Cargo.toml`); consumes `crates/game-stdlib::board_space` (`Dimensions`, `Coord`, `CoordIdError`) — no `board_space` additions expected (§14). Docs: `games/column_four/docs/MECHANICS.md`.
@@ -104,3 +104,33 @@ In `games/column_four/docs/MECHANICS.md`, record `board_space` conformance for c
 1. `cargo test -p column_four`
 2. `cargo run -p replay-check -- --game column_four --all`
 3. `cargo run -p fixture-check -- --game column_four && cargo run -p rule-coverage -- --game column_four && bash scripts/boundary-check.sh && cargo clippy -p column_four --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- `games/column_four` now depends on `game-stdlib`.
+- `ColumnId`, `RowId`, and `CellId` preserve their public surfaces while
+  delegating bounds, indexing, canonical parsing, formatting, row-major cell
+  order, and coordinate conversion to `game-stdlib::board_space`.
+- `rules.rs` delegates line-scan offset bounds to `Dimensions::offset` while
+  keeping gravity, column actions, full-column checks, and four-in-a-row logic
+  local.
+- `games/column_four/docs/MECHANICS.md` records board-space conformance for
+  coordinate/cell identity while preserving local gravity and line scanning.
+
+Deviations from original plan:
+- Kept the existing public `CellId { row, column }`, `RowId`, and `ColumnId`
+  shapes instead of replacing them with raw coordinates so existing rule, view,
+  replay, bot, and test surfaces stayed unchanged.
+
+Verification results:
+- `cargo fmt --all --check`
+- `cargo test -p column_four`
+- `cargo run -p replay-check -- --game column_four --all`
+- `cargo run -p fixture-check -- --game column_four`
+- `cargo run -p rule-coverage -- --game column_four`
+- `bash scripts/boundary-check.sh`
+- `cargo clippy -p column_four --all-targets -- -D warnings`
+- Golden traces changed: no.

@@ -3,7 +3,7 @@ use engine_core::{CommandEnvelope, Diagnostic, EffectEnvelope};
 use crate::{
     actions::{actor_seat, parse_drop_segment},
     effects::{display_from_anchor, display_to_anchor, public_effect, ColumnFourEffect},
-    ids::{CellId, ColumnFourSeat, ColumnId, RowId},
+    ids::{board_dimensions, CellId, ColumnFourSeat, ColumnId, RowId},
     state::{CellOccupancy, ColumnFourSnapshot, ColumnFourState, TerminalOutcome, WinningLine},
 };
 
@@ -188,12 +188,14 @@ fn winning_lines_for_direction(
 }
 
 fn offset_cell(row: usize, column: usize, direction: Direction, step: usize) -> Option<CellId> {
-    let row = row as isize + direction.row_delta() * step as isize;
-    let column = column as isize + direction.column_delta() * step as isize;
-    if row < 0 || column < 0 {
-        return None;
-    }
-    ColumnFourState::cell(row as usize, column as usize)
+    let start =
+        board_dimensions().coord(u8::try_from(row + 1).ok()?, u8::try_from(column + 1).ok()?)?;
+    let coord = board_dimensions().offset(
+        start,
+        i16::try_from(direction.row_delta() * step as isize).ok()?,
+        i16::try_from(direction.column_delta() * step as isize).ok()?,
+    )?;
+    CellId::from_coord(coord)
 }
 
 fn collect_cells(cells: [Option<CellId>; 4]) -> Option<[CellId; 4]> {
@@ -272,6 +274,11 @@ mod tests {
     #[test]
     fn gravity_lands_in_lowest_empty_row() {
         let mut state = state();
+        assert_eq!(
+            landing_cell(&state, ColumnId::C3),
+            Some(cell(RowId::R1, ColumnId::C3))
+        );
+
         occupy(
             &mut state,
             cell(RowId::R1, ColumnId::C3),
@@ -287,6 +294,13 @@ mod tests {
             landing_cell(&state, ColumnId::C3),
             Some(cell(RowId::R3, ColumnId::C3))
         );
+
+        for row in [RowId::R3, RowId::R4, RowId::R5, RowId::R6] {
+            occupy(&mut state, cell(row, ColumnId::C3), ColumnFourSeat::Seat1);
+        }
+        assert_eq!(landing_cell(&state, ColumnId::C3), None);
+
+        state.set_occupancy(cell(RowId::R3, ColumnId::C3), CellOccupancy::Empty);
 
         apply_action(
             &mut state,
