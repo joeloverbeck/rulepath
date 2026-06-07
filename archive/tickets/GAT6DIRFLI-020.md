@@ -1,6 +1,6 @@
 # GAT6DIRFLI-020: Trailing game docs
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (documentation-only — `games/directional_flip/docs/{MECHANICS,UI,AI,GAME-IMPLEMENTATION-ADMISSION,PUBLIC-RELEASE-CHECKLIST}.md`).
@@ -81,3 +81,14 @@ Mechanic inventory across the `docs/OFFICIAL-GAME-CONTRACT.md` / mechanic-atlas 
 1. `for d in MECHANICS UI AI GAME-IMPLEMENTATION-ADMISSION PUBLIC-RELEASE-CHECKLIST; do test -f games/directional_flip/docs/$d.md || echo "MISSING $d"; done`
 2. `node scripts/check-doc-links.mjs`
 3. Presence + doc-link checks are the correct boundary; the docs describe surfaces verified by their own tickets.
+
+## Outcome
+
+Completed 2026-06-07. Added the trailing Directional Flip official-game docs: mechanics inventory, UI notes, AI notes, implementation admission receipt, and public release checklist. `MECHANICS.md` links the primitive-pressure ledger and records the third-use rectangular coordinate/ray decision.
+
+Verification:
+
+1. `for d in MECHANICS UI AI GAME-IMPLEMENTATION-ADMISSION PUBLIC-RELEASE-CHECKLIST; do test -f games/directional_flip/docs/$d.md || echo MISSING $d; done`
+2. `grep -q 'PRIMITIVE-PRESSURE-LEDGER' games/directional_flip/docs/MECHANICS.md`
+3. `node scripts/check-doc-links.mjs`
+4. `git diff --check`
