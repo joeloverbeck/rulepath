@@ -1,6 +1,7 @@
 //! `directional_flip` official-game crate skeleton.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod replay_support;
@@ -13,6 +14,10 @@ pub mod visibility;
 
 pub use actions::{
     legal_action_tree, placement_preview, DirectionPreview, PlacementPreview, PASS_REASON_NO_MOVES,
+};
+pub use bots::{
+    BotDecision, DirectionalFlipLevel2Bot, DirectionalFlipRandomBot, LEVEL2_POLICY_ID,
+    RANDOM_POLICY_ID,
 };
 pub use effects::{
     bot_chose_action_effect, display_to_anchor, public_effect, DirectionalFlipEffect, FlipEntry,

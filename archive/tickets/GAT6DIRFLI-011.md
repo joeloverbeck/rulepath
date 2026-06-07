@@ -1,6 +1,6 @@
 # GAT6DIRFLI-011: Bots — Level 0 random-legal & Level 2-lite authored policy
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/directional_flip/src/bots.rs` (Level 0 random-legal bot, Level 2-lite authored one-ply policy bot).
@@ -75,3 +75,15 @@ Implement the lexicographic one-ply policy of spec §11.3 over visible features 
 1. `cargo test -p directional_flip bots`
 2. `cargo test -p directional_flip && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct; end-to-end bot-vs-random throughput is exercised by the simulation/benchmarks in GAT6DIRFLI-014/016.
+
+## Outcome
+
+Implemented `games/directional_flip/src/bots.rs` with a seeded Level 0 random-legal bot via `ai-core::RandomLegalBot` and a deterministic Level 2-lite authored policy. The Level 2-lite policy consumes Rust legal action paths, validates through the normal command path for successor evaluation, ranks bounded one-ply visible features, emits viewer-safe `BotChoseAction` rationale, and excludes search/playouts/ML/RL/LLM. Updated the strategy docs to include the implemented favorable-terminal and stable edge/corner extension priority slots.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p directional_flip bots`
+3. `cargo test -p directional_flip`
+4. `bash scripts/boundary-check.sh`
+5. `node scripts/check-doc-links.mjs`

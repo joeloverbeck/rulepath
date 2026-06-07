@@ -93,6 +93,7 @@ ML/RL, or LLM work requires an ADR under `docs/FOUNDATIONS.md` and
 | Candidate group | Extraction rule | Rule IDs | Visible facts used | Hidden-info risk | Tests |
 |---|---|---|---|---|---|
 | Forced pass | If the action tree contains only `pass/forced`, the candidate is mandatory. | `DF-ACTION-002`, `DF-PASS-001` | Action tree. | none | forced-pass fixture |
+| Terminal outcome | Mark candidates that immediately end with a bot win or secured draw. | `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | One-ply public successor terminal result and counts. | none | favorable-terminal fixture |
 | Legal placements | One candidate per Rust legal placement segment. | `DF-ACTION-001`, `DF-LEGAL-001` | Action tree and public preview metadata. | none | candidate count equals legal placement count |
 | Corner targets | Mark candidates whose target is a board corner. | `DF-LEGAL-001`, `DF-FLIP-001` | Target cell id. | none | legal-corner fixture |
 | Open-corner danger | Penalize X/C-square targets adjacent to an empty corner. | `DF-LEGAL-001`, `DF-FLIP-001` | Target cell id and public corner occupancy. | none | open-corner danger fixture |
@@ -109,6 +110,7 @@ hidden information, raw implementation arrays, replay hashes, or dev-only state.
 |---|---|---|---|---|
 | Terminal | Public terminal view is win or draw, or action tree is empty. | no-action | `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | Return no decision. |
 | Forced pass | Action tree exposes only `pass/forced`. | mandatory-pass | `DF-ACTION-002`, `DF-PASS-001` | Highest priority compliance. |
+| Immediate favorable terminal | Candidate immediately wins or secures a draw. | terminal-result | `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | Beats ordinary positional preference. |
 | Corner tactic | At least one legal target is a corner. | take-corner | `DF-LEGAL-001`, `DF-FLIP-001` | Strong positional priority. |
 | Open-corner risk | Legal targets include X/C squares next to empty corners. | avoid-danger | `DF-LEGAL-001` | Penalty unless all candidates share the danger or higher slots dominate. |
 | Mobility fight | No forced pass/corner priority dominates. | mobility-delta | `DF-ACTION-001`, `DF-ACTION-002` | One-ply public successor only. |
@@ -121,13 +123,15 @@ Earlier slots dominate later slots.
 | Slot | Priority | Higher/better value | Source evidence | Rule IDs | Tests | Explanation fragment |
 |---:|---|---|---|---|---|---|
 | 1 | mandatory forced pass | Candidate is the only legal `pass/forced` action. | `COMPETENT-PLAYER.md#immediate-tactics` | `DF-ACTION-002`, `DF-PASS-001` | `level2_takes_forced_pass` | "No placement is legal, so I must pass." |
-| 2 | legal corner | Candidate target is a corner. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-LEGAL-001`, `DF-FLIP-001` | `level2_prefers_legal_corner` | "This takes a corner anchor." |
-| 3 | avoid open-corner danger | Candidate is not an X/C square next to an empty corner. | `COMPETENT-PLAYER.md#common-beginner-mistakes` | `DF-LEGAL-001`, `DF-FLIP-001` | `level2_avoids_open_corner_adjacent_square` | "This avoids giving up corner access." |
-| 4 | reduce opponent mobility | Candidate leaves fewer opponent legal placements. | `COMPETENT-PLAYER.md#threats-to-block` | `DF-ACTION-001`, `DF-ACTION-002` | `level2_prefers_better_mobility_delta` | "This reduces the opponent's visible choices." |
-| 5 | preserve own mobility | Candidate leaves more bot legal placements on the next bot turn estimate. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-ACTION-001` | `level2_preserves_own_mobility` | "This keeps more future options open." |
-| 6 | lower frontier exposure | Candidate creates fewer own frontier discs. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-FLIP-001` | `level2_frontier_score_is_bounded` | "This exposes fewer discs next to empty cells." |
-| 7 | phase-aware count tie-break | Later board positions prefer better visible disc-count delta. | `COMPETENT-PLAYER.md#phases-and-situations` | `DF-SCORE-001`, `DF-SCORE-002` | `level2_late_count_tie_break_is_phase_aware` | "Late in the game, this improves the visible count." |
-| 8 | deterministic seeded tie-break | Stable order from seed and candidate identity. | `docs/AI-BOTS.md` | `DF-BOT-002` | `level2_fixed_seed_is_deterministic` | "Equivalent choices were resolved deterministically." |
+| 2 | favorable terminal result | Candidate immediately ends with a bot win or secured draw. | `COMPETENT-PLAYER.md#phases-and-situations` | `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | `level2_prefers_favorable_terminal_outcome_before_corner_rationale` | "This ends the game with a favorable final count." |
+| 3 | legal corner | Candidate target is a corner. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-LEGAL-001`, `DF-FLIP-001` | `level2_prefers_legal_corner` | "This takes a corner anchor." |
+| 4 | avoid open-corner danger | Candidate is not an X/C square next to an empty corner. | `COMPETENT-PLAYER.md#common-beginner-mistakes` | `DF-LEGAL-001`, `DF-FLIP-001` | `level2_avoids_open_corner_adjacent_square_when_safe_alternative_exists` | "This avoids giving up corner access." |
+| 5 | reduce opponent mobility | Candidate leaves fewer opponent legal placements. | `COMPETENT-PLAYER.md#threats-to-block` | `DF-ACTION-001`, `DF-ACTION-002` | `level2_prefers_better_mobility_delta` | "This reduces the opponent's visible choices." |
+| 6 | preserve own mobility | Candidate leaves more bot legal placements on the next bot turn estimate. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-ACTION-001` | `level2_preserves_own_mobility` | "This keeps more future options open." |
+| 7 | stable edge/corner extension | Candidate extends from an owned corner or stable edge anchor. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-FLIP-001` | `level2_stable_extension_score_is_bounded` | "This extends from a stable edge or corner." |
+| 8 | lower frontier exposure | Candidate creates fewer own frontier discs. | `COMPETENT-PLAYER.md#positional-resource-card-and-tempo-principles` | `DF-FLIP-001` | `level2_frontier_score_is_bounded` | "This exposes fewer discs next to empty cells." |
+| 9 | phase-aware count tie-break | Later board positions prefer better visible disc-count delta. | `COMPETENT-PLAYER.md#phases-and-situations` | `DF-SCORE-001`, `DF-SCORE-002` | `level2_late_count_tie_break_is_phase_aware` | "Late in the game, this improves the visible count." |
+| 10 | deterministic seeded tie-break | Stable order from seed and candidate identity. | `docs/AI-BOTS.md` | `DF-BOT-002` | `level2_fixed_seed_is_deterministic` | "Equivalent choices were resolved deterministically." |
 
 ## Bounded scoring tie-breakers
 
@@ -137,6 +141,7 @@ Small scoring is allowed only after higher lexicographic categories.
 |---|---:|---|---|---|---|---|
 | `opponent_mobility_reduction` | `-32..32` | Fewer opponent legal moves is better. | 1-3 | Public one-ply successor legal counts. | mobility range test | "reduces the opponent's choices" |
 | `own_mobility_preservation` | `-32..32` | More own future legal moves is better. | 1-4 | Public one-ply successor legal counts. | mobility range test | "keeps options open" |
+| `stable_extension` | `0..1` | Edge moves connected to owned corners get a small priority. | 1-6 | Public one-ply successor board. | stable extension test | "extends from a stable edge or corner" |
 | `frontier_exposure` | `-64..0` | Fewer own discs adjacent to empty cells is better. | 1-5 | Public one-ply successor board. | frontier range test | "exposes fewer discs" |
 | `late_count_delta` | `-64..64` | Better disc count matters more when empty cells are low. | 1-6 | Public counts and empty-cell count. | late count test | "improves the late visible count" |
 
@@ -213,6 +218,7 @@ Every Level 2-lite decision should produce a viewer-safe explanation with:
 | Situation | Chosen action | Public explanation | Hidden-info safe? | Rule IDs |
 |---|---|---|---:|---|
 | Forced pass only | `pass/forced` | "No placement is legal, so I must pass." | yes | `DF-ACTION-002`, `DF-PASS-001` |
+| Immediate favorable terminal | terminal placement | "Chose r1c1 because it ends the game with a favorable final count." | yes | `DF-TERM-001`, `DF-SCORE-001` |
 | Legal corner at `r1c1` | `place/r1c1` | "Chose r1c1 because it takes a corner anchor." | yes | `DF-LEGAL-001`, `DF-FLIP-001` |
 | Safe alternative to `r2c2` while `r1c1` is empty | safe placement | "Chose a safer move to avoid giving up corner access." | yes | `DF-LEGAL-001`, `DF-FLIP-001` |
 | Mobility tie | mobility-favored placement | "Chose this placement because it reduces the opponent's visible choices." | yes | `DF-ACTION-001` |
@@ -243,10 +249,11 @@ and must not include raw internals that would become public explanation text.
 | Example ID | Situation | Candidate choices | Expected choice | Priority vector reason | Rule IDs | Test name |
 |---|---|---|---|---|---|---|
 | `DF-BOT-EX-001` | No placement is legal and `pass/forced` is exposed. | `pass/forced` | `pass/forced` | slot 1 mandatory forced pass | `DF-ACTION-002`, `DF-PASS-001` | `level2_takes_forced_pass` |
-| `DF-BOT-EX-002` | A corner target is legal. | all legal placements | corner placement | slot 2 legal corner | `DF-LEGAL-001`, `DF-FLIP-001` | `level2_prefers_legal_corner` |
-| `DF-BOT-EX-003` | `r2c2` is legal while `r1c1` is empty and another safe move exists. | `place/r2c2`, safe alternative | safe alternative | slot 3 avoid open-corner danger | `DF-LEGAL-001` | `level2_avoids_open_corner_adjacent_square` |
-| `DF-BOT-EX-004` | No corner/danger priority dominates; one candidate leaves fewer opponent legal moves. | all legal placements | lower-opponent-mobility placement | slot 4 reduce opponent mobility | `DF-ACTION-001` | `level2_prefers_better_mobility_delta` |
-| `DF-BOT-EX-005` | Late board and higher slots tie. | two legal placements | better count-delta placement | slot 7 phase-aware count tie-break | `DF-SCORE-001`, `DF-SCORE-002` | `level2_late_count_tie_break_is_phase_aware` |
+| `DF-BOT-EX-002` | A placement ends the game with a favorable final count. | all legal placements | terminal placement | slot 2 favorable terminal result | `DF-TERM-001`, `DF-SCORE-001` | `level2_prefers_favorable_terminal_outcome_before_corner_rationale` |
+| `DF-BOT-EX-003` | A corner target is legal. | all legal placements | corner placement | slot 3 legal corner | `DF-LEGAL-001`, `DF-FLIP-001` | `level2_prefers_legal_corner` |
+| `DF-BOT-EX-004` | `r2c2` is legal while `r1c1` is empty and another safe move exists. | `place/r2c2`, safe alternative | safe alternative | slot 4 avoid open-corner danger | `DF-LEGAL-001` | `level2_avoids_open_corner_adjacent_square_when_safe_alternative_exists` |
+| `DF-BOT-EX-005` | No corner/danger priority dominates; one candidate leaves fewer opponent legal moves. | all legal placements | lower-opponent-mobility placement | slot 5 reduce opponent mobility | `DF-ACTION-001` | `level2_prefers_better_mobility_delta` |
+| `DF-BOT-EX-006` | Late board and higher slots tie. | two legal placements | better count-delta placement | slot 9 phase-aware count tie-break | `DF-SCORE-001`, `DF-SCORE-002` | `level2_late_count_tie_break_is_phase_aware` |
 
 ## Known weaknesses
 

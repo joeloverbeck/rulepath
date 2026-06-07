@@ -25,6 +25,7 @@ dependencies = [
 name = "directional_flip"
 version = "0.1.0"
 dependencies = [
+ "ai-core",
  "engine-core",
 ]
 

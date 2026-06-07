@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+ai-core = { path = "../../crates/ai-core" }
 engine-core = { path = "../../crates/engine-core" }
 
 [lib]

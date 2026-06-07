@@ -53,6 +53,7 @@ Competent Directional Flip play is positional and public. A player should:
 - prefer moves that extend from stable corners and edges without exposing many
   frontier discs;
 - avoid greedy early disc-count grabs that leave many unstable frontier discs;
+- prefer an immediate favorable terminal result when a legal move ends the game;
 - use final disc count as a late-game tie-break once mobility and corner danger
   are less important;
 - keep explanations simple and tied to visible board facts.
@@ -66,6 +67,7 @@ Competent Directional Flip play is positional and public. A player should:
 | Open corner with adjacent candidates | X-square and C-square moves may hand the corner to the opponent. | `DF-LEGAL-001`, `DF-FLIP-001` | These are danger signals, not illegal moves. |
 | Mobility pressure | One move changes both seats' next legal action counts. | `DF-ACTION-001`, `DF-ACTION-002` | Level 2-lite may inspect one public successor. |
 | Forced pass | No legal placement exists; the only action is `pass/forced`. | `DF-ACTION-002`, `DF-PASS-001` | Mandatory compliance beats all strategy. |
+| Immediate favorable terminal | A legal move ends the game with a win or secured draw. | `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | Terminal outcome beats ordinary positional preference. |
 | Late board | Empty cells are fewer and final count becomes more predictive. | `DF-SCORE-001`, `DF-SCORE-002` | Disc-count preference stays below forced tactical priorities. |
 | Terminal state | No legal action remains and final count decides win/draw. | `DF-PASS-002`, `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | Bot reports no action after terminal. |
 
@@ -74,6 +76,7 @@ Competent Directional Flip play is positional and public. A player should:
 | Tactic | Situation | Why it matters | Rule IDs | Bot feature candidate? |
 |---|---|---|---|---:|
 | Mandatory forced pass | Rust action tree exposes only `pass/forced`. | The rules require it. | `DF-ACTION-002`, `DF-PASS-001` | yes |
+| Take favorable terminal result | Candidate ends the game with a visible win or secured draw. | It converts a legal move into a final result. | `DF-TERM-001`, `DF-SCORE-001`, `DF-SCORE-002` | yes |
 | Take a legal corner | Candidate target is `r1c1`, `r1c8`, `r8c1`, or `r8c8`. | Corner discs are stable anchors and shape later edge play. | `DF-LEGAL-001`, `DF-FLIP-001` | yes |
 | Avoid open-corner X/C danger | Candidate is adjacent to an empty corner. | It can make a valuable corner easier for the opponent. | `DF-LEGAL-001`, `DF-FLIP-001` | yes |
 | Reduce opponent mobility | Candidate leaves the opponent with fewer legal placements. | Low mobility can force weak moves or passes. | `DF-ACTION-001`, `DF-ACTION-002` | yes |
@@ -93,6 +96,7 @@ Competent Directional Flip play is positional and public. A player should:
 | Principle type | Principle | Visible evidence | Rule IDs | Notes |
 |---|---|---|---|---|
 | positional | Corners are strongest stable anchors. | Corner occupancy and legal corner targets are public. | `DF-FLIP-001`, `DF-SCORE-001` | Legal corner targets rank high. |
+| positional | Stable edge/corner extension is useful after higher priorities tie. | Edge cells and owned corners are public. | `DF-FLIP-001` | Approximate feature only; exact stability solving is out of scope. |
 | positional | Avoid X/C squares near open corners. | Candidate cell and adjacent corner occupancy are public. | `DF-LEGAL-001`, `DF-FLIP-001` | This is a penalty below mandatory/legal priorities. |
 | resource/accounting | Final disc count wins, but early count greed is a trap. | Counts and empty-cell count are public. | `DF-SCORE-001`, `DF-SCORE-002` | Count is phase-aware and late. |
 | card/hand/deck | not applicable | No cards, hands, or decks exist. | `DF-VIEW-001` | Perfect-information board game. |
@@ -160,6 +164,7 @@ Competent Directional Flip play is positional and public. A player should:
 | `DF-S-EX-002` | `r2c2` is legal while `r1c1` is empty and another safe move exists. | `place/r2c2` or safe alternative. | safe alternative | Avoid the X-square next to an open corner. | `DF-LEGAL-001`, `DF-FLIP-001` |
 | `DF-S-EX-003` | No corner tactic exists; one move leaves the opponent with two legal actions and another leaves six. | any legal placement | lower-opponent-mobility move | Reduce the opponent's visible mobility. | `DF-ACTION-001` |
 | `DF-S-EX-004` | Two late moves are otherwise equal and only eight empty cells remain. | two legal placements | better final-count swing | Late count pressure matters after higher priorities tie. | `DF-SCORE-001`, `DF-SCORE-002` |
+| `DF-S-EX-005` | A legal placement fills the board and wins by final count. | any legal placement | terminal winning placement | Prefer the immediate favorable terminal result. | `DF-TERM-001`, `DF-SCORE-001` |
 
 ## Anti-examples
 
@@ -198,7 +203,8 @@ Competent Directional Flip play is positional and public. A player should:
 | Open-corner X/C danger | Common mistakes | yes | priority slot 3 | none | avoids-open-corner-adjacent |
 | Opponent mobility count | Mobility principles | yes | priority slot 4 | none | reduces-opponent-mobility |
 | Own mobility count | Mobility principles | yes | priority slot 5 | none | preserves-own-mobility |
-| Frontier exposure | Risk/control principles | yes | bounded tie-break | none | frontier-score-bounded |
+| Stable edge/corner extension | Positional principles | yes | priority slot 6 | none | stable-extension-priority |
+| Frontier exposure | Risk/control principles | yes | priority slot 7 / bounded tie-break | none | frontier-score-bounded |
 | Phase-aware disc delta | Resource/accounting principles | yes | late tie-break | none | late-count-tie-break |
 | Viewer-safe explanation fragment | Strategy examples | yes | explanation | none | explanation-no-leak |
 
