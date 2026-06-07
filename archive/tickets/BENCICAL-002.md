@@ -1,6 +1,6 @@
 # BENCICAL-002: Recalibrate Gate 2 benchmark thresholds to CI-runner floors
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — modifies `games/{race_to_n,three_marks,column_four}/benches/thresholds.json`, the matching benchmark harness report annotations, the matching `games/*/docs/BENCHMARKS.md`, and `docs/TESTING-REPLAY-BENCHMARKING.md`; no gameplay, engine, trace, or schema-version change
@@ -218,3 +218,51 @@ the existing ADR 0002 lane-split reference.
 3. The authoritative verification must run on `ubuntu-latest` via
    `workflow_dispatch` / `main` push, not locally: WSL2 numbers are ~34% faster
    and would pass trivially, so a local run cannot prove the CI floors are correct.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added accepted ADR 0003 and updated `docs/TESTING-REPLAY-BENCHMARKING.md` to
+  define committed benchmark thresholds as CI-runner floors while preserving
+  native baselines in per-game `BENCHMARKS.md`.
+- Recalibrated the breached `race_to_n`, `three_marks`, and `column_four`
+  threshold rows from observed `ubuntu-latest` evidence, leaving passing rows and
+  `directional_flip` unchanged.
+- Updated the matching benchmark harness report annotations so `cargo bench`
+  tables/JSON do not print stale threshold or pass/fail values.
+- Updated the three per-game `BENCHMARKS.md` files with native baselines/targets,
+  observed CI values, and enforced CI floors.
+
+Deviations from original plan:
+
+- Live reassessment found duplicated threshold annotations in the benchmark
+  harnesses. The ticket scope was updated, and only those report annotations were
+  changed; benchmark measurement loops and gameplay code were not changed.
+- First BENCICAL-002 CI verification run `27087615808` failed because
+  `race_to_n` `serialization_roundtrip` measured 187,667.53 against the initial
+  190,000 CI floor. The final floor was widened to 180,000, and adjacent
+  `race_to_n` CI floors for `replay_throughput` and `bot_decision` were given
+  less edge-fit margins.
+
+Verification results:
+
+- `cargo bench -p race_to_n` then
+  `cargo run -p bench-report -- --input /tmp/race_to_n-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json`
+  passed with 8 operations.
+- `cargo bench -p three_marks` then
+  `cargo run -p bench-report -- --input /tmp/three_marks-benchmark-report.txt --thresholds games/three_marks/benches/thresholds.json`
+  passed with 9 operations.
+- `cargo bench -p column_four` then
+  `cargo run -p bench-report -- --input /tmp/column_four-benchmark-report.txt --thresholds games/column_four/benches/thresholds.json`
+  passed with 9 operations.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 21 markdown files`).
+- `git diff --check` passed.
+- `gh workflow run "Gate 2 benchmarks" --ref bencical-ci-calibration` dispatched
+  run `27087739719`; `gh run view 27087739719 --json status,conclusion,jobs`
+  reported success, and the log showed `bench-report` passed for `race_to_n`,
+  `three_marks`, `column_four`, and `directional_flip`.
