@@ -60,7 +60,9 @@ const SUPPORTED_OPERATIONS: &[&str] = &[
     "list_games",
     "new_match",
     "get_view",
+    "get_view_for_viewer",
     "get_action_tree",
+    "get_action_tree_for_viewer",
     "apply_action",
     "run_bot_turn",
     "get_effects",
@@ -362,67 +364,93 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
     }
 }
 
-pub fn get_view(match_id: &str, _viewer_seat: Option<&str>) -> Result<String, String> {
+pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, String> {
     with_match(match_id, |record| match record {
         MatchRecord::RaceToN { game_id, state, .. } => {
             resolve_game(game_id)?;
+            let _viewer = race_viewer_for_seat(state, viewer_seat)?;
             Ok(project_view(state).to_json())
         }
         MatchRecord::ThreeMarks { game_id, state, .. } => {
             resolve_game(game_id)?;
-            Ok(three_project_view(state, &Viewer { seat_id: None }).to_json())
+            let viewer = three_viewer_for_seat(state, viewer_seat)?;
+            Ok(three_project_view(state, &viewer).to_json())
         }
         MatchRecord::ColumnFour { game_id, state, .. } => {
             resolve_game(game_id)?;
-            Ok(column_view_json(&column_project_view(
-                state,
-                &Viewer { seat_id: None },
-            )))
+            let viewer = column_viewer_for_seat(state, viewer_seat)?;
+            Ok(column_view_json(&column_project_view(state, &viewer)))
         }
         MatchRecord::DirectionalFlip { game_id, state, .. } => {
             resolve_game(game_id)?;
+            let viewer = directional_viewer_for_seat(state, viewer_seat)?;
             Ok(directional_view_json(&directional_project_view(
-                state,
-                &Viewer { seat_id: None },
+                state, &viewer,
             )))
         }
         MatchRecord::DraughtsLite { game_id, state, .. } => {
             resolve_game(game_id)?;
-            Ok(draughts_view_json(&draughts_project_view(
-                state,
-                &Viewer { seat_id: None },
-            )))
+            let viewer = draughts_viewer_for_seat(state, viewer_seat)?;
+            Ok(draughts_view_json(&draughts_project_view(state, &viewer)))
         }
     })
 }
 
 pub fn get_action_tree(match_id: &str, actor_seat: &str) -> Result<String, String> {
+    get_action_tree_for_viewer(match_id, actor_seat, Some(actor_seat))
+}
+
+pub fn get_action_tree_for_viewer(
+    match_id: &str,
+    actor_seat: &str,
+    viewer_seat: Option<&str>,
+) -> Result<String, String> {
     with_match(match_id, |record| match record {
         MatchRecord::RaceToN { game_id, state, .. } => {
             resolve_game(game_id)?;
-            let actor = race_actor_for_seat(state, parse_race_seat(actor_seat)?)?;
+            let seat = parse_race_seat(actor_seat)?;
+            if !race_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = race_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&legal_action_tree(state, &actor)))
         }
         MatchRecord::ThreeMarks { game_id, state, .. } => {
             resolve_game(game_id)?;
-            let actor = three_actor_for_seat(state, parse_three_seat(actor_seat)?)?;
+            let seat = parse_three_seat(actor_seat)?;
+            if !three_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = three_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&three_legal_action_tree(state, &actor)))
         }
         MatchRecord::ColumnFour { game_id, state, .. } => {
             resolve_game(game_id)?;
-            let actor = column_actor_for_seat(state, parse_column_seat(actor_seat)?)?;
+            let seat = parse_column_seat(actor_seat)?;
+            if !column_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = column_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&column_legal_action_tree(state, &actor)))
         }
         MatchRecord::DirectionalFlip { game_id, state, .. } => {
             resolve_game(game_id)?;
-            let actor = directional_actor_for_seat(state, parse_directional_seat(actor_seat)?)?;
+            let seat = parse_directional_seat(actor_seat)?;
+            if !directional_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = directional_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&directional_legal_action_tree(
                 state, &actor,
             )))
         }
         MatchRecord::DraughtsLite { game_id, state, .. } => {
             resolve_game(game_id)?;
-            let actor = draughts_actor_for_seat(state, parse_draughts_seat(actor_seat)?)?;
+            let seat = parse_draughts_seat(actor_seat)?;
+            if !draughts_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = draughts_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&draughts_legal_action_tree(state, &actor)))
         }
     })
@@ -1453,6 +1481,56 @@ fn draughts_viewer_for_seat(
     Ok(Viewer { seat_id })
 }
 
+fn race_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: RaceSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_race_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn three_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: ThreeMarksSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_three_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn column_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: ColumnFourSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_column_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn directional_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: DirectionalFlipSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_directional_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn draughts_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: DraughtsLiteSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_draughts_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
 fn parse_action_path(action_path: &str) -> ActionPath {
     ActionPath {
         segments: if action_path.is_empty() {
@@ -1612,6 +1690,10 @@ fn action_tree_json(tree: &ActionTree) -> String {
         "{{\"freshness_token\":{},\"choices\":[{}]}}",
         tree.freshness_token.0, choices
     )
+}
+
+fn empty_action_tree_json(freshness_token: engine_core::FreshnessToken) -> String {
+    action_tree_json(&ActionTree::flat(freshness_token, Vec::new()))
 }
 
 fn action_choice_json(choice: &ActionChoice) -> String {
@@ -3491,6 +3573,30 @@ pub unsafe extern "C" fn rulepath_get_view(match_ptr: *const u8, match_len: usiz
 #[no_mangle]
 /// # Safety
 ///
+/// `match_ptr..match_ptr + match_len` must be a valid UTF-8 buffer. If
+/// `viewer_len` is nonzero, `viewer_ptr..viewer_ptr + viewer_len` must also be
+/// a valid UTF-8 buffer for the duration of the call.
+pub unsafe extern "C" fn rulepath_get_view_for_viewer(
+    match_ptr: *const u8,
+    match_len: usize,
+    viewer_ptr: *const u8,
+    viewer_len: usize,
+) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    let viewer = if viewer_len == 0 {
+        Ok(None)
+    } else {
+        unsafe { read_string(viewer_ptr, viewer_len) }.map(Some)
+    };
+    write_result(
+        match_id
+            .and_then(|match_id| viewer.and_then(|viewer| get_view(&match_id, viewer.as_deref()))),
+    )
+}
+
+#[no_mangle]
+/// # Safety
+///
 /// `match_ptr..match_ptr + match_len` and `seat_ptr..seat_ptr + seat_len` must
 /// be valid UTF-8 buffers for the duration of the call.
 pub unsafe extern "C" fn rulepath_get_action_tree(
@@ -3504,6 +3610,36 @@ pub unsafe extern "C" fn rulepath_get_action_tree(
     write_result(
         match_id.and_then(|match_id| seat.and_then(|seat| get_action_tree(&match_id, &seat))),
     )
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `match_ptr..match_ptr + match_len` and `seat_ptr..seat_ptr + seat_len` must
+/// be valid UTF-8 buffers. If `viewer_len` is nonzero,
+/// `viewer_ptr..viewer_ptr + viewer_len` must also be a valid UTF-8 buffer for
+/// the duration of the call.
+pub unsafe extern "C" fn rulepath_get_action_tree_for_viewer(
+    match_ptr: *const u8,
+    match_len: usize,
+    seat_ptr: *const u8,
+    seat_len: usize,
+    viewer_ptr: *const u8,
+    viewer_len: usize,
+) -> i32 {
+    let match_id = unsafe { read_string(match_ptr, match_len) };
+    let seat = unsafe { read_string(seat_ptr, seat_len) };
+    let viewer = if viewer_len == 0 {
+        Ok(None)
+    } else {
+        unsafe { read_string(viewer_ptr, viewer_len) }.map(Some)
+    };
+    write_result(match_id.and_then(|match_id| {
+        seat.and_then(|seat| {
+            viewer
+                .and_then(|viewer| get_action_tree_for_viewer(&match_id, &seat, viewer.as_deref()))
+        })
+    }))
 }
 
 #[no_mangle]
@@ -3719,6 +3855,38 @@ mod tests {
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
         assert!(bot.contains("\"ok\":true"));
         assert!(bot.contains("\"active_seat\":\"seat_0\""));
+    }
+
+    #[test]
+    fn get_view_honors_viewer_for_existing_perfect_information_games() {
+        let created = new_match("column_four", 42).expect("match created");
+        let match_id = extract_match_id(&created);
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat_0 view returned");
+        let seat_1 = get_view(&match_id, Some("seat_1")).expect("seat_1 view returned");
+
+        assert_eq!(observer, seat_0);
+        assert_eq!(observer, seat_1);
+        assert!(get_view(&match_id, Some("seat_2")).is_err());
+    }
+
+    #[test]
+    fn get_action_tree_requires_viewer_authorization() {
+        let created = new_match("three_marks", 32).expect("match created");
+        let match_id = extract_match_id(&created);
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized action tree returned");
+        let unauthorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_1"))
+            .expect("unauthorized action tree redacted");
+        let observer = get_action_tree_for_viewer(&match_id, "seat_0", None)
+            .expect("observer action tree redacted");
+
+        assert!(authorized.contains("\"segment\":\"place/r1c1\""));
+        assert!(unauthorized.contains("\"choices\":[]"));
+        assert!(observer.contains("\"choices\":[]"));
+        assert!(get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_2")).is_err());
     }
 
     #[test]

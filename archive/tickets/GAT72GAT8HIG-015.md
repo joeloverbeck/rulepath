@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-015: WASM viewer-aware hardening (get_view honors viewer; action-tree authorization)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (viewer-aware `get_view`; action-tree viewer authorization)
@@ -110,3 +110,23 @@ cannot request another seat's private action tree.
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:ui`
 3. The wasm-api unit tests + existing-game UI smoke are the correct boundary — they prove the hardening without the new game present yet.
+
+## Outcome (2026-06-07)
+
+Hardened the WASM viewer boundary:
+
+1. `get_view` now constructs per-game viewers from the supplied viewer seat instead of always projecting observer/public views.
+2. Added viewer-aware FFI exports for `rulepath_get_view_for_viewer` and `rulepath_get_action_tree_for_viewer`.
+3. Added `get_action_tree_for_viewer`; unauthorized or observer requests for a seat's private action tree return an empty tree at the current freshness token.
+4. Kept existing JS-facing `rulepath_get_view` and `rulepath_get_action_tree` behavior compatible for current web callers; `get_action_tree` now delegates as an authorized same-seat request.
+5. Added wasm-api unit tests for viewer-honoring perfect-info view parity and action-tree authorization.
+
+Deviations: the existing FFI exports remain for current web compatibility; the new viewer-aware exports provide the hardened surface for the TS client update in GAT72GAT8HIG-017.
+
+Verification:
+
+1. `cargo test -p wasm-api` — passed.
+2. `npm --prefix apps/web run smoke:wasm` — passed.
+3. `npm --prefix apps/web run smoke:ui` — passed.
+4. `cargo build --workspace` — passed.
+5. `cargo fmt --all --check` — passed.
