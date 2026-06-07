@@ -342,6 +342,14 @@ h2 {
   background: #e7f4ee;
 }
 
+.high-card-viewer-controls button:focus,
+.high-card-viewer-controls button:focus-visible,
+.high-card-hand-actions button:focus,
+.high-card-hand-actions button:focus-visible {
+  outline: 3px solid #1f5f78;
+  outline-offset: 2px;
+}
+
 .high-card-score {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

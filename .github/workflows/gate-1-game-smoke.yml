@@ -110,6 +110,7 @@ jobs:
           node apps/web/e2e/column-four.smoke.mjs
           node apps/web/e2e/directional-flip.smoke.mjs
           node apps/web/e2e/draughts-lite.smoke.mjs
+          node apps/web/e2e/high-card-duel.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
