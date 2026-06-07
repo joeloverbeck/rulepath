@@ -76,4 +76,4 @@ This matrix maps every stable rule ID in `RULES.md` to implementation and eviden
 | replay drift gate | `cargo run -p replay-check -- --game high_card_duel --all` | trace hashes and replay determinism | covered |
 | fixture/schema gate | `cargo run -p fixture-check -- --game high_card_duel` | static-data and trace integrity | covered |
 | rule coverage gate | `cargo run -p rule-coverage -- --game high_card_duel` | all rule IDs | covered |
-| native benchmarks | `cargo bench -p high_card_duel` | performance surfaces | intentionally-deferred |
+| native benchmarks | `cargo bench -p high_card_duel` | performance surfaces | covered |

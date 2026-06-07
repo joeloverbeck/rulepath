@@ -38,6 +38,9 @@ jobs:
       - name: draughts_lite bench smoke
         run: cargo bench -p draughts_lite -- legal_actions
 
+      - name: high_card_duel bench smoke
+        run: cargo bench -p high_card_duel -- legal_actions
+
   bench-gate:
     name: Benchmark threshold gate
     if: github.event_name != 'pull_request'
@@ -73,6 +76,11 @@ jobs:
 
           cargo bench -p draughts_lite | tee /tmp/draughts_lite-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/draughts_lite-benchmark-report.txt --thresholds games/draughts_lite/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p high_card_duel | tee /tmp/high_card_duel-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/high_card_duel-benchmark-report.txt --thresholds games/high_card_duel/benches/thresholds.json; then
             failed=1
           fi
 

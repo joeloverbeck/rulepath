@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-014: Benchmarks + thresholds + BENCHMARKS.md + gate-2 CI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/benches/{high_card_duel.rs,thresholds.json}`, `games/high_card_duel/docs/BENCHMARKS.md`, `.github/workflows/gate-2-benchmarks.yml`
@@ -99,3 +99,25 @@ Add a `high_card_duel` bench-smoke step alongside the existing lanes.
 1. `cargo bench -p high_card_duel`
 2. `cargo build --workspace` (confirms the bench target compiles in-tree)
 3. `cargo bench` is the correct boundary — benchmarks are not part of `cargo test`.
+
+## Outcome (2026-06-07)
+
+Implemented the High Card Duel native benchmark suite and gate wiring:
+
+1. Replaced the benchmark scaffold with a native harness covering setup/shuffle, lead/reply legal-action generation, validation, apply commit, apply reveal/refill, public and seat-private views, effect filtering, public replay export, internal replay reconstruction, serialization, random playout, and Level 0 bot decisions.
+2. Added `games/high_card_duel/benches/thresholds.json` with smoke-floor thresholds and rationale.
+3. Updated `games/high_card_duel/docs/BENCHMARKS.md` with local full and smoke measurements.
+4. Added High Card Duel bench smoke and threshold-gate lanes to `.github/workflows/gate-2-benchmarks.yml`.
+5. Added `high_card_duel` to `bench-report --game` resolution and updated `RULE-COVERAGE.md` benchmark status.
+
+Deviations: thresholds remain conservative smoke floors pending stable repeated CI measurements; local measured baselines are recorded in `BENCHMARKS.md`.
+
+Verification:
+
+1. `cargo bench -p high_card_duel -- legal_actions` — passed.
+2. `cargo bench -p high_card_duel` — passed; 14 operations emitted.
+3. `cargo run -p bench-report -- --game high_card_duel --input /tmp/high_card_duel_full_bench.txt` — passed; 14 operations passed thresholds.
+4. `cargo build --workspace` — passed.
+5. `cargo run -p rule-coverage -- --game high_card_duel` — passed.
+6. `cargo test -p bench-report` — passed.
+7. `cargo fmt --all --check` — passed.

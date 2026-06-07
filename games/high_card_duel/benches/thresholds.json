@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "game_id": "high_card_duel",
+  "rules_version": "high-card-duel-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "standard_setup_shuffle",
+      "unit": "setups_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_lead",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_reply",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "validate_commit",
+      "unit": "validations_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "apply_commit",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "apply_reveal_refill",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "public_view_generation",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "seat_private_view_generation",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "effect_filtering",
+      "unit": "filters_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "public_replay_export",
+      "unit": "exports_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "internal_replay_reconstruction",
+      "unit": "replays_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "serialization",
+      "unit": "serializations_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "random_playout",
+      "unit": "games_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    },
+    {
+      "operation_name": "level0_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until high_card_duel has stable repeated CI measurements."
+    }
+  ]
+}
