@@ -6,6 +6,7 @@ import { ActionControls } from "./components/ActionControls";
 import { ColumnFourBoard } from "./components/ColumnFourBoard";
 import { DevPanel } from "./components/DevPanel";
 import { DirectionalFlipBoard } from "./components/DirectionalFlipBoard";
+import { DraughtsLiteBoard } from "./components/DraughtsLiteBoard";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
@@ -22,6 +23,7 @@ import {
   type ApiError,
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
+  type DraughtsLitePublicView,
   type PublicView,
   type RacePublicView,
   type ReplayDocument,
@@ -133,6 +135,37 @@ function App() {
       const tokenBeforeAction = view.freshness_token;
       try {
         const afterHuman = api.applyAction(matchId, actorSeat, choice.segment, tokenBeforeAction);
+        dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
+        const afterHumanSeat = afterHuman.active_seat;
+        if (
+          state.setup.playMode === "human_vs_bot" &&
+          !isTerminalView(afterHuman) &&
+          afterHumanSeat &&
+          botSeatForMode(state.setup.playMode, afterHumanSeat)
+        ) {
+          api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+        }
+        refresh(api, matchId, effectCursor);
+      } catch (error: unknown) {
+        dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+      }
+    },
+    [api, effectCursor, matchId, refresh, state.setup.playMode, view],
+  );
+
+  const playPath = useCallback(
+    (path: string[]) => {
+      if (!api || !matchId || !view) {
+        return;
+      }
+      const actorSeat = humanSeatForMode(state.setup.playMode, view);
+      if (!actorSeat || path.length === 0) {
+        return;
+      }
+      dispatch({ type: "diagnosticCleared" });
+      const tokenBeforeAction = view.freshness_token;
+      try {
+        const afterHuman = api.applyActionPath(matchId, actorSeat, path, tokenBeforeAction);
         dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
         const afterHumanSeat = afterHuman.active_seat;
         if (
@@ -303,6 +336,19 @@ function App() {
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
           />
+        ) : isDraughtsLiteView(view) ? (
+          <DraughtsLiteBoard
+            view={view}
+            actionTree={actionTree}
+            pendingPath={state.pendingActionPath}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPendingPathChange={(path) => dispatch({ type: "pendingActionPathChanged", path })}
+            onPendingPathClear={() => dispatch({ type: "pendingActionPathCleared" })}
+            onPathSubmit={playPath}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -315,7 +361,7 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        {isColumnFourView(view) || isDirectionalFlipView(view) ? null : (
+        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -368,6 +414,7 @@ function App() {
         playMode={state.setup.playMode}
         view={view}
         actionTree={actionTree}
+        pendingActionPath={state.pendingActionPath}
         effectCursor={effectCursor}
         effectCount={effects.length}
         pendingOperation={state.pendingOperation}
@@ -446,6 +493,10 @@ function isColumnFourView(view: PublicView | null): view is ColumnFourPublicView
 
 function isDirectionalFlipView(view: PublicView | null): view is DirectionalFlipPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "directional_flip");
+}
+
+function isDraughtsLiteView(view: PublicView | null): view is DraughtsLitePublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "draughts_lite");
 }
 
 function isTerminalView(view: PublicView): boolean {

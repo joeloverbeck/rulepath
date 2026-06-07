@@ -1,8 +1,16 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
-import type { ColumnFourPublicView, DirectionalFlipPublicView, EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
+import type {
+  ColumnFourPublicView,
+  DirectionalFlipPublicView,
+  DraughtsLitePublicView,
+  EffectEntry,
+  PublicView,
+  ThreeMarksPublicView,
+} from "../wasm/client";
 import { ColumnFourBoard } from "./ColumnFourBoard";
 import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
+import { DraughtsLiteBoard } from "./DraughtsLiteBoard";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
@@ -21,6 +29,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const columnFourView: ColumnFourPublicView | null = step && isColumnFourView(step.view) ? step.view : null;
   const directionalFlipView: DirectionalFlipPublicView | null =
     step && isDirectionalFlipView(step.view) ? step.view : null;
+  const draughtsLiteView: DraughtsLitePublicView | null = step && isDraughtsLiteView(step.view) ? step.view : null;
   const replayEffectEntries: EffectEntry[] = step
     ? effects.map((effect, index) => ({ cursor: step.cursor + index, effect }))
     : [];
@@ -85,6 +94,20 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
               />
               {replay ? <PlacementSequence replay={replay} /> : null}
             </div>
+          ) : draughtsLiteView ? (
+            <div className="replay-board">
+              <DraughtsLiteBoard
+                view={draughtsLiteView}
+                actionTree={null}
+                pendingPath={[]}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
           ) : null}
 
           <ol className="replay-effects">
@@ -134,7 +157,7 @@ function PlacementSequence({ replay }: { replay: ReplaySessionState }) {
           <li key={command.index} className={isCurrent ? "current" : ""}>
             <span>{command.index + 1}</span>
             <strong>{command.actor_seat}</strong>
-            <code>{command.action_path.join("/")}</code>
+            <code>{formatActionPath(command.action_path)}</code>
           </li>
         );
       })}
@@ -152,6 +175,14 @@ function isColumnFourView(view: PublicView | null): view is ColumnFourPublicView
 
 function isDirectionalFlipView(view: PublicView | null): view is DirectionalFlipPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "directional_flip");
+}
+
+function isDraughtsLiteView(view: PublicView | null): view is DraughtsLitePublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "draughts_lite");
+}
+
+function formatActionPath(path: string[]): string {
+  return path.join(" > ");
 }
 
 function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {

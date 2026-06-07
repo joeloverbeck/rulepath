@@ -1,10 +1,28 @@
 # GAT7DRALITCOM-018: DraughtsLiteBoard renderer, multi-step input model & dev-panel/replay multi-segment rendering
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/DraughtsLiteBoard.tsx` (new) and `apps/web/src/components/{GamePicker,MatchSetup,DevPanel,ReplayImportExport}.tsx`, `apps/web/src/main.tsx`, `apps/web/src/state/shellReducer.ts`, `apps/web/src/styles.css` (modify). No Rust/engine surface; legality stays in Rust.
 **Deps**: 016
+
+## Outcome
+
+Added the Draughts Lite web presentation surface without moving legality into TypeScript:
+
+1. `DraughtsLiteBoard.tsx` renders the Rust-projected 8x8 public view, ownership, men/crowns, playable/non-playable cells, selected origin, Rust-provided destinations, capture/promotion/continuation cues, recent effect highlights, terminal status, and bot rationale.
+2. The shell now carries TS-only `pendingActionPath` state. The board advances through `ActionChoice.next`, appends only Rust-provided segments, submits only leaf paths, and clears the pending path on cancel, refresh, diagnostics, match changes, and replay changes.
+3. `RulepathApi.applyActionPath` submits ordered multi-segment paths through the WASM bridge while preserving existing single-segment callers.
+4. Draughts Lite is rendered as a first-class board in live play and replay view. Generic `ActionControls` are suppressed for this compound-action game.
+5. Dev panel, replay viewer, and replay import/export summary render complete multi-segment paths with ` > ` separators instead of truncating after the first segment.
+6. Shared effect feedback now describes Draughts Lite move, capture, promotion, forced-capture, forced-continuation, and bot-choice effects.
+
+Verification passed on 2026-06-07:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`
+3. `git diff --check`
+4. Focused Playwright preview smoke at `http://127.0.0.1:4173/`: selected Draughts Lite, started hotseat, clicked `r3c2`, confirmed pending path `from/r3c2`, clicked Rust-provided landing `r4c1`, confirmed `seat_1 to move` and `Move committed`, exported replay, and confirmed summary path `from/r3c2 > to/r4c1`. The only console error was the existing missing `favicon.ico` 404.
 
 ## Problem
 

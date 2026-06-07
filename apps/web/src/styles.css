@@ -266,6 +266,11 @@ h2 {
   gap: 14px;
 }
 
+.draughts-lite-board {
+  display: grid;
+  gap: 14px;
+}
+
 .column-four-banner {
   display: flex;
   align-items: end;
@@ -288,14 +293,39 @@ h2 {
   background: #f9faf7;
 }
 
+.draughts-lite-banner {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
 .directional-score {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
+.draughts-lite-status,
+.draughts-lite-cues {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.draughts-lite-cues {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .directional-score > div,
-.directional-preview {
+.directional-preview,
+.draughts-lite-status > div,
+.draughts-lite-cues > div,
+.draughts-path {
   display: grid;
   gap: 6px;
   border: 1px solid #d7ded9;
@@ -305,14 +335,19 @@ h2 {
 }
 
 .directional-score span,
-.directional-preview span {
+.directional-preview span,
+.draughts-lite-status span,
+.draughts-lite-cues span,
+.draughts-path span {
   color: #687973;
   font-size: 0.74rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.directional-score strong {
+.directional-score strong,
+.draughts-lite-status strong,
+.draughts-lite-cues strong {
   font-size: 1.25rem;
 }
 
@@ -327,9 +362,26 @@ h2 {
     #f6f8f5;
 }
 
+.draughts-lite-grid-shell {
+  width: min(100%, 620px);
+  justify-self: center;
+  border: 1px solid #b7c6c0;
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(232, 236, 229, 0.96)),
+    #f6f8f5;
+}
+
 .directional-grid {
   display: grid;
   gap: 5px;
+  aspect-ratio: 1;
+}
+
+.draughts-lite-grid {
+  display: grid;
+  gap: 4px;
   aspect-ratio: 1;
 }
 
@@ -347,6 +399,139 @@ h2 {
     background 140ms ease,
     border-color 140ms ease,
     transform 140ms ease;
+}
+
+.draughts-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid #b9c4be;
+  border-radius: 4px;
+  padding: 0;
+  background: #eef3ef;
+  overflow: hidden;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.draughts-cell.non-playable {
+  background: #dbe3df;
+}
+
+.draughts-cell.playable {
+  background: #ffffff;
+}
+
+.draughts-cell.legal {
+  border-color: #2b8068;
+  background: #eaf6ef;
+}
+
+.draughts-cell.selected {
+  border-color: #1f5f78;
+  background: #e8f2f6;
+}
+
+.draughts-cell.capture-preview,
+.draughts-cell.recent-captured {
+  border-color: #9b4a36;
+  background: #fff0ec;
+}
+
+.draughts-cell.recent-origin {
+  box-shadow: inset 0 0 0 3px rgba(31, 95, 120, 0.22);
+}
+
+.draughts-cell.recent-landing,
+.draughts-cell.promotes {
+  box-shadow: inset 0 0 0 3px rgba(180, 95, 6, 0.25);
+}
+
+.draughts-cell:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.draughts-piece {
+  display: grid;
+  place-items: center;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  font-weight: 900;
+  font-size: 0.86rem;
+}
+
+.draughts-piece.seat_0 {
+  background: #245f50;
+  border-color: #1d4b40;
+  color: #ffffff;
+}
+
+.draughts-piece.seat_1 {
+  background: #f0c55f;
+  border-color: #9a7132;
+  color: #4e3920;
+}
+
+.draughts-piece.crown {
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.46);
+}
+
+.draughts-piece-mark {
+  line-height: 1;
+}
+
+.draughts-target-dot,
+.draughts-legal-ring {
+  width: 24%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.draughts-target-dot {
+  border: 2px dashed #7d8e86;
+}
+
+.draughts-cell.legal .draughts-target-dot {
+  border-color: #2b8068;
+  background: #cfe8dc;
+}
+
+.draughts-legal-ring {
+  position: absolute;
+  border: 2px solid rgba(43, 128, 104, 0.55);
+}
+
+.draughts-coordinate {
+  position: absolute;
+  inset-block-end: 3px;
+  inset-inline-end: 4px;
+  color: #62746d;
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+.draughts-lite-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.draughts-path code {
+  overflow-wrap: anywhere;
+  color: #40514a;
+  font-size: 0.84rem;
+}
+
+.draughts-lite-board.reduced .draughts-cell,
+.draughts-lite-board.reduced .draughts-piece {
+  transition: none;
 }
 
 .directional-cell[aria-disabled="true"] {
@@ -853,6 +1038,37 @@ h2 {
 .placement-sequence code {
   color: #60736b;
   font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.replay-command-summary {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.replay-command-summary li {
+  display: grid;
+  grid-template-columns: auto minmax(72px, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f9faf7;
+}
+
+.replay-command-summary span,
+.replay-command-summary strong {
+  font-size: 0.82rem;
+}
+
+.replay-command-summary code {
+  overflow-wrap: anywhere;
+  color: #40514a;
+  font-size: 0.82rem;
 }
 
 .dev-panel {
@@ -1233,6 +1449,37 @@ h2 {
   }
 }
 
+.dev-action-paths {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #f9faf7;
+}
+
+.dev-action-paths > span {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dev-action-paths ol {
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  margin: 0;
+  padding-inline-start: 20px;
+  overflow: auto;
+}
+
+.dev-action-paths code {
+  overflow-wrap: anywhere;
+  color: #40514a;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 720px) {
   .shell {
     padding: 16px;
@@ -1276,7 +1523,8 @@ h2 {
     flex-direction: column;
   }
 
-  .directional-flip-banner {
+  .directional-flip-banner,
+  .draughts-lite-banner {
     align-items: start;
     flex-direction: column;
   }
@@ -1290,13 +1538,24 @@ h2 {
     padding: 7px;
   }
 
+  .draughts-lite-grid-shell {
+    padding: 7px;
+  }
+
   .directional-grid {
+    gap: 3px;
+  }
+
+  .draughts-lite-grid {
     gap: 3px;
   }
 
   .three-marks-status,
   .directional-score,
-  .directional-controls {
+  .directional-controls,
+  .draughts-lite-status,
+  .draughts-lite-cues,
+  .draughts-lite-controls {
     grid-template-columns: 1fr;
   }
 

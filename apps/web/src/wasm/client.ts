@@ -436,6 +436,10 @@ export class RulepathApi {
   }
 
   applyAction(matchId: string, seat: string, path: string, freshnessToken: number): PublicView {
+    return this.applyActionPath(matchId, seat, [path], freshnessToken);
+  }
+
+  applyActionPath(matchId: string, seat: string, path: string[], freshnessToken: number): PublicView {
     const response = this.invokeJson<{ view: PublicView }>((args) =>
       this.exports.rulepath_apply_action(
         args[0].ptr,
@@ -446,7 +450,7 @@ export class RulepathApi {
         args[2].len,
         BigInt(freshnessToken),
       ),
-    [matchId, seat, path]);
+    [matchId, seat, path.join(">")]);
     return response.view;
   }
 
