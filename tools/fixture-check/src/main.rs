@@ -74,6 +74,8 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "after_command_index",
     "final",
     "all",
+    "seat_0",
+    "seat_1",
     "command_index",
     "code",
     "hash",
@@ -184,6 +186,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/draughts_lite/data/variants.toml",
             variant_id: "draughts_lite_standard",
         }),
+        "high_card_duel" => Ok(RegisteredGame {
+            game_id: "high_card_duel",
+            rules_version: "high-card-duel-rules-v1",
+            trace_dir: "games/high_card_duel/tests/golden_traces",
+            fixture_dir: "games/high_card_duel/data/fixtures",
+            manifest_path: "games/high_card_duel/data/manifest.toml",
+            variants_path: "games/high_card_duel/data/variants.toml",
+            variant_id: "high_card_duel_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -237,9 +248,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -334,6 +345,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = draughts_lite::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "high_card_duel" => {
+            let manifest = high_card_duel::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = high_card_duel::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (

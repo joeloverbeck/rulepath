@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-013: Native tool registration + RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/simulate/src/main.rs`, `tools/replay-check/src/main.rs`, `tools/fixture-check/src/main.rs`, `tools/rule-coverage/src/main.rs`; `games/high_card_duel/docs/RULE-COVERAGE.md`
@@ -103,3 +103,24 @@ every `HCD-*` rule ID to its covering test(s).
 1. `cargo run -p rule-coverage -- --game high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel && cargo run -p fixture-check -- --game high_card_duel`
 3. The four CLI runs are the correct boundary — they exercise the registries end-to-end against the 012 artifacts.
+
+## Outcome (2026-06-07)
+
+Registered `high_card_duel` in the native verification tools and added the rule-coverage evidence:
+
+1. Added additive `high_card_duel` registry arms for `simulate`, `replay-check`, `fixture-check`, and `rule-coverage`.
+2. Added the tool dependencies needed by `simulate`, `replay-check`, and `fixture-check`.
+3. Added High Card Duel replay-check hash/diagnostic handling for the ten golden traces from GAT72GAT8HIG-012.
+4. Added `games/high_card_duel/docs/RULE-COVERAGE.md` with one row per `HCD-*` rule ID.
+5. Added a minimal `games/high_card_duel/docs/BENCHMARKS.md` placeholder so `rule-coverage` can validate its required benchmark-doc input; measured benchmarks remain GAT72GAT8HIG-014.
+
+Deviations: `replay-check --game <game>` now defaults to the registered trace directory when no explicit `--trace`, `--directory`, or `--all` mode is supplied, matching the Gate 8 acceptance command while preserving explicit modes.
+
+Verification:
+
+1. `cargo run -p rule-coverage -- --game high_card_duel` — passed.
+2. `cargo run -p replay-check -- --game high_card_duel` — passed.
+3. `cargo run -p fixture-check -- --game high_card_duel` — passed.
+4. `cargo run -p simulate -- --game high_card_duel --games 100 --start-seed 1` — passed; 100 games, average length 12.00.
+5. `cargo fmt --all --check` — passed.
+6. `cargo test -p replay-check -p fixture-check -p simulate -p rule-coverage` — passed.
