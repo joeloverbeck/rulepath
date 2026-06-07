@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-013: Rust test suite (rules, property, visibility, bots)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite/tests/{rules.rs,property.rs,visibility.rs,bots.rs}` (consolidated rule/property/visibility/bot test coverage).
@@ -76,3 +76,21 @@ In `tests/property.rs`, assert the §R18 invariant set under bounded random play
 1. `cargo test -p draughts_lite`
 2. `cargo test --workspace && bash scripts/boundary-check.sh`
 3. Crate + workspace tests are the correct boundary; clause-to-coverage reporting is produced by `tools/rule-coverage` (GAT7DRALITCOM-017).
+
+## Outcome
+
+Added the consolidated Draughts Lite integration test suite across
+`tests/rules.rs`, `tests/property.rs`, `tests/visibility.rs`, and `tests/bots.rs`.
+The suite covers setup/playable cells, men/kings, capture restrictions,
+multi-jump continuation, no maximum-capture rule, promotion and promotion-stop,
+terminal wins, board invariants under bounded random legal play, perfect-info
+view/no-leak checks, and Level 0/1 bot legality/determinism. The property suite
+uses an action cap as a nonterminal smoke boundary and does not assert game
+termination.
+
+Verification passed:
+
+1. `cargo test -p draughts_lite`
+2. `cargo fmt --all --check`
+3. `cargo test --workspace`
+4. `bash scripts/boundary-check.sh`
