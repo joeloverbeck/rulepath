@@ -25,7 +25,7 @@ document must be corrected.
 |---|---|---|---|---|---|---|
 | Rulepath Draughts Lite rules | `games/draughts_lite/docs/RULES.md` | 2026-06-07 | project authority | legal moves, capture, promotion, terminal, bot boundary | none | Rule IDs are the strategy cross-check source. |
 | Rulepath Draughts Lite sources | `games/draughts_lite/docs/SOURCES.md` | 2026-06-07 | project authority/source note | adopted and omitted rules, strong-engine exclusion context | none | Records consulted external rule and solved-game context. |
-| Rulepath Gate 7 spec | `specs/gate-7-draughts-lite-compound-action-tree.md` | 2026-06-07 | project authority | Level 1 scope, exclusions, and required bot tests | none | §R17 defines the modest heuristic boundary. |
+| Rulepath Gate 7 spec | `archive/specs/gate-7-draughts-lite-compound-action-tree.md` | 2026-06-07 | project authority | Level 1 scope, exclusions, and required bot tests | none | §R17 defines the modest heuristic boundary. |
 | Rulepath AI bot policy | `docs/AI-BOTS.md` | 2026-06-07 | project authority | public bot fairness, determinism, explainability, exclusions | none | Public bots are product opponents, not research engines. |
 
 ## Rules cross-check

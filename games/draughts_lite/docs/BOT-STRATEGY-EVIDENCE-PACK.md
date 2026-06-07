@@ -63,7 +63,7 @@ fair, beatable product opponent.
 | `RULES.md` | `games/draughts_lite/docs/RULES.md` | yes | read | Rule IDs define legal moves, forced capture/continuation, promotion, terminal, replay, visibility, and bot boundary. |
 | `COMPETENT-PLAYER.md` | `games/draughts_lite/docs/COMPETENT-PLAYER.md` | yes | read | Direct strategy input for the priority vector. |
 | `SOURCES.md` | `games/draughts_lite/docs/SOURCES.md` | yes | read | Records adopted/omitted rules and solved-game/strong-engine exclusion context. |
-| Gate 7 spec | `specs/gate-7-draughts-lite-compound-action-tree.md` | yes | read | §R17 defines acceptable Level 1 heuristics and exclusions. |
+| Gate 7 spec | `archive/specs/gate-7-draughts-lite-compound-action-tree.md` | yes | read | §R17 defines acceptable Level 1 heuristics and exclusions. |
 | `docs/AI-BOTS.md` | `docs/AI-BOTS.md` | yes | read | Defines deterministic, explainable, non-search public bot policy. |
 | `RULE-COVERAGE.md` | `games/draughts_lite/docs/RULE-COVERAGE.md` | yes | read | Rule-to-evidence matrix includes bot, visibility, replay, UI, and benchmark rows. |
 | `MECHANICS.md` | `games/draughts_lite/docs/MECHANICS.md` | yes | read | Mechanic inventory records compound path and bot policy shapes. |
