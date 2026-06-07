@@ -5,7 +5,7 @@
 - Spec ID: `gate-7-1-board-space-primitive-back-port`
 - Roadmap stage: 5M (maintenance / interlock)
 - Roadmap build gate: Gate 7.1 (`docs/ROADMAP.md` §9A)
-- Status: Planned
+- Status: Completed
 - Date: 2026-06-07
 - Owner: joeloverbeck
 - Authority order (this spec is subordinate to, in order): `docs/FOUNDATIONS.md` →
@@ -589,3 +589,50 @@ Roadmap/spec index status: <Gate 7.1 done only after evidence>
 - No replacement governance or per-game docs in this planning deliverable; the foundation/governance docs already landed in commit `0286f9f`, and the implementation must update per-game docs after code changes.
 - No new official game before this debt is closed.
 - No broad cleanup outside the promoted primitive's scope.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- `three_marks`, `column_four`, and `directional_flip` now consume
+  `game-stdlib::board_space` for the promoted coordinate/cell identity,
+  bounds, row-major iteration, indexing, parsing/formatting, and bounded-offset
+  scope while preserving public semantic ID surfaces.
+- `race_to_n` is explicitly audited as not applicable to `board_space`.
+- `draughts_lite` remains the conforming exemplar; movement, capture,
+  promotion, forced continuation, effects, UI, and bot policy remain local.
+- `docs/MECHANIC-ATLAS.md` closes the open `board_space` promotion debt and
+  `specs/README.md` marks Gate 7.1 `Done`.
+
+Deviations from original plan:
+- Public semantic ID types were preserved as wrappers/adapters instead of being
+  replaced by raw `Coord`, avoiding surface churn while still delegating the
+  promoted behavior-free operations.
+
+Verification results:
+- `cargo test --workspace`
+- `bash scripts/boundary-check.sh`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `cargo run -p replay-check -- --game column_four --all`
+- `cargo run -p replay-check -- --game directional_flip --all`
+- `cargo run -p replay-check -- --game draughts_lite --all`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p fixture-check -- --game three_marks`
+- `cargo run -p fixture-check -- --game column_four`
+- `cargo run -p fixture-check -- --game directional_flip`
+- `cargo run -p fixture-check -- --game draughts_lite`
+- `cargo run -p fixture-check -- --game race_to_n`
+- `cargo run -p rule-coverage -- --game three_marks`
+- `cargo run -p rule-coverage -- --game column_four`
+- `cargo run -p rule-coverage -- --game directional_flip`
+- `cargo run -p rule-coverage -- --game draughts_lite`
+- `cargo run -p rule-coverage -- --game race_to_n`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `node scripts/check-doc-links.mjs`
+- Board-space primitive broadened: no.
+- `engine-core` changed: no.
+- TypeScript legality changed: no.
+- Golden traces changed: no.
