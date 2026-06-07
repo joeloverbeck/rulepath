@@ -1,6 +1,6 @@
 # GAT6DIRFLI-013: Golden traces & fixtures
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/directional_flip/tests/golden_traces/*.trace.json` (golden trace corpus) and any supporting fixture refinement.
@@ -83,3 +83,17 @@ Author `games/directional_flip/tests/golden_traces/` per spec §8.5: `opening-le
 1. `cargo test -p directional_flip replay`
 2. `cargo run -p replay-check -- --game directional_flip --all` — full corpus verification (passes once GAT6DIRFLI-016 registers the game in the tool; cite as the integration gate).
 3. The crate-scoped replay test is the in-ticket boundary; the tool-driven `--all` run is the cross-tool gate owned by GAT6DIRFLI-016.
+
+## Outcome
+
+Added fourteen Directional Flip Trace Schema v1 fixtures under `games/directional_flip/tests/golden_traces/`: opening move, multi-direction flip, corner capture, forced pass, double-pass terminal, full-board terminal, draw, occupied/non-flipping/stale/non-active diagnostics, bot action, wasm-exported placeholder replay, and preview-flip-set. Extended `games/directional_flip/tests/replay.rs` to load the full corpus, reject behavior-looking keys, compare replay hashes, check diagnostics, and verify the bot-produced command.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p directional_flip replay`
+3. `cargo test -p directional_flip`
+4. `bash scripts/boundary-check.sh`
+5. `node scripts/check-doc-links.mjs`
+
+Note: `cargo run -p fixture-check -- --game directional_flip` currently reports `unsupported game 'directional_flip'`; tool registration is owned by GAT6DIRFLI-016.
