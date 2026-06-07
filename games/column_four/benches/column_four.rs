@@ -71,9 +71,9 @@ const THRESHOLDS: &[Threshold] = &[
     Threshold {
         operation: "replay_step_projection",
         unit: "projections_per_second",
-        threshold: 45_000.0,
-        rationale_class: "measured_baseline",
-        caveat: "Initial floor below the first local native smoke measurement for replay step board/effect projection.",
+        threshold: 33_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "CI-calibrated floor below observed ubuntu-latest value 34175.00 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003.",
     },
     Threshold {
         operation: "serialization_roundtrip",
@@ -85,16 +85,16 @@ const THRESHOLDS: &[Threshold] = &[
     Threshold {
         operation: "replay_throughput",
         unit: "replays_per_second",
-        threshold: 4_000.0,
-        rationale_class: "measured_baseline",
-        caveat: "Initial floor below the first local native smoke measurement for deterministic seven-command win replay.",
+        threshold: 3_200.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "CI-calibrated floor below observed ubuntu-latest value 3334.35 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003.",
     },
     Threshold {
         operation: "random_playout",
         unit: "games_per_second",
-        threshold: 10_000.0,
-        rationale_class: "measured_baseline_provisional_target_miss",
-        caveat: "First local native smoke measurement missed the provisional 100,000+ games/sec target; BENCHMARKS.md keeps the miss visible.",
+        threshold: 9_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "CI-calibrated floor below observed ubuntu-latest value 9700.09 in BENCICAL-001 run 27087214359; native target miss remains documented in BENCHMARKS.md per ADR 0003.",
     },
     Threshold {
         operation: "level0_bot_decision",
@@ -106,9 +106,9 @@ const THRESHOLDS: &[Threshold] = &[
     Threshold {
         operation: "level2_bot_decision",
         unit: "decisions_per_second",
-        threshold: 4_000.0,
-        rationale_class: "measured_baseline",
-        caveat: "Initial floor below the first local native smoke measurement for authored tactical selection.",
+        threshold: 3_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "CI-calibrated floor below observed ubuntu-latest value 3063.45 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003.",
     },
 ];
 
