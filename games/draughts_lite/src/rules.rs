@@ -1,6 +1,8 @@
-use game_stdlib::board_space::Coord;
+use engine_core::{Actor, CommandEnvelope, Diagnostic};
+use game_stdlib::board_space::{Coord, CoordIdError};
 
 use crate::{
+    actions::{FROM_SEGMENT_PREFIX, JUMP_SEGMENT_PREFIX, TO_SEGMENT_PREFIX},
     ids::{is_playable_cell, DraughtsLiteSeat, PieceId},
     state::{CellOccupancy, DraughtsLiteState, Piece, PieceKind, TerminalOutcome},
 };
@@ -78,6 +80,12 @@ pub struct LegalMove {
     pub kind: MoveKind,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatedAction {
+    pub actor: DraughtsLiteSeat,
+    pub legal_move: LegalMove,
+}
+
 impl LegalMove {
     pub fn final_cell(&self) -> Coord {
         self.steps
@@ -137,6 +145,131 @@ pub fn terminal_outcome_for_seat_to_act(
         })
     } else {
         None
+    }
+}
+
+pub fn validate_command(
+    state: &DraughtsLiteState,
+    command: &CommandEnvelope,
+) -> Result<ValidatedAction, Diagnostic> {
+    if state.terminal_outcome.is_some() {
+        return Err(diagnostic(
+            "terminal_match",
+            "the match is already finished",
+        ));
+    }
+
+    if command.freshness_token != state.freshness_token {
+        return Err(diagnostic(
+            "stale_action",
+            "the action was submitted for an older decision point",
+        ));
+    }
+
+    let Some(actor) = actor_seat(state, &command.actor) else {
+        return Err(diagnostic("unknown_actor", "the actor is not seated"));
+    };
+
+    if actor != state.active_seat {
+        return Err(diagnostic(
+            "not_active_seat",
+            "only the active seat may act now",
+        ));
+    }
+
+    if command.action_path.segments.is_empty() {
+        return Err(diagnostic("empty_action_path", "the action path is empty"));
+    }
+
+    let path = parse_path(state, &command.action_path.segments)?;
+    let legal_moves = legal_moves_for(state, actor);
+    let legal_paths = legal_moves
+        .iter()
+        .map(segments_for_move)
+        .collect::<Vec<_>>();
+
+    if let Some((index, _)) = legal_paths
+        .iter()
+        .enumerate()
+        .find(|(_, segments)| *segments == &command.action_path.segments)
+    {
+        return Ok(ValidatedAction {
+            actor,
+            legal_move: legal_moves[index].clone(),
+        });
+    }
+
+    if legal_paths
+        .iter()
+        .any(|segments| segments.starts_with(&command.action_path.segments))
+    {
+        return Err(diagnostic(
+            "mandatory_continuation_incomplete",
+            "the capture path stops before a mandatory continuation",
+        ));
+    }
+
+    if legal_paths.iter().any(|segments| {
+        command.action_path.segments.starts_with(segments)
+            && command.action_path.segments.len() > segments.len()
+            && legal_moves
+                .iter()
+                .find(|legal_move| segments_for_move(legal_move) == *segments)
+                .is_some_and(LegalMove::promotes)
+    }) {
+        return Err(diagnostic(
+            "continues_after_promotion_stop",
+            "the path continues after promotion ended the capture",
+        ));
+    }
+
+    if path.segments.len() >= 2
+        && path.segments[1].kind == ParsedSegmentKind::Quiet
+        && legal_moves
+            .iter()
+            .any(|legal_move| legal_move.kind == MoveKind::Capture)
+    {
+        return Err(diagnostic(
+            "quiet_move_while_capture_available",
+            "a capture is available, so quiet moves are not legal",
+        ));
+    }
+
+    Err(diagnostic(
+        "action_path_not_available",
+        "the action path is not available",
+    ))
+}
+
+pub fn apply_action(state: &mut DraughtsLiteState, action: ValidatedAction) {
+    let piece_id = action.legal_move.piece_id;
+
+    for step in &action.legal_move.steps {
+        state.set_occupancy(step.from, CellOccupancy::Empty);
+        if let Some(capture) = step.capture {
+            state.set_occupancy(capture.cell, CellOccupancy::Empty);
+            state.pieces.retain(|piece| piece.id != capture.piece_id);
+        }
+        state.set_occupancy(step.to, CellOccupancy::Occupied(piece_id));
+
+        let piece = state
+            .pieces
+            .iter_mut()
+            .find(|piece| piece.id == piece_id)
+            .expect("validated action piece must exist");
+        piece.cell = step.to;
+        piece.kind = step.piece_kind_after;
+    }
+
+    state.ply_count = state.ply_count.saturating_add(1);
+    state.command_count = state.command_count.saturating_add(1);
+    state.freshness_token = state.freshness_token.next();
+
+    let next_seat = action.actor.other();
+    if let Some(outcome) = terminal_outcome_for_seat_to_act(state, next_seat) {
+        state.terminal_outcome = Some(outcome);
+    } else {
+        state.active_seat = next_seat;
     }
 }
 
@@ -335,14 +468,132 @@ fn reaches_crown_row(seat: DraughtsLiteSeat, cell: Coord) -> bool {
     }
 }
 
+pub fn segments_for_move(legal_move: &LegalMove) -> Vec<String> {
+    let mut segments = Vec::with_capacity(1 + legal_move.steps.len());
+    segments.push(format!("{FROM_SEGMENT_PREFIX}{}", legal_move.origin.id()));
+    segments.extend(legal_move.steps.iter().map(|step| {
+        if step.capture.is_some() {
+            format!("{JUMP_SEGMENT_PREFIX}{}", step.to.id())
+        } else {
+            format!("{TO_SEGMENT_PREFIX}{}", step.to.id())
+        }
+    }));
+    segments
+}
+
+fn actor_seat(state: &DraughtsLiteState, actor: &Actor) -> Option<DraughtsLiteSeat> {
+    state
+        .seats
+        .iter()
+        .position(|seat_id| seat_id == &actor.seat_id)
+        .and_then(DraughtsLiteSeat::from_index)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ParsedPath {
+    segments: Vec<ParsedSegment>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ParsedSegment {
+    kind: ParsedSegmentKind,
+    cell: Coord,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ParsedSegmentKind {
+    Origin,
+    Quiet,
+    Jump,
+}
+
+fn parse_path(state: &DraughtsLiteState, segments: &[String]) -> Result<ParsedPath, Diagnostic> {
+    let mut parsed = Vec::with_capacity(segments.len());
+    for (index, segment) in segments.iter().enumerate() {
+        let (kind, cell) = parse_segment(state, segment, index)?;
+        parsed.push(ParsedSegment { kind, cell });
+    }
+
+    if parsed[0].kind != ParsedSegmentKind::Origin {
+        return Err(diagnostic(
+            "malformed_segment",
+            "the first action segment must select an origin",
+        ));
+    }
+
+    Ok(ParsedPath { segments: parsed })
+}
+
+fn parse_segment(
+    state: &DraughtsLiteState,
+    segment: &str,
+    index: usize,
+) -> Result<(ParsedSegmentKind, Coord), Diagnostic> {
+    let (kind, raw_cell) = if let Some(raw_cell) = segment.strip_prefix(FROM_SEGMENT_PREFIX) {
+        (ParsedSegmentKind::Origin, raw_cell)
+    } else if let Some(raw_cell) = segment.strip_prefix(TO_SEGMENT_PREFIX) {
+        (ParsedSegmentKind::Quiet, raw_cell)
+    } else if let Some(raw_cell) = segment.strip_prefix(JUMP_SEGMENT_PREFIX) {
+        (ParsedSegmentKind::Jump, raw_cell)
+    } else {
+        return Err(diagnostic(
+            "malformed_segment",
+            "the action segment has an unknown prefix",
+        ));
+    };
+
+    let cell = state
+        .board
+        .parse_coord_id(raw_cell)
+        .map_err(|error| coord_diagnostic(error, index == 0))?;
+    if !is_playable_cell(cell) {
+        return Err(diagnostic(
+            if index == 0 {
+                "origin_not_playable"
+            } else {
+                "destination_not_playable"
+            },
+            "the action segment refers to a non-playable cell",
+        ));
+    }
+    Ok((kind, cell))
+}
+
+fn coord_diagnostic(error: CoordIdError, origin: bool) -> Diagnostic {
+    match error {
+        CoordIdError::Malformed | CoordIdError::Zero => diagnostic(
+            "malformed_segment",
+            "the action segment does not contain a valid cell id",
+        ),
+        CoordIdError::OutOfBounds => diagnostic(
+            if origin {
+                "origin_outside_board"
+            } else {
+                "destination_outside_board"
+            },
+            "the action segment is outside the board",
+        ),
+    }
+}
+
+fn diagnostic(code: &str, message: &str) -> Diagnostic {
+    Diagnostic {
+        code: code.to_owned(),
+        message: message.to_owned(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use engine_core::{FreshnessToken, SeatId, Seed};
+    use engine_core::{
+        ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed,
+        StableSerialize,
+    };
 
     use crate::{
         ids::board_dimensions,
         setup::{setup_match, SetupOptions},
-        state::sorted_pieces,
+        state::{sorted_pieces, DraughtsLiteSnapshot},
         variants::Variant,
     };
 
@@ -374,6 +625,27 @@ mod tests {
             command_count: 0,
             terminal_outcome: None,
             freshness_token: FreshnessToken(0),
+        }
+    }
+
+    fn actor_for(state: &DraughtsLiteState, seat: DraughtsLiteSeat) -> Actor {
+        Actor {
+            seat_id: state.seats[seat.index()].clone(),
+        }
+    }
+
+    fn command_for(
+        state: &DraughtsLiteState,
+        seat: DraughtsLiteSeat,
+        segments: Vec<&str>,
+    ) -> CommandEnvelope {
+        CommandEnvelope {
+            actor: actor_for(state, seat),
+            action_path: ActionPath {
+                segments: segments.into_iter().map(str::to_owned).collect(),
+            },
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(1),
         }
     }
 
@@ -505,6 +777,7 @@ mod tests {
                 man(DraughtsLiteSeat::Seat0, 1, 3, 2),
                 man(DraughtsLiteSeat::Seat1, 1, 4, 3),
                 man(DraughtsLiteSeat::Seat1, 2, 6, 5),
+                man(DraughtsLiteSeat::Seat1, 3, 8, 7),
             ],
         );
 
@@ -612,6 +885,167 @@ mod tests {
             Some(TerminalOutcome::Win {
                 seat: DraughtsLiteSeat::Seat0
             })
+        );
+    }
+
+    #[test]
+    fn validate_accepts_current_leaf_path_and_apply_is_atomic_for_multi_jump() {
+        let mut state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![
+                man(DraughtsLiteSeat::Seat0, 1, 3, 2),
+                man(DraughtsLiteSeat::Seat1, 1, 4, 3),
+                man(DraughtsLiteSeat::Seat1, 2, 6, 5),
+                man(DraughtsLiteSeat::Seat1, 3, 8, 7),
+            ],
+        );
+        let command = command_for(
+            &state,
+            DraughtsLiteSeat::Seat0,
+            vec!["from/r3c2", "jump/r5c4", "jump/r7c6"],
+        );
+
+        let action = validate_command(&state, &command).expect("path validates");
+        apply_action(&mut state, action);
+
+        let moved_id = piece_id(DraughtsLiteSeat::Seat0, 1);
+        assert_eq!(state.piece(moved_id).unwrap().cell, coord(7, 6));
+        assert_eq!(state.occupancy(coord(3, 2)), Some(CellOccupancy::Empty));
+        assert_eq!(state.occupancy(coord(4, 3)), Some(CellOccupancy::Empty));
+        assert_eq!(state.occupancy(coord(6, 5)), Some(CellOccupancy::Empty));
+        assert_eq!(
+            state.occupancy(coord(7, 6)),
+            Some(CellOccupancy::Occupied(moved_id))
+        );
+        assert!(state.piece(piece_id(DraughtsLiteSeat::Seat1, 1)).is_none());
+        assert!(state.piece(piece_id(DraughtsLiteSeat::Seat1, 2)).is_none());
+        assert!(state.piece(piece_id(DraughtsLiteSeat::Seat1, 3)).is_some());
+        assert_eq!(state.active_seat, DraughtsLiteSeat::Seat1);
+        assert_eq!(state.ply_count, 1);
+        assert_eq!(state.command_count, 1);
+        assert_eq!(state.freshness_token, FreshnessToken(1));
+    }
+
+    #[test]
+    fn invalid_command_returns_stable_diagnostic_and_does_not_mutate() {
+        let state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![
+                man(DraughtsLiteSeat::Seat0, 1, 3, 2),
+                man(DraughtsLiteSeat::Seat1, 1, 4, 3),
+            ],
+        );
+        let mutated = state.clone();
+        let before = DraughtsLiteSnapshot::from_state(&mutated).stable_bytes();
+        let command = command_for(
+            &mutated,
+            DraughtsLiteSeat::Seat0,
+            vec!["from/r3c2", "to/r4c1"],
+        );
+
+        let diagnostic = validate_command(&mutated, &command).expect_err("quiet rejected");
+
+        assert_eq!(diagnostic.code, "quiet_move_while_capture_available");
+        assert_eq!(
+            DraughtsLiteSnapshot::from_state(&mutated).stable_bytes(),
+            before
+        );
+    }
+
+    #[test]
+    fn validation_rejects_stale_wrong_actor_terminal_empty_and_malformed_paths() {
+        let mut state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![man(DraughtsLiteSeat::Seat0, 1, 3, 2)],
+        );
+
+        let mut stale = command_for(
+            &state,
+            DraughtsLiteSeat::Seat0,
+            vec!["from/r3c2", "to/r4c1"],
+        );
+        stale.freshness_token = FreshnessToken(99);
+        assert_eq!(
+            validate_command(&state, &stale).unwrap_err().code,
+            "stale_action"
+        );
+
+        let wrong_actor = command_for(
+            &state,
+            DraughtsLiteSeat::Seat1,
+            vec!["from/r3c2", "to/r4c1"],
+        );
+        assert_eq!(
+            validate_command(&state, &wrong_actor).unwrap_err().code,
+            "not_active_seat"
+        );
+
+        let empty = command_for(&state, DraughtsLiteSeat::Seat0, Vec::new());
+        assert_eq!(
+            validate_command(&state, &empty).unwrap_err().code,
+            "empty_action_path"
+        );
+
+        let malformed = command_for(&state, DraughtsLiteSeat::Seat0, vec!["bad/r3c2"]);
+        assert_eq!(
+            validate_command(&state, &malformed).unwrap_err().code,
+            "malformed_segment"
+        );
+
+        state.terminal_outcome = Some(TerminalOutcome::Win {
+            seat: DraughtsLiteSeat::Seat0,
+        });
+        let terminal = command_for(
+            &state,
+            DraughtsLiteSeat::Seat0,
+            vec!["from/r3c2", "to/r4c1"],
+        );
+        assert_eq!(
+            validate_command(&state, &terminal).unwrap_err().code,
+            "terminal_match"
+        );
+    }
+
+    #[test]
+    fn validation_rejects_partial_continuation_and_promotion_stop_overrun() {
+        let continuation_state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![
+                man(DraughtsLiteSeat::Seat0, 1, 3, 2),
+                man(DraughtsLiteSeat::Seat1, 1, 4, 3),
+                man(DraughtsLiteSeat::Seat1, 2, 6, 5),
+            ],
+        );
+        let partial = command_for(
+            &continuation_state,
+            DraughtsLiteSeat::Seat0,
+            vec!["from/r3c2", "jump/r5c4"],
+        );
+        assert_eq!(
+            validate_command(&continuation_state, &partial)
+                .unwrap_err()
+                .code,
+            "mandatory_continuation_incomplete"
+        );
+
+        let promotion_state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![
+                man(DraughtsLiteSeat::Seat0, 1, 6, 3),
+                man(DraughtsLiteSeat::Seat1, 1, 7, 4),
+                man(DraughtsLiteSeat::Seat1, 2, 7, 6),
+            ],
+        );
+        let overrun = command_for(
+            &promotion_state,
+            DraughtsLiteSeat::Seat0,
+            vec!["from/r6c3", "jump/r8c5", "jump/r6c7"],
+        );
+        assert_eq!(
+            validate_command(&promotion_state, &overrun)
+                .unwrap_err()
+                .code,
+            "continues_after_promotion_stop"
         );
     }
 }

@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-007: Multi-segment validation & atomic apply
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/draughts_lite/src/rules.rs` (add `validate_command` + atomic `apply` + stable diagnostic codes), `src/lib.rs` (export validate/apply surface).
@@ -77,3 +77,23 @@ On a validated action: move the piece through the path, remove captured pieces, 
 1. `cargo test -p draughts_lite rules`
 2. `cargo test -p draughts_lite && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct; deterministic replay-hash proof over applied command streams lands in GAT7DRALITCOM-010.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Added `ValidatedAction`, `validate_command`, `apply_action`, and stable path segment generation in `games/draughts_lite/src/rules.rs`.
+- Validation now checks terminal state, freshness token, actor seating/turn ownership, empty paths, malformed/off-board/non-playable segments, mandatory capture, incomplete continuation, promotion-stop overrun, and current legal leaf-path membership.
+- Atomic apply moves the validated piece through every step, clears captured pieces, updates piece records and occupancy, promotes when needed, increments ply/command counters, advances freshness, and advances the seat unless terminal.
+- Exported validate/apply from `games/draughts_lite/src/lib.rs`.
+- Added tests for valid multi-jump apply, no mutation on invalid command, stale/wrong-actor/terminal/empty/malformed diagnostics, incomplete continuation, and promotion-stop overrun.
+
+Deviations from original plan:
+- Semantic effects remain intentionally absent per GAT7DRALITCOM-008; `apply_action` mutates state only.
+
+Verification:
+- `cargo test -p draughts_lite rules` passed (14 focused rule/validation tests).
+- `cargo test -p draughts_lite` passed (31 unit tests).
+- `cargo fmt --all --check` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).

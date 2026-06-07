@@ -15,8 +15,8 @@ pub use ids::{
     RULES_VERSION_LABEL, STANDARD_PIECES_PER_SEAT, TOTAL_STANDARD_PIECES, VARIANT_ID,
 };
 pub use rules::{
-    has_legal_move, legal_moves, legal_moves_for, terminal_outcome_for_active_player,
-    CaptureDetail, Diagonal, LegalMove, MoveKind, MoveStep,
+    apply_action, has_legal_move, legal_moves, legal_moves_for, terminal_outcome_for_active_player,
+    validate_command, CaptureDetail, Diagonal, LegalMove, MoveKind, MoveStep, ValidatedAction,
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
