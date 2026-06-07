@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-005: Rules core — movement/capture legality, mandatory capture & continuation, promotion, terminal
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/draughts_lite/src/rules.rs` (legal generation: men/king diagonal movement, adjacent-jump captures, mandatory-capture suppression of quiet moves, same-piece mandatory continuation, promotion rules, terminal detection), `src/lib.rs` (export).
@@ -78,3 +78,24 @@ Generate same-piece mandatory continuations; apply promotion on the far king row
 1. `cargo test -p draughts_lite rules`
 2. `cargo test -p draughts_lite && bash scripts/boundary-check.sh`
 3. Crate-scoped rule tests are the correct boundary; cross-surface proof (golden traces, replay hashes) lands in GAT7DRALITCOM-013/014.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Added `games/draughts_lite/src/rules.rs` with deterministic Rust-owned legal move generation for quiet moves and complete capture sequences.
+- Implemented global mandatory-capture suppression of quiet moves.
+- Implemented same-piece mandatory continuation using virtual in-sequence board state so already captured pieces are unavailable without mutating real state.
+- Implemented forward-only men, any-diagonal crowns, promotion on crown row, promotion-during-capture stop, and terminal checks for no pieces / no legal move.
+- Exported the rules surface from `games/draughts_lite/src/lib.rs`.
+- Renamed the state piece-sort helper to `sorted_pieces` so synthetic rule-test states can use the same stable ordering helper.
+
+Deviations from original plan:
+- None.
+
+Verification:
+- `cargo test -p draughts_lite rules` passed (9 focused rule tests).
+- `cargo test -p draughts_lite` passed (21 unit tests).
+- `cargo fmt --all --check` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).

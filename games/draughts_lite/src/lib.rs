@@ -1,6 +1,7 @@
 //! `draughts_lite` official-game crate skeleton.
 
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
@@ -8,6 +9,10 @@ pub mod variants;
 pub use ids::{
     is_playable_cell, DraughtsLiteSeat, PieceId, BOARD_COLS, BOARD_ROWS, GAME_ID,
     RULES_VERSION_LABEL, STANDARD_PIECES_PER_SEAT, TOTAL_STANDARD_PIECES, VARIANT_ID,
+};
+pub use rules::{
+    has_legal_move, legal_moves, legal_moves_for, terminal_outcome_for_active_player,
+    CaptureDetail, Diagonal, LegalMove, MoveKind, MoveStep,
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{

@@ -6,7 +6,7 @@ use crate::{
         board_dimensions, is_playable_cell, DraughtsLiteSeat, PieceId, STANDARD_PIECES_PER_SEAT,
         VARIANT_ID,
     },
-    state::{sorted_standard_pieces, CellOccupancy, DraughtsLiteState, Piece, PieceKind},
+    state::{sorted_pieces, CellOccupancy, DraughtsLiteState, Piece, PieceKind},
     variants::Variant,
 };
 
@@ -65,7 +65,7 @@ pub fn setup_match(
         variant: options.variant.clone(),
         board,
         cells,
-        pieces: sorted_standard_pieces(pieces),
+        pieces: sorted_pieces(pieces),
         active_seat: DraughtsLiteSeat::from_index(options.variant.first_seat as usize).ok_or_else(
             || Diagnostic {
                 code: "invalid_first_seat".to_owned(),

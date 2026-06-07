@@ -2,7 +2,7 @@ use engine_core::{FreshnessToken, SeatId, StableSerialize};
 use game_stdlib::board_space::{Coord, Dimensions};
 
 use crate::{
-    ids::{board_dimensions, DraughtsLiteSeat, PieceId, TOTAL_STANDARD_PIECES},
+    ids::{board_dimensions, DraughtsLiteSeat, PieceId},
     variants::Variant,
 };
 
@@ -212,9 +212,8 @@ fn terminal_summary(outcome: Option<TerminalOutcome>) -> String {
     }
 }
 
-pub fn sorted_standard_pieces(mut pieces: Vec<Piece>) -> Vec<Piece> {
+pub fn sorted_pieces(mut pieces: Vec<Piece>) -> Vec<Piece> {
     pieces.sort_by_key(|piece| piece.id);
-    debug_assert_eq!(pieces.len(), TOTAL_STANDARD_PIECES);
     pieces
 }
 
