@@ -47,7 +47,7 @@ Next-steps menu (user chooses)
 
 **In plan mode**: the design writes to the plan file instead of `docs/plans/`, and `ExitPlanMode` replaces the next-steps menu.
 
-**Triage/analysis brainstorms** (evaluate a report or finding-set, or answer a diagnostic question, and produce work items): the interview loop and the propose-approaches step are replaced by a single triage recommendation — see Step 3 §Triage brainstorms and `references/triage-and-deliverables.md`.
+**Triage/analysis brainstorms** (evaluate a report or finding-set, or answer a diagnostic question, and produce work items *or a single recommended fix*): the interview loop and the propose-approaches step are replaced by a single triage recommendation — see Step 3 §Triage brainstorms and `references/triage-and-deliverables.md`.
 
 ## Step 1: Read context
 
@@ -165,7 +165,7 @@ Close with a recommendation: name the chosen option upfront, then justify in 1-3
 
 ### Triage brainstorms
 
-When the deliverable is a set of work items evaluated against a report, finding-set, or diagnostic question, replace the approaches step with a **triage recommendation**: which items warrant action, which are dismissed, and why. The user's approval of the triage serves the same gating purpose as choosing an approach. Render the Step 1 sub-step 8 post-exploration confidence sentence on its own line before the triage recommendation as the audit-trail anchor. Verdict types, per-item structure, verdict-bucket grouping, the out-of-report and no-source-report cases, and the closing structure live in `references/triage-and-deliverables.md` §Triage recommendation structure.
+When the deliverable is a set of work items — or a single recommended fix — evaluated against a report, finding-set, or diagnostic question, replace the approaches step with a **triage recommendation**: which items warrant action, which are dismissed, and why. The user's approval of the triage serves the same gating purpose as choosing an approach. Render the Step 1 sub-step 8 post-exploration confidence sentence on its own line before the triage recommendation as the audit-trail anchor. Verdict types, per-item structure, verdict-bucket grouping, the out-of-report and no-source-report cases, and the closing structure live in `references/triage-and-deliverables.md` §Triage recommendation structure. A "figure out why X" diagnostic that resolves to one inline fix still routes through that reference's §No-source-report diagnostic case — the single answer is the finding, keyed `O1`.
 
 ## Step 4: Present design
 
