@@ -71,7 +71,9 @@ pub struct PieceId {
 
 impl PieceId {
     pub fn new(owner: DraughtsLiteSeat, ordinal: u8) -> Option<Self> {
-        (ordinal >= 1 && ordinal <= STANDARD_PIECES_PER_SEAT).then_some(Self { owner, ordinal })
+        (1..=STANDARD_PIECES_PER_SEAT)
+            .contains(&ordinal)
+            .then_some(Self { owner, ordinal })
     }
 
     pub const fn owner(self) -> DraughtsLiteSeat {

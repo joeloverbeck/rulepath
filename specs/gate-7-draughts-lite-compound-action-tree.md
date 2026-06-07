@@ -3,7 +3,7 @@
 **Spec ID:** gate-7-draughts-lite-compound-action-tree
 **Roadmap stage:** 5
 **Roadmap build gate:** Gate 7 (`draughts_lite`)
-**Status:** Planned
+**Status:** Done
 **Date:** 2026-06-07
 **Owner:** joeloverbeck
 **Authority order:** `docs/FOUNDATIONS.md` → `docs/ROADMAP.md` → `docs/OFFICIAL-GAME-CONTRACT.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → `docs/WASM-CLIENT-BOUNDARY.md` → `docs/MECHANIC-ATLAS.md` → this spec

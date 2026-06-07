@@ -1343,7 +1343,7 @@ fn draughts_initial_state(trace_id: &str, seed: u64) -> draughts_lite::DraughtsL
         ),
         _ => draughts_lite::setup_match(
             Seed(seed),
-            &vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())],
+            &[SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())],
             &draughts_lite::SetupOptions::default(),
         )
         .expect("draughts setup succeeds"),

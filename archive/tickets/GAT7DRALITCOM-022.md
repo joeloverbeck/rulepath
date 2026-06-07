@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-022: Capstone — exit criteria, mechanic-atlas finalize, status & picker Done-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — verification + status/docs finalize only (`docs/MECHANIC-ATLAS.md` as-built finalize, `specs/gate-7-draughts-lite-compound-action-tree.md` Status → Done, `specs/README.md` index row flip). Introduces no production logic.
@@ -77,3 +77,32 @@ Finalize the `docs/MECHANIC-ATLAS.md` `draughts_lite` movement/capture/forced-co
 1. `cargo test --workspace && cargo run -p simulate -- --game draughts_lite --games 1000 && cargo run -p replay-check -- --game draughts_lite --all`
 2. `cargo run -p fixture-check -- --game draughts_lite && cargo run -p rule-coverage -- --game draughts_lite && npm --prefix apps/web run smoke:e2e && bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs`
 3. The full cross-surface acceptance run is the correct boundary for a capstone — it exercises every prior ticket end-to-end without modifying their files.
+
+## Completion Evidence
+
+Completed 2026-06-07.
+
+Outcome:
+
+1. Finalized `docs/MECHANIC-ATLAS.md` to the Gate 7 as-built board-space promotion outcome.
+2. Flipped `specs/gate-7-draughts-lite-compound-action-tree.md` to `Done`.
+3. Flipped the Gate 7 row in `specs/README.md` to `Done` and linked the active spec.
+4. Fixed current Rust 1.93 clippy hygiene required by the capstone `-D warnings` lane:
+   `Parity::of` uses `is_multiple_of`, `PieceId::new` uses inclusive-range
+   containment, and the replay-check helper passes a slice directly.
+
+Verification:
+
+1. `cargo fmt --all --check` — pass.
+2. `cargo clippy --workspace --all-targets -- -D warnings` — pass.
+3. `cargo test --workspace` — pass.
+4. `cargo run -p simulate -- --game draughts_lite --games 1000` — pass.
+5. `cargo run -p replay-check -- --game draughts_lite --all` — pass.
+6. `cargo run -p fixture-check -- --game draughts_lite` — pass.
+7. `cargo run -p rule-coverage -- --game draughts_lite` — pass.
+8. `npm --prefix apps/web run smoke:wasm` — pass.
+9. `npm --prefix apps/web run smoke:e2e` — pass.
+10. `npm --prefix apps/web run build` — pass.
+11. `bash scripts/boundary-check.sh` — pass.
+12. `node scripts/check-doc-links.mjs` — pass.
+13. `cargo bench -p draughts_lite -- --test` — pass; all benchmark rows reported `pass=true`.

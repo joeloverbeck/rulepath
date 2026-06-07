@@ -163,7 +163,7 @@ pub enum Parity {
 
 impl Parity {
     pub const fn of(row: u8, col: u8) -> Self {
-        if (row as u16 + col as u16) % 2 == 0 {
+        if (row as u16 + col as u16).is_multiple_of(2) {
             Self::Even
         } else {
             Self::Odd
