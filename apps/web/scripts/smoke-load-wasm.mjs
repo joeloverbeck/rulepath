@@ -53,6 +53,7 @@ assert(catalog.some((game) => game.game_id === "race_to_n"), "list_games include
 assert(catalog.some((game) => game.game_id === "three_marks"), "list_games includes three_marks");
 assert(catalog.some((game) => game.game_id === "column_four"), "list_games includes column_four");
 assert(catalog.some((game) => game.game_id === "directional_flip"), "list_games includes directional_flip");
+assert(catalog.some((game) => game.game_id === "draughts_lite"), "list_games includes draughts_lite");
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),
@@ -522,6 +523,118 @@ const directionalReplayStep = invoke(
 assert(directionalReplayStep.cursor === 1, "directional_flip replay step advances to requested cursor");
 assert(directionalReplayStep.view.ply_count === 1, "directional_flip replay step projects applied placement");
 
+const draughtsCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 23n),
+  ["draughts_lite"],
+);
+assert(draughtsCreated.match_id, "draughts_lite new_match returns a match id");
+assert(draughtsCreated.variant_id === "draughts_lite_standard", "draughts_lite starts standard variant");
+
+const draughtsView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [draughtsCreated.match_id],
+);
+assert(draughtsView.game_id === "draughts_lite", "draughts_lite view is game-specific");
+assert(draughtsView.variant_id === "draughts_lite_standard", "draughts_lite view reports standard variant");
+assert(draughtsView.board_rows === 8 && draughtsView.board_columns === 8, "draughts_lite projects an 8x8 board");
+assert(draughtsView.cells.length === 64, "draughts_lite projects 64 cells");
+assert(draughtsView.cells.filter((cell) => cell.occupancy === "occupied").length === 24, "draughts_lite standard setup has 24 pieces");
+assert(draughtsView.private_view_status === "not_applicable_perfect_information", "draughts_lite private view is explicitly not applicable");
+assert(draughtsView.hidden_fields.length === 0, "draughts_lite exposes no hidden fields");
+
+const draughtsTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [draughtsCreated.match_id, "seat_0"],
+);
+const draughtsPath = firstCompletePath(draughtsTree.choices);
+assert(draughtsPath.length >= 2, "draughts_lite action tree exposes multi-segment paths");
+assert(draughtsPath[0].startsWith("from/"), "draughts_lite first segment selects an origin");
+assert(draughtsPath[1].startsWith("to/") || draughtsPath[1].startsWith("jump/"), "draughts_lite second segment selects a landing");
+
+const draughtsAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(draughtsTree.freshness_token),
+    ),
+  [draughtsCreated.match_id, "seat_0", draughtsPath.join(">")],
+);
+assert(draughtsAfterHuman.view.ply_count === 1, "draughts_lite human move advances ply");
+assert(
+  draughtsAfterHuman.effects.some((effect) => effect.payload.type === "move_committed"),
+  "draughts_lite emits semantic move effect",
+);
+
+const draughtsAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 44n),
+  [draughtsCreated.match_id, draughtsAfterHuman.view.active_seat],
+);
+assert(draughtsAfterBot.view.ply_count === 2, "draughts_lite bot turn applies a Rust-selected move");
+assert(
+  draughtsAfterBot.effects.some((effect) => effect.payload.type === "bot_chose_action"),
+  "draughts_lite bot emits a semantic bot-choice effect",
+);
+
+const draughtsEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n, 0, 0),
+  [draughtsCreated.match_id],
+);
+assert(
+  draughtsEffects.some((entry) => entry.effect.payload.type === "bot_chose_action"),
+  "draughts_lite effect log returns bot effect",
+);
+
+const draughtsExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [draughtsCreated.match_id],
+);
+assert(draughtsExportedReplay.game_id === "draughts_lite", "draughts_lite export_replay preserves game id");
+assert(
+  draughtsExportedReplay.rules_version === "draughts_lite-rules-v1",
+  "draughts_lite export_replay preserves rules version",
+);
+assert(
+  Array.isArray(draughtsExportedReplay.commands[0].action_path) &&
+    draughtsExportedReplay.commands[0].action_path.length >= 2,
+  "draughts_lite export preserves ordered multi-segment action paths",
+);
+assert(draughtsExportedReplay.expected_replay_hashes.final, "draughts_lite export includes replay hash");
+assert(
+  !JSON.stringify(draughtsExportedReplay).includes("initial_snapshot"),
+  "draughts_lite export omits internal replay snapshots",
+);
+
+const draughtsImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(draughtsExportedReplay)],
+);
+assert(draughtsImportedReplay.game_id === "draughts_lite", "draughts_lite import_replay preserves game id");
+assert(
+  draughtsImportedReplay.command_count === draughtsExportedReplay.commands.length,
+  "draughts_lite import preserves command count",
+);
+
+const draughtsReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [draughtsImportedReplay.replay_id],
+);
+assert(draughtsReplayReset.cursor === 0, "draughts_lite replay reset returns cursor zero");
+assert(draughtsReplayReset.view.ply_count === 0, "draughts_lite replay reset projects initial state");
+
+const draughtsReplayStep = invoke(
+  (args) => wasm.rulepath_replay_step(args[0].ptr, args[0].len, 1),
+  [draughtsImportedReplay.replay_id],
+);
+assert(draughtsReplayStep.cursor === 1, "draughts_lite replay step advances to requested cursor");
+assert(draughtsReplayStep.view.ply_count === 1, "draughts_lite replay step projects applied move");
+
 console.log(
   JSON.stringify({
     version,
@@ -537,6 +650,8 @@ console.log(
     replay_cursor: replayStep.cursor,
     column_replay_cursor: columnReplayStep.cursor,
     directional_replay_cursor: directionalReplayStep.cursor,
+    draughts_lite_match_id: draughtsCreated.match_id,
+    draughts_lite_replay_cursor: draughtsReplayStep.cursor,
   }),
 );
 
@@ -577,4 +692,19 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function firstCompletePath(choices, prefix = []) {
+  for (const choice of choices) {
+    const path = [...prefix, choice.segment];
+    if (choice.next?.choices?.length) {
+      const nested = firstCompletePath(choice.next.choices, path);
+      if (nested.length > 0) {
+        return nested;
+      }
+    } else {
+      return path;
+    }
+  }
+  return [];
 }

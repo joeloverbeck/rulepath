@@ -105,6 +105,7 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_bot_choice() {
         include_str!("golden_traces/illegal-continuation-diagnostic.trace.json"),
         include_str!("golden_traces/path-after-promotion-stop-diagnostic.trace.json"),
         include_str!("golden_traces/bot-action.trace.json"),
+        include_str!("golden_traces/wasm-exported.trace.json"),
     ] {
         assert_fixture(parse_trace_schema_v1_fixture(fixture));
     }
@@ -309,8 +310,8 @@ fn winner(outcome: &Option<TerminalOutcome>) -> Option<&'static str> {
 
 fn seat_id(seat: &str) -> SeatId {
     match seat {
-        "seat_0" => SeatId("seat-0".to_owned()),
-        "seat_1" => SeatId("seat-1".to_owned()),
+        "seat_0" | "seat-0" => SeatId("seat-0".to_owned()),
+        "seat_1" | "seat-1" => SeatId("seat-1".to_owned()),
         other => panic!("unknown fixture seat {other}"),
     }
 }

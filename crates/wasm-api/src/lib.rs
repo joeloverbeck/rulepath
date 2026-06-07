@@ -19,6 +19,13 @@ use directional_flip::{
     setup_match as directional_setup_match, DirectionalFlipEffect, DirectionalFlipLevel2Bot,
     DirectionalFlipSeat, DirectionalFlipState,
 };
+use draughts_lite::{
+    apply_action as draughts_apply_action, legal_action_tree as draughts_legal_action_tree,
+    project_view as draughts_project_view,
+    replay_support::replay_commands as draughts_replay_commands,
+    setup_match as draughts_setup_match, DraughtsLiteEffect, DraughtsLiteLevel1Bot,
+    DraughtsLiteSeat, DraughtsLiteState,
+};
 use engine_core::{
     ActionChoice, ActionPath, ActionTree, Actor, CommandEnvelope, EffectCursor, EffectEnvelope,
     EffectLog, RulesVersion, SeatId, Seed, Viewer, VisibilityScope,
@@ -44,6 +51,8 @@ const GAME_COLUMN_FOUR: &str = "column_four";
 const GAME_COLUMN_FOUR_DISPLAY_NAME: &str = "Column Four";
 const GAME_DIRECTIONAL_FLIP: &str = "directional_flip";
 const GAME_DIRECTIONAL_FLIP_DISPLAY_NAME: &str = "Directional Flip";
+const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
+const GAME_DRAUGHTS_LITE_DISPLAY_NAME: &str = "Draughts Lite";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -65,12 +74,14 @@ const RACE_TRACE_RULES_VERSION: &str = "race_to_n-rules-v1";
 const THREE_MARKS_TRACE_RULES_VERSION: &str = "three_marks-rules-v1";
 const COLUMN_FOUR_TRACE_RULES_VERSION: &str = "column_four-rules-v1";
 const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
+const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
 const VARIANT_THREE_MARKS_STANDARD: &str = "three_marks_standard";
 const VARIANT_COLUMN_FOUR_STANDARD: &str = "column_four_standard";
 const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
+const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -111,6 +122,13 @@ enum MatchRecord {
         effects: EffectLog<DirectionalFlipEffect>,
         commands: Vec<AppliedCommand>,
     },
+    DraughtsLite {
+        game_id: String,
+        seed: u64,
+        state: DraughtsLiteState,
+        effects: EffectLog<DraughtsLiteEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -125,18 +143,6 @@ struct AppliedCommand {
     actor_seat: String,
     action_path: Vec<String>,
     freshness_token: u64,
-}
-
-impl AppliedCommand {
-    fn single_segment(&self) -> Result<String, String> {
-        if self.action_path.len() != 1 {
-            return Err(diagnostic_string(
-                "unsupported_replay_action_path",
-                "replay export supports one-segment action paths",
-            ));
-        }
-        Ok(self.action_path[0].clone())
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -154,6 +160,7 @@ enum RegisteredGame {
     ThreeMarks,
     ColumnFour,
     DirectionalFlip,
+    DraughtsLite,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -166,6 +173,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::ThreeMarks,
         RegisteredGame::ColumnFour,
         RegisteredGame::DirectionalFlip,
+        RegisteredGame::DraughtsLite,
     ]
         .iter()
         .map(|game| match game {
@@ -199,6 +207,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_DIRECTIONAL_FLIP_STANDARD)
+            ),
+            RegisteredGame::DraughtsLite => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"]}}",
+                escape_json(GAME_DRAUGHTS_LITE),
+                escape_json(GAME_DRAUGHTS_LITE_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_DRAUGHTS_LITE_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -318,6 +334,31 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_DIRECTIONAL_FLIP_STANDARD)
             ))
         }
+        RegisteredGame::DraughtsLite => {
+            let seats = seats();
+            let state =
+                draughts_setup_match(Seed(seed), &seats, &draughts_lite::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::DraughtsLite {
+                        game_id: GAME_DRAUGHTS_LITE.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_DRAUGHTS_LITE_STANDARD)
+            ))
+        }
     }
 }
 
@@ -341,6 +382,13 @@ pub fn get_view(match_id: &str, _viewer_seat: Option<&str>) -> Result<String, St
         MatchRecord::DirectionalFlip { game_id, state, .. } => {
             resolve_game(game_id)?;
             Ok(directional_view_json(&directional_project_view(
+                state,
+                &Viewer { seat_id: None },
+            )))
+        }
+        MatchRecord::DraughtsLite { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            Ok(draughts_view_json(&draughts_project_view(
                 state,
                 &Viewer { seat_id: None },
             )))
@@ -371,6 +419,11 @@ pub fn get_action_tree(match_id: &str, actor_seat: &str) -> Result<String, Strin
             Ok(action_tree_json(&directional_legal_action_tree(
                 state, &actor,
             )))
+        }
+        MatchRecord::DraughtsLite { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let actor = draughts_actor_for_seat(state, parse_draughts_seat(actor_seat)?)?;
+            Ok(action_tree_json(&draughts_legal_action_tree(state, &actor)))
         }
     })
 }
@@ -509,6 +562,39 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 directional_view_json(&directional_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
+        MatchRecord::DraughtsLite {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_draughts_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: draughts_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                draughts_lite::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = draughts_apply_action(state, action);
+            let effect_json = draughts_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_draughts_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None }))
             ))
         }
     })
@@ -659,6 +745,43 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 directional_view_json(&directional_project_view(state, &Viewer { seat_id: None }))
             ))
         }
+        MatchRecord::DraughtsLite {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_draughts_seat(actor_seat)?;
+            let decision = DraughtsLiteLevel1Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: draughts_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                draughts_lite::validate_command(state, &command).map_err(diagnostic_json)?;
+            let mut effects = decision.effects;
+            effects.extend(draughts_apply_action(state, action));
+            let effect_json = draughts_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_draughts_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
     })
 }
 
@@ -756,6 +879,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::DraughtsLite {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = draughts_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        draughts_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -797,6 +942,15 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             resolve_game(game_id)?;
             directional_replay_document_json(&format!("export-{match_id}"), *seed, commands)
         }
+        MatchRecord::DraughtsLite {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            draughts_replay_document_json(&format!("export-{match_id}"), *seed, commands)
+        }
     })
 }
 
@@ -823,6 +977,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_THREE_MARKS
         && parsed.game_id != GAME_COLUMN_FOUR
         && parsed.game_id != GAME_DIRECTIONAL_FLIP
+        && parsed.game_id != GAME_DRAUGHTS_LITE
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -874,6 +1029,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 directional_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 directional_view_json(&directional_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::DraughtsLite => {
+            let (state, effects) =
+                draughts_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                draughts_view_json(&draughts_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -951,6 +1114,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                 &effects,
             ))
         }
+        RegisteredGame::DraughtsLite => {
+            let bounded_cursor = cursor.min(record.commands.len());
+            let (state, effects) =
+                draughts_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+            Ok(draughts_replay_step_json(
+                replay_id,
+                bounded_cursor,
+                record.commands.len(),
+                &state,
+                &effects,
+            ))
+        }
     })
 }
 
@@ -964,6 +1139,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_THREE_MARKS => Ok(RegisteredGame::ThreeMarks),
         GAME_COLUMN_FOUR => Ok(RegisteredGame::ColumnFour),
         GAME_DIRECTIONAL_FLIP => Ok(RegisteredGame::DirectionalFlip),
+        GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -1047,6 +1223,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::ThreeMarks => THREE_MARKS_TRACE_RULES_VERSION,
         RegisteredGame::ColumnFour => COLUMN_FOUR_TRACE_RULES_VERSION,
         RegisteredGame::DirectionalFlip => DIRECTIONAL_FLIP_TRACE_RULES_VERSION,
+        RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
     }
 }
 
@@ -1134,6 +1311,26 @@ fn trace_directional_seat(seat: DirectionalFlipSeat) -> &'static str {
     }
 }
 
+fn parse_draughts_seat(value: &str) -> Result<DraughtsLiteSeat, String> {
+    match value {
+        "seat-0" => Ok(DraughtsLiteSeat::Seat0),
+        "seat-1" => Ok(DraughtsLiteSeat::Seat1),
+        _ => DraughtsLiteSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_draughts_seat(seat: DraughtsLiteSeat) -> &'static str {
+    match seat {
+        DraughtsLiteSeat::Seat0 => "seat-0",
+        DraughtsLiteSeat::Seat1 => "seat-1",
+    }
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -1193,6 +1390,23 @@ fn directional_actor_for_seat(
         })
 }
 
+fn draughts_actor_for_seat(
+    state: &DraughtsLiteState,
+    seat: DraughtsLiteSeat,
+) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -1228,12 +1442,23 @@ fn directional_viewer_for_seat(
     Ok(Viewer { seat_id })
 }
 
+fn draughts_viewer_for_seat(
+    state: &DraughtsLiteState,
+    seat: Option<&str>,
+) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_draughts_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
 fn parse_action_path(action_path: &str) -> ActionPath {
     ActionPath {
         segments: if action_path.is_empty() {
             Vec::new()
         } else {
-            vec![action_path.to_owned()]
+            action_path.split('>').map(str::to_owned).collect()
         },
     }
 }
@@ -1349,6 +1574,32 @@ fn directional_replay_to_cursor(
     Ok((state, all_effects))
 }
 
+fn draughts_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(DraughtsLiteState, Vec<EffectEnvelope<DraughtsLiteEffect>>), String> {
+    let seats = seats();
+    let mut state =
+        draughts_setup_match(Seed(seed), &seats, &draughts_lite::SetupOptions::default())
+            .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_draughts_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: draughts_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = draughts_lite::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(draughts_apply_action(&mut state, action));
+    }
+    Ok((state, all_effects))
+}
+
 fn action_tree_json(tree: &ActionTree) -> String {
     let choices = tree
         .root
@@ -1382,13 +1633,26 @@ fn action_choice_json(choice: &ActionChoice) -> String {
         .map(|tag| format!("\"{}\"", escape_json(tag)))
         .collect::<Vec<_>>()
         .join(",");
+    let next = choice.next.as_ref().map_or_else(
+        || "null".to_owned(),
+        |node| {
+            let choices = node
+                .choices
+                .iter()
+                .map(action_choice_json)
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{{\"choices\":[{choices}]}}")
+        },
+    );
     format!(
-        "{{\"segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"tags\":[{}]}}",
+        "{{\"segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"tags\":[{}],\"next\":{}}}",
         escape_json(&choice.segment),
         escape_json(&choice.label),
         escape_json(&choice.accessibility_label),
         metadata,
-        tags
+        tags,
+        next
     )
 }
 
@@ -1428,15 +1692,21 @@ fn directional_effects_json(effects: &[EffectEnvelope<DirectionalFlipEffect>]) -
     format!("[{body}]")
 }
 
+fn draughts_effects_json(effects: &[EffectEnvelope<DraughtsLiteEffect>]) -> String {
+    let body = effects
+        .iter()
+        .map(draughts_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
 fn race_replay_document_json(
     trace_id: &str,
     seed: u64,
     commands: &[AppliedCommand],
 ) -> Result<String, String> {
-    let command_segments = commands
-        .iter()
-        .map(|command| command.single_segment())
-        .collect::<Result<Vec<_>, _>>()?;
+    let command_segments = single_segment_commands(commands)?;
     let hashes = race_replay_commands(seed, &command_segments);
     let commands_json = commands
         .iter()
@@ -1486,10 +1756,7 @@ fn three_replay_document_json(
     seed: u64,
     commands: &[AppliedCommand],
 ) -> Result<String, String> {
-    let command_segments = commands
-        .iter()
-        .map(|command| command.single_segment())
-        .collect::<Result<Vec<_>, _>>()?;
+    let command_segments = single_segment_commands(commands)?;
     let hashes = three_replay_commands(seed, &command_segments);
     let commands_json = commands
         .iter()
@@ -1548,10 +1815,7 @@ fn column_replay_document_json(
     seed: u64,
     commands: &[AppliedCommand],
 ) -> Result<String, String> {
-    let command_segments = commands
-        .iter()
-        .map(|command| command.single_segment())
-        .collect::<Result<Vec<_>, _>>()?;
+    let command_segments = single_segment_commands(commands)?;
     let hashes = column_replay_commands(seed, &command_segments);
     let commands_json = commands
         .iter()
@@ -1611,10 +1875,7 @@ fn directional_replay_document_json(
     seed: u64,
     commands: &[AppliedCommand],
 ) -> Result<String, String> {
-    let command_segments = commands
-        .iter()
-        .map(|command| command.single_segment())
-        .collect::<Result<Vec<_>, _>>()?;
+    let command_segments = single_segment_commands(commands)?;
     let hashes = directional_replay_commands(seed, &command_segments);
     let commands_json = commands
         .iter()
@@ -1663,6 +1924,77 @@ fn directional_replay_document_json(
         outcome,
         outcome
     ))
+}
+
+fn draughts_replay_document_json(
+    trace_id: &str,
+    seed: u64,
+    commands: &[AppliedCommand],
+) -> Result<String, String> {
+    let command_paths = commands
+        .iter()
+        .map(|command| command.action_path.clone())
+        .collect::<Vec<_>>();
+    let hashes = draughts_replay_commands(seed, &command_paths);
+    let commands_json = commands
+        .iter()
+        .enumerate()
+        .map(|(index, command)| command_record_json(index, command))
+        .collect::<Vec<_>>()
+        .join(",");
+    let checkpoints = if commands.is_empty() {
+        "[{\"id\":\"final\",\"after_command_index\":0}]".to_owned()
+    } else {
+        format!(
+            "[{{\"id\":\"final\",\"after_command_index\":{}}}]",
+            commands.len().saturating_sub(1)
+        )
+    };
+    let outcome = hashes.outcome.map_or_else(
+        || "{\"terminal\":false,\"winner\":null,\"kind\":\"none\"}".to_owned(),
+        |outcome| match outcome {
+            draughts_lite::TerminalOutcome::Win { seat } => format!(
+                "{{\"terminal\":true,\"winner\":\"{}\",\"kind\":\"win\"}}",
+                trace_draughts_seat(seat)
+            ),
+        },
+    );
+
+    Ok(format!(
+        "{{\"schema_version\":{},\"trace_id\":\"{}\",\"fixture_kind\":\"commands\",\"purpose\":\"wasm_exported_replay\",\"note\":\"Replay exported by the Rulepath WASM API from the Rust command log with ordered multi-segment action paths preserved.\",\"migration_update_note\":\"Generated by Gate 7 WASM replay export; expected hashes are computed by Draughts Lite Rust replay support.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{{\"seat_id\":\"seat-0\",\"player_id\":\"player-0\"}},{{\"seat_id\":\"seat-1\",\"player_id\":\"player-1\"}}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_private_view_hashes\":{{\"not_applicable\":\"draughts_lite is perfect-information and has no private-view API.\"}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_outcome\":{},\"expected_terminal_state\":{},\"not_applicable\":{{\"hidden_information\":\"draughts_lite is perfect-information and has no hidden state to redact.\",\"stochastic_game_events\":\"draughts_lite game rules use no randomness; bot RNG is not replayed from exported documents because resolved commands are recorded.\",\"private_view_hashes\":\"draughts_lite has no private-view API.\",\"preview_hashes\":\"draughts_lite uses action-tree metadata and semantic effects rather than a separate preview hash surface in Gate 7.\"}}}}",
+        SCHEMA_VERSION,
+        escape_json(trace_id),
+        escape_json(GAME_DRAUGHTS_LITE),
+        escape_json(DRAUGHTS_LITE_TRACE_RULES_VERSION),
+        escape_json(ENGINE_VERSION),
+        escape_json(DATA_VERSION),
+        seed,
+        escape_json(VARIANT_DRAUGHTS_LITE_STANDARD),
+        commands_json,
+        checkpoints,
+        hashes.state_hash.0,
+        hashes.effect_hash.0,
+        hashes.action_tree_hash.0,
+        hashes.view_hash.0,
+        hashes.replay_hash.0,
+        outcome,
+        outcome
+    ))
+}
+
+fn single_segment_commands(commands: &[AppliedCommand]) -> Result<Vec<String>, String> {
+    commands
+        .iter()
+        .map(|command| {
+            if command.action_path.len() != 1 {
+                return Err(diagnostic_string(
+                    "unsupported_replay_action_path",
+                    "this game exports one-segment action paths only",
+                ));
+            }
+            Ok(command.action_path[0].clone())
+        })
+        .collect()
 }
 
 fn command_record_json(index: usize, command: &AppliedCommand) -> String {
@@ -1750,6 +2082,24 @@ fn directional_replay_step_json(
         cursor >= command_count,
         directional_view_json(&directional_project_view(state, &Viewer { seat_id: None })),
         directional_effects_json(effects)
+    )
+}
+
+fn draughts_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    command_count: usize,
+    state: &DraughtsLiteState,
+    effects: &[EffectEnvelope<DraughtsLiteEffect>],
+) -> String {
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"command_count\":{},\"done\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        command_count,
+        cursor >= command_count,
+        draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None })),
+        draughts_effects_json(effects)
     )
 }
 
@@ -2348,6 +2698,242 @@ fn directional_score_view_json(score: &directional_flip::ScoreView) -> String {
     format!(
         "{{\"seat_0\":{},\"seat_1\":{}}}",
         score.seat_0, score.seat_1
+    )
+}
+
+fn draughts_view_json(view: &draughts_lite::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"board_rows\":{},\"board_columns\":{},\"cells\":[{}],\"active_seat\":{},\"ply_count\":{},\"command_count\":{},\"status_label\":\"{}\",\"freshness_token\":{},\"terminal_kind\":\"{}\",\"winning_seat\":{},\"private_view_status\":\"{}\",\"hidden_fields\":[{}],\"ui\":{},\"replay_step_index\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.board_rows,
+        view.board_columns,
+        view.cells
+            .iter()
+            .map(draughts_cell_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        option_draughts_seat_json(view.active_seat),
+        view.ply_count,
+        view.command_count,
+        escape_json(&view.status_label),
+        view.freshness_token.0,
+        draughts_terminal_kind(&view.terminal),
+        option_draughts_seat_json(draughts_terminal_winner(&view.terminal)),
+        escape_json(&view.private_view.status),
+        string_array(&view.private_view.hidden_fields),
+        draughts_ui_json(&view.ui),
+        view.replay_step_index
+            .map_or_else(|| "null".to_owned(), |step| step.to_string())
+    )
+}
+
+fn draughts_cell_json(cell: &draughts_lite::CellView) -> String {
+    format!(
+        "{{\"cell\":\"{}\",\"cell_id\":\"{}\",\"row\":{},\"column\":{},\"playable\":{},\"presentation_token\":\"{}\",\"accessibility_label\":\"{}\",\"occupancy\":\"{}\",\"owner\":{},\"piece_id\":{},\"piece_kind\":{},\"piece_token_key\":{},\"piece_shape_label\":{},\"piece_pattern_label\":{},\"piece_label\":{},\"piece_accessibility_label\":{}}}",
+        cell.cell.id(),
+        escape_json(&cell.cell_id),
+        cell.row,
+        cell.column,
+        cell.playable,
+        escape_json(&cell.presentation_token),
+        escape_json(&cell.accessibility_label),
+        escape_json(&cell.occupancy),
+        option_draughts_seat_json(cell.owner),
+        option_string_json(cell.piece_id.as_deref()),
+        cell.piece_kind
+            .map_or_else(|| "null".to_owned(), |kind| format!("\"{}\"", kind.as_str())),
+        option_string_json(cell.piece_token_key.as_deref()),
+        option_string_json(cell.piece_shape_label.as_deref()),
+        option_string_json(cell.piece_pattern_label.as_deref()),
+        option_string_json(cell.piece_label.as_deref()),
+        option_string_json(cell.piece_accessibility_label.as_deref())
+    )
+}
+
+fn draughts_ui_json(ui: &draughts_lite::UiMetadata) -> String {
+    format!(
+        "{{\"board_label\":\"{}\",\"row_count\":{},\"column_count\":{},\"playable_cell_token\":\"{}\",\"non_playable_cell_token\":\"{}\",\"first_man_token_key\":\"{}\",\"first_man_shape_label\":\"{}\",\"first_crown_token_key\":\"{}\",\"first_crown_shape_label\":\"{}\",\"second_man_token_key\":\"{}\",\"second_man_shape_label\":\"{}\",\"second_crown_token_key\":\"{}\",\"second_crown_shape_label\":\"{}\"}}",
+        escape_json(&ui.board_label),
+        ui.row_count,
+        ui.column_count,
+        escape_json(&ui.playable_cell_token),
+        escape_json(&ui.non_playable_cell_token),
+        escape_json(&ui.first_man_token_key),
+        escape_json(&ui.first_man_shape_label),
+        escape_json(&ui.first_crown_token_key),
+        escape_json(&ui.first_crown_shape_label),
+        escape_json(&ui.second_man_token_key),
+        escape_json(&ui.second_man_shape_label),
+        escape_json(&ui.second_crown_token_key),
+        escape_json(&ui.second_crown_shape_label)
+    )
+}
+
+fn draughts_effect_json(effect: &EffectEnvelope<DraughtsLiteEffect>) -> String {
+    let payload = match &effect.payload {
+        DraughtsLiteEffect::MoveCommitted {
+            action_path,
+            seat,
+            piece_id,
+            start_cell,
+            final_cell,
+            move_kind,
+            path_length,
+        } => format!(
+            "{{\"type\":\"move_committed\",\"action_path\":[{}],\"seat\":\"{}\",\"piece_id\":\"{}\",\"start_cell\":\"{}\",\"final_cell\":\"{}\",\"move_kind\":\"{}\",\"path_length\":{}}}",
+            string_array(action_path),
+            seat.as_str(),
+            piece_id.stable_id(),
+            start_cell.id(),
+            final_cell.id(),
+            draughts_move_kind(*move_kind),
+            path_length
+        ),
+        DraughtsLiteEffect::QuietStep {
+            piece_id,
+            origin,
+            landing,
+            piece_kind_before,
+            piece_kind_after,
+        } => format!(
+            "{{\"type\":\"quiet_step\",\"piece_id\":\"{}\",\"origin\":\"{}\",\"landing\":\"{}\",\"piece_kind_before\":\"{}\",\"piece_kind_after\":\"{}\"}}",
+            piece_id.stable_id(),
+            origin.id(),
+            landing.id(),
+            piece_kind_before.as_str(),
+            piece_kind_after.as_str()
+        ),
+        DraughtsLiteEffect::CaptureStep {
+            piece_id,
+            origin,
+            landing,
+            captured_cell,
+            captured_piece_id,
+            captured_owner,
+        } => format!(
+            "{{\"type\":\"capture_step\",\"piece_id\":\"{}\",\"origin\":\"{}\",\"landing\":\"{}\",\"captured_cell\":\"{}\",\"captured_piece_id\":\"{}\",\"captured_owner\":\"{}\"}}",
+            piece_id.stable_id(),
+            origin.id(),
+            landing.id(),
+            captured_cell.id(),
+            captured_piece_id.stable_id(),
+            captured_owner.as_str()
+        ),
+        DraughtsLiteEffect::Promotion {
+            piece_id,
+            seat,
+            cell,
+            from,
+            to,
+            during_capture,
+        } => format!(
+            "{{\"type\":\"promotion\",\"piece_id\":\"{}\",\"seat\":\"{}\",\"cell\":\"{}\",\"from\":\"{}\",\"to\":\"{}\",\"during_capture\":{}}}",
+            piece_id.stable_id(),
+            seat.as_str(),
+            cell.id(),
+            from.as_str(),
+            to.as_str(),
+            during_capture
+        ),
+        DraughtsLiteEffect::ForcedCaptureAvailable {
+            active_seat,
+            capture_origin_count,
+            explanation,
+        } => format!(
+            "{{\"type\":\"forced_capture_available\",\"active_seat\":\"{}\",\"capture_origin_count\":{},\"explanation\":\"{}\"}}",
+            active_seat.as_str(),
+            capture_origin_count,
+            escape_json(explanation)
+        ),
+        DraughtsLiteEffect::ForcedContinuationRequired {
+            piece_id,
+            current_landing,
+            continuation_destination_count,
+            explanation,
+        } => format!(
+            "{{\"type\":\"forced_continuation_required\",\"piece_id\":\"{}\",\"current_landing\":\"{}\",\"continuation_destination_count\":{},\"explanation\":\"{}\"}}",
+            piece_id.stable_id(),
+            current_landing.id(),
+            continuation_destination_count,
+            escape_json(explanation)
+        ),
+        DraughtsLiteEffect::InvalidCommand {
+            code,
+            public_message,
+            rejected_action_path,
+        } => format!(
+            "{{\"type\":\"invalid_command\",\"code\":\"{}\",\"public_message\":\"{}\",\"rejected_action_path\":[{}]}}",
+            escape_json(code),
+            escape_json(public_message),
+            string_array(rejected_action_path)
+        ),
+        DraughtsLiteEffect::TerminalWin {
+            winner,
+            loser,
+            reason,
+        } => format!(
+            "{{\"type\":\"terminal_win\",\"winner\":\"{}\",\"loser\":\"{}\",\"reason\":\"{}\"}}",
+            winner.as_str(),
+            loser.as_str(),
+            draughts_terminal_reason(*reason)
+        ),
+        DraughtsLiteEffect::BotChoseAction {
+            level,
+            policy_id,
+            action_path,
+            rationale,
+        } => format!(
+            "{{\"type\":\"bot_chose_action\",\"level\":{},\"policy_id\":\"{}\",\"action_path\":[{}],\"rationale\":\"{}\"}}",
+            level,
+            escape_json(policy_id),
+            string_array(action_path),
+            escape_json(rationale)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn draughts_terminal_kind(terminal: &draughts_lite::TerminalView) -> &'static str {
+    match terminal {
+        draughts_lite::TerminalView::NonTerminal => "non_terminal",
+        draughts_lite::TerminalView::Win { .. } => "win",
+    }
+}
+
+fn draughts_terminal_winner(terminal: &draughts_lite::TerminalView) -> Option<DraughtsLiteSeat> {
+    match terminal {
+        draughts_lite::TerminalView::Win { winning_seat } => Some(*winning_seat),
+        _ => None,
+    }
+}
+
+fn draughts_move_kind(kind: draughts_lite::MoveKind) -> &'static str {
+    match kind {
+        draughts_lite::MoveKind::Quiet => "quiet",
+        draughts_lite::MoveKind::Capture => "capture",
+    }
+}
+
+fn draughts_terminal_reason(reason: draughts_lite::TerminalWinReason) -> &'static str {
+    match reason {
+        draughts_lite::TerminalWinReason::OpponentNoPieces => "opponent_no_pieces",
+        draughts_lite::TerminalWinReason::OpponentNoLegalMove => "opponent_no_legal_move",
+    }
+}
+
+fn option_draughts_seat_json(seat: Option<DraughtsLiteSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
     )
 }
 
@@ -3078,9 +3664,11 @@ mod tests {
         assert!(games.contains("\"game_id\":\"three_marks\""));
         assert!(games.contains("\"game_id\":\"column_four\""));
         assert!(games.contains("\"game_id\":\"directional_flip\""));
+        assert!(games.contains("\"game_id\":\"draughts_lite\""));
         assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
         assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
         assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
+        assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
     }
 
     #[test]
@@ -3295,6 +3883,64 @@ mod tests {
     }
 
     #[test]
+    fn draughts_lite_surface_preserves_multi_segment_paths() {
+        let created = new_match("draughts_lite", 61).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"draughts_lite_standard\""));
+
+        let view = get_view(&match_id, None).expect("view returned");
+        assert!(view.contains("\"game_id\":\"draughts_lite\""));
+        assert!(view.contains("\"variant_id\":\"draughts_lite_standard\""));
+        assert!(view.contains("\"board_rows\":8"));
+        assert!(view.contains("\"board_columns\":8"));
+        assert!(view.contains("\"freshness_token\":0"));
+        assert!(view.contains("\"private_view_status\":\"not_applicable_perfect_information\""));
+        assert!(view.contains("\"hidden_fields\":[]"));
+
+        let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
+        assert!(tree.contains("\"segment\":\"from/"));
+        assert!(tree.contains("\"next\":{\"choices\":["));
+        assert!(tree.contains("\"segment\":\"to/"));
+        assert!(tree.contains("\"freshness_token\":0"));
+
+        let applied = apply_action(&match_id, "seat_0", "from/r3c2>to/r4c1", 0)
+            .expect("multi-segment human action applies");
+        assert!(applied.contains("\"type\":\"move_committed\""));
+        assert!(applied.contains("\"action_path\":[\"from/r3c2\",\"to/r4c1\"]"));
+        assert!(applied.contains("\"active_seat\":\"seat_1\""));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        assert!(bot.contains("\"type\":\"bot_chose_action\""));
+        assert!(bot.contains("\"ply_count\":2"));
+
+        let effects = get_effects(&match_id, 0, None).expect("effects returned");
+        assert!(effects.contains("\"type\":\"move_committed\""));
+        assert!(effects.contains("\"type\":\"bot_chose_action\""));
+
+        let exported = export_replay(&match_id).expect("replay exported");
+        assert!(exported.contains("\"game_id\":\"draughts_lite\""));
+        assert!(exported.contains("\"rules_version\":\"draughts_lite-rules-v1\""));
+        assert!(exported.contains("\"expected_replay_hashes\""));
+        assert!(exported.contains("\"action_path\":[\"from/r3c2\",\"to/r4c1\"]"));
+        assert!(
+            exported.contains("\"private_view_hashes\":\"draughts_lite has no private-view API.\"")
+        );
+        assert!(!exported.contains("initial_snapshot"));
+
+        let imported = import_replay(&exported).expect("replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"game_id\":\"draughts_lite\""));
+
+        let reset = replay_reset(&replay_id).expect("replay reset returned");
+        assert!(reset.contains("\"cursor\":0"));
+        assert!(reset.contains("\"ply_count\":0"));
+
+        let step = replay_step(&replay_id, 1).expect("replay stepped");
+        assert!(step.contains("\"cursor\":1"));
+        assert!(step.contains("\"ply_count\":1"));
+    }
+
+    #[test]
     fn stale_action_returns_diagnostic_without_mutation() {
         let created = new_match("race_to_n", 12).expect("match created");
         let match_id = extract_match_id(&created);
@@ -3417,6 +4063,22 @@ mod tests {
             three_replay_document_json("wasm-exported", 1, &commands).expect("fixture exported");
         let fixture =
             include_str!("../../../games/three_marks/tests/golden_traces/wasm-exported.trace.json");
+
+        assert_eq!(compact_json_layout(fixture), exported);
+    }
+
+    #[test]
+    fn draughts_lite_wasm_export_matches_golden_fixture() {
+        let commands = vec![AppliedCommand {
+            actor_seat: "seat-0".to_owned(),
+            action_path: vec!["from/r3c2".to_owned(), "to/r4c1".to_owned()],
+            freshness_token: 0,
+        }];
+        let exported =
+            draughts_replay_document_json("wasm-exported", 1, &commands).expect("fixture exported");
+        let fixture = include_str!(
+            "../../../games/draughts_lite/tests/golden_traces/wasm-exported.trace.json"
+        );
 
         assert_eq!(compact_json_layout(fixture), exported);
     }

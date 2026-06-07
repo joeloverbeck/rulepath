@@ -126,6 +126,7 @@ dependencies = [
  "ai-core",
  "column_four",
  "directional_flip",
+ "draughts_lite",
  "engine-core",
  "race_to_n",
  "three_marks",

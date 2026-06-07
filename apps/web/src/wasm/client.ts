@@ -239,16 +239,78 @@ export type DirectionalFlipPublicView = {
   replay_step_index: number | null;
 };
 
+export type DraughtsLiteCellView = {
+  cell: string;
+  cell_id: string;
+  row: number;
+  column: number;
+  playable: boolean;
+  presentation_token: string;
+  accessibility_label: string;
+  occupancy: "empty" | "occupied";
+  owner: SeatId | null;
+  piece_id: string | null;
+  piece_kind: "man" | "crown" | null;
+  piece_token_key: string | null;
+  piece_shape_label: string | null;
+  piece_pattern_label: string | null;
+  piece_label: string | null;
+  piece_accessibility_label: string | null;
+};
+
+export type DraughtsLiteUiMetadata = {
+  board_label: string;
+  row_count: number;
+  column_count: number;
+  playable_cell_token: string;
+  non_playable_cell_token: string;
+  first_man_token_key: string;
+  first_man_shape_label: string;
+  first_crown_token_key: string;
+  first_crown_shape_label: string;
+  second_man_token_key: string;
+  second_man_shape_label: string;
+  second_crown_token_key: string;
+  second_crown_shape_label: string;
+};
+
+export type DraughtsLitePublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "draughts_lite";
+  display_name: string;
+  variant_id: "draughts_lite_standard";
+  rules_version_label: string;
+  board_rows: number;
+  board_columns: number;
+  cells: DraughtsLiteCellView[];
+  active_seat: SeatId | null;
+  ply_count: number;
+  command_count: number;
+  status_label: string;
+  freshness_token: number;
+  terminal_kind: "non_terminal" | "win";
+  winning_seat: SeatId | null;
+  private_view_status: string;
+  hidden_fields: string[];
+  ui: DraughtsLiteUiMetadata;
+  replay_step_index: number | null;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
   | ColumnFourPublicView
-  | DirectionalFlipPublicView;
+  | DirectionalFlipPublicView
+  | DraughtsLitePublicView;
 
 export type ActionChoice = {
   segment: string;
   label: string;
   accessibility_label: string;
+  metadata?: Array<{ key: string; value: string }>;
+  tags?: string[];
+  next?: { choices: ActionChoice[] } | null;
 };
 
 export type ActionTree = {

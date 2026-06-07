@@ -1,9 +1,9 @@
 # GAT7DRALITCOM-016: WASM exposure + multi-segment replay export/import + wasm smoke
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
-**Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (register `draughts_lite`; extend the replay-export and action-path-parse paths to multi-segment), `apps/web/scripts/smoke-load-wasm.mjs` (wasm smoke), `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json` (new).
+**Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (register `draughts_lite`; extend the replay-export and action-path-parse paths to multi-segment), `crates/wasm-api/Cargo.toml` / `Cargo.lock` (game dependency), `apps/web/src/wasm/client.ts` (Draughts Lite and nested action-tree types), `apps/web/scripts/smoke-load-wasm.mjs` (wasm smoke), `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json` (new), `games/draughts_lite/tests/replay.rs` (native trace coverage).
 **Deps**: 010, 012
 
 ## Problem
@@ -83,3 +83,22 @@ Author `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json` (a mul
 1. `npm --prefix apps/web run smoke:wasm`
 2. `cargo test --workspace && cargo build -p wasm-api`
 3. The wasm smoke + workspace tests are the correct boundary; the browser-interaction path is exercised in GAT7DRALITCOM-018/019.
+
+## Outcome
+
+- Registered `draughts_lite` in `wasm-api` for catalog, match creation, public view, nested action tree, human apply, Level 1 bot turn, effect log, replay export/import, replay reset, and replay step.
+- Preserved nested `ActionChoice.next` in WASM action-tree JSON and split delimited dev-entry paths with `>` so ordered multi-segment commands such as `from/r3c2>to/r4c1` reach Rust validation as `["from/r3c2", "to/r4c1"]`.
+- Added Draughts Lite public-view/effect JSON serialization in the bridge, kept existing one-segment games on their replay support, and added WASM unit coverage for Draughts Lite multi-segment export/import without changing Trace Schema v1.
+- Added the WASM-exported Draughts Lite golden trace and included it in native Draughts Lite replay tests. `replay-check --game draughts_lite --all` remains the GAT7DRALITCOM-017 tool-registration proof.
+- Extended the web WASM smoke to list, create, view, traverse nested action choices, apply a complete multi-segment path, run a bot, fetch effects, export/import replay, reset, and step Draughts Lite.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p wasm-api`
+3. `cargo test -p draughts_lite replay`
+4. `npm --prefix apps/web run smoke:wasm`
+5. `cargo build -p wasm-api`
+6. `cargo test --workspace`
+7. `npm --prefix apps/web run build`
+8. `git diff --check`
