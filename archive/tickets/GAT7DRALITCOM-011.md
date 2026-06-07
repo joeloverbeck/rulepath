@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-011: Bot strategy docs (Level 1)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — documentation only (`games/draughts_lite/docs/COMPETENT-PLAYER.md`, `games/draughts_lite/docs/BOT-STRATEGY-EVIDENCE-PACK.md`).
@@ -73,3 +73,20 @@ Author from `templates/BOT-STRATEGY-EVIDENCE-PACK.md`: the Level 1 heuristics wi
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. Doc-link + boundary checks are the correct boundary for a docs-only ticket; scenario execution is verified by the bot tests in GAT7DRALITCOM-012.
+
+## Outcome
+
+Authored the Draughts Lite competent-player analysis and Level 1 bot strategy
+evidence pack. The policy scope is bounded to Rust legal action paths, terminal
+wins, capture/promotion heuristics, one-ply king-safety checks, material
+tie-breaks, and deterministic seeded tie-breaks. The evidence pack explicitly
+excludes minimax, alpha-beta, MCTS/ISMCTS, Monte Carlo/playouts, transposition
+tables, opening books, endgame databases, ML/RL, runtime LLM move selection,
+and strong-engine claims.
+
+Verification passed:
+
+1. Manual review: only §R17-acceptable Level 1 heuristics are listed; test
+   scenarios and search-strength disclaimers are explicit.
+2. `node scripts/check-doc-links.mjs`
+3. `bash scripts/boundary-check.sh`
