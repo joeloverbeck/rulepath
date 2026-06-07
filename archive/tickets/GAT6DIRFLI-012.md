@@ -1,6 +1,6 @@
 # GAT6DIRFLI-012: Rust test suite
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/directional_flip/tests/` (rules, property, visibility, serialization, bots) covering the spec §8.6 rule matrix.
@@ -81,3 +81,21 @@ Per FOUNDATIONS §6/§11 and `docs/OFFICIAL-GAME-CONTRACT.md`, an official game 
 1. `cargo test -p directional_flip`
 2. `cargo test --workspace && bash scripts/boundary-check.sh`
 3. Workspace test + boundary check is the correct boundary; trace/replay-check tool runs are GAT6DIRFLI-013/016.
+
+## Outcome
+
+Added the integration test suite under `games/directional_flip/tests/`:
+
+1. `rules.rs` names and exercises setup, action generation, validation fail-closed behavior, flips, forced pass, terminal, and scoring rule IDs.
+2. `property.rs` covers preview/apply consistency and bounded random legal playout termination.
+3. `visibility.rs` covers public-view no-leak and terminal action absence.
+4. `replay.rs` covers deterministic replay/hash behavior plus fail-closed replay/static-data serialization.
+5. `bots.rs` covers Level 0/Level 2 legality, determinism, safe explanations, and bot effects.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p directional_flip`
+3. `cargo test --workspace`
+4. `bash scripts/boundary-check.sh`
+5. `node scripts/check-doc-links.mjs`
