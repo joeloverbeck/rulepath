@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-010: Replay support & deterministic hashes (one-command multi-segment)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite/src/replay_support.rs` (replay command application, deterministic state/effect/action-tree/public-view/replay hashes), `src/lib.rs` (export).
@@ -76,3 +76,18 @@ Ensure all hashes are pure functions of (seed, command stream, rules/data versio
 1. `cargo test -p draughts_lite replay`
 2. `cargo test --workspace`
 3. Workspace-wide tests are the correct boundary because the load-bearing invariant includes "existing one-segment game traces stay stable"; the full `replay-check --all` run lands with tool registration in GAT7DRALITCOM-017.
+
+## Outcome
+
+Implemented Draughts Lite replay support for ordered multi-segment command paths.
+The module can rebuild state from seed plus command stream, project per-step board
+and effect summaries, and expose deterministic state/effect/action-tree/public-view/
+replay hashes plus stable invalid/stale diagnostic hashes without changing Trace
+Schema v1.
+
+Verification passed:
+
+1. `cargo test -p draughts_lite replay`
+2. `cargo test -p draughts_lite`
+3. `cargo fmt --all --check`
+4. `cargo test --workspace`

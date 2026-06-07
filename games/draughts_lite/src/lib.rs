@@ -3,6 +3,7 @@
 pub mod actions;
 pub mod effects;
 pub mod ids;
+pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod state;
@@ -21,6 +22,11 @@ pub use effects::{
 pub use ids::{
     is_playable_cell, DraughtsLiteSeat, PieceId, BOARD_COLS, BOARD_ROWS, GAME_ID,
     RULES_VERSION_LABEL, STANDARD_PIECES_PER_SEAT, TOTAL_STANDARD_PIECES, VARIANT_ID,
+};
+pub use replay_support::{
+    action_tree_hash, actor_for_state, command_for_state, default_seats, diagnostic_hash,
+    effect_hash, effect_stable_string, hashes_for_state, replay_commands, replay_from_state,
+    replay_invalid, DraughtsLiteReplayJson, ReplayCommandPath, ReplayHashes, ReplayStepProjection,
 };
 pub use rules::{
     apply_action, has_legal_move, legal_moves, legal_moves_for, terminal_outcome_for_active_player,
