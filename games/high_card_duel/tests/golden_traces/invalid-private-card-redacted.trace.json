@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "trace_id": "high-card-duel-invalid-private-card-redacted",
+  "fixture_kind": "diagnostic",
+  "purpose": "invalid_private_card_redacted",
+  "note": "A malformed private card command rejects without revealing whether any real hidden card is owned elsewhere.",
+  "migration_update_note": "Initial High Card Duel Trace Schema v1 fixture established by GAT72GAT8HIG-012.",
+  "game_id": "high_card_duel",
+  "rules_version": "high-card-duel-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 5,
+  "variant": "high_card_duel_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["commit/hcd:r13:a"], "freshness_token": "0", "expect": "diagnostic", "expected_diagnostic_code": "invalid_private_card" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 0 }],
+  "expected_state_hashes": { "final": 3228845359635785806 },
+  "expected_effect_hashes": { "final": 14695981039346656037 },
+  "expected_action_tree_hashes": { "final": 12198083652329699553 },
+  "expected_public_view_hashes": { "all": 13245998379684232736 },
+  "expected_replay_hashes": { "final": 17527153255065932157 },
+  "expected_private_view_hashes": { "not_applicable": "Diagnostic trace pins public-safe rejection; seat-private view is covered separately." },
+  "expected_diagnostics": [{ "command_index": 0, "code": "invalid_private_card", "hash": 7211534155474522924 }],
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "The diagnostic message is redacted and does not disclose private card ownership.",
+    "stochastic_game_events": "Setup randomness is fixed by the recorded seed.",
+    "private_view_hashes": "Seat-private view is covered by a dedicated trace.",
+    "preview_hashes": "No separate preview hash surface exists for this game."
+  }
+}

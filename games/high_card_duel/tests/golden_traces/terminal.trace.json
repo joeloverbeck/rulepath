@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "trace_id": "high-card-duel-terminal",
+  "fixture_kind": "terminal",
+  "purpose": "terminal",
+  "note": "A full six-round game replays to terminal and keeps the unrevealed deck tail out of the public view.",
+  "migration_update_note": "Initial High Card Duel Trace Schema v1 fixture established by GAT72GAT8HIG-012.",
+  "game_id": "high_card_duel",
+  "rules_version": "high-card-duel-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 7,
+  "variant": "high_card_duel_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["commit/hcd:r08:b"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["commit/hcd:r09:b"], "freshness_token": "1", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat_1", "action_path": ["commit/hcd:r02:b"], "freshness_token": "2", "expect": "applied" },
+    { "index": 3, "actor_seat": "seat_0", "action_path": ["commit/hcd:r01:a"], "freshness_token": "3", "expect": "applied" },
+    { "index": 4, "actor_seat": "seat_0", "action_path": ["commit/hcd:r08:a"], "freshness_token": "4", "expect": "applied" },
+    { "index": 5, "actor_seat": "seat_1", "action_path": ["commit/hcd:r11:b"], "freshness_token": "5", "expect": "applied" },
+    { "index": 6, "actor_seat": "seat_1", "action_path": ["commit/hcd:r09:a"], "freshness_token": "6", "expect": "applied" },
+    { "index": 7, "actor_seat": "seat_0", "action_path": ["commit/hcd:r12:b"], "freshness_token": "7", "expect": "applied" },
+    { "index": 8, "actor_seat": "seat_0", "action_path": ["commit/hcd:r01:b"], "freshness_token": "8", "expect": "applied" },
+    { "index": 9, "actor_seat": "seat_1", "action_path": ["commit/hcd:r03:b"], "freshness_token": "9", "expect": "applied" },
+    { "index": 10, "actor_seat": "seat_1", "action_path": ["commit/hcd:r07:b"], "freshness_token": "10", "expect": "applied" },
+    { "index": 11, "actor_seat": "seat_0", "action_path": ["commit/hcd:r05:a"], "freshness_token": "11", "expect": "applied" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 11 }],
+  "expected_state_hashes": { "final": 1941896055405199886 },
+  "expected_effect_hashes": { "final": 6000932081268990680 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 14041562519756914949 },
+  "expected_replay_hashes": { "final": 15789749692207197411 },
+  "expected_private_view_hashes": { "not_applicable": "Terminal trace pins observer replay; seat-private view is covered separately." },
+  "expected_outcome": { "terminal": true, "winner": "seat_1", "draw": false },
+  "expected_terminal_state": { "terminal": true, "winner": "seat_1", "draw": false },
+  "not_applicable": {
+    "hidden_information": "The terminal public view hash must not reveal unrevealed hand or deck tail identities.",
+    "stochastic_game_events": "Setup randomness is fixed by the recorded seed.",
+    "private_view_hashes": "Seat-private view is covered by a dedicated trace.",
+    "preview_hashes": "No separate preview hash surface exists for this game."
+  }
+}

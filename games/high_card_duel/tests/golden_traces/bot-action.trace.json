@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "trace_id": "high-card-duel-bot-action",
+  "fixture_kind": "bot",
+  "purpose": "bot_action",
+  "note": "The Level 0 random legal bot deterministically chooses one legal private commit command.",
+  "migration_update_note": "Initial High Card Duel Trace Schema v1 fixture established by GAT72GAT8HIG-012.",
+  "game_id": "high_card_duel",
+  "rules_version": "high-card-duel-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 13,
+  "variant": "high_card_duel_standard",
+  "options": {},
+  "producer": { "kind": "bot", "level": 0, "policy_id": "high_card_duel-random-legal-v1", "bot_seed": 13 },
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["commit/hcd:r05:a"], "freshness_token": "0", "expect": "applied" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 0 }],
+  "expected_state_hashes": { "final": 10388557152897348301 },
+  "expected_effect_hashes": { "final": 15555094397530214133 },
+  "expected_action_tree_hashes": { "final": 10488007528712451038 },
+  "expected_public_view_hashes": { "all": 6337458538603278350 },
+  "expected_replay_hashes": { "final": 16076617887224316815 },
+  "expected_private_view_hashes": { "not_applicable": "Bot trace pins deterministic policy output; seat-private view is covered separately." },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "The bot input is actor-private; public replay surfaces are hashed separately.",
+    "stochastic_game_events": "Setup and bot randomness are fixed by recorded seeds.",
+    "private_view_hashes": "Seat-private view is covered by a dedicated trace.",
+    "preview_hashes": "No separate preview hash surface exists for this game."
+  }
+}

@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-012: Golden traces + fixture + replay test
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/tests/golden_traces/*.trace.json`, `games/high_card_duel/data/fixtures/high_card_duel_standard.fixture.json`, `games/high_card_duel/tests/replay.rs`
@@ -105,3 +105,20 @@ public-export traces are no-leak.
 1. `cargo test -p high_card_duel --test replay`
 2. `cargo test -p high_card_duel`
 3. Native replay tests are the correct boundary here; `replay-check`/`fixture-check` CLI confirmation lands with tool registration (013).
+
+## Outcome (2026-06-07)
+
+Added the Gate 8 High Card Duel golden-trace and fixture set:
+
+1. Added all ten required Trace Schema v1 JSON files under `games/high_card_duel/tests/golden_traces/`.
+2. Added `games/high_card_duel/data/fixtures/high_card_duel_standard.fixture.json`.
+3. Extended `tests/replay.rs` to validate trace metadata, deterministic state/effect/action-tree/view/replay hashes, diagnostics, bot command choice, seat-private hash coverage, and no-leak public observer/export traces.
+
+Deviations: `replay-check`/`fixture-check` CLI registration remains out of scope for this ticket and is handled by GAT72GAT8HIG-013, as planned.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p high_card_duel --test replay` — passed.
+3. `cargo test -p high_card_duel` — passed.
+4. `ls games/high_card_duel/tests/golden_traces/ | wc -l` — `10`.
