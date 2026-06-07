@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-008: Viewer projections (visibility.rs) + UI-metadata (ui.rs)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/src/visibility.rs`, `games/high_card_duel/src/ui.rs`
@@ -109,3 +109,26 @@ none carrying hidden identities.
 1. `cargo test -p high_card_duel --test visibility`
 2. `cargo test -p high_card_duel`
 3. The visibility suite is the correct boundary; cross-cutting property/serialization no-leak proofs are consolidated in 011.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added viewer-safe `project_view(state, viewer)` for observer and seat-private High Card Duel projections.
+- Added public fields for game/variant IDs, round/limit, phase, active/lead/reply seats, score, hand counts, deck count, commitment occupancy, revealed cards, terminal state, freshness, and UI metadata.
+- Added private seat projections containing only the authorized viewer's own hand and own committed card.
+- Kept observer/opponent projections redacted for private hands, face-down commitment identities, and unrevealed deck order, including terminal public views.
+- Added neutral game-local UI metadata and accessibility labels with no hidden card identities.
+- Extended `games/high_card_duel/tests/visibility.rs` with observer, seat, reply-before-reveal, and terminal deck-tail no-leak projection tests.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test visibility` passed.
+- `cargo test -p high_card_duel` passed.

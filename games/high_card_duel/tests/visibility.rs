@@ -1,9 +1,14 @@
-use engine_core::{SeatId, VisibilityScope};
+use engine_core::{
+    ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, Viewer,
+    VisibilityScope,
+};
 use high_card_duel::{
-    cards_revealed_effect, commit_face_down_effect, deal_private_card_effect,
-    hand_count_changed_effect, own_commit_confirmed_effect, private_diagnostic_effect,
-    public_diagnostic_effect, refill_started_effect, round_scored_effect, terminal_effect, CardId,
-    HighCardDuelEffect, HighCardDuelSeat, Score, Sigil,
+    apply_action, cards_revealed_effect, commit_face_down_effect, commit_segment,
+    deal_private_card_effect, hand_count_changed_effect, own_commit_confirmed_effect,
+    private_diagnostic_effect, project_view, public_diagnostic_effect, refill_started_effect,
+    round_scored_effect, setup_match, terminal_effect, validate_command, CardId,
+    HighCardDuelEffect, HighCardDuelSeat, Phase, PrivateView, Score, SetupOptions, Sigil,
+    TerminalOutcome,
 };
 
 fn seat_id(index: u8) -> SeatId {
@@ -12,6 +17,35 @@ fn seat_id(index: u8) -> SeatId {
 
 fn card(rank: u8, sigil: Sigil) -> CardId {
     CardId::new(rank, sigil).expect("test card is valid")
+}
+
+fn seats() -> Vec<SeatId> {
+    vec![seat_id(0), seat_id(1)]
+}
+
+fn viewer(index: Option<u8>) -> Viewer {
+    Viewer {
+        seat_id: index.map(seat_id),
+    }
+}
+
+fn command(actor_index: u8, card: CardId, freshness_token: FreshnessToken) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: seat_id(actor_index),
+        },
+        action_path: ActionPath {
+            segments: vec![commit_segment(card)],
+        },
+        freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn apply_card(state: &mut high_card_duel::HighCardDuelState, actor_index: u8, card: CardId) {
+    let command = command(actor_index, card, state.freshness_token);
+    let action = validate_command(state, &command).expect("command validates");
+    apply_action(state, action);
 }
 
 #[test]
@@ -144,4 +178,77 @@ fn effect_private_card_identity_is_private_to_owner() {
         panic!("expected own commit confirmation");
     };
     assert_eq!(card.stable_id(), "hcd:r12:b");
+}
+
+#[test]
+fn observer_view_has_no_private_hand_or_deck_or_facedown_identity() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let view = project_view(&state, &viewer(None));
+
+    assert!(matches!(view.private_view, PrivateView::Observer));
+    assert_eq!(view.deck_count, 18);
+    assert!(view.commitments.seat_0.card.is_none());
+    assert!(view.commitments.seat_1.card.is_none());
+    assert!(!view.stable_summary().contains("hcd:r"));
+}
+
+#[test]
+fn seat_view_contains_only_own_hand() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let view = project_view(&state, &viewer(Some(0)));
+    let PrivateView::Seat { hand, .. } = view.private_view else {
+        panic!("seat viewer gets private seat view");
+    };
+
+    assert_eq!(hand.len(), 3);
+    for card in state.hand_for(HighCardDuelSeat::Seat0) {
+        assert!(hand
+            .iter()
+            .any(|view_card| view_card.card_id == card.stable_id()));
+    }
+    for card in state.hand_for(HighCardDuelSeat::Seat1) {
+        assert!(!hand
+            .iter()
+            .any(|view_card| view_card.card_id == card.stable_id()));
+    }
+}
+
+#[test]
+fn reply_actor_view_lacks_lead_card_before_reveal() {
+    let mut state =
+        setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let lead_card = state.hand_for(HighCardDuelSeat::Seat0)[0];
+    apply_card(&mut state, 0, lead_card);
+
+    let reply_view = project_view(&state, &viewer(Some(1)));
+
+    assert_eq!(reply_view.phase, Phase::ReplyCommit);
+    assert_eq!(reply_view.commitments.seat_0.status, "face_down");
+    assert!(reply_view.commitments.seat_0.card.is_none());
+    assert!(!reply_view.stable_summary().contains(&lead_card.stable_id()));
+}
+
+#[test]
+fn terminal_public_view_still_hides_unused_deck_tail() {
+    let mut state =
+        setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let hidden_tail = card(12, Sigil::B);
+    state.phase = Phase::Terminal;
+    state.terminal_outcome = Some(TerminalOutcome::Draw);
+    state.deck = vec![hidden_tail];
+    state.revealed_history.push(high_card_duel::RevealedRound {
+        round_number: 6,
+        seat_0_card: card(4, Sigil::A),
+        seat_1_card: card(4, Sigil::B),
+        winner: None,
+    });
+
+    let public_view = project_view(&state, &viewer(None));
+
+    assert_eq!(public_view.deck_count, 1);
+    assert!(!public_view
+        .stable_summary()
+        .contains(&hidden_tail.stable_id()));
+    assert!(public_view.stable_summary().contains("hcd:r04:a"));
+    assert!(public_view.stable_summary().contains("hcd:r04:b"));
 }

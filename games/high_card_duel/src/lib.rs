@@ -34,7 +34,15 @@ pub use rules::{
 };
 pub use setup::{next_bounded_index_unbiased, setup_match, shuffle_deck, SetupOptions};
 pub use state::{HighCardDuelState, Phase, RevealedRound, Score, TerminalOutcome};
+pub use ui::{
+    card_accessibility_label, face_down_commitment_label, revealed_card_accessibility_label,
+    ui_metadata, UiMetadata,
+};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    project_view, CardView, CommitmentView, CommitmentViews, HandCountsView, PrivateView,
+    PublicView, RevealedRoundView, TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
