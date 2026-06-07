@@ -1,6 +1,6 @@
 # GAT6DIRFLI-009: Replay support & deterministic hashes
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/directional_flip/src/replay_support.rs` (replay command/effect/view serialization, stable hashes, import/export/step/reset support).
@@ -70,3 +70,14 @@ In `replay_support.rs`, implement Rust-owned serialization of commands, effects,
 1. `cargo test -p directional_flip replay`
 2. `cargo test -p directional_flip && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct here; the full `cargo run -p replay-check -- --game directional_flip --all` gate runs in GAT6DIRFLI-016 once the tool is registered and golden traces (013) exist.
+
+## Outcome
+
+Implemented `games/directional_flip/src/replay_support.rs` with strict replay JSON import/export, deterministic command/effect/action-tree/view/replay hashing, stable public step projections, and forced-pass terminal replay coverage. Exported the replay support from `games/directional_flip/src/lib.rs`.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p directional_flip replay`
+3. `cargo test -p directional_flip`
+4. `bash scripts/boundary-check.sh`

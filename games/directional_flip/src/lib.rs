@@ -3,6 +3,7 @@
 pub mod actions;
 pub mod effects;
 pub mod ids;
+pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod state;
@@ -18,6 +19,11 @@ pub use effects::{
     TerminalReason,
 };
 pub use ids::{CellId, ColumnId, DirectionalFlipSeat, RowId};
+pub use replay_support::{
+    action_tree_hash, actor_for_state, command_for_state, default_seats, effect_hash,
+    effect_stable_string, hashes_for_state, project_step, replay_commands, replay_from_state,
+    DirectionalFlipReplayJson, ReplayHashes, ReplayStepProjection,
+};
 pub use rules::{
     apply_action, disc_counts, legal_placements, placement_flips, validate_command, Direction,
     FlipRun, ForcedPass, Placement, Score, ValidatedAction,
