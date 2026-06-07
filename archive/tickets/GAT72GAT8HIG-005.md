@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-005: Effect families + visibility filtering (effects.rs)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/src/effects.rs`
@@ -94,3 +94,25 @@ private diagnostics never expose opponent/deck facts (`HCD-DIAG-003/005`).
 1. `cargo test -p high_card_duel --test visibility effect`
 2. `cargo test -p high_card_duel`
 3. Effect-level tests are the correct boundary here; observer/seat effect-set filtering is proven end-to-end in the no-leak suite (011).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `HighCardDuelEffect` with the ten Gate 8 effect families and stable `hcd_*` kind strings.
+- Added centralized constructors for public and private effect envelopes, including owner-scoped private card deal/commit effects.
+- Kept pre-reveal public effects limited to counts, occupancy, seats, round numbers, scores, and redacted diagnostics.
+- Added `public_payload_text` for stable effect-level no-leak assertions, with revealed-card payloads only surfacing card IDs through `hcd_cards_revealed`.
+- Added `games/high_card_duel/tests/visibility.rs` effect visibility/no-leak tests.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test visibility effect` passed.
+- `cargo test -p high_card_duel` passed.
