@@ -1,6 +1,6 @@
 # GAT6DIRFLI-014: Benchmarks, thresholds & BENCHMARKS.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/directional_flip/benches/directional_flip.rs`, `games/directional_flip/benches/thresholds.json`, `games/directional_flip/docs/BENCHMARKS.md`.
@@ -74,3 +74,16 @@ The official-game contract requires honest, baseline-first benchmarks with a doc
 1. `cargo bench -p directional_flip -- legal_actions`
 2. `cargo bench -p directional_flip`
 3. A bench smoke + full run is the correct boundary; CI lane gating is GAT6DIRFLI-019 and the aggregated report is GAT6DIRFLI-016.
+
+## Outcome
+
+Added `games/directional_flip/benches/directional_flip.rs`, registered the bench target in `games/directional_flip/Cargo.toml`, added `games/directional_flip/benches/thresholds.json`, and authored `games/directional_flip/docs/BENCHMARKS.md` with measured local values. Thresholds are explicit smoke floors with `baseline_pending_non_blocking` rationale; no throughput target is claimed before stable CI evidence.
+
+Verification:
+
+1. `cargo bench -p directional_flip -- legal_actions`
+2. `cargo bench -p directional_flip`
+3. `cargo fmt --all --check`
+4. `cargo test -p directional_flip`
+5. `bash scripts/boundary-check.sh`
+6. `node scripts/check-doc-links.mjs`
