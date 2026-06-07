@@ -1,4 +1,38 @@
+Current status: Gates 0-7.1 are complete. Gate 8 is planned as the next
+chance / hidden-information proof (`high_card_duel`), with a mandatory
+`blackjack_lite` continuation checkpoint before Gate 9 admission. The mutable
+source of truth for gate progress is `specs/README.md`.
+
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
+
+## Gate 7.1 board-space primitive back-port
+
+- Completed on 2026-06-07 for the `game-stdlib::board_space` promotion-debt
+  closure.
+- Back-ported the behavior-free board-space coordinate/dimension primitive to
+  the earlier official board games where applicable and audited `race_to_n` as
+  not applicable.
+- Confirmed the mechanic atlas open promotion-debt register is empty, allowing
+  the roadmap to proceed to the next mechanic-ladder gate.
+
+## Gate 7 Draughts Lite compound action tree
+
+- Completed on 2026-06-07 for `draughts_lite` / Draughts Lite.
+- Added the first serious compound-action official game proof: movement,
+  mandatory capture, forced continuation, promotion, terminal detection,
+  action-tree legality, replay support, fixtures, rule coverage, bots, and UI
+  presentation.
+- Boundary notes: draughts movement/capture semantics stayed game-local; only
+  the earned behavior-free board-space primitive remained promoted.
+
+## Gate 6 Directional Flip
+
+- Completed on 2026-06-06 for `directional_flip` / Directional Flip.
+- Added directional scan, bracketed flip, pass/no-move, grouped effect,
+  preview, replay, fixture, bot, benchmark, and UI coverage for the fourth
+  official game.
+- Boundary notes: directional rays, legal bracketing, previews, grouped flips,
+  and pattern decisions stayed local after mechanic-atlas review.
 
 ## GAT1RACTON-012
 

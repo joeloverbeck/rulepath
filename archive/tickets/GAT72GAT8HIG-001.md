@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-001: Gate 7.2 orientation hygiene + gate tracker
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — orientation/docs only (`README.md`, `progress.md`, `AGENTS.md`, `CLAUDE.md`, `specs/README.md`, `docs/MECHANIC-ATLAS.md`)
@@ -116,3 +116,26 @@ not begin until this orientation drift is removed (spec §1.3, §6.1, §11).
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "gate 5" README.md` (manually confirm no "latest completed = Gate 5" claim remains)
 3. Doc-link + boundary checks are the correct boundary — this ticket ships no code, so `cargo` suites are unaffected.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Updated `README.md` to identify Gates 0-7.1 as complete, list the five current official games, describe the Gate 7 / Gate 7.1 status, and point Gate 8 at the planned `high_card_duel` hidden-information proof plus the `blackjack_lite` checkpoint.
+- Added current Gate 6, Gate 7, and Gate 7.1 progress entries to `progress.md`, with `specs/README.md` identified as the mutable progress source of truth.
+- Removed the stale `race_to_n`-as-current-game framing from `AGENTS.md` and `CLAUDE.md`; per-game verification now points agents to the game under change and the active gate tracker.
+- Updated `specs/README.md` with a Gate 7.2 maintenance-interlock row, flipped Gate 8 to `Planned` against the combined spec, and added the post-Gate-8 `blackjack_lite` continuation checkpoint before Gate 9.
+- Verified `docs/MECHANIC-ATLAS.md` already records Gate 7.1 board-space debt as closed and the open promotion-debt register as empty, so no atlas edit was needed.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `grep -niE "current game.*race_to_n" AGENTS.md CLAUDE.md` returned no matches.
+- `grep -niE "Gate 5 complete|latest completed.*Gate 5|Gate 5.*latest" README.md` returned no matches.

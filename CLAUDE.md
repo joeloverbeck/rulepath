@@ -50,7 +50,8 @@ cargo build --workspace
 cargo test --workspace
 ```
 
-Per-game verification (CI gate 1; current game: `race_to_n`):
+Per-game verification (CI gate 1; replace the game id with the game under
+change and check `specs/README.md` for the active gate):
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000
@@ -73,7 +74,7 @@ npm --prefix apps/web run smoke:ui
 Benchmarks (CI gate 2):
 
 ```bash
-cargo bench -p race_to_n              # full; -- legal_actions for a smoke run
+cargo bench -p <game-crate>           # full; use the crate's bench filters for a smoke run
 ```
 
 ## Workspace map

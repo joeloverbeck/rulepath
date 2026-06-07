@@ -33,7 +33,9 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | 4 | Gate 6 | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
 | 5 | Gate 7 | [`gate-7-draughts-lite-compound-action-tree.md`](../archive/specs/gate-7-draughts-lite-compound-action-tree.md) | Done |
 | 5M | Gate 7.1 | [`gate-7-1-board-space-primitive-back-port.md`](../archive/specs/gate-7-1-board-space-primitive-back-port.md) | Done |
-| 6 | Gate 8 | `high_card_duel` / `blackjack_lite` — not yet specced | Not started |
+| 5M | Gate 7.2 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Planned |
+| 6 | Gate 8 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Planned |
+| 6C | Post-Gate-8 checkpoint | `blackjack_lite` continuation decision before Gate 9 admission | Not started |
 | 7 | Gate 9 | `token_bazaar` / `secret_draft` — not yet specced | Not started |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |
