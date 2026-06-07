@@ -9,6 +9,67 @@ pub const STANDARD_DECK_CARD_COUNT: u8 = STANDARD_RANK_COUNT * STANDARD_SIGILS_P
 pub const SHUFFLE_ALGORITHM: &str = "hcd-shuffle-v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub enum Sigil {
+    A,
+    B,
+}
+
+impl Sigil {
+    pub const ALL: [Self; 2] = [Self::A, Self::B];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::A => "a",
+            Self::B => "b",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "a" => Some(Self::A),
+            "b" => Some(Self::B),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub struct CardId {
+    rank: u8,
+    sigil: Sigil,
+}
+
+impl CardId {
+    pub fn new(rank: u8, sigil: Sigil) -> Option<Self> {
+        (1..=STANDARD_RANK_COUNT)
+            .contains(&rank)
+            .then_some(Self { rank, sigil })
+    }
+
+    pub const fn rank(self) -> u8 {
+        self.rank
+    }
+
+    pub const fn sigil(self) -> Sigil {
+        self.sigil
+    }
+
+    pub fn stable_id(self) -> String {
+        format!("hcd:r{:02}:{}", self.rank, self.sigil.as_str())
+    }
+}
+
+pub fn canonical_deck() -> Vec<CardId> {
+    let mut cards = Vec::with_capacity(STANDARD_DECK_CARD_COUNT as usize);
+    for rank in 1..=STANDARD_RANK_COUNT {
+        for sigil in Sigil::ALL {
+            cards.push(CardId::new(rank, sigil).expect("canonical rank is valid"));
+        }
+    }
+    cards
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum HighCardDuelSeat {
     Seat0,
     Seat1,
@@ -72,5 +133,21 @@ mod tests {
         assert_eq!(HighCardDuelSeat::from_index(2), None);
         assert_eq!(HighCardDuelSeat::Seat0.other(), HighCardDuelSeat::Seat1);
         assert_eq!(HighCardDuelSeat::Seat1.as_str(), "seat_1");
+    }
+
+    #[test]
+    fn canonical_card_ids_are_stable_and_bounded() {
+        let first = CardId::new(1, Sigil::A).unwrap();
+        let last = CardId::new(12, Sigil::B).unwrap();
+
+        assert_eq!(first.stable_id(), "hcd:r01:a");
+        assert_eq!(last.stable_id(), "hcd:r12:b");
+        assert_eq!(CardId::new(0, Sigil::A), None);
+        assert_eq!(CardId::new(13, Sigil::A), None);
+
+        let deck = canonical_deck();
+        assert_eq!(deck.len(), STANDARD_DECK_CARD_COUNT as usize);
+        assert_eq!(deck.first().copied(), Some(first));
+        assert_eq!(deck.last().copied(), Some(last));
     }
 }

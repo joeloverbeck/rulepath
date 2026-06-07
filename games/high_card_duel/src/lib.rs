@@ -13,9 +13,12 @@ pub mod variants;
 pub mod visibility;
 
 pub use ids::{
-    GAME_ID, RULES_VERSION_LABEL, STANDARD_DECK_CARD_COUNT, STANDARD_HAND_SIZE,
-    STANDARD_RANK_COUNT, STANDARD_ROUND_LIMIT, STANDARD_SIGILS_PER_RANK, VARIANT_ID,
+    canonical_deck, CardId, HighCardDuelSeat, Sigil, GAME_ID, RULES_VERSION_LABEL,
+    SHUFFLE_ALGORITHM, STANDARD_DECK_CARD_COUNT, STANDARD_HAND_SIZE, STANDARD_RANK_COUNT,
+    STANDARD_ROUND_LIMIT, STANDARD_SIGILS_PER_RANK, VARIANT_ID,
 };
+pub use setup::{next_bounded_index_unbiased, setup_match, shuffle_deck, SetupOptions};
+pub use state::{HighCardDuelState, Phase, RevealedRound, Score};
 pub use variants::{Manifest, Variant, VariantCatalog};
 
 pub fn load_manifest() -> Result<Manifest, String> {

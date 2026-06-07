@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-004: State, setup, deterministic shuffle/deal + unbiased bounded-index RNG helper
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/src/{ids.rs,state.rs,setup.rs}`; a game-local unbiased bounded-index RNG helper
@@ -111,3 +111,25 @@ deal three private cards alternating `seat_0`/`seat_1`, init round 1 / score 0-0
 1. `cargo test -p high_card_duel --test rules setup`
 2. `cargo test -p high_card_duel`
 3. The per-test filter is the correct boundary now; full visibility/property proofs land with tickets 008/011.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added game-local `CardId`, `Sigil`, canonical 24-card deck construction, and stable card IDs `hcd:rNN:a|b`.
+- Added High Card Duel state containers for seats, phase, score, private hands, face-down commitments, revealed history, internal remaining deck order, and freshness.
+- Added deterministic `setup_match` using the engine `Seed` contract, canonical deck construction, `hcd-shuffle-v1` Fisher-Yates shuffle, and alternating three-card private deal.
+- Added game-local `next_bounded_index_unbiased` rejection sampling over `DeterministicRng::next_u64`; `engine-core::DeterministicRng::next_index` remains unchanged.
+- Added integration setup tests in `games/high_card_duel/tests/rules.rs`.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test rules setup` passed.
+- `cargo test -p high_card_duel` passed.
