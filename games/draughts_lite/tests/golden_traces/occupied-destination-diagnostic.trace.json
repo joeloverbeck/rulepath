@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "trace_id": "draughts-lite-occupied-destination-diagnostic",
+  "fixture_kind": "diagnostic",
+  "purpose": "occupied_destination_diagnostic",
+  "note": "A path to an occupied playable destination is rejected without mutation.",
+  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "game_id": "draughts_lite",
+  "rules_version": "draughts_lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 12,
+  "variant": "draughts_lite_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["from/r3c2","to/r2c1"], "freshness_token": "0", "expect": "diagnostic", "expected_diagnostic_code": "action_path_not_available" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 0 }
+  ],
+  "expected_state_hashes": { "final": 18204555001228293033 },
+  "expected_effect_hashes": { "final": 14695981039346656037 },
+  "expected_action_tree_hashes": { "final": 16942219411477718937 },
+  "expected_public_view_hashes": { "all": 3933912429077474711 },
+  "expected_replay_hashes": { "final": 2919754942548207461 },
+  "expected_diagnostics": [
+    { "index": 0, "code": "action_path_not_available", "hash": 9475686794361902761 }
+  ],
+  "expected_private_view_hashes": {
+    "not_applicable": "draughts_lite is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "draughts_lite is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "draughts_lite game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "draughts_lite has no private-view API.",
+    "preview_hashes": "draughts_lite uses action-tree metadata and semantic effects rather than a separate preview hash surface in Gate 7."
+  }
+}

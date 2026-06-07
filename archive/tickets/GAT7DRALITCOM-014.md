@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-014: Golden traces & standard fixture
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite/tests/golden_traces/*.json` (native golden traces) and `games/draughts_lite/data/fixtures/draughts_lite_standard.fixture.json` (standard setup fixture).
@@ -76,3 +76,16 @@ Author the 17 native traces listed in §R18 (all except WASM-exported) under `te
 1. `cargo test -p draughts_lite replay`
 2. `cargo test --workspace`
 3. Crate + workspace tests are the correct boundary now; the `replay-check --all` and `fixture-check` CLI passes land with tool registration in GAT7DRALITCOM-017.
+
+## Outcome
+
+- Added the standard Draughts Lite fixture at `games/draughts_lite/data/fixtures/draughts_lite_standard.fixture.json`, including public-safe metadata, fixture kinds, Trace Schema v1 marker, standard 8x8 setup, and expected hashes.
+- Added the 17 native §R18 Trace Schema v1 golden traces under `games/draughts_lite/tests/golden_traces/`, covering quiet play, mandatory capture, single and multi-jump capture, forced continuation, promotion, terminal states, diagnostics, and deterministic bot choice. The WASM-exported trace remains out of scope for GAT7DRALITCOM-016.
+- Added `games/draughts_lite/tests/replay.rs` coverage that validates replay JSON path serialization, standard fixture metadata, trace purpose/migration notes, state/effect/action-tree/public-view/replay hashes, diagnostic codes and hashes, terminal outcomes, multi-jump path legibility, and the Level 1 bot trace command.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p draughts_lite replay`
+3. `cargo test -p draughts_lite`
+4. `cargo test --workspace`
