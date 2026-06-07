@@ -63,6 +63,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "high_card_duel"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "race_to_n"
 version = "0.1.0"
 dependencies = [

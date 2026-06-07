@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-003: high_card_duel crate skeleton + workspace wiring + data manifests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new crate `games/high_card_duel` (`Cargo.toml`, `src/lib.rs` + module stubs, `src/variants.rs`, `data/manifest.toml`, `data/variants.toml`); workspace `Cargo.toml` members
@@ -109,3 +109,28 @@ Add `"games/high_card_duel"` to root `Cargo.toml` `members`.
 1. `cargo build -p high_card_duel`
 2. `cargo test -p high_card_duel` (variant parse test)
 3. `cargo build --workspace` is the correct full-pipeline boundary — proves the new member doesn't break the tree.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/high_card_duel` as a workspace member with a compiling package manifest and bench target.
+- Added the High Card Duel crate skeleton with module stubs for `ids`, `state`, `setup`, `actions`, `rules`, `effects`, `visibility`, `variants`, `bots`, `replay_support`, and `ui`.
+- Added game-local constants and seat identity helpers in `ids.rs`.
+- Added typed static-data parsing in `variants.rs`, including behavior-looking-key rejection and tests for the standard six-round / three-card-hand / 24-card-deck variant.
+- Added `data/manifest.toml`, `data/variants.toml`, and `data/fixtures/.gitkeep` with typed metadata and parameters only.
+- Added a minimal bench target scaffold so the declared package bench target resolves.
+
+Deviations from original plan:
+
+- Added `games/high_card_duel/benches/high_card_duel.rs` along with the declared `[[bench]]` target so package/workspace builds do not depend on a missing bench file.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo build -p high_card_duel` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.

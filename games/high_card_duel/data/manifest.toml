@@ -1,0 +1,14 @@
+game_id = "high_card_duel"
+display_name = "High Card Duel"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "high-card-duel-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "wayfarer_duel_table"
+seat_count = 2
+deck_card_count = 24
+rank_count = 12
+sigils_per_rank = 2
+hand_size = 3
+round_limit = 6
