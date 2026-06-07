@@ -12,6 +12,10 @@ pub mod ui;
 pub mod variants;
 pub mod visibility;
 
+pub use actions::{
+    active_commit_seat, actor_seat, commit_segment, legal_action_tree, parse_commit_segment,
+    COMMIT_SEGMENT_PREFIX,
+};
 pub use effects::{
     cards_revealed_effect, commit_face_down_effect, deal_private_card_effect,
     hand_count_changed_effect, own_commit_confirmed_effect, private_diagnostic_effect,
@@ -22,6 +26,10 @@ pub use ids::{
     canonical_deck, CardId, HighCardDuelSeat, Sigil, GAME_ID, RULES_VERSION_LABEL,
     SHUFFLE_ALGORITHM, STANDARD_DECK_CARD_COUNT, STANDARD_HAND_SIZE, STANDARD_RANK_COUNT,
     STANDARD_ROUND_LIMIT, STANDARD_SIGILS_PER_RANK, VARIANT_ID,
+};
+pub use rules::{
+    commitment_conflict_diagnostic, invalid_private_card_diagnostic, stale_action_diagnostic,
+    validate_command, wrong_phase_diagnostic, wrong_seat_diagnostic, ValidatedAction,
 };
 pub use setup::{next_bounded_index_unbiased, setup_match, shuffle_deck, SetupOptions};
 pub use state::{HighCardDuelState, Phase, RevealedRound, Score};

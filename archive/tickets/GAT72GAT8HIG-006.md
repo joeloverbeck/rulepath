@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-006: Legal action tree + validation + diagnostics
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/src/actions.rs` and the legality/validation/diagnostic surface of `src/rules.rs`
@@ -101,3 +101,25 @@ public tokens for unauthorized viewers and (where safe) seat-private detail.
 1. `cargo test -p high_card_duel --test rules`
 2. `cargo test -p high_card_duel`
 3. Rule-level tests are the correct boundary; end-to-end no-leak/diagnostic redaction across viewers is proven in 011/012.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added actor-scoped legal action tree generation for `commit/<card-id>` choices from the active seat's own private hand.
+- Added card-id parsing and commit segment helpers.
+- Added Rust-side commit validation for stale, wrong-seat, wrong-phase, duplicate/occupied commitment, malformed path, and invalid private card submissions.
+- Added public-safe diagnostics for wrong seat, wrong phase, invalid private card, stale action, and commitment conflict.
+- Extended `games/high_card_duel/tests/rules.rs` with actor-private tree and diagnostic redaction tests.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test rules` passed.
+- `cargo test -p high_card_duel` passed.

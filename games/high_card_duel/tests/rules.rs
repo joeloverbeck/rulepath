@@ -1,13 +1,35 @@
 use std::collections::BTreeSet;
 
-use engine_core::{SeatId, Seed};
+use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use high_card_duel::{
-    canonical_deck, next_bounded_index_unbiased, setup_match, HighCardDuelSeat, SetupOptions,
-    STANDARD_DECK_CARD_COUNT, STANDARD_HAND_SIZE,
+    canonical_deck, commit_segment, legal_action_tree, next_bounded_index_unbiased, setup_match,
+    validate_command, HighCardDuelSeat, Phase, SetupOptions, STANDARD_DECK_CARD_COUNT,
+    STANDARD_HAND_SIZE,
 };
 
 fn seats() -> Vec<SeatId> {
     vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())]
+}
+
+fn actor(index: usize) -> Actor {
+    Actor {
+        seat_id: seats()[index].clone(),
+    }
+}
+
+fn command(
+    actor_index: usize,
+    segment: String,
+    freshness_token: FreshnessToken,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: actor(actor_index),
+        action_path: ActionPath {
+            segments: vec![segment],
+        },
+        freshness_token,
+        rules_version: RulesVersion(1),
+    }
 }
 
 #[test]
@@ -83,4 +105,102 @@ fn setup_shuffle_uses_unbiased_bounded_index_or_documented_helper() {
     };
 
     assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+}
+
+#[test]
+fn observer_has_no_private_commit_actions() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let unknown_actor = Actor {
+        seat_id: SeatId("observer".to_owned()),
+    };
+
+    let tree = legal_action_tree(&state, &unknown_actor);
+
+    assert_eq!(tree.freshness_token, state.freshness_token);
+    assert!(tree.root.choices.is_empty());
+}
+
+#[test]
+fn actor_private_tree_names_only_own_cards() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+
+    let seat_0_tree = legal_action_tree(&state, &actor(0));
+    let seat_1_tree = legal_action_tree(&state, &actor(1));
+
+    assert_eq!(seat_0_tree.root.choices.len(), STANDARD_HAND_SIZE as usize);
+    assert!(seat_1_tree.root.choices.is_empty());
+    for choice in &seat_0_tree.root.choices {
+        assert!(state
+            .hand_for(HighCardDuelSeat::Seat0)
+            .iter()
+            .any(|card| choice.segment == commit_segment(*card)));
+        assert!(!state
+            .hand_for(HighCardDuelSeat::Seat1)
+            .iter()
+            .any(|card| choice.label.contains(&card.stable_id())));
+    }
+}
+
+#[test]
+fn wrong_seat_diagnostic_public_safe() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let card = state.hand_for(HighCardDuelSeat::Seat1)[0];
+
+    let diagnostic = validate_command(
+        &state,
+        &command(1, commit_segment(card), state.freshness_token),
+    )
+    .expect_err("wrong seat rejected");
+
+    assert_eq!(diagnostic.code, "wrong_seat");
+    assert!(!diagnostic.message.contains("hcd:r"));
+}
+
+#[test]
+fn wrong_phase_diagnostic_public_safe() {
+    let mut state =
+        setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    state.phase = Phase::Revealed;
+    let card = state.hand_for(HighCardDuelSeat::Seat0)[0];
+
+    let diagnostic = validate_command(
+        &state,
+        &command(0, commit_segment(card), state.freshness_token),
+    )
+    .expect_err("wrong phase rejected");
+
+    assert_eq!(diagnostic.code, "wrong_phase");
+    assert!(!diagnostic.message.contains("hcd:r"));
+}
+
+#[test]
+fn invalid_private_card_diagnostic_redacted_for_unauthorized() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let opponent_card = state.hand_for(HighCardDuelSeat::Seat1)[0];
+
+    let diagnostic = validate_command(
+        &state,
+        &command(0, commit_segment(opponent_card), state.freshness_token),
+    )
+    .expect_err("opponent private card rejected");
+
+    assert_eq!(diagnostic.code, "invalid_private_card");
+    assert!(!diagnostic.message.contains(&opponent_card.stable_id()));
+    assert!(!diagnostic.message.contains("hcd:r"));
+}
+
+#[test]
+fn stale_action_diagnostic_no_hidden_leak() {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let card = state.hand_for(HighCardDuelSeat::Seat0)[0];
+
+    let diagnostic = validate_command(
+        &state,
+        &command(0, commit_segment(card), FreshnessToken(99)),
+    )
+    .expect_err("stale action rejected");
+
+    assert_eq!(diagnostic.code, "stale_action");
+    assert!(!diagnostic.message.contains(&card.stable_id()));
+    assert!(!diagnostic.message.contains("hcd:r"));
 }

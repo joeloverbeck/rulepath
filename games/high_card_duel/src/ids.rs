@@ -57,6 +57,18 @@ impl CardId {
     pub fn stable_id(self) -> String {
         format!("hcd:r{:02}:{}", self.rank, self.sigil.as_str())
     }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        let mut parts = value.split(':');
+        let prefix = parts.next()?;
+        let rank = parts.next()?;
+        let sigil = parts.next()?;
+        if parts.next().is_some() || prefix != "hcd" {
+            return None;
+        }
+        let rank = rank.strip_prefix('r')?.parse::<u8>().ok()?;
+        Self::new(rank, Sigil::parse(sigil)?)
+    }
 }
 
 pub fn canonical_deck() -> Vec<CardId> {
