@@ -1092,3 +1092,24 @@ All game prose in the repository must be original Rulepath prose. The external s
 |---|---|
 | Cornell Othello AI page, <https://www.cs.cornell.edu/~yuli/othello/othello.html> | Fetch failed in this session; not used as evidence. |
 | PDF strategy/AI sources from search results | Not needed because HTML strategy sources provided sufficient evidence and no PDF analysis was required for this specification. |
+
+## Outcome
+
+Completed 2026-06-07. Gate 6 delivered the official `directional_flip` game with Rust-owned setup, legal placements, forced pass, grouped flips, deterministic replay/hash evidence, strict serialization, simulations, benchmarks, Level 0 and Level 2-lite bots, tool and WASM registration, accessible web renderer, browser E2E/no-leak coverage, CI wiring, official-game trailing docs, and public catalog exposure through the Rust WASM game catalog.
+
+The primitive-pressure decision was resolved as defer/reject: rectangular coordinates, directional rays, placement legality, pass availability, previews, grouped flip effects, and effect ordering remain game-local for Gate 6. No helper was promoted to `engine-core` or `game-stdlib`.
+
+Verification summary:
+
+1. `cargo test --workspace`
+2. `cargo run -p replay-check -- --game directional_flip --all`
+3. `cargo run -p fixture-check -- --game directional_flip`
+4. `cargo run -p rule-coverage -- --game directional_flip`
+5. `cargo run -p simulate -- --game directional_flip --games 1000`
+6. `cargo bench -p directional_flip -- legal_actions`
+7. `npm --prefix apps/web run smoke:wasm`
+8. `npm --prefix apps/web run smoke:ui`
+9. `node apps/web/e2e/directional-flip.smoke.mjs`
+10. `node apps/web/e2e/a11y-noleak.smoke.mjs`
+11. `bash scripts/boundary-check.sh`
+12. `node scripts/check-doc-links.mjs`
