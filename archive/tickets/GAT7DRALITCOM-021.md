@@ -1,10 +1,27 @@
 # GAT7DRALITCOM-021: Trailing game docs (MECHANICS / UI / AI / ADMISSION / PUBLIC-RELEASE-CHECKLIST)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/draughts_lite/docs/{MECHANICS.md,UI.md,AI.md,GAME-IMPLEMENTATION-ADMISSION.md,PUBLIC-RELEASE-CHECKLIST.md}`).
 **Deps**: 012, 015, 016, 018, 019
+
+## Outcome
+
+Added the trailing Draughts Lite official-game docs against the shipped implementation:
+
+1. `MECHANICS.md` records the compound action path contract (`from/`, `to/`, `jump/`), tree phases, metadata keys, effects, diagnostics, board coordinates, primitive-pressure posture, and local extraction decisions.
+2. `UI.md` records the React/WASM renderer contract, pointer/keyboard path flow, forced-capture/continuation cues, reduced-motion behavior, replay path rendering, and TypeScript no-legality boundary.
+3. `AI.md` records the Level 0 random legal bot, Level 1 authored policy `draughts_lite_level1_v1`, public explanation contract, and public v1/v2 exclusions.
+4. `GAME-IMPLEMENTATION-ADMISSION.md` maps Draughts Lite to the official-game contract, boundary discipline, evidence surfaces, CI/tooling, and admission constraints.
+5. `PUBLIC-RELEASE-CHECKLIST.md` is filled as a release-candidate checklist covering source/IP, bundle inspection, no-leak, replay/export, UI polish, accessibility, bot explanations, tests, traces, benchmarks, and constraints.
+6. `BOT-STRATEGY-EVIDENCE-PACK.md` was truth-updated to stop calling `RULE-COVERAGE.md`, `MECHANICS.md`, and `AI.md` incomplete and to align benchmark status with the current smoke-floor posture.
+
+Verification passed on 2026-06-07:
+
+1. `node scripts/check-doc-links.mjs`
+2. `cargo run -p rule-coverage -- --game draughts_lite`
+3. `git diff --check`
 
 ## Problem
 

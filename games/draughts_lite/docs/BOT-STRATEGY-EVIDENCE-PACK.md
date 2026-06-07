@@ -21,7 +21,7 @@ bot. The executable bot must not drift beyond this pack without updating the
 pack and tests.
 
 This pack consumes `COMPETENT-PLAYER.md`; it does not replace it. It also does
-not replace `AI.md`, which will be filled after the bot implementation lands.
+not replace [AI.md](AI.md), which records the shipped bot registry.
 
 The policy must be deterministic under seed, rules version, policy version,
 input view, and declared limits. It must use the legal action API, submit the
@@ -65,9 +65,9 @@ fair, beatable product opponent.
 | `SOURCES.md` | `games/draughts_lite/docs/SOURCES.md` | yes | read | Records adopted/omitted rules and solved-game/strong-engine exclusion context. |
 | Gate 7 spec | `specs/gate-7-draughts-lite-compound-action-tree.md` | yes | read | §R17 defines acceptable Level 1 heuristics and exclusions. |
 | `docs/AI-BOTS.md` | `docs/AI-BOTS.md` | yes | read | Defines deterministic, explainable, non-search public bot policy. |
-| `RULE-COVERAGE.md` | `games/draughts_lite/docs/RULE-COVERAGE.md` | yes | incomplete | Lands in a later Gate 7 ticket. |
-| `MECHANICS.md` | `games/draughts_lite/docs/MECHANICS.md` | yes | incomplete | Lands in a later Gate 7 ticket. |
-| `AI.md` | `games/draughts_lite/docs/AI.md` | yes | incomplete | Lands after bot implementation. |
+| `RULE-COVERAGE.md` | `games/draughts_lite/docs/RULE-COVERAGE.md` | yes | read | Rule-to-evidence matrix includes bot, visibility, replay, UI, and benchmark rows. |
+| `MECHANICS.md` | `games/draughts_lite/docs/MECHANICS.md` | yes | read | Mechanic inventory records compound path and bot policy shapes. |
+| `AI.md` | `games/draughts_lite/docs/AI.md` | yes | read | Shipped bot registry for Level 0 and Level 1. |
 
 ## Exact bot input view
 
@@ -289,12 +289,12 @@ and must not include raw internals that would become public explanation text.
 
 | Operation | Target/budget | Measurement command | Baseline | Notes |
 |---|---:|---|---:|---|
-| legal action generation | under 2 ms native per decision | `cargo bench -p draughts_lite` | pending | Board is 8 by 8 with bounded adjacent movement. |
-| candidate extraction | under 2 ms native per decision | `cargo bench -p draughts_lite` | pending | Complete legal paths can include multi-jumps but remain small in typical positions. |
-| priority ranking | under 1 ms native per decision | `cargo bench -p draughts_lite` | pending | Lexicographic tuple over legal paths. |
-| full Level 1 decision latency | under 5 ms native per decision | `cargo bench -p draughts_lite` | pending | Threshold may be calibrated in GAT7DRALITCOM-020. |
-| playout throughput with bot | benchmarked, no hard number yet | `cargo bench -p draughts_lite` | pending | Draughts can cycle without draw adjudication. |
-| explanation generation | negligible string construction | `cargo bench -p draughts_lite` | pending | No LLM or external service. |
+| legal action generation | under 2 ms native per decision | `cargo bench -p draughts_lite` | smoke-floor benchmarked | Board is 8 by 8 with bounded adjacent movement. |
+| candidate extraction | under 2 ms native per decision | `cargo bench -p draughts_lite` | smoke-floor benchmarked | Complete legal paths can include multi-jumps but remain small in typical positions. |
+| priority ranking | under 1 ms native per decision | `cargo bench -p draughts_lite` | smoke-floor benchmarked | Lexicographic tuple over legal paths. |
+| full Level 1 decision latency | under 5 ms native per decision | `cargo bench -p draughts_lite` | smoke-floor benchmarked | Thresholds are baseline-pending smoke floors until stable CI measurements exist. |
+| playout throughput with bot | benchmarked, no hard number yet | `cargo bench -p draughts_lite` | smoke-floor benchmarked | Draughts can cycle without draw adjudication. |
+| explanation generation | negligible string construction | `cargo bench -p draughts_lite` | smoke-floor benchmarked | No LLM or external service. |
 
 ## Public UX note
 
