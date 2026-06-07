@@ -5,6 +5,7 @@ import { AppShell } from "./components/AppShell";
 import { ActionControls } from "./components/ActionControls";
 import { ColumnFourBoard } from "./components/ColumnFourBoard";
 import { DevPanel } from "./components/DevPanel";
+import { DirectionalFlipBoard } from "./components/DirectionalFlipBoard";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
@@ -20,6 +21,7 @@ import {
   type ActionChoice,
   type ApiError,
   type ColumnFourPublicView,
+  type DirectionalFlipPublicView,
   type PublicView,
   type RacePublicView,
   type ReplayDocument,
@@ -292,6 +294,15 @@ function App() {
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
           />
+        ) : isDirectionalFlipView(view) ? (
+          <DirectionalFlipBoard
+            view={view}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -304,7 +315,7 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        {isColumnFourView(view) ? null : (
+        {isColumnFourView(view) || isDirectionalFlipView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -431,6 +442,10 @@ function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView
 
 function isColumnFourView(view: PublicView | null): view is ColumnFourPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "column_four");
+}
+
+function isDirectionalFlipView(view: PublicView | null): view is DirectionalFlipPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "directional_flip");
 }
 
 function isTerminalView(view: PublicView): boolean {

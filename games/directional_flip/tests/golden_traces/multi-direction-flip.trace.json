@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "trace_id": "directional-flip-multi-direction-flip",
+  "fixture_kind": "commands",
+  "purpose": "multi_direction_flip",
+  "note": "Directional Flip multi_direction_flip golden trace. ",
+  "migration_update_note": "Initial Directional Flip Trace Schema v1 fixture established by GAT6DIRFLI-013.",
+  "game_id": "directional_flip",
+  "rules_version": "directional_flip-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 3,
+  "variant": "directional_flip_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["place/r4c4"], "freshness_token": "0", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 0 }
+  ],
+  "expected_state_hashes": { "final": 20711683208971422 },
+  "expected_effect_hashes": { "final": 7647776980125754343 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 10199779680141807148 },
+  "expected_replay_hashes": { "final": 12367116713965938897 },
+  "expected_private_view_hashes": {
+    "not_applicable": "directional_flip is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": true, "winner": "seat_0", "draw": false },
+  "expected_terminal_state": { "terminal": true, "winner": "seat_0", "draw": false },
+  "not_applicable": {
+    "hidden_information": "directional_flip is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "directional_flip game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "directional_flip has no private-view API.",
+    "preview_hashes": "directional_flip records previews in action-tree metadata and replay projections."
+  }
+}

@@ -261,6 +261,11 @@ h2 {
   gap: 14px;
 }
 
+.directional-flip-board {
+  display: grid;
+  gap: 14px;
+}
+
 .column-four-banner {
   display: flex;
   align-items: end;
@@ -270,6 +275,200 @@ h2 {
   border-radius: 8px;
   padding: 12px;
   background: #f9faf7;
+}
+
+.directional-flip-banner {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.directional-score {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.directional-score > div,
+.directional-preview {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #f9faf7;
+}
+
+.directional-score span,
+.directional-preview span {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.directional-score strong {
+  font-size: 1.25rem;
+}
+
+.directional-grid-shell {
+  width: min(100%, 620px);
+  justify-self: center;
+  border: 1px solid #b7c6c0;
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(229, 236, 232, 0.95)),
+    #f6f8f5;
+}
+
+.directional-grid {
+  display: grid;
+  gap: 5px;
+  aspect-ratio: 1;
+}
+
+.directional-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid #bcc9c2;
+  border-radius: 4px;
+  padding: 0;
+  background: #ffffff;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.directional-cell[aria-disabled="true"] {
+  cursor: default;
+}
+
+.directional-cell.legal {
+  border-color: #2b8068;
+  background: #edf7f2;
+}
+
+.directional-cell.preview-target {
+  border-color: #b45f06;
+  background: #fff6e4;
+}
+
+.directional-cell.preview-flip {
+  border-color: #6a78a8;
+  background: #eef1fb;
+}
+
+.directional-cell.placed .directional-disc,
+.directional-cell.flipped .directional-disc {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.directional-cell.placed .directional-disc {
+  animation: directional-disc-place 240ms ease-out;
+}
+
+.directional-cell.flipped .directional-disc {
+  animation: directional-disc-flip 320ms ease-out;
+}
+
+.directional-disc {
+  width: 72%;
+  aspect-ratio: 1;
+}
+
+.directional-disc-seat-0 circle:first-child {
+  fill: #235f4f;
+}
+
+.directional-disc-seat-0 .directional-disc-mark {
+  fill: #ffffff;
+}
+
+.directional-disc-seat-1 circle:first-child {
+  fill: #f4c45f;
+  stroke: #816032;
+  stroke-width: 4;
+}
+
+.directional-disc-seat-1 .directional-disc-mark {
+  fill: none;
+  stroke: #5c4527;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.directional-target-dot {
+  width: 26%;
+  aspect-ratio: 1;
+  border: 2px dashed #6f8179;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.directional-cell.legal .directional-target-dot {
+  border-color: #2b8068;
+  background: #dcefe6;
+}
+
+.directional-coordinate {
+  position: absolute;
+  inset-block-end: 3px;
+  inset-inline-end: 4px;
+  color: #63756f;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.directional-controls {
+  display: grid;
+  grid-template-columns: minmax(160px, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.directional-controls .primary {
+  grid-column: auto;
+}
+
+.directional-flip-board.reduced .directional-disc {
+  animation: none;
+}
+
+@keyframes directional-disc-place {
+  from {
+    transform: scale(0.78);
+    opacity: 0.45;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes directional-disc-flip {
+  from {
+    transform: rotateY(0deg) scale(0.96);
+  }
+
+  50% {
+    transform: rotateY(88deg) scale(0.9);
+  }
+
+  to {
+    transform: rotateY(0deg) scale(1);
+  }
 }
 
 .column-controls {
@@ -1018,7 +1217,8 @@ h2 {
 
 .reduced-motion .counter-fill,
 .reduced-motion .effect-entry,
-.reduced-motion .three-cell {
+.reduced-motion .three-cell,
+.reduced-motion .directional-disc {
   transition: none;
   animation: none;
 }
@@ -1076,12 +1276,27 @@ h2 {
     flex-direction: column;
   }
 
+  .directional-flip-banner {
+    align-items: start;
+    flex-direction: column;
+  }
+
   .three-marks-grid {
     gap: 7px;
     padding: 7px;
   }
 
-  .three-marks-status {
+  .directional-grid-shell {
+    padding: 7px;
+  }
+
+  .directional-grid {
+    gap: 3px;
+  }
+
+  .three-marks-status,
+  .directional-score,
+  .directional-controls {
     grid-template-columns: 1fr;
   }
 

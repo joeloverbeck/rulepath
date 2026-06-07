@@ -166,6 +166,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/column_four/data/variants.toml",
             variant_id: "column_four_standard",
         }),
+        "directional_flip" => Ok(RegisteredGame {
+            game_id: "directional_flip",
+            rules_version: "directional_flip-rules-v1",
+            trace_dir: "games/directional_flip/tests/golden_traces",
+            fixture_dir: "games/directional_flip/data/fixtures",
+            manifest_path: "games/directional_flip/data/manifest.toml",
+            variants_path: "games/directional_flip/data/variants.toml",
+            variant_id: "directional_flip_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -218,8 +227,8 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
-    println!("  fixture-check --game <race_to_n|three_marks|column_four>");
-    println!("  fixture-check --game <race_to_n|three_marks|column_four> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -284,6 +293,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = column_four::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "directional_flip" => {
+            let manifest = directional_flip::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = directional_flip::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (

@@ -29,7 +29,7 @@ record progress; this table is.
 | 1 | Gate 3 | [`gate-3-wasm-static-web-shell.md`](../archive/specs/gate-3-wasm-static-web-shell.md) | Done |
 | 2 | Gate 4 | [`gate-4-three-marks-board-smoke.md`](../archive/specs/gate-4-three-marks-board-smoke.md) | Done |
 | 3 | Gate 5 | [`gate-5-column-four-public-polish.md`](../archive/specs/gate-5-column-four-public-polish.md) | Done |
-| 4 | Gate 6 | `directional_flip` — not yet specced | Not started |
+| 4 | Gate 6 | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
 | 5 | Gate 7 | `draughts_lite` — not yet specced | Not started |
 | 6 | Gate 8 | `high_card_duel` / `blackjack_lite` — not yet specced | Not started |
 | 7 | Gate 9 | `token_bazaar` / `secret_draft` — not yet specced | Not started |

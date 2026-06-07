@@ -4,7 +4,13 @@ use std::{
     process,
 };
 
-use race_to_n::replay_support::{replay_bot_action, replay_commands, replay_invalid, ReplayHashes};
+use directional_flip::replay_support::{
+    replay_commands as directional_replay_commands,
+    replay_from_state as directional_replay_from_state,
+};
+use race_to_n::replay_support::{
+    replay_bot_action, replay_commands, replay_invalid, ReplayHashes as RaceReplayHashes,
+};
 
 fn main() {
     if let Err(error) = run(env::args().skip(1).collect()) {
@@ -15,12 +21,18 @@ fn main() {
 
 fn run(args: Vec<String>) -> Result<(), String> {
     let config = Config::parse(args)?;
-    if config.game != "race_to_n" {
+    if config.game != "race_to_n" && config.game != "directional_flip" {
         return Err(format!("unsupported game `{}`", config.game));
     }
     let input = fs::read_to_string(&config.trace)
         .map_err(|error| format!("{}: failed to read: {error}", config.trace.display()))?;
     let trace = Trace::parse(&config.trace, &input)?;
+    if trace.game_id != config.game {
+        return Err(format!(
+            "--game `{}` does not match trace game_id `{}`",
+            config.game, trace.game_id
+        ));
+    }
     println!("{}", trace.render()?);
     Ok(())
 }
@@ -67,7 +79,7 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("trace-viewer 0.1.0");
     println!("usage:");
-    println!("  trace-viewer --game race_to_n --trace <path>");
+    println!("  trace-viewer --game <race_to_n|directional_flip> --trace <path>");
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -182,10 +194,15 @@ impl Trace {
     }
 
     fn validate(&self) -> Result<(), String> {
-        if self.game_id != "race_to_n" {
+        if self.game_id != "race_to_n" && self.game_id != "directional_flip" {
             return Err(self.failure(&format!("unsupported trace game_id `{}`", self.game_id)));
         }
-        if self.rules_version != "race_to_n-rules-v1" {
+        let expected_rules = match self.game_id.as_str() {
+            "race_to_n" => "race_to_n-rules-v1",
+            "directional_flip" => "directional_flip-rules-v1",
+            _ => unreachable!("validated game"),
+        };
+        if self.rules_version != expected_rules {
             return Err(self.failure(&format!(
                 "unsupported rules_version `{}`",
                 self.rules_version
@@ -329,28 +346,66 @@ impl Trace {
         Ok(lines.join("\n"))
     }
 
-    fn actual_hashes(&self) -> Result<Option<ReplayHashes>, String> {
+    fn actual_hashes(&self) -> Result<Option<ActualReplay>, String> {
         let command_segments = self
             .commands
             .iter()
             .filter_map(|command| command.action_path.first().cloned())
             .collect::<Vec<_>>();
+        if self.game_id == "directional_flip" {
+            return match self.fixture_kind.as_str() {
+                "commands" | "terminal" | "bot" | "diagnostic" => {
+                    Ok(Some(ActualReplay::from_directional(
+                        self.directional_replay_hashes(if self.fixture_kind == "diagnostic" {
+                            &command_segments[..command_segments.len().saturating_sub(1)]
+                        } else {
+                            &command_segments
+                        }),
+                    )))
+                }
+                "not_applicable" => Ok(None),
+                other => Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+            };
+        }
         match self.fixture_kind.as_str() {
-            "commands" | "terminal" => Ok(Some(replay_commands(self.seed, &command_segments))),
-            "bot" => Ok(Some(replay_bot_action(
+            "commands" | "terminal" => Ok(Some(ActualReplay::from_race(replay_commands(
+                self.seed,
+                &command_segments,
+            )))),
+            "bot" => Ok(Some(ActualReplay::from_race(replay_bot_action(
                 self.seed,
                 self.commands
                     .iter()
                     .find_map(|command| command.bot_seed)
                     .ok_or_else(|| self.failure("bot trace missing producer bot_seed"))?,
-            ))),
-            "invalid" | "diagnostic" => Ok(Some(replay_invalid(
+            )))),
+            "invalid" | "diagnostic" => Ok(Some(ActualReplay::from_race(replay_invalid(
                 self.seed,
                 self.command_for_diagnostic("invalid_action")?.as_str(),
                 self.command_for_diagnostic("stale_action")?.as_str(),
-            ))),
+            )))),
             "not_applicable" => Ok(None),
             other => Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }
+    }
+
+    fn directional_replay_hashes(&self, commands: &[String]) -> directional_flip::ReplayHashes {
+        match self.trace_id.as_str() {
+            "directional-flip-multi-direction-flip" => {
+                directional_replay_custom(self.seed, multi_direction_state(), commands)
+            }
+            "directional-flip-corner-capture" => {
+                directional_replay_custom(self.seed, corner_state(), commands)
+            }
+            "directional-flip-forced-pass"
+            | "directional-flip-double-pass-terminal"
+            | "directional-flip-draw" => {
+                directional_replay_custom(self.seed, no_move_state(), commands)
+            }
+            "directional-flip-full-board-terminal" => {
+                directional_replay_custom(self.seed, full_board_terminal_state(), commands)
+            }
+            _ => directional_replay_commands(self.seed, commands),
         }
     }
 
@@ -394,24 +449,189 @@ fn push_string_pairs(lines: &mut Vec<String>, label: &str, pairs: &[(String, Str
     }
 }
 
-fn push_actual_hashes(lines: &mut Vec<String>, actual: &ReplayHashes) {
-    lines.push(format!("  state.final: {}", actual.state_hash.0));
-    lines.push(format!("  effect.final: {}", actual.effect_hash.0));
-    lines.push(format!(
-        "  action_tree.final: {}",
-        actual.action_tree_hash.0
-    ));
-    lines.push(format!("  public_view.all: {}", actual.view_hash.0));
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ActualReplay {
+    state_hash: u64,
+    effect_hash: u64,
+    action_tree_hash: u64,
+    view_hash: u64,
+    diagnostic_hash: Option<u64>,
+    winner: Option<String>,
+}
+
+impl ActualReplay {
+    fn from_race(actual: RaceReplayHashes) -> Self {
+        Self {
+            state_hash: actual.state_hash.0,
+            effect_hash: actual.effect_hash.0,
+            action_tree_hash: actual.action_tree_hash.0,
+            view_hash: actual.view_hash.0,
+            diagnostic_hash: actual.diagnostic_hash.map(|hash| hash.0),
+            winner: actual.outcome.map(|winner| winner.as_str().to_owned()),
+        }
+    }
+
+    fn from_directional(actual: directional_flip::ReplayHashes) -> Self {
+        Self {
+            state_hash: actual.state_hash.0,
+            effect_hash: actual.effect_hash.0,
+            action_tree_hash: actual.action_tree_hash.0,
+            view_hash: actual.view_hash.0,
+            diagnostic_hash: None,
+            winner: actual.outcome.and_then(|outcome| match outcome {
+                directional_flip::TerminalOutcome::Win { seat } => Some(seat.as_str().to_owned()),
+                directional_flip::TerminalOutcome::Draw => None,
+            }),
+        }
+    }
+}
+
+fn push_actual_hashes(lines: &mut Vec<String>, actual: &ActualReplay) {
+    lines.push(format!("  state.final: {}", actual.state_hash));
+    lines.push(format!("  effect.final: {}", actual.effect_hash));
+    lines.push(format!("  action_tree.final: {}", actual.action_tree_hash));
+    lines.push(format!("  public_view.all: {}", actual.view_hash));
     if let Some(hash) = actual.diagnostic_hash {
-        lines.push(format!("  diagnostic: {}", hash.0));
+        lines.push(format!("  diagnostic: {hash}"));
     }
     lines.push(format!(
         "  outcome.winner: {}",
-        actual
-            .outcome
-            .map(|winner| winner.as_str().to_owned())
-            .unwrap_or_else(|| "none".to_owned())
+        actual.winner.as_deref().unwrap_or("none")
     ));
+}
+
+fn directional_replay_custom(
+    seed: u64,
+    mut state: directional_flip::DirectionalFlipState,
+    commands: &[String],
+) -> directional_flip::ReplayHashes {
+    let initial_snapshot =
+        directional_flip::DirectionalFlipSnapshot::from_state(&state).stable_summary();
+    directional_replay_from_state(seed, initial_snapshot, commands, &mut state)
+}
+
+fn directional_cell(
+    row: directional_flip::RowId,
+    column: directional_flip::ColumnId,
+) -> directional_flip::CellId {
+    directional_flip::CellId::new(row, column)
+}
+
+fn directional_occupy(
+    state: &mut directional_flip::DirectionalFlipState,
+    cell: directional_flip::CellId,
+    seat: directional_flip::DirectionalFlipSeat,
+) {
+    state.set_occupancy(cell, directional_flip::CellOccupancy::Occupied(seat));
+}
+
+fn directional_empty(
+    active: directional_flip::DirectionalFlipSeat,
+) -> directional_flip::DirectionalFlipState {
+    let seats = vec![
+        engine_core::SeatId("seat-0".to_owned()),
+        engine_core::SeatId("seat-1".to_owned()),
+    ];
+    let mut state = directional_flip::setup_match(
+        engine_core::Seed(1),
+        &seats,
+        &directional_flip::SetupOptions::default(),
+    )
+    .expect("directional fixture setup succeeds");
+    state.cells = directional_flip::DirectionalFlipState::empty_cells();
+    state.active_seat = active;
+    state.ply_count = 0;
+    state.consecutive_forced_passes = 0;
+    state.terminal_outcome = None;
+    state
+}
+
+fn no_move_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C1),
+        directional_flip::DirectionalFlipSeat::Seat0,
+    );
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R8, directional_flip::ColumnId::C8),
+        directional_flip::DirectionalFlipSeat::Seat1,
+    );
+    state
+}
+
+fn corner_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C2),
+        directional_flip::DirectionalFlipSeat::Seat1,
+    );
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C3),
+        directional_flip::DirectionalFlipSeat::Seat0,
+    );
+    state
+}
+
+fn full_board_terminal_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    for cell in directional_flip::CellId::ALL {
+        directional_occupy(
+            &mut state,
+            cell,
+            directional_flip::DirectionalFlipSeat::Seat0,
+        );
+    }
+    state.set_occupancy(
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C1),
+        directional_flip::CellOccupancy::Empty,
+    );
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C2),
+        directional_flip::DirectionalFlipSeat::Seat1,
+    );
+    state
+}
+
+fn multi_direction_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    for cell in [
+        directional_cell(directional_flip::RowId::R3, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R3, directional_flip::ColumnId::C5),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C5),
+        directional_cell(directional_flip::RowId::R5, directional_flip::ColumnId::C5),
+        directional_cell(directional_flip::RowId::R5, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R5, directional_flip::ColumnId::C3),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C3),
+        directional_cell(directional_flip::RowId::R3, directional_flip::ColumnId::C3),
+    ] {
+        directional_occupy(
+            &mut state,
+            cell,
+            directional_flip::DirectionalFlipSeat::Seat1,
+        );
+    }
+    for cell in [
+        directional_cell(directional_flip::RowId::R2, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R2, directional_flip::ColumnId::C6),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C6),
+        directional_cell(directional_flip::RowId::R6, directional_flip::ColumnId::C6),
+        directional_cell(directional_flip::RowId::R6, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R6, directional_flip::ColumnId::C2),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C2),
+        directional_cell(directional_flip::RowId::R2, directional_flip::ColumnId::C2),
+    ] {
+        directional_occupy(
+            &mut state,
+            cell,
+            directional_flip::DirectionalFlipSeat::Seat0,
+        );
+    }
+    state
 }
 
 fn parse_seats(path: &Path, input: &str) -> Result<Vec<SeatSummary>, String> {

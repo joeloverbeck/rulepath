@@ -32,6 +32,9 @@ jobs:
       - name: column_four bench smoke
         run: cargo bench -p column_four -- legal_actions
 
+      - name: directional_flip bench smoke
+        run: cargo bench -p directional_flip -- legal_actions
+
   bench-gate:
     name: Benchmark threshold gate
     if: github.event_name != 'pull_request'
@@ -49,3 +52,5 @@ jobs:
           cargo run -p bench-report -- --input /tmp/three_marks-benchmark-report.txt --thresholds games/three_marks/benches/thresholds.json
           cargo bench -p column_four | tee /tmp/column_four-benchmark-report.txt
           cargo run -p bench-report -- --input /tmp/column_four-benchmark-report.txt --thresholds games/column_four/benches/thresholds.json
+          cargo bench -p directional_flip | tee /tmp/directional_flip-benchmark-report.txt
+          cargo run -p bench-report -- --input /tmp/directional_flip-benchmark-report.txt --thresholds games/directional_flip/benches/thresholds.json

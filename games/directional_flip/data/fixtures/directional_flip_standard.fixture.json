@@ -1,0 +1,11 @@
+{
+  "fixture_id": "directional_flip_standard_gate6",
+  "game_id": "directional_flip",
+  "variant": "directional_flip_standard",
+  "rules_version": "directional_flip-rules-v1",
+  "purpose": "Gate 6 Directional Flip standard setup metadata.",
+  "trace_directory": "games/directional_flip/tests/golden_traces",
+  "trace_schema_version": 1,
+  "fixture_kinds": ["setup"],
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, rules, and replay tests."
+}

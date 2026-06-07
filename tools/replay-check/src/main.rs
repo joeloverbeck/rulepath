@@ -6,6 +6,10 @@ use std::{
 };
 
 use column_four::replay_support::replay_commands as column_replay_commands;
+use directional_flip::replay_support::{
+    replay_commands as directional_replay_commands,
+    replay_from_state as directional_replay_from_state,
+};
 use engine_core::{ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed};
 use race_to_n::replay_support::{
     replay_bot_action as race_replay_bot_action, replay_commands as race_replay_commands,
@@ -71,6 +75,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "column_four",
             rules_version: "column_four-rules-v1",
             trace_dir: "games/column_four/tests/golden_traces",
+        }),
+        "directional_flip" => Ok(RegisteredGame {
+            game_id: "directional_flip",
+            rules_version: "directional_flip-rules-v1",
+            trace_dir: "games/directional_flip/tests/golden_traces",
         }),
         _ => Err(format!("unsupported game `{game}`")),
     }
@@ -186,9 +195,11 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
-    println!("  replay-check --game <race_to_n|three_marks|column_four> --trace <path>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four> --all");
+    println!(
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip> --trace <path>"
+    );
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip> --all");
 }
 
 fn check_trace_path(
@@ -228,6 +239,8 @@ struct Trace {
     expected_diagnostic_hash: Option<u64>,
     expected_terminal: Option<bool>,
     expected_winner: Option<String>,
+    diagnostic_actor_seat: Option<String>,
+    diagnostic_freshness_token: Option<u64>,
 }
 
 impl Trace {
@@ -310,6 +323,9 @@ impl Trace {
                 "expected_terminal_state",
                 "winner",
             )?,
+            diagnostic_actor_seat: last_command_string_field(input, "actor_seat"),
+            diagnostic_freshness_token: last_command_string_field(input, "freshness_token")
+                .and_then(|value| value.parse().ok()),
         };
         Ok(trace)
     }
@@ -429,6 +445,7 @@ impl Trace {
             "race_to_n" => self.race_actual_hashes(),
             "three_marks" => self.three_actual_hashes(),
             "column_four" => self.column_actual_hashes(),
+            "directional_flip" => self.directional_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -571,6 +588,100 @@ impl Trace {
         Ok(HashValue::from_stable_bytes(
             format!("{}:{}", diagnostic.code, diagnostic.message).as_bytes(),
         ))
+    }
+
+    fn directional_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let (commands, diagnostic_hash) = if self.fixture_kind == "diagnostic" {
+            let diagnostic = self
+                .commands
+                .last()
+                .cloned()
+                .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
+            let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+            (
+                setup.clone(),
+                Some(self.directional_diagnostic_hash(&setup, &diagnostic)?),
+            )
+        } else {
+            (self.commands.clone(), None)
+        };
+
+        let Some(hashes) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" | "bot" | "diagnostic" => {
+                Some(self.directional_replay_hashes(&commands))
+            }
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: hashes.state_hash,
+            effect_hash: hashes.effect_hash,
+            action_tree_hash: hashes.action_tree_hash,
+            view_hash: hashes.view_hash,
+            diagnostic_hash,
+            terminal: hashes.terminal,
+            winner: hashes.outcome.and_then(|outcome| match outcome {
+                directional_flip::TerminalOutcome::Win { seat } => Some(seat.as_str().to_owned()),
+                directional_flip::TerminalOutcome::Draw => None,
+            }),
+        }))
+    }
+
+    fn directional_diagnostic_hash(
+        &self,
+        setup_commands: &[String],
+        diagnostic_command: &str,
+    ) -> Result<HashValue, String> {
+        let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+        let mut state = directional_flip::setup_match(
+            Seed(self.seed),
+            &seats,
+            &directional_flip::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        for segment in setup_commands {
+            let command = directional_command_for_state(&state, segment.clone());
+            let action =
+                directional_flip::validate_command(&state, &command).map_err(diagnostic_string)?;
+            directional_flip::apply_action(&mut state, action);
+        }
+        let actor_seat = self
+            .diagnostic_actor_seat
+            .as_deref()
+            .and_then(directional_flip::DirectionalFlipSeat::parse)
+            .unwrap_or(state.active_seat);
+        let mut command = directional_command_for_seat(&state, actor_seat, diagnostic_command);
+        if let Some(freshness_token) = self.diagnostic_freshness_token {
+            command.freshness_token = engine_core::FreshnessToken(freshness_token);
+        }
+        let diagnostic = directional_flip::validate_command(&state, &command)
+            .expect_err("diagnostic trace command must reject");
+        Ok(HashValue::from_stable_bytes(
+            format!("{}:{}", diagnostic.code, diagnostic.message).as_bytes(),
+        ))
+    }
+
+    fn directional_replay_hashes(&self, commands: &[String]) -> directional_flip::ReplayHashes {
+        match self.trace_id.as_str() {
+            "directional-flip-multi-direction-flip" => {
+                directional_replay_custom(self.seed, multi_direction_state(), commands)
+            }
+            "directional-flip-corner-capture" => {
+                directional_replay_custom(self.seed, corner_state(), commands)
+            }
+            "directional-flip-forced-pass"
+            | "directional-flip-double-pass-terminal"
+            | "directional-flip-draw" => {
+                directional_replay_custom(self.seed, no_move_state(), commands)
+            }
+            "directional-flip-full-board-terminal" => {
+                directional_replay_custom(self.seed, full_board_terminal_state(), commands)
+            }
+            _ => directional_replay_commands(self.seed, commands),
+        }
     }
 
     fn compare_hash(
@@ -864,6 +975,14 @@ fn command_with_expect(input: &str, expected_code: &str) -> Option<String> {
         })
 }
 
+fn last_command_string_field(input: &str, key: &str) -> Option<String> {
+    let command_end = input.find("\"checkpoints\":").unwrap_or(input.len());
+    let before_checkpoints = &input[..command_end];
+    let needle = format!("\"{key}\":");
+    let start = before_checkpoints.rfind(&needle)? + needle.len();
+    parse_string_at(before_checkpoints, start)
+}
+
 fn object_body(input: &str, key: &str) -> Result<String, String> {
     let needle = format!("\"{key}\":");
     let start = input
@@ -951,6 +1070,158 @@ fn column_command_for_state(
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn directional_command_for_state(
+    state: &directional_flip::DirectionalFlipState,
+    segment: String,
+) -> CommandEnvelope {
+    directional_command_for_seat(state, state.active_seat, &segment)
+}
+
+fn directional_command_for_seat(
+    state: &directional_flip::DirectionalFlipState,
+    seat: directional_flip::DirectionalFlipSeat,
+    segment: &str,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: vec![segment.to_owned()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn directional_replay_custom(
+    seed: u64,
+    mut state: directional_flip::DirectionalFlipState,
+    commands: &[String],
+) -> directional_flip::ReplayHashes {
+    let initial_snapshot =
+        directional_flip::DirectionalFlipSnapshot::from_state(&state).stable_summary();
+    directional_replay_from_state(seed, initial_snapshot, commands, &mut state)
+}
+
+fn directional_cell(
+    row: directional_flip::RowId,
+    column: directional_flip::ColumnId,
+) -> directional_flip::CellId {
+    directional_flip::CellId::new(row, column)
+}
+
+fn directional_occupy(
+    state: &mut directional_flip::DirectionalFlipState,
+    cell: directional_flip::CellId,
+    seat: directional_flip::DirectionalFlipSeat,
+) {
+    state.set_occupancy(cell, directional_flip::CellOccupancy::Occupied(seat));
+}
+
+fn directional_empty(
+    active: directional_flip::DirectionalFlipSeat,
+) -> directional_flip::DirectionalFlipState {
+    let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+    let mut state =
+        directional_flip::setup_match(Seed(1), &seats, &directional_flip::SetupOptions::default())
+            .expect("directional fixture setup succeeds");
+    state.cells = directional_flip::DirectionalFlipState::empty_cells();
+    state.active_seat = active;
+    state.ply_count = 0;
+    state.consecutive_forced_passes = 0;
+    state.terminal_outcome = None;
+    state
+}
+
+fn no_move_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C1),
+        directional_flip::DirectionalFlipSeat::Seat0,
+    );
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R8, directional_flip::ColumnId::C8),
+        directional_flip::DirectionalFlipSeat::Seat1,
+    );
+    state
+}
+
+fn corner_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C2),
+        directional_flip::DirectionalFlipSeat::Seat1,
+    );
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C3),
+        directional_flip::DirectionalFlipSeat::Seat0,
+    );
+    state
+}
+
+fn full_board_terminal_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    for cell in directional_flip::CellId::ALL {
+        directional_occupy(
+            &mut state,
+            cell,
+            directional_flip::DirectionalFlipSeat::Seat0,
+        );
+    }
+    state.set_occupancy(
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C1),
+        directional_flip::CellOccupancy::Empty,
+    );
+    directional_occupy(
+        &mut state,
+        directional_cell(directional_flip::RowId::R1, directional_flip::ColumnId::C2),
+        directional_flip::DirectionalFlipSeat::Seat1,
+    );
+    state
+}
+
+fn multi_direction_state() -> directional_flip::DirectionalFlipState {
+    let mut state = directional_empty(directional_flip::DirectionalFlipSeat::Seat0);
+    for cell in [
+        directional_cell(directional_flip::RowId::R3, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R3, directional_flip::ColumnId::C5),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C5),
+        directional_cell(directional_flip::RowId::R5, directional_flip::ColumnId::C5),
+        directional_cell(directional_flip::RowId::R5, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R5, directional_flip::ColumnId::C3),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C3),
+        directional_cell(directional_flip::RowId::R3, directional_flip::ColumnId::C3),
+    ] {
+        directional_occupy(
+            &mut state,
+            cell,
+            directional_flip::DirectionalFlipSeat::Seat1,
+        );
+    }
+    for cell in [
+        directional_cell(directional_flip::RowId::R2, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R2, directional_flip::ColumnId::C6),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C6),
+        directional_cell(directional_flip::RowId::R6, directional_flip::ColumnId::C6),
+        directional_cell(directional_flip::RowId::R6, directional_flip::ColumnId::C4),
+        directional_cell(directional_flip::RowId::R6, directional_flip::ColumnId::C2),
+        directional_cell(directional_flip::RowId::R4, directional_flip::ColumnId::C2),
+        directional_cell(directional_flip::RowId::R2, directional_flip::ColumnId::C2),
+    ] {
+        directional_occupy(
+            &mut state,
+            cell,
+            directional_flip::DirectionalFlipSeat::Seat0,
+        );
+    }
+    state
 }
 
 fn diagnostic_string(diagnostic: engine_core::Diagnostic) -> String {

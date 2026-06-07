@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "trace_id": "directional-flip-wasm-exported",
+  "fixture_kind": "commands",
+  "purpose": "wasm_exported_replay",
+  "note": "Directional Flip wasm_exported_replay golden trace. ",
+  "migration_update_note": "Initial Directional Flip Trace Schema v1 fixture established by GAT6DIRFLI-013.",
+  "game_id": "directional_flip",
+  "rules_version": "directional_flip-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 14,
+  "variant": "directional_flip_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["place/r3c4"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["place/r3c5"], "freshness_token": "1", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 1 }
+  ],
+  "expected_state_hashes": { "final": 2787152126558142640 },
+  "expected_effect_hashes": { "final": 3106561790124744089 },
+  "expected_action_tree_hashes": { "final": 1474168140919569041 },
+  "expected_public_view_hashes": { "all": 5977257068552995358 },
+  "expected_replay_hashes": { "final": 12408234635101059065 },
+  "expected_private_view_hashes": {
+    "not_applicable": "directional_flip is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "directional_flip is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "directional_flip game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "directional_flip has no private-view API.",
+    "preview_hashes": "directional_flip records previews in action-tree metadata and replay projections."
+  }
+}
