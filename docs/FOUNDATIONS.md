@@ -74,6 +74,8 @@ The normal rule:
 - second similar use: implement locally, compare, and update mechanic inventories/atlas notes;
 - third official use: hard gate. The game MUST NOT proceed until the primitive-pressure ledger decides reuse, narrow promotion, explicit deferral/rejection with rationale, or ADR escalation.
 
+Promotion is not only extraction. When a helper is promoted to `game-stdlib`, every earlier official game identified by the atlas as using the promoted mechanic shape MUST either migrate to that helper or carry an explicit accepted exception. Same-gate deferral is allowed only when it is recorded as promotion debt with named games, named primitive, evidence, risk, and the closure gate. Unless an accepted exception says otherwise, the next implementation spec before further mechanic-ladder advancement MUST close open promotion debt.
+
 No helper may enter `engine-core` merely because multiple games use it.
 
 ## 5. Static data is typed content, not behavior
@@ -163,6 +165,8 @@ Every substantial change, official game, and ADR MUST satisfy these invariants u
 - TypeScript does not decide legality.
 - `engine-core` contains generic contracts only and remains free of mechanic nouns.
 - `game-stdlib` changes are earned through the mechanic atlas.
+- Promoted `game-stdlib` primitives are adopted by all matching official games, or each non-adoption has an explicit accepted exception in the atlas.
+- Open promotion debt is closed before the next mechanic-ladder gate unless an accepted exception or ADR says otherwise.
 - Third-use mechanic pressure is resolved before proceeding.
 - Static data is typed content/parameters/metadata/fixtures/traces only.
 - Unknown fields in hand-authored data are rejected by default.
@@ -195,6 +199,8 @@ Stop and reassess before continuing when any of these happens:
 - hidden information reaches browser payloads, DOM, local storage, logs, previews, bot explanations, candidate rankings, or replay exports;
 - a bot bypasses legal action APIs or uses unauthorized hidden state;
 - a third repeated mechanic proceeds without ledger decision;
+- a promoted primitive leaves matching prior official games un-migrated without an explicit exception or recorded promotion-debt closure gate;
+- a new mechanic-ladder gate proceeds while promotion debt is still open;
 - official games lack docs, traces, simulations, benchmarks, rule coverage, replay, or serialization tests;
 - public UI becomes debug-first;
 - private licensed content enters public files, public CI, public docs, public traces, public bundles, or public WASM/JS;

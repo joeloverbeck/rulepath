@@ -260,6 +260,15 @@ A helper belongs in `game-stdlib` only when:
 - no game noun enters `engine-core`;
 - no static data language appears.
 
+Promotion creates conformance work as well as shared code. When a helper enters `game-stdlib`, the atlas MUST name every official game already using the promoted mechanic shape and classify it as one of:
+
+- migrated to the helper;
+- to be migrated by a named closure gate;
+- not applicable after audit;
+- explicitly excepted with evidence.
+
+An exception MUST name the game, the primitive, the reason for non-migration, the evidence that no generic primitive is being duplicated or forked, and the next review trigger. A same-gate deferral that leaves matching games local is promotion debt, not completion. Open promotion debt blocks further mechanic-ladder advancement unless an accepted ADR or exception says otherwise.
+
 A helper with many game-specific flags is not ready. A helper invented for a future private monster game is forbidden.
 
 ## 14. Future DSL policy

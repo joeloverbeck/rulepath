@@ -1,3 +1,5 @@
+use game_stdlib::board_space::{Coord, Dimensions};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum ColumnFourSeat {
     Seat0,
@@ -54,6 +56,10 @@ pub enum ColumnId {
     C7,
 }
 
+pub fn board_dimensions() -> Dimensions {
+    Dimensions::checked(6, 7).expect("column_four board dimensions are valid")
+}
+
 impl ColumnId {
     pub const ALL: [Self; 7] = [
         Self::C1,
@@ -66,28 +72,16 @@ impl ColumnId {
     ];
 
     pub fn from_index(index: usize) -> Option<Self> {
-        match index {
-            0 => Some(Self::C1),
-            1 => Some(Self::C2),
-            2 => Some(Self::C3),
-            3 => Some(Self::C4),
-            4 => Some(Self::C5),
-            5 => Some(Self::C6),
-            6 => Some(Self::C7),
-            _ => None,
-        }
+        let col = u8::try_from(index + 1).ok()?;
+        let coord = board_dimensions().coord(1, col)?;
+        Self::from_board_col(coord.col())
     }
 
     pub fn index(self) -> usize {
-        match self {
-            Self::C1 => 0,
-            Self::C2 => 1,
-            Self::C3 => 2,
-            Self::C4 => 3,
-            Self::C5 => 4,
-            Self::C6 => 5,
-            Self::C7 => 6,
-        }
+        board_dimensions()
+            .coord(1, self.board_col())
+            .expect("ColumnId is within the column_four board")
+            .col_index()
     }
 
     pub fn as_str(self) -> &'static str {
@@ -103,14 +97,32 @@ impl ColumnId {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "c1" => Some(Self::C1),
-            "c2" => Some(Self::C2),
-            "c3" => Some(Self::C3),
-            "c4" => Some(Self::C4),
-            "c5" => Some(Self::C5),
-            "c6" => Some(Self::C6),
-            "c7" => Some(Self::C7),
+        let col = value.strip_prefix('c')?.parse::<u8>().ok()?;
+        let coord = board_dimensions().coord(1, col)?;
+        (value == format!("c{}", coord.col())).then(|| Self::from_board_col(coord.col()))?
+    }
+
+    fn board_col(self) -> u8 {
+        match self {
+            Self::C1 => 1,
+            Self::C2 => 2,
+            Self::C3 => 3,
+            Self::C4 => 4,
+            Self::C5 => 5,
+            Self::C6 => 6,
+            Self::C7 => 7,
+        }
+    }
+
+    fn from_board_col(col: u8) -> Option<Self> {
+        match col {
+            1 => Some(Self::C1),
+            2 => Some(Self::C2),
+            3 => Some(Self::C3),
+            4 => Some(Self::C4),
+            5 => Some(Self::C5),
+            6 => Some(Self::C6),
+            7 => Some(Self::C7),
             _ => None,
         }
     }
@@ -130,26 +142,16 @@ impl RowId {
     pub const ALL: [Self; 6] = [Self::R1, Self::R2, Self::R3, Self::R4, Self::R5, Self::R6];
 
     pub fn from_index(index: usize) -> Option<Self> {
-        match index {
-            0 => Some(Self::R1),
-            1 => Some(Self::R2),
-            2 => Some(Self::R3),
-            3 => Some(Self::R4),
-            4 => Some(Self::R5),
-            5 => Some(Self::R6),
-            _ => None,
-        }
+        let row = u8::try_from(index + 1).ok()?;
+        let coord = board_dimensions().coord(row, 1)?;
+        Self::from_board_row(coord.row())
     }
 
     pub fn index(self) -> usize {
-        match self {
-            Self::R1 => 0,
-            Self::R2 => 1,
-            Self::R3 => 2,
-            Self::R4 => 3,
-            Self::R5 => 4,
-            Self::R6 => 5,
-        }
+        board_dimensions()
+            .coord(self.board_row(), 1)
+            .expect("RowId is within the column_four board")
+            .row_index()
     }
 
     pub fn as_str(self) -> &'static str {
@@ -164,13 +166,30 @@ impl RowId {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "r1" => Some(Self::R1),
-            "r2" => Some(Self::R2),
-            "r3" => Some(Self::R3),
-            "r4" => Some(Self::R4),
-            "r5" => Some(Self::R5),
-            "r6" => Some(Self::R6),
+        let row = value.strip_prefix('r')?.parse::<u8>().ok()?;
+        let coord = board_dimensions().coord(row, 1)?;
+        (value == format!("r{}", coord.row())).then(|| Self::from_board_row(coord.row()))?
+    }
+
+    fn board_row(self) -> u8 {
+        match self {
+            Self::R1 => 1,
+            Self::R2 => 2,
+            Self::R3 => 3,
+            Self::R4 => 4,
+            Self::R5 => 5,
+            Self::R6 => 6,
+        }
+    }
+
+    fn from_board_row(row: u8) -> Option<Self> {
+        match row {
+            1 => Some(Self::R1),
+            2 => Some(Self::R2),
+            3 => Some(Self::R3),
+            4 => Some(Self::R4),
+            5 => Some(Self::R5),
+            6 => Some(Self::R6),
             _ => None,
         }
     }
@@ -233,24 +252,115 @@ impl CellId {
     }
 
     pub fn index(self) -> usize {
-        self.row.index() * ColumnId::ALL.len() + self.column.index()
+        self.to_coord()
+            .row_col_index(board_dimensions())
+            .expect("CellId is within the column_four board")
     }
 
     pub fn as_string(self) -> String {
-        format!("{}{}", self.row.as_str(), self.column.as_str())
+        self.to_coord().id()
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        if value.len() != 4 {
+        let coord = board_dimensions()
+            .parse_coord_id(value)
+            .ok()
+            .filter(|coord| coord.id() == value)?;
+        Self::from_coord(coord)
+    }
+
+    pub fn to_coord(self) -> Coord {
+        board_dimensions()
+            .coord(self.row.board_row(), self.column.board_col())
+            .expect("CellId coordinates are within the column_four board")
+    }
+
+    pub fn from_coord(coord: Coord) -> Option<Self> {
+        if !board_dimensions().contains(coord) {
             return None;
         }
 
-        let row = RowId::parse(&value[0..2])?;
-        let column = ColumnId::parse(&value[2..4])?;
-        Some(Self { row, column })
+        Some(Self {
+            row: RowId::from_board_row(coord.row())?,
+            column: ColumnId::from_board_col(coord.col())?,
+        })
     }
 }
 
 pub const GAME_ID: &str = "column_four";
 pub const RULES_VERSION_LABEL: &str = "column_four-rules-v1";
 pub const VARIANT_ID: &str = "column_four_standard";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cell_ids_round_trip_through_board_space_coords() {
+        for cell in CellId::ALL {
+            let coord = cell.to_coord();
+
+            assert_eq!(CellId::from_coord(coord), Some(cell));
+            assert_eq!(CellId::parse(&coord.id()), Some(cell));
+            assert_eq!(cell.as_string(), coord.id());
+        }
+
+        assert_eq!(CellId::from_coord(Coord::checked(7, 1).unwrap()), None);
+        assert_eq!(CellId::parse("r0c1"), None);
+        assert_eq!(CellId::parse("r01c1"), None);
+        assert_eq!(CellId::parse("r1c8"), None);
+        assert_eq!(CellId::parse("c1"), None);
+    }
+
+    #[test]
+    fn cell_ids_preserve_public_row_major_order_and_indices() {
+        let expected = CellId::ALL;
+
+        assert_eq!(
+            board_dimensions()
+                .row_major()
+                .map(CellId::from_coord)
+                .collect::<Option<Vec<_>>>()
+                .unwrap(),
+            expected
+        );
+
+        for (expected_index, cell) in expected.into_iter().enumerate() {
+            assert_eq!(cell.index(), expected_index);
+        }
+        assert_eq!(CellId::ALL.first().unwrap().as_string(), "r1c1");
+        assert_eq!(CellId::ALL.last().unwrap().as_string(), "r6c7");
+    }
+
+    #[test]
+    fn row_and_column_ids_preserve_public_order_and_canonical_parse() {
+        assert_eq!(
+            ColumnId::ALL,
+            [
+                ColumnId::C1,
+                ColumnId::C2,
+                ColumnId::C3,
+                ColumnId::C4,
+                ColumnId::C5,
+                ColumnId::C6,
+                ColumnId::C7
+            ]
+        );
+
+        for (index, row) in RowId::ALL.into_iter().enumerate() {
+            assert_eq!(RowId::from_index(index), Some(row));
+            assert_eq!(row.index(), index);
+            assert_eq!(RowId::parse(row.as_str()), Some(row));
+        }
+        for (index, column) in ColumnId::ALL.into_iter().enumerate() {
+            assert_eq!(ColumnId::from_index(index), Some(column));
+            assert_eq!(column.index(), index);
+            assert_eq!(ColumnId::parse(column.as_str()), Some(column));
+        }
+
+        assert_eq!(RowId::parse("r01"), None);
+        assert_eq!(ColumnId::parse("c01"), None);
+        assert_eq!(RowId::from_index(6), None);
+        assert_eq!(ColumnId::from_index(7), None);
+    }
+}

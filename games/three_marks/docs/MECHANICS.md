@@ -4,7 +4,7 @@ Game ID: `three_marks`
 
 Rules version: `three_marks-rules-v1`
 
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 ## Purpose
 
@@ -14,7 +14,7 @@ This inventory records the mechanic shapes introduced by Three Marks and their e
 
 | Category | Game-local description | Evidence | Status | Notes |
 |---|---|---|---|---|
-| topology/spatial model | Fixed 3 by 3 public cell grid. | `CellId`, `ThreeMarksState`, `PublicView`. | `local-only` | First implemented board. No `engine-core` board noun. |
+| topology/spatial model | Fixed 3 by 3 public cell grid. | `CellId`, `game-stdlib::board_space`, `ThreeMarksState`, `PublicView`. | `promoted-primitive-conformant` | Coordinate/cell identity uses the promoted `board_space` primitive; no `engine-core` board noun. |
 | component/zone model | Nine cells, two seats, public marks. | `ids.rs`, `state.rs`, `ui.rs`. | `local-only` | No zones, hands, decks, or hidden areas. |
 | action shape | Flat targeted placement `place/<cell>` for Rust-provided empty cells. | `actions.rs`, rule/property tests. | `local-only` | UI renders action ids; it does not decide legality. |
 | turn/phase model | Alternating single-action turns until win or draw. | `rules.rs`, traces. | `local-only` | No phases, reactions, simultaneous choices, or cleanup windows. |
@@ -44,7 +44,10 @@ This inventory records the mechanic shapes introduced by Three Marks and their e
 
 ## Extraction rationale
 
-Three Marks is the first official board game. Extracting a board, coordinate, occupancy, or line-scan helper now would generalize from one game and violate `docs/FOUNDATIONS.md` and `docs/MECHANIC-ATLAS.md`. All board vocabulary remains under `games/three_marks`; `game-stdlib` receives no helper and `engine-core` remains noun-free.
+Three Marks now conforms its 3 by 3 coordinate/cell identity to the promoted
+`game-stdlib::board_space` primitive. Placement, occupancy, win-line detection,
+effects, bot policy, and UI projection remain game-local; `engine-core` remains
+noun-free.
 
 ## Review checklist
 

@@ -2,7 +2,7 @@ use engine_core::{Actor, CommandEnvelope, Diagnostic, EffectEnvelope};
 
 use crate::{
     effects::{display_to_anchor, public_effect, DirectionalFlipEffect, FlipEntry, TerminalReason},
-    ids::{CellId, DirectionalFlipSeat},
+    ids::{board_dimensions, CellId, DirectionalFlipSeat},
     state::{CellOccupancy, DirectionalFlipSnapshot, DirectionalFlipState, TerminalOutcome},
 };
 
@@ -46,7 +46,7 @@ impl Direction {
         }
     }
 
-    fn delta(self) -> (isize, isize) {
+    fn delta(self) -> (i16, i16) {
         match self {
             Self::North => (-1, 0),
             Self::Northeast => (-1, 1),
@@ -427,13 +427,8 @@ fn game_ended_effect(
 
 fn step(cell: CellId, direction: Direction) -> Option<CellId> {
     let (row_delta, column_delta) = direction.delta();
-    let row = cell.row.index() as isize + row_delta;
-    let column = cell.column.index() as isize + column_delta;
-    if row < 0 || column < 0 {
-        return None;
-    }
-
-    DirectionalFlipState::cell(row as usize, column as usize)
+    let coord = board_dimensions().offset(cell.to_coord(), row_delta, column_delta)?;
+    CellId::from_coord(coord)
 }
 
 fn diagnostic(code: &str, message: &str) -> Diagnostic {
@@ -490,6 +485,78 @@ mod tests {
         state.cells = DirectionalFlipState::empty_cells();
         state.active_seat = active;
         state
+    }
+
+    #[test]
+    fn direction_order_is_stable() {
+        assert_eq!(
+            Direction::ALL,
+            [
+                Direction::North,
+                Direction::Northeast,
+                Direction::East,
+                Direction::Southeast,
+                Direction::South,
+                Direction::Southwest,
+                Direction::West,
+                Direction::Northwest
+            ]
+        );
+    }
+
+    #[test]
+    fn step_uses_board_space_offsets_without_changing_edges() {
+        let center = cell(RowId::R4, ColumnId::C4);
+        assert_eq!(
+            step(center, Direction::North),
+            Some(cell(RowId::R3, ColumnId::C4))
+        );
+        assert_eq!(
+            step(center, Direction::Northeast),
+            Some(cell(RowId::R3, ColumnId::C5))
+        );
+        assert_eq!(
+            step(center, Direction::East),
+            Some(cell(RowId::R4, ColumnId::C5))
+        );
+        assert_eq!(
+            step(center, Direction::Southeast),
+            Some(cell(RowId::R5, ColumnId::C5))
+        );
+        assert_eq!(
+            step(center, Direction::South),
+            Some(cell(RowId::R5, ColumnId::C4))
+        );
+        assert_eq!(
+            step(center, Direction::Southwest),
+            Some(cell(RowId::R5, ColumnId::C3))
+        );
+        assert_eq!(
+            step(center, Direction::West),
+            Some(cell(RowId::R4, ColumnId::C3))
+        );
+        assert_eq!(
+            step(center, Direction::Northwest),
+            Some(cell(RowId::R3, ColumnId::C3))
+        );
+
+        let top_left = cell(RowId::R1, ColumnId::C1);
+        assert_eq!(step(top_left, Direction::North), None);
+        assert_eq!(step(top_left, Direction::Northwest), None);
+        assert_eq!(step(top_left, Direction::West), None);
+        assert_eq!(
+            step(top_left, Direction::Southeast),
+            Some(cell(RowId::R2, ColumnId::C2))
+        );
+
+        let bottom_right = cell(RowId::R8, ColumnId::C8);
+        assert_eq!(step(bottom_right, Direction::South), None);
+        assert_eq!(step(bottom_right, Direction::Southeast), None);
+        assert_eq!(step(bottom_right, Direction::East), None);
+        assert_eq!(
+            step(bottom_right, Direction::Northwest),
+            Some(cell(RowId::R7, ColumnId::C7))
+        );
     }
 
     #[test]

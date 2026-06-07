@@ -6,19 +6,19 @@ Roadmap stage/gate: Gate 5 public showcase
 
 Rules version: `column_four-rules-v1`
 
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 ## Purpose
 
 This inventory records Column Four's local mechanic shapes and primitive-pressure posture. It is evidence for [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md); it is not permission to generalize.
 
-Column Four is the second official public board game after `three_marks`, so the repeated fixed-grid, occupancy, and line-detection shapes are recorded honestly. No extraction to `engine-core` or `game-stdlib` occurs in Gate 5.
+Column Four is the second official public board game after `three_marks`, so the repeated fixed-grid, occupancy, and line-detection shapes are recorded honestly. Gate 7.1 back-ported the promoted `game-stdlib::board_space` coordinate/cell identity primitive; no extraction to `engine-core` occurs.
 
 ## Mechanic Inventory
 
 | Category | Game-local description | Evidence in rules | Current status | Notes |
 |---|---|---|---|---|
-| topology/spatial model | Fixed 7 by 6 public grid with cells `r1c1` through `r6c7`, rows counted bottom to top. | `CF-COMP-001` through `CF-COMP-005`, `CF-AMB-003` in [RULES.md](RULES.md) | `repeated-shape candidate` | Similar public grid pressure to Three Marks, but gravity and column targeting are game-local. |
+| topology/spatial model | Fixed 7 by 6 public grid with cells `r1c1` through `r6c7`, rows counted bottom to top. | `game-stdlib::board_space`; `CF-COMP-001` through `CF-COMP-005`, `CF-AMB-003` in [RULES.md](RULES.md) | `promoted-primitive-conformant` | Coordinate/cell identity uses `board_space`; columns, gravity, and line scans are game-local. |
 | component/zone model | Forty-two public cells, seven public columns, two seats, no hands/decks/zones. | `CF-SETUP-001` through `CF-SETUP-003` | `local-only` | Perfect-information board only. |
 | action shape | Flat Rust action choices `drop/c1` through `drop/c7`; UI exposes columns, not cells. | `CF-ACTION-001`, `CF-RESTRICT-001` through `CF-RESTRICT-004` | `local-only` | TypeScript maps Rust legal targets to seven controls. |
 | turn/phase model | Alternating one-drop turns until win or draw. | `CF-TURN-001` through `CF-TURN-003` | `local-only` | No phases, reactions, forced windows, or simultaneous choices. |
@@ -79,7 +79,7 @@ Column Four is the second official public board game after `three_marks`, so the
 
 | Shape | Decision | Rationale | Back-port needed? | Trace impact | Benchmark impact |
 |---|---|---|---:|---|---|
-| fixed public grid occupancy | defer | This is a second-use candidate, not enough evidence for a stable primitive boundary. Dimensions, targeting, and gravity differ. | no | none | none |
+| fixed public grid occupancy | partial promoted-primitive conformance | Coordinate/cell identity conforms to `game-stdlib::board_space`; occupancy, targeting, and gravity remain local because they differ materially from other games. | complete for coordinate identity | none | none |
 | line/pattern detection | defer | Similar terminal shape exists in Three Marks, but Column Four needs length-four directional scans and primary-line tie-breaks. | no | none | none |
 | column gravity | local | First official use of gravity placement. | no | none | Column Four benchmarks cover local hot paths. |
 | bot tactical policy | local | Strategy is game-specific and documented in the evidence pack. | no | none | bot-decision benches stay game-local. |
@@ -106,6 +106,7 @@ Column Four is the second official public board game after `three_marks`, so the
 ## Review Checklist
 
 - Grid, column, cell, gravity, and line vocabulary remains game-local.
+- Coordinate/cell identity conforms to `game-stdlib::board_space`.
 - Rust owns legality, validation, effects, bot decisions, replay, and public views.
 - TypeScript presents Rust/WASM output only.
 - Second-use board and line pressure is recorded and deferred.

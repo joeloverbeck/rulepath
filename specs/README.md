@@ -18,8 +18,9 @@ foundation document wins.
 
 This table is the **living progress record**. A new brainstorm that wants to
 "produce the next spec to continue the roadmap" should read this first and pick
-the lowest-numbered gate whose status is not `Done`. ROADMAP.md is not edited to
-record progress; this table is.
+the lowest-numbered gate or maintenance interlock whose status is not `Done`.
+Open primitive-promotion debt is treated as an interlock before the next new
+mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is.
 
 | Stage | Gate | Spec | Status |
 |---:|---|---|---|
@@ -31,6 +32,7 @@ record progress; this table is.
 | 3 | Gate 5 | [`gate-5-column-four-public-polish.md`](../archive/specs/gate-5-column-four-public-polish.md) | Done |
 | 4 | Gate 6 | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
 | 5 | Gate 7 | [`gate-7-draughts-lite-compound-action-tree.md`](../archive/specs/gate-7-draughts-lite-compound-action-tree.md) | Done |
+| 5M | Gate 7.1 | [`gate-7-1-board-space-primitive-back-port.md`](../archive/specs/gate-7-1-board-space-primitive-back-port.md) | Done |
 | 6 | Gate 8 | `high_card_duel` / `blackjack_lite` — not yet specced | Not started |
 | 7 | Gate 9 | `token_bazaar` / `secret_draft` — not yet specced | Not started |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |
@@ -70,8 +72,9 @@ omissions.
 
 ## Workflow
 
-1. Pick the lowest non-`Done` gate from the index.
-2. Write its spec from the format above, grounded in ROADMAP + the foundation set.
-3. Decompose the work breakdown into `tasks/` AGENT-TASK packets.
-4. Execute, gathering the acceptance evidence.
-5. When exit criteria pass, flip the index status to `Done` and admit the next gate.
+1. Pick the lowest non-`Done` gate or maintenance interlock from the index.
+2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for open promotion debt and close it first unless an accepted exception or ADR says otherwise.
+3. Write its spec from the format above, grounded in ROADMAP + the foundation set.
+4. Decompose the work breakdown into `tasks/` AGENT-TASK packets after the spec is accepted.
+5. Execute, gathering the acceptance evidence.
+6. When exit criteria pass, flip the index status to `Done` and admit the next gate.

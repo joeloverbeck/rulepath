@@ -120,6 +120,8 @@ No silent gaps. A public showcase game SHOULD have no `open` rows.
 
 Every official game MUST maintain `MECHANICS.md` and update the repo-level [MECHANIC-ATLAS.md](MECHANIC-ATLAS.md) when repeated shapes appear.
 
+When the atlas records a promoted `game-stdlib` primitive whose scope matches an official game, the game is not contract-clean until it either uses that primitive or has an accepted atlas exception. This applies retroactively to earlier official games when the primitive is promoted later. Public behavior, traces, replay hashes, action order, diagnostics, semantic effects, visibility, bot legality, and UI surfaces remain stable by default during conformance work.
+
 The inventory MUST cover topology/spatial model, components/zones, action shape, turn/phase model, randomness, visibility, resources/accounting, movement/capture/placement, pattern/directional scanning, commitment/reveal, reaction windows, scoring/outcome, semantic effects, UI interaction pattern, bot policy pattern, and benchmark pressure.
 
 Game-specific nouns are correct inside game inventories. Shared atlas entries should describe mechanic shapes, not commercial product identities.
@@ -195,6 +197,7 @@ Before marking a game official, verify:
 - rule coverage has no silent gaps;
 - mechanic inventory is complete;
 - atlas/ledger pressure is updated;
+- any matching promoted `game-stdlib` primitive is used, or a named atlas exception explains why not;
 - random legal bot exists;
 - non-random bots have evidence, tests, explanations, and benchmarks;
 - replay determinism passes;

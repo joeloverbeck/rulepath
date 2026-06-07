@@ -276,6 +276,10 @@ Promoted `game-stdlib` helpers MUST have:
 
 A third official game MUST NOT proceed through duplicated mechanic code without ledger decision.
 
+When a primitive has already been promoted, conformance/back-port work MUST prove that prior official games still satisfy their existing test, replay, trace, visibility, bot, benchmark, fixture, and UI smoke contracts. Golden traces and hashes are preservation evidence, not disposable fixtures. Updating them is allowed only when the accepted spec explicitly authorizes a behavior or format migration and the migration note explains why the old evidence is no longer valid.
+
+A game that is audited as not applicable MUST still have documentary evidence explaining why the promoted primitive's scope does not match that game. An exception MUST name the game, primitive, reason, evidence, and next review trigger.
+
 ## 13. Failing-test protocol
 
 When tests fail, humans and agents MUST:
