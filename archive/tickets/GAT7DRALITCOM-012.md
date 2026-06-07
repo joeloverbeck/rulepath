@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-012: Bots — Level 0 recursive random-legal & Level 1 rule-informed
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/draughts_lite/src/bots.rs` (Level 0 recursive random-legal selection over the nested action tree; Level 1 modest rule-informed policy), `src/lib.rs` (export); reuses `crates/ai-core` recursive random-legal behavior.
@@ -76,3 +76,23 @@ Implement the documented §R17 heuristics as a deterministic ranking over comple
 1. `cargo test -p draughts_lite bots`
 2. `cargo test -p draughts_lite && bash scripts/boundary-check.sh`
 3. Crate-scoped bot tests are correct; bot-vs-bot simulation throughput is verified via `tools/simulate` (GAT7DRALITCOM-017) and benchmarks (015).
+
+## Outcome
+
+Implemented Draughts Lite Level 0 and Level 1 bots. Level 0 reuses the existing
+recursive random-legal bot over complete leaf paths. Level 1 ranks complete Rust
+legal paths using the documented modest heuristics: terminal wins,
+capture-to-promotion, promotion, capture preference, longer capture as a
+heuristic only, one-ply king-safety, material tie-breaks, and deterministic
+seeded tie-breaks. Both bots route through the legal action tree/validation API,
+emit no partial continuation paths, and Level 1 emits a viewer-safe bot-action
+effect rationale.
+
+Verification passed:
+
+1. `cargo test -p draughts_lite bots`
+2. `cargo test -p draughts_lite`
+3. `cargo fmt --all --check`
+4. `bash scripts/boundary-check.sh`
+5. Manual no-search grep of `games/draughts_lite/src/bots.rs`; the only
+   matching term is a no-search rationale assertion in the tests.
