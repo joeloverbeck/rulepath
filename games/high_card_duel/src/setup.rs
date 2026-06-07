@@ -57,6 +57,7 @@ pub fn setup_match(
         commitments: [None, None],
         revealed_history: Vec::new(),
         deck,
+        terminal_outcome: None,
         freshness_token: FreshnessToken(0),
     })
 }

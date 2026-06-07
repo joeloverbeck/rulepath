@@ -28,11 +28,12 @@ pub use ids::{
     STANDARD_ROUND_LIMIT, STANDARD_SIGILS_PER_RANK, VARIANT_ID,
 };
 pub use rules::{
-    commitment_conflict_diagnostic, invalid_private_card_diagnostic, stale_action_diagnostic,
-    validate_command, wrong_phase_diagnostic, wrong_seat_diagnostic, ValidatedAction,
+    apply_action, commitment_conflict_diagnostic, invalid_private_card_diagnostic, lead_for_round,
+    round_winner, stale_action_diagnostic, validate_command, wrong_phase_diagnostic,
+    wrong_seat_diagnostic, ValidatedAction,
 };
 pub use setup::{next_bounded_index_unbiased, setup_match, shuffle_deck, SetupOptions};
-pub use state::{HighCardDuelState, Phase, RevealedRound, Score};
+pub use state::{HighCardDuelState, Phase, RevealedRound, Score, TerminalOutcome};
 pub use variants::{Manifest, Variant, VariantCatalog};
 
 pub fn load_manifest() -> Result<Manifest, String> {

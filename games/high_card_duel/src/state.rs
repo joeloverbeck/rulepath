@@ -30,12 +30,30 @@ pub struct Score {
     pub seat_1: u8,
 }
 
+impl Score {
+    pub const fn winner(self) -> Option<HighCardDuelSeat> {
+        if self.seat_0 > self.seat_1 {
+            Some(HighCardDuelSeat::Seat0)
+        } else if self.seat_1 > self.seat_0 {
+            Some(HighCardDuelSeat::Seat1)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct RevealedRound {
     pub round_number: u8,
     pub seat_0_card: CardId,
     pub seat_1_card: CardId,
     pub winner: Option<HighCardDuelSeat>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum TerminalOutcome {
+    Win { seat: HighCardDuelSeat },
+    Draw,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,6 +68,7 @@ pub struct HighCardDuelState {
     pub commitments: [Option<CardId>; 2],
     pub revealed_history: Vec<RevealedRound>,
     pub deck: Vec<CardId>,
+    pub terminal_outcome: Option<TerminalOutcome>,
     pub freshness_token: FreshnessToken,
 }
 

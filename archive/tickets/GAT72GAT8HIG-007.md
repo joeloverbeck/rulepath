@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-007: Round transitions — commit / reveal / score / refill / terminal
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/src/rules.rs` (apply/transition path), emitting effects from `src/effects.rs`
@@ -100,3 +100,26 @@ equal-draw.
 1. `cargo test -p high_card_duel --test rules`
 2. `cargo test -p high_card_duel`
 3. Rule + property tests are the correct boundary; full multi-seed conservation and replay reproduction land in 011/012.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added terminal outcome state for High Card Duel winner/draw policy.
+- Implemented `apply_action` for validated commit actions, including card removal from the actor's hand, face-down commitment storage, private own-commit confirmation, and freshness advancement.
+- Implemented simultaneous reveal after reply commit, round scoring, revealed history, refill from the internal deck starting with the next round's lead seat, lead alternation, round advancement, and terminal after round six.
+- Emitted the ticket's required public/private effects from the transition path.
+- Added rule tests for lead/reply commit, simultaneous reveal, scoring/tie, refill, lead alternation, terminal, and winner/draw policy.
+- Added `games/high_card_duel/tests/property.rs` with a seeded card-conservation check across commit/reveal/refill transitions.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test rules` passed.
+- `cargo test -p high_card_duel` passed, including `tests/property.rs`.
