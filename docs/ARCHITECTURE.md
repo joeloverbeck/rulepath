@@ -22,7 +22,7 @@ Rulepath uses a Rust-workspace-first architecture with a React/TypeScript public
     draughts_lite/
     high_card_duel/
     token_bazaar/
-    ...
+    future_game_crates/
   apps/
     web/
   tools/
@@ -66,6 +66,15 @@ engine-core -> no Rulepath crate with game mechanics
 | `wasm-api` | thin batched browser-facing API over Rust behavior | rule logic, hidden-state leakage, renderer policy, chatty hot-loop crossings |
 | `apps/web` | app shell, routing if used, picker, setup, layout, renderer integration, panels, settings, replay UI, accessibility, safe local import/export | legality, hidden-state authority, bot decisions, replay authority |
 | `tools/*` | simulation, replay checking, trace inspection, rule coverage, benchmark reports, seed reduction, fixture validation | game behavior not present in games, public UI polish |
+
+
+### 3.1 Promoted-helper conformance
+
+When a helper is promoted to `game-stdlib`, dependency direction alone is not enough. Every official game whose local code matches the promoted primitive's scope MUST either depend on and use that helper, be audited not applicable, or carry an accepted atlas exception. The obligation is retroactive: older admitted games are still official games and must not silently fork a primitive once the primitive has been promoted.
+
+Conformance work MUST preserve each game's public behavior by default: replay hashes, trace JSON, action order, diagnostics, semantic-effect order, view payloads, UI/WASM behavior, bot legality, benchmark identities, and data versions are stable unless an accepted spec explicitly authorizes a migration.
+
+The architecture line remains narrow. A promoted helper may own behavior-free reusable vocabulary such as typed coordinates or deterministic iteration. It MUST NOT become a game-description language, an occupancy engine, a legality engine, or a place to hide game-specific rules. Open promotion debt blocks further mechanic-ladder advancement until closed, audited not applicable, or explicitly excepted in the atlas.
 
 ## 4. Runtime transition model
 

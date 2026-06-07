@@ -16,6 +16,7 @@ V1/v2 exclude hosted multiplayer, accounts, databases, matchmaking, chat, ranked
 | 3 | Gate 5 | `column_four` | First true showcase target. |
 | 4 | Gate 6 | `directional_flip` | Directional scanning and grouped effects; extraction decision. |
 | 5 | Gate 7 | `draughts_lite` | Compound action tree proof. |
+| 5M | Gate 7.1 | `board_space` primitive conformance | Mandatory promotion-debt closure before the next mechanic-ladder gate. |
 | 6 | Gate 8 | `high_card_duel` / `blackjack_lite` | Chance and hidden-information proof. |
 | 7 | Gate 9 | `token_bazaar` / `resource_race` | Original resource/economy microgame. |
 | 8 | Gate 9 | `secret_draft` | Simultaneous commitment/reveal proof. |
@@ -50,6 +51,8 @@ Each official game stage MUST produce or verify:
 - boundary review: Rust behavior authority, TypeScript no legality, `engine-core` noun-free, static data not behavior, replay deterministic, bots fair, hidden information safe, IP clean.
 
 A third repeated mechanic shape MUST resolve through the primitive-pressure ledger before proceeding.
+
+When that resolution promotes a `game-stdlib` primitive, all previous official games using the promoted shape MUST be migrated, audited not applicable, or explicitly excepted. Open promotion debt is a maintenance interlock: it is specced and closed before the next new mechanic-ladder gate unless an accepted ADR says otherwise.
 
 ## 3. Product mechanic ladder
 
@@ -231,6 +234,30 @@ Exit:
 - legal tree and bot benchmarks exist.
 
 Not allowed: full chess exception load, generic movement in `engine-core`, search without benchmarks.
+
+
+## 9A. Gate 7.1: board-space primitive back-port and promotion-debt closure
+
+Purpose: close the promotion debt created when Gate 7 promoted `game-stdlib::board_space` but intentionally did not force-retrofit earlier board games. This is a maintenance/interlock gate, not a new public game and not a new mechanic-ladder stage.
+
+Scope:
+
+- Audit every official game against the promoted board-space primitive.
+- Retrofit `three_marks`, `column_four`, and `directional_flip` to use `game-stdlib::board_space` for the behavior-free coordinate/rectangular-board subset where it applies.
+- Record `race_to_n` as not applicable if the audit confirms it has no board-space mechanic.
+- Keep `draughts_lite` as the exemplar/regression target for board-space use.
+- Preserve public behavior, action path strings, action ordering, diagnostics, semantic effects, stable summaries, replay hashes, golden traces, UI anchors, bot legality, visibility, benchmarks, and WASM surfaces unless an existing bug is proven and the spec explicitly authorizes a migration.
+- Update the mechanic atlas and affected per-game mechanic/ledger docs so future spec authors can discover the conformance rule without chat context.
+
+Exit:
+
+- `three_marks`, `column_four`, and `directional_flip` depend on `game-stdlib` and no longer maintain local coordinate/cell/bounds/indexing behavior that duplicates `board_space` within the promoted scope.
+- Game-local semantics remain local: Three Marks lines, Column Four column actions/gravity/four-in-a-row scans, Directional Flip ray bracketing/flips/forced pass, and Draughts Lite movement/capture/promotion/forced continuation are not promoted.
+- All existing native tests, replay/golden-trace checks, visibility tests, serialization tests, benchmarks, and web smoke tests for affected games pass with stable behavior by default.
+- `race_to_n` is audited and documented as not applicable, or the gate stops with evidence if the audit contradicts that assumption.
+- The atlas open promotion-debt register has no open `board_space` debt.
+
+Not allowed: new `engine-core` board/grid/cell vocabulary; broad generic board-game engines; generic occupancy boards; generic line-win, gravity, directional-flip, ray-capture, movement, capture, promotion, or bot-strategy helpers; TypeScript legality; trace/hash migration by accident; implementation-ticket decomposition inside the spec.
 
 ## 10. Gate 8: cards, chance, hidden information
 

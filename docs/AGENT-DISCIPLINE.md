@@ -136,6 +136,8 @@ Hard gate: a third official game with the same mechanic shape MUST NOT proceed u
 
 Agents MUST NOT “clean up” repeated mechanics into `engine-core`. Earned helpers belong in `game-stdlib`, and only after the atlas process permits them.
 
+After a helper is promoted, agents MUST treat matching local implementations in earlier official games as conformance work, not optional cleanup. A spec that advances the mechanic ladder while promotion debt is open is invalid unless the atlas records an accepted exception or ADR. Same-gate deferral must name the games, primitive, evidence, risk, and closure gate. Agents must preserve behavior by default during conformance repair and must not update traces, hashes, diagnostics, effect order, UI surfaces, or bot behavior unless the spec explicitly authorizes the migration and explains why.
+
 ## 9. Bot protocol
 
 Agents implementing bots MUST:
@@ -202,6 +204,7 @@ Before accepting agent work, verify:
 
 - the task stayed inside scope;
 - forbidden changes were not made;
+- open promotion debt was either closed, explicitly out of scope by accepted exception, or not relevant;
 - failing-test protocol was followed;
 - Rust remains behavior authority;
 - TypeScript remains presentation-only;

@@ -52,7 +52,8 @@ Use game-specific words in game inventories. Use mechanic-shaped language in rep
 | `local-only` | Exists in one game or is deliberately too game-specific. |
 | `repeated-shape candidate` | At least two games show a similar mechanic shape worth comparing. |
 | `extraction required` | A third official game would otherwise reimplement the same shape; decision required before proceeding. |
-| `promoted primitive` | A narrow typed helper exists in `game-stdlib` with tests, docs, examples, anti-examples, back-ports, and benchmarks. |
+| `promoted primitive` | A narrow typed helper exists in `game-stdlib`; all matching official games use it or carry accepted exceptions; tests, docs, examples, anti-examples, and benchmarks prove the boundary. |
+| `promotion-debt-open` | A helper has been promoted, but one or more matching official games have not yet migrated and do not yet have accepted exceptions. This blocks further mechanic-ladder advancement until closed. |
 | `rejected/deferred with rationale` | Reuse was considered and intentionally declined. |
 | `ADR-required` | The proposal changes architecture, replay/hash semantics, data policy, visibility, or kernel boundaries. |
 
@@ -77,6 +78,19 @@ Before a third official game reimplements a repeated shape, the ledger MUST deci
 
 Default: keep local until repeated public pressure proves extraction.
 
+## 5A. Promotion conformance lifecycle
+
+A promotion decision creates two obligations:
+
+1. extract or reuse the narrow helper inside `game-stdlib`;
+2. conform the official-game surface that created the pressure.
+
+When a primitive is promoted, the same gate MUST either migrate every prior official game that the atlas identifies as using the promoted mechanic shape, or record explicit promotion debt. Promotion debt MUST name the primitive, affected games, current local duplication, reason migration was deferred, behavior-preservation risks, expected closure gate, and evidence needed to close it.
+
+The next implementation spec before further mechanic-ladder advancement MUST close open promotion debt unless an accepted exception or ADR says otherwise. Exceptions MUST name the affected game, promoted primitive, reason for non-migration, evidence proving the game is not duplicating or forking the generic primitive, and the next review trigger.
+
+A promoted primitive is not contract-clean merely because a new game uses it. It is contract-clean only when all matching official games are migrated, audited not applicable, or explicitly excepted.
+
 ## 6. Primitive-pressure ledger entry fields
 
 A ledger entry MUST include:
@@ -99,7 +113,10 @@ Bot impact:
 UI/effect impact:
 Tests required:
 Benchmarks required:
-Back-port plan:
+Back-port/conformance plan:
+Affected prior games:
+Exceptions, if any:
+Closure gate if debt is deferred:
 Examples:
 Anti-examples:
 Agent misuse risks:
@@ -117,7 +134,7 @@ Ledger entries may live in a dedicated mechanics folder or in this document once
 5. Record a ledger entry.
 6. Decide local/reuse/promote/defer/ADR.
 7. If promoted, extract a narrow typed helper into `game-stdlib`.
-8. Back-port affected games.
+8. Back-port affected games in the same gate, or record promotion debt with a named closure gate and explicit risk/evidence.
 9. Preserve golden traces or intentionally update them with trace notes.
 10. Add helper unit/property tests, examples, anti-examples, and game-specific regression tests.
 11. Benchmark before and after extraction.
@@ -153,6 +170,8 @@ MUST NOT:
 - build speculative helpers for private monster games;
 - let static data define behavior through a helper;
 - let agents “clean up” mechanics without a ledger entry;
+- mark a primitive as fully promoted while matching official games remain local without a named debt gate or accepted exception;
+- advance to a new mechanic-ladder gate while promotion debt is open;
 - extract a huge helper with flags for every exception;
 - update golden traces without explaining behavior/effect/view/hash change;
 - call a primitive generic when it only fits one game’s vocabulary;
@@ -164,14 +183,21 @@ MUST NOT:
 | Mechanic shape | Games exerting pressure | Status | Current decision | Next gate |
 |---|---|---|---|---|
 | tiny numeric turn race | `race_to_n` | `local-only` | Keep local; proves plumbing only. Confirmed 2026-06-05 after Gate 1 docs finalization; first official use, no `game-stdlib` promotion. | None. |
-| fixed 2D occupancy | `three_marks`, `column_four`, `directional_flip`, `draughts_lite` | `promoted primitive` for board-space only | Gate 7 supersedes the Gate 6 deferral for the narrow behavior-free board-space subset: rectangular dimensions, coordinates, bounds checks, deterministic row-major iteration, signed offsets, stable `rNcM` parse/format, and generic parity are promoted to `game-stdlib::board_space`. Occupancy, piece state, placement, gravity, flips, movement, capture, promotion, win detection, effects, UI, WASM, and bot policy remain game-local. See `games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`. | As-built in GAT7DRALITCOM-003; Draughts Lite uses the helper, and earlier games were not force-retrofitted during Gate 7. |
+| fixed 2D occupancy / board-space identity | `three_marks`, `column_four`, `directional_flip`, `draughts_lite` | `promotion-debt-open` for `game-stdlib::board_space` | Gate 7 supersedes the Gate 6 deferral for the narrow behavior-free board-space subset: rectangular dimensions, coordinates, bounds checks, deterministic row-major iteration, signed offsets, stable `rNcM` parse/format, and generic parity are promoted to `game-stdlib::board_space`. Occupancy, piece state, placement, gravity, flips, movement, capture, promotion, win detection, effects, UI, WASM, and bot policy remain game-local. Draughts Lite uses the helper. `three_marks`, `column_four`, and `directional_flip` still carry local coordinate/cell/bounds/indexing behavior and must be conformed or explicitly excepted. | Gate 7.1 must close this debt before Gate 8 or any later mechanic-ladder advancement. |
 | simple line/pattern detection | `three_marks`, `column_four`, `directional_flip` | `rejected/deferred with rationale` | Gate 6 as-built outcome confirms the ledger decision: keep line/ray/flip scanning local. Static Three Marks lines, Column Four four-direction terminal scans, and Directional Flip eight-direction bracketed flips differ enough that shared pattern detection would risk policy in a helper. See `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` and `games/directional_flip/docs/MECHANICS.md`. | Reopen only for behavior-free ray stepping; do not promote win/flip/capture legality. |
-| coordinate/targeted placement | `three_marks`, `column_four`, `directional_flip`, `draughts_lite` | `promoted primitive` for coordinate identity only | Gate 7 supersedes the Gate 6 coordinate deferral only for stable coordinate identity and behavior-free coordinate operations. The helper does not encode targeted placement, origin selection, landing order, forced pass, legal action availability, or action-tree policy. See `games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`. | Draughts Lite uses `game-stdlib::board_space` for coordinate identity; action semantics stay in game crates. |
+| coordinate/targeted placement | `three_marks`, `column_four`, `directional_flip`, `draughts_lite` | `promotion-debt-open` for coordinate identity only | Gate 7 supersedes the Gate 6 coordinate deferral only for stable coordinate identity and behavior-free coordinate operations. The helper does not encode targeted placement, origin selection, landing order, forced pass, legal action availability, or action-tree policy. Targeted placement semantics stay in game crates. | Gate 7.1 must back-port coordinate identity where it applies and keep action semantics local. |
 | column actions | `column_four` | `local-only` | First clear official use of column-targeted actions. Too specific for early extraction. | None unless repeated. |
 | gravity placement into a column | `column_four` | `local-only` | First clear official gravity/drop placement. Too specific for early extraction. | None unless repeated. |
 | terminal line highlighting | `three_marks`, `column_four`, `directional_flip` | `rejected/deferred with rationale` | Gate 6 as-built outcome confirms the ledger decision: terminal and flip highlighting/effect geometry stay game-local. Three Marks and Column Four highlight terminal lines; Directional Flip highlights Rust-provided preview/apply flip sets and grouped effects, which is related presentation pressure but not one shared primitive. See `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` and `games/directional_flip/docs/MECHANICS.md`. | Reopen only if a later UI/effect spec proves a behavior-free shared highlight projection contract. |
 | directional scanning and grouped flips | `directional_flip` | `rejected/deferred with rationale` | Gate 6 as-built outcome confirms the ledger decision: Directional Flip rays, legal bracketing, previews, grouped flips, and effect ordering are implemented locally. The helper question is resolved as defer/reject for Gate 6; no helper was promoted after local benchmark/replay evidence landed. See `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` and `games/directional_flip/docs/MECHANICS.md`. | Reopen only if another official game creates repeated ray-walk pressure and can preserve existing traces/hashes. |
 | movement/capture/forced continuation | `draughts_lite` | `local-only` | Gate 7 decision: keep draughts movement, capture, mandatory capture, same-piece forced continuation, promotion, terminal detection, diagnostics, effects, bot policy, and UI guidance game-local. Only behavior-free board-space coordinates are promoted separately. See `games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`. | Reopen only after another official game repeats forced continuation in a way that proves a narrow helper without behavior flags or trace/hash migration. |
+
+## 10A. Open promotion-debt register
+
+| Primitive | Scope | Already conforming | Must retrofit | Audit/no-op | Accepted exceptions | Closure gate |
+|---|---|---|---|---|---|---|
+| `game-stdlib::board_space` | Behavior-free rectangular dimensions, one-based `Coord`, bounds checks, row-major iteration, signed offsets, stable `rNcM` parse/format, row/column indexing, and generic parity. | `draughts_lite` | `three_marks`, `column_four`, `directional_flip` | `race_to_n` must be audited and recorded as not applicable because it has no board-space mechanic. | None at this commit. | Gate 7.1, before Gate 8. |
+
 | deterministic shuffle and hidden draw | `high_card_duel` | `local-only` initially | Keep local until second card/hidden-info game. | Stage 8/9 review. |
 | resource accounting | `token_bazaar`, later betting games | `repeated-shape candidate` after second economy/betting use | No formulas in data; compare ledgers before third use. | Stage 9/10 review. |
 | simultaneous commitment/reveal | `secret_draft`, later bluffing/reaction games | candidate after second use | Keep local until waiting/reveal behavior repeats. | Stage 11 review. |
