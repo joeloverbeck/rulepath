@@ -8,7 +8,7 @@ Rules version: `race_to_n-rules-v1`
 
 Prepared by: `Codex`
 
-Last updated: 2026-06-05
+Last updated: 2026-06-07
 
 ## Purpose
 
@@ -23,6 +23,7 @@ The mechanic inventory is evidence. It is not permission to generalize.
 | Category | Game-local description | Evidence in rules | Current status | Notes |
 |---|---|---|---|---|
 | topology/spatial model | No spatial topology; one public numeric counter. | `R-COMP-001`, `R-SETUP-001` | `local-only` | No positions, maps, routes, regions, boards, piles, or tracks. |
+| `game-stdlib::board_space` audit | Not applicable; `race_to_n` has no board-space mechanic. | Gate 7.1 board-space promotion-debt audit | `not-applicable` | `game-stdlib` remains unused; this row is the per-game evidence for closing the atlas §10A `board_space` audit entry. |
 | component/zone model | Two public seats and one public counter; no zones or hidden areas. | `R-COMP-001`, `R-COMP-002`, `R-VIS-001` | `local-only` | Components are game-local vocabulary only. |
 | action shape | Flat choice among 1, 2, or 3, capped by remaining distance to 21. | `R-ACTION-001` | `local-only` | Rust generates the legal list; UI only renders it. |
 | turn/phase model | Alternating single-action turns; no rounds, reactions, cleanup windows, or simultaneous choices. | `R-TURN-001`, `R-TURN-002` | `local-only` | Terminal action stops the alternation. |

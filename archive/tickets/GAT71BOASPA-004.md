@@ -1,6 +1,6 @@
 # GAT71BOASPA-004: Record `race_to_n` board-space not-applicable audit
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — documentation-only (`games/race_to_n/docs/MECHANICS.md`); confirms `game-stdlib` stays unused for `race_to_n`. No Rust, schema, trace, or bot surface changes.
@@ -72,3 +72,22 @@ In `games/race_to_n/docs/MECHANICS.md`, add (or extend an existing row with) an 
 1. `grep -i "board_space" games/race_to_n/docs/MECHANICS.md && grep -c "game-stdlib" games/race_to_n/Cargo.toml`
 2. `cargo run -p replay-check -- --game race_to_n --all && node scripts/check-doc-links.mjs`
 3. A narrower command is correct here because the ticket changes only prose: the grep proves the audit line landed, and `replay-check` proves no behavioral drift; no `cargo test` delta exists for a docs-only change.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- `games/race_to_n/docs/MECHANICS.md` now includes an explicit
+  `game-stdlib::board_space` not-applicable audit row.
+- `race_to_n` remains free of a `game-stdlib` dependency.
+
+Deviations from original plan:
+- None.
+
+Verification results:
+- `grep -i "board_space" games/race_to_n/docs/MECHANICS.md`
+- `grep -c "game-stdlib" games/race_to_n/Cargo.toml` printed `0`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `node scripts/check-doc-links.mjs`
+- Golden traces changed: no.
