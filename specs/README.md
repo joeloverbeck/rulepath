@@ -30,7 +30,7 @@ record progress; this table is.
 | 2 | Gate 4 | [`gate-4-three-marks-board-smoke.md`](../archive/specs/gate-4-three-marks-board-smoke.md) | Done |
 | 3 | Gate 5 | [`gate-5-column-four-public-polish.md`](../archive/specs/gate-5-column-four-public-polish.md) | Done |
 | 4 | Gate 6 | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
-| 5 | Gate 7 | `draughts_lite` — not yet specced | Not started |
+| 5 | Gate 7 | [`gate-7-draughts-lite-compound-action-tree.md`](../archive/specs/gate-7-draughts-lite-compound-action-tree.md) | Done |
 | 6 | Gate 8 | `high_card_duel` / `blackjack_lite` — not yet specced | Not started |
 | 7 | Gate 9 | `token_bazaar` / `secret_draft` — not yet specced | Not started |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |

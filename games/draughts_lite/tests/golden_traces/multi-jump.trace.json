@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "trace_id": "draughts-lite-multi-jump",
+  "fixture_kind": "commands",
+  "purpose": "multi_jump",
+  "note": "A complete multi-jump is recorded as one command with three ordered path segments.",
+  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "game_id": "draughts_lite",
+  "rules_version": "draughts_lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 4,
+  "variant": "draughts_lite_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["from/r3c2","jump/r5c4","jump/r7c6"], "freshness_token": "0", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 0 }
+  ],
+  "expected_state_hashes": { "final": 13519961063137669292 },
+  "expected_effect_hashes": { "final": 1497234211773961255 },
+  "expected_action_tree_hashes": { "final": 17337240260876029818 },
+  "expected_public_view_hashes": { "all": 15384702638241638218 },
+  "expected_replay_hashes": { "final": 10354526219107232564 },
+  "expected_private_view_hashes": {
+    "not_applicable": "draughts_lite is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "draughts_lite is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "draughts_lite game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "draughts_lite has no private-view API.",
+    "preview_hashes": "draughts_lite uses action-tree metadata and semantic effects rather than a separate preview hash surface in Gate 7."
+  }
+}

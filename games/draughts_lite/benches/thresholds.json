@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "game_id": "draughts_lite",
+  "rules_version": "draughts_lite-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "standard_setup",
+      "unit": "setups_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_initial",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_midgame_no_capture",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_mandatory_capture",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_multi_jump",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "validate_apply_quiet",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "validate_apply_single_capture",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "validate_apply_multi_jump",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "public_view_generation",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "replay_throughput",
+      "unit": "replays_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "level0_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "level1_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until draughts_lite has stable CI measurements."
+    }
+  ]
+}

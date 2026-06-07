@@ -108,8 +108,44 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "bot_chose_action":
       return {
         title: "Bot chose action",
-        detail: `${payload.policy_id} selected ${payload.action_id}.`,
+        detail: `${payload.policy_id} selected ${payload.action_id ?? formatPath(payload.action_path)}.`,
         tone: "neutral",
+      };
+    case "move_committed":
+      return {
+        title: "Move committed",
+        detail: `${payload.seat} moved ${payload.piece_id} from ${payload.start_cell} to ${payload.final_cell}.`,
+        tone: "movement",
+      };
+    case "quiet_step":
+      return {
+        title: "Quiet step",
+        detail: `${payload.piece_id} moved from ${payload.origin} to ${payload.landing}.`,
+        tone: "movement",
+      };
+    case "capture_step":
+      return {
+        title: "Capture step",
+        detail: `${payload.piece_id} landed on ${payload.landing} and captured ${payload.captured_piece_id}.`,
+        tone: "movement",
+      };
+    case "promotion":
+      return {
+        title: "Promotion",
+        detail: `${payload.piece_id} promoted on ${payload.cell}.`,
+        tone: "movement",
+      };
+    case "forced_capture_available":
+      return {
+        title: "Forced capture",
+        detail: String(payload.explanation ?? "A capture is available."),
+        tone: "turn",
+      };
+    case "forced_continuation_required":
+      return {
+        title: "Forced continuation",
+        detail: String(payload.explanation ?? "The capture path must continue."),
+        tone: "turn",
       };
     case "placement_rejected":
       return {
@@ -130,6 +166,10 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "neutral",
       };
   }
+}
+
+function formatPath(value: unknown): string {
+  return Array.isArray(value) ? value.join(" > ") : "an action";
 }
 
 function flipCount(flips: unknown): number {

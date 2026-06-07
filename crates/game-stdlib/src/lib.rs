@@ -1,16 +1,5 @@
-//! Placeholder for earned shared helpers.
+//! Earned shared helpers for game crates.
 //!
-//! Gate 0 intentionally promotes no helper surface.
+//! This crate must stay rule-agnostic. Game behavior remains in `games/*`.
 
-pub fn placeholder_version() -> &'static str {
-    "game-stdlib/0.1.0"
-}
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn placeholder_version_is_stable() {
-        assert_eq!(placeholder_version(), "game-stdlib/0.1.0");
-    }
-}
+pub mod board_space;

@@ -47,6 +47,7 @@ export type ShellState = {
   viewerSeat: "seat_0" | "seat_1" | null;
   view: PublicView | null;
   actionTree: ActionTree | null;
+  pendingActionPath: string[];
   effects: EffectEntry[];
   effectCursor: number;
   diagnostic: ApiError | null;
@@ -77,6 +78,8 @@ export type ShellAction =
   | { type: "matchStarted"; matchId: string }
   | { type: "refreshed"; payload: RefreshPayload }
   | { type: "actionApplied"; staleToken: number }
+  | { type: "pendingActionPathChanged"; path: string[] }
+  | { type: "pendingActionPathCleared" }
   | { type: "staleDiagnostic"; diagnostic: ApiError }
   | { type: "diagnosticCleared" }
   | { type: "replayImported"; replayId: string; document: ReplayDocument | null; step: ReplayStep | null }
@@ -105,6 +108,7 @@ export const initialShellState: ShellState = {
   viewerSeat: null,
   view: null,
   actionTree: null,
+  pendingActionPath: [],
   effects: [],
   effectCursor: 0,
   diagnostic: null,
@@ -148,6 +152,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         matchId: null,
         view: null,
         actionTree: null,
+        pendingActionPath: [],
         effects: [],
         effectCursor: 0,
         diagnostic: null,
@@ -184,6 +189,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         matchId: action.matchId,
         view: null,
         actionTree: null,
+        pendingActionPath: [],
         effects: [],
         effectCursor: 0,
         diagnostic: null,
@@ -198,6 +204,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         mode: "play",
         view: action.payload.view,
         actionTree: action.payload.actionTree,
+        pendingActionPath: [],
         effects: [...state.effects, ...action.payload.effects].slice(-12),
         effectCursor: action.payload.effectCursor,
         pendingOperation: null,
@@ -207,12 +214,24 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         ...state,
         staleToken: action.staleToken,
         diagnostic: null,
+        pendingActionPath: [],
         pendingOperation: "applyAction",
+      };
+    case "pendingActionPathChanged":
+      return {
+        ...state,
+        pendingActionPath: action.path,
+      };
+    case "pendingActionPathCleared":
+      return {
+        ...state,
+        pendingActionPath: [],
       };
     case "staleDiagnostic":
       return {
         ...state,
         diagnostic: action.diagnostic,
+        pendingActionPath: [],
         pendingOperation: null,
       };
     case "diagnosticCleared":
@@ -231,6 +250,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           step: action.step,
         },
         autoplay: { running: false },
+        pendingActionPath: [],
         pendingOperation: null,
       };
     case "replayStepped":

@@ -30,6 +30,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "draughts_lite"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "engine-core"
 version = "0.1.0"
 
@@ -39,6 +48,7 @@ version = "0.1.0"
 dependencies = [
  "column_four",
  "directional_flip",
+ "draughts_lite",
  "race_to_n",
  "three_marks",
 ]
@@ -64,7 +74,9 @@ version = "0.1.0"
 dependencies = [
  "column_four",
  "directional_flip",
+ "draughts_lite",
  "engine-core",
+ "game-stdlib",
  "race_to_n",
  "three_marks",
 ]
@@ -88,6 +100,7 @@ dependencies = [
  "ai-core",
  "column_four",
  "directional_flip",
+ "draughts_lite",
  "engine-core",
  "race_to_n",
  "three_marks",
@@ -117,6 +130,7 @@ dependencies = [
  "ai-core",
  "column_four",
  "directional_flip",
+ "draughts_lite",
  "engine-core",
  "race_to_n",
  "three_marks",

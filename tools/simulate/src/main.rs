@@ -2,6 +2,7 @@ use std::{env, fs, path::PathBuf, process, time::Instant};
 
 use column_four::{ColumnFourRandomBot, ColumnFourSeat};
 use directional_flip::{DirectionalFlipRandomBot, DirectionalFlipSeat};
+use draughts_lite::{DraughtsLiteRandomBot, DraughtsLiteSeat};
 use engine_core::{
     Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize,
@@ -16,6 +17,7 @@ const GAME_ID: &str = "race_to_n";
 const GAME_THREE_MARKS: &str = "three_marks";
 const GAME_COLUMN_FOUR: &str = "column_four";
 const GAME_DIRECTIONAL_FLIP: &str = "directional_flip";
+const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -138,9 +140,10 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_THREE_MARKS
         && config.game != GAME_COLUMN_FOUR
         && config.game != GAME_DIRECTIONAL_FLIP
+        && config.game != GAME_DRAUGHTS_LITE
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}\n",
             config.game
         ));
     }
@@ -173,7 +176,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -187,6 +190,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_DIRECTIONAL_FLIP {
         return run_directional_flip_simulation(config);
+    }
+    if config.game == GAME_DRAUGHTS_LITE {
+        return run_draughts_lite_simulation(config);
     }
 
     let started = Instant::now();
@@ -221,6 +227,49 @@ fn run_simulation(config: Config) -> Result<String, String> {
         &config,
         &summary,
         started.elapsed().as_secs_f64(),
+    ))
+}
+
+fn run_draughts_lite_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut seat_0_wins = 0_u64;
+    let mut seat_1_wins = 0_u64;
+    let mut bounded_nonterminal_at_cap = 0_u64;
+    let mut total_actions = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (outcome, actions) = run_one_draughts_lite_game(&config, seed)?;
+        games_run += 1;
+        total_actions += actions as u64;
+        match outcome {
+            Some(DraughtsLiteSeat::Seat0) => seat_0_wins += 1,
+            Some(DraughtsLiteSeat::Seat1) => seat_1_wins += 1,
+            None => bounded_nonterminal_at_cap += 1,
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=draughts_lite\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         seat_0_wins={seat_0_wins}\n\
+         seat_1_wins={seat_1_wins}\n\
+         bounded_nonterminal_at_cap={bounded_nonterminal_at_cap}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
     ))
 }
 
@@ -515,6 +564,48 @@ fn directional_flip_winner(
     match outcome {
         directional_flip::TerminalOutcome::Win { seat } => Some(seat),
         directional_flip::TerminalOutcome::Draw => None,
+    }
+}
+
+fn run_one_draughts_lite_game(
+    config: &Config,
+    seed: u64,
+) -> Result<(Option<DraughtsLiteSeat>, usize), String> {
+    let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+    let mut state =
+        draughts_lite::setup_match(Seed(seed), &seats, &draughts_lite::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+
+    for action_index in 0..config.action_cap {
+        if let Some(outcome) = state.terminal_outcome {
+            return Ok((Some(draughts_lite_winner(outcome)), action_index));
+        }
+
+        let actor_seat = state.active_seat;
+        let actor = Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        };
+        let bot = DraughtsLiteRandomBot::new(Seed(bot_seed(seed, action_index)));
+        let action_path = bot
+            .select_action(&state, actor_seat)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = CommandEnvelope {
+            actor,
+            action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let validated = draughts_lite::validate_command(&state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        draughts_lite::apply_action(&mut state, validated);
+    }
+
+    Ok((None, config.action_cap))
+}
+
+fn draughts_lite_winner(outcome: draughts_lite::TerminalOutcome) -> DraughtsLiteSeat {
+    match outcome {
+        draughts_lite::TerminalOutcome::Win { seat } => seat,
     }
 }
 

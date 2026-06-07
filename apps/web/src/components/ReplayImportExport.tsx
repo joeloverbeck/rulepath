@@ -12,6 +12,7 @@ const MAX_IMPORT_CHARS = 128 * 1024;
 export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImportExportProps) {
   const [documentText, setDocumentText] = useState("");
   const [diagnostic, setDiagnostic] = useState<ApiError | null>(null);
+  const commandSummary = replayCommandSummary(documentText);
 
   const exportReplay = () => {
     setDiagnostic(null);
@@ -57,6 +58,17 @@ export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImpo
           spellCheck={false}
         />
       </label>
+      {commandSummary.length > 0 ? (
+        <ol className="replay-command-summary" aria-label="Replay command paths">
+          {commandSummary.map((command) => (
+            <li key={command.index}>
+              <span>{command.index + 1}</span>
+              <strong>{command.actor}</strong>
+              <code>{command.path}</code>
+            </li>
+          ))}
+        </ol>
+      ) : null}
       {diagnostic ? (
         <div className="diagnostic" role="status">
           <strong>{diagnostic.code}</strong>
@@ -65,4 +77,20 @@ export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImpo
       ) : null}
     </section>
   );
+}
+
+function replayCommandSummary(documentText: string): { index: number; actor: string; path: string }[] {
+  if (!documentText.trim()) {
+    return [];
+  }
+  try {
+    const document = JSON.parse(documentText) as ReplayDocument;
+    return (document.commands ?? []).map((command) => ({
+      index: command.index,
+      actor: command.actor_seat,
+      path: command.action_path.join(" > "),
+    }));
+  } catch {
+    return [];
+  }
 }

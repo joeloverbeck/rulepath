@@ -1,0 +1,11 @@
+{
+  "fixture_id": "draughts_lite_standard_gate7",
+  "game_id": "draughts_lite",
+  "variant": "draughts_lite_standard",
+  "rules_version": "draughts_lite-rules-v1",
+  "purpose": "Gate 7 Draughts Lite standard setup metadata.",
+  "trace_directory": "games/draughts_lite/tests/golden_traces",
+  "trace_schema_version": 1,
+  "fixture_kinds": ["setup", "commands", "terminal", "diagnostic", "bot"],
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, rules, replay, and golden trace tests."
+}

@@ -1,8 +1,8 @@
-# Gate 3 No-Leak and Accessibility Checklist
+# Rulepath No-Leak and Accessibility Checklist
 
-Review date: 2026-06-06
+Review date: 2026-06-07
 
-Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column Four, and `directional_flip` / Directional Flip.
+Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column Four, `directional_flip` / Directional Flip, and `draughts_lite` / Draughts Lite.
 
 ## Accessibility Baseline
 
@@ -25,6 +25,12 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Directional Flip non-color cues: discs use distinct SVG marks/patterns plus color, score/status/effect text is visible, and legal/preview cells are backed by Rust labels.
 - Directional Flip reduced motion: the smoke verifies reduced-motion mode suppresses flip animation while preserving the Rust-projected board state.
 - Directional Flip replay accessibility: replay reset/step renders `DirectionalFlipBoard`, forced-pass projection, and the public command sequence rather than JSON-only state.
+- Draughts Lite board keyboard path: the Draughts Lite smoke focuses the grid, moves with arrows to a Rust-legal origin, activates with Enter, moves to a Rust-provided destination, and activates with Space.
+- Draughts Lite compound path accessibility: pending origin, destination count, mandatory capture, capture destination count, and replay command paths are exposed as text with full multi-segment paths.
+- Draughts Lite legal-cell accessibility: the smoke asserts 64 named grid cells, four Rust legal origins in the opening position, active-descendant state, visible focus, and accessible piece/cell labels.
+- Draughts Lite non-color cues: pieces use shape/text marks plus color, selected origins/legal destinations/captures/promotions have text status and live-region cues, and effects include text labels.
+- Draughts Lite reduced motion: the smoke verifies reduced-motion mode suppresses Draughts cell transitions while preserving static highlights and the effect log.
+- Draughts Lite replay accessibility: replay export/import/step renders `DraughtsLiteBoard` and full public command paths such as `from/r4c1 > jump/r6c3`.
 
 ## No-Leak Surfaces
 
@@ -43,6 +49,10 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Directional Flip replay export: checked by `directional-flip.smoke.mjs` for forbidden leak vocabulary while preserving public replay metadata for `directional_flip` and explicit not-applicable private-view markers.
 - Directional Flip bot rationale: the UI shows only the Rust-provided public `bot_chose_action` rationale; no candidate ranking, raw score, hidden search, or internal state surface is exposed.
 - Directional Flip forced-pass replay: the smoke imports the Rust golden forced-pass trace and verifies the browser projects the forced-pass state/control without exposing private or internal state.
+- Draughts Lite DOM/test IDs: checked by `draughts-lite.smoke.mjs` for hidden/private/internal leak vocabulary; board test IDs identify public cells only (`r1c1` through `r8c8`) and never carry state dumps.
+- Draughts Lite replay export: checked by `draughts-lite.smoke.mjs` for forbidden leak vocabulary while preserving public replay metadata for `draughts_lite` and explicit not-applicable private-view markers.
+- Draughts Lite bot rationale/effects: the UI shows only Rust-provided public effects and bot rationale; no candidate ranking, raw score, hidden search, or internal state surface is exposed.
+- Draughts Lite forced capture: the smoke creates a standard-match mandatory capture through public UI moves and verifies the DOM/live text exposes only Rust public legality cues and complete replay segments.
 
 ## Later Hidden-Information Games
 

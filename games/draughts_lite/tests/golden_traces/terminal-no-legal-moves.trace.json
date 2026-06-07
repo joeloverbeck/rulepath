@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "trace_id": "draughts-lite-terminal-no-legal-moves",
+  "fixture_kind": "terminal",
+  "purpose": "terminal_no_legal_moves",
+  "note": "A quiet move leaves the opponent with pieces but no legal move, producing a win.",
+  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "game_id": "draughts_lite",
+  "rules_version": "draughts_lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 9,
+  "variant": "draughts_lite_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["from/r3c4","to/r4c3"], "freshness_token": "0", "expect": "applied" }
+  ],
+  "checkpoints": [
+    { "id": "final", "after_command_index": 0 }
+  ],
+  "expected_state_hashes": { "final": 15634465863978525540 },
+  "expected_effect_hashes": { "final": 4757458371000609606 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 17296498493962305991 },
+  "expected_replay_hashes": { "final": 8151139554208929974 },
+  "expected_private_view_hashes": {
+    "not_applicable": "draughts_lite is perfect-information and has no private-view API."
+  },
+  "expected_outcome": { "terminal": true, "winner": "seat_0", "draw": false },
+  "expected_terminal_state": { "terminal": true, "winner": "seat_0", "draw": false },
+  "not_applicable": {
+    "hidden_information": "draughts_lite is perfect-information and has no hidden state to redact.",
+    "stochastic_game_events": "draughts_lite game rules use no randomness; bot RNG is recorded only in bot traces.",
+    "private_view_hashes": "draughts_lite has no private-view API.",
+    "preview_hashes": "draughts_lite uses action-tree metadata and semantic effects rather than a separate preview hash surface in Gate 7."
+  }
+}

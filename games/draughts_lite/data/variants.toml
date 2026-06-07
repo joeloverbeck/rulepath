@@ -1,0 +1,10 @@
+variant_id = "draughts_lite_standard"
+display_name = "Draughts Lite"
+rules_version_label = "draughts_lite-rules-v1"
+seat_count = 2
+first_seat = 0
+board_columns = 8
+board_rows = 8
+cell_id_scheme = "r1c1_to_r8c8_top_to_bottom"
+opening = "seat_0:rows1-3;seat_1:rows6-8;playable=row_plus_column_odd"
+ending = "opponent_no_pieces_or_no_legal_move"
