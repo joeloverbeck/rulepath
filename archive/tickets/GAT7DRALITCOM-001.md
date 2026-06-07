@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-001: Draughts Lite rules research & IP source docs
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/draughts_lite/docs/RULES.md`, `games/draughts_lite/docs/SOURCES.md`).
@@ -73,3 +73,19 @@ Author from `templates/GAME-SOURCES.md`: cite the WCDF English draughts/checkers
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. Doc-link + boundary checks are the correct boundary for a docs-only ticket; rule-clause-to-test mapping is verified when `RULE-COVERAGE.md` and the rule-coverage tool land (GAT7DRALITCOM-017).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Added `games/draughts_lite/docs/RULES.md` with the `draughts_lite_standard` rules contract, stable rule IDs, mandatory capture, mandatory same-piece continuation, no maximum-capture rule, promotion-during-capture stop, terminal wins, visibility, replay, bot, UI, and out-of-scope variant notes.
+- Added `games/draughts_lite/docs/SOURCES.md` with consulted sources, adopted versus omitted rules, ambiguity resolutions, IP/trade-dress notes, public/private content boundary, and rule-source cross-references.
+
+Deviations from original plan:
+- None.
+
+Verification:
+- `node scripts/check-doc-links.mjs` passed (`Checked 22 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- Manual review confirmed `RULES.md` covers the Gate 7 rules clauses and `SOURCES.md` records adopted/omitted rules plus IP policy without copied source prose.
