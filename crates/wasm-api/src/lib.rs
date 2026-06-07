@@ -12,6 +12,13 @@ use column_four::{
     setup_match as column_setup_match, ColumnFourEffect, ColumnFourLevel2Bot, ColumnFourSeat,
     ColumnFourState,
 };
+use directional_flip::{
+    apply_action as directional_apply_action, legal_action_tree as directional_legal_action_tree,
+    project_view as directional_project_view,
+    replay_support::replay_commands as directional_replay_commands,
+    setup_match as directional_setup_match, DirectionalFlipEffect, DirectionalFlipLevel2Bot,
+    DirectionalFlipSeat, DirectionalFlipState,
+};
 use engine_core::{
     ActionChoice, ActionPath, ActionTree, Actor, CommandEnvelope, EffectCursor, EffectEnvelope,
     EffectLog, RulesVersion, SeatId, Seed, Viewer, VisibilityScope,
@@ -35,6 +42,8 @@ const GAME_THREE_MARKS: &str = "three_marks";
 const GAME_THREE_MARKS_DISPLAY_NAME: &str = "Three Marks";
 const GAME_COLUMN_FOUR: &str = "column_four";
 const GAME_COLUMN_FOUR_DISPLAY_NAME: &str = "Column Four";
+const GAME_DIRECTIONAL_FLIP: &str = "directional_flip";
+const GAME_DIRECTIONAL_FLIP_DISPLAY_NAME: &str = "Directional Flip";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -55,11 +64,13 @@ const FEATURE_FLAGS: &[&str] = &["catalog", "match_store", "legal_action_tree", 
 const RACE_TRACE_RULES_VERSION: &str = "race_to_n-rules-v1";
 const THREE_MARKS_TRACE_RULES_VERSION: &str = "three_marks-rules-v1";
 const COLUMN_FOUR_TRACE_RULES_VERSION: &str = "column_four-rules-v1";
+const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
 const VARIANT_THREE_MARKS_STANDARD: &str = "three_marks_standard";
 const VARIANT_COLUMN_FOUR_STANDARD: &str = "column_four_standard";
+const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -91,6 +102,13 @@ enum MatchRecord {
         seed: u64,
         state: ColumnFourState,
         effects: EffectLog<ColumnFourEffect>,
+        commands: Vec<AppliedCommand>,
+    },
+    DirectionalFlip {
+        game_id: String,
+        seed: u64,
+        state: DirectionalFlipState,
+        effects: EffectLog<DirectionalFlipEffect>,
         commands: Vec<AppliedCommand>,
     },
 }
@@ -135,6 +153,7 @@ enum RegisteredGame {
     RaceToN,
     ThreeMarks,
     ColumnFour,
+    DirectionalFlip,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -146,6 +165,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::RaceToN,
         RegisteredGame::ThreeMarks,
         RegisteredGame::ColumnFour,
+        RegisteredGame::DirectionalFlip,
     ]
         .iter()
         .map(|game| match game {
@@ -171,6 +191,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_COLUMN_FOUR_STANDARD)
+            ),
+            RegisteredGame::DirectionalFlip => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"]}}",
+                escape_json(GAME_DIRECTIONAL_FLIP),
+                escape_json(GAME_DIRECTIONAL_FLIP_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_DIRECTIONAL_FLIP_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -262,6 +290,34 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_COLUMN_FOUR_STANDARD)
             ))
         }
+        RegisteredGame::DirectionalFlip => {
+            let seats = seats();
+            let state = directional_setup_match(
+                Seed(seed),
+                &seats,
+                &directional_flip::SetupOptions::default(),
+            )
+            .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::DirectionalFlip {
+                        game_id: GAME_DIRECTIONAL_FLIP.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_DIRECTIONAL_FLIP_STANDARD)
+            ))
+        }
     }
 }
 
@@ -278,6 +334,13 @@ pub fn get_view(match_id: &str, _viewer_seat: Option<&str>) -> Result<String, St
         MatchRecord::ColumnFour { game_id, state, .. } => {
             resolve_game(game_id)?;
             Ok(column_view_json(&column_project_view(
+                state,
+                &Viewer { seat_id: None },
+            )))
+        }
+        MatchRecord::DirectionalFlip { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            Ok(directional_view_json(&directional_project_view(
                 state,
                 &Viewer { seat_id: None },
             )))
@@ -301,6 +364,13 @@ pub fn get_action_tree(match_id: &str, actor_seat: &str) -> Result<String, Strin
             resolve_game(game_id)?;
             let actor = column_actor_for_seat(state, parse_column_seat(actor_seat)?)?;
             Ok(action_tree_json(&column_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::DirectionalFlip { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let actor = directional_actor_for_seat(state, parse_directional_seat(actor_seat)?)?;
+            Ok(action_tree_json(&directional_legal_action_tree(
+                state, &actor,
+            )))
         }
     })
 }
@@ -406,6 +476,39 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 column_view_json(&column_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
+        MatchRecord::DirectionalFlip {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_directional_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: directional_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                directional_flip::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = directional_apply_action(state, action);
+            let effect_json = directional_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_directional_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                directional_view_json(&directional_project_view(state, &Viewer { seat_id: None }))
             ))
         }
     })
@@ -519,6 +622,43 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 column_view_json(&column_project_view(state, &Viewer { seat_id: None }))
             ))
         }
+        MatchRecord::DirectionalFlip {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_directional_seat(actor_seat)?;
+            let decision = DirectionalFlipLevel2Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: directional_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                directional_flip::validate_command(state, &command).map_err(diagnostic_json)?;
+            let mut effects = decision.effects;
+            effects.extend(directional_apply_action(state, action));
+            let effect_json = directional_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_directional_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                directional_view_json(&directional_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
     })
 }
 
@@ -594,6 +734,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::DirectionalFlip {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = directional_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        directional_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -626,6 +788,15 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             resolve_game(game_id)?;
             column_replay_document_json(&format!("export-{match_id}"), *seed, commands)
         }
+        MatchRecord::DirectionalFlip {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            directional_replay_document_json(&format!("export-{match_id}"), *seed, commands)
+        }
     })
 }
 
@@ -651,6 +822,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if parsed.game_id != GAME_RACE_TO_N
         && parsed.game_id != GAME_THREE_MARKS
         && parsed.game_id != GAME_COLUMN_FOUR
+        && parsed.game_id != GAME_DIRECTIONAL_FLIP
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -694,6 +866,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 column_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 column_view_json(&column_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::DirectionalFlip => {
+            let (state, effects) =
+                directional_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                directional_view_json(&directional_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -759,6 +939,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                 &effects,
             ))
         }
+        RegisteredGame::DirectionalFlip => {
+            let bounded_cursor = cursor.min(record.commands.len());
+            let (state, effects) =
+                directional_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+            Ok(directional_replay_step_json(
+                replay_id,
+                bounded_cursor,
+                record.commands.len(),
+                &state,
+                &effects,
+            ))
+        }
     })
 }
 
@@ -771,6 +963,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_RACE_TO_N => Ok(RegisteredGame::RaceToN),
         GAME_THREE_MARKS => Ok(RegisteredGame::ThreeMarks),
         GAME_COLUMN_FOUR => Ok(RegisteredGame::ColumnFour),
+        GAME_DIRECTIONAL_FLIP => Ok(RegisteredGame::DirectionalFlip),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -853,6 +1046,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::RaceToN => RACE_TRACE_RULES_VERSION,
         RegisteredGame::ThreeMarks => THREE_MARKS_TRACE_RULES_VERSION,
         RegisteredGame::ColumnFour => COLUMN_FOUR_TRACE_RULES_VERSION,
+        RegisteredGame::DirectionalFlip => DIRECTIONAL_FLIP_TRACE_RULES_VERSION,
     }
 }
 
@@ -920,6 +1114,26 @@ fn trace_column_seat(seat: ColumnFourSeat) -> &'static str {
     }
 }
 
+fn parse_directional_seat(value: &str) -> Result<DirectionalFlipSeat, String> {
+    match value {
+        "seat-0" => Ok(DirectionalFlipSeat::Seat0),
+        "seat-1" => Ok(DirectionalFlipSeat::Seat1),
+        _ => DirectionalFlipSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_directional_seat(seat: DirectionalFlipSeat) -> &'static str {
+    match seat {
+        DirectionalFlipSeat::Seat0 => "seat-0",
+        DirectionalFlipSeat::Seat1 => "seat-1",
+    }
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -962,6 +1176,23 @@ fn column_actor_for_seat(state: &ColumnFourState, seat: ColumnFourSeat) -> Resul
         })
 }
 
+fn directional_actor_for_seat(
+    state: &DirectionalFlipState,
+    seat: DirectionalFlipSeat,
+) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -981,6 +1212,17 @@ fn three_viewer_for_seat(state: &ThreeMarksState, seat: Option<&str>) -> Result<
 fn column_viewer_for_seat(state: &ColumnFourState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_column_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn directional_viewer_for_seat(
+    state: &DirectionalFlipState,
+    seat: Option<&str>,
+) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_directional_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -1071,6 +1313,42 @@ fn column_replay_to_cursor(
     Ok((state, all_effects))
 }
 
+fn directional_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<
+    (
+        DirectionalFlipState,
+        Vec<EffectEnvelope<DirectionalFlipEffect>>,
+    ),
+    String,
+> {
+    let seats = seats();
+    let mut state = directional_setup_match(
+        Seed(seed),
+        &seats,
+        &directional_flip::SetupOptions::default(),
+    )
+    .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_directional_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: directional_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action =
+            directional_flip::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(directional_apply_action(&mut state, action));
+    }
+    Ok((state, all_effects))
+}
+
 fn action_tree_json(tree: &ActionTree) -> String {
     let choices = tree
         .root
@@ -1136,6 +1414,15 @@ fn column_effects_json(effects: &[EffectEnvelope<ColumnFourEffect>]) -> String {
     let body = effects
         .iter()
         .map(column_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn directional_effects_json(effects: &[EffectEnvelope<DirectionalFlipEffect>]) -> String {
+    let body = effects
+        .iter()
+        .map(directional_effect_json)
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
@@ -1319,6 +1606,65 @@ fn column_replay_document_json(
     ))
 }
 
+fn directional_replay_document_json(
+    trace_id: &str,
+    seed: u64,
+    commands: &[AppliedCommand],
+) -> Result<String, String> {
+    let command_segments = commands
+        .iter()
+        .map(|command| command.single_segment())
+        .collect::<Result<Vec<_>, _>>()?;
+    let hashes = directional_replay_commands(seed, &command_segments);
+    let commands_json = commands
+        .iter()
+        .enumerate()
+        .map(|(index, command)| command_record_json(index, command))
+        .collect::<Vec<_>>()
+        .join(",");
+    let checkpoints = if commands.is_empty() {
+        "[{\"id\":\"final\",\"after_command_index\":0}]".to_owned()
+    } else {
+        format!(
+            "[{{\"id\":\"final\",\"after_command_index\":{}}}]",
+            commands.len().saturating_sub(1)
+        )
+    };
+    let outcome = hashes.outcome.map_or_else(
+        || "{\"terminal\":false,\"winner\":null,\"kind\":\"none\",\"draw\":false}".to_owned(),
+        |outcome| match outcome {
+            directional_flip::TerminalOutcome::Draw => {
+                "{\"terminal\":true,\"winner\":null,\"kind\":\"draw\",\"draw\":true}".to_owned()
+            }
+            directional_flip::TerminalOutcome::Win { seat } => format!(
+                "{{\"terminal\":true,\"winner\":\"{}\",\"kind\":\"win\",\"draw\":false}}",
+                trace_directional_seat(seat)
+            ),
+        },
+    );
+
+    Ok(format!(
+        "{{\"schema_version\":{},\"trace_id\":\"{}\",\"fixture_kind\":\"commands\",\"purpose\":\"wasm_exported_replay\",\"note\":\"Replay exported by the Rulepath WASM API from the Rust command log.\",\"migration_update_note\":\"Generated by Gate 6 WASM replay export; expected hashes are computed by Directional Flip Rust replay support.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{{\"seat_id\":\"seat-0\",\"player_id\":\"player-0\"}},{{\"seat_id\":\"seat-1\",\"player_id\":\"player-1\"}}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_private_view_hashes\":{{\"not_applicable\":\"directional_flip is perfect-information and has no private-view API.\"}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_outcome\":{},\"expected_terminal_state\":{},\"not_applicable\":{{\"hidden_information\":\"directional_flip is perfect-information and has no hidden state to redact.\",\"stochastic_game_events\":\"directional_flip game rules use no randomness; bot RNG is not replayed from exported documents because resolved commands are recorded.\",\"private_view_hashes\":\"directional_flip has no private-view API.\"}}}}",
+        SCHEMA_VERSION,
+        escape_json(trace_id),
+        escape_json(GAME_DIRECTIONAL_FLIP),
+        escape_json(DIRECTIONAL_FLIP_TRACE_RULES_VERSION),
+        escape_json(ENGINE_VERSION),
+        escape_json(DATA_VERSION),
+        seed,
+        escape_json(VARIANT_DIRECTIONAL_FLIP_STANDARD),
+        commands_json,
+        checkpoints,
+        hashes.state_hash.0,
+        hashes.effect_hash.0,
+        hashes.action_tree_hash.0,
+        hashes.view_hash.0,
+        hashes.replay_hash.0,
+        outcome,
+        outcome
+    ))
+}
+
 fn command_record_json(index: usize, command: &AppliedCommand) -> String {
     let action_path = command
         .action_path
@@ -1386,6 +1732,24 @@ fn column_replay_step_json(
         cursor >= command_count,
         column_view_json(&column_project_view(state, &Viewer { seat_id: None })),
         column_effects_json(effects)
+    )
+}
+
+fn directional_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    command_count: usize,
+    state: &DirectionalFlipState,
+    effects: &[EffectEnvelope<DirectionalFlipEffect>],
+) -> String {
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"command_count\":{},\"done\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        command_count,
+        cursor >= command_count,
+        directional_view_json(&directional_project_view(state, &Viewer { seat_id: None })),
+        directional_effects_json(effects)
     )
 }
 
@@ -1720,6 +2084,293 @@ fn column_terminal_outcome_json(outcome: column_four::TerminalOutcome) -> String
             line.cells[3].as_string()
         ),
     }
+}
+
+fn directional_view_json(view: &directional_flip::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"board_rows\":{},\"board_columns\":{},\"cells\":[{}],\"active_seat\":{},\"ply_count\":{},\"status_label\":\"{}\",\"freshness_token\":{},\"score\":{},\"legal_targets\":[{}],\"terminal_kind\":\"{}\",\"winning_seat\":{},\"final_score\":{},\"private_view_status\":\"{}\",\"hidden_fields\":[{}],\"ui\":{},\"last_action_summary\":{},\"bot_rationale\":{},\"replay_step_index\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.board_rows,
+        view.board_columns,
+        view.cells
+            .iter()
+            .map(directional_cell_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        option_directional_seat_json(view.active_seat),
+        view.ply_count,
+        escape_json(&view.status_label),
+        view.freshness_token.0,
+        directional_score_view_json(&view.score),
+        view.legal_targets
+            .iter()
+            .map(directional_legal_target_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        directional_terminal_kind(&view.terminal),
+        option_directional_seat_json(directional_terminal_winner(&view.terminal)),
+        directional_terminal_score_json(&view.terminal),
+        escape_json(&view.private_view.status),
+        string_array(&view.private_view.hidden_fields),
+        directional_ui_json(&view.ui),
+        option_string_json(view.last_action_summary.as_deref()),
+        option_string_json(view.bot_rationale.as_deref()),
+        view.replay_step_index
+            .map_or_else(|| "null".to_owned(), |step| step.to_string())
+    )
+}
+
+fn directional_cell_json(cell: &directional_flip::CellView) -> String {
+    format!(
+        "{{\"cell\":\"{}\",\"cell_id\":\"{}\",\"row\":{},\"column\":{},\"occupancy\":\"{}\",\"owner\":{},\"disc_token_key\":{},\"disc_shape_label\":{},\"disc_pattern_label\":{}}}",
+        cell.cell.as_string(),
+        escape_json(&cell.cell_id),
+        cell.row,
+        cell.column,
+        escape_json(&cell.occupancy),
+        option_directional_seat_json(cell.owner),
+        option_string_json(cell.disc_token_key.as_deref()),
+        option_string_json(cell.disc_shape_label.as_deref()),
+        option_string_json(cell.disc_pattern_label.as_deref())
+    )
+}
+
+fn directional_legal_target_json(target: &directional_flip::LegalTargetView) -> String {
+    format!(
+        "{{\"action_kind\":\"{}\",\"action_segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"freshness_token\":{},\"cell\":{},\"preview\":{},\"reason_code\":{},\"explanation\":\"{}\"}}",
+        escape_json(&target.action_kind),
+        escape_json(&target.action_segment),
+        escape_json(&target.label),
+        escape_json(&target.accessibility_label),
+        target.freshness_token.0,
+        option_directional_cell_json(target.cell),
+        target
+            .preview
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), directional_preview_json),
+        option_string_json(target.reason_code.as_deref()),
+        escape_json(&target.explanation)
+    )
+}
+
+fn directional_preview_json(preview: &directional_flip::PlacementPreviewView) -> String {
+    format!(
+        "{{\"preview_id\":\"{}\",\"target_cell\":\"{}\",\"target_cell_id\":\"{}\",\"row\":{},\"column\":{},\"ordered_flip_cells\":[{}],\"ordered_flip_cell_ids\":[{}],\"direction_groups\":[{}],\"explanation\":\"{}\"}}",
+        escape_json(&preview.preview_id),
+        preview.target_cell.as_string(),
+        escape_json(&preview.target_cell_id),
+        preview.row,
+        preview.column,
+        directional_cell_array_json(&preview.ordered_flip_cells),
+        string_array(&preview.ordered_flip_cell_ids),
+        preview
+            .direction_groups
+            .iter()
+            .map(directional_group_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&preview.explanation)
+    )
+}
+
+fn directional_group_json(group: &directional_flip::visibility::DirectionGroupView) -> String {
+    format!(
+        "{{\"direction\":\"{}\",\"cells\":[{}],\"cell_ids\":[{}]}}",
+        escape_json(&group.direction),
+        directional_cell_array_json(&group.cells),
+        string_array(&group.cell_ids)
+    )
+}
+
+fn directional_ui_json(ui: &directional_flip::UiMetadata) -> String {
+    format!(
+        "{{\"board_label\":\"{}\",\"row_count\":{},\"column_count\":{},\"first_disc_token_key\":\"{}\",\"first_disc_shape_label\":\"{}\",\"first_disc_pattern_label\":\"{}\",\"second_disc_token_key\":\"{}\",\"second_disc_shape_label\":\"{}\",\"second_disc_pattern_label\":\"{}\",\"legal_target_shape_label\":\"{}\",\"forced_pass_label\":\"{}\"}}",
+        escape_json(&ui.board_label),
+        ui.row_count,
+        ui.column_count,
+        escape_json(&ui.first_disc_token_key),
+        escape_json(&ui.first_disc_shape_label),
+        escape_json(&ui.first_disc_pattern_label),
+        escape_json(&ui.second_disc_token_key),
+        escape_json(&ui.second_disc_shape_label),
+        escape_json(&ui.second_disc_pattern_label),
+        escape_json(&ui.legal_target_shape_label),
+        escape_json(&ui.forced_pass_label)
+    )
+}
+
+fn directional_effect_json(effect: &EffectEnvelope<DirectionalFlipEffect>) -> String {
+    let payload = match &effect.payload {
+        DirectionalFlipEffect::PlacementAccepted { seat, cell, ply } => format!(
+            "{{\"type\":\"placement_accepted\",\"seat\":\"{}\",\"cell\":\"{}\",\"ply\":{}}}",
+            seat.as_str(),
+            cell.as_string(),
+            ply
+        ),
+        DirectionalFlipEffect::DiscPlaced {
+            seat,
+            cell,
+            display_to_anchor,
+        } => format!(
+            "{{\"type\":\"disc_placed\",\"seat\":\"{}\",\"cell\":\"{}\",\"display_to_anchor\":\"{}\"}}",
+            seat.as_str(),
+            cell.as_string(),
+            escape_json(display_to_anchor)
+        ),
+        DirectionalFlipEffect::DiscsFlipped { seat, flips } => format!(
+            "{{\"type\":\"discs_flipped\",\"seat\":\"{}\",\"flips\":[{}]}}",
+            seat.as_str(),
+            flips
+                .iter()
+                .map(directional_flip_entry_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        DirectionalFlipEffect::PassTaken { seat, ply, reason } => format!(
+            "{{\"type\":\"pass_taken\",\"seat\":\"{}\",\"ply\":{},\"reason\":\"{}\"}}",
+            seat.as_str(),
+            ply,
+            escape_json(reason)
+        ),
+        DirectionalFlipEffect::ActivePlayerChanged {
+            previous_seat,
+            active_seat,
+            ply,
+        } => format!(
+            "{{\"type\":\"active_player_changed\",\"previous_seat\":\"{}\",\"active_seat\":\"{}\",\"ply\":{}}}",
+            previous_seat.as_str(),
+            active_seat.as_str(),
+            ply
+        ),
+        DirectionalFlipEffect::GameEnded {
+            outcome,
+            final_score,
+            final_ply,
+            reason,
+            ..
+        } => format!(
+            "{{\"type\":\"game_ended\",\"outcome\":{},\"final_score\":{},\"final_ply\":{},\"reason\":\"{}\"}}",
+            directional_terminal_outcome_json(*outcome),
+            directional_score_json(*final_score),
+            final_ply,
+            directional_terminal_reason(*reason)
+        ),
+        DirectionalFlipEffect::BotChoseAction {
+            level,
+            policy_id,
+            action_id,
+            rationale,
+        } => format!(
+            "{{\"type\":\"bot_chose_action\",\"level\":{},\"policy_id\":\"{}\",\"action_id\":\"{}\",\"rationale\":\"{}\"}}",
+            level,
+            escape_json(policy_id),
+            escape_json(action_id),
+            escape_json(rationale)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn directional_flip_entry_json(flip: &directional_flip::FlipEntry) -> String {
+    format!(
+        "{{\"cell\":\"{}\",\"previous_owner\":\"{}\",\"new_owner\":\"{}\",\"direction\":\"{}\",\"distance\":{},\"order_index\":{},\"display_anchor\":\"{}\"}}",
+        flip.cell.as_string(),
+        flip.previous_owner.as_str(),
+        flip.new_owner.as_str(),
+        flip.direction.as_str(),
+        flip.distance,
+        flip.order_index,
+        escape_json(&flip.display_anchor)
+    )
+}
+
+fn directional_terminal_kind(terminal: &directional_flip::TerminalView) -> &'static str {
+    match terminal {
+        directional_flip::TerminalView::NonTerminal => "non_terminal",
+        directional_flip::TerminalView::Win { .. } => "win",
+        directional_flip::TerminalView::Draw { .. } => "draw",
+    }
+}
+
+fn directional_terminal_winner(
+    terminal: &directional_flip::TerminalView,
+) -> Option<DirectionalFlipSeat> {
+    match terminal {
+        directional_flip::TerminalView::Win { winning_seat, .. } => Some(*winning_seat),
+        _ => None,
+    }
+}
+
+fn directional_terminal_score_json(terminal: &directional_flip::TerminalView) -> String {
+    match terminal {
+        directional_flip::TerminalView::NonTerminal => "null".to_owned(),
+        directional_flip::TerminalView::Win { final_score, .. }
+        | directional_flip::TerminalView::Draw { final_score } => {
+            directional_score_view_json(final_score)
+        }
+    }
+}
+
+fn directional_terminal_outcome_json(outcome: directional_flip::TerminalOutcome) -> String {
+    match outcome {
+        directional_flip::TerminalOutcome::Draw => "{\"kind\":\"draw\"}".to_owned(),
+        directional_flip::TerminalOutcome::Win { seat } => {
+            format!("{{\"kind\":\"win\",\"seat\":\"{}\"}}", seat.as_str())
+        }
+    }
+}
+
+fn directional_terminal_reason(reason: directional_flip::TerminalReason) -> &'static str {
+    match reason {
+        directional_flip::TerminalReason::BoardFull => "board_full",
+        directional_flip::TerminalReason::NoContinuation => "no_continuation",
+        directional_flip::TerminalReason::DoubleForcedPass => "double_forced_pass",
+    }
+}
+
+fn directional_score_json(score: directional_flip::Score) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{}}}",
+        score.seat_0, score.seat_1
+    )
+}
+
+fn directional_score_view_json(score: &directional_flip::ScoreView) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{}}}",
+        score.seat_0, score.seat_1
+    )
+}
+
+fn option_directional_seat_json(seat: Option<DirectionalFlipSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
+fn option_directional_cell_json(cell: Option<directional_flip::CellId>) -> String {
+    cell.map_or_else(
+        || "null".to_owned(),
+        |cell| format!("\"{}\"", cell.as_string()),
+    )
+}
+
+fn directional_cell_array_json(values: &[directional_flip::CellId]) -> String {
+    values
+        .iter()
+        .map(|cell| format!("\"{}\"", cell.as_string()))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn option_column_seat_json(seat: Option<ColumnFourSeat>) -> String {
@@ -2426,8 +3077,10 @@ mod tests {
         assert!(games.contains("\"game_id\":\"race_to_n\""));
         assert!(games.contains("\"game_id\":\"three_marks\""));
         assert!(games.contains("\"game_id\":\"column_four\""));
+        assert!(games.contains("\"game_id\":\"directional_flip\""));
         assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
         assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
+        assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
     }
 
     #[test]
@@ -2570,6 +3223,67 @@ mod tests {
         let imported = import_replay(&exported).expect("replay imported");
         let replay_id = extract_replay_id(&imported);
         assert!(imported.contains("\"game_id\":\"column_four\""));
+
+        let reset = replay_reset(&replay_id).expect("replay reset returned");
+        assert!(reset.contains("\"cursor\":0"));
+        assert!(reset.contains("\"ply_count\":0"));
+
+        let step = replay_step(&replay_id, 1).expect("replay stepped");
+        assert!(step.contains("\"cursor\":1"));
+        assert!(step.contains("\"ply_count\":1"));
+    }
+
+    #[test]
+    fn directional_flip_surface_drives_operation_group() {
+        let created = new_match("directional_flip", 51).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"directional_flip_standard\""));
+
+        let view = get_view(&match_id, None).expect("view returned");
+        assert!(view.contains("\"game_id\":\"directional_flip\""));
+        assert!(view.contains("\"variant_id\":\"directional_flip_standard\""));
+        assert!(view.contains("\"board_rows\":8"));
+        assert!(view.contains("\"board_columns\":8"));
+        assert!(view.contains("\"freshness_token\":0"));
+        assert!(view.contains("\"score\":{\"seat_0\":2,\"seat_1\":2}"));
+        assert!(view.contains("\"hidden_fields\":[]"));
+        assert!(view.contains("\"ordered_flip_cells\""));
+
+        let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
+        assert!(tree.contains("\"segment\":\"place/"));
+        assert!(tree.contains("\"freshness_token\":0"));
+
+        let action_segment = tree
+            .split("\"segment\":\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("placement segment present")
+            .to_owned();
+        let applied =
+            apply_action(&match_id, "seat_0", &action_segment, 0).expect("human action applies");
+        assert!(applied.contains("\"type\":\"disc_placed\""));
+        assert!(applied.contains("\"type\":\"discs_flipped\""));
+        assert!(applied.contains("\"active_seat\":\"seat_1\""));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        assert!(bot.contains("\"type\":\"bot_chose_action\""));
+        assert!(bot.contains("\"ply_count\":2"));
+
+        let effects = get_effects(&match_id, 0, None).expect("effects returned");
+        assert!(effects.contains("\"type\":\"disc_placed\""));
+        assert!(effects.contains("\"type\":\"bot_chose_action\""));
+
+        let exported = export_replay(&match_id).expect("replay exported");
+        assert!(exported.contains("\"game_id\":\"directional_flip\""));
+        assert!(exported.contains("\"rules_version\":\"directional_flip-rules-v1\""));
+        assert!(exported.contains("\"expected_replay_hashes\""));
+        assert!(exported
+            .contains("\"private_view_hashes\":\"directional_flip has no private-view API.\""));
+        assert!(!exported.contains("initial_snapshot"));
+
+        let imported = import_replay(&exported).expect("replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"game_id\":\"directional_flip\""));
 
         let reset = replay_reset(&replay_id).expect("replay reset returned");
         assert!(reset.contains("\"cursor\":0"));

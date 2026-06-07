@@ -151,7 +151,99 @@ export type ColumnFourPublicView = {
   replay_step_index: number | null;
 };
 
-export type PublicView = RacePublicView | ThreeMarksPublicView | ColumnFourPublicView;
+export type DirectionalFlipCellView = {
+  cell: string;
+  cell_id: string;
+  row: number;
+  column: number;
+  occupancy: "empty" | "occupied";
+  owner: SeatId | null;
+  disc_token_key: string | null;
+  disc_shape_label: string | null;
+  disc_pattern_label: string | null;
+};
+
+export type DirectionalFlipScoreView = {
+  seat_0: number;
+  seat_1: number;
+};
+
+export type DirectionalFlipDirectionGroupView = {
+  direction: string;
+  cells: string[];
+  cell_ids: string[];
+};
+
+export type DirectionalFlipPreviewView = {
+  preview_id: string;
+  target_cell: string;
+  target_cell_id: string;
+  row: number;
+  column: number;
+  ordered_flip_cells: string[];
+  ordered_flip_cell_ids: string[];
+  direction_groups: DirectionalFlipDirectionGroupView[];
+  explanation: string;
+};
+
+export type DirectionalFlipLegalTargetView = {
+  action_kind: "placement" | "forced_pass" | string;
+  action_segment: string;
+  label: string;
+  accessibility_label: string;
+  freshness_token: number;
+  cell: string | null;
+  preview: DirectionalFlipPreviewView | null;
+  reason_code: string | null;
+  explanation: string;
+};
+
+export type DirectionalFlipUiMetadata = {
+  board_label: string;
+  row_count: number;
+  column_count: number;
+  first_disc_token_key: string;
+  first_disc_shape_label: string;
+  first_disc_pattern_label: string;
+  second_disc_token_key: string;
+  second_disc_shape_label: string;
+  second_disc_pattern_label: string;
+  legal_target_shape_label: string;
+  forced_pass_label: string;
+};
+
+export type DirectionalFlipPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "directional_flip";
+  display_name: string;
+  variant_id: string;
+  rules_version_label: string;
+  board_rows: number;
+  board_columns: number;
+  cells: DirectionalFlipCellView[];
+  active_seat: SeatId | null;
+  ply_count: number;
+  status_label: string;
+  freshness_token: number;
+  score: DirectionalFlipScoreView;
+  legal_targets: DirectionalFlipLegalTargetView[];
+  terminal_kind: "non_terminal" | "win" | "draw";
+  winning_seat: SeatId | null;
+  final_score: DirectionalFlipScoreView | null;
+  private_view_status: string;
+  hidden_fields: string[];
+  ui: DirectionalFlipUiMetadata;
+  last_action_summary: string | null;
+  bot_rationale: string | null;
+  replay_step_index: number | null;
+};
+
+export type PublicView =
+  | RacePublicView
+  | ThreeMarksPublicView
+  | ColumnFourPublicView
+  | DirectionalFlipPublicView;
 
 export type ActionChoice = {
   segment: string;

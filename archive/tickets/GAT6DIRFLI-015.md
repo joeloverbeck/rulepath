@@ -1,6 +1,6 @@
 # GAT6DIRFLI-015: WASM exposure & wasm smoke
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` + `crates/wasm-api/Cargo.toml` (thin glue: register `directional_flip`, route view/action-tree/apply/bot/effects/replay), `apps/web/src/wasm/client.ts` (TS types + call wrappers), `apps/web/scripts/smoke-load-wasm.mjs` (wasm smoke coverage).
@@ -84,3 +84,25 @@ Extend `apps/web/scripts/smoke-load-wasm.mjs` to cover loading/instantiating a `
 1. `npm --prefix apps/web run smoke:wasm`
 2. `cargo build -p wasm-api && npm --prefix apps/web run build`
 3. The wasm smoke + build is the correct boundary; the in-browser play smoke is GAT6DIRFLI-018.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Registered `directional_flip` in `crates/wasm-api` for catalog, match creation, view projection, action tree, apply action, bot turn, effect log, replay export/import, replay step, and replay reset.
+- Added Directional Flip WASM JSON serializers for public view, legal target previews, scores, terminal state, and semantic effects while keeping rule, legality, bot, and flip behavior in Rust game code.
+- Added TypeScript `DirectionalFlipPublicView` and related presentation types.
+- Extended `apps/web/scripts/smoke-load-wasm.mjs` to load and drive a Directional Flip match through WASM, including preview visibility, stale diagnostics, bot effects, replay export/import, and replay stepping.
+- Added `directional_flip_surface_drives_operation_group` coverage in `cargo test -p wasm-api`.
+
+Deviations from original plan:
+- Added direct WASM API unit coverage in addition to the required Node wasm smoke so future Rust test runs exercise the new `RegisteredGame::DirectionalFlip` arm.
+
+Verification results:
+- `cargo build -p wasm-api` passed.
+- `npm --prefix apps/web run smoke:wasm` passed and reported 4 games with `directional_diagnostic: "stale_action"` and `directional_replay_cursor: 1`.
+- `npm --prefix apps/web run build` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `cargo test -p wasm-api` passed, including `directional_flip_surface_drives_operation_group`.
+- `cargo fmt --all --check` passed.

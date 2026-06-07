@@ -52,6 +52,7 @@ const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "list_games includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "list_games includes three_marks");
 assert(catalog.some((game) => game.game_id === "column_four"), "list_games includes column_four");
+assert(catalog.some((game) => game.game_id === "directional_flip"), "list_games includes directional_flip");
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),
@@ -361,6 +362,166 @@ const columnReplayStep = invoke(
 assert(columnReplayStep.cursor === 1, "column_four replay step advances to requested cursor");
 assert(columnReplayStep.view.ply_count === 1, "column_four replay step projects applied drop");
 
+const directionalCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 17n),
+  ["directional_flip"],
+);
+assert(directionalCreated.match_id, "directional_flip new_match returns a match id");
+assert(
+  directionalCreated.variant_id === "directional_flip_standard",
+  "directional_flip starts standard variant",
+);
+
+const directionalView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [directionalCreated.match_id],
+);
+assert(directionalView.game_id === "directional_flip", "directional_flip view is game-specific");
+assert(
+  directionalView.variant_id === "directional_flip_standard",
+  "directional_flip view reports standard variant",
+);
+assert(
+  directionalView.board_rows === 8 && directionalView.board_columns === 8,
+  "directional_flip projects an 8x8 board",
+);
+assert(directionalView.cells.length === 64, "directional_flip projects 64 cells");
+assert(directionalView.legal_targets.length > 0, "directional_flip exposes legal targets");
+assert(
+  directionalView.legal_targets.some((target) => target.preview?.ordered_flip_cells.length > 0),
+  "directional_flip legal targets include Rust preview flips",
+);
+assert(
+  directionalView.private_view_status === "not_applicable_perfect_information",
+  "directional_flip private view is explicitly not applicable",
+);
+assert(directionalView.hidden_fields.length === 0, "directional_flip exposes no hidden fields");
+
+const directionalTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [directionalCreated.match_id, "seat_0"],
+);
+const directionalPlacement = directionalTree.choices.find((choice) =>
+  choice.segment.startsWith("place/"),
+);
+assert(directionalPlacement, "directional_flip action tree exposes placement actions");
+
+const directionalAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(directionalTree.freshness_token),
+    ),
+  [directionalCreated.match_id, "seat_0", directionalPlacement.segment],
+);
+assert(directionalAfterHuman.view.ply_count === 1, "directional_flip human placement advances ply");
+assert(
+  directionalAfterHuman.effects.some((effect) => effect.payload.type === "disc_placed"),
+  "directional_flip emits semantic disc placement effect",
+);
+assert(
+  directionalAfterHuman.effects.some((effect) => effect.payload.type === "discs_flipped"),
+  "directional_flip emits semantic flip effect",
+);
+
+let directionalStaleDiagnostic = null;
+try {
+  invoke(
+    (args) =>
+      wasm.rulepath_apply_action(
+        args[0].ptr,
+        args[0].len,
+        args[1].ptr,
+        args[1].len,
+        args[2].ptr,
+        args[2].len,
+        BigInt(directionalTree.freshness_token),
+      ),
+    [directionalCreated.match_id, "seat_1", directionalPlacement.segment],
+  );
+} catch (error) {
+  directionalStaleDiagnostic = error.diagnostic;
+}
+assert(
+  directionalStaleDiagnostic?.code === "stale_action",
+  "directional_flip stale submission returns typed diagnostic",
+);
+
+const directionalAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 44n),
+  [directionalCreated.match_id, directionalAfterHuman.view.active_seat],
+);
+assert(directionalAfterBot.view.ply_count === 2, "directional_flip bot turn applies a Rust-selected placement");
+assert(
+  directionalAfterBot.effects.some((effect) => effect.payload.type === "bot_chose_action"),
+  "directional_flip bot emits a semantic bot-choice effect",
+);
+assert(
+  directionalAfterBot.effects.some((effect) => typeof effect.payload.rationale === "string"),
+  "directional_flip bot rationale is public prose",
+);
+
+const directionalEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n, 0, 0),
+  [directionalCreated.match_id],
+);
+assert(
+  directionalEffects.some((entry) => entry.effect.payload.type === "bot_chose_action"),
+  "directional_flip effect log returns bot effect",
+);
+
+const directionalExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [directionalCreated.match_id],
+);
+assert(
+  directionalExportedReplay.game_id === "directional_flip",
+  "directional_flip export_replay preserves game id",
+);
+assert(
+  directionalExportedReplay.rules_version === "directional_flip-rules-v1",
+  "directional_flip export_replay preserves rules version",
+);
+assert(directionalExportedReplay.expected_replay_hashes.final, "directional_flip export includes replay hash");
+assert(
+  !JSON.stringify(directionalExportedReplay).includes("initial_snapshot"),
+  "directional_flip export omits internal replay snapshots",
+);
+
+const directionalImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(directionalExportedReplay)],
+);
+assert(
+  directionalImportedReplay.game_id === "directional_flip",
+  "directional_flip import_replay preserves game id",
+);
+assert(
+  directionalImportedReplay.command_count === directionalExportedReplay.commands.length,
+  "directional_flip import preserves command count",
+);
+
+const directionalReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [directionalImportedReplay.replay_id],
+);
+assert(directionalReplayReset.cursor === 0, "directional_flip replay reset returns cursor zero");
+assert(directionalReplayReset.view.ply_count === 0, "directional_flip replay reset projects initial state");
+
+const directionalReplayStep = invoke(
+  (args) => wasm.rulepath_replay_step(args[0].ptr, args[0].len, 1),
+  [directionalImportedReplay.replay_id],
+);
+assert(directionalReplayStep.cursor === 1, "directional_flip replay step advances to requested cursor");
+assert(directionalReplayStep.view.ply_count === 1, "directional_flip replay step projects applied placement");
+
 console.log(
   JSON.stringify({
     version,
@@ -372,8 +533,10 @@ console.log(
     effects: effects.length,
     diagnostic: staleDiagnostic.code,
     column_diagnostic: columnStaleDiagnostic.code,
+    directional_diagnostic: directionalStaleDiagnostic.code,
     replay_cursor: replayStep.cursor,
     column_replay_cursor: columnReplayStep.cursor,
+    directional_replay_cursor: directionalReplayStep.cursor,
   }),
 );
 
