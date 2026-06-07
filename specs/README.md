@@ -33,9 +33,9 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | 4 | Gate 6 | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
 | 5 | Gate 7 | [`gate-7-draughts-lite-compound-action-tree.md`](../archive/specs/gate-7-draughts-lite-compound-action-tree.md) | Done |
 | 5M | Gate 7.1 | [`gate-7-1-board-space-primitive-back-port.md`](../archive/specs/gate-7-1-board-space-primitive-back-port.md) | Done |
-| 5M | Gate 7.2 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Planned |
-| 6 | Gate 8 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Planned |
-| 6C | Post-Gate-8 checkpoint | `blackjack_lite` continuation decision before Gate 9 admission | Not started |
+| 5M | Gate 7.2 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Done |
+| 6 | Gate 8 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Done |
+| 6C | Post-Gate-8 checkpoint | `blackjack_lite` is formally deferred to a Gate 8.1 reconsideration before any Gate 9 implementation. Gate 8's `high_card_duel` evidence satisfies deterministic shuffle, private-view, effect-filter, public replay/export, bot-view, browser no-leak, and benchmark proof; Blackjack Lite remains deferred because its dealer policy, hole-card, hit/stand, bust/push/natural, soft-hand, and casino-adjacent UI complexity is source-grounded extra pressure beyond the first hidden-info/chance gate. | Done |
 | 7 | Gate 9 | `token_bazaar` / `secret_draft` — not yet specced | Not started |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |

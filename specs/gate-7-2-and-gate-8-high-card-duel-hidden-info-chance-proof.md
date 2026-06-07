@@ -3,7 +3,7 @@
 Spec ID: `gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof`  
 Roadmap stage: Stage 6 (chance / hidden-information proof)  
 Roadmap build gate: Gate 7.2 (orientation interlock) + Gate 8 (`high_card_duel`)  
-Status: Planned  
+Status: Done  
 Date: 2026-06-07  
 Owner: joeloverbeck  
 Authority order: `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → `docs/OFFICIAL-GAME-CONTRACT.md` → `docs/ROADMAP.md`  
@@ -59,7 +59,11 @@ Combined next-work gate:
 
 ## 1.2 Status
 
-Planned. This spec defines the next implementation work. It does not itself mark the gate done.
+Done. Gate 7.2 orientation hygiene, Gate 8 `high_card_duel` admission, and the
+post-Gate-8 Blackjack Lite continuation checkpoint are complete as of
+2026-06-07. The capstone evidence passed across Rust hygiene, workspace tests,
+High Card Duel fixture/rule/replay/simulation tools, benchmarks, web build,
+browser no-leak/a11y smokes, documentation links, and boundary checks.
 
 ## 1.3 Dependency posture
 
@@ -850,6 +854,39 @@ Gate 9 is blocked until one of those conditions is true.
 
 # 7. Acceptance evidence
 
+Capstone evidence recorded on 2026-06-07:
+
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo test --workspace` passed.
+- `cargo run -p rule-coverage -- --game high_card_duel` passed with
+  `high_card_duel` coverage matrix accepted.
+- `cargo run -p replay-check -- --game high_card_duel` passed across all 10
+  golden traces.
+- `cargo run -p fixture-check -- --game high_card_duel` passed.
+- `cargo run -p simulate -- --game high_card_duel --games 1000 --start-seed 1`
+  passed: 1000 games, seat 0 wins 378, seat 1 wins 363, draws 259, average
+  length 12.00.
+- `cargo bench -p high_card_duel` passed with benchmark evidence for random
+  playout, public replay export, standard setup shuffle, and Level 0 bot
+  decision.
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/high-card-duel.smoke.mjs` passed with no-leak viewer/a11y
+  coverage.
+- `node apps/web/e2e/a11y-noleak.smoke.mjs` passed.
+- `node apps/web/e2e/shell.smoke.mjs` passed.
+- `node scripts/check-doc-links.mjs` passed across 23 markdown files.
+- `bash scripts/boundary-check.sh` passed.
+
+The `blackjack_lite` continuation checkpoint is resolved by formal deferral in
+`specs/README.md`: reconsider Blackjack Lite as Gate 8.1 before any Gate 9
+implementation. Gate 8's `high_card_duel` evidence satisfied deterministic
+shuffle, private-view, effect-filter, public replay/export, bot-view, browser
+no-leak, and benchmark proof; Blackjack Lite remains deferred because its
+dealer policy, hole-card handling, hit/stand loop, bust/push/natural logic,
+soft-hand choices, and casino-adjacent UI risk are source-grounded extra
+complexity beyond the first hidden-info/chance proof.
+
 Implementation must report exact commands and outcomes. Do not say “tests pass” without listing the command set.
 
 Minimum acceptance evidence:
@@ -1155,4 +1192,3 @@ Not allowed:
 - add aspirational roadmap prose;
 - create ADRs for ordinary cleanup;
 - sneak in Gate 8 implementation changes before Gate 7.2 exit.
-
