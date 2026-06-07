@@ -1,6 +1,6 @@
 # GAT6DIRFLI-001: Directional Flip rules research & IP source docs
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (documentation-only — `games/directional_flip/docs/RULES.md`, `games/directional_flip/docs/SOURCES.md`)
@@ -75,3 +75,24 @@ Record consulted sources (spec §22.1 external-research table), a source-to-rule
 1. `test -f games/directional_flip/docs/RULES.md && test -f games/directional_flip/docs/SOURCES.md`
 2. `node scripts/check-doc-links.mjs` — doc link integrity across the repo after adding the new docs.
 3. A narrower command is correct here because no game-id is registered yet (the `tools/rule-coverage --game directional_flip` check belongs to GAT6DIRFLI-016, after the crate and `RULE-COVERAGE.md` exist).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/directional_flip/docs/RULES.md` with original Rulepath rules prose for `directional_flip_standard`, including the seeded `DF-*` rule ids from `specs/gate-6-directional-flip.md`.
+- Added `games/directional_flip/docs/SOURCES.md` with consulted sources, ambiguity decisions, source-to-rule-id cross-reference, neutral naming rationale, asset/font status, and explicit no-Othello-branding / original-prose / no-trade-dress statements.
+
+Deviations from original plan:
+
+- None. This ticket remained documentation-only; no Rust, workspace, `engine-core`, or `game-stdlib` files were changed.
+
+Verification results:
+
+- `test -f games/directional_flip/docs/RULES.md && test -f games/directional_flip/docs/SOURCES.md` passed.
+- `grep -c 'DF-' games/directional_flip/docs/RULES.md` returned `57`.
+- Seed coverage check for every `DF-*` id listed in spec section 21 found no missing ids in `RULES.md`.
+- `node scripts/check-doc-links.mjs` passed and reported `Checked 21 markdown files`.
+- Manual grep confirmed `SOURCES.md` contains the explicit original-prose, neutral naming, no-Othello-branding, and no-trade-dress rationale.
