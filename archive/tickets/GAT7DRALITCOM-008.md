@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-008: Semantic effects — move/capture/promotion/forced/terminal/bot/diagnostic
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite/src/effects.rs` (semantic effect vocabulary for one applied command), `src/lib.rs` (export); apply (GAT7DRALITCOM-007) emits these effects.
@@ -76,3 +76,17 @@ Wire `apply` (GAT7DRALITCOM-007) to emit the effect sequence in deterministic or
 1. `cargo test -p draughts_lite effects`
 2. `cargo test -p draughts_lite && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct; deterministic effect-hash proof lands in GAT7DRALITCOM-010 with replay support.
+
+## Outcome
+
+Implemented the Draughts Lite semantic effect vocabulary in `effects.rs`, exported
+the public helpers, and wired `apply_action` to emit deterministic public effects
+for committed moves, quiet/capture steps, promotions, forced capture availability,
+forced continuation, terminal wins, invalid commands, and bot action prose.
+
+Verification passed:
+
+1. `cargo test -p draughts_lite effects`
+2. `cargo test -p draughts_lite`
+3. `cargo fmt --all --check`
+4. `bash scripts/boundary-check.sh`

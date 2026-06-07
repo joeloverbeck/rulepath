@@ -1,8 +1,12 @@
-use engine_core::{Actor, CommandEnvelope, Diagnostic};
+use engine_core::{Actor, CommandEnvelope, Diagnostic, EffectEnvelope};
 use game_stdlib::board_space::{Coord, CoordIdError};
 
 use crate::{
     actions::{FROM_SEGMENT_PREFIX, JUMP_SEGMENT_PREFIX, TO_SEGMENT_PREFIX},
+    effects::{
+        forced_capture_available_effect, move_effects, terminal_win_effect, DraughtsLiteEffect,
+        TerminalWinReason,
+    },
     ids::{is_playable_cell, DraughtsLiteSeat, PieceId},
     state::{CellOccupancy, DraughtsLiteState, Piece, PieceKind, TerminalOutcome},
 };
@@ -241,8 +245,12 @@ pub fn validate_command(
     ))
 }
 
-pub fn apply_action(state: &mut DraughtsLiteState, action: ValidatedAction) {
+pub fn apply_action(
+    state: &mut DraughtsLiteState,
+    action: ValidatedAction,
+) -> Vec<EffectEnvelope<DraughtsLiteEffect>> {
     let piece_id = action.legal_move.piece_id;
+    let mut effects = move_effects(&action.legal_move);
 
     for step in &action.legal_move.steps {
         state.set_occupancy(step.from, CellOccupancy::Empty);
@@ -266,11 +274,28 @@ pub fn apply_action(state: &mut DraughtsLiteState, action: ValidatedAction) {
     state.freshness_token = state.freshness_token.next();
 
     let next_seat = action.actor.other();
-    if let Some(outcome) = terminal_outcome_for_seat_to_act(state, next_seat) {
+    if let Some((outcome, reason)) = terminal_outcome_and_reason_for_seat_to_act(state, next_seat) {
         state.terminal_outcome = Some(outcome);
+        let TerminalOutcome::Win { seat: winner } = outcome;
+        effects.push(terminal_win_effect(winner, next_seat, reason));
     } else {
         state.active_seat = next_seat;
+        let captures = capture_moves_for(state, next_seat);
+        if !captures.is_empty() {
+            let mut origins = captures
+                .iter()
+                .map(|legal_move| legal_move.piece_id)
+                .collect::<Vec<_>>();
+            origins.sort();
+            origins.dedup();
+            effects.push(forced_capture_available_effect(
+                next_seat,
+                origins.len() as u8,
+            ));
+        }
     }
+
+    effects
 }
 
 fn quiet_moves_for(state: &DraughtsLiteState, seat: DraughtsLiteSeat) -> Vec<LegalMove> {
@@ -468,6 +493,29 @@ fn reaches_crown_row(seat: DraughtsLiteSeat, cell: Coord) -> bool {
     }
 }
 
+fn terminal_outcome_and_reason_for_seat_to_act(
+    state: &DraughtsLiteState,
+    seat_to_act: DraughtsLiteSeat,
+) -> Option<(TerminalOutcome, TerminalWinReason)> {
+    if state.pieces_for_seat(seat_to_act).next().is_none() {
+        Some((
+            TerminalOutcome::Win {
+                seat: seat_to_act.other(),
+            },
+            TerminalWinReason::OpponentNoPieces,
+        ))
+    } else if !has_legal_move(state, seat_to_act) {
+        Some((
+            TerminalOutcome::Win {
+                seat: seat_to_act.other(),
+            },
+            TerminalWinReason::OpponentNoLegalMove,
+        ))
+    } else {
+        None
+    }
+}
+
 pub fn segments_for_move(legal_move: &LegalMove) -> Vec<String> {
     let mut segments = Vec::with_capacity(1 + legal_move.steps.len());
     segments.push(format!("{FROM_SEGMENT_PREFIX}{}", legal_move.origin.id()));
@@ -591,6 +639,7 @@ mod tests {
     };
 
     use crate::{
+        effects::{DraughtsLiteEffect, TerminalWinReason},
         ids::board_dimensions,
         setup::{setup_match, SetupOptions},
         state::{sorted_pieces, DraughtsLiteSnapshot},
@@ -906,7 +955,7 @@ mod tests {
         );
 
         let action = validate_command(&state, &command).expect("path validates");
-        apply_action(&mut state, action);
+        let effects = apply_action(&mut state, action);
 
         let moved_id = piece_id(DraughtsLiteSeat::Seat0, 1);
         assert_eq!(state.piece(moved_id).unwrap().cell, coord(7, 6));
@@ -924,6 +973,40 @@ mod tests {
         assert_eq!(state.ply_count, 1);
         assert_eq!(state.command_count, 1);
         assert_eq!(state.freshness_token, FreshnessToken(1));
+        assert!(matches!(
+            effects[0].payload.clone(),
+            DraughtsLiteEffect::MoveCommitted {
+                move_kind: MoveKind::Capture,
+                path_length: 2,
+                ..
+            }
+        ));
+        assert!(matches!(
+            effects[1].payload.clone(),
+            DraughtsLiteEffect::CaptureStep {
+                captured_cell,
+                captured_piece_id,
+                ..
+            } if captured_cell == coord(4, 3)
+                && captured_piece_id == piece_id(DraughtsLiteSeat::Seat1, 1)
+        ));
+        assert!(matches!(
+            effects[2].payload.clone(),
+            DraughtsLiteEffect::ForcedContinuationRequired {
+                current_landing,
+                continuation_destination_count: 1,
+                ..
+            } if current_landing == coord(5, 4)
+        ));
+        assert!(matches!(
+            effects[3].payload.clone(),
+            DraughtsLiteEffect::CaptureStep {
+                captured_cell,
+                captured_piece_id,
+                ..
+            } if captured_cell == coord(6, 5)
+                && captured_piece_id == piece_id(DraughtsLiteSeat::Seat1, 2)
+        ));
     }
 
     #[test]
@@ -1047,5 +1130,102 @@ mod tests {
                 .code,
             "continues_after_promotion_stop"
         );
+    }
+
+    #[test]
+    fn apply_emits_quiet_promotion_forced_capture_and_terminal_effects() {
+        let mut quiet_state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![
+                man(DraughtsLiteSeat::Seat0, 1, 3, 2),
+                man(DraughtsLiteSeat::Seat1, 1, 5, 4),
+            ],
+        );
+        let quiet = validate_command(
+            &quiet_state,
+            &command_for(
+                &quiet_state,
+                DraughtsLiteSeat::Seat0,
+                vec!["from/r3c2", "to/r4c3"],
+            ),
+        )
+        .unwrap();
+        let quiet_effects = apply_action(&mut quiet_state, quiet);
+        assert!(matches!(
+            quiet_effects[0].payload.clone(),
+            DraughtsLiteEffect::MoveCommitted {
+                move_kind: MoveKind::Quiet,
+                start_cell,
+                final_cell,
+                ..
+            } if start_cell == coord(3, 2) && final_cell == coord(4, 3)
+        ));
+        assert!(matches!(
+            quiet_effects[1].payload.clone(),
+            DraughtsLiteEffect::QuietStep {
+                origin,
+                landing,
+                ..
+            } if origin == coord(3, 2) && landing == coord(4, 3)
+        ));
+        assert!(matches!(
+            quiet_effects[2].payload.clone(),
+            DraughtsLiteEffect::ForcedCaptureAvailable {
+                active_seat: DraughtsLiteSeat::Seat1,
+                capture_origin_count: 1,
+                ..
+            }
+        ));
+
+        let mut promotion_state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![man(DraughtsLiteSeat::Seat0, 1, 7, 2)],
+        );
+        let promotion = validate_command(
+            &promotion_state,
+            &command_for(
+                &promotion_state,
+                DraughtsLiteSeat::Seat0,
+                vec!["from/r7c2", "to/r8c1"],
+            ),
+        )
+        .unwrap();
+        let promotion_effects = apply_action(&mut promotion_state, promotion);
+        assert!(matches!(
+            promotion_effects[2].payload.clone(),
+            DraughtsLiteEffect::Promotion {
+                piece_id: promoted_piece_id,
+                cell,
+                during_capture: false,
+                ..
+            } if promoted_piece_id == piece_id(DraughtsLiteSeat::Seat0, 1)
+                && cell == coord(8, 1)
+        ));
+
+        let mut terminal_state = empty_state(
+            DraughtsLiteSeat::Seat0,
+            vec![
+                man(DraughtsLiteSeat::Seat0, 1, 3, 2),
+                man(DraughtsLiteSeat::Seat1, 1, 4, 3),
+            ],
+        );
+        let terminal = validate_command(
+            &terminal_state,
+            &command_for(
+                &terminal_state,
+                DraughtsLiteSeat::Seat0,
+                vec!["from/r3c2", "jump/r5c4"],
+            ),
+        )
+        .unwrap();
+        let terminal_effects = apply_action(&mut terminal_state, terminal);
+        assert!(matches!(
+            terminal_effects.last().unwrap().payload.clone(),
+            DraughtsLiteEffect::TerminalWin {
+                winner: DraughtsLiteSeat::Seat0,
+                loser: DraughtsLiteSeat::Seat1,
+                reason: TerminalWinReason::OpponentNoPieces,
+            }
+        ));
     }
 }
