@@ -1,6 +1,6 @@
 # GAT6DIRFLI-017: DirectionalFlipBoard renderer & shell integration
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/DirectionalFlipBoard.tsx` (new) plus shell integration in `apps/web/src/components/{AppShell,GamePicker,ReplayViewer,effectFeedback}` , `apps/web/src/{main.tsx,state/shellReducer.ts,styles.css}`. No Rust/engine surface; no legality in TypeScript.
@@ -81,3 +81,14 @@ Wire the renderer into `AppShell.tsx`, register the game in `GamePicker.tsx` and
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. Build + existing UI smoke is the in-ticket boundary; the directional-flip-specific play/keyboard/no-leak E2E is GAT6DIRFLI-018.
+
+## Outcome
+
+Completed 2026-06-07. Added the Directional Flip board renderer and wired it into the main play surface and replay viewer. The renderer submits only Rust-provided legal target segments, derives previews from Rust preview payloads, animates placed/flipped discs from Rust semantic effects, includes a forced-pass control when Rust exposes it, supports keyboard grid navigation, and distinguishes seats by shape/pattern as well as color.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`
+3. `git diff --check`
+4. Focused localhost preview smoke with Puppeteer: selected Directional Flip, started a match, confirmed 64 cells and 4 Rust legal targets, clicked a legal cell, and captured `/tmp/directional-flip-board.png` for layout review.

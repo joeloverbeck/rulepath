@@ -56,6 +56,30 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.seat} landed on ${payload.cell}.`,
         tone: "movement",
       };
+    case "placement_accepted":
+      return {
+        title: "Placement accepted",
+        detail: `${payload.seat} chose ${payload.cell}.`,
+        tone: "neutral",
+      };
+    case "disc_placed":
+      return {
+        title: "Disc placed",
+        detail: `${payload.seat} placed on ${payload.cell}.`,
+        tone: "movement",
+      };
+    case "discs_flipped":
+      return {
+        title: "Discs flipped",
+        detail: `${payload.seat} flipped ${flipCount(payload.flips)} disc${flipCount(payload.flips) === 1 ? "" : "s"}.`,
+        tone: "movement",
+      };
+    case "pass_taken":
+      return {
+        title: "Pass taken",
+        detail: `${payload.seat} had no legal placement.`,
+        tone: "turn",
+      };
     case "active_player_changed":
       return {
         title: "Turn changed",
@@ -106,6 +130,10 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "neutral",
       };
   }
+}
+
+function flipCount(flips: unknown): number {
+  return Array.isArray(flips) ? flips.length : 0;
 }
 
 export function summarizeEffect(entry: EffectEntry): string {

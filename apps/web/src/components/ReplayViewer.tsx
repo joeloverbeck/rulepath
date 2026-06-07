@@ -1,7 +1,8 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
-import type { ColumnFourPublicView, EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
+import type { ColumnFourPublicView, DirectionalFlipPublicView, EffectEntry, PublicView, ThreeMarksPublicView } from "../wasm/client";
 import { ColumnFourBoard } from "./ColumnFourBoard";
+import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
@@ -18,6 +19,8 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const latestEntry: EffectEntry | null = latestReplayEffect && step ? { cursor: step.cursor, effect: latestReplayEffect } : null;
   const threeMarksView: ThreeMarksPublicView | null = step && isThreeMarksView(step.view) ? step.view : null;
   const columnFourView: ColumnFourPublicView | null = step && isColumnFourView(step.view) ? step.view : null;
+  const directionalFlipView: DirectionalFlipPublicView | null =
+    step && isDirectionalFlipView(step.view) ? step.view : null;
   const replayEffectEntries: EffectEntry[] = step
     ? effects.map((effect, index) => ({ cursor: step.cursor + index, effect }))
     : [];
@@ -62,6 +65,18 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
             <div className="replay-board">
               <ColumnFourBoard
                 view={columnFourView}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : directionalFlipView ? (
+            <div className="replay-board">
+              <DirectionalFlipBoard
+                view={directionalFlipView}
                 latestEffect={latestEntry}
                 effects={replayEffectEntries}
                 reducedMotion={reducedMotion}
@@ -133,6 +148,10 @@ function isThreeMarksView(view: PublicView | null): view is ThreeMarksPublicView
 
 function isColumnFourView(view: PublicView | null): view is ColumnFourPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "column_four");
+}
+
+function isDirectionalFlipView(view: PublicView | null): view is DirectionalFlipPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "directional_flip");
 }
 
 function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {
