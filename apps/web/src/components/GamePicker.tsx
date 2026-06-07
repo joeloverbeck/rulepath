@@ -30,6 +30,12 @@ export function GamePicker({ games, selectedGameId, onSelect }: GamePickerProps)
                 rules {game.rules_version} / schema {game.schema_version}
                 {game.variants?.length ? ` / ${game.variants.join(", ")}` : ""}
               </small>
+              {game.hidden_information || game.viewer_modes?.length ? (
+                <span className="game-flags">
+                  {game.hidden_information ? <span>Hidden info</span> : null}
+                  {game.viewer_modes?.length ? <span>{game.viewer_modes.length} views</span> : null}
+                </span>
+              ) : null}
             </button>
           ))
         )}

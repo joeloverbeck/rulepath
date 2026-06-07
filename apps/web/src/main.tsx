@@ -10,6 +10,7 @@ import { DraughtsLiteBoard } from "./components/DraughtsLiteBoard";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
+import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup } from "./components/MatchSetup";
 import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
@@ -24,6 +25,7 @@ import {
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
+  type HighCardDuelPublicView,
   type PublicView,
   type RacePublicView,
   type ReplayExportDocument,
@@ -59,8 +61,9 @@ function App() {
   const humanActorSeat = view ? humanSeatForMode(state.setup.playMode, view) : null;
 
   const refresh = useCallback(
-    (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
-      const viewerMode = effectiveViewerMode(loadedApi, loadedMatchId, state.setup.playMode, state.viewerMode);
+    (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number, viewerOverride?: ViewerMode) => {
+      const viewerMode =
+        viewerOverride ?? effectiveViewerMode(loadedApi, loadedMatchId, state.setup.playMode, state.viewerMode);
       const nextView = loadedApi.getView(loadedMatchId, viewerMode);
       const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor, viewerMode);
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
@@ -208,6 +211,16 @@ function App() {
     }
   }, [api, effectCursor, matchId, refresh, state.setup.playMode, view]);
 
+  const changeViewerMode = useCallback(
+    (viewerMode: ViewerMode) => {
+      dispatch({ type: "viewerModeChanged", viewerMode });
+      if (api && matchId) {
+        refresh(api, matchId, effectCursor, viewerMode);
+      }
+    },
+    [api, effectCursor, matchId, refresh],
+  );
+
   const exportCurrentReplay = useCallback(() => {
     if (!api || !matchId) {
       throw { code: "no_match", message: "Start a match before exporting a replay." } satisfies ApiError;
@@ -353,6 +366,18 @@ function App() {
             onPendingPathClear={() => dispatch({ type: "pendingActionPathCleared" })}
             onPathSubmit={playPath}
           />
+        ) : isHighCardDuelView(view) ? (
+          <HighCardDuelBoard
+            view={view}
+            actionTree={actionTree}
+            viewerMode={state.viewerMode}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+            onViewerModeChange={changeViewerMode}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -365,7 +390,7 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) ? null : (
+        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) || isHighCardDuelView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -501,6 +526,10 @@ function isDirectionalFlipView(view: PublicView | null): view is DirectionalFlip
 
 function isDraughtsLiteView(view: PublicView | null): view is DraughtsLitePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "draughts_lite");
+}
+
+function isHighCardDuelView(view: PublicView | null): view is HighCardDuelPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "high_card_duel");
 }
 
 function isTerminalView(view: PublicView): boolean {

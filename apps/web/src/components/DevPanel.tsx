@@ -42,6 +42,7 @@ export function DevPanel({
   onToggle,
   onSubmitStale,
 }: DevPanelProps) {
+  const redactsActionPaths = Boolean(view && "game_id" in view && view.game_id === "high_card_duel");
   return (
     <section className="dev-panel" aria-labelledby="dev-panel-heading">
       <button type="button" className="dev-toggle" onClick={onToggle} aria-expanded={open}>
@@ -127,7 +128,12 @@ export function DevPanel({
             </button>
           </div>
 
-          {actionTree?.choices.length ? (
+          {actionTree?.choices.length && redactsActionPaths ? (
+            <div className="dev-action-paths" aria-label="Action tree paths">
+              <span>Action paths</span>
+              <p>Redacted for hidden-information viewer safety.</p>
+            </div>
+          ) : actionTree?.choices.length ? (
             <div className="dev-action-paths" aria-label="Action tree paths">
               <span>Action paths</span>
               <ol>

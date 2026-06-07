@@ -77,6 +77,7 @@ export type ShellAction =
   | { type: "gameSelected"; gameId: string }
   | { type: "setupSeedChanged"; seed: number }
   | { type: "setupPlayModeChanged"; playMode: SetupPlayMode }
+  | { type: "viewerModeChanged"; viewerMode: ViewerMode }
   | { type: "matchStarting" }
   | { type: "matchStarted"; matchId: string }
   | { type: "refreshed"; payload: RefreshPayload }
@@ -181,6 +182,11 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           playMode: action.playMode,
         },
         viewerMode: viewerModeForPlayMode(action.playMode),
+      };
+    case "viewerModeChanged":
+      return {
+        ...state,
+        viewerMode: action.viewerMode,
       };
     case "matchStarting":
       return {
