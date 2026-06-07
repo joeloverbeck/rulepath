@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-009: Replay support — internal full trace + public/viewer-scoped export/import split
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/high_card_duel/src/replay_support.rs` (+ a hidden-info-safe trace classification if the existing trace tooling cannot represent both modes)
@@ -111,3 +111,26 @@ reconstruct unrevealed deck order, private hands, or hidden commitments.
 1. `cargo test -p high_card_duel --test replay`
 2. `cargo test -p high_card_duel`
 3. The replay test is the correct boundary; `tools/replay-check` over golden traces (012/013) is the full-pipeline confirmation.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Implemented game-local internal full replay traces with seed plus private command paths for deterministic native/golden-trace evidence.
+- Implemented replay execution for internal traces with state/effect hashes and revealed-sequence evidence.
+- Implemented default public observer replay export as a redacted projection timeline with public view summaries, public effects, and redacted command summaries.
+- Implemented public export import as an observation-timeline import, not hidden-state reconstruction.
+- Kept public exports free of seed material, raw private `commit/hcd:*` action paths, unrevealed deck tail identities, and terminal hidden hands/deck identities.
+- Added `games/high_card_duel/tests/replay.rs` covering internal determinism, public-export no-leak behavior, and import semantics.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test replay` passed.
+- `cargo test -p high_card_duel` passed.
