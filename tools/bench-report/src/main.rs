@@ -20,6 +20,15 @@ fn run(args: Vec<String>) -> Result<(), String> {
 
     let report = Report::parse(&report_input)?;
     let thresholds = ThresholdSet::parse(&thresholds_input)?;
+    if let Some(game) = &config.game {
+        let registered = resolve_game(game)?;
+        if report.game_id != registered.game_id {
+            return Err(format!(
+                "bench-report: --game `{}` does not match report game_id `{}`",
+                registered.game_id, report.game_id
+            ));
+        }
+    }
     validate_report(&report, &thresholds)?;
 
     println!(
@@ -34,6 +43,7 @@ fn run(args: Vec<String>) -> Result<(), String> {
 struct Config {
     input: PathBuf,
     thresholds: PathBuf,
+    game: Option<String>,
 }
 
 impl Config {
@@ -48,6 +58,7 @@ impl Config {
 
         let mut input = None;
         let mut thresholds = None;
+        let mut game = None;
         let mut iter = args.into_iter();
         while let Some(arg) = iter.next() {
             match arg.as_str() {
@@ -55,14 +66,48 @@ impl Config {
                 "--thresholds" => {
                     thresholds = Some(PathBuf::from(next_arg(&mut iter, "--thresholds")?));
                 }
+                "--game" => game = Some(next_arg(&mut iter, "--game")?),
                 other => return Err(format!("unknown argument `{other}`")),
             }
         }
 
+        let thresholds = match (thresholds, game.as_deref()) {
+            (Some(path), _) => path,
+            (None, Some(game)) => PathBuf::from(resolve_game(game)?.thresholds_path),
+            (None, None) => {
+                return Err("--thresholds is required unless --game is supplied".to_owned())
+            }
+        };
+
         Ok(Self {
             input: input.ok_or_else(|| "--input is required".to_owned())?,
-            thresholds: thresholds.ok_or_else(|| "--thresholds is required".to_owned())?,
+            thresholds,
+            game,
         })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct RegisteredGame {
+    game_id: &'static str,
+    thresholds_path: &'static str,
+}
+
+fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
+    match game {
+        "race_to_n" => Ok(RegisteredGame {
+            game_id: "race_to_n",
+            thresholds_path: "games/race_to_n/benches/thresholds.json",
+        }),
+        "column_four" => Ok(RegisteredGame {
+            game_id: "column_four",
+            thresholds_path: "games/column_four/benches/thresholds.json",
+        }),
+        "directional_flip" => Ok(RegisteredGame {
+            game_id: "directional_flip",
+            thresholds_path: "games/directional_flip/benches/thresholds.json",
+        }),
+        _ => Err(format!("unsupported game `{game}`")),
     }
 }
 
@@ -74,6 +119,9 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("bench-report 0.1.0");
     println!("usage: bench-report --input <report> --thresholds <thresholds>");
+    println!(
+        "       bench-report --game <race_to_n|column_four|directional_flip> --input <report>"
+    );
 }
 
 #[derive(Clone, Debug)]

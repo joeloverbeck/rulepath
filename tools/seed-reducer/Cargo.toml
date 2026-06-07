@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+directional_flip = { path = "../../games/directional_flip" }
 race_to_n = { path = "../../games/race_to_n" }
 
 [[bin]]

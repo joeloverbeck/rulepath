@@ -1,5 +1,6 @@
 use std::{env, fs, path::PathBuf, process};
 
+use directional_flip::replay_support::replay_commands as directional_replay_commands;
 use race_to_n::replay_support::replay_commands;
 
 fn main() {
@@ -11,15 +12,21 @@ fn main() {
 
 fn run(args: Vec<String>) -> Result<(), String> {
     let config = Config::parse(args)?;
-    if config.game != "race_to_n" {
+    if config.game != "race_to_n" && config.game != "directional_flip" {
         return Err(format!("unsupported game `{}`", config.game));
     }
 
     let input = if let Some(path) = &config.failure_report {
         ReducerInput::from_failure_report(path)?
     } else {
-        ReducerInput::from_explicit(config.seed, config.commands)?
+        ReducerInput::from_explicit(&config.game, config.seed, config.commands)?
     };
+    if input.game_id != config.game {
+        return Err(format!(
+            "--game `{}` does not match reducer input game_id `{}`",
+            config.game, input.game_id
+        ));
+    }
 
     println!("{}", reduction_report(&input));
     Ok(())
@@ -84,8 +91,10 @@ impl Config {
 fn print_help() {
     println!("seed-reducer 0.1.0");
     println!("usage:");
-    println!("  seed-reducer --game race_to_n --failure-report <path>");
-    println!("  seed-reducer --game race_to_n --seed <n> --commands <comma-stream>");
+    println!("  seed-reducer --game <race_to_n|directional_flip> --failure-report <path>");
+    println!(
+        "  seed-reducer --game <race_to_n|directional_flip> --seed <n> --commands <comma-stream>"
+    );
 }
 
 fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, String> {
@@ -155,22 +164,31 @@ impl ReducerInput {
         })
     }
 
-    fn from_explicit(seed: Option<u64>, commands: Option<Vec<String>>) -> Result<Self, String> {
+    fn from_explicit(
+        game: &str,
+        seed: Option<u64>,
+        commands: Option<Vec<String>>,
+    ) -> Result<Self, String> {
         let seed = seed.expect("validated by Config::parse");
         let command_stream = commands.expect("validated by Config::parse");
+        let (variant, rules_version) = match game {
+            "race_to_n" => ("race_to_21", "race_to_n-rules-v1"),
+            "directional_flip" => ("directional_flip_standard", "directional_flip-rules-v1"),
+            _ => unreachable!("validated game"),
+        };
         Ok(Self {
             source: "explicit-arguments".to_owned(),
             seed,
             action_cap: 64,
-            variant: "race_to_21".to_owned(),
-            game_id: "race_to_n".to_owned(),
-            rules_version: "race_to_n-rules-v1".to_owned(),
+            variant: variant.to_owned(),
+            game_id: game.to_owned(),
+            rules_version: rules_version.to_owned(),
             data_version: "1".to_owned(),
             engine_version: "engine-core-0.1.0".to_owned(),
             command_stream,
             failure_reason: "explicit command stream supplied without failure predicate".to_owned(),
             replay_command: format!(
-                "cargo run -p simulate -- --game race_to_n --games 1 --start-seed {seed} --action-cap 64"
+                "cargo run -p simulate -- --game {game} --games 1 --start-seed {seed} --action-cap 64"
             ),
         })
     }
@@ -217,12 +235,7 @@ fn compact_trace_reproducer_json(input: &ReducerInput) -> String {
         .iter()
         .map(|command| split_actor_command(command).1.to_owned())
         .collect::<Vec<_>>();
-    let hashes = replay_commands(input.seed, &actions);
-    let terminal = hashes.outcome.is_some();
-    let winner = hashes
-        .outcome
-        .map(|winner| format!("\"{}\"", winner.as_str()))
-        .unwrap_or_else(|| "null".to_owned());
+    let replay = replay_summary(input, &actions);
     let commands = input
         .command_stream
         .iter()
@@ -246,7 +259,7 @@ fn compact_trace_reproducer_json(input: &ReducerInput) -> String {
             "\"fixture_kind\":\"commands\",",
             "\"purpose\":\"seed_reducer_reproducer\",",
             "\"note\":\"Normalized v0 seed-reducer reproducer; minimization unavailable without predicate.\",",
-            "\"migration_update_note\":\"Generated from seed-reducer v0 input with expected hashes from race_to_n replay support.\",",
+            "\"migration_update_note\":\"Generated from seed-reducer v0 input with expected hashes from Rust replay support.\",",
             "\"game_id\":\"{}\",",
             "\"rules_version\":\"{}\",",
             "\"engine_version\":\"{}\",",
@@ -261,10 +274,10 @@ fn compact_trace_reproducer_json(input: &ReducerInput) -> String {
             "\"expected_effect_hashes\":{{\"final\":{}}},",
             "\"expected_action_tree_hashes\":{{\"final\":{}}},",
             "\"expected_public_view_hashes\":{{\"all\":{}}},",
-            "\"expected_private_view_hashes\":{{\"not_applicable\":\"race_to_n is perfect-information.\"}},",
+            "\"expected_private_view_hashes\":{{\"not_applicable\":\"{} is perfect-information.\"}},",
             "\"expected_outcome\":{{\"terminal\":{},\"winner\":{}}},",
             "\"expected_terminal_state\":{{\"terminal\":{},\"winner\":{}}},",
-            "\"not_applicable\":{{\"hidden_information\":\"race_to_n is perfect-information.\",\"stochastic_game_events\":\"race_to_n game rules use no randomness.\",\"private_view_hashes\":\"race_to_n has no private-view API.\",\"preview_hashes\":\"race_to_n has no Rust preview surface in Gate 2.\"}}",
+            "\"not_applicable\":{{\"hidden_information\":\"{} is perfect-information.\",\"stochastic_game_events\":\"{} game rules use no randomness.\",\"private_view_hashes\":\"{} has no private-view API.\"}}",
             "}}"
         ),
         input.seed,
@@ -277,15 +290,65 @@ fn compact_trace_reproducer_json(input: &ReducerInput) -> String {
         input.action_cap,
         commands,
         input.command_stream.len().saturating_sub(1),
-        hashes.state_hash.0,
-        hashes.effect_hash.0,
-        hashes.action_tree_hash.0,
-        hashes.view_hash.0,
-        terminal,
-        &winner,
-        terminal,
-        &winner
+        replay.state_hash,
+        replay.effect_hash,
+        replay.action_tree_hash,
+        replay.view_hash,
+        input.game_id,
+        replay.terminal,
+        &replay.winner_json,
+        replay.terminal,
+        &replay.winner_json,
+        input.game_id,
+        input.game_id,
+        input.game_id
     )
+}
+
+struct ReplaySummary {
+    state_hash: u64,
+    effect_hash: u64,
+    action_tree_hash: u64,
+    view_hash: u64,
+    terminal: bool,
+    winner_json: String,
+}
+
+fn replay_summary(input: &ReducerInput, actions: &[String]) -> ReplaySummary {
+    match input.game_id.as_str() {
+        "directional_flip" => {
+            let hashes = directional_replay_commands(input.seed, actions);
+            ReplaySummary {
+                state_hash: hashes.state_hash.0,
+                effect_hash: hashes.effect_hash.0,
+                action_tree_hash: hashes.action_tree_hash.0,
+                view_hash: hashes.view_hash.0,
+                terminal: hashes.outcome.is_some(),
+                winner_json: hashes
+                    .outcome
+                    .and_then(|outcome| match outcome {
+                        directional_flip::TerminalOutcome::Win { seat } => Some(seat.as_str()),
+                        directional_flip::TerminalOutcome::Draw => None,
+                    })
+                    .map(|winner| format!("\"{}\"", winner))
+                    .unwrap_or_else(|| "null".to_owned()),
+            }
+        }
+        _ => {
+            let hashes = replay_commands(input.seed, actions);
+            ReplaySummary {
+                state_hash: hashes.state_hash.0,
+                effect_hash: hashes.effect_hash.0,
+                action_tree_hash: hashes.action_tree_hash.0,
+                view_hash: hashes.view_hash.0,
+                terminal: hashes.outcome.is_some(),
+                winner_json: hashes
+                    .outcome
+                    .map(|winner| format!("\"{}\"", winner.as_str()))
+                    .unwrap_or_else(|| "null".to_owned()),
+            }
+        }
+    }
 }
 
 fn split_actor_command(command: &str) -> (&str, &str) {
@@ -430,6 +493,7 @@ mod tests {
     #[test]
     fn explicit_command_stream_emits_trace_reproducer_json() {
         let input = ReducerInput::from_explicit(
+            "race_to_n",
             Some(9),
             Some(vec!["seat_0:add-1".to_owned(), "seat_1:add-2".to_owned()]),
         )

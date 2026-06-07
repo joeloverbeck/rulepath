@@ -8,6 +8,7 @@ repository.workspace = true
 [dependencies]
 ai-core = { path = "../../crates/ai-core" }
 column_four = { path = "../../games/column_four" }
+directional_flip = { path = "../../games/directional_flip" }
 engine-core = { path = "../../crates/engine-core" }
 race_to_n = { path = "../../games/race_to_n" }
 three_marks = { path = "../../games/three_marks" }

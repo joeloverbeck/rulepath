@@ -38,6 +38,7 @@ name = "fixture-check"
 version = "0.1.0"
 dependencies = [
  "column_four",
+ "directional_flip",
  "race_to_n",
  "three_marks",
 ]
@@ -62,6 +63,7 @@ name = "replay-check"
 version = "0.1.0"
 dependencies = [
  "column_four",
+ "directional_flip",
  "engine-core",
  "race_to_n",
  "three_marks",
@@ -75,6 +77,7 @@ version = "0.1.0"
 name = "seed-reducer"
 version = "0.1.0"
 dependencies = [
+ "directional_flip",
  "race_to_n",
 ]
 
@@ -84,6 +87,7 @@ version = "0.1.0"
 dependencies = [
  "ai-core",
  "column_four",
+ "directional_flip",
  "engine-core",
  "race_to_n",
  "three_marks",
@@ -101,6 +105,8 @@ dependencies = [
 name = "trace-viewer"
 version = "0.1.0"
 dependencies = [
+ "directional_flip",
+ "engine-core",
  "race_to_n",
 ]
 

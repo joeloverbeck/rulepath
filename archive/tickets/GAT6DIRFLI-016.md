@@ -1,6 +1,6 @@
 # GAT6DIRFLI-016: Tool registration & RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/{simulate,replay-check,fixture-check,rule-coverage,bench-report,seed-reducer,trace-viewer}/src/main.rs` (accept `--game directional_flip`), and `games/directional_flip/docs/RULE-COVERAGE.md` (tool-validated doc).
@@ -81,3 +81,30 @@ Author `games/directional_flip/docs/RULE-COVERAGE.md` mapping every `DF-*` rule 
 1. `cargo run -p rule-coverage -- --game directional_flip && cargo run -p replay-check -- --game directional_flip --all && cargo run -p fixture-check -- --game directional_flip`
 2. `cargo run -p simulate -- --game directional_flip --games 1000 && cargo test --workspace`
 3. Running the tool suite against the new game is the correct boundary; CI lane invocation is GAT6DIRFLI-019.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Registered `directional_flip` in `simulate`, `replay-check`, `fixture-check`, `rule-coverage`, `bench-report`, `seed-reducer`, and `trace-viewer`.
+- Added `games/directional_flip/docs/RULE-COVERAGE.md` with one row for every `DF-*` rule id in `RULES.md`.
+- Extended replay-check and trace-viewer with Directional Flip custom fixture-state support for the golden traces that intentionally start outside the default opening.
+- Extended seed-reducer to normalize Directional Flip command streams using Directional Flip replay hashes.
+- Added bench-report `--game directional_flip` threshold-path registration.
+- Raised the effective Directional Flip simulation cap to 128 actions so default `--games 1000` runs can reach terminal outcomes.
+
+Deviations from original plan:
+- Bench-report remained primarily file-based, but now accepts `--game directional_flip` to select and validate the registered threshold path.
+- Trace-viewer renders the generic trace sections plus actual replay hash annotations; it does not add a bespoke visual grouped-flip renderer in this ticket.
+
+Verification results:
+- `cargo run -p rule-coverage -- --game directional_flip` passed.
+- `cargo run -p replay-check -- --game directional_flip --all` passed all 14 Directional Flip traces.
+- `cargo run -p fixture-check -- --game directional_flip` passed.
+- `cargo run -p simulate -- --game directional_flip --games 1000` passed with 1000 terminal games.
+- `cargo run -p seed-reducer -- --game directional_flip --seed 14 --commands seat_0:place/r3c4,seat_1:place/r3c5` passed.
+- `cargo run -p trace-viewer -- --game directional_flip --trace games/directional_flip/tests/golden_traces/forced-pass.trace.json` passed.
+- `cargo bench -p directional_flip` plus `cargo run -p bench-report -- --game directional_flip --input /tmp/directional_flip_full_bench.json` passed all 10 operations.
+- `cargo fmt --all --check` passed.
+- `cargo test --workspace` passed.
