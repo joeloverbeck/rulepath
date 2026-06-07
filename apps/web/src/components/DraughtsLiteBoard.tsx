@@ -1,4 +1,4 @@
-import { useMemo, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { ActionChoice, ActionTree, DraughtsLiteCellView, DraughtsLitePublicView, EffectEntry } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
 
@@ -40,6 +40,8 @@ export function DraughtsLiteBoard({
     () => [...view.cells].sort((left, right) => left.row - right.row || left.column - right.column),
     [view.cells],
   );
+  const [focusedCell, setFocusedCell] = useState(() => cells[0]?.cell ?? "");
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
   const current = useMemo(() => currentNode(actionTree, pendingPath), [actionTree, pendingPath]);
   const choicesByCell = useMemo(() => choicesForCells(current.choices), [current.choices]);
   const legalCells = useMemo(() => new Set(choicesByCell.keys()), [choicesByCell]);
@@ -54,6 +56,22 @@ export function DraughtsLiteBoard({
   const botEffect = latestEffectOfType(effects, "bot_chose_action");
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const pendingLabel = pendingPath.length > 0 ? pendingPath.join(" > ") : "None";
+  const captureChoiceCount = countCaptureChoices(current.choices);
+  const coordinateByCell = useMemo(
+    () => new Map(cells.map((cell) => [cell.cell, { row: cell.row, column: cell.column }] as const)),
+    [cells],
+  );
+  const cellByCoordinate = useMemo(
+    () => new Map(cells.map((cell) => [`${cell.row}:${cell.column}`, cell.cell] as const)),
+    [cells],
+  );
+  const liveStatus = liveAnnouncement(view, current, pendingPath, feedback, botEffect);
+
+  useEffect(() => {
+    if (!focusedCell && cells[0]) {
+      setFocusedCell(cells[0].cell);
+    }
+  }, [cells, focusedCell]);
 
   const chooseCell = (cell: DraughtsLiteCellView) => {
     const choice = choicesByCell.get(cell.cell);
@@ -72,6 +90,21 @@ export function DraughtsLiteBoard({
     if (pendingPath.length > 0) {
       onPendingPathClear?.();
     }
+  };
+
+  const moveFocus = (fromCell: string, target: { row: number; column: number }) => {
+    const from = coordinateByCell.get(fromCell);
+    if (!from) {
+      return;
+    }
+    const nextRow = Math.min(Math.max(target.row, 1), view.board_rows);
+    const nextColumn = Math.min(Math.max(target.column, 1), view.board_columns);
+    const nextCell = cellByCoordinate.get(`${nextRow}:${nextColumn}`);
+    if (!nextCell) {
+      return;
+    }
+    setFocusedCell(nextCell);
+    buttonRefs.current.get(nextCell)?.focus();
   };
 
   return (
@@ -119,6 +152,7 @@ export function DraughtsLiteBoard({
           className="draughts-lite-grid"
           role="grid"
           aria-label={view.ui.board_label}
+          aria-activedescendant={focusedCell ? `draughts-cell-${focusedCell}` : undefined}
           data-testid="draughts-lite-board"
           style={{
             gridTemplateColumns: `repeat(${view.board_columns}, minmax(0, 1fr))`,
@@ -137,6 +171,14 @@ export function DraughtsLiteBoard({
               <button
                 type="button"
                 key={cell.cell}
+                id={`draughts-cell-${cell.cell}`}
+                ref={(node) => {
+                  if (node) {
+                    buttonRefs.current.set(cell.cell, node);
+                  } else {
+                    buttonRefs.current.delete(cell.cell);
+                  }
+                }}
                 className={`draughts-cell ${cell.playable ? "playable" : "non-playable"} ${cell.owner ?? "empty"} ${
                   choice ? "legal" : ""
                 } ${selected ? "selected" : ""} ${previewCapture ? "capture-preview" : ""} ${
@@ -145,9 +187,14 @@ export function DraughtsLiteBoard({
                   promotes ? "promotes" : ""
                 }`}
                 role="gridcell"
-                disabled={!choice || !canPlay}
+                tabIndex={focusedCell === cell.cell ? 0 : -1}
+                aria-disabled={!choice || !canPlay}
                 aria-label={choice?.accessibility_label ?? cell.accessibility_label}
                 data-testid={`draughts-cell-${cell.cell}`}
+                onFocus={() => setFocusedCell(cell.cell)}
+                onKeyDown={(event) => {
+                  handleCellKey(event, cell, view, moveFocus, () => chooseCell(cell), cancelPending);
+                }}
                 onClick={() => chooseCell(cell)}
               >
                 {cell.owner ? <Piece cell={cell} /> : <span className="draughts-target-dot" aria-hidden="true" />}
@@ -171,7 +218,7 @@ export function DraughtsLiteBoard({
 
       <div className="draughts-lite-cues" aria-label="Rust-provided move cues">
         <Cue label="Choices" value={current.choices.length.toString()} />
-        <Cue label="Captures" value={countTagged(current.choices, "capture").toString()} />
+        <Cue label="Captures" value={captureChoiceCount.toString()} />
         <Cue label="Promotion" value={countTagged(current.choices, "promotion").toString()} />
         <Cue label="Continuation" value={current.choices.some((choice) => choice.next?.choices?.length) ? "available" : "none"} />
       </div>
@@ -196,6 +243,10 @@ export function DraughtsLiteBoard({
                   : "Replay board is projected by Rust at this cursor."}
         </span>
       </div>
+
+      <p className="sr-only" aria-live="polite" data-testid="draughts-live-status">
+        {liveStatus}
+      </p>
     </section>
   );
 }
@@ -215,6 +266,57 @@ function Cue({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function handleCellKey(
+  event: KeyboardEvent<HTMLButtonElement>,
+  cell: DraughtsLiteCellView,
+  view: DraughtsLitePublicView,
+  moveFocus: (fromCell: string, target: { row: number; column: number }) => void,
+  choose: () => void,
+  cancel: () => void,
+) {
+  switch (event.key) {
+    case "ArrowUp":
+      event.preventDefault();
+      moveFocus(cell.cell, { row: cell.row - 1, column: cell.column });
+      break;
+    case "ArrowDown":
+      event.preventDefault();
+      moveFocus(cell.cell, { row: cell.row + 1, column: cell.column });
+      break;
+    case "ArrowLeft":
+      event.preventDefault();
+      moveFocus(cell.cell, { row: cell.row, column: cell.column - 1 });
+      break;
+    case "ArrowRight":
+      event.preventDefault();
+      moveFocus(cell.cell, { row: cell.row, column: cell.column + 1 });
+      break;
+    case "Home":
+      event.preventDefault();
+      moveFocus(cell.cell, {
+        row: event.ctrlKey ? 1 : cell.row,
+        column: 1,
+      });
+      break;
+    case "End":
+      event.preventDefault();
+      moveFocus(cell.cell, {
+        row: event.ctrlKey ? view.board_rows : cell.row,
+        column: view.board_columns,
+      });
+      break;
+    case "Enter":
+    case " ":
+      event.preventDefault();
+      choose();
+      break;
+    case "Escape":
+      event.preventDefault();
+      cancel();
+      break;
+  }
 }
 
 function currentNode(actionTree: ActionTree | null, pendingPath: string[]): CurrentNode {
@@ -257,6 +359,10 @@ function countTagged(choices: ActionChoice[], tag: string): number {
   return choices.filter((choice) => choice.tags?.includes(tag)).length;
 }
 
+function countCaptureChoices(choices: ActionChoice[]): number {
+  return choices.filter((choice) => choice.tags?.includes("capture") || metadataValue(choice, "is_capture") === "true").length;
+}
+
 function latestEffectOfType(entries: EffectEntry[], type: string): EffectEntry | null {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
@@ -265,6 +371,35 @@ function latestEffectOfType(entries: EffectEntry[], type: string): EffectEntry |
     }
   }
   return null;
+}
+
+function liveAnnouncement(
+  view: DraughtsLitePublicView,
+  current: CurrentNode,
+  pendingPath: string[],
+  feedback: ReturnType<typeof feedbackForEffect> | null,
+  botEffect: EffectEntry | null,
+): string {
+  if (view.terminal_kind === "win") {
+    return `${view.winning_seat} won. ${view.status_label}`;
+  }
+
+  const mandatoryCapture = current.choices.some((choice) => metadataValue(choice, "capture_mandatory") === "true");
+  const forcedContinuation = current.choices.some((choice) => metadataValue(choice, "forced_by_continuation") === "true");
+  const promotions = countTagged(current.choices, "promotion");
+  const captures = countCaptureChoices(current.choices);
+  const effectText = feedback
+    ? `${feedback.detail} `
+    : botEffect
+      ? `${String(botEffect.effect.payload.rationale ?? "Rust bot selected a complete path.")} `
+      : "";
+  const selected = current.selectedCell ? `Selected ${current.selectedCell}. ` : "";
+  const captureText = mandatoryCapture ? "Capture is mandatory. " : captures > 0 ? `${captures} capture destination${captures === 1 ? "" : "s"}. ` : "";
+  const continuationText = forcedContinuation ? "Forced continuation is required. " : "";
+  const promotionText = promotions > 0 ? `${promotions} promotion destination${promotions === 1 ? "" : "s"}. ` : "";
+  const pathText = pendingPath.length > 0 ? `Pending path ${pendingPath.join(" then ")}. ` : "";
+
+  return `${effectText}${view.active_seat} to move. ${selected}${pathText}${captureText}${continuationText}${promotionText}${current.choices.length} Rust-provided choice${current.choices.length === 1 ? "" : "s"}.`;
 }
 
 function recentEffectCells(entries: EffectEntry[]): { origins: Set<string>; landings: Set<string>; captures: Set<string> } {

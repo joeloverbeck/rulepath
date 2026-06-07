@@ -1,10 +1,28 @@
 # GAT7DRALITCOM-019: Accessibility, reduced motion, browser E2E smoke & a11y/no-leak
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/DraughtsLiteBoard.tsx` (a11y semantics, keyboard nav, reduced motion), `apps/web/e2e/draughts-lite.smoke.mjs` (new), `apps/web/e2e/NO-LEAK-A11Y-CHECKLIST.md` (modify), `apps/web/package.json` (modify — add the smoke to `smoke:e2e`).
 **Deps**: 018
+
+## Outcome
+
+Added the Draughts Lite accessibility, reduced-motion, E2E, and no-leak proof layer:
+
+1. `DraughtsLiteBoard` now supports roving grid focus across all 64 cells, `aria-activedescendant`, arrow navigation, Home/End and Ctrl+Home/End, Enter/Space activation, Escape cancel, visible focus, and a live region that combines Rust effect feedback with current Rust legality cues.
+2. The board keeps legal availability driven by Rust action-tree metadata and still submits only leaf paths. Mandatory capture, forced continuation, selected origin, destination count, promotion count, and pending path are announced as text.
+3. Reduced-motion mode removes Draughts cell transitions while preserving static highlights and effect-log text.
+4. Added `apps/web/e2e/draughts-lite.smoke.mjs` covering keyboard quiet move, pointer reply, mandatory capture through public UI, replay export/import/step with full multi-segment paths, reduced motion, accessible names, visible focus, active descendant, and leak vocabulary checks.
+5. Added the Draughts smoke to `npm --prefix apps/web run smoke:e2e`.
+6. Updated `NO-LEAK-A11Y-CHECKLIST.md` with Draughts Lite-specific accessibility, replay, reduced-motion, non-color, and no-leak surfaces.
+
+Verification passed on 2026-06-07:
+
+1. `npm --prefix apps/web run build`
+2. `node apps/web/e2e/draughts-lite.smoke.mjs`
+3. `npm --prefix apps/web run smoke:e2e`
+4. `git diff --check`
 
 ## Problem
 
