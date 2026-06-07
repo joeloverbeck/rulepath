@@ -46,11 +46,29 @@ jobs:
       - name: Run benchmarks and enforce thresholds
         run: |
           set -euo pipefail
+          failed=0
+
           cargo bench -p race_to_n | tee /tmp/race_to_n-benchmark-report.txt
-          cargo run -p bench-report -- --input /tmp/race_to_n-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json
+          if ! cargo run -p bench-report -- --input /tmp/race_to_n-benchmark-report.txt --thresholds games/race_to_n/benches/thresholds.json; then
+            failed=1
+          fi
+
           cargo bench -p three_marks | tee /tmp/three_marks-benchmark-report.txt
-          cargo run -p bench-report -- --input /tmp/three_marks-benchmark-report.txt --thresholds games/three_marks/benches/thresholds.json
+          if ! cargo run -p bench-report -- --input /tmp/three_marks-benchmark-report.txt --thresholds games/three_marks/benches/thresholds.json; then
+            failed=1
+          fi
+
           cargo bench -p column_four | tee /tmp/column_four-benchmark-report.txt
-          cargo run -p bench-report -- --input /tmp/column_four-benchmark-report.txt --thresholds games/column_four/benches/thresholds.json
+          if ! cargo run -p bench-report -- --input /tmp/column_four-benchmark-report.txt --thresholds games/column_four/benches/thresholds.json; then
+            failed=1
+          fi
+
           cargo bench -p directional_flip | tee /tmp/directional_flip-benchmark-report.txt
-          cargo run -p bench-report -- --input /tmp/directional_flip-benchmark-report.txt --thresholds games/directional_flip/benches/thresholds.json
+          if ! cargo run -p bench-report -- --input /tmp/directional_flip-benchmark-report.txt --thresholds games/directional_flip/benches/thresholds.json; then
+            failed=1
+          fi
+
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more benchmark threshold checks failed."
+            exit 1
+          fi

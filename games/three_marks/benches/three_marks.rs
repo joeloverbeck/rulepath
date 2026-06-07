@@ -92,9 +92,9 @@ const THRESHOLDS: &[Threshold] = &[
     Threshold {
         operation: "random_playout",
         unit: "games_per_second",
-        threshold: 50_000.0,
-        rationale_class: "measured_baseline_adr_followup_required",
-        caveat: "First local native full report measured below the visible Stage 2 Three Marks 300,000+ games/sec target. This provisional floor is not a target change; GAT4THRMARBOA-015 must document the miss and any accepted recalibration requires ADR discipline.",
+        threshold: 35_000.0,
+        rationale_class: "conservative_ci_floor",
+        caveat: "CI-calibrated floor below observed ubuntu-latest value 36369.11 in BENCICAL-001 run 27087214359; native target and target miss remain documented in BENCHMARKS.md per ADR 0003.",
     },
     Threshold {
         operation: "level0_bot_decision",

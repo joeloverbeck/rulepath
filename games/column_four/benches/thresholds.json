@@ -29,9 +29,9 @@
     {
       "operation_name": "replay_step_projection",
       "unit": "projections_per_second",
-      "threshold": 45000,
-      "rationale_class": "measured_baseline",
-      "rationale": "Initial floor below the first local native smoke measurement for replay step board/effect projection."
+      "threshold": 33000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "CI-calibrated floor below observed ubuntu-latest value 34175.00 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003."
     },
     {
       "operation_name": "serialization_roundtrip",
@@ -43,16 +43,16 @@
     {
       "operation_name": "replay_throughput",
       "unit": "replays_per_second",
-      "threshold": 4000,
-      "rationale_class": "measured_baseline",
-      "rationale": "Initial floor below the first local native smoke measurement for deterministic seven-command win replay."
+      "threshold": 3200,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "CI-calibrated floor below observed ubuntu-latest value 3334.35 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003."
     },
     {
       "operation_name": "random_playout",
       "unit": "games_per_second",
-      "threshold": 10000,
-      "rationale_class": "measured_baseline_provisional_target_miss",
-      "rationale": "First local native smoke measurement missed the provisional 100,000+ games/sec target; BENCHMARKS.md keeps the miss visible."
+      "threshold": 9000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "CI-calibrated floor below observed ubuntu-latest value 9700.09 in BENCICAL-001 run 27087214359; native target miss remains documented in BENCHMARKS.md per ADR 0003."
     },
     {
       "operation_name": "level0_bot_decision",
@@ -64,9 +64,9 @@
     {
       "operation_name": "level2_bot_decision",
       "unit": "decisions_per_second",
-      "threshold": 4000,
-      "rationale_class": "measured_baseline",
-      "rationale": "Initial floor below the first local native smoke measurement for authored tactical selection."
+      "threshold": 3000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "CI-calibrated floor below observed ubuntu-latest value 3063.45 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003."
     }
   ]
 }

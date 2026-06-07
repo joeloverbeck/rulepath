@@ -345,6 +345,13 @@ because shared CI runners are not a valid throughput-gating environment. See
 [ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). This relocates enforcement; it
 does not weaken any threshold value.
 
+Per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md), the committed
+`thresholds.json` value is the enforced floor for the CI runner that executes the
+scheduled / manual / `main`-push gate. Faster native workstation baselines and
+native targets MUST remain documented in each game's `BENCHMARKS.md`; lowering a
+CI floor without preserving that native evidence still hides performance and
+violates this doctrine.
+
 ## 16. Benchmark report contents
 
 Each game benchmark note SHOULD include:
@@ -393,11 +400,13 @@ CI SHOULD run:
 - UI smoke for exposed games.
 
 Gate 2 benchmark-report threshold checks MUST hard-fail the scheduled / manual /
-`main`-push benchmark lane when required thresholds fail, including the accepted
-Stage 1 `race_to_n` threshold recorded in
-[ADR 0001](adr/0001-stage-1-random-playout-budget.md). Pull requests run a
+`main`-push benchmark lane when required thresholds fail. Pull requests run a
 non-gating benchmark smoke instead; the lane split is defined in
-[ADR 0002](adr/0002-ci-benchmark-gating-lanes.md).
+[ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). The enforced thresholds are
+CI-runner floors per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md),
+while native targets such as the accepted Stage 1 `race_to_n` target in
+[ADR 0001](adr/0001-stage-1-random-playout-budget.md) remain documented in the
+game benchmark notes.
 
 Full fuzzing and expensive benchmarks MAY run nightly or manually.
 

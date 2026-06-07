@@ -598,9 +598,17 @@ mod tests {
         );
         let error = validate(&input).unwrap_err();
 
+        let random_playout_threshold = ThresholdSet::parse(THRESHOLDS)
+            .unwrap()
+            .thresholds
+            .into_iter()
+            .find(|threshold| threshold.operation_name == "random_playout")
+            .expect("random_playout threshold present")
+            .threshold;
+
         assert!(error.contains("random_playout"));
         assert!(error.contains("current value: 1.00"));
-        assert!(error.contains("threshold: 100000.00"));
+        assert!(error.contains(&format!("threshold: {random_playout_threshold:.2}")));
         assert!(error.contains("accepted_adr"));
     }
 
