@@ -6,7 +6,9 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     actor_seat, legal_action_tree, FROM_SEGMENT_PREFIX, JUMP_SEGMENT_PREFIX, TO_SEGMENT_PREFIX,
@@ -28,7 +30,12 @@ pub use setup::{setup_match, SetupOptions};
 pub use state::{
     CellOccupancy, DraughtsLiteSnapshot, DraughtsLiteState, Piece, PieceKind, TerminalOutcome,
 };
+pub use ui::{
+    board_presentation, cell_layout, piece_label, piece_token, BoardPresentationMetadata,
+    CellLayoutMetadata, PieceLabelMetadata, PieceTokenMetadata,
+};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{project_view, CellView, PrivateView, PublicView, TerminalView, UiMetadata};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

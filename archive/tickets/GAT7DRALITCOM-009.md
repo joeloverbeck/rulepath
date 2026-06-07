@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-009: Public view, visibility projection & UI metadata
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite/src/visibility.rs` (perfect-information view projection), `games/draughts_lite/src/ui.rs` (viewer-facing UI metadata: cell/piece labels, board presentation tokens, accessibility metadata), `src/lib.rs` (export).
@@ -77,3 +77,18 @@ In `ui.rs`, supply viewer-facing UI metadata: stable cell ids (`rNcM`), piece la
 1. `cargo test -p draughts_lite visibility`
 2. `cargo test -p draughts_lite && bash scripts/boundary-check.sh`
 3. Crate-scoped visibility tests are the correct boundary; browser-payload no-leak is re-checked end-to-end in the a11y/no-leak smoke (GAT7DRALITCOM-019).
+
+## Outcome
+
+Implemented the Draughts Lite public view projection and Rust-owned UI metadata.
+The view projects all 64 cells, playable flags, occupancy, piece ownership/kind,
+terminal state, perfect-information private-view status, and stable presentation
+tokens/accessibility labels without TypeScript-side legality computation.
+
+Verification passed:
+
+1. `cargo test -p draughts_lite visibility`
+2. `cargo test -p draughts_lite ui`
+3. `cargo test -p draughts_lite`
+4. `cargo fmt --all --check`
+5. `bash scripts/boundary-check.sh`
