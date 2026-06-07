@@ -1,6 +1,6 @@
 # GAT6DIRFLI-021: Capstone — mechanic atlas finalize, exit criteria, status & picker exposure
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — governance/status + presentation exposure: `docs/MECHANIC-ATLAS.md` (finalize directional_flip row), `specs/gate-6-directional-flip.md` (Status → Done), `specs/README.md` (Gate 6 row → Done), and the public picker/catalog exposure point in `apps/web` (enable after the release checklist passes). Introduces no new game production logic.
@@ -80,3 +80,27 @@ Enable the public picker/catalog exposure point in `apps/web` (the entry gated i
 1. `cargo test --workspace && cargo run -p replay-check -- --game directional_flip --all && cargo run -p rule-coverage -- --game directional_flip && cargo run -p fixture-check -- --game directional_flip`
 2. `cargo run -p simulate -- --game directional_flip --games 1000 && cargo bench -p directional_flip -- legal_actions && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && bash scripts/boundary-check.sh`
 3. The full evidence suite is the correct boundary for a capstone — it is the spec's §14/§15 exit set re-run end-to-end before the `Done` flip.
+
+## Outcome
+
+Completed 2026-06-07. Re-ran the Gate 6 capstone evidence set, finalized the mechanic atlas rows with the as-built Directional Flip outcome, and flipped `specs/gate-6-directional-flip.md` plus the `specs/README.md` Gate 6 index row to `Done`.
+
+Public exposure review: `GamePicker` is already catalog-driven and renders every `rulepath_list_games()` entry. The WASM catalog includes `directional_flip` and the release checklist now passes, so no additional GamePicker gate or code change was required.
+
+Verification:
+
+1. `cargo test --workspace`
+2. `cargo run -p replay-check -- --game directional_flip --all`
+3. `cargo run -p fixture-check -- --game directional_flip`
+4. `cargo run -p rule-coverage -- --game directional_flip`
+5. `cargo run -p simulate -- --game directional_flip --games 1000`
+6. `cargo bench -p directional_flip -- legal_actions`
+7. `npm --prefix apps/web run smoke:wasm`
+8. `npm --prefix apps/web run smoke:ui`
+9. `node apps/web/e2e/directional-flip.smoke.mjs`
+10. `node apps/web/e2e/a11y-noleak.smoke.mjs`
+11. `bash scripts/boundary-check.sh`
+12. `node scripts/check-doc-links.mjs`
+13. `grep -i 'Gate 6' specs/README.md`
+14. `grep -n '| Status |' specs/gate-6-directional-flip.md`
+15. `git diff --check`

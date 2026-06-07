@@ -7,7 +7,7 @@
 | Spec id | `GATE-6-DIRECTIONAL-FLIP` |
 | Stage | Stage 4 — official game expansion / product mechanic ladder |
 | Gate | Gate 6 |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-06 |
 | Owner | Rulepath implementer / coding agent assigned later |
 | Internal game id | `directional_flip` |
@@ -29,9 +29,9 @@ The following repository facts ground Gate 6 planning. Each is verified against 
 |---|---|
 | `specs/README.md` is the living implementation-spec progress index. | `specs/README.md` |
 | Specs are subordinate to the foundation set. | `specs/README.md`, `docs/FOUNDATIONS.md` |
-| Gates 0–5 are marked done in the spec progress index. | `specs/README.md` |
-| Gate 6 is the lowest non-Done gate and is `directional_flip`. | `specs/README.md` |
-| Gate 6 is not started in the spec progress index. | `specs/README.md` |
+| Gates 0–6 are marked done in the spec progress index. | `specs/README.md` |
+| Gate 7 is the lowest non-Done gate. | `specs/README.md` |
+| Gate 6 is complete in the spec progress index. | `specs/README.md` |
 | `docs/ROADMAP.md` gives Gate 6 the public role: directional scanning and grouped effects; extraction decision. | `docs/ROADMAP.md` |
 | Gate 6’s mechanic pressure includes directional scans, bracketed grouped changes, pass/no-move if scoped, and multi-piece effects. | `docs/ROADMAP.md` |
 | Gate 6 must make the third-use coordinate/scan extraction decision. | `docs/ROADMAP.md`, `docs/MECHANIC-ATLAS.md` |
