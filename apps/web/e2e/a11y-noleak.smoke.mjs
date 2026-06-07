@@ -111,12 +111,66 @@ try {
   await assertNoLeak(page, consoleMessages, "played DOM");
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced" }));
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startDirectionalFlip(page, "Hotseat");
+  await assertDirectionalBoardA11y(page);
+  await page.select(".motion-field select", "reduce");
+  await keyboardPlaceDirectional(page);
+  await page.waitForSelector(".directional-flip-board.reduced .directional-cell.flipped .directional-disc");
+  const animationName = await page.$eval(".directional-flip-board.reduced .directional-cell.flipped .directional-disc", (element) =>
+    window.getComputedStyle(element).animationName,
+  );
+  assert(animationName === "none", "directional_flip reduced-motion suppresses flip animation");
+  await assertNoLeak(page, consoleMessages, "directional_flip DOM");
+
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced directional_flip" }));
 } finally {
   if (browser) {
     await browser.close();
   }
   await new Promise((resolve) => server.close(resolve));
+}
+
+async function startDirectionalFlip(page, mode = "Human vs bot") {
+  await clickText(page, "button", "Directional Flip");
+  if (mode !== "Human vs bot") {
+    await clickLabel(page, mode);
+  }
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="directional-flip-board"]');
+}
+
+async function assertDirectionalBoardA11y(page) {
+  const summary = await page.evaluate(() => {
+    const cells = Array.from(document.querySelectorAll('[data-testid^="directional-cell-"]'));
+    return {
+      cells: cells.length,
+      legal: cells.filter((cell) => cell.classList.contains("legal")).length,
+      missingNames: cells
+        .filter((cell) => !(cell.getAttribute("aria-label") ?? "").trim())
+        .map((cell) => cell.getAttribute("data-testid")),
+      seat0Marks: document.querySelectorAll(".directional-disc-seat-0 .directional-disc-mark").length,
+      seat1Marks: document.querySelectorAll(".directional-disc-seat-1 .directional-disc-mark").length,
+      status: document.querySelector('[data-testid="turn"]')?.textContent ?? "",
+    };
+  });
+  assert(summary.cells === 64, `directional_flip renders sixty-four cells, got ${summary.cells}`);
+  assert(summary.legal === 4, `directional_flip exposes four Rust legal targets, got ${summary.legal}`);
+  assert(summary.missingNames.length === 0, `directional_flip cells have accessible names: ${summary.missingNames.join(", ")}`);
+  assert(summary.seat0Marks > 0 && summary.seat1Marks > 0, "directional_flip seats use non-color SVG marks");
+  assert(summary.status.length > 0, "directional_flip has text turn status");
+}
+
+async function keyboardPlaceDirectional(page) {
+  await focusByTestId(page, "directional-cell-r1c1");
+  await assertFocusedVisible(page);
+  for (const key of ["ArrowDown", "ArrowDown", "ArrowRight", "ArrowRight", "ArrowRight", "Enter"]) {
+    await page.keyboard.press(key);
+  }
+  await page.waitForFunction(() => {
+    const state = window.render_game_to_text ? JSON.parse(window.render_game_to_text()) : null;
+    return state?.view?.freshness_token >= 1;
+  });
 }
 
 async function assertNamedControls(page) {
@@ -247,6 +301,47 @@ async function focusByText(page, text) {
     await page.keyboard.press("Tab");
   }
   throw new Error(`Unable to focus control by text: ${text}`);
+}
+
+async function focusByTestId(page, testId) {
+  for (let index = 0; index < 100; index += 1) {
+    const focused = await page.evaluate(
+      (expected) => document.activeElement?.getAttribute("data-testid") === expected,
+      testId,
+    );
+    if (focused) {
+      return;
+    }
+    await page.keyboard.press("Tab");
+  }
+  throw new Error(`Unable to focus control by test id: ${testId}`);
+}
+
+async function clickLabel(page, text) {
+  await page.evaluate((labelText) => {
+    const label = Array.from(document.querySelectorAll("label")).find((candidate) =>
+      candidate.textContent?.includes(labelText),
+    );
+    if (!label) {
+      throw new Error(`Missing label: ${labelText}`);
+    }
+    label.click();
+  }, text);
+}
+
+async function clickText(page, selector, text) {
+  await page.evaluate(
+    ({ selector, text }) => {
+      const element = Array.from(document.querySelectorAll(selector)).find((candidate) =>
+        candidate.textContent?.includes(text),
+      );
+      if (!element) {
+        throw new Error(`Missing ${selector} with text: ${text}`);
+      }
+      element.click();
+    },
+    { selector, text },
+  );
 }
 
 async function waitForText(page, text) {

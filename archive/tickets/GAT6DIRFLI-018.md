@@ -1,6 +1,6 @@
 # GAT6DIRFLI-018: Browser E2E smoke & a11y/no-leak
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (browser E2E / a11y test harness under `apps/web/e2e/` — no Rust/engine surface). Adds `apps/web/e2e/directional-flip.smoke.mjs` and extends `apps/web/e2e/a11y-noleak.smoke.mjs` + `apps/web/e2e/NO-LEAK-A11Y-CHECKLIST.md`.
@@ -76,3 +76,15 @@ Extend `apps/web/e2e/a11y-noleak.smoke.mjs` with directional-flip checks and add
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 3. The browser smoke suite is the correct boundary for UI/no-leak acceptance; CI invocation is GAT6DIRFLI-019.
+
+## Outcome
+
+Completed 2026-06-07. Added the Directional Flip browser smoke for start, Rust legal target display, preview display, keyboard activation, human action, bot action, forced-pass bot path, replay stepping, reduced motion, dev-panel safety, and browser no-leak checks. Extended the shared a11y/no-leak smoke and checklist with Directional Flip grid, non-color, reduced-motion, and DOM/test-id no-leak coverage.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `node apps/web/e2e/directional-flip.smoke.mjs`
+3. `node apps/web/e2e/a11y-noleak.smoke.mjs`
+4. `npm --prefix apps/web run smoke:ui`
+5. `git diff --check`

@@ -2,7 +2,7 @@
 
 Review date: 2026-06-06
 
-Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks` / Three Marks, and `column_four` / Column Four.
+Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column Four, and `directional_flip` / Directional Flip.
 
 ## Accessibility Baseline
 
@@ -20,6 +20,11 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Column Four non-color cues: seat pieces use distinct shape plus color, terminal winner/draw text is visible, and the Rust winning line is highlighted with terminal status text.
 - Column Four reduced motion: the smoke verifies reduced-motion mode suppresses landed-piece animation while preserving the Rust-projected board state.
 - Column Four replay accessibility: replay reset/step renders `ColumnFourBoard` and the public command sequence rather than JSON-only state.
+- Directional Flip board keyboard path: the Directional Flip smokes focus the grid, move with arrow keys to a Rust-legal target, activate with Enter, and assert the Rust-projected ply advances.
+- Directional Flip legal-cell accessibility: the smoke asserts 64 named grid cells, four Rust legal targets in the opening position, forced-pass replay projection, and accessible text status.
+- Directional Flip non-color cues: discs use distinct SVG marks/patterns plus color, score/status/effect text is visible, and legal/preview cells are backed by Rust labels.
+- Directional Flip reduced motion: the smoke verifies reduced-motion mode suppresses flip animation while preserving the Rust-projected board state.
+- Directional Flip replay accessibility: replay reset/step renders `DirectionalFlipBoard`, forced-pass projection, and the public command sequence rather than JSON-only state.
 
 ## No-Leak Surfaces
 
@@ -34,6 +39,10 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Column Four DOM/test IDs: checked by `column-four.smoke.mjs` for hidden/private/internal leak vocabulary; board test IDs identify public column controls only (`c1` through `c7`) and never carry state dumps.
 - Column Four replay export: checked by `column-four.smoke.mjs` for forbidden leak vocabulary while preserving public replay metadata for `column_four`.
 - Column Four bot rationale: the UI shows only the Rust-provided public `bot_chose_action` rationale; no candidate ranking, raw score, hidden search, or internal state surface is exposed.
+- Directional Flip DOM/test IDs: checked by `directional-flip.smoke.mjs` for hidden/private/internal leak vocabulary; board test IDs identify public cells only (`r1c1` through `r8c8`) and never carry state dumps.
+- Directional Flip replay export: checked by `directional-flip.smoke.mjs` for forbidden leak vocabulary while preserving public replay metadata for `directional_flip` and explicit not-applicable private-view markers.
+- Directional Flip bot rationale: the UI shows only the Rust-provided public `bot_chose_action` rationale; no candidate ranking, raw score, hidden search, or internal state surface is exposed.
+- Directional Flip forced-pass replay: the smoke imports the Rust golden forced-pass trace and verifies the browser projects the forced-pass state/control without exposing private or internal state.
 
 ## Later Hidden-Information Games
 
