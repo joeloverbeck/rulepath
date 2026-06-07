@@ -147,6 +147,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "high_card_duel",
  "race_to_n",
  "three_marks",
 ]

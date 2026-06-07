@@ -30,6 +30,15 @@ use engine_core::{
     ActionChoice, ActionPath, ActionTree, Actor, CommandEnvelope, EffectCursor, EffectEnvelope,
     EffectLog, RulesVersion, SeatId, Seed, Viewer, VisibilityScope,
 };
+use high_card_duel::{
+    apply_action as high_card_apply_action,
+    export_public_observer_replay as high_card_export_public_observer_replay,
+    import_public_export as high_card_import_public_export,
+    legal_action_tree as high_card_legal_action_tree, project_view as high_card_project_view,
+    setup_match as high_card_setup_match, validate_command as high_card_validate_command,
+    HighCardDuelEffect, HighCardDuelInternalTrace, HighCardDuelRandomBot, HighCardDuelSeat,
+    HighCardDuelState, PublicReplayExport, PublicReplayStep,
+};
 use race_to_n::{
     apply_action as race_apply_action, legal_action_tree, project_view,
     replay_support::replay_commands as race_replay_commands, setup_match as race_setup_match,
@@ -53,6 +62,8 @@ const GAME_DIRECTIONAL_FLIP: &str = "directional_flip";
 const GAME_DIRECTIONAL_FLIP_DISPLAY_NAME: &str = "Directional Flip";
 const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
 const GAME_DRAUGHTS_LITE_DISPLAY_NAME: &str = "Draughts Lite";
+const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
+const GAME_HIGH_CARD_DUEL_DISPLAY_NAME: &str = "High Card Duel";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -77,6 +88,7 @@ const THREE_MARKS_TRACE_RULES_VERSION: &str = "three_marks-rules-v1";
 const COLUMN_FOUR_TRACE_RULES_VERSION: &str = "column_four-rules-v1";
 const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
 const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
+const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
@@ -84,6 +96,7 @@ const VARIANT_THREE_MARKS_STANDARD: &str = "three_marks_standard";
 const VARIANT_COLUMN_FOUR_STANDARD: &str = "column_four_standard";
 const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
 const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
+const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -131,6 +144,13 @@ enum MatchRecord {
         effects: EffectLog<DraughtsLiteEffect>,
         commands: Vec<AppliedCommand>,
     },
+    HighCardDuel {
+        game_id: String,
+        seed: u64,
+        state: HighCardDuelState,
+        effects: EffectLog<HighCardDuelEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -138,6 +158,13 @@ struct ReplayRecord {
     game_id: String,
     seed: u64,
     commands: Vec<AppliedCommand>,
+    public_timeline: Option<PublicTimelineReplay>,
+}
+
+#[derive(Clone, Debug)]
+struct PublicTimelineReplay {
+    viewer: String,
+    step_count: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -163,6 +190,7 @@ enum RegisteredGame {
     ColumnFour,
     DirectionalFlip,
     DraughtsLite,
+    HighCardDuel,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -176,6 +204,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::ColumnFour,
         RegisteredGame::DirectionalFlip,
         RegisteredGame::DraughtsLite,
+        RegisteredGame::HighCardDuel,
     ]
         .iter()
         .map(|game| match game {
@@ -217,6 +246,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_DRAUGHTS_LITE_STANDARD)
+            ),
+            RegisteredGame::HighCardDuel => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\"]}}",
+                escape_json(GAME_HIGH_CARD_DUEL),
+                escape_json(GAME_HIGH_CARD_DUEL_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -361,6 +398,31 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_DRAUGHTS_LITE_STANDARD)
             ))
         }
+        RegisteredGame::HighCardDuel => {
+            let seats = seats();
+            let state =
+                high_card_setup_match(Seed(seed), &seats, &high_card_duel::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::HighCardDuel {
+                        game_id: GAME_HIGH_CARD_DUEL.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
+            ))
+        }
     }
 }
 
@@ -392,6 +454,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = draughts_viewer_for_seat(state, viewer_seat)?;
             Ok(draughts_view_json(&draughts_project_view(state, &viewer)))
+        }
+        MatchRecord::HighCardDuel { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = high_card_viewer_for_seat(state, viewer_seat)?;
+            Ok(high_card_view_json(&high_card_project_view(state, &viewer)))
         }
     })
 }
@@ -452,6 +519,17 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = draughts_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&draughts_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::HighCardDuel { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_high_card_seat(actor_seat)?;
+            if !high_card_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = high_card_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&high_card_legal_action_tree(
+                state, &actor,
+            )))
         }
     })
 }
@@ -623,6 +701,39 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
+        MatchRecord::HighCardDuel {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_high_card_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: high_card_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = high_card_validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = high_card_apply_action(state, action);
+            let viewer = high_card_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = high_card_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_high_card_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                high_card_view_json(&high_card_project_view(state, &viewer))
             ))
         }
     })
@@ -810,6 +921,42 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None }))
             ))
         }
+        MatchRecord::HighCardDuel {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_high_card_seat(actor_seat)?;
+            let decision = HighCardDuelRandomBot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: high_card_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = high_card_validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = high_card_apply_action(state, action);
+            let viewer = high_card_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = high_card_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_high_card_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                high_card_view_json(&high_card_project_view(state, &viewer))
+            ))
+        }
     })
 }
 
@@ -929,6 +1076,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::HighCardDuel {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = high_card_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        high_card_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -979,6 +1148,26 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             resolve_game(game_id)?;
             draughts_replay_document_json(&format!("export-{match_id}"), *seed, commands)
         }
+        MatchRecord::HighCardDuel {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let trace = HighCardDuelInternalTrace {
+                schema_version: SCHEMA_VERSION,
+                game_id: high_card_duel::GAME_ID.to_owned(),
+                rules_version: high_card_duel::RULES_VERSION_LABEL.to_owned(),
+                variant: high_card_duel::VARIANT_ID.to_owned(),
+                seed: *seed,
+                command_paths: commands
+                    .iter()
+                    .map(|command| command.action_path.clone())
+                    .collect(),
+            };
+            Ok(high_card_export_public_observer_replay(&trace).to_json())
+        }
     })
 }
 
@@ -988,6 +1177,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             "replay_too_large",
             "replay document exceeds import size limit",
         ));
+    }
+    if is_high_card_public_export(doc) {
+        return import_high_card_public_replay(doc);
     }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
@@ -1006,6 +1198,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_COLUMN_FOUR
         && parsed.game_id != GAME_DIRECTIONAL_FLIP
         && parsed.game_id != GAME_DRAUGHTS_LITE
+        && parsed.game_id != GAME_HIGH_CARD_DUEL
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -1068,6 +1261,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 effects.len(),
             )
         }
+        RegisteredGame::HighCardDuel => {
+            let (state, effects) =
+                high_card_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                high_card_view_json(&high_card_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
     };
     let replay_id = next_replay_id(&parsed.game_id);
     let game_id = parsed.game_id.clone();
@@ -1078,6 +1279,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 game_id: game_id.clone(),
                 seed: parsed.seed,
                 commands: parsed.commands,
+                public_timeline: None,
             },
         );
     });
@@ -1093,72 +1295,180 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
 }
 
 pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
-    with_replay(replay_id, |record| match resolve_game(&record.game_id)? {
-        RegisteredGame::RaceToN => {
-            let bounded_cursor = cursor.min(record.commands.len());
-            let (state, effects) =
-                race_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
-            Ok(race_replay_step_json(
-                replay_id,
-                bounded_cursor,
-                record.commands.len(),
-                &state,
-                &effects,
-            ))
+    with_replay(replay_id, |record| {
+        if let Some(timeline) = &record.public_timeline {
+            return Ok(public_replay_step_json(replay_id, cursor, timeline));
         }
-        RegisteredGame::ThreeMarks => {
-            let bounded_cursor = cursor.min(record.commands.len());
-            let (state, effects) =
-                three_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
-            Ok(three_replay_step_json(
-                replay_id,
-                bounded_cursor,
-                record.commands.len(),
-                &state,
-                &effects,
-            ))
-        }
-        RegisteredGame::ColumnFour => {
-            let bounded_cursor = cursor.min(record.commands.len());
-            let (state, effects) =
-                column_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
-            Ok(column_replay_step_json(
-                replay_id,
-                bounded_cursor,
-                record.commands.len(),
-                &state,
-                &effects,
-            ))
-        }
-        RegisteredGame::DirectionalFlip => {
-            let bounded_cursor = cursor.min(record.commands.len());
-            let (state, effects) =
-                directional_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
-            Ok(directional_replay_step_json(
-                replay_id,
-                bounded_cursor,
-                record.commands.len(),
-                &state,
-                &effects,
-            ))
-        }
-        RegisteredGame::DraughtsLite => {
-            let bounded_cursor = cursor.min(record.commands.len());
-            let (state, effects) =
-                draughts_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
-            Ok(draughts_replay_step_json(
-                replay_id,
-                bounded_cursor,
-                record.commands.len(),
-                &state,
-                &effects,
-            ))
+        match resolve_game(&record.game_id)? {
+            RegisteredGame::RaceToN => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    race_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(race_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::ThreeMarks => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    three_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(three_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::ColumnFour => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    column_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(column_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::DirectionalFlip => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    directional_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(directional_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::DraughtsLite => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    draughts_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(draughts_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::HighCardDuel => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    high_card_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(high_card_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
 
 pub fn replay_reset(replay_id: &str) -> Result<String, String> {
     replay_step(replay_id, 0)
+}
+
+fn is_high_card_public_export(doc: &str) -> bool {
+    doc.contains("\"export_class\":\"public_observer_projection_v1\"")
+        && doc.contains("\"game_id\":\"high_card_duel\"")
+}
+
+fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let rules_version = string_field(doc, "rules_version")?;
+    if rules_version != high_card_duel::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {rules_version}"),
+        ));
+    }
+    let variant = string_field(doc, "variant")?;
+    if variant != high_card_duel::VARIANT_ID {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {variant}"),
+        ));
+    }
+    let viewer = string_field(doc, "viewer")?;
+    if viewer != "observer" {
+        return Err(diagnostic_string(
+            "unsupported_replay_viewer",
+            &format!("unsupported replay viewer: {viewer}"),
+        ));
+    }
+    let step_count = doc.matches("\"step_index\":").count();
+    let export = PublicReplayExport {
+        schema_version: SCHEMA_VERSION,
+        export_class: "public_observer_projection_v1".to_owned(),
+        viewer: viewer.clone(),
+        game_id: high_card_duel::GAME_ID.to_owned(),
+        rules_version,
+        variant,
+        steps: (0..step_count)
+            .map(|step_index| PublicReplayStep {
+                step_index,
+                public_view_summary: String::new(),
+                public_effects: Vec::new(),
+                redacted_command_summary: String::new(),
+                terminal: false,
+            })
+            .collect(),
+    };
+    let timeline = high_card_import_public_export(&export);
+    let replay_id = next_replay_id(GAME_HIGH_CARD_DUEL);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_HIGH_CARD_DUEL.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: timeline.viewer.clone(),
+                    step_count: timeline.steps.len(),
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"{}\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0}}",
+        escape_json(&replay_id),
+        escape_json(GAME_HIGH_CARD_DUEL),
+        escape_json(&timeline.viewer),
+        timeline.steps.len()
+    ))
+}
+
+fn public_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    timeline: &PublicTimelineReplay,
+) -> String {
+    let total_steps = timeline.step_count.saturating_sub(1);
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_steps\":{},\"public_export\":true,\"viewer\":\"{}\",\"view\":null,\"effects\":[]}}",
+        escape_json(replay_id),
+        cursor.min(total_steps),
+        total_steps,
+        escape_json(&timeline.viewer)
+    )
 }
 
 fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
@@ -1168,6 +1478,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_COLUMN_FOUR => Ok(RegisteredGame::ColumnFour),
         GAME_DIRECTIONAL_FLIP => Ok(RegisteredGame::DirectionalFlip),
         GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
+        GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -1252,6 +1563,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::ColumnFour => COLUMN_FOUR_TRACE_RULES_VERSION,
         RegisteredGame::DirectionalFlip => DIRECTIONAL_FLIP_TRACE_RULES_VERSION,
         RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
+        RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
     }
 }
 
@@ -1359,6 +1671,26 @@ fn trace_draughts_seat(seat: DraughtsLiteSeat) -> &'static str {
     }
 }
 
+fn parse_high_card_seat(value: &str) -> Result<HighCardDuelSeat, String> {
+    match value {
+        "seat-0" => Ok(HighCardDuelSeat::Seat0),
+        "seat-1" => Ok(HighCardDuelSeat::Seat1),
+        _ => HighCardDuelSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_high_card_seat(seat: HighCardDuelSeat) -> &'static str {
+    match seat {
+        HighCardDuelSeat::Seat0 => "seat-0",
+        HighCardDuelSeat::Seat1 => "seat-1",
+    }
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -1435,6 +1767,23 @@ fn draughts_actor_for_seat(
         })
 }
 
+fn high_card_actor_for_seat(
+    state: &HighCardDuelState,
+    seat: HighCardDuelSeat,
+) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -1476,6 +1825,17 @@ fn draughts_viewer_for_seat(
 ) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_draughts_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn high_card_viewer_for_seat(
+    state: &HighCardDuelState,
+    seat: Option<&str>,
+) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_high_card_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -1527,6 +1887,16 @@ fn draughts_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_draughts_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn high_card_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: HighCardDuelSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_high_card_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -1678,6 +2048,32 @@ fn draughts_replay_to_cursor(
     Ok((state, all_effects))
 }
 
+fn high_card_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(HighCardDuelState, Vec<EffectEnvelope<HighCardDuelEffect>>), String> {
+    let seats = seats();
+    let mut state =
+        high_card_setup_match(Seed(seed), &seats, &high_card_duel::SetupOptions::default())
+            .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_high_card_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: high_card_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = high_card_validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(high_card_apply_action(&mut state, action));
+    }
+    Ok((state, all_effects))
+}
+
 fn action_tree_json(tree: &ActionTree) -> String {
     let choices = tree
         .root
@@ -1781,6 +2177,26 @@ fn draughts_effects_json(effects: &[EffectEnvelope<DraughtsLiteEffect>]) -> Stri
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
+}
+
+fn high_card_effects_json(
+    effects: &[EffectEnvelope<HighCardDuelEffect>],
+    viewer: &Viewer,
+) -> String {
+    let body = effects
+        .iter()
+        .filter(|effect| effect_visible_to_viewer(&effect.visibility, viewer))
+        .map(high_card_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn effect_visible_to_viewer(visibility: &VisibilityScope, viewer: &Viewer) -> bool {
+    match visibility {
+        VisibilityScope::Public => true,
+        VisibilityScope::PrivateToSeat(seat) => viewer.seat_id.as_ref() == Some(seat),
+    }
 }
 
 fn race_replay_document_json(
@@ -2182,6 +2598,25 @@ fn draughts_replay_step_json(
         cursor >= command_count,
         draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None })),
         draughts_effects_json(effects)
+    )
+}
+
+fn high_card_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    command_count: usize,
+    state: &HighCardDuelState,
+    effects: &[EffectEnvelope<HighCardDuelEffect>],
+) -> String {
+    let viewer = Viewer { seat_id: None };
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"command_count\":{},\"done\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        command_count,
+        cursor >= command_count,
+        high_card_view_json(&high_card_project_view(state, &viewer)),
+        high_card_effects_json(effects, &viewer)
     )
 }
 
@@ -2984,6 +3419,238 @@ fn draughts_effect_json(effect: &EffectEnvelope<DraughtsLiteEffect>) -> String {
     )
 }
 
+fn high_card_view_json(view: &high_card_duel::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"round_number\":{},\"round_limit\":{},\"phase\":\"{}\",\"active_seat\":{},\"lead_seat\":{},\"reply_seat\":{},\"score\":{},\"hand_counts\":{},\"deck_count\":{},\"commitments\":{},\"revealed_cards\":[{}],\"terminal_kind\":\"{}\",\"winning_seat\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.round_number,
+        view.round_limit,
+        view.phase.as_str(),
+        option_high_card_seat_json(view.active_seat),
+        option_high_card_seat_json(view.lead_seat),
+        option_high_card_seat_json(view.reply_seat),
+        high_card_score_json(view.score),
+        high_card_hand_counts_json(&view.hand_counts),
+        view.deck_count,
+        high_card_commitments_json(&view.commitments),
+        view.revealed_cards
+            .iter()
+            .map(high_card_revealed_round_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        high_card_terminal_kind(&view.terminal),
+        option_high_card_seat_json(high_card_terminal_winner(&view.terminal)),
+        view.freshness_token.0,
+        high_card_private_view_json(&view.private_view),
+        high_card_ui_json(&view.ui)
+    )
+}
+
+fn high_card_card_json(card: &high_card_duel::CardView) -> String {
+    format!(
+        "{{\"card_id\":\"{}\",\"rank\":{},\"sigil\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.card_id),
+        card.rank,
+        escape_json(&card.sigil),
+        escape_json(&card.accessibility_label)
+    )
+}
+
+fn high_card_score_json(score: high_card_duel::Score) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{}}}",
+        score.seat_0, score.seat_1
+    )
+}
+
+fn high_card_hand_counts_json(counts: &high_card_duel::HandCountsView) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{}}}",
+        counts.seat_0, counts.seat_1
+    )
+}
+
+fn high_card_commitments_json(commitments: &high_card_duel::CommitmentViews) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{}}}",
+        high_card_commitment_json(&commitments.seat_0),
+        high_card_commitment_json(&commitments.seat_1)
+    )
+}
+
+fn high_card_commitment_json(commitment: &high_card_duel::CommitmentView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"status\":\"{}\",\"card\":{},\"accessibility_label\":\"{}\"}}",
+        commitment.seat.as_str(),
+        escape_json(&commitment.status),
+        commitment
+            .card
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), high_card_card_json),
+        escape_json(&commitment.accessibility_label)
+    )
+}
+
+fn high_card_revealed_round_json(round: &high_card_duel::RevealedRoundView) -> String {
+    format!(
+        "{{\"round_number\":{},\"seat_0_card\":{},\"seat_1_card\":{},\"winner\":{}}}",
+        round.round_number,
+        high_card_card_json(&round.seat_0_card),
+        high_card_card_json(&round.seat_1_card),
+        option_high_card_seat_json(round.winner)
+    )
+}
+
+fn high_card_private_view_json(private_view: &high_card_duel::PrivateView) -> String {
+    match private_view {
+        high_card_duel::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"hand\":[],\"own_commitment\":null}".to_owned()
+        }
+        high_card_duel::PrivateView::Seat {
+            seat,
+            hand,
+            own_commitment,
+        } => {
+            let hand = hand
+                .iter()
+                .map(high_card_card_json)
+                .collect::<Vec<_>>()
+                .join(",");
+            format!(
+                "{{\"status\":\"seat\",\"seat\":\"{}\",\"hand\":[{}],\"own_commitment\":{}}}",
+                seat.as_str(),
+                hand,
+                own_commitment
+                    .as_ref()
+                    .map_or_else(|| "null".to_owned(), high_card_card_json)
+            )
+        }
+    }
+}
+
+fn high_card_ui_json(ui: &high_card_duel::UiMetadata) -> String {
+    format!(
+        "{{\"table_label\":\"{}\",\"card_back_token\":\"{}\",\"own_card_token\":\"{}\",\"revealed_card_token\":\"{}\",\"empty_commitment_token\":\"{}\",\"face_down_commitment_token\":\"{}\",\"commit_action_label\":\"{}\",\"observer_disabled_reason\":\"{}\"}}",
+        escape_json(&ui.table_label),
+        escape_json(&ui.card_back_token),
+        escape_json(&ui.own_card_token),
+        escape_json(&ui.revealed_card_token),
+        escape_json(&ui.empty_commitment_token),
+        escape_json(&ui.face_down_commitment_token),
+        escape_json(&ui.commit_action_label),
+        escape_json(&ui.observer_disabled_reason)
+    )
+}
+
+fn high_card_effect_json(effect: &EffectEnvelope<HighCardDuelEffect>) -> String {
+    let payload = match &effect.payload {
+        HighCardDuelEffect::DealPrivateCard { owner, card } => format!(
+            "{{\"type\":\"deal_private_card\",\"owner\":\"{}\",\"card_id\":\"{}\"}}",
+            owner.as_str(),
+            card.stable_id()
+        ),
+        HighCardDuelEffect::HandCountChanged {
+            seat_0_count,
+            seat_1_count,
+            deck_count,
+        } => format!(
+            "{{\"type\":\"hand_count_changed\",\"seat_0_count\":{},\"seat_1_count\":{},\"deck_count\":{}}}",
+            seat_0_count, seat_1_count, deck_count
+        ),
+        HighCardDuelEffect::CommitFaceDown { seat, round_number } => format!(
+            "{{\"type\":\"commit_face_down\",\"seat\":\"{}\",\"round_number\":{}}}",
+            seat.as_str(),
+            round_number
+        ),
+        HighCardDuelEffect::OwnCommitConfirmed {
+            owner,
+            card,
+            round_number,
+        } => format!(
+            "{{\"type\":\"own_commit_confirmed\",\"owner\":\"{}\",\"card_id\":\"{}\",\"round_number\":{}}}",
+            owner.as_str(),
+            card.stable_id(),
+            round_number
+        ),
+        HighCardDuelEffect::CardsRevealed {
+            round_number,
+            seat_0_card,
+            seat_1_card,
+        } => format!(
+            "{{\"type\":\"cards_revealed\",\"round_number\":{},\"seat_0_card\":\"{}\",\"seat_1_card\":\"{}\"}}",
+            round_number,
+            seat_0_card.stable_id(),
+            seat_1_card.stable_id()
+        ),
+        HighCardDuelEffect::RoundScored {
+            round_number,
+            winner,
+            score,
+        } => format!(
+            "{{\"type\":\"round_scored\",\"round_number\":{},\"winner\":{},\"score\":{}}}",
+            round_number,
+            option_high_card_seat_json(*winner),
+            high_card_score_json(*score)
+        ),
+        HighCardDuelEffect::RefillStarted {
+            next_round_number,
+            next_lead_seat,
+        } => format!(
+            "{{\"type\":\"refill_started\",\"next_round_number\":{},\"next_lead_seat\":\"{}\"}}",
+            next_round_number,
+            next_lead_seat.as_str()
+        ),
+        HighCardDuelEffect::Terminal { winner, score } => format!(
+            "{{\"type\":\"terminal\",\"winner\":{},\"score\":{}}}",
+            option_high_card_seat_json(*winner),
+            high_card_score_json(*score)
+        ),
+        HighCardDuelEffect::PrivateDiagnostic {
+            owner,
+            code,
+            private_message,
+        } => format!(
+            "{{\"type\":\"private_diagnostic\",\"owner\":\"{}\",\"code\":\"{}\",\"private_message\":\"{}\"}}",
+            owner.as_str(),
+            escape_json(code),
+            escape_json(private_message)
+        ),
+        HighCardDuelEffect::PublicDiagnostic {
+            code,
+            public_message,
+        } => format!(
+            "{{\"type\":\"public_diagnostic\",\"code\":\"{}\",\"public_message\":\"{}\"}}",
+            escape_json(code),
+            escape_json(public_message)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn high_card_terminal_kind(terminal: &high_card_duel::TerminalView) -> &'static str {
+    match terminal {
+        high_card_duel::TerminalView::NonTerminal => "non_terminal",
+        high_card_duel::TerminalView::Win { .. } => "win",
+        high_card_duel::TerminalView::Draw => "draw",
+    }
+}
+
+fn high_card_terminal_winner(terminal: &high_card_duel::TerminalView) -> Option<HighCardDuelSeat> {
+    match terminal {
+        high_card_duel::TerminalView::Win { winning_seat } => Some(*winning_seat),
+        _ => None,
+    }
+}
+
 fn draughts_terminal_kind(terminal: &draughts_lite::TerminalView) -> &'static str {
     match terminal {
         draughts_lite::TerminalView::NonTerminal => "non_terminal",
@@ -3013,6 +3680,13 @@ fn draughts_terminal_reason(reason: draughts_lite::TerminalWinReason) -> &'stati
 }
 
 fn option_draughts_seat_json(seat: Option<DraughtsLiteSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
+fn option_high_card_seat_json(seat: Option<HighCardDuelSeat>) -> String {
     seat.map_or_else(
         || "null".to_owned(),
         |seat| format!("\"{}\"", seat.as_str()),
@@ -3801,10 +4475,14 @@ mod tests {
         assert!(games.contains("\"game_id\":\"column_four\""));
         assert!(games.contains("\"game_id\":\"directional_flip\""));
         assert!(games.contains("\"game_id\":\"draughts_lite\""));
+        assert!(games.contains("\"game_id\":\"high_card_duel\""));
         assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
         assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
         assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
         assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
+        assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
+        assert!(games.contains("\"hidden_information\":true"));
+        assert!(games.contains("\"public_replay_export\""));
     }
 
     #[test]
@@ -4106,6 +4784,75 @@ mod tests {
         let step = replay_step(&replay_id, 1).expect("replay stepped");
         assert!(step.contains("\"cursor\":1"));
         assert!(step.contains("\"ply_count\":1"));
+    }
+
+    #[test]
+    fn high_card_duel_surface_filters_hidden_information() {
+        let created = new_match("high_card_duel", 71).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"high_card_duel_standard\""));
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        assert!(observer.contains("\"game_id\":\"high_card_duel\""));
+        assert!(observer.contains("\"private_view\":{\"status\":\"observer\""));
+        assert!(!observer.contains("hcd:r"));
+
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat view returned");
+        assert!(seat_0.contains("\"private_view\":{\"status\":\"seat\",\"seat\":\"seat_0\""));
+        assert!(seat_0.contains("hcd:r"));
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized tree returned");
+        let unauthorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_1"))
+            .expect("unauthorized tree returned");
+        let observer_tree =
+            get_action_tree_for_viewer(&match_id, "seat_0", None).expect("observer tree returned");
+
+        assert!(authorized.contains("\"segment\":\"commit/hcd:r"));
+        assert!(unauthorized.contains("\"choices\":[]"));
+        assert!(observer_tree.contains("\"choices\":[]"));
+
+        let action_segment = authorized
+            .split("\"segment\":\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("commit segment present")
+            .to_owned();
+        let applied =
+            apply_action(&match_id, "seat_0", &action_segment, 0).expect("commit applies");
+        assert!(applied.contains("\"type\":\"own_commit_confirmed\""));
+        assert!(applied.contains("hcd:r"));
+        assert!(applied.contains("\"private_to_seat\":\"seat-0\""));
+
+        let observer_effects = get_effects(&match_id, 0, None).expect("observer effects");
+        assert!(observer_effects.contains("\"type\":\"commit_face_down\""));
+        assert!(!observer_effects.contains("hcd:r"));
+
+        let seat_0_effects = get_effects(&match_id, 0, Some("seat_0")).expect("seat effects");
+        assert!(seat_0_effects.contains("\"type\":\"own_commit_confirmed\""));
+        assert!(seat_0_effects.contains("hcd:r"));
+
+        let seat_1_effects = get_effects(&match_id, 0, Some("seat_1")).expect("other effects");
+        assert!(seat_1_effects.contains("\"type\":\"commit_face_down\""));
+        assert!(!seat_1_effects.contains("hcd:r"));
+
+        let exported = export_replay(&match_id).expect("public replay exported");
+        assert!(exported.contains("\"export_class\":\"public_observer_projection_v1\""));
+        assert!(exported.contains("\"viewer\":\"observer\""));
+        assert!(!exported.contains("\"seed\""));
+        assert!(!exported.contains("hcd:r"));
+
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"public_export\":true"));
+        assert!(imported.contains("\"game_id\":\"high_card_duel\""));
+        let reset = replay_reset(&replay_id).expect("public replay reset returned");
+        assert!(reset.contains("\"public_export\":true"));
+        assert!(reset.contains("\"view\":null"));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        assert!(bot.contains("\"ok\":true"));
+        assert!(bot.contains("\"type\":\"cards_revealed\""));
     }
 
     #[test]
