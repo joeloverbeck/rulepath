@@ -1,6 +1,6 @@
 # GAT71BOASPA-005: Capstone — promotion-debt closure, acceptance evidence, and `draughts_lite` regression
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (governance/docs closure only) — `docs/MECHANIC-ATLAS.md`, `specs/README.md`, `games/draughts_lite/docs/MECHANICS.md`, `games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`. No game rule code changes; this ticket runs the full acceptance pipeline and records closure.
@@ -93,3 +93,46 @@ In `specs/README.md`: change the Gate 7.1 row status from `Planned` to `Done` (a
 1. `cargo test --workspace && bash scripts/boundary-check.sh && cargo clippy --workspace --all-targets -- -D warnings`
 2. `for g in three_marks column_four directional_flip draughts_lite race_to_n; do cargo run -p replay-check -- --game $g --all && cargo run -p fixture-check -- --game $g && cargo run -p rule-coverage -- --game $g; done`
 3. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui && node scripts/check-doc-links.mjs`
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- `docs/MECHANIC-ATLAS.md` now marks `game-stdlib::board_space` as a promoted
+  primitive with no open board-space promotion debt.
+- `specs/README.md` marks Gate 7.1 as `Done`.
+- `games/draughts_lite/docs/MECHANICS.md` and
+  `games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md` record Gate 7.1
+  closure while keeping draughts movement, capture, promotion, forced
+  continuation, effects, UI, and bot policy local.
+
+Deviations from original plan:
+- None.
+
+Verification results:
+- `cargo test --workspace`
+- `bash scripts/boundary-check.sh`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `cargo run -p replay-check -- --game column_four --all`
+- `cargo run -p replay-check -- --game directional_flip --all`
+- `cargo run -p replay-check -- --game draughts_lite --all`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p fixture-check -- --game three_marks`
+- `cargo run -p fixture-check -- --game column_four`
+- `cargo run -p fixture-check -- --game directional_flip`
+- `cargo run -p fixture-check -- --game draughts_lite`
+- `cargo run -p fixture-check -- --game race_to_n`
+- `cargo run -p rule-coverage -- --game three_marks`
+- `cargo run -p rule-coverage -- --game column_four`
+- `cargo run -p rule-coverage -- --game directional_flip`
+- `cargo run -p rule-coverage -- --game draughts_lite`
+- `cargo run -p rule-coverage -- --game race_to_n`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `node scripts/check-doc-links.mjs`
+- `grep -n "promotion-debt-open" docs/MECHANIC-ATLAS.md` shows only the status
+  definition, not a `board_space` debt row.
+- `grep -n "Gate 7.1" specs/README.md` shows `Done`.
+- Golden traces changed: no.

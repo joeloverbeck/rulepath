@@ -59,7 +59,7 @@ labels, WASM payload policy, or behavior encoded in static data.
 | coordinate arithmetic | Directional Flip and Draughts Lite both need bounded offsets. | Needs diagonal one-step and two-step offsets. | yes | Offset arithmetic is behavior-free when it only returns checked coordinates. |
 | deterministic ordering | Existing views, actions, traces, and effects depend on stable order. | Legal origins and destinations must be emitted deterministically. | yes | Row-major iteration can be shared. |
 | playable-square parity | Not shared by every board game. | Draughts uses dark-square parity. | partial | Generic parity is allowed; dark/playable policy is game-local. |
-| replay/hash impact | Existing games already have hashes/traces. | New helper must not force existing trace migration. | yes | No forced retrofit of prior games in this gate. |
+| replay/hash impact | Existing games already have hashes/traces. | New helper must not force trace migration. | yes | Gate 7.1 back-port preserved prior game traces. |
 
 ## Similarities
 
@@ -184,7 +184,7 @@ Do not write implementation code here. GAT7DRALITCOM-003 owns the exact Rust API
 | Test | Required before promotion? | Required before reuse? | Notes |
 |---|---:|---:|---|
 | primitive unit tests | yes | yes | Bounds, row-major iteration, `rNcM` round-trip, offsets, generic parity. |
-| compatibility tests in each back-ported game | no | no | No back-port during Gate 7. |
+| compatibility tests in each back-ported game | yes | yes | Gate 7.1 added back-port compatibility tests for `three_marks`, `column_four`, and `directional_flip`. |
 | named rule tests remain mapped | yes for Draughts Lite | yes | Later rule tests map to `DL-*` IDs. |
 | golden trace preservation/update notes | yes | yes | Existing games preserve traces; Draughts Lite traces start after helper adoption. |
 | property/invariant tests | yes if useful | yes if useful | Offset/bounds invariants can be unit-tested. |
@@ -198,7 +198,7 @@ Do not write implementation code here. GAT7DRALITCOM-003 owns the exact Rust API
 
 | Trace | Game | Preserve or update? | Reason | Rule IDs/mechanics |
 |---|---|---|---|---|
-| existing golden traces | `three_marks`, `column_four`, `directional_flip` | preserve | No forced retrofit or behavior change. | fixed board-space pressure |
+| existing golden traces | `three_marks`, `column_four`, `directional_flip` | preserve | Gate 7.1 back-port must not change behavior. | fixed board-space pressure |
 | future golden traces | `draughts_lite` | create under helper contract | Helper lands before Draughts Lite traces exist. | `DL-REPLAY-001`, `DL-ACTION-002` |
 
 ## Benchmarks affected
@@ -210,9 +210,12 @@ Do not write implementation code here. GAT7DRALITCOM-003 owns the exact Rust API
 
 ## Back-port plan
 
-No forced back-port happens under this Gate 7 decision.
+Gate 7.1 closed the forced back-port debt for the behavior-free board-space
+subset: `three_marks`, `column_four`, and `directional_flip` now conform to
+`game-stdlib::board_space`, and `race_to_n` is audited not applicable. Draughts
+Lite remains the exemplar for helper reuse.
 
-If a later accepted task back-ports earlier games, it must:
+If a later accepted task reopens broader board/ray/movement promotion, it must:
 
 - name exact call sites in `games/three_marks`, `games/column_four`, and
   `games/directional_flip`;

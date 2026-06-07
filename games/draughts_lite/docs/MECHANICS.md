@@ -58,7 +58,7 @@ Diagnostics are viewer-safe and do not mutate state. Golden traces cover stale, 
 
 | Shape | Decision | Rationale | Trace impact |
 |---|---|---|---|
-| rectangular coordinate helper | reuse behavior-free `game-stdlib::board_space` | Gate 7 pressure justified coordinate parsing/iteration without moving draughts policy into shared code. | no existing-game migration |
+| rectangular coordinate helper | reuse behavior-free `game-stdlib::board_space` | Gate 7 pressure justified coordinate parsing/iteration without moving draughts policy into shared code; Gate 7.1 back-ported the same subset to earlier matching board games. | no trace migration |
 | movement/capture/promotion rules | local | They are core Draughts Lite legality. | protected by local traces |
 | action-tree metadata phases | local | Compound path semantics are game-specific. | protected by local traces/WASM smoke |
 | board UI grid | local | UI has unique pending-path and continuation behavior. | browser smoke only |
