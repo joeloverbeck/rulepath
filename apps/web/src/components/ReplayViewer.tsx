@@ -45,9 +45,9 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
         <>
           <div className="replay-progress">
             <span>
-              Cursor {step.cursor} / {step.command_count}
+              Cursor {step.cursor} / {step.command_count ?? step.total_steps ?? 0}
             </span>
-            <progress value={step.cursor} max={Math.max(step.command_count, 1)} />
+            <progress value={step.cursor} max={Math.max(step.command_count ?? step.total_steps ?? 0, 1)} />
           </div>
 
           <div className="replay-snapshot">
@@ -144,7 +144,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
 }
 
 function PlacementSequence({ replay }: { replay: ReplaySessionState }) {
-  const commands = replay.document?.commands ?? [];
+  const commands = replay.document && "commands" in replay.document ? replay.document.commands : [];
   if (commands.length === 0) {
     return null;
   }
@@ -185,12 +185,27 @@ function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
 
-function snapshotItems(view: PublicView, done: boolean): { label: string; value: string }[] {
+function snapshotItems(view: PublicView | null, done: boolean | undefined): { label: string; value: string }[] {
+  if (!view) {
+    return [
+      { label: "Replay", value: "Public observer timeline" },
+      { label: "View", value: "Redacted" },
+      { label: "Status", value: done ? "Complete" : "In progress" },
+    ];
+  }
   if ("counter" in view) {
     return [
       { label: "Counter", value: `${view.counter} / ${view.target}` },
       { label: "Turn", value: view.winner ? `${view.winner} won` : view.active_seat },
       { label: "Status", value: done ? "Complete" : "In progress" },
+    ];
+  }
+
+  if (view.game_id === "high_card_duel") {
+    return [
+      { label: "Round", value: `${view.round_number} / ${view.round_limit}` },
+      { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat ?? "terminal" },
+      { label: "Status", value: view.phase },
     ];
   }
 

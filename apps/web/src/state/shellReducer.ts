@@ -5,9 +5,10 @@ import type {
   FeatureReport,
   GameCatalogEntry,
   PublicView,
-  ReplayDocument,
+  ReplayExportDocument,
   ReplayStep,
   RulepathApi,
+  ViewerMode,
 } from "../wasm/client";
 
 export type ShellMode = "loading" | "ready" | "setup" | "play" | "replay" | "error";
@@ -26,7 +27,7 @@ export type SetupPlayMode = "human_vs_bot" | "hotseat" | "bot_vs_bot";
 
 export type ReplaySessionState = {
   replayId: string;
-  document: ReplayDocument | null;
+  document: ReplayExportDocument | null;
   cursor: number;
   step: ReplayStep | null;
 };
@@ -45,6 +46,7 @@ export type ShellState = {
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
   viewerSeat: "seat_0" | "seat_1" | null;
+  viewerMode: ViewerMode;
   view: PublicView | null;
   actionTree: ActionTree | null;
   pendingActionPath: string[];
@@ -66,6 +68,7 @@ export type RefreshPayload = {
   actionTree: ActionTree;
   effects: EffectEntry[];
   effectCursor: number;
+  viewerMode: ViewerMode;
 };
 
 export type ShellAction =
@@ -82,7 +85,7 @@ export type ShellAction =
   | { type: "pendingActionPathCleared" }
   | { type: "staleDiagnostic"; diagnostic: ApiError }
   | { type: "diagnosticCleared" }
-  | { type: "replayImported"; replayId: string; document: ReplayDocument | null; step: ReplayStep | null }
+  | { type: "replayImported"; replayId: string; document: ReplayExportDocument | null; step: ReplayStep | null }
   | { type: "replayStepped"; step: ReplayStep }
   | { type: "replayReset"; step: ReplayStep }
   | { type: "botTurnStarted" }
@@ -106,6 +109,7 @@ export const initialShellState: ShellState = {
   matchId: null,
   actorSeat: "seat_0",
   viewerSeat: null,
+  viewerMode: { kind: "seat", seat: "seat_0" },
   view: null,
   actionTree: null,
   pendingActionPath: [],
@@ -155,6 +159,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         pendingActionPath: [],
         effects: [],
         effectCursor: 0,
+        viewerMode: viewerModeForPlayMode(state.setup.playMode),
         diagnostic: null,
         staleToken: null,
         replay: null,
@@ -175,6 +180,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           ...state.setup,
           playMode: action.playMode,
         },
+        viewerMode: viewerModeForPlayMode(action.playMode),
       };
     case "matchStarting":
       return {
@@ -192,6 +198,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         pendingActionPath: [],
         effects: [],
         effectCursor: 0,
+        viewerMode: viewerModeForPlayMode(state.setup.playMode),
         diagnostic: null,
         staleToken: null,
         replay: null,
@@ -207,6 +214,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         pendingActionPath: [],
         effects: [...state.effects, ...action.payload.effects].slice(-12),
         effectCursor: action.payload.effectCursor,
+        viewerMode: action.payload.viewerMode,
         pendingOperation: null,
       };
     case "actionApplied":
@@ -313,4 +321,8 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
     default:
       return state;
   }
+}
+
+function viewerModeForPlayMode(playMode: SetupPlayMode): ViewerMode {
+  return playMode === "bot_vs_bot" ? { kind: "observer" } : { kind: "seat", seat: "seat_0" };
 }

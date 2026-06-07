@@ -26,9 +26,11 @@ import {
   type DraughtsLitePublicView,
   type PublicView,
   type RacePublicView,
-  type ReplayDocument,
+  type ReplayExportDocument,
+  type RulepathApi,
   type SeatId,
   type ThreeMarksPublicView,
+  type ViewerMode,
 } from "./wasm/client";
 
 type AppTextState = {
@@ -58,13 +60,14 @@ function App() {
 
   const refresh = useCallback(
     (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
-      const nextView = loadedApi.getView(loadedMatchId);
-      const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor);
+      const viewerMode = effectiveViewerMode(loadedApi, loadedMatchId, state.setup.playMode, state.viewerMode);
+      const nextView = loadedApi.getView(loadedMatchId, viewerMode);
+      const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor, viewerMode);
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
       const nextActorSeat = humanSeatForMode(state.setup.playMode, nextView);
       const nextTree =
         nextActorSeat && !isTerminalView(nextView)
-          ? loadedApi.getActionTree(loadedMatchId, nextActorSeat)
+          ? loadedApi.getActionTree(loadedMatchId, nextActorSeat, { kind: "seat", seat: nextActorSeat })
           : { freshness_token: nextView.freshness_token, choices: [] };
 
       const payload: RefreshPayload = {
@@ -72,10 +75,11 @@ function App() {
         actionTree: nextTree,
         effects: nextEffects,
         effectCursor: newestCursor,
+        viewerMode,
       };
       dispatch({ type: "refreshed", payload });
     },
-    [state.setup.playMode],
+    [state.setup.playMode, state.viewerMode],
   );
 
   useEffect(() => {
@@ -471,9 +475,9 @@ function botSeed(view: PublicView): number {
   return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
 }
 
-function parseReplayDocument(documentText: string): ReplayDocument | null {
+function parseReplayDocument(documentText: string): ReplayExportDocument | null {
   try {
-    return JSON.parse(documentText) as ReplayDocument;
+    return JSON.parse(documentText) as ReplayExportDocument;
   } catch {
     return null;
   }
@@ -515,12 +519,36 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
       status: view.winner ? `${view.winner} won` : `${view.counter} / ${view.target}`,
     };
   }
+  if (view.game_id === "high_card_duel") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: `${view.phase} round ${view.round_number}`,
+    };
+  }
   return {
     game_id: view.game_id,
     active_seat: view.active_seat ?? "seat_0",
     freshness_token: view.freshness_token,
     status: view.status_label,
   };
+}
+
+function effectiveViewerMode(
+  api: RulepathApi,
+  matchId: string,
+  playMode: SetupPlayMode,
+  currentViewerMode: ViewerMode,
+): ViewerMode {
+  if (playMode === "bot_vs_bot") {
+    return { kind: "observer" };
+  }
+  if (playMode === "hotseat") {
+    const observerView = api.getView(matchId, { kind: "observer" });
+    return observerView.active_seat ? { kind: "seat", seat: observerView.active_seat } : currentViewerMode;
+  }
+  return { kind: "seat", seat: "seat_0" };
 }
 
 function GenericGameSurface({
