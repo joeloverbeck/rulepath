@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-006: Compound action tree — origin/landing/continuation phases, segment vocabulary, choice metadata, previews
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/draughts_lite/src/actions.rs` (recursive action tree: origin selection → quiet/jump landing → forced continuation, multi-segment action paths, choice metadata, previews), `src/lib.rs` (export).
@@ -79,3 +79,23 @@ Attach per-choice metadata (phase, cell id, piece id for origins, piece kind, ac
 1. `cargo test -p draughts_lite actions`
 2. `cargo test -p draughts_lite && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct here; the multi-segment WASM-exported golden trace round-trip is GAT7DRALITCOM-016 (needs the WASM boundary).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Added `games/draughts_lite/src/actions.rs` with recursive action-tree generation from the rules-core legal move surface.
+- Added stable segment vocabulary: `from/rNcM`, `to/rNcM`, and `jump/rNcM`.
+- Added origin, quiet landing, jump landing, and forced-continuation child phases with merged root-to-leaf paths.
+- Added viewer-safe choice metadata for phase, cell, piece id, piece kind, active seat, mandatory capture, capture details, continuation availability, and promotion.
+- Added action-tree tests for ordering, mandatory-capture shaping, continuation nodes, preview metadata matching rules-core capture details, promotion leaves, and inactive/terminal empty trees.
+
+Deviations from original plan:
+- Preview data is represented through `ActionPreview::Available` plus metadata fields, matching the current generic action-choice surface without adding kernel fields.
+
+Verification:
+- `cargo test -p draughts_lite actions` passed (6 focused action-tree tests).
+- `cargo test -p draughts_lite` passed (27 unit tests).
+- `cargo fmt --all --check` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).

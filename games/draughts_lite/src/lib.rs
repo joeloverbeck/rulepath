@@ -1,11 +1,15 @@
 //! `draughts_lite` official-game crate skeleton.
 
+pub mod actions;
 pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+pub use actions::{
+    actor_seat, legal_action_tree, FROM_SEGMENT_PREFIX, JUMP_SEGMENT_PREFIX, TO_SEGMENT_PREFIX,
+};
 pub use ids::{
     is_playable_cell, DraughtsLiteSeat, PieceId, BOARD_COLS, BOARD_ROWS, GAME_ID,
     RULES_VERSION_LABEL, STANDARD_PIECES_PER_SEAT, TOTAL_STANDARD_PIECES, VARIANT_ID,
