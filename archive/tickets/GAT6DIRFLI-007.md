@@ -1,6 +1,6 @@
 # GAT6DIRFLI-007: Public view, visibility projection & UI metadata
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/directional_flip/src/visibility.rs` (public view projection, no-leak handling) and `games/directional_flip/src/ui.rs` (Rust-owned UI labels, token metadata, accessibility labels, preview copy).
@@ -75,3 +75,27 @@ In `ui.rs`, author the Rust-owned UI labels, token shape/pattern metadata (for n
 1. `cargo test -p directional_flip visibility`
 2. `cargo test -p directional_flip && bash scripts/boundary-check.sh`
 3. Crate-scoped visibility tests are the correct boundary; the browser-payload no-leak smoke is GAT6DIRFLI-018.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/directional_flip/src/ui.rs` with Rust-owned cell layout, legal-cell control labels, and non-color-only disc token metadata.
+- Added `games/directional_flip/src/visibility.rs` with deterministic public view projection for cells, owners, active seat, legal targets with preview data, counts, terminal outcome, private-view status, UI metadata, and placeholder last-action/bot-rationale fields.
+- Exported UI and visibility modules from `games/directional_flip/src/lib.rs`.
+- Added visibility/UI tests for public view completeness, forced-pass projection, terminal projection, no-leak negative assertions, deterministic stable serialization, and non-color-only metadata.
+
+Deviations from original plan:
+
+- View stable serialization is implemented as `stable_summary()` / `StableSerialize`, matching the Column Four precedent rather than adding a full JSON parser at this stage.
+- Last-action summary and bot rationale are present as safe optional fields but remain `None`; effects and bot rationale generation are owned by later tickets.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p directional_flip visibility` passed: 6 visibility tests passed.
+- `cargo build -p directional_flip` passed.
+- `cargo test -p directional_flip` passed: 26 tests passed.
+- `bash scripts/boundary-check.sh` passed.

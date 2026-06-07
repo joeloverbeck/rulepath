@@ -5,7 +5,9 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     legal_action_tree, placement_preview, DirectionPreview, PlacementPreview, PASS_REASON_NO_MOVES,
@@ -17,7 +19,12 @@ pub use rules::{
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, DirectionalFlipSnapshot, DirectionalFlipState, TerminalOutcome};
+pub use ui::{cell_layout, disc_token, legal_cell_control, DiscTokenMetadata};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    project_view, CellView, LegalTargetView, PlacementPreviewView, PrivateView, PublicView,
+    ScoreView, TerminalView, UiMetadata,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
