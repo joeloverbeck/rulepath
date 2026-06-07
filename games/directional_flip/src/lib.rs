@@ -1,11 +1,15 @@
 //! `directional_flip` official-game crate skeleton.
 
+pub mod actions;
 pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+pub use actions::{
+    legal_action_tree, placement_preview, DirectionPreview, PlacementPreview, PASS_REASON_NO_MOVES,
+};
 pub use ids::{CellId, ColumnId, DirectionalFlipSeat, RowId};
 pub use rules::{
     apply_action, disc_counts, legal_placements, placement_flips, validate_command, Direction,

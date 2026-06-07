@@ -1,6 +1,6 @@
 # GAT6DIRFLI-006: Action tree & exact placement previews
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/directional_flip/src/actions.rs` (flat action tree, legal-target metadata, forced-pass action, Rust-generated placement previews).
@@ -75,3 +75,28 @@ For each legal target, build the Rust preview per spec §7.2 by invoking the rul
 1. `cargo test -p directional_flip actions`
 2. `cargo test -p directional_flip && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct; the cross-surface preview-flip-set golden trace is GAT6DIRFLI-013 (needs replay support).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/directional_flip/src/actions.rs`.
+- Implemented Rust-generated flat action trees for active actors: row-major `place/<cell-id>` choices when legal placements exist, exactly one `pass/forced` choice when no placement exists, and empty trees for terminal or non-active actors.
+- Added typed `PlacementPreview` and `DirectionPreview` builders that consume the rules-core `Placement`/`FlipRun` data instead of reimplementing flip scanning.
+- Added viewer-safe metadata for action kind, target cell, row, column, preview id, ordered flip cells, direction groups, and explanation.
+- Exported action-tree and preview APIs from `games/directional_flip/src/lib.rs`.
+
+Deviations from original plan:
+
+- The generic `engine-core::ActionPreview` shape is currently only `Available`/`Unavailable`, so detailed preview data is carried as game-local typed structs and string metadata on the action choice. Later WASM/view tickets can map that surface without adding mechanic nouns to `engine-core`.
+- Tests were seeded inline in `actions.rs`; GAT6DIRFLI-012 can expand or move them when the broader test suite lands.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p directional_flip actions` passed: 6 action tests passed.
+- `cargo build -p directional_flip` passed.
+- `cargo test -p directional_flip` passed: 18 tests passed.
+- `bash scripts/boundary-check.sh` passed.
