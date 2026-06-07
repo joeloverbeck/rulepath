@@ -16,7 +16,7 @@ Related documents:
 - [`../TESTING-REPLAY-BENCHMARKING.md`](../TESTING-REPLAY-BENCHMARKING.md)
 - [`../UI-INTERACTION.md`](../UI-INTERACTION.md)
 - [`../OFFICIAL-GAME-CONTRACT.md`](../OFFICIAL-GAME-CONTRACT.md)
-- [`../../specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](../../specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md)
+- [`../../archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](../../archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md)
 
 ## Context
 
