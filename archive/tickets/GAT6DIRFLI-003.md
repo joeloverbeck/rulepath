@@ -1,6 +1,6 @@
 # GAT6DIRFLI-003: Optional `game-stdlib` spatial helper extraction (conditional)
 
-**Status**: PENDING
+**Status**: NOT IMPLEMENTED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `game-stdlib` (new narrow typed spatial helpers + tests); possible back-port edits to `games/column_four/src/` and `games/three_marks/src/`. `engine-core` untouched.
@@ -91,3 +91,22 @@ Document helper scope and non-goals (in the crate and/or the ledger); the GAT6DI
 1. `cargo test -p game-stdlib`
 2. `cargo test --workspace && cargo run -p replay-check -- --game column_four --all && bash scripts/boundary-check.sh`
 3. Workspace-wide test + boundary check is the correct boundary because back-port touches multiple existing game crates whose determinism must be re-proven.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- No code or helper documentation was implemented for this conditional extraction ticket.
+- `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` from GAT6DIRFLI-002 records `Decision: defer-reject`, so `game-stdlib` helper promotion and back-port work are not applicable for Gate 6.
+
+Deviations from original plan:
+
+- This ticket intentionally closed as not applicable because its precondition was not met.
+- `crates/game-stdlib/src/lib.rs`, `games/column_four/src/`, and `games/three_marks/src/` were not changed.
+
+Verification results:
+
+- Manual dependency check: GAT6DIRFLI-002 is archived and committed with the `defer-reject` primitive-pressure decision.
+- Manual worktree check: no `game-stdlib`, `column_four`, or `three_marks` source changes were made for this ticket.
