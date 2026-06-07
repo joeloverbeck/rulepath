@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-022: ADR — hidden-info replay-export taxonomy + viewer-aware visibility contract
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — `docs/adr/0004-hidden-info-replay-export-taxonomy.md` (new)
@@ -99,3 +99,25 @@ no-leak guarantees, and that existing public-perfect-info replay is unchanged.
 1. `node scripts/check-doc-links.mjs`
 2. `test -f docs/adr/0004-hidden-info-replay-export-taxonomy.md`
 3. Doc-link + existence are the correct boundary — an ADR has no compiled surface; its behavior is tested by 009/016.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `docs/adr/0004-hidden-info-replay-export-taxonomy.md` with `Status: Accepted`.
+- Recorded the hidden-information replay/export taxonomy: internal full trace for deterministic test/golden evidence, viewer-scoped public export as the default browser export, optional explicitly labelled seat-private export, and terminal no-auto-reveal.
+- Recorded the viewer-aware WASM visibility contract: `get_view(match_id, viewer_seat)` must honor the viewer; perfect-information games may remain output-equivalent; hidden-information games must filter before browser payloads are produced.
+- Preserved existing public-perfect-information replay semantics as unchanged and additive-only.
+- Addressed determinism, replay/hash implications, visibility, data/Rust boundary, engine-core contamination risk, primitive pressure, UI, bot, IP, benchmark, and migration notes.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `test -f docs/adr/0004-hidden-info-replay-export-taxonomy.md` passed.
+- `rg -n "Status: Accepted|FOUNDATIONS|replay|visibility|get_view|public-perfect" docs/adr/0004-hidden-info-replay-export-taxonomy.md` confirmed the required acceptance/status and contract terms are present.
