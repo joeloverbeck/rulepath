@@ -1,6 +1,6 @@
 # GAT71BOASPA-003: Back-port `directional_flip` cell identity + offset stepping to `game-stdlib::board_space`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/directional_flip` (`src/ids.rs`, `src/rules.rs`, `Cargo.toml`); consumes `crates/game-stdlib::board_space` (`Dimensions`, `Coord`, `CoordIdError`) — no `board_space` additions expected (§14). Docs: `games/directional_flip/docs/MECHANICS.md`, `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md`.
@@ -105,3 +105,34 @@ In `games/directional_flip/src/rules.rs`:
 1. `cargo test -p directional_flip`
 2. `cargo run -p replay-check -- --game directional_flip --all`
 3. `cargo run -p fixture-check -- --game directional_flip && cargo run -p rule-coverage -- --game directional_flip && bash scripts/boundary-check.sh && cargo clippy -p directional_flip --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- `games/directional_flip` now depends on `game-stdlib`.
+- `RowId`, `ColumnId`, and `CellId` preserve their public surfaces while
+  delegating bounds, indexing, canonical parsing, formatting, row-major cell
+  order, and coordinate conversion to `game-stdlib::board_space`.
+- `rules.rs::step` delegates one-step bounded movement to `Dimensions::offset`
+  while keeping direction order, ray bracketing, flip grouping, forced pass,
+  terminal checks, effects, previews, and bot policy local.
+- `games/directional_flip/docs/MECHANICS.md` and
+  `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` record conformance
+  for the coordinate/offset subset and preserve local ray/flip policy.
+
+Deviations from original plan:
+- Kept the existing public `CellId { row, column }`, `RowId`, and `ColumnId`
+  shapes instead of replacing them with raw coordinates so existing rule, view,
+  replay, bot, and test surfaces stayed unchanged.
+
+Verification results:
+- `cargo fmt --all --check`
+- `cargo test -p directional_flip`
+- `cargo run -p replay-check -- --game directional_flip --all`
+- `cargo run -p fixture-check -- --game directional_flip`
+- `cargo run -p rule-coverage -- --game directional_flip`
+- `bash scripts/boundary-check.sh`
+- `cargo clippy -p directional_flip --all-targets -- -D warnings`
+- Golden traces changed: no.

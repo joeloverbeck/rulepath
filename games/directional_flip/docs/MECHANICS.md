@@ -12,13 +12,13 @@ Last updated: 2026-06-07
 
 This inventory records Directional Flip's game-local mechanic shapes and primitive-pressure posture. It is evidence for [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md) and closes the local third-use review through [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md).
 
-Directional Flip is the third official fixed-grid public board game after `three_marks` and `column_four`. The repeated rectangular coordinate and directional-ray pressure is real, but Gate 6 keeps the coordinate, ray, legality, flip, pass, preview, and effect behavior local to `games/directional_flip`.
+Directional Flip is the third official fixed-grid public board game after `three_marks` and `column_four`. Gate 7.1 back-ported the promoted `game-stdlib::board_space` coordinate and bounded-offset primitive; ray bracketing, legality, flips, pass, preview, and effect behavior remain local to `games/directional_flip`.
 
 ## Mechanic Inventory
 
 | Category | Game-local description | Evidence | Current status | Notes |
 |---|---|---|---|---|
-| topology/spatial model | Fixed public 8 by 8 board, cells `r1c1` through `r8c8`, row 1 at the top. | [RULES.md](RULES.md), `ids.rs`, setup/rule tests | `third-use pressure reviewed` | Ledger defer-rejects shared helper promotion for Gate 6. |
+| topology/spatial model | Fixed public 8 by 8 board, cells `r1c1` through `r8c8`, row 1 at the top. | `game-stdlib::board_space`, [RULES.md](RULES.md), `ids.rs`, setup/rule tests | `promoted-primitive-conformant` | Coordinate identity and one-step bounded offsets use `board_space`; flip-ray policy remains local. |
 | component/zone model | Sixty-four public cells, two seats, public discs, no hands/decks/private zones. | `setup.rs`, [RULE-COVERAGE.md](RULE-COVERAGE.md) | `local-only` | Perfect-information board only. |
 | action shape | Flat Rust actions `place/rNcM`; `pass/forced` appears only when Rust proves no placement exists. | `actions.rs`, forced-pass traces | `local-only` | Browser never synthesizes placement or pass actions. |
 | turn/phase model | Alternating active seat; normal placement or explicit forced pass until terminal. | `rules.rs`, `forced-pass.trace.json`, `double-pass-terminal.trace.json` | `local-only` | No simultaneous or reaction windows. |
@@ -49,7 +49,7 @@ Directional Flip is the third official fixed-grid public board game after `three
 
 | Shape | Games exerting pressure | Gate decision | Evidence |
 |---|---|---|---|
-| rectangular coordinates and directional rays | `three_marks`, `column_four`, `directional_flip` | defer-reject shared helper for Gate 6 | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md) |
+| rectangular coordinates and directional rays | `three_marks`, `column_four`, `directional_flip` | coordinate/offset subset conformed in Gate 7.1; ray policy remains local | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md) |
 | fixed-grid public board renderer | `three_marks`, `column_four`, `directional_flip` | no shared UI primitive | each board has different controls/previews/animation |
 | perfect-information no-leak posture | `race_to_n`, `three_marks`, `column_four`, `directional_flip` | shared checklist only | [../../../apps/web/e2e/NO-LEAK-A11Y-CHECKLIST.md](../../../apps/web/e2e/NO-LEAK-A11Y-CHECKLIST.md) |
 
@@ -65,7 +65,7 @@ Directional Flip is the third official fixed-grid public board game after `three
 
 | Local mechanic | Why local | Extraction risk | Rule IDs | Evidence |
 |---|---|---|---|---|
-| 8 by 8 coordinate ids and top-origin row order | Display, traces, UI, and previews are game contracts. | medium | `DF-SETUP-001` | setup tests, opening trace |
+| 8 by 8 coordinate ids and top-origin row order | Display, traces, UI, and previews are game contracts; identity delegates to `game-stdlib::board_space`. | medium | `DF-SETUP-001` | setup tests, opening trace |
 | bracketed eight-direction flip scan | This is the core game legality and apply policy. | high | `DF-LEGAL-*`, `DF-FLIP-*` | rule tests, multi-direction trace |
 | forced pass command | Pass availability is rules-owned and replay-visible. | medium | `DF-ACTION-002`, `DF-PASS-*` | forced-pass and double-pass traces |
 | exact placement previews | Preview set must equal apply set and effect order. | high | `DF-PREVIEW-001`, `DF-EFFECT-002` | preview trace, property tests, WASM smoke |
@@ -76,7 +76,7 @@ Directional Flip is the third official fixed-grid public board game after `three
 
 | Shape | Decision | Rationale | Trace impact | Benchmark impact |
 |---|---|---|---|---|
-| rectangular coordinate/ray helper | defer-reject | A helper narrow enough to be behavior-free was not proven before the 8 by 8 implementation; flags for origins, direction order, and policy would be too risky. | none now | future reconsideration needs measured local evidence |
+| rectangular coordinate/ray helper | partial promoted-primitive conformance | Coordinate identity, row-major iteration, and one-step bounded offsets conform to `game-stdlib::board_space`; ray traversal policy, direction order, bracketing, flips, and forced pass stay local. | none | local benches cover flip scanning |
 | legal flip scan | local | It owns legality, pass, preview, and effects. | protected locally | covered by local benches |
 | board UI grid | local | Each game has different legal controls and previews. | none | browser smoke only |
 | bot mobility/corner policy | local | Public strategy and rationale are game-specific. | bot effect hashes stay local | bot-decision benches stay local |
@@ -84,8 +84,9 @@ Directional Flip is the third official fixed-grid public board game after `three
 ## Review Checklist
 
 - `engine-core` remains noun-free.
+- Coordinate identity and bounded one-step offsets conform to `game-stdlib::board_space`.
 - TypeScript renders Rust choices, previews, effects, and views only.
 - `MECHANICS.md` links the primitive-pressure ledger.
 - Third-use fixed-grid/ray pressure is recorded and explicitly deferred.
-- No helper is promoted to `game-stdlib` in Gate 6.
+- No ray, bracketing, flip, forced-pass, bot, or UI helper is promoted to `game-stdlib`.
 - Replay/hash ordering remains owned by Directional Flip rules and traces.
