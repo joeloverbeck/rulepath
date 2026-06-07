@@ -1,6 +1,6 @@
 # GAT7DRALITCOM-004: Crate skeleton, state, setup, ids, variants, manifest, fixture & workspace wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/draughts_lite` (`Cargo.toml`, `src/lib.rs`, `src/state.rs`, `src/setup.rs`, `src/ids.rs`, `src/variants.rs`, `data/manifest.toml`, `data/variants.toml`, `data/fixtures/`), and root `Cargo.toml` workspace membership.
@@ -88,3 +88,26 @@ Create `games/draughts_lite/Cargo.toml` (depending on `engine-core`, and `game-s
 1. `cargo test -p draughts_lite`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. Crate-scoped tests plus a workspace build are the correct boundary; the standard fixture/hash baseline is validated in GAT7DRALITCOM-014.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- Added the `games/draughts_lite` crate and registered it in the workspace.
+- Added game-local ids, stable `PieceId`s, setup, state/snapshot, and static variant/manifest parsing.
+- Added deterministic standard setup with 12 men per seat on playable home rows, rows 4-5 empty, `seat_0` active, nonterminal state, command/ply counters, and freshness token.
+- Added stable snapshot summaries/bytes with board dimensions, cell occupancy by stable piece id, stable piece records, seats, terminal state, counters, and freshness.
+- Added `data/manifest.toml`, `data/variants.toml`, and a tracked fixture-directory placeholder for later fixture content.
+- Derived `Hash` for `game-stdlib::board_space::Dimensions` so the new state can carry board dimensions in hashable state structures.
+
+Deviations from original plan:
+- Added `games/draughts_lite/data/fixtures/.gitkeep` to make the empty fixture directory trackable until GAT7DRALITCOM-014 adds fixture content.
+
+Verification:
+- `cargo build -p draughts_lite` passed.
+- `cargo test -p draughts_lite` passed (12 unit tests).
+- `cargo fmt --all --check` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- Static-data grep over `games/draughts_lite/data` found no behavior-looking keys.

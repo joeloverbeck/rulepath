@@ -2,7 +2,7 @@
 
 use std::{fmt, num::NonZeroU8};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Dimensions {
     rows: NonZeroU8,
     cols: NonZeroU8,

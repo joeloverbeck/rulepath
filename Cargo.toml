@@ -9,6 +9,7 @@ members = [
     "games/three_marks",
     "games/column_four",
     "games/directional_flip",
+    "games/draughts_lite",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",

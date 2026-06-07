@@ -1,0 +1,17 @@
+game_id = "draughts_lite"
+display_name = "Draughts Lite"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "draughts_lite-rules-v1"
+data_version = 1
+schema_version = 1
+board_name = "board"
+row_name = "row"
+column_name = "column"
+cell_name = "cell"
+piece_name = "piece"
+man_name = "man"
+crown_name = "crown"
+seat_name = "seat"
+board_columns = 8
+board_rows = 8
