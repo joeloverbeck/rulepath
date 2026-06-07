@@ -1,11 +1,16 @@
 //! `directional_flip` official-game crate skeleton.
 
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
 pub use ids::{CellId, ColumnId, DirectionalFlipSeat, RowId};
+pub use rules::{
+    apply_action, disc_counts, legal_placements, placement_flips, validate_command, Direction,
+    FlipRun, ForcedPass, Placement, Score, ValidatedAction,
+};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, DirectionalFlipSnapshot, DirectionalFlipState, TerminalOutcome};
 pub use variants::{Manifest, Variant, VariantCatalog};

@@ -1,6 +1,6 @@
 # GAT6DIRFLI-005: Rules core — directional scan, legality, flip, forced pass, terminal, scoring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/directional_flip/src/rules.rs` (validation, apply, directional scan/flip collection, forced pass, terminal detection, scoring, diagnostics).
@@ -86,3 +86,28 @@ Terminal detection (double pass or no continuation) and disc-count scoring with 
 1. `cargo test -p directional_flip rules`
 2. `cargo test -p directional_flip && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are the correct boundary; cross-surface golden/replay proofs live in GAT6DIRFLI-009/013 once effects and replay exist.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/directional_flip/src/rules.rs`.
+- Implemented Rust-owned command validation for `place/<cell>` and `pass/forced`, including terminal, stale, unknown actor, wrong actor, invalid path, invalid cell, occupied cell, non-flipping placement, and pass-not-available diagnostics.
+- Implemented local eight-direction flip scanning in stable order: north, northeast, east, southeast, south, southwest, west, northwest; each run is nearest-to-farthest.
+- Implemented placement application, forced-pass application, double-pass terminalization, no-continuation/full-board terminalization, disc counts, and count-based win/draw scoring.
+- Exported rules-core APIs from `games/directional_flip/src/lib.rs` for later action-tree, preview, effect, view, and bot tickets.
+
+Deviations from original plan:
+
+- Tests were seeded inline in `rules.rs` rather than a separate `tests/rules.rs`; GAT6DIRFLI-012 can expand or move them when the broader test suite lands.
+- No effects or action-tree construction were added; those remain owned by later tickets.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p directional_flip rules` passed: 7 rules tests passed.
+- `cargo build -p directional_flip` passed.
+- `cargo test -p directional_flip` passed: 12 tests passed.
+- `bash scripts/boundary-check.sh` passed.
