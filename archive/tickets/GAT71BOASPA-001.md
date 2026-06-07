@@ -1,6 +1,6 @@
 # GAT71BOASPA-001: Back-port `three_marks` cell identity to `game-stdlib::board_space`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/three_marks` (`src/ids.rs`, `src/rules.rs` as needed, `Cargo.toml`); consumes `crates/game-stdlib::board_space` (`Dimensions`, `Coord`, `CoordIdError`) — no `board_space` additions expected (§14). Docs: `games/three_marks/docs/MECHANICS.md`.
@@ -99,3 +99,31 @@ In `games/three_marks/docs/MECHANICS.md`, record that 3×3 coordinate/cell ident
 1. `cargo test -p three_marks`
 2. `cargo run -p replay-check -- --game three_marks --all`
 3. `cargo run -p fixture-check -- --game three_marks && cargo run -p rule-coverage -- --game three_marks && bash scripts/boundary-check.sh && cargo clippy -p three_marks --all-targets -- -D warnings`
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+- `games/three_marks` now depends on `game-stdlib`.
+- `CellId` preserves its public variant surface while delegating index, parse,
+  bounds, row-major iteration, and lossless coordinate conversion to
+  `game-stdlib::board_space`.
+- `games/three_marks/docs/MECHANICS.md` records board-space conformance while
+  keeping placement, occupancy, win-line detection, effects, bots, and UI
+  projection local.
+
+Deviations from original plan:
+- Kept the existing `CellId` enum variants instead of replacing them with a
+  tuple wrapper so existing rules, bots, tests, and public semantic names stayed
+  untouched.
+
+Verification results:
+- `cargo fmt --all --check`
+- `cargo test -p three_marks`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `cargo run -p fixture-check -- --game three_marks`
+- `cargo run -p rule-coverage -- --game three_marks`
+- `bash scripts/boundary-check.sh`
+- `cargo clippy -p three_marks --all-targets -- -D warnings`
+- Golden traces changed: no.
