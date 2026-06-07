@@ -1,6 +1,6 @@
 # GAT72GAT8HIG-010: Level 0 random-legal bot + bot tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/src/bots.rs`, `games/high_card_duel/tests/bots.rs`
@@ -99,3 +99,24 @@ Legality, no-hidden-input, determinism, and many-seed terminal cases.
 1. `cargo test -p high_card_duel --test bots`
 2. `cargo test -p high_card_duel`
 3. The bot test is the correct boundary; large-scale legality is confirmed by `simulate` in the capstone (021).
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `HighCardDuelRandomBot` as the Level 0 seeded random-legal bot over the actor-private legal action tree.
+- Added `HighCardDuelBotInput` containing only bot seat, actor-private action tree, own hand, and own commitment; it exposes no opponent hand, deck order, or hidden opponent commitment.
+- Added `BotDecision` with policy metadata and no public explanation/candidate ranking output.
+- Added bot tests for legal-only selection, actor-private tree use, hidden-input redaction, same-seed determinism, and many-seed terminal completion.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel --test bots` passed.
+- `cargo test -p high_card_duel` passed.

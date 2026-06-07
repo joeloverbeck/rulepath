@@ -16,6 +16,9 @@ pub use actions::{
     active_commit_seat, actor_seat, commit_segment, legal_action_tree, parse_commit_segment,
     COMMIT_SEGMENT_PREFIX,
 };
+pub use bots::{
+    actor_for_seat, BotDecision, HighCardDuelBotInput, HighCardDuelRandomBot, RANDOM_POLICY_ID,
+};
 pub use effects::{
     cards_revealed_effect, commit_face_down_effect, deal_private_card_effect,
     hand_count_changed_effect, own_commit_confirmed_effect, private_diagnostic_effect,
