@@ -1,9 +1,9 @@
 # GAT7DRALITCOM-015: Benchmarks, thresholds & BENCHMARKS.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
-**Engine Changes**: Yes — `games/draughts_lite/benches/draughts_lite.rs` (Criterion benches), `games/draughts_lite/benches/thresholds.json` (calibrated thresholds), `games/draughts_lite/docs/BENCHMARKS.md`, `games/draughts_lite/Cargo.toml` (bench target).
+**Engine Changes**: Yes — `games/draughts_lite/benches/draughts_lite.rs` (native bench harness), `games/draughts_lite/benches/thresholds.json` (calibrated thresholds), `games/draughts_lite/docs/BENCHMARKS.md`, `games/draughts_lite/Cargo.toml` (bench target), `tools/bench-report/src/main.rs` (game registration).
 **Deps**: 007, 012
 
 ## Problem
@@ -77,3 +77,17 @@ Author `docs/BENCHMARKS.md` from `templates/GAME-BENCHMARKS.md`: list each bench
 1. `cargo bench -p draughts_lite -- --test`
 2. `cargo bench -p draughts_lite legal_actions` (smoke a single bench, mirroring the `race_to_n` smoke convention)
 3. A bench smoke run (`-- --test`) is the correct PR-lane boundary; full threshold enforcement is the scheduled Gate 2 lane (GAT7DRALITCOM-020), per ADR-0002.
+
+## Outcome
+
+- Added a native `draughts_lite` bench target with stable §R19 operation names for standard setup, initial/no-capture/capture/multi-jump legal trees, quiet/single-capture/multi-jump validate/apply, public view generation, replay throughput, and Level 0/Level 1 bot selection.
+- Added `games/draughts_lite/benches/thresholds.json` with non-blocking smoke floors and `games/draughts_lite/docs/BENCHMARKS.md` with the operation list, threshold posture, first local full measurements, and legal-actions smoke measurements.
+- Registered `draughts_lite` in `tools/bench-report` and pinned that registration with a focused unit test so `--game draughts_lite` resolves the committed threshold file.
+
+Verification passed:
+
+1. `cargo bench -p draughts_lite -- --test`
+2. `cargo bench -p draughts_lite legal_actions`
+3. `cargo run -p bench-report -- --game draughts_lite --input /tmp/draughts_lite_bench_015.txt`
+4. `cargo test -p bench-report`
+5. `cargo fmt --all --check`
