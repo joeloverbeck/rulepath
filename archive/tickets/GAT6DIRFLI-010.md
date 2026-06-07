@@ -1,6 +1,6 @@
 # GAT6DIRFLI-010: Bot strategy docs (Level 2-lite)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (documentation-only — `games/directional_flip/docs/COMPETENT-PLAYER.md`, `games/directional_flip/docs/BOT-STRATEGY-EVIDENCE-PACK.md`)
@@ -73,3 +73,12 @@ Sources, representative positions, expected policy priorities, anti-patterns, th
 1. `test -f games/directional_flip/docs/COMPETENT-PLAYER.md && test -f games/directional_flip/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
 2. `node scripts/check-doc-links.mjs`
 3. Doc presence + link check is the correct boundary; the policy is exercised by the bot tests in GAT6DIRFLI-011.
+
+## Outcome
+
+Authored `games/directional_flip/docs/COMPETENT-PLAYER.md` and `games/directional_flip/docs/BOT-STRATEGY-EVIDENCE-PACK.md` before Level 2-lite bot code. The documents cite the project rule/spec authority plus the recorded strategy references, define the corner/mobility/frontier/phase-aware count policy, spell out deterministic tie-break behavior, and exclude minimax/search/playouts/ML/RL/LLM.
+
+Verification:
+
+1. `test -f games/directional_flip/docs/COMPETENT-PLAYER.md && test -f games/directional_flip/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
+2. `node scripts/check-doc-links.mjs`
