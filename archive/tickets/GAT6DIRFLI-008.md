@@ -1,6 +1,6 @@
 # GAT6DIRFLI-008: Semantic effects — grouped flip effect
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/directional_flip/src/effects.rs` (semantic effect types, grouped flip children, deterministic ordering, display anchors).
@@ -76,3 +76,26 @@ Encode the grouped-flip children in the §6.4 canonical order, with display anch
 1. `cargo test -p directional_flip effects`
 2. `cargo test -p directional_flip && bash scripts/boundary-check.sh`
 3. Crate-scoped tests are correct; byte-stable serialized effect order is proven by the golden traces / replay-check in GAT6DIRFLI-013.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/directional_flip/src/effects.rs` with `DirectionalFlipEffect`, ordered `FlipEntry`, `TerminalReason`, public effect envelope helper, display anchors, and a bot-choice carrying effect.
+- Updated `games/directional_flip/src/rules.rs` so `apply_action` emits Rust semantic effects for placements, disc placement, one grouped `DiscsFlipped` effect, forced pass, active-player changes, and terminal outcomes.
+- Exported the effects module and effect helpers from `games/directional_flip/src/lib.rs`.
+- Added tests for placement effect ordering, grouped flip child ordering, forced-pass/double-pass terminal effects, and public-safe bot rationale.
+
+Deviations from original plan:
+
+- Serialized byte-stable trace proof remains for GAT6DIRFLI-013, as planned. This ticket proves deterministic in-memory order and public envelope shape at crate scope.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p directional_flip effects` passed: 3 focused effect tests passed.
+- `cargo build -p directional_flip` passed.
+- `cargo test -p directional_flip` passed: 30 tests passed.
+- `bash scripts/boundary-check.sh` passed.

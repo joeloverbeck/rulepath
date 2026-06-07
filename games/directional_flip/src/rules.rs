@@ -1,8 +1,9 @@
-use engine_core::{Actor, CommandEnvelope, Diagnostic};
+use engine_core::{Actor, CommandEnvelope, Diagnostic, EffectEnvelope};
 
 use crate::{
+    effects::{display_to_anchor, public_effect, DirectionalFlipEffect, FlipEntry, TerminalReason},
     ids::{CellId, DirectionalFlipSeat},
-    state::{CellOccupancy, DirectionalFlipState, TerminalOutcome},
+    state::{CellOccupancy, DirectionalFlipSnapshot, DirectionalFlipState, TerminalOutcome},
 };
 
 pub const PLACE_SEGMENT_PREFIX: &str = "place/";
@@ -166,7 +167,10 @@ pub fn validate_command(
     validate_placement(state, actor, cell).map(ValidatedAction::Place)
 }
 
-pub fn apply_action(state: &mut DirectionalFlipState, action: ValidatedAction) {
+pub fn apply_action(
+    state: &mut DirectionalFlipState,
+    action: ValidatedAction,
+) -> Vec<EffectEnvelope<DirectionalFlipEffect>> {
     match action {
         ValidatedAction::Place(placement) => apply_placement(state, placement),
         ValidatedAction::ForcedPass(pass) => apply_forced_pass(state, pass),
@@ -265,7 +269,12 @@ fn validate_placement(
     })
 }
 
-fn apply_placement(state: &mut DirectionalFlipState, placement: Placement) {
+fn apply_placement(
+    state: &mut DirectionalFlipState,
+    placement: Placement,
+) -> Vec<EffectEnvelope<DirectionalFlipEffect>> {
+    let flip_entries = flip_entries(&placement);
+
     state.set_occupancy(placement.cell, CellOccupancy::Occupied(placement.actor));
     for cell in placement.ordered_flips() {
         state.set_occupancy(cell, CellOccupancy::Occupied(placement.actor));
@@ -274,30 +283,78 @@ fn apply_placement(state: &mut DirectionalFlipState, placement: Placement) {
     state.ply_count = state.ply_count.saturating_add(1);
     state.consecutive_forced_passes = 0;
     state.freshness_token = state.freshness_token.next();
+    let mut effects = vec![
+        public_effect(DirectionalFlipEffect::PlacementAccepted {
+            seat: placement.actor,
+            cell: placement.cell,
+            ply: state.ply_count,
+        }),
+        public_effect(DirectionalFlipEffect::DiscPlaced {
+            seat: placement.actor,
+            cell: placement.cell,
+            display_to_anchor: display_to_anchor(placement.cell),
+        }),
+        public_effect(DirectionalFlipEffect::DiscsFlipped {
+            seat: placement.actor,
+            flips: flip_entries,
+        }),
+    ];
 
-    if is_terminal_after_placement(state) {
+    if let Some(reason) = terminal_reason_after_placement(state) {
         state.terminal_outcome = Some(outcome_from_score(disc_counts(state)));
+        effects.push(game_ended_effect(state, reason));
     } else {
+        let previous_seat = placement.actor;
         state.active_seat = placement.actor.other();
+        effects.push(public_effect(DirectionalFlipEffect::ActivePlayerChanged {
+            previous_seat,
+            active_seat: state.active_seat,
+            ply: state.ply_count,
+        }));
     }
+
+    effects
 }
 
-fn apply_forced_pass(state: &mut DirectionalFlipState, pass: ForcedPass) {
+fn apply_forced_pass(
+    state: &mut DirectionalFlipState,
+    pass: ForcedPass,
+) -> Vec<EffectEnvelope<DirectionalFlipEffect>> {
     state.ply_count = state.ply_count.saturating_add(1);
     state.consecutive_forced_passes = state.consecutive_forced_passes.saturating_add(1);
     state.freshness_token = state.freshness_token.next();
+    let mut effects = vec![public_effect(DirectionalFlipEffect::PassTaken {
+        seat: pass.actor,
+        ply: state.ply_count,
+        reason: "no_legal_placements".to_owned(),
+    })];
 
     if state.consecutive_forced_passes >= 2 {
         state.terminal_outcome = Some(outcome_from_score(disc_counts(state)));
+        effects.push(game_ended_effect(state, TerminalReason::DoubleForcedPass));
     } else {
+        let previous_seat = pass.actor;
         state.active_seat = pass.actor.other();
+        effects.push(public_effect(DirectionalFlipEffect::ActivePlayerChanged {
+            previous_seat,
+            active_seat: state.active_seat,
+            ply: state.ply_count,
+        }));
     }
+
+    effects
 }
 
-fn is_terminal_after_placement(state: &DirectionalFlipState) -> bool {
-    state.cells.iter().all(|cell| !cell.is_empty())
-        || !has_legal_placement(state, DirectionalFlipSeat::Seat0)
-            && !has_legal_placement(state, DirectionalFlipSeat::Seat1)
+fn terminal_reason_after_placement(state: &DirectionalFlipState) -> Option<TerminalReason> {
+    if state.cells.iter().all(|cell| !cell.is_empty()) {
+        Some(TerminalReason::BoardFull)
+    } else if !has_legal_placement(state, DirectionalFlipSeat::Seat0)
+        && !has_legal_placement(state, DirectionalFlipSeat::Seat1)
+    {
+        Some(TerminalReason::NoContinuation)
+    } else {
+        None
+    }
 }
 
 fn outcome_from_score(score: Score) -> TerminalOutcome {
@@ -333,6 +390,41 @@ fn flip_run_for_direction(
     }
 }
 
+fn flip_entries(placement: &Placement) -> Vec<FlipEntry> {
+    let mut order_index = 0u8;
+    let mut entries = Vec::new();
+    for run in &placement.flip_runs {
+        for (distance, cell) in run.cells.iter().copied().enumerate() {
+            entries.push(FlipEntry {
+                cell,
+                previous_owner: placement.actor.other(),
+                new_owner: placement.actor,
+                direction: run.direction,
+                distance: (distance + 1) as u8,
+                order_index,
+                display_anchor: display_to_anchor(cell),
+            });
+            order_index = order_index.saturating_add(1);
+        }
+    }
+    entries
+}
+
+fn game_ended_effect(
+    state: &DirectionalFlipState,
+    reason: TerminalReason,
+) -> EffectEnvelope<DirectionalFlipEffect> {
+    public_effect(DirectionalFlipEffect::GameEnded {
+        outcome: state
+            .terminal_outcome
+            .expect("terminal outcome set before game-ended effect"),
+        final_score: disc_counts(state),
+        final_ply: state.ply_count,
+        reason,
+        terminal_hash_ref: DirectionalFlipSnapshot::from_state(state).stable_summary(),
+    })
+}
+
 fn step(cell: CellId, direction: Direction) -> Option<CellId> {
     let (row_delta, column_delta) = direction.delta();
     let row = cell.row.index() as isize + row_delta;
@@ -355,6 +447,7 @@ fn diagnostic(code: &str, message: &str) -> Diagnostic {
 mod tests {
     use super::*;
     use crate::{
+        effects::{DirectionalFlipEffect, TerminalReason},
         ids::{ColumnId, RowId},
         setup::setup_match,
     };
@@ -696,5 +789,195 @@ mod tests {
                 seat: DirectionalFlipSeat::Seat0
             })
         );
+    }
+
+    #[test]
+    fn placement_effects_include_grouped_flips_in_preview_order() {
+        let mut state = state();
+        let placement = legal_placements(&state, DirectionalFlipSeat::Seat0)
+            .into_iter()
+            .find(|placement| placement.cell == cell(RowId::R3, ColumnId::C4))
+            .expect("opening placement");
+        let preview_order = placement
+            .ordered_flips()
+            .into_iter()
+            .map(CellId::as_string)
+            .collect::<Vec<_>>();
+
+        let effects = apply_action(&mut state, ValidatedAction::Place(placement));
+
+        assert_eq!(effects.len(), 4);
+        assert!(matches!(
+            effects[0].payload,
+            DirectionalFlipEffect::PlacementAccepted {
+                seat: DirectionalFlipSeat::Seat0,
+                cell,
+                ply: 1,
+            } if cell == CellId::new(RowId::R3, ColumnId::C4)
+        ));
+        assert!(matches!(
+            effects[1].payload,
+            DirectionalFlipEffect::DiscPlaced {
+                seat: DirectionalFlipSeat::Seat0,
+                cell,
+                ..
+            } if cell == CellId::new(RowId::R3, ColumnId::C4)
+        ));
+        let DirectionalFlipEffect::DiscsFlipped { flips, .. } = &effects[2].payload else {
+            panic!("expected grouped flip effect");
+        };
+        assert_eq!(
+            flips
+                .iter()
+                .map(|entry| entry.cell.as_string())
+                .collect::<Vec<_>>(),
+            preview_order
+        );
+        assert_eq!(flips[0].previous_owner, DirectionalFlipSeat::Seat1);
+        assert_eq!(flips[0].new_owner, DirectionalFlipSeat::Seat0);
+        assert_eq!(flips[0].direction, Direction::South);
+        assert_eq!(flips[0].distance, 1);
+        assert_eq!(flips[0].order_index, 0);
+        assert_eq!(flips[0].display_anchor, "cell:r4c4");
+        assert!(matches!(
+            effects[3].payload,
+            DirectionalFlipEffect::ActivePlayerChanged {
+                previous_seat: DirectionalFlipSeat::Seat0,
+                active_seat: DirectionalFlipSeat::Seat1,
+                ply: 1,
+            }
+        ));
+    }
+
+    #[test]
+    fn grouped_flip_entries_match_canonical_multi_direction_order() {
+        let mut state = empty_with_active(DirectionalFlipSeat::Seat0);
+        let target = cell(RowId::R4, ColumnId::C4);
+        for anchor in [
+            cell(RowId::R1, ColumnId::C4),
+            cell(RowId::R4, ColumnId::C7),
+            cell(RowId::R7, ColumnId::C4),
+            cell(RowId::R4, ColumnId::C1),
+        ] {
+            occupy(&mut state, anchor, DirectionalFlipSeat::Seat0);
+        }
+        for flip in [
+            cell(RowId::R3, ColumnId::C4),
+            cell(RowId::R2, ColumnId::C4),
+            cell(RowId::R4, ColumnId::C5),
+            cell(RowId::R4, ColumnId::C6),
+            cell(RowId::R5, ColumnId::C4),
+            cell(RowId::R6, ColumnId::C4),
+            cell(RowId::R4, ColumnId::C3),
+            cell(RowId::R4, ColumnId::C2),
+        ] {
+            occupy(&mut state, flip, DirectionalFlipSeat::Seat1);
+        }
+        let placement =
+            validate_placement(&state, DirectionalFlipSeat::Seat0, target).expect("placement");
+
+        let effects = apply_action(&mut state, ValidatedAction::Place(placement));
+        let DirectionalFlipEffect::DiscsFlipped { flips, .. } = &effects[2].payload else {
+            panic!("expected grouped flip effect");
+        };
+
+        assert_eq!(
+            flips
+                .iter()
+                .map(|entry| (entry.cell.as_string(), entry.direction, entry.distance))
+                .collect::<Vec<_>>(),
+            vec![
+                ("r3c4".to_owned(), Direction::North, 1),
+                ("r2c4".to_owned(), Direction::North, 2),
+                ("r4c5".to_owned(), Direction::East, 1),
+                ("r4c6".to_owned(), Direction::East, 2),
+                ("r5c4".to_owned(), Direction::South, 1),
+                ("r6c4".to_owned(), Direction::South, 2),
+                ("r4c3".to_owned(), Direction::West, 1),
+                ("r4c2".to_owned(), Direction::West, 2),
+            ]
+        );
+        assert_eq!(
+            flips
+                .iter()
+                .map(|entry| entry.order_index)
+                .collect::<Vec<_>>(),
+            (0u8..8).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn forced_pass_effects_include_terminal_on_double_pass() {
+        let mut state = empty_with_active(DirectionalFlipSeat::Seat0);
+        occupy(
+            &mut state,
+            cell(RowId::R1, ColumnId::C1),
+            DirectionalFlipSeat::Seat0,
+        );
+        occupy(
+            &mut state,
+            cell(RowId::R8, ColumnId::C8),
+            DirectionalFlipSeat::Seat1,
+        );
+
+        let first_effects = apply_action(
+            &mut state,
+            ValidatedAction::ForcedPass(ForcedPass {
+                actor: DirectionalFlipSeat::Seat0,
+            }),
+        );
+        assert_eq!(first_effects.len(), 2);
+        assert!(matches!(
+            first_effects[0].payload,
+            DirectionalFlipEffect::PassTaken {
+                seat: DirectionalFlipSeat::Seat0,
+                ply: 1,
+                ..
+            }
+        ));
+        assert!(matches!(
+            first_effects[1].payload,
+            DirectionalFlipEffect::ActivePlayerChanged {
+                active_seat: DirectionalFlipSeat::Seat1,
+                ..
+            }
+        ));
+
+        let second_effects = apply_action(
+            &mut state,
+            ValidatedAction::ForcedPass(ForcedPass {
+                actor: DirectionalFlipSeat::Seat1,
+            }),
+        );
+        assert_eq!(second_effects.len(), 2);
+        assert!(matches!(
+            second_effects[0].payload,
+            DirectionalFlipEffect::PassTaken {
+                seat: DirectionalFlipSeat::Seat1,
+                ply: 2,
+                ..
+            }
+        ));
+        let DirectionalFlipEffect::GameEnded {
+            outcome,
+            final_score,
+            final_ply,
+            reason,
+            terminal_hash_ref,
+        } = &second_effects[1].payload
+        else {
+            panic!("expected game-ended effect");
+        };
+        assert_eq!(*outcome, TerminalOutcome::Draw);
+        assert_eq!(
+            *final_score,
+            Score {
+                seat_0: 1,
+                seat_1: 1
+            }
+        );
+        assert_eq!(*final_ply, 2);
+        assert_eq!(*reason, TerminalReason::DoubleForcedPass);
+        assert!(terminal_hash_ref.contains("terminal=draw"));
     }
 }
