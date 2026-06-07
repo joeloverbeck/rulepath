@@ -1,6 +1,6 @@
 # GAT6DIRFLI-002: Primitive-pressure comparison & ledger decision
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — documentation/governance: `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` (new), `docs/MECHANIC-ATLAS.md` (modify). Gates whether `game-stdlib` gains surface (GAT6DIRFLI-003).
@@ -75,3 +75,25 @@ Update the §10 table: resolve the "fixed 2D occupancy", "simple line/pattern de
 1. `test -f games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md && grep -iE 'Decision:' games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md`
 2. `node scripts/check-doc-links.mjs`
 3. A doc-link + presence check is the correct boundary because this ticket produces no executable surface; the earned-promotion code path (if any) is verified in GAT6DIRFLI-003.
+
+## Outcome
+
+Completed: 2026-06-07
+
+What changed:
+
+- Added `games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md`.
+- Recorded the Gate 6 primitive-pressure decision as `defer-reject`: Directional Flip proceeds with game-local coordinate/ray logic; no helper is promoted to `game-stdlib`; `engine-core` remains untouched.
+- Updated `docs/MECHANIC-ATLAS.md` §10 rows for fixed 2D occupancy, simple line/pattern detection, coordinate/targeted placement, terminal line/flip highlighting, and directional scanning/grouped flips to cite the ledger and remove unresolved Gate 6 comparison language.
+
+Deviations from original plan:
+
+- The decision was defer/reject, not promote. As a result, GAT6DIRFLI-003 is not applicable unless a later accepted decision reopens promotion.
+- The terminal line highlighting row was also resolved because it still pointed at a Gate 6 comparison and is adjacent UI/effect pressure covered by the same ledger.
+
+Verification results:
+
+- `test -f games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md && grep -iE 'Decision:' games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` passed and returned `Decision: defer-reject`.
+- `node scripts/check-doc-links.mjs` passed and reported `Checked 21 markdown files`.
+- `rg -n 'Gate 6 (`directional_flip` )?comparison|Gate 6 comparison' docs/MECHANIC-ATLAS.md games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md` returned no unresolved comparison references.
+- Ledger receipt records `Why not engine-core`, `Replay/hash impact`, and `Visibility impact` fields.
