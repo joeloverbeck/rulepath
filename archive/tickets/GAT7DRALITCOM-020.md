@@ -1,10 +1,29 @@
 # GAT7DRALITCOM-020: CI workflow integration (gate-0/1/2)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — CI workflow configuration only (`.github/workflows/gate-1-game-smoke.yml`, `.github/workflows/gate-2-benchmarks.yml`; `gate-0-hygiene.yml` already covers the workspace).
 **Deps**: 015, 016, 017, 019
+
+## Outcome
+
+Wired Draughts Lite into CI without weakening existing gate steps:
+
+1. Gate 1 game-smoke now runs Draughts Lite simulation, replay-check, fixture-check, and rule-coverage commands alongside the existing games.
+2. Gate 1 browser E2E block now includes `apps/web/e2e/draughts-lite.smoke.mjs` in addition to the existing shell/a11y/game smokes.
+3. Gate 2 benchmark smoke now runs `cargo bench -p draughts_lite -- legal_actions` on pull requests.
+4. Gate 2 threshold lane now runs `cargo bench -p draughts_lite` and enforces `games/draughts_lite/benches/thresholds.json` through `bench-report`.
+5. Gate 0 was left unchanged because it already covers the workspace.
+
+Verification passed on 2026-06-07:
+
+1. `cargo run -p simulate -- --game draughts_lite --games 1000`
+2. `cargo run -p replay-check -- --game draughts_lite --all`
+3. `cargo run -p fixture-check -- --game draughts_lite`
+4. `cargo run -p rule-coverage -- --game draughts_lite`
+5. `cargo bench -p draughts_lite -- legal_actions`
+6. `npm --prefix apps/web run smoke:e2e`
 
 ## Problem
 
