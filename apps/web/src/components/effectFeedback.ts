@@ -171,6 +171,48 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: payload.winner ? `${payload.winner} won the round.` : "The round was drawn.",
         tone: "turn",
       };
+    case "resource_collected":
+      return {
+        title: "Resources collected",
+        detail: `${payload.seat} collected ${resourceCounts(payload.gain)}.`,
+        tone: "movement",
+      };
+    case "resource_exchanged":
+      return {
+        title: "Resources exchanged",
+        detail: `${payload.seat} paid ${resourceCounts(payload.cost)} and gained ${resourceCounts(payload.gain)}.`,
+        tone: "movement",
+      };
+    case "contract_fulfilled":
+      return {
+        title: "Contract fulfilled",
+        detail: `${payload.seat} fulfilled ${payload.contract} for ${payload.points} points.`,
+        tone: "turn",
+      };
+    case "slot_refilled":
+      return {
+        title: "Market refilled",
+        detail: `${payload.slot} refilled with ${payload.contract}.`,
+        tone: "movement",
+      };
+    case "slot_emptied":
+      return {
+        title: "Market slot emptied",
+        detail: `${payload.slot} is empty with ${payload.remaining_queue_len} queued.`,
+        tone: "turn",
+      };
+    case "pass_accepted":
+      return {
+        title: "Pass accepted",
+        detail: `${payload.seat} had no economy action available.`,
+        tone: "turn",
+      };
+    case "turn_advanced":
+      return {
+        title: "Turn advanced",
+        detail: `${payload.active_seat} is now active.`,
+        tone: "turn",
+      };
     case "refill_started":
       return {
         title: "Next round",
@@ -178,6 +220,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "turn",
       };
     case "terminal":
+      if ("outcome" in payload) {
+        return {
+          title: "Bazaar complete",
+          detail: terminalOutcome(payload.outcome),
+          tone: "terminal",
+        };
+      }
       return {
         title: "Duel complete",
         detail: payload.winner ? `${payload.winner} won the duel.` : "The duel ended in a draw.",
@@ -210,6 +259,22 @@ function formatPath(value: unknown): string {
 
 function flipCount(flips: unknown): number {
   return Array.isArray(flips) ? flips.length : 0;
+}
+
+function resourceCounts(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return "public resources";
+  }
+  const counts = value as { amber?: unknown; jade?: unknown; iron?: unknown };
+  return `amber ${counts.amber ?? 0}, jade ${counts.jade ?? 0}, iron ${counts.iron ?? 0}`;
+}
+
+function terminalOutcome(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return "The bazaar ended.";
+  }
+  const outcome = value as { kind?: unknown; winner?: unknown };
+  return outcome.kind === "draw" ? "The bazaar ended in a draw." : `${String(outcome.winner ?? "A seat")} won the bazaar.`;
 }
 
 export function summarizeEffect(entry: EffectEntry): string {

@@ -149,6 +149,12 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+assert(
+  catalog.some(
+    (game) => game.game_id === "token_bazaar" && game.variants.includes("token_bazaar_standard"),
+  ),
+  "Rust catalog includes token_bazaar standard variant",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
@@ -162,6 +168,43 @@ const threeView = invoke(
 );
 assert(threeView.game_id === "three_marks", "three_marks Rust view is returned");
 assert(threeView.variant_id === "three_marks_standard", "three_marks Rust view reports selected variant");
+
+const tokenBazaar = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 9n),
+  ["token_bazaar"],
+);
+assert(tokenBazaar.match_id, "token_bazaar start match returns a match id");
+assert(tokenBazaar.variant_id === "token_bazaar_standard", "token_bazaar standard variant starts");
+const tokenView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [tokenBazaar.match_id],
+);
+assert(tokenView.game_id === "token_bazaar", "token_bazaar Rust view is returned");
+assert(tokenView.market_slots.length === 3, "token_bazaar projects three market slots");
+assert(tokenView.legal_actions.some((choice) => choice.action_segment === "collect/amber"), "token_bazaar view exposes legal actions");
+const tokenTree = invoke(
+  (args) => wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [tokenBazaar.match_id, "seat_0"],
+);
+assert(tokenTree.choices.some((choice) => choice.segment === "collect/amber"), "token_bazaar action tree exposes collect/amber");
+const tokenAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(tokenTree.freshness_token),
+    ),
+  [tokenBazaar.match_id, "seat_0", "collect/amber"],
+);
+assert(tokenAfterHuman.view.supply.amber < tokenView.supply.amber, "token_bazaar collect updates public accounting");
+assert(
+  tokenAfterHuman.effects.some((effect) => effect.payload.type === "resource_collected"),
+  "token_bazaar emits resource accounting effect",
+);
 
 const hotseat = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 2n),
@@ -222,5 +265,6 @@ console.log(
     diagnostic: staleDiagnostic.code,
     modes: ["human_vs_bot", "hotseat", "bot_vs_bot"],
     replay_cursor: replayStep.cursor,
+    token_bazaar_match_id: tokenBazaar.match_id,
   }),
 );

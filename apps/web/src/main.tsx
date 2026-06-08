@@ -17,6 +17,7 @@ import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
+import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
   loadApi,
@@ -379,6 +380,16 @@ function App() {
             onChoice={playChoice}
             onViewerModeChange={changeViewerMode}
           />
+        ) : isTokenBazaarView(view) ? (
+          <TokenBazaarBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -391,7 +402,11 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) || isHighCardDuelView(view) ? null : (
+        {isColumnFourView(view) ||
+        isDirectionalFlipView(view) ||
+        isDraughtsLiteView(view) ||
+        isHighCardDuelView(view) ||
+        isTokenBazaarView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}

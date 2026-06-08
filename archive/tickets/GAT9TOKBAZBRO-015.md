@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-015: TokenBazaarBoard + shell integration + effect log + styles
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/TokenBazaarBoard.tsx` (new), `GamePicker.tsx`, `AppShell.tsx`, `EffectLog.tsx`, `effectFeedback.ts`, `ActionControls.tsx`, `apps/web/src/styles.css` (modify)
@@ -134,3 +134,38 @@ Styles for inventory chips, supply, market cards, and effect rows.
 2. `npm --prefix apps/web run smoke:ui`
 3. The build + UI smoke pair is the correct boundary; the full click-path +
    a11y/no-leak assertions live in the e2e smoke (GAT9TOKBAZBRO-016).
+
+## Outcome (2026-06-08)
+
+Completed the Token Bazaar browser board and shell integration.
+
+- Added `TokenBazaarBoard.tsx` to render active seat, turn counters, scores,
+  public supply, per-seat inventories, visible market slots, queue count,
+  fulfilled contracts, terminal status, Rust legal choices, and recent public
+  accounting effects.
+- Routed `token_bazaar` to the board in the app shell play surface and kept the
+  generic action panel hidden for this game so the visible controls come from one
+  Rust action-tree source.
+- Added shared effect-log labels for Token Bazaar accounting effects and styles
+  for resource/count chips, market cards, action buttons, and recent-effect rows.
+- Extended `smoke:ui` to assert the Token Bazaar catalog entry, public view,
+  Rust action tree, collect action, and `resource_collected` effect.
+
+GamePicker and AppShell required no special-case code: the picker already lists
+Rust catalog entries, and the shell already frames any selected game. No
+TypeScript legality, affordability, refill, winner, terminal, or bot policy was
+added.
+
+Manual review:
+
+1. Controls map to Rust action-tree choices (`actionTree.choices`) and submit
+   those segments through the WASM command path.
+2. Resource state is not color-only: chips include resource code, full resource
+   name, and numeric count.
+3. Controls are native buttons with focus-visible styling and stable responsive
+   grid sizing.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`
