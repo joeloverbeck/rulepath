@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-006: Public-view projection (visibility.rs) + UI metadata (ui.rs)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/token_bazaar/src/visibility.rs` (new), `src/ui.rs` (new), `src/lib.rs` (modify)
@@ -126,3 +126,27 @@ Add `mod visibility; mod ui;`; re-export the view + metadata surface.
 2. `cargo build -p token_bazaar && bash scripts/boundary-check.sh`
 3. Browser-side no-leak is additionally proved by the e2e smoke (GAT9TOKBAZBRO-016);
    the Rust projection boundary is correctly verified per-crate here.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/src/visibility.rs` with Rust-owned public view
+  projection for supply, inventories, scores, turn counts, active seat, market
+  slots, queue count, fulfilled contracts, legal actions, terminal state,
+  optional recent effects, and UI metadata.
+- Added `games/token_bazaar/src/ui.rs` with viewer-facing labels,
+  accessibility labels, and action preview copy.
+- Updated `src/lib.rs` exports for view and UI metadata surfaces.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo test -p token_bazaar` passed with 29 tests.
+- `cargo build -p token_bazaar` passed.
+- `bash scripts/boundary-check.sh` passed.

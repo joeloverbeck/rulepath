@@ -6,7 +6,9 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     actor_seat, legal_action_tree, parse_action_segment, ActionFamily, TokenBazaarAction,
@@ -27,7 +29,15 @@ pub use setup::{setup_match, SetupOptions};
 pub use state::{
     ContractSpec, ResourceCounts, TerminalOutcome, TokenBazaarSnapshot, TokenBazaarState,
 };
+pub use ui::{
+    action_preview_copy, contract_accessibility_label, resource_accessibility_label, ui_metadata,
+    UiMetadata,
+};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    project_view, project_view_with_effects, ContractView, EffectView, InventoryView,
+    LegalActionView, MarketSlotView, PublicView, ResourceSupplyView, TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
