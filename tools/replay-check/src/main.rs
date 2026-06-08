@@ -26,6 +26,7 @@ use three_marks::replay_support::{
     replay_bot_action as three_replay_bot_action, replay_commands as three_replay_commands,
     replay_diagnostic as three_replay_diagnostic, replay_stale as three_replay_stale,
 };
+use token_bazaar::{ContractId, ResourceCounts};
 
 fn main() {
     if let Err(error) = run(env::args().skip(1).collect()) {
@@ -97,6 +98,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "high_card_duel",
             rules_version: "high-card-duel-rules-v1",
             trace_dir: "games/high_card_duel/tests/golden_traces",
+        }),
+        "token_bazaar" => Ok(RegisteredGame {
+            game_id: "token_bazaar",
+            rules_version: "token-bazaar-rules-v1",
+            trace_dir: "games/token_bazaar/tests/golden_traces",
         }),
         _ => Err(format!("unsupported game `{game}`")),
     }
@@ -213,10 +219,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --all");
 }
 
 fn check_trace_path(
@@ -249,6 +255,7 @@ struct Trace {
     bot_seed: Option<u64>,
     invalid_command: Option<Vec<String>>,
     stale_command: Option<Vec<String>>,
+    setup_patch: Option<String>,
     expected_state_hash: Option<u64>,
     expected_effect_hash: Option<u64>,
     expected_action_tree_hash: Option<u64>,
@@ -321,6 +328,8 @@ impl Trace {
                 .map_err(|error| parse_error(path, "unknown", &error))?,
             invalid_command: command_with_expect(input, "invalid_action"),
             stale_command: command_with_expect(input, "stale_action"),
+            setup_patch: optional_string_field(input, "setup_patch")
+                .map_err(|error| parse_error(path, "unknown", &error))?,
             expected_state_hash: optional_hash(input, "expected_state_hashes", "final")?,
             expected_effect_hash: optional_hash(input, "expected_effect_hashes", "final")?,
             expected_action_tree_hash: optional_hash(
@@ -465,6 +474,7 @@ impl Trace {
             "directional_flip" => self.directional_actual_hashes(),
             "draughts_lite" => self.draughts_actual_hashes(),
             "high_card_duel" => self.high_card_duel_actual_hashes(),
+            "token_bazaar" => self.token_bazaar_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -913,6 +923,136 @@ impl Trace {
         })
     }
 
+    fn token_bazaar_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let (commands, diagnostic_hash) = if self.fixture_kind == "diagnostic" {
+            let diagnostic = self
+                .commands
+                .last()
+                .cloned()
+                .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
+            let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+            (
+                setup.clone(),
+                Some(self.token_bazaar_diagnostic_hash(&setup, &diagnostic)?),
+            )
+        } else {
+            (self.commands.clone(), None)
+        };
+
+        let Some(actual) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" | "bot" | "wasm" | "diagnostic" => {
+                Some(self.token_bazaar_replay_hashes(&commands)?)
+            }
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: actual.state_hash,
+            effect_hash: actual.effect_hash,
+            action_tree_hash: actual.action_tree_hash,
+            view_hash: actual.view_hash,
+            diagnostic_hash,
+            terminal: actual.terminal,
+            winner: actual.outcome.and_then(|outcome| match outcome {
+                token_bazaar::TerminalOutcome::Win { seat } => Some(seat.as_str().to_owned()),
+                token_bazaar::TerminalOutcome::Draw => None,
+            }),
+        }))
+    }
+
+    fn token_bazaar_diagnostic_hash(
+        &self,
+        setup_commands: &[Vec<String>],
+        diagnostic_command: &[String],
+    ) -> Result<HashValue, String> {
+        let mut state = self.token_bazaar_initial_state()?;
+        for path in setup_commands {
+            let command = token_bazaar::command_for_state(&state, path.clone());
+            let action =
+                token_bazaar::validate_command(&state, &command).map_err(diagnostic_string)?;
+            token_bazaar::apply_action(&mut state, action);
+        }
+        let actor_seat = self
+            .diagnostic_actor_seat
+            .as_deref()
+            .and_then(parse_token_bazaar_trace_seat)
+            .unwrap_or(state.active_seat);
+        let mut command =
+            token_bazaar_command_for_seat(&state, actor_seat, diagnostic_command.to_vec());
+        if let Some(freshness_token) = self.diagnostic_freshness_token {
+            command.freshness_token = engine_core::FreshnessToken(freshness_token);
+        }
+        let diagnostic = token_bazaar::validate_command(&state, &command)
+            .expect_err("diagnostic trace command must reject");
+        Ok(HashValue::from_stable_bytes(
+            format!("diagnostic:{}", diagnostic.code).as_bytes(),
+        ))
+    }
+
+    fn token_bazaar_replay_hashes(
+        &self,
+        commands: &[Vec<String>],
+    ) -> Result<TokenBazaarReplayHashes, String> {
+        if self.setup_patch.is_none() {
+            let replay = token_bazaar::replay_commands(self.seed, commands);
+            return Ok(TokenBazaarReplayHashes {
+                state_hash: replay.final_state_hash,
+                effect_hash: replay.effect_hash,
+                action_tree_hash: replay.action_tree_hash,
+                view_hash: replay.public_view_hash,
+                terminal: replay.terminal,
+                outcome: replay.terminal_outcome,
+            });
+        }
+
+        let mut state = self.token_bazaar_initial_state()?;
+        let mut effects = Vec::new();
+        for path in commands {
+            let command = token_bazaar::command_for_state(&state, path.clone());
+            let action =
+                token_bazaar::validate_command(&state, &command).map_err(diagnostic_string)?;
+            effects.extend(token_bazaar::apply_action(&mut state, action));
+        }
+        Ok(TokenBazaarReplayHashes {
+            state_hash: token_bazaar::state_hash(&state),
+            effect_hash: token_bazaar::effect_hash(&effects),
+            action_tree_hash: token_bazaar_action_tree_hash(&state),
+            view_hash: token_bazaar::project_view(&state, &Viewer { seat_id: None }).stable_hash(),
+            terminal: state.terminal_outcome.is_some(),
+            outcome: state.terminal_outcome,
+        })
+    }
+
+    fn token_bazaar_initial_state(&self) -> Result<token_bazaar::TokenBazaarState, String> {
+        let mut state = token_bazaar::setup_match(
+            Seed(self.seed),
+            &token_bazaar::default_seats(),
+            &token_bazaar::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        match self.setup_patch.as_deref() {
+            None => Ok(state),
+            Some("near_market_exhaustion") => {
+                state.slots = [Some(ContractId::CrownRoute), None, None];
+                state.queue.clear();
+                state.inventories[0] = ResourceCounts::new(2, 0, 2);
+                state.supply = ResourceCounts::new(12, 14, 12);
+                Ok(state)
+            }
+            Some("empty_slot_non_terminal") => {
+                state.slots = [None, Some(ContractId::CrownRoute), None];
+                state.queue.clear();
+                state.inventories[0] = ResourceCounts::new(2, 0, 2);
+                state.supply = ResourceCounts::new(12, 14, 12);
+                Ok(state)
+            }
+            Some(other) => Err(self.failure(&format!("unknown setup_patch `{other}`"))),
+        }
+    }
+
     fn compare_hash(
         &self,
         surface: &str,
@@ -959,6 +1099,54 @@ struct HighCardDuelReplayHashes {
     view_hash: HashValue,
     terminal: bool,
     outcome: Option<high_card_duel::TerminalOutcome>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct TokenBazaarReplayHashes {
+    state_hash: HashValue,
+    effect_hash: HashValue,
+    action_tree_hash: HashValue,
+    view_hash: HashValue,
+    terminal: bool,
+    outcome: Option<token_bazaar::TerminalOutcome>,
+}
+
+fn parse_token_bazaar_trace_seat(value: &str) -> Option<token_bazaar::TokenBazaarSeat> {
+    match value {
+        "seat_0" => Some(token_bazaar::TokenBazaarSeat::Seat0),
+        "seat_1" => Some(token_bazaar::TokenBazaarSeat::Seat1),
+        _ => None,
+    }
+}
+
+fn token_bazaar_command_for_seat(
+    state: &token_bazaar::TokenBazaarState,
+    actor_seat: token_bazaar::TokenBazaarSeat,
+    action_path: Vec<String>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: action_path,
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn token_bazaar_action_tree_hash(state: &token_bazaar::TokenBazaarState) -> HashValue {
+    let actor = if state.terminal_outcome.is_some() {
+        Actor {
+            seat_id: SeatId("terminal".to_owned()),
+        }
+    } else {
+        Actor {
+            seat_id: state.seats[state.active_seat.index()].clone(),
+        }
+    };
+    token_bazaar::action_tree_hash(&token_bazaar::legal_action_tree(state, &actor))
 }
 
 fn validate_json_object(path: &Path, input: &str) -> Result<(), String> {
@@ -1019,12 +1207,15 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_action_tree_hashes",
         "expected_public_view_hashes",
         "expected_replay_hashes",
+        "expected_public_export_hashes",
         "expected_private_view_hashes",
+        "expected_diagnostic_hashes",
         "expected_diagnostics",
         "expected_outcome",
         "expected_terminal_state",
         "not_applicable",
         "producer",
+        "setup_patch",
     ];
     for key in top_level_keys(input)? {
         if !allowed.contains(&key.as_str()) {
@@ -1113,6 +1304,14 @@ fn string_field(input: &str, key: &str) -> Result<String, String> {
     parse_string_at(input, start).ok_or_else(|| format!("field `{key}` must be a string"))
 }
 
+fn optional_string_field(input: &str, key: &str) -> Result<Option<String>, String> {
+    let needle = format!("\"{key}\":");
+    Ok(input.find(&needle).map(|start| {
+        parse_string_at(input, start + needle.len())
+            .unwrap_or_else(|| panic!("field `{key}` must be a string"))
+    }))
+}
+
 fn number_field(input: &str, key: &str) -> Result<u64, String> {
     let needle = format!("\"{key}\":");
     let start = input
@@ -1143,9 +1342,18 @@ fn optional_hash(input: &str, section: &str, key: &str) -> Result<Option<u64>, S
 }
 
 fn optional_diagnostic_hash(input: &str) -> Option<u64> {
-    input.find("\"expected_diagnostics\":").map(|start| {
+    if input.contains("\"expected_diagnostic_hashes\":") {
+        let tail = &input[input.find("\"expected_diagnostic_hashes\":").unwrap()
+            + "\"expected_diagnostic_hashes\":".len()..];
+        if tail.trim_start().starts_with("null") {
+            return None;
+        }
+        return optional_hash(input, "expected_diagnostic_hashes", "final")
+            .expect("diagnostic hash object parses");
+    }
+    input.find("\"expected_diagnostics\":").and_then(|start| {
         let tail = &input[start..];
-        number_field(tail, "hash").expect("diagnostic hash must be numeric")
+        number_field(tail, "hash").ok()
     })
 }
 

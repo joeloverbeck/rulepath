@@ -54,6 +54,7 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]
 
 [[package]]
@@ -92,6 +93,7 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]
 
 [[package]]
@@ -118,6 +120,7 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]
 
 [[package]]

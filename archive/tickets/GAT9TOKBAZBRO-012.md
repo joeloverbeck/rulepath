@@ -129,3 +129,36 @@ not-applicable note.
 2. `cargo run -p replay-check -- --game token_bazaar --all && cargo run -p fixture-check -- --game token_bazaar && cargo run -p rule-coverage -- --game token_bazaar`
 3. The four game-id CLIs are the correct verification boundary — they are exactly
    the gate-1 lane steps GAT9TOKBAZBRO-016 wires into CI.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Registered `token_bazaar` in `simulate`, `replay-check`, `fixture-check`, and
+  `rule-coverage`.
+- Added the required tool Cargo path dependencies and `Cargo.lock` updates.
+- Extended replay-check and fixture-check schema handling for Token Bazaar trace
+  fields such as `setup_patch`, `expected_diagnostic_hashes`, and
+  `expected_public_export_hashes`.
+- Added `games/token_bazaar/docs/RULE-COVERAGE.md` mapping every `TB-*` rule ID
+  to implementation evidence.
+
+Deviations from original plan:
+
+- `replay-check` gained a Token Bazaar-specific near-state reconstruction for
+  the two explicit setup-patch traces authored in GAT9TOKBAZBRO-010.
+- `fixture-check` accepts Token Bazaar traces without `expected_private_view_hashes`
+  because the game is fully public and records private-view hashes as
+  not-applicable rationale.
+
+Verification results:
+
+- `cargo run -p simulate -- --game token_bazaar --games 1000 --start-seed 1` passed.
+- `cargo run -p replay-check -- --game token_bazaar --all` passed for all twelve traces.
+- `cargo run -p fixture-check -- --game token_bazaar` passed.
+- `cargo run -p rule-coverage -- --game token_bazaar` passed.
+- `cargo fmt --all --check` passed.
+- `cargo test -p simulate -p replay-check -p fixture-check -p rule-coverage` passed.
+- `cargo test -p rule-coverage` passed after adding the direct `TB-*` prefix assertion.

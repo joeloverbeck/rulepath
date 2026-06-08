@@ -12,6 +12,7 @@ draughts_lite = { path = "../../games/draughts_lite" }
 high_card_duel = { path = "../../games/high_card_duel" }
 race_to_n = { path = "../../games/race_to_n" }
 three_marks = { path = "../../games/three_marks" }
+token_bazaar = { path = "../../games/token_bazaar" }
 
 [[bin]]
 name = "fixture-check"

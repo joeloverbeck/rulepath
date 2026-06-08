@@ -68,6 +68,12 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             coverage_path: "games/high_card_duel/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/high_card_duel/docs/BENCHMARKS.md",
         }),
+        "token_bazaar" => Ok(RegisteredGame {
+            game_id: "token_bazaar",
+            rules_path: "games/token_bazaar/docs/RULES.md",
+            coverage_path: "games/token_bazaar/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/token_bazaar/docs/BENCHMARKS.md",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -86,7 +92,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar>"
                     );
                     process::exit(0);
                 }
@@ -196,7 +202,7 @@ fn extract_rule_ids(input: &str) -> Vec<String> {
 fn is_rule_id(value: &str) -> bool {
     let parts = value.split('-').collect::<Vec<_>>();
     parts.len() == 3
-        && matches!(parts[0], "R" | "TM" | "CF" | "DF" | "DL" | "HCD")
+        && matches!(parts[0], "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB")
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())
         && parts[2].len() == 3
@@ -272,6 +278,7 @@ mod tests {
     fn draughts_lite_rule_prefix_is_valid() {
         assert!(is_rule_id("DL-SCOPE-001"));
         assert!(is_rule_id("HCD-SETUP-001"));
+        assert!(is_rule_id("TB-SETUP-001"));
         assert!(!is_rule_id("XX-SCOPE-001"));
     }
 
