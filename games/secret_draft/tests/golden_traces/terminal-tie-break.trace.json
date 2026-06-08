@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "trace_id": "secret-draft-terminal-tie-break",
+  "fixture_kind": "terminal",
+  "purpose": "terminal_tie_break",
+  "note": "Veiled Draft terminal_tie_break replay fixture.",
+  "migration_update_note": "Initial Secret Draft Trace Schema v1 fixture established by GAT91SECDRACOM-010.",
+  "game_id": "secret_draft",
+  "rules_version": "secret-draft-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "secret_draft_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat_0", "player_id": "player_0" },
+    { "seat_id": "seat_1", "player_id": "player_1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["commit/ember_1"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["commit/grove_4"], "freshness_token": "1", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat_0", "action_path": ["commit/ember_2"], "freshness_token": "2", "expect": "applied" },
+    { "index": 3, "actor_seat": "seat_1", "action_path": ["commit/grove_3"], "freshness_token": "3", "expect": "applied" },
+    { "index": 4, "actor_seat": "seat_0", "action_path": ["commit/ember_3"], "freshness_token": "4", "expect": "applied" },
+    { "index": 5, "actor_seat": "seat_1", "action_path": ["commit/grove_2"], "freshness_token": "5", "expect": "applied" },
+    { "index": 6, "actor_seat": "seat_0", "action_path": ["commit/ember_4"], "freshness_token": "6", "expect": "applied" },
+    { "index": 7, "actor_seat": "seat_1", "action_path": ["commit/grove_1"], "freshness_token": "7", "expect": "applied" },
+    { "index": 8, "actor_seat": "seat_0", "action_path": ["commit/tide_1"], "freshness_token": "8", "expect": "applied" },
+    { "index": 9, "actor_seat": "seat_1", "action_path": ["commit/tide_4"], "freshness_token": "9", "expect": "applied" },
+    { "index": 10, "actor_seat": "seat_0", "action_path": ["commit/tide_2"], "freshness_token": "10", "expect": "applied" },
+    { "index": 11, "actor_seat": "seat_1", "action_path": ["commit/tide_3"], "freshness_token": "11", "expect": "applied" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 11 }],
+  "expected_state_hashes": { "final": 16537225004227070122 },
+  "expected_effect_hashes": { "final": 10174561923073941496 },
+  "expected_action_tree_hashes": { "final": 10186882114358946721 },
+  "expected_public_view_hashes": { "observer": 5080634360059034346, "seat_0": 7419114895291231033, "seat_1": 2976992586250985548 },
+  "expected_replay_hashes": { "final": 10680196778579338965 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 16536121581184290235 },
+  "expected_revealed_sequence": ["1:ember_1:grove_4:ember_1:grove_4", "2:ember_2:grove_3:ember_2:grove_3", "3:ember_3:grove_2:ember_3:grove_2", "4:ember_4:grove_1:ember_4:grove_1", "5:tide_1:tide_4:tide_1:tide_4", "6:tide_2:tide_3:tide_2:tide_3"],
+  "expected_diagnostics": null,
+  "expected_terminal_state": { "terminal": true, "winner": "seat_1", "draw": false },
+  "not_applicable": {
+    "stochastic_game_events": "secret_draft standard setup and reveal resolution use no game-rule randomness.",
+    "preview_hashes": "secret_draft uses legal action metadata rather than a separate preview hash."
+  }
+}

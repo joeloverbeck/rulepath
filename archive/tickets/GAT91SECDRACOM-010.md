@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-010: secret_draft golden traces + replay test
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/secret_draft/tests/golden_traces/*.trace.json` and `games/secret_draft/tests/replay.rs`; no `engine-core` / `game-stdlib` change.
