@@ -23,6 +23,7 @@ type ReplayViewerProps = {
 export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayViewerProps) {
   const step = replay?.step ?? null;
   const effects = step?.effects ?? [];
+  const publicEffects = step?.public_effects ?? [];
   const latestReplayEffect = effects.at(-1);
   const latestEntry: EffectEntry | null = latestReplayEffect && step ? { cursor: step.cursor, effect: latestReplayEffect } : null;
   const threeMarksView: ThreeMarksPublicView | null = step && isThreeMarksView(step.view) ? step.view : null;
@@ -111,7 +112,25 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
           ) : null}
 
           <ol className="replay-effects">
-            {effects.length === 0 ? (
+            {step.public_export && publicEffects.length > 0 ? (
+              <>
+                {step.redacted_command_summary ? (
+                  <li className={reducedMotion ? "reduced" : ""}>
+                    <strong>Command</strong>
+                    <span>{formatPublicCommandSummary(step.redacted_command_summary)}</span>
+                  </li>
+                ) : null}
+                {publicEffects.map((effect, index) => {
+                  const observation = formatPublicObservation(effect);
+                  return (
+                    <li key={`${step.cursor}-public-${index}`} className={reducedMotion ? "reduced" : ""}>
+                      <strong>{observation.title}</strong>
+                      <span>{observation.detail}</span>
+                    </li>
+                  );
+                })}
+              </>
+            ) : effects.length === 0 ? (
               <li>No replay effects at this cursor.</li>
             ) : (
               effects.map((effect, index) => {
@@ -141,6 +160,39 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
       </div>
     </section>
   );
+}
+
+function formatPublicObservation(value: string): { title: string; detail: string } {
+  const [eventToken, ...detailParts] = value.split(":");
+  const title = eventToken.replace(/^hcd_/, "").replaceAll("_", " ");
+  const detail = detailParts.join(":");
+  return {
+    title: title.length > 0 ? title : "Observation",
+    detail: formatPublicObservationDetail(detail),
+  };
+}
+
+function formatPublicCommandSummary(value: string): string {
+  return value.replaceAll("_", " ").replace(":", " ");
+}
+
+function formatPublicObservationDetail(detail: string): string {
+  if (detail.length === 0) {
+    return "Public observation";
+  }
+  return detail
+    .split(";")
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const [rawKey, ...rawValue] = part.split("=");
+      const key = rawKey.replaceAll("_", " ");
+      const value = rawValue.join("=");
+      if (value.length === 0) {
+        return key;
+      }
+      return `${key} ${value.replace(/hcd:r[0-9a-z:]+/gi, "revealed card")}`;
+    })
+    .join(", ");
 }
 
 function PlacementSequence({ replay }: { replay: ReplaySessionState }) {

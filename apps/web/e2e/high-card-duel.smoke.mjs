@@ -101,6 +101,33 @@ try {
   await waitForText(page, "Cards revealed");
   await assertNoLeak(page, consoleMessages, "revealed DOM");
 
+  await clickText(page, "button", "Export Current Run");
+  const revealedReplayTextHandle = await page.waitForFunction(() => {
+    const value = document.querySelector("textarea")?.value || "";
+    return value.includes("hcd_cards_revealed") && value;
+  });
+  const revealedReplayText = await revealedReplayTextHandle.jsonValue();
+  assert(
+    revealedReplayText.includes('"export_class": "public_observer_projection_v1"'),
+    "revealed export remains public observer projection",
+  );
+  assert(revealedReplayText.includes("hcd_round_scored"), "revealed public export carries round scoring");
+
+  await clickText(page, "button", "Import Replay");
+  await waitForText(page, "Cursor 0 /");
+  await waitForText(page, "No replay effects at this cursor.");
+  await clickText(page, ".replay-actions button", "Step");
+  await waitForReplayCursor(page, 1);
+  await assertReplayViewerText(page, "commit face down");
+  await assertReplayViewerLacksText(page, "No replay effects at this cursor.");
+  await clickText(page, ".replay-actions button", "Step");
+  await waitForReplayCursor(page, 2);
+  await assertReplayViewerText(page, "cards revealed");
+  await assertReplayViewerText(page, "round scored");
+  await assertReplayViewerLacksText(page, "No replay effects at this cursor.");
+  await assertReplayViewerNoForbidden(page, "public replay viewer");
+  await clearReplayDocument(page);
+
   await page.select(".motion-field select", "reduce");
   await page.waitForSelector(".high-card-duel-board.reduced");
   const animationName = await page.$eval(".high-card-duel-board.reduced .duel-card", (element) =>
@@ -164,6 +191,42 @@ async function assertNoLeak(page, consoleMessages, label) {
   );
   assertNoForbiddenTerms(surface, label);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`);
+}
+
+async function assertReplayViewerNoForbidden(page, label) {
+  const surface = await page.$eval(".replay-viewer", (element) => element.textContent ?? "");
+  assertNoForbiddenTerms(surface, label);
+}
+
+async function assertReplayViewerText(page, text) {
+  await page.waitForFunction(
+    (expected) => document.querySelector(".replay-viewer")?.textContent?.includes(expected),
+    {},
+    text,
+  );
+}
+
+async function assertReplayViewerLacksText(page, text) {
+  const present = await page.$eval(".replay-viewer", (element, expected) => {
+    return (element.textContent ?? "").includes(expected);
+  }, text);
+  assert(!present, `replay viewer lacks ${text}`);
+}
+
+async function waitForReplayCursor(page, cursor) {
+  await page.waitForFunction(
+    (expected) => document.querySelector(".replay-progress")?.textContent?.includes(`Cursor ${expected} /`),
+    {},
+    cursor,
+  );
+}
+
+async function clearReplayDocument(page) {
+  await page.$eval("textarea", (element) => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    setter?.call(element, "");
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
 }
 
 async function assertStorageClean(page) {
