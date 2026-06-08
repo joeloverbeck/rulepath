@@ -1,10 +1,18 @@
 # GAT8AFTROAREA-005: Add Gate 9 candidate-placement source notes to docs/SOURCES.md
 
-**Status**: PENDING
+**Status**: NOT APPLICABLE
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: None — `docs/SOURCES.md` prose only.
 **Deps**: GAT8AFTROAREA-002
+
+## Closeout Note (2026-06-08)
+
+GAT8AFTROAREA-002 added the candidate-placement note in `progress.md` without
+external research citations or source links. Because this ticket is conditional
+on that note citing external research, no `docs/SOURCES.md` update is required.
+The spec's own external-reference section remains the provenance record for the
+aftermath rationale.
 
 ## Problem
 
