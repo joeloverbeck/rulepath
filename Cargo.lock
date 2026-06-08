@@ -133,6 +133,7 @@ dependencies = [
 name = "token_bazaar"
 version = "0.1.0"
 dependencies = [
+ "ai-core",
  "engine-core",
 ]
 

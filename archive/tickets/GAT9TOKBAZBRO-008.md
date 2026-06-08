@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-008: Level 0 random-legal + Level 1 TokenBazaarLevel1Bot + bot tests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/token_bazaar/src/bots.rs` (new), `tests/bots.rs` (new), `src/lib.rs` (modify)
@@ -129,3 +129,28 @@ Add `mod bots;`; re-export both bots.
 2. `cargo test -p token_bazaar && bash scripts/boundary-check.sh`
 3. Per-crate bot tests are the correct boundary; end-to-end bot turns in the
    browser are exercised by the e2e smoke (GAT9TOKBAZBRO-016).
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/src/bots.rs` with Level 0 seeded random-legal bot
+  and deterministic Level 1 heuristic bot.
+- Added `games/token_bazaar/tests/bots.rs` covering legality through normal
+  validation, deterministic Level 1 choice, contract fulfillment, collect toward
+  an unaffordable visible target, forced-pass fallback, and rationale no-leak.
+- Added `ai-core` as a game-local dependency and updated `src/lib.rs` exports.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo test -p token_bazaar --test bots` passed with 7 tests.
+- `cargo test -p token_bazaar` passed with 32 unit tests, 7 integration tests,
+  and doc tests.
+- `cargo build -p token_bazaar` passed.
+- `bash scripts/boundary-check.sh` passed.

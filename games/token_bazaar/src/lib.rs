@@ -1,6 +1,7 @@
 //! `token_bazaar` official-game crate skeleton.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod replay_support;
@@ -14,6 +15,10 @@ pub mod visibility;
 pub use actions::{
     actor_seat, legal_action_tree, parse_action_segment, ActionFamily, TokenBazaarAction,
     COLLECT_SEGMENT_PREFIX, EXCHANGE_SEGMENT_PREFIX, FULFILL_SEGMENT_PREFIX, PASS_SEGMENT,
+};
+pub use bots::{
+    action_from_decision, BotDecision, TokenBazaarLevel1Bot, TokenBazaarRandomBot,
+    LEVEL1_POLICY_ID, RANDOM_POLICY_ID,
 };
 pub use effects::{public_effect, TokenBazaarEffect};
 pub use ids::{
