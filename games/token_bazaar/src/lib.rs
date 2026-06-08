@@ -3,6 +3,7 @@
 pub mod actions;
 pub mod effects;
 pub mod ids;
+pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod state;
@@ -20,6 +21,12 @@ pub use ids::{
     RULES_VERSION_LABEL, STANDARD_CONTRACT_COUNT, STANDARD_MARKET_SLOT_COUNT,
     STANDARD_RESOURCE_SUPPLY, STANDARD_SEAT_COUNT, STANDARD_STARTING_RESOURCE_COUNT,
     STANDARD_TURNS_PER_SEAT, VARIANT_ID,
+};
+pub use replay_support::{
+    action_tree_hash, actor_for_state, command_for_state, default_seats, effect_hash,
+    effect_stable_string, export_public_replay, import_public_export, replay_commands, state_hash,
+    PublicReplayExport, PublicReplayStep, PublicReplayTimeline, ReplayCommandPath, ReplayResult,
+    ReplayStepProjection,
 };
 pub use rules::{
     apply_action, determine_terminal_outcome, diagnostic, legal_actions, validate_command,

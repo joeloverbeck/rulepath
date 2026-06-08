@@ -3,9 +3,7 @@ use engine_core::{Actor, FreshnessToken, StableSerialize, Viewer};
 use crate::{
     actions::legal_action_tree,
     effects::TokenBazaarEffect,
-    ids::{
-        ContractId, TokenBazaarSeat, TokenBazaarSlot, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID,
-    },
+    ids::{ContractId, TokenBazaarSeat, TokenBazaarSlot, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     state::{contract_spec, ResourceCounts, TerminalOutcome, TokenBazaarState},
     ui::{slot_accessibility_label, ui_metadata, UiMetadata},
 };

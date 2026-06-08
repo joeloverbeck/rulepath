@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-007: Replay support — full trace + public export/import
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/token_bazaar/src/replay_support.rs` (new), `src/lib.rs` (modify)
@@ -125,3 +125,26 @@ Add `mod replay_support;`; re-export the replay surface.
 2. `cargo build -p token_bazaar && bash scripts/boundary-check.sh`
 3. Full `replay-check -- --game token_bazaar --all` runs in GAT9TOKBAZBRO-012 once
    the tool arm + traces exist; the per-crate round-trip is the correct boundary here.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/src/replay_support.rs` with deterministic command
+  replay from setup, state/effect/action-tree/public-view/replay hash helpers,
+  and replay step projections.
+- Added public replay export/import structures with stable JSON bytes for the
+  fully public Token Bazaar replay timeline.
+- Updated `src/lib.rs` exports for replay helpers and replay data structures.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo test -p token_bazaar` passed with 32 tests.
+- `cargo build -p token_bazaar` passed.
+- `bash scripts/boundary-check.sh` passed.
