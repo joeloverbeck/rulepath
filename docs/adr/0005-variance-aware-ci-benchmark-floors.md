@@ -110,9 +110,14 @@ single observation.
 This ADR amends ADR 0003: "a conservative floor below the stable `ubuntu-latest`
 measurement" becomes "a conservative floor (≥15% margin) below the minimum across
 at least three representative `ubuntu-latest` runs." ADR 0001's 100,000 games/sec
-`random_playout` figure remains the documented **native** target; the enforced CI
-floor for `random_playout` is unchanged by this ADR (it was already recalibrated
-below the steady-state runner and continues to pass).
+`random_playout` figure remains the documented **native** target. The `race_to_n`
+audit required by the operational requirements found `random_playout`'s ADR 0003
+floor (65,000) sitting only ~2.6% below the observed CI minimum (66,761), so under
+this ADR's ≥15% rule it is widened to 56,000 (`0.85 × 66,761`, rounded down). Its
+`rationale_class` therefore moves from `accepted_adr` to `conservative_ci_floor`,
+because the enforced floor is now a variance-aware CI floor derived like the other
+recalibrated operations rather than ADR 0001's budget figure; the 100,000 native
+target stays recorded in `games/race_to_n/docs/BENCHMARKS.md`.
 
 Regression-relative gating against a stored per-runner baseline — the most robust
 fix, which removes absolute-throughput calibration entirely — is the **committed
@@ -229,7 +234,9 @@ Operational requirements:
   operations are recalibrated to variance-aware `ubuntu-latest` floors; native
   targets are preserved in `BENCHMARKS.md`.
 - The Stage 1 `random_playout` native target remains 100,000 games/sec per ADR
-  0001; its enforced CI floor is unchanged by this ADR.
+  0001; its enforced CI floor is widened from 65,000 to 56,000 under this ADR's
+  ≥15% margin rule (the ADR 0003 floor was only ~2.6% below the observed CI
+  minimum), and its `rationale_class` becomes `conservative_ci_floor`.
 - No public latency budget changes. No WASM/browser smoke benchmark is added.
 
 ## Migration notes
