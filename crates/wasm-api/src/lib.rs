@@ -164,7 +164,7 @@ struct ReplayRecord {
 #[derive(Clone, Debug)]
 struct PublicTimelineReplay {
     viewer: String,
-    step_count: usize,
+    steps: Vec<PublicReplayStep>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1418,7 +1418,12 @@ fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
             &format!("unsupported replay viewer: {viewer}"),
         ));
     }
-    let step_count = doc.matches("\"step_index\":").count();
+    let steps = parse_public_replay_steps(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
     let export = PublicReplayExport {
         schema_version: SCHEMA_VERSION,
         export_class: "public_observer_projection_v1".to_owned(),
@@ -1426,15 +1431,7 @@ fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
         game_id: high_card_duel::GAME_ID.to_owned(),
         rules_version,
         variant,
-        steps: (0..step_count)
-            .map(|step_index| PublicReplayStep {
-                step_index,
-                public_view_summary: String::new(),
-                public_effects: Vec::new(),
-                redacted_command_summary: String::new(),
-                terminal: false,
-            })
-            .collect(),
+        steps,
     };
     let timeline = high_card_import_public_export(&export);
     let replay_id = next_replay_id(GAME_HIGH_CARD_DUEL);
@@ -1447,7 +1444,7 @@ fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
                 commands: Vec::new(),
                 public_timeline: Some(PublicTimelineReplay {
                     viewer: timeline.viewer.clone(),
-                    step_count: timeline.steps.len(),
+                    steps: timeline.steps.clone(),
                 }),
             },
         );
@@ -1466,13 +1463,25 @@ fn public_replay_step_json(
     cursor: usize,
     timeline: &PublicTimelineReplay,
 ) -> String {
-    let total_steps = timeline.step_count.saturating_sub(1);
+    let total_steps = timeline.steps.len().saturating_sub(1);
+    let bounded_cursor = cursor.min(total_steps);
+    let step = timeline.steps.get(bounded_cursor);
+    let public_effects = step.map_or_else(String::new, |step| {
+        step.public_effects
+            .iter()
+            .map(|effect| format!("\"{}\"", escape_json(effect)))
+            .collect::<Vec<_>>()
+            .join(",")
+    });
+    let redacted_command_summary = step.map_or("", |step| step.redacted_command_summary.as_str());
     format!(
-        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_steps\":{},\"public_export\":true,\"viewer\":\"{}\",\"view\":null,\"effects\":[]}}",
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_steps\":{},\"public_export\":true,\"viewer\":\"{}\",\"view\":null,\"effects\":[],\"public_effects\":[{}],\"redacted_command_summary\":\"{}\"}}",
         escape_json(replay_id),
-        cursor.min(total_steps),
+        bounded_cursor,
         total_steps,
-        escape_json(&timeline.viewer)
+        escape_json(&timeline.viewer),
+        public_effects,
+        escape_json(redacted_command_summary)
     )
 }
 
@@ -3852,6 +3861,37 @@ fn parse_replay_document(input: &str) -> Result<ParsedReplayDocument, String> {
     })
 }
 
+fn parse_public_replay_steps(input: &str) -> Result<Vec<PublicReplayStep>, String> {
+    array_items(input, "steps")?
+        .into_iter()
+        .map(|item| parse_public_replay_step(&item))
+        .collect()
+}
+
+fn parse_public_replay_step(input: &str) -> Result<PublicReplayStep, String> {
+    validate_json_object(input)?;
+    reject_unknown_root_fields(
+        input,
+        &[
+            "step_index",
+            "public_view_summary",
+            "public_effects",
+            "redacted_command_summary",
+            "terminal",
+        ],
+    )?;
+    let step_index = number_field(input, "step_index")?
+        .try_into()
+        .map_err(|_| "step_index does not fit usize".to_owned())?;
+    Ok(PublicReplayStep {
+        step_index,
+        public_view_summary: string_field(input, "public_view_summary")?,
+        public_effects: string_array_field(input, "public_effects")?,
+        redacted_command_summary: string_field(input, "redacted_command_summary")?,
+        terminal: bool_field(input, "terminal")?,
+    })
+}
+
 fn parse_replay_command(input: &str) -> Result<AppliedCommand, String> {
     validate_json_object(input)?;
     reject_unknown_root_fields(
@@ -3996,21 +4036,25 @@ fn skip_json_value(input: &str, mut index: usize) -> Result<usize, String> {
 }
 
 fn string_field(input: &str, key: &str) -> Result<String, String> {
-    let needle = format!("\"{key}\":");
-    let start = input
-        .find(&needle)
-        .ok_or_else(|| format!("missing `{key}`"))?
-        + needle.len();
+    let start = field_value_start(input, key)?;
     parse_string_at(input, start).ok_or_else(|| format!("field `{key}` must be a string"))
 }
 
 fn number_field(input: &str, key: &str) -> Result<u64, String> {
-    let needle = format!("\"{key}\":");
-    let start = input
-        .find(&needle)
-        .ok_or_else(|| format!("missing `{key}`"))?
-        + needle.len();
+    let start = field_value_start(input, key)?;
     parse_number_at(input, start).ok_or_else(|| format!("field `{key}` must be a number"))
+}
+
+fn bool_field(input: &str, key: &str) -> Result<bool, String> {
+    let start = field_value_start(input, key)?;
+    let tail = input[start..].trim_start();
+    if tail.starts_with("true") {
+        Ok(true)
+    } else if tail.starts_with("false") {
+        Ok(false)
+    } else {
+        Err(format!("field `{key}` must be a boolean"))
+    }
 }
 
 fn string_array_field(input: &str, key: &str) -> Result<Vec<String>, String> {
@@ -4021,11 +4065,7 @@ fn string_array_field(input: &str, key: &str) -> Result<Vec<String>, String> {
 }
 
 fn array_items(input: &str, key: &str) -> Result<Vec<String>, String> {
-    let needle = format!("\"{key}\":");
-    let start = input
-        .find(&needle)
-        .ok_or_else(|| format!("missing `{key}`"))?
-        + needle.len();
+    let start = field_value_start(input, key)?;
     let open = input[start..]
         .find('[')
         .ok_or_else(|| format!("field `{key}` must be an array"))?
@@ -4036,6 +4076,42 @@ fn array_items(input: &str, key: &str) -> Result<Vec<String>, String> {
         return Ok(Vec::new());
     }
     split_top_level(body, ',')
+}
+
+fn field_value_start(input: &str, key: &str) -> Result<usize, String> {
+    let trimmed = input.trim();
+    let body = trimmed
+        .strip_prefix('{')
+        .and_then(|value| value.strip_suffix('}'))
+        .ok_or_else(|| "malformed JSON object".to_owned())?;
+    let body_start = input
+        .find('{')
+        .ok_or_else(|| "malformed JSON object".to_owned())?
+        + 1;
+    let mut index = 0;
+    while index < body.len() {
+        let rest = body[index..].trim_start();
+        if rest.is_empty() {
+            break;
+        }
+        index += body[index..].len() - rest.len();
+        if body[index..].starts_with(',') {
+            index += 1;
+            continue;
+        }
+        let (field_key, next) = parse_json_string_at(body, index)?;
+        index = next;
+        let after_key = body[index..].trim_start();
+        if !after_key.starts_with(':') {
+            return Err(format!("malformed field `{field_key}`"));
+        }
+        let value_start = index + body[index..].len() - after_key.len() + 1;
+        if field_key == key {
+            return Ok(body_start + value_start);
+        }
+        index = skip_json_value(body, value_start)?;
+    }
+    Err(format!("missing `{key}`"))
 }
 
 fn matching_bracket(
@@ -4874,6 +4950,79 @@ mod tests {
     }
 
     #[test]
+    fn high_card_public_import_replays_ordered_public_effects() {
+        let source_export = high_card_export_public_observer_replay(
+            &high_card_duel::generate_internal_full_trace(55),
+        );
+        let exported = pretty_json_layout(&source_export.to_json());
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+
+        for source_step in &source_export.steps {
+            let step = replay_step(&replay_id, source_step.step_index).expect("step returned");
+            assert!(step.contains(&format!("\"cursor\":{}", source_step.step_index)));
+            assert!(step.contains(&format!(
+                "\"public_effects\":{}",
+                json_string_array(&source_step.public_effects)
+            )));
+            assert!(step.contains(&format!(
+                "\"redacted_command_summary\":\"{}\"",
+                escape_json(&source_step.redacted_command_summary)
+            )));
+        }
+
+        let initial = replay_step(&replay_id, 0).expect("initial step returned");
+        assert!(initial.contains("\"public_effects\":[]"));
+
+        let reveal = replay_step(&replay_id, 2).expect("reveal step returned");
+        assert!(reveal.contains("hcd_cards_revealed:round=1;"));
+        assert!(reveal.contains("hcd_round_scored:round=1;"));
+        assert_ordered(
+            &reveal,
+            "hcd_cards_revealed:round=1;",
+            "hcd_round_scored:round=1;",
+        );
+
+        let terminal_index = source_export.steps.len() - 1;
+        let terminal = replay_step(&replay_id, terminal_index).expect("terminal step returned");
+        assert!(terminal.contains("hcd_terminal:winner="));
+        assert!(terminal.contains(&format!("\"cursor\":{terminal_index}")));
+
+        let clamped = replay_step(&replay_id, terminal_index + 99).expect("clamped step returned");
+        assert!(clamped.contains(&format!("\"cursor\":{terminal_index}")));
+        assert!(clamped.contains("hcd_terminal:winner="));
+    }
+
+    #[test]
+    fn high_card_public_import_step_json_adds_no_hidden_facts() {
+        let source_export = high_card_export_public_observer_replay(
+            &high_card_duel::generate_internal_full_trace(55),
+        );
+        let exported = source_export.to_json();
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+        let public_card_ids = card_ids_in(&exported);
+
+        for cursor in 0..source_export.steps.len() {
+            let step = replay_step(&replay_id, cursor).expect("step returned");
+            assert!(
+                !step.contains("\"seed\""),
+                "seed leaked at cursor {cursor}: {step}"
+            );
+            assert!(
+                !step.contains("commit/hcd:r"),
+                "private command path leaked at cursor {cursor}: {step}"
+            );
+            for card_id in card_ids_in(&step) {
+                assert!(
+                    public_card_ids.contains(&card_id),
+                    "step introduced card id {card_id} absent from source public export"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn stale_action_returns_diagnostic_without_mutation() {
         let created = new_match("race_to_n", 12).expect("match created");
         let match_id = extract_match_id(&created);
@@ -5053,6 +5202,38 @@ mod tests {
 
     fn last_output_string() -> String {
         LAST_OUTPUT.with(|last| last.borrow().clone())
+    }
+
+    fn json_string_array(values: &[String]) -> String {
+        let body = values
+            .iter()
+            .map(|value| format!("\"{}\"", escape_json(value)))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!("[{body}]")
+    }
+
+    fn assert_ordered(input: &str, first: &str, second: &str) {
+        let first_index = input.find(first).expect("first value present");
+        let second_index = input.find(second).expect("second value present");
+        assert!(
+            first_index < second_index,
+            "`{first}` must appear before `{second}` in {input}"
+        );
+    }
+
+    fn card_ids_in(input: &str) -> Vec<String> {
+        let mut ids = Vec::new();
+        for part in input.split("hcd:r").skip(1) {
+            let suffix = part
+                .chars()
+                .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == ':')
+                .collect::<String>();
+            ids.push(format!("hcd:r{suffix}"));
+        }
+        ids.sort();
+        ids.dedup();
+        ids
     }
 
     fn compact_json_layout(input: &str) -> String {
