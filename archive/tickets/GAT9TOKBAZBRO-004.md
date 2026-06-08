@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-004: Legal action tree + validation + diagnostics
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/token_bazaar/src/actions.rs` (new), `src/rules.rs` (new, legality/validation half), `src/lib.rs` (modify)
@@ -134,3 +134,28 @@ Add `mod actions; mod rules;`; re-export the legal-action and validation surface
 2. `cargo build -p token_bazaar && bash scripts/boundary-check.sh`
 3. Per-crate test is the correct boundary; cross-tool/WASM action-tree hashing is
    verified in GAT9TOKBAZBRO-010/013.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/src/actions.rs` with stable flat action segments,
+  actor-seat lookup, parsing, action-tree construction, and Rust-owned metadata
+  for collect, exchange, fulfill, and forced pass.
+- Added `games/token_bazaar/src/rules.rs` with legal action enumeration,
+  validation, stable diagnostics, and fail-closed rejection for stale,
+  non-active, exhausted-supply, insufficient-cost, empty-slot, terminal, and
+  pass-not-forced cases.
+- Updated `src/lib.rs` exports for the action and validation surfaces.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo test -p token_bazaar` passed with 18 tests.
+- `cargo build -p token_bazaar` passed.
+- `bash scripts/boundary-check.sh` passed.
