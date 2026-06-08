@@ -17,7 +17,7 @@ V1/v2 exclude hosted multiplayer, accounts, databases, matchmaking, chat, ranked
 | 4 | Gate 6 | `directional_flip` | Directional scanning and grouped effects; extraction decision. |
 | 5 | Gate 7 | `draughts_lite` | Compound action tree proof. |
 | 5M | Gate 7.1 | `board_space` primitive conformance | Mandatory promotion-debt closure before the next mechanic-ladder gate. |
-| 6 | Gate 8 | `high_card_duel` / `blackjack_lite` | Chance and hidden-information proof. |
+| 6 | Gate 8 | `high_card_duel` | Chance and hidden-information proof. |
 | 7 | Gate 9 | `token_bazaar` / `resource_race` | Original resource/economy microgame. |
 | 8 | Gate 9 | `secret_draft` | Simultaneous commitment/reveal proof. |
 | 9 | Gate 10 | `poker_lite` | Imperfect-information accounting/bot proof. |
@@ -64,7 +64,7 @@ When that resolution promotes a `game-stdlib` primitive, all previous official g
 | 3 | `column_four` | gravity placement, legal columns, previews, line detection, effect-driven drop/win animation | first showcase | compare fixed coordinate/line pressure |
 | 4 | `directional_flip` | directional scans, bracketed grouped changes, pass/no-move if scoped, multi-piece effects | richer abstract board game | third-use coordinate/scan decision |
 | 5 | `draughts_lite` | movement, capture, mandatory capture, forced continuation, action trees | serious compound-action proof | movement/capture inventory |
-| 6 | `high_card_duel` / `blackjack_lite` | deterministic shuffle, private views, filtered logs/effects, no-leak serialization | hidden-information safety proof | card/zone local until repeated |
+| 6 | `high_card_duel` | deterministic shuffle, private views, filtered logs/effects, no-leak serialization | hidden-information safety proof | card/zone local until repeated; `blackjack_lite` deferred by [ADR 0006](adr/0006-blackjack-lite-roadmap-placement.md) |
 | 7 | `token_bazaar` / `resource_race` | resources, payments, score economy, cleanup phases, valuation bot | original portfolio microgame | resource/accounting candidate later |
 | 8 | `secret_draft` | commitments, reveal, waiting states, simultaneous resolution, drafting | private-view waiting UX | commitment/reveal candidate later |
 | 9 | `poker_lite` | betting, pots, public/private cards, simple showdown, imperfect-info policy | accounting + imperfect-info bot proof | cards/resources pressure increases |
@@ -263,7 +263,9 @@ Not allowed: new `engine-core` board/grid/cell vocabulary; broad generic board-g
 
 Purpose: prove deterministic shuffle, private views, viewer-filtered logs/effects, no-leak serialization, and bots acting from allowed private views.
 
-Recommended first candidate: `high_card_duel`. Add `blackjack_lite` only if it adds useful pressure without derailing polish.
+Required candidate: `high_card_duel`.
+
+`blackjack_lite` is not a Gate 8 or Gate 8.1 implementation target. It is a deferred comparison case under [ADR 0006](adr/0006-blackjack-lite-roadmap-placement.md); reconsider it only after Gate 9 resource/accounting and simultaneous-choice pressure has landed, and only with a scoped non-casino naming/IP plan. If a draw/stand threshold proof is needed earlier, propose an original non-casino microgame by spec/ADR instead of treating Blackjack as mandatory.
 
 Exit:
 

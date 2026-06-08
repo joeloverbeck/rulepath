@@ -323,9 +323,11 @@ Initial native targets, to be replaced by measured baselines or accepted ADRs:
 | 3 | `column_four` | 100,000+ games/sec |
 | 4 | `directional_flip` | 30,000+ games/sec |
 | 5 | `draughts_lite` | 10,000+ games/sec |
-| 6 | `high_card_duel` / `blackjack_lite` | 20,000+ hands/sec |
+| 6 | `high_card_duel` | 20,000+ hands/sec |
 | 9 | `poker_lite` | 2,000+ hands/sec |
 | 14 | `event_frontier` | 100+ turns/sec |
+
+`blackjack_lite` has no Gate 8 benchmark target. Any future original draw/stand threshold game, deferred Blackjack comparison, dealer-automation game, or betting/accounting game MUST define its own native and browser budget in its implementation spec or ADR.
 
 Public latency targets:
 
