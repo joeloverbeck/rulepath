@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-011: secret_draft benchmarks + thresholds + BENCHMARKS.md + gate-2 CI
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/secret_draft/benches/secret_draft.rs`, `benches/thresholds.json`, `games/secret_draft/docs/BENCHMARKS.md`; `.github/workflows/gate-2-benchmarks.yml` (modify). No `engine-core` / `game-stdlib` change.

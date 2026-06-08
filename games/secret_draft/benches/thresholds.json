@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "game_id": "secret_draft",
+  "rules_version": "secret-draft-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "legal_actions_initial_pool",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_after_one_commit",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "validate_commit",
+      "unit": "validations_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "apply_first_commit",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "apply_second_commit_resolve_reveal",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "project_public_view_pending",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "project_public_view_after_reveal",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "state_hash_terminal",
+      "unit": "hashes_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "public_export_timeline",
+      "unit": "exports_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    },
+    {
+      "operation_name": "level1_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until secret_draft has stable CI measurements."
+    }
+  ]
+}
