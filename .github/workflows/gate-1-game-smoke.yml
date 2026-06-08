@@ -42,6 +42,9 @@ jobs:
       - name: draughts_lite quick simulation
         run: cargo run -p simulate -- --game draughts_lite --games 1000
 
+      - name: high_card_duel quick simulation
+        run: cargo run -p simulate -- --game high_card_duel --games 1000
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
 
@@ -56,6 +59,9 @@ jobs:
 
       - name: Draughts Lite replay drift check
         run: cargo run -p replay-check -- --game draughts_lite --all
+
+      - name: High Card Duel replay drift check
+        run: cargo run -p replay-check -- --game high_card_duel --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
@@ -72,6 +78,9 @@ jobs:
       - name: Draughts Lite fixture validation
         run: cargo run -p fixture-check -- --game draughts_lite
 
+      - name: High Card Duel fixture validation
+        run: cargo run -p fixture-check -- --game high_card_duel
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
 
@@ -86,6 +95,9 @@ jobs:
 
       - name: Draughts Lite rule coverage drift check
         run: cargo run -p rule-coverage -- --game draughts_lite
+
+      - name: High Card Duel rule coverage drift check
+        run: cargo run -p rule-coverage -- --game high_card_duel
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
@@ -102,7 +114,7 @@ jobs:
       - name: Static preview smoke
         run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, and draughts_lite
+      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, draughts_lite, and high_card_duel
         run: |
           node apps/web/e2e/shell.smoke.mjs
           node apps/web/e2e/a11y-noleak.smoke.mjs
