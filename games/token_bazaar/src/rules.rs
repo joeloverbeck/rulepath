@@ -1,9 +1,10 @@
-use engine_core::{CommandEnvelope, Diagnostic};
+use engine_core::{CommandEnvelope, Diagnostic, EffectEnvelope};
 
 use crate::{
     actions::{actor_seat, collect_gain, parse_action_segment, TokenBazaarAction},
+    effects::{public_effect, TokenBazaarEffect},
     ids::{CollectBundleId, ResourceId, TokenBazaarSeat, TokenBazaarSlot},
-    state::{contract_spec, ResourceCounts, TokenBazaarState},
+    state::{contract_spec, ResourceCounts, TerminalOutcome, TokenBazaarState},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -105,10 +106,77 @@ pub fn wrong_seat_diagnostic() -> Diagnostic {
     )
 }
 
+pub fn apply_action(
+    state: &mut TokenBazaarState,
+    action: ValidatedAction,
+) -> Vec<EffectEnvelope<TokenBazaarEffect>> {
+    let actor = action.actor();
+    let mut effects = match action {
+        ValidatedAction::Collect { actor, bundle } => apply_collect(state, actor, bundle),
+        ValidatedAction::Exchange { actor, pay, take } => apply_exchange(state, actor, pay, take),
+        ValidatedAction::Fulfill { actor, slot } => apply_fulfill(state, actor, slot),
+        ValidatedAction::Pass { actor } => vec![public_effect(TokenBazaarEffect::PassAccepted {
+            seat: actor,
+        })],
+    };
+
+    finish_turn(state, actor, &mut effects);
+    effects
+}
+
+pub fn determine_terminal_outcome(state: &TokenBazaarState) -> TerminalOutcome {
+    if state.scores[0] > state.scores[1] {
+        return TerminalOutcome::Win {
+            seat: TokenBazaarSeat::Seat0,
+        };
+    }
+    if state.scores[1] > state.scores[0] {
+        return TerminalOutcome::Win {
+            seat: TokenBazaarSeat::Seat1,
+        };
+    }
+
+    let fulfilled_counts = fulfilled_counts(state);
+    if fulfilled_counts[0] > fulfilled_counts[1] {
+        return TerminalOutcome::Win {
+            seat: TokenBazaarSeat::Seat0,
+        };
+    }
+    if fulfilled_counts[1] > fulfilled_counts[0] {
+        return TerminalOutcome::Win {
+            seat: TokenBazaarSeat::Seat1,
+        };
+    }
+
+    let inventory_totals = inventory_totals(state);
+    if inventory_totals[0] > inventory_totals[1] {
+        TerminalOutcome::Win {
+            seat: TokenBazaarSeat::Seat0,
+        }
+    } else if inventory_totals[1] > inventory_totals[0] {
+        TerminalOutcome::Win {
+            seat: TokenBazaarSeat::Seat1,
+        }
+    } else {
+        TerminalOutcome::Draw
+    }
+}
+
 pub fn diagnostic(code: &str, message: &str) -> Diagnostic {
     Diagnostic {
         code: code.to_owned(),
         message: message.to_owned(),
+    }
+}
+
+impl ValidatedAction {
+    pub const fn actor(self) -> TokenBazaarSeat {
+        match self {
+            Self::Collect { actor, .. }
+            | Self::Exchange { actor, .. }
+            | Self::Fulfill { actor, .. }
+            | Self::Pass { actor } => actor,
+        }
     }
 }
 
@@ -216,10 +284,171 @@ fn has_at_least(available: ResourceCounts, required: ResourceCounts) -> bool {
         .all(|resource| available.get(*resource) >= required.get(*resource))
 }
 
+fn apply_collect(
+    state: &mut TokenBazaarState,
+    actor: TokenBazaarSeat,
+    bundle: CollectBundleId,
+) -> Vec<EffectEnvelope<TokenBazaarEffect>> {
+    let gain = collect_gain(bundle);
+    subtract_counts(&mut state.supply, gain);
+    add_counts(&mut state.inventories[actor.index()], gain);
+
+    vec![public_effect(TokenBazaarEffect::ResourceCollected {
+        seat: actor,
+        bundle,
+        gain,
+        inventory_after: state.inventories[actor.index()],
+        supply_after: state.supply,
+    })]
+}
+
+fn apply_exchange(
+    state: &mut TokenBazaarState,
+    actor: TokenBazaarSeat,
+    pay: ResourceId,
+    take: ResourceId,
+) -> Vec<EffectEnvelope<TokenBazaarEffect>> {
+    let mut cost = ResourceCounts::default();
+    cost.set(pay, 2);
+    let mut gain = ResourceCounts::default();
+    gain.set(take, 1);
+
+    subtract_counts(&mut state.inventories[actor.index()], cost);
+    add_counts(&mut state.supply, cost);
+    subtract_counts(&mut state.supply, gain);
+    add_counts(&mut state.inventories[actor.index()], gain);
+
+    vec![public_effect(TokenBazaarEffect::ResourceExchanged {
+        seat: actor,
+        paid_resource: pay,
+        taken_resource: take,
+        cost,
+        gain,
+        inventory_after: state.inventories[actor.index()],
+        supply_after: state.supply,
+    })]
+}
+
+fn apply_fulfill(
+    state: &mut TokenBazaarState,
+    actor: TokenBazaarSeat,
+    slot: TokenBazaarSlot,
+) -> Vec<EffectEnvelope<TokenBazaarEffect>> {
+    let contract_id = state
+        .slot_contract(slot)
+        .expect("validated fulfill action must target occupied slot");
+    let contract = contract_spec(contract_id);
+
+    subtract_counts(&mut state.inventories[actor.index()], contract.cost);
+    add_counts(&mut state.supply, contract.cost);
+    state.scores[actor.index()] += u32::from(contract.points);
+    state.fulfilled[actor.index()].push(contract_id);
+    state.slots[slot.index()] = None;
+
+    let mut effects = vec![public_effect(TokenBazaarEffect::ContractFulfilled {
+        seat: actor,
+        slot,
+        contract: contract_id,
+        cost: contract.cost,
+        points: contract.points,
+        score_after: state.scores[actor.index()],
+        fulfilled_count_after: state.fulfilled[actor.index()].len() as u8,
+    })];
+
+    if let Some(next_contract) = state.queue.first().copied() {
+        state.queue.remove(0);
+        state.slots[slot.index()] = Some(next_contract);
+        effects.push(public_effect(TokenBazaarEffect::SlotRefilled {
+            slot,
+            contract: next_contract,
+            remaining_queue_len: state.queue.len() as u8,
+        }));
+    } else {
+        effects.push(public_effect(TokenBazaarEffect::SlotEmptied {
+            slot,
+            remaining_queue_len: 0,
+        }));
+    }
+
+    effects
+}
+
+fn finish_turn(
+    state: &mut TokenBazaarState,
+    actor: TokenBazaarSeat,
+    effects: &mut Vec<EffectEnvelope<TokenBazaarEffect>>,
+) {
+    state.turns_taken[actor.index()] = state.turns_taken[actor.index()].saturating_add(1);
+    state.freshness_token = state.freshness_token.next();
+
+    if terminal_by_turn_cap(state) || terminal_by_market_exhaustion(state) {
+        let outcome = determine_terminal_outcome(state);
+        state.terminal_outcome = Some(outcome);
+        effects.push(public_effect(TokenBazaarEffect::Terminal {
+            outcome,
+            scores: state.scores,
+            fulfilled_counts: fulfilled_counts(state),
+            inventory_totals: inventory_totals(state),
+        }));
+        return;
+    }
+
+    let previous_seat = actor;
+    state.active_seat = actor.other();
+    effects.push(public_effect(TokenBazaarEffect::TurnAdvanced {
+        previous_seat,
+        active_seat: state.active_seat,
+        turns_taken: state.turns_taken,
+    }));
+}
+
+fn terminal_by_turn_cap(state: &TokenBazaarState) -> bool {
+    state
+        .turns_taken
+        .iter()
+        .all(|turns| *turns >= state.variant.turns_per_seat)
+}
+
+fn terminal_by_market_exhaustion(state: &TokenBazaarState) -> bool {
+    state.queue.is_empty() && state.slots.iter().all(Option::is_none)
+}
+
+fn fulfilled_counts(state: &TokenBazaarState) -> [u8; 2] {
+    [
+        state.fulfilled[0].len() as u8,
+        state.fulfilled[1].len() as u8,
+    ]
+}
+
+fn inventory_totals(state: &TokenBazaarState) -> [u16; 2] {
+    [state.inventories[0].total(), state.inventories[1].total()]
+}
+
+fn add_counts(target: &mut ResourceCounts, delta: ResourceCounts) {
+    target.amber = target.amber.saturating_add(delta.amber);
+    target.jade = target.jade.saturating_add(delta.jade);
+    target.iron = target.iron.saturating_add(delta.iron);
+}
+
+fn subtract_counts(target: &mut ResourceCounts, delta: ResourceCounts) {
+    target.amber = target
+        .amber
+        .checked_sub(delta.amber)
+        .expect("validated action cannot underflow amber");
+    target.jade = target
+        .jade
+        .checked_sub(delta.jade)
+        .expect("validated action cannot underflow jade");
+    target.iron = target
+        .iron
+        .checked_sub(delta.iron)
+        .expect("validated action cannot underflow iron");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ids::ContractId, setup::setup_match};
+    use crate::{effects::TokenBazaarEffect, ids::ContractId, setup::setup_match};
     use engine_core::{
         ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed,
     };
@@ -227,6 +456,10 @@ mod tests {
     fn state() -> TokenBazaarState {
         let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
         setup_match(Seed(1), &seats, &Default::default()).expect("setup succeeds")
+    }
+
+    fn resource_total(state: &TokenBazaarState) -> u16 {
+        state.supply.total() + state.inventories[0].total() + state.inventories[1].total()
     }
 
     fn command(
@@ -431,5 +664,223 @@ mod tests {
                 .code,
             "insufficient_cost"
         );
+    }
+
+    #[test]
+    fn apply_collect_updates_accounting_and_turn() {
+        let mut state = state();
+
+        let effects = apply_action(
+            &mut state,
+            ValidatedAction::Collect {
+                actor: TokenBazaarSeat::Seat0,
+                bundle: CollectBundleId::AmberJade,
+            },
+        );
+
+        assert_eq!(state.supply, ResourceCounts::new(13, 13, 14));
+        assert_eq!(state.inventories[0], ResourceCounts::new(2, 2, 1));
+        assert_eq!(state.active_seat, TokenBazaarSeat::Seat1);
+        assert_eq!(state.turns_taken, [1, 0]);
+        assert_eq!(resource_total(&state), 48);
+        assert!(matches!(
+            effects[0].payload,
+            TokenBazaarEffect::ResourceCollected {
+                bundle: CollectBundleId::AmberJade,
+                inventory_after: ResourceCounts {
+                    amber: 2,
+                    jade: 2,
+                    iron: 1
+                },
+                supply_after: ResourceCounts {
+                    amber: 13,
+                    jade: 13,
+                    iron: 14
+                },
+                ..
+            }
+        ));
+        assert!(matches!(
+            effects[1].payload,
+            TokenBazaarEffect::TurnAdvanced {
+                active_seat: TokenBazaarSeat::Seat1,
+                turns_taken: [1, 0],
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn apply_exchange_returns_paid_supply_and_takes_requested_resource() {
+        let mut state = state();
+        state.inventories[0] = ResourceCounts::new(2, 1, 1);
+        state.supply = ResourceCounts::new(13, 14, 14);
+
+        let effects = apply_action(
+            &mut state,
+            ValidatedAction::Exchange {
+                actor: TokenBazaarSeat::Seat0,
+                pay: ResourceId::Amber,
+                take: ResourceId::Iron,
+            },
+        );
+
+        assert_eq!(state.inventories[0], ResourceCounts::new(0, 1, 2));
+        assert_eq!(state.supply, ResourceCounts::new(15, 14, 13));
+        assert_eq!(state.turns_taken, [1, 0]);
+        assert_eq!(resource_total(&state), 48);
+        assert!(matches!(
+            effects[0].payload,
+            TokenBazaarEffect::ResourceExchanged {
+                paid_resource: ResourceId::Amber,
+                taken_resource: ResourceId::Iron,
+                inventory_after: ResourceCounts {
+                    amber: 0,
+                    jade: 1,
+                    iron: 2
+                },
+                supply_after: ResourceCounts {
+                    amber: 15,
+                    jade: 14,
+                    iron: 13
+                },
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn apply_fulfill_scores_refills_and_advances() {
+        let mut state = state();
+
+        let effects = apply_action(
+            &mut state,
+            ValidatedAction::Fulfill {
+                actor: TokenBazaarSeat::Seat0,
+                slot: TokenBazaarSlot::Slot0,
+            },
+        );
+
+        assert_eq!(state.inventories[0], ResourceCounts::default());
+        assert_eq!(state.supply, ResourceCounts::new(15, 15, 15));
+        assert_eq!(state.scores, [3, 0]);
+        assert_eq!(state.fulfilled[0], vec![ContractId::BalancedWares]);
+        assert_eq!(state.slots[0], Some(ContractId::JadeGuild));
+        assert_eq!(state.queue.len(), 6);
+        assert_eq!(state.active_seat, TokenBazaarSeat::Seat1);
+        assert_eq!(resource_total(&state), 48);
+        assert!(matches!(
+            effects[0].payload,
+            TokenBazaarEffect::ContractFulfilled {
+                contract: ContractId::BalancedWares,
+                score_after: 3,
+                fulfilled_count_after: 1,
+                ..
+            }
+        ));
+        assert!(matches!(
+            effects[1].payload,
+            TokenBazaarEffect::SlotRefilled {
+                contract: ContractId::JadeGuild,
+                remaining_queue_len: 6,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn empty_slot_when_queue_exhausted_and_terminal_when_market_empty() {
+        let mut state = state();
+        state.slots = [Some(ContractId::BalancedWares), None, None];
+        state.queue.clear();
+
+        let effects = apply_action(
+            &mut state,
+            ValidatedAction::Fulfill {
+                actor: TokenBazaarSeat::Seat0,
+                slot: TokenBazaarSlot::Slot0,
+            },
+        );
+
+        assert_eq!(state.slots, [None, None, None]);
+        assert_eq!(
+            state.terminal_outcome,
+            Some(TerminalOutcome::Win {
+                seat: TokenBazaarSeat::Seat0
+            })
+        );
+        assert!(matches!(
+            effects[1].payload,
+            TokenBazaarEffect::SlotEmptied {
+                slot: TokenBazaarSlot::Slot0,
+                remaining_queue_len: 0
+            }
+        ));
+        assert!(matches!(
+            effects[2].payload,
+            TokenBazaarEffect::Terminal { .. }
+        ));
+        assert!(!effects
+            .iter()
+            .any(|effect| matches!(effect.payload, TokenBazaarEffect::TurnAdvanced { .. })));
+    }
+
+    #[test]
+    fn turn_cap_terminal_uses_tie_breaks() {
+        let mut state = state();
+        state.supply = ResourceCounts::default();
+        state.inventories[0] = ResourceCounts::default();
+        state.inventories[1] = ResourceCounts::default();
+        state.slots = [None, None, None];
+        state.turns_taken = [7, 8];
+
+        let effects = apply_action(
+            &mut state,
+            ValidatedAction::Pass {
+                actor: TokenBazaarSeat::Seat0,
+            },
+        );
+
+        assert_eq!(state.turns_taken, [8, 8]);
+        assert_eq!(state.terminal_outcome, Some(TerminalOutcome::Draw));
+        assert!(matches!(
+            effects.last().expect("terminal effect").payload,
+            TokenBazaarEffect::Terminal {
+                outcome: TerminalOutcome::Draw,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn terminal_tie_break_order_is_score_fulfilled_inventory_draw() {
+        let mut score = state();
+        score.scores = [4, 3];
+        assert_eq!(
+            determine_terminal_outcome(&score),
+            TerminalOutcome::Win {
+                seat: TokenBazaarSeat::Seat0
+            }
+        );
+
+        let mut fulfilled = state();
+        fulfilled.fulfilled[1].push(ContractId::BalancedWares);
+        assert_eq!(
+            determine_terminal_outcome(&fulfilled),
+            TerminalOutcome::Win {
+                seat: TokenBazaarSeat::Seat1
+            }
+        );
+
+        let mut inventory = state();
+        inventory.inventories[1] = ResourceCounts::new(2, 1, 1);
+        assert_eq!(
+            determine_terminal_outcome(&inventory),
+            TerminalOutcome::Win {
+                seat: TokenBazaarSeat::Seat1
+            }
+        );
+
+        assert_eq!(determine_terminal_outcome(&state()), TerminalOutcome::Draw);
     }
 }

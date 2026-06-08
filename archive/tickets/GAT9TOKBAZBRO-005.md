@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-005: Apply transitions + effects + terminal/tie-breaks
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/token_bazaar/src/effects.rs` (new), `src/rules.rs` (modify, apply half), `src/lib.rs` (modify)
@@ -137,3 +137,29 @@ Add `mod effects;`; re-export the effect + apply surface.
 2. `cargo build -p token_bazaar && bash scripts/boundary-check.sh`
 3. End-to-end conservation across long playouts is verified by simulation/replay
    in GAT9TOKBAZBRO-010/012; per-crate unit tests are the correct boundary here.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/src/effects.rs` with structured public accounting
+  effects for collect, exchange, fulfill, refill/empty slot, forced pass, turn
+  advance, and terminal outcome.
+- Added stable effect summaries/serialization for deterministic replay/hash
+  substrate.
+- Extended `games/token_bazaar/src/rules.rs` with `apply_action`, refill,
+  turn-advance, terminal detection, resource accounting, and score/fulfilled/
+  inventory/draw tie-breaks.
+- Updated `src/lib.rs` exports for effects and apply/tie-break helpers.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo test -p token_bazaar` passed with 25 tests.
+- `cargo build -p token_bazaar` passed.
+- `bash scripts/boundary-check.sh` passed.

@@ -1,6 +1,7 @@
 //! `token_bazaar` official-game crate skeleton.
 
 pub mod actions;
+pub mod effects;
 pub mod ids;
 pub mod rules;
 pub mod setup;
@@ -11,6 +12,7 @@ pub use actions::{
     actor_seat, legal_action_tree, parse_action_segment, ActionFamily, TokenBazaarAction,
     COLLECT_SEGMENT_PREFIX, EXCHANGE_SEGMENT_PREFIX, FULFILL_SEGMENT_PREFIX, PASS_SEGMENT,
 };
+pub use effects::{public_effect, TokenBazaarEffect};
 pub use ids::{
     CollectBundleId, ContractId, ResourceId, TokenBazaarSeat, TokenBazaarSlot, GAME_ID,
     RULES_VERSION_LABEL, STANDARD_CONTRACT_COUNT, STANDARD_MARKET_SLOT_COUNT,
@@ -18,7 +20,8 @@ pub use ids::{
     STANDARD_TURNS_PER_SEAT, VARIANT_ID,
 };
 pub use rules::{
-    diagnostic, legal_actions, validate_command, wrong_seat_diagnostic, ValidatedAction,
+    apply_action, determine_terminal_outcome, diagnostic, legal_actions, validate_command,
+    wrong_seat_diagnostic, ValidatedAction,
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
