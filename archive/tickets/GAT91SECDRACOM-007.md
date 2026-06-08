@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-007: secret_draft replay support — full trace + viewer-scoped public export/import
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/secret_draft/src/replay_support.rs`; no `engine-core` / `game-stdlib` change.
