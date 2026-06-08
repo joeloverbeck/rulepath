@@ -1381,8 +1381,13 @@ pub fn replay_reset(replay_id: &str) -> Result<String, String> {
 }
 
 fn is_high_card_public_export(doc: &str) -> bool {
-    doc.contains("\"export_class\":\"public_observer_projection_v1\"")
-        && doc.contains("\"game_id\":\"high_card_duel\"")
+    matches!(
+        string_field(doc, "export_class").as_deref(),
+        Ok("public_observer_projection_v1")
+    ) && matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(high_card_duel::GAME_ID)
+    )
 }
 
 fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
@@ -4850,6 +4855,19 @@ mod tests {
         assert!(reset.contains("\"public_export\":true"));
         assert!(reset.contains("\"view\":null"));
 
+        let pretty_exported = pretty_json_layout(&exported);
+        assert!(pretty_exported.contains("\"export_class\": \"public_observer_projection_v1\""));
+        assert!(pretty_exported.contains("\"game_id\": \"high_card_duel\""));
+        let pretty_imported =
+            import_replay(&pretty_exported).expect("pretty public replay imported");
+        let pretty_replay_id = extract_replay_id(&pretty_imported);
+        assert!(pretty_imported.contains("\"public_export\":true"));
+        assert!(pretty_imported.contains("\"game_id\":\"high_card_duel\""));
+        assert!(!pretty_imported.contains("hcd:r"));
+        let pretty_reset = replay_reset(&pretty_replay_id).expect("pretty public replay reset");
+        assert!(pretty_reset.contains("\"public_export\":true"));
+        assert!(!pretty_reset.contains("hcd:r"));
+
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
         assert!(bot.contains("\"ok\":true"));
         assert!(bot.contains("\"type\":\"cards_revealed\""));
@@ -4926,6 +4944,15 @@ mod tests {
         assert!(import_replay(&oversized)
             .expect_err("oversized replay rejected")
             .contains("\"code\":\"replay_too_large\""));
+
+        let unexpected_export_class = exported.replacen(
+            '{',
+            "{\"export_class\":\"public_observer_projection_v1\",",
+            1,
+        );
+        assert!(import_replay(&unexpected_export_class)
+            .expect_err("unknown export_class rejected on generic path")
+            .contains("unknown field `export_class`"));
 
         assert_eq!(match_count(), matches_before);
         assert_eq!(replay_count(), replays_before);
@@ -5047,6 +5074,52 @@ mod tests {
                 output.push(ch);
             } else if !ch.is_whitespace() {
                 output.push(ch);
+            }
+        }
+        output
+    }
+
+    fn pretty_json_layout(input: &str) -> String {
+        let mut output = String::new();
+        let mut in_string = false;
+        let mut escaped = false;
+        let mut depth = 0_usize;
+        for ch in input.chars() {
+            if in_string {
+                output.push(ch);
+                if escaped {
+                    escaped = false;
+                } else if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    in_string = false;
+                }
+                continue;
+            }
+            match ch {
+                '"' => {
+                    in_string = true;
+                    output.push(ch);
+                }
+                '{' | '[' => {
+                    output.push(ch);
+                    depth += 1;
+                    output.push('\n');
+                    output.push_str(&"  ".repeat(depth));
+                }
+                '}' | ']' => {
+                    depth = depth.saturating_sub(1);
+                    output.push('\n');
+                    output.push_str(&"  ".repeat(depth));
+                    output.push(ch);
+                }
+                ':' => output.push_str(": "),
+                ',' => {
+                    output.push(ch);
+                    output.push('\n');
+                    output.push_str(&"  ".repeat(depth));
+                }
+                _ => output.push(ch),
             }
         }
         output
