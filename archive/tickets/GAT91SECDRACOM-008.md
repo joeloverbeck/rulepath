@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-008: secret_draft Level 0 random + Level 1 VeiledDraftLevel1Bot + bot tests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/secret_draft/src/bots.rs` and `games/secret_draft/tests/bots.rs`; no `engine-core` / `game-stdlib` change.
