@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-005: secret_draft apply/resolve/reveal effects + conflict fallback + scoring + terminal/tie-breaks
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/secret_draft/src/effects.rs` and `src/rules.rs`; no `engine-core` / `game-stdlib` change.
