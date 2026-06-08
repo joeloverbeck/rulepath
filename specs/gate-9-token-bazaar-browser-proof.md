@@ -1,31 +1,228 @@
 # Gate 9 Token Bazaar Browser Proof
 
-Status: proposed implementation spec  
-Target repository: `joeloverbeck/rulepath`  
-Target commit: `5a489b1d54d1b419db439893f628c4c7e6b410fc`  
-Primary crate/internal game id: `token_bazaar`  
-Public display name: `Token Bazaar` unless the implementation session finds a clearly better neutral name  
-Browser implementation: required
+| Field | Value |
+|---|---|
+| Spec ID | `gate-9-token-bazaar-browser-proof` |
+| Roadmap stage | 7 |
+| Roadmap build gate | Gate 9 — resources / economy. This spec implements the `token_bazaar` (public resource/economy) slice; the `secret_draft` simultaneous-commitment / reveal slice is deferred to a dedicated successor gate (see Sequencing). |
+| Status | Planned |
+| Date | 2026-06-08 |
+| Owner | Rulepath maintainers |
+| Primary crate / internal game id | `token_bazaar` |
+| Public display name | `Token Bazaar` unless implementation finds a clearly better neutral name |
+| Browser implementation | required |
+| Authority order | [`docs/FOUNDATIONS.md`](../docs/FOUNDATIONS.md) → [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) → [`docs/ENGINE-GAME-DATA-BOUNDARY.md`](../docs/ENGINE-GAME-DATA-BOUNDARY.md) → [`docs/OFFICIAL-GAME-CONTRACT.md`](../docs/OFFICIAL-GAME-CONTRACT.md) → [`docs/ROADMAP.md`](../docs/ROADMAP.md) → this spec. Where this spec and a foundation document disagree, the foundation document wins. |
 
-## Exact-commit discipline
+> Reader orientation: this spec carries the canonical Rulepath section set
+> (Objective, Scope, Deliverables, Work breakdown, Exit criteria, Acceptance
+> evidence, FOUNDATIONS & boundary alignment, Forbidden changes, Documentation
+> updates required, Sequencing, Assumptions). The detailed design material —
+> product intent, full proposed rules, effect shapes, action-tree metadata, bot
+> policy, WASM/browser wiring, fixtures, and benchmarks — is preserved verbatim
+> below the canonical sections under **Implementation reference**.
 
-This spec is based only on the uploaded manifest as path inventory and exact raw URLs under:
+## Objective
 
-```text
-https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/<path>
-```
+Implement `token_bazaar` as the Gate 9 browser proof: a small, original,
+deterministic, public-resource economy game for two players (ROADMAP §11, stage
+7). It proves resource effects, payments, gains, scoring economy, visible market
+state, deterministic contract fulfillment/refill, supply exhaustion, a fixed turn
+cap, Rust-owned action-tree payloads, auditable replay/effect accounting, a
+readable browser economy UI, and a competent Level 1 heuristic bot.
 
-This workflow did **not** independently verify the latest `main`. It analyzes only the user-supplied target commit `5a489b1d54d1b419db439893f628c4c7e6b410fc`.
+Gate 8 (High Card Duel) already proved hidden information, deterministic chance
+setup, private views, public redaction, bot-view discipline, and browser no-leak
+patterns. Gate 9 broadens Rulepath toward public resource accounting so it is
+less likely to become accidentally card-game-shaped. The `secret_draft`
+simultaneous-commitment / reveal half of ROADMAP §11 is **deliberately deferred**
+to a dedicated successor gate (see Sequencing and Exit criteria); bundling it
+here would turn one implementation session into two gates and muddle the
+acceptance evidence. This is not a research-platform gate, an economy engine, or
+a general resource DSL. The full product intent and proof goals are preserved
+under **Implementation reference → Product intent / What the gate proves**.
 
-No fetched repository source pointed to `joeloverbeck/one-more-branch` or any repository other than `joeloverbeck/rulepath`. If an implementation session cannot fetch the same exact URLs, it must stop rather than falling back to a branch name, repository search, connector namespace, or default-branch metadata.
+## Scope
 
-## Strategic decision
+### In scope
 
-Implement `token_bazaar` as the Gate 9 browser proof.
+- `games/token_bazaar`: typed Rust rules, state, setup, actions, effects,
+  visibility, variants, replay support, bots, UI projection, and IDs.
+- `token_bazaar_standard` variant: public supply, per-player inventories, a
+  three-slot market over a deterministic ten-contract queue, collect / exchange /
+  fulfill / forced-pass actions, an 8-turn-per-seat cap, terminal + tie-break rules.
+- Game-local resource nouns (`amber`, `jade`, `iron`) confined to
+  `games/token_bazaar` and its docs/tests/UI.
+- Level 0 random-legal bot and a default Level 1 `TokenBazaarLevel1Bot`.
+- The full official-game evidence set (rules/property/replay/serialization/
+  visibility/bot tests, golden traces, fixtures, rule coverage, benchmarks, docs).
+- WASM bridge + React presentation wiring through the existing shell seams.
+- Tool and CI registration by game id.
 
-Do not replace it with `secret_draft` now. Gate 8 already proved hidden information, deterministic chance setup, private views, public redaction, bot view discipline, and browser no-leak patterns through High Card Duel. Gate 9 should now broaden Rulepath toward public resource accounting, payments, visible market state, deterministic refills, scoring pressure, and browser UI affordances for economy state.
+### Out of scope
 
-`secret_draft` is still valuable, but it should come later as a focused simultaneous commitment / waiting / reveal gate. Bundling it into Token Bazaar would turn one implementation session into two gates and would muddle the acceptance evidence.
+- `secret_draft` / simultaneous commitment, hidden choices, reveal phases, and
+  pending-seat waiting UX — deferred to the successor commitment/reveal gate.
+- Random setup, random refill, or random contract order (see RNG decision).
+- Any generic `game-stdlib` resource/market/contract/economy primitive, and any
+  `engine-core` economy noun.
+
+### Not allowed
+
+Carried from ROADMAP §11 "Not allowed", plus gate-local prohibitions (full list
+under **Forbidden changes**):
+
+- static data formulas for payments/costs (no behavior-in-data);
+- hidden choices in DOM / local storage (N/A here — all state is public — but the
+  no-leak harness still asserts no debug/candidate data leaks);
+- actual hidden-state sampling by bots; no MCTS/ISMCTS/Monte Carlo/ML/RL.
+
+## Deliverables
+
+Concrete artifact tree (full enumeration preserved under **Implementation
+reference → Rust crate and data areas likely affected**, **Required game docs**,
+and **WASM and browser integration requirements**):
+
+- `games/token_bazaar/{Cargo.toml, src/*.rs, data/*, benches/*, tests/*, docs/*}`
+  following the `games/high_card_duel` layout (verified to match file-for-file).
+- Twelve golden traces under `games/token_bazaar/tests/golden_traces/`.
+- Eleven game docs under `games/token_bazaar/docs/` from `templates/*`.
+- WASM/browser: `crates/wasm-api`, `apps/web/src/...`, a `TokenBazaarBoard.tsx`,
+  and `apps/web/e2e/token-bazaar.smoke.mjs`.
+- Workspace + tooling + CI registration: root `Cargo.toml`, `tools/*`,
+  `.github/workflows/gate-1-game-smoke.yml`,
+  `.github/workflows/gate-2-benchmarks.yml`, `apps/web/package.json`.
+
+## Work breakdown
+
+Bounded candidate AGENT-TASKs, in dependency order (decompose from
+`templates/AGENT-TASK.md`):
+
+| # | Item | Depends on |
+|---|---|---|
+| 1 | Crate skeleton + workspace registration (`Cargo.toml`, `ids.rs`, `state.rs`, `setup.rs`) | — |
+| 2 | Actions, rules, legality, effects, terminal + tie-breaks (`actions.rs`, `rules.rs`, `effects.rs`) | 1 |
+| 3 | Visibility / public-view projection + variants + replay support | 2 |
+| 4 | Static data (`data/manifest.toml`, `data/variants.toml`, standard fixture) | 1 |
+| 5 | Level 0 + Level 1 bots (`bots.rs`) with public rationale | 2 |
+| 6 | Rust test suite + golden traces + rule coverage | 2,3,4,5 |
+| 7 | Benchmarks (`benches/*`, `thresholds.json`) | 2 |
+| 8 | Game docs from templates | 6 |
+| 9 | WASM bridge + tool/CI registration by game id | 6 |
+| 10 | React board + effect log + e2e smoke + a11y/no-leak | 9 |
+| 11 | MECHANIC-ATLAS first-use note + index/ROADMAP-status reconciliation | 6 |
+
+## Exit criteria
+
+Mapped row-for-row to ROADMAP §11 (Gate 9). Rows the `secret_draft` deferral
+descopes are carried explicitly to the successor gate rather than dropped.
+
+| ROADMAP §11 line | Disposition in this gate |
+|---|---|
+| resource accounting is effect-visible | **Met** — every gain/payment/exchange/refill/score change is a structured replayable effect. |
+| costs/previews come from Rust | **Met** — action-tree metadata (cost/gain/points/slot) is Rust-owned; TS computes no legality/affordability. |
+| simultaneous choices remain hidden until reveal | **Deferred** — no simultaneous choice in Token Bazaar; carried to the successor commitment/reveal gate (`secret_draft`). |
+| UI shows pending seats without leaking choices | **Deferred** — no pending/waiting state here; carried to the successor gate. |
+| bots use allowed views | **Met** — bots route through the normal legal-action API; all state is public; rationale exposes no debug/candidate tables. |
+| invariant/no-leak tests and benchmarks pass | **Met** — property/visibility/replay/serialization tests, no-leak/a11y e2e, and benchmark floors. |
+| Not allowed: static data formulas for payments | **Honored** — costs/points are typed setup/scoring constants; no formulas/selectors in data. |
+| Not allowed: hidden choices in DOM/local storage | **N/A (asserted)** — fully public game; no-leak test still asserts no debug/candidate leakage. |
+| Not allowed: hidden-state sampling by bots | **Honored** — no sampling/search bot; Level 1 is a deterministic heuristic. |
+
+## Acceptance evidence
+
+The detailed acceptance checklist is preserved under **Implementation reference →
+Acceptance criteria**; it must cover the `docs/OFFICIAL-GAME-CONTRACT.md`
+deliverable set:
+
+- rule/property/replay/serialization/visibility/bot tests pass (`cargo test -p token_bazaar`);
+- golden traces for normal / terminal / refill / exchange / exhaustion /
+  invalid-diagnostic / stale / bot / WASM-export cases;
+- replay reproduces final state, effects, action-tree + public-view hashes, and outcome;
+- `simulate`, `replay-check`, `fixture-check`, `rule-coverage` pass for `token_bazaar`;
+- benchmarks run with documented smoke floors + a named calibration follow-up;
+- browser e2e smoke (human + bot action, replay step / export-import, dev panel,
+  reduced-motion, a11y/no-leak checklist);
+- `bash scripts/boundary-check.sh` and `node scripts/check-doc-links.mjs` pass.
+
+## FOUNDATIONS & boundary alignment
+
+| Principle | Stance | Rationale |
+|---|---|---|
+| §2 Behavior authority | aligned | Rust owns setup, legality, effects, refill, terminal, tie-breaks, bot decisions; TS presents Rust view/effect payloads only. |
+| §3 `engine-core` kernel | aligned | Resource/market/contract/supply nouns stay in `games/token_bazaar`; Forbidden changes bars them from `engine-core`. |
+| §4 `game-stdlib` earned | aligned | First official resource/accounting use → local; `docs/MECHANIC-ATLAS.md` records it as a later candidate, with no open promotion debt. |
+| §5 Static data is typed content | aligned | Contract queue, costs, points are typed setup/scoring constants; no formulas/selectors/triggers; unknown fields rejected. |
+| §8 Public bots | aligned | Level 1 heuristic with public rationale; no MCTS/ISMCTS/Monte Carlo/ML/RL; legal-action API only. |
+| §11 Acceptance invariants | aligned | Deterministic replay/hash/serialization; viewer-safe public views; no-leak asserted even though public; full evidence set. |
+| §13 ADR triggers | clear | No replay/hash-semantics, visibility-contract, kernel-vocabulary, or new-bot-class change; the RNG decision avoids touching `engine-core::DeterministicRng`. |
+| §12 Stop conditions | clear | No kernel nouns, no procedural data, no YAML/DSL, TS decides nothing, no leak path, no bot bypass, no open promotion debt. |
+
+## Forbidden changes
+
+Do not, in this gate (detailed list preserved under **Implementation reference →
+Non-goals**):
+
+- add economy nouns (`resource`, `market`, `token`, `contract`, `supply`, `card`,
+  `deck`, `hand`, `board`, `grid`, `auction`, `betting`, `pot`) to `engine-core`;
+- create generic `game-stdlib` resource/market/contract/economy/bot-policy
+  primitives (no `ResourcePool`, `Inventory`, `Market`, `Contract`, `Cost`,
+  `Payment`, `Economy`);
+- introduce behavior-in-data formulas, a DSL, YAML, selectors, or conditional
+  effects;
+- let TypeScript compute legality, affordability, refill, winner, terminal
+  outcome, or bot policy;
+- add MCTS/ISMCTS/Monte Carlo/ML/RL/LLM bots or hidden-state sampling;
+- add random setup/refill/contract order, or touch `engine-core::DeterministicRng`;
+- implement `secret_draft`, simultaneous hidden commitments, online multiplayer,
+  or server authority;
+- copy commercial board/card rules, names, prose, assets, icons, or trade dress.
+
+## Documentation updates required
+
+- Flip this spec's row in [`specs/README.md`](README.md) from `Not started` to
+  `Planned` (this spec now exists) and, on completion, to `Done`.
+- Do **not** edit `docs/ROADMAP.md` to record progress (the index tracks status).
+- Add the Token Bazaar first-use note to `docs/MECHANIC-ATLAS.md` (resource/
+  accounting remains local first-use pressure).
+- Update `progress.md` and root `README.md` after implementation.
+- Author all eleven `games/token_bazaar/docs/*` from `templates/*`.
+
+## Sequencing
+
+- **Predecessor:** Gate 8 (High Card Duel) — `Done` in the `specs/README.md`
+  index; its hidden-info / chance / no-leak evidence is the baseline this gate
+  builds on. Admission rule satisfied: no open promotion debt blocks Gate 9
+  (`docs/MECHANIC-ATLAS.md` records none).
+- **Successor — `secret_draft` commitment/reveal gate.** The two deferred
+  ROADMAP §11 exit lines (simultaneous choices hidden until reveal; UI shows
+  pending seats without leaking choices) are carried to a dedicated focused
+  simultaneous-commitment / waiting / reveal proof. **Recommended placement:
+  Gate 9.1, sequenced immediately after this gate and before Gate 10 (betting /
+  `poker_lite`)** — poker_lite's imperfect-information and waiting UX depend on
+  the simultaneous-choice / private-view proof landing first, so the
+  commitment/reveal gate should not slip past it. Authoring that Gate 9.1 spec
+  and adding its index row is a follow-up, out of scope for this spec.
+
+## Assumptions
+
+- A1: `games/token_bazaar` follows the `games/high_card_duel` file layout —
+  verified to match file-for-file at reassessment time (src set, `data/`,
+  `benches/`, `tests/`, `docs/`, `golden_traces/`).
+- A2: Tools enumerate games by a hardcoded game-id const + dispatch branch
+  (e.g. `tools/simulate/src/main.rs` `GAME_HIGH_CARD_DUEL` + `run_*` branch);
+  `token_bazaar` registration is real code in each tool, not config.
+- A3: `docs/MECHANIC-ATLAS.md` shows no open promotion debt; Gate 9 may proceed
+  without a back-port interlock.
+- A4: Public display name `Token Bazaar` and contract labels are original
+  placeholders; `SOURCES.md` must record the IP/originality review.
+- A5: The `secret_draft` deferral is confirmed; its exit criteria move to the
+  successor gate per Sequencing.
+
+---
+
+# Implementation reference
+
+The sections below are the detailed design, preserved from the original spec.
 
 ## Product intent
 
@@ -77,7 +274,7 @@ Do not implement any of the following in Gate 9:
 
 ## Proposed game rules
 
-These rules are intentionally small and original. Implement them exactly unless the implementation session documents a direct contradiction in exact-commit repository evidence.
+These rules are intentionally small and original. Implement them exactly unless implementation finds a direct contradiction in the current repository.
 
 ### Players and visibility
 
@@ -583,7 +780,7 @@ Gate 9 is accepted only when all criteria below are true.
 |---|---|
 | `token_bazaar` | Build now as Gate 9 public resource/accounting browser proof. |
 | `resource_race` | Treat as an alternate/alias label for the same economy slot; do not build separately unless a future accepted spec replaces Token Bazaar. |
-| `secret_draft` | Preserve as a later focused simultaneous commitment / waiting / reveal proof. Recommended placement: Gate 9.1 or the next hidden/waiting UX gate after Token Bazaar, not bundled into this implementation. |
+| `secret_draft` | Build next as a dedicated focused simultaneous commitment / waiting / reveal proof, inheriting the two deferred ROADMAP §11 exit lines. Recommended placement: **Gate 9.1, immediately after Gate 9 and before Gate 10 (`poker_lite` betting)**, since poker_lite's imperfect-info/waiting UX depends on the commitment/reveal proof landing first. Not bundled into this implementation. |
 | `blackjack_lite` | Keep deferred under ADR 0006. Reconsider only after resource/accounting and simultaneous-choice pressure have landed, and only with a scoped non-casino naming/IP plan. |
 | `poker_lite` | Gate 10+ candidate after hidden info, resources/accounting, and bot/no-leak discipline are in place. Do not start now. |
 | `plain_tricks` | Gate 10+ classic trick-taking candidate after current breadth proofs. Do not start now. |
@@ -604,249 +801,3 @@ Gate 9 is accepted only when all criteria below are true.
 | Generic helper feels convenient. | Stop unless a primitive-pressure ledger justifies it. Expected outcome is no helper. |
 | Benchmark floors are unknown. | Use smoke floors with explicit calibration notes; do not claim performance without measured baselines. |
 | Existing tools are missing game registration seams. | Register Token Bazaar or document a deliberate not-applicable reason in the implementation summary. |
-
-## Evidence appendix
-
-### Uploaded manifest
-
-- `manifest_2026-06-08(10).txt` was used only as path inventory. Repository facts came from exact raw URLs below.
-
-### Repository URLs fetched
-
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/README.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/progress.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/AGENTS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/CLAUDE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/benches/README.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/specs/README.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/AGENT-DISCIPLINE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/AI-BOTS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/ARCHITECTURE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/ENGINE-GAME-DATA-BOUNDARY.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/FOUNDATIONS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/IP-POLICY.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/MECHANIC-ATLAS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/OFFICIAL-GAME-CONTRACT.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/README.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/ROADMAP.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/TESTING-REPLAY-BENCHMARKING.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/TRACE-SCHEMA-v1.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/UI-INTERACTION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/WASM-CLIENT-BOUNDARY.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/archival-workflow.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/0001-stage-1-random-playout-budget.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/0002-ci-benchmark-gating-lanes.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/0003-ci-calibrated-benchmark-thresholds.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/0004-hidden-info-replay-export-taxonomy.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/0005-variance-aware-ci-benchmark-floors.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/0006-blackjack-lite-roadmap-placement.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/docs/adr/ADR-TEMPLATE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/README.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/AGENT-TASK.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/BOT-STRATEGY-EVIDENCE-PACK.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/COMPETENT-PLAYER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/GAME-UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/PRIMITIVE-PRESSURE-LEDGER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/templates/PUBLIC-RELEASE-CHECKLIST.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/archive/specs/gate-6-directional-flip.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/archive/specs/gate-7-draughts-lite-compound-action-tree.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/archive/specs/gate-7-1-board-space-primitive-back-port.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/engine-core/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/engine-core/src/action.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/engine-core/src/game.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/engine-core/src/lib.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/engine-core/src/replay.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/engine-core/src/rng.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/game-stdlib/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/game-stdlib/src/board_space.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/game-stdlib/src/lib.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/ai-core/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/ai-core/src/lib.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/ai-core/src/random_legal.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/wasm-api/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/crates/wasm-api/src/lib.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/benches/high_card_duel.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/benches/thresholds.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/data/fixtures/.gitkeep`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/data/fixtures/high_card_duel_standard.fixture.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/data/manifest.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/data/variants.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/COMPETENT-PLAYER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/PUBLIC-RELEASE-CHECKLIST.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/docs/UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/actions.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/bots.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/effects.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/ids.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/lib.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/replay_support.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/rules.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/setup.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/state.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/ui.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/variants.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/src/visibility.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/bots.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/property.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/replay.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/rules.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/serialization.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/visibility.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/bot-action.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/hidden-info-public-observer.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/invalid-private-card-redacted.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/invalid-wrong-seat-diagnostic.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/public-replay-export-import.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/seat-private-view.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/shortest-normal.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/stale-diagnostic.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/terminal.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/high_card_duel/tests/golden_traces/tie-round.trace.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/COMPETENT-PLAYER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/PUBLIC-RELEASE-CHECKLIST.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/docs/UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/COMPETENT-PLAYER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/PUBLIC-RELEASE-CHECKLIST.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/docs/UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/COMPETENT-PLAYER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/PUBLIC-RELEASE-CHECKLIST.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/docs/UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/race_to_n/docs/UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/AI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/BENCHMARKS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/GAME-IMPLEMENTATION-ADMISSION.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/MECHANICS.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/RULE-COVERAGE.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/RULES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/SOURCES.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/three_marks/docs/UI.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/tests/bots.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/tests/replay.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/tests/rules.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/column_four/tests/visibility.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/tests/bots.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/tests/replay.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/tests/rules.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/draughts_lite/tests/visibility.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/tests/bots.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/games/directional_flip/tests/replay.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/README.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/NO-LEAK-A11Y-CHECKLIST.md`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/a11y-noleak.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/column-four.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/directional-flip.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/draughts-lite.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/high-card-duel.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/shell.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/e2e/three-marks.smoke.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/index.html`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/package.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/scripts/smoke-load-wasm.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/scripts/smoke-preview.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/scripts/smoke-ui.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/ActionControls.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/AppShell.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/ColumnFourBoard.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/DevPanel.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/DirectionalFlipBoard.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/DraughtsLiteBoard.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/EffectLog.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/GamePicker.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/HighCardDuelBoard.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/MatchSetup.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/ModeControls.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/RaceBoard.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/ReplayImportExport.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/ReplayViewer.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/ThreeMarksBoard.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/components/effectFeedback.ts`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/main.tsx`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/state/shellReducer.ts`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/styles.css`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/vite-env.d.ts`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/src/wasm/client.ts`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/tsconfig.json`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/apps/web/vite.config.ts`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/.github/workflows/gate-0-hygiene.yml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/.github/workflows/gate-1-game-smoke.yml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/.github/workflows/gate-2-benchmarks.yml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/scripts/boundary-check.sh`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/scripts/check-doc-links.mjs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/bench-report/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/bench-report/src/main.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/fixture-check/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/fixture-check/src/main.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/replay-check/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/replay-check/src/main.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/rule-coverage/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/rule-coverage/src/main.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/seed-reducer/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/seed-reducer/src/main.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/simulate/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/simulate/src/main.rs`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/trace-viewer/Cargo.toml`
-- `https://raw.githubusercontent.com/joeloverbeck/rulepath/5a489b1d54d1b419db439893f628c4c7e6b410fc/tools/trace-viewer/src/main.rs`
-
-### External references consulted
-
-- OpenSpiel documentation describes a broad research framework for sequential, simultaneous, stochastic, perfect-information, and imperfect-information games; this is useful vocabulary, not an implementation model for Rulepath.
-  - https://openspiel.readthedocs.io/en/latest/intro.html
-  - https://arxiv.org/abs/1908.09453
-- BoardGameGeek mechanic vocabulary: "Market" and "Contracts" are useful labels for buy/sell rows, prices/quantities, and goal fulfillment rewards. Use the vocabulary only; do not copy commercial game rules.
-  - https://boardgamegeek.com/boardgamemechanic/2900/market
-  - https://boardgamegeek.com/boardgamemechanic/2912/contracts
-- W3C/WAI guidance supports the browser spec's requirement that resource state not be encoded by color alone and that dense interactive grids/rows remain keyboard navigable.
-  - https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
-  - https://www.w3.org/WAI/ARIA/apg/patterns/grid/
