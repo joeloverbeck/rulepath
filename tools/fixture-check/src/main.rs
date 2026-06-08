@@ -49,6 +49,8 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_public_view_hashes",
     "expected_replay_hashes",
     "expected_private_view_hashes",
+    "expected_public_export_hashes",
+    "expected_diagnostic_hashes",
     "expected_diagnostics",
     "expected_outcome",
     "expected_terminal_state",
@@ -88,6 +90,7 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "private_view_hashes",
     "preview_hashes",
     "action_cap",
+    "setup_patch",
 ];
 
 fn main() {
@@ -195,6 +198,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/high_card_duel/data/variants.toml",
             variant_id: "high_card_duel_standard",
         }),
+        "token_bazaar" => Ok(RegisteredGame {
+            game_id: "token_bazaar",
+            rules_version: "token-bazaar-rules-v1",
+            trace_dir: "games/token_bazaar/tests/golden_traces",
+            fixture_dir: "games/token_bazaar/data/fixtures",
+            manifest_path: "games/token_bazaar/data/manifest.toml",
+            variants_path: "games/token_bazaar/data/variants.toml",
+            variant_id: "token_bazaar_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -248,9 +260,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -360,6 +372,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = high_card_duel::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "token_bazaar" => {
+            let manifest = token_bazaar::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = token_bazaar::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (
@@ -493,12 +520,14 @@ fn validate_trace(
         "expected_effect_hashes",
         "expected_action_tree_hashes",
         "expected_public_view_hashes",
-        "expected_private_view_hashes",
         "expected_outcome",
         "expected_terminal_state",
         "not_applicable",
     ] {
         require_key(path, input, field)?;
+    }
+    if game.game_id != "token_bazaar" {
+        require_key(path, input, "expected_private_view_hashes")?;
     }
     if fixture_kind != "not_applicable" {
         require_key(path, input, "commands")?;

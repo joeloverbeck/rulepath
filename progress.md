@@ -1,8 +1,9 @@
-Current status: Gates 0-8 are complete in the worktree. Gate 8 is complete with
-`high_card_duel` as the accepted chance / hidden-information proof.
-`blackjack_lite` is deferred by ADR 0006 and is not a Gate 9 blocker. Gate 9 is
-the next implementation target, starting with `token_bazaar`. The mutable source
-of truth for gate progress is `specs/README.md`.
+Current status: Gates 0-9 are complete in the worktree. Gate 9 is complete with
+`token_bazaar` as the accepted public resource/economy proof.
+`blackjack_lite` is deferred by ADR 0006 and is not a Gate 9 blocker. The next
+roadmap target is the successor commitment/reveal proof (`secret_draft`, Gate
+9.1 placement to be specced separately) before later card-depth gates. The
+mutable source of truth for gate progress is `specs/README.md`.
 
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
 
@@ -16,6 +17,21 @@ Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and c
 | `blackjack_lite` | Deferred comparison case under ADR 0006; not a Gate 8.1 interlock and not a Gate 9 prerequisite. |
 | `poker_lite` / `plain_tricks` | Gate 10+ card-depth candidates after hidden information, resources/accounting, and action-tree discipline have landed. |
 | private monster-game red-team | Not part of this pass; leave late, optional, and isolated. |
+
+## Gate 9 Token Bazaar
+
+- Completed on 2026-06-08 for `token_bazaar` / Token Bazaar.
+- Added the accepted public resource/economy proof: public supply and
+  inventories, exact payments, exchange supply returns, visible market slots,
+  deterministic contract refill, fixed turn cap, terminal tie-breaks, semantic
+  accounting effects, Level 0 and Level 1 bots, golden traces, benchmarks, tool
+  registration, WASM/browser board, e2e no-leak/a11y smoke, and the full
+  official-game docs.
+- Boundary notes: resource/accounting, market, contract, supply, and payment
+  vocabulary stayed game-local. No `engine-core` noun or `game-stdlib` economy
+  primitive was introduced; the mechanic atlas records first-use pressure only.
+- Deferred scope: simultaneous hidden choices / pending seats / reveal UX remain
+  assigned to the successor `secret_draft` commitment/reveal gate.
 
 ## Gate 8 High Card Duel
 

@@ -1,0 +1,11 @@
+{
+  "fixture_id": "token_bazaar_standard_gate9",
+  "game_id": "token_bazaar",
+  "variant": "token_bazaar_standard",
+  "rules_version": "token-bazaar-rules-v1",
+  "purpose": "Gate 9 Token Bazaar standard setup and public-resource accounting fixture metadata.",
+  "trace_directory": "games/token_bazaar/tests/golden_traces",
+  "trace_schema_version": 1,
+  "fixture_kinds": ["setup", "commands", "terminal", "diagnostic", "bot", "public-export"],
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, rules, replay, visibility, and golden trace tests."
+}

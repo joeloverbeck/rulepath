@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "trace_id": "token-bazaar-empty-slot-diagnostic",
+  "fixture_kind": "diagnostic",
+  "purpose": "empty_slot_diagnostic",
+  "note": "Token Bazaar empty_slot_diagnostic replay fixture.",
+  "migration_update_note": "Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.",
+  "game_id": "token_bazaar",
+  "rules_version": "token-bazaar-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "token_bazaar_standard",
+  "options": {},
+  "setup_patch": "empty_slot_non_terminal",
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["fulfill/slot_0"], "freshness_token": "0", "expect": "diagnostic", "expected_diagnostic_code": "empty_slot" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 0 }],
+  "expected_state_hashes": { "final": 7164018743120142017 },
+  "expected_effect_hashes": { "final": 14695981039346656037 },
+  "expected_action_tree_hashes": { "final": 10553986289484721262 },
+  "expected_public_view_hashes": { "all": 2346152222313940622 },
+  "expected_replay_hashes": { "final": 6433095774476357392 },
+  "expected_diagnostic_hashes": { "final": 4856404314999248482 },
+  "expected_public_export_hashes": { "final": 6433095774476357392 },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "expected_diagnostics": { "code": "empty_slot" },
+  "not_applicable": {
+    "hidden_information": "token_bazaar is fully public.",
+    "stochastic_game_events": "token_bazaar game rules use no randomness.",
+    "private_view_hashes": "token_bazaar observer and seat views are identical.",
+    "preview_hashes": "token_bazaar uses legal action metadata rather than a separate preview hash."
+  }
+}

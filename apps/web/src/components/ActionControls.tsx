@@ -54,5 +54,8 @@ function isTerminalView(view: PublicView | null): boolean {
   if ("winner" in view) {
     return view.winner !== null;
   }
+  if ("terminal" in view) {
+    return view.terminal.terminal;
+  }
   return view.terminal_kind !== "non_terminal";
 }

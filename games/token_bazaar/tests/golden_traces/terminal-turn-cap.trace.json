@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "trace_id": "token-bazaar-terminal-turn-cap",
+  "fixture_kind": "terminal",
+  "purpose": "turn_cap_terminal",
+  "note": "Token Bazaar turn_cap_terminal replay fixture.",
+  "migration_update_note": "Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.",
+  "game_id": "token_bazaar",
+  "rules_version": "token-bazaar-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "token_bazaar_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["collect/amber"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["collect/amber"], "freshness_token": "1", "expect": "applied" },
+    { "index": 2, "actor_seat": "seat_0", "action_path": ["collect/amber"], "freshness_token": "2", "expect": "applied" },
+    { "index": 3, "actor_seat": "seat_1", "action_path": ["collect/amber"], "freshness_token": "3", "expect": "applied" },
+    { "index": 4, "actor_seat": "seat_0", "action_path": ["collect/amber"], "freshness_token": "4", "expect": "applied" },
+    { "index": 5, "actor_seat": "seat_1", "action_path": ["collect/amber"], "freshness_token": "5", "expect": "applied" },
+    { "index": 6, "actor_seat": "seat_0", "action_path": ["collect/jade"], "freshness_token": "6", "expect": "applied" },
+    { "index": 7, "actor_seat": "seat_1", "action_path": ["collect/jade"], "freshness_token": "7", "expect": "applied" },
+    { "index": 8, "actor_seat": "seat_0", "action_path": ["collect/jade"], "freshness_token": "8", "expect": "applied" },
+    { "index": 9, "actor_seat": "seat_1", "action_path": ["collect/jade"], "freshness_token": "9", "expect": "applied" },
+    { "index": 10, "actor_seat": "seat_0", "action_path": ["collect/jade"], "freshness_token": "10", "expect": "applied" },
+    { "index": 11, "actor_seat": "seat_1", "action_path": ["collect/jade"], "freshness_token": "11", "expect": "applied" },
+    { "index": 12, "actor_seat": "seat_0", "action_path": ["collect/iron"], "freshness_token": "12", "expect": "applied" },
+    { "index": 13, "actor_seat": "seat_1", "action_path": ["collect/iron"], "freshness_token": "13", "expect": "applied" },
+    { "index": 14, "actor_seat": "seat_0", "action_path": ["collect/iron"], "freshness_token": "14", "expect": "applied" },
+    { "index": 15, "actor_seat": "seat_1", "action_path": ["collect/iron"], "freshness_token": "15", "expect": "applied" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 15 }],
+  "expected_state_hashes": { "final": 5587548885421217752 },
+  "expected_effect_hashes": { "final": 278225103845204243 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 7294893653544941447 },
+  "expected_replay_hashes": { "final": 15879690626953538312 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 15879690626953538312 },
+  "expected_outcome": { "terminal": true, "winner": null, "draw": true },
+  "expected_terminal_state": { "terminal": true, "winner": null, "draw": true },
+  "not_applicable": {
+    "hidden_information": "token_bazaar is fully public.",
+    "stochastic_game_events": "token_bazaar game rules use no randomness.",
+    "private_view_hashes": "token_bazaar observer and seat views are identical.",
+    "preview_hashes": "token_bazaar uses legal action metadata rather than a separate preview hash."
+  }
+}

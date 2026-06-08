@@ -1,0 +1,12 @@
+variant_id = "token_bazaar_standard"
+display_name = "Token Bazaar"
+rules_version_label = "token-bazaar-rules-v1"
+seat_count = 2
+first_active_seat = "seat_0"
+resource_supply = 14
+starting_resource_count = 1
+market_slot_count = 3
+contract_count = 10
+turns_per_seat = 8
+contract_order = "deterministic_standard_v1"
+terminal_scoring = "score_fulfilled_count_inventory_else_draw"

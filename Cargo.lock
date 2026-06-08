@@ -54,6 +54,7 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]
 
 [[package]]
@@ -92,6 +93,7 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]
 
 [[package]]
@@ -118,6 +120,7 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]
 
 [[package]]
@@ -127,6 +130,14 @@ dependencies = [
  "ai-core",
  "engine-core",
  "game-stdlib",
+]
+
+[[package]]
+name = "token_bazaar"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
 ]
 
 [[package]]
@@ -150,4 +161,5 @@ dependencies = [
  "high_card_duel",
  "race_to_n",
  "three_marks",
+ "token_bazaar",
 ]

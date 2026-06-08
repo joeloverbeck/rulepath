@@ -1,0 +1,14 @@
+game_id = "token_bazaar"
+display_name = "Token Bazaar"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "token-bazaar-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "public_resource_bazaar"
+seat_count = 2
+resource_supply = 14
+starting_resource_count = 1
+market_slot_count = 3
+contract_count = 10
+turns_per_seat = 8

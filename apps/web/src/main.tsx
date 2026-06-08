@@ -17,6 +17,7 @@ import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
+import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
   loadApi,
@@ -32,6 +33,7 @@ import {
   type RulepathApi,
   type SeatId,
   type ThreeMarksPublicView,
+  type TokenBazaarPublicView,
   type ViewerMode,
 } from "./wasm/client";
 
@@ -378,6 +380,16 @@ function App() {
             onChoice={playChoice}
             onViewerModeChange={changeViewerMode}
           />
+        ) : isTokenBazaarView(view) ? (
+          <TokenBazaarBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -390,7 +402,11 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) || isHighCardDuelView(view) ? null : (
+        {isColumnFourView(view) ||
+        isDirectionalFlipView(view) ||
+        isDraughtsLiteView(view) ||
+        isHighCardDuelView(view) ||
+        isTokenBazaarView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -532,9 +548,16 @@ function isHighCardDuelView(view: PublicView | null): view is HighCardDuelPublic
   return Boolean(view && "game_id" in view && view.game_id === "high_card_duel");
 }
 
+function isTokenBazaarView(view: PublicView | null): view is TokenBazaarPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "token_bazaar");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
+  }
+  if (isTokenBazaarView(view)) {
+    return view.terminal.terminal;
   }
   return view.terminal_kind !== "non_terminal";
 }
@@ -554,6 +577,18 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status: `${view.phase} round ${view.round_number}`,
+    };
+  }
+  if (view.game_id === "token_bazaar") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: view.terminal.terminal
+        ? view.terminal.draw
+          ? "draw"
+          : `${view.terminal.winner} won`
+        : `${view.scores.seat_0}-${view.scores.seat_1}, ${view.queue_remaining} queued`,
     };
   }
   return {
@@ -588,7 +623,17 @@ function GenericGameSurface({
   selectedGameName: string;
 }) {
   const boardShape = view && "board_rows" in view ? `${view.board_rows} x ${view.board_columns}` : "Rust view";
-  const status = view ? ("status_label" in view ? view.status_label : `${view.active_seat} to move`) : "Ready";
+  const status = view
+    ? "status_label" in view
+      ? view.status_label
+      : isTokenBazaarView(view)
+        ? view.terminal.terminal
+          ? view.terminal.draw
+            ? "Draw"
+            : `${view.terminal.winner} won`
+          : `${view.active_seat} to move`
+        : `${view.active_seat} to move`
+    : "Ready";
 
   return (
     <section className="race-board generic-board" aria-label={`${selectedGameName} match`}>
