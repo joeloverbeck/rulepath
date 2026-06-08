@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-016: e2e no-leak/a11y smoke + gate-1 CI registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/token-bazaar.smoke.mjs` (new), `apps/web/package.json` (modify), `.github/workflows/gate-1-game-smoke.yml` (modify)
@@ -120,3 +120,34 @@ Add token_bazaar steps: `simulate` quick sim, `replay-check --all`, `fixture-che
 2. `npm --prefix apps/web run smoke:e2e`
 3. The live-page e2e is the correct boundary for browser no-leak/a11y — Rust-side
    no-leak is already proved in GAT9TOKBAZBRO-009; this closes the loop on the DOM.
+
+## Outcome (2026-06-08)
+
+Completed Token Bazaar live-page e2e coverage and gate-1 CI registration.
+
+- Added `apps/web/e2e/token-bazaar.smoke.mjs` covering catalog selection, match
+  start, keyboard human action, automatic Rust bot response, replay export/import
+  and stepping, developer panel, reduced-motion mode, responsive market layout,
+  DOM/storage/export no-leak checks, and resource-chip a11y checks.
+- Added the Token Bazaar e2e to `npm --prefix apps/web run smoke:e2e`.
+- Added gate-1 CI steps for `token_bazaar` simulate, replay-check, fixture-check,
+  rule-coverage, and the browser e2e smoke.
+
+Manual review: the e2e asserts resource chips include code, name, and count;
+native buttons are keyboard-focusable with visible focus; replay/dev-panel/DOM/
+storage/console surfaces avoid hidden/debug/candidate/internal terms. No
+TypeScript rule logic was added.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `node apps/web/e2e/token-bazaar.smoke.mjs`
+3. `npm --prefix apps/web run smoke:e2e`
+4. `cargo run -p simulate -- --game token_bazaar --games 1000`
+5. `cargo run -p replay-check -- --game token_bazaar --all`
+6. `cargo run -p fixture-check -- --game token_bazaar`
+7. `cargo run -p rule-coverage -- --game token_bazaar`
+8. `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/gate-1-game-smoke.yml', encoding='utf-8')); print('workflow yaml ok')"`
+
+Note: `ruby` was unavailable for a YAML parse check, so the workflow parse was
+validated with Python/PyYAML.

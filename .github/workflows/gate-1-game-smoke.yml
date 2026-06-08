@@ -45,6 +45,9 @@ jobs:
       - name: high_card_duel quick simulation
         run: cargo run -p simulate -- --game high_card_duel --games 1000
 
+      - name: token_bazaar quick simulation
+        run: cargo run -p simulate -- --game token_bazaar --games 1000
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
 
@@ -62,6 +65,9 @@ jobs:
 
       - name: High Card Duel replay drift check
         run: cargo run -p replay-check -- --game high_card_duel --all
+
+      - name: Token Bazaar replay drift check
+        run: cargo run -p replay-check -- --game token_bazaar --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
@@ -81,6 +87,9 @@ jobs:
       - name: High Card Duel fixture validation
         run: cargo run -p fixture-check -- --game high_card_duel
 
+      - name: Token Bazaar fixture validation
+        run: cargo run -p fixture-check -- --game token_bazaar
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
 
@@ -99,6 +108,9 @@ jobs:
       - name: High Card Duel rule coverage drift check
         run: cargo run -p rule-coverage -- --game high_card_duel
 
+      - name: Token Bazaar rule coverage drift check
+        run: cargo run -p rule-coverage -- --game token_bazaar
+
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
 
@@ -114,7 +126,7 @@ jobs:
       - name: Static preview smoke
         run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, draughts_lite, and high_card_duel
+      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, draughts_lite, high_card_duel, and token_bazaar
         run: |
           node apps/web/e2e/shell.smoke.mjs
           node apps/web/e2e/a11y-noleak.smoke.mjs
@@ -123,6 +135,7 @@ jobs:
           node apps/web/e2e/directional-flip.smoke.mjs
           node apps/web/e2e/draughts-lite.smoke.mjs
           node apps/web/e2e/high-card-duel.smoke.mjs
+          node apps/web/e2e/token-bazaar.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
