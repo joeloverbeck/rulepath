@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-002: token_bazaar crate skeleton + workspace wiring + data manifests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new crate `games/token_bazaar` (`Cargo.toml`, `src/lib.rs`, `src/ids.rs`), workspace member in root `Cargo.toml`, static-data manifests (`data/manifest.toml`, `data/variants.toml`)
@@ -146,3 +146,31 @@ shape. Typed content only.
 2. `cargo test -p token_bazaar && bash scripts/boundary-check.sh`
 3. Workspace-wide build is unnecessary here; the crate is additive and isolated,
    so the per-crate build + boundary check is the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Registered `games/token_bazaar` as a workspace member.
+- Added the `token_bazaar` crate manifest with only the required
+  `engine-core` dependency.
+- Added `src/lib.rs`, `src/ids.rs`, and `src/variants.rs` for the crate
+  skeleton, stable typed IDs, and static-data parsing.
+- Added `data/manifest.toml` and `data/variants.toml` for
+  `token_bazaar_standard`.
+- Updated `Cargo.lock` for the new workspace package.
+
+Deviations from original plan:
+
+- Added `src/variants.rs` in this ticket because the acceptance criteria require
+  `cargo test -p token_bazaar` to parse and validate the manifest/variant static
+  data. The parser is skeleton-only and mirrors the existing flat manifest
+  pattern; state/setup/action behavior remains out of scope.
+
+Verification results:
+
+- `cargo build -p token_bazaar` passed.
+- `cargo test -p token_bazaar` passed with 5 tests.
+- `bash scripts/boundary-check.sh` passed.

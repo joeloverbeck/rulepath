@@ -130,6 +130,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "token_bazaar"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+]
+
+[[package]]
 name = "trace-viewer"
 version = "0.1.0"
 dependencies = [
