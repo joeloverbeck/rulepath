@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-001: Veiled Draft RULES.md + SOURCES.md
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — authors `games/secret_draft/docs/RULES.md` and `games/secret_draft/docs/SOURCES.md` only (front-loaded per `docs/OFFICIAL-GAME-CONTRACT.md` §3).
