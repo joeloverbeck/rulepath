@@ -4483,7 +4483,7 @@ fn token_ui_json(ui: &token_bazaar::UiMetadata) -> String {
 
 fn secret_view_json(view: &secret_draft::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"round_number\":{},\"round_limit\":{},\"phase\":\"{}\",\"priority_seat\":\"{}\",\"visible_pool\":[{}],\"drafted\":{},\"commitments\":{},\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"revealed_history\":[{}],\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"round_number\":{},\"round_limit\":{},\"phase\":\"{}\",\"active_seat\":{},\"priority_seat\":\"{}\",\"visible_pool\":[{}],\"drafted\":{},\"commitments\":{},\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"revealed_history\":[{}],\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -4493,6 +4493,7 @@ fn secret_view_json(view: &secret_draft::PublicView) -> String {
         view.round_number,
         view.round_limit,
         view.phase.as_str(),
+        secret_active_seat_json(view),
         view.priority_seat.as_str(),
         view.visible_pool
             .iter()
@@ -4513,6 +4514,22 @@ fn secret_view_json(view: &secret_draft::PublicView) -> String {
         secret_private_view_json(&view.private_view),
         secret_ui_json(&view.ui)
     )
+}
+
+fn secret_active_seat_json(view: &secret_draft::PublicView) -> String {
+    if !matches!(
+        view.terminal,
+        secret_draft::visibility::TerminalView::NonTerminal
+    ) {
+        return "null".to_owned();
+    }
+    if !view.commitments.seat_0.committed {
+        return "\"seat_0\"".to_owned();
+    }
+    if !view.commitments.seat_1.committed {
+        return "\"seat_1\"".to_owned();
+    }
+    "null".to_owned()
 }
 
 fn secret_item_json(item: &secret_draft::visibility::DraftItemView) -> String {

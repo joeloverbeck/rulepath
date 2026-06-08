@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-014: secret_draft TypeScript client bindings + catalog wiring
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/wasm/client.ts`, `apps/web/src/state/shellReducer.ts`, `apps/web/src/main.tsx`, `apps/web/src/components/DevPanel.tsx`, `apps/web/src/components/ReplayViewer.tsx`. No Rust/engine change; TypeScript stays presentation-only.

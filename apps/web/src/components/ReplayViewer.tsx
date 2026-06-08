@@ -6,6 +6,7 @@ import type {
   DraughtsLitePublicView,
   EffectEntry,
   PublicView,
+  SecretDraftPublicView,
   ThreeMarksPublicView,
   TokenBazaarPublicView,
 } from "../wasm/client";
@@ -32,6 +33,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const directionalFlipView: DirectionalFlipPublicView | null =
     step && isDirectionalFlipView(step.view) ? step.view : null;
   const draughtsLiteView: DraughtsLitePublicView | null = step && isDraughtsLiteView(step.view) ? step.view : null;
+  const secretDraftView: SecretDraftPublicView | null = step && isSecretDraftView(step.view) ? step.view : null;
   const tokenBazaarView: TokenBazaarPublicView | null = step && isTokenBazaarView(step.view) ? step.view : null;
   const replayEffectEntries: EffectEntry[] = step
     ? effects.map((effect, index) => ({ cursor: step.cursor + index, effect }))
@@ -111,7 +113,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
               />
               {replay ? <PlacementSequence replay={replay} /> : null}
             </div>
-          ) : tokenBazaarView && replay ? (
+          ) : (tokenBazaarView || secretDraftView) && replay ? (
             <div className="replay-board">
               <PlacementSequence replay={replay} />
             </div>
@@ -243,6 +245,10 @@ function isTokenBazaarView(view: PublicView | null): view is TokenBazaarPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "token_bazaar");
 }
 
+function isSecretDraftView(view: PublicView | null): view is SecretDraftPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "secret_draft");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -283,6 +289,21 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
           : view.active_seat ?? "terminal",
       },
       { label: "Market", value: `${view.market_slots.filter((slot) => !slot.is_empty).length} visible` },
+    ];
+  }
+
+  if (view.game_id === "secret_draft") {
+    return [
+      { label: "Round", value: `${view.round_number} / ${view.round_limit}` },
+      {
+        label: "Turn",
+        value: view.terminal.terminal
+          ? view.terminal.draw
+            ? "draw"
+            : `${view.terminal.winner} won`
+          : view.active_seat ?? "pending reveal",
+      },
+      { label: "Score", value: `${view.scores.seat_0}-${view.scores.seat_1}` },
     ];
   }
 
