@@ -14,16 +14,16 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gates 0-7.1 complete; Gate 8 planned** — Rulepath now ships five
-local-playable official games: **Race to 21** (`race_to_n`), **Three Marks**
-(`three_marks`), **Column Four** (`column_four`), **Directional Flip**
-(`directional_flip`), and **Draughts Lite** (`draughts_lite`). Gate 7 delivered
-the compound action-tree proof; Gate 7.1 closed the `board_space` primitive
-back-port and promotion-debt interlock for earlier board games. Gate 8 is the
-next planned chance / hidden-information proof through `high_card_duel`, with a
-post-Gate-8 `blackjack_lite` continuation checkpoint before Gate 9 admission.
-See [`specs/README.md`](specs/README.md) for the live gate-by-gate progress
-tracker and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full staged ladder.
+**Gates 0-8 complete; Gate 9 next** — Rulepath now ships six local-playable
+official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
+**Column Four** (`column_four`), **Directional Flip** (`directional_flip`),
+**Draughts Lite** (`draughts_lite`), and **High Card Duel**
+(`high_card_duel`). Gate 8 is complete with High Card Duel as the accepted
+chance / hidden-information proof. `blackjack_lite` is deferred by
+[ADR 0006](docs/adr/0006-blackjack-lite-roadmap-placement.md) and does not
+block Gate 9; the next implementation target is `token_bazaar`. See
+[`specs/README.md`](specs/README.md) for the live gate-by-gate progress tracker
+and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full staged ladder.
 
 ## Play it locally
 
@@ -83,7 +83,7 @@ cargo test --workspace
 
 **Per-game checks** (replace the game id as needed; current official games are
 `race_to_n`, `three_marks`, `column_four`, `directional_flip`, and
-`draughts_lite`)
+`draughts_lite`, and `high_card_duel`)
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000

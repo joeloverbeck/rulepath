@@ -1,9 +1,31 @@
-Current status: Gates 0-7.1 are complete. Gate 8 is planned as the next
-chance / hidden-information proof (`high_card_duel`), with a mandatory
-`blackjack_lite` continuation checkpoint before Gate 9 admission. The mutable
-source of truth for gate progress is `specs/README.md`.
+Current status: Gates 0-8 are complete in the worktree. Gate 8 is complete with
+`high_card_duel` as the accepted chance / hidden-information proof.
+`blackjack_lite` is deferred by ADR 0006 and is not a Gate 9 blocker. Gate 9 is
+the next implementation target, starting with `token_bazaar`. The mutable source
+of truth for gate progress is `specs/README.md`.
 
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
+
+## Gate 9 candidate placement after Gate 8
+
+| Candidate | Placement |
+|---|---|
+| `token_bazaar` | Primary Gate 9 implementation target; public resource economy and accounting proof. |
+| `resource_race` | Alias or alternate design label for the economy proof; do not implement separately unless a future accepted spec replaces `token_bazaar`. |
+| `secret_draft` | Later simultaneous commitment / waiting / reveal proof, preferably after Token Bazaar proves public resources and browser economy UI. |
+| `blackjack_lite` | Deferred comparison case under ADR 0006; not a Gate 8.1 interlock and not a Gate 9 prerequisite. |
+| `poker_lite` / `plain_tricks` | Gate 10+ card-depth candidates after hidden information, resources/accounting, and action-tree discipline have landed. |
+| private monster-game red-team | Not part of this pass; leave late, optional, and isolated. |
+
+## Gate 8 High Card Duel
+
+- Completed on 2026-06-08 for `high_card_duel` / High Card Duel.
+- Added the accepted chance / hidden-information proof: deterministic setup
+  shuffle, private player views, viewer-filtered effects and logs, public
+  replay/export redaction, bot view discipline, browser no-leak smoke, and
+  benchmark smoke floors.
+- Boundary notes: card, deck, hand, commitment, and zone semantics stayed
+  game-local. No `engine-core` or `game-stdlib` promotion occurred.
 
 ## Gate 7.1 board-space primitive back-port
 
