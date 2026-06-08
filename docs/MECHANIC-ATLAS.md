@@ -198,7 +198,11 @@ MUST NOT:
 |---|---|---|---|---|---|---|
 | _None_ | _No open promotion debt remains._ | _Not applicable._ | _Not applicable._ | _Not applicable._ | _Not applicable._ | _Not applicable._ |
 
-| deterministic shuffle / private hand / hidden commitment / reveal | `high_card_duel` | `local-only` initially | Gate 8 records first official local card/deck pressure: deterministic shuffle, private hands, hidden face-down commitment, simultaneous reveal, viewer-filtered effects, and no-leak public replay export. No `game-stdlib` promotion is authorized; card/deck/hand/commitment helpers remain game-local until repeated pressure from `blackjack_lite`, poker-lite, trick-taking, or another hidden-info game proves a behavior-free helper. | Stage 8.1/9 review. |
+## 10B. Deferred and candidate mechanic pressure register
+
+| Mechanic shape | Games/candidates exerting pressure | Status | Current decision | Next gate |
+|---|---|---|---|---|
+| deterministic shuffle / private hand / hidden commitment / reveal | `high_card_duel` | `local-only` initially | Gate 8 records first official local card/deck pressure: deterministic shuffle, private hands, hidden face-down commitment, simultaneous reveal, viewer-filtered effects, and no-leak public replay export. No `game-stdlib` promotion is authorized. Card/deck/hand/commitment helpers remain game-local until repeated pressure from later official card games such as poker-lite, trick-taking, hidden draw/discard games, or an original non-casino draw/stand threshold game proves a behavior-free helper. `blackjack_lite` is a deferred comparison case only under [ADR 0006](adr/0006-blackjack-lite-roadmap-placement.md), not a Gate 8.1 promotion trigger. | Gate 10+ review, or earlier only by accepted ADR/spec admitting an original non-casino draw/stand proof. |
 | resource accounting | `token_bazaar`, later betting games | `repeated-shape candidate` after second economy/betting use | No formulas in data; compare ledgers before third use. | Stage 9/10 review. |
 | simultaneous commitment/reveal | `secret_draft`, later bluffing/reaction games | candidate after second use | Keep local until waiting/reveal behavior repeats. | Stage 11 review. |
 | reaction window/pending response | `masked_claims`, later event games | `ADR-required` if generalized broadly | Keep local unless repeated pressure proves small typed helper. | Stage 11+. |

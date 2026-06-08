@@ -76,12 +76,14 @@ Examples:
 | Reversi/Othello ambiguity | `directional_flip` |
 | Checkers/Draughts variant ambiguity | `draughts_lite` |
 | War-like card comparison | `high_card_duel` |
-| simple draw/stand scoring | `blackjack_lite` |
+| simple draw/stand threshold scoring | original non-casino name required; `blackjack_lite` is a deferred comparison label only under [ADR 0006](adr/0006-blackjack-lite-roadmap-placement.md) |
 | resource economy microgame | `token_bazaar` or `resource_race` |
 | simultaneous commitment | `secret_draft` or original name |
 | poker subset | `poker_lite` |
 | trick-taking | `plain_tricks` |
 | bluffing/claims | original name only |
+
+Blackjack, poker, pontoon, casino, betting, chip, table, payout, insurance, and similar public-facing terms are source-research descriptors, not default Rulepath product presentation. A draw/stand threshold game SHOULD use an original non-casino name, original prose, and neutral visual language unless an accepted ADR and human/legal review justify a narrower exception.
 
 ## 6. Original prose and assets
 

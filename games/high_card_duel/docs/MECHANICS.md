@@ -6,7 +6,7 @@ Roadmap stage/gate: Gate 8 chance and hidden-information proof
 
 Rules version: `high-card-duel-rules-v1`
 
-Last updated: 2026-06-07
+Last updated: 2026-06-08
 
 ## Purpose
 
@@ -33,7 +33,7 @@ High Card Duel is a deterministic two-seat hidden-information card game. Rust ow
 
 High Card Duel creates first official pressure for card/deck/hand/commitment primitives, but this is not enough for `game-stdlib` promotion. The local design is intentionally narrow: one deck, no discard choice, no piles, no suits, no trick rules, no betting, no reaction windows, and no public reconstructable hidden trace.
 
-Future pressure points named in the atlas are `blackjack_lite`, poker-lite, trick-taking, and later commitment/reaction games. Promotion remains blocked until repeated games prove a behavior-free helper that preserves hidden-information safety and replay determinism.
+Future pressure points named in the atlas are poker-lite, trick-taking, later hidden draw/discard or commitment/reaction games, and a deferred Blackjack comparison case only after resource/accounting and casino-adjacent scope are intentionally admitted. Promotion remains blocked until repeated games prove a behavior-free helper that preserves hidden-information safety and replay determinism.
 
 ## Review Checklist
 

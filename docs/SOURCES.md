@@ -2,7 +2,7 @@
 
 Status: researched bibliography for the foundation set.
 
-Last reviewed: 2026-06-05.
+Last reviewed: 2026-06-08.
 
 These sources inform Rulepath architecture, authoring discipline, bot policy, UI policy, data-format policy, replay model, and IP caution. They are precedents and warnings, not text to copy. Game-specific source notes must still document exact rules sources, chosen variants, naming rationale, and asset status.
 
@@ -12,6 +12,7 @@ These sources inform Rulepath architecture, authoring discipline, bot policy, UI
 |---|---|---|
 | `race_to_n` | `games/race_to_n/docs/SOURCES.md` | completed for Gate 1 |
 | `three_marks` | `games/three_marks/docs/SOURCES.md` | completed for Gate 4; covers original Rulepath naming, public-domain/classic-family context, variant choice, and asset posture |
+| `high_card_duel` | `games/high_card_duel/docs/SOURCES.md` | completed for Gate 8; covers original neutral card-game naming, War/Blackjack exclusion, variant choice, hidden-information posture, and public asset posture |
 
 ## Source-use rules
 
@@ -116,6 +117,25 @@ Rulepath source notes MUST:
 - Date consulted: 2026-06-05
 - Evidence used: practical bot writeups emphasize separating game state, moves, agents, and an arena/referee that prevents cheating.
 - Rulepath lesson: public bots should be supervised by the same legal validation path as humans. The bot should choose; the engine should validate and apply.
+
+## Blackjack placement audit references
+
+Date consulted: 2026-06-08.
+
+These sources support [ADR 0006](adr/0006-blackjack-lite-roadmap-placement.md). They are research references, not permission to copy rules prose, casino presentation, source examples, screenshots, cards, table layouts, or trade dress.
+
+| Source | URL | Evidence used | Rulepath lesson |
+|---|---|---|---|
+| Pagat Blackjack | https://www.pagat.com/banking/blackjack.html | Standard Blackjack includes betting circles, dealer up/down-card deal protocols, insurance, dealer blackjack check, player action choices, settlement, and casino-rule variation. | Blackjack is not just hidden draw/stand; it is a bundle of dealer automation, private dealer state, accounting, and optional actions. |
+| Wizard of Odds Blackjack basics | https://wizardofodds.com/games/blackjack/basics/ | Summarizes beating the dealer, bust, card valuation, natural blackjack, dealer hole card, insurance, peek, push, and settlement. | Even a stripped implementation must decide which natural, hole-card, ace-valuation, and settlement rules are in scope. |
+| Wizard of Odds Blackjack rule variations | https://wizardofodds.com/games/blackjack/rule-variations/ | Shows rule variants such as soft 17, surrender, double/split options, no-hole-card impacts, and payout changes materially affect expected return. | Variant choice is mechanical behavior, not cosmetic data. Do not admit Blackjack without a tight Rust-owned variant contract. |
+| Encyclopaedia Britannica Blackjack | https://www.britannica.com/topic/blackjack-card-game | Identifies Blackjack as a casino/gambling card game and notes natural, split, double-down, dealer-vs-player framing, and variable house rules. | Public naming/UI should avoid casino vibes where a neutral original mechanic can do the job. |
+| Gymnasium Blackjack environment | https://gymnasium.farama.org/environments/toy_text/blackjack/ | Presents Blackjack as a stochastic decision problem with hit/stick actions, dealer reveal/draw policy, usable ace observation, rewards, and Sutton & Barto provenance. | Blackjack remains computationally non-trivial even when stripped to hit/stick; Rulepath should not use RL/ML for public bots, but the source confirms mechanical weight. |
+| RLCard | https://rlcard.org/ | A reinforcement-learning toolkit for card games and imperfect-information games. | Blackjack-like card games belong in a higher-complexity family; Rulepath should keep public bots Rust-owned and non-ML unless an ADR changes policy. |
+| OpenSpiel concepts | https://openspiel.readthedocs.io/en/latest/concepts.html | Represents trajectories as game trees and models chance as an explicit player/chance node. | Rulepath can learn from explicit chance/hidden-info modeling without adopting a general-game framework or search/RL product direction. |
+| Ludii universality paper | https://arxiv.org/abs/2205.00451 | Discusses finite non-deterministic and imperfect-information games in a game-description-language context. | Generality is expensive and should not be smuggled in via Blackjack pressure. |
+| GOPS / Game of Pure Strategy reference | https://coppercod.games/game/gops/ | Describes simultaneous closed bids for a face-up prize with no luck. | Simultaneous commitment/bid pressure can be separated from dealer/accounting/casino pressure. |
+| Bicycle Thirty-One | https://bicyclecards.com/how-to-play/thirty-one | A draw/count threshold family with card values and closest-to-threshold scoring, while still tagged casino. | If draw/stand threshold pressure is desired, use an original non-casino design rather than public Blackjack branding. |
 
 ## Web UI, rendering, and accessibility
 
