@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-016: secret_draft e2e no-leak/a11y smoke + gate-1 CI + web-catalog README reconciliation
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only + CI/docs) — `apps/web/e2e/secret-draft.smoke.mjs` (new); `apps/web/package.json`, `apps/web/e2e/NO-LEAK-A11Y-CHECKLIST.md`, `.github/workflows/gate-1-game-smoke.yml`, `apps/web/README.md`, `README.md` (modify). No Rust/engine change.

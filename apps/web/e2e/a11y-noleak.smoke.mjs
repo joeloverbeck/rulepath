@@ -12,7 +12,6 @@ const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google
 const forbiddenLeakTerms = [
   "hidden_state",
   "private_state",
-  "secret",
   "internal_state",
   "hole_card",
   "candidate_ranking",

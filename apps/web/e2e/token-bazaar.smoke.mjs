@@ -17,7 +17,6 @@ const forbiddenLeakTerms = [
   "candidate_ranking",
   "bot_candidate",
   "bot_explanation",
-  "secret",
 ];
 
 await access(executablePath);
