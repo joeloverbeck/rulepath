@@ -196,7 +196,7 @@ Once an approach is chosen, present the design **section by section**, scaling e
 
 ## Step 5: Persist the deliverable
 
-After design approval, do NOT implement until the user picks an implementation option from the Step 6 menu — the design doc is typically the deliverable; implementation is a separate, user-chosen act. Exception: inline ops/setup and in-place edits are executed during the session (the HARD-GATE still requires approval first), and no separate design doc is written.
+After design approval, do NOT implement until the user picks an implementation option from the Step 6 menu — the design doc is typically the deliverable; implementation is a separate, user-chosen act. Exception: inline ops/setup and in-place edits are executed during the session (the HARD-GATE still requires approval first), and no separate design doc is written. **Obtaining that approval for an inline-ops/in-place-edit triage on a *non-pre-authorized* request** (a diagnostic question, not a build directive): the HARD-GATE's explicit approval may be carried by the same `AskUserQuestion` that selects the fix's parameters (pin mode, scope, variant) — include an explicit decline option (e.g. "Just explain, don't change") so the user's selection of an acting option over the decline *is* the approval, with no separate round-trip. This is the inline-ops counterpart of the §Triage "user's approval of the triage serves the same gating purpose as choosing an approach" rule.
 
 **Quick triage of deliverable shape → destination** (full per-type rules in `references/triage-and-deliverables.md` §Deliverable classification):
 
