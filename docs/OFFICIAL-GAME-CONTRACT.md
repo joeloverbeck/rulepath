@@ -169,7 +169,8 @@ A game may be web-exposed only when:
 - Rust emits semantic effects sufficient for normal animation/replay;
 - UI metadata is present;
 - UI smoke tests cover start, legal action display, one human action, one bot action where applicable, effects, replay stepping, safe dev toggle, and reduced-motion behavior once animation exists;
-- hidden-information games prove no leak through browser-facing payloads and DOM-safe fixtures.
+- hidden-information games prove no leak through browser-facing payloads and DOM-safe fixtures;
+- the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the newly web-exposed game in its intro catalog list, its Shell Surface renderer list (when the game ships a board renderer), and its Smoke Layers `smoke:e2e` list (when the game's smoke is chained by `smoke:e2e`). This reconciliation is part of web-exposure done, not a later cleanup pass — `scripts/check-catalog-docs.mjs` enforces the intro and smoke lists mechanically against the `crates/wasm-api` catalog and `apps/web/package.json`.
 
 Public UI polish is not optional for showcase games.
 
@@ -206,4 +207,5 @@ Before marking a game official, verify:
 - CLI simulation can reproduce failing seeds;
 - native benchmarks exist;
 - UI smoke tests pass if web-exposed;
+- if web-exposed, the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the game across its intro, renderer, and smoke lists, and `scripts/check-catalog-docs.mjs` passes;
 - public presentation is neutral/original and does not imitate trade dress.

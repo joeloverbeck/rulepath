@@ -60,6 +60,7 @@ cargo run -p fixture-check -- --game race_to_n
 cargo run -p rule-coverage -- --game race_to_n
 bash scripts/boundary-check.sh        # engine-core stays noun-free
 node scripts/check-doc-links.mjs      # doc link integrity
+node scripts/check-catalog-docs.mjs   # web-shell catalog docs name every game
 ```
 
 Web (CI gate 1; needs `rustup target add wasm32-unknown-unknown`):
