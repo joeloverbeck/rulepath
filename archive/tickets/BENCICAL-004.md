@@ -1,6 +1,6 @@
 # BENCICAL-004: Reference variance-aware calibration doctrine in TESTING §15/§17
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — foundation doc only (`docs/TESTING-REPLAY-BENCHMARKING.md` §15 and §17). No code, data, schema, or workflow change.
@@ -111,3 +111,28 @@ hard-fail and ADR 0001 native-target clauses verbatim.
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n "0003\|0005" docs/TESTING-REPLAY-BENCHMARKING.md`
 3. A narrower command is correct here because the change is foundation-doc prose with no executable surface; link integrity plus reference-presence grep fully cover it.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Updated `docs/TESTING-REPLAY-BENCHMARKING.md` §15 to cite ADR 0005 alongside
+  ADR 0003 and state the variance-aware floor rule: at least 15% below the
+  minimum observed across representative CI runs, not a single-sample floor.
+- Updated §17 to preserve the ADR 0002 lane split and ADR 0003 CI-runner floor
+  reference while layering ADR 0005 as the current variance-aware calibration
+  rule.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `grep -n "0003\\|0005" docs/TESTING-REPLAY-BENCHMARKING.md` showed ADR 0005
+  references in both §15 and §17 while retaining ADR 0003.
+- Diff review confirmed the scheduled / manual / `main`-push hard-fail language
+  and native-target preservation language remain intact.
