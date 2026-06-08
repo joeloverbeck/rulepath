@@ -512,6 +512,8 @@ export type ReplayStep = {
   viewer?: "observer";
   view: PublicView | null;
   effects: EffectEntry["effect"][];
+  public_effects?: string[];
+  redacted_command_summary?: string;
 };
 
 type EncodedArg = {
