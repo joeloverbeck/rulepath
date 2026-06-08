@@ -265,6 +265,7 @@ docs/adr/0002-ci-benchmark-gating-lanes.md
 docs/adr/0003-ci-calibrated-benchmark-thresholds.md
 docs/adr/0004-hidden-info-replay-export-taxonomy.md
 docs/adr/0005-variance-aware-ci-benchmark-floors.md
+docs/adr/0006-blackjack-lite-roadmap-placement.md
 docs/adr/ADR-TEMPLATE.md
 docs/archival-workflow.md
 games/.gitkeep
@@ -539,7 +540,7 @@ games/three_marks/tests/rule_tests.rs
 games/three_marks/tests/serialization_tests.rs
 games/three_marks/tests/visibility_tests.rs
 progress.md
-reports/manifest_2026-06-07.txt
+reports/manifest_2026-06-08.txt
 scripts/boundary-check.sh
 scripts/check-doc-links.mjs
 specs/README.md
