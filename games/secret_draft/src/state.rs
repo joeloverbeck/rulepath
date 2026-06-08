@@ -109,6 +109,11 @@ impl SecretDraftState {
         self.commitments[seat.index()]
     }
 
+    #[cfg(test)]
+    pub(crate) fn set_commitment_for_internal(&mut self, seat: SecretDraftSeat, item: DraftItemId) {
+        self.commitments[seat.index()] = Some(item);
+    }
+
     pub fn seat_committed(&self, seat: SecretDraftSeat) -> bool {
         self.commitments[seat.index()].is_some()
     }

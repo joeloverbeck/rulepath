@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-004: secret_draft legal action tree + validation + viewer-safe diagnostics
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/secret_draft/src/actions.rs` (and validation helpers); no `engine-core` / `game-stdlib` change.
