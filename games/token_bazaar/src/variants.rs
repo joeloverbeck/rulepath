@@ -165,6 +165,13 @@ impl Variant {
             terminal_scoring: "score_fulfilled_count_inventory_else_draw".to_owned(),
         }
     }
+
+    pub fn resolve(id: &str) -> Result<Self, String> {
+        match id {
+            VARIANT_ID => Ok(Self::token_bazaar_standard()),
+            _ => Err(format!("unsupported token_bazaar variant `{id}`")),
+        }
+    }
 }
 
 fn parse_flat_toml(input: &str) -> Result<BTreeMap<String, String>, String> {
@@ -278,5 +285,14 @@ mod tests {
         assert_eq!(manifest.contract_count, STANDARD_CONTRACT_COUNT);
         assert_eq!(manifest.turns_per_seat, STANDARD_TURNS_PER_SEAT);
         assert_eq!(variants.selected, Variant::token_bazaar_standard());
+    }
+
+    #[test]
+    fn standard_variant_resolves_by_id() {
+        assert_eq!(
+            Variant::resolve(VARIANT_ID).expect("standard variant resolves"),
+            Variant::token_bazaar_standard()
+        );
+        assert!(Variant::resolve("other").is_err());
     }
 }

@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-003: token_bazaar state + setup + variants
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/token_bazaar/src/state.rs`, `src/setup.rs`, `src/variants.rs` (new); `src/lib.rs` (modify, mod declarations)
@@ -127,3 +127,30 @@ Add `mod state; mod setup; mod variants;` and re-export the public types.
 2. `cargo build -p token_bazaar && bash scripts/boundary-check.sh`
 3. Per-crate test is the correct boundary; no other crate depends on this state
    until the tool/WASM registration tickets.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/src/state.rs` with public resource counts, contract
+  specs, state, terminal outcome, and stable snapshot serialization.
+- Added `games/token_bazaar/src/setup.rs` with deterministic
+  `token_bazaar_standard` setup: 14-resource supply, 1-resource inventories,
+  zero scores, first three contracts in slots, seven queued contracts,
+  `seat_0` active, zero turns, no terminal outcome, and freshness 0.
+- Extended `games/token_bazaar/src/variants.rs` with standard variant
+  resolution.
+- Updated `src/lib.rs` exports for state/setup.
+
+Deviations from original plan:
+
+- `src/variants.rs` already existed from GAT9TOKBAZBRO-002 to satisfy static
+  manifest parse tests; this ticket extended it instead of creating it.
+
+Verification results:
+
+- `cargo test -p token_bazaar` passed with 10 tests.
+- `cargo build -p token_bazaar` passed.
+- `bash scripts/boundary-check.sh` passed.

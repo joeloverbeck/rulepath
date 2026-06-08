@@ -1,6 +1,8 @@
 //! `token_bazaar` official-game crate skeleton.
 
 pub mod ids;
+pub mod setup;
+pub mod state;
 pub mod variants;
 
 pub use ids::{
@@ -8,6 +10,10 @@ pub use ids::{
     RULES_VERSION_LABEL, STANDARD_CONTRACT_COUNT, STANDARD_MARKET_SLOT_COUNT,
     STANDARD_RESOURCE_SUPPLY, STANDARD_SEAT_COUNT, STANDARD_STARTING_RESOURCE_COUNT,
     STANDARD_TURNS_PER_SEAT, VARIANT_ID,
+};
+pub use setup::{setup_match, SetupOptions};
+pub use state::{
+    ContractSpec, ResourceCounts, TerminalOutcome, TokenBazaarSnapshot, TokenBazaarState,
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
 
