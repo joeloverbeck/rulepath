@@ -63,6 +63,7 @@ archive/specs/gate-3-wasm-static-web-shell.md
 archive/specs/gate-4-three-marks-board-smoke.md
 archive/specs/gate-5-column-four-public-polish.md
 archive/specs/gate-6-directional-flip.md
+archive/specs/gate-7-1-board-space-primitive-back-port.md
 archive/specs/gate-7-draughts-lite-compound-action-tree.md
 archive/tickets/BENCICAL-001.md
 archive/tickets/BENCICAL-002.md
@@ -172,6 +173,11 @@ archive/tickets/GAT6DIRFLI-018.md
 archive/tickets/GAT6DIRFLI-019.md
 archive/tickets/GAT6DIRFLI-020.md
 archive/tickets/GAT6DIRFLI-021.md
+archive/tickets/GAT71BOASPA-001.md
+archive/tickets/GAT71BOASPA-002.md
+archive/tickets/GAT71BOASPA-003.md
+archive/tickets/GAT71BOASPA-004.md
+archive/tickets/GAT71BOASPA-005.md
 archive/tickets/GAT7DRALITCOM-001.md
 archive/tickets/GAT7DRALITCOM-002.md
 archive/tickets/GAT7DRALITCOM-003.md

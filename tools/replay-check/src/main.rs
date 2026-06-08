@@ -14,7 +14,10 @@ use draughts_lite::replay_support::{
     diagnostic_hash as draughts_diagnostic_hash, replay_commands as draughts_replay_commands,
     replay_from_state as draughts_replay_from_state,
 };
-use engine_core::{ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed};
+use engine_core::{
+    ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
+    Viewer,
+};
 use race_to_n::replay_support::{
     replay_bot_action as race_replay_bot_action, replay_commands as race_replay_commands,
     replay_invalid as race_replay_invalid,
@@ -90,6 +93,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "draughts_lite-rules-v1",
             trace_dir: "games/draughts_lite/tests/golden_traces",
         }),
+        "high_card_duel" => Ok(RegisteredGame {
+            game_id: "high_card_duel",
+            rules_version: "high-card-duel-rules-v1",
+            trace_dir: "games/high_card_duel/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -145,7 +153,7 @@ impl Config {
 
         let selected_modes =
             usize::from(trace.is_some()) + usize::from(directory.is_some()) + usize::from(all);
-        if selected_modes != 1 {
+        if selected_modes > 1 {
             return Err(
                 "choose exactly one of --trace <path>, --directory <dir>, or --all".to_owned(),
             );
@@ -155,7 +163,7 @@ impl Config {
             game: game.ok_or_else(|| "--game is required".to_owned())?,
             trace,
             directory,
-            all,
+            all: all || selected_modes == 0,
             legacy_migration,
         })
     }
@@ -205,10 +213,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> --all");
 }
 
 fn check_trace_path(
@@ -456,6 +464,7 @@ impl Trace {
             "column_four" => self.column_actual_hashes(),
             "directional_flip" => self.directional_actual_hashes(),
             "draughts_lite" => self.draughts_actual_hashes(),
+            "high_card_duel" => self.high_card_duel_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -797,6 +806,113 @@ impl Trace {
         }
     }
 
+    fn high_card_duel_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        let (commands, diagnostic_hash) = if self.fixture_kind == "diagnostic" {
+            let diagnostic = self
+                .commands
+                .last()
+                .cloned()
+                .ok_or_else(|| self.failure("diagnostic trace missing command"))?;
+            let setup = self.commands[..self.commands.len().saturating_sub(1)].to_vec();
+            (
+                setup.clone(),
+                Some(self.high_card_duel_diagnostic_hash(&setup, &diagnostic)?),
+            )
+        } else {
+            (self.commands.clone(), None)
+        };
+
+        let Some(actual) = (match self.fixture_kind.as_str() {
+            "commands" | "terminal" | "bot" | "diagnostic" => {
+                Some(self.high_card_duel_replay_hashes(&commands)?)
+            }
+            "not_applicable" => None,
+            other => return Err(self.failure(&format!("unsupported fixture_kind `{other}`"))),
+        }) else {
+            return Ok(None);
+        };
+
+        Ok(Some(ActualHashes {
+            state_hash: actual.state_hash,
+            effect_hash: actual.effect_hash,
+            action_tree_hash: actual.action_tree_hash,
+            view_hash: actual.view_hash,
+            diagnostic_hash,
+            terminal: actual.terminal,
+            winner: actual.outcome.and_then(|outcome| match outcome {
+                high_card_duel::TerminalOutcome::Win { seat } => Some(seat.as_str().to_owned()),
+                high_card_duel::TerminalOutcome::Draw => None,
+            }),
+        }))
+    }
+
+    fn high_card_duel_diagnostic_hash(
+        &self,
+        setup_commands: &[Vec<String>],
+        diagnostic_command: &[String],
+    ) -> Result<HashValue, String> {
+        let seats = high_card_duel::default_seats();
+        let mut state = high_card_duel::setup_match(
+            Seed(self.seed),
+            &seats,
+            &high_card_duel::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        for path in setup_commands {
+            let command = high_card_duel_command_for_state(&state, path.clone())?;
+            let action =
+                high_card_duel::validate_command(&state, &command).map_err(diagnostic_string)?;
+            high_card_duel::apply_action(&mut state, action);
+        }
+        let actor_seat = self
+            .diagnostic_actor_seat
+            .as_deref()
+            .and_then(parse_high_card_duel_trace_seat)
+            .or_else(|| high_card_duel::active_commit_seat(&state))
+            .ok_or_else(|| self.failure("diagnostic trace has no active seat"))?;
+        let mut command =
+            high_card_duel_command_for_seat(&state, actor_seat, diagnostic_command.to_vec());
+        if let Some(freshness_token) = self.diagnostic_freshness_token {
+            command.freshness_token = engine_core::FreshnessToken(freshness_token);
+        }
+        let diagnostic = high_card_duel::validate_command(&state, &command)
+            .expect_err("diagnostic trace command must reject");
+        Ok(HashValue::from_stable_bytes(
+            format!("{}:{}", diagnostic.code, diagnostic.message).as_bytes(),
+        ))
+    }
+
+    fn high_card_duel_replay_hashes(
+        &self,
+        commands: &[Vec<String>],
+    ) -> Result<HighCardDuelReplayHashes, String> {
+        let seats = high_card_duel::default_seats();
+        let mut state = high_card_duel::setup_match(
+            Seed(self.seed),
+            &seats,
+            &high_card_duel::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        let mut effects = Vec::new();
+
+        for path in commands {
+            let command = high_card_duel_command_for_state(&state, path.clone())?;
+            let action =
+                high_card_duel::validate_command(&state, &command).map_err(diagnostic_string)?;
+            effects.extend(high_card_duel::apply_action(&mut state, action));
+        }
+
+        Ok(HighCardDuelReplayHashes {
+            state_hash: high_card_duel::state_hash(&state),
+            effect_hash: high_card_duel::effect_hash(&effects),
+            action_tree_hash: high_card_duel_action_tree_hash(&state),
+            view_hash: high_card_duel::project_view(&state, &Viewer { seat_id: None })
+                .stable_hash(),
+            terminal: state.terminal_outcome.is_some(),
+            outcome: state.terminal_outcome,
+        })
+    }
+
     fn compare_hash(
         &self,
         surface: &str,
@@ -833,6 +949,16 @@ impl Trace {
             self.path.display()
         )
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct HighCardDuelReplayHashes {
+    state_hash: HashValue,
+    effect_hash: HashValue,
+    action_tree_hash: HashValue,
+    view_hash: HashValue,
+    terminal: bool,
+    outcome: Option<high_card_duel::TerminalOutcome>,
 }
 
 fn validate_json_object(path: &Path, input: &str) -> Result<(), String> {
@@ -1275,6 +1401,61 @@ fn parse_draughts_trace_seat(value: &str) -> Option<draughts_lite::DraughtsLiteS
         "seat-1" => Some(draughts_lite::DraughtsLiteSeat::Seat1),
         _ => draughts_lite::DraughtsLiteSeat::parse(value),
     }
+}
+
+fn high_card_duel_command_for_state(
+    state: &high_card_duel::HighCardDuelState,
+    action_path: Vec<String>,
+) -> Result<CommandEnvelope, String> {
+    let actor_seat = high_card_duel::active_commit_seat(state)
+        .ok_or_else(|| "non-terminal High Card Duel trace command has no active seat".to_owned())?;
+    Ok(high_card_duel_command_for_seat(
+        state,
+        actor_seat,
+        action_path,
+    ))
+}
+
+fn high_card_duel_command_for_seat(
+    state: &high_card_duel::HighCardDuelState,
+    seat: high_card_duel::HighCardDuelSeat,
+    action_path: Vec<String>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: action_path,
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn parse_high_card_duel_trace_seat(value: &str) -> Option<high_card_duel::HighCardDuelSeat> {
+    match value {
+        "seat-0" => Some(high_card_duel::HighCardDuelSeat::Seat0),
+        "seat-1" => Some(high_card_duel::HighCardDuelSeat::Seat1),
+        _ => high_card_duel::HighCardDuelSeat::parse(value),
+    }
+}
+
+fn high_card_duel_action_tree_hash(state: &high_card_duel::HighCardDuelState) -> HashValue {
+    let actor = Actor {
+        seat_id: high_card_duel::active_commit_seat(state)
+            .map(|seat| state.seats[seat.index()].clone())
+            .unwrap_or_else(|| SeatId("seat-0".to_owned())),
+    };
+    let tree = high_card_duel::legal_action_tree(state, &actor);
+    let bytes = tree
+        .root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+    HashValue::from_stable_bytes(bytes.as_bytes())
 }
 
 fn draughts_initial_state(trace_id: &str, seed: u64) -> draughts_lite::DraughtsLiteState {

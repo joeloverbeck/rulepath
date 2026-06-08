@@ -51,6 +51,7 @@ dependencies = [
  "column_four",
  "directional_flip",
  "draughts_lite",
+ "high_card_duel",
  "race_to_n",
  "three_marks",
 ]
@@ -60,6 +61,15 @@ name = "game-stdlib"
 version = "0.1.0"
 dependencies = [
  "engine-core",
+]
+
+[[package]]
+name = "high_card_duel"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
 ]
 
 [[package]]
@@ -79,6 +89,7 @@ dependencies = [
  "draughts_lite",
  "engine-core",
  "game-stdlib",
+ "high_card_duel",
  "race_to_n",
  "three_marks",
 ]
@@ -104,6 +115,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "high_card_duel",
  "race_to_n",
  "three_marks",
 ]
@@ -135,6 +147,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "high_card_duel",
  "race_to_n",
  "three_marks",
 ]

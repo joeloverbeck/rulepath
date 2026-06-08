@@ -10,6 +10,7 @@ import { DraughtsLiteBoard } from "./components/DraughtsLiteBoard";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
 import { GamePicker } from "./components/GamePicker";
+import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup } from "./components/MatchSetup";
 import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
@@ -24,11 +25,14 @@ import {
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
+  type HighCardDuelPublicView,
   type PublicView,
   type RacePublicView,
-  type ReplayDocument,
+  type ReplayExportDocument,
+  type RulepathApi,
   type SeatId,
   type ThreeMarksPublicView,
+  type ViewerMode,
 } from "./wasm/client";
 
 type AppTextState = {
@@ -57,14 +61,16 @@ function App() {
   const humanActorSeat = view ? humanSeatForMode(state.setup.playMode, view) : null;
 
   const refresh = useCallback(
-    (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number) => {
-      const nextView = loadedApi.getView(loadedMatchId);
-      const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor);
+    (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number, viewerOverride?: ViewerMode) => {
+      const viewerMode =
+        viewerOverride ?? effectiveViewerMode(loadedApi, loadedMatchId, state.setup.playMode, state.viewerMode);
+      const nextView = loadedApi.getView(loadedMatchId, viewerMode);
+      const nextEffects = loadedApi.getEffects(loadedMatchId, sinceCursor, viewerMode);
       const newestCursor = nextEffects.reduce((cursor, entry) => Math.max(cursor, entry.cursor), sinceCursor);
       const nextActorSeat = humanSeatForMode(state.setup.playMode, nextView);
       const nextTree =
         nextActorSeat && !isTerminalView(nextView)
-          ? loadedApi.getActionTree(loadedMatchId, nextActorSeat)
+          ? loadedApi.getActionTree(loadedMatchId, nextActorSeat, { kind: "seat", seat: nextActorSeat })
           : { freshness_token: nextView.freshness_token, choices: [] };
 
       const payload: RefreshPayload = {
@@ -72,10 +78,11 @@ function App() {
         actionTree: nextTree,
         effects: nextEffects,
         effectCursor: newestCursor,
+        viewerMode,
       };
       dispatch({ type: "refreshed", payload });
     },
-    [state.setup.playMode],
+    [state.setup.playMode, state.viewerMode],
   );
 
   useEffect(() => {
@@ -203,6 +210,16 @@ function App() {
       dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
     }
   }, [api, effectCursor, matchId, refresh, state.setup.playMode, view]);
+
+  const changeViewerMode = useCallback(
+    (viewerMode: ViewerMode) => {
+      dispatch({ type: "viewerModeChanged", viewerMode });
+      if (api && matchId) {
+        refresh(api, matchId, effectCursor, viewerMode);
+      }
+    },
+    [api, effectCursor, matchId, refresh],
+  );
 
   const exportCurrentReplay = useCallback(() => {
     if (!api || !matchId) {
@@ -349,6 +366,18 @@ function App() {
             onPendingPathClear={() => dispatch({ type: "pendingActionPathCleared" })}
             onPathSubmit={playPath}
           />
+        ) : isHighCardDuelView(view) ? (
+          <HighCardDuelBoard
+            view={view}
+            actionTree={actionTree}
+            viewerMode={state.viewerMode}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+            onViewerModeChange={changeViewerMode}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -361,7 +390,7 @@ function App() {
           <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
         )}
 
-        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) ? null : (
+        {isColumnFourView(view) || isDirectionalFlipView(view) || isDraughtsLiteView(view) || isHighCardDuelView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -471,9 +500,9 @@ function botSeed(view: PublicView): number {
   return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
 }
 
-function parseReplayDocument(documentText: string): ReplayDocument | null {
+function parseReplayDocument(documentText: string): ReplayExportDocument | null {
   try {
-    return JSON.parse(documentText) as ReplayDocument;
+    return JSON.parse(documentText) as ReplayExportDocument;
   } catch {
     return null;
   }
@@ -499,6 +528,10 @@ function isDraughtsLiteView(view: PublicView | null): view is DraughtsLitePublic
   return Boolean(view && "game_id" in view && view.game_id === "draughts_lite");
 }
 
+function isHighCardDuelView(view: PublicView | null): view is HighCardDuelPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "high_card_duel");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -515,12 +548,36 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
       status: view.winner ? `${view.winner} won` : `${view.counter} / ${view.target}`,
     };
   }
+  if (view.game_id === "high_card_duel") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: `${view.phase} round ${view.round_number}`,
+    };
+  }
   return {
     game_id: view.game_id,
     active_seat: view.active_seat ?? "seat_0",
     freshness_token: view.freshness_token,
     status: view.status_label,
   };
+}
+
+function effectiveViewerMode(
+  api: RulepathApi,
+  matchId: string,
+  playMode: SetupPlayMode,
+  currentViewerMode: ViewerMode,
+): ViewerMode {
+  if (playMode === "bot_vs_bot") {
+    return { kind: "observer" };
+  }
+  if (playMode === "hotseat") {
+    const observerView = api.getView(matchId, { kind: "observer" });
+    return observerView.active_seat ? { kind: "seat", seat: observerView.active_seat } : currentViewerMode;
+  }
+  return { kind: "seat", seat: "seat_0" };
 }
 
 function GenericGameSurface({

@@ -1,0 +1,13 @@
+variant_id = "high_card_duel_standard"
+display_name = "High Card Duel"
+rules_version_label = "high-card-duel-rules-v1"
+seat_count = 2
+first_lead_seat = "seat_0"
+round_limit = 6
+hand_size = 3
+deck_card_count = 24
+rank_count = 12
+sigils_per_rank = 2
+shuffle_algorithm = "hcd-shuffle-v1"
+commitment_model = "lead_reply_face_down_simultaneous_reveal"
+terminal_scoring = "higher_score_after_six_rounds_else_draw"

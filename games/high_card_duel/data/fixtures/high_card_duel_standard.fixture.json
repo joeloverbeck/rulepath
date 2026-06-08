@@ -1,0 +1,11 @@
+{
+  "fixture_id": "high_card_duel_standard_gate8",
+  "game_id": "high_card_duel",
+  "variant": "high_card_duel_standard",
+  "rules_version": "high-card-duel-rules-v1",
+  "purpose": "Gate 8 High Card Duel standard setup metadata.",
+  "trace_directory": "games/high_card_duel/tests/golden_traces",
+  "trace_schema_version": 1,
+  "fixture_kinds": ["setup", "commands", "terminal", "diagnostic", "bot"],
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, rules, replay, and golden trace tests."
+}

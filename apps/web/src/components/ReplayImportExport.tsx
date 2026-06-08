@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { ApiError, ReplayDocument } from "../wasm/client";
+import type { ApiError, ReplayExportDocument } from "../wasm/client";
 
 type ReplayImportExportProps = {
   canExport: boolean;
-  onExport: () => ReplayDocument;
+  onExport: () => ReplayExportDocument;
   onImport: (documentText: string) => void;
 };
 
@@ -84,7 +84,10 @@ function replayCommandSummary(documentText: string): { index: number; actor: str
     return [];
   }
   try {
-    const document = JSON.parse(documentText) as ReplayDocument;
+    const document = JSON.parse(documentText) as ReplayExportDocument;
+    if (!("commands" in document)) {
+      return [];
+    }
     return (document.commands ?? []).map((command) => ({
       index: command.index,
       actor: command.actor_seat,

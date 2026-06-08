@@ -198,7 +198,7 @@ MUST NOT:
 |---|---|---|---|---|---|---|
 | _None_ | _No open promotion debt remains._ | _Not applicable._ | _Not applicable._ | _Not applicable._ | _Not applicable._ | _Not applicable._ |
 
-| deterministic shuffle and hidden draw | `high_card_duel` | `local-only` initially | Keep local until second card/hidden-info game. | Stage 8/9 review. |
+| deterministic shuffle / private hand / hidden commitment / reveal | `high_card_duel` | `local-only` initially | Gate 8 records first official local card/deck pressure: deterministic shuffle, private hands, hidden face-down commitment, simultaneous reveal, viewer-filtered effects, and no-leak public replay export. No `game-stdlib` promotion is authorized; card/deck/hand/commitment helpers remain game-local until repeated pressure from `blackjack_lite`, poker-lite, trick-taking, or another hidden-info game proves a behavior-free helper. | Stage 8.1/9 review. |
 | resource accounting | `token_bazaar`, later betting games | `repeated-shape candidate` after second economy/betting use | No formulas in data; compare ledgers before third use. | Stage 9/10 review. |
 | simultaneous commitment/reveal | `secret_draft`, later bluffing/reaction games | candidate after second use | Keep local until waiting/reveal behavior repeats. | Stage 11 review. |
 | reaction window/pending response | `masked_claims`, later event games | `ADR-required` if generalized broadly | Keep local unless repeated pressure proves small typed helper. | Stage 11+. |

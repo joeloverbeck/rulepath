@@ -147,6 +147,42 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: String(payload.explanation ?? "The capture path must continue."),
         tone: "turn",
       };
+    case "commit_face_down":
+      return {
+        title: "Commitment placed",
+        detail: `${payload.seat} committed a card face-down.`,
+        tone: "neutral",
+      };
+    case "own_commit_confirmed":
+      return {
+        title: "Private commitment confirmed",
+        detail: "Your selected card was committed face-down.",
+        tone: "neutral",
+      };
+    case "cards_revealed":
+      return {
+        title: "Cards revealed",
+        detail: "Rust revealed both committed cards.",
+        tone: "movement",
+      };
+    case "round_scored":
+      return {
+        title: "Round scored",
+        detail: payload.winner ? `${payload.winner} won the round.` : "The round was drawn.",
+        tone: "turn",
+      };
+    case "refill_started":
+      return {
+        title: "Next round",
+        detail: `${payload.next_lead_seat} leads the next round.`,
+        tone: "turn",
+      };
+    case "terminal":
+      return {
+        title: "Duel complete",
+        detail: payload.winner ? `${payload.winner} won the duel.` : "The duel ended in a draw.",
+        tone: "terminal",
+      };
     case "placement_rejected":
       return {
         title: "Placement rejected",

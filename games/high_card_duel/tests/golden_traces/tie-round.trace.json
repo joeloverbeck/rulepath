@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "trace_id": "high-card-duel-tie-round",
+  "fixture_kind": "commands",
+  "purpose": "tie_round",
+  "note": "A tied rank round reveals both cards and scores no point while preserving deterministic replay surfaces.",
+  "migration_update_note": "Initial High Card Duel Trace Schema v1 fixture established by GAT72GAT8HIG-012.",
+  "game_id": "high_card_duel",
+  "rules_version": "high-card-duel-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 3,
+  "variant": "high_card_duel_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["commit/hcd:r11:b"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["commit/hcd:r11:a"], "freshness_token": "1", "expect": "applied" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 1 }],
+  "expected_state_hashes": { "final": 16809834210591437751 },
+  "expected_effect_hashes": { "final": 1038512626110095985 },
+  "expected_action_tree_hashes": { "final": 14208428712444154302 },
+  "expected_public_view_hashes": { "all": 3993564271617837567 },
+  "expected_replay_hashes": { "final": 1890212305725255670 },
+  "expected_private_view_hashes": { "not_applicable": "This trace pins observer replay for a tie; seat-private view is covered separately." },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "The public view hash redacts unrevealed hands, deck, and commitments.",
+    "stochastic_game_events": "Setup randomness is fixed by the recorded seed.",
+    "private_view_hashes": "Seat-private view is covered by a dedicated trace.",
+    "preview_hashes": "No separate preview hash surface exists for this game."
+  }
+}

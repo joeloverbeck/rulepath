@@ -18,6 +18,7 @@ const GAME_THREE_MARKS: &str = "three_marks";
 const GAME_COLUMN_FOUR: &str = "column_four";
 const GAME_DIRECTIONAL_FLIP: &str = "directional_flip";
 const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
+const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -141,9 +142,10 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_COLUMN_FOUR
         && config.game != GAME_DIRECTIONAL_FLIP
         && config.game != GAME_DRAUGHTS_LITE
+        && config.game != GAME_HIGH_CARD_DUEL
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}\n",
             config.game
         ));
     }
@@ -176,7 +178,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -193,6 +195,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_DRAUGHTS_LITE {
         return run_draughts_lite_simulation(config);
+    }
+    if config.game == GAME_HIGH_CARD_DUEL {
+        return run_high_card_duel_simulation(config);
     }
 
     let started = Instant::now();
@@ -227,6 +232,49 @@ fn run_simulation(config: Config) -> Result<String, String> {
         &config,
         &summary,
         started.elapsed().as_secs_f64(),
+    ))
+}
+
+fn run_high_card_duel_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut seat_0_wins = 0_u64;
+    let mut seat_1_wins = 0_u64;
+    let mut draws = 0_u64;
+    let mut total_actions = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (outcome, actions) = run_one_high_card_duel_game(&config, seed)?;
+        games_run += 1;
+        total_actions += actions as u64;
+        match outcome {
+            Some(high_card_duel::HighCardDuelSeat::Seat0) => seat_0_wins += 1,
+            Some(high_card_duel::HighCardDuelSeat::Seat1) => seat_1_wins += 1,
+            None => draws += 1,
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=high_card_duel\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         seat_0_wins={seat_0_wins}\n\
+         seat_1_wins={seat_1_wins}\n\
+         draws={draws}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
     ))
 }
 
@@ -601,6 +649,62 @@ fn run_one_draughts_lite_game(
     }
 
     Ok((None, config.action_cap))
+}
+
+fn run_one_high_card_duel_game(
+    config: &Config,
+    seed: u64,
+) -> Result<(Option<high_card_duel::HighCardDuelSeat>, usize), String> {
+    let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+    let mut state =
+        high_card_duel::setup_match(Seed(seed), &seats, &high_card_duel::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+
+    for action_index in 0..config.action_cap {
+        if let Some(outcome) = state.terminal_outcome {
+            return Ok((high_card_duel_winner(outcome), action_index));
+        }
+
+        let actor_seat = high_card_duel::active_commit_seat(&state)
+            .ok_or_else(|| "non-terminal state has no active commit seat".to_owned())?;
+        let actor = Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        };
+        let bot = high_card_duel::HighCardDuelRandomBot::new(Seed(bot_seed(seed, action_index)));
+        let action_path = bot
+            .select_action(&state, actor_seat)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = CommandEnvelope {
+            actor,
+            action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let validated = high_card_duel::validate_command(&state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        high_card_duel::apply_action(&mut state, validated);
+    }
+
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id=high_card_duel\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         action_cap={}\n\
+         failure_reason=action cap reached before terminal outcome\n\
+         replay_command=cargo run -p simulate -- --game high_card_duel --games 1 --start-seed {seed} --action-cap {}\n",
+        config.action_cap, config.action_cap
+    ))
+}
+
+fn high_card_duel_winner(
+    outcome: high_card_duel::TerminalOutcome,
+) -> Option<high_card_duel::HighCardDuelSeat> {
+    match outcome {
+        high_card_duel::TerminalOutcome::Win { seat } => Some(seat),
+        high_card_duel::TerminalOutcome::Draw => None,
+    }
 }
 
 fn draughts_lite_winner(outcome: draughts_lite::TerminalOutcome) -> DraughtsLiteSeat {

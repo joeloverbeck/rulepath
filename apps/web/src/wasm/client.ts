@@ -10,11 +10,25 @@ type WasmExports = {
   rulepath_list_games: () => number;
   rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
   rulepath_get_view: (matchPtr: number, matchLen: number) => number;
+  rulepath_get_view_for_viewer: (
+    matchPtr: number,
+    matchLen: number,
+    viewerPtr: number,
+    viewerLen: number,
+  ) => number;
   rulepath_get_action_tree: (
     matchPtr: number,
     matchLen: number,
     seatPtr: number,
     seatLen: number,
+  ) => number;
+  rulepath_get_action_tree_for_viewer: (
+    matchPtr: number,
+    matchLen: number,
+    seatPtr: number,
+    seatLen: number,
+    viewerPtr: number,
+    viewerLen: number,
   ) => number;
   rulepath_apply_action: (
     matchPtr: number,
@@ -57,6 +71,9 @@ export type GameCatalogEntry = {
   rules_version: number;
   schema_version: number;
   variants?: string[];
+  viewer_modes?: ViewerModeId[];
+  hidden_information?: boolean;
+  tags?: string[];
 };
 
 export type FeatureReport = {
@@ -66,6 +83,8 @@ export type FeatureReport = {
 };
 
 export type SeatId = "seat_0" | "seat_1";
+export type ViewerModeId = "observer" | SeatId;
+export type ViewerMode = { kind: "observer" } | { kind: "seat"; seat: SeatId };
 
 export type RacePublicView = {
   counter: number;
@@ -297,12 +316,91 @@ export type DraughtsLitePublicView = {
   replay_step_index: number | null;
 };
 
+export type HighCardDuelCardView = {
+  card_id: `hcd:r${string}`;
+  rank: number;
+  sigil: string;
+  accessibility_label: string;
+};
+
+export type HighCardDuelCommitmentView =
+  | {
+      seat: SeatId;
+      status: "empty" | "face_down";
+      card: null;
+      accessibility_label: string;
+    }
+  | {
+      seat: SeatId;
+      status: "own_card";
+      card: HighCardDuelCardView;
+      accessibility_label: string;
+    };
+
+export type HighCardDuelPrivateView =
+  | {
+      status: "observer";
+      hand: [];
+      own_commitment: null;
+    }
+  | {
+      status: "seat";
+      seat: SeatId;
+      hand: HighCardDuelCardView[];
+      own_commitment: HighCardDuelCardView | null;
+    };
+
+export type HighCardDuelUiMetadata = {
+  table_label: string;
+  card_back_token: string;
+  own_card_token: string;
+  revealed_card_token: string;
+  empty_commitment_token: string;
+  face_down_commitment_token: string;
+  commit_action_label: string;
+  observer_disabled_reason: string;
+};
+
+export type HighCardDuelPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "high_card_duel";
+  display_name: string;
+  variant_id: "high_card_duel_standard";
+  rules_version_label: string;
+  round_number: number;
+  round_limit: number;
+  phase: "lead_commit" | "reply_commit" | "revealed" | "terminal";
+  active_seat: SeatId | null;
+  lead_seat: SeatId | null;
+  reply_seat: SeatId | null;
+  score: { seat_0: number; seat_1: number };
+  hand_counts: { seat_0: number; seat_1: number };
+  deck_count: number;
+  commitments: {
+    seat_0: HighCardDuelCommitmentView;
+    seat_1: HighCardDuelCommitmentView;
+  };
+  revealed_cards: Array<{
+    round_number: number;
+    seat_0_card: HighCardDuelCardView;
+    seat_1_card: HighCardDuelCardView;
+    winner: SeatId | null;
+  }>;
+  terminal_kind: "non_terminal" | "win" | "draw";
+  winning_seat: SeatId | null;
+  freshness_token: number;
+  private_view: HighCardDuelPrivateView;
+  ui: HighCardDuelUiMetadata;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
   | ColumnFourPublicView
   | DirectionalFlipPublicView
-  | DraughtsLitePublicView;
+  | DraughtsLitePublicView
+  | HighCardDuelPublicView;
 
 export type ActionChoice = {
   segment: string;
@@ -375,20 +473,44 @@ export type ReplayDocument = {
   not_applicable: Record<string, string>;
 };
 
+export type PublicObserverReplayExport = {
+  schema_version: number;
+  export_class: "public_observer_projection_v1";
+  viewer: "observer";
+  game_id: "high_card_duel";
+  rules_version: string;
+  variant: "high_card_duel_standard";
+  steps: Array<{
+    step_index: number;
+    public_view_summary: string;
+    public_effects: string[];
+    redacted_command_summary: string;
+    terminal: boolean;
+  }>;
+};
+
+export type ReplayExportDocument = ReplayDocument | PublicObserverReplayExport;
+
 export type ReplayImportSummary = {
   replay_id: string;
   game_id: string;
   command_count: number;
-  final_view: PublicView;
+  final_view: PublicView | null;
   effect_count: number;
+  public_export?: boolean;
+  viewer?: "observer";
+  step_count?: number;
 };
 
 export type ReplayStep = {
   replay_id: string;
   cursor: number;
-  command_count: number;
-  done: boolean;
-  view: PublicView;
+  command_count?: number;
+  total_steps?: number;
+  done?: boolean;
+  public_export?: boolean;
+  viewer?: "observer";
+  view: PublicView | null;
   effects: EffectEntry["effect"][];
 };
 
@@ -423,16 +545,35 @@ export class RulepathApi {
     [gameId]);
   }
 
-  getView(matchId: string): PublicView {
+  getView(matchId: string, viewerMode: ViewerMode = { kind: "observer" }): PublicView {
+    const viewer = viewerModeArg(viewerMode);
+    if (viewer === null) {
+      return this.invokeJson<PublicView>((args) =>
+        this.exports.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, 0, 0),
+      [matchId]);
+    }
     return this.invokeJson<PublicView>((args) =>
-      this.exports.rulepath_get_view(args[0].ptr, args[0].len),
-    [matchId]);
+      this.exports.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+    [matchId, viewer]);
   }
 
-  getActionTree(matchId: string, seat: string): ActionTree {
+  getActionTree(matchId: string, seat: SeatId, viewerMode: ViewerMode = { kind: "seat", seat }): ActionTree {
+    const viewer = viewerModeArg(viewerMode);
+    if (viewer === null) {
+      return this.invokeJson<ActionTree>((args) =>
+        this.exports.rulepath_get_action_tree_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 0, 0),
+      [matchId, seat]);
+    }
     return this.invokeJson<ActionTree>((args) =>
-      this.exports.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
-    [matchId, seat]);
+      this.exports.rulepath_get_action_tree_for_viewer(
+        args[0].ptr,
+        args[0].len,
+        args[1].ptr,
+        args[1].len,
+        args[2].ptr,
+        args[2].len,
+      ),
+    [matchId, seat, viewer]);
   }
 
   applyAction(matchId: string, seat: string, path: string, freshnessToken: number): PublicView {
@@ -461,14 +602,20 @@ export class RulepathApi {
     return response.view;
   }
 
-  getEffects(matchId: string, sinceCursor: number): EffectEntry[] {
+  getEffects(matchId: string, sinceCursor: number, viewerMode: ViewerMode = { kind: "observer" }): EffectEntry[] {
+    const viewer = viewerModeArg(viewerMode);
+    if (viewer === null) {
+      return this.invokeJson<EffectEntry[]>((args) =>
+        this.exports.rulepath_get_effects(args[0].ptr, args[0].len, BigInt(sinceCursor), 0, 0),
+      [matchId]);
+    }
     return this.invokeJson<EffectEntry[]>((args) =>
-      this.exports.rulepath_get_effects(args[0].ptr, args[0].len, BigInt(sinceCursor), 0, 0),
-    [matchId]);
+      this.exports.rulepath_get_effects(args[0].ptr, args[0].len, BigInt(sinceCursor), args[1].ptr, args[1].len),
+    [matchId, viewer]);
   }
 
-  exportReplay(matchId: string): ReplayDocument {
-    return this.invokeJson<ReplayDocument>((args) =>
+  exportReplay(matchId: string): ReplayExportDocument {
+    return this.invokeJson<ReplayExportDocument>((args) =>
       this.exports.rulepath_export_replay(args[0].ptr, args[0].len),
     [matchId]);
   }
@@ -524,6 +671,10 @@ export class RulepathApi {
   private read(ptr: number, len: number): string {
     return this.decoder.decode(new Uint8Array(this.exports.memory.buffer, ptr, len));
   }
+}
+
+function viewerModeArg(viewerMode: ViewerMode): SeatId | null {
+  return viewerMode.kind === "observer" ? null : viewerMode.seat;
 }
 
 export async function loadApi(): Promise<RulepathApi> {

@@ -14,13 +14,16 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gate 5 complete** — Rulepath now ships three local-playable official games:
-**Race to 21** (`race_to_n`), **Three Marks** (`three_marks`), and **Column
-Four** (`column_four`). Column Four is the first public showcase target: a
-polished Rust/WASM-owned column-drop board with legal-only controls, replay,
-bot rationale, accessibility/no-leak smoke, and benchmark coverage. See
-[`specs/README.md`](specs/README.md) for the live gate-by-gate progress tracker
-and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full staged ladder.
+**Gates 0-7.1 complete; Gate 8 planned** — Rulepath now ships five
+local-playable official games: **Race to 21** (`race_to_n`), **Three Marks**
+(`three_marks`), **Column Four** (`column_four`), **Directional Flip**
+(`directional_flip`), and **Draughts Lite** (`draughts_lite`). Gate 7 delivered
+the compound action-tree proof; Gate 7.1 closed the `board_space` primitive
+back-port and promotion-debt interlock for earlier board games. Gate 8 is the
+next planned chance / hidden-information proof through `high_card_duel`, with a
+post-Gate-8 `blackjack_lite` continuation checkpoint before Gate 9 admission.
+See [`specs/README.md`](specs/README.md) for the live gate-by-gate progress
+tracker and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full staged ladder.
 
 ## Play it locally
 
@@ -79,7 +82,8 @@ cargo test --workspace
 ```
 
 **Per-game checks** (replace the game id as needed; current official games are
-`race_to_n`, `three_marks`, and `column_four`)
+`race_to_n`, `three_marks`, `column_four`, `directional_flip`, and
+`draughts_lite`)
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000

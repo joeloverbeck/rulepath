@@ -10,6 +10,7 @@ members = [
     "games/column_four",
     "games/directional_flip",
     "games/draughts_lite",
+    "games/high_card_duel",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",
