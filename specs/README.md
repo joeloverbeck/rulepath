@@ -39,7 +39,7 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | 6M | Gate 8 aftermath / roadmap realignment | [`gate-8-aftermath-roadmap-realignment.md`](../archive/specs/gate-8-aftermath-roadmap-realignment.md) reconciles root, progress, web, source-note, and CI smoke routing after Gate 8 so Gate 9 starts from truthful docs. | Done |
 | 7 | Gate 9 | [`gate-9-token-bazaar-browser-proof.md`](../archive/specs/gate-9-token-bazaar-browser-proof.md) (`token_bazaar`; `secret_draft` deferred to a Gate 9.1 commitment/reveal gate) | Done |
 | 7M | Gate 9 aftermath / web README realignment | [`gate-9-aftermath-roadmap-realignment.md`](../archive/specs/gate-9-aftermath-roadmap-realignment.md) realigns the web-shell README (intro, Shell Surface, Smoke Layers) to register Token Bazaar after Gate 9. | Done |
-| 8 | Gate 9.1 | [`gate-9-1-secret-draft-commitment-reveal.md`](gate-9-1-secret-draft-commitment-reveal.md) (`secret_draft` / Veiled Draft; simultaneous commitment/reveal and pending-seat no-leak proof) | Done |
+| 8 | Gate 9.1 | [`gate-9-1-secret-draft-commitment-reveal.md`](../archive/specs/gate-9-1-secret-draft-commitment-reveal.md) (`secret_draft` / Veiled Draft; simultaneous commitment/reveal and pending-seat no-leak proof) | Done |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |
 | 12 | Gate 12 | `flood_watch` — not yet specced | Not started |
