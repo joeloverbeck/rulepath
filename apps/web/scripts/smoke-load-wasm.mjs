@@ -60,6 +60,15 @@ assert(
   ),
   "list_games includes token_bazaar standard variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "secret_draft" &&
+      game.variants.includes("secret_draft_standard") &&
+      game.hidden_information === true,
+  ),
+  "list_games includes secret_draft standard hidden-information variant",
+);
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),
@@ -641,6 +650,101 @@ const draughtsReplayStep = invoke(
 assert(draughtsReplayStep.cursor === 1, "draughts_lite replay step advances to requested cursor");
 assert(draughtsReplayStep.view.ply_count === 1, "draughts_lite replay step projects applied move");
 
+const secretCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 31n),
+  ["secret_draft"],
+);
+assert(secretCreated.match_id, "secret_draft new_match returns a match id");
+assert(secretCreated.variant_id === "secret_draft_standard", "secret_draft starts standard variant");
+
+const secretObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [secretCreated.match_id],
+);
+assert(secretObserver.game_id === "secret_draft", "secret_draft view is game-specific");
+assert(secretObserver.private_view.status === "observer", "secret_draft observer view is redacted");
+assert(secretObserver.commitments.seat_0.committed === false, "secret_draft starts without commitments");
+
+const secretTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [secretCreated.match_id, "seat_0"],
+);
+const secretCommit = secretTree.choices.find((choice) => choice.segment.startsWith("commit/"));
+assert(secretCommit, "secret_draft action tree exposes commit actions to actor");
+
+const secretAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(secretTree.freshness_token),
+    ),
+  [secretCreated.match_id, "seat_0", secretCommit.segment],
+);
+assert(secretAfterHuman.view.commitments.seat_0.committed === true, "secret_draft commit updates pending state");
+assert(
+  secretAfterHuman.effects.some((effect) => effect.payload.type === "own_commit_accepted"),
+  "secret_draft actor receives private commit confirmation without item id",
+);
+assert(
+  !JSON.stringify(secretAfterHuman.effects).includes(`${secretCommit.segment}"`),
+  "secret_draft first commit effect does not echo committed item path",
+);
+
+const secretObserverEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n, 0, 0),
+  [secretCreated.match_id],
+);
+assert(
+  secretObserverEffects.some((entry) => entry.effect.payload.type === "commitment_placed"),
+  "secret_draft observer receives face-down commitment effect",
+);
+assert(
+  secretObserverEffects.some((entry) => entry.effect.payload.type === "own_commit_accepted"),
+  "secret_draft observer receives item-free commit acknowledgement",
+);
+assert(
+  !JSON.stringify(secretObserverEffects).includes(`${secretCommit.segment}"`),
+  "secret_draft observer effects do not echo committed item path",
+);
+
+const secretAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 44n),
+  [secretCreated.match_id, "seat_1"],
+);
+assert(secretAfterBot.effects.some((effect) => effect.payload.type === "choices_revealed"), "secret_draft second commit reveals batch");
+assert(!JSON.stringify(secretAfterBot).includes("candidate"), "secret_draft bot output avoids candidate internals");
+assert(!JSON.stringify(secretAfterBot).includes("debug"), "secret_draft bot output avoids debug internals");
+
+const secretExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [secretCreated.match_id],
+);
+assert(secretExportedReplay.game_id === "secret_draft", "secret_draft export_replay preserves game id");
+assert(secretExportedReplay.export_class === "viewer_scoped_observation_v1", "secret_draft export is viewer-scoped");
+assert(secretExportedReplay.viewer === "observer", "secret_draft export defaults to observer");
+assert(!JSON.stringify(secretExportedReplay).includes('"commands"'), "secret_draft public export omits command stream");
+assert(!JSON.stringify(secretExportedReplay).includes('"seed_evidence"'), "secret_draft public export omits seed evidence");
+
+const secretImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(secretExportedReplay)],
+);
+assert(secretImportedReplay.game_id === "secret_draft", "secret_draft import_replay preserves game id");
+assert(secretImportedReplay.public_export === true, "secret_draft import marks public export");
+
+const secretReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [secretImportedReplay.replay_id],
+);
+assert(secretReplayReset.public_export === true, "secret_draft replay reset uses public timeline");
+
 console.log(
   JSON.stringify({
     version,
@@ -658,6 +762,8 @@ console.log(
     directional_replay_cursor: directionalReplayStep.cursor,
     draughts_lite_match_id: draughtsCreated.match_id,
     draughts_lite_replay_cursor: draughtsReplayStep.cursor,
+    secret_draft_match_id: secretCreated.match_id,
+    secret_draft_public_export: secretImportedReplay.public_export,
   }),
 );
 

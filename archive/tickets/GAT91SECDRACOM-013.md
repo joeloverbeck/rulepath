@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-013: secret_draft WASM registration (wasm-api arms + catalog)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (modify); `apps/web/scripts/smoke-load-wasm.mjs` (modify, if it enumerates games). No `engine-core` / `game-stdlib` change.

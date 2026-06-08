@@ -44,6 +44,18 @@ use race_to_n::{
     replay_support::replay_commands as race_replay_commands, setup_match as race_setup_match,
     RaceEffect, RaceRandomBot, RaceSeat, RaceState, SetupOptions as RaceSetupOptions,
 };
+use secret_draft::{
+    apply_action as secret_apply_action, legal_action_tree as secret_legal_action_tree,
+    project_view as secret_project_view,
+    replay_support::{
+        export_public_replay as secret_export_public_replay,
+        import_public_export as secret_import_public_export,
+        PublicReplayStep as SecretPublicReplayStep, ReplayCommand as SecretReplayCommand,
+        SecretDraftInternalTrace,
+    },
+    setup_match as secret_setup_match, SecretDraftEffect, SecretDraftLevel1Bot, SecretDraftSeat,
+    SecretDraftState,
+};
 use three_marks::{
     apply_action as three_apply_action, legal_action_tree as three_legal_action_tree,
     project_view as three_project_view, replay_support::replay_commands as three_replay_commands,
@@ -72,6 +84,8 @@ const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_HIGH_CARD_DUEL_DISPLAY_NAME: &str = "High Card Duel";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_TOKEN_BAZAAR_DISPLAY_NAME: &str = "Token Bazaar";
+const GAME_SECRET_DRAFT: &str = "secret_draft";
+const GAME_SECRET_DRAFT_DISPLAY_NAME: &str = "Veiled Draft";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -98,6 +112,7 @@ const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
 const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
 const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
+const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
@@ -107,6 +122,7 @@ const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
 const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
+const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -168,6 +184,13 @@ enum MatchRecord {
         effects: EffectLog<TokenBazaarEffect>,
         commands: Vec<AppliedCommand>,
     },
+    SecretDraft {
+        game_id: String,
+        seed: u64,
+        state: SecretDraftState,
+        effects: EffectLog<SecretDraftEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -181,7 +204,16 @@ struct ReplayRecord {
 #[derive(Clone, Debug)]
 struct PublicTimelineReplay {
     viewer: String,
-    steps: Vec<PublicReplayStep>,
+    steps: Vec<PublicTimelineStep>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct PublicTimelineStep {
+    step_index: usize,
+    public_view_summary: String,
+    public_effects: Vec<String>,
+    redacted_command_summary: String,
+    terminal: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -209,6 +241,7 @@ enum RegisteredGame {
     DraughtsLite,
     HighCardDuel,
     TokenBazaar,
+    SecretDraft,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -224,6 +257,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::DraughtsLite,
         RegisteredGame::HighCardDuel,
         RegisteredGame::TokenBazaar,
+        RegisteredGame::SecretDraft,
     ]
         .iter()
         .map(|game| match game {
@@ -281,6 +315,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_TOKEN_BAZAAR_STANDARD)
+            ),
+            RegisteredGame::SecretDraft => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"simultaneous_commit\",\"viewer_filtered\",\"public_replay_export\"]}}",
+                escape_json(GAME_SECRET_DRAFT),
+                escape_json(GAME_SECRET_DRAFT_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_SECRET_DRAFT_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -475,6 +517,30 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_TOKEN_BAZAAR_STANDARD)
             ))
         }
+        RegisteredGame::SecretDraft => {
+            let seats = seats();
+            let state = secret_setup_match(&seats, &secret_draft::SetupOptions::default())
+                .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::SecretDraft {
+                        game_id: GAME_SECRET_DRAFT.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_SECRET_DRAFT_STANDARD)
+            ))
+        }
     }
 }
 
@@ -516,6 +582,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = token_viewer_for_seat(state, viewer_seat)?;
             Ok(token_view_json(&token_project_view(state, &viewer)))
+        }
+        MatchRecord::SecretDraft { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = secret_viewer_for_seat(state, viewer_seat)?;
+            Ok(secret_view_json(&secret_project_view(state, &viewer)))
         }
     })
 }
@@ -596,6 +667,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = token_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&token_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::SecretDraft { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_secret_seat(actor_seat)?;
+            if !secret_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = secret_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&secret_legal_action_tree(state, &actor)))
         }
     })
 }
@@ -833,6 +913,40 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 token_view_json(&token_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
+        MatchRecord::SecretDraft {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_secret_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: secret_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = secret_draft::actions::validate_command(state, &command)
+                .map_err(diagnostic_json)?;
+            let effects = secret_apply_action(state, action).map_err(diagnostic_json)?;
+            let viewer = secret_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = secret_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_secret_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                secret_view_json(&secret_project_view(state, &viewer))
             ))
         }
     })
@@ -1092,6 +1206,46 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 token_view_json(&token_project_view(state, &Viewer { seat_id: None }))
             ))
         }
+        MatchRecord::SecretDraft {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_secret_seat(actor_seat)?;
+            let decision = SecretDraftLevel1Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: secret_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = secret_draft::actions::validate_command(state, &command)
+                .map_err(diagnostic_json)?;
+            let effects = secret_apply_action(state, action).map_err(diagnostic_json)?;
+            let viewer = secret_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = secret_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_secret_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                secret_view_json(&secret_project_view(state, &viewer))
+            ))
+        }
     })
 }
 
@@ -1255,6 +1409,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::SecretDraft {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = secret_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        secret_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -1334,6 +1510,29 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             resolve_game(game_id)?;
             token_replay_document_json(&format!("export-{match_id}"), *seed, commands)
         }
+        MatchRecord::SecretDraft {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let trace = SecretDraftInternalTrace {
+                schema_version: SCHEMA_VERSION,
+                game_id: secret_draft::GAME_ID.to_owned(),
+                rules_version: secret_draft::RULES_VERSION_LABEL.to_owned(),
+                variant: secret_draft::VARIANT_ID.to_owned(),
+                seed_evidence: *seed,
+                commands: commands
+                    .iter()
+                    .map(|command| SecretReplayCommand {
+                        actor: command.actor_seat.clone(),
+                        path: command.action_path.clone(),
+                    })
+                    .collect(),
+            };
+            Ok(secret_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
+        }
     })
 }
 
@@ -1346,6 +1545,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     }
     if is_high_card_public_export(doc) {
         return import_high_card_public_replay(doc);
+    }
+    if is_secret_draft_public_export(doc) {
+        return import_secret_draft_public_replay(doc);
     }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
@@ -1366,6 +1568,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_DRAUGHTS_LITE
         && parsed.game_id != GAME_HIGH_CARD_DUEL
         && parsed.game_id != GAME_TOKEN_BAZAAR
+        && parsed.game_id != GAME_SECRET_DRAFT
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -1441,6 +1644,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 token_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 token_view_json(&token_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::SecretDraft => {
+            let (state, effects) =
+                secret_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                secret_view_json(&secret_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -1559,6 +1770,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::SecretDraft => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    secret_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(secret_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
@@ -1574,6 +1797,16 @@ fn is_high_card_public_export(doc: &str) -> bool {
     ) && matches!(
         string_field(doc, "game_id").as_deref(),
         Ok(high_card_duel::GAME_ID)
+    )
+}
+
+fn is_secret_draft_public_export(doc: &str) -> bool {
+    matches!(
+        string_field(doc, "export_class").as_deref(),
+        Ok("viewer_scoped_observation_v1")
+    ) && matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(secret_draft::GAME_ID)
     )
 }
 
@@ -1618,7 +1851,10 @@ fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
         game_id: high_card_duel::GAME_ID.to_owned(),
         rules_version,
         variant,
-        steps,
+        steps: steps
+            .iter()
+            .map(high_card_step_from_public_timeline)
+            .collect(),
     };
     let timeline = high_card_import_public_export(&export);
     let replay_id = next_replay_id(GAME_HIGH_CARD_DUEL);
@@ -1631,7 +1867,11 @@ fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
                 commands: Vec::new(),
                 public_timeline: Some(PublicTimelineReplay {
                     viewer: timeline.viewer.clone(),
-                    steps: timeline.steps.clone(),
+                    steps: timeline
+                        .steps
+                        .iter()
+                        .map(public_timeline_step_from_high_card)
+                        .collect(),
                 }),
             },
         );
@@ -1643,6 +1883,97 @@ fn import_high_card_public_replay(doc: &str) -> Result<String, String> {
         escape_json(&timeline.viewer),
         timeline.steps.len()
     ))
+}
+
+fn import_secret_draft_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let export =
+        secret_draft::replay_support::PublicReplayExport::from_json(doc).map_err(|message| {
+            diagnostic_string(
+                "invalid_replay",
+                &format!("invalid public replay document: {message}"),
+            )
+        })?;
+    if export.rules_version != secret_draft::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {}", export.rules_version),
+        ));
+    }
+    if export.variant != secret_draft::VARIANT_ID {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {}", export.variant),
+        ));
+    }
+    if export.viewer != "observer" {
+        return Err(diagnostic_string(
+            "unsupported_replay_viewer",
+            &format!("unsupported replay viewer: {}", export.viewer),
+        ));
+    }
+    let timeline = secret_import_public_export(&export);
+    let replay_id = next_replay_id(GAME_SECRET_DRAFT);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_SECRET_DRAFT.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: timeline.viewer.clone(),
+                    steps: timeline
+                        .steps
+                        .iter()
+                        .map(public_timeline_step_from_secret)
+                        .collect(),
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"{}\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0}}",
+        escape_json(&replay_id),
+        escape_json(GAME_SECRET_DRAFT),
+        escape_json(&timeline.viewer),
+        timeline.steps.len()
+    ))
+}
+
+fn high_card_step_from_public_timeline(step: &PublicTimelineStep) -> PublicReplayStep {
+    PublicReplayStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
+fn public_timeline_step_from_high_card(step: &PublicReplayStep) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
+fn public_timeline_step_from_secret(step: &SecretPublicReplayStep) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
 }
 
 fn public_replay_step_json(
@@ -1681,6 +2012,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
         GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
+        GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -1767,6 +2099,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
         RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
+        RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
     }
 }
 
@@ -1914,6 +2247,23 @@ fn trace_token_seat(seat: TokenBazaarSeat) -> &'static str {
     }
 }
 
+fn parse_secret_seat(value: &str) -> Result<SecretDraftSeat, String> {
+    match value {
+        "seat-0" => Ok(SecretDraftSeat::Seat0),
+        "seat-1" => Ok(SecretDraftSeat::Seat1),
+        _ => SecretDraftSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_secret_seat(seat: SecretDraftSeat) -> &'static str {
+    seat.as_str()
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -2021,6 +2371,20 @@ fn token_actor_for_seat(state: &TokenBazaarState, seat: TokenBazaarSeat) -> Resu
         })
 }
 
+fn secret_actor_for_seat(state: &SecretDraftState, seat: SecretDraftSeat) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -2081,6 +2445,14 @@ fn high_card_viewer_for_seat(
 fn token_viewer_for_seat(state: &TokenBazaarState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_token_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn secret_viewer_for_seat(state: &SecretDraftState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_secret_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -2152,6 +2524,16 @@ fn token_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_token_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn secret_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: SecretDraftSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_secret_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -2350,6 +2732,32 @@ fn token_replay_to_cursor(
         };
         let action = token_bazaar::validate_command(&state, &envelope).map_err(diagnostic_json)?;
         all_effects.extend(token_apply_action(&mut state, action));
+    }
+    Ok((state, all_effects))
+}
+
+fn secret_replay_to_cursor(
+    _seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(SecretDraftState, Vec<EffectEnvelope<SecretDraftEffect>>), String> {
+    let seats = seats();
+    let mut state = secret_setup_match(&seats, &secret_draft::SetupOptions::default())
+        .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_secret_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: secret_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action =
+            secret_draft::actions::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(secret_apply_action(&mut state, action).map_err(diagnostic_json)?);
     }
     Ok((state, all_effects))
 }
@@ -2964,6 +3372,24 @@ fn token_replay_step_json(
         cursor >= command_count,
         token_view_json(&token_project_view(state, &Viewer { seat_id: None })),
         token_effects_json(effects)
+    )
+}
+
+fn secret_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    total_commands: usize,
+    state: &SecretDraftState,
+    effects: &[EffectEnvelope<SecretDraftEffect>],
+) -> String {
+    let viewer = Viewer { seat_id: None };
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_commands\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        total_commands,
+        secret_view_json(&secret_project_view(state, &viewer)),
+        secret_effects_json(effects, &viewer)
     )
 }
 
@@ -4055,6 +4481,149 @@ fn token_ui_json(ui: &token_bazaar::UiMetadata) -> String {
     )
 }
 
+fn secret_view_json(view: &secret_draft::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"round_number\":{},\"round_limit\":{},\"phase\":\"{}\",\"priority_seat\":\"{}\",\"visible_pool\":[{}],\"drafted\":{},\"commitments\":{},\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"revealed_history\":[{}],\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.round_number,
+        view.round_limit,
+        view.phase.as_str(),
+        view.priority_seat.as_str(),
+        view.visible_pool
+            .iter()
+            .map(secret_item_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        secret_drafted_json(&view.drafted),
+        secret_commitments_json(&view.commitments),
+        view.scores[0],
+        view.scores[1],
+        view.revealed_history
+            .iter()
+            .map(secret_revealed_round_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        secret_terminal_json(&view.terminal),
+        view.freshness_token.0,
+        secret_private_view_json(&view.private_view),
+        secret_ui_json(&view.ui)
+    )
+}
+
+fn secret_item_json(item: &secret_draft::visibility::DraftItemView) -> String {
+    format!(
+        "{{\"item_id\":\"{}\",\"label\":\"{}\",\"thread\":\"{}\",\"value\":{},\"accessibility_label\":\"{}\"}}",
+        escape_json(&item.item_id),
+        escape_json(&item.label),
+        escape_json(&item.thread),
+        item.value,
+        escape_json(&item.accessibility_label)
+    )
+}
+
+fn secret_drafted_json(drafted: &secret_draft::visibility::DraftedCollectionsView) -> String {
+    format!(
+        "{{\"seat_0\":[{}],\"seat_1\":[{}]}}",
+        drafted
+            .seat_0
+            .iter()
+            .map(secret_item_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        drafted
+            .seat_1
+            .iter()
+            .map(secret_item_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn secret_commitments_json(commitments: &secret_draft::visibility::CommitmentViews) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{},\"copy\":\"{}\"}}",
+        secret_commitment_json(&commitments.seat_0),
+        secret_commitment_json(&commitments.seat_1),
+        escape_json(&commitments.copy)
+    )
+}
+
+fn secret_commitment_json(commitment: &secret_draft::visibility::CommitmentView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"committed\":{},\"status\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        commitment.seat.as_str(),
+        commitment.committed,
+        escape_json(&commitment.status),
+        escape_json(&commitment.accessibility_label)
+    )
+}
+
+fn secret_revealed_round_json(round: &secret_draft::visibility::RevealedRoundView) -> String {
+    format!(
+        "{{\"round_number\":{},\"seat_0_choice\":{},\"seat_1_choice\":{},\"seat_0_award\":{},\"seat_1_award\":{},\"priority_seat\":\"{}\",\"contested\":{}}}",
+        round.round_number,
+        secret_item_json(&round.seat_0_choice),
+        secret_item_json(&round.seat_1_choice),
+        secret_item_json(&round.seat_0_award),
+        secret_item_json(&round.seat_1_award),
+        round.priority_seat.as_str(),
+        round.contested
+    )
+}
+
+fn secret_terminal_json(terminal: &secret_draft::visibility::TerminalView) -> String {
+    match terminal {
+        secret_draft::visibility::TerminalView::NonTerminal => {
+            "{\"terminal\":false,\"winner\":null,\"draw\":false}".to_owned()
+        }
+        secret_draft::visibility::TerminalView::Win { winning_seat } => format!(
+            "{{\"terminal\":true,\"winner\":\"{}\",\"draw\":false}}",
+            winning_seat.as_str()
+        ),
+        secret_draft::visibility::TerminalView::Draw => {
+            "{\"terminal\":true,\"winner\":null,\"draw\":true}".to_owned()
+        }
+    }
+}
+
+fn secret_private_view_json(private_view: &secret_draft::visibility::PrivateView) -> String {
+    match private_view {
+        secret_draft::visibility::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"own_committed\":false,\"waiting_copy\":\"\"}".to_owned()
+        }
+        secret_draft::visibility::PrivateView::Seat {
+            seat,
+            own_committed,
+            waiting_copy,
+        } => format!(
+            "{{\"status\":\"seat\",\"seat\":\"{}\",\"own_committed\":{},\"waiting_copy\":\"{}\"}}",
+            seat.as_str(),
+            own_committed,
+            escape_json(waiting_copy)
+        ),
+    }
+}
+
+fn secret_ui_json(ui: &secret_draft::UiMetadata) -> String {
+    format!(
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"table_label\":\"{}\",\"visible_pool_label\":\"{}\",\"drafted_label\":\"{}\",\"pending_label\":\"{}\",\"score_label\":\"{}\",\"reveal_group_token\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        escape_json(ui.game_id),
+        escape_json(ui.display_name),
+        escape_json(&ui.table_label),
+        escape_json(&ui.visible_pool_label),
+        escape_json(&ui.drafted_label),
+        escape_json(&ui.pending_label),
+        escape_json(&ui.score_label),
+        escape_json(&ui.reveal_group_token),
+        escape_json(&ui.reduced_motion_token)
+    )
+}
+
 fn token_effect_json(effect: &EffectEnvelope<TokenBazaarEffect>) -> String {
     let payload = match &effect.payload {
         TokenBazaarEffect::ResourceCollected {
@@ -4175,6 +4744,154 @@ fn token_terminal_outcome_json(outcome: token_bazaar::TerminalOutcome) -> String
             format!("{{\"kind\":\"win\",\"winner\":\"{}\"}}", seat.as_str())
         }
         token_bazaar::TerminalOutcome::Draw => "{\"kind\":\"draw\",\"winner\":null}".to_owned(),
+    }
+}
+
+fn secret_effects_json(effects: &[EffectEnvelope<SecretDraftEffect>], viewer: &Viewer) -> String {
+    let body = secret_draft::visibility::filter_effects_for_viewer(effects, viewer)
+        .iter()
+        .map(secret_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn secret_effect_json(effect: &EffectEnvelope<SecretDraftEffect>) -> String {
+    let payload = match &effect.payload {
+        SecretDraftEffect::CommitmentPlaced { seat, round } => format!(
+            "{{\"type\":\"commitment_placed\",\"seat\":\"{}\",\"round\":{}}}",
+            seat.as_str(),
+            round
+        ),
+        SecretDraftEffect::OwnCommitAccepted { seat, round } => format!(
+            "{{\"type\":\"own_commit_accepted\",\"seat\":\"{}\",\"round\":{}}}",
+            seat.as_str(),
+            round
+        ),
+        SecretDraftEffect::PendingSeatsChanged {
+            round,
+            seat_0_committed,
+            seat_1_committed,
+        } => format!(
+            "{{\"type\":\"pending_seats_changed\",\"round\":{},\"seat_0_committed\":{},\"seat_1_committed\":{}}}",
+            round, seat_0_committed, seat_1_committed
+        ),
+        SecretDraftEffect::RevealBatchStarted { round, group_id } => format!(
+            "{{\"type\":\"reveal_batch_started\",\"round\":{},\"group_id\":\"{}\"}}",
+            round,
+            escape_json(group_id)
+        ),
+        SecretDraftEffect::ChoicesRevealed {
+            round,
+            seat_0_item,
+            seat_1_item,
+        } => format!(
+            "{{\"type\":\"choices_revealed\",\"round\":{},\"seat_0_item\":\"{}\",\"seat_1_item\":\"{}\"}}",
+            round,
+            seat_0_item.as_str(),
+            seat_1_item.as_str()
+        ),
+        SecretDraftEffect::DraftResolved {
+            round,
+            seat_0_award,
+            seat_1_award,
+            removed_items,
+            conflict,
+        } => format!(
+            "{{\"type\":\"draft_resolved\",\"round\":{},\"seat_0_award\":\"{}\",\"seat_1_award\":\"{}\",\"removed_items\":[\"{}\",\"{}\"],\"conflict\":{}}}",
+            round,
+            seat_0_award.as_str(),
+            seat_1_award.as_str(),
+            removed_items[0].as_str(),
+            removed_items[1].as_str(),
+            conflict.map_or_else(|| "null".to_owned(), secret_conflict_json)
+        ),
+        SecretDraftEffect::PoolChanged { remaining_count } => format!(
+            "{{\"type\":\"pool_changed\",\"remaining_count\":{}}}",
+            remaining_count
+        ),
+        SecretDraftEffect::ScoreChanged {
+            scores,
+            tie_break_summary,
+        } => format!(
+            "{{\"type\":\"score_changed\",\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"tie_break_summary\":{}}}",
+            scores[0],
+            scores[1],
+            secret_tie_break_json(*tie_break_summary)
+        ),
+        SecretDraftEffect::RoundAdvanced {
+            next_round,
+            priority_seat,
+        } => format!(
+            "{{\"type\":\"round_advanced\",\"next_round\":{},\"priority_seat\":\"{}\"}}",
+            next_round,
+            priority_seat.as_str()
+        ),
+        SecretDraftEffect::Terminal {
+            outcome,
+            final_scores,
+            tie_break_summary,
+        } => format!(
+            "{{\"type\":\"terminal\",\"outcome\":{},\"final_scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"tie_break_summary\":{}}}",
+            secret_terminal_outcome_json(*outcome),
+            final_scores[0],
+            final_scores[1],
+            secret_tie_break_json(*tie_break_summary)
+        ),
+        SecretDraftEffect::PublicDiagnostic { code, message } => format!(
+            "{{\"type\":\"public_diagnostic\",\"code\":\"{}\",\"message\":\"{}\"}}",
+            escape_json(code),
+            escape_json(message)
+        ),
+        SecretDraftEffect::PrivateDiagnostic {
+            seat,
+            code,
+            message,
+        } => format!(
+            "{{\"type\":\"private_diagnostic\",\"seat\":\"{}\",\"code\":\"{}\",\"message\":\"{}\"}}",
+            seat.as_str(),
+            escape_json(code),
+            escape_json(message)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn secret_conflict_json(conflict: secret_draft::effects::ConflictSummary) -> String {
+    format!(
+        "{{\"contested_item\":\"{}\",\"priority_seat\":\"{}\",\"fallback_item\":\"{}\"}}",
+        conflict.contested_item.as_str(),
+        conflict.priority_seat.as_str(),
+        conflict.fallback_item.as_str()
+    )
+}
+
+fn secret_tie_break_json(summary: secret_draft::effects::TieBreakSummary) -> String {
+    format!(
+        "{{\"scores\":[{},{}],\"complete_sets\":[{},{}],\"highest_single_values\":[{},{}],\"distinct_threads\":[{},{}],\"priority_conflict_wins\":[{},{}]}}",
+        summary.scores[0],
+        summary.scores[1],
+        summary.complete_sets[0],
+        summary.complete_sets[1],
+        summary.highest_single_values[0],
+        summary.highest_single_values[1],
+        summary.distinct_threads[0],
+        summary.distinct_threads[1],
+        summary.priority_conflict_wins[0],
+        summary.priority_conflict_wins[1]
+    )
+}
+
+fn secret_terminal_outcome_json(outcome: secret_draft::TerminalOutcome) -> String {
+    match outcome {
+        secret_draft::TerminalOutcome::Win { seat } => {
+            format!("{{\"kind\":\"win\",\"winner\":\"{}\"}}", seat.as_str())
+        }
+        secret_draft::TerminalOutcome::Draw => "{\"kind\":\"draw\",\"winner\":null}".to_owned(),
     }
 }
 
@@ -4487,14 +5204,14 @@ fn parse_replay_document(input: &str) -> Result<ParsedReplayDocument, String> {
     })
 }
 
-fn parse_public_replay_steps(input: &str) -> Result<Vec<PublicReplayStep>, String> {
+fn parse_public_replay_steps(input: &str) -> Result<Vec<PublicTimelineStep>, String> {
     array_items(input, "steps")?
         .into_iter()
         .map(|item| parse_public_replay_step(&item))
         .collect()
 }
 
-fn parse_public_replay_step(input: &str) -> Result<PublicReplayStep, String> {
+fn parse_public_replay_step(input: &str) -> Result<PublicTimelineStep, String> {
     validate_json_object(input)?;
     reject_unknown_root_fields(
         input,
@@ -4509,7 +5226,7 @@ fn parse_public_replay_step(input: &str) -> Result<PublicReplayStep, String> {
     let step_index = number_field(input, "step_index")?
         .try_into()
         .map_err(|_| "step_index does not fit usize".to_owned())?;
-    Ok(PublicReplayStep {
+    Ok(PublicTimelineStep {
         step_index,
         public_view_summary: string_field(input, "public_view_summary")?,
         public_effects: string_array_field(input, "public_effects")?,
@@ -5632,6 +6349,73 @@ mod tests {
         let step = replay_step(&replay_id, 1).expect("replay stepped");
         assert!(step.contains("\"cursor\":1"));
         assert!(step.contains("\"type\":\"resource_collected\""));
+    }
+
+    #[test]
+    fn secret_draft_surface_filters_hidden_commitments() {
+        let created = new_match("secret_draft", 91).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"secret_draft_standard\""));
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat view returned");
+        assert!(observer.contains("\"game_id\":\"secret_draft\""));
+        assert!(observer.contains("\"private_view\":{\"status\":\"observer\""));
+        assert!(seat_0.contains("\"private_view\":{\"status\":\"seat\",\"seat\":\"seat_0\""));
+        assert!(!seat_0.contains("own_commitment"));
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized tree returned");
+        let unauthorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_1"))
+            .expect("unauthorized tree returned");
+        let observer_tree =
+            get_action_tree_for_viewer(&match_id, "seat_0", None).expect("observer tree returned");
+        assert!(authorized.contains("\"segment\":\"commit/"));
+        assert!(unauthorized.contains("\"choices\":[]"));
+        assert!(observer_tree.contains("\"choices\":[]"));
+
+        let action_segment = authorized
+            .split("\"segment\":\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("commit segment present")
+            .to_owned();
+        let applied =
+            apply_action(&match_id, "seat_0", &action_segment, 0).expect("commit applies");
+        assert!(applied.contains("\"type\":\"own_commit_accepted\""));
+        assert!(applied.contains("\"own_committed\":true"));
+        assert!(!applied.contains("\"item_id\":\"commit/"));
+
+        let observer_effects = get_effects(&match_id, 0, None).expect("observer effects");
+        assert!(observer_effects.contains("\"type\":\"commitment_placed\""));
+        assert!(observer_effects.contains("\"type\":\"own_commit_accepted\""));
+        assert!(!observer_effects.contains(&action_segment));
+
+        let seat_0_effects = get_effects(&match_id, 0, Some("seat_0")).expect("seat effects");
+        assert!(seat_0_effects.contains("\"type\":\"own_commit_accepted\""));
+        assert!(!seat_0_effects.contains(&action_segment));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        assert!(bot.contains("\"ok\":true"));
+        assert!(bot.contains("\"type\":\"choices_revealed\""));
+        assert!(!bot.contains("candidate"));
+        assert!(!bot.contains("debug"));
+
+        let exported = export_replay(&match_id).expect("public replay exported");
+        assert!(exported.contains("\"export_class\":\"viewer_scoped_observation_v1\""));
+        assert!(exported.contains("\"viewer\":\"observer\""));
+        assert!(!exported.contains("\"commands\""));
+        assert!(!exported.contains("\"path\""));
+        assert!(!exported.contains("\"seed_evidence\""));
+
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"public_export\":true"));
+        assert!(imported.contains("\"game_id\":\"secret_draft\""));
+
+        let reset = replay_reset(&replay_id).expect("public replay reset returned");
+        assert!(reset.contains("\"public_export\":true"));
+        assert!(reset.contains("\"view\":null"));
     }
 
     #[test]
