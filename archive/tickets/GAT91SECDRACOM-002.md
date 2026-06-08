@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-002: secret_draft crate skeleton + workspace wiring + data manifests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new game crate `games/secret_draft` (new `games/*` module); root `Cargo.toml` workspace member addition; new typed static-data files under `games/secret_draft/data/`. No `engine-core` / `game-stdlib` change.

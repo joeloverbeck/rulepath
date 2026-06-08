@@ -101,6 +101,14 @@ name = "rule-coverage"
 version = "0.1.0"
 
 [[package]]
+name = "secret_draft"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
+
+[[package]]
 name = "seed-reducer"
 version = "0.1.0"
 dependencies = [

@@ -11,6 +11,7 @@ members = [
     "games/directional_flip",
     "games/draughts_lite",
     "games/high_card_duel",
+    "games/secret_draft",
     "games/token_bazaar",
     "tools/simulate",
     "tools/replay-check",
