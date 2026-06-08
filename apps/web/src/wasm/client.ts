@@ -394,13 +394,88 @@ export type HighCardDuelPublicView = {
   ui: HighCardDuelUiMetadata;
 };
 
+export type TokenBazaarResourceCounts = {
+  amber: number;
+  jade: number;
+  iron: number;
+};
+
+export type TokenBazaarInventoryView = {
+  seat: SeatId;
+  resources: TokenBazaarResourceCounts;
+};
+
+export type TokenBazaarContractView = {
+  contract_id: string;
+  label: string;
+  cost: TokenBazaarResourceCounts;
+  points: number;
+  accessibility_label: string;
+};
+
+export type TokenBazaarMarketSlotView = {
+  slot: string;
+  slot_id: string;
+  contract: TokenBazaarContractView | null;
+  is_empty: boolean;
+  accessibility_label: string;
+};
+
+export type TokenBazaarLegalActionView = {
+  action_segment: string;
+  label: string;
+  accessibility_label: string;
+  metadata: Array<{ key: string; value: string }>;
+  freshness_token: number;
+};
+
+export type TokenBazaarTerminalView =
+  | { terminal: false; winner: null; draw: false }
+  | { terminal: true; winner: SeatId; draw: false }
+  | { terminal: true; winner: null; draw: true };
+
+export type TokenBazaarUiMetadata = {
+  table_label: string;
+  supply_label: string;
+  inventory_label: string;
+  market_label: string;
+  score_label: string;
+  turn_counter_label: string;
+  reduced_motion_token: string;
+};
+
+export type TokenBazaarPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "token_bazaar";
+  display_name: string;
+  variant_id: "token_bazaar_standard";
+  rules_version_label: string;
+  supply: TokenBazaarResourceCounts;
+  inventories: [TokenBazaarInventoryView, TokenBazaarInventoryView];
+  scores: { seat_0: number; seat_1: number };
+  turns_taken: { seat_0: number; seat_1: number; turns_per_seat: number };
+  active_seat: SeatId | null;
+  market_slots: TokenBazaarMarketSlotView[];
+  queue_remaining: number;
+  fulfilled: { seat_0: string[]; seat_1: string[] };
+  legal_actions: TokenBazaarLegalActionView[];
+  terminal: TokenBazaarTerminalView;
+  freshness_token: number;
+  recent_effects: Array<{ kind: string; summary: string }>;
+  private_view_status: string;
+  hidden_fields: string[];
+  ui: TokenBazaarUiMetadata;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
   | ColumnFourPublicView
   | DirectionalFlipPublicView
   | DraughtsLitePublicView
-  | HighCardDuelPublicView;
+  | HighCardDuelPublicView
+  | TokenBazaarPublicView;
 
 export type ActionChoice = {
   segment: string;
@@ -419,12 +494,12 @@ export type ActionTree = {
 export type EffectEntry = {
   cursor: number;
   effect: {
-      payload: {
-        type: string;
-        [key: string]: unknown;
-        actor?: string;
-        next_actor?: string;
-        winner?: string;
+    payload: {
+      type: string;
+      [key: string]: unknown;
+      actor?: string;
+      next_actor?: string;
+      winner?: string;
       from?: number;
       to?: number;
       amount?: number;
@@ -466,10 +541,12 @@ export type ReplayDocument = {
   expected_effect_hashes: { final: number };
   expected_action_tree_hashes: { final: number };
   expected_public_view_hashes: { all: number };
-  expected_private_view_hashes: { not_applicable: string };
+  expected_private_view_hashes?: { not_applicable: string };
   expected_replay_hashes?: { final: number };
-  expected_outcome: { terminal: boolean; winner: string | null; kind?: string };
-  expected_terminal_state: { terminal: boolean; winner: string | null; kind?: string };
+  expected_diagnostic_hashes?: { final: number } | null;
+  expected_public_export_hashes?: { final: number };
+  expected_outcome: { terminal: boolean; winner: string | null; kind?: string; draw?: boolean };
+  expected_terminal_state: { terminal: boolean; winner: string | null; kind?: string; draw?: boolean };
   not_applicable: Record<string, string>;
 };
 

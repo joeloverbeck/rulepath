@@ -43,6 +43,14 @@ export function DevPanel({
   onSubmitStale,
 }: DevPanelProps) {
   const redactsActionPaths = Boolean(view && "game_id" in view && view.game_id === "high_card_duel");
+  const viewSurface =
+    view && "game_id" in view && view.game_id === "token_bazaar"
+      ? "Public accounting"
+      : view && "game_id" in view && view.game_id === "high_card_duel"
+        ? "Viewer filtered"
+        : view
+          ? "Public"
+          : "None";
   return (
     <section className="dev-panel" aria-labelledby="dev-panel-heading">
       <button type="button" className="dev-toggle" onClick={onToggle} aria-expanded={open}>
@@ -84,6 +92,10 @@ export function DevPanel({
             <div>
               <dt>Actor</dt>
               <dd>{view?.active_seat ?? "None"}</dd>
+            </div>
+            <div>
+              <dt>Surface</dt>
+              <dd>{viewSurface}</dd>
             </div>
             <div>
               <dt>Freshness</dt>

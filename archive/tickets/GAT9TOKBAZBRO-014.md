@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-014: TypeScript client bindings + catalog wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/wasm/client.ts`, `apps/web/src/main.tsx`, `apps/web/src/components/DevPanel.tsx`, `apps/web/src/components/ReplayViewer.tsx`
@@ -115,3 +115,27 @@ per-game handling — presentation only.
 2. `npm --prefix apps/web run smoke:wasm`
 3. The build + wasm-smoke pair is the correct boundary; visible rendering and the
    no-leak/a11y e2e are verified in GAT9TOKBAZBRO-015/016.
+
+## Outcome (2026-06-08)
+
+Completed the TypeScript/WASM presentation binding for `token_bazaar`.
+
+- Added Token Bazaar public view, action metadata, terminal, replay hash, and
+  outcome shapes to the web WASM client.
+- Wired generic shell terminal/status handling, shared action/mode controls,
+  the developer panel surface label, and replay snapshot recognition for the
+  Rust-provided Token Bazaar payload.
+- Tightened `smoke:wasm` so it asserts the exact `token_bazaar` catalog entry
+  and `token_bazaar_standard` variant.
+
+Manual review: the TS fields match the GAT9TOKBAZBRO-013 bridge serializer keys
+(`supply`, `inventories`, `scores`, `turns_taken`, `market_slots`,
+`queue_remaining`, `fulfilled`, `legal_actions`, `terminal`, `recent_effects`,
+`private_view_status`, `hidden_fields`, and `ui`). TypeScript still only routes
+Rust payloads and commands; legality, terminal state, and bot behavior remain in
+Rust/WASM.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:wasm`

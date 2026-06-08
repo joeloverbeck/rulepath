@@ -54,6 +54,12 @@ assert(catalog.some((game) => game.game_id === "three_marks"), "list_games inclu
 assert(catalog.some((game) => game.game_id === "column_four"), "list_games includes column_four");
 assert(catalog.some((game) => game.game_id === "directional_flip"), "list_games includes directional_flip");
 assert(catalog.some((game) => game.game_id === "draughts_lite"), "list_games includes draughts_lite");
+assert(
+  catalog.some(
+    (game) => game.game_id === "token_bazaar" && game.variants.includes("token_bazaar_standard"),
+  ),
+  "list_games includes token_bazaar standard variant",
+);
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),

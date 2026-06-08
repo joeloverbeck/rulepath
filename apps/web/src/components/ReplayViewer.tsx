@@ -7,6 +7,7 @@ import type {
   EffectEntry,
   PublicView,
   ThreeMarksPublicView,
+  TokenBazaarPublicView,
 } from "../wasm/client";
 import { ColumnFourBoard } from "./ColumnFourBoard";
 import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
@@ -31,6 +32,7 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const directionalFlipView: DirectionalFlipPublicView | null =
     step && isDirectionalFlipView(step.view) ? step.view : null;
   const draughtsLiteView: DraughtsLitePublicView | null = step && isDraughtsLiteView(step.view) ? step.view : null;
+  const tokenBazaarView: TokenBazaarPublicView | null = step && isTokenBazaarView(step.view) ? step.view : null;
   const replayEffectEntries: EffectEntry[] = step
     ? effects.map((effect, index) => ({ cursor: step.cursor + index, effect }))
     : [];
@@ -108,6 +110,10 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
                 interactive={false}
               />
               {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : tokenBazaarView && replay ? (
+            <div className="replay-board">
+              <PlacementSequence replay={replay} />
             </div>
           ) : null}
 
@@ -233,6 +239,10 @@ function isDraughtsLiteView(view: PublicView | null): view is DraughtsLitePublic
   return Boolean(view && "game_id" in view && view.game_id === "draughts_lite");
 }
 
+function isTokenBazaarView(view: PublicView | null): view is TokenBazaarPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "token_bazaar");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -258,6 +268,21 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
       { label: "Round", value: `${view.round_number} / ${view.round_limit}` },
       { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat ?? "terminal" },
       { label: "Status", value: view.phase },
+    ];
+  }
+
+  if (view.game_id === "token_bazaar") {
+    return [
+      { label: "Score", value: `${view.scores.seat_0}-${view.scores.seat_1}` },
+      {
+        label: "Turn",
+        value: view.terminal.terminal
+          ? view.terminal.draw
+            ? "draw"
+            : `${view.terminal.winner} won`
+          : view.active_seat ?? "terminal",
+      },
+      { label: "Market", value: `${view.market_slots.filter((slot) => !slot.is_empty).length} visible` },
     ];
   }
 
