@@ -8,7 +8,7 @@
 | Status | Planned |
 | Date | 2026-06-08 |
 | Owner | Rulepath maintainers |
-| Authority order | [`docs/FOUNDATIONS.md`](../docs/FOUNDATIONS.md) → [`docs/ROADMAP.md`](../docs/ROADMAP.md) → this spec. Where this spec and a foundation document disagree, the foundation document wins. |
+| Authority order | [`docs/FOUNDATIONS.md`](../../docs/FOUNDATIONS.md) → [`docs/ROADMAP.md`](../../docs/ROADMAP.md) → this spec. Where this spec and a foundation document disagree, the foundation document wins. |
 
 > Reader orientation: this spec carries the canonical Rulepath section set
 > (Objective, Scope, Deliverables, Work breakdown, Exit criteria, Acceptance
@@ -221,7 +221,7 @@ inventories.
 | §6 Official games are evidence-heavy | aligned | `high_card_duel` already satisfies the contract; WB5 only exposes its existing native smoke in CI. |
 | §11 Universal acceptance invariants | aligned | Determinism preserved (Not-allowed forbids trace/hash/golden changes without a migration note); no hidden-info leak introduced by doc edits. |
 | §12 Stop conditions | clear | None crossed — the game carries full coverage; the CI gap is hygiene, not a missing-coverage stop condition. |
-| §13 ADR triggers | N/A | No architecture-changing decision; the Blackjack reclassification was already made by the accepted [ADR 0006](../docs/adr/0006-blackjack-lite-roadmap-placement.md). |
+| §13 ADR triggers | N/A | No architecture-changing decision; the Blackjack reclassification was already made by the accepted [ADR 0006](../../docs/adr/0006-blackjack-lite-roadmap-placement.md). |
 
 ## Forbidden changes
 
