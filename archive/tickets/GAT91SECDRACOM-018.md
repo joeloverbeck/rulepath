@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-018: Capstone — acceptance evidence + MECHANIC-ATLAS §10B first-use + status reconciliation
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (verification + docs/status reconciliation) — `specs/README.md`, `docs/MECHANIC-ATLAS.md`, `progress.md` (modify) and the spec's own Status. Exercises every prior ticket end-to-end; introduces no production logic.

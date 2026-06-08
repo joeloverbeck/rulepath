@@ -5,7 +5,7 @@
 | Spec ID | `gate-9-1-secret-draft-commitment-reveal` |
 | Roadmap stage | 8 |
 | Roadmap build gate | Gate 9.1 — simultaneous commitment / reveal / drafting proof |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-08 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `secret_draft` |
