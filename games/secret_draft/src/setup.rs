@@ -60,5 +60,21 @@ mod tests {
         assert_eq!(state.visible_pool, DraftItemId::ALL);
         assert!(state.empty_commitments());
         assert_eq!(state.round_number, 1);
+        assert_eq!(state.priority_seat, crate::ids::SecretDraftSeat::Seat0);
+        assert_eq!(state.scores, [0, 0]);
+        assert_eq!(state.fallback_awards, [0, 0]);
+        assert_eq!(state.priority_conflict_wins, [0, 0]);
+        assert!(state.terminal_outcome.is_none());
+    }
+
+    #[test]
+    fn setup_is_deterministic() {
+        let options = SetupOptions::default();
+        let seats = [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())];
+        let first = setup_match(&seats, &options).expect("first setup succeeds");
+        let second = setup_match(&seats, &options).expect("second setup succeeds");
+
+        assert_eq!(first, second);
+        assert_eq!(first.stable_summary(), second.stable_summary());
     }
 }

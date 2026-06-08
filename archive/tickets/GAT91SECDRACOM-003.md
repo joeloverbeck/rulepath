@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-003: secret_draft state model + typed IDs + deterministic setup + variants
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/secret_draft` only: `src/state.rs`, `src/setup.rs`, `src/variants.rs`, `src/ids.rs`. No `engine-core` / `game-stdlib` change.
