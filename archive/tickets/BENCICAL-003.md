@@ -1,6 +1,6 @@
 # BENCICAL-003: Recalibrate three_marks and column_four to variance-aware CI floors
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — benchmark policy data (`games/three_marks/benches/thresholds.json`, `games/column_four/benches/thresholds.json`), audit `games/race_to_n/benches/thresholds.json`, and per-game docs (`games/three_marks/docs/BENCHMARKS.md`, `games/column_four/docs/BENCHMARKS.md`). No Rust code, schema, or workflow change.
@@ -175,3 +175,43 @@ ADR 0005 and note the single-sample calibration is superseded. Bump
 1. `cargo bench -p column_four | tee /tmp/c4.txt && cargo run -p bench-report -- --input /tmp/c4.txt --thresholds games/column_four/benches/thresholds.json`
 2. `cargo bench -p three_marks | tee /tmp/tm.txt && cargo run -p bench-report -- --input /tmp/tm.txt --thresholds games/three_marks/benches/thresholds.json`
 3. Trigger the full lane via `gh workflow run "Gate 2 benchmarks"` (or push to `main`) and confirm the `Benchmark threshold gate` job is green — this is the only environment that reproduces the heterogeneous shared-runner behavior the floors are calibrated against.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Recalibrated variance-aware floors in `games/column_four/benches/thresholds.json`,
+  `games/three_marks/benches/thresholds.json`, and the under-margin
+  `race_to_n` audit rows in `games/race_to_n/benches/thresholds.json`.
+- Updated `games/column_four/docs/BENCHMARKS.md`,
+  `games/three_marks/docs/BENCHMARKS.md`, and
+  `games/race_to_n/docs/BENCHMARKS.md` to record native baselines, observed CI
+  minima from runs `27101213584`/`27111487150`/`27114668009`, and committed
+  ADR 0005 floors.
+
+Deviations from original plan:
+
+- `race_to_n` was not a no-op: four existing floors were within 15% of the
+  observed minimum, so they were widened under the ticket's audit rule.
+- The required workflow proof ran on branch `bencical-003` rather than after a PR
+  merge; no PR or merge was required for the ticket acceptance evidence.
+
+Verification results:
+
+- Extracted benchmark JSON from GitHub Actions runs `27101213584`,
+  `27111487150`, and `27114668009`; every recalibrated floor is at or below
+  `0.85 * min_observed`.
+- `cargo bench -p column_four` then `cargo run -p bench-report -- --input
+  /tmp/rulepath-column_four-local-bench.txt --thresholds
+  games/column_four/benches/thresholds.json` passed.
+- `cargo bench -p three_marks` then `cargo run -p bench-report -- --input
+  /tmp/rulepath-three_marks-local-bench.txt --thresholds
+  games/three_marks/benches/thresholds.json` passed.
+- `bench-report` passed against all extracted representative CI reports for
+  `column_four`, `three_marks`, and `race_to_n`.
+- `node scripts/check-doc-links.mjs` passed.
+- `git diff --check` passed.
+- `Gate 2 benchmarks` workflow_dispatch run `27116547726` on branch
+  `bencical-003` completed successfully; `Benchmark threshold gate` was green.
