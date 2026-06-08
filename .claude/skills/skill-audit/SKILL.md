@@ -111,10 +111,12 @@ Steps 1–7 are the audit. Step 8 (follow-up implementation) fires only if the u
 **Total**: N issues, N improvements, N features (N findings) — N CRITICAL, N HIGH, N MEDIUM, N LOW
 ```
 
+Write empty buckets as `0 issues` / `0 improvements` / `0 features` — never omit a bucket or substitute an ad-hoc phrase.
+
 ## Report conventions
 
 - **Suggestion specificity** — when a fix could land in either `SKILL.md` or a `references/` file, cite the exact path (e.g., "Add to `references/X.md` §Section"). The bare `§Section` form is fine when the section name is unique across the skill's files.
-- **Severity-count double-check** — verify the Summary counts against the findings before presenting; if you correct a count after presenting, strike the wrong line and restate.
+- **Severity-count double-check** — before presenting, recount each bucket (issues / improvements / features) and each severity (CRITICAL / HIGH / MEDIUM / LOW) independently from the numbered findings, then confirm two invariants: the **bucket counts sum to total findings** AND the **severity counts sum to total findings** (the cheap check that catches a miscount like `1 issue + 2 improvements ≠ 4 findings` or a phantom bucket). Write an empty bucket as `0 <bucket>`, never an ad-hoc phrase. If you correct a count after presenting, strike the wrong line and restate.
 - **Implement-all by default** — "implement all", "implement recommended", "implement suggestions" are synonymous: apply every numbered finding. Anything worth numbering is worth implementing. To surface a finding *without* auto-applying it, tag it on the title line: `— skip` (considered and declined), `— informational` (context, no code change), or append `— no change needed` to the Suggestion line. Tagged findings are excluded from "implement all"; everything else is applied.
 
 ## Follow-up implementation (Step 8, on user request)
@@ -126,7 +128,7 @@ After the report, the user may ask you to implement specific findings (or all of
 3. **Read before Edit** — every file you will Edit must have been Read in this session via the Read tool. In-context content from grep/Bash/skill-invocation output does *not* satisfy the Edit tool's validator. For large files, chunked Reads (`offset`/`limit`) covering each edit region satisfy it.
 4. **Apply edits in document order** (top → bottom) to avoid line-shift breakage; parallel Edit batching is fine when each `old_string` is unique and non-overlapping. Construct `old_string`s from the current in-context Read of the file, not from audit-phase *memory* — whitespace and list markers are easily misremembered. A complete Step-1 (or later) Read that the harness confirms is unchanged (its wasted-call guard — "file unchanged since your last Read") satisfies this; issue a *new* Read only when the content is partial, was compacted away, or the file may have changed since (an intervening edit or external modification). When two findings target the same contiguous block, apply them as a single Edit covering both rather than forcing two overlapping `old_string`s, and report the secondary as `co-edit with finding M` (item 7).
 5. **Intra-skill cascade scan** — after planning each primary edit, scan the rest of the skill's files for related text using the same terminology, concept, or count that would go stale if only the primary changed (search semantic variants too: plurals, count phrases like "three categories", word-form numbers). Apply cascades alongside the primary. Key them `N.cascade` in the summary; when one finding needs co-equal parallel edits at several sites, key `N.a` / `N.b` instead.
-6. **Post-edit verification** — re-read each edited file (full file if short; edited regions with flanking context if long) and confirm: edits don't conflict; numbering/steps/sections stay sequential; cross-references and file paths still resolve; the skill reads coherently end-to-end; YAML frontmatter still parses if touched. Fix and re-run the full pass if any check fails.
+6. **Post-edit verification** — re-read or grep each edited file's changed regions (full file if short; edited regions with flanking context if long — a targeted `grep` that surfaces the full changed lines plus enough surrounding structure to judge numbering/sequence is a valid mechanism, consistent with Step 6's "Read or grep" allowance) and confirm: edits don't conflict; numbering/steps/sections stay sequential; cross-references and file paths still resolve; the skill reads coherently end-to-end; YAML frontmatter still parses if touched. Fix and re-run the full pass if any check fails.
 7. **Post-implementation summary** — a status row per finding (`implemented` / `cascade from finding N — <reason>` / `co-edit with finding M` / `skipped — <reason>`), so the user gets a clear per-finding outcome.
 
 ## Cross-skill note
@@ -135,7 +137,7 @@ This repo has several sibling skills — enumerate the current set with `ls .cla
 
 ## Auxiliary investigation and announcements
 
-Beyond reading the target `SKILL.md`, you may list its directory, read or grep sibling skills, and diff files against named reference sources — but each auxiliary call must support a specific hypothesis about the target's behavior, not probe speculatively. **Announce any tool call beyond the target Read hypothesis-first**, as user-facing text immediately before the call: `Investigating <hypothesis>: <grep/read/list> <target> to verify.` This keeps the audit trail reproducible. A tool's `description` field does not satisfy this — it doesn't render where reproducibility needs it.
+Beyond reading the target `SKILL.md`, you may list its directory, read or grep sibling skills, and diff files against named reference sources — but each auxiliary call must support a specific hypothesis about the target's behavior, not probe speculatively. **Announce any tool call beyond the target Read hypothesis-first**, as user-facing text immediately before the call: `Investigating <hypothesis>: <grep/read/list> <target> to verify.` This keeps the audit trail reproducible. A tool's `description` field does not satisfy this — it doesn't render where reproducibility needs it. The hypothesis-first announcement applies equally to Step 8 verification calls (the post-edit re-read/grep and the cross-skill scan), not only audit-phase auxiliary calls.
 
 ## Guardrails
 
