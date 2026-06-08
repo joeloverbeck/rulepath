@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-001: Token Bazaar RULES.md + SOURCES.md
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — documentation only (`games/token_bazaar/docs/RULES.md`, `games/token_bazaar/docs/SOURCES.md`)
@@ -143,3 +143,32 @@ accessibility guidance as a UI-affordance reference (not a rules source).
    boundary-checked location via the new docs' paths.
 3. A narrower command is correct here because the ticket ships only prose; rule
    fidelity and IP originality are manual-review invariants, not test-runnable.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added `games/token_bazaar/docs/RULES.md` as the authoritative human-readable
+  rules contract for `token_bazaar_standard`, including public seats/visibility,
+  resources, initial supply/inventory, the deterministic ten-contract queue,
+  collect/exchange/fulfill/forced-pass legality, terminal conditions, and
+  tie-breaks.
+- Added `games/token_bazaar/docs/SOURCES.md` documenting Token Bazaar as an
+  original Rulepath game, using generic market/contract vocabulary only, with no
+  commercial rules, prose, names, assets, or trade dress copied.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `bash scripts/boundary-check.sh` passed.
+- Manual review confirmed the rules doc includes the Gate 9 contract table,
+  collect bundle table, exchange/fulfill constraints, turn cap, terminal
+  conditions, and tie-break order.
+- Manual IP review confirmed `SOURCES.md` asserts originality and cites no
+  commercial rules source as a model.
