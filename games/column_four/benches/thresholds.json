@@ -15,9 +15,9 @@
     {
       "operation_name": "apply_action",
       "unit": "actions_per_second",
-      "threshold": 200000,
-      "rationale_class": "measured_baseline",
-      "rationale": "Initial floor below the first local native smoke measurement for validation plus gravity placement."
+      "threshold": 120000,
+      "rationale_class": "conservative_ci_floor",
+      "rationale": "Variance-aware floor more than 15% below the minimum 146481.22 actions/sec observed across runs 27101213584/27111487150/27114668009; native baseline remains documented in BENCHMARKS.md per ADR 0005."
     },
     {
       "operation_name": "public_view_generation",
@@ -29,9 +29,9 @@
     {
       "operation_name": "replay_step_projection",
       "unit": "projections_per_second",
-      "threshold": 33000,
+      "threshold": 25000,
       "rationale_class": "conservative_ci_floor",
-      "rationale": "CI-calibrated floor below observed ubuntu-latest value 34175.00 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003."
+      "rationale": "Variance-aware floor more than 15% below the minimum 30493.56 projections/sec observed across runs 27101213584/27111487150/27114668009; native baseline remains documented in BENCHMARKS.md per ADR 0005."
     },
     {
       "operation_name": "serialization_roundtrip",
@@ -43,16 +43,16 @@
     {
       "operation_name": "replay_throughput",
       "unit": "replays_per_second",
-      "threshold": 3200,
+      "threshold": 2400,
       "rationale_class": "conservative_ci_floor",
-      "rationale": "CI-calibrated floor below observed ubuntu-latest value 3334.35 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003."
+      "rationale": "Variance-aware floor more than 15% below the minimum 2878.89 replays/sec observed across runs 27101213584/27111487150/27114668009; native baseline remains documented in BENCHMARKS.md per ADR 0005."
     },
     {
       "operation_name": "random_playout",
       "unit": "games_per_second",
-      "threshold": 9000,
+      "threshold": 5000,
       "rationale_class": "conservative_ci_floor",
-      "rationale": "CI-calibrated floor below observed ubuntu-latest value 9700.09 in BENCICAL-001 run 27087214359; native target miss remains documented in BENCHMARKS.md per ADR 0003."
+      "rationale": "Variance-aware floor more than 15% below the minimum 5938.52 games/sec observed across runs 27101213584/27111487150/27114668009; native target miss remains documented in BENCHMARKS.md per ADR 0005."
     },
     {
       "operation_name": "level0_bot_decision",
@@ -64,9 +64,9 @@
     {
       "operation_name": "level2_bot_decision",
       "unit": "decisions_per_second",
-      "threshold": 3000,
+      "threshold": 1100,
       "rationale_class": "conservative_ci_floor",
-      "rationale": "CI-calibrated floor below observed ubuntu-latest value 3063.45 in BENCICAL-001 run 27087214359; native baseline remains documented in BENCHMARKS.md per ADR 0003."
+      "rationale": "Variance-aware floor more than 15% below the minimum 1370.21 decisions/sec observed across runs 27101213584/27111487150/27114668009; native baseline remains documented in BENCHMARKS.md per ADR 0005."
     }
   ]
 }
