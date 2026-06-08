@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-006: secret_draft visibility/no-leak projection (visibility.rs) + UI metadata (ui.rs)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/secret_draft/src/visibility.rs` and `src/ui.rs`; no `engine-core` / `game-stdlib` change.
