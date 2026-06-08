@@ -5,7 +5,7 @@
 | Spec ID | `gate-9-token-bazaar-browser-proof` |
 | Roadmap stage | 7 |
 | Roadmap build gate | Gate 9 — resources / economy. This spec implements the `token_bazaar` (public resource/economy) slice; the `secret_draft` simultaneous-commitment / reveal slice is deferred to a dedicated successor gate (see Sequencing). |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-08 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `token_bazaar` |

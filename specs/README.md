@@ -37,7 +37,7 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | 6 | Gate 8 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](../archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Done |
 | 6C | Post-Gate-8 Blackjack placement audit | [`../docs/adr/0006-blackjack-lite-roadmap-placement.md`](../docs/adr/0006-blackjack-lite-roadmap-placement.md) closes the checkpoint: `blackjack_lite` is not a Gate 8.1 implementation target and is deferred as a Gate 10-or-later comparison case. Gate 8's `high_card_duel` evidence satisfies deterministic shuffle, private-view, effect-filter, public replay/export, bot-view, browser no-leak, and benchmark proof. No Blackjack interlock blocks Gate 9. | Done |
 | 6M | Gate 8 aftermath / roadmap realignment | [`gate-8-aftermath-roadmap-realignment.md`](../archive/specs/gate-8-aftermath-roadmap-realignment.md) reconciles root, progress, web, source-note, and CI smoke routing after Gate 8 so Gate 9 starts from truthful docs. | Done |
-| 7 | Gate 9 | [`gate-9-token-bazaar-browser-proof.md`](gate-9-token-bazaar-browser-proof.md) (`token_bazaar`; `secret_draft` deferred to a Gate 9.1 commitment/reveal gate) | Planned |
+| 7 | Gate 9 | [`gate-9-token-bazaar-browser-proof.md`](../archive/specs/gate-9-token-bazaar-browser-proof.md) (`token_bazaar`; `secret_draft` deferred to a Gate 9.1 commitment/reveal gate) | Done |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |
 | 12 | Gate 12 | `flood_watch` — not yet specced | Not started |

@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-018: Capstone — acceptance evidence + MECHANIC-ATLAS first-use + status reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — verification + docs/status only (`docs/MECHANIC-ATLAS.md`, `specs/gate-9-token-bazaar-browser-proof.md`, `specs/README.md`, `progress.md`, `README.md`)
@@ -124,3 +124,28 @@ Record Gate 9 / Token Bazaar as landed.
 2. `cargo bench -p token_bazaar && npm --prefix apps/web run smoke:e2e && bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs`
 3. This full re-run is the correct boundary for a capstone — it is exactly the
    spec's acceptance-evidence + exit-criteria suite, end-to-end.
+
+## Outcome (2026-06-08)
+
+Completed the Gate 9 Token Bazaar capstone.
+
+- Re-ran the full acceptance evidence suite before status reconciliation.
+- Recorded Token Bazaar as first official public resource/accounting pressure in
+  `docs/MECHANIC-ATLAS.md`, kept local with no `game-stdlib` promotion debt.
+- Flipped the Gate 9 spec and `specs/README.md` index row to `Done`.
+- Updated `progress.md` and root `README.md` to record Gate 9 completion and
+  the deferred successor commitment/reveal gate.
+- Archived the active Gate 9 spec after updating the index link.
+
+Verification:
+
+1. `cargo test --workspace`
+2. `cargo run -p simulate -- --game token_bazaar --games 1000 --start-seed 1`
+3. `cargo run -p replay-check -- --game token_bazaar --all`
+4. `cargo run -p fixture-check -- --game token_bazaar`
+5. `cargo run -p rule-coverage -- --game token_bazaar`
+6. `cargo bench -p token_bazaar`
+7. `cargo run -p bench-report -- --input /tmp/token_bazaar-bench.txt --thresholds games/token_bazaar/benches/thresholds.json`
+8. `npm --prefix apps/web run smoke:e2e`
+9. `bash scripts/boundary-check.sh`
+10. `node scripts/check-doc-links.mjs`
