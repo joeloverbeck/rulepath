@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-012: secret_draft native tool registration + RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/{simulate,replay-check,fixture-check,rule-coverage}/src/main.rs` (modify); `games/secret_draft/docs/RULE-COVERAGE.md` (new). No `engine-core` / `game-stdlib` change.

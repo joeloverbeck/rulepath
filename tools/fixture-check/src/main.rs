@@ -50,6 +50,7 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_replay_hashes",
     "expected_private_view_hashes",
     "expected_public_export_hashes",
+    "expected_revealed_sequence",
     "expected_diagnostic_hashes",
     "expected_diagnostics",
     "expected_outcome",
@@ -76,6 +77,7 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "after_command_index",
     "final",
     "all",
+    "observer",
     "seat_0",
     "seat_1",
     "command_index",
@@ -207,6 +209,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/token_bazaar/data/variants.toml",
             variant_id: "token_bazaar_standard",
         }),
+        "secret_draft" => Ok(RegisteredGame {
+            game_id: "secret_draft",
+            rules_version: "secret-draft-rules-v1",
+            trace_dir: "games/secret_draft/tests/golden_traces",
+            fixture_dir: "games/secret_draft/data/fixtures",
+            manifest_path: "games/secret_draft/data/manifest.toml",
+            variants_path: "games/secret_draft/data/variants.toml",
+            variant_id: "secret_draft_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -260,9 +271,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -387,6 +398,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = token_bazaar::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "secret_draft" => {
+            let manifest = secret_draft::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = secret_draft::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (

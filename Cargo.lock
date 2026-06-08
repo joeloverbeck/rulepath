@@ -53,6 +53,7 @@ dependencies = [
  "draughts_lite",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]
@@ -92,6 +93,7 @@ dependencies = [
  "game-stdlib",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]
@@ -127,6 +129,7 @@ dependencies = [
  "engine-core",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]

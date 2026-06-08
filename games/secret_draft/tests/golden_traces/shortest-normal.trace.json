@@ -25,13 +25,16 @@
   "expected_effect_hashes": { "final": 6300494095297500087 },
   "expected_action_tree_hashes": { "final": 13944979233763565434 },
   "expected_public_view_hashes": { "observer": 5151570320358684686, "seat_0": 6925704371615767077, "seat_1": 6147147158702293800 },
+  "expected_private_view_hashes": { "seat_0": 6925704371615767077, "seat_1": 6147147158702293800 },
   "expected_replay_hashes": { "final": 13982334687289115299 },
   "expected_diagnostic_hashes": null,
   "expected_public_export_hashes": { "final": 7259316660559996457 },
   "expected_revealed_sequence": ["1:ember_1:tide_1:ember_1:tide_1"],
   "expected_diagnostics": null,
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
   "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
   "not_applicable": {
+    "hidden_information": "secret_draft has hidden commitments; public observer and seat-private hash surfaces verify redaction rather than claiming this is not applicable.",
     "stochastic_game_events": "secret_draft standard setup and reveal resolution use no game-rule randomness.",
     "preview_hashes": "secret_draft uses legal action metadata rather than a separate preview hash."
   }
