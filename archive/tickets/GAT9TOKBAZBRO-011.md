@@ -122,3 +122,36 @@ check step, mirroring the existing `high_card_duel` steps.
 2. `cargo bench -p token_bazaar | tee /tmp/token_bazaar-bench.txt && cargo run -p bench-report -- --input /tmp/token_bazaar-bench.txt --thresholds games/token_bazaar/benches/thresholds.json`
 3. The bench + bench-report pair is the correct boundary; CI wiring is the same
    pair under the gate-2 workflow.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added the `token_bazaar` harness-free benchmark target and
+  `games/token_bazaar/benches/token_bazaar.rs`.
+- Added `games/token_bazaar/benches/thresholds.json` with smoke-floor thresholds
+  for all benchmark operations.
+- Added `games/token_bazaar/docs/BENCHMARKS.md` documenting the operations,
+  smoke-floor posture, and follow-up calibration expectation.
+- Added Token Bazaar smoke and threshold-gate steps to
+  `.github/workflows/gate-2-benchmarks.yml`.
+
+Deviations from original plan:
+
+- Added the required `[[bench]]` target entry to `games/token_bazaar/Cargo.toml`
+  so `cargo bench -p token_bazaar` can discover the new harness.
+- The benchmark harness follows the existing repo custom `harness = false`
+  pattern rather than Criterion.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo bench -p token_bazaar -- legal_actions` passed.
+- `cargo bench -p token_bazaar | tee /tmp/token_bazaar-bench.txt` passed.
+- `cargo run -p bench-report -- --input /tmp/token_bazaar-bench.txt --thresholds games/token_bazaar/benches/thresholds.json` passed with 11 operations.
+- `python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/gate-2-benchmarks.yml", encoding="utf-8")); print("gate-2 workflow parsed by PyYAML")'` passed.
+- Token Bazaar workflow path checks passed for the bench harness, thresholds,
+  and `BENCHMARKS.md`.
+- `cargo test -p token_bazaar` passed.

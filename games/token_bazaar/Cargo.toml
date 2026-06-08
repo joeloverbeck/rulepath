@@ -11,3 +11,7 @@ engine-core = { path = "../../crates/engine-core" }
 
 [lib]
 path = "src/lib.rs"
+
+[[bench]]
+name = "token_bazaar"
+harness = false
