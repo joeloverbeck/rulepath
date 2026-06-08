@@ -123,3 +123,29 @@ terminal state, and (for diagnostic traces) rejection-without-mutation match.
 2. `cargo test -p token_bazaar`
 3. The standalone `replay-check -- --game token_bazaar --all` pipeline run is
    verified in GAT9TOKBAZBRO-012 once the tool arm exists.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added all twelve Token Bazaar Trace Schema v1 golden traces under
+  `games/token_bazaar/tests/golden_traces/`.
+- Added `games/token_bazaar/tests/replay.rs` to re-derive stored state, effect,
+  action-tree, public-view, replay/export, terminal, bot-action, and diagnostic
+  hashes from the trace command streams.
+- Added explicit setup-patch metadata for the market-exhaustion and empty-slot
+  diagnostic near-state traces because those states are not reachable from the
+  untouched standard setup before the turn cap.
+
+Deviations from original plan:
+
+- Two traces use explicit setup patches instead of a standard setup-only command
+  prefix; this keeps the fixtures truthful while still verifying deterministic
+  replay from the documented trace state.
+
+Verification results:
+
+- `cargo test -p token_bazaar --test replay` passed.
+- `cargo test -p token_bazaar` passed.

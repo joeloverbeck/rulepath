@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "trace_id": "token-bazaar-contract-fulfill-refill",
+  "fixture_kind": "commands",
+  "purpose": "contract_fulfill_refill",
+  "note": "Token Bazaar contract_fulfill_refill replay fixture.",
+  "migration_update_note": "Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.",
+  "game_id": "token_bazaar",
+  "rules_version": "token-bazaar-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "token_bazaar_standard",
+  "options": {},
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["fulfill/slot_0"], "freshness_token": "0", "expect": "applied" }
+  ],
+  "checkpoints": [{ "id": "final", "after_command_index": 0 }],
+  "expected_state_hashes": { "final": 18265692189139573235 },
+  "expected_effect_hashes": { "final": 5178818816565598277 },
+  "expected_action_tree_hashes": { "final": 2044453659011924789 },
+  "expected_public_view_hashes": { "all": 1763666130277728521 },
+  "expected_replay_hashes": { "final": 15686722302422814638 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 15686722302422814638 },
+  "expected_outcome": { "terminal": false, "winner": null, "draw": false },
+  "expected_terminal_state": { "terminal": false, "winner": null, "draw": false },
+  "not_applicable": {
+    "hidden_information": "token_bazaar is fully public.",
+    "stochastic_game_events": "token_bazaar game rules use no randomness.",
+    "private_view_hashes": "token_bazaar observer and seat views are identical.",
+    "preview_hashes": "token_bazaar uses legal action metadata rather than a separate preview hash."
+  }
+}
