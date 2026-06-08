@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-009: Rust rule/property/serialization/visibility tests + standard fixture
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/token_bazaar/tests/{rules,property,serialization,visibility}.rs` (new), `data/fixtures/token_bazaar_standard.fixture.json` (new)
@@ -135,3 +135,25 @@ The canonical standard fixture (schema mirroring `high_card_duel_standard.fixtur
 2. `cargo test --workspace && bash scripts/boundary-check.sh`
 3. Workspace test is justified here because this suite is the gate's invariant
    floor and must pass alongside every other crate before tool/WASM tickets build on it.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added Token Bazaar integration tests for rules, property/invariant coverage,
+  serialization, and visibility/no-leak surfaces.
+- Added `games/token_bazaar/data/fixtures/token_bazaar_standard.fixture.json`
+  as the standard fixture metadata for later fixture-check/tool registration.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo test -p token_bazaar` passed, including unit tests plus bots,
+  property, rules, serialization, and visibility integration suites.
+- `cargo test --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.
