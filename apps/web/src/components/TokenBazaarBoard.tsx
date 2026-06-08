@@ -74,7 +74,7 @@ export function TokenBazaarBoard({
             <span>{view.ui.supply_label}</span>
             <strong>Public</strong>
           </div>
-          <ResourceChips counts={view.supply} />
+          <ResourceChips counts={view.supply} compact />
         </section>
 
         <SeatInventory view={view} seat="seat_1" />
@@ -165,7 +165,7 @@ function SeatInventory({ view, seat }: { view: TokenBazaarPublicView; seat: Seat
         <span>{seatLabel(seat)}</span>
         <strong>{active ? "Active" : `${fulfilled.length} fulfilled`}</strong>
       </div>
-      <ResourceChips counts={inventory.resources} />
+      <ResourceChips counts={inventory.resources} compact />
       <div className="token-seat-footer">
         <span>Score {seat === "seat_0" ? view.scores.seat_0 : view.scores.seat_1}</span>
         <span>Contracts {fulfilled.length ? fulfilled.join(", ") : "none"}</span>
@@ -240,7 +240,7 @@ function parseCounts(value: string | null): TokenBazaarResourceCounts | null {
   }
   const counts: TokenBazaarResourceCounts = { amber: 0, jade: 0, iron: 0 };
   for (const part of value.split(",")) {
-    const [key, raw] = part.split("=");
+    const [key, raw] = part.split(":");
     if (key === "amber" || key === "jade" || key === "iron") {
       counts[key] = Number(raw) || 0;
     }

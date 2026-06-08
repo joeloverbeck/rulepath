@@ -38,6 +38,7 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | 6C | Post-Gate-8 Blackjack placement audit | [`../docs/adr/0006-blackjack-lite-roadmap-placement.md`](../docs/adr/0006-blackjack-lite-roadmap-placement.md) closes the checkpoint: `blackjack_lite` is not a Gate 8.1 implementation target and is deferred as a Gate 10-or-later comparison case. Gate 8's `high_card_duel` evidence satisfies deterministic shuffle, private-view, effect-filter, public replay/export, bot-view, browser no-leak, and benchmark proof. No Blackjack interlock blocks Gate 9. | Done |
 | 6M | Gate 8 aftermath / roadmap realignment | [`gate-8-aftermath-roadmap-realignment.md`](../archive/specs/gate-8-aftermath-roadmap-realignment.md) reconciles root, progress, web, source-note, and CI smoke routing after Gate 8 so Gate 9 starts from truthful docs. | Done |
 | 7 | Gate 9 | [`gate-9-token-bazaar-browser-proof.md`](../archive/specs/gate-9-token-bazaar-browser-proof.md) (`token_bazaar`; `secret_draft` deferred to a Gate 9.1 commitment/reveal gate) | Done |
+| 7M | Gate 9 aftermath / web README realignment | [`gate-9-aftermath-roadmap-realignment.md`](../archive/specs/gate-9-aftermath-roadmap-realignment.md) realigns the web-shell README (intro, Shell Surface, Smoke Layers) to register Token Bazaar after Gate 9. | Done |
 | 9 | Gate 10 | `poker_lite` / `plain_tricks` — not yet specced | Not started |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |
 | 12 | Gate 12 | `flood_watch` — not yet specced | Not started |
@@ -70,6 +71,12 @@ omissions.
    rationale; keep §12 stop conditions clear.
 9. **Forbidden changes** — gate-specific prohibitions.
 10. **Documentation updates required** — including this index's status flip.
+    For a web-exposed game gate, this MUST name the web-shell catalog README
+    ([`../apps/web/README.md`](../apps/web/README.md)) — its intro catalog list,
+    Shell Surface renderer list, and Smoke Layers `smoke:e2e` list — as a closeout
+    surface so the gate (via its capstone ticket) reconciles it rather than a later
+    aftermath pass. `scripts/check-catalog-docs.mjs` enforces the intro and smoke
+    lists in CI; see [`../docs/OFFICIAL-GAME-CONTRACT.md`](../docs/OFFICIAL-GAME-CONTRACT.md) §10/§12.
 11. **Sequencing** — predecessor/successor gate; admission rule.
 12. **Assumptions** — one-line-correctable.
 

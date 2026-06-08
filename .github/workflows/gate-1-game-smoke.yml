@@ -139,3 +139,6 @@ jobs:
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
+
+      - name: Catalog/docs drift check
+        run: node scripts/check-catalog-docs.mjs

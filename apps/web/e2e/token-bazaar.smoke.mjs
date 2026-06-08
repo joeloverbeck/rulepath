@@ -68,6 +68,8 @@ try {
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="token-bazaar-board"]');
   await assertBoardA11y(page);
+  await assertCollectAmberGain(page);
+  await assertInventoryChipsCompact(page);
   await assertNoLeak(page, consoleMessages, "initial token_bazaar DOM");
 
   await focusByTestId(page, "token-action-collect-amber");
@@ -149,6 +151,37 @@ async function assertBoardA11y(page) {
     summary.resourceChips.every((chip) => chip.code.length > 0 && chip.name.length > 0 && chip.count.length > 0),
     "resource chips include code, name, and numeric count",
   );
+}
+
+async function assertCollectAmberGain(page) {
+  const gain = await page.$eval('[data-testid="token-action-collect-amber"] small', (element) =>
+    Array.from(element.querySelectorAll(".resource-chip")).map((chip) => ({
+      code: chip.querySelector("b")?.textContent?.trim() ?? "",
+      name: chip.querySelector("span")?.textContent?.trim() ?? "",
+      count: chip.querySelector("strong")?.textContent?.trim() ?? "",
+    })),
+  );
+  assert(gain.length === 3, `collect amber action renders three gain chips, got ${gain.length}`);
+  assert(
+    JSON.stringify(gain) ===
+      JSON.stringify([
+        { code: "AM", name: "amber", count: "2" },
+        { code: "JA", name: "jade", count: "0" },
+        { code: "IR", name: "iron", count: "0" },
+      ]),
+    `collect amber gain renders Rust metadata amber 2 / jade 0 / iron 0: ${JSON.stringify(gain)}`,
+  );
+}
+
+async function assertInventoryChipsCompact(page) {
+  const grid = await page.$eval(".token-seat .resource-chips", (element) => {
+    const columns = window.getComputedStyle(element).gridTemplateColumns.trim();
+    return {
+      columns,
+      tracks: columns.length > 0 ? columns.split(/\s+/).length : 0,
+    };
+  });
+  assert(grid.tracks === 1, `seat inventory resource chips use one compact grid track: ${JSON.stringify(grid)}`);
 }
 
 async function assertBotResponse(page) {
