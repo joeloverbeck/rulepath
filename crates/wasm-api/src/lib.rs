@@ -50,6 +50,12 @@ use three_marks::{
     setup_match as three_setup_match, ThreeMarksEffect, ThreeMarksLevel1Bot, ThreeMarksSeat,
     ThreeMarksState,
 };
+use token_bazaar::{
+    apply_action as token_apply_action, legal_action_tree as token_legal_action_tree,
+    project_view as token_project_view, replay_support::replay_commands as token_replay_commands,
+    setup_match as token_setup_match, TokenBazaarEffect, TokenBazaarLevel1Bot, TokenBazaarSeat,
+    TokenBazaarState,
+};
 
 const API_VERSION: &str = "rulepath-wasm-api/0.1.0";
 const GAME_RACE_TO_N: &str = "race_to_n";
@@ -64,6 +70,8 @@ const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
 const GAME_DRAUGHTS_LITE_DISPLAY_NAME: &str = "Draughts Lite";
 const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_HIGH_CARD_DUEL_DISPLAY_NAME: &str = "High Card Duel";
+const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
+const GAME_TOKEN_BAZAAR_DISPLAY_NAME: &str = "Token Bazaar";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -89,6 +97,7 @@ const COLUMN_FOUR_TRACE_RULES_VERSION: &str = "column_four-rules-v1";
 const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
 const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
+const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
@@ -97,6 +106,7 @@ const VARIANT_COLUMN_FOUR_STANDARD: &str = "column_four_standard";
 const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
 const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
+const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -151,6 +161,13 @@ enum MatchRecord {
         effects: EffectLog<HighCardDuelEffect>,
         commands: Vec<AppliedCommand>,
     },
+    TokenBazaar {
+        game_id: String,
+        seed: u64,
+        state: TokenBazaarState,
+        effects: EffectLog<TokenBazaarEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -191,6 +208,7 @@ enum RegisteredGame {
     DirectionalFlip,
     DraughtsLite,
     HighCardDuel,
+    TokenBazaar,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -205,6 +223,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::DirectionalFlip,
         RegisteredGame::DraughtsLite,
         RegisteredGame::HighCardDuel,
+        RegisteredGame::TokenBazaar,
     ]
         .iter()
         .map(|game| match game {
@@ -254,6 +273,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
+            ),
+            RegisteredGame::TokenBazaar => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
+                escape_json(GAME_TOKEN_BAZAAR),
+                escape_json(GAME_TOKEN_BAZAAR_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_TOKEN_BAZAAR_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -423,6 +450,31 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
             ))
         }
+        RegisteredGame::TokenBazaar => {
+            let seats = seats();
+            let state =
+                token_setup_match(Seed(seed), &seats, &token_bazaar::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::TokenBazaar {
+                        game_id: GAME_TOKEN_BAZAAR.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_TOKEN_BAZAAR_STANDARD)
+            ))
+        }
     }
 }
 
@@ -459,6 +511,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = high_card_viewer_for_seat(state, viewer_seat)?;
             Ok(high_card_view_json(&high_card_project_view(state, &viewer)))
+        }
+        MatchRecord::TokenBazaar { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = token_viewer_for_seat(state, viewer_seat)?;
+            Ok(token_view_json(&token_project_view(state, &viewer)))
         }
     })
 }
@@ -530,6 +587,15 @@ pub fn get_action_tree_for_viewer(
             Ok(action_tree_json(&high_card_legal_action_tree(
                 state, &actor,
             )))
+        }
+        MatchRecord::TokenBazaar { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_token_seat(actor_seat)?;
+            if !token_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = token_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&token_legal_action_tree(state, &actor)))
         }
     })
 }
@@ -734,6 +800,39 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 high_card_view_json(&high_card_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::TokenBazaar {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_token_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: token_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                token_bazaar::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = token_apply_action(state, action);
+            let effect_json = token_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_token_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                token_view_json(&token_project_view(state, &Viewer { seat_id: None }))
             ))
         }
     })
@@ -957,6 +1056,42 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 high_card_view_json(&high_card_project_view(state, &viewer))
             ))
         }
+        MatchRecord::TokenBazaar {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_token_seat(actor_seat)?;
+            let decision = TokenBazaarLevel1Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: token_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                token_bazaar::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = token_apply_action(state, action);
+            let effect_json = token_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_token_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                token_view_json(&token_project_view(state, &Viewer { seat_id: None }))
+            ))
+        }
     })
 }
 
@@ -1098,6 +1233,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::TokenBazaar {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = token_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        token_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -1168,6 +1325,15 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             };
             Ok(high_card_export_public_observer_replay(&trace).to_json())
         }
+        MatchRecord::TokenBazaar {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            token_replay_document_json(&format!("export-{match_id}"), *seed, commands)
+        }
     })
 }
 
@@ -1199,6 +1365,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_DIRECTIONAL_FLIP
         && parsed.game_id != GAME_DRAUGHTS_LITE
         && parsed.game_id != GAME_HIGH_CARD_DUEL
+        && parsed.game_id != GAME_TOKEN_BAZAAR
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -1266,6 +1433,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 high_card_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 high_card_view_json(&high_card_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::TokenBazaar => {
+            let (state, effects) =
+                token_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                token_view_json(&token_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -1365,6 +1540,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                 let (state, effects) =
                     high_card_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
                 Ok(high_card_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::TokenBazaar => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    token_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(token_replay_step_json(
                     replay_id,
                     bounded_cursor,
                     record.commands.len(),
@@ -1493,6 +1680,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_DIRECTIONAL_FLIP => Ok(RegisteredGame::DirectionalFlip),
         GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
+        GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -1578,6 +1766,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::DirectionalFlip => DIRECTIONAL_FLIP_TRACE_RULES_VERSION,
         RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
+        RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
     }
 }
 
@@ -1705,6 +1894,26 @@ fn trace_high_card_seat(seat: HighCardDuelSeat) -> &'static str {
     }
 }
 
+fn parse_token_seat(value: &str) -> Result<TokenBazaarSeat, String> {
+    match value {
+        "seat-0" => Ok(TokenBazaarSeat::Seat0),
+        "seat-1" => Ok(TokenBazaarSeat::Seat1),
+        _ => TokenBazaarSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_token_seat(seat: TokenBazaarSeat) -> &'static str {
+    match seat {
+        TokenBazaarSeat::Seat0 => "seat_0",
+        TokenBazaarSeat::Seat1 => "seat_1",
+    }
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -1798,6 +2007,20 @@ fn high_card_actor_for_seat(
         })
 }
 
+fn token_actor_for_seat(state: &TokenBazaarState, seat: TokenBazaarSeat) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -1850,6 +2073,14 @@ fn high_card_viewer_for_seat(
 ) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_high_card_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn token_viewer_for_seat(state: &TokenBazaarState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_token_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -1911,6 +2142,16 @@ fn high_card_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_high_card_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn token_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: TokenBazaarSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_token_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -2088,6 +2329,31 @@ fn high_card_replay_to_cursor(
     Ok((state, all_effects))
 }
 
+fn token_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(TokenBazaarState, Vec<EffectEnvelope<TokenBazaarEffect>>), String> {
+    let seats = seats();
+    let mut state = token_setup_match(Seed(seed), &seats, &token_bazaar::SetupOptions::default())
+        .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_token_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: token_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = token_bazaar::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(token_apply_action(&mut state, action));
+    }
+    Ok((state, all_effects))
+}
+
 fn action_tree_json(tree: &ActionTree) -> String {
     let choices = tree
         .root
@@ -2188,6 +2454,15 @@ fn draughts_effects_json(effects: &[EffectEnvelope<DraughtsLiteEffect>]) -> Stri
     let body = effects
         .iter()
         .map(draughts_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn token_effects_json(effects: &[EffectEnvelope<TokenBazaarEffect>]) -> String {
+    let body = effects
+        .iter()
+        .map(token_effect_json)
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
@@ -2494,6 +2769,65 @@ fn draughts_replay_document_json(
     ))
 }
 
+fn token_replay_document_json(
+    trace_id: &str,
+    seed: u64,
+    commands: &[AppliedCommand],
+) -> Result<String, String> {
+    let command_paths = commands
+        .iter()
+        .map(|command| command.action_path.clone())
+        .collect::<Vec<_>>();
+    let hashes = token_replay_commands(seed, &command_paths);
+    let commands_json = commands
+        .iter()
+        .enumerate()
+        .map(|(index, command)| command_record_json(index, command))
+        .collect::<Vec<_>>()
+        .join(",");
+    let checkpoints = if commands.is_empty() {
+        "[{\"id\":\"final\",\"after_command_index\":0}]".to_owned()
+    } else {
+        format!(
+            "[{{\"id\":\"final\",\"after_command_index\":{}}}]",
+            commands.len().saturating_sub(1)
+        )
+    };
+    let (terminal, winner, draw) = match hashes.terminal_outcome {
+        Some(token_bazaar::TerminalOutcome::Win { seat }) => {
+            (true, format!("\"{}\"", seat.as_str()), false)
+        }
+        Some(token_bazaar::TerminalOutcome::Draw) => (true, "null".to_owned(), true),
+        None => (false, "null".to_owned(), false),
+    };
+
+    Ok(format!(
+        "{{\"schema_version\":{},\"trace_id\":\"token-bazaar-{}\",\"fixture_kind\":\"wasm\",\"purpose\":\"public_export_round_trip\",\"note\":\"Token Bazaar public_export_round_trip replay fixture.\",\"migration_update_note\":\"Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{{\"seat_id\":\"seat-0\",\"player_id\":\"player-0\"}},{{\"seat_id\":\"seat-1\",\"player_id\":\"player-1\"}}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_diagnostic_hashes\":null,\"expected_public_export_hashes\":{{\"final\":{}}},\"expected_outcome\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"expected_terminal_state\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"not_applicable\":{{\"hidden_information\":\"token_bazaar is fully public.\",\"stochastic_game_events\":\"token_bazaar game rules use no randomness.\",\"private_view_hashes\":\"token_bazaar observer and seat views are identical.\",\"preview_hashes\":\"token_bazaar uses legal action metadata rather than a separate preview hash.\"}}}}",
+        SCHEMA_VERSION,
+        escape_json(trace_id),
+        escape_json(GAME_TOKEN_BAZAAR),
+        escape_json(TOKEN_BAZAAR_TRACE_RULES_VERSION),
+        escape_json(ENGINE_VERSION),
+        escape_json(DATA_VERSION),
+        seed,
+        escape_json(VARIANT_TOKEN_BAZAAR_STANDARD),
+        commands_json,
+        checkpoints,
+        hashes.final_state_hash.0,
+        hashes.effect_hash.0,
+        hashes.action_tree_hash.0,
+        hashes.public_view_hash.0,
+        hashes.replay_hash.0,
+        hashes.replay_hash.0,
+        terminal,
+        winner,
+        draw,
+        terminal,
+        winner,
+        draw
+    ))
+}
+
 fn single_segment_commands(commands: &[AppliedCommand]) -> Result<Vec<String>, String> {
     commands
         .iter()
@@ -2612,6 +2946,24 @@ fn draughts_replay_step_json(
         cursor >= command_count,
         draughts_view_json(&draughts_project_view(state, &Viewer { seat_id: None })),
         draughts_effects_json(effects)
+    )
+}
+
+fn token_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    command_count: usize,
+    state: &TokenBazaarState,
+    effects: &[EffectEnvelope<TokenBazaarEffect>],
+) -> String {
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"command_count\":{},\"done\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        command_count,
+        cursor >= command_count,
+        token_view_json(&token_project_view(state, &Viewer { seat_id: None })),
+        token_effects_json(effects)
     )
 }
 
@@ -3561,6 +3913,271 @@ fn high_card_ui_json(ui: &high_card_duel::UiMetadata) -> String {
     )
 }
 
+fn token_view_json(view: &token_bazaar::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"supply\":{},\"inventories\":[{},{}],\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"turns_taken\":{{\"seat_0\":{},\"seat_1\":{},\"turns_per_seat\":{}}},\"active_seat\":{},\"market_slots\":[{}],\"queue_remaining\":{},\"fulfilled\":{{\"seat_0\":[{}],\"seat_1\":[{}]}},\"legal_actions\":[{}],\"terminal\":{},\"freshness_token\":{},\"recent_effects\":[{}],\"private_view_status\":\"{}\",\"hidden_fields\":[{}],\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        token_supply_json(view.supply),
+        token_inventory_json(&view.inventories[0]),
+        token_inventory_json(&view.inventories[1]),
+        view.scores[0],
+        view.scores[1],
+        view.turns_taken[0],
+        view.turns_taken[1],
+        view.turns_per_seat,
+        option_token_seat_json(view.active_seat),
+        view.market_slots
+            .iter()
+            .map(token_market_slot_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.queue_remaining,
+        string_array(&view.fulfilled[0]),
+        string_array(&view.fulfilled[1]),
+        view.legal_actions
+            .iter()
+            .map(token_legal_action_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        token_terminal_json(&view.terminal),
+        view.freshness_token.0,
+        view.recent_effects
+            .iter()
+            .map(token_effect_view_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&view.private_view_status),
+        string_array(&view.hidden_fields),
+        token_ui_json(&view.ui)
+    )
+}
+
+fn token_supply_json(supply: token_bazaar::ResourceSupplyView) -> String {
+    format!(
+        "{{\"amber\":{},\"jade\":{},\"iron\":{}}}",
+        supply.amber, supply.jade, supply.iron
+    )
+}
+
+fn token_inventory_json(inventory: &token_bazaar::InventoryView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"resources\":{}}}",
+        inventory.seat.as_str(),
+        token_supply_json(inventory.resources)
+    )
+}
+
+fn token_market_slot_json(slot: &token_bazaar::MarketSlotView) -> String {
+    format!(
+        "{{\"slot\":\"{}\",\"slot_id\":\"{}\",\"contract\":{},\"is_empty\":{},\"accessibility_label\":\"{}\"}}",
+        slot.slot.as_str(),
+        escape_json(&slot.slot_id),
+        slot.contract
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), token_contract_json),
+        slot.is_empty,
+        escape_json(&slot.accessibility_label)
+    )
+}
+
+fn token_contract_json(contract: &token_bazaar::ContractView) -> String {
+    format!(
+        "{{\"contract_id\":\"{}\",\"label\":\"{}\",\"cost\":{},\"points\":{},\"accessibility_label\":\"{}\"}}",
+        escape_json(&contract.contract_id),
+        escape_json(&contract.label),
+        token_supply_json(contract.cost),
+        contract.points,
+        escape_json(&contract.accessibility_label)
+    )
+}
+
+fn token_legal_action_json(action: &token_bazaar::LegalActionView) -> String {
+    let metadata = action
+        .metadata
+        .iter()
+        .map(|(key, value)| {
+            format!(
+                "{{\"key\":\"{}\",\"value\":\"{}\"}}",
+                escape_json(key),
+                escape_json(value)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "{{\"action_segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"freshness_token\":{}}}",
+        escape_json(&action.action_segment),
+        escape_json(&action.label),
+        escape_json(&action.accessibility_label),
+        metadata,
+        action.freshness_token.0
+    )
+}
+
+fn token_terminal_json(terminal: &token_bazaar::TerminalView) -> String {
+    match terminal {
+        token_bazaar::TerminalView::NonTerminal => {
+            "{\"terminal\":false,\"winner\":null,\"draw\":false}".to_owned()
+        }
+        token_bazaar::TerminalView::Win { winning_seat } => format!(
+            "{{\"terminal\":true,\"winner\":\"{}\",\"draw\":false}}",
+            winning_seat.as_str()
+        ),
+        token_bazaar::TerminalView::Draw => {
+            "{\"terminal\":true,\"winner\":null,\"draw\":true}".to_owned()
+        }
+    }
+}
+
+fn token_effect_view_json(effect: &token_bazaar::EffectView) -> String {
+    format!(
+        "{{\"kind\":\"{}\",\"summary\":\"{}\"}}",
+        escape_json(&effect.kind),
+        escape_json(&effect.summary)
+    )
+}
+
+fn token_ui_json(ui: &token_bazaar::UiMetadata) -> String {
+    format!(
+        "{{\"table_label\":\"{}\",\"supply_label\":\"{}\",\"inventory_label\":\"{}\",\"market_label\":\"{}\",\"score_label\":\"{}\",\"turn_counter_label\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        escape_json(&ui.table_label),
+        escape_json(&ui.supply_label),
+        escape_json(&ui.inventory_label),
+        escape_json(&ui.market_label),
+        escape_json(&ui.score_label),
+        escape_json(&ui.turn_counter_label),
+        escape_json(&ui.reduced_motion_token)
+    )
+}
+
+fn token_effect_json(effect: &EffectEnvelope<TokenBazaarEffect>) -> String {
+    let payload = match &effect.payload {
+        TokenBazaarEffect::ResourceCollected {
+            seat,
+            bundle,
+            gain,
+            inventory_after,
+            supply_after,
+        } => format!(
+            "{{\"type\":\"resource_collected\",\"seat\":\"{}\",\"bundle\":\"{}\",\"gain\":{},\"inventory_after\":{},\"supply_after\":{}}}",
+            seat.as_str(),
+            bundle.as_str(),
+            token_counts_json(*gain),
+            token_counts_json(*inventory_after),
+            token_counts_json(*supply_after)
+        ),
+        TokenBazaarEffect::ResourceExchanged {
+            seat,
+            paid_resource,
+            taken_resource,
+            cost,
+            gain,
+            inventory_after,
+            supply_after,
+        } => format!(
+            "{{\"type\":\"resource_exchanged\",\"seat\":\"{}\",\"paid_resource\":\"{}\",\"taken_resource\":\"{}\",\"cost\":{},\"gain\":{},\"inventory_after\":{},\"supply_after\":{}}}",
+            seat.as_str(),
+            paid_resource.as_str(),
+            taken_resource.as_str(),
+            token_counts_json(*cost),
+            token_counts_json(*gain),
+            token_counts_json(*inventory_after),
+            token_counts_json(*supply_after)
+        ),
+        TokenBazaarEffect::ContractFulfilled {
+            seat,
+            slot,
+            contract,
+            cost,
+            points,
+            score_after,
+            fulfilled_count_after,
+        } => format!(
+            "{{\"type\":\"contract_fulfilled\",\"seat\":\"{}\",\"slot\":\"{}\",\"contract\":\"{}\",\"cost\":{},\"points\":{},\"score_after\":{},\"fulfilled_count_after\":{}}}",
+            seat.as_str(),
+            slot.as_str(),
+            contract.as_str(),
+            token_counts_json(*cost),
+            points,
+            score_after,
+            fulfilled_count_after
+        ),
+        TokenBazaarEffect::SlotRefilled {
+            slot,
+            contract,
+            remaining_queue_len,
+        } => format!(
+            "{{\"type\":\"slot_refilled\",\"slot\":\"{}\",\"contract\":\"{}\",\"remaining_queue_len\":{}}}",
+            slot.as_str(),
+            contract.as_str(),
+            remaining_queue_len
+        ),
+        TokenBazaarEffect::SlotEmptied {
+            slot,
+            remaining_queue_len,
+        } => format!(
+            "{{\"type\":\"slot_emptied\",\"slot\":\"{}\",\"remaining_queue_len\":{}}}",
+            slot.as_str(),
+            remaining_queue_len
+        ),
+        TokenBazaarEffect::PassAccepted { seat } => {
+            format!("{{\"type\":\"pass_accepted\",\"seat\":\"{}\"}}", seat.as_str())
+        }
+        TokenBazaarEffect::TurnAdvanced {
+            previous_seat,
+            active_seat,
+            turns_taken,
+        } => format!(
+            "{{\"type\":\"turn_advanced\",\"previous_seat\":\"{}\",\"active_seat\":\"{}\",\"turns_taken\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+            previous_seat.as_str(),
+            active_seat.as_str(),
+            turns_taken[0],
+            turns_taken[1]
+        ),
+        TokenBazaarEffect::Terminal {
+            outcome,
+            scores,
+            fulfilled_counts,
+            inventory_totals,
+        } => format!(
+            "{{\"type\":\"terminal\",\"outcome\":{},\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"fulfilled_counts\":{{\"seat_0\":{},\"seat_1\":{}}},\"inventory_totals\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+            token_terminal_outcome_json(*outcome),
+            scores[0],
+            scores[1],
+            fulfilled_counts[0],
+            fulfilled_counts[1],
+            inventory_totals[0],
+            inventory_totals[1]
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn token_counts_json(counts: token_bazaar::ResourceCounts) -> String {
+    format!(
+        "{{\"amber\":{},\"jade\":{},\"iron\":{}}}",
+        counts.amber, counts.jade, counts.iron
+    )
+}
+
+fn token_terminal_outcome_json(outcome: token_bazaar::TerminalOutcome) -> String {
+    match outcome {
+        token_bazaar::TerminalOutcome::Win { seat } => {
+            format!("{{\"kind\":\"win\",\"winner\":\"{}\"}}", seat.as_str())
+        }
+        token_bazaar::TerminalOutcome::Draw => "{\"kind\":\"draw\",\"winner\":null}".to_owned(),
+    }
+}
+
 fn high_card_effect_json(effect: &EffectEnvelope<HighCardDuelEffect>) -> String {
     let payload = match &effect.payload {
         HighCardDuelEffect::DealPrivateCard { owner, card } => format!(
@@ -3707,6 +4324,13 @@ fn option_high_card_seat_json(seat: Option<HighCardDuelSeat>) -> String {
     )
 }
 
+fn option_token_seat_json(seat: Option<TokenBazaarSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
 fn option_directional_seat_json(seat: Option<DirectionalFlipSeat>) -> String {
     seat.map_or_else(
         || "null".to_owned(),
@@ -3840,6 +4464,8 @@ fn parse_replay_document(input: &str) -> Result<ParsedReplayDocument, String> {
             "expected_public_view_hashes",
             "expected_private_view_hashes",
             "expected_replay_hashes",
+            "expected_diagnostic_hashes",
+            "expected_public_export_hashes",
             "expected_diagnostics",
             "expected_outcome",
             "expected_terminal_state",
@@ -4557,11 +5183,13 @@ mod tests {
         assert!(games.contains("\"game_id\":\"directional_flip\""));
         assert!(games.contains("\"game_id\":\"draughts_lite\""));
         assert!(games.contains("\"game_id\":\"high_card_duel\""));
+        assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
         assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
         assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
         assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
         assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
+        assert!(games.contains("\"variants\":[\"token_bazaar_standard\"]"));
         assert!(games.contains("\"hidden_information\":true"));
         assert!(games.contains("\"public_replay_export\""));
     }
@@ -4950,6 +5578,63 @@ mod tests {
     }
 
     #[test]
+    fn token_bazaar_surface_drives_public_accounting_group() {
+        let created = new_match("token_bazaar", 81).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"token_bazaar_standard\""));
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat view returned");
+        assert_eq!(observer, seat_0);
+        assert!(observer.contains("\"game_id\":\"token_bazaar\""));
+        assert!(observer.contains("\"variant_id\":\"token_bazaar_standard\""));
+        assert!(observer.contains("\"supply\":{\"amber\":14,\"jade\":14,\"iron\":14}"));
+        assert!(observer.contains("\"hidden_fields\":[]"));
+        assert!(!observer.contains("candidate"));
+        assert!(!observer.contains("debug"));
+
+        let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
+        assert!(tree.contains("\"segment\":\"collect/amber\""));
+        assert!(tree.contains("\"segment\":\"fulfill/slot_0\""));
+        assert!(tree.contains("\"freshness_token\":0"));
+
+        let applied =
+            apply_action(&match_id, "seat_0", "collect/amber", 0).expect("collect applies");
+        assert!(applied.contains("\"type\":\"resource_collected\""));
+        assert!(applied.contains("\"active_seat\":\"seat_1\""));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        assert!(bot.contains("\"ok\":true"));
+        assert!(bot.contains("\"active_seat\":\"seat_0\""));
+
+        let effects = get_effects(&match_id, 0, None).expect("effects returned");
+        assert!(effects.contains("\"type\":\"resource_collected\""));
+        assert!(effects.contains("\"visibility\":\"public\""));
+        assert!(!effects.contains("candidate"));
+        assert!(!effects.contains("debug"));
+
+        let exported = export_replay(&match_id).expect("replay exported");
+        assert!(exported.contains("\"game_id\":\"token_bazaar\""));
+        assert!(exported.contains("\"rules_version\":\"token-bazaar-rules-v1\""));
+        assert!(exported.contains("\"expected_public_export_hashes\""));
+        assert!(!exported.contains("\"state\":"));
+        assert!(!exported.contains("candidate"));
+        assert!(!exported.contains("debug"));
+
+        let imported = import_replay(&exported).expect("replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"game_id\":\"token_bazaar\""));
+
+        let reset = replay_reset(&replay_id).expect("replay reset returned");
+        assert!(reset.contains("\"cursor\":0"));
+        assert!(reset.contains("\"game_id\":\"token_bazaar\""));
+
+        let step = replay_step(&replay_id, 1).expect("replay stepped");
+        assert!(step.contains("\"cursor\":1"));
+        assert!(step.contains("\"type\":\"resource_collected\""));
+    }
+
+    #[test]
     fn high_card_public_import_replays_ordered_public_effects() {
         let source_export = high_card_export_public_observer_replay(
             &high_card_duel::generate_internal_full_trace(55),
@@ -5169,6 +5854,34 @@ mod tests {
             draughts_replay_document_json("wasm-exported", 1, &commands).expect("fixture exported");
         let fixture = include_str!(
             "../../../games/draughts_lite/tests/golden_traces/wasm-exported.trace.json"
+        );
+
+        assert_eq!(compact_json_layout(fixture), exported);
+    }
+
+    #[test]
+    fn token_bazaar_wasm_export_matches_golden_fixture() {
+        let commands = vec![
+            AppliedCommand {
+                actor_seat: "seat_0".to_owned(),
+                action_path: vec!["collect/amber".to_owned()],
+                freshness_token: 0,
+            },
+            AppliedCommand {
+                actor_seat: "seat_1".to_owned(),
+                action_path: vec!["collect/jade".to_owned()],
+                freshness_token: 1,
+            },
+            AppliedCommand {
+                actor_seat: "seat_0".to_owned(),
+                action_path: vec!["fulfill/slot_0".to_owned()],
+                freshness_token: 2,
+            },
+        ];
+        let exported =
+            token_replay_document_json("wasm-exported", 1, &commands).expect("fixture exported");
+        let fixture = include_str!(
+            "../../../games/token_bazaar/tests/golden_traces/wasm-exported.trace.json"
         );
 
         assert_eq!(compact_json_layout(fixture), exported);

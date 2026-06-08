@@ -117,3 +117,28 @@ viewer-scoped split.
 2. `rustup target add wasm32-unknown-unknown && cargo build -p wasm-api --target wasm32-unknown-unknown`
 3. The browser-level `smoke:wasm` run is exercised in GAT9TOKBAZBRO-014/016 once
    the TS client binds the new catalog entry.
+
+## Outcome
+
+Completed: 2026-06-08
+
+What changed:
+
+- Added the `token_bazaar` path dependency to `crates/wasm-api`.
+- Registered Token Bazaar in the WASM game catalog with
+  `token_bazaar_standard`.
+- Added Token Bazaar setup, public view, action-tree, validate/apply, bot turn,
+  effects, replay export/import, and replay-step arms.
+- Added Token Bazaar bridge serializers and unit coverage, including exact
+  reproduction of `wasm-exported.trace.json`.
+
+Deviations from original plan:
+
+- None.
+
+Verification results:
+
+- `cargo build -p wasm-api` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo build -p wasm-api --target wasm32-unknown-unknown` passed.
+- `cargo fmt --all --check` passed.
