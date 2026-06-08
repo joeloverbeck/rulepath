@@ -1,6 +1,6 @@
 # GAT9TOKBAZBRO-017: Trailing game docs (MECHANICS/UI/AI/ADMISSION/PUBLIC-RELEASE/COMPETENT-PLAYER/BOT-STRATEGY)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/token_bazaar/docs/{MECHANICS,UI,AI,GAME-IMPLEMENTATION-ADMISSION,PUBLIC-RELEASE-CHECKLIST,COMPETENT-PLAYER,BOT-STRATEGY-EVIDENCE-PACK}.md`)
@@ -124,3 +124,27 @@ The admission record (contract coverage) and the public-release checklist
 2. `bash scripts/boundary-check.sh`
 3. Narrower command boundary: doc accuracy vs the implementation is a manual review;
    the doc graph + boundary checks are the runnable surfaces.
+
+## Outcome (2026-06-08)
+
+Completed the seven trailing Token Bazaar game docs:
+
+- `MECHANICS.md`
+- `UI.md`
+- `AI.md`
+- `GAME-IMPLEMENTATION-ADMISSION.md`
+- `PUBLIC-RELEASE-CHECKLIST.md`
+- `COMPETENT-PLAYER.md`
+- `BOT-STRATEGY-EVIDENCE-PACK.md`
+
+Manual review: the docs cover the required resource conservation/supply-return
+notes, market refill semantics, terminal tie-breaks, public no-leak notes, UI
+metadata and a11y requirements, Level 0 and Level 1 bot policies, public-safe
+rationale limits, competent-player guidance, and the concrete bot evidence from
+`games/token_bazaar/tests/bots.rs` and the bot golden trace. They describe the
+shipped implementation and keep resource/accounting vocabulary game-local.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs`
+2. `bash scripts/boundary-check.sh`
