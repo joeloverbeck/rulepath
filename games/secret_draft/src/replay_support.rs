@@ -87,6 +87,27 @@ impl SecretDraftInternalTrace {
             commands
         )
     }
+
+    pub fn from_json(input: &str) -> Result<Self, String> {
+        let object = StrictJsonObject::parse(input)?;
+        object.reject_unknown(&[
+            "schema_version",
+            "game_id",
+            "rules_version",
+            "variant",
+            "seed_evidence",
+            "commands",
+        ])?;
+
+        Ok(Self {
+            schema_version: object.required_u32("schema_version")?,
+            game_id: object.required_string("game_id")?,
+            rules_version: object.required_string("rules_version")?,
+            variant: object.required_string("variant")?,
+            seed_evidence: object.required_u64("seed_evidence")?,
+            commands: parse_replay_commands(&object.required_raw("commands")?)?,
+        })
+    }
 }
 
 impl StableSerialize for SecretDraftInternalTrace {
@@ -129,6 +150,29 @@ impl PublicReplayExport {
             escape_json(&self.variant),
             steps
         )
+    }
+
+    pub fn from_json(input: &str) -> Result<Self, String> {
+        let object = StrictJsonObject::parse(input)?;
+        object.reject_unknown(&[
+            "schema_version",
+            "export_class",
+            "viewer",
+            "game_id",
+            "rules_version",
+            "variant",
+            "steps",
+        ])?;
+
+        Ok(Self {
+            schema_version: object.required_u32("schema_version")?,
+            export_class: object.required_string("export_class")?,
+            viewer: object.required_string("viewer")?,
+            game_id: object.required_string("game_id")?,
+            rules_version: object.required_string("rules_version")?,
+            variant: object.required_string("variant")?,
+            steps: parse_public_steps(&object.required_raw("steps")?)?,
+        })
     }
 }
 
@@ -424,6 +468,214 @@ fn escape_json(value: &str) -> String {
         .replace('\\', "\\\\")
         .replace('"', "\\\"")
         .replace('\n', "\\n")
+}
+
+fn parse_replay_commands(raw: &str) -> Result<Vec<ReplayCommand>, String> {
+    parse_object_array(raw)?
+        .into_iter()
+        .map(|object| {
+            object.reject_unknown(&["actor", "path"])?;
+            Ok(ReplayCommand {
+                actor: object.required_string("actor")?,
+                path: parse_string_array(&object.required_raw("path")?)?,
+            })
+        })
+        .collect()
+}
+
+fn parse_public_steps(raw: &str) -> Result<Vec<PublicReplayStep>, String> {
+    parse_object_array(raw)?
+        .into_iter()
+        .map(|object| {
+            object.reject_unknown(&[
+                "step_index",
+                "public_view_summary",
+                "public_effects",
+                "redacted_command_summary",
+                "terminal",
+            ])?;
+            Ok(PublicReplayStep {
+                step_index: object.required_usize("step_index")?,
+                public_view_summary: object.required_string("public_view_summary")?,
+                public_effects: parse_string_array(&object.required_raw("public_effects")?)?,
+                redacted_command_summary: object.required_string("redacted_command_summary")?,
+                terminal: object.required_bool("terminal")?,
+            })
+        })
+        .collect()
+}
+
+fn parse_object_array(raw: &str) -> Result<Vec<StrictJsonObject>, String> {
+    let body = raw
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .ok_or_else(|| "expected object array".to_owned())?;
+    if body.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    split_top_level(body, ',')?
+        .into_iter()
+        .map(|value| StrictJsonObject::parse(value.trim()))
+        .collect()
+}
+
+fn parse_string_array(raw: &str) -> Result<Vec<String>, String> {
+    let body = raw
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        .ok_or_else(|| "expected string array".to_owned())?;
+    if body.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    split_top_level(body, ',')?
+        .into_iter()
+        .map(|value| parse_json_string(value.trim()))
+        .collect()
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct StrictJsonObject {
+    fields: Vec<(String, String)>,
+}
+
+impl StrictJsonObject {
+    fn parse(input: &str) -> Result<Self, String> {
+        let trimmed = input.trim();
+        let body = trimmed
+            .strip_prefix('{')
+            .and_then(|value| value.strip_suffix('}'))
+            .ok_or_else(|| "expected JSON object".to_owned())?;
+        let mut fields = Vec::new();
+        for field in split_top_level(body, ',')? {
+            if field.trim().is_empty() {
+                continue;
+            }
+            let (key, value) = split_key_value(&field)?;
+            if fields.iter().any(|(existing, _)| existing == &key) {
+                return Err(format!("duplicate field `{key}`"));
+            }
+            fields.push((key, value.trim().to_owned()));
+        }
+        Ok(Self { fields })
+    }
+
+    fn reject_unknown(&self, allowed: &[&str]) -> Result<(), String> {
+        for (key, _) in &self.fields {
+            if !allowed.contains(&key.as_str()) {
+                return Err(format!("unknown field `{key}`"));
+            }
+        }
+        Ok(())
+    }
+
+    fn required_raw(&self, key: &str) -> Result<String, String> {
+        self.fields
+            .iter()
+            .find(|(candidate, _)| candidate == key)
+            .map(|(_, value)| value.clone())
+            .ok_or_else(|| format!("missing field `{key}`"))
+    }
+
+    fn required_string(&self, key: &str) -> Result<String, String> {
+        parse_json_string(&self.required_raw(key)?)
+    }
+
+    fn required_u32(&self, key: &str) -> Result<u32, String> {
+        self.required_raw(key)?
+            .parse()
+            .map_err(|_| format!("field `{key}` must be u32"))
+    }
+
+    fn required_u64(&self, key: &str) -> Result<u64, String> {
+        self.required_raw(key)?
+            .parse()
+            .map_err(|_| format!("field `{key}` must be u64"))
+    }
+
+    fn required_usize(&self, key: &str) -> Result<usize, String> {
+        self.required_raw(key)?
+            .parse()
+            .map_err(|_| format!("field `{key}` must be usize"))
+    }
+
+    fn required_bool(&self, key: &str) -> Result<bool, String> {
+        match self.required_raw(key)?.as_str() {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err(format!("field `{key}` must be bool")),
+        }
+    }
+}
+
+fn split_key_value(field: &str) -> Result<(String, String), String> {
+    let mut in_string = false;
+    let mut previous_escape = false;
+    for (index, ch) in field.char_indices() {
+        match ch {
+            '"' if !previous_escape => in_string = !in_string,
+            ':' if !in_string => {
+                let key = parse_json_string(field[..index].trim())?;
+                return Ok((key, field[index + 1..].trim().to_owned()));
+            }
+            _ => {}
+        }
+        previous_escape = ch == '\\' && !previous_escape;
+        if ch != '\\' {
+            previous_escape = false;
+        }
+    }
+    Err("expected key/value".to_owned())
+}
+
+fn split_top_level(input: &str, delimiter: char) -> Result<Vec<String>, String> {
+    let mut result = Vec::new();
+    let mut start = 0;
+    let mut depth = 0_i32;
+    let mut in_string = false;
+    let mut previous_escape = false;
+
+    for (index, ch) in input.char_indices() {
+        match ch {
+            '"' if !previous_escape => in_string = !in_string,
+            '[' | '{' if !in_string => depth += 1,
+            ']' | '}' if !in_string => depth -= 1,
+            _ => {}
+        }
+        if ch == delimiter && depth == 0 && !in_string {
+            result.push(input[start..index].to_owned());
+            start = index + ch.len_utf8();
+        }
+        previous_escape = ch == '\\' && !previous_escape;
+        if ch != '\\' {
+            previous_escape = false;
+        }
+    }
+    if depth != 0 || in_string {
+        return Err("unterminated JSON value".to_owned());
+    }
+    result.push(input[start..].to_owned());
+    Ok(result)
+}
+
+fn parse_json_string(input: &str) -> Result<String, String> {
+    let body = input
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .ok_or_else(|| "expected JSON string".to_owned())?;
+    let mut output = String::new();
+    let mut chars = body.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            let escaped = chars.next().ok_or_else(|| "dangling escape".to_owned())?;
+            match escaped {
+                'n' => output.push('\n'),
+                other => output.push(other),
+            }
+        } else {
+            output.push(ch);
+        }
+    }
+    Ok(output)
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-009: secret_draft rule/property/serialization/visibility tests + standard fixture
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/secret_draft/tests/{rules,property,serialization,visibility}.rs` and the standard fixture; no `engine-core` / `game-stdlib` change.
