@@ -359,7 +359,7 @@ mod tests {
         assert_eq!(timeline.variant, VARIANT_ID);
         assert_eq!(timeline.steps, export.steps);
         assert_eq!(export.steps.len(), commands.len() + 1);
-        assert_eq!(export.steps.last().expect("terminal step").terminal, true);
+        assert!(export.steps.last().expect("terminal step").terminal);
         let json = export.to_json();
         assert_eq!(export.stable_bytes(), json.clone().into_bytes());
         assert!(!json.contains("debug"));
