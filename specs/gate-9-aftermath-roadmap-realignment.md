@@ -184,10 +184,13 @@ Do not:
 
 ### Intro list
 
-Replace the intro sentence’s game list so it includes Token Bazaar:
+Replace the intro sentence’s game list so it includes Token Bazaar. The intro
+is a **two-sentence paragraph** — extend the games list only and preserve the
+trailing `Rust/WASM owns game behavior; …` sentence verbatim (do not drop it
+when replacing the paragraph):
 
 ```markdown
-`apps/web` is the static React shell for Rulepath's local browser games: `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite, `high_card_duel` / High Card Duel, and `token_bazaar` / Token Bazaar.
+`apps/web` is the static React shell for Rulepath's local browser games: `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite, `high_card_duel` / High Card Duel, and `token_bazaar` / Token Bazaar. Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries, views, action trees, effects, diagnostics, bot turns, and replay projections.
 ```
 
 ### Shell Surface list
