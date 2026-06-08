@@ -26,14 +26,14 @@ export function ActionControls({ actionTree, view, actorSeat, pending, onChoice,
         {choices.length === 0 ? (
           <p className="muted">No actions available.</p>
         ) : (
-          choices.map((choice) => (
+          choices.map((choice, index) => (
             <button
               type="button"
               key={choice.segment}
               onClick={() => onChoice(choice)}
               disabled={controlsDisabled}
               aria-label={choice.accessibility_label}
-              data-testid={`choice-${choice.segment}`}
+              data-testid={choiceTestId(view, choice, index)}
             >
               {choice.label}
             </button>
@@ -45,6 +45,14 @@ export function ActionControls({ actionTree, view, actorSeat, pending, onChoice,
       </div>
     </section>
   );
+}
+
+function choiceTestId(view: PublicView | null, choice: ActionChoice, index: number): string {
+  if (view && "game_id" in view && view.game_id === "secret_draft") {
+    const round = "round_number" in view ? view.round_number : 0;
+    return `choice-secret-draft-round-${round}-${index}`;
+  }
+  return `choice-${choice.segment}`;
 }
 
 function isTerminalView(view: PublicView | null): boolean {

@@ -1,9 +1,11 @@
-Current status: Gates 0-9 are complete in the worktree. Gate 9 is complete with
-`token_bazaar` as the accepted public resource/economy proof.
-`blackjack_lite` is deferred by ADR 0006 and is not a Gate 9 blocker. The next
-roadmap target is the successor commitment/reveal proof (`secret_draft`, Gate
-9.1 placement to be specced separately) before later card-depth gates. The
-mutable source of truth for gate progress is `specs/README.md`.
+Current status: Gates 0-9.1 are complete in the worktree. Gate 9 is complete
+with `token_bazaar` as the accepted public resource/economy proof, and Gate 9.1
+is complete with `secret_draft` / Veiled Draft as the accepted simultaneous
+commitment/reveal and pending-seat no-leak proof. `blackjack_lite` is deferred
+by ADR 0006 and is not a Gate 9 or Gate 9.1 blocker. The next roadmap target is
+Gate 10 (`poker_lite` / `plain_tricks`) after confirming no open mechanic
+promotion debt. The mutable source of truth for gate progress is
+`specs/README.md`.
 
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
 
@@ -17,6 +19,36 @@ Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and c
 | `blackjack_lite` | Deferred comparison case under ADR 0006; not a Gate 8.1 interlock and not a Gate 9 prerequisite. |
 | `poker_lite` / `plain_tricks` | Gate 10+ card-depth candidates after hidden information, resources/accounting, and action-tree discipline have landed. |
 | private monster-game red-team | Not part of this pass; leave late, optional, and isolated. |
+
+## Gate 9.1 Veiled Draft
+
+- Completed on 2026-06-08 for `secret_draft` / Veiled Draft.
+- Added the accepted simultaneous commitment/reveal proof: shared visible draft
+  pool, hidden per-seat commitments, public pending-seat booleans, synchronized
+  reveal batch, deterministic conflict fallback, exact visible-pool removal,
+  public scoring/tie-breaks, Level 0 and Level 1 bots, golden traces,
+  benchmarks, tool registration, WASM/browser board, e2e no-leak/a11y smoke,
+  and the full official-game docs.
+- Boundary notes: commitment, reveal, draft-pool, item, fallback, scoring, and
+  pending-seat vocabulary stayed game-local. No `engine-core` noun or
+  `game-stdlib` commitment/reveal primitive was introduced; the mechanic atlas
+  records first-use pressure only and §10A remains empty.
+- Acceptance evidence:
+  - `cargo test -p secret_draft`
+  - `cargo test --workspace`
+  - `cargo run -p simulate -- --game secret_draft --games 1000`
+  - `cargo run -p replay-check -- --game secret_draft --all`
+  - `cargo run -p fixture-check -- --game secret_draft`
+  - `cargo run -p rule-coverage -- --game secret_draft`
+  - `cargo bench -p secret_draft -- legal_actions`
+  - `cargo run -p bench-report -- --input /tmp/secret_draft-benchmark-report.txt --thresholds games/secret_draft/benches/thresholds.json`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:preview`
+  - `npm --prefix apps/web run smoke:e2e`
+  - `bash scripts/boundary-check.sh`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
 
 ## Gate 9 Token Bazaar
 

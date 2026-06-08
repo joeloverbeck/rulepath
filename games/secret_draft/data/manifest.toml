@@ -1,0 +1,13 @@
+game_id = "secret_draft"
+display_name = "Veiled Draft"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "secret-draft-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "veiled_draft"
+seat_count = 2
+round_count = 6
+item_count = 12
+first_priority_seat = "seat_0"
+item_order = "standard_fixed_v1"

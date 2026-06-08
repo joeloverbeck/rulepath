@@ -1,0 +1,9 @@
+variant_id = "secret_draft_standard"
+display_name = "Veiled Draft"
+rules_version_label = "secret-draft-rules-v1"
+seat_count = 2
+round_count = 6
+item_count = 12
+first_priority_seat = "seat_0"
+item_order = "standard_fixed_v1"
+terminal_scoring = "score_sets_highest_threads_conflict_wins_else_draw"

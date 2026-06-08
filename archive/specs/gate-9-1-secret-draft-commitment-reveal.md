@@ -5,7 +5,7 @@
 | Spec ID | `gate-9-1-secret-draft-commitment-reveal` |
 | Roadmap stage | 8 |
 | Roadmap build gate | Gate 9.1 — simultaneous commitment / reveal / drafting proof |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-08 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `secret_draft` |
@@ -13,7 +13,7 @@
 | Browser implementation | Required |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → `docs/OFFICIAL-GAME-CONTRACT.md` → `docs/MECHANIC-ATLAS.md` → `docs/AI-BOTS.md` → `docs/UI-INTERACTION.md` → `docs/TESTING-REPLAY-BENCHMARKING.md` → `docs/ROADMAP.md` → accepted ADRs that explicitly supersede those documents → this spec |
 
-Where this spec and a foundation document disagree, the foundation document wins. This spec does not verify that commit `65ec79d403e8481b439b1908332c263c73e1d002` is the current `main`; it is authored against that user-supplied target commit as the file baseline.
+Where this spec and a foundation document disagree, the foundation document wins.
 
 > Reader orientation: this spec carries the canonical Rulepath section set: Objective, Scope, Deliverables, Work breakdown, Exit criteria, Acceptance evidence, FOUNDATIONS & boundary alignment, Forbidden changes, Documentation updates required, Sequencing, and Assumptions. Detailed proposed rules, state/effect/view sketches, bot policy, WASM/browser wiring, fixtures, traces, benchmarks, and source notes are preserved below the canonical sections under **Implementation reference**.
 
@@ -78,7 +78,7 @@ Carried from ROADMAP §11 and tightened for this gate:
 
 | Area | Required artifacts |
 |---|---|
-| Workspace and crate | Root `Cargo.toml` registration; `games/secret_draft/Cargo.toml`; source modules `src/actions.rs`, `src/bots.rs`, `src/effects.rs`, `src/ids.rs`, `src/lib.rs`, `src/replay_support.rs`, `src/rules.rs`, `src/setup.rs`, `src/state.rs`, `src/ui.rs`, `src/variants.rs`, `src/visibility.rs`. Mirror the `games/token_bazaar` file-for-file shape unless a file is explicitly documented as not applicable. |
+| Workspace and crate | Root `Cargo.toml` registration; `games/secret_draft/Cargo.toml`; source modules `src/actions.rs`, `src/bots.rs`, `src/effects.rs`, `src/ids.rs`, `src/lib.rs`, `src/replay_support.rs`, `src/rules.rs`, `src/setup.rs`, `src/state.rs`, `src/ui.rs`, `src/variants.rs`, `src/visibility.rs`. Mirror the `games/token_bazaar` file-for-file shape unless a file is explicitly documented as not applicable. `token_bazaar` is the structural/economy template; `games/high_card_duel` is the closer behavioral template for the hidden-information modules (`state.rs`, `visibility.rs`, `effects.rs`, `replay_support.rs`), which already carry commitment slots (`commitments: [Option<_>; 2]`), `revealed_history`, viewer-filtered `CommitmentViews`, face-down/redaction labels, and no-leak public export — reuse that machinery rather than re-deriving it. |
 | Static data | `games/secret_draft/data/manifest.toml`, `games/secret_draft/data/variants.toml`, `games/secret_draft/data/fixtures/secret_draft_standard.fixture.json`. Static files contain typed metadata, constants, labels, variant IDs, and fixtures only; they do not contain behavior. Unknown and behavior-looking fields are rejected. |
 | Benchmarks | `games/secret_draft/benches/secret_draft.rs`, `games/secret_draft/benches/thresholds.json`. Include legal action generation, validate/apply, reveal resolution, project-view, replay/hash, and Level 1 bot decision operations. Initial thresholds are smoke floors plus a named calibration follow-up under ADR 0002/0003/0005. |
 | Native tests | `games/secret_draft/tests/rules.rs`, `property.rs`, `replay.rs`, `serialization.rs`, `visibility.rs`, `bots.rs`. Tests must cover simultaneous pending state, no-leak redaction, reveal batch ordering, conflict fallback, deterministic scoring/tie-breaks, stale diagnostics, invalid unavailable item diagnostics, bot legality, bot determinism, public export/import, and stable hashes. |
@@ -101,7 +101,7 @@ Bounded candidate AGENT-TASKs, in dependency order. Do not decompose these into 
 | 2 | State model, typed IDs, deterministic setup | 1 | Model visible pool, drafted collections, commitment slots, round number, priority seat, scores, terminal outcome, freshness token. Use existing deterministic seed discipline only if setup ordering varies; default standard variant may be fully fixed. |
 | 3 | Action tree and validation | 2 | Actor-specific legal action tree for any uncommitted non-terminal seat. Validate freshness, actor seat, already-committed conflict, and item availability. Rust owns all preview metadata. |
 | 4 | Apply/resolve/reveal effects | 3 | First commit emits pending-only effects; second commit emits one grouped reveal batch, award/removal effects, score effects, round advance/terminal. No pre-reveal item ID in public/browser payloads. |
-| 5 | Visibility and replay surfaces | 4 | Public/seat views, effect filtering, internal full trace, viewer-scoped export/import, stable summaries, action/effect/view hashes, no-leak helpers. ADR 0004 rules are mandatory. |
+| 5 | Visibility and replay surfaces | 4 | Public/seat views, effect filtering, internal full trace, viewer-scoped export/import, stable summaries, action/effect/view hashes, no-leak helpers. Adapt `games/high_card_duel/src/visibility.rs` + `replay_support.rs` (commitment redaction, `CommitmentViews`, viewer-filtered effects, public export) rather than `token_bazaar`'s non-hidden-info projection. ADR 0004 rules are mandatory. |
 | 6 | Level 0 and Level 1 bots | 3,5 | Bots choose through legal action API from own allowed view only; deterministic tie-breaks; viewer-safe rationale; no hidden-state sampling or opponent-commit access. |
 | 7 | Native tests and golden traces | 4,5,6 | Rule/property/replay/serialization/visibility/bot suite and full golden trace set. Follow failing-test protocol; never weaken tests to get green. |
 | 8 | Benchmarks and thresholds | 7 | Legal action, validate/apply, reveal resolution, project-view, export/import, bot. Smoke floors first, calibration follow-up named. |
@@ -170,6 +170,7 @@ The required golden trace set under `games/secret_draft/tests/golden_traces/` mu
 - `node apps/web/e2e/secret-draft.smoke.mjs` covers human commit, waiting/pending state, bot commit, synchronized reveal, conflict fallback, replay step/export/import, reduced motion, and a11y/no-leak assertions.
 - `bash scripts/boundary-check.sh` passes with no new `engine-core` mechanic nouns and no TypeScript legality drift.
 - `node scripts/check-doc-links.mjs` passes.
+- `node scripts/check-catalog-docs.mjs` passes, confirming the three mechanically-checked catalog surfaces name `secret_draft` / `Veiled Draft`: the `apps/web/README.md` intro catalog list, the root `README.md` "current official games are" list, and the `apps/web/README.md` Smoke Layers `smoke:e2e` bullet.
 - All eleven per-game docs are present, link-checkable, original, and consistent with implemented behavior.
 
 ## FOUNDATIONS & boundary alignment
@@ -183,7 +184,7 @@ The required golden trace set under `games/secret_draft/tests/golden_traces/` mu
 | §8 Public bots | Aligned | Bots use the same legal action API as humans, validate normally, mutate no state directly, expose viewer-safe explanations, and use no hidden-state sampling, MCTS/ISMCTS, Monte Carlo, ML, RL, or LLM policy. |
 | §11 Universal invariants | Aligned | Deterministic replay/hash/serialization, viewer-safe public/private views, hidden-info no-leak before reveal, legal-only UI, semantic-effect animation, local-first scope, source notes, docs, simulations, benchmarks, and tests are explicit acceptance evidence. |
 | §12 Stop conditions | Clear | Stop if a kernel noun appears, static data becomes procedural, TypeScript decides legality/reveal/scoring, hidden choice reaches any browser/dev/replay/bot surface before reveal, bot uses hidden opponent state, or a helper is promoted without atlas process. |
-| §13 ADR triggers | **No ADR expected.** | The simultaneous reveal model is already inside the architectural envelope: `high_card_duel` proves hidden commitments/private views/redaction, and `ARCHITECTURE.md` already lists commitments/reveals, pending responses, grouped batches, and simultaneous/reveal batches as effect shapes. If implementation genuinely requires changing replay/hash semantics, visibility contracts, kernel vocabulary, new data formats, renderer defaults, or bot classes, stop and write an ADR before proceeding. |
+| §13 ADR triggers | **No ADR expected.** | The simultaneous reveal model is already inside the architectural envelope: `high_card_duel` proves hidden commitments/private views/redaction, and `ARCHITECTURE.md` already lists reveal/redaction, commitments/reveals, pending responses, and grouped batches as effect shapes. If implementation genuinely requires changing replay/hash semantics, visibility contracts, kernel vocabulary, new data formats, renderer defaults, or bot classes, stop and write an ADR before proceeding. |
 | ADR 0004 hidden-info replay/export | Aligned | Internal full traces remain native test authority. Browser export defaults to viewer-scoped observation timeline and must not contain pre-reveal commitments, raw private action paths, seed material that reconstructs hidden choices, bot private candidates, or hidden-state-derived explanations. |
 | Benchmark ADRs 0002/0003/0005 | Aligned | Add smoke benchmarks and threshold files now; calibrate stable floors after enough runs, with variance-aware treatment and non-gating PR smoke as prescribed. |
 | ADR 0006 Blackjack placement | Aligned | This spec does not resurrect Blackjack. Blackjack remains deferred; Gate 9.1 is a prerequisite-style commitment/reveal proof before Gate 10 comparison cases. |
@@ -209,13 +210,18 @@ Do not, in this gate:
   - Stage `8`, Gate `Gate 9.1`, Spec `gate-9-1-secret-draft-commitment-reveal.md`, status `Planned` when this spec is accepted, then `Done` only after evidence passes.
 - Do **not** edit `docs/ROADMAP.md` to record progress. ROADMAP remains ladder law; `specs/README.md` tracks status.
 - Update `docs/MECHANIC-ATLAS.md`:
-  - Add a first-use local-only note for `simultaneous commitment/reveal + visible draft-pool removal` with `secret_draft` as the official use.
+  - Convert the existing §10B `simultaneous commitment/reveal` row (which already names `secret_draft`) from candidate pressure to realized first official local use for `simultaneous commitment/reveal + visible draft-pool removal`; do not create a duplicate entry.
   - Keep §10B `simultaneous commitment/reveal` as a candidate after second use; do not promote.
   - Confirm §10A open promotion-debt register remains `_None_` after implementation.
 - Update `progress.md` and root `README.md` after implementation, not before evidence passes.
 - Author all eleven `games/secret_draft/docs/*` from templates and keep them consistent with implemented behavior.
 - Update `docs/SOURCES.md` only if maintainers decide the repo-level game-specific source-note table should enumerate `secret_draft`; in all cases, add `games/secret_draft/docs/SOURCES.md` with consulted prior art and original-content notes.
-- Update `apps/web/README.md` only after the browser board and smoke are actually registered.
+- Reconcile the web-shell catalog surfaces as a closeout (per `specs/README.md` §10), only after the browser board and smoke are actually registered — do not leave them to a later aftermath pass as Gate 9 did:
+  - `apps/web/README.md` intro catalog list (add `secret_draft` / `Veiled Draft`);
+  - root `README.md` "current official games are" list;
+  - `apps/web/README.md` Smoke Layers `smoke:e2e` bullet, and the `smoke:e2e` script in `apps/web/package.json` (add `node e2e/secret-draft.smoke.mjs`);
+  - the `apps/web/README.md` Shell Surface renderer list (process-enforced, not mechanically checked).
+  - `node scripts/check-catalog-docs.mjs` enforces the first three in CI; it must pass.
 - Ensure `scripts/check-doc-links.mjs` passes after doc changes.
 
 ## Sequencing

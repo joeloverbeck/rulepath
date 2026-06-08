@@ -468,6 +468,73 @@ export type TokenBazaarPublicView = {
   ui: TokenBazaarUiMetadata;
 };
 
+export type SecretDraftItemView = {
+  item_id: string;
+  label: string;
+  thread: string;
+  value: number;
+  accessibility_label: string;
+};
+
+export type SecretDraftCommitmentView = {
+  seat: SeatId;
+  committed: boolean;
+  status: "waiting" | "committed" | string;
+  accessibility_label: string;
+};
+
+export type SecretDraftTerminalView =
+  | { terminal: false; winner: null; draw: false }
+  | { terminal: true; winner: SeatId; draw: false }
+  | { terminal: true; winner: null; draw: true };
+
+export type SecretDraftPrivateView =
+  | { status: "observer"; own_committed: false; waiting_copy: "" }
+  | { status: "seat"; seat: SeatId; own_committed: boolean; waiting_copy: string };
+
+export type SecretDraftUiMetadata = {
+  game_id: "secret_draft";
+  display_name: "Veiled Draft";
+  table_label: string;
+  visible_pool_label: string;
+  drafted_label: string;
+  pending_label: string;
+  score_label: string;
+  reveal_group_token: string;
+  reduced_motion_token: string;
+};
+
+export type SecretDraftPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "secret_draft";
+  display_name: string;
+  variant_id: "secret_draft_standard";
+  rules_version_label: string;
+  round_number: number;
+  round_limit: number;
+  phase: "commit" | "terminal" | string;
+  active_seat: SeatId | null;
+  priority_seat: SeatId;
+  visible_pool: SecretDraftItemView[];
+  drafted: { seat_0: SecretDraftItemView[]; seat_1: SecretDraftItemView[] };
+  commitments: { seat_0: SecretDraftCommitmentView; seat_1: SecretDraftCommitmentView; copy: string };
+  scores: { seat_0: number; seat_1: number };
+  revealed_history: Array<{
+    round_number: number;
+    seat_0_choice: SecretDraftItemView;
+    seat_1_choice: SecretDraftItemView;
+    seat_0_award: SecretDraftItemView;
+    seat_1_award: SecretDraftItemView;
+    priority_seat: SeatId;
+    contested: boolean;
+  }>;
+  terminal: SecretDraftTerminalView;
+  freshness_token: number;
+  private_view: SecretDraftPrivateView;
+  ui: SecretDraftUiMetadata;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -475,7 +542,8 @@ export type PublicView =
   | DirectionalFlipPublicView
   | DraughtsLitePublicView
   | HighCardDuelPublicView
-  | TokenBazaarPublicView;
+  | TokenBazaarPublicView
+  | SecretDraftPublicView;
 
 export type ActionChoice = {
   segment: string;
@@ -566,7 +634,23 @@ export type PublicObserverReplayExport = {
   }>;
 };
 
-export type ReplayExportDocument = ReplayDocument | PublicObserverReplayExport;
+export type SecretDraftPublicReplayExport = {
+  schema_version: number;
+  export_class: "viewer_scoped_observation_v1";
+  viewer: "observer";
+  game_id: "secret_draft";
+  rules_version: string;
+  variant: "secret_draft_standard";
+  steps: Array<{
+    step_index: number;
+    public_view_summary: string;
+    public_effects: string[];
+    redacted_command_summary: string;
+    terminal: boolean;
+  }>;
+};
+
+export type ReplayExportDocument = ReplayDocument | PublicObserverReplayExport | SecretDraftPublicReplayExport;
 
 export type ReplayImportSummary = {
   replay_id: string;

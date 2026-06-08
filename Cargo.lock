@@ -53,6 +53,7 @@ dependencies = [
  "draughts_lite",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]
@@ -92,6 +93,7 @@ dependencies = [
  "game-stdlib",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]
@@ -99,6 +101,14 @@ dependencies = [
 [[package]]
 name = "rule-coverage"
 version = "0.1.0"
+
+[[package]]
+name = "secret_draft"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
 
 [[package]]
 name = "seed-reducer"
@@ -119,6 +129,7 @@ dependencies = [
  "engine-core",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]
@@ -160,6 +171,7 @@ dependencies = [
  "engine-core",
  "high_card_duel",
  "race_to_n",
+ "secret_draft",
  "three_marks",
  "token_bazaar",
 ]

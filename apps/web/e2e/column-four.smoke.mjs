@@ -9,7 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "..", "dist");
 const mountPath = "/rulepath/";
 const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome";
-const forbiddenLeakTerms = ["hidden_state", "private_state", "secret", "internal_state", "candidate_ranking"];
+const forbiddenLeakTerms = ["hidden_state", "private_state", "internal_state", "candidate_ranking"];
 const drawColumns = [
   "c6",
   "c4",

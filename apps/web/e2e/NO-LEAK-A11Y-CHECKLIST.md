@@ -31,6 +31,10 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Draughts Lite non-color cues: pieces use shape/text marks plus color, selected origins/legal destinations/captures/promotions have text status and live-region cues, and effects include text labels.
 - Draughts Lite reduced motion: the smoke verifies reduced-motion mode suppresses Draughts cell transitions while preserving static highlights and the effect log.
 - Draughts Lite replay accessibility: replay export/import/step renders `DraughtsLiteBoard` and full public command paths such as `from/r4c1 > jump/r6c3`.
+- Veiled Draft board keyboard path: the Secret Draft smoke focuses a Rust-legal visible-pool commit control, activates it with Enter, repeats for the second seat, and verifies the grouped reveal.
+- Veiled Draft pending/reveal accessibility: pending seat statuses, priority, score, visible pool, drafted collections, and reveal history are exposed as text with non-color cues.
+- Veiled Draft reduced motion: the smoke verifies reduced-motion mode suppresses item/reveal animation while preserving pending/reveal order.
+- Veiled Draft replay accessibility: replay import/reset/step renders the public observer timeline with redacted command summaries rather than raw command paths.
 
 ## No-Leak Surfaces
 
@@ -53,6 +57,10 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Draughts Lite replay export: checked by `draughts-lite.smoke.mjs` for forbidden leak vocabulary while preserving public replay metadata for `draughts_lite` and explicit not-applicable private-view markers.
 - Draughts Lite bot rationale/effects: the UI shows only Rust-provided public effects and bot rationale; no candidate ranking, raw score, hidden search, or internal state surface is exposed.
 - Draughts Lite forced capture: the smoke creates a standard-match mandatory capture through public UI moves and verifies the DOM/live text exposes only Rust public legality cues and complete replay segments.
+- Veiled Draft pre-reveal DOM/test IDs: checked by `secret-draft.smoke.mjs`; committed item ids such as `ember_1` and `commit/ember_1` are absent from DOM text, attributes, `data-testid` values, storage, and console before reveal.
+- Veiled Draft pending UI: post-commit anchors use seat/round identifiers, and the board shows only committed/waiting state until Rust emits the grouped reveal.
+- Veiled Draft replay export/import: default export is `viewer_scoped_observation_v1`, omits command stream and seed evidence, and replay viewer consumes public effects/redacted command summaries.
+- Veiled Draft bot/effect text: the Human vs bot smoke verifies Rust's automatic bot commitment reaches grouped reveal without candidate ranking, hidden state, private state, or internal debug text.
 
 ## Later Hidden-Information Games
 

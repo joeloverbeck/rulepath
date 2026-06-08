@@ -38,7 +38,9 @@ export function EffectLog({ effects, reducedMotion, override, onOverrideChange }
             return (
               <li
                 key={entry.cursor}
-                className={`effect-entry ${feedback.tone}${isNewest ? " newest" : ""}${reducedMotion ? " reduced" : ""}`}
+                className={`effect-entry ${feedback.tone}${isNewest ? " newest" : ""}${isRevealBatch(entry) ? " reveal-batch" : ""}${
+                  reducedMotion ? " reduced" : ""
+                }`}
               >
                 <span className="effect-cursor">{entry.cursor}</span>
                 <strong>{feedback.title}</strong>
@@ -49,5 +51,13 @@ export function EffectLog({ effects, reducedMotion, override, onOverrideChange }
         )}
       </ol>
     </section>
+  );
+}
+
+function isRevealBatch(entry: EffectEntry): boolean {
+  return (
+    entry.effect.payload.type === "reveal_batch_started" ||
+    entry.effect.payload.type === "choices_revealed" ||
+    entry.effect.payload.type === "draft_resolved"
   );
 }

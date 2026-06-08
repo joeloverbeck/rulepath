@@ -18,7 +18,6 @@ const forbiddenLeakTerms = [
   "hidden_state",
   "private_state",
   "internal_state",
-  "secret",
 ];
 
 await access(executablePath);

@@ -104,6 +104,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "token-bazaar-rules-v1",
             trace_dir: "games/token_bazaar/tests/golden_traces",
         }),
+        "secret_draft" => Ok(RegisteredGame {
+            game_id: "secret_draft",
+            rules_version: "secret-draft-rules-v1",
+            trace_dir: "games/secret_draft/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -219,10 +224,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --all");
 }
 
 fn check_trace_path(
@@ -252,6 +257,7 @@ struct Trace {
     migration_update_note: String,
     seed: u64,
     commands: Vec<Vec<String>>,
+    command_actor_seats: Vec<String>,
     bot_seed: Option<u64>,
     invalid_command: Option<Vec<String>>,
     stale_command: Option<Vec<String>>,
@@ -324,6 +330,7 @@ impl Trace {
             seed: number_field(input, "seed")
                 .map_err(|error| parse_error(path, "unknown", &error))?,
             commands: action_paths(input),
+            command_actor_seats: command_string_fields(input, "actor_seat"),
             bot_seed: optional_number_field(input, "bot_seed")
                 .map_err(|error| parse_error(path, "unknown", &error))?,
             invalid_command: command_with_expect(input, "invalid_action"),
@@ -337,7 +344,12 @@ impl Trace {
                 "expected_action_tree_hashes",
                 "final",
             )?,
-            expected_public_view_hash: optional_hash(input, "expected_public_view_hashes", "all")?,
+            expected_public_view_hash: optional_hash(input, "expected_public_view_hashes", "all")?
+                .or(optional_hash(
+                    input,
+                    "expected_public_view_hashes",
+                    "observer",
+                )?),
             expected_diagnostic_hash: optional_diagnostic_hash(input),
             expected_terminal: optional_bool_in_object(
                 input,
@@ -475,6 +487,7 @@ impl Trace {
             "draughts_lite" => self.draughts_actual_hashes(),
             "high_card_duel" => self.high_card_duel_actual_hashes(),
             "token_bazaar" => self.token_bazaar_actual_hashes(),
+            "secret_draft" => self.secret_draft_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -1089,6 +1102,73 @@ impl Trace {
             self.path.display()
         )
     }
+
+    fn secret_draft_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        if !matches!(
+            self.fixture_kind.as_str(),
+            "commands" | "terminal" | "diagnostic" | "bot" | "no_leak" | "export" | "wasm"
+        ) {
+            return Ok(None);
+        }
+
+        let mut state = secret_draft::setup_match(
+            &secret_draft::replay_support::default_seats(),
+            &secret_draft::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        let mut effects = Vec::new();
+        let mut diagnostic_hash = None;
+        let has_diagnostic = self.expected_diagnostic_hash.is_some();
+        let applied_count = if has_diagnostic {
+            self.commands.len().saturating_sub(1)
+        } else {
+            self.commands.len()
+        };
+
+        for index in 0..applied_count {
+            let seat = self.secret_draft_actor(index)?;
+            let command = secret_draft_command_for_seat(&state, seat, self.commands[index].clone());
+            let action = secret_draft::actions::validate_command(&state, &command)
+                .map_err(diagnostic_string)?;
+            effects
+                .extend(secret_draft::apply_action(&mut state, action).map_err(diagnostic_string)?);
+        }
+
+        if has_diagnostic {
+            let index = self.commands.len().saturating_sub(1);
+            let seat = self.secret_draft_actor(index)?;
+            let mut command =
+                secret_draft_command_for_seat(&state, seat, self.commands[index].clone());
+            if let Some(freshness) = self.diagnostic_freshness_token {
+                command.freshness_token = engine_core::FreshnessToken(freshness);
+            }
+            let diagnostic = secret_draft::actions::validate_command(&state, &command)
+                .expect_err("diagnostic trace rejects");
+            diagnostic_hash = Some(HashValue::from_stable_bytes(
+                format!("{diagnostic:?}").as_bytes(),
+            ));
+        }
+
+        Ok(Some(ActualHashes {
+            state_hash: secret_draft::state_hash(&state),
+            effect_hash: secret_draft::replay_support::effect_hash(&effects),
+            action_tree_hash: secret_draft_action_tree_hash(&state),
+            view_hash: secret_draft::replay_support::view_hash(&state, &Viewer { seat_id: None }),
+            diagnostic_hash,
+            terminal: state.phase == secret_draft::Phase::Terminal,
+            winner: match state.terminal_outcome {
+                Some(secret_draft::TerminalOutcome::Win { seat }) => Some(seat.as_str().to_owned()),
+                Some(secret_draft::TerminalOutcome::Draw) | None => None,
+            },
+        }))
+    }
+
+    fn secret_draft_actor(&self, index: usize) -> Result<secret_draft::SecretDraftSeat, String> {
+        self.command_actor_seats
+            .get(index)
+            .and_then(|seat| secret_draft::SecretDraftSeat::parse(seat))
+            .ok_or_else(|| self.failure("secret_draft trace command has invalid actor_seat"))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1147,6 +1227,39 @@ fn token_bazaar_action_tree_hash(state: &token_bazaar::TokenBazaarState) -> Hash
         }
     };
     token_bazaar::action_tree_hash(&token_bazaar::legal_action_tree(state, &actor))
+}
+
+fn secret_draft_command_for_seat(
+    state: &secret_draft::SecretDraftState,
+    actor_seat: secret_draft::SecretDraftSeat,
+    path: Vec<String>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        },
+        action_path: ActionPath { segments: path },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn secret_draft_action_tree_hash(state: &secret_draft::SecretDraftState) -> HashValue {
+    let parts = secret_draft::SecretDraftSeat::ALL
+        .iter()
+        .map(|seat| {
+            let actor = Actor {
+                seat_id: state.seats[seat.index()].clone(),
+            };
+            secret_draft::replay_support::action_tree_hash(&secret_draft::legal_action_tree(
+                state, &actor,
+            ))
+            .0
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("|");
+    HashValue::from_stable_bytes(parts.as_bytes())
 }
 
 fn validate_json_object(path: &Path, input: &str) -> Result<(), String> {
@@ -1209,6 +1322,7 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_replay_hashes",
         "expected_public_export_hashes",
         "expected_private_view_hashes",
+        "expected_revealed_sequence",
         "expected_diagnostic_hashes",
         "expected_diagnostics",
         "expected_outcome",
@@ -1404,6 +1518,20 @@ fn action_paths(input: &str) -> Vec<Vec<String>> {
         remaining = &remaining[close + 1..];
     }
     commands
+}
+
+fn command_string_fields(input: &str, key: &str) -> Vec<String> {
+    let command_end = input.find("\"checkpoints\":").unwrap_or(input.len());
+    let mut values = Vec::new();
+    let mut remaining = &input[..command_end];
+    let needle = format!("\"{key}\":");
+    while let Some(offset) = remaining.find(&needle) {
+        remaining = &remaining[offset + needle.len()..];
+        if let Some(value) = parse_string_at(remaining, 0) {
+            values.push(value);
+        }
+    }
+    values
 }
 
 fn command_with_expect(input: &str, expected_code: &str) -> Option<Vec<String>> {

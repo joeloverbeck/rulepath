@@ -44,6 +44,9 @@ jobs:
       - name: token_bazaar bench smoke
         run: cargo bench -p token_bazaar -- legal_actions
 
+      - name: secret_draft bench smoke
+        run: cargo bench -p secret_draft -- legal_actions
+
   bench-gate:
     name: Benchmark threshold gate
     if: github.event_name != 'pull_request'
@@ -89,6 +92,11 @@ jobs:
 
           cargo bench -p token_bazaar | tee /tmp/token_bazaar-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/token_bazaar-benchmark-report.txt --thresholds games/token_bazaar/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p secret_draft | tee /tmp/secret_draft-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/secret_draft-benchmark-report.txt --thresholds games/secret_draft/benches/thresholds.json; then
             failed=1
           fi
 

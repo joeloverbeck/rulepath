@@ -16,6 +16,7 @@ import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
+import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
@@ -32,6 +33,7 @@ import {
   type ReplayExportDocument,
   type RulepathApi,
   type SeatId,
+  type SecretDraftPublicView,
   type ThreeMarksPublicView,
   type TokenBazaarPublicView,
   type ViewerMode,
@@ -390,6 +392,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
           />
+        ) : isSecretDraftView(view) ? (
+          <SecretDraftBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -406,7 +418,8 @@ function App() {
         isDirectionalFlipView(view) ||
         isDraughtsLiteView(view) ||
         isHighCardDuelView(view) ||
-        isTokenBazaarView(view) ? null : (
+        isTokenBazaarView(view) ||
+        isSecretDraftView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -552,11 +565,18 @@ function isTokenBazaarView(view: PublicView | null): view is TokenBazaarPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "token_bazaar");
 }
 
+function isSecretDraftView(view: PublicView | null): view is SecretDraftPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "secret_draft");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
   }
   if (isTokenBazaarView(view)) {
+    return view.terminal.terminal;
+  }
+  if (isSecretDraftView(view)) {
     return view.terminal.terminal;
   }
   return view.terminal_kind !== "non_terminal";
@@ -589,6 +609,18 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
           ? "draw"
           : `${view.terminal.winner} won`
         : `${view.scores.seat_0}-${view.scores.seat_1}, ${view.queue_remaining} queued`,
+    };
+  }
+  if (view.game_id === "secret_draft") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: view.terminal.terminal
+        ? view.terminal.draw
+          ? "draw"
+          : `${view.terminal.winner} won`
+        : `${view.phase} round ${view.round_number}, ${view.scores.seat_0}-${view.scores.seat_1}`,
     };
   }
   return {
@@ -626,6 +658,12 @@ function GenericGameSurface({
   const status = view
     ? "status_label" in view
       ? view.status_label
+      : isSecretDraftView(view)
+        ? view.terminal.terminal
+          ? view.terminal.draw
+            ? "Draw"
+            : `${view.terminal.winner} won`
+          : `${view.phase} round ${view.round_number}`
       : isTokenBazaarView(view)
         ? view.terminal.terminal
           ? view.terminal.draw
