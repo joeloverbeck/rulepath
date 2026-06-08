@@ -14,7 +14,7 @@ Benchmark report version: `1`
 
 Prepared by: `Codex`
 
-Last updated: 2026-06-07
+Last updated: 2026-06-08
 
 ## Benchmark doctrine
 
@@ -70,18 +70,27 @@ CI runs this gate on two lanes per [ADR 0002](../../../docs/adr/0002-ci-benchmar
 pull requests run a non-gating bench smoke (`cargo bench -p race_to_n -- legal_actions`,
 no `bench-report`), while the scheduled / manual / `main`-push lane runs the full
 report through `bench-report` and hard-fails. Per
-[ADR 0003](../../../docs/adr/0003-ci-calibrated-benchmark-thresholds.md), the
-committed thresholds are the enforced `ubuntu-latest` CI floors. Faster native
-WSL2 measurements remain documented below as aspirational targets and baseline
-evidence.
+[ADR 0003](../../../docs/adr/0003-ci-calibrated-benchmark-thresholds.md) and
+[ADR 0005](../../../docs/adr/0005-variance-aware-ci-benchmark-floors.md), the
+committed thresholds are the enforced variance-aware `ubuntu-latest` CI floors:
+at least 15% below the minimum observed across representative CI runs. Faster
+native WSL2 measurements remain documented below as aspirational targets and
+baseline evidence.
 
-The `BENCICAL-001` aggregation run `27087214359` measured the recalibrated CI
-rows at `serialization_roundtrip` 194,572.37 roundtrips/sec,
-`replay_throughput` 227,909.73 replays/sec, `random_playout` 67,531.86
-games/sec, and `bot_decision` 978,335.89 decisions/sec. Follow-up run
-`27087615808` showed `serialization_roundtrip` can land at 187,667.53
-roundtrips/sec on the same lane, so the final committed CI floors are set below
-the observed runner range while the native targets remain visible.
+The BENCICAL-003 audit used representative Gate 2 runs
+`27101213584`/`27111487150`/`27114668009`. Existing floors for
+`serialization_roundtrip`, `replay_throughput`, `random_playout`, and
+`bot_decision` were within 15% of the observed minimum, so they were widened under
+ADR 0005 while the native targets remain visible.
+
+## Variance-aware CI floors
+
+| Operation | Native target/baseline | Observed CI minimum | Enforced CI floor |
+|---|---:|---:|---:|
+| `serialization_roundtrip` | 316,309.13 roundtrips/sec native WSL2 target | 195,741.57 roundtrips/sec across runs `27101213584`/`27111487150`/`27114668009` | 165,000 roundtrips/sec |
+| `replay_throughput` | 396,321.82 replays/sec native WSL2 target | 227,947.89 replays/sec across runs `27101213584`/`27111487150`/`27114668009` | 190,000 replays/sec |
+| `random_playout` | 100,000 games/sec ADR 0001 native target; 109,870.94 games/sec native WSL2 baseline | 66,761.40 games/sec across runs `27101213584`/`27111487150`/`27114668009` | 56,000 games/sec |
+| `bot_decision` | 1,736,308.07 decisions/sec native WSL2 target | 1,001,027.56 decisions/sec across runs `27101213584`/`27111487150`/`27114668009` | 850,000 decisions/sec |
 
 ## Native benchmark section
 
@@ -94,10 +103,10 @@ the observed runner range while the native targets remain visible.
 | apply action/state transition | measured | no previous baseline | 13,223,070.56 actions/sec | 5,000,000 actions/sec hard floor | pass | `apply_action`, 1,000,000 iterations, includes validation. |
 | public/private view generation | measured | no previous baseline | 79,694,610.25 views/sec | 10,000,000 views/sec hard floor | pass | `public_view_generation`; private view is not applicable because the game is perfect information. |
 | effect filtering | measured | no previous baseline | 68,173,296.52 filters/sec | 10,000,000 filters/sec hard floor | pass | `EffectLog::since` over public effects. |
-| serialization/deserialization | measured | no previous baseline | native WSL2 target 316,309.13 roundtrips/sec; CI 194,572.37 in run `27087214359` and 187,667.53 in run `27087615808` | 180,000 roundtrips/sec CI floor | pass | `RaceSnapshot::to_json` fixture parsed with `RaceSnapshot::from_json` and hashed. |
-| replay throughput | measured | no previous baseline | native WSL2 target 396,321.82 replays/sec; CI 227,909.73 in run `27087214359` and 226,842.75 in run `27087615808` | 220,000 replays/sec CI floor | pass | Seven-command deterministic terminal replay. |
-| random playout throughput | 100,000 games/sec accepted Stage-1 validated-playout native target | no previous baseline | native WSL2 target 109,870.94 games/sec; CI 67,531.86 in run `27087214359` | 65,000 games/sec CI floor from ADR 0003 | pass | ADR 0001's 100,000 native target remains visible; ADR 0003 calibrates the enforced CI floor. |
-| bot decision latency | measured | no previous baseline | native WSL2 target 1,736,308.07 decisions/sec; CI 978,335.89 in run `27087214359` and 980,644.97 in run `27087615808` | 950,000 decisions/sec CI floor | pass | `RaceRandomBot::select_action` on the initial legal tree. |
+| serialization/deserialization | measured | no previous baseline | native WSL2 target 316,309.13 roundtrips/sec; CI minimum 195,741.57 across runs `27101213584`/`27111487150`/`27114668009` | 165,000 roundtrips/sec CI floor | pass | `RaceSnapshot::to_json` fixture parsed with `RaceSnapshot::from_json` and hashed. |
+| replay throughput | measured | no previous baseline | native WSL2 target 396,321.82 replays/sec; CI minimum 227,947.89 across runs `27101213584`/`27111487150`/`27114668009` | 190,000 replays/sec CI floor | pass | Seven-command deterministic terminal replay. |
+| random playout throughput | 100,000 games/sec accepted Stage-1 validated-playout native target | no previous baseline | native WSL2 target 109,870.94 games/sec; CI minimum 66,761.40 across runs `27101213584`/`27111487150`/`27114668009` | 56,000 games/sec CI floor from ADR 0005 | pass | ADR 0001's 100,000 native target remains visible; ADR 0005 calibrates the enforced variance-aware CI floor. |
+| bot decision latency | measured | no previous baseline | native WSL2 target 1,736,308.07 decisions/sec; CI minimum 1,001,027.56 across runs `27101213584`/`27111487150`/`27114668009` | 850,000 decisions/sec CI floor | pass | `RaceRandomBot::select_action` on the initial legal tree. |
 | candidate extraction if Level 2 | not applicable | not applicable | not applicable | not applicable | not applicable | Gate 1 bot is Level 0 random legal only. |
 | hidden-info view filtering if applicable | not applicable | not applicable | not applicable | not applicable | not applicable | `race_to_n` has no hidden state. |
 
@@ -134,7 +143,7 @@ the observed runner range while the native targets remain visible.
 | Bottleneck | Evidence | Affected operation | Planned response | Requires ADR/ledger? |
 |---|---|---|---|---:|
 | Random playout provisional target mismatch | `random_playout` measured around 108,000-140,000 validated games/sec vs the old 500,000 games/sec provisional target | random playout throughput | ADR 0001 accepts 100,000 games/sec as the Gate 2 hard floor for the correctness-preserving harness. | yes |
-| CI runner throughput below native target | `BENCICAL-001` run `27087214359` measured lower `ubuntu-latest` throughput for serialization, replay, random playout, and bot decision than the WSL2 native targets. | committed benchmark thresholds | ADR 0003 makes the committed threshold the CI floor while this file preserves the native target. | yes |
+| CI runner throughput below native target | BENCICAL-003 runs `27101213584`/`27111487150`/`27114668009` measured lower `ubuntu-latest` throughput for serialization, replay, random playout, and bot decision than the WSL2 native targets. | committed benchmark thresholds | ADR 0005 makes the committed threshold the variance-aware CI floor while this file preserves the native target. | yes |
 | Snapshot JSON parsing dominates serialization row | `serialization_roundtrip` = 314,686.27 roundtrips/sec, slower than view/apply rows | serialization/deserialization | Keep as baseline unless replay/storage usage proves this hot. | no |
 
 ## Comparison to previous release
@@ -147,7 +156,7 @@ the observed runner range while the native targets remain visible.
 | effect filtering | no previous baseline | 68,173,296.52 filters/sec | not applicable | yes | First Gate 2 structured benchmark report. |
 | serialization/deserialization | no previous baseline | 316,309.13 roundtrips/sec | not applicable | yes | First Gate 2 structured benchmark report. |
 | replay throughput | no previous baseline | 396,321.82 replays/sec | not applicable | yes | First Gate 2 structured benchmark report. |
-| random playout throughput | no previous baseline | 109,870.94 games/sec native full report; 67,531.86 games/sec CI run `27087214359` | not applicable | yes vs 65,000 CI floor; native target remains 100,000 | ADR 0003 recalibrates the enforced CI floor while ADR 0001's native target remains recorded. |
+| random playout throughput | no previous baseline | 109,870.94 games/sec native full report; 66,761.40 games/sec CI minimum across runs `27101213584`/`27111487150`/`27114668009` | not applicable | yes vs 56,000 CI floor; native target remains 100,000 | ADR 0005 recalibrates the enforced CI floor while ADR 0001's native target remains recorded. |
 | bot decision latency | no previous baseline | 1,736,308.07 decisions/sec | not applicable | yes | First Gate 2 structured benchmark report. |
 
 ## Trace/data/hash compatibility notes
@@ -165,7 +174,7 @@ the observed runner range while the native targets remain visible.
 | Regression | Amount | Accepted? | Rationale | Follow-up |
 |---|---:|---:|---|---|
 | Stage-1 random playout budget recalibration | 109,870.94 native full-report current vs 100,000 accepted native target | yes | ADR 0001 replaces the provisional 500,000 target for validated random playouts after profiling showed the old target did not match the correctness-preserving harness. | Keep the native target visible. |
-| CI floor below native random-playout target | 67,531.86 games/sec in `ubuntu-latest` run `27087214359` vs 100,000 native target | yes | ADR 0003 calibrates the enforced gate to the runner that executes it while preserving the native target in this file. | Keep `bench-report` hard-failing below 65,000 games/sec on CI. |
+| CI floor below native random-playout target | 66,761.40 games/sec minimum across representative `ubuntu-latest` runs vs 100,000 native target | yes | ADR 0005 calibrates the enforced gate to the runner that executes it while preserving the native target in this file. | Keep `bench-report` hard-failing below 56,000 games/sec on CI. |
 
 Regressions accepted for public polish, correctness, visibility safety, replay compatibility, or accessibility MUST be explicit. Silent regressions are not allowed.
 
@@ -173,7 +182,7 @@ Regressions accepted for public polish, correctness, visibility safety, replay c
 
 | TODO | Blocks public release? | Required evidence | Owner |
 |---|---:|---|---|
-| Maintain accepted Stage-1 random playout target | yes for native benchmark health | `random_playout` at or above 100,000 games/sec under native `cargo bench -p race_to_n`; CI gate enforces the ADR 0003 65,000 games/sec floor | Gate 2 |
+| Maintain accepted Stage-1 random playout target | yes for native benchmark health | `random_playout` at or above 100,000 games/sec under native `cargo bench -p race_to_n`; CI gate enforces the ADR 0005 56,000 games/sec floor | Gate 2 |
 | Add WASM/browser smoke benchmarks once the browser surface exists | no for this native ticket; yes before public web release | Browser smoke report for load, view/action tree, apply, bot turn, and render/effects | GAT1RACTON-011/012 follow-up |
 
 ## Review checklist

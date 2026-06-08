@@ -4,21 +4,23 @@ Game ID: `column_four`
 
 Rules version: `column_four-rules-v1`
 
-Last updated: 2026-06-07
+Last updated: 2026-06-08
 
 ## Benchmark surfaces
 
 The native harness lives at `games/column_four/benches/column_four.rs`;
 thresholds live at `games/column_four/benches/thresholds.json`.
 
-Per [ADR 0003](../../../docs/adr/0003-ci-calibrated-benchmark-thresholds.md),
-the committed threshold is the enforced `ubuntu-latest` CI floor. Faster native
-baselines and target misses remain documented here.
+Per [ADR 0003](../../../docs/adr/0003-ci-calibrated-benchmark-thresholds.md)
+and [ADR 0005](../../../docs/adr/0005-variance-aware-ci-benchmark-floors.md),
+the committed threshold is the enforced variance-aware `ubuntu-latest` CI floor:
+at least 15% below the minimum observed across representative CI runs. Faster
+native baselines and target misses remain documented here.
 
 | Operation | Evidence | Threshold posture |
 |---|---|---|
 | legal actions | `legal_actions` | measured baseline floor |
-| apply action | `apply_action` | measured baseline floor |
+| apply action | `apply_action` | variance-aware CI floor; native baseline preserved |
 | public view generation | `public_view_generation` | measured baseline floor |
 | replay step projection | `replay_step_projection` | CI floor; native baseline preserved |
 | serialization round trip | `serialization_roundtrip` | measured baseline floor |
@@ -29,11 +31,17 @@ baselines and target misses remain documented here.
 
 ## Random-playout target status
 
-`docs/TESTING-REPLAY-BENCHMARKING.md` records a provisional 100,000+ games/sec expectation for Column Four random playouts. The first local native smoke run on 2026-06-06 measured about 16,272 games/sec for `random_playout`, and the `BENCICAL-001` CI evidence run `27087214359` measured 9,700.09 games/sec on `ubuntu-latest`. That is a target miss, not a target change.
+`docs/TESTING-REPLAY-BENCHMARKING.md` records a provisional 100,000+ games/sec
+expectation for Column Four random playouts. The first local native smoke run on
+2026-06-06 measured about 16,272 games/sec for `random_playout`, and the
+representative CI runs `27101213584`/`27111487150`/`27114668009` measured a
+minimum of 5,938.52 games/sec on `ubuntu-latest`. That is a target miss, not a
+target change.
 
-ADR 0003 makes the committed 9,000 games/sec threshold the CI gate floor while
-this file preserves the 100,000+ games/sec native target as the aspirational
-benchmark and keeps the miss visible.
+ADR 0005 makes the committed 5,000 games/sec threshold the variance-aware CI gate
+floor while this file preserves the 100,000+ games/sec native target as the
+aspirational benchmark and keeps the miss visible. The earlier single-sample ADR
+0003 floor from run `27087214359` is superseded for this operation.
 
 ## First local smoke measurements
 
@@ -57,10 +65,11 @@ Environment: linux x86_64, rustc 1.93.0 (254b59607 2026-01-19), local native ben
 
 | Operation | Native target/baseline | CI evidence | Enforced CI floor |
 |---|---:|---:|---:|
-| `replay_step_projection` | 56,038.49 projections/sec native baseline | 34,175.00 projections/sec in run `27087214359` | 33,000 projections/sec |
-| `replay_throughput` | 5,425.07 replays/sec native baseline | 3,334.35 replays/sec in run `27087214359` | 3,200 replays/sec |
-| `random_playout` | 100,000+ games/sec native target; 16,271.89 games/sec native baseline | 9,700.09 games/sec in run `27087214359` | 9,000 games/sec |
-| `level2_bot_decision` | 5,451.72 decisions/sec native baseline | 3,063.45 decisions/sec in run `27087214359` | 3,000 decisions/sec |
+| `apply_action` | 417,607.15 actions/sec native baseline | minimum 146,481.22 actions/sec across runs `27101213584`/`27111487150`/`27114668009` | 120,000 actions/sec |
+| `replay_step_projection` | 56,038.49 projections/sec native baseline | minimum 30,493.56 projections/sec across runs `27101213584`/`27111487150`/`27114668009` | 25,000 projections/sec |
+| `replay_throughput` | 5,425.07 replays/sec native baseline | minimum 2,878.89 replays/sec across runs `27101213584`/`27111487150`/`27114668009` | 2,400 replays/sec |
+| `random_playout` | 100,000+ games/sec native target; 16,271.89 games/sec native baseline | minimum 5,938.52 games/sec across runs `27101213584`/`27111487150`/`27114668009` | 5,000 games/sec |
+| `level2_bot_decision` | 5,451.72 decisions/sec native baseline | minimum 1,370.21 decisions/sec across runs `27101213584`/`27111487150`/`27114668009` | 1,100 decisions/sec |
 
 ## Verification commands
 

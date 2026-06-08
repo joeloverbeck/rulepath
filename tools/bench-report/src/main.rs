@@ -615,18 +615,23 @@ mod tests {
         );
         let error = validate(&input).unwrap_err();
 
-        let random_playout_threshold = ThresholdSet::parse(THRESHOLDS)
+        let random_playout = ThresholdSet::parse(THRESHOLDS)
             .unwrap()
             .thresholds
             .into_iter()
             .find(|threshold| threshold.operation_name == "random_playout")
-            .expect("random_playout threshold present")
-            .threshold;
+            .expect("random_playout threshold present");
 
         assert!(error.contains("random_playout"));
         assert!(error.contains("current value: 1.00"));
-        assert!(error.contains(&format!("threshold: {random_playout_threshold:.2}")));
-        assert!(error.contains("accepted_adr"));
+        assert!(error.contains(&format!("threshold: {:.2}", random_playout.threshold)));
+        // The regression message surfaces the operation's rationale_class so a
+        // maintainer sees why the floor exists; derive the expected value from
+        // the committed thresholds (like the threshold above) rather than
+        // hardcoding it, so a legitimate recalibration of the class does not
+        // break this test. random_playout moved from `accepted_adr` to
+        // `conservative_ci_floor` under ADR 0005's variance-aware floors.
+        assert!(error.contains(&random_playout.rationale_class));
     }
 
     #[test]
