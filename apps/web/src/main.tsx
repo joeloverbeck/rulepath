@@ -16,6 +16,7 @@ import { ModeControls } from "./components/ModeControls";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
+import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
@@ -392,7 +393,15 @@ function App() {
             onChoice={playChoice}
           />
         ) : isSecretDraftView(view) ? (
-          <GenericGameSurface view={view} selectedGameName={selectedGame?.display_name ?? "Selected game"} />
+          <SecretDraftBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -409,7 +418,8 @@ function App() {
         isDirectionalFlipView(view) ||
         isDraughtsLiteView(view) ||
         isHighCardDuelView(view) ||
-        isTokenBazaarView(view) ? null : (
+        isTokenBazaarView(view) ||
+        isSecretDraftView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}

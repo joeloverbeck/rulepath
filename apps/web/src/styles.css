@@ -1884,6 +1884,11 @@ h2 {
   border-left: 5px solid #9a5f38;
 }
 
+.effect-entry.reveal-batch {
+  border-left-color: #2f6f9f;
+  background: #f3f8fb;
+}
+
 .effect-cursor {
   min-width: 2.2rem;
   color: #65766f;
@@ -1895,10 +1900,225 @@ h2 {
 .reduced-motion .counter-fill,
 .reduced-motion .effect-entry,
 .reduced-motion .three-cell,
-.reduced-motion .directional-disc,
-.reduced-motion .duel-card {
+  .reduced-motion .directional-disc,
+  .reduced-motion .duel-card,
+  .reduced-motion .secret-item,
+  .reduced-motion .secret-drafted-item {
   transition: none;
   animation: none;
+}
+
+.secret-draft-board {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #ccd9d4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.secret-draft-banner,
+.secret-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.secret-section-heading span {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.secret-section-heading strong {
+  color: #33433d;
+}
+
+.secret-draft-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.secret-draft-metrics > div,
+.secret-pending-seat {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d8e0dc;
+  border-radius: 6px;
+  background: #f9faf7;
+  padding: 10px 12px;
+}
+
+.secret-draft-metrics span,
+.secret-pending-seat span {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.secret-draft-metrics strong,
+.secret-pending-seat strong {
+  color: #27362f;
+}
+
+.secret-draft-table {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.75fr) minmax(260px, 1.8fr) minmax(150px, 0.75fr);
+  gap: 12px;
+}
+
+.secret-seat,
+.secret-pool,
+.secret-reveals,
+.secret-latest {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d8e0dc;
+  border-radius: 8px;
+  background: #fbfcfa;
+  padding: 12px;
+}
+
+.secret-seat.active {
+  border-color: #2f6f9f;
+  box-shadow: inset 0 0 0 2px rgba(47, 111, 159, 0.12);
+}
+
+.secret-pool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.secret-item {
+  min-height: 108px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  border: 1px solid #cad8d2;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 10px;
+  color: #27362f;
+  text-align: left;
+}
+
+.secret-item:not(:disabled):hover {
+  border-color: #2b8068;
+  transform: translateY(-1px);
+}
+
+.secret-item:disabled {
+  opacity: 0.58;
+}
+
+.secret-item span,
+.secret-drafted-item span {
+  width: fit-content;
+  border-radius: 999px;
+  background: #e8eef5;
+  padding: 3px 7px;
+  color: #314f72;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.secret-item.thread-ember span,
+.secret-drafted-item.thread-ember span {
+  background: #f8eadf;
+  color: #88451f;
+}
+
+.secret-item.thread-tide span,
+.secret-drafted-item.thread-tide span {
+  background: #e0f0f4;
+  color: #245d6c;
+}
+
+.secret-item.thread-grove span,
+.secret-drafted-item.thread-grove span {
+  background: #e5f2e6;
+  color: #2d6a3b;
+}
+
+.secret-drafted-list {
+  display: grid;
+  gap: 8px;
+}
+
+.secret-drafted-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #d8e0dc;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 8px 10px;
+}
+
+.secret-pending {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.secret-pending-seat.committed {
+  border-color: #2b8068;
+}
+
+.secret-pending-seat.waiting {
+  border-color: #d8c38b;
+}
+
+.secret-reveals ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.secret-reveals li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #d8e0dc;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 10px 12px;
+}
+
+.secret-reveals li.contested {
+  border-left: 5px solid #9a5f38;
+}
+
+.secret-latest {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.secret-draft-board.reveal:not(.reduced) .secret-drafted-item,
+.secret-draft-board.reveal:not(.reduced) .secret-reveals li:first-child {
+  animation: secret-reveal 460ms ease-out;
+}
+
+@keyframes secret-reveal {
+  from {
+    transform: translateY(6px);
+    opacity: 0.45;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes effect-pulse {
@@ -2002,7 +2222,8 @@ h2 {
   .directional-flip-banner,
   .draughts-lite-banner,
   .high-card-duel-banner,
-  .token-bazaar-banner {
+  .token-bazaar-banner,
+  .secret-draft-banner {
     align-items: start;
     flex-direction: column;
   }
@@ -2044,7 +2265,19 @@ h2 {
   .draughts-lite-controls,
   .token-bazaar-metrics,
   .token-bazaar-table,
-  .token-market-row {
+  .token-market-row,
+  .secret-draft-metrics,
+  .secret-draft-table,
+  .secret-pending {
+    grid-template-columns: 1fr;
+  }
+
+  .secret-pool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .secret-reveals li,
+  .secret-latest {
     grid-template-columns: 1fr;
   }
 

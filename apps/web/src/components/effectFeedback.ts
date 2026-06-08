@@ -171,6 +171,62 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: payload.winner ? `${payload.winner} won the round.` : "The round was drawn.",
         tone: "turn",
       };
+    case "commitment_placed":
+      return {
+        title: "Commitment placed",
+        detail: `${payload.seat} committed a hidden draft choice.`,
+        tone: "neutral",
+      };
+    case "own_commit_accepted":
+      return {
+        title: "Commitment accepted",
+        detail: "Your hidden draft choice was recorded.",
+        tone: "neutral",
+      };
+    case "pending_seats_changed":
+      return {
+        title: "Pending seats updated",
+        detail: `seat_0 ${payload.seat_0_committed ? "committed" : "waiting"}, seat_1 ${
+          payload.seat_1_committed ? "committed" : "waiting"
+        }.`,
+        tone: "turn",
+      };
+    case "reveal_batch_started":
+      return {
+        title: "Reveal batch",
+        detail: "Rust started the grouped reveal.",
+        tone: "movement",
+      };
+    case "choices_revealed":
+      return {
+        title: "Choices revealed",
+        detail: "Both hidden draft choices are now public.",
+        tone: "movement",
+      };
+    case "draft_resolved":
+      return {
+        title: "Draft resolved",
+        detail: "Rust awarded the revealed draft items.",
+        tone: "movement",
+      };
+    case "pool_changed":
+      return {
+        title: "Pool changed",
+        detail: `${payload.remaining_count} public items remain.`,
+        tone: "turn",
+      };
+    case "score_changed":
+      return {
+        title: "Score changed",
+        detail: "Secret Draft scores were updated by Rust.",
+        tone: "turn",
+      };
+    case "round_advanced":
+      return {
+        title: "Round advanced",
+        detail: `${payload.priority_seat} has conflict priority next round.`,
+        tone: "turn",
+      };
     case "resource_collected":
       return {
         title: "Resources collected",
@@ -220,10 +276,17 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "turn",
       };
     case "terminal":
+      if ("final_scores" in payload) {
+        return {
+          title: "Draft complete",
+          detail: terminalOutcome(payload.outcome, "draft"),
+          tone: "terminal",
+        };
+      }
       if ("outcome" in payload) {
         return {
           title: "Bazaar complete",
-          detail: terminalOutcome(payload.outcome),
+          detail: terminalOutcome(payload.outcome, "bazaar"),
           tone: "terminal",
         };
       }
@@ -269,12 +332,12 @@ function resourceCounts(value: unknown): string {
   return `amber ${counts.amber ?? 0}, jade ${counts.jade ?? 0}, iron ${counts.iron ?? 0}`;
 }
 
-function terminalOutcome(value: unknown): string {
+function terminalOutcome(value: unknown, noun: string): string {
   if (!value || typeof value !== "object") {
-    return "The bazaar ended.";
+    return `The ${noun} ended.`;
   }
   const outcome = value as { kind?: unknown; winner?: unknown };
-  return outcome.kind === "draw" ? "The bazaar ended in a draw." : `${String(outcome.winner ?? "A seat")} won the bazaar.`;
+  return outcome.kind === "draw" ? `The ${noun} ended in a draw.` : `${String(outcome.winner ?? "A seat")} won the ${noun}.`;
 }
 
 export function summarizeEffect(entry: EffectEntry): string {

@@ -1,6 +1,6 @@
 # GAT91SECDRACOM-015: SecretDraftBoard + shell integration + effect log + styles
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/SecretDraftBoard.tsx` (new); `apps/web/src/components/{ActionControls,EffectLog,effectFeedback}.{tsx,ts}` and `apps/web/src/styles.css` (modify). No Rust/engine change.
