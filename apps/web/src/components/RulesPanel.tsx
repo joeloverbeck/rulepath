@@ -35,6 +35,7 @@ export function RulesPanel({
   onFailed,
 }: RulesPanelProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const validGame = useMemo(
     () => (gameId && GAME_ID_RE.test(gameId) ? catalog.find((game) => game.game_id === gameId) ?? null : null),
@@ -81,6 +82,10 @@ export function RulesPanel({
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
+        return;
+      }
+      if (event.key === "Tab") {
+        trapFocus(event, panelRef.current);
       }
     };
     document.addEventListener("keydown", onKeyDown);
@@ -99,7 +104,7 @@ export function RulesPanel({
 
   return (
     <div className="rules-panel-backdrop" role="presentation">
-      <aside className="rules-panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <aside className="rules-panel" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panelRef}>
         <header className="rules-panel-header">
           <div>
             <p className="eyebrow">How to Play</p>
@@ -305,4 +310,26 @@ function splitTableRow(line: string): string[] {
     .replace(/\|$/, "")
     .split("|")
     .map((cell) => cell.trim());
+}
+
+function trapFocus(event: KeyboardEvent, panel: HTMLElement | null): void {
+  if (!panel) return;
+  const focusable = Array.from(
+    panel.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => !element.hasAttribute("disabled") && element.offsetParent !== null);
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+
+  if (event.shiftKey && active === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
 }

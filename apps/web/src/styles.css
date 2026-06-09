@@ -52,6 +52,11 @@ button.secondary {
   font-size: 0.9rem;
 }
 
+button.secondary:focus {
+  outline: 3px solid #b45f06;
+  outline-offset: 2px;
+}
+
 input,
 select {
   min-height: 42px;

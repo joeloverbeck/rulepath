@@ -1,6 +1,6 @@
 # RULDISSHASUR-007: E2E + accessibility + hidden-info no-leak smoke for the rules surface
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/rules-display.smoke.mjs` + `apps/web/package.json` smoke wiring; no Rust/engine/WASM behavior.
@@ -79,3 +79,21 @@ Chain `node e2e/rules-display.smoke.mjs` into the existing `smoke:e2e` script.
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 3. `smoke:e2e` is the correct full-pipeline boundary (it drives the built app end-to-end); `cargo test --workspace` remains green because no Rust changes (regression evidence, not a feature boundary).
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `apps/web/e2e/rules-display.smoke.mjs`, a Puppeteer smoke for rules discoverability, picker/setup/in-play access, dialog semantics, Escape close, focus containment/return, visible focus, section/content checks, console safety, and hidden-info no-leak checks.
+- Chained `node e2e/rules-display.smoke.mjs` into `apps/web/package.json` `smoke:e2e` without removing any existing smoke.
+- Tightened the rules panel focus trap and secondary rules-trigger focus style so the new a11y smoke has real behavior to verify.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/rules-display.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:e2e` passed, including the new rules smoke and all existing game smokes.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `git diff --check` passed.

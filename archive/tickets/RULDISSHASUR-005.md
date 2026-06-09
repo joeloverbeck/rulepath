@@ -118,3 +118,7 @@ Verification results:
 - `node scripts/check-player-rules.mjs` passed (`player-rules check passed — 9 catalog games validated`).
 - Safety grep found no `dangerouslySetInnerHTML`, `innerHTML`, raw `<script>`/`<iframe>`, `onerror`, view/action/effect/replay/bot API calls, storage writes, or `data-testid` usage in `RulesPanel.tsx`.
 - `git diff --check` passed.
+
+Outcome amended: 2026-06-09
+
+- Added modal focus containment to `RulesPanel.tsx` and an explicit visible focus style for secondary rules triggers while implementing RULDISSHASUR-007's accessibility smoke.
