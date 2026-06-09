@@ -8,7 +8,7 @@
 
 ## Problem
 
-`poker_lite` is the worked failing case: Rust computes `ShowdownStrength { pair_flag, private_rank_value }` and resolves the pool in `compare_showdown`, but `ShowdownView`/`TerminalView` expose only revealed cards and the winner — a player sees *who* won, not *whether* it was pair-vs-rank strength or the private-rank tiebreaker. This pilot adds a viewer-safe `ShowdownRationaleView` projecting the decisive cause, anchors the rationale house style the remaining retrofits (004–008) follow, and proves the yield no-reveal firewall. Source: `specs/victory-explanation-shared-surface.md` §9.9, §15.3, §8.
+`poker_lite` is the worked failing case: Rust computes `ShowdownStrength { pair_flag, private_rank_value }` and resolves the pool in `compare_showdown`, but `ShowdownView`/`TerminalView` expose only revealed cards and the winner — a player sees *who* won, not *whether* it was pair-vs-rank strength or the private-rank tiebreaker. This pilot adds a viewer-safe `ShowdownRationaleView` projecting the decisive cause, anchors the rationale house style the remaining retrofits (004–008) follow, and proves the yield no-reveal firewall. Source: `archive/specs/victory-explanation-shared-surface.md` §9.9, §15.3, §8.
 
 ## Assumption Reassessment (2026-06-09)
 

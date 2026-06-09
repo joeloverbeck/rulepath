@@ -8,7 +8,7 @@
 
 ## Problem
 
-Once the contract (001), checker (002), all nine games' rationales (003–008), the shared panel (009), the web wiring (010), and the browser smoke (011) have landed, the feature needs a single closeout: run the spec's exit-criteria command set, record acceptance evidence against each §14 criterion, and flip the `specs/README.md` index row from `Planned` to `Done`. This capstone introduces no production logic — it exercises the pipeline the earlier tickets composed. Source: `specs/victory-explanation-shared-surface.md` §14, §15.8.
+Once the contract (001), checker (002), all nine games' rationales (003–008), the shared panel (009), the web wiring (010), and the browser smoke (011) have landed, the feature needs a single closeout: run the spec's exit-criteria command set, record acceptance evidence against each §14 criterion, and flip the `specs/README.md` index row from `Planned` to `Done`. This capstone introduces no production logic — it exercises the pipeline the earlier tickets composed. Source: `archive/specs/victory-explanation-shared-surface.md` §14, §15.8.
 
 ## Assumption Reassessment (2026-06-09)
 
@@ -49,7 +49,7 @@ Update the `victory-explanation-shared-surface` row from `Planned` to `Done` (th
 
 - Any new production logic, component, script, or doc content (all owned by 001–011).
 - Modifying any upstream ticket's files — the capstone exercises them, it does not change them.
-- Editing the `specs/victory-explanation-shared-surface.md` spec body (route any spec defect to `/reassess-spec`).
+- Editing the spec body (route any spec defect to `/reassess-spec`).
 - Any Rust/engine/WASM change.
 
 ## Acceptance Criteria

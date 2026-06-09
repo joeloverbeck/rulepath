@@ -8,7 +8,7 @@
 
 ## Problem
 
-`draughts_lite` computes the decisive terminal reason (`OpponentNoPieces`/`OpponentNoLegalMove`) but only in effects — `TerminalView` exposes just `Win { winning_seat }`, so the UI cannot say *why* the win occurred. `high_card_duel` has the score and the revealed round history but `TerminalView` only distinguishes win/draw, with no final-score rationale — and as a hidden-information game it carries a no-leak obligation (the unrevealed deck tail must never appear). These two batch into one diff: each projects a rationale from data Rust already has, and `high_card_duel` anchors the hidden-info no-leak pattern. Source: `specs/victory-explanation-shared-surface.md` §9.5, §9.6.
+`draughts_lite` computes the decisive terminal reason (`OpponentNoPieces`/`OpponentNoLegalMove`) but only in effects — `TerminalView` exposes just `Win { winning_seat }`, so the UI cannot say *why* the win occurred. `high_card_duel` has the score and the revealed round history but `TerminalView` only distinguishes win/draw, with no final-score rationale — and as a hidden-information game it carries a no-leak obligation (the unrevealed deck tail must never appear). These two batch into one diff: each projects a rationale from data Rust already has, and `high_card_duel` anchors the hidden-info no-leak pattern. Source: `archive/specs/victory-explanation-shared-surface.md` §9.5, §9.6.
 
 ## Assumption Reassessment (2026-06-09)
 

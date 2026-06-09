@@ -8,7 +8,7 @@
 
 ## Problem
 
-The outcome-explanation contract (001) is inert without a fail-closed guard. Nothing prevents a catalog game from shipping web-exposed without an outcome rationale (docs, `client.ts` type, template keys). Add `scripts/check-outcome-explanations.mjs` — a deterministic, catalog-complete, string-based guard analogous to `scripts/check-player-rules.mjs` — and wire it into the gate-1 hygiene lane so omission fails CI. Source: `specs/victory-explanation-shared-surface.md` §12.1, §15.2.
+The outcome-explanation contract (001) is inert without a fail-closed guard. Nothing prevents a catalog game from shipping web-exposed without an outcome rationale (docs, `client.ts` type, template keys). Add `scripts/check-outcome-explanations.mjs` — a deterministic, catalog-complete, string-based guard analogous to `scripts/check-player-rules.mjs` — and wire it into the gate-1 hygiene lane so omission fails CI. Source: `archive/specs/victory-explanation-shared-surface.md` §12.1, §15.2.
 
 ## Assumption Reassessment (2026-06-09)
 

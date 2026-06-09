@@ -8,7 +8,7 @@
 
 ## Problem
 
-`secret_draft` resolves ties through a five-rung ladder (total score → complete sets → highest single drafted value → distinct represented threads → fewer priority-won contested items → draw), and Rust already computes a `TieBreakSummary`, but `TerminalView` exposes only winner/draw — so the UI cannot say which rung decided the draft. As a commitment/reveal hidden-information game it also carries a no-leak obligation: nothing pre-reveal may surface early. This is the deepest ladder and the second hidden-info game, so it gets its own reviewable diff following the pilot (003). Source: `specs/victory-explanation-shared-surface.md` §9.8.
+`secret_draft` resolves ties through a five-rung ladder (total score → complete sets → highest single drafted value → distinct represented threads → fewer priority-won contested items → draw), and Rust already computes a `TieBreakSummary`, but `TerminalView` exposes only winner/draw — so the UI cannot say which rung decided the draft. As a commitment/reveal hidden-information game it also carries a no-leak obligation: nothing pre-reveal may surface early. This is the deepest ladder and the second hidden-info game, so it gets its own reviewable diff following the pilot (003). Source: `archive/specs/victory-explanation-shared-surface.md` §9.8.
 
 ## Assumption Reassessment (2026-06-09)
 

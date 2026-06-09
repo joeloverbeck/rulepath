@@ -8,7 +8,7 @@
 
 ## Problem
 
-Rulepath has no contract requiring a terminal outcome explanation. Each board owns an ad-hoc terminal status; there is no doctrine making "explain why this match ended" a mandatory, catalog-complete, viewer-safe official-game obligation. Before any Rust rationale (003–008), shared panel (009), or CI guard (002) is built, the obligation must be made permanent: amend `docs/UI-INTERACTION.md` and `docs/OFFICIAL-GAME-CONTRACT.md`, extend the three game templates, and register the spec in `specs/README.md` at `Planned`. Source: `specs/victory-explanation-shared-surface.md` §15.1, Appendix A (§16), Appendix B (§17), Appendix C (§18), §14.1.
+Rulepath has no contract requiring a terminal outcome explanation. Each board owns an ad-hoc terminal status; there is no doctrine making "explain why this match ended" a mandatory, catalog-complete, viewer-safe official-game obligation. Before any Rust rationale (003–008), shared panel (009), or CI guard (002) is built, the obligation must be made permanent: amend `docs/UI-INTERACTION.md` and `docs/OFFICIAL-GAME-CONTRACT.md`, extend the three game templates, and register the spec in `specs/README.md` at `Planned`. Source: `archive/specs/victory-explanation-shared-surface.md` §15.1, Appendix A (§16), Appendix B (§17), Appendix C (§18), §14.1.
 
 ## Assumption Reassessment (2026-06-09)
 
@@ -104,7 +104,7 @@ What changed:
 - Added the mandatory shared outcome/victory explanation contract to `docs/UI-INTERACTION.md`, including acceptance-check requirements for Rust-owned decisive-cause data, no coaching/counterfactuals, no hidden-info leaks, status-message accessibility, keyboard-accessible breakdowns, color independence, and reduced-motion preservation.
 - Added outcome-explanation documentation and web-exposure requirements to `docs/OFFICIAL-GAME-CONTRACT.md`.
 - Extended `templates/GAME-UI.md`, `templates/GAME-RULES.md`, and the existing `templates/GAME-HOW-TO-PLAY.md` scoring section with outcome-rationale, traceability, no-leak, and inert-template requirements.
-- Registered `specs/victory-explanation-shared-surface.md` in `specs/README.md` as a non-gate UI-infrastructure spec with `Planned` status.
+- Registered the victory-explanation shared-surface spec in `specs/README.md` as a non-gate UI-infrastructure spec with `Planned` status.
 
 Deviations from original plan:
 

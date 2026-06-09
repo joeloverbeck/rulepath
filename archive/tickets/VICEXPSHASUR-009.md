@@ -8,7 +8,7 @@
 
 ## Problem
 
-There is no shared surface to render the per-game outcome rationales (003–008). Each board owns an ad-hoc terminal status. Build one shared `OutcomeExplanationPanel` plus a static, keyed template-constants file, with the accessible progressive-disclosure presentation the contract (001) requires — independent of content authoring, so it parallelizes with the Rust retrofits. Source: `specs/victory-explanation-shared-surface.md` §7, §11, §15.5.
+There is no shared surface to render the per-game outcome rationales (003–008). Each board owns an ad-hoc terminal status. Build one shared `OutcomeExplanationPanel` plus a static, keyed template-constants file, with the accessible progressive-disclosure presentation the contract (001) requires — independent of content authoring, so it parallelizes with the Rust retrofits. Source: `archive/specs/victory-explanation-shared-surface.md` §7, §11, §15.5.
 
 ## Assumption Reassessment (2026-06-09)
 

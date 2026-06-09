@@ -8,7 +8,7 @@
 
 ## Problem
 
-The Rust rationales (003–008) and the shared panel (009) exist but are not connected: `client.ts` has no rationale types and the boards still own ad-hoc terminal status. Mirror each game's viewer-safe rationale payload into `client.ts` and route every board's terminal display to `OutcomeExplanationPanel`, demoting divergent ad-hoc terminal panels to board-native visualization. Source: `specs/victory-explanation-shared-surface.md` §10.1, §10.3, §15.6.
+The Rust rationales (003–008) and the shared panel (009) exist but are not connected: `client.ts` has no rationale types and the boards still own ad-hoc terminal status. Mirror each game's viewer-safe rationale payload into `client.ts` and route every board's terminal display to `OutcomeExplanationPanel`, demoting divergent ad-hoc terminal panels to board-native visualization. Source: `archive/specs/victory-explanation-shared-surface.md` §10.1, §10.3, §15.6.
 
 ## Assumption Reassessment (2026-06-09)
 

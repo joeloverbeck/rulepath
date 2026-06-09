@@ -5,7 +5,7 @@
 - **Target type:** New spec
 - **Roadmap stage:** Cross-game web UI infrastructure — not a mechanic-ladder gate
 - **Roadmap build gate:** None. This is a non-gate sibling of `rules-display-shared-surface`, to be completed before resuming the next gameplay gate.
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-09
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs (`docs/OFFICIAL-GAME-CONTRACT.md`, `docs/MECHANIC-ATLAS.md`, `docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`) → `docs/ROADMAP.md` → `docs/IP-POLICY.md` → `docs/AGENT-DISCIPLINE.md` → `docs/WASM-CLIENT-BOUNDARY.md` → accepted ADRs → this spec.
@@ -1056,6 +1056,33 @@ Do not include strategy advice, optimal-play coaching, counterfactual examples, 
 No drafted ADR is included because §13 determines that this spec does not trip a `FOUNDATIONS.md` §13 ADR trigger.
 
 This appendix is intentionally present so ticket authors do not mistake the absence of an ADR draft for an omission. If later implementation changes the design by introducing engine-core outcome vocabulary, shared scoring primitives, a DSL/YAML behavior layer, visibility semantic changes, or replay/hash semantic changes, the work must stop and a new ADR must be drafted from `docs/adr/ADR-TEMPLATE.md` before proceeding.
+
+---
+
+## Closeout
+
+Completed: 2026-06-09
+
+Implementation summary:
+
+- Added the permanent official-game outcome explanation contract across UI doctrine, official-game docs, game templates, and the spec index.
+- Added the fail-closed catalog guard and static presentation-template coverage check for all nine web-exposed games.
+- Added Rust-owned, viewer-safe terminal rationale projections for `poker_lite`, `three_marks`, `column_four`, `race_to_n`, `directional_flip`, `draughts_lite`, `high_card_duel`, `token_bazaar`, and `secret_draft`.
+- Added the shared `OutcomeExplanationPanel`, static keyed templates, WASM client types, and board integrations for all nine games.
+- Added and registered the browser outcome-explanation smoke, covering terminal rendering, disclosure interaction, reduced-motion stability, and no hidden-information leaks.
+- Closed the capstone by flipping `specs/README.md` to `Done` and repairing stale support-test expectations so existing replay/WASM fixture guards match the rationale-hash migrations.
+
+Acceptance evidence:
+
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game <game> --all` passed for `race_to_n`, `three_marks`, `column_four`, `directional_flip`, `draughts_lite`, `high_card_duel`, `token_bazaar`, `secret_draft`, and `poker_lite`.
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `node scripts/check-catalog-docs.mjs` passed.
+- `cargo fmt --all --check` passed.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node scripts/check-doc-links.mjs` passed after the `Done` index flip.
 
 ---
 

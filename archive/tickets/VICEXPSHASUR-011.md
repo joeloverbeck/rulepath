@@ -8,7 +8,7 @@
 
 ## Problem
 
-The wired outcome surface (010) needs a catalog-complete browser smoke proving, for every game, that the panel appears at terminal with the decisive cause and full standing, the breakdown is keyboard- and pointer-operable, reduced-motion preserves all facts, and — critically — no hidden information leaks through any channel. The new smoke must also be registered where the existing `rules-display` smoke is, or `scripts/check-catalog-docs.mjs` fails catalog-drift. This is a §Deliverable-doubles-as-capstone ticket (it ships new e2e infrastructure while exercising the gate end-to-end). Source: `specs/victory-explanation-shared-surface.md` §12.3, §15.7.
+The wired outcome surface (010) needs a catalog-complete browser smoke proving, for every game, that the panel appears at terminal with the decisive cause and full standing, the breakdown is keyboard- and pointer-operable, reduced-motion preserves all facts, and — critically — no hidden information leaks through any channel. The new smoke must also be registered where the existing `rules-display` smoke is, or `scripts/check-catalog-docs.mjs` fails catalog-drift. This is a §Deliverable-doubles-as-capstone ticket (it ships new e2e infrastructure while exercising the gate end-to-end). Source: `archive/specs/victory-explanation-shared-surface.md` §12.3, §15.7.
 
 ## Assumption Reassessment (2026-06-09)
 

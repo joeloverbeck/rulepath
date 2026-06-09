@@ -8,7 +8,7 @@
 
 ## Problem
 
-`race_to_n` exposes only `winner` on its `PublicView` with no terminal rationale; `directional_flip` already carries `final_score` in `TerminalView` but its terminal trigger (full board / double forced pass / no continuation) lives only in effects, so the web UI cannot explain *why* the match ended without reading the effect log. Both are "score/target reached the threshold" shapes and batch into one reviewable diff following the pilot (003). Source: `specs/victory-explanation-shared-surface.md` §9.1, §9.4.
+`race_to_n` exposes only `winner` on its `PublicView` with no terminal rationale; `directional_flip` already carries `final_score` in `TerminalView` but its terminal trigger (full board / double forced pass / no continuation) lives only in effects, so the web UI cannot explain *why* the match ended without reading the effect log. Both are "score/target reached the threshold" shapes and batch into one reviewable diff following the pilot (003). Source: `archive/specs/victory-explanation-shared-surface.md` §9.1, §9.4.
 
 ## Assumption Reassessment (2026-06-09)
 

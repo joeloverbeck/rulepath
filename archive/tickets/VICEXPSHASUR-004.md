@@ -8,7 +8,7 @@
 
 ## Problem
 
-`three_marks` and `column_four` already compute the decisive winning line, but it is not projected through the shared outcome rationale shape, so the web UI cannot explain "won by completing this line" consistently. These two line games share an almost identical retrofit (the decisive line already lives in `TerminalView`), so they batch into one reviewable diff that follows the pilot (003) house style. Source: `specs/victory-explanation-shared-surface.md` §9.2, §9.3.
+`three_marks` and `column_four` already compute the decisive winning line, but it is not projected through the shared outcome rationale shape, so the web UI cannot explain "won by completing this line" consistently. These two line games share an almost identical retrofit (the decisive line already lives in `TerminalView`), so they batch into one reviewable diff that follows the pilot (003) house style. Source: `archive/specs/victory-explanation-shared-surface.md` §9.2, §9.3.
 
 ## Assumption Reassessment (2026-06-09)
 

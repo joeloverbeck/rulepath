@@ -8,7 +8,7 @@
 
 ## Problem
 
-`token_bazaar` resolves ties through a three-rung ladder (higher score → more fulfilled contracts → higher total remaining inventory → draw), and the facts live in the terminal effect, but `TerminalView` exposes only winner/draw — so the UI cannot say *which rung* decided the match. This is the first multi-rung-ladder retrofit; it gets its own reviewable diff (the per-rung fixtures alone are substantial) following the pilot (003). Source: `specs/victory-explanation-shared-surface.md` §9.7.
+`token_bazaar` resolves ties through a three-rung ladder (higher score → more fulfilled contracts → higher total remaining inventory → draw), and the facts live in the terminal effect, but `TerminalView` exposes only winner/draw — so the UI cannot say *which rung* decided the match. This is the first multi-rung-ladder retrofit; it gets its own reviewable diff (the per-rung fixtures alone are substantial) following the pilot (003). Source: `archive/specs/victory-explanation-shared-surface.md` §9.7.
 
 ## Assumption Reassessment (2026-06-09)
 
