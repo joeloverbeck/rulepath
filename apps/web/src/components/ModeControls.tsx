@@ -4,8 +4,11 @@ import type { PublicView, SeatId } from "../wasm/client";
 type ModeControlsProps = {
   playMode: SetupPlayMode;
   view: PublicView | null;
+  gameId: string;
+  gameName: string;
   autoplayRunning: boolean;
   pending: boolean;
+  onRulesOpen: (gameId: string) => void;
   onBotStep: () => void;
   onAutoplayStart: () => void;
   onAutoplayPause: () => void;
@@ -14,8 +17,11 @@ type ModeControlsProps = {
 export function ModeControls({
   playMode,
   view,
+  gameId,
+  gameName,
   autoplayRunning,
   pending,
+  onRulesOpen,
   onBotStep,
   onAutoplayStart,
   onAutoplayPause,
@@ -35,6 +41,16 @@ export function ModeControls({
       </div>
 
       <div className="mode-actions">
+        <button
+          type="button"
+          className="secondary rules-trigger"
+          onClick={() => onRulesOpen(gameId)}
+          disabled={!gameId}
+          aria-label={`How to play ${gameName}`}
+        >
+          Rules
+        </button>
+
         {playMode === "human_vs_bot" ? (
           <button type="button" onClick={onBotStep} disabled={!canRunBot}>
             Run Bot Turn

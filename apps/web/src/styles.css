@@ -44,6 +44,14 @@ button:disabled {
   opacity: 0.7;
 }
 
+button.secondary {
+  min-height: 38px;
+  border-color: #bac8c1;
+  background: #f9faf7;
+  color: #284237;
+  font-size: 0.9rem;
+}
+
 input,
 select {
   min-height: 42px;
@@ -1598,6 +1606,11 @@ h2 {
   gap: 10px;
 }
 
+.game-card {
+  display: grid;
+  gap: 8px;
+}
+
 .game-option,
 .mode-option {
   min-height: 74px;
@@ -1605,6 +1618,14 @@ h2 {
   align-content: center;
   gap: 5px;
   text-align: left;
+}
+
+.game-option {
+  width: 100%;
+}
+
+.rules-trigger {
+  justify-self: stretch;
 }
 
 .game-option.selected,

@@ -1,6 +1,6 @@
 # RULDISSHASUR-006: Wire rules access points (picker, setup, in-play) + mount panel
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/{GamePicker,MatchSetup,ModeControls,AppShell}.tsx`; no Rust/engine/WASM behavior, and no legality moves to TypeScript (FOUNDATIONS §2).
@@ -89,3 +89,26 @@ Mount `<RulesPanel>` (gated on `rulesPanelOpen`) at shell level so it overlays f
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. The cross-surface open/close/focus/no-mutation assertions are RULDISSHASUR-007's boundary (it adds the e2e harness); `build` + `smoke:ui` are correct for the wiring diff.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added per-game `How to Play` buttons to the game picker without nesting buttons or selecting/starting matches.
+- Added a selected-game `How to Play / Rules` button to match setup.
+- Added an in-play `Rules` button to `ModeControls`.
+- Mounted `RulesPanel` through `AppShell` with presentation-only shell state and callbacks.
+- Added secondary button/card layout styles for the new controls.
+
+Deviations from original plan:
+
+- `main.tsx` was also touched to pass the new AppShell rules-panel props and the trigger callbacks into picker/setup/in-play controls.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- Grep/manual review confirmed the trigger handlers call `onRulesOpen(game_id)` / dispatch `rulesPanelOpened` only. Existing `newMatch`, action, viewer, replay, and bot calls remain in their pre-existing gameplay paths, not the rules trigger paths.
+- `git diff --check` passed.

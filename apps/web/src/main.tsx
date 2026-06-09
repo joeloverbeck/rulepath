@@ -271,6 +271,26 @@ function App() {
     dispatch({ type: "replayReset", step });
   }, [api, state.replay]);
 
+  const openRules = useCallback((gameId: string) => {
+    dispatch({ type: "rulesPanelOpened", gameId });
+  }, []);
+
+  const closeRules = useCallback(() => {
+    dispatch({ type: "rulesPanelClosed" });
+  }, []);
+
+  const markRulesLoading = useCallback((gameId: string) => {
+    dispatch({ type: "rulesPanelLoadStarted", gameId });
+  }, []);
+
+  const markRulesLoaded = useCallback((gameId: string, markdown: string) => {
+    dispatch({ type: "rulesPanelLoaded", gameId, markdown });
+  }, []);
+
+  const markRulesFailed = useCallback((gameId: string) => {
+    dispatch({ type: "rulesPanelFailed", gameId });
+  }, []);
+
   const submitStale = useCallback(() => {
     if (!api || !matchId || staleToken === null) {
       return;
@@ -317,13 +337,28 @@ function App() {
   }, [textState]);
 
   return (
-    <AppShell version={version} reducedMotion={state.reducedMotion}>
+    <AppShell
+      version={version}
+      reducedMotion={state.reducedMotion}
+      rulesPanel={{
+        open: state.rulesPanelOpen,
+        gameId: state.rulesPanelGameId,
+        catalog: state.catalog,
+        status: state.rulesPanelStatus,
+        markdown: state.rulesPanelMarkdown,
+        onClose: closeRules,
+        onLoadStarted: markRulesLoading,
+        onLoaded: markRulesLoaded,
+        onFailed: markRulesFailed,
+      }}
+    >
       {!matchId ? (
         <>
           <GamePicker
             games={state.catalog}
             selectedGameId={state.selectedGameId}
             onSelect={(gameId) => dispatch({ type: "gameSelected", gameId })}
+            onRulesOpen={openRules}
           />
           <MatchSetup
             selectedGame={selectedGame}
@@ -332,6 +367,7 @@ function App() {
             canStart={Boolean(api && state.selectedGameId)}
             onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
             onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
+            onRulesOpen={openRules}
             onStart={start}
           />
         </>
@@ -446,8 +482,11 @@ function App() {
         <ModeControls
           playMode={state.setup.playMode}
           view={view}
+          gameId={state.selectedGameId}
+          gameName={selectedGame?.display_name ?? "selected game"}
           autoplayRunning={state.autoplay.running}
           pending={state.pendingOperation !== null}
+          onRulesOpen={openRules}
           onBotStep={runBotStep}
           onAutoplayStart={() => dispatch({ type: "autoplayStarted" })}
           onAutoplayPause={() => dispatch({ type: "autoplayPaused" })}
