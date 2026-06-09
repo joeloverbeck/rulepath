@@ -1,6 +1,6 @@
 # RULDISSHASUR-004: Author HOW-TO-PLAY for the remaining eight games + assets + CI wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — eight authored Markdown player docs + their generated static assets + one CI workflow step; no Rust/engine, WASM, or behavior surface.
@@ -98,3 +98,30 @@ Add `node scripts/copy-player-rules.mjs` and `node scripts/check-player-rules.mj
 1. `node scripts/check-player-rules.mjs` (all nine green) and `node scripts/copy-player-rules.mjs`
 2. `node scripts/check-catalog-docs.mjs` (catalog/doc consistency unaffected)
 3. `npm --prefix apps/web run build` (build:rules runs before vite build; confirms assets regenerate cleanly)
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `HOW-TO-PLAY.md` player docs for `race_to_n`, `three_marks`, `column_four`, `directional_flip`, `draughts_lite`, `high_card_duel`, `token_bazaar`, and `secret_draft`.
+- Generated the matching static web assets under `apps/web/public/rules/` and the inert rules `manifest.json`.
+- Added the player-rules copy/check step to `.github/workflows/gate-1-game-smoke.yml`.
+
+Deviations from original plan:
+
+- The docs use ASCII punctuation in line with repository editing defaults.
+- The generated `manifest.json` was committed with the full-catalog copy because the copy script emits it on unfiltered runs.
+
+Verification results:
+
+- `npm --prefix apps/web run build:rules` passed (`copied player rules for 9 catalog games`).
+- `npm --prefix apps/web run check:rules` passed (`player-rules check passed — 9 catalog games validated`).
+- Per-game `diff games/<id>/docs/HOW-TO-PLAY.md apps/web/public/rules/<id>.md` exited 0 for all nine catalog games.
+- `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed — 9 games reflected in intro, root, and smoke surfaces`).
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `npm --prefix apps/web run build` passed, including `build:rules`, `build:wasm`, TypeScript, and Vite.
+- Perfect-information docs grep-confirmed `Not applicable - this is a perfect-information game`.
+- Hidden-info sections for `high_card_duel` and `secret_draft` manually reviewed: they describe only own/public perspective and reveal timing, with no opponent private value, hidden commitment value, deck order, or seed-derived value.
+- `git diff --check` passed.
