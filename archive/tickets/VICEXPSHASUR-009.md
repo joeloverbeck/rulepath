@@ -1,6 +1,6 @@
 # VICEXPSHASUR-009: Shared `OutcomeExplanationPanel` + static templates + accessible presentation
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/OutcomeExplanationPanel.tsx` and `apps/web/src/components/outcomeExplanationTemplates.ts`; no Rust/engine, WASM, or behavior surface (TypeScript renders Rust-supplied data only).
@@ -79,3 +79,33 @@ Typed static template constants keyed by the Rust-supplied `templateId`, each wi
 1. `npm --prefix apps/web run build`
 2. `grep -nE 'determineWinner|compareCards|findWinningLine|resolveTiebreak|scoreOutcome' apps/web/src/components/OutcomeExplanationPanel.tsx apps/web/src/components/outcomeExplanationTemplates.ts` (expect no matches)
 3. `npm --prefix apps/web run smoke:ui` is not yet a meaningful boundary (panel not board-wired until 010); the build + grep-proofs are the correct verification boundary for this presentation-infra diff.
+
+## Outcome
+
+Added the shared `OutcomeExplanationPanel` presentation surface and the static
+`outcomeExplanationTemplates` registry. The panel accepts Rust-supplied
+presentation data, interpolates only supplied safe values, renders a
+`role="status"` summary, final-standing rows, expandable breakdown sections
+with `aria-expanded`/`aria-controls`, and rule references. It does not compute a
+winner, score comparison, line, tiebreaker, or decisive cause.
+
+Added inert template constants for the current Rust-authored outcome keys across
+the catalog games retrofitted by VICEXPSHASUR-003 through VICEXPSHASUR-008. The
+templates are keyed copy with required params, allowed-game metadata, and rule
+reference labels only.
+
+During `npm --prefix apps/web run build`, `wasm-api` failed to compile because
+earlier Rust terminal views now carry additive `rationale` fields while legacy
+WASM summary helpers still matched the old enum shapes. Fixed those helpers with
+`..` patterns only, preserving the old summary JSON and deliberately not adding
+the 010 client mirror/wiring.
+
+Verification run:
+
+1. `npm --prefix apps/web run build` — passed.
+2. `cargo fmt --all --check` — passed.
+3. `git diff --check` — passed.
+4. `grep -nE 'determineWinner|compareCards|findWinningLine|resolveTiebreak|scoreOutcome' apps/web/src/components/OutcomeExplanationPanel.tsx apps/web/src/components/outcomeExplanationTemplates.ts` — no matches.
+5. `grep -n 'role="status"' apps/web/src/components/OutcomeExplanationPanel.tsx` — found the status region.
+6. `grep -nE 'aria-expanded|aria-controls' apps/web/src/components/OutcomeExplanationPanel.tsx` — found disclosure attributes.
+7. `env RULEPATH_OUTCOME_GAME_IDS=secret_draft node scripts/check-outcome-explanations.mjs` — expected failure only for out-of-scope 010 client mirror: `apps/web/src/wasm/client.ts` lacks an outcome rationale type or field mirror.

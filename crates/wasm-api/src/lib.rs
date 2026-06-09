@@ -4098,7 +4098,7 @@ fn column_terminal_kind(terminal: &column_four::TerminalView) -> &'static str {
     match terminal {
         column_four::TerminalView::NonTerminal => "non_terminal",
         column_four::TerminalView::Win { .. } => "win",
-        column_four::TerminalView::Draw => "draw",
+        column_four::TerminalView::Draw { .. } => "draw",
     }
 }
 
@@ -4360,7 +4360,7 @@ fn directional_terminal_score_json(terminal: &directional_flip::TerminalView) ->
     match terminal {
         directional_flip::TerminalView::NonTerminal => "null".to_owned(),
         directional_flip::TerminalView::Win { final_score, .. }
-        | directional_flip::TerminalView::Draw { final_score } => {
+        | directional_flip::TerminalView::Draw { final_score, .. } => {
             directional_score_view_json(final_score)
         }
     }
@@ -4837,11 +4837,11 @@ fn token_terminal_json(terminal: &token_bazaar::TerminalView) -> String {
         token_bazaar::TerminalView::NonTerminal => {
             "{\"terminal\":false,\"winner\":null,\"draw\":false}".to_owned()
         }
-        token_bazaar::TerminalView::Win { winning_seat } => format!(
+        token_bazaar::TerminalView::Win { winning_seat, .. } => format!(
             "{{\"terminal\":true,\"winner\":\"{}\",\"draw\":false}}",
             winning_seat.as_str()
         ),
-        token_bazaar::TerminalView::Draw => {
+        token_bazaar::TerminalView::Draw { .. } => {
             "{\"terminal\":true,\"winner\":null,\"draw\":true}".to_owned()
         }
     }
@@ -4952,6 +4952,7 @@ fn poker_terminal_json(terminal: &poker_lite::visibility::TerminalView) -> Strin
             winner,
             loser,
             shared_pool,
+            ..
         } => format!(
             "{{\"terminal\":true,\"kind\":\"yield_win\",\"winner\":\"{}\",\"loser\":\"{}\",\"draw\":false,\"shared_pool\":{}}}",
             winner.as_str(),
@@ -4961,12 +4962,15 @@ fn poker_terminal_json(terminal: &poker_lite::visibility::TerminalView) -> Strin
         poker_lite::visibility::TerminalView::ShowdownWin {
             winner,
             shared_pool,
+            ..
         } => format!(
             "{{\"terminal\":true,\"kind\":\"showdown_win\",\"winner\":\"{}\",\"draw\":false,\"shared_pool\":{}}}",
             winner.as_str(),
             shared_pool
         ),
-        poker_lite::visibility::TerminalView::Split { shared_pool, each } => format!(
+        poker_lite::visibility::TerminalView::Split {
+            shared_pool, each, ..
+        } => format!(
             "{{\"terminal\":true,\"kind\":\"split\",\"winner\":null,\"draw\":true,\"shared_pool\":{},\"each\":{}}}",
             shared_pool, each
         ),
@@ -5135,11 +5139,11 @@ fn secret_terminal_json(terminal: &secret_draft::visibility::TerminalView) -> St
         secret_draft::visibility::TerminalView::NonTerminal => {
             "{\"terminal\":false,\"winner\":null,\"draw\":false}".to_owned()
         }
-        secret_draft::visibility::TerminalView::Win { winning_seat } => format!(
+        secret_draft::visibility::TerminalView::Win { winning_seat, .. } => format!(
             "{{\"terminal\":true,\"winner\":\"{}\",\"draw\":false}}",
             winning_seat.as_str()
         ),
-        secret_draft::visibility::TerminalView::Draw => {
+        secret_draft::visibility::TerminalView::Draw { .. } => {
             "{\"terminal\":true,\"winner\":null,\"draw\":true}".to_owned()
         }
     }
@@ -5765,13 +5769,13 @@ fn high_card_terminal_kind(terminal: &high_card_duel::TerminalView) -> &'static 
     match terminal {
         high_card_duel::TerminalView::NonTerminal => "non_terminal",
         high_card_duel::TerminalView::Win { .. } => "win",
-        high_card_duel::TerminalView::Draw => "draw",
+        high_card_duel::TerminalView::Draw { .. } => "draw",
     }
 }
 
 fn high_card_terminal_winner(terminal: &high_card_duel::TerminalView) -> Option<HighCardDuelSeat> {
     match terminal {
-        high_card_duel::TerminalView::Win { winning_seat } => Some(*winning_seat),
+        high_card_duel::TerminalView::Win { winning_seat, .. } => Some(*winning_seat),
         _ => None,
     }
 }
@@ -5785,7 +5789,7 @@ fn draughts_terminal_kind(terminal: &draughts_lite::TerminalView) -> &'static st
 
 fn draughts_terminal_winner(terminal: &draughts_lite::TerminalView) -> Option<DraughtsLiteSeat> {
     match terminal {
-        draughts_lite::TerminalView::Win { winning_seat } => Some(*winning_seat),
+        draughts_lite::TerminalView::Win { winning_seat, .. } => Some(*winning_seat),
         _ => None,
     }
 }
