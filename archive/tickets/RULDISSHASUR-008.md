@@ -1,6 +1,6 @@
 # RULDISSHASUR-008: Closeout — acceptance evidence + specs/README Done-flip
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — verification-only capstone + `specs/README.md` status reconciliation; no production logic, no code surface.
@@ -75,3 +75,21 @@ Update the `rules-display-shared-surface.md` row from `Planned` to `Done` (the s
 1. `node scripts/check-catalog-docs.mjs && node scripts/copy-player-rules.mjs && node scripts/check-player-rules.mjs`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e && npm --prefix apps/web run smoke:ui`
 3. `cargo test --workspace` (regression evidence — expected green because the feature requires no Rust change)
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Flipped the `specs/README.md` row for `rules-display-shared-surface.md` from `Planned` to `Done` after rerunning the exit command set.
+- Updated `scripts/check-catalog-docs.mjs` so the cross-game `rules-display.smoke.mjs` is treated like other non-game smokes instead of being parsed as a stale catalog game smoke.
+
+Acceptance evidence:
+
+- Catalog-complete docs and permanent docs contract: `node scripts/check-catalog-docs.mjs` passed after the non-game smoke allowlist correction.
+- Static player-doc delivery and drift guard: `node scripts/copy-player-rules.mjs` copied 9 catalog games; `node scripts/check-player-rules.mjs` passed.
+- Web renders the player docs surface and keeps TypeScript presentation-only: `npm --prefix apps/web run build` passed.
+- Picker/setup/in-play reachability, a11y baseline, no hidden-info leak, deterministic static delivery, and no match mutation: `npm --prefix apps/web run smoke:e2e` passed, including `rules-display.smoke.mjs`.
+- Existing UI gate intact: `npm --prefix apps/web run smoke:ui` passed.
+- Existing Rust/WASM behavior gates intact: `cargo test --workspace` passed.
