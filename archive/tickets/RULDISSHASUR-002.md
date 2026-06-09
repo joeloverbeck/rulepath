@@ -1,6 +1,6 @@
 # RULDISSHASUR-002: Static-copy delivery + CI coverage/staleness guard scripts
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — Node build/check scripts under `scripts/` + `apps/web/package.json` script wiring; no Rust/engine, WASM, or behavior surface.
@@ -85,3 +85,29 @@ Add `"build:rules": "node ../../scripts/copy-player-rules.mjs"` and `"check:rule
 1. `node scripts/check-player-rules.mjs` (negative path until -004) and `node scripts/copy-player-rules.mjs`
 2. `node scripts/check-catalog-docs.mjs` (confirm the reused catalog-parse pattern stays consistent)
 3. The web build (`npm --prefix apps/web run build`) is the integration boundary once docs exist (RULDISSHASUR-004); at this ticket the narrower script-level run is the correct boundary because no docs are authored yet.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `scripts/copy-player-rules.mjs` to validate and copy each catalog `games/<id>/docs/HOW-TO-PLAY.md` into `apps/web/public/rules/<id>.md`, plus an inert generated `manifest.json`.
+- Added `scripts/check-player-rules.mjs` to parse the `wasm-api` catalog, require source docs and generated assets, validate required sections, block YAML/raw HTML/behavior-looking headings, compare literal `RULES.md` versions, and enforce hidden-information section expectations.
+- Added `apps/web` package scripts `build:rules` and `check:rules`, and wired `build` to run `build:rules` before WASM/TypeScript/Vite.
+
+Deviations from original plan:
+
+- The scripts support `RULEPATH_ROOT`, `RULEPATH_WASM_API`, `RULEPATH_GAMES_DIR`, and `RULEPATH_WEB_RULES_DIR` environment overrides. This keeps normal repo behavior unchanged and gives the ticket a deterministic fixture proof before real catalog docs exist.
+- No real generated assets were committed yet; catalog authoring and generated assets are owned by RULDISSHASUR-003/-004.
+
+Verification results:
+
+- `node --check scripts/copy-player-rules.mjs` passed.
+- `node --check scripts/check-player-rules.mjs` passed.
+- `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed — 9 games reflected in intro, root, and smoke surfaces`).
+- `node scripts/check-player-rules.mjs` failed as expected on the current repo, naming all nine missing `HOW-TO-PLAY.md` docs and generated assets.
+- `npm --prefix apps/web run build:rules` and `npm --prefix apps/web run check:rules` resolved and ran; both failed as expected on missing catalog docs/assets before RULDISSHASUR-003/-004.
+- Positive fixture: `env RULEPATH_ROOT=/tmp/rulepath-player-rules-ok node scripts/copy-player-rules.mjs` copied one catalog game, `env RULEPATH_ROOT=/tmp/rulepath-player-rules-ok node scripts/check-player-rules.mjs` passed, and `diff /tmp/rulepath-player-rules-ok/games/race_to_n/docs/HOW-TO-PLAY.md /tmp/rulepath-player-rules-ok/apps/web/public/rules/race_to_n.md` exited 0.
+- Negative fixture: `env RULEPATH_ROOT=/tmp/rulepath-player-rules-bad node scripts/check-player-rules.mjs` failed on YAML front matter, raw script tag, behavior-looking `Conditions` heading, and literal version drift.
+- `git diff --check` passed.
