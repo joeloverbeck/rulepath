@@ -29,7 +29,7 @@ Last updated: 2026-06-09
 | Public display is neutral | complete | Public UI/docs use Crest Ledger, crest, marker, pledge, shared pool, hold, press, lift, match, and yield |
 | Boundary checks pass | complete | `bash scripts/boundary-check.sh` |
 | Catalog docs reconciled | complete | `node scripts/check-catalog-docs.mjs` |
-| Primitive-pressure closeout tracked | pending in gate | GAT10POKLITBET-018 owns `PRIMITIVE-PRESSURE-LEDGER.md` and atlas closeout |
+| Primitive-pressure closeout complete | complete | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md), GAT10POKLITBET-018 archive |
 
 ## IP And Trade-Dress Review
 
@@ -73,13 +73,11 @@ Last updated: 2026-06-09
 Decision: release with explicit constraints.
 
 Crest Ledger is public-preview safe for the Gate 10 betting/showdown proof after
-the documented native, WASM, web, replay, no-leak, benchmark, catalog, and
-boundary checks. The explicit constraint is that Gate 10 closeout is not final
-until GAT10POKLITBET-018 lands the primitive-pressure ledger, atlas/progress
-updates, spec index truthing, and spec archive.
+the documented native, WASM, web, replay, no-leak, benchmark, catalog, boundary,
+primitive-pressure, atlas, progress, spec-index, and spec-archive checks.
 
 ## Release Blockers
 
 No known Crest Ledger public-surface blocker remains in the mechanics/UI/public
-release checklist scope. Gate closeout bookkeeping remains owned by
-GAT10POKLITBET-018.
+release checklist scope. The `poker_lite` betting/showdown gate closeout
+bookkeeping is complete; `plain_tricks` remains the broader Gate 10 successor.
