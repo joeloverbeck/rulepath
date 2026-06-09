@@ -1,6 +1,6 @@
 # GAT101PLATRI-005: Deterministic setup and internal state
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/plain_tricks/src/setup.rs`, `games/plain_tricks/src/state.rs`. No `engine-core`/`game-stdlib` change (unless GAT101PLATRI-002 decided *promote*, in which case setup consumes the GAT101PLATRI-003 helper).
@@ -77,3 +77,25 @@ Define internal state: phase, seats, per-round shuffled deck, private hands, hid
 1. `cargo test -p plain_tricks`
 2. `cargo test -p plain_tricks && bash scripts/boundary-check.sh`
 3. Per-crate scope is correct: setup/state determinism is fully provable within the crate; cross-tool replay belongs to GAT101PLATRI-011.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks/src/setup.rs` with deterministic local shuffle, unbiased bounded index helper, initial match setup, round-deal helper, 6+6 hand deal, six-card internal tail, and round leader rotation (`seat_0` then `seat_1`).
+- Added `games/plain_tricks/src/state.rs` with phase, seats, private hands, hidden tail, current trick, trick counts, completed-trick history, terminal outcome, effect-history placeholder, freshness token, and stable internal summary.
+- Exported setup/state types from `games/plain_tricks/src/lib.rs`.
+- Kept hand/tail accessors crate-internal, with no public view/effect/export projection added.
+
+Deviations from original plan:
+
+- None. GAT101PLATRI-002 recorded defer/reject extraction, so setup uses a local shuffle and does not consume a `game-stdlib` helper.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p plain_tricks` passed: 16 tests passed.
+- `bash scripts/boundary-check.sh` passed.
+- Determinism was verified by identical fixed-seed internal summaries and repeated two-round deals from the same continuing RNG stream.
