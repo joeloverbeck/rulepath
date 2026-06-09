@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "trace_id": "poker-lite-invalid-stale-diagnostic",
+  "fixture_kind": "diagnostic",
+  "purpose": "invalid_stale_diagnostic",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 11,
+  "variant": "poker_lite_standard",
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["hold"], "freshness_token": "99", "expected_diagnostic_code": "stale_action" }
+  ],
+  "expected_state_hashes": { "final": 14077251472633032096 },
+  "expected_effect_hashes": { "final": 5473565290740530796 },
+  "expected_action_tree_hashes": { "final": 10325513076015844871 },
+  "expected_public_view_hashes": { "observer": 3445012714103448425, "seat_0": 3174073341448825551, "seat_1": 3727773482667027797 },
+  "expected_private_view_hashes": { "seat_0": 3174073341448825551, "seat_1": 3727773482667027797 },
+  "expected_replay_hashes": { "final": 4992004635108716872 },
+  "expected_diagnostic_hashes": { "final": 2252446166633993577 },
+  "expected_public_export_hashes": { "final": 13160033336590689794 },
+  "expected_diagnostics": { "code": "stale_action" },
+  "expected_terminal_state": { "terminal": false, "winner": null, "split": false }
+}

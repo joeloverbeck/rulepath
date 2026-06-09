@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "trace_id": "poker-lite-no-leak-public-observer",
+  "fixture_kind": "commands",
+  "purpose": "no_leak_public_observer",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 0,
+  "variant": "poker_lite_standard",
+  "commands": [],
+  "expected_state_hashes": { "final": 4313669887644243978 },
+  "expected_effect_hashes": { "final": 10796046374401379994 },
+  "expected_action_tree_hashes": { "final": 10325513076015844871 },
+  "expected_public_view_hashes": { "observer": 3445012714103448425, "seat_0": 9827854291565491214, "seat_1": 17628261343069804455 },
+  "expected_private_view_hashes": { "seat_0": 9827854291565491214, "seat_1": 17628261343069804455 },
+  "expected_replay_hashes": { "final": 8562127327544766604 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 13160033336590689794 },
+  "expected_diagnostics": null,
+  "expected_terminal_state": { "terminal": false, "winner": null, "split": false }
+}

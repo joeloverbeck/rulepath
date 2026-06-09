@@ -1,6 +1,6 @@
 # GAT10POKLITBET-009: Replay support, serialization tests, and golden traces
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/poker_lite/src/replay_support.rs`, `games/poker_lite/tests/replay.rs`, `games/poker_lite/tests/serialization.rs`, and the `games/poker_lite/tests/golden_traces/*.json` set. Consumes `engine-core` replay/checkpoint/hash + ADR 0004 export taxonomy. No kernel change.
@@ -99,3 +99,24 @@ Author the trace set (all from spec §4 **except** `bot-action` and `wasm-export
 1. `cargo test -p poker_lite --test replay`
 2. `cargo test -p poker_lite --test serialization`
 3. `cargo run -p replay-check -- --game poker_lite` — full golden-trace scan (passes once GAT10POKLITBET-012 registers the game in `replay-check`; `--all` is the default mode).
+
+## Outcome
+
+Completed on 2026-06-09.
+
+Changed:
+
+- Added crate-local replay support for internal traces, deterministic hash surfaces, viewer-scoped public export/import, and strict stable JSON round trips.
+- Added replay and serialization integration tests.
+- Added the 15 GAT10POKLITBET-009 golden traces, excluding `bot-action` and `wasm-exported` as reserved for later tickets.
+
+Deviations:
+
+- `cargo run -p replay-check -- --game poker_lite` remains deferred to GAT10POKLITBET-012, which owns registering `poker_lite` in the tool.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p poker_lite --test replay`
+- `cargo test -p poker_lite --test serialization`
+- `cargo test -p poker_lite`

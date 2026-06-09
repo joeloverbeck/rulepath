@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "trace_id": "poker-lite-yield-terminal-no-showdown",
+  "fixture_kind": "commands",
+  "purpose": "yield_terminal_no_showdown",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 11,
+  "variant": "poker_lite_standard",
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["press"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["yield"], "freshness_token": "1", "expect": "applied" }
+  ],
+  "expected_state_hashes": { "final": 15069599790421752357 },
+  "expected_effect_hashes": { "final": 11882193148104371905 },
+  "expected_action_tree_hashes": { "final": 14477608510301602203 },
+  "expected_public_view_hashes": { "observer": 9185967843406462894, "seat_0": 6375881959784079972, "seat_1": 12294774891735311646 },
+  "expected_private_view_hashes": { "seat_0": 6375881959784079972, "seat_1": 12294774891735311646 },
+  "expected_replay_hashes": { "final": 6654560411921346867 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 9886782802997570833 },
+  "expected_diagnostics": null,
+  "expected_terminal_state": { "terminal": true, "winner": "seat_0", "split": false }
+}

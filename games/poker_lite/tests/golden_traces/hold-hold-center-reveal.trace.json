@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "trace_id": "poker-lite-hold-hold-center-reveal",
+  "fixture_kind": "commands",
+  "purpose": "hold_hold_center_reveal",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 11,
+  "variant": "poker_lite_standard",
+  "commands": [
+    { "index": 0, "actor_seat": "seat_0", "action_path": ["hold"], "freshness_token": "0", "expect": "applied" },
+    { "index": 1, "actor_seat": "seat_1", "action_path": ["hold"], "freshness_token": "1", "expect": "applied" }
+  ],
+  "expected_state_hashes": { "final": 15503041245014500329 },
+  "expected_effect_hashes": { "final": 3446492766172310589 },
+  "expected_action_tree_hashes": { "final": 4539332161708768879 },
+  "expected_public_view_hashes": { "observer": 14081724143951456719, "seat_0": 2859523477683544156, "seat_1": 15569445959650556286 },
+  "expected_private_view_hashes": { "seat_0": 2859523477683544156, "seat_1": 15569445959650556286 },
+  "expected_replay_hashes": { "final": 8340941418893558357 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 769230611372914207 },
+  "expected_diagnostics": null,
+  "expected_terminal_state": { "terminal": false, "winner": null, "split": false }
+}
