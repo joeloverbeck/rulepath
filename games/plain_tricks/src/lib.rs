@@ -1,10 +1,15 @@
 //! `plain_tricks` official-game crate skeleton for Plain Tricks.
 
+pub mod actions;
 pub mod ids;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+pub use actions::{
+    actor_seat, legal_action_tree, legal_cards, parse_action_path, validate_command,
+    PlainTricksAction, ValidatedAction,
+};
 pub use ids::{
     canonical_deck, PlainTricksSeat, TrickCardId, TrickRank, TrickSuit, ACTION_PLAY, GAME_ID,
     RULES_VERSION_LABEL, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE, STANDARD_MAX_PLAYS,

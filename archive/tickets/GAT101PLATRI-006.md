@@ -1,6 +1,6 @@
 # GAT101PLATRI-006: Legal action tree, validation, and diagnostics
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/plain_tricks/src/actions.rs`. No `engine-core`/`game-stdlib` change.
@@ -72,3 +72,26 @@ Implement the `play` action family: enumerate legal leaves per the A3 legality t
 1. `cargo test -p plain_tricks --test rules`
 2. `cargo test -p plain_tricks`
 3. The per-crate rule test is the correct boundary; cross-surface no-leak/replay proofs are exercised in GAT101PLATRI-009/011.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks/src/actions.rs` with a Rust-owned nested `play/<card-id>` action tree.
+- Implemented legal-card generation for leader unconstrained play, forced follow-suit, and void free-discard.
+- Implemented actor-seat mapping, path parsing, and `validate_command` with stale, wrong-seat, terminal, malformed, not-in-hand, must-follow-suit, and unavailable diagnostics.
+- Kept non-actor viewers on an empty action tree and included only public trick metadata plus the actor's own playable card metadata in actor trees.
+- Exported action helpers and action types from `games/plain_tricks/src/lib.rs`.
+
+Deviations from original plan:
+
+- Tests live in the crate unit-test modules rather than `games/plain_tricks/tests/rules.rs`; this keeps the current pre-rules skeleton narrow. The later rules/golden-trace tickets can add integration tests when transitions exist.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p plain_tricks` passed: 23 tests passed.
+- `bash scripts/boundary-check.sh` passed.
+- Diagnostic tests verified that the must-follow message does not name other held cards and that not-in-hand diagnostics only echo the submitted card.
