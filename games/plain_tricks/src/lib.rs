@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
@@ -16,6 +17,7 @@ pub use ids::{
     STANDARD_RANK_COUNT, STANDARD_ROUND_COUNT, STANDARD_SEAT_COUNT, STANDARD_SUIT_COUNT,
     STANDARD_TAIL_SIZE, STANDARD_TOTAL_TRICKS, STANDARD_TRICKS_PER_ROUND, VARIANT_ID,
 };
+pub use rules::{apply_action, trick_winner};
 pub use setup::{round_leader, setup_match, shuffle_deck, SetupOptions};
 pub use state::{
     CompletedTrick, CurrentTrick, Phase, PlainTricksState, TerminalOutcome, TrickCounts, TrickPlay,

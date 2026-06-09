@@ -297,6 +297,7 @@ mod tests {
             PlainTricksSeat::Seat0,
             hands,
             Vec::new(),
+            engine_core::SeededRng::from_seed(Seed(0)),
         );
         state.active_seat = Some(active);
         state.current_leader = PlainTricksSeat::Seat0;

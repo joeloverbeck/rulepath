@@ -1,6 +1,6 @@
 # GAT101PLATRI-007: Rules transition engine
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/plain_tricks/src/rules.rs`. No `engine-core`/`game-stdlib` change.
@@ -72,3 +72,25 @@ Implement `apply_action`: card-play transition, led-suit assignment, trick resol
 1. `cargo test -p plain_tricks --test rules`
 2. `cargo test -p plain_tricks && bash scripts/boundary-check.sh`
 3. Per-crate rule scope is correct; deterministic cross-tool replay is proven in GAT101PLATRI-011.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks/src/rules.rs` with Rust-owned `apply_action`, trick resolution, trick-winner-led turn order, round close, second-round deal rotation, terminal win, and Split resolution.
+- Added `trick_winner` where the highest led-suit rank wins and off-suit cards never win.
+- Stored the continuing internal `SeededRng` in `PlainTricksState` so round 2 is dealt from the same deterministic RNG stream after round 1 closes.
+- Updated setup/state/action test construction for the internal RNG state and exported rules helpers from `lib.rs`.
+
+Deviations from original plan:
+
+- Tests are currently crate unit tests rather than `games/plain_tricks/tests/rules.rs`; this keeps the pre-effects/pre-replay surface compact. Integration/golden trace coverage remains scheduled for later tickets.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p plain_tricks` passed: 28 tests passed.
+- `bash scripts/boundary-check.sh` passed.
+- A full match driver test terminated in exactly 24 validated plays, with total trick points summing to 12.

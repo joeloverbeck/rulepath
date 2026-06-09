@@ -1,4 +1,4 @@
-use engine_core::{FreshnessToken, SeatId};
+use engine_core::{FreshnessToken, SeatId, SeededRng};
 
 use crate::{
     ids::{PlainTricksSeat, TrickCardId, TrickSuit},
@@ -134,13 +134,14 @@ pub struct PlainTricksState {
     pub trick_index: u8,
     pub round_leader: PlainTricksSeat,
     pub current_leader: PlainTricksSeat,
-    hands: [Vec<TrickCardId>; 2],
-    tail: Vec<TrickCardId>,
+    pub(crate) hands: [Vec<TrickCardId>; 2],
+    pub(crate) tail: Vec<TrickCardId>,
+    pub(crate) rng: SeededRng,
     pub current_trick: CurrentTrick,
     pub round_trick_counts: TrickCounts,
     pub total_trick_counts: TrickCounts,
     pub completed_tricks: Vec<CompletedTrick>,
-    effect_history: Vec<String>,
+    pub(crate) effect_history: Vec<String>,
     pub terminal_outcome: Option<TerminalOutcome>,
     pub freshness_token: FreshnessToken,
 }
@@ -200,6 +201,7 @@ impl PlainTricksState {
         leader: PlainTricksSeat,
         hands: [Vec<TrickCardId>; 2],
         tail: Vec<TrickCardId>,
+        rng: SeededRng,
     ) -> Self {
         Self {
             variant,
@@ -215,6 +217,7 @@ impl PlainTricksState {
             current_leader: leader,
             hands,
             tail,
+            rng,
             current_trick: CurrentTrick::default(),
             round_trick_counts: TrickCounts::default(),
             total_trick_counts: TrickCounts::default(),
@@ -312,6 +315,7 @@ mod tests {
                 vec![TrickCardId::Ember3],
             ],
             vec![TrickCardId::Gale6],
+            SeededRng::from_seed(engine_core::Seed(0)),
         );
 
         assert_eq!(

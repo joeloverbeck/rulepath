@@ -48,6 +48,7 @@ pub fn setup_match(
         deal.leader,
         deal.hands,
         deal.tail,
+        rng,
     ))
 }
 
