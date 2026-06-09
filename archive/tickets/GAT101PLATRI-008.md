@@ -1,6 +1,6 @@
 # GAT101PLATRI-008: Viewer-scoped semantic effects
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/plain_tricks/src/effects.rs`. No `engine-core`/`game-stdlib` change.
@@ -73,3 +73,25 @@ Implement the typed semantic effects from A7 with their visibility envelopes: `h
 1. `cargo test -p plain_tricks --test visibility`
 2. `cargo test -p plain_tricks`
 3. Per-crate scope is correct; cross-surface (DOM/export) no-leak proofs land in GAT101PLATRI-009/011/018.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks/src/effects.rs` with typed semantic effects for deal start/completion, private hand deal, card play, trick resolution, round scoring, deal rotation, match resolution, terminal outcome, and public bot action choice.
+- Scoped `HandDealt` to `PrivateToSeat`; public setup effects carry counts only.
+- Wired `games/plain_tricks/src/rules.rs` so `apply_action` returns semantic effect envelopes for card play, trick resolution, round scoring, deal rotation, private round-2 hands, match resolution, and terminal.
+- Exported effect helpers and `PlainTricksEffect` from `lib.rs`.
+
+Deviations from original plan:
+
+- Effect-scope tests are crate unit tests rather than `games/plain_tricks/tests/visibility.rs`; the exhaustive no-leak integration suite remains scheduled for GAT101PLATRI-009.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p plain_tricks` passed: 32 tests passed.
+- `bash scripts/boundary-check.sh` passed.
+- Unit tests verified private deal scoping, public setup count-only payloads, played-card public effects, decisive terminal cause, and bot public effect shape.

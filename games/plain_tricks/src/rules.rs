@@ -1,7 +1,12 @@
-use engine_core::Diagnostic;
+use engine_core::{Diagnostic, EffectEnvelope};
 
 use crate::{
     actions::{self, ValidatedAction},
+    effects::{
+        card_played_effect, deal_completed_effect, deal_rotated_effect, hand_dealt_effect,
+        match_resolved_effect, round_scored_effect, terminal_effect, trick_resolved_effect,
+        PlainTricksEffect,
+    },
     ids::{PlainTricksSeat, STANDARD_TRICKS_PER_ROUND},
     setup::{deal_round, round_leader},
     state::{
@@ -13,8 +18,9 @@ use crate::{
 pub fn apply_action(
     state: &mut PlainTricksState,
     action: ValidatedAction,
-) -> Result<(), Diagnostic> {
+) -> Result<Vec<EffectEnvelope<PlainTricksEffect>>, Diagnostic> {
     ensure_action_still_legal(state, action)?;
+    let mut effects = Vec::new();
 
     let actor_index = action.actor.index();
     let card_index = state.hands[actor_index]
@@ -30,15 +36,29 @@ pub fn apply_action(
     if state.current_trick.plays.is_empty() {
         state.current_trick.led_suit = Some(card.suit());
         state.current_trick.plays.push(play);
+        effects.push(card_played_effect(
+            action.actor,
+            card,
+            state.round_index,
+            state.trick_index,
+            true,
+        ));
         state.active_seat = Some(action.actor.other());
         state.freshness_token = state.freshness_token.next();
-        return Ok(());
+        return Ok(effects);
     }
 
     state.current_trick.plays.push(play);
-    resolve_current_trick(state)?;
+    effects.push(card_played_effect(
+        action.actor,
+        card,
+        state.round_index,
+        state.trick_index,
+        false,
+    ));
+    resolve_current_trick(state, &mut effects)?;
     state.freshness_token = state.freshness_token.next();
-    Ok(())
+    Ok(effects)
 }
 
 pub fn trick_winner(leader_play: TrickPlay, follower_play: TrickPlay) -> PlainTricksSeat {
@@ -73,7 +93,10 @@ fn ensure_action_still_legal(
     Ok(())
 }
 
-fn resolve_current_trick(state: &mut PlainTricksState) -> Result<(), Diagnostic> {
+fn resolve_current_trick(
+    state: &mut PlainTricksState,
+    effects: &mut Vec<EffectEnvelope<PlainTricksEffect>>,
+) -> Result<(), Diagnostic> {
     let plays: [TrickPlay; 2] = state
         .current_trick
         .plays
@@ -82,17 +105,19 @@ fn resolve_current_trick(state: &mut PlainTricksState) -> Result<(), Diagnostic>
         .map_err(|_| malformed_trick_state_diagnostic())?;
     let winner = trick_winner(plays[0], plays[1]);
     state.round_trick_counts.increment(winner);
-    state.completed_tricks.push(CompletedTrick {
+    let completed = CompletedTrick {
         round_index: state.round_index,
         trick_index: state.trick_index,
         leader: plays[0].seat,
         plays,
         winner,
         trick_counts_after: state.round_trick_counts,
-    });
+    };
+    state.completed_tricks.push(completed);
+    effects.push(trick_resolved_effect(completed));
 
     if state.trick_index + 1 >= STANDARD_TRICKS_PER_ROUND {
-        close_round(state)?;
+        close_round(state, effects)?;
     } else {
         state.trick_index += 1;
         state.phase = Phase::Playing {
@@ -107,7 +132,10 @@ fn resolve_current_trick(state: &mut PlainTricksState) -> Result<(), Diagnostic>
     Ok(())
 }
 
-fn close_round(state: &mut PlainTricksState) -> Result<(), Diagnostic> {
+fn close_round(
+    state: &mut PlainTricksState,
+    effects: &mut Vec<EffectEnvelope<PlainTricksEffect>>,
+) -> Result<(), Diagnostic> {
     state.total_trick_counts.seat_0 = state
         .total_trick_counts
         .seat_0
@@ -117,7 +145,15 @@ fn close_round(state: &mut PlainTricksState) -> Result<(), Diagnostic> {
         .seat_1
         .saturating_add(state.round_trick_counts.seat_1);
 
-    if state.round_index == 0 {
+    let closed_round_index = state.round_index;
+    let closed_round_counts = state.round_trick_counts;
+    effects.push(round_scored_effect(
+        closed_round_index,
+        closed_round_counts,
+        state.total_trick_counts,
+    ));
+
+    if closed_round_index == 0 {
         let deal = deal_round(&mut state.rng, 1)?;
         state.round_index = 1;
         state.trick_index = 0;
@@ -130,6 +166,23 @@ fn close_round(state: &mut PlainTricksState) -> Result<(), Diagnostic> {
         state.active_seat = Some(deal.leader);
         state.hands = deal.hands;
         state.tail = deal.tail;
+        effects.push(deal_rotated_effect(1, state.round_leader));
+        effects.push(hand_dealt_effect(
+            PlainTricksSeat::Seat0,
+            state.seats[PlainTricksSeat::Seat0.index()].clone(),
+            state.hands[PlainTricksSeat::Seat0.index()].clone(),
+        ));
+        effects.push(hand_dealt_effect(
+            PlainTricksSeat::Seat1,
+            state.seats[PlainTricksSeat::Seat1.index()].clone(),
+            state.hands[PlainTricksSeat::Seat1.index()].clone(),
+        ));
+        effects.push(deal_completed_effect(
+            state.round_index,
+            state.hands[PlainTricksSeat::Seat0.index()].len() as u8,
+            state.tail.len() as u8,
+            state.round_leader,
+        ));
         state.current_trick = CurrentTrick::default();
         state.round_trick_counts = TrickCounts::default();
         return Ok(());
@@ -138,7 +191,10 @@ fn close_round(state: &mut PlainTricksState) -> Result<(), Diagnostic> {
     state.phase = Phase::Terminal;
     state.active_seat = None;
     state.current_trick = CurrentTrick::default();
-    state.terminal_outcome = Some(resolve_terminal(state.total_trick_counts));
+    let outcome = resolve_terminal(state.total_trick_counts);
+    effects.push(match_resolved_effect(state.total_trick_counts));
+    effects.push(terminal_effect(outcome));
+    state.terminal_outcome = Some(outcome);
     Ok(())
 }
 
@@ -230,19 +286,21 @@ mod tests {
             SeededRng::from_seed(Seed(0)),
         );
 
-        apply_action(
+        let effects = apply_action(
             &mut state,
             action(PlainTricksSeat::Seat0, TrickCardId::Gale2),
         )
         .expect("leader play applies");
+        assert_eq!(effects.len(), 1);
         assert_eq!(state.active_seat, Some(PlainTricksSeat::Seat1));
         assert_eq!(state.current_trick.led_suit, Some(TrickSuit::Gale));
 
-        apply_action(
+        let effects = apply_action(
             &mut state,
             action(PlainTricksSeat::Seat1, TrickCardId::Gale6),
         )
         .expect("follower play applies");
+        assert_eq!(effects.len(), 2);
         assert_eq!(state.completed_tricks.len(), 1);
         assert_eq!(state.round_trick_counts.seat_1, 1);
         assert_eq!(state.active_seat, Some(PlainTricksSeat::Seat1));
@@ -273,7 +331,8 @@ mod tests {
             ],
         };
 
-        resolve_current_trick(&mut state).expect("round closes");
+        let mut effects = Vec::new();
+        resolve_current_trick(&mut state, &mut effects).expect("round closes");
 
         assert_eq!(state.round_index, 1);
         assert_eq!(state.trick_index, 0);
@@ -286,6 +345,7 @@ mod tests {
         assert_eq!(state.hands[0].len(), 6);
         assert_eq!(state.hands[1].len(), 6);
         assert_eq!(state.tail.len(), 6);
+        assert_eq!(effects.len(), 6);
     }
 
     #[test]
@@ -328,7 +388,8 @@ mod tests {
                 .active_seat
                 .expect("active seat exists before terminal");
             let card = crate::legal_cards(&state, actor)[0];
-            apply_action(&mut state, action(actor, card)).expect("legal action applies");
+            let _effects =
+                apply_action(&mut state, action(actor, card)).expect("legal action applies");
             plays += 1;
         }
 

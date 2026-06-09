@@ -1,6 +1,7 @@
 //! `plain_tricks` official-game crate skeleton for Plain Tricks.
 
 pub mod actions;
+pub mod effects;
 pub mod ids;
 pub mod rules;
 pub mod setup;
@@ -10,6 +11,11 @@ pub mod variants;
 pub use actions::{
     actor_seat, legal_action_tree, legal_cards, parse_action_path, validate_command,
     PlainTricksAction, ValidatedAction,
+};
+pub use effects::{
+    bot_chose_action_public_effect, card_played_effect, deal_completed_effect, deal_rotated_effect,
+    deal_started_effect, hand_dealt_effect, match_resolved_effect, public_effect,
+    round_scored_effect, setup_effects, terminal_effect, trick_resolved_effect, PlainTricksEffect,
 };
 pub use ids::{
     canonical_deck, PlainTricksSeat, TrickCardId, TrickRank, TrickSuit, ACTION_PLAY, GAME_ID,
