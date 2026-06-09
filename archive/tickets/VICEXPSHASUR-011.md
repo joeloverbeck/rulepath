@@ -1,6 +1,6 @@
 # VICEXPSHASUR-011: Browser smoke, no-leak, accessibility & replay checks + smoke registration
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only / test infra) — adds `apps/web/e2e/outcome-explanation.smoke.mjs` and registers it across `scripts/check-catalog-docs.mjs`, `apps/web/README.md`, and `apps/web/package.json`; no Rust/engine, WASM, or behavior surface.
@@ -83,3 +83,33 @@ Catalog-complete terminal smoke per spec §12.3: for every catalog game drive to
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-outcome-explanations.mjs`
 3. `npm --prefix apps/web run smoke:ui` (regression — existing UI smoke intact)
+
+## Outcome
+
+Added `apps/web/e2e/outcome-explanation.smoke.mjs`, a rendered-browser smoke
+covering the shared outcome panel status region, final standing, disclosure
+keyboard/pointer operation, reduced-motion content preservation, and browser
+no-leak surfaces. The smoke dynamically reads the catalog from the game picker
+and drives representative terminal flows through Race to 21 and Three Marks,
+including win and draw outcomes.
+
+Registered the smoke in all required surfaces:
+
+1. `apps/web/package.json` `smoke:e2e`
+2. `scripts/check-catalog-docs.mjs` `NON_GAME_SMOKE`
+3. `apps/web/README.md` Smoke Layers
+
+Updated the existing Poker Lite smoke to assert terminal explanation through
+the shared `OutcomeExplanationPanel` after the 010 board integration removed
+the old local `.poker-lite-terminal` text panel.
+
+Verification run:
+
+1. `npm --prefix apps/web run smoke:e2e` — passed.
+2. `node apps/web/e2e/outcome-explanation.smoke.mjs` — passed.
+3. `node apps/web/e2e/poker-lite.smoke.mjs` — passed after updating the old panel assertions.
+4. `npm --prefix apps/web run smoke:ui` — passed.
+5. `node scripts/check-catalog-docs.mjs` — passed.
+6. `node scripts/check-outcome-explanations.mjs` — passed.
+7. `node scripts/check-doc-links.mjs` — passed.
+8. `git diff --check` — passed.

@@ -70,6 +70,16 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
                 values: [{ label: "Counter", value: counter }],
               },
             ],
+            breakdownSections: [
+              {
+                id: "target",
+                heading: "Target",
+                rows: [
+                  { label: "Counter", value: counter },
+                  { label: "Target", value: target },
+                ],
+              },
+            ],
             ruleIds: ["RACE-END-001"],
           })}
         />

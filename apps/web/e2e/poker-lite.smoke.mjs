@@ -119,7 +119,7 @@ try {
   await clickText(page, "button", "Press");
   await waitForText(page, "Pressed");
   await clickText(page, "button", "Yield");
-  await waitForText(page, "Resolved without a private reveal.");
+  await waitForText(page, "wins after");
   const hasShowdown = await page.$(".poker-lite-showdown");
   assert(!hasShowdown, "yield terminal renders without showdown reveal panel");
 
@@ -204,12 +204,12 @@ async function assertNoHiddenIds(page, consoleMessages, label) {
 async function assertShowdownRendered(page) {
   const summary = await page.evaluate(() => ({
     showdownText: document.querySelector(".poker-lite-showdown")?.textContent ?? "",
-    terminalText: document.querySelector(".poker-lite-terminal")?.textContent ?? "",
+    terminalText: document.querySelector(".outcome-explanation-panel")?.textContent ?? "",
   }));
   assert(summary.showdownText.includes("Seat 0"), "showdown includes seat 0 reveal");
   assert(summary.showdownText.includes("Center"), "showdown includes center reveal");
   assert(summary.showdownText.includes("Seat 1"), "showdown includes seat 1 reveal");
-  assert(summary.terminalText.includes("Shared pool") || summary.terminalText.includes("Split ledger"), "terminal panel summarizes ledger");
+  assert(summary.terminalText.includes("Shared pool") || summary.terminalText.includes("Split ledger"), "outcome panel summarizes ledger");
 }
 
 async function assertReplayViewerNoForbidden(page) {
