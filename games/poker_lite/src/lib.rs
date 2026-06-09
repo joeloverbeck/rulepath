@@ -39,8 +39,9 @@ pub use state::{
 pub use ui::{card_accessibility_label, ui_metadata, UiMetadata};
 pub use variants::{Fixture, Manifest, Variant, VariantCatalog};
 pub use visibility::{
-    filter_effects_for_viewer, project_view, CardView, CenterView, PrivateView, PublicView,
-    SeatPrivateView, TerminalView,
+    filter_effects_for_viewer, project_view, CardView, CenterView, OutcomeRationaleView,
+    PrivateView, PublicView, SeatOutcomeBreakdownView, SeatPrivateView, ShowdownStrengthView,
+    TerminalView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

@@ -1,6 +1,6 @@
 # VICEXPSHASUR-003: `poker_lite` pilot outcome rationale + no-leak proof
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/poker_lite` (`visibility.rs` rationale projection on `ShowdownView`/`TerminalView`, possibly `effects.rs`), per-game docs, and golden traces. No `engine-core`/`game-stdlib` change.
@@ -87,3 +87,33 @@ Add visibility/no-leak unit tests (pair-beats-high-card, high-card rank win, equ
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
 3. `cargo run -p fixture-check -- --game poker_lite` (confirms fixtures/traces remain consistent after schema growth)
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added game-local `OutcomeRationaleView`, `SeatOutcomeBreakdownView`, and `ShowdownStrengthView` projection in `games/poker_lite/src/visibility.rs`.
+- Added rationale fields to `ShowdownView` and terminal `YieldWin` / `ShowdownWin` / `Split` variants, including decisive cause IDs, static template keys, stable `CL-*` rule refs, per-seat allocations/contributions, and revealed strength rows only for showdown/split.
+- Preserved yield no-reveal behavior: yield rationale carries no strength rows and no private crest facts; public observer and winning-seat views do not receive the yielded loser's private crest.
+- Added `poker_lite` UI outcome documentation with terminal variants, payload fields, no-leak rules, template keys, accessibility/reduced-motion expectations, and future smoke cases.
+- Added visibility tests for pair beats high card, private-rank tiebreak, equal-strength split, and yield rationale no-reveal.
+- Updated affected `poker_lite` golden trace public-view/private-view/public-export hashes with migration notes for the terminal outcome-rationale view growth.
+- Tightened `scripts/check-outcome-explanations.mjs` so stable scoring/end rule IDs may use game-local prefixes such as `CL-SCORE-*` and `CL-END-*`.
+
+Deviations from original plan:
+
+- `games/poker_lite/src/effects.rs` was not changed; the terminal public view already carries the rationale and existing terminal/showdown effects remain deterministic.
+- `RULES.md` did not need new IDs because the existing `CL-SCORE-*`, `CL-END-*`, `CL-PLEDGE-*`, `CL-REVEAL-*`, and `CL-VIS-*` IDs cover the rationale refs.
+- The losing seat's ordinary private view still shows only its own private crest, consistent with the existing owner-private view contract; the new outcome rationale itself never reveals or derives yielded-loser strength.
+
+Verification results:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed, including the new rationale/no-leak visibility tests.
+- `cargo run -p replay-check -- --game poker_lite --all` passed.
+- `cargo run -p fixture-check -- --game poker_lite` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `git diff --check` passed.
+- `node scripts/check-outcome-explanations.mjs` still exits non-zero as expected until later tickets add `client.ts`, shared template, and remaining-game coverage; after this ticket it no longer reports missing `poker_lite` UI/RULES outcome documentation.

@@ -1,8 +1,8 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, Viewer};
 use poker_lite::{
     apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
-    setup_match, validate_command, CenterView, Phase, PokerLiteSeat, PrivateView, SetupOptions,
-    TerminalOutcome, TerminalView,
+    setup_match, validate_command, CenterView, CrestCardId, Phase, PokerLiteSeat, PrivateView,
+    SetupOptions, ShowdownReveal, TerminalOutcome, TerminalView,
 };
 
 fn standard_state() -> poker_lite::PokerLiteState {
@@ -57,6 +57,14 @@ fn command(state: &poker_lite::PokerLiteState, seat: &str, segment: &str) -> Com
 fn apply_segment(state: &mut poker_lite::PokerLiteState, seat: &str, segment: &str) {
     let action = validate_command(state, &command(state, seat, segment)).expect("valid command");
     apply_action(state, action).expect("apply succeeds");
+}
+
+fn terminal_state_with(outcome: TerminalOutcome) -> poker_lite::PokerLiteState {
+    let mut state = standard_state();
+    state.phase = Phase::Terminal;
+    state.active_seat = None;
+    state.terminal_outcome = Some(outcome);
+    state
 }
 
 #[test]
@@ -165,6 +173,168 @@ fn showdown_view_reveals_both_private_crests_and_yield_does_not() {
     for card in yielded.private_cards_internal() {
         assert!(!yield_text.contains(card.as_str()));
     }
+}
+
+#[test]
+fn showdown_rationale_explains_pair_beats_high_card() {
+    let reveal = ShowdownReveal {
+        seat_0_private: CrestCardId::LowDawn,
+        seat_1_private: CrestCardId::HighDawn,
+        center: CrestCardId::LowDusk,
+    };
+    let view = project_view(
+        &terminal_state_with(TerminalOutcome::ShowdownWin {
+            winner: PokerLiteSeat::Seat0,
+            shared_pool: 2,
+            contributions: [1, 1],
+            reveal,
+        }),
+        &viewer(None),
+    );
+
+    let TerminalView::ShowdownWin { rationale, .. } = &view.terminal else {
+        panic!("showdown win expected");
+    };
+    assert_eq!(rationale.decisive_cause, "pair_beats_high_card");
+    assert_eq!(rationale.template_key, "poker_lite.pair_beats_high_card");
+    assert!(rationale
+        .decisive_rule_ids
+        .iter()
+        .any(|rule| rule == "CL-SCORE-004"));
+    assert_eq!(
+        rationale.per_seat[0]
+            .strength
+            .as_ref()
+            .expect("seat 0 strength")
+            .pair_bucket,
+        "pair"
+    );
+    assert_eq!(
+        rationale.per_seat[1]
+            .strength
+            .as_ref()
+            .expect("seat 1 strength")
+            .pair_bucket,
+        "high_card"
+    );
+    assert_eq!(
+        view.showdown
+            .as_ref()
+            .expect("showdown view")
+            .rationale
+            .decisive_cause,
+        rationale.decisive_cause
+    );
+}
+
+#[test]
+fn showdown_rationale_explains_private_rank_tiebreak() {
+    let reveal = ShowdownReveal {
+        seat_0_private: CrestCardId::MiddleDawn,
+        seat_1_private: CrestCardId::HighDawn,
+        center: CrestCardId::LowDawn,
+    };
+    let view = project_view(
+        &terminal_state_with(TerminalOutcome::ShowdownWin {
+            winner: PokerLiteSeat::Seat1,
+            shared_pool: 2,
+            contributions: [1, 1],
+            reveal,
+        }),
+        &viewer(None),
+    );
+
+    let TerminalView::ShowdownWin { rationale, .. } = &view.terminal else {
+        panic!("showdown win expected");
+    };
+    assert_eq!(rationale.decisive_cause, "higher_private_rank");
+    assert_eq!(rationale.template_key, "poker_lite.private_rank_tiebreak");
+    assert_eq!(
+        rationale.per_seat[0]
+            .strength
+            .as_ref()
+            .expect("seat 0 strength")
+            .private_rank_value,
+        2
+    );
+    assert_eq!(
+        rationale.per_seat[1]
+            .strength
+            .as_ref()
+            .expect("seat 1 strength")
+            .private_rank_value,
+        3
+    );
+}
+
+#[test]
+fn split_rationale_explains_equal_strength() {
+    let reveal = ShowdownReveal {
+        seat_0_private: CrestCardId::MiddleDawn,
+        seat_1_private: CrestCardId::MiddleDusk,
+        center: CrestCardId::HighDawn,
+    };
+    let view = project_view(
+        &terminal_state_with(TerminalOutcome::Split {
+            shared_pool: 2,
+            each: 1,
+            contributions: [1, 1],
+            reveal,
+        }),
+        &viewer(None),
+    );
+
+    let TerminalView::Split {
+        rationale, each, ..
+    } = &view.terminal
+    else {
+        panic!("split expected");
+    };
+    assert_eq!(*each, 1);
+    assert_eq!(rationale.decisive_cause, "equal_strength_split");
+    assert_eq!(rationale.template_key, "poker_lite.equal_strength_split");
+    assert!(rationale
+        .decisive_rule_ids
+        .iter()
+        .any(|rule| rule == "CL-END-003"));
+    assert!(rationale
+        .per_seat
+        .iter()
+        .all(|seat| seat.result == "split" && seat.allocation == 1));
+}
+
+#[test]
+fn yield_rationale_carries_no_private_strength_or_loser_crest() {
+    let mut yielded = standard_state();
+    apply_segment(&mut yielded, "seat_0", "press");
+    apply_segment(&mut yielded, "seat_1", "yield");
+    let yielded_loser = yielded.private_card_for_internal(PokerLiteSeat::Seat1);
+
+    for seat in [None, Some("seat_0"), Some("seat_1")] {
+        let view = project_view(&yielded, &viewer(seat));
+        let TerminalView::YieldWin { rationale, .. } = &view.terminal else {
+            panic!("yield win expected");
+        };
+        assert_eq!(rationale.decisive_cause, "opponent_yielded");
+        assert_eq!(rationale.template_key, "poker_lite.yield_win_no_reveal");
+        assert!(rationale
+            .per_seat
+            .iter()
+            .all(|seat| seat.strength.is_none()));
+
+        let rationale_text = format!("{rationale:?}");
+        assert!(!rationale_text.contains("pair_flag"));
+        assert!(!rationale_text.contains("private_rank_value"));
+        assert!(!rationale_text.contains(yielded_loser.as_str()));
+        assert!(!rationale_text.contains(&yielded_loser.label()));
+    }
+
+    let observer_text = format!("{:?}", project_view(&yielded, &viewer(None)));
+    assert!(!observer_text.contains(yielded_loser.as_str()));
+    assert!(!observer_text.contains(&yielded_loser.label()));
+    let winner_text = format!("{:?}", project_view(&yielded, &viewer(Some("seat_0"))));
+    assert!(!winner_text.contains(yielded_loser.as_str()));
+    assert!(!winner_text.contains(&yielded_loser.label()));
 }
 
 #[test]

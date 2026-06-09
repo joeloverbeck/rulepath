@@ -34,7 +34,7 @@ const REQUIRED_UI_MARKERS = [
   { label: "decisive cause variants", re: /decisive cause|cause variant/i },
   { label: "per-player breakdown fields", re: /per-player|breakdown/i },
   { label: "hidden-info redaction rules", re: /hidden|no-leak|redaction|reveal/i },
-  { label: "RULES.md rule IDs", re: /RULES\.md|rule ids?|R-(?:SCORE|END)-/i },
+  { label: "RULES.md rule IDs", re: /RULES\.md|rule ids?|[A-Z]+-(?:SCORE|END)-/i },
   { label: "web smoke coverage", re: /smoke/i },
 ];
 const FORBIDDEN_TEMPLATE_PATTERNS = [
@@ -141,8 +141,8 @@ function checkRulesDoc(game, rulesDoc) {
   if (!/^## Terminal conditions\s*$/m.test(rulesDoc)) {
     failures.push(`${game.id}: games/${game.id}/docs/RULES.md missing Terminal conditions section`);
   }
-  if (!/\bR-(?:SCORE|END)-\d{3}\b/.test(rulesDoc)) {
-    failures.push(`${game.id}: games/${game.id}/docs/RULES.md lacks stable R-SCORE/R-END rule IDs`);
+  if (!/\b[A-Z]+-(?:SCORE|END)-\d{3}\b/.test(rulesDoc)) {
+    failures.push(`${game.id}: games/${game.id}/docs/RULES.md lacks stable scoring/end rule IDs`);
   }
 }
 

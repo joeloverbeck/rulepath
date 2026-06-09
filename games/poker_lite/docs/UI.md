@@ -95,6 +95,79 @@ crests and the center crest are public as a grouped reveal. After yield,
 private crests remain hidden and the terminal panel says the match resolved
 without a private reveal.
 
+## Outcome / victory explanation
+
+The shared outcome surface explains Crest Ledger terminal results from Rust-owned
+`PokerLitePublicView` data. TypeScript must render the supplied rationale only;
+it must not compare crest ranks, decide pair strength, allocate the shared pool,
+or infer why the match ended.
+
+### Terminal result variants
+
+| Result variant | Rust source of truth | Player-facing summary | Rule IDs |
+|---|---|---|---|
+| `yield_win` | `TerminalView::YieldWin.rationale` | The non-yielding seat wins the shared pool because the other seat yielded; no private reveal occurred. | `CL-PLEDGE-005`, `CL-SCORE-006`, `CL-END-001`, `CL-VIS-007` |
+| `showdown_win` | `TerminalView::ShowdownWin.rationale` and `ShowdownView.rationale` | One seat wins the shared pool from the revealed showdown comparison. | `CL-REVEAL-002`, `CL-SCORE-004`, `CL-END-002` |
+| `split` | `TerminalView::Split.rationale` and `ShowdownView.rationale` | Equal revealed showdown strength splits the shared pool exactly. | `CL-REVEAL-002`, `CL-SCORE-004`, `CL-SCORE-005`, `CL-END-003` |
+
+### Decisive cause payload
+
+| Cause variant | Rust payload field(s) | Static template key | Notes |
+|---|---|---|---|
+| `opponent_yielded` | `OutcomeRationaleView.result_kind`, `.decisive_cause`, `.per_seat[].allocation` | `poker_lite.yield_win_no_reveal` | Carries no private crest or strength fields. |
+| `pair_beats_high_card` | `OutcomeRationaleView.decisive_cause`, `.per_seat[].strength.pair_bucket`, `.decisive_rule_ids` | `poker_lite.pair_beats_high_card` | Lawful only after showdown reveals both private crests. |
+| `higher_private_rank` | `OutcomeRationaleView.decisive_cause`, `.per_seat[].strength.private_rank_value`, `.decisive_rule_ids` | `poker_lite.private_rank_tiebreak` | Lawful only after showdown reveals both private crests. |
+| `equal_strength_split` | `OutcomeRationaleView.decisive_cause`, `.per_seat[].allocation`, `.decisive_rule_ids` | `poker_lite.equal_strength_split` | Lawful only after showdown reveals both private crests. |
+
+### Per-player final breakdown
+
+| Breakdown value | Source | Visible to public observer? | Visible to seat viewer? | Hidden-info notes |
+|---|---|---:|---:|---|
+| result label | `OutcomeRationaleView.per_seat[].result` | yes | yes | `win`, `loss`, `yield_loss`, or `split`; no hidden data. |
+| final allocation | `OutcomeRationaleView.per_seat[].allocation` | yes | yes | Public shared-pool accounting. |
+| final contribution | `OutcomeRationaleView.per_seat[].contribution` | yes | yes | Public contribution totals. |
+| showdown strength | `OutcomeRationaleView.per_seat[].strength` | showdown/split only | showdown/split only | Omitted on yield. Present only after both private crests have been revealed by Rust. |
+
+### No-leak rules
+
+- Visible text: yield explanations must say the result resolved without private reveal and must not name either unrevealed private crest.
+- Hidden DOM/accessibility attributes: no `aria-label`, `title`, `alt`, hidden text, or CSS class may contain unrevealed crest IDs, ranks, copies, labels, or strength buckets.
+- `data-testid`/selectors: selectors must not encode private crest IDs, rank values, pair buckets, or yielded-hand facts.
+- Storage/logs/dev panel: any outcome debug display must use the same viewer-filtered rationale payload as the public panel.
+- Effect log/replay export: yield terminal effects and public exports may name winner, loser, pool, and already public center state only; they must not carry private reveal or inferred strength.
+- Bot explanations/candidate rankings: bot explanations may not add outcome speculation or opponent hidden-strength facts.
+
+For `YieldWin`, the rationale carries `strength: None` for both seats and uses
+`poker_lite.yield_win_no_reveal`. The yielded private crest remains unrevealed
+to the public observer and to the winning seat. The losing seat may still see
+only its own private crest through the ordinary owner-private view; the outcome
+rationale itself does not reveal it or compute a would-have-won comparison.
+
+### Player-facing copy contract
+
+The outcome surface explains only the actual result: yield, pair-vs-high-card,
+private-rank tiebreak, or equal-strength split. It must not include coaching,
+counterfactuals, turning-point analysis, or strategy advice.
+
+### Accessibility and reduced motion
+
+- The terminal summary must be exposed as a status/result message.
+- The decisive cause must be present as text, not only a card highlight or color.
+- Player standing and allocation must be color-independent.
+- Expanded showdown breakdown must be keyboard accessible.
+- Reduced-motion mode must preserve all result facts without requiring reveal
+  animation.
+- Replaying to terminal must render the same rationale for the same viewer.
+
+### Smoke and tests
+
+| Test case | Terminal path | Required assertion |
+|---|---|---|
+| yield no reveal | `seat_0 press`, `seat_1 yield` | `poker_lite.yield_win_no_reveal`; no private strength or yielded-loser crest in the rationale. |
+| pair beats high card | showdown trace with one paired private crest | `poker_lite.pair_beats_high_card`; paired seat wins. |
+| private rank tiebreak | showdown trace with no pair and unequal private ranks | `poker_lite.private_rank_tiebreak`; higher private rank wins. |
+| equal strength split | showdown trace with equal strength | `poker_lite.equal_strength_split`; both seats receive equal allocation. |
+
 ## Evidence
 
 - `npm --prefix apps/web run build`
