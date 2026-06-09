@@ -1,6 +1,6 @@
 # GAT101PLATRI-019: Trailing game docs (mechanics, UI, how-to-play, public-release checklist)
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/plain_tricks/docs/{MECHANICS.md,UI.md,HOW-TO-PLAY.md,PUBLIC-RELEASE-CHECKLIST.md}`. No code.
@@ -84,3 +84,13 @@ Public-release checklist (rules/IP/no-leak/bot/benchmarks/docs all green).
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-catalog-docs.mjs`
 3. Doc-link + catalog checks are the correct boundary; the outcome-explanation surface itself is exercised by the e2e smoke in GAT101PLATRI-018.
+
+## Outcome
+
+Completed 2026-06-09. Added the trailing Plain Tricks official-game docs: mechanics inventory, UI contract with the required "Outcome / victory explanation" section, and public-release checklist. `HOW-TO-PLAY.md` was already present from GAT101PLATRI-017 and remains part of the completed doc set.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs`
+2. `node scripts/check-catalog-docs.mjs`
+3. `grep -n "Outcome / victory explanation" games/plain_tricks/docs/UI.md`
