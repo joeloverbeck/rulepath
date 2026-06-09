@@ -1,6 +1,6 @@
 # GAT101PLATRI-014: Native tool registration, RULE-COVERAGE.md, and gate-1 native CI steps
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `tools/{simulate,replay-check,fixture-check,rule-coverage}/src/main.rs`, `.github/workflows/gate-1-game-smoke.yml`; new `games/plain_tricks/docs/RULE-COVERAGE.md`. No `engine-core`/`game-stdlib` change.
@@ -85,3 +85,21 @@ Add `plain_tricks` simulate (cap > 24) / replay-check / fixture-check / rule-cov
 1. `cargo run -p simulate -- --game plain_tricks --games 1000 --start-seed 0 --action-cap 32`
 2. `cargo run -p replay-check -- --game plain_tricks && cargo run -p fixture-check -- --game plain_tricks && cargo run -p rule-coverage -- --game plain_tricks`
 3. The four-tool CLI run is the correct full-pipeline boundary for native verification; benchmark CI is GAT101PLATRI-015.
+
+## Outcome
+
+Completed 2026-06-09.
+
+- Registered `plain_tricks` in `simulate`, `replay-check`, `fixture-check`, and `rule-coverage`.
+- Added `games/plain_tricks/docs/RULE-COVERAGE.md` with coverage rows for every `PT-*` rule ID in `RULES.md`.
+- Added gate-1 native CI steps for `plain_tricks` simulation, replay, fixture, and rule coverage.
+- Kept existing games' benchmark-doc requirement in `rule-coverage`, while allowing `plain_tricks` to run before GAT101PLATRI-015 adds `BENCHMARKS.md`.
+
+Verification:
+
+1. `cargo run -p simulate -- --game plain_tricks --games 1000 --start-seed 0 --action-cap 32`
+2. `cargo run -p replay-check -- --game plain_tricks`
+3. `cargo run -p fixture-check -- --game plain_tricks`
+4. `cargo run -p rule-coverage -- --game plain_tricks`
+5. `cargo fmt --all --check`
+6. `cargo test --workspace`

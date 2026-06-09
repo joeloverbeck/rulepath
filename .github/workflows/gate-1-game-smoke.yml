@@ -54,6 +54,9 @@ jobs:
       - name: poker_lite quick simulation
         run: cargo run -p simulate -- --game poker_lite --games 1000 --action-cap 16
 
+      - name: plain_tricks quick simulation
+        run: cargo run -p simulate -- --game plain_tricks --games 1000 --action-cap 32
+
       - name: Replay drift check
         run: cargo run -p replay-check -- --game race_to_n --all
 
@@ -80,6 +83,9 @@ jobs:
 
       - name: Poker Lite replay drift check
         run: cargo run -p replay-check -- --game poker_lite --all
+
+      - name: Plain Tricks replay drift check
+        run: cargo run -p replay-check -- --game plain_tricks --all
 
       - name: Fixture validation
         run: cargo run -p fixture-check -- --game race_to_n
@@ -108,6 +114,9 @@ jobs:
       - name: Poker Lite fixture validation
         run: cargo run -p fixture-check -- --game poker_lite
 
+      - name: Plain Tricks fixture validation
+        run: cargo run -p fixture-check -- --game plain_tricks
+
       - name: Rule coverage drift check
         run: cargo run -p rule-coverage -- --game race_to_n
 
@@ -134,6 +143,9 @@ jobs:
 
       - name: Poker Lite rule coverage drift check
         run: cargo run -p rule-coverage -- --game poker_lite
+
+      - name: Plain Tricks rule coverage drift check
+        run: cargo run -p rule-coverage -- --game plain_tricks
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh

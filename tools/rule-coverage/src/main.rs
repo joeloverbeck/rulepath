@@ -15,8 +15,7 @@ fn run(args: impl IntoIterator<Item = String>) -> Result<(), String> {
             .map_err(|error| format!("{}: {error}", game.rules_path))?,
         &fs::read_to_string(game.coverage_path)
             .map_err(|error| format!("{}: {error}", game.coverage_path))?,
-        &fs::read_to_string(game.benchmarks_path)
-            .map_err(|error| format!("{}: {error}", game.benchmarks_path))?,
+        &read_benchmarks(game)?,
     )?;
     println!("rule-coverage: {} coverage matrix passed", game.game_id);
     Ok(())
@@ -28,6 +27,7 @@ struct RegisteredGame {
     rules_path: &'static str,
     coverage_path: &'static str,
     benchmarks_path: &'static str,
+    benchmarks_required: bool,
 }
 
 fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
@@ -37,56 +37,82 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_path: "games/race_to_n/docs/RULES.md",
             coverage_path: "games/race_to_n/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/race_to_n/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "three_marks" => Ok(RegisteredGame {
             game_id: "three_marks",
             rules_path: "games/three_marks/docs/RULES.md",
             coverage_path: "games/three_marks/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/three_marks/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "column_four" => Ok(RegisteredGame {
             game_id: "column_four",
             rules_path: "games/column_four/docs/RULES.md",
             coverage_path: "games/column_four/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/column_four/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "directional_flip" => Ok(RegisteredGame {
             game_id: "directional_flip",
             rules_path: "games/directional_flip/docs/RULES.md",
             coverage_path: "games/directional_flip/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/directional_flip/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "draughts_lite" => Ok(RegisteredGame {
             game_id: "draughts_lite",
             rules_path: "games/draughts_lite/docs/RULES.md",
             coverage_path: "games/draughts_lite/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/draughts_lite/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "high_card_duel" => Ok(RegisteredGame {
             game_id: "high_card_duel",
             rules_path: "games/high_card_duel/docs/RULES.md",
             coverage_path: "games/high_card_duel/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/high_card_duel/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_path: "games/token_bazaar/docs/RULES.md",
             coverage_path: "games/token_bazaar/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/token_bazaar/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "secret_draft" => Ok(RegisteredGame {
             game_id: "secret_draft",
             rules_path: "games/secret_draft/docs/RULES.md",
             coverage_path: "games/secret_draft/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/secret_draft/docs/BENCHMARKS.md",
+            benchmarks_required: true,
         }),
         "poker_lite" => Ok(RegisteredGame {
             game_id: "poker_lite",
             rules_path: "games/poker_lite/docs/RULES.md",
             coverage_path: "games/poker_lite/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/poker_lite/docs/BENCHMARKS.md",
+            benchmarks_required: true,
+        }),
+        "plain_tricks" => Ok(RegisteredGame {
+            game_id: "plain_tricks",
+            rules_path: "games/plain_tricks/docs/RULES.md",
+            coverage_path: "games/plain_tricks/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/plain_tricks/docs/BENCHMARKS.md",
+            benchmarks_required: false,
         }),
         _ => Err(format!("unsupported game `{game}`")),
+    }
+}
+
+fn read_benchmarks(game: RegisteredGame) -> Result<String, String> {
+    match fs::read_to_string(game.benchmarks_path) {
+        Ok(contents) => Ok(contents),
+        Err(error) if !game.benchmarks_required && error.kind() == std::io::ErrorKind::NotFound => {
+            Ok(String::new())
+        }
+        Err(error) => Err(format!("{}: {error}", game.benchmarks_path)),
     }
 }
 
@@ -104,7 +130,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks>"
                     );
                     process::exit(0);
                 }
@@ -216,7 +242,7 @@ fn is_rule_id(value: &str) -> bool {
     parts.len() == 3
         && matches!(
             parts[0],
-            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD" | "CL"
+            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD" | "CL" | "PT"
         )
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())
