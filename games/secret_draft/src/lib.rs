@@ -14,20 +14,26 @@ pub mod visibility;
 
 pub use actions::{legal_action_tree, SecretDraftAction};
 pub use bots::{SecretDraftLevel1Bot, SecretDraftRandomBot, LEVEL1_POLICY_ID, RANDOM_POLICY_ID};
-pub use effects::SecretDraftEffect;
+pub use effects::{SecretDraftEffect, TieBreakSummary};
 pub use ids::{
     DraftItemId, DraftThread, SecretDraftSeat, GAME_ID, RULES_VERSION_LABEL, STANDARD_ITEM_COUNT,
     STANDARD_ROUND_COUNT, STANDARD_SEAT_COUNT, VARIANT_ID,
 };
 pub use replay_support::{state_hash, ReplayResult};
-pub use rules::{apply_action, legal_actions, validate_action, ValidatedAction};
+pub use rules::{
+    apply_action, determine_terminal_outcome_from_summary, legal_actions,
+    terminal_tie_break_summary, validate_action, ValidatedAction,
+};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
     DraftItemSpec, Phase, RevealedRound, ScoreSummary, SecretDraftState, TerminalOutcome,
 };
 pub use ui::{ui_metadata, UiMetadata};
 pub use variants::{Fixture, Manifest, Variant, VariantCatalog};
-pub use visibility::{project_view, PublicView};
+pub use visibility::{
+    project_view, OutcomeRationaleView, OutcomeStandingView, PublicView, TerminalView,
+    TiebreakLadderRungView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

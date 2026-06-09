@@ -1,6 +1,6 @@
 # VICEXPSHASUR-008: Tiebreak-ladder + hidden-info outcome rationale — `secret_draft`
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/secret_draft` (`visibility.rs` five-rung ladder rationale on `TerminalView` from the existing `TieBreakSummary`), per-game docs, and golden traces. No `engine-core`/`game-stdlib` change.
@@ -82,3 +82,34 @@ Add per-rung rationale unit tests and a public-observer no-leak test; intentiona
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
 3. `cargo run -p fixture-check -- --game secret_draft`
+
+## Outcome
+
+Implemented the `secret_draft` terminal rationale on Rust `TerminalView`.
+Terminal wins and draws now carry `OutcomeRationaleView` with result kind,
+sixth-reveal terminal trigger, decisive cause/template key, decisive rule IDs,
+public per-player final standing, and the ordered ladder for score, complete
+sets, highest single value, distinct threads, fewer priority-conflict wins, and
+all-tied draw.
+
+The rationale is terminal-only and sourced from Rust `TieBreakSummary` via
+`terminal_tie_break_summary`; TypeScript was not changed and does not compute
+any rung. Public standing includes only terminal public drafted items and public
+tie-break facts. Visibility tests cover every decisive rung plus all-tied draw
+and assert the pre-reveal terminal surface does not create a hidden rationale.
+
+Updated `games/secret_draft/docs/UI.md` and `games/secret_draft/docs/RULES.md`
+with the outcome/victory explanation contract, rule IDs, no-leak constraints,
+and web smoke responsibility. Updated the two affected terminal golden traces
+(`terminal-tie-break` and `draw-after-tie-breaks`) for the intentional terminal
+view/public-export hash drift.
+
+Verification run:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p secret_draft` — passed.
+3. `cargo run -p replay-check -- --game secret_draft --all` — passed.
+4. `cargo run -p fixture-check -- --game secret_draft` — passed.
+5. `node scripts/check-doc-links.mjs` — passed.
+6. `git diff --check` — passed.
+7. `env RULEPATH_OUTCOME_GAME_IDS=secret_draft node scripts/check-outcome-explanations.mjs` — expected failure only for out-of-scope web follow-up surfaces: `apps/web/src/wasm/client.ts` lacks the outcome rationale mirror, and `apps/web/src/components/outcomeExplanationTemplates.ts` is not present yet.
