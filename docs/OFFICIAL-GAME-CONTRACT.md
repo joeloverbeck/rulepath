@@ -11,7 +11,7 @@ Every official game MUST have:
 | Area | Required evidence |
 |---|---|
 | Rules | Typed Rust setup, legal action generation, validation, transitions, scoring, terminal detection, deterministic randomness, semantic effects. |
-| Documentation | Original Rulepath rules summary, source notes, variant decision, rule coverage matrix, mechanic inventory, UI notes, bot notes, benchmark notes. |
+| Documentation | Original Rulepath rules summary, player-facing how-to-play prose, source notes, variant decision, rule coverage matrix, mechanic inventory, UI notes, bot notes, benchmark notes. |
 | Tests | Unit, named rule, golden trace, property/invariant, simulation, replay/hash, serialization, bot legality, and UI smoke tests once web-exposed. |
 | Replay | Seed/options/command stream can reproduce state/effect/action-tree/view hashes. |
 | Simulation | Native CLI random legal simulation with seed failure output. |
@@ -101,6 +101,24 @@ It SHOULD include:
 
 Rules sections SHOULD have stable IDs or headings used by rule tests and coverage rows.
 
+### Player-facing rules document
+
+Every official catalog game MUST include `games/<game_id>/docs/HOW-TO-PLAY.md`.
+
+`HOW-TO-PLAY.md` is original Rulepath prose for players. It teaches the goal,
+setup summary, turn flow, action meanings, scoring/winning, and
+hidden-information/reveal timing. It is the only per-game rules prose intended
+for the shared web How to Play / Rules surface.
+
+`RULES.md` remains the formal rule contract and Rust validation authority. The
+web app MUST NOT render `RULES.md` directly as player help.
+
+`HOW-TO-PLAY.md` MUST NOT duplicate `COMPETENT-PLAYER.md` strategy guidance.
+
+Hidden-information games MUST describe visibility from the player's own
+perspective and public perspective without exposing opponent secrets, deck
+tails, unrevealed commitments, or seed-derived hidden data.
+
 ## 6. Rule coverage matrix
 
 Every rule requirement MUST be classified.
@@ -168,6 +186,7 @@ A game may be web-exposed only when:
 - Rust supplies safe previews for partial/compound actions;
 - Rust emits semantic effects sufficient for normal animation/replay;
 - UI metadata is present;
+- `games/<game_id>/docs/HOW-TO-PLAY.md` exists and is rendered by the shared web How to Play / Rules surface rather than rendering formal `RULES.md`;
 - UI smoke tests cover start, legal action display, one human action, one bot action where applicable, effects, replay stepping, safe dev toggle, and reduced-motion behavior once animation exists;
 - hidden-information games prove no leak through browser-facing payloads and DOM-safe fixtures;
 - the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the newly web-exposed game in its intro catalog list, its Shell Surface renderer list (when the game ships a board renderer), and its Smoke Layers `smoke:e2e` list (when the game's smoke is chained by `smoke:e2e`). This reconciliation is part of web-exposure done, not a later cleanup pass — `scripts/check-catalog-docs.mjs` enforces the intro and smoke lists mechanically against the `crates/wasm-api` catalog and `apps/web/package.json`.
@@ -194,6 +213,7 @@ Before marking a game official, verify:
 
 - the game satisfies [FOUNDATIONS.md](FOUNDATIONS.md) universal invariants;
 - rule docs and implementation match;
+- player-facing `HOW-TO-PLAY.md` exists, is original prose, and matches the formal rules version it cites;
 - source notes are complete and IP-safe;
 - rule coverage has no silent gaps;
 - mechanic inventory is complete;

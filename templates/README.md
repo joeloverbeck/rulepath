@@ -36,13 +36,14 @@ A filled template may be stored under the game directory using the repository's 
 4. `GAME-MECHANICS.md`
 5. `GAME-IMPLEMENTATION-ADMISSION.md`
 6. `AGENT-TASK.md` for bounded work
-7. `COMPETENT-PLAYER.md` when strategy matters
-8. `BOT-STRATEGY-EVIDENCE-PACK.md` before Level 2 bot coding
-9. `GAME-AI.md`
-10. `GAME-UI.md`
-11. `GAME-BENCHMARKS.md`
-12. `PRIMITIVE-PRESSURE-LEDGER.md` when repeated shape pressure exists
-13. `PUBLIC-RELEASE-CHECKLIST.md` before public release
+7. `GAME-HOW-TO-PLAY.md`
+8. `COMPETENT-PLAYER.md` when strategy matters
+9. `BOT-STRATEGY-EVIDENCE-PACK.md` before Level 2 bot coding
+10. `GAME-AI.md`
+11. `GAME-UI.md`
+12. `GAME-BENCHMARKS.md`
+13. `PRIMITIVE-PRESSURE-LEDGER.md` when repeated shape pressure exists
+14. `PUBLIC-RELEASE-CHECKLIST.md` before public release
 
 This order is requirements-first. Do not start serious implementation because a UI sketch is tempting. Public polish wins over speculative engine research, but public polish must sit on Rust rule authority, deterministic replay, coverage, and IP-safe content.
 
@@ -56,6 +57,7 @@ This order is requirements-first. Do not start serious implementation because a 
 | `GAME-MECHANICS.md` | Per-game mechanic inventory and primitive-pressure review. | Every official game before implementation admission and whenever mechanics change. | `docs/MECHANIC-ATLAS.md`, `docs/ENGINE-GAME-DATA-BOUNDARY.md` |
 | `GAME-IMPLEMENTATION-ADMISSION.md` | Short gate receipt proving prerequisites are ready before serious coding. | Before serious implementation work starts for an official game. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/ROADMAP.md` |
 | `AGENT-TASK.md` | Universal bounded task packet for agents and humans. | Any bounded implementation, testing, docs, refactor, UI, bot, benchmark, or release-prep task. | `docs/AGENT-DISCIPLINE.md` |
+| `GAME-HOW-TO-PLAY.md` | Player-facing rules prose rendered by the shared web How to Play / Rules surface. Distinct from formal `GAME-RULES.md` and strategy-oriented `COMPETENT-PLAYER.md`. | Every official catalog game. | `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/UI-INTERACTION.md`, `docs/IP-POLICY.md` |
 | `COMPETENT-PLAYER.md` | Human/LLM-authored strategy analysis checked against rules. | When a game needs a competent bot or strategy-sensitive public UX. | `docs/AI-BOTS.md`, `docs/OFFICIAL-GAME-CONTRACT.md` |
 | `BOT-STRATEGY-EVIDENCE-PACK.md` | Formal Level 2 authored-policy design input. | Before coding any Level 2 bot. | `docs/AI-BOTS.md`, `docs/TESTING-REPLAY-BENCHMARKING.md` |
 | `GAME-AI.md` | Per-game bot registry and status document. | Every official game; update as bot levels mature. | `docs/AI-BOTS.md` |

@@ -105,6 +105,7 @@ Static data MAY include:
 - typed variant selection among compiled Rust variants;
 - localization strings;
 - explanation templates keyed to Rust effects/actions;
+- authored player-facing rules/help text such as `games/<game_id>/docs/HOW-TO-PLAY.md`, when it is inert prose;
 - UI metadata;
 - fixtures;
 - golden traces;
@@ -114,6 +115,13 @@ Static data MAY include:
 - rule coverage tables.
 
 Static data MUST deserialize into typed Rust structures or strict viewer-safe browser schemas. Unknown fields MUST be rejected by default.
+
+Authored player-facing rules/help text may include labels, glossary text, setup
+summaries, and player-facing explanations. It MUST NOT include selectors,
+conditions, triggers, action schemas, validation rules, scoring logic,
+visibility filters, YAML front matter, or any DSL-like structure that could
+become behavior authority. Runtime legality, effects, visibility, scoring, and
+replay semantics remain Rust-owned.
 
 ## 6. Forbidden static data
 
@@ -228,6 +236,10 @@ UI metadata MAY include labels, icon IDs, short help, layout hints, coordinate l
 UI metadata MUST NOT include legality, hidden behavior, tactical AI conditions, rule consequences not supplied by Rust previews/effects, hidden identities in public payloads, or any field whose meaning mutates game state.
 
 The UI may group, sort, decorate, and animate Rust-provided legal choices. It MUST NOT invent legality.
+
+Player-facing rules prose is allowed presentation content, not UI metadata that
+can drive controls. The web app may render `HOW-TO-PLAY.md` text, but it MUST NOT
+interpret it as action availability, scoring, visibility, effects, or bot logic.
 
 ## 12. Explanation template boundary
 

@@ -1,6 +1,6 @@
 # RULDISSHASUR-001: Player-doc contract — GAME-HOW-TO-PLAY template + foundation/area-doc amendments
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs and templates only; no Rust/engine, WASM, or behavior surface touched.
@@ -101,3 +101,25 @@ Add the index row per spec §12.9, matching the real `Stage | Gate | Spec | Stat
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n 'HOW-TO-PLAY' docs/OFFICIAL-GAME-CONTRACT.md docs/ARCHITECTURE.md docs/UI-INTERACTION.md docs/ENGINE-GAME-DATA-BOUNDARY.md docs/IP-POLICY.md docs/WASM-CLIENT-BOUNDARY.md docs/ROADMAP.md templates/README.md specs/README.md`
 3. Doc-link check is the correct full-pipeline boundary here: no Rust/test surface changes, so `cargo`/web smokes are not the verification boundary for a docs/template diff.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `templates/GAME-HOW-TO-PLAY.md` with the required player-facing sections, inert source/version metadata, and maintainer checklist.
+- Updated template ordering and index entries so every official catalog game has a required player-facing how-to-play template.
+- Added the `HOW-TO-PLAY.md` contract to official-game documentation, UI accessibility, static-data boundary, IP, architecture, WASM-boundary, roadmap, and spec-index surfaces.
+- Registered `specs/rules-display-shared-surface.md` in `specs/README.md` as a planned non-gate UI-infrastructure spec.
+
+Deviations from original plan:
+
+- The template uses ASCII hyphens in placeholder prose instead of typographic dashes to match repository editing defaults.
+- The roadmap note does not mention the filename directly; it records the cross-game How to Play / Rules maintenance category.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -c '^## ' templates/GAME-HOW-TO-PLAY.md` returned `10`, satisfying the ticket threshold for the second-level required sections.
+- `grep -n 'HOW-TO-PLAY' docs/OFFICIAL-GAME-CONTRACT.md docs/ARCHITECTURE.md docs/UI-INTERACTION.md docs/ENGINE-GAME-DATA-BOUNDARY.md docs/IP-POLICY.md docs/WASM-CLIENT-BOUNDARY.md templates/README.md specs/README.md` found the landed contract entries.

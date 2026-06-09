@@ -33,6 +33,11 @@ deferred until a concrete boundary problem justifies an ADR.
 | Effects | `rulepath_get_effects` | `getEffects` | Rust returns viewer-safe semantic effects for UI feedback and logs. |
 | Replay | `rulepath_export_replay`, `rulepath_import_replay`, `rulepath_replay_step`, `rulepath_replay_reset` | `exportReplay`, `importReplay`, `replayStep`, `replayReset` | Rust exports/imports replay documents and projects replay states. |
 
+Player-facing `HOW-TO-PLAY.md` text is currently delivered as static web
+presentation content, not through a WASM operation. Adding a future `get_rules`
+operation would require updating this boundary document and proving the
+operation is viewer-safe and behavior-free.
+
 ## Data Shapes
 
 All bridge calls use JSON strings at the raw ABI. Successful calls return status

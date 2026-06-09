@@ -267,6 +267,18 @@ Public games SHOULD provide:
 
 Accessibility is easier because Rust supplies explicit action trees and public views. Use that structure rather than trying to make arbitrary SVG clicks understandable after the fact.
 
+Primary rules help MUST be reachable without hover. The public web UI MUST expose
+a shared How to Play / Rules surface for every catalog game from the game picker,
+match setup, and in-play controls. The surface renders authored
+`HOW-TO-PLAY.md` content only.
+
+The rules surface is presentation-only. It MUST NOT decide legality, inspect
+private state, write replay/effect data, or generate runtime rules text.
+
+The surface must meet the accessibility baseline: keyboard access, visible
+focus, accessible names, focus management for modal/sheet mode, and
+screen-reader navigable headings.
+
 ## 17. Responsive behavior
 
 Simple public games SHOULD support desktop, tablet, and phone portrait where practical.

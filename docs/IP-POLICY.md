@@ -59,8 +59,14 @@ Every public game MUST have:
 - known ambiguities and resolutions;
 - rule coverage matrix;
 - statement that no rule prose/assets were copied unless explicitly reviewed and permissioned.
+- player-facing `HOW-TO-PLAY.md` prose when the game is in the public catalog.
 
 Default: do not quote. Summarize in original language.
+
+Player-facing `HOW-TO-PLAY.md` files are public documentation. They MUST use
+original Rulepath prose, neutral names, and no copied rulebook text, examples,
+diagrams, art, logos, fonts, or trade dress. They may summarize the Rulepath
+implementation's rules but must not reproduce external protected expression.
 
 ## 5. Common names and neutral names
 
