@@ -1,6 +1,6 @@
 # GAT10POKLITBET-002: poker_lite crate skeleton, typed ids, variants, and data manifests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/poker_lite` (`lib.rs`, `ids.rs`, `variants.rs`) + workspace member in root `Cargo.toml`; typed static-data manifests under `games/poker_lite/data/`. No `engine-core` / `game-stdlib` change.
@@ -96,3 +96,26 @@ Typed content/labels/variant metadata/version + a standard-variant fixture skele
 1. `cargo build -p poker_lite`
 2. `cargo test -p poker_lite`
 3. `bash scripts/boundary-check.sh` — the correct boundary verification surface; full `cargo test --workspace` is deferred to later tickets once more surface exists.
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite` as a workspace member and created the `poker_lite` crate skeleton.
+- Added typed Crest Ledger ids for seats, ranks, copies, crest ids, standard deck order, action segments, variant id, and rules-version constants.
+- Added strict `manifest.toml`, `variants.toml`, and `poker_lite_standard.fixture.json` parsing with unknown-field and behavior-looking-key rejection.
+- Added static-data unit coverage for id/label fidelity, variant resolution, and parser fail-closed behavior.
+
+Deviations from original plan:
+
+- Omitted a benchmark target from this skeleton ticket because no `benches/poker_lite.rs` exists yet; the benchmark lane is owned by GAT10POKLITBET-013.
+- Kept the fixture as metadata-only, matching the ticket scope; setup/rules behavior lands in later tickets.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo build -p poker_lite` passed.
+- `cargo test -p poker_lite` passed: 8 unit tests and 0 doc tests.
+- `bash scripts/boundary-check.sh` passed.
