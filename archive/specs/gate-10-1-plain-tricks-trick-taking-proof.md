@@ -7,7 +7,7 @@
 | Spec ID | `GATE101-PLNTRICKS-TRICKFOLLOW-001` |
 | Roadmap stage | Stage 10 |
 | Build gate | Gate 10.1 (proposed sub-gate of ROADMAP Gate 10, mirroring the accepted Gate 9 / Gate 9.1 precedent; `docs/ROADMAP.md` keeps both candidates under a single Gate 10) |
-| Status | Planned |
+| Status | Completed |
 | Date | 2026-06-09 |
 | Owner | Rulepath maintainers / implementation agents |
 | Primary crate | `games/plain_tricks` |
@@ -933,3 +933,36 @@ references (e.g. the Pagat trick-taking overview already recorded in
 following suit, trick capture, trick scoring — which is centuries-old public
 domain. No rules prose, card imagery, product naming, or trade dress is
 copied; the deck, suits, labels, and rules text are original.
+
+## G. Outcome
+
+Completed on 2026-06-09. The `GAT101PLATRI-001` through
+`GAT101PLATRI-020` ticket series was implemented in dependency order, with
+`GAT101PLATRI-003` closed as not applicable after the primitive-pressure
+ledger decision rejected promotion. The completed tickets are archived under
+`archive/tickets/`.
+
+Plain Tricks now ships as the `plain_tricks` Rust-owned hidden-hand
+trick-taking proof with game-local lead/follow legality, must-follow-suit
+validation, trick resolution, trick-winner-led turn order, two-round deal
+rotation, deterministic replay/export behavior, fixture/rule-coverage support,
+native benchmark coverage, Level 0 and Level 2 bots, WASM registration, browser
+presentation, player docs, and browser no-leak smoke coverage. The
+deterministic shuffle / private hand / staged reveal third-use gate is recorded
+as deferred/rejected local-only pressure in
+`games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md` and
+`docs/MECHANIC-ATLAS.md`; no `engine-core` noun, `game-stdlib` promotion, ADR,
+or trace/hash migration was authorized.
+
+Gate 10.1 and the parent Gate 10 are marked `Done` in `specs/README.md`.
+`progress.md`, root `README.md`, and `docs/MECHANIC-ATLAS.md` record the
+Plain Tricks closeout and local-only first-use trick rows. `docs/ROADMAP.md`
+was intentionally left untouched.
+
+Final acceptance evidence was recorded in
+`archive/tickets/GAT101PLATRI-020.md` and included:
+
+1. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
+2. `cargo run -p simulate -- --game plain_tricks --games 1000 --start-seed 0 --action-cap 32 && cargo run -p replay-check -- --game plain_tricks && cargo run -p fixture-check -- --game plain_tricks && cargo run -p rule-coverage -- --game plain_tricks && cargo bench -p plain_tricks`
+3. `bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui`
+4. `npm --prefix apps/web run smoke:e2e`
