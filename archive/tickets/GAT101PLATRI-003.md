@@ -1,6 +1,6 @@
 # GAT101PLATRI-003: CONDITIONAL — seeded-shuffle helper extraction and high_card_duel/poker_lite back-port
 
-**Status**: PENDING
+**Status**: NOT IMPLEMENTED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `crates/game-stdlib` (new behavior-free seeded shuffle/deal helper) and back-port of `games/high_card_duel/src/setup.rs` + `games/poker_lite/src/setup.rs`, with trace/hash-preservation evidence. **Only worked if GAT101PLATRI-002 decides *promote*.**
@@ -84,3 +84,22 @@ If GAT101PLATRI-002 recorded §10A promotion debt instead of immediate back-port
 1. `cargo run -p replay-check -- --game high_card_duel && cargo run -p replay-check -- --game poker_lite`
 2. `cargo test --workspace && bash scripts/boundary-check.sh`
 3. Full-workspace scope is correct here because the back-port touches two shipped games and a shared crate; narrower per-crate runs would miss cross-game hash regressions.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- No helper extraction, back-port, `game-stdlib` edit, `high_card_duel` setup edit, or `poker_lite` setup edit was made.
+- This conditional ticket was closed as not implemented / not applicable because GAT101PLATRI-002 recorded the controlling decision as defer/reject extraction and keep the deterministic shuffle / private hand / staged reveal mechanics local.
+
+Deviations from original plan:
+
+- The promote-path implementation did not run because the prerequisite condition was false. This matches the ticket's scope: it is "Only worked if GAT101PLATRI-002 decides promote."
+
+Verification results:
+
+- `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md` states `Decision: defer/reject extraction and keep the mechanics local`, and states that GAT101PLATRI-003 is not required unless a maintainer later changes the ledger to a promote decision.
+- `docs/MECHANIC-ATLAS.md` §10B records the deterministic shuffle / private hand / staged reveal row as `rejected/deferred with rationale`, with no `game-stdlib` promotion and no §10A promotion debt.
+- Code-bearing replay, workspace, and boundary commands from this ticket were not run because the code-bearing promote path was not implemented and no code changed.
