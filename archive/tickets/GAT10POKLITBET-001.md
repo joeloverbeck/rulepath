@@ -1,6 +1,6 @@
 # GAT10POKLITBET-001: Crest Ledger rules prose, source notes, and admission record
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new per-game docs only (`games/poker_lite/docs/*`); no Rust/engine surface touched
@@ -81,3 +81,25 @@ Instantiate from `templates/GAME-IMPLEMENTATION-ADMISSION.md`. Record: internal 
 1. `node scripts/check-doc-links.mjs`
 2. `ls games/poker_lite/docs/RULES.md games/poker_lite/docs/SOURCES.md games/poker_lite/docs/GAME-IMPLEMENTATION-ADMISSION.md`
 3. Narrower command boundary: there is no Rust/test surface yet, so `cargo` checks are not applicable until GAT10POKLITBET-002 creates the crate.
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite/docs/RULES.md` with the initial `CL-*` stable rule ID set for Crest Ledger setup, action families, pledge accounting, center/showdown reveal, terminal outcomes, visibility/no-leak, replay/randomness, ambiguity resolutions, deviations, and out-of-scope boundaries.
+- Added `games/poker_lite/docs/SOURCES.md` with consulted-only notes for the Gate 10 spec, Rulepath source/IP docs, Kuhn, Leduc-style benchmark context, and OpenSpiel information-state framing.
+- Added `games/poker_lite/docs/GAME-IMPLEMENTATION-ADMISSION.md` recording the Gate 10 admission constraints, mechanic-atlas precondition, evidence expectations, primitive-pressure posture, static-data boundary, no-leak risks, bot requirements, UI expectations, and benchmark expectations.
+
+Deviations from original plan:
+
+- Used the current concise sibling-doc style rather than copying the full template boilerplate verbatim.
+- Kept future docs such as `RULE-COVERAGE.md`, `MECHANICS.md`, `AI.md`, and `PRIMITIVE-PRESSURE-LEDGER.md` as plain paths except where linked files already exist, so this ticket does not introduce broken markdown links before later tickets create those artifacts.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed: checked 25 markdown files.
+- `ls games/poker_lite/docs/RULES.md games/poker_lite/docs/SOURCES.md games/poker_lite/docs/GAME-IMPLEMENTATION-ADMISSION.md` confirmed the three required docs exist.
+- Manual checklist against `specs/gate-10-poker-lite-betting-showdown.md` §A confirmed rule IDs cover hold, press, lift, match, yield, center reveal, showdown comparator, yield terminal, exact split, bounded contributions, and no-leak visibility.
+- Manual IP/source check confirmed `SOURCES.md` states Crest Ledger is original, Kuhn/Leduc/OpenSpiel are consulted-only context, and no public rules prose, hand-ranking table, casino imagery, product naming, or trade dress is copied.
