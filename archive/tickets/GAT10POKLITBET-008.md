@@ -1,6 +1,6 @@
 # GAT10POKLITBET-008: Property tests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/poker_lite/tests/property.rs` (test-only; no production logic). No kernel change.
@@ -70,3 +70,21 @@ Implement the six invariants from §7 as properties over random legal command st
 1. `cargo test -p poker_lite --test property`
 2. `cargo test -p poker_lite`
 3. Narrower boundary: property tests are crate-local; the workspace-wide run is exercised by the capstone (GAT10POKLITBET-018), not here.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+Changed:
+
+- Added `games/poker_lite/tests/property.rs` with seeded legal playout properties for deterministic replay, terminal action cap, accounting invariants, lift-cap safety, and observer no-leak checks over hidden crest ids/labels before reveal.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p poker_lite --test property`
+- `cargo test -p poker_lite`
