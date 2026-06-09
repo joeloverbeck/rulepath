@@ -1,6 +1,6 @@
 # GAT10POKLITBET-013: Native benchmarks, thresholds, BENCHMARKS.md, and gate-2 CI
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/poker_lite/benches/poker_lite.rs`, `games/poker_lite/benches/thresholds.json`, `games/poker_lite/docs/BENCHMARKS.md`, `games/poker_lite/Cargo.toml` (bench target), `.github/workflows/gate-2-benchmarks.yml`. No kernel change.
@@ -83,3 +83,26 @@ Add the `poker_lite` bench-smoke and bench-gate steps mirroring an existing per-
 1. `cargo bench -p poker_lite` (use the crate's bench filters for a smoke run)
 2. `grep -L "0005.*accepted" games/poker_lite/docs/BENCHMARKS.md` — confirms no accepted-ADR-0005 claim.
 3. `cargo run -p rule-coverage -- --game poker_lite` — confirms BENCHMARKS.md satisfies the rule-coverage doc set alongside GAT10POKLITBET-012.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+- Added the native `poker_lite` benchmark target with deterministic setup,
+  legal-action generation, validation, apply, observer projection, public
+  export/import, terminal hashing, Level 2 bot decision, and full Level 2
+  playout surfaces.
+- Added provisional threshold metadata and `BENCHMARKS.md` without claiming ADR
+  0005 is accepted.
+- Registered `poker_lite` in Gate 2 bench-smoke and bench-gate workflow steps.
+- Updated `rule-coverage` to read `games/poker_lite/docs/BENCHMARKS.md` instead
+  of the temporary rule-coverage placeholder.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo bench -p poker_lite`
+- `cargo bench -p poker_lite -- legal_actions`
+- `cargo run -p bench-report -- --input /tmp/poker_lite-benchmark-report.txt --thresholds games/poker_lite/benches/thresholds.json`
+- `cargo run -p rule-coverage -- --game poker_lite`
+- `grep -Ri "0005.*accepted" games/poker_lite/docs/BENCHMARKS.md games/poker_lite/benches/thresholds.json` produced no matches.

@@ -84,7 +84,7 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "poker_lite",
             rules_path: "games/poker_lite/docs/RULES.md",
             coverage_path: "games/poker_lite/docs/RULE-COVERAGE.md",
-            benchmarks_path: "games/poker_lite/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/poker_lite/docs/BENCHMARKS.md",
         }),
         _ => Err(format!("unsupported game `{game}`")),
     }
