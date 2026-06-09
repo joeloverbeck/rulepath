@@ -1,6 +1,8 @@
 //! `poker_lite` official-game crate skeleton for Crest Ledger.
 
 pub mod ids;
+pub mod setup;
+pub mod state;
 pub mod variants;
 
 pub use ids::{
@@ -8,6 +10,10 @@ pub use ids::{
     ACTION_MATCH, ACTION_PRESS, ACTION_YIELD, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT,
     STANDARD_COPY_COUNT, STANDARD_MAX_CONTRIBUTION, STANDARD_RANK_COUNT, STANDARD_ROUND_COUNT,
     STANDARD_ROUND_UNITS, STANDARD_SEAT_COUNT, VARIANT_ID,
+};
+pub use setup::{setup_match, shuffle_deck, SetupOptions};
+pub use state::{
+    Phase, PledgeRoundState, PokerLiteState, ShowdownReveal, TerminalOutcome, TerminalReveal,
 };
 pub use variants::{Fixture, Manifest, Variant, VariantCatalog};
 

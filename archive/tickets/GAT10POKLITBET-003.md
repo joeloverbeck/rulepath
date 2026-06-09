@@ -1,6 +1,6 @@
 # GAT10POKLITBET-003: Deterministic setup and internal state
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/poker_lite/src/setup.rs`, `games/poker_lite/src/state.rs`. No `engine-core` / `game-stdlib` change.
@@ -78,3 +78,26 @@ Define `PokerLiteState`, `Phase`, `PledgeRoundState`, `TerminalOutcome` (`YieldW
 1. `cargo test -p poker_lite`
 2. `cargo build -p poker_lite`
 3. `bash scripts/boundary-check.sh` — boundary surface; deterministic replay-hash assertions are the correct boundary for GAT10POKLITBET-009, not here.
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite/src/state.rs` with `PokerLiteState`, `Phase`, `PledgeRoundState`, `TerminalOutcome`, reveal structs, internal hidden-card accessors, and a stable internal summary for tests/replay substrate.
+- Added `games/poker_lite/src/setup.rs` with deterministic seeded shuffle, two-seat setup validation, private card deal, hidden center card, internal deck tail, opening contributions, shared pool, initial active seat, and initial freshness token.
+- Re-exported setup/state types from `games/poker_lite/src/lib.rs`.
+- Added setup/state unit tests for deterministic deal, opening accounting, phase/active seat, internal hidden-field access, deck-tail separation, and stable summary.
+
+Deviations from original plan:
+
+- Kept hidden fields private inside `PokerLiteState` and exposed only explicitly named internal accessors for later native rules/tests. Public projection is intentionally deferred to the visibility ticket.
+- Used the same local unbiased shuffle helper shape as `high_card_duel`; no shared helper or `game-stdlib` promotion was introduced.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed: 12 unit tests and 0 doc tests.
+- `cargo build -p poker_lite` passed.
+- `bash scripts/boundary-check.sh` passed.
