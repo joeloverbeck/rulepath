@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "export_class": "viewer_scoped_observation_v1",
+  "viewer": "observer",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "variant": "poker_lite_standard",
+  "steps": [
+    {
+      "step_index": 0,
+      "public_view_summary": "schema=1;rules=1;game=poker_lite;variant=poker_lite_standard;label=poker-lite-rules-v1;phase=pledge_round_1;active=seat_0;pool=2;contrib=1,1;round=0:unit1:outstanding=none:amount0:lift1;private_counts=1,1;center=hidden;showdown=none;terminal=non_terminal;freshness=0;private=observer;ui=poker_lite|Crest Ledger|Crest Ledger board|Shared pool|Center crest hidden|Private crest hidden|Hold|Press|Lift|Match|Yield|Use simple reveal changes when reduced motion is enabled",
+      "public_effects": [
+        "public:CrestDealStarted { private_count_per_seat: 1, center_count: 1, deck_tail_count: 3 }",
+        "public:OpeningPoolSet { contributions: [1, 1], shared_pool: 2 }"
+      ],
+      "redacted_command_summary": "initial_public_state",
+      "terminal": false
+    },
+    {
+      "step_index": 1,
+      "public_view_summary": "schema=1;rules=1;game=poker_lite;variant=poker_lite_standard;label=poker-lite-rules-v1;phase=pledge_round_1;active=seat_1;pool=3;contrib=2,1;round=0:unit1:outstanding=seat_1:amount1:lift1;private_counts=1,1;center=hidden;showdown=none;terminal=non_terminal;freshness=1;private=observer;ui=poker_lite|Crest Ledger|Crest Ledger board|Shared pool|Center crest hidden|Private crest hidden|Hold|Press|Lift|Match|Yield|Use simple reveal changes when reduced motion is enabled",
+      "public_effects": [
+        "public:PledgePressed { actor: Seat0, round_index: 0, amount: 1, shared_pool_after: 3 }"
+      ],
+      "redacted_command_summary": "seat_0:pledge_action_redacted",
+      "terminal": false
+    },
+    {
+      "step_index": 2,
+      "public_view_summary": "schema=1;rules=1;game=poker_lite;variant=poker_lite_standard;label=poker-lite-rules-v1;phase=pledge_round_2;active=seat_1;pool=4;contrib=2,2;round=1:unit2:outstanding=none:amount0:lift1;private_counts=1,1;center=low_dawn:low:1:dawn:Sprout Dawn;showdown=none;terminal=non_terminal;freshness=2;private=observer;ui=poker_lite|Crest Ledger|Crest Ledger board|Shared pool|Center crest hidden|Private crest hidden|Hold|Press|Lift|Match|Yield|Use simple reveal changes when reduced motion is enabled",
+      "public_effects": [
+        "public:PledgeMatched { actor: Seat1, round_index: 0, amount: 1, shared_pool_after: 4 }",
+        "public:CenterRevealStarted { group_id: \"poker_lite_center_reveal\" }",
+        "public:CenterRevealed { group_id: \"poker_lite_center_reveal\", center: LowDawn }"
+      ],
+      "redacted_command_summary": "seat_1:pledge_action_redacted",
+      "terminal": false
+    }
+  ]
+}

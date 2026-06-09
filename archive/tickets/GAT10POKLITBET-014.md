@@ -1,6 +1,6 @@
 # GAT10POKLITBET-014: WASM registration and viewer-scoped browser bridge
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (new `RegisteredGame`/`MatchRecord` variant, `GAME_*` consts, serializers, viewer-scoped bridge), `crates/wasm-api/Cargo.toml` (dep), `games/poker_lite/tests/golden_traces/wasm-exported.trace.json`. No `engine-core`/`game-stdlib` change.
@@ -78,3 +78,25 @@ Add the `poker_lite` dep; author the `wasm-exported` golden trace proving the ex
 1. `cargo test -p wasm-api`
 2. `cargo build -p wasm-api --target wasm32-unknown-unknown` (requires `rustup target add wasm32-unknown-unknown`)
 3. Note: `check-catalog-docs` is expected red from this ticket until GAT10POKLITBET-016 reconciles the README catalog surfaces — an expected mid-gate state, not a regression.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+- Added the additive `poker_lite` dependency, game constants, registered-game
+  entry, match record variant, list-games metadata, view/action-tree/apply
+  action/bot/effects/export/import/replay bridge arms, and support helpers.
+- Serialized `poker_lite` Rust view/effect payloads through the WASM boundary
+  with viewer filtering at the boundary and empty action trees for non-actor
+  viewers.
+- Added redaction tests for observer/opponent payloads, viewer-scoped action
+  trees, Level 2 bot turn output, public export/import, and replay reset.
+- Added `games/poker_lite/tests/golden_traces/wasm-exported.trace.json` as the
+  deterministic public observer export fixture.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `cargo build -p wasm-api`
+- `cargo build -p wasm-api --target wasm32-unknown-unknown`
