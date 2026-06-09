@@ -535,6 +535,80 @@ export type SecretDraftPublicView = {
   ui: SecretDraftUiMetadata;
 };
 
+export type PokerLiteCardView = {
+  card_id: string;
+  rank: "low" | "middle" | "high" | string;
+  rank_value: number;
+  copy: string;
+  label: string;
+  accessibility_label: string;
+};
+
+export type PokerLiteRoundView = {
+  round_index: number;
+  round_unit: number;
+  outstanding_actor: SeatId | null;
+  outstanding_amount: number;
+  lift_cap_remaining: number;
+};
+
+export type PokerLiteCenterView =
+  | { status: "hidden" | string; card: null }
+  | { status: "revealed"; card: PokerLiteCardView };
+
+export type PokerLiteShowdownView = {
+  seat_0_private: PokerLiteCardView;
+  seat_1_private: PokerLiteCardView;
+  center: PokerLiteCardView;
+  winner: SeatId | null;
+};
+
+export type PokerLiteTerminalView =
+  | { terminal: false; kind: "non_terminal"; winner: null; draw: false }
+  | { terminal: true; kind: "yield_win"; winner: SeatId; loser: SeatId; draw: false; shared_pool: number }
+  | { terminal: true; kind: "showdown_win"; winner: SeatId; draw: false; shared_pool: number }
+  | { terminal: true; kind: "split"; winner: null; draw: true; shared_pool: number; each: number };
+
+export type PokerLitePrivateView =
+  | { status: "observer"; own_private: null; own_strength_bucket: null }
+  | { status: "seat"; seat: SeatId; own_private: PokerLiteCardView | null; own_strength_bucket: string | null };
+
+export type PokerLiteUiMetadata = {
+  game_id: "poker_lite";
+  display_name: "Crest Ledger";
+  surface_label: string;
+  shared_pool_label: string;
+  hidden_center_label: string;
+  hidden_private_label: string;
+  hold_label: string;
+  press_label: string;
+  lift_label: string;
+  match_label: string;
+  yield_label: string;
+  reduced_motion_note: string;
+};
+
+export type PokerLitePublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "poker_lite";
+  display_name: string;
+  variant_id: "poker_lite_standard";
+  rules_version_label: string;
+  phase: "pledge_round_1" | "pledge_round_2" | "terminal" | string;
+  active_seat: SeatId | null;
+  shared_pool: number;
+  contributions: { seat_0: number; seat_1: number };
+  round: PokerLiteRoundView;
+  private_counts: { seat_0: number; seat_1: number };
+  center: PokerLiteCenterView;
+  showdown: PokerLiteShowdownView | null;
+  terminal: PokerLiteTerminalView;
+  freshness_token: number;
+  private_view: PokerLitePrivateView;
+  ui: PokerLiteUiMetadata;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -543,7 +617,8 @@ export type PublicView =
   | DraughtsLitePublicView
   | HighCardDuelPublicView
   | TokenBazaarPublicView
-  | SecretDraftPublicView;
+  | SecretDraftPublicView
+  | PokerLitePublicView;
 
 export type ActionChoice = {
   segment: string;

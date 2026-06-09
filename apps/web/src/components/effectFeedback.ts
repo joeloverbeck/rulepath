@@ -227,6 +227,78 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.priority_seat} has conflict priority next round.`,
         tone: "turn",
       };
+    case "crest_deal_started":
+      return {
+        title: "Crests prepared",
+        detail: "Rust prepared private and center crests.",
+        tone: "neutral",
+      };
+    case "opening_pool_set":
+      return {
+        title: "Shared pool set",
+        detail: `Shared pool ${payload.shared_pool ?? 0}.`,
+        tone: "turn",
+      };
+    case "pledge_held":
+      return {
+        title: "Held",
+        detail: `${payload.actor} held without adding to the shared pool.`,
+        tone: "turn",
+      };
+    case "pledge_pressed":
+      return {
+        title: "Pressed",
+        detail: `${payload.actor} added ${payload.amount ?? 0} to the shared pool.`,
+        tone: "turn",
+      };
+    case "pledge_lifted":
+      return {
+        title: "Lifted",
+        detail: `${payload.actor} lifted the pledge by ${payload.amount ?? 0}.`,
+        tone: "turn",
+      };
+    case "pledge_matched":
+      return {
+        title: "Matched",
+        detail: `${payload.actor} matched ${payload.amount ?? 0}.`,
+        tone: "turn",
+      };
+    case "seat_yielded":
+      return {
+        title: "Yielded",
+        detail: `${payload.actor} yielded; ${payload.winner} receives the shared pool.`,
+        tone: "terminal",
+      };
+    case "center_reveal_started":
+      return {
+        title: "Center reveal",
+        detail: "Rust started the grouped center reveal.",
+        tone: "movement",
+      };
+    case "center_revealed":
+      return {
+        title: "Center revealed",
+        detail: "The center crest is now public.",
+        tone: "movement",
+      };
+    case "showdown_reveal_started":
+      return {
+        title: "Showdown reveal",
+        detail: "Rust started the grouped showdown reveal.",
+        tone: "movement",
+      };
+    case "showdown_revealed":
+      return {
+        title: "Showdown revealed",
+        detail: "Both private crests are now public.",
+        tone: "movement",
+      };
+    case "ledger_resolved":
+      return {
+        title: "Ledger resolved",
+        detail: `Shared pool ${payload.shared_pool ?? 0} resolved by Rust.`,
+        tone: "terminal",
+      };
     case "resource_collected":
       return {
         title: "Resources collected",
@@ -280,6 +352,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         return {
           title: "Draft complete",
           detail: terminalOutcome(payload.outcome, "draft"),
+          tone: "terminal",
+        };
+      }
+      if (isPokerLiteOutcome(payload.outcome)) {
+        return {
+          title: "Ledger complete",
+          detail: terminalOutcome(payload.outcome, "ledger"),
           tone: "terminal",
         };
       }
@@ -338,6 +417,19 @@ function terminalOutcome(value: unknown, noun: string): string {
   }
   const outcome = value as { kind?: unknown; winner?: unknown };
   return outcome.kind === "draw" ? `The ${noun} ended in a draw.` : `${String(outcome.winner ?? "A seat")} won the ${noun}.`;
+}
+
+function isPokerLiteOutcome(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const outcome = value as { kind?: unknown; shared_pool?: unknown };
+  return (
+    outcome.kind === "yield_win" ||
+    outcome.kind === "showdown_win" ||
+    outcome.kind === "split" ||
+    typeof outcome.shared_pool === "number"
+  );
 }
 
 export function summarizeEffect(entry: EffectEntry): string {

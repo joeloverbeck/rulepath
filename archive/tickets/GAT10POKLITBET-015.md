@@ -1,6 +1,6 @@
 # GAT10POKLITBET-015: Crest Ledger browser renderer
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/PokerLiteBoard.tsx`, `apps/web/src/wasm/client.ts`, `apps/web/src/main.tsx`, `apps/web/src/components/effectFeedback.ts`, `apps/web/src/components/ActionControls.tsx`. Behavior authority stays in Rust/WASM; TypeScript renders only.
@@ -86,3 +86,29 @@ Add neutral pledge/reveal effect copy (no casino/chip/payout/ante/blind/rake wor
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. Note: the full rendered-browser no-leak/a11y e2e is GAT10POKLITBET-016; `smoke:ui` is the correct boundary for renderer wiring here.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+- Added `PokerLiteBoard` as a presentation-only Crest Ledger renderer for the
+  Rust/WASM view, action tree, and effects.
+- Added `PokerLitePublicView` and supporting client types to the WASM client
+  union.
+- Wired `PokerLiteBoard` into `main.tsx`, terminal/text-view handling, replay
+  snapshot summaries, and no-leak-safe action test ids.
+- Added neutral pledge/reveal/ledger feedback copy and responsive/reduced-motion
+  styles for the board.
+- Source review: private crest rendering uses only `private_view.own_private`,
+  observer rendering shows hidden placeholders, center rendering is gated by
+  `center.status`, showdown rendering is grouped, yield terminal copy does not
+  reveal private crests, and action buttons are mapped only from the Rust action
+  tree.
+
+Verification:
+
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `rg -n "casino|poker|chip|payout|ante|blind|rake|felt" ...` found only
+  `poker_lite` identifiers/classes and pre-existing Token Bazaar resource-chip
+  styles, not new user-facing forbidden terminology.
