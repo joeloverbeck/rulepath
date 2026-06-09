@@ -1069,12 +1069,12 @@ mod tests {
             "#0 actor=seat-0 path=add-1",
             "Checkpoints",
             "Expected Hashes",
-            "state.final: 4954817074678372285",
+            "state.final: 10275940640358619244",
             "Diagnostics",
             "Not Applicable",
             "Expected Outcome",
             "Actual Replay Annotation",
-            "public_view.all: 3154950469214524667",
+            "public_view.all: 3920897186672353542",
         ] {
             assert!(summary.contains(expected), "missing `{expected}`");
         }

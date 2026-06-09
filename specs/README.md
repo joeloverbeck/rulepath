@@ -40,7 +40,7 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | 7 | Gate 9 | [`gate-9-token-bazaar-browser-proof.md`](../archive/specs/gate-9-token-bazaar-browser-proof.md) (`token_bazaar`; `secret_draft` deferred to a Gate 9.1 commitment/reveal gate) | Done |
 | 7M | Gate 9 aftermath / web README realignment | [`gate-9-aftermath-roadmap-realignment.md`](../archive/specs/gate-9-aftermath-roadmap-realignment.md) realigns the web-shell README (intro, Shell Surface, Smoke Layers) to register Token Bazaar after Gate 9. | Done |
 | - | Non-gate (UI infra) | [`rules-display-shared-surface.md`](../archive/specs/rules-display-shared-surface.md) | Done |
-| - | Non-gate (UI infra) | [`victory-explanation-shared-surface.md`](victory-explanation-shared-surface.md) | Planned |
+| - | Non-gate (UI infra) | [`victory-explanation-shared-surface.md`](victory-explanation-shared-surface.md) | Done |
 | 8 | Gate 9.1 | [`gate-9-1-secret-draft-commitment-reveal.md`](../archive/specs/gate-9-1-secret-draft-commitment-reveal.md) (`secret_draft` / Veiled Draft; simultaneous commitment/reveal and pending-seat no-leak proof) | Done |
 | 9 | Gate 10 | [`poker_lite` / Crest Ledger betting-showdown proof](../archive/specs/gate-10-poker-lite-betting-showdown.md) complete; `plain_tricks` trick/follow-suit proof not yet specced | In progress |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |

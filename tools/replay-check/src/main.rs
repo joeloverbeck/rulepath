@@ -2279,13 +2279,13 @@ mod tests {
 
     #[test]
     fn corrupted_hash_fails() {
-        let corrupted = VALID.replace("4954817074678372285", "4954817074678372286");
+        let corrupted = VALID.replace("10275940640358619244", "10275940640358619245");
         let trace = Trace::parse(Path::new("shortest-normal.trace.json"), &corrupted).unwrap();
         let error = trace.check(resolve_game("race_to_n").unwrap()).unwrap_err();
 
         assert!(error.contains("state hash drift"));
-        assert!(error.contains("expected: 4954817074678372286"));
-        assert!(error.contains("actual: 4954817074678372285"));
+        assert!(error.contains("expected: 10275940640358619245"));
+        assert!(error.contains("actual: 10275940640358619244"));
     }
 
     #[test]

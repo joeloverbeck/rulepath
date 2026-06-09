@@ -1,6 +1,6 @@
 # VICEXPSHASUR-012: Closeout — acceptance evidence + `specs/README` Done-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — verification-only capstone + `specs/README.md` status reconciliation; no production logic, no code surface.
@@ -76,3 +76,25 @@ Update the `victory-explanation-shared-surface` row from `Planned` to `Done` (th
 1. `cargo test --workspace && node scripts/check-outcome-explanations.mjs && node scripts/check-catalog-docs.mjs`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e && npm --prefix apps/web run smoke:ui`
 3. `node scripts/check-doc-links.mjs` (regression after the index edit)
+
+## Outcome
+
+Completed 2026-06-09.
+
+The `victory-explanation-shared-surface` row in `specs/README.md` is `Done` after the full exit command set passed. During the closeout run, three stale support-test expectations were repaired so the existing replay/WASM fixture guards match the rationale-hash migrations landed by earlier tickets:
+
+- `tools/replay-check/src/main.rs` corrupted-hash test now uses the current `race_to_n` final state hash.
+- `tools/trace-viewer/src/main.rs` expected summary strings now use the current `race_to_n` state and public-view hashes.
+- `crates/wasm-api/src/lib.rs` WASM export fixture notes now match the updated Three Marks, Draughts Lite, and Token Bazaar golden fixtures.
+
+Acceptance evidence:
+
+- `cargo test -p wasm-api --lib` passed.
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game <game> --all` passed for `race_to_n`, `three_marks`, `column_four`, `directional_flip`, `draughts_lite`, `high_card_duel`, `token_bazaar`, `secret_draft`, and `poker_lite`.
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `node scripts/check-catalog-docs.mjs` passed.
+- `cargo fmt --all --check` passed.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
