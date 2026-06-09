@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
@@ -16,6 +17,7 @@ pub use ids::{
     STANDARD_COPY_COUNT, STANDARD_MAX_CONTRIBUTION, STANDARD_RANK_COUNT, STANDARD_ROUND_COUNT,
     STANDARD_ROUND_UNITS, STANDARD_SEAT_COUNT, VARIANT_ID,
 };
+pub use rules::{apply_action, compare_showdown, showdown_strength, ShowdownStrength};
 pub use setup::{setup_match, shuffle_deck, SetupOptions};
 pub use state::{
     Phase, PledgeRoundState, PokerLiteState, ShowdownReveal, TerminalOutcome, TerminalReveal,

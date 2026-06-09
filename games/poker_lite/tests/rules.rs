@@ -1,6 +1,7 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
 use poker_lite::{
-    legal_action_tree, setup_match, validate_command, Phase, PokerLiteSeat, SetupOptions,
+    apply_action, compare_showdown, legal_action_tree, setup_match, validate_command, CrestCardId,
+    Phase, PokerLiteSeat, SetupOptions, ShowdownReveal, TerminalOutcome,
 };
 
 fn standard_state() -> poker_lite::PokerLiteState {
@@ -27,6 +28,11 @@ fn command(state: &poker_lite::PokerLiteState, seat: &str, segment: &str) -> Com
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn apply_segment(state: &mut poker_lite::PokerLiteState, seat: &str, segment: &str) {
+    let action = validate_command(state, &command(state, seat, segment)).expect("valid command");
+    apply_action(state, action).expect("apply succeeds");
 }
 
 #[test]
@@ -137,4 +143,180 @@ fn validation_reports_fail_closed_diagnostics() {
     let diagnostic = validate_command(&capped, &command(&capped, "seat_1", "lift")).unwrap_err();
     assert_eq!(diagnostic.code, "lift_cap_exceeded");
     assert!(!format!("{diagnostic:?}").contains("low_"));
+}
+
+#[test]
+fn hold_hold_closes_round_one_and_reveals_center_only() {
+    let mut state = standard_state();
+
+    apply_segment(&mut state, "seat_0", "hold");
+    assert_eq!(state.phase, Phase::PledgeRound { round_index: 0 });
+    assert_eq!(state.active_seat, Some(PokerLiteSeat::Seat1));
+    assert!(!state.center_visible);
+
+    apply_segment(&mut state, "seat_1", "hold");
+    assert_eq!(state.phase, Phase::PledgeRound { round_index: 1 });
+    assert_eq!(state.active_seat, Some(PokerLiteSeat::Seat1));
+    assert!(state.center_visible);
+    assert_eq!(state.round.round_index, 1);
+    assert_eq!(state.round.unit, 2);
+    assert_eq!(state.contributions, [1, 1]);
+    assert_eq!(state.shared_pool, 2);
+    assert!(state.terminal_outcome.is_none());
+}
+
+#[test]
+fn press_lift_match_accounting_is_exact_and_bounded() {
+    let mut state = standard_state();
+
+    apply_segment(&mut state, "seat_0", "press");
+    assert_eq!(state.contributions, [2, 1]);
+    assert_eq!(state.shared_pool, 3);
+    assert_eq!(state.active_seat, Some(PokerLiteSeat::Seat1));
+    assert_eq!(state.round.outstanding_actor, Some(PokerLiteSeat::Seat1));
+    assert_eq!(state.round.outstanding_amount, 1);
+
+    apply_segment(&mut state, "seat_1", "lift");
+    assert_eq!(state.contributions, [2, 3]);
+    assert_eq!(state.shared_pool, 5);
+    assert_eq!(state.active_seat, Some(PokerLiteSeat::Seat0));
+    assert!(state.round.lift_used);
+    assert_eq!(state.round.outstanding_amount, 1);
+
+    apply_segment(&mut state, "seat_0", "match");
+    assert_eq!(state.contributions, [3, 3]);
+    assert_eq!(state.shared_pool, 6);
+    assert!(state.center_visible);
+    assert_eq!(state.phase, Phase::PledgeRound { round_index: 1 });
+
+    apply_segment(&mut state, "seat_1", "press");
+    apply_segment(&mut state, "seat_0", "lift");
+    apply_segment(&mut state, "seat_1", "match");
+
+    assert_eq!(state.contributions, [7, 7]);
+    assert_eq!(state.shared_pool, 14);
+    assert!(state.contributions.iter().all(|amount| *amount <= 7));
+    assert_eq!(state.phase, Phase::Terminal);
+    assert!(state.terminal_outcome.is_some());
+}
+
+#[test]
+fn yield_terminal_awards_pool_without_showdown_reveal() {
+    let mut state = standard_state();
+
+    apply_segment(&mut state, "seat_0", "press");
+    apply_segment(&mut state, "seat_1", "yield");
+
+    assert_eq!(state.phase, Phase::Terminal);
+    assert_eq!(state.active_seat, None);
+    assert!(!state.center_visible);
+    assert_eq!(
+        state.terminal_outcome,
+        Some(TerminalOutcome::YieldWin {
+            winner: PokerLiteSeat::Seat0,
+            loser: PokerLiteSeat::Seat1,
+            shared_pool: 3,
+            contributions: [2, 1],
+        })
+    );
+}
+
+#[test]
+fn comparator_covers_pair_high_card_and_split() {
+    assert_eq!(
+        compare_showdown(ShowdownReveal {
+            seat_0_private: CrestCardId::LowDawn,
+            seat_1_private: CrestCardId::HighDawn,
+            center: CrestCardId::LowDusk,
+        }),
+        Some(PokerLiteSeat::Seat0)
+    );
+    assert_eq!(
+        compare_showdown(ShowdownReveal {
+            seat_0_private: CrestCardId::MiddleDawn,
+            seat_1_private: CrestCardId::HighDawn,
+            center: CrestCardId::LowDawn,
+        }),
+        Some(PokerLiteSeat::Seat1)
+    );
+    assert_eq!(
+        compare_showdown(ShowdownReveal {
+            seat_0_private: CrestCardId::MiddleDawn,
+            seat_1_private: CrestCardId::MiddleDusk,
+            center: CrestCardId::HighDawn,
+        }),
+        None
+    );
+}
+
+#[test]
+fn showdown_terminal_allocates_win_or_split_from_rust_comparator() {
+    for seed in 0..100 {
+        let mut state = setup_match(
+            Seed(seed),
+            &[SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())],
+            &SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        apply_segment(&mut state, "seat_0", "hold");
+        apply_segment(&mut state, "seat_1", "hold");
+        apply_segment(&mut state, "seat_1", "hold");
+        apply_segment(&mut state, "seat_0", "hold");
+
+        let Some(outcome) = state.terminal_outcome else {
+            panic!("terminal outcome expected");
+        };
+        match outcome {
+            TerminalOutcome::ShowdownWin {
+                winner,
+                shared_pool,
+                contributions,
+                reveal,
+            } => {
+                assert_eq!(Some(winner), compare_showdown(reveal));
+                assert_eq!(shared_pool, 2);
+                assert_eq!(contributions, [1, 1]);
+            }
+            TerminalOutcome::Split {
+                shared_pool,
+                each,
+                contributions,
+                reveal,
+            } => {
+                assert_eq!(compare_showdown(reveal), None);
+                assert_eq!(shared_pool, 2);
+                assert_eq!(each, 1);
+                assert_eq!(contributions, [1, 1]);
+            }
+            TerminalOutcome::YieldWin { .. } => panic!("hold stream cannot yield"),
+        }
+    }
+}
+
+#[test]
+fn identical_command_stream_is_deterministic() {
+    fn run() -> poker_lite::PokerLiteState {
+        let mut state = standard_state();
+        for (seat, segment) in [
+            ("seat_0", "press"),
+            ("seat_1", "lift"),
+            ("seat_0", "match"),
+            ("seat_1", "hold"),
+            ("seat_0", "hold"),
+        ] {
+            apply_segment(&mut state, seat, segment);
+        }
+        state
+    }
+
+    let first = run();
+    let second = run();
+
+    assert_eq!(first.terminal_outcome, second.terminal_outcome);
+    assert_eq!(first.contributions, second.contributions);
+    assert_eq!(first.shared_pool, second.shared_pool);
+    assert_eq!(
+        first.stable_internal_summary(),
+        second.stable_internal_summary()
+    );
 }

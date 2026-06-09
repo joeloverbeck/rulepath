@@ -1,6 +1,6 @@
 # GAT10POKLITBET-005: Rules transition engine, showdown comparator, and shared-pool accounting
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/poker_lite/src/rules.rs` + extends `games/poker_lite/tests/rules.rs`. No kernel change.
@@ -78,3 +78,27 @@ Add transition, round-close, center-reveal-timing, showdown-comparator (all thre
 1. `cargo test -p poker_lite --test rules`
 2. `cargo test -p poker_lite`
 3. `bash scripts/boundary-check.sh` — confirms accounting/comparator added no mechanic noun to `engine-core`.
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite/src/rules.rs` with transition handling for hold, press, lift, match, and yield.
+- Implemented round-close behavior: round 1 reveals the center and advances to round 2 with `seat_1` leading; round 2 resolves showdown and enters terminal.
+- Implemented pair-before-high-card showdown comparison and terminal outcomes for `YieldWin`, `ShowdownWin`, and `Split`.
+- Added exact shared-pool/contribution accounting with debug assertions for `shared_pool == sum(contributions)`, max contribution bound, and even split.
+- Extended `games/poker_lite/tests/rules.rs` with transition, accounting, center reveal, yield terminal, comparator, showdown allocation, and deterministic command-stream coverage.
+- Re-exported rules helpers from `games/poker_lite/src/lib.rs`.
+
+Deviations from original plan:
+
+- `apply_action` returns `Result<(), Diagnostic>` and emits no effects; semantic effects are intentionally deferred to GAT10POKLITBET-006.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite --test rules` passed: 9 integration tests.
+- `cargo test -p poker_lite` passed: 18 unit tests, 9 integration tests, and 0 doc tests.
+- `bash scripts/boundary-check.sh` passed.

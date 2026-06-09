@@ -34,9 +34,17 @@ pub struct PledgeRoundState {
 
 impl PledgeRoundState {
     pub const fn initial() -> Self {
+        Self::for_round(0)
+    }
+
+    pub const fn for_round(round_index: u8) -> Self {
         Self {
-            round_index: 0,
-            unit: 1,
+            round_index,
+            unit: match round_index {
+                0 => 1,
+                1 => 2,
+                _ => 0,
+            },
             outstanding_actor: None,
             outstanding_amount: 0,
             lift_used: false,
