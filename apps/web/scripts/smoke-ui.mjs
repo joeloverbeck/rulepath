@@ -155,6 +155,12 @@ assert(
   ),
   "Rust catalog includes token_bazaar standard variant",
 );
+assert(
+  catalog.some(
+    (game) => game.game_id === "plain_tricks" && game.variants.includes("plain_tricks_standard"),
+  ),
+  "Rust catalog includes plain_tricks standard variant",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
@@ -205,6 +211,82 @@ assert(
   tokenAfterHuman.effects.some((effect) => effect.payload.type === "resource_collected"),
   "token_bazaar emits resource accounting effect",
 );
+
+const plainTricks = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 11n),
+  ["plain_tricks"],
+);
+assert(plainTricks.match_id, "plain_tricks start match returns a match id");
+assert(plainTricks.variant_id === "plain_tricks_standard", "plain_tricks standard variant starts");
+const plainObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [plainTricks.match_id],
+);
+assert(plainObserver.game_id === "plain_tricks", "plain_tricks Rust view is returned");
+assert(plainObserver.private_view.status === "observer", "plain_tricks observer view is redacted");
+const plainSeat0 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [plainTricks.match_id, "seat_0"],
+);
+assert(plainSeat0.private_view.own_hand.length === 6, "plain_tricks seat view exposes own hand");
+const plainBlockedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [plainTricks.match_id, "seat_0", "seat_1"],
+);
+assert(plainBlockedTree.choices.length === 0, "plain_tricks non-actor tree is empty");
+const plainTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [plainTricks.match_id, "seat_0", "seat_0"],
+);
+const plainPlay = plainTree.choices.find((choice) => choice.segment === "play");
+const plainCard = plainPlay?.next?.choices?.[0];
+assert(plainCard, "plain_tricks action tree exposes Rust card choices");
+const plainAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(plainTree.freshness_token),
+    ),
+  [plainTricks.match_id, "seat_0", `play>${plainCard.segment}`],
+);
+assert(plainAfterHuman.view.current_trick.plays.length === 1, "plain_tricks card play updates current trick");
+assert(
+  plainAfterHuman.effects.some((effect) => effect.payload.type === "card_played"),
+  "plain_tricks emits card-play effect",
+);
+const plainExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [plainTricks.match_id],
+);
+assert(plainExport.game_id === "plain_tricks", "plain_tricks replay export preserves game id");
+assert(plainExport.export_class === "viewer_scoped_observation_v1", "plain_tricks replay export is viewer scoped");
+const plainImport = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(plainExport)],
+);
+assert(plainImport.public_export === true, "plain_tricks public replay imports");
 
 const hotseat = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 2n),
@@ -266,5 +348,6 @@ console.log(
     modes: ["human_vs_bot", "hotseat", "bot_vs_bot"],
     replay_cursor: replayStep.cursor,
     token_bazaar_match_id: tokenBazaar.match_id,
+    plain_tricks_match_id: plainTricks.match_id,
   }),
 );

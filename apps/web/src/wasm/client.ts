@@ -127,6 +127,13 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
+export type PlainTricksOutcomeRationale = {
+  result_kind: string;
+  decisive_cause: string;
+  template_key: string;
+  decisive_rule_ids: string[];
+  per_seat: Array<{ seat: SeatId; total_tricks: number; result: string }>;
+};
 
 export type RaceToNPublicView = {
   counter: number;
@@ -662,6 +669,75 @@ export type PokerLitePublicView = {
   ui: PokerLiteUiMetadata;
 };
 
+export type PlainTricksCardView = {
+  card_id: string;
+  suit: string;
+  rank: string;
+  rank_value: number;
+  label: string;
+  accessibility_label: string;
+};
+
+export type PlainTricksPlayedCardView = {
+  seat: SeatId;
+  card: PlainTricksCardView;
+};
+
+export type PlainTricksCompletedTrickView = {
+  round_index: number;
+  trick_index: number;
+  leader: SeatId;
+  plays: PlainTricksPlayedCardView[];
+  winner: SeatId;
+  trick_counts_after: { seat_0: number; seat_1: number };
+};
+
+export type PlainTricksTerminalView =
+  | { kind: "non_terminal"; winner: null; draw: false }
+  | { kind: "trick_win"; winner: SeatId; draw: false; totals: { seat_0: number; seat_1: number }; rationale: PlainTricksOutcomeRationale }
+  | { kind: "split"; winner: null; draw: true; each: number; totals: { seat_0: number; seat_1: number }; rationale: PlainTricksOutcomeRationale };
+
+export type PlainTricksPrivateView =
+  | { status: "observer"; own_hand: [] }
+  | { status: "seat"; seat: SeatId; own_hand: PlainTricksCardView[] };
+
+export type PlainTricksPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "plain_tricks";
+  display_name: string;
+  variant_id: "plain_tricks_standard";
+  rules_version_label: string;
+  phase: string;
+  active_seat: SeatId | null;
+  round_index: number;
+  trick_index: number;
+  round_leader: SeatId;
+  current_leader: SeatId;
+  hand_counts: { seat_0: number; seat_1: number };
+  current_trick: { led_suit: string | null; plays: PlainTricksPlayedCardView[] };
+  trick_history: PlainTricksCompletedTrickView[];
+  round_trick_counts: { seat_0: number; seat_1: number };
+  total_trick_counts: { seat_0: number; seat_1: number };
+  terminal: PlainTricksTerminalView;
+  freshness_token: number;
+  private_view: PlainTricksPrivateView;
+  ui: {
+    game_id: "plain_tricks";
+    display_name: "Plain Tricks";
+    table_label: string;
+    own_hand_label: string;
+    opponent_hand_label: string;
+    current_trick_label: string;
+    trick_history_label: string;
+    score_label: string;
+    play_action_label: string;
+    observer_disabled_reason: string;
+    reduced_motion_note: string;
+    rules_summary: string[];
+  };
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -671,7 +747,8 @@ export type PublicView =
   | HighCardDuelPublicView
   | TokenBazaarPublicView
   | SecretDraftPublicView
-  | PokerLitePublicView;
+  | PokerLitePublicView
+  | PlainTricksPublicView;
 
 export type ActionChoice = {
   segment: string;

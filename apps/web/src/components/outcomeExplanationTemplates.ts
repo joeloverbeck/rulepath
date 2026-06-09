@@ -182,6 +182,20 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["poker_lite"],
     ruleRefLabel: "Split rule",
   },
+  "plain_tricks.trick_win": {
+    summary: "{winner} won more tricks.",
+    expandedHeading: "Trick total",
+    requiredParams: ["winner"],
+    allowedGameIds: ["plain_tricks"],
+    ruleRefLabel: "Trick total rule",
+  },
+  "plain_tricks.split": {
+    summary: "Final trick totals are tied.",
+    expandedHeading: "Split trick total",
+    requiredParams: [],
+    allowedGameIds: ["plain_tricks"],
+    ruleRefLabel: "Split rule",
+  },
 } as const satisfies Record<string, OutcomeExplanationTemplate>;
 
 export type OutcomeExplanationTemplateKey = keyof typeof outcomeExplanationTemplates;

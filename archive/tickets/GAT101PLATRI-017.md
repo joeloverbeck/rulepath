@@ -1,6 +1,6 @@
 # GAT101PLATRI-017: Plain Tricks browser renderer
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — new `apps/web/src/components/PlainTricksBoard.tsx`; modifies `apps/web/src/main.tsx`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/effectFeedback.ts`, `apps/web/src/components/ActionControls.tsx`. No Rust/engine behavior; legality stays in Rust/WASM.
@@ -88,3 +88,12 @@ Add neutral effect copy for deal/play/trick/score/rotation/terminal; add the `ch
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. `smoke:ui` is the correct boundary for renderer correctness; full e2e + no-leak DOM/storage checks are GAT101PLATRI-018.
+
+## Outcome
+
+Completed 2026-06-09. Added `PlainTricksBoard`, the Plain Tricks TypeScript view union, renderer routing, replay summaries, effect feedback, outcome templates, and no-leak-safe action/control/dev-panel handling. The renderer shows the actor's own hand, opponent/observer hands as face-down counts, current trick, trick history, score totals, and terminal explanation while submitting only Rust action-tree paths. Added the required Plain Tricks player rules asset source and generated web rules asset/manifest so the web build includes the game.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`

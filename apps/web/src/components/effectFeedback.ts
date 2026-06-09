@@ -168,7 +168,12 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "round_scored":
       return {
         title: "Round scored",
-        detail: payload.winner ? `${payload.winner} won the round.` : "The round was drawn.",
+        detail:
+          "round_counts" in payload
+            ? "Rust updated round and match trick totals."
+            : payload.winner
+              ? `${payload.winner} won the round.`
+              : "The round was drawn.",
         tone: "turn",
       };
     case "commitment_placed":
@@ -299,6 +304,54 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `Shared pool ${payload.shared_pool ?? 0} resolved by Rust.`,
         tone: "terminal",
       };
+    case "deal_started":
+      return {
+        title: "Deal started",
+        detail: `Rust prepared ${payload.cards_per_seat ?? 0} cards per seat.`,
+        tone: "neutral",
+      };
+    case "hand_dealt":
+      return {
+        title: "Hand dealt",
+        detail: "Your private hand was dealt by Rust.",
+        tone: "neutral",
+      };
+    case "deal_completed":
+      return {
+        title: "Deal completed",
+        detail: `${payload.leader} leads this deal.`,
+        tone: "turn",
+      };
+    case "card_played":
+      return {
+        title: "Card played",
+        detail: `${payload.seat} played a public card.`,
+        tone: "movement",
+      };
+    case "trick_resolved":
+      return {
+        title: "Trick resolved",
+        detail: `${payload.winner} won the trick.`,
+        tone: "turn",
+      };
+    case "deal_rotated":
+      return {
+        title: "Deal rotated",
+        detail: `${payload.leader} leads the next deal.`,
+        tone: "turn",
+      };
+    case "match_resolved":
+      return {
+        title: "Match resolved",
+        detail: "Rust resolved final trick totals.",
+        tone: "terminal",
+      };
+    case "bot_chose_action_public":
+      return {
+        title: "Bot chose action",
+        detail: `${payload.policy_id} selected ${payload.action_family}.`,
+        tone: "neutral",
+      };
     case "resource_collected":
       return {
         title: "Resources collected",
@@ -348,6 +401,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "turn",
       };
     case "terminal":
+      if (isPlainTricksOutcome(payload.outcome)) {
+        return {
+          title: "Tricks complete",
+          detail: terminalOutcome(payload.outcome, "match"),
+          tone: "terminal",
+        };
+      }
       if ("final_scores" in payload) {
         return {
           title: "Draft complete",
@@ -430,6 +490,14 @@ function isPokerLiteOutcome(value: unknown): boolean {
     outcome.kind === "split" ||
     typeof outcome.shared_pool === "number"
   );
+}
+
+function isPlainTricksOutcome(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const outcome = value as { kind?: unknown; totals?: unknown; each?: unknown };
+  return (outcome.kind === "trick_win" || outcome.kind === "split") && typeof outcome.totals === "object";
 }
 
 export function summarizeEffect(entry: EffectEntry): string {
