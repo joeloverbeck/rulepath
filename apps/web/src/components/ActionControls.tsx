@@ -52,6 +52,10 @@ function choiceTestId(view: PublicView | null, choice: ActionChoice, index: numb
     const round = "round_number" in view ? view.round_number : 0;
     return `choice-secret-draft-round-${round}-${index}`;
   }
+  if (view && "game_id" in view && view.game_id === "poker_lite") {
+    const round = "round" in view ? view.round.round_index : 0;
+    return `choice-poker-lite-round-${round}-${index}`;
+  }
   return `choice-${choice.segment}`;
 }
 

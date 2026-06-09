@@ -48,7 +48,9 @@ export function DevPanel({
   const viewSurface =
     view && "game_id" in view && view.game_id === "token_bazaar"
       ? "Public accounting"
-      : view && "game_id" in view && (view.game_id === "high_card_duel" || view.game_id === "secret_draft")
+      : view &&
+          "game_id" in view &&
+          (view.game_id === "high_card_duel" || view.game_id === "secret_draft" || view.game_id === "poker_lite")
         ? "Viewer filtered"
         : view
           ? "Public"

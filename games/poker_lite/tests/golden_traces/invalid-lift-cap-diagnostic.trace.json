@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "trace_id": "poker-lite-invalid-lift-cap-diagnostic",
+  "fixture_kind": "diagnostic",
+  "purpose": "invalid_lift_cap_diagnostic",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 11,
+  "variant": "poker_lite_standard",
+  "commands": [
+    {
+      "index": 0,
+      "actor_seat": "seat_0",
+      "action_path": [
+        "press"
+      ],
+      "freshness_token": "0",
+      "expect": "applied"
+    },
+    {
+      "index": 1,
+      "actor_seat": "seat_1",
+      "action_path": [
+        "lift"
+      ],
+      "freshness_token": "1",
+      "expect": "applied"
+    },
+    {
+      "index": 2,
+      "actor_seat": "seat_0",
+      "action_path": [
+        "lift"
+      ],
+      "freshness_token": "2",
+      "expected_diagnostic_code": "lift_cap_exceeded"
+    }
+  ],
+  "expected_state_hashes": {
+    "final": 13463932475149548048
+  },
+  "expected_effect_hashes": {
+    "final": 4695760435969910401
+  },
+  "expected_action_tree_hashes": {
+    "final": 2082364163657561188
+  },
+  "expected_public_view_hashes": {
+    "observer": 14742840252373407749,
+    "seat_0": 4793576023689609339,
+    "seat_1": 13656819169218503849
+  },
+  "expected_private_view_hashes": {
+    "seat_0": 4793576023689609339,
+    "seat_1": 13656819169218503849
+  },
+  "expected_replay_hashes": {
+    "final": 8045764253239232311
+  },
+  "expected_diagnostic_hashes": {
+    "final": 15491969080260586315
+  },
+  "expected_public_export_hashes": {
+    "final": 7817355879470184439
+  },
+  "expected_diagnostics": {
+    "code": "lift_cap_exceeded"
+  },
+  "expected_terminal_state": {
+    "terminal": false,
+    "winner": null,
+    "draw": false
+  },
+  "note": "Crest Ledger invalid_lift_cap_diagnostic replay fixture.",
+  "migration_update_note": "Initial Crest Ledger Trace Schema v1 fixture established by GAT10POKLITBET-009/010.",
+  "options": {},
+  "seats": [
+    {
+      "seat_id": "seat_0",
+      "player_id": "player_0"
+    },
+    {
+      "seat_id": "seat_1",
+      "player_id": "player_1"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "final",
+      "after_command_index": 2
+    }
+  ],
+  "expected_outcome": {
+    "terminal": false,
+    "winner": null,
+    "draw": false
+  },
+  "not_applicable": {
+    "hidden_information": "Crest Ledger has hidden private and center crests; viewer-scoped traces and no-leak tests verify redaction rather than not-applicability.",
+    "stochastic_game_events": "Setup uses deterministic seeded shuffle; no later stochastic rule events occur.",
+    "preview_hashes": "Crest Ledger uses action metadata rather than a separate preview hash."
+  }
+}

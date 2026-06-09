@@ -1,0 +1,18 @@
+{
+  "fixture_id": "poker_lite_standard_gate10",
+  "game_id": "poker_lite",
+  "variant": "poker_lite_standard",
+  "rules_version": "poker-lite-rules-v1",
+  "phase": "pledge_round_1",
+  "active_seat": "seat_0",
+  "deck_order": "low_dawn,low_dusk,middle_dawn,middle_dusk,high_dawn,high_dusk",
+  "private_cards": "hidden_by_setup",
+  "center_status": "hidden",
+  "deck_tail_status": "internal_only",
+  "seat_0_contribution": 1,
+  "seat_1_contribution": 1,
+  "opening_shared_pool": 2,
+  "terminal_outcome": "none",
+  "purpose": "Gate 10 Crest Ledger standard fixture metadata for the typed variant and static-data boundary.",
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, actions, rules, visibility, replay, bot, and WASM code."
+}

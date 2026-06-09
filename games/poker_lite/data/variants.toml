@@ -1,0 +1,12 @@
+variant_id = "poker_lite_standard"
+display_name = "Crest Ledger"
+rules_version_label = "poker-lite-rules-v1"
+seat_count = 2
+round_count = 2
+round_units = "1,2"
+lift_cap_per_round = 1
+opening_contribution = 1
+max_contribution_per_seat = 7
+deck_order = "standard_crest_v1"
+center_reveal = "after_round_1_close_without_yield"
+terminal_outcomes = "yield_win_showdown_win_split"

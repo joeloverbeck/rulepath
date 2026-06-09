@@ -68,10 +68,19 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "kind",
     "level",
     "bot_policy",
+    "bot_policy_id",
     "bot_policy_version",
     "bot_seed",
     "bot_level",
     "policy_id",
+    "public_input_summary",
+    "expected_bot_action",
+    "expected_public_explanation",
+    "expected_private_explanation",
+    "opponent_private_card",
+    "hidden_center",
+    "deck_tail",
+    "sampling",
     "wasm_exported_trace",
     "id",
     "after_command_index",
@@ -93,6 +102,13 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "preview_hashes",
     "action_cap",
     "setup_patch",
+    "export_class",
+    "viewer",
+    "steps",
+    "step_index",
+    "public_view_summary",
+    "public_effects",
+    "redacted_command_summary",
 ];
 
 fn main() {
@@ -218,6 +234,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/secret_draft/data/variants.toml",
             variant_id: "secret_draft_standard",
         }),
+        "poker_lite" => Ok(RegisteredGame {
+            game_id: "poker_lite",
+            rules_version: "poker-lite-rules-v1",
+            trace_dir: "games/poker_lite/tests/golden_traces",
+            fixture_dir: "games/poker_lite/data/fixtures",
+            manifest_path: "games/poker_lite/data/manifest.toml",
+            variants_path: "games/poker_lite/data/variants.toml",
+            variant_id: "poker_lite_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -271,9 +296,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -423,6 +448,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "poker_lite" => {
+            let manifest = poker_lite::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = poker_lite::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -506,6 +546,9 @@ fn validate_trace(
     seen_ids: &mut HashSet<String>,
 ) -> Result<(), String> {
     validate_json_object(path, input)?;
+    if input.contains("\"export_class\":") {
+        return validate_public_export_fixture(game, path, input);
+    }
     let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
     for key in keys {
         if BEHAVIOR_KEYS.contains(&key.as_str()) {
@@ -601,6 +644,69 @@ fn validate_trace(
         ));
     }
 
+    Ok(())
+}
+
+fn validate_public_export_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+        if !ALLOWED_JSON_KEYS.contains(&key.as_str()) {
+            return Err(format!("{}: unknown field `{key}`", path.display()));
+        }
+    }
+    for field in [
+        "schema_version",
+        "export_class",
+        "game_id",
+        "rules_version",
+        "variant",
+        "steps",
+    ] {
+        require_key(path, input, field)?;
+    }
+    if required_number(path, input, "schema_version")? != 1 {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if required_string(path, input, "export_class")?
+        .trim()
+        .is_empty()
+    {
+        return Err(format!(
+            "{}: export_class must be non-empty",
+            path.display()
+        ));
+    }
+    if required_string(path, input, "game_id")? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if required_string(path, input, "rules_version")? != game.rules_version {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
+    if required_string(path, input, "variant")? != game.variant_id {
+        return Err(format!(
+            "{}: variant must be {}",
+            path.display(),
+            game.variant_id
+        ));
+    }
     Ok(())
 }
 

@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "trace_id": "poker-lite-bot-action",
+  "fixture_kind": "bot_action",
+  "purpose": "bot_action",
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 0,
+  "variant": "poker_lite_standard",
+  "bot_policy_id": "poker-lite-crest-ledger-level2-v1",
+  "bot_level": 2,
+  "actor_seat": "seat_0",
+  "public_input_summary": "seat=seat_0;choices=2;phase=pledge_round_1;active=seat_0;pool=2;own_contribution=1;other_contribution=1;round=0:unit1:amount0:lift1;center_visible=false;center_rank=hidden;own_rank=high;own_bucket=high_private",
+  "expected_bot_action": "press",
+  "expected_public_explanation": "policy id and action family only",
+  "expected_private_explanation": "own strength bucket only",
+  "not_applicable": {
+    "hidden_information": "Crest Ledger has hidden private and center crests; the bot-action trace records only the allowed bot input summary and no hidden ids.",
+    "stochastic_game_events": "Setup uses deterministic seeded shuffle; the bot policy uses deterministic seed tie-break only.",
+    "opponent_private_card": "Level 2 input excludes opponent private card.",
+    "hidden_center": "Hidden center is represented only as hidden.",
+    "deck_tail": "Deck tail is not part of bot input.",
+    "sampling": "No opponent-holding sampling, MCTS, Monte Carlo, ML, or RL is used."
+  },
+  "note": "Crest Ledger bot_action replay fixture.",
+  "migration_update_note": "Initial Crest Ledger Trace Schema v1 fixture established by GAT10POKLITBET-009/010.",
+  "options": {},
+  "seats": [
+    {
+      "seat_id": "seat_0",
+      "player_id": "player_0"
+    },
+    {
+      "seat_id": "seat_1",
+      "player_id": "player_1"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "final",
+      "after_command_index": 0
+    }
+  ],
+  "expected_state_hashes": {
+    "final": 0
+  },
+  "expected_effect_hashes": {
+    "final": 0
+  },
+  "expected_action_tree_hashes": {
+    "final": 0
+  },
+  "expected_public_view_hashes": {
+    "observer": 0,
+    "seat_0": 0,
+    "seat_1": 0
+  },
+  "expected_private_view_hashes": {
+    "seat_0": 0,
+    "seat_1": 0
+  },
+  "expected_replay_hashes": {
+    "final": 0
+  },
+  "expected_public_export_hashes": {
+    "final": 0
+  },
+  "expected_diagnostic_hashes": null,
+  "expected_diagnostics": null,
+  "expected_terminal_state": {
+    "terminal": false,
+    "winner": null,
+    "draw": false
+  },
+  "expected_outcome": {
+    "terminal": false,
+    "winner": null,
+    "draw": false
+  },
+  "commands": [],
+  "bot_seed": 0,
+  "producer": {
+    "kind": "bot",
+    "level": 2,
+    "policy_id": "poker-lite-crest-ledger-level2-v1"
+  }
+}

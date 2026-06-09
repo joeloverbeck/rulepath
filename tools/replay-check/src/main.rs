@@ -109,6 +109,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "secret-draft-rules-v1",
             trace_dir: "games/secret_draft/tests/golden_traces",
         }),
+        "poker_lite" => Ok(RegisteredGame {
+            game_id: "poker_lite",
+            rules_version: "poker-lite-rules-v1",
+            trace_dir: "games/poker_lite/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -224,10 +229,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --all");
 }
 
 fn check_trace_path(
@@ -237,11 +242,72 @@ fn check_trace_path(
 ) -> Result<(), String> {
     let input = fs::read_to_string(path)
         .map_err(|error| format!("{}: failed to read: {error}", path.display()))?;
+    if is_public_export_fixture(&input) {
+        validate_public_export_fixture(game, path, &input)?;
+        println!("{}: public export fixture accepted", path.display());
+        return Ok(());
+    }
     let trace = Trace::parse(path, &input)?;
     if !seen_ids.insert(trace.trace_id.clone()) {
         return Err(trace.failure("duplicate trace_id in checked trace set"));
     }
     trace.check(game)
+}
+
+fn is_public_export_fixture(input: &str) -> bool {
+    input.contains("\"export_class\":")
+}
+
+fn validate_public_export_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    validate_json_object(path, input)?;
+    let schema_version = number_field(input, "schema_version")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if schema_version != 1 {
+        return Err(parse_error(
+            path,
+            "public-export",
+            &format!("unsupported schema_version `{schema_version}`"),
+        ));
+    }
+    let export_class = string_field(input, "export_class")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if export_class.trim().is_empty() {
+        return Err(parse_error(
+            path,
+            "public-export",
+            "export_class must be non-empty",
+        ));
+    }
+    let game_id = string_field(input, "game_id")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if game_id != game.game_id {
+        return Err(parse_error(
+            path,
+            "public-export",
+            &format!("unsupported export game_id `{game_id}`"),
+        ));
+    }
+    let rules_version = string_field(input, "rules_version")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if rules_version != game.rules_version {
+        return Err(parse_error(
+            path,
+            "public-export",
+            &format!("unsupported export rules_version `{rules_version}`"),
+        ));
+    }
+    if !input.contains("\"steps\":") {
+        return Err(parse_error(
+            path,
+            "public-export",
+            "public export fixture must contain steps",
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -488,6 +554,7 @@ impl Trace {
             "high_card_duel" => self.high_card_duel_actual_hashes(),
             "token_bazaar" => self.token_bazaar_actual_hashes(),
             "secret_draft" => self.secret_draft_actual_hashes(),
+            "poker_lite" => self.poker_lite_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -1169,6 +1236,80 @@ impl Trace {
             .and_then(|seat| secret_draft::SecretDraftSeat::parse(seat))
             .ok_or_else(|| self.failure("secret_draft trace command has invalid actor_seat"))
     }
+
+    fn poker_lite_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        if self.fixture_kind == "bot_action" {
+            return Ok(None);
+        }
+        if !matches!(
+            self.fixture_kind.as_str(),
+            "commands" | "terminal" | "diagnostic" | "no_leak" | "export"
+        ) {
+            return Ok(None);
+        }
+
+        let mut state = poker_lite::setup_match(
+            engine_core::Seed(self.seed),
+            &poker_lite::replay_support::default_seats(),
+            &poker_lite::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        let mut effects = poker_lite::setup_effects(&state);
+        let mut diagnostic_hash = None;
+        let has_diagnostic = self.expected_diagnostic_hash.is_some();
+        let applied_count = if has_diagnostic {
+            self.commands.len().saturating_sub(1)
+        } else {
+            self.commands.len()
+        };
+
+        for index in 0..applied_count {
+            let seat = self.poker_lite_actor(index)?;
+            let command = poker_lite_command_for_seat(&state, seat, self.commands[index].clone());
+            let action =
+                poker_lite::validate_command(&state, &command).map_err(diagnostic_string)?;
+            effects
+                .extend(poker_lite::apply_action(&mut state, action).map_err(diagnostic_string)?);
+        }
+
+        if has_diagnostic {
+            let index = self.commands.len().saturating_sub(1);
+            let seat = self.poker_lite_actor(index)?;
+            let mut command =
+                poker_lite_command_for_seat(&state, seat, self.commands[index].clone());
+            if let Some(freshness) = self.diagnostic_freshness_token {
+                command.freshness_token = engine_core::FreshnessToken(freshness);
+            }
+            let diagnostic = poker_lite::validate_command(&state, &command)
+                .expect_err("diagnostic trace rejects");
+            diagnostic_hash = Some(HashValue::from_stable_bytes(
+                format!("{diagnostic:?}").as_bytes(),
+            ));
+        }
+
+        Ok(Some(ActualHashes {
+            state_hash: poker_lite::replay_support::state_hash(&state),
+            effect_hash: poker_lite::replay_support::effect_hash(&effects),
+            action_tree_hash: poker_lite_action_tree_hash(&state),
+            view_hash: poker_lite::replay_support::view_hash(&state, &Viewer { seat_id: None }),
+            diagnostic_hash,
+            terminal: state.phase == poker_lite::Phase::Terminal,
+            winner: match state.terminal_outcome {
+                Some(poker_lite::TerminalOutcome::YieldWin { winner, .. })
+                | Some(poker_lite::TerminalOutcome::ShowdownWin { winner, .. }) => {
+                    Some(winner.as_str().to_owned())
+                }
+                Some(poker_lite::TerminalOutcome::Split { .. }) | None => None,
+            },
+        }))
+    }
+
+    fn poker_lite_actor(&self, index: usize) -> Result<poker_lite::PokerLiteSeat, String> {
+        self.command_actor_seats
+            .get(index)
+            .and_then(|seat| poker_lite::PokerLiteSeat::parse(seat))
+            .ok_or_else(|| self.failure("poker_lite trace command has invalid actor_seat"))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1262,6 +1403,39 @@ fn secret_draft_action_tree_hash(state: &secret_draft::SecretDraftState) -> Hash
     HashValue::from_stable_bytes(parts.as_bytes())
 }
 
+fn poker_lite_command_for_seat(
+    state: &poker_lite::PokerLiteState,
+    actor_seat: poker_lite::PokerLiteSeat,
+    path: Vec<String>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        },
+        action_path: ActionPath { segments: path },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn poker_lite_action_tree_hash(state: &poker_lite::PokerLiteState) -> HashValue {
+    let parts = poker_lite::PokerLiteSeat::ALL
+        .iter()
+        .map(|seat| {
+            let actor = Actor {
+                seat_id: state.seats[seat.index()].clone(),
+            };
+            poker_lite::replay_support::action_tree_hash(&poker_lite::legal_action_tree(
+                state, &actor,
+            ))
+            .0
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("|");
+    HashValue::from_stable_bytes(parts.as_bytes())
+}
+
 fn validate_json_object(path: &Path, input: &str) -> Result<(), String> {
     let trimmed = input.trim();
     if !trimmed.starts_with('{') || !trimmed.ends_with('}') {
@@ -1329,6 +1503,14 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_terminal_state",
         "not_applicable",
         "producer",
+        "bot_policy_id",
+        "bot_level",
+        "bot_seed",
+        "public_input_summary",
+        "expected_bot_action",
+        "expected_public_explanation",
+        "expected_private_explanation",
+        "actor_seat",
         "setup_patch",
     ];
     for key in top_level_keys(input)? {

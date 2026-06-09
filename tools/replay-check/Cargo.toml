@@ -12,6 +12,7 @@ draughts_lite = { path = "../../games/draughts_lite" }
 engine-core = { path = "../../crates/engine-core" }
 game-stdlib = { path = "../../crates/game-stdlib" }
 high_card_duel = { path = "../../games/high_card_duel" }
+poker_lite = { path = "../../games/poker_lite" }
 race_to_n = { path = "../../games/race_to_n" }
 secret_draft = { path = "../../games/secret_draft" }
 three_marks = { path = "../../games/three_marks" }

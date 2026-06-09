@@ -14,12 +14,12 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gates 0-9.1 complete; commitment/reveal gate accepted** — Rulepath now ships eight local-playable
+**Gates 0-9.1 complete; commitment/reveal gate accepted** — Rulepath now ships nine local-playable
 official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
 **Column Four** (`column_four`), **Directional Flip** (`directional_flip`),
 **Draughts Lite** (`draughts_lite`), **High Card Duel**
 (`high_card_duel`), **Token Bazaar** (`token_bazaar`), and **Veiled Draft**
-(`secret_draft`). Gate 9 is complete with Token Bazaar as the accepted public
+(`secret_draft`), and **Crest Ledger** (`poker_lite`). Gate 9 is complete with Token Bazaar as the accepted public
 resource/economy proof, and Gate 9.1 adds the accepted simultaneous
 commitment/reveal proof. `blackjack_lite` is deferred by
 [ADR 0006](docs/adr/0006-blackjack-lite-roadmap-placement.md) and does not
@@ -85,7 +85,8 @@ cargo test --workspace
 
 **Per-game checks** (replace the game id as needed; current official games are
 `race_to_n`, `three_marks`, `column_four`, `directional_flip`,
-`draughts_lite`, `high_card_duel`, `token_bazaar`, and `secret_draft`)
+`draughts_lite`, `high_card_duel`, `token_bazaar`, `secret_draft`, and
+`poker_lite`)
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000

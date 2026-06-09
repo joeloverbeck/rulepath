@@ -1903,7 +1903,9 @@ h2 {
   .reduced-motion .directional-disc,
   .reduced-motion .duel-card,
   .reduced-motion .secret-item,
-  .reduced-motion .secret-drafted-item {
+  .reduced-motion .secret-drafted-item,
+  .reduced-motion .poker-lite-card,
+  .reduced-motion .poker-lite-action {
   transition: none;
   animation: none;
 }
@@ -2109,6 +2111,207 @@ h2 {
   animation: secret-reveal 460ms ease-out;
 }
 
+.poker-lite-board {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #cdd9dc;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.poker-lite-banner,
+.poker-lite-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.poker-lite-section-heading span {
+  color: #66747a;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.poker-lite-section-heading strong {
+  color: #263941;
+}
+
+.poker-lite-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.poker-lite-metric,
+.poker-lite-seat,
+.poker-lite-center,
+.poker-lite-private,
+.poker-lite-actions,
+.poker-lite-showdown,
+.poker-lite-terminal,
+.poker-lite-latest {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d7e0e2;
+  border-radius: 8px;
+  background: #fbfcfc;
+  padding: 12px;
+}
+
+.poker-lite-metric {
+  gap: 4px;
+  border-radius: 6px;
+  background: #f7f9f8;
+}
+
+.poker-lite-metric span,
+.poker-lite-track span,
+.poker-lite-hidden span,
+.poker-lite-card span,
+.poker-lite-terminal span {
+  color: #66747a;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.poker-lite-metric strong,
+.poker-lite-track strong,
+.poker-lite-hidden strong,
+.poker-lite-card strong,
+.poker-lite-terminal strong {
+  color: #263941;
+}
+
+.poker-lite-table {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.85fr) minmax(260px, 1.4fr) minmax(150px, 0.85fr);
+  gap: 12px;
+}
+
+.poker-lite-seat.active {
+  border-color: #2f6f9f;
+  box-shadow: inset 0 0 0 2px rgba(47, 111, 159, 0.12);
+}
+
+.poker-lite-hidden,
+.poker-lite-card {
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid #d7e0e2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  text-align: center;
+}
+
+.poker-lite-hidden {
+  background: #f2f5f4;
+  color: #66747a;
+}
+
+.poker-lite-card.private {
+  border-color: #2b8068;
+}
+
+.poker-lite-card.center {
+  border-color: #7b6f40;
+}
+
+.poker-lite-card.revealed {
+  border-color: #2f6f9f;
+}
+
+.poker-lite-card small,
+.poker-lite-terminal small,
+.poker-lite-action small {
+  color: #66747a;
+}
+
+.poker-lite-track {
+  display: grid;
+  gap: 8px;
+}
+
+.poker-lite-track > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.poker-lite-track-bar {
+  block-size: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7eceb;
+}
+
+.poker-lite-track-bar span {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: #3e7d8e;
+}
+
+.poker-lite-action-grid,
+.poker-lite-showdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.poker-lite-action {
+  min-height: 72px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #cad8d2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #263941;
+  text-align: left;
+}
+
+.poker-lite-action:not(:disabled):hover {
+  border-color: #2b8068;
+  transform: translateY(-1px);
+}
+
+.poker-lite-action:disabled {
+  opacity: 0.58;
+}
+
+.poker-lite-terminal {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.poker-lite-latest {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.poker-lite-board.reveal:not(.reduced) .poker-lite-card {
+  animation: poker-lite-reveal 420ms ease-out;
+}
+
+@keyframes poker-lite-reveal {
+  from {
+    transform: translateY(5px);
+    opacity: 0.48;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes secret-reveal {
   from {
     transform: translateY(6px);
@@ -2223,7 +2426,8 @@ h2 {
   .draughts-lite-banner,
   .high-card-duel-banner,
   .token-bazaar-banner,
-  .secret-draft-banner {
+  .secret-draft-banner,
+  .poker-lite-banner {
     align-items: start;
     flex-direction: column;
   }
@@ -2268,7 +2472,13 @@ h2 {
   .token-market-row,
   .secret-draft-metrics,
   .secret-draft-table,
-  .secret-pending {
+  .secret-pending,
+  .poker-lite-metrics,
+  .poker-lite-table,
+  .poker-lite-action-grid,
+  .poker-lite-showdown-grid,
+  .poker-lite-terminal,
+  .poker-lite-latest {
     grid-template-columns: 1fr;
   }
 

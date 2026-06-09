@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "game_id": "poker_lite",
+  "rules_version": "poker-lite-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "setup_shuffle_deal",
+      "unit": "setups_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "legal_actions_initial_pledge",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "validate_press",
+      "unit": "validations_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "apply_press",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "project_observer_view",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "public_export_import",
+      "unit": "exports_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "state_hash_terminal",
+      "unit": "hashes_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "level2_bot_decision",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor only until poker_lite has stable CI measurements."
+    },
+    {
+      "operation_name": "level2_full_playout",
+      "unit": "hands_per_second",
+      "threshold": 2000,
+      "rationale_class": "provisional_native_gate_floor",
+      "rationale": "Provisional floor for completed Level 2 hands until repeated runner measurements calibrate a tighter gate."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+game_id = "poker_lite"
+display_name = "Crest Ledger"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "poker-lite-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "crest_ledger"
+seat_count = 2
+round_count = 2
+rank_count = 3
+card_count = 6
+first_round_lead_seat = "seat_0"
+second_round_lead_seat = "seat_1"
+opening_contribution = 1
+max_contribution_per_seat = 7
+deck_order = "standard_crest_v1"

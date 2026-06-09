@@ -7,6 +7,7 @@ use engine_core::{
     Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize,
 };
+use poker_lite::PokerLiteLevel2Bot;
 use race_to_n::{
     apply_action, legal_action_tree, project_view, setup_match, validate_command, RaceEffect,
     RaceRandomBot, RaceSeat, RaceSnapshot, RaceState, SetupOptions,
@@ -23,6 +24,7 @@ const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
 const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
+const GAME_POKER_LITE: &str = "poker_lite";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -149,9 +151,10 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_HIGH_CARD_DUEL
         && config.game != GAME_TOKEN_BAZAAR
         && config.game != GAME_SECRET_DRAFT
+        && config.game != GAME_POKER_LITE
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}\n",
             config.game
         ));
     }
@@ -184,7 +187,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -210,6 +213,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_SECRET_DRAFT {
         return run_secret_draft_simulation(config);
+    }
+    if config.game == GAME_POKER_LITE {
+        return run_poker_lite_simulation(config);
     }
 
     let started = Instant::now();
@@ -320,6 +326,49 @@ fn run_secret_draft_simulation(config: Config) -> Result<String, String> {
          total_actions={total_actions}\n\
          elapsed_seconds={:.6}\n",
         started.elapsed().as_secs_f64()
+    ))
+}
+
+fn run_poker_lite_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut seat_0_wins = 0_u64;
+    let mut seat_1_wins = 0_u64;
+    let mut splits = 0_u64;
+    let mut total_actions = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (outcome, actions) = run_one_poker_lite_game(&config, seed)?;
+        games_run += 1;
+        total_actions += actions as u64;
+        match outcome {
+            Some(poker_lite::PokerLiteSeat::Seat0) => seat_0_wins += 1,
+            Some(poker_lite::PokerLiteSeat::Seat1) => seat_1_wins += 1,
+            None => splits += 1,
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=poker_lite\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         seat_0_wins={seat_0_wins}\n\
+         seat_1_wins={seat_1_wins}\n\
+         splits={splits}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
     ))
 }
 
@@ -887,6 +936,55 @@ fn run_one_secret_draft_game(
     ))
 }
 
+fn run_one_poker_lite_game(
+    config: &Config,
+    seed: u64,
+) -> Result<(Option<poker_lite::PokerLiteSeat>, usize), String> {
+    let seats = vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())];
+    let mut state =
+        poker_lite::setup_match(Seed(seed), &seats, &poker_lite::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+
+    for action_index in 0..config.action_cap {
+        if let Some(outcome) = state.terminal_outcome {
+            return Ok((poker_lite_winner(outcome), action_index));
+        }
+
+        let actor_seat = state
+            .active_seat
+            .ok_or_else(|| "non-terminal state has no active seat".to_owned())?;
+        let actor = Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        };
+        let bot = PokerLiteLevel2Bot::new(Seed(bot_seed(seed, action_index)));
+        let action_path = bot
+            .select_action(&state, actor_seat)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = CommandEnvelope {
+            actor,
+            action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let validated = poker_lite::validate_command(&state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        poker_lite::apply_action(&mut state, validated)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+    }
+
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id=poker_lite\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         action_cap={}\n\
+         failure_reason=action cap reached before terminal outcome\n\
+         replay_command=cargo run -p simulate -- --game poker_lite --games 1 --start-seed {seed} --action-cap {}\n",
+        config.action_cap, config.action_cap
+    ))
+}
+
 fn high_card_duel_winner(
     outcome: high_card_duel::TerminalOutcome,
 ) -> Option<high_card_duel::HighCardDuelSeat> {
@@ -907,6 +1005,14 @@ fn secret_draft_winner(outcome: secret_draft::TerminalOutcome) -> Option<SecretD
     match outcome {
         secret_draft::TerminalOutcome::Win { seat } => Some(seat),
         secret_draft::TerminalOutcome::Draw => None,
+    }
+}
+
+fn poker_lite_winner(outcome: poker_lite::TerminalOutcome) -> Option<poker_lite::PokerLiteSeat> {
+    match outcome {
+        poker_lite::TerminalOutcome::YieldWin { winner, .. }
+        | poker_lite::TerminalOutcome::ShowdownWin { winner, .. } => Some(winner),
+        poker_lite::TerminalOutcome::Split { .. } => None,
     }
 }
 

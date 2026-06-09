@@ -13,6 +13,7 @@ import { GamePicker } from "./components/GamePicker";
 import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup } from "./components/MatchSetup";
 import { ModeControls } from "./components/ModeControls";
+import { PokerLiteBoard } from "./components/PokerLiteBoard";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
@@ -28,6 +29,7 @@ import {
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
   type HighCardDuelPublicView,
+  type PokerLitePublicView,
   type PublicView,
   type RacePublicView,
   type ReplayExportDocument,
@@ -402,6 +404,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
           />
+        ) : isPokerLiteView(view) ? (
+          <PokerLiteBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -419,7 +431,8 @@ function App() {
         isDraughtsLiteView(view) ||
         isHighCardDuelView(view) ||
         isTokenBazaarView(view) ||
-        isSecretDraftView(view) ? null : (
+        isSecretDraftView(view) ||
+        isPokerLiteView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -569,6 +582,10 @@ function isSecretDraftView(view: PublicView | null): view is SecretDraftPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "secret_draft");
 }
 
+function isPokerLiteView(view: PublicView | null): view is PokerLitePublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "poker_lite");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -577,6 +594,9 @@ function isTerminalView(view: PublicView): boolean {
     return view.terminal.terminal;
   }
   if (isSecretDraftView(view)) {
+    return view.terminal.terminal;
+  }
+  if (isPokerLiteView(view)) {
     return view.terminal.terminal;
   }
   return view.terminal_kind !== "non_terminal";
@@ -621,6 +641,18 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
           ? "draw"
           : `${view.terminal.winner} won`
         : `${view.phase} round ${view.round_number}, ${view.scores.seat_0}-${view.scores.seat_1}`,
+    };
+  }
+  if (view.game_id === "poker_lite") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: view.terminal.terminal
+        ? view.terminal.draw
+          ? "split"
+          : `${view.terminal.winner} won`
+        : `${view.phase}, pool ${view.shared_pool}`,
     };
   }
   return {

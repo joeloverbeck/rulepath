@@ -39,6 +39,17 @@ use high_card_duel::{
     HighCardDuelEffect, HighCardDuelInternalTrace, HighCardDuelRandomBot, HighCardDuelSeat,
     HighCardDuelState, PublicReplayExport, PublicReplayStep,
 };
+use poker_lite::{
+    apply_action as poker_apply_action, legal_action_tree as poker_legal_action_tree,
+    project_view as poker_project_view,
+    replay_support::{
+        export_public_replay as poker_export_public_replay,
+        import_public_export as poker_import_public_export, PokerLiteInternalTrace,
+        PublicReplayStep as PokerPublicReplayStep, ReplayCommand as PokerReplayCommand,
+    },
+    setup_match as poker_setup_match, PokerLiteEffect, PokerLiteLevel2Bot, PokerLiteSeat,
+    PokerLiteState,
+};
 use race_to_n::{
     apply_action as race_apply_action, legal_action_tree, project_view,
     replay_support::replay_commands as race_replay_commands, setup_match as race_setup_match,
@@ -86,6 +97,8 @@ const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_TOKEN_BAZAAR_DISPLAY_NAME: &str = "Token Bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
 const GAME_SECRET_DRAFT_DISPLAY_NAME: &str = "Veiled Draft";
+const GAME_POKER_LITE: &str = "poker_lite";
+const GAME_POKER_LITE_DISPLAY_NAME: &str = "Crest Ledger";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -113,6 +126,7 @@ const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
 const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
+const POKER_LITE_TRACE_RULES_VERSION: &str = "poker-lite-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
@@ -123,6 +137,7 @@ const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
+const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -191,6 +206,13 @@ enum MatchRecord {
         effects: EffectLog<SecretDraftEffect>,
         commands: Vec<AppliedCommand>,
     },
+    PokerLite {
+        game_id: String,
+        seed: u64,
+        state: PokerLiteState,
+        effects: EffectLog<PokerLiteEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -242,6 +264,7 @@ enum RegisteredGame {
     HighCardDuel,
     TokenBazaar,
     SecretDraft,
+    PokerLite,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -258,6 +281,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::HighCardDuel,
         RegisteredGame::TokenBazaar,
         RegisteredGame::SecretDraft,
+        RegisteredGame::PokerLite,
     ]
         .iter()
         .map(|game| match game {
@@ -323,6 +347,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_SECRET_DRAFT_STANDARD)
+            ),
+            RegisteredGame::PokerLite => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"public_accounting\",\"bounded_pledge\"]}}",
+                escape_json(GAME_POKER_LITE),
+                escape_json(GAME_POKER_LITE_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_POKER_LITE_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -541,6 +573,30 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_SECRET_DRAFT_STANDARD)
             ))
         }
+        RegisteredGame::PokerLite => {
+            let seats = seats();
+            let state = poker_setup_match(Seed(seed), &seats, &poker_lite::SetupOptions::default())
+                .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::PokerLite {
+                        game_id: GAME_POKER_LITE.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_POKER_LITE_STANDARD)
+            ))
+        }
     }
 }
 
@@ -587,6 +643,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = secret_viewer_for_seat(state, viewer_seat)?;
             Ok(secret_view_json(&secret_project_view(state, &viewer)))
+        }
+        MatchRecord::PokerLite { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = poker_viewer_for_seat(state, viewer_seat)?;
+            Ok(poker_view_json(&poker_project_view(state, &viewer)))
         }
     })
 }
@@ -676,6 +737,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = secret_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&secret_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::PokerLite { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_poker_seat(actor_seat)?;
+            if !poker_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = poker_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&poker_legal_action_tree(state, &actor)))
         }
     })
 }
@@ -947,6 +1017,39 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 secret_view_json(&secret_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::PokerLite {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_poker_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: poker_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = poker_lite::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = poker_apply_action(state, action).map_err(diagnostic_json)?;
+            let viewer = poker_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = poker_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_poker_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                poker_view_json(&poker_project_view(state, &viewer))
             ))
         }
     })
@@ -1246,6 +1349,46 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 secret_view_json(&secret_project_view(state, &viewer))
             ))
         }
+        MatchRecord::PokerLite {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_poker_seat(actor_seat)?;
+            let decision = PokerLiteLevel2Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: poker_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = poker_lite::validate_command(state, &command).map_err(diagnostic_json)?;
+            let mut effects = decision.effects;
+            effects.extend(poker_apply_action(state, action).map_err(diagnostic_json)?);
+            let viewer = poker_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = poker_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_poker_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                poker_view_json(&poker_project_view(state, &viewer))
+            ))
+        }
     })
 }
 
@@ -1431,6 +1574,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::PokerLite {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = poker_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        poker_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -1533,6 +1698,29 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             };
             Ok(secret_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
         }
+        MatchRecord::PokerLite {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let trace = PokerLiteInternalTrace {
+                schema_version: SCHEMA_VERSION,
+                game_id: poker_lite::GAME_ID.to_owned(),
+                rules_version: poker_lite::RULES_VERSION_LABEL.to_owned(),
+                variant: poker_lite::VARIANT_ID.to_owned(),
+                seed_evidence: *seed,
+                commands: commands
+                    .iter()
+                    .map(|command| PokerReplayCommand {
+                        actor: command.actor_seat.clone(),
+                        path: command.action_path.clone(),
+                    })
+                    .collect(),
+            };
+            Ok(poker_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
+        }
     })
 }
 
@@ -1548,6 +1736,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     }
     if is_secret_draft_public_export(doc) {
         return import_secret_draft_public_replay(doc);
+    }
+    if is_poker_lite_public_export(doc) {
+        return import_poker_lite_public_replay(doc);
     }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
@@ -1569,6 +1760,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_HIGH_CARD_DUEL
         && parsed.game_id != GAME_TOKEN_BAZAAR
         && parsed.game_id != GAME_SECRET_DRAFT
+        && parsed.game_id != GAME_POKER_LITE
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -1652,6 +1844,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 secret_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 secret_view_json(&secret_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::PokerLite => {
+            let (state, effects) =
+                poker_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                poker_view_json(&poker_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -1782,6 +1982,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::PokerLite => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    poker_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(poker_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
@@ -1807,6 +2019,16 @@ fn is_secret_draft_public_export(doc: &str) -> bool {
     ) && matches!(
         string_field(doc, "game_id").as_deref(),
         Ok(secret_draft::GAME_ID)
+    )
+}
+
+fn is_poker_lite_public_export(doc: &str) -> bool {
+    matches!(
+        string_field(doc, "export_class").as_deref(),
+        Ok("viewer_scoped_observation_v1")
+    ) && matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(poker_lite::GAME_ID)
     )
 }
 
@@ -1946,6 +2168,67 @@ fn import_secret_draft_public_replay(doc: &str) -> Result<String, String> {
     ))
 }
 
+fn import_poker_lite_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let export =
+        poker_lite::replay_support::PublicReplayExport::from_json(doc).map_err(|message| {
+            diagnostic_string(
+                "invalid_replay",
+                &format!("invalid public replay document: {message}"),
+            )
+        })?;
+    if export.rules_version != poker_lite::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {}", export.rules_version),
+        ));
+    }
+    if export.variant != poker_lite::VARIANT_ID {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {}", export.variant),
+        ));
+    }
+    if export.viewer != "observer" {
+        return Err(diagnostic_string(
+            "unsupported_replay_viewer",
+            &format!("unsupported replay viewer: {}", export.viewer),
+        ));
+    }
+    let timeline = poker_import_public_export(&export);
+    let replay_id = next_replay_id(GAME_POKER_LITE);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_POKER_LITE.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: timeline.viewer.clone(),
+                    steps: timeline
+                        .steps
+                        .iter()
+                        .map(public_timeline_step_from_poker)
+                        .collect(),
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"{}\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0}}",
+        escape_json(&replay_id),
+        escape_json(GAME_POKER_LITE),
+        escape_json(&timeline.viewer),
+        timeline.steps.len()
+    ))
+}
+
 fn high_card_step_from_public_timeline(step: &PublicTimelineStep) -> PublicReplayStep {
     PublicReplayStep {
         step_index: step.step_index,
@@ -1967,6 +2250,16 @@ fn public_timeline_step_from_high_card(step: &PublicReplayStep) -> PublicTimelin
 }
 
 fn public_timeline_step_from_secret(step: &SecretPublicReplayStep) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
+fn public_timeline_step_from_poker(step: &PokerPublicReplayStep) -> PublicTimelineStep {
     PublicTimelineStep {
         step_index: step.step_index,
         public_view_summary: step.public_view_summary.clone(),
@@ -2013,6 +2306,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
         GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
         GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
+        GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -2100,6 +2394,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
         RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
         RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
+        RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
     }
 }
 
@@ -2264,6 +2559,23 @@ fn trace_secret_seat(seat: SecretDraftSeat) -> &'static str {
     seat.as_str()
 }
 
+fn parse_poker_seat(value: &str) -> Result<PokerLiteSeat, String> {
+    match value {
+        "seat-0" => Ok(PokerLiteSeat::Seat0),
+        "seat-1" => Ok(PokerLiteSeat::Seat1),
+        _ => PokerLiteSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_poker_seat(seat: PokerLiteSeat) -> &'static str {
+    seat.as_str()
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -2385,6 +2697,20 @@ fn secret_actor_for_seat(state: &SecretDraftState, seat: SecretDraftSeat) -> Res
         })
 }
 
+fn poker_actor_for_seat(state: &PokerLiteState, seat: PokerLiteSeat) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -2453,6 +2779,14 @@ fn token_viewer_for_seat(state: &TokenBazaarState, seat: Option<&str>) -> Result
 fn secret_viewer_for_seat(state: &SecretDraftState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_secret_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn poker_viewer_for_seat(state: &PokerLiteState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_poker_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -2534,6 +2868,16 @@ fn secret_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_secret_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn poker_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: PokerLiteSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_poker_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -2758,6 +3102,31 @@ fn secret_replay_to_cursor(
         let action =
             secret_draft::actions::validate_command(&state, &envelope).map_err(diagnostic_json)?;
         all_effects.extend(secret_apply_action(&mut state, action).map_err(diagnostic_json)?);
+    }
+    Ok((state, all_effects))
+}
+
+fn poker_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(PokerLiteState, Vec<EffectEnvelope<PokerLiteEffect>>), String> {
+    let seats = seats();
+    let mut state = poker_setup_match(Seed(seed), &seats, &poker_lite::SetupOptions::default())
+        .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_poker_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: poker_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = poker_lite::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(poker_apply_action(&mut state, action).map_err(diagnostic_json)?);
     }
     Ok((state, all_effects))
 }
@@ -3390,6 +3759,24 @@ fn secret_replay_step_json(
         total_commands,
         secret_view_json(&secret_project_view(state, &viewer)),
         secret_effects_json(effects, &viewer)
+    )
+}
+
+fn poker_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    total_commands: usize,
+    state: &PokerLiteState,
+    effects: &[EffectEnvelope<PokerLiteEffect>],
+) -> String {
+    let viewer = Viewer { seat_id: None };
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_commands\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        total_commands,
+        poker_view_json(&poker_project_view(state, &viewer)),
+        poker_effects_json(effects, &viewer)
     )
 }
 
@@ -4481,6 +4868,156 @@ fn token_ui_json(ui: &token_bazaar::UiMetadata) -> String {
     )
 }
 
+fn poker_view_json(view: &poker_lite::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"shared_pool\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"round\":{},\"private_counts\":{{\"seat_0\":{},\"seat_1\":{}}},\"center\":{},\"showdown\":{},\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.phase.as_str(),
+        poker_optional_seat_json(view.active_seat),
+        view.shared_pool,
+        view.contributions[0],
+        view.contributions[1],
+        poker_round_json(&view.round),
+        view.private_counts[0],
+        view.private_counts[1],
+        poker_center_json(&view.center),
+        view.showdown
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), poker_showdown_json),
+        poker_terminal_json(&view.terminal),
+        view.freshness_token.0,
+        poker_private_view_json(&view.private_view),
+        poker_ui_json(&view.ui)
+    )
+}
+
+fn poker_round_json(round: &poker_lite::visibility::RoundView) -> String {
+    format!(
+        "{{\"round_index\":{},\"round_unit\":{},\"outstanding_actor\":{},\"outstanding_amount\":{},\"lift_cap_remaining\":{}}}",
+        round.round_index,
+        round.round_unit,
+        poker_optional_seat_json(round.outstanding_actor),
+        round.outstanding_amount,
+        round.lift_cap_remaining
+    )
+}
+
+fn poker_center_json(center: &poker_lite::visibility::CenterView) -> String {
+    match center {
+        poker_lite::visibility::CenterView::Hidden { status } => {
+            format!("{{\"status\":\"{}\",\"card\":null}}", escape_json(status))
+        }
+        poker_lite::visibility::CenterView::Revealed(card) => {
+            format!(
+                "{{\"status\":\"revealed\",\"card\":{}}}",
+                poker_card_json(card)
+            )
+        }
+    }
+}
+
+fn poker_showdown_json(showdown: &poker_lite::visibility::ShowdownView) -> String {
+    format!(
+        "{{\"seat_0_private\":{},\"seat_1_private\":{},\"center\":{},\"winner\":{}}}",
+        poker_card_json(&showdown.seat_0_private),
+        poker_card_json(&showdown.seat_1_private),
+        poker_card_json(&showdown.center),
+        poker_optional_seat_json(showdown.winner)
+    )
+}
+
+fn poker_card_json(card: &poker_lite::visibility::CardView) -> String {
+    format!(
+        "{{\"card_id\":\"{}\",\"rank\":\"{}\",\"rank_value\":{},\"copy\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.card_id),
+        escape_json(&card.rank),
+        card.rank_value,
+        escape_json(&card.copy),
+        escape_json(&card.label),
+        escape_json(&card.accessibility_label)
+    )
+}
+
+fn poker_terminal_json(terminal: &poker_lite::visibility::TerminalView) -> String {
+    match terminal {
+        poker_lite::visibility::TerminalView::NonTerminal => {
+            "{\"terminal\":false,\"kind\":\"non_terminal\",\"winner\":null,\"draw\":false}".to_owned()
+        }
+        poker_lite::visibility::TerminalView::YieldWin {
+            winner,
+            loser,
+            shared_pool,
+        } => format!(
+            "{{\"terminal\":true,\"kind\":\"yield_win\",\"winner\":\"{}\",\"loser\":\"{}\",\"draw\":false,\"shared_pool\":{}}}",
+            winner.as_str(),
+            loser.as_str(),
+            shared_pool
+        ),
+        poker_lite::visibility::TerminalView::ShowdownWin {
+            winner,
+            shared_pool,
+        } => format!(
+            "{{\"terminal\":true,\"kind\":\"showdown_win\",\"winner\":\"{}\",\"draw\":false,\"shared_pool\":{}}}",
+            winner.as_str(),
+            shared_pool
+        ),
+        poker_lite::visibility::TerminalView::Split { shared_pool, each } => format!(
+            "{{\"terminal\":true,\"kind\":\"split\",\"winner\":null,\"draw\":true,\"shared_pool\":{},\"each\":{}}}",
+            shared_pool, each
+        ),
+    }
+}
+
+fn poker_private_view_json(private_view: &poker_lite::visibility::PrivateView) -> String {
+    match private_view {
+        poker_lite::visibility::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"own_private\":null,\"own_strength_bucket\":null}".to_owned()
+        }
+        poker_lite::visibility::PrivateView::Seat(private) => format!(
+            "{{\"status\":\"seat\",\"seat\":\"{}\",\"own_private\":{},\"own_strength_bucket\":{}}}",
+            private.seat.as_str(),
+            private
+                .own_private
+                .as_ref()
+                .map_or_else(|| "null".to_owned(), poker_card_json),
+            private.own_strength_bucket.as_ref().map_or_else(
+                || "null".to_owned(),
+                |bucket| format!("\"{}\"", escape_json(bucket))
+            )
+        ),
+    }
+}
+
+fn poker_ui_json(ui: &poker_lite::UiMetadata) -> String {
+    format!(
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"shared_pool_label\":\"{}\",\"hidden_center_label\":\"{}\",\"hidden_private_label\":\"{}\",\"hold_label\":\"{}\",\"press_label\":\"{}\",\"lift_label\":\"{}\",\"match_label\":\"{}\",\"yield_label\":\"{}\",\"reduced_motion_note\":\"{}\"}}",
+        escape_json(&ui.game_id),
+        escape_json(&ui.display_name),
+        escape_json(&ui.surface_label),
+        escape_json(&ui.shared_pool_label),
+        escape_json(&ui.hidden_center_label),
+        escape_json(&ui.hidden_private_label),
+        escape_json(&ui.hold_label),
+        escape_json(&ui.press_label),
+        escape_json(&ui.lift_label),
+        escape_json(&ui.match_label),
+        escape_json(&ui.yield_label),
+        escape_json(&ui.reduced_motion_note)
+    )
+}
+
+fn poker_optional_seat_json(seat: Option<PokerLiteSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
 fn secret_view_json(view: &secret_draft::PublicView) -> String {
     format!(
         "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"round_number\":{},\"round_limit\":{},\"phase\":\"{}\",\"active_seat\":{},\"priority_seat\":\"{}\",\"visible_pool\":[{}],\"drafted\":{},\"commitments\":{},\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"revealed_history\":[{}],\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
@@ -4761,6 +5298,229 @@ fn token_terminal_outcome_json(outcome: token_bazaar::TerminalOutcome) -> String
             format!("{{\"kind\":\"win\",\"winner\":\"{}\"}}", seat.as_str())
         }
         token_bazaar::TerminalOutcome::Draw => "{\"kind\":\"draw\",\"winner\":null}".to_owned(),
+    }
+}
+
+fn poker_effects_json(effects: &[EffectEnvelope<PokerLiteEffect>], viewer: &Viewer) -> String {
+    let body = poker_lite::visibility::filter_effects_for_viewer(effects, viewer)
+        .iter()
+        .map(poker_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn poker_effect_json(effect: &EffectEnvelope<PokerLiteEffect>) -> String {
+    let payload = match &effect.payload {
+        PokerLiteEffect::PrivateCrestDealt { owner, card } => format!(
+            "{{\"type\":\"private_crest_dealt\",\"owner\":\"{}\",\"card\":{}}}",
+            owner.as_str(),
+            poker_raw_card_json(*card)
+        ),
+        PokerLiteEffect::CrestDealStarted {
+            private_count_per_seat,
+            center_count,
+            deck_tail_count,
+        } => format!(
+            "{{\"type\":\"crest_deal_started\",\"private_count_per_seat\":{},\"center_count\":{},\"deck_tail_count\":{}}}",
+            private_count_per_seat, center_count, deck_tail_count
+        ),
+        PokerLiteEffect::OpeningPoolSet {
+            contributions,
+            shared_pool,
+        } => format!(
+            "{{\"type\":\"opening_pool_set\",\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"shared_pool\":{}}}",
+            contributions[0], contributions[1], shared_pool
+        ),
+        PokerLiteEffect::PledgeHeld { actor, round_index } => format!(
+            "{{\"type\":\"pledge_held\",\"actor\":\"{}\",\"round_index\":{}}}",
+            actor.as_str(),
+            round_index
+        ),
+        PokerLiteEffect::PledgePressed {
+            actor,
+            round_index,
+            amount,
+            shared_pool_after,
+        } => format!(
+            "{{\"type\":\"pledge_pressed\",\"actor\":\"{}\",\"round_index\":{},\"amount\":{},\"shared_pool_after\":{}}}",
+            actor.as_str(),
+            round_index,
+            amount,
+            shared_pool_after
+        ),
+        PokerLiteEffect::PledgeLifted {
+            actor,
+            round_index,
+            amount,
+            shared_pool_after,
+            lift_cap_consumed,
+        } => format!(
+            "{{\"type\":\"pledge_lifted\",\"actor\":\"{}\",\"round_index\":{},\"amount\":{},\"shared_pool_after\":{},\"lift_cap_consumed\":{}}}",
+            actor.as_str(),
+            round_index,
+            amount,
+            shared_pool_after,
+            lift_cap_consumed
+        ),
+        PokerLiteEffect::PledgeMatched {
+            actor,
+            round_index,
+            amount,
+            shared_pool_after,
+        } => format!(
+            "{{\"type\":\"pledge_matched\",\"actor\":\"{}\",\"round_index\":{},\"amount\":{},\"shared_pool_after\":{}}}",
+            actor.as_str(),
+            round_index,
+            amount,
+            shared_pool_after
+        ),
+        PokerLiteEffect::SeatYielded {
+            actor,
+            winner,
+            shared_pool,
+        } => format!(
+            "{{\"type\":\"seat_yielded\",\"actor\":\"{}\",\"winner\":\"{}\",\"shared_pool\":{}}}",
+            actor.as_str(),
+            winner.as_str(),
+            shared_pool
+        ),
+        PokerLiteEffect::CenterRevealStarted { group_id } => format!(
+            "{{\"type\":\"center_reveal_started\",\"group_id\":\"{}\"}}",
+            escape_json(group_id)
+        ),
+        PokerLiteEffect::CenterRevealed { group_id, center } => format!(
+            "{{\"type\":\"center_revealed\",\"group_id\":\"{}\",\"center\":{}}}",
+            escape_json(group_id),
+            poker_raw_card_json(*center)
+        ),
+        PokerLiteEffect::ShowdownRevealStarted { group_id } => format!(
+            "{{\"type\":\"showdown_reveal_started\",\"group_id\":\"{}\"}}",
+            escape_json(group_id)
+        ),
+        PokerLiteEffect::ShowdownRevealed { group_id, reveal } => format!(
+            "{{\"type\":\"showdown_revealed\",\"group_id\":\"{}\",\"reveal\":{}}}",
+            escape_json(group_id),
+            poker_reveal_json(*reveal)
+        ),
+        PokerLiteEffect::LedgerResolved {
+            shared_pool,
+            contributions,
+            allocation,
+        } => format!(
+            "{{\"type\":\"ledger_resolved\",\"shared_pool\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"allocation\":{}}}",
+            shared_pool,
+            contributions[0],
+            contributions[1],
+            poker_allocation_json(*allocation)
+        ),
+        PokerLiteEffect::Terminal { outcome } => format!(
+            "{{\"type\":\"terminal\",\"outcome\":{}}}",
+            poker_terminal_outcome_json(*outcome)
+        ),
+        PokerLiteEffect::BotChoseActionPublic {
+            policy_id,
+            action_family,
+        } => format!(
+            "{{\"type\":\"bot_chose_action\",\"policy_id\":\"{}\",\"action_family\":\"{}\"}}",
+            escape_json(policy_id),
+            escape_json(action_family)
+        ),
+        PokerLiteEffect::BotChoseActionPrivate {
+            owner,
+            policy_id,
+            action_family,
+            strength_bucket,
+        } => format!(
+            "{{\"type\":\"bot_chose_action_private\",\"owner\":\"{}\",\"policy_id\":\"{}\",\"action_family\":\"{}\",\"strength_bucket\":\"{}\"}}",
+            owner.as_str(),
+            escape_json(policy_id),
+            escape_json(action_family),
+            escape_json(strength_bucket)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn poker_raw_card_json(card: poker_lite::CrestCardId) -> String {
+    format!(
+        "{{\"card_id\":\"{}\",\"rank\":\"{}\",\"rank_value\":{},\"copy\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        card.as_str(),
+        card.rank().as_str(),
+        card.rank().value(),
+        card.rank_copy().as_str(),
+        escape_json(&card.label()),
+        escape_json(&poker_lite::card_accessibility_label(card))
+    )
+}
+
+fn poker_reveal_json(reveal: poker_lite::ShowdownReveal) -> String {
+    format!(
+        "{{\"seat_0_private\":{},\"seat_1_private\":{},\"center\":{}}}",
+        poker_raw_card_json(reveal.seat_0_private),
+        poker_raw_card_json(reveal.seat_1_private),
+        poker_raw_card_json(reveal.center)
+    )
+}
+
+fn poker_allocation_json(allocation: poker_lite::effects::LedgerAllocation) -> String {
+    match allocation {
+        poker_lite::effects::LedgerAllocation::Winner { seat, amount } => format!(
+            "{{\"kind\":\"winner\",\"seat\":\"{}\",\"amount\":{}}}",
+            seat.as_str(),
+            amount
+        ),
+        poker_lite::effects::LedgerAllocation::Split { each } => {
+            format!("{{\"kind\":\"split\",\"each\":{each}}}")
+        }
+    }
+}
+
+fn poker_terminal_outcome_json(outcome: poker_lite::TerminalOutcome) -> String {
+    match outcome {
+        poker_lite::TerminalOutcome::YieldWin {
+            winner,
+            loser,
+            shared_pool,
+            contributions,
+        } => format!(
+            "{{\"kind\":\"yield_win\",\"winner\":\"{}\",\"loser\":\"{}\",\"shared_pool\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+            winner.as_str(),
+            loser.as_str(),
+            shared_pool,
+            contributions[0],
+            contributions[1]
+        ),
+        poker_lite::TerminalOutcome::ShowdownWin {
+            winner,
+            shared_pool,
+            contributions,
+            reveal,
+        } => format!(
+            "{{\"kind\":\"showdown_win\",\"winner\":\"{}\",\"shared_pool\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"reveal\":{}}}",
+            winner.as_str(),
+            shared_pool,
+            contributions[0],
+            contributions[1],
+            poker_reveal_json(reveal)
+        ),
+        poker_lite::TerminalOutcome::Split {
+            shared_pool,
+            each,
+            contributions,
+            reveal,
+        } => format!(
+            "{{\"kind\":\"split\",\"shared_pool\":{},\"each\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"reveal\":{}}}",
+            shared_pool,
+            each,
+            contributions[0],
+            contributions[1],
+            poker_reveal_json(reveal)
+        ),
     }
 }
 
@@ -5918,14 +6678,17 @@ mod tests {
         assert!(games.contains("\"game_id\":\"draughts_lite\""));
         assert!(games.contains("\"game_id\":\"high_card_duel\""));
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
+        assert!(games.contains("\"game_id\":\"poker_lite\""));
         assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
         assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
         assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
         assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
         assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
         assert!(games.contains("\"variants\":[\"token_bazaar_standard\"]"));
+        assert!(games.contains("\"variants\":[\"poker_lite_standard\"]"));
         assert!(games.contains("\"hidden_information\":true"));
         assert!(games.contains("\"public_replay_export\""));
+        assert!(games.contains("\"bounded_pledge\""));
     }
 
     #[test]
@@ -6436,6 +7199,91 @@ mod tests {
     }
 
     #[test]
+    fn poker_lite_surface_filters_hidden_cards() {
+        let created = new_match("poker_lite", 101).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"poker_lite_standard\""));
+
+        let internal = poker_setup_match(Seed(101), &seats(), &poker_lite::SetupOptions::default())
+            .expect("setup succeeds");
+        let seat_0_card = internal.private_card_for_internal(PokerLiteSeat::Seat0);
+        let seat_1_card = internal.private_card_for_internal(PokerLiteSeat::Seat1);
+        let center_card = internal.center_card_internal();
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat view returned");
+        let seat_1 = get_view(&match_id, Some("seat_1")).expect("seat view returned");
+        assert!(observer.contains("\"game_id\":\"poker_lite\""));
+        assert!(observer.contains("\"private_view\":{\"status\":\"observer\""));
+        assert!(seat_0.contains("\"private_view\":{\"status\":\"seat\",\"seat\":\"seat_0\""));
+        assert!(seat_0.contains(seat_0_card.as_str()));
+        assert!(seat_1.contains(seat_1_card.as_str()));
+        assert!(!observer.contains("\"rank\":"));
+        assert_no_poker_cards(&observer, &[seat_0_card, seat_1_card, center_card]);
+        assert!(!seat_1.contains(seat_0_card.as_str()));
+        assert!(!seat_0.contains(seat_1_card.as_str()));
+        assert!(!seat_0.contains(center_card.as_str()));
+        assert!(!seat_1.contains(center_card.as_str()));
+        if seat_0_card.rank() != seat_1_card.rank() {
+            assert!(!seat_1.contains(&format!("\"rank\":\"{}\"", seat_0_card.rank().as_str())));
+            assert!(!seat_0.contains(&format!("\"rank\":\"{}\"", seat_1_card.rank().as_str())));
+        }
+        if center_card.rank() != seat_0_card.rank() {
+            assert!(!seat_0.contains(&format!("\"rank\":\"{}\"", center_card.rank().as_str())));
+        }
+        if center_card.rank() != seat_1_card.rank() {
+            assert!(!seat_1.contains(&format!("\"rank\":\"{}\"", center_card.rank().as_str())));
+        }
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized tree returned");
+        let unauthorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_1"))
+            .expect("unauthorized tree returned");
+        let observer_tree =
+            get_action_tree_for_viewer(&match_id, "seat_0", None).expect("observer tree returned");
+        assert!(authorized.contains("\"segment\":\"hold\""));
+        assert!(authorized.contains("\"segment\":\"press\""));
+        assert!(unauthorized.contains("\"choices\":[]"));
+        assert!(observer_tree.contains("\"choices\":[]"));
+
+        let applied = apply_action(&match_id, "seat_0", "press", 0).expect("press applies");
+        assert!(applied.contains("\"type\":\"pledge_pressed\""));
+        assert!(!applied.contains(seat_1_card.as_str()));
+        assert!(!applied.contains(center_card.as_str()));
+
+        let observer_effects = get_effects(&match_id, 0, None).expect("observer effects");
+        assert!(observer_effects.contains("\"type\":\"pledge_pressed\""));
+        assert_no_poker_cards(&observer_effects, &[seat_0_card, seat_1_card, center_card]);
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        assert!(bot.contains("\"ok\":true"));
+        assert!(bot.contains("\"policy_id\":\"poker-lite-crest-ledger-level2-v1\""));
+        assert!(!bot.contains(seat_0_card.as_str()));
+
+        let seat_1_effects = get_effects(&match_id, 0, Some("seat_1")).expect("seat effects");
+        assert!(seat_1_effects.contains("\"type\":\"bot_chose_action_private\""));
+        assert!(seat_1_effects.contains("\"strength_bucket\""));
+        assert!(!seat_1_effects.contains(seat_0_card.as_str()));
+
+        let exported = export_replay(&match_id).expect("public replay exported");
+        assert!(exported.contains("\"export_class\":\"viewer_scoped_observation_v1\""));
+        assert!(exported.contains("\"viewer\":\"observer\""));
+        assert!(!exported.contains("\"commands\""));
+        assert!(!exported.contains("\"path\""));
+        assert!(!exported.contains("\"seed_evidence\""));
+        assert_no_poker_cards(&exported, &[seat_0_card, seat_1_card]);
+
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"public_export\":true"));
+        assert!(imported.contains("\"game_id\":\"poker_lite\""));
+
+        let reset = replay_reset(&replay_id).expect("public replay reset returned");
+        assert!(reset.contains("\"public_export\":true"));
+        assert!(reset.contains("\"view\":null"));
+    }
+
+    #[test]
     fn high_card_public_import_replays_ordered_public_effects() {
         let source_export = high_card_export_public_observer_replay(
             &high_card_duel::generate_internal_full_trace(55),
@@ -6688,6 +7536,19 @@ mod tests {
         assert_eq!(compact_json_layout(fixture), exported);
     }
 
+    #[test]
+    fn poker_lite_wasm_public_export_matches_golden_fixture() {
+        let created = new_match("poker_lite", 101).expect("match created");
+        let match_id = extract_match_id(&created);
+        apply_action(&match_id, "seat_0", "press", 0).expect("press applies");
+        run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
+        let exported = export_replay(&match_id).expect("public replay exported");
+        let fixture =
+            include_str!("../../../games/poker_lite/tests/golden_traces/wasm-exported.trace.json");
+
+        assert_eq!(compact_json_layout(fixture), exported);
+    }
+
     fn extract_match_id(created: &str) -> String {
         created
             .split("\"match_id\":\"")
@@ -6748,6 +7609,16 @@ mod tests {
         ids.sort();
         ids.dedup();
         ids
+    }
+
+    fn assert_no_poker_cards(input: &str, cards: &[poker_lite::CrestCardId]) {
+        for card in cards {
+            assert!(
+                !input.contains(card.as_str()),
+                "hidden poker_lite card {} leaked in {input}",
+                card.as_str()
+            );
+        }
     }
 
     fn compact_json_layout(input: &str) -> String {

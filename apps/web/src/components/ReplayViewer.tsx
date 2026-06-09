@@ -307,6 +307,21 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
     ];
   }
 
+  if (view.game_id === "poker_lite") {
+    return [
+      { label: "Round", value: `${view.round.round_index + 1} / 2` },
+      {
+        label: "Turn",
+        value: view.terminal.terminal
+          ? view.terminal.draw
+            ? "split"
+            : `${view.terminal.winner} won`
+          : view.active_seat ?? "resolving",
+      },
+      { label: "Shared pool", value: String(view.shared_pool) },
+    ];
+  }
+
   return [
     { label: "Board", value: `${view.board_rows} x ${view.board_columns}` },
     { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat ?? "terminal" },

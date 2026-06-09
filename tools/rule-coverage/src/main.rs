@@ -80,6 +80,12 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             coverage_path: "games/secret_draft/docs/RULE-COVERAGE.md",
             benchmarks_path: "games/secret_draft/docs/BENCHMARKS.md",
         }),
+        "poker_lite" => Ok(RegisteredGame {
+            game_id: "poker_lite",
+            rules_path: "games/poker_lite/docs/RULES.md",
+            coverage_path: "games/poker_lite/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/poker_lite/docs/BENCHMARKS.md",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -98,7 +104,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite>"
                     );
                     process::exit(0);
                 }
@@ -210,7 +216,7 @@ fn is_rule_id(value: &str) -> bool {
     parts.len() == 3
         && matches!(
             parts[0],
-            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD"
+            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD" | "CL"
         )
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())
@@ -288,6 +294,7 @@ mod tests {
         assert!(is_rule_id("DL-SCOPE-001"));
         assert!(is_rule_id("HCD-SETUP-001"));
         assert!(is_rule_id("TB-SETUP-001"));
+        assert!(is_rule_id("CL-SETUP-001"));
         assert!(!is_rule_id("XX-SCOPE-001"));
     }
 
