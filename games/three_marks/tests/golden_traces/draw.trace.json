@@ -4,7 +4,7 @@
   "fixture_kind": "terminal",
   "purpose": "representative_draw_replay",
   "note": "Nine applied placements fill the board without a line and prove draw replay projection.",
-  "migration_update_note": "Initial Three Marks Trace Schema v1 fixture; expected hashes are established by GAT4THRMARBOA-007.",
+  "migration_update_note": "Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.",
   "game_id": "three_marks",
   "rules_version": "three_marks-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -33,7 +33,7 @@
   "expected_state_hashes": { "final": 13666016804862366645 },
   "expected_effect_hashes": { "final": 15898185767849038190 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 5109758469995093522 },
+  "expected_public_view_hashes": { "all": 5050400050114091440 },
   "expected_replay_hashes": { "final": 3077301739997182042 },
   "expected_private_view_hashes": {
     "not_applicable": "three_marks is perfect-information and has no private-view API."

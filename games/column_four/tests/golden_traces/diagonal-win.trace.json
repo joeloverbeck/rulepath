@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "diagonal_win_replay",
   "note": "Seat_0 builds a rising diagonal from r1c1 through r4c4 with legal support drops.",
-  "migration_update_note": "Initial Column Four Trace Schema v1 fixture; expected hashes are established by GAT5COLFOUPUB-010.",
+  "migration_update_note": "Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.",
   "game_id": "column_four",
   "rules_version": "column_four-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -35,7 +35,7 @@
   "expected_state_hashes": { "final": 5979335890398983819 },
   "expected_effect_hashes": { "final": 11830873326955086549 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 16799147912802037059 },
+  "expected_public_view_hashes": { "all": 14532246802987053968 },
   "expected_replay_hashes": { "final": 16728053644658710595 },
   "expected_private_view_hashes": {
     "not_applicable": "column_four is perfect-information and has no private-view API."

@@ -4,7 +4,7 @@
   "fixture_kind": "terminal",
   "purpose": "terminal_empty_action_tree_replay",
   "note": "A completed horizontal win proves terminal replay hashes and an empty terminal action tree.",
-  "migration_update_note": "Initial Column Four Trace Schema v1 fixture; expected hashes are established by GAT5COLFOUPUB-010.",
+  "migration_update_note": "Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.",
   "game_id": "column_four",
   "rules_version": "column_four-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -31,7 +31,7 @@
   "expected_state_hashes": { "final": 11714840577993666397 },
   "expected_effect_hashes": { "final": 12384136324972132347 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 1081769302893956693 },
+  "expected_public_view_hashes": { "all": 18204039013253560274 },
   "expected_replay_hashes": { "final": 6725836404383432255 },
   "expected_private_view_hashes": {
     "not_applicable": "column_four is perfect-information and has no private-view API."

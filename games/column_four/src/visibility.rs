@@ -67,8 +67,22 @@ pub enum TerminalView {
     Win {
         winning_seat: ColumnFourSeat,
         line: [CellId; 4],
+        rationale: OutcomeRationaleView,
     },
-    Draw,
+    Draw {
+        rationale: OutcomeRationaleView,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub line_cells: Vec<CellId>,
+    pub line_orientation: Option<String>,
+    pub board_full: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -80,10 +94,13 @@ pub struct PrivateView {
 pub fn project_view(state: &ColumnFourState, _viewer: &Viewer) -> PublicView {
     let terminal = match state.terminal_outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::Draw) => TerminalView::Draw,
+        Some(TerminalOutcome::Draw) => TerminalView::Draw {
+            rationale: draw_rationale(),
+        },
         Some(TerminalOutcome::Win { seat, line }) => TerminalView::Win {
             winning_seat: seat,
             line: line.cells,
+            rationale: line_win_rationale(line.cells),
         },
     };
     let legal_targets = legal_targets(state);
@@ -245,7 +262,7 @@ fn status_label(terminal: &TerminalView, active_seat: ColumnFourSeat) -> String 
     match terminal {
         TerminalView::NonTerminal => format!("{} to drop", active_seat.as_str()),
         TerminalView::Win { winning_seat, .. } => format!("{} wins", winning_seat.as_str()),
-        TerminalView::Draw => "draw".to_owned(),
+        TerminalView::Draw { .. } => "draw".to_owned(),
     }
 }
 
@@ -290,16 +307,90 @@ fn encode_legal_target(target: &LegalColumnTargetView) -> String {
 fn encode_terminal(terminal: &TerminalView) -> String {
     match terminal {
         TerminalView::NonTerminal => "non_terminal".to_owned(),
-        TerminalView::Draw => "draw".to_owned(),
-        TerminalView::Win { winning_seat, line } => format!(
-            "win:{}:{}",
+        TerminalView::Draw { rationale } => format!("draw:{}", encode_rationale(rationale)),
+        TerminalView::Win {
+            winning_seat,
+            line,
+            rationale,
+        } => format!(
+            "win:{}:{}:{}",
             winning_seat.as_str(),
             line.iter()
                 .map(|cell| cell.as_string())
                 .collect::<Vec<_>>()
-                .join("-")
+                .join("-"),
+            encode_rationale(rationale)
         ),
     }
+}
+
+fn line_win_rationale(line: [CellId; 4]) -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: "win".to_owned(),
+        decisive_cause: "line_completed".to_owned(),
+        template_key: "column_four.line_completed".to_owned(),
+        decisive_rule_ids: vec![
+            "CF-SCORE-001".to_owned(),
+            terminal_rule_for_line(line).to_owned(),
+        ],
+        line_cells: line.into_iter().collect(),
+        line_orientation: Some(line_orientation(line).to_owned()),
+        board_full: false,
+    }
+}
+
+fn draw_rationale() -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: "draw".to_owned(),
+        decisive_cause: "full_board_no_line".to_owned(),
+        template_key: "column_four.full_board_draw".to_owned(),
+        decisive_rule_ids: vec!["CF-SCORE-001".to_owned(), "CF-END-005".to_owned()],
+        line_cells: Vec::new(),
+        line_orientation: None,
+        board_full: true,
+    }
+}
+
+fn terminal_rule_for_line(line: [CellId; 4]) -> &'static str {
+    match line_orientation(line) {
+        "horizontal" => "CF-END-001",
+        "vertical" => "CF-END-002",
+        "rising_diagonal" => "CF-END-003",
+        "falling_diagonal" => "CF-END-004",
+        _ => unreachable!("line orientation is one of the documented Column Four directions"),
+    }
+}
+
+fn line_orientation(line: [CellId; 4]) -> &'static str {
+    let rows = line.map(|cell| cell.row.index());
+    let columns = line.map(|cell| cell.column.index());
+    if rows[0] == rows[1] && rows[1] == rows[2] && rows[2] == rows[3] {
+        "horizontal"
+    } else if columns[0] == columns[1] && columns[1] == columns[2] && columns[2] == columns[3] {
+        "vertical"
+    } else if rows[0] < rows[3] {
+        "rising_diagonal"
+    } else {
+        "falling_diagonal"
+    }
+}
+
+fn encode_rationale(rationale: &OutcomeRationaleView) -> String {
+    format!(
+        "{}|{}|{}|{}|{}|{}|{}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join("+"),
+        rationale
+            .line_cells
+            .iter()
+            .map(|cell| cell.as_string())
+            .collect::<Vec<_>>()
+            .join("-"),
+        rationale.line_orientation.as_deref().unwrap_or("none"),
+        rationale.board_full
+    )
 }
 
 #[cfg(test)]
@@ -444,15 +535,45 @@ mod tests {
                     cell(RowId::R1, ColumnId::C3),
                     cell(RowId::R1, ColumnId::C4)
                 ],
+                rationale: OutcomeRationaleView {
+                    result_kind: "win".to_owned(),
+                    decisive_cause: "line_completed".to_owned(),
+                    template_key: "column_four.line_completed".to_owned(),
+                    decisive_rule_ids: vec!["CF-SCORE-001".to_owned(), "CF-END-001".to_owned()],
+                    line_cells: vec![
+                        cell(RowId::R1, ColumnId::C1),
+                        cell(RowId::R1, ColumnId::C2),
+                        cell(RowId::R1, ColumnId::C3),
+                        cell(RowId::R1, ColumnId::C4)
+                    ],
+                    line_orientation: Some("horizontal".to_owned()),
+                    board_full: false,
+                },
             }
         );
+        assert!(win_view
+            .stable_summary()
+            .contains("column_four.line_completed"));
         assert_eq!(win_view.active_seat, None);
         assert!(win_view.legal_targets.is_empty());
 
         let mut draw_state = state();
         draw_state.terminal_outcome = Some(TerminalOutcome::Draw);
         let draw_view = project_view(&draw_state, &viewer());
-        assert_eq!(draw_view.terminal, TerminalView::Draw);
+        assert_eq!(
+            draw_view.terminal,
+            TerminalView::Draw {
+                rationale: OutcomeRationaleView {
+                    result_kind: "draw".to_owned(),
+                    decisive_cause: "full_board_no_line".to_owned(),
+                    template_key: "column_four.full_board_draw".to_owned(),
+                    decisive_rule_ids: vec!["CF-SCORE-001".to_owned(), "CF-END-005".to_owned()],
+                    line_cells: Vec::new(),
+                    line_orientation: None,
+                    board_full: true,
+                }
+            }
+        );
         assert_eq!(draw_view.status_label, "draw");
         assert_eq!(
             draw_view.private_view.status,

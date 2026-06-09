@@ -1,6 +1,6 @@
 use column_four::{
     apply_action, project_view, setup_match, CellId, CellOccupancy, ColumnFourSeat, ColumnId,
-    RowId, SetupOptions, TerminalOutcome,
+    OutcomeRationaleView, RowId, SetupOptions, TerminalOutcome,
 };
 use engine_core::{SeatId, Seed, StableSerialize, Viewer};
 
@@ -49,7 +49,20 @@ fn terminal_view_has_no_active_seat_or_legal_targets() {
 
     assert_eq!(view.active_seat, None);
     assert!(view.legal_targets.is_empty());
-    assert_eq!(view.terminal, column_four::TerminalView::Draw);
+    assert_eq!(
+        view.terminal,
+        column_four::TerminalView::Draw {
+            rationale: OutcomeRationaleView {
+                result_kind: "draw".to_owned(),
+                decisive_cause: "full_board_no_line".to_owned(),
+                template_key: "column_four.full_board_draw".to_owned(),
+                decisive_rule_ids: vec!["CF-SCORE-001".to_owned(), "CF-END-005".to_owned()],
+                line_cells: Vec::new(),
+                line_orientation: None,
+                board_full: true,
+            }
+        }
+    );
 }
 
 #[test]
