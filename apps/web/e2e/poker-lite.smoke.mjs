@@ -115,6 +115,17 @@ try {
   await waitForText(page, "Showdown");
   await assertShowdownRendered(page);
 
+  await startPokerLite(page, baseUrl, "Hotseat", 2);
+  await clickText(page, "button", "Hold");
+  await waitForText(page, "Held");
+  await clickText(page, "button", "Hold");
+  await waitForText(page, "Center revealed");
+  await clickText(page, "button", "Hold");
+  await waitForText(page, "Held");
+  await clickText(page, "button", "Hold");
+  await waitForText(page, "wins on the revealed showdown rank");
+  await assertPrivateRankOutcomeRendered(page);
+
   await startPokerLite(page, baseUrl, "Hotseat");
   await clickText(page, "button", "Press");
   await waitForText(page, "Pressed");
@@ -146,10 +157,21 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startPokerLite(page, baseUrl, modeLabel) {
+async function startPokerLite(page, baseUrl, modeLabel, seed = null) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "Crest Ledger");
   await clickText(page, "button", "Crest Ledger");
+  if (seed !== null) {
+    await page.$eval(
+      ".field input[type='number']",
+      (input, value) => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+        setter?.call(input, String(value));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      },
+      seed,
+    );
+  }
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="poker-lite-board"]');
@@ -210,6 +232,12 @@ async function assertShowdownRendered(page) {
   assert(summary.showdownText.includes("Center"), "showdown includes center reveal");
   assert(summary.showdownText.includes("Seat 1"), "showdown includes seat 1 reveal");
   assert(summary.terminalText.includes("Shared pool") || summary.terminalText.includes("Split ledger"), "outcome panel summarizes ledger");
+}
+
+async function assertPrivateRankOutcomeRendered(page) {
+  const terminalText = await page.$eval(".outcome-explanation-panel", (panel) => panel.textContent ?? "");
+  assert(terminalText.includes("wins on the revealed showdown rank"), "seed 2 showdown uses Rust private-rank rationale");
+  assert(!terminalText.includes("wins with a pair"), "seed 2 showdown does not use pair fallback");
 }
 
 async function assertReplayViewerNoForbidden(page) {
