@@ -1,6 +1,6 @@
 # GAT10POKLITBET-011: Bot-strategy evidence docs (AI, competent-player, evidence pack)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — new per-game bot docs only (`games/poker_lite/docs/*`); no Rust/engine surface touched
@@ -79,3 +79,21 @@ Instantiate from `templates/BOT-STRATEGY-EVIDENCE-PACK.md`. Cite the bot tests/t
 1. `node scripts/check-doc-links.mjs`
 2. `cargo test -p poker_lite --test bots` — confirms the cited evidence fixtures pass (the docs' factual basis).
 3. Narrower boundary: docs-only, so no new Rust surface; the bot-test command above is the evidence anchor.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+Changed:
+
+- Added per-game AI registry, competent-player analysis, and bot strategy evidence pack for Crest Ledger.
+- Cited only shipped bot tests and `bot-action.trace.json` for competence, fairness, determinism, and no-leak claims.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `cargo test -p poker_lite --test bots`
