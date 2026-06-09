@@ -14,6 +14,7 @@ members = [
     "games/secret_draft",
     "games/token_bazaar",
     "games/poker_lite",
+    "games/plain_tricks",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",

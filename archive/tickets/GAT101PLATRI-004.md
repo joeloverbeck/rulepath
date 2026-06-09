@@ -1,6 +1,6 @@
 # GAT101PLATRI-004: plain_tricks crate skeleton, typed ids, variants, and data manifests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/plain_tricks` (added to workspace `Cargo.toml`); new `src/{ids,variants,lib}.rs` skeleton, `data/{manifest,variants}.toml`, fixture manifest. No `engine-core`/`game-stdlib` change.
@@ -86,3 +86,26 @@ Add `data/manifest.toml`, `data/variants.toml`, and `data/fixtures/plain_tricks_
 1. `cargo build -p plain_tricks`
 2. `cargo test -p plain_tricks && bash scripts/boundary-check.sh`
 3. A per-crate build + boundary check is the correct boundary: this ticket adds only the skeleton; full pipeline checks belong to later tickets.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks` as a workspace crate and updated `Cargo.lock` with the new package entry.
+- Added compile-only crate surface in `games/plain_tricks/src/{ids,variants,lib}.rs`.
+- Defined `PlainTricksSeat`, `TrickSuit`, `TrickRank`, `TrickCardId`, `ACTION_PLAY`, `plain_tricks_standard`, `plain-tricks-rules-v1`, stable label helpers, and canonical deck order.
+- Added strict static-data parsing for manifest, variant catalog, and fixture scaffold, including unknown-field rejection and behavior-looking key rejection.
+- Added `games/plain_tricks/data/{manifest,variants}.toml` and `games/plain_tricks/data/fixtures/plain_tricks_standard.fixture.json` with metadata only.
+
+Deviations from original plan:
+
+- `Cargo.lock` changed as a consequence of adding the workspace member and building the new crate. No rules/setup/action/visibility behavior was added.
+
+Verification results:
+
+- `cargo fmt --all --check` passed after applying rustfmt.
+- `cargo build -p plain_tricks` passed.
+- `cargo test -p plain_tricks` passed: 9 tests passed.
+- `bash scripts/boundary-check.sh` passed.

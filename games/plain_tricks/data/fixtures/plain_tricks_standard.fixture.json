@@ -1,0 +1,16 @@
+{
+  "fixture_id": "plain_tricks_standard_gate10_1",
+  "game_id": "plain_tricks",
+  "variant": "plain_tricks_standard",
+  "rules_version": "plain-tricks-rules-v1",
+  "phase": "round_1_lead",
+  "active_seat": "seat_0",
+  "deck_order": "gale_1,gale_2,gale_3,gale_4,gale_5,gale_6,river_1,river_2,river_3,river_4,river_5,river_6,ember_1,ember_2,ember_3,ember_4,ember_5,ember_6",
+  "hand_status": "hidden_by_setup",
+  "tail_status": "internal_only",
+  "round_index": 0,
+  "trick_index": 0,
+  "terminal_outcome": "none",
+  "purpose": "Gate 10.1 Plain Tricks standard fixture metadata for the typed variant and static-data boundary.",
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, actions, rules, visibility, replay, bot, and WASM code."
+}
