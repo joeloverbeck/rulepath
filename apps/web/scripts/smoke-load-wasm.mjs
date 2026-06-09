@@ -22,7 +22,9 @@ const requiredExports = [
   "rulepath_list_games",
   "rulepath_new_match",
   "rulepath_get_view",
+  "rulepath_get_view_for_viewer",
   "rulepath_get_action_tree",
+  "rulepath_get_action_tree_for_viewer",
   "rulepath_apply_action",
   "rulepath_run_bot_turn",
   "rulepath_get_effects",
@@ -68,6 +70,16 @@ assert(
       game.hidden_information === true,
   ),
   "list_games includes secret_draft standard hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "plain_tricks" &&
+      game.variants.includes("plain_tricks_standard") &&
+      game.hidden_information === true &&
+      game.tags.includes("trick_taking"),
+  ),
+  "list_games includes plain_tricks standard hidden-information variant",
 );
 
 const created = invoke(
@@ -745,6 +757,115 @@ const secretReplayReset = invoke(
 );
 assert(secretReplayReset.public_export === true, "secret_draft replay reset uses public timeline");
 
+const plainCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 37n),
+  ["plain_tricks"],
+);
+assert(plainCreated.match_id, "plain_tricks new_match returns a match id");
+assert(plainCreated.variant_id === "plain_tricks_standard", "plain_tricks starts standard variant");
+
+const plainObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [plainCreated.match_id],
+);
+assert(plainObserver.game_id === "plain_tricks", "plain_tricks view is game-specific");
+assert(plainObserver.private_view.status === "observer", "plain_tricks observer view is redacted");
+assert(plainObserver.hand_counts.seat_0 === 6, "plain_tricks exposes hand counts to observer");
+
+const plainSeat0 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [plainCreated.match_id, "seat_0"],
+);
+assert(plainSeat0.private_view.status === "seat", "plain_tricks seat viewer receives private view");
+assert(plainSeat0.private_view.own_hand.length === 6, "plain_tricks seat view includes own hand");
+
+const plainUnauthorizedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [plainCreated.match_id, "seat_0", "seat_1"],
+);
+assert(plainUnauthorizedTree.choices.length === 0, "plain_tricks non-actor tree is redacted");
+
+const plainTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [plainCreated.match_id, "seat_0", "seat_0"],
+);
+const plainPath = firstCompletePath(plainTree.choices);
+assert(plainPath[0] === "play" && plainPath[1], "plain_tricks action tree exposes card play paths");
+
+const plainAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(plainTree.freshness_token),
+    ),
+  [plainCreated.match_id, "seat_0", plainPath.join(">")],
+);
+assert(plainAfterHuman.view.current_trick.plays.length === 1, "plain_tricks card play reaches Rust view");
+assert(
+  plainAfterHuman.effects.some((effect) => effect.payload.type === "card_played"),
+  "plain_tricks emits semantic card-play effect",
+);
+for (const card of plainSeat0.private_view.own_hand.filter((card) => card.card_id !== plainPath[1])) {
+  assert(
+    !JSON.stringify(plainObserver).includes(card.card_id),
+    `plain_tricks observer omits unplayed private card ${card.card_id}`,
+  );
+}
+
+const plainExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [plainCreated.match_id],
+);
+assert(plainExportedReplay.game_id === "plain_tricks", "plain_tricks export_replay preserves game id");
+assert(
+  plainExportedReplay.export_class === "viewer_scoped_observation_v1",
+  "plain_tricks export is viewer-scoped",
+);
+assert(plainExportedReplay.viewer === "observer", "plain_tricks export defaults to observer");
+assert(!JSON.stringify(plainExportedReplay).includes('"commands"'), "plain_tricks public export omits command stream");
+assert(!JSON.stringify(plainExportedReplay).includes('"seed_evidence"'), "plain_tricks public export omits seed evidence");
+for (const card of plainSeat0.private_view.own_hand.filter((card) => card.card_id !== plainPath[1])) {
+  assert(
+    !JSON.stringify(plainExportedReplay).includes(card.card_id),
+    `plain_tricks export omits unplayed private card ${card.card_id}`,
+  );
+}
+
+const plainImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(plainExportedReplay)],
+);
+assert(plainImportedReplay.game_id === "plain_tricks", "plain_tricks import_replay preserves game id");
+assert(plainImportedReplay.public_export === true, "plain_tricks import marks public export");
+
+const plainReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [plainImportedReplay.replay_id],
+);
+assert(plainReplayReset.public_export === true, "plain_tricks replay reset uses public timeline");
+
 console.log(
   JSON.stringify({
     version,
@@ -764,6 +885,8 @@ console.log(
     draughts_lite_replay_cursor: draughtsReplayStep.cursor,
     secret_draft_match_id: secretCreated.match_id,
     secret_draft_public_export: secretImportedReplay.public_export,
+    plain_tricks_match_id: plainCreated.match_id,
+    plain_tricks_public_export: plainImportedReplay.public_export,
   }),
 );
 

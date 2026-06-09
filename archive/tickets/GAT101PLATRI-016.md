@@ -1,6 +1,6 @@
 # GAT101PLATRI-016: WASM registration and viewer-scoped browser bridge
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — modifies `crates/wasm-api/src/lib.rs` (new `RegisteredGame::PlainTricks`, `MatchRecord::PlainTricks`, `GAME_PLAIN_TRICKS` const + display name, list-games entry, serializers, bot-turn, export/import, replay branches, redaction tests). No `engine-core`/`game-stdlib` change.
@@ -72,3 +72,14 @@ Add `GAME_PLAIN_TRICKS` + display name + `VARIANT_PLAIN_TRICKS_STANDARD` + rules
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm`
 3. The WASM unit tests + wasm smoke are the correct boundary; full browser rendering is GAT101PLATRI-017 and e2e is GAT101PLATRI-018.
+
+## Outcome
+
+Completed 2026-06-09. Registered `plain_tricks` in the WASM catalog, match store, live view/action/effect/bot branches, public replay export/import, and replay stepping. Added viewer-scoped redaction and actor-authorization tests proving non-actors receive an empty action tree and public exports omit seed evidence plus unplayed hidden cards. Refreshed the `wasm-exported` golden trace and extended `npm --prefix apps/web run smoke:wasm` to exercise the viewer bridge and public replay path for Plain Tricks.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p wasm-api`
+3. `npm --prefix apps/web run smoke:wasm`
+4. `grep -n "GAME_PLAIN_TRICKS\|RegisteredGame::PlainTricks\|MatchRecord::PlainTricks" crates/wasm-api/src/lib.rs`
