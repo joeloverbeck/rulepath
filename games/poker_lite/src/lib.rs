@@ -6,7 +6,9 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     actor_seat, legal_action_tree, parse_action_segment, validate_command, PokerLiteAction,
@@ -28,7 +30,12 @@ pub use setup::{setup_match, shuffle_deck, SetupOptions};
 pub use state::{
     Phase, PledgeRoundState, PokerLiteState, ShowdownReveal, TerminalOutcome, TerminalReveal,
 };
+pub use ui::{card_accessibility_label, ui_metadata, UiMetadata};
 pub use variants::{Fixture, Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    filter_effects_for_viewer, project_view, CardView, CenterView, PrivateView, PublicView,
+    SeatPrivateView, TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

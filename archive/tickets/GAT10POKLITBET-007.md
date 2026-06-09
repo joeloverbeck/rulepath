@@ -1,6 +1,6 @@
 # GAT10POKLITBET-007: Public/seat view projection, UI metadata, and no-leak tests
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/poker_lite/src/visibility.rs`, `games/poker_lite/src/ui.rs`, `games/poker_lite/tests/visibility.rs`. Consumes `engine-core` public/private view contract. No kernel change.
@@ -84,3 +84,26 @@ Per-phase projection tests + exhaustive no-leak string search over view/action-t
 1. `cargo test -p poker_lite --test visibility`
 2. `cargo test -p poker_lite`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite/src/visibility.rs` with projection-by-omission public/seat views, center gating, showdown-only public private-card reveal, yield-terminal redaction, stable summaries, and effect filtering by `VisibilityScope`.
+- Added `games/poker_lite/src/ui.rs` with neutral Crest Ledger UI metadata and accessibility labels.
+- Added `games/poker_lite/tests/visibility.rs` with observer, seat, center-reveal, showdown, yield-terminal, action-tree/effect/diagnostic no-leak, and owner-strength-bucket isolation coverage.
+- Re-exported UI and visibility types/helpers from `games/poker_lite/src/lib.rs`.
+
+Deviations from original plan:
+
+- No external JSON serialization crate was added; no-leak checks use deterministic debug/stable-summary text over the typed view/effect/action/diagnostic surfaces, matching the current crate dependency posture.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite --test visibility` passed: 5 integration tests.
+- `cargo test -p poker_lite` passed: 21 unit tests, 10 rules integration tests, 5 visibility integration tests, and 0 doc tests.
+- `bash scripts/boundary-check.sh` passed.
+- `rg -n "casino|poker|chip|payout|ante|blind|rake" games/poker_lite/src/ui.rs` returned no matches.
