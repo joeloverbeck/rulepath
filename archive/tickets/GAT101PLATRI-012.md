@@ -1,6 +1,6 @@
 # GAT101PLATRI-012: Bot-strategy evidence docs (competent-player and evidence pack)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/plain_tricks/docs/COMPETENT-PLAYER.md`, `games/plain_tricks/docs/BOT-STRATEGY-EVIDENCE-PACK.md`. No Rust code.
@@ -73,3 +73,21 @@ Record the `plain-tricks-level2-v1` design: allowed input (own seat/hand, legal 
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-catalog-docs.mjs`
 3. A doc-link check is the correct boundary; the strategy's executable guarantees (legality, determinism) are verified in GAT101PLATRI-013's bot tests.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+1. Added `games/plain_tricks/docs/COMPETENT-PLAYER.md` with original strategy analysis for follow-suit play, trick control, cheap wins, ducking, leading from strength/length, and public off-suit inference.
+2. Added `games/plain_tricks/docs/BOT-STRATEGY-EVIDENCE-PACK.md` defining `plain-tricks-level2-v1`, allowed and forbidden bot inputs, deterministic lexicographic priorities, explanation boundaries, and GAT101PLATRI-013 evidence targets.
+
+Deviations from original plan:
+
+1. Linked only to currently existing docs/tests; bot implementation, bot tests, AI docs, and refreshed bot trace remain pending for GAT101PLATRI-013.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs` passed.
+2. `node scripts/check-catalog-docs.mjs` passed.
