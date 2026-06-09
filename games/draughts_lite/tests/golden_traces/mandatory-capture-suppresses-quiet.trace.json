@@ -4,7 +4,7 @@
   "fixture_kind": "diagnostic",
   "purpose": "mandatory_capture_suppresses_quiet",
   "note": "A quiet move is rejected while a capture is available.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 141618567720094714 },
+  "expected_state_hashes": { "final": 13251411630482187363 },
   "expected_effect_hashes": { "final": 14695981039346656037 },
   "expected_action_tree_hashes": { "final": 703184804522635111 },
   "expected_public_view_hashes": { "all": 8792207538273210103 },
-  "expected_replay_hashes": { "final": 1768167813599884709 },
+  "expected_replay_hashes": { "final": 4561466584368796450 },
   "expected_diagnostics": [
     { "index": 0, "code": "quiet_move_while_capture_available", "hash": 16672573032039759678 }
   ],

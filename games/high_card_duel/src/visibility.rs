@@ -73,8 +73,34 @@ pub struct RevealedRoundView {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalView {
     NonTerminal,
-    Win { winning_seat: HighCardDuelSeat },
-    Draw,
+    Win {
+        winning_seat: HighCardDuelSeat,
+        rationale: OutcomeRationaleView,
+    },
+    Draw {
+        rationale: OutcomeRationaleView,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub final_score: Score,
+    pub round_breakdowns: Vec<RoundOutcomeBreakdownView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundOutcomeBreakdownView {
+    pub round_number: u8,
+    pub seat_0_rank: u8,
+    pub seat_1_rank: u8,
+    pub winner: Option<HighCardDuelSeat>,
+    pub point_delta_seat_0: u8,
+    pub point_delta_seat_1: u8,
+    pub cumulative_score: Score,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -123,7 +149,7 @@ pub fn project_view(state: &HighCardDuelState, viewer: &Viewer) -> PublicView {
                 winner: round.winner,
             })
             .collect(),
-        terminal: terminal_view(state.terminal_outcome),
+        terminal: terminal_view(state.terminal_outcome, state.score, &state.revealed_history),
         freshness_token: state.freshness_token,
         private_view: private_view(state, viewer_seat),
         ui: ui_metadata(),
@@ -249,12 +275,83 @@ fn revealed_card_view(card: CardId) -> CardView {
     }
 }
 
-fn terminal_view(outcome: Option<TerminalOutcome>) -> TerminalView {
+fn terminal_view(
+    outcome: Option<TerminalOutcome>,
+    final_score: Score,
+    revealed_history: &[crate::state::RevealedRound],
+) -> TerminalView {
     match outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::Win { seat }) => TerminalView::Win { winning_seat: seat },
-        Some(TerminalOutcome::Draw) => TerminalView::Draw,
+        Some(TerminalOutcome::Win { seat }) => TerminalView::Win {
+            winning_seat: seat,
+            rationale: outcome_rationale("win", final_score, revealed_history),
+        },
+        Some(TerminalOutcome::Draw) => TerminalView::Draw {
+            rationale: outcome_rationale("draw", final_score, revealed_history),
+        },
     }
+}
+
+fn outcome_rationale(
+    result_kind: &str,
+    final_score: Score,
+    revealed_history: &[crate::state::RevealedRound],
+) -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: result_kind.to_owned(),
+        decisive_cause: "final_score_after_round_limit".to_owned(),
+        template_key: match result_kind {
+            "win" => "high_card_duel.final_score_win",
+            "draw" => "high_card_duel.final_score_draw",
+            _ => unreachable!("terminal result kind is win or draw"),
+        }
+        .to_owned(),
+        decisive_rule_ids: match result_kind {
+            "win" => vec![
+                "HCD-ROUND-005".to_owned(),
+                "HCD-END-001".to_owned(),
+                "HCD-END-002".to_owned(),
+            ],
+            "draw" => vec![
+                "HCD-ROUND-006".to_owned(),
+                "HCD-END-001".to_owned(),
+                "HCD-END-003".to_owned(),
+            ],
+            _ => unreachable!("terminal result kind is win or draw"),
+        },
+        final_score,
+        round_breakdowns: round_breakdowns(revealed_history),
+    }
+}
+
+fn round_breakdowns(
+    revealed_history: &[crate::state::RevealedRound],
+) -> Vec<RoundOutcomeBreakdownView> {
+    let mut cumulative_score = Score {
+        seat_0: 0,
+        seat_1: 0,
+    };
+    revealed_history
+        .iter()
+        .map(|round| {
+            let (point_delta_seat_0, point_delta_seat_1) = match round.winner {
+                Some(HighCardDuelSeat::Seat0) => (1, 0),
+                Some(HighCardDuelSeat::Seat1) => (0, 1),
+                None => (0, 0),
+            };
+            cumulative_score.seat_0 += point_delta_seat_0;
+            cumulative_score.seat_1 += point_delta_seat_1;
+            RoundOutcomeBreakdownView {
+                round_number: round.round_number,
+                seat_0_rank: round.seat_0_card.rank(),
+                seat_1_rank: round.seat_1_card.rank(),
+                winner: round.winner,
+                point_delta_seat_0,
+                point_delta_seat_1,
+                cumulative_score,
+            }
+        })
+        .collect()
 }
 
 fn seat_option(seat: Option<HighCardDuelSeat>) -> &'static str {
@@ -293,9 +390,48 @@ fn encode_card(card: &CardView) -> String {
 fn encode_terminal(terminal: &TerminalView) -> String {
     match terminal {
         TerminalView::NonTerminal => "non_terminal".to_owned(),
-        TerminalView::Win { winning_seat } => format!("win:{}", winning_seat.as_str()),
-        TerminalView::Draw => "draw".to_owned(),
+        TerminalView::Win {
+            winning_seat,
+            rationale,
+        } => format!(
+            "win:{}:{}",
+            winning_seat.as_str(),
+            encode_rationale(rationale)
+        ),
+        TerminalView::Draw { rationale } => format!("draw:{}", encode_rationale(rationale)),
     }
+}
+
+fn encode_rationale(rationale: &OutcomeRationaleView) -> String {
+    format!(
+        "{}|{}|{}|{}|final={}-{}|rounds={}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join("+"),
+        rationale.final_score.seat_0,
+        rationale.final_score.seat_1,
+        rationale
+            .round_breakdowns
+            .iter()
+            .map(encode_round_breakdown)
+            .collect::<Vec<_>>()
+            .join("/")
+    )
+}
+
+fn encode_round_breakdown(round: &RoundOutcomeBreakdownView) -> String {
+    format!(
+        "{}:{}-{}:{}:{}-{}:{}-{}",
+        round.round_number,
+        round.seat_0_rank,
+        round.seat_1_rank,
+        seat_option(round.winner),
+        round.point_delta_seat_0,
+        round.point_delta_seat_1,
+        round.cumulative_score.seat_0,
+        round.cumulative_score.seat_1
+    )
 }
 
 fn encode_private(private: &PrivateView) -> String {

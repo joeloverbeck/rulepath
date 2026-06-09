@@ -7,8 +7,8 @@ use high_card_duel::{
     deal_private_card_effect, hand_count_changed_effect, own_commit_confirmed_effect,
     private_diagnostic_effect, project_view, public_diagnostic_effect, refill_started_effect,
     round_scored_effect, setup_match, terminal_effect, validate_command, CardId,
-    HighCardDuelEffect, HighCardDuelSeat, Phase, PrivateView, Score, SetupOptions, Sigil,
-    TerminalOutcome,
+    HighCardDuelEffect, HighCardDuelSeat, OutcomeRationaleView, Phase, PrivateView,
+    RoundOutcomeBreakdownView, Score, SetupOptions, Sigil, TerminalOutcome, TerminalView,
 };
 
 fn seat_id(index: u8) -> SeatId {
@@ -251,6 +251,131 @@ fn terminal_public_view_still_hides_unused_deck_tail() {
         .contains(&hidden_tail.stable_id()));
     assert!(public_view.stable_summary().contains("hcd:r04:a"));
     assert!(public_view.stable_summary().contains("hcd:r04:b"));
+    assert_eq!(
+        public_view.terminal,
+        TerminalView::Draw {
+            rationale: OutcomeRationaleView {
+                result_kind: "draw".to_owned(),
+                decisive_cause: "final_score_after_round_limit".to_owned(),
+                template_key: "high_card_duel.final_score_draw".to_owned(),
+                decisive_rule_ids: vec![
+                    "HCD-ROUND-006".to_owned(),
+                    "HCD-END-001".to_owned(),
+                    "HCD-END-003".to_owned(),
+                ],
+                final_score: public_view.score,
+                round_breakdowns: vec![RoundOutcomeBreakdownView {
+                    round_number: 6,
+                    seat_0_rank: 4,
+                    seat_1_rank: 4,
+                    winner: None,
+                    point_delta_seat_0: 0,
+                    point_delta_seat_1: 0,
+                    cumulative_score: Score {
+                        seat_0: 0,
+                        seat_1: 0,
+                    },
+                }],
+            }
+        }
+    );
+}
+
+#[test]
+fn terminal_win_rationale_uses_revealed_round_history_only() {
+    let mut state =
+        setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let hidden_tail = card(12, Sigil::B);
+    state.phase = Phase::Terminal;
+    state.score = Score {
+        seat_0: 2,
+        seat_1: 1,
+    };
+    state.terminal_outcome = Some(TerminalOutcome::Win {
+        seat: HighCardDuelSeat::Seat0,
+    });
+    state.deck = vec![hidden_tail];
+    state.revealed_history = vec![
+        high_card_duel::RevealedRound {
+            round_number: 1,
+            seat_0_card: card(9, Sigil::A),
+            seat_1_card: card(4, Sigil::B),
+            winner: Some(HighCardDuelSeat::Seat0),
+        },
+        high_card_duel::RevealedRound {
+            round_number: 2,
+            seat_0_card: card(3, Sigil::A),
+            seat_1_card: card(10, Sigil::B),
+            winner: Some(HighCardDuelSeat::Seat1),
+        },
+        high_card_duel::RevealedRound {
+            round_number: 3,
+            seat_0_card: card(11, Sigil::A),
+            seat_1_card: card(8, Sigil::B),
+            winner: Some(HighCardDuelSeat::Seat0),
+        },
+    ];
+
+    let public_view = project_view(&state, &viewer(None));
+
+    assert!(!public_view
+        .stable_summary()
+        .contains(&hidden_tail.stable_id()));
+    assert_eq!(
+        public_view.terminal,
+        TerminalView::Win {
+            winning_seat: HighCardDuelSeat::Seat0,
+            rationale: OutcomeRationaleView {
+                result_kind: "win".to_owned(),
+                decisive_cause: "final_score_after_round_limit".to_owned(),
+                template_key: "high_card_duel.final_score_win".to_owned(),
+                decisive_rule_ids: vec![
+                    "HCD-ROUND-005".to_owned(),
+                    "HCD-END-001".to_owned(),
+                    "HCD-END-002".to_owned(),
+                ],
+                final_score: public_view.score,
+                round_breakdowns: vec![
+                    RoundOutcomeBreakdownView {
+                        round_number: 1,
+                        seat_0_rank: 9,
+                        seat_1_rank: 4,
+                        winner: Some(HighCardDuelSeat::Seat0),
+                        point_delta_seat_0: 1,
+                        point_delta_seat_1: 0,
+                        cumulative_score: Score {
+                            seat_0: 1,
+                            seat_1: 0,
+                        },
+                    },
+                    RoundOutcomeBreakdownView {
+                        round_number: 2,
+                        seat_0_rank: 3,
+                        seat_1_rank: 10,
+                        winner: Some(HighCardDuelSeat::Seat1),
+                        point_delta_seat_0: 0,
+                        point_delta_seat_1: 1,
+                        cumulative_score: Score {
+                            seat_0: 1,
+                            seat_1: 1,
+                        },
+                    },
+                    RoundOutcomeBreakdownView {
+                        round_number: 3,
+                        seat_0_rank: 11,
+                        seat_1_rank: 8,
+                        winner: Some(HighCardDuelSeat::Seat0),
+                        point_delta_seat_0: 1,
+                        point_delta_seat_1: 0,
+                        cumulative_score: Score {
+                            seat_0: 2,
+                            seat_1: 1,
+                        },
+                    },
+                ],
+            },
+        }
+    );
 }
 
 #[test]

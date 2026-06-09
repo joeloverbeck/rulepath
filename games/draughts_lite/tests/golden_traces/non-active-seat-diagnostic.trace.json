@@ -4,7 +4,7 @@
   "fixture_kind": "diagnostic",
   "purpose": "non_active_seat_diagnostic",
   "note": "The inactive seat cannot submit the active seat's opening move.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 18204555001228293033 },
+  "expected_state_hashes": { "final": 14726794799374328778 },
   "expected_effect_hashes": { "final": 14695981039346656037 },
   "expected_action_tree_hashes": { "final": 16942219411477718937 },
   "expected_public_view_hashes": { "all": 3933912429077474711 },
-  "expected_replay_hashes": { "final": 10382625634309609796 },
+  "expected_replay_hashes": { "final": 6892380168095898117 },
   "expected_diagnostics": [
     { "index": 0, "code": "not_active_seat", "hash": 2803791698232874104 }
   ],

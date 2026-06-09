@@ -45,7 +45,10 @@ pub use ui::{
     CellLayoutMetadata, PieceLabelMetadata, PieceTokenMetadata,
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
-pub use visibility::{project_view, CellView, PrivateView, PublicView, TerminalView, UiMetadata};
+pub use visibility::{
+    project_view, CellView, OutcomeRationaleView, PieceBreakdownView, PrivateView, PublicView,
+    TerminalView, UiMetadata,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

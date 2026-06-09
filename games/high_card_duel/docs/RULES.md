@@ -108,6 +108,18 @@ round limit.
 | `HCD-ROUND-012` | Cleanup after round six. | none; automatic resolution. | After round six resolves, terminal state is reached. | No gameplay actions remain. |
 | `HCD-ROUND-013` | Terminal scoring. | none. | Terminal winner is the higher score; equal score is a draw. | Unrevealed deck tail and private unplayed hands remain hidden in public exports. |
 
+## Scoring and accounting
+
+| Rule ID | Scoring/accounting rule | Timing | Tiebreaker/edge case | Notes |
+|---|---|---|---|---|
+| `HCD-END-001` | Round six has resolved. | Terminal scoring. | The final score after six revealed rounds decides the outcome. | The browser must not compare scores as behavior authority. |
+| `HCD-END-002` | One seat has a higher final score after the round limit. | Terminal scoring. | The higher-scoring seat wins. | Per-round explanation uses only revealed history. |
+| `HCD-END-003` | Final scores are equal after the round limit. | Terminal scoring. | The match is a draw. | There is no tiebreaker. |
+
+## Terminal conditions
+
+Terminal public views also expose a Rust-owned outcome rationale. Wins use template key `high_card_duel.final_score_win`, decisive cause `final_score_after_round_limit`, final score, revealed per-round breakdowns, and rule IDs `HCD-ROUND-005`, `HCD-END-001`, and `HCD-END-002`. Draws use template key `high_card_duel.final_score_draw`, decisive cause `final_score_after_round_limit`, final score, revealed per-round breakdowns, and rule IDs `HCD-ROUND-006`, `HCD-END-001`, and `HCD-END-003`.
+
 ## Legal actions
 
 Rust must generate legal actions. TypeScript must not decide legality.

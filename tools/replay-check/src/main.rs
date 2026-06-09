@@ -2096,6 +2096,7 @@ fn draughts_empty_state(
         ply_count: 0,
         command_count: 0,
         terminal_outcome: None,
+        terminal_reason: None,
         freshness_token: engine_core::FreshnessToken(0),
     }
 }

@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "multi_jump",
   "note": "A complete multi-jump is recorded as one command with three ordered path segments.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 13519961063137669292 },
+  "expected_state_hashes": { "final": 500886272628629019 },
   "expected_effect_hashes": { "final": 1497234211773961255 },
   "expected_action_tree_hashes": { "final": 17337240260876029818 },
   "expected_public_view_hashes": { "all": 15384702638241638218 },
-  "expected_replay_hashes": { "final": 10354526219107232564 },
+  "expected_replay_hashes": { "final": 8410261030432216057 },
   "expected_private_view_hashes": {
     "not_applicable": "draughts_lite is perfect-information and has no private-view API."
   },

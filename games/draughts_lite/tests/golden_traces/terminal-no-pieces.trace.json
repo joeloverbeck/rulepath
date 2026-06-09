@@ -4,7 +4,7 @@
   "fixture_kind": "terminal",
   "purpose": "terminal_no_pieces",
   "note": "A capture removes the opponent's last piece and wins.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 18054194417570036955 },
+  "expected_state_hashes": { "final": 7221903418555226485 },
   "expected_effect_hashes": { "final": 9984950152702406687 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 509293955661870804 },
-  "expected_replay_hashes": { "final": 10412927463550409873 },
+  "expected_public_view_hashes": { "all": 3087790835319697203 },
+  "expected_replay_hashes": { "final": 10186517521420076720 },
   "expected_private_view_hashes": {
     "not_applicable": "draughts_lite is perfect-information and has no private-view API."
   },

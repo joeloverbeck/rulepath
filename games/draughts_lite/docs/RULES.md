@@ -107,6 +107,10 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `DL-RESTRICT-003` | A submitted path contains an unknown, malformed, out-of-bounds, light-square, occupied-landing, non-adjacent, non-diagonal, stale, or wrong-actor segment. | Reject the command without changing state. | Viewer-safe diagnostic identifies the reason class without exposing internal-only data. | Normal UI must not offer invalid segments. |
 | `DL-RESTRICT-004` | A player has several legal capture paths with different lengths. | Any Rust-supplied complete capture path is legal. | not applicable | Draughts Lite intentionally has no maximum-capture rule. |
 
+## Scoring and accounting
+
+Draughts Lite has no numeric score. Terminal accounting is the Rust-owned public piece count and legal-move availability used by the terminal rules.
+
 ## Movement, capture, and promotion resolution
 
 | Rule ID | Rule | Timing | Tiebreaker/edge case | Notes |
@@ -123,6 +127,8 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `DL-END-001` | After a completed action, the opponent has no pieces. | The acting seat wins. | not applicable | Piece count is public. |
 | `DL-END-002` | After a completed action, the opponent has pieces but no legal move. | The acting seat wins. | not applicable | A blocked player loses; there is no stalemate draw. |
 | `DL-END-003` | Draw, repetition, agreement, clock, referee, and long no-progress procedures. | Not implemented. | not applicable | These tournament adjudications are out of scope for Gate 7. |
+
+Terminal public views also expose a Rust-owned outcome rationale. Wins use template key `draughts_lite.opponent_no_pieces` or `draughts_lite.opponent_no_legal_move`, the matching decisive cause, public piece-count breakdowns by seat, `losing_legal_move_count=0`, and rule ID `DL-END-001` or `DL-END-002`.
 
 ## Visibility and private information
 

@@ -276,6 +276,7 @@ pub fn apply_action(
     let next_seat = action.actor.other();
     if let Some((outcome, reason)) = terminal_outcome_and_reason_for_seat_to_act(state, next_seat) {
         state.terminal_outcome = Some(outcome);
+        state.terminal_reason = Some(reason);
         let TerminalOutcome::Win { seat: winner } = outcome;
         effects.push(terminal_win_effect(winner, next_seat, reason));
     } else {
@@ -673,6 +674,7 @@ mod tests {
             ply_count: 0,
             command_count: 0,
             terminal_outcome: None,
+            terminal_reason: None,
             freshness_token: FreshnessToken(0),
         }
     }

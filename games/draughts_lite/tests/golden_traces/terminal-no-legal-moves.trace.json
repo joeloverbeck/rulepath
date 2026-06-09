@@ -4,7 +4,7 @@
   "fixture_kind": "terminal",
   "purpose": "terminal_no_legal_moves",
   "note": "A quiet move leaves the opponent with pieces but no legal move, producing a win.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 15634465863978525540 },
+  "expected_state_hashes": { "final": 18142296397209575468 },
   "expected_effect_hashes": { "final": 4757458371000609606 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 17296498493962305991 },
-  "expected_replay_hashes": { "final": 8151139554208929974 },
+  "expected_public_view_hashes": { "all": 3119637720606936757 },
+  "expected_replay_hashes": { "final": 12408269593354491327 },
   "expected_private_view_hashes": {
     "not_applicable": "draughts_lite is perfect-information and has no private-view API."
   },

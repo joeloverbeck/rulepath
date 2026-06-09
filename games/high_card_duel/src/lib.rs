@@ -50,8 +50,8 @@ pub use ui::{
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
-    project_view, CardView, CommitmentView, CommitmentViews, HandCountsView, PrivateView,
-    PublicView, RevealedRoundView, TerminalView,
+    project_view, CardView, CommitmentView, CommitmentViews, HandCountsView, OutcomeRationaleView,
+    PrivateView, PublicView, RevealedRoundView, RoundOutcomeBreakdownView, TerminalView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

@@ -2,6 +2,7 @@ use engine_core::{FreshnessToken, StableSerialize, Viewer};
 use game_stdlib::board_space::Coord;
 
 use crate::{
+    effects::TerminalWinReason,
     ids::{DraughtsLiteSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     state::{CellOccupancy, DraughtsLiteState, PieceKind, TerminalOutcome},
     ui::{board_presentation, cell_layout, piece_label, piece_token},
@@ -52,7 +53,29 @@ pub struct CellView {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalView {
     NonTerminal,
-    Win { winning_seat: DraughtsLiteSeat },
+    Win {
+        winning_seat: DraughtsLiteSeat,
+        rationale: OutcomeRationaleView,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub losing_seat: DraughtsLiteSeat,
+    pub losing_legal_move_count: u8,
+    pub seat_0_pieces: PieceBreakdownView,
+    pub seat_1_pieces: PieceBreakdownView,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PieceBreakdownView {
+    pub total: u8,
+    pub men: u8,
+    pub crowns: u8,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -79,7 +102,7 @@ pub struct UiMetadata {
 }
 
 pub fn project_view(state: &DraughtsLiteState, _viewer: &Viewer) -> PublicView {
-    let terminal = terminal_view(state.terminal_outcome);
+    let terminal = terminal_view(state);
 
     PublicView {
         schema_version: 1,
@@ -202,11 +225,60 @@ fn cell_view(state: &DraughtsLiteState, cell: Coord) -> CellView {
     }
 }
 
-fn terminal_view(outcome: Option<TerminalOutcome>) -> TerminalView {
-    match outcome {
+fn terminal_view(state: &DraughtsLiteState) -> TerminalView {
+    match state.terminal_outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::Win { seat }) => TerminalView::Win { winning_seat: seat },
+        Some(TerminalOutcome::Win { seat }) => TerminalView::Win {
+            winning_seat: seat,
+            rationale: win_rationale(state, seat),
+        },
     }
+}
+
+fn win_rationale(
+    state: &DraughtsLiteState,
+    winning_seat: DraughtsLiteSeat,
+) -> OutcomeRationaleView {
+    let reason = state
+        .terminal_reason
+        .expect("terminal reason exists for terminal draughts_lite view");
+    OutcomeRationaleView {
+        result_kind: "win".to_owned(),
+        decisive_cause: reason.as_str().to_owned(),
+        template_key: match reason {
+            TerminalWinReason::OpponentNoPieces => "draughts_lite.opponent_no_pieces",
+            TerminalWinReason::OpponentNoLegalMove => "draughts_lite.opponent_no_legal_move",
+        }
+        .to_owned(),
+        decisive_rule_ids: vec![terminal_reason_rule_id(reason).to_owned()],
+        losing_seat: winning_seat.other(),
+        losing_legal_move_count: 0,
+        seat_0_pieces: piece_breakdown(state, DraughtsLiteSeat::Seat0),
+        seat_1_pieces: piece_breakdown(state, DraughtsLiteSeat::Seat1),
+    }
+}
+
+fn terminal_reason_rule_id(reason: TerminalWinReason) -> &'static str {
+    match reason {
+        TerminalWinReason::OpponentNoPieces => "DL-END-001",
+        TerminalWinReason::OpponentNoLegalMove => "DL-END-002",
+    }
+}
+
+fn piece_breakdown(state: &DraughtsLiteState, seat: DraughtsLiteSeat) -> PieceBreakdownView {
+    let mut breakdown = PieceBreakdownView {
+        total: 0,
+        men: 0,
+        crowns: 0,
+    };
+    for piece in state.pieces_for_seat(seat) {
+        breakdown.total += 1;
+        match piece.kind {
+            PieceKind::Man => breakdown.men += 1,
+            PieceKind::Crown => breakdown.crowns += 1,
+        }
+    }
+    breakdown
 }
 
 fn ui_metadata() -> UiMetadata {
@@ -236,7 +308,7 @@ fn ui_metadata() -> UiMetadata {
 fn status_label(terminal: &TerminalView, active_seat: DraughtsLiteSeat) -> String {
     match terminal {
         TerminalView::NonTerminal => format!("{} to move", active_seat.as_str()),
-        TerminalView::Win { winning_seat } => format!("{} wins", winning_seat.as_str()),
+        TerminalView::Win { winning_seat, .. } => format!("{} wins", winning_seat.as_str()),
     }
 }
 
@@ -264,8 +336,33 @@ fn encode_cell(cell: &CellView) -> String {
 fn encode_terminal(terminal: &TerminalView) -> String {
     match terminal {
         TerminalView::NonTerminal => "non_terminal".to_owned(),
-        TerminalView::Win { winning_seat } => format!("win:{}", winning_seat.as_str()),
+        TerminalView::Win {
+            winning_seat,
+            rationale,
+        } => format!(
+            "win:{}:{}",
+            winning_seat.as_str(),
+            encode_rationale(rationale)
+        ),
     }
+}
+
+fn encode_rationale(rationale: &OutcomeRationaleView) -> String {
+    format!(
+        "{}|{}|{}|{}|loser={}|loser_legal={}|seat_0={}|seat_1={}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join("+"),
+        rationale.losing_seat.as_str(),
+        rationale.losing_legal_move_count,
+        encode_piece_breakdown(rationale.seat_0_pieces),
+        encode_piece_breakdown(rationale.seat_1_pieces)
+    )
+}
+
+fn encode_piece_breakdown(breakdown: PieceBreakdownView) -> String {
+    format!("{}:{}:{}", breakdown.total, breakdown.men, breakdown.crowns)
 }
 
 fn encode_ui(ui: &UiMetadata) -> String {
@@ -292,7 +389,7 @@ mod tests {
     use super::*;
     use crate::{
         setup::{setup_match, SetupOptions},
-        PieceId,
+        PieceId, TerminalWinReason,
     };
     use engine_core::{SeatId, Seed};
 
@@ -389,13 +486,32 @@ mod tests {
         state.terminal_outcome = Some(TerminalOutcome::Win {
             seat: DraughtsLiteSeat::Seat1,
         });
+        state.terminal_reason = Some(TerminalWinReason::OpponentNoLegalMove);
 
         let view = project_view(&state, &viewer());
 
         assert_eq!(
             view.terminal,
             TerminalView::Win {
-                winning_seat: DraughtsLiteSeat::Seat1
+                winning_seat: DraughtsLiteSeat::Seat1,
+                rationale: OutcomeRationaleView {
+                    result_kind: "win".to_owned(),
+                    decisive_cause: "opponent_no_legal_move".to_owned(),
+                    template_key: "draughts_lite.opponent_no_legal_move".to_owned(),
+                    decisive_rule_ids: vec!["DL-END-002".to_owned()],
+                    losing_seat: DraughtsLiteSeat::Seat0,
+                    losing_legal_move_count: 0,
+                    seat_0_pieces: PieceBreakdownView {
+                        total: 12,
+                        men: 12,
+                        crowns: 0,
+                    },
+                    seat_1_pieces: PieceBreakdownView {
+                        total: 12,
+                        men: 12,
+                        crowns: 0,
+                    },
+                }
             }
         );
         assert_eq!(view.active_seat, None);

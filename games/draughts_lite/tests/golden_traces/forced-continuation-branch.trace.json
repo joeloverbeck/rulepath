@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "forced_continuation_branch",
   "note": "A multi-jump branch remains one complete path after the forced continuation choice.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 17438786039496704174 },
+  "expected_state_hashes": { "final": 13995619932338444101 },
   "expected_effect_hashes": { "final": 10221150529659755358 },
   "expected_action_tree_hashes": { "final": 16006280442217817552 },
   "expected_public_view_hashes": { "all": 10806222198029034752 },
-  "expected_replay_hashes": { "final": 16871789472999067183 },
+  "expected_replay_hashes": { "final": 16315399806678966680 },
   "expected_private_view_hashes": {
     "not_applicable": "draughts_lite is perfect-information and has no private-view API."
   },

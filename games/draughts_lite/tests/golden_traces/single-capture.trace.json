@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "single_capture",
   "note": "A single jump captures one opposing piece and advances the turn.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 5390272487099747454 },
+  "expected_state_hashes": { "final": 8995503962731842773 },
   "expected_effect_hashes": { "final": 17554221880955204243 },
   "expected_action_tree_hashes": { "final": 515247210964364931 },
   "expected_public_view_hashes": { "all": 9438431007166973951 },
-  "expected_replay_hashes": { "final": 9253465298565046792 },
+  "expected_replay_hashes": { "final": 8796621890041400775 },
   "expected_private_view_hashes": {
     "not_applicable": "draughts_lite is perfect-information and has no private-view API."
   },
