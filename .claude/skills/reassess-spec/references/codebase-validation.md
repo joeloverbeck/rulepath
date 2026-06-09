@@ -126,7 +126,7 @@ For specs citing an external source document (a `docs/ROADMAP.md` gate, a brains
 
 For classification (d), apply a stronger variant: verify each "accepted" claim actually landed in the codebase. An accepted-but-unredeemed claim with no delivering citation is a HIGH Issue (silent completion-claim risk).
 
-**Skip** when: (c) refactor classification, or no external source document is cited (self-originating specs are scoped by 3.0–3.9 alone).
+**Skip** when: (c) refactor classification, or no external source document is cited (self-originating specs are scoped by 3.0–3.9 alone). A precedent sibling-spec the spec only *mirrors* is not a source document — validate it under 3.4/3.7 — and standards/UX citation footnotes are provenance, not adjudicable claims; when only these appear, 3.10 is N/A.
 
 ## 3.11 Spec Structural Completeness Check
 
