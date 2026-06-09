@@ -694,8 +694,8 @@ export type PlainTricksCompletedTrickView = {
 
 export type PlainTricksTerminalView =
   | { kind: "non_terminal"; winner: null; draw: false }
-  | { kind: "trick_win"; winner: SeatId; draw: false; totals: { seat_0: number; seat_1: number }; rationale: PlainTricksOutcomeRationale }
-  | { kind: "split"; winner: null; draw: true; each: number; totals: { seat_0: number; seat_1: number }; rationale: PlainTricksOutcomeRationale };
+  | { kind: "trick_win"; winner: SeatId; draw: false; totals: { seat_0: number; seat_1: number } }
+  | { kind: "split"; winner: null; draw: true; each: number; totals: { seat_0: number; seat_1: number } };
 
 export type PlainTricksPrivateView =
   | { status: "observer"; own_hand: [] }
@@ -720,6 +720,7 @@ export type PlainTricksPublicView = {
   round_trick_counts: { seat_0: number; seat_1: number };
   total_trick_counts: { seat_0: number; seat_1: number };
   terminal: PlainTricksTerminalView;
+  terminal_rationale?: PlainTricksOutcomeRationale | null;
   freshness_token: number;
   private_view: PlainTricksPrivateView;
   ui: {

@@ -1,6 +1,6 @@
 # PTRAT-001: Conform plain_tricks outcome-rationale projection to the top-level `terminal_rationale` convention
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` (plain_tricks public-view JSON projection + unit tests), `apps/web` presentation (`src/wasm/client.ts`, `src/components/PlainTricksBoard.tsx`). No `engine-core` / `game-stdlib` / `games/*` behavior change; no golden trace or hash change.
@@ -106,3 +106,28 @@ Conform plain_tricks to the established projection so the convention holds unifo
 2. `cargo test -p wasm-api`
 3. `cargo run -p replay-check -- --game plain_tricks --all`
 4. `npm --prefix apps/web run build && node apps/web/e2e/plain-tricks.smoke.mjs`
+
+## Outcome
+
+Completed: 2026-06-10
+
+What changed:
+
+- `crates/wasm-api/src/lib.rs` now projects `plain_tricks` outcome rationale as top-level `terminal_rationale`, with `null` for non-terminal views.
+- `plain_terminal_json` no longer nests `rationale` inside `terminal`.
+- Added `plain_tricks` bridge tests covering non-terminal, trick-win, split, and no-leak rationale projection.
+- `apps/web/src/wasm/client.ts` mirrors the top-level `terminal_rationale` contract, and `PlainTricksBoard.tsx` reads `view.terminal_rationale`.
+
+Deviations from plan:
+
+- The projection test asserts the schema location and implemented rationale fields without pinning every fixture-specific terminal total.
+- No `games/plain_tricks/src/**` files, golden traces, replay hashes, `engine-core`, or `game-stdlib` changed.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `node scripts/check-outcome-explanations.mjs`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game plain_tricks --all`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/plain-tricks.smoke.mjs`

@@ -159,7 +159,7 @@ export function PlainTricksBoard({
           explanation={outcomeSurfaceData({
             gameId: "plain_tricks",
             heading: terminalLabel(view),
-            rationale: view.terminal.kind === "non_terminal" ? null : view.terminal.rationale,
+            rationale: view.terminal_rationale ?? null,
             resultKind: view.terminal.draw ? "draw" : "win",
             decisiveCause: view.terminal.kind,
             templateKey: view.terminal.kind === "split" ? "plain_tricks.split" : "plain_tricks.trick_win",

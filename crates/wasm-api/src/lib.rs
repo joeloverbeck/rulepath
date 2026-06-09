@@ -5432,7 +5432,7 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
 
 fn plain_view_json(view: &plain_tricks::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"round_index\":{},\"trick_index\":{},\"round_leader\":\"{}\",\"current_leader\":\"{}\",\"hand_counts\":{},\"current_trick\":{},\"trick_history\":[{}],\"round_trick_counts\":{},\"total_trick_counts\":{},\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"round_index\":{},\"trick_index\":{},\"round_leader\":\"{}\",\"current_leader\":\"{}\",\"hand_counts\":{},\"current_trick\":{},\"trick_history\":[{}],\"round_trick_counts\":{},\"total_trick_counts\":{},\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -5455,6 +5455,8 @@ fn plain_view_json(view: &plain_tricks::PublicView) -> String {
         plain_counts_json(view.round_trick_counts.seat_0, view.round_trick_counts.seat_1),
         plain_counts_json(view.total_trick_counts.seat_0, view.total_trick_counts.seat_1),
         plain_terminal_json(&view.terminal),
+        plain_terminal_rationale(&view.terminal)
+            .map_or_else(|| "null".to_owned(), plain_outcome_rationale_json),
         view.freshness_token.0,
         plain_private_view_json(&view.private_view),
         plain_ui_json(&view.ui)
@@ -5519,26 +5521,26 @@ fn plain_terminal_json(terminal: &plain_tricks::TerminalView) -> String {
         plain_tricks::TerminalView::NonTerminal => {
             "{\"kind\":\"non_terminal\",\"winner\":null,\"draw\":false}".to_owned()
         }
-        plain_tricks::TerminalView::TrickWin {
-            winner,
-            totals,
-            rationale,
-        } => format!(
-            "{{\"kind\":\"trick_win\",\"winner\":\"{}\",\"draw\":false,\"totals\":{},\"rationale\":{}}}",
+        plain_tricks::TerminalView::TrickWin { winner, totals, .. } => format!(
+            "{{\"kind\":\"trick_win\",\"winner\":\"{}\",\"draw\":false,\"totals\":{}}}",
             winner.as_str(),
-            plain_counts_json(totals.seat_0, totals.seat_1),
-            plain_outcome_rationale_json(rationale)
+            plain_counts_json(totals.seat_0, totals.seat_1)
         ),
-        plain_tricks::TerminalView::Split {
+        plain_tricks::TerminalView::Split { each, totals, .. } => format!(
+            "{{\"kind\":\"split\",\"winner\":null,\"draw\":true,\"each\":{},\"totals\":{}}}",
             each,
-            totals,
-            rationale,
-        } => format!(
-            "{{\"kind\":\"split\",\"winner\":null,\"draw\":true,\"each\":{},\"totals\":{},\"rationale\":{}}}",
-            each,
-            plain_counts_json(totals.seat_0, totals.seat_1),
-            plain_outcome_rationale_json(rationale)
+            plain_counts_json(totals.seat_0, totals.seat_1)
         ),
+    }
+}
+
+fn plain_terminal_rationale(
+    terminal: &plain_tricks::TerminalView,
+) -> Option<&plain_tricks::OutcomeRationaleView> {
+    match terminal {
+        plain_tricks::TerminalView::NonTerminal => None,
+        plain_tricks::TerminalView::TrickWin { rationale, .. }
+        | plain_tricks::TerminalView::Split { rationale, .. } => Some(rationale),
     }
 }
 
@@ -8362,6 +8364,48 @@ mod tests {
     }
 
     #[test]
+    fn plain_tricks_view_projects_terminal_rationale_template_keys() {
+        let non_terminal = get_terminal_plain_view(0, &[]);
+        assert!(non_terminal.contains("\"terminal_rationale\":null"));
+        assert!(non_terminal
+            .contains("\"terminal\":{\"kind\":\"non_terminal\",\"winner\":null,\"draw\":false}"));
+
+        let trick_win = get_terminal_plain_view(0, &PLAIN_TRICKS_WIN_ACTIONS);
+        assert!(trick_win.contains("\"terminal\":{\"kind\":\"trick_win\""));
+        assert!(trick_win.contains("\"terminal_rationale\":{"));
+        assert!(!trick_win.contains("\"rationale\":{"));
+        assert!(trick_win.contains("\"result_kind\":\"trick_win\""));
+        assert!(trick_win.contains("\"template_key\":\"plain_tricks.trick_win\""));
+        assert!(trick_win
+            .contains("\"decisive_rule_ids\":[\"PT-SCORE-002\",\"PT-END-001\",\"PT-END-002\"]"));
+        assert!(trick_win.contains("\"total_tricks\":"));
+
+        let split = get_terminal_plain_view(5, &PLAIN_TRICKS_SPLIT_ACTIONS);
+        assert!(split.contains("\"terminal\":{\"kind\":\"split\""));
+        assert!(split.contains("\"terminal_rationale\":{"));
+        assert!(!split.contains("\"rationale\":{"));
+        assert!(split.contains("\"result_kind\":\"split\""));
+        assert!(split.contains("\"decisive_cause\":\"split:6-6\""));
+        assert!(split.contains("\"template_key\":\"plain_tricks.split\""));
+        assert!(split
+            .contains("\"decisive_rule_ids\":[\"PT-SCORE-002\",\"PT-END-001\",\"PT-END-002\"]"));
+    }
+
+    #[test]
+    fn plain_tricks_terminal_rationale_does_not_reveal_unplayed_cards() {
+        let view = get_terminal_plain_view(0, &PLAIN_TRICKS_WIN_ACTIONS[..2]);
+        assert!(view.contains("\"terminal_rationale\":null"));
+
+        let terminal = get_terminal_plain_view(0, &PLAIN_TRICKS_WIN_ACTIONS);
+        assert!(terminal.contains("\"terminal_rationale\":{"));
+        assert!(terminal.contains("\"template_key\":\"plain_tricks.trick_win\""));
+        assert_no_plain_cards(
+            &terminal,
+            &plain_hidden_cards_except(&PLAIN_TRICKS_WIN_PLAYED_CARDS),
+        );
+    }
+
+    #[test]
     fn poker_lite_yield_terminal_rationale_does_not_reveal_private_strength() {
         let seed = 11;
         let view = get_terminal_poker_view(seed, &["press", "yield"]);
@@ -8725,6 +8769,99 @@ mod tests {
             };
             apply_action(&match_id, actor, action_path, freshness_token as u64)
                 .expect("poker action applies");
+        }
+
+        get_view(&match_id, None).expect("observer view returned")
+    }
+
+    const PLAIN_TRICKS_WIN_ACTIONS: [(&str, &str); 24] = [
+        ("seat_0", "play>gale_1"),
+        ("seat_1", "play>gale_2"),
+        ("seat_1", "play>ember_3"),
+        ("seat_0", "play>ember_6"),
+        ("seat_0", "play>river_3"),
+        ("seat_1", "play>river_6"),
+        ("seat_1", "play>gale_3"),
+        ("seat_0", "play>river_5"),
+        ("seat_1", "play>ember_2"),
+        ("seat_0", "play>ember_5"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>gale_6"),
+        ("seat_1", "play>ember_4"),
+        ("seat_0", "play>ember_2"),
+        ("seat_1", "play>gale_1"),
+        ("seat_0", "play>river_5"),
+        ("seat_1", "play>gale_6"),
+        ("seat_0", "play>river_2"),
+        ("seat_1", "play>ember_6"),
+        ("seat_0", "play>river_3"),
+        ("seat_1", "play>gale_3"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>gale_5"),
+        ("seat_0", "play>river_6"),
+    ];
+
+    const PLAIN_TRICKS_SPLIT_ACTIONS: [(&str, &str); 24] = [
+        ("seat_0", "play>river_6"),
+        ("seat_1", "play>river_5"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>river_4"),
+        ("seat_1", "play>gale_5"),
+        ("seat_0", "play>gale_2"),
+        ("seat_1", "play>ember_6"),
+        ("seat_0", "play>ember_1"),
+        ("seat_1", "play>gale_1"),
+        ("seat_0", "play>gale_6"),
+        ("seat_0", "play>gale_3"),
+        ("seat_1", "play>ember_5"),
+        ("seat_1", "play>ember_5"),
+        ("seat_0", "play>ember_2"),
+        ("seat_1", "play>gale_2"),
+        ("seat_0", "play>gale_5"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>river_2"),
+        ("seat_1", "play>river_4"),
+        ("seat_0", "play>river_6"),
+        ("seat_0", "play>ember_6"),
+        ("seat_1", "play>gale_1"),
+        ("seat_0", "play>gale_3"),
+        ("seat_1", "play>gale_4"),
+    ];
+
+    const PLAIN_TRICKS_WIN_PLAYED_CARDS: [plain_tricks::TrickCardId; 24] = [
+        plain_tricks::TrickCardId::Gale1,
+        plain_tricks::TrickCardId::Gale2,
+        plain_tricks::TrickCardId::Ember3,
+        plain_tricks::TrickCardId::Ember6,
+        plain_tricks::TrickCardId::River3,
+        plain_tricks::TrickCardId::River6,
+        plain_tricks::TrickCardId::Gale3,
+        plain_tricks::TrickCardId::River5,
+        plain_tricks::TrickCardId::Ember2,
+        plain_tricks::TrickCardId::Ember5,
+        plain_tricks::TrickCardId::River1,
+        plain_tricks::TrickCardId::Gale6,
+        plain_tricks::TrickCardId::Ember4,
+        plain_tricks::TrickCardId::Ember2,
+        plain_tricks::TrickCardId::Gale1,
+        plain_tricks::TrickCardId::River5,
+        plain_tricks::TrickCardId::Gale6,
+        plain_tricks::TrickCardId::River2,
+        plain_tricks::TrickCardId::Ember6,
+        plain_tricks::TrickCardId::River3,
+        plain_tricks::TrickCardId::Gale3,
+        plain_tricks::TrickCardId::River1,
+        plain_tricks::TrickCardId::Gale5,
+        plain_tricks::TrickCardId::River6,
+    ];
+
+    fn get_terminal_plain_view(seed: u64, actions: &[(&str, &str)]) -> String {
+        let created = new_match("plain_tricks", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+
+        for (freshness_token, (actor, action_path)) in actions.iter().enumerate() {
+            apply_action(&match_id, actor, action_path, freshness_token as u64)
+                .expect("plain_tricks action applies");
         }
 
         get_view(&match_id, None).expect("observer view returned")
