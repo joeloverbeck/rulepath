@@ -1,6 +1,6 @@
 # GAT101PLATRI-018: Browser e2e smoke, catalog README reconciliation, and gate-1 e2e step
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation/test infra) — new `apps/web/e2e/plain-tricks.smoke.mjs`; modifies `apps/web/package.json` (`smoke:e2e` chain), `apps/web/README.md`, `README.md`, `.github/workflows/gate-1-game-smoke.yml` (e2e step). No Rust/engine behavior.
@@ -88,3 +88,15 @@ Add the `plain-tricks.smoke.mjs` e2e step (or confirm it runs via `smoke:e2e`) a
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-doc-links.mjs`
 3. The e2e + catalog checks are the correct full-browser boundary; native verification is GAT101PLATRI-014/015.
+
+## Outcome
+
+Completed 2026-06-09. Added `plain-tricks.smoke.mjs` with browser no-leak, viewer, dev-panel, replay export/import, reduced-motion, responsive, and human-vs-bot terminal coverage. Wired it into `smoke:e2e` and the Gate 1 workflow. Reconciled the root and web README catalog/smoke surfaces so the catalog-docs check reflects all 10 registered games.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `node apps/web/e2e/plain-tricks.smoke.mjs`
+3. `npm --prefix apps/web run smoke:e2e`
+4. `node scripts/check-catalog-docs.mjs`
+5. `node scripts/check-doc-links.mjs`
