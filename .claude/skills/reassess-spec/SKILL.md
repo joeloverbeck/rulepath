@@ -91,7 +91,7 @@ Before acting, this skill MUST read:
 - `docs/FOUNDATIONS.md` — the constitution. Skip only if read earlier this session and unmodified.
 - Every file path, skill directory, and sibling-spec reference extracted at Step 2 — read as part of Step 3.
 
-Reading scope: anything under `specs/`, `.claude/skills/`, `docs/`, `templates/`, `tasks/`, `tickets/`, and the crate/game tree (`crates/`, `games/`, `apps/`, `tools/`). This skill does not author game content — it reasons about specs that plan app behavior.
+Reading scope: anything under `specs/`, `.claude/skills/`, `docs/`, `templates/`, `tickets/`, and the crate/game tree (`crates/`, `games/`, `apps/`, `tools/`). This skill does not author game content — it reasons about specs that plan app behavior.
 
 ## Worktree & Plan-Mode Awareness
 
@@ -112,7 +112,7 @@ Classify the spec into exactly one of four classes. Classification drives which 
 
 **Hybrid specs**: apply the union of applicable substeps, using the most rigorous classification's checklist for shared substeps.
 
-**Externally-generated / commit-pinned specs**: when the spec carries generation-harness scaffolding — a commit-pinned evidence ledger (lists of raw source URLs at a fixed SHA), "exact-commit workflow" / fetch-discipline boilerplate, contamination checks, or references to a foreign repository — treat stripping that scaffolding as an expected HIGH Issue at Step 5, and route any genuine provenance into a normal source-reference section. This is orthogonal to the (a)–(d) class: tag it alongside whichever class the spec's deliverables fall under.
+**Externally-generated / commit-pinned specs**: when the spec carries generation-harness scaffolding — a commit-pinned evidence ledger (lists of raw source URLs at a fixed SHA), "exact-commit workflow" / fetch-discipline boilerplate, contamination checks, or references to a foreign repository — treat stripping that scaffolding as an expected HIGH Issue at Step 5, and route any genuine provenance into a normal source-reference section. This is orthogonal to the (a)–(d) class: tag it alongside whichever class the spec's deliverables fall under. Such specs also commonly substitute commit-pin header fields (`Target commit` / `Target repository`) for a canonical Header and carry their own `§`-numbering, so the reform-depth question (Steps 5-6, `references/findings-and-questions.md`) routinely rides alongside the scaffolding strip — consider both together rather than as separate discoveries.
 
 **Re-reassessment shortcut**: if the same spec was reassessed earlier this session and not externally modified, Steps 2–3 may scope to only the references affected by the triggering change. Step 1 still applies.
 
@@ -178,7 +178,7 @@ Present:
 - Deferred items and reassessment-driven scope exclusions (with reasons).
 - The 1–3 sections that changed most, flagged for review.
 - **Classification shift note**, if the effective classification shifted (e.g. "(a) collapsed to (b) after deliverable removal"; "(b) shifted to (d) after Step 3 verified full landing"). Omit if unchanged.
-- **Suggested next step**: "Review the updated spec, then decompose its Work breakdown into `tasks/` AGENT-TASK packets — by hand from `templates/AGENT-TASK.md`, or via `/brainstorm` (decompose path). reassess-spec prepares specs for decomposition but does not perform it." For (d): note the spec is now a historical record (Status `Done`) and remind the user to flip its row in the `specs/README.md` index.
+- **Suggested next step**: "Review the updated spec, then decompose its Work breakdown into implementation tickets via the `spec-to-tickets` skill, which writes one ticket per reviewable diff to `tickets/<PREFIX>-NNN.md` following `tickets/_TEMPLATE.md` — or via `/brainstorm` (decompose path). reassess-spec prepares specs for decomposition but does not perform it." For (d): note the spec is now a historical record (Status `Done`) and remind the user to flip its row in the `specs/README.md` index.
 
 Do NOT commit. Leave the file for user review.
 

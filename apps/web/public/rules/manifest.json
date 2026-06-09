@@ -1,0 +1,65 @@
+[
+  {
+    "game_id": "race_to_n",
+    "display_name": "Race to 21",
+    "rules_asset_path": "/rules/race_to_n.md",
+    "source_rules_version_checked": "race_to_n-rules-v1",
+    "sha256": "6a835ffd082c8260a7da8de5ecca45f04a113959f33acafc18710a15e6bb9489"
+  },
+  {
+    "game_id": "three_marks",
+    "display_name": "Three Marks",
+    "rules_asset_path": "/rules/three_marks.md",
+    "source_rules_version_checked": "three_marks-rules-v1",
+    "sha256": "e4e2bd7d70f14344c89badae0a40abadb68706ef5dd6a49649246a1f10b7a106"
+  },
+  {
+    "game_id": "column_four",
+    "display_name": "Column Four",
+    "rules_asset_path": "/rules/column_four.md",
+    "source_rules_version_checked": "column_four-rules-v1",
+    "sha256": "f4087c2772c20711f98f325866982588694ac7c36e56b4f1a3a24c7ef20a9eba"
+  },
+  {
+    "game_id": "directional_flip",
+    "display_name": "Directional Flip",
+    "rules_asset_path": "/rules/directional_flip.md",
+    "source_rules_version_checked": "directional_flip-rules-v1",
+    "sha256": "a96ac1c18560172fb8afb377a6168981507d8221b445ad11de1ca9f308d16464"
+  },
+  {
+    "game_id": "draughts_lite",
+    "display_name": "Draughts Lite",
+    "rules_asset_path": "/rules/draughts_lite.md",
+    "source_rules_version_checked": "draughts_lite-rules-v1",
+    "sha256": "b97942617a17236a5c4a3a58b33867469af6d8815139fb1f5350eee5c97438e1"
+  },
+  {
+    "game_id": "high_card_duel",
+    "display_name": "High Card Duel",
+    "rules_asset_path": "/rules/high_card_duel.md",
+    "source_rules_version_checked": "high-card-duel-rules-v1",
+    "sha256": "eb8157efc5056fa984a6cf9a7b04c2abd0d2f07264278d48b1bebb63350febd4"
+  },
+  {
+    "game_id": "token_bazaar",
+    "display_name": "Token Bazaar",
+    "rules_asset_path": "/rules/token_bazaar.md",
+    "source_rules_version_checked": "token-bazaar-rules-v1",
+    "sha256": "8600641ebe5fa4cd0487c55c0ca2695265f9740dffd882d6530916b07facbabe"
+  },
+  {
+    "game_id": "secret_draft",
+    "display_name": "Veiled Draft",
+    "rules_asset_path": "/rules/secret_draft.md",
+    "source_rules_version_checked": "secret-draft-rules-v1",
+    "sha256": "aabafba32d7f472395f1a253d45f39fbc4c27ac05ee51d52d77cd9c5d7244067"
+  },
+  {
+    "game_id": "poker_lite",
+    "display_name": "Crest Ledger",
+    "rules_asset_path": "/rules/poker_lite.md",
+    "source_rules_version_checked": "poker-lite-rules-v1",
+    "sha256": "bb33cdae96ea0d1e11bf8ee650bb1ac8f9259c0179441e1aa25e3d43997678b8"
+  }
+]

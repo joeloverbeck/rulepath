@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ticket Series"
+  short_description: "Implement Rulepath ticket series with foundation checks and archives."
+  default_prompt: "$ticket-series Implement the ticket series TICKETS_GLOB in dependency order. Rely on SPEC_GLOB for reference."

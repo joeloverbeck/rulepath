@@ -54,6 +54,10 @@ A third repeated mechanic shape MUST resolve through the primitive-pressure ledg
 
 When that resolution promotes a `game-stdlib` primitive, all previous official games using the promoted shape MUST be migrated, audited not applicable, or explicitly excepted. Open promotion debt is a maintenance interlock: it is specced and closed before the next new mechanic-ladder gate unless an accepted ADR says otherwise.
 
+Cross-game public UI infrastructure specs, such as the shared How to Play /
+Rules surface, may be tracked outside the mechanic gate ladder. They do not
+introduce a new mechanic gate unless explicitly accepted as a roadmap item.
+
 ## 3. Product mechanic ladder
 
 | Stage | Candidate | First proves | Product role | Primitive pressure |

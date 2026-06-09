@@ -168,3 +168,8 @@ jobs:
 
       - name: Catalog/docs drift check
         run: node scripts/check-catalog-docs.mjs
+
+      - name: Player rules docs drift check
+        run: |
+          node scripts/copy-player-rules.mjs
+          node scripts/check-player-rules.mjs

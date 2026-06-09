@@ -62,9 +62,9 @@ engine-core -> no Rulepath crate with game mechanics
 | `engine-core` | generic identities, versions, seeds, actor/viewer contracts, action tree/action path contracts, command envelopes, diagnostics, effect envelopes, replay/hash/checkpoint contracts, visibility contracts, serialization boundaries | game nouns, mechanics, rule helpers, bot strategy, renderer metadata, networking policy, accounts, persistence |
 | `game-stdlib` | narrow typed helpers promoted after primitive-pressure evidence | speculative universal mechanics, game-specific exceptions, kernel law, data-language behavior |
 | `ai-core` | bot traits, random legal bot, deterministic bot RNG helpers, candidate/ranking structures, policy-node utilities, instrumentation, decision limits, simulation hooks | game strategy, hidden-state shortcuts, UI code |
-| `games/*` | game state, rules, typed actions, validation, transitions, effects, visibility projection, variants, game-specific bots, UI metadata, docs, tests, traces, benchmarks | kernel contracts, browser shell, networking, accounts |
+| `games/*` | game state, rules, typed actions, validation, transitions, effects, visibility projection, variants, game-specific bots, UI metadata, authored player-facing rules prose, docs, tests, traces, benchmarks | kernel contracts, browser shell, networking, accounts |
 | `wasm-api` | thin batched browser-facing API over Rust behavior | rule logic, hidden-state leakage, renderer policy, chatty hot-loop crossings |
-| `apps/web` | app shell, routing if used, picker, setup, layout, renderer integration, panels, settings, replay UI, accessibility, safe local import/export | legality, hidden-state authority, bot decisions, replay authority |
+| `apps/web` | app shell, routing if used, picker, setup, layout, renderer integration, panels, static Markdown rules loading/rendering, settings, replay UI, accessibility, safe local import/export | legality, hidden-state authority, bot decisions, replay authority |
 | `tools/*` | simulation, replay checking, trace inspection, rule coverage, benchmark reports, seed reduction, fixture validation | game behavior not present in games, public UI polish |
 
 
@@ -248,6 +248,7 @@ games/<game_id>/
     fixtures/
   docs/
     RULES.md
+    HOW-TO-PLAY.md
     SOURCES.md
     RULE-COVERAGE.md
     MECHANICS.md
@@ -264,6 +265,13 @@ games/<game_id>/
 ```
 
 Concrete file names MAY vary. Required responsibilities do not: setup, legal actions/action tree, validation, transition application, terminal/outcome detection, semantic effects, visibility projection, serialization, replay, random legal bot, docs, tests, traces, benchmarks, and mechanic inventory.
+
+Games own authored player-facing rules prose in
+`games/<game_id>/docs/HOW-TO-PLAY.md`. `apps/web` owns the shared rules
+panel/drawer, static Markdown loading, rendering, accessibility, and responsive
+layout. For the static-bundled path, `wasm-api` has no new operation; game
+behavior and runtime views continue to cross the JS boundary only through
+existing Rust/WASM operations.
 
 ## 12. Static local-first deployment
 

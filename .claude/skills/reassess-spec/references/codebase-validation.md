@@ -36,7 +36,7 @@ For patterns referenced across multiple files (type imports, schema-field usage,
 
 ## 3.1 File Paths
 
-Glob/Grep to confirm each path exists. If moved, renamed, or deleted, record the actual location. Distinguish existing paths (must exist now) from proposed paths (exist after implementation); proposed paths still need their parent directory to exist (or to be created by a named deliverable), must not collide with an existing file, and must follow conventions (kebab-case filenames, `<gate>-<slug>.md` for specs under `specs/`, `templates/AGENT-TASK.md`-derived packets under `tasks/`, crate dirs under `crates/`, game dirs under `games/`, tools under `tools/`, per `docs/ARCHITECTURE.md`).
+Glob/Grep to confirm each path exists. If moved, renamed, or deleted, record the actual location. Distinguish existing paths (must exist now) from proposed paths (exist after implementation); proposed paths still need their parent directory to exist (or to be created by a named deliverable), must not collide with an existing file, and must follow conventions (kebab-case filenames, `<gate>-<slug>.md` for specs under `specs/`, `<PREFIX>-NNN.md` ticket files under `tickets/` (from `tickets/_TEMPLATE.md`), crate dirs under `crates/`, game dirs under `games/`, tools under `tools/`, per `docs/ARCHITECTURE.md`).
 
 **Name-collision check for proposed paths**: when a spec proposes a NEW file or crate, list the parent directory for SIMILAR filenames (substring match on the distinctive token, not exact-path). A proposed file whose parent already holds a near-name sibling occupying the same conceptual slot is a HIGH Issue — the spec should MODIFY the existing file instead. An exact-path existence check passes this silently.
 
@@ -108,7 +108,7 @@ For deliverables that touch FOUNDATIONS-governed semantics — behavior authorit
 
 ## 3.9 New-Deliverable Consumer Verification
 
-For each proposed new deliverable (new crate, new CLI tool, new validator, new public type, new contract field, new reference-file section), verify at least one identifiable consumer exists or is explicitly planned. Grep for references to it by name across `crates/*`, `games/*`, `apps/*`, `tools/*`, `.claude/skills/*`, `specs/*`, `tasks/*`, and `docs/*`, and inspect the spec's own Objective/Scope/Work-breakdown for a concrete consumer-side workflow.
+For each proposed new deliverable (new crate, new CLI tool, new validator, new public type, new contract field, new reference-file section), verify at least one identifiable consumer exists or is explicitly planned. Grep for references to it by name across `crates/*`, `games/*`, `apps/*`, `tools/*`, `.claude/skills/*`, `specs/*`, `tickets/*`, and `docs/*`, and inspect the spec's own Objective/Scope/Work-breakdown for a concrete consumer-side workflow.
 
 **Outcome**:
 - **≥1 consumer found**: deliverable justified — record the consumers in Step 6 for audit-trail visibility.

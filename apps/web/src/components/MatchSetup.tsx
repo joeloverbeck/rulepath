@@ -8,6 +8,7 @@ type MatchSetupProps = {
   canStart: boolean;
   onSeedChange: (seed: number) => void;
   onPlayModeChange: (mode: SetupPlayMode) => void;
+  onRulesOpen: (gameId: string) => void;
   onStart: () => void;
 };
 
@@ -36,6 +37,7 @@ export function MatchSetup({
   canStart,
   onSeedChange,
   onPlayModeChange,
+  onRulesOpen,
   onStart,
 }: MatchSetupProps) {
   return (
@@ -54,6 +56,15 @@ export function MatchSetup({
               ? gameMetadata(selectedGame)
               : "Load the Rust catalog to continue"}
           </small>
+          <button
+            type="button"
+            className="secondary rules-trigger"
+            onClick={() => selectedGame && onRulesOpen(selectedGame.game_id)}
+            disabled={!selectedGame}
+            aria-label={selectedGame ? `How to play ${selectedGame.display_name}` : "How to play selected game"}
+          >
+            How to Play / Rules
+          </button>
         </div>
 
         <label className="field">
