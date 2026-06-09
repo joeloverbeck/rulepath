@@ -94,8 +94,12 @@ For each ticket:
    truthful proof, but do not use unit tests as a substitute for replay,
    simulation, benchmark, browser, no-leak, or docs-link evidence when the ticket
    requires those surfaces.
-6. Update the ticket with final status and an `Outcome` section following
-   `docs/archival-workflow.md`.
+6. Update the ticket following `docs/archival-workflow.md`:
+   - mark final status at the top (`COMPLETED`, `REJECTED`, `DEFERRED`, or
+     `NOT IMPLEMENTED`, with emoji variants allowed by the workflow);
+   - add a bottom `Outcome` section for completed items;
+   - include completion date, what changed, deviations from the plan, and
+     verification results.
 7. Archive the ticket:
    - Create `archive/tickets/` if absent.
    - Detect tracked state with `git ls-files --error-unmatch <ticket>`.
@@ -132,22 +136,50 @@ cargo run -p fixture-check -- --game <game_id>
 cargo run -p rule-coverage -- --game <game_id>
 bash scripts/boundary-check.sh
 node scripts/check-doc-links.mjs
+node scripts/check-catalog-docs.mjs
 npm --prefix apps/web ci
 npm --prefix apps/web run smoke:wasm
 npm --prefix apps/web run build
 npm --prefix apps/web run smoke:ui
+npm --prefix apps/web run smoke:e2e
 ```
 
-3. Update the spec with final status and an `Outcome` section following
-   `docs/archival-workflow.md`.
+3. Update the spec following `docs/archival-workflow.md`:
+   - mark final status at the top (`COMPLETED`, `REJECTED`, `DEFERRED`, or
+     `NOT IMPLEMENTED`, with emoji variants allowed by the workflow);
+   - add a bottom `Outcome` section for completed specs;
+   - include completion date, what changed, deviations from the plan, and
+     verification results.
 4. Archive the spec to `archive/specs/`, using `git mv` when tracked.
 5. Repair active references and progress surfaces, especially `specs/README.md`
    and any active tickets, docs, app README tables, catalog/smoke lists, or
    scripts that referenced the live spec path.
-6. Run a final status/diff check and commit the spec archive/truthing work.
-7. If a `/goal` is active, mark it complete only after implementation,
+6. Assert the archived spec is truthy before goal completion:
+   - read or grep the archived spec and confirm final status and `Outcome`;
+   - confirm the original active spec path is gone;
+   - confirm active references point to the archive path when they should.
+7. Run a final status/diff check and commit the spec archive/truthing work.
+8. If a `/goal` is active, mark it complete only after implementation,
    verification, ticket archives, spec archive, reference repair, and required
    commits are done.
+
+## Completion Audit
+
+Before reporting done or marking a `/goal` complete, prove the final state from
+the live checkout:
+
+- Active ticket/spec globs are empty, or any remaining active files are
+  intentionally out of scope and explained.
+- `archive/tickets/` contains every expected ticket in the series; each archived
+  ticket has final status and an `Outcome` or a clear non-completed disposition.
+- `archive/specs/` contains the reference spec when the series closes it; the
+  archived spec has final status and an `Outcome`.
+- `specs/README.md`, progress surfaces, README/catalog surfaces, docs, scripts,
+  and active tickets/specs no longer point at stale live paths.
+- Required verification commands were actually run and match the ticket/spec
+  scope; skipped checks are named with reasons.
+- The final diff/status excludes unrelated user changes, and required commits
+  are present.
 
 ## Reporting
 

@@ -171,14 +171,19 @@ tie handling, hidden-info filtering, or bot policy.
 | `PT-RESTRICT-006` | A follower submits off-suit while holding at least one led-suit card. | Reject without mutation. | Viewer-safe must-follow diagnostic such as "a card of the led suit must be played." | The diagnostic must not name the held led-suit card(s). |
 | `PT-RESTRICT-007` | A gameplay action is submitted in terminal state. | Reject without mutation. | Viewer-safe terminal-state diagnostic. | Outcome is final. |
 
-## Trick resolution and scoring
+## Trick resolution
 
-| Rule ID | Resolution/scoring rule | Timing | Edge case | Notes |
+| Rule ID | Resolution rule | Timing | Edge case | Notes |
 |---|---|---|---|---|
 | `PT-TRICK-001` | The leader's played card establishes the led suit for the trick. | lead play | none | The follower legality set is computed from the led suit and follower hand. |
 | `PT-TRICK-002` | If both played cards share the led suit, the higher rank wins the trick. | after follower play | no equal rank within suit exists | Rank 6 is highest and rank 1 is lowest. |
 | `PT-TRICK-003` | If the follower plays off-suit, the leader wins the trick. | after follower play | off-suit card rank is ignored | Off-suit cards never win. |
 | `PT-TRICK-004` | The trick winner leads the next trick unless the round is complete. | trick resolution | final trick closes the round | Turn order is Rust-owned. |
+
+## Scoring and accounting
+
+| Rule ID | Scoring rule | Timing | Edge case | Notes |
+|---|---|---|---|---|
 | `PT-SCORE-001` | Each won trick adds one point to the winning seat's current-round score. | trick resolution | none | A round contains exactly six points. |
 | `PT-SCORE-002` | After six tricks, record the round score and add it to match totals. | round close | none | Across two rounds, total match points always sum to 12. |
 | `PT-SCORE-003` | The first round closes into a fresh round-2 deal and leader rotation. | round-1 close | none | The full deck is reshuffled from the continuing RNG stream. |

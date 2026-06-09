@@ -24,7 +24,7 @@ const GAME_ID_FILTER = (process.env.RULEPATH_PLAYER_RULES_GAME_IDS ?? "")
   .filter(Boolean);
 
 const CATALOG_RE = /const GAME_([A-Z0-9_]+):\s*&str\s*=\s*"([^"]+)";/g;
-const HIDDEN_INFO_GAMES = new Set(["high_card_duel", "secret_draft", "poker_lite"]);
+const HIDDEN_INFO_GAMES = new Set(["high_card_duel", "secret_draft", "poker_lite", "plain_tricks"]);
 const FORBIDDEN_TAG_RE = /<\s*(script|iframe|embed|object)\b/i;
 const FORBIDDEN_ATTR_RE = /\s(?:on[a-z]+|style)\s*=/i;
 const BEHAVIOR_HEADING_RE = /^#{2,4}\s+(Triggers?|Selectors?|Conditions?|Action schemas?|Validation rules?|Scoring logic|Visibility filters?)\s*$/im;
