@@ -1,6 +1,6 @@
 # RULDISSHASUR-003: poker_lite "Crest Ledger" pilot HOW-TO-PLAY + generated asset
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — authored Markdown player doc + its byte-identical generated static web asset; no Rust/engine, WASM, or behavior surface.
@@ -79,3 +79,29 @@ Run `npm --prefix apps/web run build:rules` and commit the byte-identical genera
 1. `node scripts/check-player-rules.mjs` and `diff games/poker_lite/docs/HOW-TO-PLAY.md apps/web/public/rules/poker_lite.md`
 2. `npm --prefix apps/web run build:rules`
 3. A doc-content + check-script run is the correct boundary; no Rust/test code changes, so `cargo`/full web smoke is exercised later (RULDISSHASUR-007).
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/poker_lite/docs/HOW-TO-PLAY.md` as the Crest Ledger pilot player-rules document.
+- Generated the byte-identical static web asset at `apps/web/public/rules/poker_lite.md`.
+- Refined the RULDISSHASUR-002 scripts with `RULEPATH_PLAYER_RULES_GAME_IDS` so staged authoring can validate/generate `poker_lite` before the other eight docs exist; default unfiltered checks remain full-catalog.
+- Amended `archive/tickets/RULDISSHASUR-002.md` so the archived outcome reflects that script refinement.
+
+Deviations from original plan:
+
+- The pilot uses ASCII hyphens/apostrophes in place of typographic punctuation.
+- `build:rules` was run with `RULEPATH_PLAYER_RULES_GAME_IDS=poker_lite` because the default full-catalog script correctly fails until RULDISSHASUR-004 authors the remaining eight docs.
+
+Verification results:
+
+- `env RULEPATH_PLAYER_RULES_GAME_IDS=poker_lite npm --prefix apps/web run build:rules` passed (`copied player rules for 1 catalog games`).
+- `env RULEPATH_PLAYER_RULES_GAME_IDS=poker_lite npm --prefix apps/web run check:rules` passed (`player-rules check passed — 1 catalog games validated`).
+- `diff games/poker_lite/docs/HOW-TO-PLAY.md apps/web/public/rules/poker_lite.md` exited 0.
+- `grep -q 'poker-lite-rules-v1' games/poker_lite/docs/HOW-TO-PLAY.md` exited 0.
+- Unfiltered `node scripts/check-player-rules.mjs` failed only on the remaining eight missing game docs/assets; `poker_lite` had no reported errors.
+- Manual no-leak/IP review: the doc uses original neutral Crest Ledger prose, explains own/public visibility and reveal timing, and names no actual private crest value, pre-reveal center value, deck-tail value, or seed-derived value.
+- `git diff --check` passed.

@@ -90,15 +90,19 @@ Add `"build:rules": "node ../../scripts/copy-player-rules.mjs"` and `"check:rule
 
 Completed: 2026-06-09
 
+Outcome amended: 2026-06-09
+
 What changed:
 
 - Added `scripts/copy-player-rules.mjs` to validate and copy each catalog `games/<id>/docs/HOW-TO-PLAY.md` into `apps/web/public/rules/<id>.md`, plus an inert generated `manifest.json`.
 - Added `scripts/check-player-rules.mjs` to parse the `wasm-api` catalog, require source docs and generated assets, validate required sections, block YAML/raw HTML/behavior-looking headings, compare literal `RULES.md` versions, and enforce hidden-information section expectations.
 - Added `apps/web` package scripts `build:rules` and `check:rules`, and wired `build` to run `build:rules` before WASM/TypeScript/Vite.
+- Added `RULEPATH_PLAYER_RULES_GAME_IDS` filtering so staged authoring tickets can validate/generate one game at a time; the default path remains full-catalog and fail-closed.
 
 Deviations from original plan:
 
 - The scripts support `RULEPATH_ROOT`, `RULEPATH_WASM_API`, `RULEPATH_GAMES_DIR`, and `RULEPATH_WEB_RULES_DIR` environment overrides. This keeps normal repo behavior unchanged and gives the ticket a deterministic fixture proof before real catalog docs exist.
+- The scripts support `RULEPATH_PLAYER_RULES_GAME_IDS` for staged authoring; unfiltered CI/default runs still require every catalog game.
 - No real generated assets were committed yet; catalog authoring and generated assets are owned by RULDISSHASUR-003/-004.
 
 Verification results:

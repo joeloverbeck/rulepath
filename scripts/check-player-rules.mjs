@@ -18,6 +18,10 @@ const ROOT = process.env.RULEPATH_ROOT ?? DEFAULT_ROOT;
 const WASM_API = process.env.RULEPATH_WASM_API ?? path.join(ROOT, "crates/wasm-api/src/lib.rs");
 const GAMES_DIR = process.env.RULEPATH_GAMES_DIR ?? path.join(ROOT, "games");
 const RULES_DIR = process.env.RULEPATH_WEB_RULES_DIR ?? path.join(ROOT, "apps/web/public/rules");
+const GAME_ID_FILTER = (process.env.RULEPATH_PLAYER_RULES_GAME_IDS ?? "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 const CATALOG_RE = /const GAME_([A-Z0-9_]+):\s*&str\s*=\s*"([^"]+)";/g;
 const HIDDEN_INFO_GAMES = new Set(["high_card_duel", "secret_draft", "poker_lite"]);
@@ -150,8 +154,15 @@ async function readRequired(filePath, gameId, label) {
 }
 
 const catalog = await readCatalog();
+const selectedCatalog =
+  GAME_ID_FILTER.length === 0 ? catalog : catalog.filter((game) => GAME_ID_FILTER.includes(game.id));
+for (const id of GAME_ID_FILTER) {
+  if (!catalog.some((game) => game.id === id)) {
+    failures.push(`unknown game id filter: ${id}`);
+  }
+}
 
-for (const game of catalog) {
+for (const game of selectedCatalog) {
   const howToPath = path.join(GAMES_DIR, game.id, "docs/HOW-TO-PLAY.md");
   const formalRulesPath = path.join(GAMES_DIR, game.id, "docs/RULES.md");
   const generatedPath = path.join(RULES_DIR, `${game.id}.md`);
@@ -186,4 +197,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`player-rules check passed — ${catalog.length} catalog games validated`);
+console.log(`player-rules check passed — ${selectedCatalog.length} catalog games validated`);

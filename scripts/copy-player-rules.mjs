@@ -19,6 +19,10 @@ const ROOT = process.env.RULEPATH_ROOT ?? DEFAULT_ROOT;
 const WASM_API = process.env.RULEPATH_WASM_API ?? path.join(ROOT, "crates/wasm-api/src/lib.rs");
 const GAMES_DIR = process.env.RULEPATH_GAMES_DIR ?? path.join(ROOT, "games");
 const RULES_DIR = process.env.RULEPATH_WEB_RULES_DIR ?? path.join(ROOT, "apps/web/public/rules");
+const GAME_ID_FILTER = (process.env.RULEPATH_PLAYER_RULES_GAME_IDS ?? "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 const failures = [];
 
@@ -121,9 +125,16 @@ function sha256(text) {
 }
 
 const catalog = await readCatalog();
+const selectedCatalog =
+  GAME_ID_FILTER.length === 0 ? catalog : catalog.filter((game) => GAME_ID_FILTER.includes(game.id));
+for (const id of GAME_ID_FILTER) {
+  if (!catalog.some((game) => game.id === id)) {
+    failures.push(`unknown game id filter: ${id}`);
+  }
+}
 const manifest = [];
 
-for (const game of catalog) {
+for (const game of selectedCatalog) {
   const sourcePath = path.join(GAMES_DIR, game.id, "docs/HOW-TO-PLAY.md");
   let markdown;
   try {
@@ -151,13 +162,15 @@ if (failures.length > 0) {
 
 await mkdir(RULES_DIR, { recursive: true });
 
-for (const game of catalog) {
+for (const game of selectedCatalog) {
   const sourcePath = path.join(GAMES_DIR, game.id, "docs/HOW-TO-PLAY.md");
   const targetPath = path.join(RULES_DIR, `${game.id}.md`);
   const markdown = await readFile(sourcePath, "utf8");
   await writeFile(targetPath, markdown, "utf8");
 }
 
-await writeFile(path.join(RULES_DIR, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+if (GAME_ID_FILTER.length === 0) {
+  await writeFile(path.join(RULES_DIR, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+}
 
-console.log(`copied player rules for ${catalog.length} catalog games`);
+console.log(`copied player rules for ${selectedCatalog.length} catalog games`);
