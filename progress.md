@@ -2,10 +2,10 @@ Current status: Gates 0-9.1 are complete in the worktree. Gate 9 is complete
 with `token_bazaar` as the accepted public resource/economy proof, and Gate 9.1
 is complete with `secret_draft` / Veiled Draft as the accepted simultaneous
 commitment/reveal and pending-seat no-leak proof. `blackjack_lite` is deferred
-by ADR 0006 and is not a Gate 9 or Gate 9.1 blocker. The next roadmap target is
-Gate 10 (`poker_lite` / `plain_tricks`) after confirming no open mechanic
-promotion debt. The mutable source of truth for gate progress is
-`specs/README.md`.
+by ADR 0006 and is not a Gate 9 or Gate 9.1 blocker. Gate 10's `poker_lite` /
+Crest Ledger betting-showdown half is complete; the broader ROADMAP Gate 10 is
+not fully done because `plain_tricks` still owns the trick/follow-suit half. The
+mutable source of truth for gate progress is `specs/README.md`.
 
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
 
@@ -17,8 +17,41 @@ Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and c
 | `resource_race` | Alias or alternate design label for the economy proof; do not implement separately unless a future accepted spec replaces `token_bazaar`. |
 | `secret_draft` | Later simultaneous commitment / waiting / reveal proof, preferably after Token Bazaar proves public resources and browser economy UI. |
 | `blackjack_lite` | Deferred comparison case under ADR 0006; not a Gate 8.1 interlock and not a Gate 9 prerequisite. |
-| `poker_lite` / `plain_tricks` | Gate 10+ card-depth candidates after hidden information, resources/accounting, and action-tree discipline have landed. |
+| `poker_lite` / `plain_tricks` | Gate 10 card-depth candidates. `poker_lite` / Crest Ledger is complete for the betting/showdown half; `plain_tricks` remains the successor for trick/follow-suit proof. |
 | private monster-game red-team | Not part of this pass; leave late, optional, and isolated. |
+
+## Gate 10 Crest Ledger
+
+- Completed on 2026-06-09 for `poker_lite` / Crest Ledger, the
+  betting/showdown half of ROADMAP Gate 10.
+- Added the accepted hidden-card accounting proof: deterministic six-crest
+  setup, owner-private crests, hidden center reveal, two bounded pledge rounds,
+  one-lift cap per round, exact shared-pool accounting, yield terminal without
+  private reveal, grouped showdown reveal, pair/high-rank/split comparator,
+  public replay export/import, Level 0 and Level 2 bots, golden traces,
+  benchmarks, tool registration, WASM/browser board, e2e no-leak/a11y smoke,
+  and full official-game docs.
+- Boundary notes: card/private-hand pressure is a second use after
+  `high_card_duel`; public accounting pressure is a second use after
+  `token_bazaar`; bounded pledge/shared-pool allocation is first use. All stay
+  game-local. No `engine-core` noun, `game-stdlib` helper, or promotion debt was
+  introduced; the mechanic atlas §10A remains empty.
+- Deferred scope: `plain_tricks` still owns the Gate 10 trick/follow-suit half.
+- Acceptance evidence:
+  - `cargo fmt --all --check`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo test --workspace`
+  - `cargo bench -p poker_lite`
+  - `cargo run -p simulate -- --game poker_lite --games 1000 --start-seed 0 --action-cap 16`
+  - `cargo run -p replay-check -- --game poker_lite`
+  - `cargo run -p fixture-check -- --game poker_lite`
+  - `cargo run -p rule-coverage -- --game poker_lite`
+  - `bash scripts/boundary-check.sh`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:e2e`
 
 ## Gate 9.1 Veiled Draft
 

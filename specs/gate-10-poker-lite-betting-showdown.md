@@ -7,7 +7,7 @@
 | Spec ID | `GATE10-POKLITE-BETSHOW-001` |
 | Roadmap stage | Stage 9 |
 | Build gate | Gate 10 |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-08 |
 | Owner | Rulepath maintainers / implementation agents |
 | Primary crate | `games/poker_lite` |

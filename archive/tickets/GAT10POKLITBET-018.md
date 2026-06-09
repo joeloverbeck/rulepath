@@ -1,9 +1,9 @@
 # GAT10POKLITBET-018: Capstone — mechanic atlas, primitive-pressure ledger, and status reconciliation
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
-**Engine Changes**: None — documentation/status reconciliation only (`docs/MECHANIC-ATLAS.md`, new `games/poker_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `progress.md`, `specs/README.md`, the spec's own Status). No code surface.
+**Engine Changes**: None — documentation/status reconciliation plus a tool-fixture intake correction (`docs/MECHANIC-ATLAS.md`, new `games/poker_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `progress.md`, `specs/README.md`, the spec's own Status, `tools/replay-check`, `tools/fixture-check`). No Rust game/engine behavior changed.
 **Deps**: GAT10POKLITBET-011, GAT10POKLITBET-013, GAT10POKLITBET-016, GAT10POKLITBET-017
 
 ## Problem
@@ -83,3 +83,36 @@ Record Gate 10 `poker_lite` evidence/status in `progress.md`; update the existin
 1. `cargo test --workspace && cargo run -p rule-coverage -- --game poker_lite && cargo run -p replay-check -- --game poker_lite`
 2. `bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs`
 3. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:e2e` — the distributed browser-acceptance evidence.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+- Added the Crest Ledger primitive-pressure ledger, recording card/private-hand
+  and public-accounting pressure as second-use repeated-shape candidates kept
+  local, and bounded pledge/shared-pool allocation as first-use local-only.
+- Updated `docs/MECHANIC-ATLAS.md` §10B and the initial atlas table while
+  keeping §10A empty; no `game-stdlib` promotion or promotion debt was created.
+- Updated `progress.md`, `specs/README.md`, and the spec status: the
+  `poker_lite` betting/showdown half is done, while broader Gate 10 remains in
+  progress because `plain_tricks` still owns the trick/follow-suit half.
+- Corrected `replay-check` and `fixture-check` to recognize viewer-scoped public
+  export fixtures such as `poker_lite`'s `wasm-exported.trace.json` instead of
+  treating them as internal command-replay traces.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo bench -p poker_lite`
+- `cargo run -p simulate -- --game poker_lite --games 1000 --start-seed 0 --action-cap 16`
+- `cargo run -p replay-check -- --game poker_lite`
+- `cargo run -p fixture-check -- --game poker_lite`
+- `cargo run -p rule-coverage -- --game poker_lite`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`

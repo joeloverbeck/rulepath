@@ -242,11 +242,72 @@ fn check_trace_path(
 ) -> Result<(), String> {
     let input = fs::read_to_string(path)
         .map_err(|error| format!("{}: failed to read: {error}", path.display()))?;
+    if is_public_export_fixture(&input) {
+        validate_public_export_fixture(game, path, &input)?;
+        println!("{}: public export fixture accepted", path.display());
+        return Ok(());
+    }
     let trace = Trace::parse(path, &input)?;
     if !seen_ids.insert(trace.trace_id.clone()) {
         return Err(trace.failure("duplicate trace_id in checked trace set"));
     }
     trace.check(game)
+}
+
+fn is_public_export_fixture(input: &str) -> bool {
+    input.contains("\"export_class\":")
+}
+
+fn validate_public_export_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    validate_json_object(path, input)?;
+    let schema_version = number_field(input, "schema_version")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if schema_version != 1 {
+        return Err(parse_error(
+            path,
+            "public-export",
+            &format!("unsupported schema_version `{schema_version}`"),
+        ));
+    }
+    let export_class = string_field(input, "export_class")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if export_class.trim().is_empty() {
+        return Err(parse_error(
+            path,
+            "public-export",
+            "export_class must be non-empty",
+        ));
+    }
+    let game_id = string_field(input, "game_id")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if game_id != game.game_id {
+        return Err(parse_error(
+            path,
+            "public-export",
+            &format!("unsupported export game_id `{game_id}`"),
+        ));
+    }
+    let rules_version = string_field(input, "rules_version")
+        .map_err(|error| parse_error(path, "public-export", &error))?;
+    if rules_version != game.rules_version {
+        return Err(parse_error(
+            path,
+            "public-export",
+            &format!("unsupported export rules_version `{rules_version}`"),
+        ));
+    }
+    if !input.contains("\"steps\":") {
+        return Err(parse_error(
+            path,
+            "public-export",
+            "public export fixture must contain steps",
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
