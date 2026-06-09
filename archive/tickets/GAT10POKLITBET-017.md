@@ -1,6 +1,6 @@
 # GAT10POKLITBET-017: Trailing game docs (mechanics, UI, public-release checklist)
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — new per-game docs only (`games/poker_lite/docs/*`); no Rust/engine surface touched
@@ -79,3 +79,28 @@ Instantiate from `templates/PUBLIC-RELEASE-CHECKLIST.md`. Audit release readines
 1. `node scripts/check-doc-links.mjs`
 2. `ls games/poker_lite/docs/MECHANICS.md games/poker_lite/docs/UI.md games/poker_lite/docs/PUBLIC-RELEASE-CHECKLIST.md`
 3. Narrower boundary: docs-only; no Rust surface, so `cargo` checks are not the verification boundary here.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+- Added `MECHANICS.md` with Crest Ledger's mechanic inventory, including
+  second-use card/private-hand pressure after `high_card_duel`, second-use
+  public accounting pressure after `token_bazaar`, and first-use bounded
+  pledge/shared-pool pressure.
+- Added `UI.md` documenting the shipped `PokerLiteBoard` presentation contract,
+  Rust/WASM authority boundary, legal action mapping, viewer modes,
+  accessibility, reduced-motion behavior, responsive layout, and no-leak
+  surfaces.
+- Added `PUBLIC-RELEASE-CHECKLIST.md` documenting official-game evidence,
+  original/neutral IP posture, no casino trade dress, no-leak surfaces,
+  legal-only UI, and the explicit GAT10POKLITBET-018 closeout constraint.
+- Manual review matched the mechanics and UI prose against `RULES.md`,
+  `RULE-COVERAGE.md`, `SOURCES.md`, `ui.rs`, `rules.rs`, `visibility.rs`, and
+  `PokerLiteBoard.tsx`.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `ls games/poker_lite/docs/MECHANICS.md games/poker_lite/docs/UI.md games/poker_lite/docs/PUBLIC-RELEASE-CHECKLIST.md`
+- `rg -n "\\[[^\\]]+\\]\\(([^)]+)\\)" games/poker_lite/docs/MECHANICS.md games/poker_lite/docs/UI.md games/poker_lite/docs/PUBLIC-RELEASE-CHECKLIST.md`
