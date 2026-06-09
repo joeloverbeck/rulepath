@@ -1,6 +1,6 @@
 # GAT101PLATRI-002: Third-use primitive-pressure ledger decision and mechanic-atlas update
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md`; modifies `docs/MECHANIC-ATLAS.md` (§10/§10B, and §10A only if promotion debt is created). No Rust code.
@@ -76,3 +76,25 @@ Update the §10B deterministic-shuffle row from "third use pending" to the recor
 1. `grep -nE "plain_tricks|third use|pending" docs/MECHANIC-ATLAS.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command set is correct: this ticket produces a decision record and an atlas edit; the downstream code consequence (local shuffle vs promoted helper) is verified in GAT101PLATRI-005 / GAT101PLATRI-003.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the Gate 10.1 third-use hard-gate comparison across `high_card_duel`, `poker_lite`, and planned `plain_tricks`.
+- Recorded exactly one decision: defer/reject extraction and keep deterministic shuffle / private hand / staged reveal mechanics local for Plain Tricks.
+- Updated `docs/MECHANIC-ATLAS.md` §10B so the deterministic shuffle / private hand / staged reveal row now includes `plain_tricks`, records the defer/reject decision, names the next review trigger, and leaves §10A with no promotion debt.
+- Recorded that Plain Tricks trick-count scoring is scoring/outcome, not a third use of the public resource-accounting / shared-ledger shape.
+
+Deviations from original plan:
+
+- None. The decision was not `promote`, so no §10A promotion-debt row was added and the conditional helper/back-port ticket is not required by this decision.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -nE "plain_tricks|third use|pending|deterministic shuffle / private hand" docs/MECHANIC-ATLAS.md` showed the §10B row updated to include `plain_tricks` with `rejected/deferred with rationale`; the remaining `pending` matches are generic atlas headings/other future shapes, not the resolved deterministic shuffle row.
+- Manual exactly-one decision review passed: the ledger states `Decision: defer/reject extraction and keep the mechanics local`; it does not authorize reuse, promotion, or ADR escalation.
+- Manual FOUNDATIONS §4/§12 review passed: the third-use hard gate is resolved before rules/setup implementation proceeds beyond skeleton work, no `engine-core` noun is added, no `game-stdlib` helper is promoted, and no promotion debt is created.
