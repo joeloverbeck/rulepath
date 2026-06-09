@@ -1,6 +1,6 @@
 # GAT101PLATRI-020: Capstone — mechanic atlas first-use rows, status reconciliation, and exit evidence
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `docs/MECHANIC-ATLAS.md` (trick first-use rows), `specs/README.md`, `progress.md`, `README.md`. Verification-only exercise of the whole gate. No production logic.
@@ -82,3 +82,17 @@ Record Gate 10.1 evidence; flip the Gate 10 narrative from "trick half deferred"
 1. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
 2. `cargo run -p simulate -- --game plain_tricks --games 1000 --start-seed 0 --action-cap 32 && cargo run -p replay-check -- --game plain_tricks && cargo run -p fixture-check -- --game plain_tricks && cargo run -p rule-coverage -- --game plain_tricks && cargo bench -p plain_tricks`
 3. `bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Complete. Gate 10.1 and the parent Gate 10 are marked `Done`; the Gate 10.1 spec is archived; `progress.md`, root `README.md`, and `docs/MECHANIC-ATLAS.md` record the Plain Tricks completion and first-use local-only trick rows. `docs/ROADMAP.md` was intentionally left untouched.
+
+Verification evidence:
+
+1. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
+2. `cargo run -p simulate -- --game plain_tricks --games 1000 --start-seed 0 --action-cap 32 && cargo run -p replay-check -- --game plain_tricks && cargo run -p fixture-check -- --game plain_tricks && cargo run -p rule-coverage -- --game plain_tricks && cargo bench -p plain_tricks`
+3. `bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui`
+4. `npm --prefix apps/web run smoke:e2e` (rerun with elevated localhost permission after the sandbox rejected `127.0.0.1` binding with `EPERM`)
+5. `grep -n "Gate 10" specs/README.md`
+6. `grep -n "follow-suit legality\|trick resolution\|trick-winner-leads\|deal rotation" docs/MECHANIC-ATLAS.md`
+7. `git diff --stat docs/ROADMAP.md`
