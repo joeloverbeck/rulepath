@@ -1,6 +1,6 @@
 # GAT101PLATRI-001: Plain Tricks rules prose, source notes, and admission record
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new per-game docs under `games/plain_tricks/docs/` (`RULES.md`, `SOURCES.md`, `GAME-IMPLEMENTATION-ADMISSION.md`); no Rust/engine code
@@ -79,3 +79,24 @@ Record admission: the chosen variant, deliberate simplifications (no trump, two 
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-catalog-docs.mjs` (confirms no catalog regression; catalog reconciliation lands in GAT101PLATRI-018)
 3. Narrower command set is correct here: this is doc authoring with no code surface; rule-ID coverage is asserted later by `cargo run -p rule-coverage -- --game plain_tricks` (GAT101PLATRI-014).
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `games/plain_tricks/docs/RULES.md` with original Plain Tricks rules prose, stable `PT-*` rule IDs, the 18-card `plain_tricks_standard` variant, lead/follow legality, trick resolution, round scoring, deal rotation, terminal/tie rules, visibility rules, replay notes, and bot/out-of-scope boundaries.
+- Added `games/plain_tricks/docs/SOURCES.md` with consulted-not-copied trick-taking research notes, neutral public naming rationale, IP/trade-dress review, ambiguity log, adopted design facts, and rule-source-to-rule-ID cross-reference.
+- Added `games/plain_tricks/docs/GAME-IMPLEMENTATION-ADMISSION.md` with admission constraints, evidence expectations, mechanic-atlas admission check, primitive-pressure blocker handoff to GAT101PLATRI-002, and source/rule-ID readiness.
+
+Deviations from original plan:
+
+- None. The ticket remained documentation-only and did not add Rust, workspace, WASM, web, or catalog registration code.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed — 9 games reflected in intro, root, and smoke surfaces`).
+- Manual rule-ID checklist passed for lead/follow legality, leader unconstrained play, forced follow, void free-discard, trick resolution, trick-winner-led order, scoring, deal rotation, terminal/tie, visibility/no-leak, replay, and bot/out-of-scope boundaries.
+- Manual IP audit passed: new prose and labels are original; sources are consulted-not-copied; no Whist/Hearts/commercial branding, copied card imagery, copied rules prose, or trade dress was introduced.
