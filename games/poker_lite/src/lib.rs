@@ -1,6 +1,7 @@
 //! `poker_lite` official-game crate skeleton for Crest Ledger.
 
 pub mod actions;
+pub mod effects;
 pub mod ids;
 pub mod rules;
 pub mod setup;
@@ -10,6 +11,11 @@ pub mod variants;
 pub use actions::{
     actor_seat, legal_action_tree, parse_action_segment, validate_command, PokerLiteAction,
     ValidatedAction,
+};
+pub use effects::{
+    bot_chose_action_private_effect, bot_chose_action_public_effect, center_reveal_effects,
+    deal_private_crest_effect, opening_pool_set_effect, public_effect, setup_effects,
+    showdown_reveal_effects, PokerLiteEffect,
 };
 pub use ids::{
     canonical_deck, CrestCardId, CrestRank, CrestRankCopy, PokerLiteSeat, ACTION_HOLD, ACTION_LIFT,

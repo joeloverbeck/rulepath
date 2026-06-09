@@ -1,6 +1,6 @@
 # GAT10POKLITBET-006: Viewer-scoped semantic effects
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/poker_lite/src/effects.rs`. Consumes `engine-core` `EffectEnvelope`/`VisibilityScope`. No kernel change.
@@ -74,3 +74,26 @@ Define the typed effect enum and emission helpers per §B3, each wrapped with th
 1. `cargo test -p poker_lite`
 2. `cargo test -p poker_lite --test rules`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite/src/effects.rs` with typed semantic effects and visibility-scoped helpers for private deal, public deal/pool setup, pledge actions, yield, center reveal, grouped showdown reveal, ledger resolution, terminal, and bot-choice effect shapes.
+- Wired `games/poker_lite/src/rules.rs` transitions to return `Vec<EffectEnvelope<PokerLiteEffect>>`.
+- Ensured private setup deal effects are `PrivateToSeat`, public setup/pledge effects carry counts and public accounting only, and showdown reveal is emitted as a single grouped `ShowdownRevealed` payload.
+- Re-exported effect helpers and `PokerLiteEffect` from `games/poker_lite/src/lib.rs`.
+- Extended rules integration coverage to assert transition-emitted showdown effects contain exactly one grouped `ShowdownRevealed` payload.
+
+Deviations from original plan:
+
+- Setup effects are exposed through `setup_effects(&state)` rather than changing `setup_match`'s return type; this keeps the established setup signature intact while providing the Rust-emitted effect stream for callers that need it.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed: 20 unit tests, 10 integration tests, and 0 doc tests.
+- `cargo test -p poker_lite --test rules` passed: 10 integration tests.
+- `bash scripts/boundary-check.sh` passed.

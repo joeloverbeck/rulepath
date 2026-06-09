@@ -1,7 +1,12 @@
-use engine_core::Diagnostic;
+use engine_core::{Diagnostic, EffectEnvelope};
 
 use crate::{
     actions::{self, PokerLiteAction, ValidatedAction},
+    effects::{
+        center_reveal_effects, ledger_resolved_effect, pledge_held_effect, pledge_lifted_effect,
+        pledge_matched_effect, pledge_pressed_effect, seat_yielded_effect, showdown_reveal_effects,
+        terminal_effect, LedgerAllocation, PokerLiteEffect,
+    },
     ids::{CrestCardId, PokerLiteSeat, STANDARD_MAX_CONTRIBUTION},
     state::{Phase, PledgeRoundState, PokerLiteState, ShowdownReveal, TerminalOutcome},
 };
@@ -12,20 +17,24 @@ pub struct ShowdownStrength {
     pub private_rank_value: u8,
 }
 
-pub fn apply_action(state: &mut PokerLiteState, action: ValidatedAction) -> Result<(), Diagnostic> {
+pub fn apply_action(
+    state: &mut PokerLiteState,
+    action: ValidatedAction,
+) -> Result<Vec<EffectEnvelope<PokerLiteEffect>>, Diagnostic> {
     ensure_action_still_legal(state, action)?;
 
+    let mut effects = Vec::new();
     match action.action {
-        PokerLiteAction::Hold => apply_hold(state, action.actor),
-        PokerLiteAction::Press => apply_press(state, action.actor),
-        PokerLiteAction::Lift => apply_lift(state, action.actor),
-        PokerLiteAction::Match => apply_match(state, action.actor),
-        PokerLiteAction::Yield => apply_yield(state, action.actor),
+        PokerLiteAction::Hold => apply_hold(state, action.actor, &mut effects),
+        PokerLiteAction::Press => apply_press(state, action.actor, &mut effects),
+        PokerLiteAction::Lift => apply_lift(state, action.actor, &mut effects),
+        PokerLiteAction::Match => apply_match(state, action.actor, &mut effects),
+        PokerLiteAction::Yield => apply_yield(state, action.actor, &mut effects),
     }
 
     debug_assert_accounting(state);
     state.freshness_token = state.freshness_token.next();
-    Ok(())
+    Ok(effects)
 }
 
 pub fn showdown_strength(private_card: CrestCardId, center_card: CrestCardId) -> ShowdownStrength {
@@ -70,26 +79,52 @@ fn ensure_action_still_legal(
     Ok(())
 }
 
-fn apply_hold(state: &mut PokerLiteState, actor: PokerLiteSeat) {
+fn apply_hold(
+    state: &mut PokerLiteState,
+    actor: PokerLiteSeat,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
+    effects.push(pledge_held_effect(actor, state.round.round_index));
     state.round.consecutive_holds = state.round.consecutive_holds.saturating_add(1);
     if state.round.consecutive_holds >= 2 {
-        close_current_round(state);
+        close_current_round(state, effects);
     } else {
         state.active_seat = Some(actor.other());
     }
 }
 
-fn apply_press(state: &mut PokerLiteState, actor: PokerLiteSeat) {
-    add_to_pool(state, actor, state.round.unit);
+fn apply_press(
+    state: &mut PokerLiteState,
+    actor: PokerLiteSeat,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
+    let amount = state.round.unit;
+    add_to_pool(state, actor, amount);
+    effects.push(pledge_pressed_effect(
+        actor,
+        state.round.round_index,
+        amount,
+        state.shared_pool,
+    ));
     state.round.outstanding_actor = Some(actor.other());
     state.round.outstanding_amount = state.round.unit;
     state.round.consecutive_holds = 0;
     state.active_seat = Some(actor.other());
 }
 
-fn apply_lift(state: &mut PokerLiteState, actor: PokerLiteSeat) {
+fn apply_lift(
+    state: &mut PokerLiteState,
+    actor: PokerLiteSeat,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
     let amount = state.round.outstanding_amount + state.round.unit;
     add_to_pool(state, actor, amount);
+    effects.push(pledge_lifted_effect(
+        actor,
+        state.round.round_index,
+        amount,
+        state.shared_pool,
+    ));
     state.round.outstanding_actor = Some(actor.other());
     state.round.outstanding_amount = state.round.unit;
     state.round.lift_used = true;
@@ -97,35 +132,65 @@ fn apply_lift(state: &mut PokerLiteState, actor: PokerLiteSeat) {
     state.active_seat = Some(actor.other());
 }
 
-fn apply_match(state: &mut PokerLiteState, actor: PokerLiteSeat) {
-    add_to_pool(state, actor, state.round.outstanding_amount);
+fn apply_match(
+    state: &mut PokerLiteState,
+    actor: PokerLiteSeat,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
+    let amount = state.round.outstanding_amount;
+    add_to_pool(state, actor, amount);
+    effects.push(pledge_matched_effect(
+        actor,
+        state.round.round_index,
+        amount,
+        state.shared_pool,
+    ));
     state.round.outstanding_actor = None;
     state.round.outstanding_amount = 0;
     state.round.consecutive_holds = 0;
-    close_current_round(state);
+    close_current_round(state, effects);
 }
 
-fn apply_yield(state: &mut PokerLiteState, actor: PokerLiteSeat) {
+fn apply_yield(
+    state: &mut PokerLiteState,
+    actor: PokerLiteSeat,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
     let winner = actor.other();
     state.phase = Phase::Terminal;
     state.active_seat = None;
-    state.terminal_outcome = Some(TerminalOutcome::YieldWin {
+    let outcome = TerminalOutcome::YieldWin {
         winner,
         loser: actor,
         shared_pool: state.shared_pool,
         contributions: state.contributions,
-    });
+    };
+    state.terminal_outcome = Some(outcome);
+    effects.push(seat_yielded_effect(actor, winner, state.shared_pool));
+    effects.push(ledger_resolved_effect(
+        state.shared_pool,
+        state.contributions,
+        LedgerAllocation::Winner {
+            seat: winner,
+            amount: state.shared_pool,
+        },
+    ));
+    effects.push(terminal_effect(outcome));
 }
 
-fn close_current_round(state: &mut PokerLiteState) {
+fn close_current_round(
+    state: &mut PokerLiteState,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
     match state.round.round_index {
         0 => {
             state.center_visible = true;
+            effects.extend(center_reveal_effects(state.center_card_internal()));
             state.phase = Phase::PledgeRound { round_index: 1 };
             state.active_seat = Some(PokerLiteSeat::Seat1);
             state.round = PledgeRoundState::for_round(1);
         }
-        1 => resolve_showdown(state),
+        1 => resolve_showdown(state, effects),
         _ => {
             state.phase = Phase::Terminal;
             state.active_seat = None;
@@ -133,26 +198,47 @@ fn close_current_round(state: &mut PokerLiteState) {
     }
 }
 
-fn resolve_showdown(state: &mut PokerLiteState) {
+fn resolve_showdown(
+    state: &mut PokerLiteState,
+    effects: &mut Vec<EffectEnvelope<PokerLiteEffect>>,
+) {
     let reveal = ShowdownReveal {
         seat_0_private: state.private_card_for_internal(PokerLiteSeat::Seat0),
         seat_1_private: state.private_card_for_internal(PokerLiteSeat::Seat1),
         center: state.center_card_internal(),
     };
-    let outcome = match compare_showdown(reveal) {
-        Some(winner) => TerminalOutcome::ShowdownWin {
-            winner,
-            shared_pool: state.shared_pool,
-            contributions: state.contributions,
-            reveal,
-        },
-        None => TerminalOutcome::Split {
-            shared_pool: state.shared_pool,
-            each: state.shared_pool / 2,
-            contributions: state.contributions,
-            reveal,
-        },
+    effects.extend(showdown_reveal_effects(reveal));
+    let (outcome, allocation) = match compare_showdown(reveal) {
+        Some(winner) => (
+            TerminalOutcome::ShowdownWin {
+                winner,
+                shared_pool: state.shared_pool,
+                contributions: state.contributions,
+                reveal,
+            },
+            LedgerAllocation::Winner {
+                seat: winner,
+                amount: state.shared_pool,
+            },
+        ),
+        None => (
+            TerminalOutcome::Split {
+                shared_pool: state.shared_pool,
+                each: state.shared_pool / 2,
+                contributions: state.contributions,
+                reveal,
+            },
+            LedgerAllocation::Split {
+                each: state.shared_pool / 2,
+            },
+        ),
     };
+    effects.push(ledger_resolved_effect(
+        state.shared_pool,
+        state.contributions,
+        allocation,
+    ));
+    effects.push(terminal_effect(outcome));
     state.phase = Phase::Terminal;
     state.active_seat = None;
     state.terminal_outcome = Some(outcome);

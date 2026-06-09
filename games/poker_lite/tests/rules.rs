@@ -1,7 +1,7 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
 use poker_lite::{
     apply_action, compare_showdown, legal_action_tree, setup_match, validate_command, CrestCardId,
-    Phase, PokerLiteSeat, SetupOptions, ShowdownReveal, TerminalOutcome,
+    Phase, PokerLiteEffect, PokerLiteSeat, SetupOptions, ShowdownReveal, TerminalOutcome,
 };
 
 fn standard_state() -> poker_lite::PokerLiteState {
@@ -291,6 +291,27 @@ fn showdown_terminal_allocates_win_or_split_from_rust_comparator() {
             TerminalOutcome::YieldWin { .. } => panic!("hold stream cannot yield"),
         }
     }
+}
+
+#[test]
+fn showdown_transition_emits_one_grouped_showdown_reveal() {
+    let mut state = standard_state();
+    apply_segment(&mut state, "seat_0", "hold");
+    apply_segment(&mut state, "seat_1", "hold");
+    apply_segment(&mut state, "seat_1", "hold");
+
+    let action = validate_command(&state, &command(&state, "seat_0", "hold")).expect("valid hold");
+    let effects = apply_action(&mut state, action).expect("apply succeeds");
+    let reveal_effects = effects
+        .iter()
+        .filter(|effect| matches!(effect.payload, PokerLiteEffect::ShowdownRevealed { .. }))
+        .collect::<Vec<_>>();
+
+    assert_eq!(reveal_effects.len(), 1);
+    assert!(matches!(
+        reveal_effects[0].payload,
+        PokerLiteEffect::ShowdownRevealed { .. }
+    ));
 }
 
 #[test]
