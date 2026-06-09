@@ -4,7 +4,7 @@
 `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column
 Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `high_card_duel` / High Card Duel, `token_bazaar` / Token Bazaar, and
-`secret_draft` / Veiled Draft.
+`secret_draft` / Veiled Draft, and `poker_lite` / Crest Ledger.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -54,7 +54,7 @@ The shell includes:
 - human-vs-bot, hotseat, and bot-vs-bot modes;
 - Race to 21 public board and status;
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
-  Draughts Lite, High Card Duel, Token Bazaar, and Veiled Draft;
+  Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, and Crest Ledger;
 - Rust action-tree-driven buttons;
 - semantic effect log with reduced-motion support;
 - local replay export/import/reset/step;
@@ -72,5 +72,5 @@ panel data whitelist is documented in
 - `smoke:preview`: built `dist` static-serving and WASM fetch smoke.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, Three Marks, Column Four, Draughts Lite, High Card Duel, and
-  Token Bazaar, and Veiled Draft. A standalone Directional Flip E2E smoke file also exists under
+  Token Bazaar, Veiled Draft, and Crest Ledger. A standalone Directional Flip E2E smoke file also exists under
   `e2e/`, but is not chained by `smoke:e2e`.

@@ -1,6 +1,6 @@
 # GAT10POKLITBET-016: Browser e2e smoke, catalog README reconciliation, and gate-1 e2e step
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/poker-lite.smoke.mjs`, `apps/web/package.json`, `apps/web/README.md`, root `README.md`, `.github/workflows/gate-1-game-smoke.yml`. New e2e test infra (this ticket doubles as the browser-acceptance capstone). No Rust/engine behavior.
@@ -87,3 +87,28 @@ Add the `poker_lite` e2e step (the native steps were added in GAT10POKLITBET-012
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs`
 3. `npm --prefix apps/web run smoke:wasm` — ABI smoke; together with smoke:e2e these distribute browser acceptance (no separate acceptance-only capstone).
+
+## Outcome
+
+Completed on 2026-06-09.
+
+- Added the Crest Ledger rendered-browser e2e smoke covering observer no-leak,
+  hotseat private view, legal Rust-supplied controls, keyboard activation,
+  stale diagnostics, public replay export/import, grouped showdown reveal, yield
+  terminal behavior, reduced motion, mobile layout, and browser storage checks.
+- Added `poker_lite` to the `smoke:e2e` chain and gate-1 game-smoke workflow.
+- Reconciled the catalog README surfaces for the ninth official game and the
+  Crest Ledger renderer/smoke coverage.
+- Classified `poker_lite` as a viewer-filtered game in the dev panel so the
+  browser no-leak smoke can assert the expected diagnostic surface.
+
+Verification:
+
+- `node scripts/check-catalog-docs.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/poker-lite.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+
+Note: the browser e2e commands required localhost server permission in the
+sandboxed environment.
