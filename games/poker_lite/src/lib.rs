@@ -1,10 +1,15 @@
 //! `poker_lite` official-game crate skeleton for Crest Ledger.
 
+pub mod actions;
 pub mod ids;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+pub use actions::{
+    actor_seat, legal_action_tree, parse_action_segment, validate_command, PokerLiteAction,
+    ValidatedAction,
+};
 pub use ids::{
     canonical_deck, CrestCardId, CrestRank, CrestRankCopy, PokerLiteSeat, ACTION_HOLD, ACTION_LIFT,
     ACTION_MATCH, ACTION_PRESS, ACTION_YIELD, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT,

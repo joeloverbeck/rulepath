@@ -1,6 +1,6 @@
 # GAT10POKLITBET-004: Legal action tree, validation, and diagnostics
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/poker_lite/src/actions.rs` + `games/poker_lite/tests/rules.rs` (created here). Consumes `engine-core` `ActionTree`/`ActionPath`/`CommandEnvelope`/`Diagnostic` contracts. No kernel change.
@@ -77,3 +77,26 @@ Action-generation and validation tests: legal sets per phase, one-lift-cap enfor
 1. `cargo test -p poker_lite --test rules`
 2. `cargo test -p poker_lite`
 3. `bash scripts/boundary-check.sh` — confirms no mechanic noun leaked into `engine-core` via the action-tree integration.
+
+## Outcome
+
+Completed: 2026-06-09
+
+Changed:
+
+- Added `games/poker_lite/src/actions.rs` with Rust-owned legal action tree generation for `hold`, `press`, `lift`, `match`, and `yield`.
+- Added command parsing and validation for stale, wrong-seat, terminal, malformed-path, unavailable-action, and lift-cap-exceeded diagnostics.
+- Added public-only action metadata for action family, round/accounting facts, lift-cap status, center-visible boolean, and accessibility copy.
+- Added `games/poker_lite/tests/rules.rs` coverage for legal sets, one-lift cap behavior, metadata allow-listing, and validation diagnostics.
+- Re-exported action helpers and validated action types from `games/poker_lite/src/lib.rs`.
+
+Deviations from original plan:
+
+- Kept this ticket to legality/validation only. State mutation, round close, reveal, showdown, and accounting transitions remain deferred to GAT10POKLITBET-005.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite --test rules` passed: 3 integration tests.
+- `cargo test -p poker_lite` passed: 17 unit tests, 3 integration tests, and 0 doc tests.
+- `bash scripts/boundary-check.sh` passed.
