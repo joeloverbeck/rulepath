@@ -1,1 +1,98 @@
-{"schema_version":1,"trace_id":"plain-tricks-bot-action","fixture_kind":"bot","purpose":"bot_action","game_id":"plain_tricks","rules_version":"plain-tricks-rules-v1","engine_version":"engine-core-0.1.0","data_version":"1","seed":0,"variant":"plain_tricks_standard","commands":[{"index":0,"actor_seat":"seat_0","action_path":["play","gale_1"],"freshness_token":"0","expect":"applied"}],"expected_state_hashes":{"final":844662946318524484},"expected_effect_hashes":{"final":13037412717884067272},"expected_action_tree_hashes":{"final":12825026623874019848},"expected_public_view_hashes":{"observer":4455697635807271335,"seat_0":16558242684254040173,"seat_1":2532998934293917061},"expected_private_view_hashes":{"seat_0":16558242684254040173,"seat_1":2532998934293917061},"expected_replay_hashes":{"final":16348472615659421862},"expected_diagnostic_hashes":null,"expected_public_export_hashes":{"final":7586169020604357774},"expected_diagnostics":null,"expected_terminal_state":{"terminal":false,"winner":null,"draw":false},"note":"Plain Tricks bot-action placeholder command fixture; bot producer metadata is refreshed by GAT101PLATRI-013.","migration_update_note":"Initial Plain Tricks Trace Schema v1 fixture established by GAT101PLATRI-011; bot producer metadata deferred to bot ticket.","options":{},"seats":[{"seat_id":"seat_0","player_id":"player_0"},{"seat_id":"seat_1","player_id":"player_1"}],"checkpoints":[{"id":"final","after_command_index":0}],"expected_outcome":{"terminal":false,"winner":null,"draw":false},"not_applicable":{"hidden_information":"Plain Tricks has hidden private hands and an internal tail; viewer-scoped traces and no-leak tests verify redaction.","stochastic_game_events":"Setup uses deterministic seeded shuffle; no later stochastic rule events occur.","preview_hashes":"Plain Tricks uses action metadata rather than a separate preview hash."}}
+{
+  "schema_version": 1,
+  "trace_id": "plain-tricks-bot-action",
+  "fixture_kind": "bot_action",
+  "purpose": "bot_action",
+  "game_id": "plain_tricks",
+  "rules_version": "plain-tricks-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 0,
+  "variant": "plain_tricks_standard",
+  "bot_policy_id": "plain-tricks-level2-v1",
+  "bot_level": 2,
+  "actor_seat": "seat_0",
+  "public_input_summary": "seat=seat_0;choices=6;phase=round_1_trick_1;active=seat_0;round=0;trick=0;leader=seat_0;own_hand=gale_1,ember_6,river_3,river_5,ember_5,river_1;current=led=none:plays=;history=;round_counts=0,0;total_counts=0,0",
+  "expected_bot_action": "river_5",
+  "expected_public_explanation": "policy id and action family only",
+  "not_applicable": {
+    "hidden_information": "Plain Tricks has hidden private hands and an internal tail; the bot-action trace records only the allowed bot input summary and no opponent hand or tail ids.",
+    "stochastic_game_events": "Setup uses deterministic seeded shuffle; the bot policy uses deterministic seed tie-break only.",
+    "opponent_hand": "Level 2 input excludes opponent hand cards.",
+    "tail": "Tail cards are not part of bot input.",
+    "sampling": "No opponent-holding sampling, MCTS, ISMCTS, Monte Carlo, ML, or RL is used."
+  },
+  "note": "Plain Tricks bot_action replay fixture.",
+  "migration_update_note": "Refreshed with real plain-tricks-level2-v1 bot metadata by GAT101PLATRI-013.",
+  "options": {},
+  "seats": [
+    {
+      "seat_id": "seat_0",
+      "player_id": "player_0"
+    },
+    {
+      "seat_id": "seat_1",
+      "player_id": "player_1"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "final",
+      "after_command_index": 0
+    }
+  ],
+  "expected_state_hashes": {
+    "final": 17613772361945453193
+  },
+  "expected_effect_hashes": {
+    "final": 11035988788434088339
+  },
+  "expected_action_tree_hashes": {
+    "final": 7429167487111468795
+  },
+  "expected_public_view_hashes": {
+    "observer": 13068526010215105027,
+    "seat_0": 15779645002242979595,
+    "seat_1": 15607495316427613881
+  },
+  "expected_private_view_hashes": {
+    "seat_0": 15779645002242979595,
+    "seat_1": 15607495316427613881
+  },
+  "expected_replay_hashes": {
+    "final": 5626844787043081399
+  },
+  "expected_public_export_hashes": {
+    "final": 3876710281291018775
+  },
+  "expected_diagnostic_hashes": null,
+  "expected_diagnostics": null,
+  "expected_terminal_state": {
+    "terminal": false,
+    "winner": null,
+    "draw": false
+  },
+  "expected_outcome": {
+    "terminal": false,
+    "winner": null,
+    "draw": false
+  },
+  "commands": [
+    {
+      "index": 0,
+      "actor_seat": "seat_0",
+      "action_path": [
+        "play",
+        "river_5"
+      ],
+      "freshness_token": "0",
+      "expect": "applied"
+    }
+  ],
+  "bot_seed": 1,
+  "producer": {
+    "kind": "bot",
+    "level": 2,
+    "policy_id": "plain-tricks-level2-v1"
+  }
+}

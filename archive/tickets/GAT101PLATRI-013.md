@@ -1,6 +1,6 @@
 # GAT101PLATRI-013: Level 0 and Level 2 bots and AI.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/plain_tricks/src/bots.rs`, `games/plain_tricks/tests/bots.rs`, new `games/plain_tricks/docs/AI.md`. Bot infra via `crates/ai-core`. No `engine-core`/`game-stdlib` change.
@@ -82,3 +82,28 @@ Document the bot levels, the Level 2 policy id, allowed inputs, and the fairness
 1. `cargo test -p plain_tricks --test bots`
 2. `cargo test -p plain_tricks`
 3. Per-crate bot tests are the correct boundary; multi-game simulation throughput is exercised via `simulate` in GAT101PLATRI-014.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+1. Added `games/plain_tricks/src/bots.rs` with `PlainTricksRandomBot`, `PlainTricksLevel2Bot`, `PlainTricksBotInput`, legal-tree candidate extraction, deterministic tie-breaks, and viewer-safe bot-choice effects.
+2. Added `games/plain_tricks/tests/bots.rs` covering Level 0 and Level 2 legality, non-mutation, determinism, input whitelist/no-leak boundaries, authored priority examples, explanation no-leak, repeated terminal playouts, and bot trace metadata.
+3. Added `games/plain_tricks/docs/AI.md` documenting bot levels, policy ids, allowed/forbidden inputs, decision summary, explanation boundary, and verification.
+4. Refreshed `games/plain_tricks/tests/golden_traces/bot-action.trace.json` with real `plain-tricks-level2-v1` metadata, expected action, command stream, and deterministic hashes.
+5. Added `ai-core` as the `plain_tricks` crate dependency for `RandomLegalBot`.
+
+Deviations from original plan:
+
+1. Bot explanations use the existing GAT101PLATRI-008 `BotChoseActionPublic` effect shape: public policy id and action family only. No new private bot explanation effect was added.
+2. The opening Level 2 example selects `river_5` because the policy treats it as a likely winning lead from the longer suit under the documented deterministic priority order.
+
+Verification:
+
+1. `cargo test -p plain_tricks --test bots` passed.
+2. `cargo test -p plain_tricks --test replay` passed.
+3. `cargo test -p plain_tricks` passed.
+4. `cargo fmt --all --check` passed.
+5. `node scripts/check-doc-links.mjs` passed.

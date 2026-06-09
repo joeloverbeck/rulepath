@@ -1,6 +1,7 @@
 //! `plain_tricks` official-game crate skeleton for Plain Tricks.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod replay_support;
@@ -14,6 +15,10 @@ pub mod visibility;
 pub use actions::{
     actor_seat, legal_action_tree, legal_cards, parse_action_path, validate_command,
     PlainTricksAction, ValidatedAction,
+};
+pub use bots::{
+    action_from_decision, actor_for_seat, BotDecision, PlainTricksBotInput, PlainTricksLevel2Bot,
+    PlainTricksRandomBot, LEVEL2_POLICY_ID, RANDOM_POLICY_ID,
 };
 pub use effects::{
     bot_chose_action_public_effect, card_played_effect, deal_completed_effect, deal_rotated_effect,
