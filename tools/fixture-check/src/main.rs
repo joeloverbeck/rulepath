@@ -68,10 +68,19 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "kind",
     "level",
     "bot_policy",
+    "bot_policy_id",
     "bot_policy_version",
     "bot_seed",
     "bot_level",
     "policy_id",
+    "public_input_summary",
+    "expected_bot_action",
+    "expected_public_explanation",
+    "expected_private_explanation",
+    "opponent_private_card",
+    "hidden_center",
+    "deck_tail",
+    "sampling",
     "wasm_exported_trace",
     "id",
     "after_command_index",
@@ -218,6 +227,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/secret_draft/data/variants.toml",
             variant_id: "secret_draft_standard",
         }),
+        "poker_lite" => Ok(RegisteredGame {
+            game_id: "poker_lite",
+            rules_version: "poker-lite-rules-v1",
+            trace_dir: "games/poker_lite/tests/golden_traces",
+            fixture_dir: "games/poker_lite/data/fixtures",
+            manifest_path: "games/poker_lite/data/manifest.toml",
+            variants_path: "games/poker_lite/data/variants.toml",
+            variant_id: "poker_lite_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -271,9 +289,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -413,6 +431,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = secret_draft::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "poker_lite" => {
+            let manifest = poker_lite::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = poker_lite::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (

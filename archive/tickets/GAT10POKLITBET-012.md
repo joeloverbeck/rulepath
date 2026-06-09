@@ -1,6 +1,6 @@
 # GAT10POKLITBET-012: Native tool registration + RULE-COVERAGE.md + gate-1 native CI steps
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/{simulate,replay-check,fixture-check,rule-coverage}/src/main.rs` (+ each tool's `Cargo.toml` dep), `.github/workflows/gate-1-game-smoke.yml`, and new `games/poker_lite/docs/RULE-COVERAGE.md`. No kernel change.
@@ -88,3 +88,31 @@ Add the `poker_lite` native steps (simulate / replay-check / fixture-check / rul
 1. `cargo run -p rule-coverage -- --game poker_lite`
 2. `cargo run -p simulate -- --game poker_lite --games 1000 --start-seed 0 --action-cap 16 && cargo run -p replay-check -- --game poker_lite && cargo run -p fixture-check -- --game poker_lite`
 3. `cargo build --workspace` — confirms the four tool `Cargo.toml` deps resolve.
+
+## Outcome
+
+Completed on 2026-06-09.
+
+Changed:
+
+- Registered `poker_lite` in `simulate`, `replay-check`, `fixture-check`, and `rule-coverage`.
+- Added the validated Crest Ledger `RULE-COVERAGE.md`.
+- Added poker_lite native simulation, replay, fixture, and rule-coverage steps to `gate-1-game-smoke.yml`.
+- Normalized poker_lite golden traces to the strict fixture/replay schema now enforced by the native tools.
+
+Deviations:
+
+- `rule-coverage` points the poker_lite benchmark reference at `RULE-COVERAGE.md` until GAT10POKLITBET-013 adds the dedicated benchmark doc and thresholds.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo run -p simulate -- --game poker_lite --games 1000 --start-seed 0 --action-cap 16`
+- `cargo run -p replay-check -- --game poker_lite`
+- `cargo run -p fixture-check -- --game poker_lite`
+- `cargo run -p rule-coverage -- --game poker_lite`
+- `cargo test -p poker_lite --test replay`
+- `cargo test -p poker_lite --test bots`
+- `cargo test -p poker_lite`
+- `node scripts/check-doc-links.mjs`
+- `cargo build --workspace`

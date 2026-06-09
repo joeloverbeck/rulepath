@@ -30,7 +30,7 @@ struct TraceFixture {
     expected_diagnostic_code: Option<String>,
     terminal: bool,
     winner: Option<String>,
-    split: bool,
+    draw: bool,
 }
 
 #[derive(Debug)]
@@ -243,8 +243,8 @@ fn assert_trace_fixture(fixture: &TraceFixture) {
     );
     assert_eq!(
         matches!(first.outcome, Some(TerminalOutcome::Split { .. })),
-        fixture.split,
-        "{} split",
+        fixture.draw,
+        "{} draw",
         fixture.id
     );
 
@@ -452,7 +452,7 @@ fn parse_trace_fixture(input: &str) -> TraceFixture {
         expected_diagnostic_code: diagnostic_body.map(|body| string_field(&body, "code")),
         terminal: bool_field(&object_body(input, "expected_terminal_state"), "terminal"),
         winner: nullable_string_field(&object_body(input, "expected_terminal_state"), "winner"),
-        split: bool_field(&object_body(input, "expected_terminal_state"), "split"),
+        draw: bool_field(&object_body(input, "expected_terminal_state"), "draw"),
     }
 }
 

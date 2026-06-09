@@ -10,19 +10,101 @@
   "seed": 3,
   "variant": "poker_lite_standard",
   "commands": [
-    { "index": 0, "actor_seat": "seat_0", "action_path": ["press"], "freshness_token": "0", "expect": "applied" },
-    { "index": 1, "actor_seat": "seat_1", "action_path": ["match"], "freshness_token": "1", "expect": "applied" },
-    { "index": 2, "actor_seat": "seat_1", "action_path": ["hold"], "freshness_token": "2", "expect": "applied" },
-    { "index": 3, "actor_seat": "seat_0", "action_path": ["hold"], "freshness_token": "3", "expect": "applied" }
+    {
+      "index": 0,
+      "actor_seat": "seat_0",
+      "action_path": [
+        "press"
+      ],
+      "freshness_token": "0",
+      "expect": "applied"
+    },
+    {
+      "index": 1,
+      "actor_seat": "seat_1",
+      "action_path": [
+        "match"
+      ],
+      "freshness_token": "1",
+      "expect": "applied"
+    },
+    {
+      "index": 2,
+      "actor_seat": "seat_1",
+      "action_path": [
+        "hold"
+      ],
+      "freshness_token": "2",
+      "expect": "applied"
+    },
+    {
+      "index": 3,
+      "actor_seat": "seat_0",
+      "action_path": [
+        "hold"
+      ],
+      "freshness_token": "3",
+      "expect": "applied"
+    }
   ],
-  "expected_state_hashes": { "final": 13584125070271632499 },
-  "expected_effect_hashes": { "final": 16155653753659110154 },
-  "expected_action_tree_hashes": { "final": 3968125303356880427 },
-  "expected_public_view_hashes": { "observer": 9485373861887314801, "seat_0": 8060786313883441662, "seat_1": 18304475832060555524 },
-  "expected_private_view_hashes": { "seat_0": 8060786313883441662, "seat_1": 18304475832060555524 },
-  "expected_replay_hashes": { "final": 6801154480878824109 },
+  "expected_state_hashes": {
+    "final": 13584125070271632499
+  },
+  "expected_effect_hashes": {
+    "final": 16155653753659110154
+  },
+  "expected_action_tree_hashes": {
+    "final": 3968125303356880427
+  },
+  "expected_public_view_hashes": {
+    "observer": 9485373861887314801,
+    "seat_0": 8060786313883441662,
+    "seat_1": 18304475832060555524
+  },
+  "expected_private_view_hashes": {
+    "seat_0": 8060786313883441662,
+    "seat_1": 18304475832060555524
+  },
+  "expected_replay_hashes": {
+    "final": 6801154480878824109
+  },
   "expected_diagnostic_hashes": null,
-  "expected_public_export_hashes": { "final": 18129334971386518167 },
+  "expected_public_export_hashes": {
+    "final": 18129334971386518167
+  },
   "expected_diagnostics": null,
-  "expected_terminal_state": { "terminal": true, "winner": "seat_0", "split": false }
+  "expected_terminal_state": {
+    "terminal": true,
+    "winner": "seat_0",
+    "draw": false
+  },
+  "note": "Crest Ledger press_match_showdown_reveal replay fixture.",
+  "migration_update_note": "Initial Crest Ledger Trace Schema v1 fixture established by GAT10POKLITBET-009/010.",
+  "options": {},
+  "seats": [
+    {
+      "seat_id": "seat_0",
+      "player_id": "player_0"
+    },
+    {
+      "seat_id": "seat_1",
+      "player_id": "player_1"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "final",
+      "after_command_index": 3
+    }
+  ],
+  "expected_outcome": {
+    "terminal": true,
+    "winner": "seat_0",
+    "draw": false
+  },
+  "not_applicable": {
+    "hidden_information": "Crest Ledger has hidden private and center crests; viewer-scoped traces and no-leak tests verify redaction rather than not-applicability.",
+    "stochastic_game_events": "Setup uses deterministic seeded shuffle; no later stochastic rule events occur.",
+    "preview_hashes": "Crest Ledger uses action metadata rather than a separate preview hash."
+  }
 }
