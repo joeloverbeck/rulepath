@@ -1,6 +1,6 @@
 # GAT10POKLITBET-010: Level 0 and Level 2 bots
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/poker_lite/src/bots.rs`, `games/poker_lite/tests/bots.rs`, `games/poker_lite/tests/golden_traces/bot-action.trace.json`. Consumes `ai-core` bot infrastructure + the legal-action API. No kernel change.
@@ -79,3 +79,23 @@ Legality, input-whitelist isolation, determinism, beatability-under-simulation, 
 1. `cargo test -p poker_lite --test bots`
 2. `cargo run -p simulate -- --game poker_lite --games 1000 --start-seed 0 --action-cap 16` (passes once GAT10POKLITBET-012 registers `simulate`)
 3. `cargo test -p poker_lite`
+
+## Outcome
+
+Completed on 2026-06-09.
+
+Changed:
+
+- Added Level 0 seeded random-legal and Level 2 authored-policy bots through the normal legal action API.
+- Added the whitelisted `PokerLiteBotInput`, viewer-safe bot explanations/effects, and bot decision helpers.
+- Added bot integration tests and `bot-action.trace.json`.
+
+Deviations:
+
+- The simulate command remains deferred to GAT10POKLITBET-012, which owns native tool registration.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p poker_lite --test bots`
+- `cargo test -p poker_lite`
