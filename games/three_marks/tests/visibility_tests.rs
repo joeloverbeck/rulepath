@@ -1,7 +1,7 @@
 use engine_core::{SeatId, Seed, Viewer};
 use three_marks::{
-    apply_action, project_view, setup_match, validate_command, CellId, CellOccupancy, SetupOptions,
-    TerminalOutcome, TerminalView, ThreeMarksSeat,
+    apply_action, project_view, setup_match, validate_command, CellId, CellOccupancy,
+    OutcomeRationaleView, SetupOptions, TerminalOutcome, TerminalView, ThreeMarksSeat,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -87,9 +87,21 @@ fn terminal_win_and_draw_are_projected_without_ui_inference() {
         win_view.terminal,
         TerminalView::Win {
             winning_seat: ThreeMarksSeat::Seat0,
-            line: [CellId::R1C1, CellId::R1C2, CellId::R1C3]
+            line: [CellId::R1C1, CellId::R1C2, CellId::R1C3],
+            rationale: OutcomeRationaleView {
+                result_kind: "win".to_owned(),
+                decisive_cause: "line_completed".to_owned(),
+                template_key: "three_marks.line_completed".to_owned(),
+                decisive_rule_ids: vec!["TM-SCORE-001".to_owned(), "TM-END-001".to_owned()],
+                line_cells: vec![CellId::R1C1, CellId::R1C2, CellId::R1C3],
+                line_orientation: Some("row".to_owned()),
+                board_full: false,
+            }
         }
     );
+    let win_json = win_view.to_json();
+    assert!(win_json.contains("\"outcome_template_key\":\"three_marks.line_completed\""));
+    assert!(win_json.contains("\"outcome_line_cells\":[\"r1c1\",\"r1c2\",\"r1c3\"]"));
     assert!(win_view.legal_targets.is_empty());
 
     let mut draw_state = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
@@ -108,7 +120,20 @@ fn terminal_win_and_draw_are_projected_without_ui_inference() {
     }
     assert_eq!(draw_state.terminal_outcome, Some(TerminalOutcome::Draw));
     let draw_view = project_view(&draw_state, &viewer());
-    assert_eq!(draw_view.terminal, TerminalView::Draw);
+    assert_eq!(
+        draw_view.terminal,
+        TerminalView::Draw {
+            rationale: OutcomeRationaleView {
+                result_kind: "draw".to_owned(),
+                decisive_cause: "full_board_no_line".to_owned(),
+                template_key: "three_marks.full_board_draw".to_owned(),
+                decisive_rule_ids: vec!["TM-SCORE-001".to_owned(), "TM-END-002".to_owned()],
+                line_cells: Vec::new(),
+                line_orientation: None,
+                board_full: true,
+            }
+        }
+    );
     assert_eq!(draw_view.status_label, "draw");
     assert!(draw_view.legal_targets.is_empty());
 }

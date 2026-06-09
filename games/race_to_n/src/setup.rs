@@ -42,6 +42,7 @@ pub fn setup_match(
         )?,
         seats: [seats[0].clone(), seats[1].clone()],
         winner: None,
+        terminal_advance: None,
         freshness_token: FreshnessToken(0),
     })
 }

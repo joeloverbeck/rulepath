@@ -84,6 +84,20 @@ Race to 21 is perfect information. No private view payload is exposed.
 | `game_ended` | Winner text and terminal effect row | same | Winner matches Rust view. |
 | `action_completed` | Text row in effect log | same | Latest public view remains visible. |
 
+## Outcome / victory explanation
+
+Rust includes terminal outcome rationale in the public view so the browser can render the result without comparing the counter to the target.
+
+Terminal result variants are `win` only for the declared variant. Decisive cause variants are `exact_target_reached`.
+
+| Terminal kind | Template key | Decisive cause | Breakdown fields | Rule IDs |
+|---|---|---|---|---|
+| win | `race_to_n.exact_target_reached` | `exact_target_reached` | `counter_before`, `addition`, `counter_after`, `target`, `max_add`, `winning_seat` | `R-SCORE-001`, `R-END-001` |
+
+The per-player breakdown fields are minimal because Race to N has no score per seat beyond the winner; the public breakdown names the exact counter advance that reached the target. Hidden-info redaction is explicit: no hidden fields, no private view payload, and no state dumps in DOM attributes, logs, storage, replay export, or tests. TypeScript may map public numbers to labels, but it must not compare counter values, decide whether the target was reached, or infer the winner.
+
+Web smoke coverage must assert that the win explanation renders from Rust fields and keep the no-leak scan green.
+
 ## Accessibility
 
 | Requirement | Gate 3 stance | Evidence |

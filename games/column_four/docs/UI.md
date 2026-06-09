@@ -59,6 +59,21 @@ Flat column choice is the only public action flow. There is no compound/progress
 | `draw_detected` | draw status text; controls disabled | text only | terminal controls disabled | `CF-END-005` |
 | `bot_chose_action` | public bot rationale panel | text only | bot move result comes through Rust view/effects | bot evidence pack |
 
+## Outcome / victory explanation
+
+Rust includes terminal outcome rationale in the public view so the browser can render the result without recomputing line detection, primary-line choice, or draw logic.
+
+Terminal result variants are `win` and `draw`. Decisive cause variants are `line_completed` and `full_board_no_line`.
+
+| Terminal kind | Template key | Decisive cause | Public fields | Rule IDs |
+|---|---|---|---|---|
+| win | `column_four.line_completed` | `line_completed` | `winning_seat`, ordered `winning_line`, `line_orientation`, `board_full=false` | `CF-SCORE-001` plus one of `CF-END-001` through `CF-END-004` |
+| draw | `column_four.full_board_draw` | `full_board_no_line` | no line cells, `board_full=true` | `CF-SCORE-001`, `CF-END-005` |
+
+There are no per-player breakdown fields for Column Four; the result is a perfect-information terminal winner or draw. The ordered line cells are the Rust-selected primary line, including the deterministic tie-break described by `CF-END-006`. Hidden-info redaction is still explicit: no hidden fields, no private view payload, and no state dumps in DOM attributes, logs, storage, replay export, or tests. TypeScript may map these public ids to labels, but it must not infer a winner, draw, landing row, line, orientation, or primary-line tie-break from board occupancy.
+
+Web smoke coverage must assert that win and draw explanations render from Rust fields, highlight only Rust-supplied line cells, and keep the no-leak scan green.
+
 ## Replay UI
 
 `ReplayViewer.tsx` reuses `ColumnFourBoard` in non-interactive mode. Replay reset/step projects the board from Rust replay state; the placement sequence is display metadata from the replay document. The UI does not reconstruct board state from command diffs.

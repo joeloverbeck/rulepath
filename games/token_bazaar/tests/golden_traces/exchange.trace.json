@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "resource_exchange",
   "note": "Token Bazaar resource_exchange replay fixture.",
-  "migration_update_note": "Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-007 tiebreak rationale projection.",
   "game_id": "token_bazaar",
   "rules_version": "token-bazaar-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,7 +22,7 @@
     { "index": 2, "actor_seat": "seat_0", "action_path": ["exchange/amber/iron"], "freshness_token": "2", "expect": "applied" }
   ],
   "checkpoints": [{ "id": "final", "after_command_index": 2 }],
-  "expected_state_hashes": { "final": 9571562955078458942 },
+  "expected_state_hashes": { "final": 3998942025563181685 },
   "expected_effect_hashes": { "final": 18032858439460706885 },
   "expected_action_tree_hashes": { "final": 15508396147969094561 },
   "expected_public_view_hashes": { "all": 15327195754330768436 },

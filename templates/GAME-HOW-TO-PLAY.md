@@ -56,6 +56,19 @@ Plain-language explanation.
 
 Explain scoring, victory, loss, draw, split, terminal, or exhaustion outcomes.
 
+This section must align with the formal scoring and terminal rule IDs in `RULES.md` and with the `Outcome / victory explanation` section in `UI.md`.
+
+Include, in player-facing language:
+
+- the normal way the game ends;
+- every score or standing component that can decide the result;
+- every tiebreaker in the order Rust applies it;
+- every draw/split condition;
+- every no-reveal terminal condition, if hidden information is involved; and
+- the kind of explanation the player will see at the end of the match.
+
+Do not include strategy advice, optimal-play coaching, counterfactual examples, or hidden information that would not be visible to the relevant viewer.
+
 ## Hidden information and reveal timing
 
 Required for hidden-information games.

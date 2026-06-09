@@ -9,6 +9,7 @@ import type {
   ViewerMode,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type HighCardDuelBoardProps = {
   view: HighCardDuelPublicView;
@@ -154,6 +155,37 @@ export function HighCardDuelBoard({
               : "Choose only from the Rust-provided private hand actions."}
         </span>
       </div>
+
+      {terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "high_card_duel",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+            decisiveCause: "final_score",
+            templateKey:
+              view.terminal_kind === "draw" ? "high_card_duel.final_score_draw" : "high_card_duel.final_score_win",
+            templateParams: { winner: view.winning_seat ?? "" },
+            finalStanding: [
+              scoreStanding("seat_0", view.winning_seat, view.score.seat_0),
+              scoreStanding("seat_1", view.winning_seat, view.score.seat_1),
+            ],
+            breakdownSections: [
+              {
+                id: "revealed-rounds",
+                heading: "Public revealed rounds",
+                rows: [
+                  { label: "Revealed rounds", value: view.revealed_cards.length },
+                  { label: "seat_0 score", value: view.score.seat_0 },
+                  { label: "seat_1 score", value: view.score.seat_1 },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -313,4 +345,14 @@ function sameViewerMode(left: ViewerMode, right: ViewerMode): boolean {
     return false;
   }
   return left.kind === "observer" || left.seat === (right.kind === "seat" ? right.seat : null);
+}
+
+function scoreStanding(seat: SeatId, winner: SeatId | null, score: number) {
+  return {
+    id: seat,
+    label: seatLabel(seat),
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
+    emphasized: winner === seat,
+    values: [{ label: "Score", value: score }],
+  };
 }

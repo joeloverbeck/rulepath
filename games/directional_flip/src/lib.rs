@@ -38,8 +38,8 @@ pub use state::{CellOccupancy, DirectionalFlipSnapshot, DirectionalFlipState, Te
 pub use ui::{cell_layout, disc_token, legal_cell_control, DiscTokenMetadata};
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
-    project_view, CellView, LegalTargetView, PlacementPreviewView, PrivateView, PublicView,
-    ScoreView, TerminalView, UiMetadata,
+    project_view, CellView, LegalTargetView, OutcomeRationaleView, PlacementPreviewView,
+    PrivateView, PublicView, ScoreView, TerminalView, UiMetadata,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

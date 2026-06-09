@@ -1129,6 +1129,38 @@ impl Trace {
                 state.supply = ResourceCounts::new(12, 14, 12);
                 Ok(state)
             }
+            Some("terminal_score_win") => {
+                state.scores = [5, 3];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+                Ok(state)
+            }
+            Some("terminal_fulfilled_tiebreak_win") => {
+                state.scores = [3, 3];
+                state.fulfilled = [
+                    vec![ContractId::BalancedWares, ContractId::AmberGuild],
+                    vec![ContractId::IronGuild],
+                ];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+                Ok(state)
+            }
+            Some("terminal_inventory_tiebreak_win") => {
+                state.scores = [3, 3];
+                state.fulfilled = [vec![ContractId::BalancedWares], vec![ContractId::IronGuild]];
+                state.inventories = [ResourceCounts::new(1, 1, 1), ResourceCounts::new(2, 1, 1)];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::MarketExhaustion);
+                Ok(state)
+            }
+            Some("terminal_all_tied_draw") => {
+                state.scores = [3, 3];
+                state.fulfilled = [vec![ContractId::BalancedWares], vec![ContractId::IronGuild]];
+                state.inventories = [ResourceCounts::new(1, 1, 1), ResourceCounts::new(1, 1, 1)];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+                Ok(state)
+            }
             Some(other) => Err(self.failure(&format!("unknown setup_patch `{other}`"))),
         }
     }
@@ -2096,6 +2128,7 @@ fn draughts_empty_state(
         ply_count: 0,
         command_count: 0,
         terminal_outcome: None,
+        terminal_reason: None,
         freshness_token: engine_core::FreshnessToken(0),
     }
 }
@@ -2246,13 +2279,13 @@ mod tests {
 
     #[test]
     fn corrupted_hash_fails() {
-        let corrupted = VALID.replace("4954817074678372285", "4954817074678372286");
+        let corrupted = VALID.replace("10275940640358619244", "10275940640358619245");
         let trace = Trace::parse(Path::new("shortest-normal.trace.json"), &corrupted).unwrap();
         let error = trace.check(resolve_game("race_to_n").unwrap()).unwrap_err();
 
         assert!(error.contains("state hash drift"));
-        assert!(error.contains("expected: 4954817074678372286"));
-        assert!(error.contains("actual: 4954817074678372285"));
+        assert!(error.contains("expected: 10275940640358619245"));
+        assert!(error.contains("actual: 10275940640358619244"));
     }
 
     #[test]

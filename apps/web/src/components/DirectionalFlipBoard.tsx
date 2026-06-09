@@ -8,6 +8,7 @@ import type {
   SeatId,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type DirectionalFlipBoardProps = {
   view: DirectionalFlipPublicView;
@@ -227,6 +228,38 @@ export function DirectionalFlipBoard({
                 : "Replay board is projected by Rust at this cursor."}
         </span>
       </div>
+
+      {terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "directional_flip",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+            decisiveCause: "final_score",
+            templateKey:
+              view.terminal_kind === "draw"
+                ? "directional_flip.final_score_draw"
+                : "directional_flip.final_score_win",
+            templateParams: { winner: view.winning_seat ?? "" },
+            finalStanding: [
+              scoreStanding("seat_0", view.winning_seat, view.final_score?.seat_0 ?? view.score.seat_0),
+              scoreStanding("seat_1", view.winning_seat, view.final_score?.seat_1 ?? view.score.seat_1),
+            ],
+            breakdownSections: [
+              {
+                id: "final-score",
+                heading: "Final score",
+                rows: [
+                  { label: "seat_0", value: view.final_score?.seat_0 ?? view.score.seat_0 },
+                  { label: "seat_1", value: view.final_score?.seat_1 ?? view.score.seat_1 },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -356,4 +389,14 @@ function cellLabel(cell: DirectionalFlipCellView): string {
 
 function discLabel(cell: DirectionalFlipCellView): string {
   return cell.disc_shape_label ?? cell.disc_pattern_label ?? cell.owner ?? "Disc";
+}
+
+function scoreStanding(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null, score: number) {
+  return {
+    id: seat,
+    label: seat,
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
+    emphasized: winner === seat,
+    values: [{ label: "Final score", value: score }],
+  };
 }

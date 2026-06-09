@@ -1,8 +1,9 @@
 use engine_core::{EffectEnvelope, FreshnessToken, StableSerialize, Viewer, VisibilityScope};
 
 use crate::{
-    effects::SecretDraftEffect,
+    effects::{SecretDraftEffect, TieBreakSummary},
     ids::{DraftItemId, SecretDraftSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
+    rules::terminal_tie_break_summary,
     state::{Phase, RevealedRound, SecretDraftState, TerminalOutcome},
     ui::{item_accessibility_label, pending_copy, ui_metadata, UiMetadata},
 };
@@ -71,11 +72,49 @@ pub struct RevealedRoundView {
     pub contested: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalView {
     NonTerminal,
-    Win { winning_seat: SecretDraftSeat },
-    Draw,
+    Win {
+        winning_seat: SecretDraftSeat,
+        rationale: OutcomeRationaleView,
+    },
+    Draw {
+        rationale: OutcomeRationaleView,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub terminal_trigger: String,
+    pub terminal_trigger_rule_id: String,
+    pub final_standing: [OutcomeStandingView; 2],
+    pub ladder: Vec<TiebreakLadderRungView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeStandingView {
+    pub seat: SecretDraftSeat,
+    pub total_score: u32,
+    pub complete_sets: u8,
+    pub highest_single_value: u8,
+    pub distinct_threads: u8,
+    pub priority_conflict_wins: u8,
+    pub drafted_items: Vec<DraftItemView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TiebreakLadderRungView {
+    pub rung: String,
+    pub rule_id: String,
+    pub seat_0_value: Option<u32>,
+    pub seat_1_value: Option<u32>,
+    pub winner: Option<SecretDraftSeat>,
+    pub decisive: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -133,7 +172,7 @@ pub fn project_view(state: &SecretDraftState, viewer: &Viewer) -> PublicView {
             .iter()
             .map(revealed_round_view)
             .collect(),
-        terminal: terminal_view(state.terminal_outcome),
+        terminal: terminal_view(state),
         freshness_token: state.freshness_token,
         private_view: private_view(state, viewer_seat),
         ui: ui_metadata(),
@@ -179,7 +218,7 @@ impl PublicView {
             self.scores[0],
             self.scores[1],
             self.revealed_history.iter().map(encode_revealed_round).collect::<Vec<_>>().join(","),
-            encode_terminal(self.terminal),
+            encode_terminal(&self.terminal),
             self.freshness_token.0,
             encode_private(&self.private_view),
             encode_ui(&self.ui),
@@ -256,11 +295,238 @@ fn draft_item_view(item: DraftItemId) -> DraftItemView {
     }
 }
 
-fn terminal_view(outcome: Option<TerminalOutcome>) -> TerminalView {
-    match outcome {
+fn terminal_view(state: &SecretDraftState) -> TerminalView {
+    match state.terminal_outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::Win { seat }) => TerminalView::Win { winning_seat: seat },
-        Some(TerminalOutcome::Draw) => TerminalView::Draw,
+        Some(TerminalOutcome::Win { seat }) => TerminalView::Win {
+            winning_seat: seat,
+            rationale: outcome_rationale(state, "win"),
+        },
+        Some(TerminalOutcome::Draw) => TerminalView::Draw {
+            rationale: outcome_rationale(state, "draw"),
+        },
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum TiebreakRung {
+    Score,
+    CompleteSets,
+    HighestSingle,
+    DistinctThreads,
+    FewerPriorityConflictWins,
+    AllTiedDraw,
+}
+
+impl TiebreakRung {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Score => "score",
+            Self::CompleteSets => "complete_sets",
+            Self::HighestSingle => "highest_single_value",
+            Self::DistinctThreads => "distinct_threads",
+            Self::FewerPriorityConflictWins => "fewer_priority_conflict_wins",
+            Self::AllTiedDraw => "all_tied_draw",
+        }
+    }
+}
+
+fn outcome_rationale(state: &SecretDraftState, result_kind: &str) -> OutcomeRationaleView {
+    let summary = terminal_tie_break_summary(state);
+    let decisive_rung = decisive_rung(summary);
+    OutcomeRationaleView {
+        result_kind: result_kind.to_owned(),
+        decisive_cause: decisive_rung.as_str().to_owned(),
+        template_key: template_key(decisive_rung).to_owned(),
+        decisive_rule_ids: decisive_rule_ids(decisive_rung),
+        terminal_trigger: "sixth_reveal_complete".to_owned(),
+        terminal_trigger_rule_id: "SD-END-001".to_owned(),
+        final_standing: final_standing(state, summary),
+        ladder: ladder(summary, decisive_rung),
+    }
+}
+
+fn decisive_rung(summary: TieBreakSummary) -> TiebreakRung {
+    if summary.scores[0] != summary.scores[1] {
+        return TiebreakRung::Score;
+    }
+    if summary.complete_sets[0] != summary.complete_sets[1] {
+        return TiebreakRung::CompleteSets;
+    }
+    if summary.highest_single_values[0] != summary.highest_single_values[1] {
+        return TiebreakRung::HighestSingle;
+    }
+    if summary.distinct_threads[0] != summary.distinct_threads[1] {
+        return TiebreakRung::DistinctThreads;
+    }
+    if summary.priority_conflict_wins[0] != summary.priority_conflict_wins[1] {
+        TiebreakRung::FewerPriorityConflictWins
+    } else {
+        TiebreakRung::AllTiedDraw
+    }
+}
+
+fn template_key(rung: TiebreakRung) -> &'static str {
+    match rung {
+        TiebreakRung::Score => "secret_draft.score_win",
+        TiebreakRung::CompleteSets => "secret_draft.complete_sets_tiebreak",
+        TiebreakRung::HighestSingle => "secret_draft.highest_single_tiebreak",
+        TiebreakRung::DistinctThreads => "secret_draft.distinct_threads_tiebreak",
+        TiebreakRung::FewerPriorityConflictWins => {
+            "secret_draft.fewer_priority_conflict_wins_tiebreak"
+        }
+        TiebreakRung::AllTiedDraw => "secret_draft.all_tied_draw",
+    }
+}
+
+fn rung_rule_id(rung: TiebreakRung) -> &'static str {
+    match rung {
+        TiebreakRung::Score => "SD-SCORE-001",
+        TiebreakRung::CompleteSets => "SD-SCORE-002",
+        TiebreakRung::HighestSingle => "SD-COMP-004",
+        TiebreakRung::DistinctThreads => "SD-COMP-003",
+        TiebreakRung::FewerPriorityConflictWins => "SD-AMB-004",
+        TiebreakRung::AllTiedDraw => "SD-END-002",
+    }
+}
+
+fn decisive_rule_ids(rung: TiebreakRung) -> Vec<String> {
+    let mut ids = vec!["SD-END-001".to_owned(), "SD-END-002".to_owned()];
+    for candidate in [
+        TiebreakRung::Score,
+        TiebreakRung::CompleteSets,
+        TiebreakRung::HighestSingle,
+        TiebreakRung::DistinctThreads,
+        TiebreakRung::FewerPriorityConflictWins,
+    ] {
+        ids.push(rung_rule_id(candidate).to_owned());
+        if candidate == rung {
+            break;
+        }
+    }
+    ids
+}
+
+fn final_standing(state: &SecretDraftState, summary: TieBreakSummary) -> [OutcomeStandingView; 2] {
+    [
+        standing(state, summary, SecretDraftSeat::Seat0),
+        standing(state, summary, SecretDraftSeat::Seat1),
+    ]
+}
+
+fn standing(
+    state: &SecretDraftState,
+    summary: TieBreakSummary,
+    seat: SecretDraftSeat,
+) -> OutcomeStandingView {
+    let index = seat.index();
+    OutcomeStandingView {
+        seat,
+        total_score: summary.scores[index],
+        complete_sets: summary.complete_sets[index],
+        highest_single_value: summary.highest_single_values[index],
+        distinct_threads: summary.distinct_threads[index],
+        priority_conflict_wins: summary.priority_conflict_wins[index],
+        drafted_items: state.drafted[index]
+            .iter()
+            .copied()
+            .map(draft_item_view)
+            .collect(),
+    }
+}
+
+fn ladder(summary: TieBreakSummary, decisive_rung: TiebreakRung) -> Vec<TiebreakLadderRungView> {
+    vec![
+        higher_rung(
+            TiebreakRung::Score,
+            summary.scores[0],
+            summary.scores[1],
+            decisive_rung,
+        ),
+        higher_rung(
+            TiebreakRung::CompleteSets,
+            u32::from(summary.complete_sets[0]),
+            u32::from(summary.complete_sets[1]),
+            decisive_rung,
+        ),
+        higher_rung(
+            TiebreakRung::HighestSingle,
+            u32::from(summary.highest_single_values[0]),
+            u32::from(summary.highest_single_values[1]),
+            decisive_rung,
+        ),
+        higher_rung(
+            TiebreakRung::DistinctThreads,
+            u32::from(summary.distinct_threads[0]),
+            u32::from(summary.distinct_threads[1]),
+            decisive_rung,
+        ),
+        lower_rung(
+            TiebreakRung::FewerPriorityConflictWins,
+            u32::from(summary.priority_conflict_wins[0]),
+            u32::from(summary.priority_conflict_wins[1]),
+            decisive_rung,
+        ),
+        TiebreakLadderRungView {
+            rung: TiebreakRung::AllTiedDraw.as_str().to_owned(),
+            rule_id: rung_rule_id(TiebreakRung::AllTiedDraw).to_owned(),
+            seat_0_value: None,
+            seat_1_value: None,
+            winner: None,
+            decisive: decisive_rung == TiebreakRung::AllTiedDraw,
+        },
+    ]
+}
+
+fn higher_rung(
+    rung: TiebreakRung,
+    seat_0_value: u32,
+    seat_1_value: u32,
+    decisive_rung: TiebreakRung,
+) -> TiebreakLadderRungView {
+    TiebreakLadderRungView {
+        rung: rung.as_str().to_owned(),
+        rule_id: rung_rule_id(rung).to_owned(),
+        seat_0_value: Some(seat_0_value),
+        seat_1_value: Some(seat_1_value),
+        winner: higher_value_winner(seat_0_value, seat_1_value),
+        decisive: decisive_rung == rung,
+    }
+}
+
+fn lower_rung(
+    rung: TiebreakRung,
+    seat_0_value: u32,
+    seat_1_value: u32,
+    decisive_rung: TiebreakRung,
+) -> TiebreakLadderRungView {
+    TiebreakLadderRungView {
+        rung: rung.as_str().to_owned(),
+        rule_id: rung_rule_id(rung).to_owned(),
+        seat_0_value: Some(seat_0_value),
+        seat_1_value: Some(seat_1_value),
+        winner: lower_value_winner(seat_0_value, seat_1_value),
+        decisive: decisive_rung == rung,
+    }
+}
+
+fn higher_value_winner(seat_0_value: u32, seat_1_value: u32) -> Option<SecretDraftSeat> {
+    if seat_0_value > seat_1_value {
+        Some(SecretDraftSeat::Seat0)
+    } else if seat_1_value > seat_0_value {
+        Some(SecretDraftSeat::Seat1)
+    } else {
+        None
+    }
+}
+
+fn lower_value_winner(seat_0_value: u32, seat_1_value: u32) -> Option<SecretDraftSeat> {
+    if seat_0_value < seat_1_value {
+        Some(SecretDraftSeat::Seat0)
+    } else if seat_1_value < seat_0_value {
+        Some(SecretDraftSeat::Seat1)
+    } else {
+        None
     }
 }
 
@@ -293,12 +559,77 @@ fn encode_revealed_round(round: &RevealedRoundView) -> String {
     )
 }
 
-fn encode_terminal(terminal: TerminalView) -> String {
+fn encode_terminal(terminal: &TerminalView) -> String {
     match terminal {
         TerminalView::NonTerminal => "non_terminal".to_owned(),
-        TerminalView::Win { winning_seat } => format!("win:{}", winning_seat.as_str()),
-        TerminalView::Draw => "draw".to_owned(),
+        TerminalView::Win {
+            winning_seat,
+            rationale,
+        } => format!(
+            "win:{}:{}",
+            winning_seat.as_str(),
+            encode_rationale(rationale)
+        ),
+        TerminalView::Draw { rationale } => format!("draw:{}", encode_rationale(rationale)),
     }
+}
+
+fn encode_rationale(rationale: &OutcomeRationaleView) -> String {
+    format!(
+        "{}|{}|{}|{}|trigger={}:{}|standing={}|ladder={}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join("+"),
+        rationale.terminal_trigger,
+        rationale.terminal_trigger_rule_id,
+        rationale
+            .final_standing
+            .iter()
+            .map(encode_standing)
+            .collect::<Vec<_>>()
+            .join("/"),
+        rationale
+            .ladder
+            .iter()
+            .map(encode_ladder_rung)
+            .collect::<Vec<_>>()
+            .join("/")
+    )
+}
+
+fn encode_standing(standing: &OutcomeStandingView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}:{}:{}",
+        standing.seat.as_str(),
+        standing.total_score,
+        standing.complete_sets,
+        standing.highest_single_value,
+        standing.distinct_threads,
+        standing.priority_conflict_wins,
+        standing
+            .drafted_items
+            .iter()
+            .map(encode_item)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn encode_ladder_rung(rung: &TiebreakLadderRungView) -> String {
+    format!(
+        "{}:{}:{}-{}:{}:{}",
+        rung.rung,
+        rung.rule_id,
+        encode_optional_u32(rung.seat_0_value),
+        encode_optional_u32(rung.seat_1_value),
+        rung.winner.map_or("none", SecretDraftSeat::as_str),
+        rung.decisive
+    )
+}
+
+fn encode_optional_u32(value: Option<u32>) -> String {
+    value.map_or_else(|| "none".to_owned(), |value| value.to_string())
 }
 
 fn encode_private(private: &PrivateView) -> String {

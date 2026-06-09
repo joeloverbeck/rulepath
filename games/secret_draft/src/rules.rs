@@ -316,15 +316,19 @@ fn tie_break_summary(state: &SecretDraftState, scores: [ScoreBreakdown; 2]) -> T
     }
 }
 
-pub fn determine_terminal_outcome(state: &SecretDraftState) -> TerminalOutcome {
+pub fn terminal_tie_break_summary(state: &SecretDraftState) -> TieBreakSummary {
     let scores = [
         score_for(SecretDraftSeat::Seat0, state, ScoreContext::Terminal),
         score_for(SecretDraftSeat::Seat1, state, ScoreContext::Terminal),
     ];
-    determine_terminal_outcome_from_summary(tie_break_summary(state, scores))
+    tie_break_summary(state, scores)
 }
 
-fn determine_terminal_outcome_from_summary(summary: TieBreakSummary) -> TerminalOutcome {
+pub fn determine_terminal_outcome(state: &SecretDraftState) -> TerminalOutcome {
+    determine_terminal_outcome_from_summary(terminal_tie_break_summary(state))
+}
+
+pub fn determine_terminal_outcome_from_summary(summary: TieBreakSummary) -> TerminalOutcome {
     if let Some(winner) = compare_higher(summary.scores) {
         return TerminalOutcome::Win { seat: winner };
     }

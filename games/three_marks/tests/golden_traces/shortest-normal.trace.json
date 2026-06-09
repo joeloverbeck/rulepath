@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "shortest_normal_win_replay",
   "note": "Five applied placements produce the shortest representative Three Marks win and board projection.",
-  "migration_update_note": "Initial Three Marks Trace Schema v1 fixture; expected hashes are established by GAT4THRMARBOA-007.",
+  "migration_update_note": "Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.",
   "game_id": "three_marks",
   "rules_version": "three_marks-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -29,7 +29,7 @@
   "expected_state_hashes": { "final": 13354879151840406017 },
   "expected_effect_hashes": { "final": 10107303898422835936 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 15412242998983332960 },
+  "expected_public_view_hashes": { "all": 17475413006289213499 },
   "expected_replay_hashes": { "final": 8530918322272021026 },
   "expected_private_view_hashes": {
     "not_applicable": "three_marks is perfect-information and has no private-view API."

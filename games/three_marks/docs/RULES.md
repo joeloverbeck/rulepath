@@ -114,6 +114,8 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `TM-END-002` | All nine cells are occupied and no winning line exists. | The game ends in a draw. | Draw is the canonical wording. | Tie may appear only as secondary explanatory wording in docs. |
 | `TM-END-003` | A terminal state has already been reached. | The recorded winner or draw remains unchanged. | not applicable | Later normal apply attempts are rejected without changing state. |
 
+Terminal public views also expose a Rust-owned outcome rationale. Wins use template key `three_marks.line_completed`, decisive cause `line_completed`, the ordered decisive line cells, and rule IDs `TM-SCORE-001` and `TM-END-001`. Draws use template key `three_marks.full_board_draw`, decisive cause `full_board_no_line`, `board_full=true`, and rule IDs `TM-SCORE-001` and `TM-END-002`.
+
 ## Visibility and private information
 
 Public/browser payloads must not reveal hidden information through public views,

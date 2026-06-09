@@ -54,8 +54,22 @@ pub enum TerminalView {
     Win {
         winning_seat: ThreeMarksSeat,
         line: [CellId; 3],
+        rationale: OutcomeRationaleView,
     },
-    Draw,
+    Draw {
+        rationale: OutcomeRationaleView,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub line_cells: Vec<CellId>,
+    pub line_orientation: Option<String>,
+    pub board_full: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -67,10 +81,13 @@ pub struct PrivateView {
 pub fn project_view(state: &ThreeMarksState, _viewer: &Viewer) -> PublicView {
     let terminal = match state.terminal_outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::Draw) => TerminalView::Draw,
+        Some(TerminalOutcome::Draw) => TerminalView::Draw {
+            rationale: draw_rationale(),
+        },
         Some(TerminalOutcome::Win { seat, line }) => TerminalView::Win {
             winning_seat: seat,
             line: line.cells,
+            rationale: line_win_rationale(line.cells),
         },
     };
     let legal_targets = if state.terminal_outcome.is_none() {
@@ -130,7 +147,7 @@ pub fn project_view(state: &ThreeMarksState, _viewer: &Viewer) -> PublicView {
 impl PublicView {
     pub fn to_json(&self) -> String {
         format!(
-            "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"board_rows\":{},\"board_columns\":{},\"cells\":[{}],\"active_seat\":\"{}\",\"ply_count\":{},\"status_label\":\"{}\",\"freshness_token\":{},\"legal_targets\":[{}],\"terminal_kind\":\"{}\",\"winning_seat\":{},\"winning_line\":[{}],\"private_view_status\":\"{}\",\"hidden_fields\":[{}],\"replay_step_index\":{}}}",
+            "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"board_rows\":{},\"board_columns\":{},\"cells\":[{}],\"active_seat\":\"{}\",\"ply_count\":{},\"status_label\":\"{}\",\"freshness_token\":{},\"legal_targets\":[{}],\"terminal_kind\":\"{}\",\"winning_seat\":{},\"winning_line\":[{}],\"outcome_result_kind\":{},\"outcome_decisive_cause\":{},\"outcome_template_key\":{},\"outcome_decisive_rule_ids\":[{}],\"outcome_line_cells\":[{}],\"outcome_line_orientation\":{},\"outcome_board_full\":{},\"private_view_status\":\"{}\",\"hidden_fields\":[{}],\"replay_step_index\":{}}}",
             self.schema_version,
             self.rules_version,
             escape_json(&self.game_id),
@@ -154,6 +171,30 @@ impl PublicView {
             terminal_kind(&self.terminal),
             option_seat_json(terminal_winner(&self.terminal)),
             string_array(&terminal_line(&self.terminal)),
+            optional_string_json(terminal_rationale(&self.terminal).map(|rationale| rationale.result_kind.as_str())),
+            optional_string_json(terminal_rationale(&self.terminal).map(|rationale| rationale.decisive_cause.as_str())),
+            optional_string_json(terminal_rationale(&self.terminal).map(|rationale| rationale.template_key.as_str())),
+            string_array(
+                &terminal_rationale(&self.terminal)
+                    .map(|rationale| rationale.decisive_rule_ids.clone())
+                    .unwrap_or_default()
+            ),
+            string_array(
+                &terminal_rationale(&self.terminal)
+                    .map(|rationale| {
+                        rationale
+                            .line_cells
+                            .iter()
+                            .map(|cell| cell.as_str().to_owned())
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default()
+            ),
+            optional_string_json(
+                terminal_rationale(&self.terminal)
+                    .and_then(|rationale| rationale.line_orientation.as_deref())
+            ),
+            terminal_rationale(&self.terminal).is_some_and(|rationale| rationale.board_full),
             escape_json(&self.private_view.status),
             string_array(&self.private_view.hidden_fields),
             self.replay_step_index
@@ -181,6 +222,13 @@ impl PublicView {
             "terminal_kind",
             "winning_seat",
             "winning_line",
+            "outcome_result_kind",
+            "outcome_decisive_cause",
+            "outcome_template_key",
+            "outcome_decisive_rule_ids",
+            "outcome_line_cells",
+            "outcome_line_orientation",
+            "outcome_board_full",
             "private_view_status",
             "hidden_fields",
             "replay_step_index",
@@ -188,14 +236,18 @@ impl PublicView {
 
         let winning_seat = object.optional_seat("winning_seat")?;
         let winning_line = parse_cell_array(&object.required_raw("winning_line")?)?;
+        let rationale = parse_outcome_rationale(&object)?;
         let terminal = match object.required_string("terminal_kind")?.as_str() {
             "non_terminal" => TerminalView::NonTerminal,
-            "draw" => TerminalView::Draw,
+            "draw" => TerminalView::Draw {
+                rationale: rationale.ok_or_else(|| "draw requires outcome rationale".to_owned())?,
+            },
             "win" => TerminalView::Win {
                 winning_seat: winning_seat.ok_or_else(|| "win requires winning_seat".to_owned())?,
                 line: winning_line
                     .try_into()
                     .map_err(|_| "win requires exactly three line cells".to_owned())?,
+                rationale: rationale.ok_or_else(|| "win requires outcome rationale".to_owned())?,
             },
             other => return Err(format!("unknown terminal kind `{other}`")),
         };
@@ -262,7 +314,7 @@ fn status_label(terminal: &TerminalView, active_seat: ThreeMarksSeat) -> String 
     match terminal {
         TerminalView::NonTerminal => format!("{} to place", active_seat.as_str()),
         TerminalView::Win { winning_seat, .. } => format!("{} wins", winning_seat.as_str()),
-        TerminalView::Draw => "draw".to_owned(),
+        TerminalView::Draw { .. } => "draw".to_owned(),
     }
 }
 
@@ -270,7 +322,7 @@ fn terminal_kind(terminal: &TerminalView) -> &'static str {
     match terminal {
         TerminalView::NonTerminal => "non_terminal",
         TerminalView::Win { .. } => "win",
-        TerminalView::Draw => "draw",
+        TerminalView::Draw { .. } => "draw",
     }
 }
 
@@ -281,12 +333,57 @@ fn terminal_winner(terminal: &TerminalView) -> Option<ThreeMarksSeat> {
     }
 }
 
+fn terminal_rationale(terminal: &TerminalView) -> Option<&OutcomeRationaleView> {
+    match terminal {
+        TerminalView::NonTerminal => None,
+        TerminalView::Win { rationale, .. } | TerminalView::Draw { rationale } => Some(rationale),
+    }
+}
+
 fn terminal_line(terminal: &TerminalView) -> Vec<String> {
     match terminal {
         TerminalView::Win { line, .. } => {
             line.iter().map(|cell| cell.as_str().to_owned()).collect()
         }
         _ => Vec::new(),
+    }
+}
+
+fn line_win_rationale(line: [CellId; 3]) -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: "win".to_owned(),
+        decisive_cause: "line_completed".to_owned(),
+        template_key: "three_marks.line_completed".to_owned(),
+        decisive_rule_ids: vec!["TM-SCORE-001".to_owned(), "TM-END-001".to_owned()],
+        line_cells: line.into_iter().collect(),
+        line_orientation: Some(line_orientation(line).to_owned()),
+        board_full: false,
+    }
+}
+
+fn draw_rationale() -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: "draw".to_owned(),
+        decisive_cause: "full_board_no_line".to_owned(),
+        template_key: "three_marks.full_board_draw".to_owned(),
+        decisive_rule_ids: vec!["TM-SCORE-001".to_owned(), "TM-END-002".to_owned()],
+        line_cells: Vec::new(),
+        line_orientation: None,
+        board_full: true,
+    }
+}
+
+fn line_orientation(line: [CellId; 3]) -> &'static str {
+    let rows = line.map(|cell| cell_layout(cell).row);
+    let columns = line.map(|cell| cell_layout(cell).column);
+    if rows[0] == rows[1] && rows[1] == rows[2] {
+        "row"
+    } else if columns[0] == columns[1] && columns[1] == columns[2] {
+        "column"
+    } else if rows[0] < rows[2] {
+        "falling_diagonal"
+    } else {
+        "rising_diagonal"
     }
 }
 
@@ -359,6 +456,41 @@ fn parse_cell_array(raw: &str) -> Result<Vec<CellId>, String> {
         .collect()
 }
 
+fn parse_outcome_rationale(
+    object: &StrictJsonObject,
+) -> Result<Option<OutcomeRationaleView>, String> {
+    let result_kind = object.optional_string("outcome_result_kind")?;
+    let decisive_cause = object.optional_string("outcome_decisive_cause")?;
+    let template_key = object.optional_string("outcome_template_key")?;
+    let line_orientation = object.optional_string("outcome_line_orientation")?;
+    let decisive_rule_ids = parse_string_array(&object.required_raw("outcome_decisive_rule_ids")?)?;
+    let line_cells = parse_cell_array(&object.required_raw("outcome_line_cells")?)?;
+    let board_full = object.required_bool("outcome_board_full")?;
+
+    match (result_kind, decisive_cause, template_key) {
+        (None, None, None)
+            if decisive_rule_ids.is_empty()
+                && line_cells.is_empty()
+                && line_orientation.is_none()
+                && !board_full =>
+        {
+            Ok(None)
+        }
+        (Some(result_kind), Some(decisive_cause), Some(template_key)) => {
+            Ok(Some(OutcomeRationaleView {
+                result_kind,
+                decisive_cause,
+                template_key,
+                decisive_rule_ids,
+                line_cells,
+                line_orientation,
+                board_full,
+            }))
+        }
+        _ => Err("outcome rationale requires kind, cause, and template together".to_owned()),
+    }
+}
+
 fn string_array(values: &[String]) -> String {
     values
         .iter()
@@ -414,6 +546,13 @@ fn option_seat_json(seat: Option<ThreeMarksSeat>) -> String {
     seat.map_or_else(
         || "null".to_owned(),
         |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
+fn optional_string_json(value: Option<&str>) -> String {
+    value.map_or_else(
+        || "null".to_owned(),
+        |value| format!("\"{}\"", escape_json(value)),
     )
 }
 
@@ -486,6 +625,14 @@ impl StrictJsonObject {
             .map_err(|_| format!("field `{key}` must be u64"))
     }
 
+    fn required_bool(&self, key: &str) -> Result<bool, String> {
+        match self.required_raw(key)?.as_str() {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err(format!("field `{key}` must be bool")),
+        }
+    }
+
     fn required_seat(&self, key: &str) -> Result<ThreeMarksSeat, String> {
         ThreeMarksSeat::parse(&self.required_string(key)?)
             .ok_or_else(|| format!("field `{key}` must be a seat"))
@@ -499,6 +646,14 @@ impl StrictJsonObject {
         ThreeMarksSeat::parse(&parse_json_string(&raw)?)
             .map(Some)
             .ok_or_else(|| format!("field `{key}` must be a seat or null"))
+    }
+
+    fn optional_string(&self, key: &str) -> Result<Option<String>, String> {
+        let raw = self.required_raw(key)?;
+        if raw == "null" {
+            return Ok(None);
+        }
+        parse_json_string(&raw).map(Some)
     }
 
     fn optional_u32(&self, key: &str) -> Result<Option<u32>, String> {

@@ -102,7 +102,9 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `CF-RESTRICT-003` | Submitted action is stale, malformed, submitted by the wrong seat, or submitted after terminal state. | Reject the submission without changing state. | Diagnostic is viewer-safe and identifies the reason class. | Diagnostics must not include hidden or private data. |
 | `CF-RESTRICT-004` | TypeScript could infer a landing row, full column, line, or draw from public data. | It still must not become the behavior authority. | not applicable | The browser may render Rust-provided data only. |
 
-## Placement, gravity, and accounting
+## Scoring and accounting
+
+Placement and gravity rules are included here because they determine which public cell a scoring check evaluates after each legal drop.
 
 | Rule ID | Rule | Timing | Tiebreaker/edge case | Notes |
 |---|---|---|---|---|
@@ -122,6 +124,8 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `CF-END-005` | All forty-two cells are occupied and no winning line exists after the final placement. | The game ends in a draw. | Draw is the canonical wording. | Tie may appear only as secondary explanatory wording in docs. |
 | `CF-END-006` | More than one winning line is completed by the same placement. | The acting seat wins and Rust exposes one deterministic primary line. | Primary-line order is horizontal, vertical, rising diagonal, falling diagonal; within a direction choose the line whose ordered cell-id list sorts first lexicographically. | Additional lines may be exposed later only if documented and covered. |
 | `CF-END-007` | A terminal state has already been reached. | The recorded winner or draw remains unchanged. | not applicable | Later normal apply attempts are rejected without changing state. |
+
+Terminal public views also expose a Rust-owned outcome rationale. Wins use template key `column_four.line_completed`, decisive cause `line_completed`, the ordered decisive line cells, the line orientation, and rule IDs `CF-SCORE-001` plus the matching directional terminal rule `CF-END-001` through `CF-END-004`. Draws use template key `column_four.full_board_draw`, decisive cause `full_board_no_line`, `board_full=true`, and rule IDs `CF-SCORE-001` and `CF-END-005`.
 
 ## Visibility and private information
 

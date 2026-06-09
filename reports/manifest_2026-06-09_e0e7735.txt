@@ -1,3 +1,9 @@
+.agents/skills/skill-audit/SKILL.md
+.agents/skills/skill-audit/agents/openai.yaml
+.agents/skills/ticket-series/SKILL.md
+.agents/skills/ticket-series/agents/openai.yaml
+.claude/projects/-home-joeloverbeck-projects-rulepath/memory/MEMORY.md
+.claude/projects/-home-joeloverbeck-projects-rulepath/memory/specs-readme-status-set.md
 .claude/skills/brainstorm/SKILL.md
 .claude/skills/brainstorm/references/triage-and-deliverables.md
 .claude/skills/reassess-spec/SKILL.md
@@ -30,6 +36,7 @@ apps/web/e2e/directional-flip.smoke.mjs
 apps/web/e2e/draughts-lite.smoke.mjs
 apps/web/e2e/high-card-duel.smoke.mjs
 apps/web/e2e/poker-lite.smoke.mjs
+apps/web/e2e/rules-display.smoke.mjs
 apps/web/e2e/secret-draft.smoke.mjs
 apps/web/e2e/shell.smoke.mjs
 apps/web/e2e/three-marks.smoke.mjs
@@ -37,6 +44,16 @@ apps/web/e2e/token-bazaar.smoke.mjs
 apps/web/index.html
 apps/web/package-lock.json
 apps/web/package.json
+apps/web/public/rules/column_four.md
+apps/web/public/rules/directional_flip.md
+apps/web/public/rules/draughts_lite.md
+apps/web/public/rules/high_card_duel.md
+apps/web/public/rules/manifest.json
+apps/web/public/rules/poker_lite.md
+apps/web/public/rules/race_to_n.md
+apps/web/public/rules/secret_draft.md
+apps/web/public/rules/three_marks.md
+apps/web/public/rules/token_bazaar.md
 apps/web/scripts/smoke-load-wasm.mjs
 apps/web/scripts/smoke-preview.mjs
 apps/web/scripts/smoke-ui.mjs
@@ -55,6 +72,7 @@ apps/web/src/components/PokerLiteBoard.tsx
 apps/web/src/components/RaceBoard.tsx
 apps/web/src/components/ReplayImportExport.tsx
 apps/web/src/components/ReplayViewer.tsx
+apps/web/src/components/RulesPanel.tsx
 apps/web/src/components/SecretDraftBoard.tsx
 apps/web/src/components/ThreeMarksBoard.tsx
 apps/web/src/components/TokenBazaarBoard.tsx
@@ -81,6 +99,7 @@ archive/specs/gate-8-aftermath-roadmap-realignment.md
 archive/specs/gate-9-1-secret-draft-commitment-reveal.md
 archive/specs/gate-9-aftermath-roadmap-realignment.md
 archive/specs/gate-9-token-bazaar-browser-proof.md
+archive/specs/rules-display-shared-surface.md
 archive/tickets/BENCICAL-001.md
 archive/tickets/BENCICAL-002.md
 archive/tickets/BENCICAL-003.md
@@ -307,6 +326,14 @@ archive/tickets/GAT9TOKBAZBRO-017.md
 archive/tickets/GAT9TOKBAZBRO-018.md
 archive/tickets/GAT9TOKBAZBRO-019.md
 archive/tickets/GAT9TOKBAZBRO-020.md
+archive/tickets/RULDISSHASUR-001.md
+archive/tickets/RULDISSHASUR-002.md
+archive/tickets/RULDISSHASUR-003.md
+archive/tickets/RULDISSHASUR-004.md
+archive/tickets/RULDISSHASUR-005.md
+archive/tickets/RULDISSHASUR-006.md
+archive/tickets/RULDISSHASUR-007.md
+archive/tickets/RULDISSHASUR-008.md
 benches/README.md
 crates/ai-core/Cargo.toml
 crates/ai-core/src/lib.rs
@@ -357,6 +384,7 @@ games/column_four/docs/BENCHMARKS.md
 games/column_four/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/column_four/docs/COMPETENT-PLAYER.md
 games/column_four/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/column_four/docs/HOW-TO-PLAY.md
 games/column_four/docs/MECHANICS.md
 games/column_four/docs/PUBLIC-RELEASE-CHECKLIST.md
 games/column_four/docs/RULE-COVERAGE.md
@@ -402,6 +430,7 @@ games/directional_flip/docs/BENCHMARKS.md
 games/directional_flip/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/directional_flip/docs/COMPETENT-PLAYER.md
 games/directional_flip/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/directional_flip/docs/HOW-TO-PLAY.md
 games/directional_flip/docs/MECHANICS.md
 games/directional_flip/docs/PRIMITIVE-PRESSURE-LEDGER.md
 games/directional_flip/docs/PUBLIC-RELEASE-CHECKLIST.md
@@ -452,6 +481,7 @@ games/draughts_lite/docs/BENCHMARKS.md
 games/draughts_lite/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/draughts_lite/docs/COMPETENT-PLAYER.md
 games/draughts_lite/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/draughts_lite/docs/HOW-TO-PLAY.md
 games/draughts_lite/docs/MECHANICS.md
 games/draughts_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md
 games/draughts_lite/docs/PUBLIC-RELEASE-CHECKLIST.md
@@ -506,6 +536,7 @@ games/high_card_duel/docs/BENCHMARKS.md
 games/high_card_duel/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/high_card_duel/docs/COMPETENT-PLAYER.md
 games/high_card_duel/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/high_card_duel/docs/HOW-TO-PLAY.md
 games/high_card_duel/docs/MECHANICS.md
 games/high_card_duel/docs/PUBLIC-RELEASE-CHECKLIST.md
 games/high_card_duel/docs/RULE-COVERAGE.md
@@ -551,6 +582,7 @@ games/poker_lite/docs/BENCHMARKS.md
 games/poker_lite/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/poker_lite/docs/COMPETENT-PLAYER.md
 games/poker_lite/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/poker_lite/docs/HOW-TO-PLAY.md
 games/poker_lite/docs/MECHANICS.md
 games/poker_lite/docs/PRIMITIVE-PRESSURE-LEDGER.md
 games/poker_lite/docs/PUBLIC-RELEASE-CHECKLIST.md
@@ -602,6 +634,7 @@ games/race_to_n/data/variants.toml
 games/race_to_n/docs/AI.md
 games/race_to_n/docs/BENCHMARKS.md
 games/race_to_n/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/race_to_n/docs/HOW-TO-PLAY.md
 games/race_to_n/docs/MECHANICS.md
 games/race_to_n/docs/RULE-COVERAGE.md
 games/race_to_n/docs/RULES.md
@@ -640,6 +673,7 @@ games/secret_draft/docs/BENCHMARKS.md
 games/secret_draft/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/secret_draft/docs/COMPETENT-PLAYER.md
 games/secret_draft/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/secret_draft/docs/HOW-TO-PLAY.md
 games/secret_draft/docs/MECHANICS.md
 games/secret_draft/docs/PUBLIC-RELEASE-CHECKLIST.md
 games/secret_draft/docs/RULE-COVERAGE.md
@@ -687,6 +721,7 @@ games/three_marks/data/variants.toml
 games/three_marks/docs/AI.md
 games/three_marks/docs/BENCHMARKS.md
 games/three_marks/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/three_marks/docs/HOW-TO-PLAY.md
 games/three_marks/docs/MECHANICS.md
 games/three_marks/docs/RULE-COVERAGE.md
 games/three_marks/docs/RULES.md
@@ -729,6 +764,7 @@ games/token_bazaar/docs/BENCHMARKS.md
 games/token_bazaar/docs/BOT-STRATEGY-EVIDENCE-PACK.md
 games/token_bazaar/docs/COMPETENT-PLAYER.md
 games/token_bazaar/docs/GAME-IMPLEMENTATION-ADMISSION.md
+games/token_bazaar/docs/HOW-TO-PLAY.md
 games/token_bazaar/docs/MECHANICS.md
 games/token_bazaar/docs/PUBLIC-RELEASE-CHECKLIST.md
 games/token_bazaar/docs/RULE-COVERAGE.md
@@ -766,18 +802,22 @@ games/token_bazaar/tests/rules.rs
 games/token_bazaar/tests/serialization.rs
 games/token_bazaar/tests/visibility.rs
 progress.md
-reports/manifest_2026-06-08.txt
+reports/manifest_2026-06-09_e6f4706.txt
 reports/poker-lite-gate-10-research-brief.md
+reports/rules-display-research-brief.md
 reports/secret-draft-gate-9-1-research-brief.md
 scripts/boundary-check.sh
 scripts/check-catalog-docs.mjs
 scripts/check-doc-links.mjs
+scripts/check-player-rules.mjs
+scripts/copy-player-rules.mjs
 specs/README.md
 templates/AGENT-TASK.md
 templates/BOT-STRATEGY-EVIDENCE-PACK.md
 templates/COMPETENT-PLAYER.md
 templates/GAME-AI.md
 templates/GAME-BENCHMARKS.md
+templates/GAME-HOW-TO-PLAY.md
 templates/GAME-IMPLEMENTATION-ADMISSION.md
 templates/GAME-MECHANICS.md
 templates/GAME-RULE-COVERAGE.md

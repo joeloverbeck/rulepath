@@ -191,6 +191,11 @@ conflict fallback, terminal detection, and tie-breaks live in typed Rust.
 | `SD-END-001` | The sixth reveal batch has resolved. | Determine winner by the terminal tie-break order. | `SD-END-002` | The game always ends after six rounds. |
 | `SD-END-002` | Terminal tie-break order. | Higher total score wins; if tied, more complete ember/tide/grove sets wins; if tied, higher single drafted item value wins; if tied, more distinct represented threads wins; if tied, fewer priority-won contested items wins; if still tied, the game is a draw. | Draw if all comparisons tie. | All tie-break facts are public and deterministic. |
 
+Terminal views include an outcome rationale after `SD-END-001` resolves. The
+rationale reports the terminal trigger, final public standing, ordered
+`SD-END-002` tie-break ladder, decisive cause, template key, and decisive rule
+IDs without using any pre-reveal commitment facts.
+
 ## Visibility and private information
 
 Public/browser payloads must not reveal hidden information through public views,

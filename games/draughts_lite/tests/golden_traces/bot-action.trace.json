@@ -4,7 +4,7 @@
   "fixture_kind": "bot",
   "purpose": "bot_action",
   "note": "The Level 1 bot deterministically chooses an opening complete path and replay hashes that command.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -23,11 +23,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 12214170939080763035 },
+  "expected_state_hashes": { "final": 12833014583457388750 },
   "expected_effect_hashes": { "final": 1939580344404944282 },
   "expected_action_tree_hashes": { "final": 8126650368011512904 },
   "expected_public_view_hashes": { "all": 5738761933392872004 },
-  "expected_replay_hashes": { "final": 9458748940936356535 },
+  "expected_replay_hashes": { "final": 2984647982747679652 },
   "expected_private_view_hashes": {
     "not_applicable": "draughts_lite is perfect-information and has no private-view API."
   },

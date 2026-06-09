@@ -65,6 +65,16 @@ pub enum TerminalReason {
     DoubleForcedPass,
 }
 
+impl TerminalReason {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::BoardFull => "board_full",
+            Self::NoContinuation => "no_continuation",
+            Self::DoubleForcedPass => "double_forced_pass",
+        }
+    }
+}
+
 pub fn public_effect(payload: DirectionalFlipEffect) -> EffectEnvelope<DirectionalFlipEffect> {
     EffectEnvelope {
         visibility: VisibilityScope::Public,

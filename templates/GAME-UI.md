@@ -117,6 +117,74 @@ Animation is driven by semantic effects emitted by Rust. State diffs may diagnos
 | candidate ranking | not public by default | viewer-safe/redacted only | no forbidden info | `<test>` |
 | known weakness | optional concise note | detailed notes okay if safe | no private state | `<test>` |
 
+## Outcome / victory explanation
+
+Describe the end-of-match explanation shown by the shared web outcome surface.
+
+This section is mandatory for every web-exposed official game. Tiny games may provide a tiny explanation, but they may not omit the section.
+
+### Terminal result variants
+
+List every terminal result variant the game can produce.
+
+| Result variant | Rust source of truth | Player-facing summary | Rule IDs |
+|---|---|---|---|
+| `<win/draw/split/yield/etc.>` | `<TerminalView field / PublicView field / terminal effect>` | `<one sentence>` | `<R-END-*/R-SCORE-*>` |
+
+### Decisive cause payload
+
+Name the Rust-owned public/terminal view fields and/or terminal semantic effects that carry the decisive cause.
+
+| Cause variant | Rust payload field(s) | Static template key | Notes |
+|---|---|---|---|
+| `<line completed / score comparison / tiebreaker / showdown strength / no legal move / exact target>` | `<field names>` | `<game_id.template_key>` | `<viewer-safe notes>` |
+
+TypeScript MUST NOT compute these cause variants. It renders the Rust-projected value only.
+
+### Per-player final breakdown
+
+List every value shown for every player at terminal.
+
+| Breakdown value | Source | Visible to public observer? | Visible to seat viewer? | Hidden-info notes |
+|---|---|---:|---:|---|
+| `<score/line/strength/piece count/allocation/etc.>` | `<Rust field/effect>` | `<yes/no>` | `<yes/no>` | `<redaction/reveal rule>` |
+
+### No-leak rules
+
+State what the outcome surface must never reveal.
+
+- Visible text:
+- Hidden DOM/accessibility attributes:
+- `data-testid`/selectors:
+- Storage/logs/dev panel:
+- Effect log/replay export:
+- Bot explanations/candidate rankings:
+
+For hidden-information games, explicitly cover no-reveal terminal outcomes. Example: a yielded private card/crest remains hidden and the outcome surface says the result resolved without private reveal.
+
+### Player-facing copy contract
+
+The outcome surface explains only the actual result. It must not include coaching, counterfactuals, "what would have changed it," turning-point analysis, or strategy advice.
+
+### Accessibility and reduced motion
+
+Confirm:
+
+- terminal summary is exposed as a status/result message;
+- decisive cause is text, not color-only or animation-only;
+- player standing is color-independent;
+- expanded breakdown is keyboard accessible;
+- reduced-motion mode preserves all facts; and
+- replay terminal renders the same outcome content for the same viewer.
+
+### Smoke and tests
+
+List the terminal smoke/no-leak cases required for this game.
+
+| Test case | Terminal path | Required assertion |
+|---|---|---|
+| `<case>` | `<fixture/trace/scripted path>` | `<summary, breakdown, no-leak assertion>` |
+
 ## Dev inspector boundary
 
 Dev tools are secondary. Public mode is play first, not a diagnostic harness.

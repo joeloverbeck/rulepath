@@ -75,6 +75,7 @@ pub fn setup_match(
         turns_taken: [0, 0],
         active_seat: TokenBazaarSeat::Seat0,
         terminal_outcome: None,
+        terminal_trigger: None,
         freshness_token: FreshnessToken(0),
     })
 }

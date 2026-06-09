@@ -26,6 +26,7 @@ the WASM bridge.
 | visible pool | `visible_pool`, `actionTree.choices` | Native buttons for Rust-legal commitments while interactive. |
 | pending seats | `commitments.seat_0`, `commitments.seat_1` | Seat/round status cards showing committed/waiting only. |
 | reveal history | `revealed_history` | Ordered list with public awards and conflict result after reveal. |
+| outcome rationale | `terminal.rationale` | Terminal-only public explanation of the sixth-reveal trigger, final standing, and decisive tie-break rung. |
 | recent effects | `latestEffect` and effect log entries | Text status for commitment, pending, reveal, scoring, and terminal effects. |
 | replay | viewer-scoped public export/import projection | Replay viewer shows public timeline with redacted command summaries. |
 
@@ -66,6 +67,37 @@ use round/index anchors rather than committed item ids.
 
 After reveal, item ids and labels are public and may appear in reveal history,
 drafted collections, effect feedback, and replay projection.
+
+Terminal outcome rationale is emitted only after the sixth reveal resolves. It
+uses public drafted collections, scores, complete-set counts, highest single
+values, distinct-thread counts, priority-conflict counts, the terminal trigger
+rule ID, and the decisive tie-break rule IDs. It must not expose any committed
+item before reveal or any private-only command authority.
+
+## Outcome / victory explanation
+
+Rust projects the terminal explanation as part of `TerminalView`. Win views
+carry `winning_seat` plus `OutcomeRationaleView`; draw views carry
+`OutcomeRationaleView`. The terminal result variants are `Win` and `Draw`; the
+decisive cause variants are `score`, `complete_sets`, `highest_single_value`,
+`distinct_threads`, `fewer_priority_conflict_wins`, and `all_tied_draw`. The
+rationale includes:
+
+| Field | Meaning |
+|---|---|
+| `result_kind` | `win` or `draw`. |
+| `decisive_cause` | One of `score`, `complete_sets`, `highest_single_value`, `distinct_threads`, `fewer_priority_conflict_wins`, or `all_tied_draw`. |
+| `template_key` | Stable copy key for the decisive cause, such as `secret_draft.score_win` or `secret_draft.all_tied_draw`. |
+| `decisive_rule_ids` | `SD-END-001`, `SD-END-002`, and the tie-break rule IDs needed to reach the decisive rung. |
+| `terminal_trigger` | `sixth_reveal_complete`. |
+| `terminal_trigger_rule_id` | `SD-END-001`. |
+| `final_standing` | Public per-player breakdown fields: scores, complete-set counts, highest single values, distinct-thread counts, priority-conflict counts, and drafted items. |
+| `ladder` | Ordered public comparison ladder with exactly one decisive rung. |
+
+The rule IDs are defined in `RULES.md` as `SD-END-001`, `SD-END-002`,
+`SD-SCORE-001`, `SD-SCORE-002`, `SD-COMP-004`, `SD-COMP-003`, and `SD-AMB-004`.
+Web smoke coverage remains responsible for confirming the browser renders Rust
+payloads without adding legality, scoring, or hidden-info behavior.
 
 ## Evidence
 

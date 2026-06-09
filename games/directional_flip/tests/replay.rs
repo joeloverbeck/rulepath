@@ -159,6 +159,7 @@ fn df_replay_001_snapshot_stable_serialization_is_repeatable() {
         ply_count: 0,
         consecutive_forced_passes: 0,
         terminal_outcome: None,
+        terminal_reason: None,
         freshness_token: engine_core::FreshnessToken(0),
     }
     .stable_summary();
@@ -193,6 +194,7 @@ fn df_replay_001_snapshot_stable_serialization_is_repeatable() {
                 ply_count: 0,
                 consecutive_forced_passes: 0,
                 terminal_outcome: None,
+                terminal_reason: None,
                 freshness_token: engine_core::FreshnessToken(0),
             }
             .stable_summary(),
@@ -633,6 +635,7 @@ fn empty(active: DirectionalFlipSeat) -> DirectionalFlipState {
     state.ply_count = 0;
     state.consecutive_forced_passes = 0;
     state.terminal_outcome = None;
+    state.terminal_reason = None;
     state
 }
 

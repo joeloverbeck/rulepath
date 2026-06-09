@@ -204,6 +204,8 @@ contract's points.
 | `TB-END-002` | The last contract is fulfilled and all visible market slots are empty after refill. | End immediately and determine winner by the terminal tie-break order. | `TB-END-003` | This can end before both seats reach eight turns. |
 | `TB-END-003` | Terminal tie-break order. | Higher score wins; if tied, more fulfilled contracts wins; if still tied, higher total remaining inventory wins; if still tied, the game is a draw. | Draw if all three comparisons tie. | All tie-break facts are public and deterministic. |
 
+Terminal public views also expose a Rust-owned outcome rationale. The rationale names the terminal trigger (`TB-END-001` or `TB-END-002`), the ordered `TB-END-003` ladder, the decisive cause (`score`, `fulfilled_contracts`, `inventory_total`, or `all_tied_draw`), and the final score/fulfilled-count/inventory-total standing for each seat.
+
 ## Visibility and private information
 
 Token Bazaar is fully public, but it still uses the normal Rulepath viewer,

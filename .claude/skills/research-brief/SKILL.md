@@ -55,7 +55,7 @@ The point of authoring here is that Claude can read the repo directly — so the
 - the **relevant code seams** Session 2 should inspect (name files/modules in `crates/`, `games/`, `tools/`, `apps/web/` — don't paste them; Session 2 reads them itself);
 - any **prior report / spec / ADR / archived work** that already bears on the target, so the brief frames the task as a delta rather than a cold start.
 
-Launch Explore agents for broad surveys. Verify any repo claim in `research_target` or `reference_path` against the actual tree; flag contradictions prominently.
+Launch Explore agents for broad surveys, partitioning the fan-out by authority layer / subsystem (foundation + area docs; touched code seams in `crates/`/`games/`/`tools/`/`apps/web/`; planning artifacts in `specs/`/`tickets/`/`reports/`; the worked failing case if there is one) so each agent has a non-overlapping beat. Instruct each agent to return **concise, path-and-symbol-focused findings** — file paths with one-line load-bearing reasons plus the relevant type/field/component names, never whole-file dumps or long prose — so a wide parallel fan stays within the per-turn tool-result budget and no later agent's results get silently dropped or deferred. Verify any repo claim in `research_target` or `reference_path` against the actual tree; flag contradictions prominently.
 
 ## Step 3: Light online research (optional)
 

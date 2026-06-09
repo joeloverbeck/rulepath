@@ -76,6 +76,15 @@ pub enum TerminalWinReason {
     OpponentNoLegalMove,
 }
 
+impl TerminalWinReason {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::OpponentNoPieces => "opponent_no_pieces",
+            Self::OpponentNoLegalMove => "opponent_no_legal_move",
+        }
+    }
+}
+
 pub fn public_effect(payload: DraughtsLiteEffect) -> EffectEnvelope<DraughtsLiteEffect> {
     EffectEnvelope {
         visibility: VisibilityScope::Public,

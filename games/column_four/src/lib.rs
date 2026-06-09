@@ -22,7 +22,8 @@ pub use state::{CellOccupancy, ColumnFourSnapshot, ColumnFourState, TerminalOutc
 pub use ui::{cell_layout, column_control, piece_token};
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
-    project_view, CellView, ColumnSummaryView, LegalColumnTargetView, PublicView, TerminalView,
+    project_view, CellView, ColumnSummaryView, LegalColumnTargetView, OutcomeRationaleView,
+    PublicView, TerminalView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

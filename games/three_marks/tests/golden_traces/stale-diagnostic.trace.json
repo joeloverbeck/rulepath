@@ -4,7 +4,7 @@
   "fixture_kind": "diagnostic",
   "purpose": "stale_action_rejection",
   "note": "A command with a stale freshness token is rejected with a viewer-safe diagnostic and hash.",
-  "migration_update_note": "Initial Three Marks Trace Schema v1 fixture; expected hashes are established by GAT4THRMARBOA-007.",
+  "migration_update_note": "Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.",
   "game_id": "three_marks",
   "rules_version": "three_marks-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -25,7 +25,7 @@
   "expected_state_hashes": { "final": 5362177565749890880 },
   "expected_effect_hashes": { "final": 15266173668226783742 },
   "expected_action_tree_hashes": { "final": 13806809087344075404 },
-  "expected_public_view_hashes": { "all": 9122778182914373864 },
+  "expected_public_view_hashes": { "all": 2610516656593767301 },
   "expected_replay_hashes": { "final": 2645089389472443605 },
   "expected_diagnostics": [
     { "index": 0, "code": "stale_action", "hash": 5082674687259783522 }

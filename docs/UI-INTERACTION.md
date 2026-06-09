@@ -250,7 +250,36 @@ Public mode SHOULD offer a small “why?” or recent-bot-action affordance for 
 
 Dev mode MAY show candidate rankings, priority vectors, tie-break seeds, filtered candidate counts, and timing. Dev output MUST be viewer-safe and MUST NOT expose hidden information or hidden-state-derived evaluations.
 
-## 16. Accessibility baseline
+## 16. Outcome / victory explanation surface
+
+Every official web-exposed game MUST render a shared outcome explanation surface when a match becomes terminal.
+
+The outcome surface answers "why did this result happen?" in player-facing terms. It is mandatory for every catalog game, including tiny games. Small games may have small explanations, but they may not omit the surface.
+
+The surface MUST show:
+
+1. the final result: winner, draw, split, or game-specific terminal result;
+2. the decisive cause of that actual result, such as a completed line, exact target reached, terminal no-move/no-piece reason, final score comparison, showdown strength comparison, or terminal tiebreaker rung;
+3. a viewer-safe final standing for every player;
+4. a viewer-safe per-player breakdown sufficient to understand the result; and
+5. stable rule references back to the game's scoring and terminal rules.
+
+The surface MUST be driven by Rust-owned public/terminal view data and/or Rust-owned terminal semantic effects. TypeScript may render, lay out, interpolate safe template parameters, and manage disclosure/focus state. TypeScript MUST NOT compute the winner, score comparison, showdown strength, winning line, terminal tiebreaker, or decisive cause.
+
+The surface MUST explain only the actual result. It MUST NOT provide coaching, counterfactual "what would have changed it" advice, hidden turning-point analysis, or AI strategy commentary.
+
+Hidden-information games MUST use the same viewer-safe projection discipline as the rest of the UI. The outcome surface MUST NOT expose hidden information in visible text, hidden DOM text, accessibility labels, `data-testid`s, CSS classes, storage, logs, effect logs, replay exports, dev panels, or bot explanation surfaces. If a result resolves without reveal, the explanation must say so without revealing or implying unrevealed private facts.
+
+The surface MUST be accessible:
+
+- the terminal summary is programmatically exposed as a status/result message;
+- the decisive cause is available as text and not only by color, animation, icon, or board highlight;
+- player identity and standing are color-independent;
+- expandable breakdowns use accessible disclosure controls;
+- score/tiebreak tables or lists have readable labels; and
+- reduced-motion mode preserves the same information without relying on animation.
+
+## 17. Accessibility baseline
 
 Public games SHOULD provide:
 
@@ -279,7 +308,7 @@ The surface must meet the accessibility baseline: keyboard access, visible
 focus, accessible names, focus management for modal/sheet mode, and
 screen-reader navigable headings.
 
-## 17. Responsive behavior
+## 18. Responsive behavior
 
 Simple public games SHOULD support desktop, tablet, and phone portrait where practical.
 
@@ -287,7 +316,7 @@ Complex games MAY require larger screens, but Rulepath should say so clearly and
 
 Side panels should collapse. Logs and action panels should remain readable. Touch targets should be safe. Board/card sizes should remain playable.
 
-## 18. UI acceptance check
+## 19. UI acceptance check
 
 A web-exposed game is acceptable only when:
 
@@ -305,3 +334,9 @@ A web-exposed game is acceptable only when:
 - basic focus/keyboard behavior exists where practical;
 - hidden information is absent from browser payloads, DOM, local storage, test IDs, logs, and replay exports;
 - visuals are original and avoid proprietary presentation.
+- terminal matches render the shared outcome explanation surface;
+- the surface shows the final result, decisive cause, every player's final standing, and a viewer-safe per-player breakdown;
+- the decisive cause is supplied by Rust public/terminal view data and/or Rust terminal semantic effects; TypeScript does not compute the result explanation;
+- the surface explains only the actual result and contains no coaching, counterfactuals, or strategy advice;
+- hidden-information games prove that outcome explanations do not leak unrevealed private state through text, DOM attributes, accessibility labels, test IDs, storage, logs, effect logs, replay export, dev panels, or bot explanation surfaces;
+- the terminal summary is accessible to screen readers as a status/result message; expanded breakdowns are keyboard-accessible and color-independent; reduced-motion mode preserves all outcome facts.

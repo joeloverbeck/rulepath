@@ -25,7 +25,9 @@ pub use rules::{apply_action, validate_command, validate_command_with_effects, V
 pub use setup::{setup_match, SetupOptions};
 pub use state::{CellOccupancy, TerminalOutcome, ThreeMarksSnapshot, ThreeMarksState, WinningLine};
 pub use variants::{Manifest, Variant, VariantCatalog};
-pub use visibility::{project_view, CellView, LegalTargetView, PublicView, TerminalView};
+pub use visibility::{
+    project_view, CellView, LegalTargetView, OutcomeRationaleView, PublicView, TerminalView,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct ThreeMarks;

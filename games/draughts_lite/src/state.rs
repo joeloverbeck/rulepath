@@ -2,6 +2,7 @@ use engine_core::{FreshnessToken, SeatId, StableSerialize};
 use game_stdlib::board_space::{Coord, Dimensions};
 
 use crate::{
+    effects::TerminalWinReason,
     ids::{board_dimensions, DraughtsLiteSeat, PieceId},
     variants::Variant,
 };
@@ -57,6 +58,7 @@ pub struct DraughtsLiteState {
     pub ply_count: u32,
     pub command_count: u32,
     pub terminal_outcome: Option<TerminalOutcome>,
+    pub terminal_reason: Option<TerminalWinReason>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -98,6 +100,7 @@ pub struct DraughtsLiteSnapshot {
     pub ply_count: u32,
     pub command_count: u32,
     pub terminal_outcome: Option<TerminalOutcome>,
+    pub terminal_reason: Option<TerminalWinReason>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -116,6 +119,7 @@ impl DraughtsLiteSnapshot {
             ply_count: state.ply_count,
             command_count: state.command_count,
             terminal_outcome: state.terminal_outcome,
+            terminal_reason: state.terminal_reason,
             freshness_token: state.freshness_token,
         }
     }
@@ -131,6 +135,7 @@ impl DraughtsLiteSnapshot {
             ply_count: self.ply_count,
             command_count: self.command_count,
             terminal_outcome: self.terminal_outcome,
+            terminal_reason: self.terminal_reason,
             freshness_token: self.freshness_token,
         }
     }
@@ -155,7 +160,7 @@ impl DraughtsLiteSnapshot {
             .join(",");
 
         format!(
-            "schema={};rules={};rules_label={};variant={};seat_count={};first_seat={};columns={};rows={};cell_scheme={};opening={};ending={};board_rows={};board_cols={};cells={};pieces={};active={};seat_0={};seat_1={};ply={};commands={};terminal={};freshness={}",
+            "schema={};rules={};rules_label={};variant={};seat_count={};first_seat={};columns={};rows={};cell_scheme={};opening={};ending={};board_rows={};board_cols={};cells={};pieces={};active={};seat_0={};seat_1={};ply={};commands={};terminal={};terminal_reason={};freshness={}",
             self.schema_version,
             self.rules_version,
             self.rules_version_label,
@@ -177,6 +182,7 @@ impl DraughtsLiteSnapshot {
             self.ply_count,
             self.command_count,
             terminal_summary(self.terminal_outcome),
+            self.terminal_reason.map_or("none", TerminalWinReason::as_str),
             self.freshness_token.0
         )
     }

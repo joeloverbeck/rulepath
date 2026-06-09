@@ -71,6 +71,7 @@ panel data whitelist is documented in
 - `smoke:ui`: fast Node/WASM shell-state smoke through `render_game_to_text`.
 - `smoke:preview`: built `dist` static-serving and WASM fetch smoke.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
-  for the shell, Three Marks, Column Four, Draughts Lite, High Card Duel, and
-  Token Bazaar, Veiled Draft, and Crest Ledger. A standalone Directional Flip E2E smoke file also exists under
-  `e2e/`, but is not chained by `smoke:e2e`.
+  for the shell, rules display, outcome explanation, Three Marks, Column Four,
+  Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, and Crest Ledger. A
+  standalone Directional Flip E2E smoke file also exists under `e2e/`, but is
+  not chained by `smoke:e2e`.

@@ -57,20 +57,20 @@
     "final": 3968125303356880427
   },
   "expected_public_view_hashes": {
-    "observer": 9485373861887314801,
-    "seat_0": 8060786313883441662,
-    "seat_1": 18304475832060555524
+    "observer": 5687636899125470487,
+    "seat_0": 4760859035280016020,
+    "seat_1": 15456452904566490298
   },
   "expected_private_view_hashes": {
-    "seat_0": 8060786313883441662,
-    "seat_1": 18304475832060555524
+    "seat_0": 4760859035280016020,
+    "seat_1": 15456452904566490298
   },
   "expected_replay_hashes": {
     "final": 6801154480878824109
   },
   "expected_diagnostic_hashes": null,
   "expected_public_export_hashes": {
-    "final": 18129334971386518167
+    "final": 44996435059246905
   },
   "expected_diagnostics": null,
   "expected_terminal_state": {
@@ -79,7 +79,7 @@
     "draw": false
   },
   "note": "Crest Ledger press_match_showdown_reveal replay fixture.",
-  "migration_update_note": "Initial Crest Ledger Trace Schema v1 fixture established by GAT10POKLITBET-009/010.",
+  "migration_update_note": "Updated public terminal view hash for VICEXPSHASUR-003 outcome rationale projection.",
   "options": {},
   "seats": [
     {

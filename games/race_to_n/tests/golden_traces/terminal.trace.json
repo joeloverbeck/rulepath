@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "terminal_replay",
   "note": "Seven max-add actions reach the exact target and bind terminal outcome/effect order.",
-  "migration_update_note": "Migrated from legacy key-value terminal.trace to Trace Schema v1 JSON; expected hashes are unchanged.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-005 outcome rationale projection.",
   "game_id": "race_to_n",
   "rules_version": "race_to_n-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -28,10 +28,10 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 6 }
   ],
-  "expected_state_hashes": { "final": 3256403188665508531 },
+  "expected_state_hashes": { "final": 10444744669822705600 },
   "expected_effect_hashes": { "final": 736896495286043826 },
   "expected_action_tree_hashes": { "final": 14695981039346656037 },
-  "expected_public_view_hashes": { "all": 15202890270124712315 },
+  "expected_public_view_hashes": { "all": 16473731371531971946 },
   "expected_private_view_hashes": {
     "not_applicable": "race_to_n is perfect-information and has no private-view API."
   },

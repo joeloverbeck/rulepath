@@ -9,6 +9,7 @@ import type {
   TokenBazaarResourceCounts,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type TokenBazaarBoardProps = {
   view: TokenBazaarPublicView;
@@ -149,6 +150,37 @@ export function TokenBazaarBoard({
           </ol>
         ) : null}
       </div>
+
+      {terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "token_bazaar",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal.draw ? "draw" : "win",
+            decisiveCause: "rust_terminal_rationale",
+            templateKey: view.terminal.draw ? "token_bazaar.all_tied_draw" : "token_bazaar.score_win",
+            templateParams: { winner: view.terminal.winner ?? "" },
+            finalStanding: [
+              tokenStanding("seat_0", view.terminal.winner, view),
+              tokenStanding("seat_1", view.terminal.winner, view),
+            ],
+            breakdownSections: [
+              {
+                id: "public-accounting",
+                heading: "Public accounting",
+                rows: [
+                  { label: "seat_0 fulfilled", value: view.fulfilled.seat_0.length },
+                  { label: "seat_1 fulfilled", value: view.fulfilled.seat_1.length },
+                  { label: "seat_0 inventory", value: inventoryTotal(view.inventories[0].resources) },
+                  { label: "seat_1 inventory", value: inventoryTotal(view.inventories[1].resources) },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -286,4 +318,25 @@ function resourceCode(resource: keyof TokenBazaarResourceCounts): string {
     case "iron":
       return "IR";
   }
+}
+
+function inventoryTotal(counts: TokenBazaarResourceCounts): number {
+  return counts.amber + counts.jade + counts.iron;
+}
+
+function tokenStanding(seat: SeatId, winner: SeatId | null, view: TokenBazaarPublicView) {
+  const score = seat === "seat_0" ? view.scores.seat_0 : view.scores.seat_1;
+  const fulfilled = seat === "seat_0" ? view.fulfilled.seat_0.length : view.fulfilled.seat_1.length;
+  const inventory = view.inventories[seat === "seat_0" ? 0 : 1].resources;
+  return {
+    id: seat,
+    label: seatLabel(seat),
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
+    emphasized: winner === seat,
+    values: [
+      { label: "Score", value: score },
+      { label: "Fulfilled", value: fulfilled },
+      { label: "Inventory", value: inventoryTotal(inventory) },
+    ],
+  };
 }

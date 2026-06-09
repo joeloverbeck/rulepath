@@ -3,7 +3,7 @@ use engine_core::{EffectEnvelope, FreshnessToken, StableSerialize, Viewer, Visib
 use crate::{
     effects::PokerLiteEffect,
     ids::{CrestCardId, PokerLiteSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
-    rules::showdown_strength,
+    rules::{compare_showdown, showdown_strength, ShowdownStrength},
     state::{Phase, PokerLiteState, ShowdownReveal, TerminalOutcome},
     ui::{card_accessibility_label, ui_metadata, UiMetadata},
 };
@@ -61,6 +61,7 @@ pub struct ShowdownView {
     pub seat_1_private: CardView,
     pub center: CardView,
     pub winner: Option<PokerLiteSeat>,
+    pub rationale: OutcomeRationaleView,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -70,15 +71,45 @@ pub enum TerminalView {
         winner: PokerLiteSeat,
         loser: PokerLiteSeat,
         shared_pool: u8,
+        rationale: OutcomeRationaleView,
     },
     ShowdownWin {
         winner: PokerLiteSeat,
         shared_pool: u8,
+        rationale: OutcomeRationaleView,
     },
     Split {
         shared_pool: u8,
         each: u8,
+        rationale: OutcomeRationaleView,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub per_seat: [SeatOutcomeBreakdownView; 2],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatOutcomeBreakdownView {
+    pub seat: PokerLiteSeat,
+    pub result: String,
+    pub allocation: u8,
+    pub contribution: u8,
+    pub strength: Option<ShowdownStrengthView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownStrengthView {
+    pub pair_bucket: String,
+    pub private_rank: String,
+    pub private_rank_value: u8,
+    pub center_crest: String,
+    pub center_rank: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -215,9 +246,11 @@ fn private_view(state: &PokerLiteState, viewer_seat: Option<PokerLiteSeat>) -> P
 }
 
 fn showdown_view(outcome: Option<TerminalOutcome>) -> Option<ShowdownView> {
-    let reveal = match outcome {
-        Some(TerminalOutcome::ShowdownWin { reveal, .. })
-        | Some(TerminalOutcome::Split { reveal, .. }) => reveal,
+    let (reveal, rationale) = match outcome {
+        Some(
+            terminal @ (TerminalOutcome::ShowdownWin { reveal, .. }
+            | TerminalOutcome::Split { reveal, .. }),
+        ) => (reveal, outcome_rationale(terminal)),
         Some(TerminalOutcome::YieldWin { .. }) | None => return None,
     };
     Some(ShowdownView {
@@ -225,34 +258,236 @@ fn showdown_view(outcome: Option<TerminalOutcome>) -> Option<ShowdownView> {
         seat_1_private: card_view(reveal.seat_1_private),
         center: card_view(reveal.center),
         winner: winner_from_reveal(reveal),
+        rationale,
     })
 }
 
 fn terminal_view(outcome: Option<TerminalOutcome>) -> TerminalView {
     match outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::YieldWin {
+        Some(
+            terminal @ TerminalOutcome::YieldWin {
+                winner,
+                loser,
+                shared_pool,
+                ..
+            },
+        ) => TerminalView::YieldWin {
             winner,
             loser,
             shared_pool,
-            ..
-        }) => TerminalView::YieldWin {
-            winner,
-            loser,
-            shared_pool,
+            rationale: outcome_rationale(terminal),
         },
-        Some(TerminalOutcome::ShowdownWin {
+        Some(
+            terminal @ TerminalOutcome::ShowdownWin {
+                winner,
+                shared_pool,
+                ..
+            },
+        ) => TerminalView::ShowdownWin {
             winner,
             shared_pool,
-            ..
-        }) => TerminalView::ShowdownWin {
-            winner,
-            shared_pool,
+            rationale: outcome_rationale(terminal),
         },
-        Some(TerminalOutcome::Split {
-            shared_pool, each, ..
-        }) => TerminalView::Split { shared_pool, each },
+        Some(
+            terminal @ TerminalOutcome::Split {
+                shared_pool, each, ..
+            },
+        ) => TerminalView::Split {
+            shared_pool,
+            each,
+            rationale: outcome_rationale(terminal),
+        },
     }
+}
+
+fn outcome_rationale(outcome: TerminalOutcome) -> OutcomeRationaleView {
+    match outcome {
+        TerminalOutcome::YieldWin {
+            winner,
+            loser,
+            shared_pool,
+            contributions,
+        } => OutcomeRationaleView {
+            result_kind: "yield_win".to_owned(),
+            decisive_cause: "opponent_yielded".to_owned(),
+            template_key: "poker_lite.yield_win_no_reveal".to_owned(),
+            decisive_rule_ids: rule_ids(&[
+                "CL-PLEDGE-005",
+                "CL-SCORE-006",
+                "CL-END-001",
+                "CL-VIS-007",
+            ]),
+            per_seat: [
+                yield_breakdown(
+                    PokerLiteSeat::Seat0,
+                    winner,
+                    loser,
+                    shared_pool,
+                    contributions,
+                ),
+                yield_breakdown(
+                    PokerLiteSeat::Seat1,
+                    winner,
+                    loser,
+                    shared_pool,
+                    contributions,
+                ),
+            ],
+        },
+        TerminalOutcome::ShowdownWin {
+            winner,
+            shared_pool,
+            contributions,
+            reveal,
+        } => {
+            let cause = showdown_decisive_cause(reveal);
+            OutcomeRationaleView {
+                result_kind: "showdown_win".to_owned(),
+                decisive_cause: cause.to_owned(),
+                template_key: showdown_template_key(cause).to_owned(),
+                decisive_rule_ids: rule_ids(&["CL-REVEAL-002", "CL-SCORE-004", "CL-END-002"]),
+                per_seat: [
+                    showdown_breakdown(
+                        PokerLiteSeat::Seat0,
+                        Some(winner),
+                        shared_pool,
+                        contributions,
+                        reveal,
+                    ),
+                    showdown_breakdown(
+                        PokerLiteSeat::Seat1,
+                        Some(winner),
+                        shared_pool,
+                        contributions,
+                        reveal,
+                    ),
+                ],
+            }
+        }
+        TerminalOutcome::Split {
+            shared_pool: _,
+            each,
+            contributions,
+            reveal,
+        } => OutcomeRationaleView {
+            result_kind: "split".to_owned(),
+            decisive_cause: "equal_strength_split".to_owned(),
+            template_key: "poker_lite.equal_strength_split".to_owned(),
+            decisive_rule_ids: rule_ids(&[
+                "CL-REVEAL-002",
+                "CL-SCORE-004",
+                "CL-SCORE-005",
+                "CL-END-003",
+            ]),
+            per_seat: [
+                split_breakdown(PokerLiteSeat::Seat0, each, contributions, reveal),
+                split_breakdown(PokerLiteSeat::Seat1, each, contributions, reveal),
+            ],
+        },
+    }
+}
+
+fn yield_breakdown(
+    seat: PokerLiteSeat,
+    winner: PokerLiteSeat,
+    loser: PokerLiteSeat,
+    shared_pool: u8,
+    contributions: [u8; 2],
+) -> SeatOutcomeBreakdownView {
+    SeatOutcomeBreakdownView {
+        seat,
+        result: if seat == winner {
+            "win".to_owned()
+        } else if seat == loser {
+            "yield_loss".to_owned()
+        } else {
+            "not_applicable".to_owned()
+        },
+        allocation: if seat == winner { shared_pool } else { 0 },
+        contribution: contributions[seat.index()],
+        strength: None,
+    }
+}
+
+fn showdown_breakdown(
+    seat: PokerLiteSeat,
+    winner: Option<PokerLiteSeat>,
+    shared_pool: u8,
+    contributions: [u8; 2],
+    reveal: ShowdownReveal,
+) -> SeatOutcomeBreakdownView {
+    SeatOutcomeBreakdownView {
+        seat,
+        result: if Some(seat) == winner { "win" } else { "loss" }.to_owned(),
+        allocation: if Some(seat) == winner { shared_pool } else { 0 },
+        contribution: contributions[seat.index()],
+        strength: Some(strength_view(reveal, seat)),
+    }
+}
+
+fn split_breakdown(
+    seat: PokerLiteSeat,
+    each: u8,
+    contributions: [u8; 2],
+    reveal: ShowdownReveal,
+) -> SeatOutcomeBreakdownView {
+    SeatOutcomeBreakdownView {
+        seat,
+        result: "split".to_owned(),
+        allocation: each,
+        contribution: contributions[seat.index()],
+        strength: Some(strength_view(reveal, seat)),
+    }
+}
+
+fn strength_view(reveal: ShowdownReveal, seat: PokerLiteSeat) -> ShowdownStrengthView {
+    let private = match seat {
+        PokerLiteSeat::Seat0 => reveal.seat_0_private,
+        PokerLiteSeat::Seat1 => reveal.seat_1_private,
+    };
+    let strength = showdown_strength(private, reveal.center);
+    ShowdownStrengthView {
+        pair_bucket: pair_bucket(strength).to_owned(),
+        private_rank: private.rank().as_str().to_owned(),
+        private_rank_value: strength.private_rank_value,
+        center_crest: reveal.center.as_str().to_owned(),
+        center_rank: reveal.center.rank().as_str().to_owned(),
+    }
+}
+
+fn pair_bucket(strength: ShowdownStrength) -> &'static str {
+    if strength.pair_flag {
+        "pair"
+    } else {
+        "high_card"
+    }
+}
+
+fn showdown_decisive_cause(reveal: ShowdownReveal) -> &'static str {
+    let seat_0 = showdown_strength(reveal.seat_0_private, reveal.center);
+    let seat_1 = showdown_strength(reveal.seat_1_private, reveal.center);
+    if seat_0.pair_flag != seat_1.pair_flag {
+        "pair_beats_high_card"
+    } else if seat_0.private_rank_value != seat_1.private_rank_value {
+        "higher_private_rank"
+    } else {
+        debug_assert_eq!(compare_showdown(reveal), None);
+        "equal_strength_split"
+    }
+}
+
+fn showdown_template_key(cause: &str) -> &'static str {
+    match cause {
+        "pair_beats_high_card" => "poker_lite.pair_beats_high_card",
+        "higher_private_rank" => "poker_lite.private_rank_tiebreak",
+        "equal_strength_split" => "poker_lite.equal_strength_split",
+        _ => "poker_lite.private_rank_tiebreak",
+    }
+}
+
+fn rule_ids(ids: &[&str]) -> Vec<String> {
+    ids.iter().map(|id| (*id).to_owned()).collect()
 }
 
 fn strength_bucket(state: &PokerLiteState, own_card: CrestCardId) -> String {
@@ -305,11 +540,12 @@ fn encode_center(center: &CenterView) -> String {
 
 fn encode_showdown(showdown: &ShowdownView) -> String {
     format!(
-        "{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}",
         encode_card(&showdown.seat_0_private),
         encode_card(&showdown.seat_1_private),
         encode_card(&showdown.center),
-        seat_option(showdown.winner)
+        seat_option(showdown.winner),
+        encode_rationale(&showdown.rationale)
     )
 }
 
@@ -327,18 +563,67 @@ fn encode_terminal(terminal: &TerminalView) -> String {
             winner,
             loser,
             shared_pool,
+            rationale,
         } => format!(
-            "yield:{}:{}:{}",
+            "yield:{}:{}:{}:{}",
             winner.as_str(),
             loser.as_str(),
-            shared_pool
+            shared_pool,
+            encode_rationale(rationale)
         ),
         TerminalView::ShowdownWin {
             winner,
             shared_pool,
-        } => format!("showdown:{}:{}", winner.as_str(), shared_pool),
-        TerminalView::Split { shared_pool, each } => format!("split:{shared_pool}:{each}"),
+            rationale,
+        } => format!(
+            "showdown:{}:{}:{}",
+            winner.as_str(),
+            shared_pool,
+            encode_rationale(rationale)
+        ),
+        TerminalView::Split {
+            shared_pool,
+            each,
+            rationale,
+        } => format!("split:{shared_pool}:{each}:{}", encode_rationale(rationale)),
     }
+}
+
+fn encode_rationale(rationale: &OutcomeRationaleView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}|{}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join(","),
+        encode_seat_breakdown(&rationale.per_seat[0]),
+        encode_seat_breakdown(&rationale.per_seat[1])
+    )
+}
+
+fn encode_seat_breakdown(breakdown: &SeatOutcomeBreakdownView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        breakdown.seat.as_str(),
+        breakdown.result,
+        breakdown.allocation,
+        breakdown.contribution,
+        breakdown
+            .strength
+            .as_ref()
+            .map_or_else(|| "none".to_owned(), encode_strength)
+    )
+}
+
+fn encode_strength(strength: &ShowdownStrengthView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        strength.pair_bucket,
+        strength.private_rank,
+        strength.private_rank_value,
+        strength.center_crest,
+        strength.center_rank
+    )
 }
 
 fn encode_private(private: &PrivateView) -> String {

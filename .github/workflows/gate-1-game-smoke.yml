@@ -173,3 +173,6 @@ jobs:
         run: |
           node scripts/copy-player-rules.mjs
           node scripts/check-player-rules.mjs
+
+      - name: Outcome explanation coverage check
+        run: node scripts/check-outcome-explanations.mjs

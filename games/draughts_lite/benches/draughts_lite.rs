@@ -517,6 +517,7 @@ fn empty_state(active_seat: DraughtsLiteSeat, mut pieces: Vec<Piece>) -> Draught
         ply_count: 0,
         command_count: 0,
         terminal_outcome: None,
+        terminal_reason: None,
         freshness_token: FreshnessToken(0),
     }
 }

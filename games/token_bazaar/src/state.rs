@@ -126,6 +126,40 @@ pub enum TerminalOutcome {
     Draw,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum TerminalTrigger {
+    TurnCap,
+    MarketExhaustion,
+}
+
+impl TerminalTrigger {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::TurnCap => "turn_cap",
+            Self::MarketExhaustion => "market_exhaustion",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum TiebreakRung {
+    Score,
+    FulfilledContracts,
+    InventoryTotal,
+    AllTiedDraw,
+}
+
+impl TiebreakRung {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Score => "score",
+            Self::FulfilledContracts => "fulfilled_contracts",
+            Self::InventoryTotal => "inventory_total",
+            Self::AllTiedDraw => "all_tied_draw",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TokenBazaarState {
     pub variant: Variant,
@@ -139,6 +173,7 @@ pub struct TokenBazaarState {
     pub turns_taken: [u8; 2],
     pub active_seat: TokenBazaarSeat,
     pub terminal_outcome: Option<TerminalOutcome>,
+    pub terminal_trigger: Option<TerminalTrigger>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -158,6 +193,14 @@ impl TokenBazaarState {
     pub fn fulfilled_for(&self, seat: TokenBazaarSeat) -> &[ContractId] {
         &self.fulfilled[seat.index()]
     }
+
+    pub fn fulfilled_counts(&self) -> [u8; 2] {
+        [self.fulfilled[0].len() as u8, self.fulfilled[1].len() as u8]
+    }
+
+    pub fn inventory_totals(&self) -> [u16; 2] {
+        [self.inventories[0].total(), self.inventories[1].total()]
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -176,6 +219,7 @@ pub struct TokenBazaarSnapshot {
     pub turns_taken: [u8; 2],
     pub active_seat: TokenBazaarSeat,
     pub terminal_outcome: Option<TerminalOutcome>,
+    pub terminal_trigger: Option<TerminalTrigger>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -196,6 +240,7 @@ impl TokenBazaarSnapshot {
             turns_taken: state.turns_taken,
             active_seat: state.active_seat,
             terminal_outcome: state.terminal_outcome,
+            terminal_trigger: state.terminal_trigger,
             freshness_token: state.freshness_token,
         }
     }
@@ -213,13 +258,14 @@ impl TokenBazaarSnapshot {
             turns_taken: self.turns_taken,
             active_seat: self.active_seat,
             terminal_outcome: self.terminal_outcome,
+            terminal_trigger: self.terminal_trigger,
             freshness_token: self.freshness_token,
         }
     }
 
     pub fn stable_summary(&self) -> String {
         format!(
-            "schema={};rules={};rules_label={};variant={};seat_count={};first_active={};resource_supply={};starting_resource_count={};market_slot_count={};contract_count={};turns_per_seat={};contract_order={};terminal_scoring={};seat_0={};seat_1={};supply={};inv_0={};inv_1={};score_0={};score_1={};slots={};queue={};fulfilled_0={};fulfilled_1={};turns_0={};turns_1={};active={};terminal={};freshness={}",
+            "schema={};rules={};rules_label={};variant={};seat_count={};first_active={};resource_supply={};starting_resource_count={};market_slot_count={};contract_count={};turns_per_seat={};contract_order={};terminal_scoring={};seat_0={};seat_1={};supply={};inv_0={};inv_1={};score_0={};score_1={};slots={};queue={};fulfilled_0={};fulfilled_1={};turns_0={};turns_1={};active={};terminal={};terminal_trigger={};freshness={}",
             self.schema_version,
             self.rules_version,
             self.rules_version_label,
@@ -248,6 +294,7 @@ impl TokenBazaarSnapshot {
             self.turns_taken[1],
             self.active_seat.as_str(),
             terminal_summary(self.terminal_outcome),
+            self.terminal_trigger.map_or("none", TerminalTrigger::as_str),
             self.freshness_token.0
         )
     }
@@ -320,6 +367,7 @@ mod tests {
             turns_taken: [0, 1],
             active_seat: TokenBazaarSeat::Seat1,
             terminal_outcome: None,
+            terminal_trigger: None,
             freshness_token: FreshnessToken(0),
         };
 

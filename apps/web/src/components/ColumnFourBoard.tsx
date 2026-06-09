@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ActionChoice, ColumnFourPublicView, EffectEntry } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type ColumnFourBoardProps = {
   view: ColumnFourPublicView;
@@ -147,6 +148,35 @@ export function ColumnFourBoard({
               : "Replay board is projected by Rust at this cursor."}
         </span>
       </div>
+
+      {terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "column_four",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+            decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
+            templateKey: view.terminal_kind === "draw" ? "column_four.full_board_draw" : "column_four.line_completed",
+            templateParams: {
+              winner: view.winning_seat ?? "",
+              line_label: view.winning_line.join(", "),
+            },
+            finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
+            breakdownSections: [
+              {
+                id: "terminal-line",
+                heading: "Terminal detail",
+                rows: [
+                  { label: "Kind", value: view.terminal_kind },
+                  { label: "Winning line", value: view.winning_line.join(", ") || "None" },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -213,4 +243,14 @@ function cellLabel(cell: ColumnFourPublicView["cells"][number]): string {
     return `${cell.cell}, occupied by ${cell.owner}`;
   }
   return `${cell.cell}, empty`;
+}
+
+function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null) {
+  return {
+    id: seat,
+    label: seat,
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
+    emphasized: winner === seat,
+    values: [{ label: "Result", value: winner === seat ? "win" : winner ? "loss" : "draw" }],
+  };
 }

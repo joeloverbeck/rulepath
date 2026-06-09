@@ -1,6 +1,7 @@
 use draughts_lite::{
     apply_action, project_view, setup_match, validate_command, CellOccupancy, DraughtsLiteSeat,
-    PieceId, SetupOptions, TerminalOutcome, TerminalView,
+    OutcomeRationaleView, PieceBreakdownView, PieceId, SetupOptions, TerminalOutcome, TerminalView,
+    TerminalWinReason,
 };
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
@@ -95,13 +96,32 @@ fn terminal_view_has_no_active_seat_and_preserves_final_board() {
     state.terminal_outcome = Some(TerminalOutcome::Win {
         seat: DraughtsLiteSeat::Seat1,
     });
+    state.terminal_reason = Some(TerminalWinReason::OpponentNoLegalMove);
     let view = project_view(&state, &Viewer { seat_id: None });
 
     assert_eq!(view.active_seat, None);
     assert_eq!(
         view.terminal,
         TerminalView::Win {
-            winning_seat: DraughtsLiteSeat::Seat1
+            winning_seat: DraughtsLiteSeat::Seat1,
+            rationale: OutcomeRationaleView {
+                result_kind: "win".to_owned(),
+                decisive_cause: "opponent_no_legal_move".to_owned(),
+                template_key: "draughts_lite.opponent_no_legal_move".to_owned(),
+                decisive_rule_ids: vec!["DL-END-002".to_owned()],
+                losing_seat: DraughtsLiteSeat::Seat0,
+                losing_legal_move_count: 0,
+                seat_0_pieces: PieceBreakdownView {
+                    total: 12,
+                    men: 12,
+                    crowns: 0,
+                },
+                seat_1_pieces: PieceBreakdownView {
+                    total: 12,
+                    men: 12,
+                    crowns: 0,
+                },
+            }
         }
     );
     assert_eq!(view.status_label, "seat_1 wins");
@@ -111,6 +131,52 @@ fn terminal_view_has_no_active_seat_and_preserves_final_board() {
             .filter(|cell| cell.occupancy == "occupied")
             .count(),
         24
+    );
+}
+
+#[test]
+fn terminal_no_pieces_rationale_uses_public_piece_counts() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).unwrap();
+    for piece in state
+        .pieces
+        .iter()
+        .filter(|piece| piece.owner == DraughtsLiteSeat::Seat0)
+    {
+        state.cells[piece.cell.row_col_index(state.board).unwrap()] = CellOccupancy::Empty;
+    }
+    state
+        .pieces
+        .retain(|piece| piece.owner != DraughtsLiteSeat::Seat0);
+    state.terminal_outcome = Some(TerminalOutcome::Win {
+        seat: DraughtsLiteSeat::Seat1,
+    });
+    state.terminal_reason = Some(TerminalWinReason::OpponentNoPieces);
+
+    let view = project_view(&state, &Viewer { seat_id: None });
+
+    assert_eq!(
+        view.terminal,
+        TerminalView::Win {
+            winning_seat: DraughtsLiteSeat::Seat1,
+            rationale: OutcomeRationaleView {
+                result_kind: "win".to_owned(),
+                decisive_cause: "opponent_no_pieces".to_owned(),
+                template_key: "draughts_lite.opponent_no_pieces".to_owned(),
+                decisive_rule_ids: vec!["DL-END-001".to_owned()],
+                losing_seat: DraughtsLiteSeat::Seat0,
+                losing_legal_move_count: 0,
+                seat_0_pieces: PieceBreakdownView {
+                    total: 0,
+                    men: 0,
+                    crowns: 0,
+                },
+                seat_1_pieces: PieceBreakdownView {
+                    total: 12,
+                    men: 12,
+                    crowns: 0,
+                },
+            }
+        }
     );
 }
 

@@ -4,7 +4,7 @@
   "fixture_kind": "diagnostic",
   "purpose": "path_after_promotion_stop_diagnostic",
   "note": "A path segment after a promotion-stop capture is rejected.",
-  "migration_update_note": "Initial Draughts Lite Trace Schema v1 fixture; expected hashes are established by GAT7DRALITCOM-014.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-006 terminal reason projection.",
   "game_id": "draughts_lite",
   "rules_version": "draughts_lite-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 14622432127493141872 },
+  "expected_state_hashes": { "final": 6368752907198825113 },
   "expected_effect_hashes": { "final": 14695981039346656037 },
   "expected_action_tree_hashes": { "final": 6164955988499193641 },
   "expected_public_view_hashes": { "all": 5966983286173288979 },
-  "expected_replay_hashes": { "final": 17605712624945550906 },
+  "expected_replay_hashes": { "final": 14878766849542978419 },
   "expected_diagnostics": [
     { "index": 0, "code": "continues_after_promotion_stop", "hash": 4692016383483218549 }
   ],

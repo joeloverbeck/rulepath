@@ -3,13 +3,15 @@ use secret_draft::{
     actions::{commit_segment, legal_action_metadata, legal_action_tree, validate_command},
     apply_action,
     bots::{actor_for_seat, SecretDraftLevel1Bot},
+    determine_terminal_outcome_from_summary,
     replay_support::{
         effect_stable_string, export_public_replay, import_public_export, PublicReplayExport,
         ReplayCommand, SecretDraftInternalTrace,
     },
+    terminal_tie_break_summary,
     visibility::filter_effects_for_viewer,
-    DraftItemId, SecretDraftSeat, SecretDraftState, SetupOptions, GAME_ID, RULES_VERSION_LABEL,
-    VARIANT_ID,
+    DraftItemId, Phase, SecretDraftSeat, SecretDraftState, SetupOptions, TerminalView, GAME_ID,
+    RULES_VERSION_LABEL, VARIANT_ID,
 };
 
 fn setup() -> SecretDraftState {
@@ -148,6 +150,143 @@ fn viewer_filtered_effects_and_bot_explanations_do_not_reveal_opponent_commitmen
 }
 
 #[test]
+fn terminal_rationale_identifies_each_public_tie_break_rung() {
+    let cases = [
+        (
+            terminal_state(
+                [vec![DraftItemId::Ember4], vec![DraftItemId::Ember3]],
+                [0, 0],
+            ),
+            SecretDraftSeat::Seat0,
+            "score",
+            "secret_draft.score_win",
+        ),
+        (
+            terminal_state(
+                [
+                    vec![DraftItemId::Ember1, DraftItemId::Tide1, DraftItemId::Grove1],
+                    vec![DraftItemId::Ember2, DraftItemId::Ember4],
+                ],
+                [0, 0],
+            ),
+            SecretDraftSeat::Seat0,
+            "complete_sets",
+            "secret_draft.complete_sets_tiebreak",
+        ),
+        (
+            terminal_state(
+                [
+                    vec![DraftItemId::Ember2],
+                    vec![DraftItemId::Ember1, DraftItemId::Tide1],
+                ],
+                [0, 0],
+            ),
+            SecretDraftSeat::Seat0,
+            "highest_single_value",
+            "secret_draft.highest_single_tiebreak",
+        ),
+        (
+            terminal_state(
+                [
+                    vec![DraftItemId::Ember1, DraftItemId::Tide2],
+                    vec![DraftItemId::Grove1, DraftItemId::Grove2],
+                ],
+                [0, 0],
+            ),
+            SecretDraftSeat::Seat0,
+            "distinct_threads",
+            "secret_draft.distinct_threads_tiebreak",
+        ),
+        (
+            terminal_state(
+                [vec![DraftItemId::Ember1], vec![DraftItemId::Tide1]],
+                [1, 0],
+            ),
+            SecretDraftSeat::Seat1,
+            "fewer_priority_conflict_wins",
+            "secret_draft.fewer_priority_conflict_wins_tiebreak",
+        ),
+    ];
+
+    for (state, winner, decisive_cause, template_key) in cases {
+        let view = secret_draft::project_view(&state, &Viewer { seat_id: None });
+        let TerminalView::Win {
+            winning_seat,
+            rationale,
+        } = view.terminal
+        else {
+            panic!("expected terminal win view");
+        };
+
+        assert_eq!(winning_seat, winner);
+        assert_eq!(rationale.result_kind, "win");
+        assert_eq!(rationale.decisive_cause, decisive_cause);
+        assert_eq!(rationale.template_key, template_key);
+        assert_eq!(rationale.terminal_trigger, "sixth_reveal_complete");
+        assert_eq!(rationale.terminal_trigger_rule_id, "SD-END-001");
+        assert_eq!(
+            rationale.ladder.iter().filter(|rung| rung.decisive).count(),
+            1
+        );
+        let decisive = rationale
+            .ladder
+            .iter()
+            .find(|rung| rung.decisive)
+            .expect("one decisive rung");
+        assert_eq!(decisive.rung, decisive_cause);
+        assert_eq!(decisive.winner, Some(winner));
+        assert!(rationale
+            .decisive_rule_ids
+            .contains(&"SD-END-001".to_owned()));
+        assert!(rationale
+            .decisive_rule_ids
+            .contains(&"SD-END-002".to_owned()));
+    }
+}
+
+#[test]
+fn terminal_rationale_identifies_all_tied_draw() {
+    let state = terminal_state(
+        [
+            vec![DraftItemId::Ember2, DraftItemId::Tide2],
+            vec![DraftItemId::Ember2, DraftItemId::Tide2],
+        ],
+        [0, 0],
+    );
+    let view = secret_draft::project_view(&state, &Viewer { seat_id: None });
+    let TerminalView::Draw { rationale } = view.terminal else {
+        panic!("expected terminal draw view");
+    };
+
+    assert_eq!(rationale.result_kind, "draw");
+    assert_eq!(rationale.decisive_cause, "all_tied_draw");
+    assert_eq!(rationale.template_key, "secret_draft.all_tied_draw");
+    assert_eq!(
+        rationale.ladder.iter().filter(|rung| rung.decisive).count(),
+        1
+    );
+    let decisive = rationale
+        .ladder
+        .iter()
+        .find(|rung| rung.decisive)
+        .expect("draw rung decisive");
+    assert_eq!(decisive.rung, "all_tied_draw");
+    assert_eq!(decisive.winner, None);
+    assert_eq!(decisive.seat_0_value, None);
+    assert_eq!(decisive.seat_1_value, None);
+}
+
+#[test]
+fn pending_terminal_surface_does_not_create_hidden_rationale() {
+    let hidden = DraftItemId::Ember4;
+    let (state, _) = one_commit_state(hidden);
+    let view = secret_draft::project_view(&state, &Viewer { seat_id: None });
+
+    assert_eq!(view.terminal, TerminalView::NonTerminal);
+    assert_no_hidden("terminal view", &format!("{:?}", view.terminal), hidden);
+}
+
+#[test]
 fn raw_internal_trace_is_the_only_checked_surface_that_keeps_private_command_authority() {
     let hidden = DraftItemId::Ember4;
     let trace = SecretDraftInternalTrace {
@@ -163,6 +302,22 @@ fn raw_internal_trace_is_the_only_checked_surface_that_keeps_private_command_aut
     };
 
     assert!(trace.to_json().contains(hidden.as_str()));
+}
+
+fn terminal_state(
+    drafted: [Vec<DraftItemId>; 2],
+    priority_conflict_wins: [u8; 2],
+) -> SecretDraftState {
+    let mut state = setup();
+    state.phase = Phase::Terminal;
+    state.round_number = 6;
+    state.visible_pool.clear();
+    state.drafted = drafted;
+    state.priority_conflict_wins = priority_conflict_wins;
+    let summary = terminal_tie_break_summary(&state);
+    state.scores = summary.scores;
+    state.terminal_outcome = Some(determine_terminal_outcome_from_summary(summary));
+    state
 }
 
 fn assert_no_hidden(surface: &str, value: &str, hidden: DraftItemId) {

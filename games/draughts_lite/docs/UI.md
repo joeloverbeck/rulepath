@@ -61,6 +61,21 @@ The UI never computes diagonals, playable parity, captures, continuation, promot
 | `terminal_win` / `TerminalWin` | terminal text | text only | no legal controls remain |
 | `bot_chose_action` / `BotChoseAction` | public bot rationale panel | text only | bot move result comes through Rust view/effects |
 
+## Outcome / victory explanation
+
+Rust includes terminal outcome rationale in the public view so the browser can render why the win occurred without recomputing piece counts or legal moves.
+
+Terminal result variants are `win` only for the declared variant. Decisive cause variants are `opponent_no_pieces` and `opponent_no_legal_move`.
+
+| Terminal kind | Template key | Decisive cause | Breakdown fields | Rule IDs |
+|---|---|---|---|---|
+| win | `draughts_lite.opponent_no_pieces` | `opponent_no_pieces` | `winning_seat`, `losing_seat`, `seat_0_pieces`, `seat_1_pieces`, `losing_legal_move_count=0` | `DL-END-001` |
+| win | `draughts_lite.opponent_no_legal_move` | `opponent_no_legal_move` | `winning_seat`, `losing_seat`, `seat_0_pieces`, `seat_1_pieces`, `losing_legal_move_count=0` | `DL-END-002` |
+
+The per-player breakdown fields are public piece totals split by man/crown counts. Hidden-info redaction is trivial because Draughts Lite is perfect-information, but no state dumps, candidate rankings, debug internals, or recomputed legal-move scans may be exposed through DOM attributes, logs, storage, replay export, or tests.
+
+Web smoke coverage must assert that terminal explanations render from Rust fields, terminal controls disappear, and the no-leak scan stays green.
+
 ## Accessibility And Keyboard
 
 | Element/control | Role/semantic element | Keyboard path | Notes |

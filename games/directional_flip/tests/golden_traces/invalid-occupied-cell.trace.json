@@ -4,7 +4,7 @@
   "fixture_kind": "diagnostic",
   "purpose": "invalid-occupied-cell",
   "note": "Directional Flip invalid-occupied-cell golden trace. ",
-  "migration_update_note": "Initial Directional Flip Trace Schema v1 fixture established by GAT6DIRFLI-013.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-005 outcome rationale projection.",
   "game_id": "directional_flip",
   "rules_version": "directional_flip-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -22,11 +22,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 0 }
   ],
-  "expected_state_hashes": { "final": 1293184595336711023 },
+  "expected_state_hashes": { "final": 9838004677150130360 },
   "expected_effect_hashes": { "final": 14695981039346656037 },
   "expected_action_tree_hashes": { "final": 17097613169116532881 },
   "expected_public_view_hashes": { "all": 13704486439819189942 },
-  "expected_replay_hashes": { "final": 1680372037662793496 },
+  "expected_replay_hashes": { "final": 2802400632486173635 },
   "expected_private_view_hashes": {
     "not_applicable": "directional_flip is perfect-information and has no private-view API."
   },

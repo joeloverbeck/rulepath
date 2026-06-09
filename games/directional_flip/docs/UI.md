@@ -62,6 +62,21 @@ The browser submits the Rust-provided `action_segment` unchanged. There is no co
 | `game_ended` | terminal status and final score text | text only | no legal controls remain | `DF-TERM-001`, `DF-SCORE-*` |
 | `bot_chose_action` | public bot rationale panel | text only | bot move result comes through Rust view/effects | `DF-BOT-002` |
 
+## Outcome / victory explanation
+
+Rust includes terminal outcome rationale in the public view so the browser can render the result without comparing scores or reading the effect log for the terminal trigger.
+
+Terminal result variants are `win` and `draw`. Decisive cause variants are `final_score_comparison`.
+
+| Terminal kind | Template key | Decisive cause | Breakdown fields | Rule IDs |
+|---|---|---|---|---|
+| win | `directional_flip.final_score_win` | `final_score_comparison` | `winning_seat`, `final_score.seat_0`, `final_score.seat_1`, `terminal_trigger` | `DF-SCORE-001` plus `DF-END-001`, `DF-END-002`, or `DF-END-003` |
+| draw | `directional_flip.final_score_draw` | `final_score_comparison` | `final_score.seat_0`, `final_score.seat_1`, `terminal_trigger` | `DF-SCORE-002` plus `DF-END-001`, `DF-END-002`, or `DF-END-003` |
+
+The per-player breakdown fields are the public final disc counts for `seat_0` and `seat_1`; `terminal_trigger` is one of `board_full`, `no_continuation`, or `double_forced_pass`. Hidden-info redaction is explicit: no hidden fields, no private view payload, and no state dumps in DOM attributes, logs, storage, replay export, or tests. TypeScript may map these public values to labels, but it must not compare scores, infer the terminal trigger, or decide win/draw.
+
+Web smoke coverage must assert that win and draw explanations render from Rust fields and keep the no-leak scan green.
+
 ## Replay UI
 
 `ReplayViewer.tsx` reuses `DirectionalFlipBoard` in non-interactive mode. Replay reset/step projects the board from Rust replay state. The placement sequence is public replay command metadata; the UI does not reconstruct board state from command diffs.

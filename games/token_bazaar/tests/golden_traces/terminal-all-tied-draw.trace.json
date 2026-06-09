@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "trace_id": "token-bazaar-terminal-all-tied-draw",
+  "fixture_kind": "terminal",
+  "purpose": "terminal_all_tied_draw",
+  "note": "Token Bazaar terminal fixture where all tiebreak rungs tie and the match is a draw.",
+  "migration_update_note": "Added by VICEXPSHASUR-007 to pin all-tied draw outcome rationale.",
+  "game_id": "token_bazaar",
+  "rules_version": "token-bazaar-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": "1",
+  "seed": 1,
+  "variant": "token_bazaar_standard",
+  "options": {},
+  "setup_patch": "terminal_all_tied_draw",
+  "seats": [
+    { "seat_id": "seat-0", "player_id": "player-0" },
+    { "seat_id": "seat-1", "player_id": "player-1" }
+  ],
+  "commands": [],
+  "checkpoints": [{ "id": "final", "after_command_index": null }],
+  "expected_state_hashes": { "final": 1638529343676216245 },
+  "expected_effect_hashes": { "final": 14695981039346656037 },
+  "expected_action_tree_hashes": { "final": 14695981039346656037 },
+  "expected_public_view_hashes": { "all": 14573194988422456477 },
+  "expected_replay_hashes": { "final": 5695607085270619332 },
+  "expected_diagnostic_hashes": null,
+  "expected_public_export_hashes": { "final": 5695607085270619332 },
+  "expected_outcome": { "terminal": true, "winner": null, "draw": true },
+  "expected_terminal_state": { "terminal": true, "winner": null, "draw": true },
+  "not_applicable": {
+    "hidden_information": "token_bazaar is fully public.",
+    "stochastic_game_events": "token_bazaar game rules use no randomness.",
+    "private_view_hashes": "token_bazaar observer and seat views are identical.",
+    "preview_hashes": "token_bazaar uses legal action metadata rather than a separate preview hash."
+  }
+}

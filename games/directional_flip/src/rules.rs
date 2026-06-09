@@ -302,6 +302,7 @@ fn apply_placement(
 
     if let Some(reason) = terminal_reason_after_placement(state) {
         state.terminal_outcome = Some(outcome_from_score(disc_counts(state)));
+        state.terminal_reason = Some(reason);
         effects.push(game_ended_effect(state, reason));
     } else {
         let previous_seat = placement.actor;
@@ -331,6 +332,7 @@ fn apply_forced_pass(
 
     if state.consecutive_forced_passes >= 2 {
         state.terminal_outcome = Some(outcome_from_score(disc_counts(state)));
+        state.terminal_reason = Some(TerminalReason::DoubleForcedPass);
         effects.push(game_ended_effect(state, TerminalReason::DoubleForcedPass));
     } else {
         let previous_seat = pass.actor;
@@ -414,6 +416,7 @@ fn game_ended_effect(
     state: &DirectionalFlipState,
     reason: TerminalReason,
 ) -> EffectEnvelope<DirectionalFlipEffect> {
+    debug_assert_eq!(state.terminal_reason, Some(reason));
     public_effect(DirectionalFlipEffect::GameEnded {
         outcome: state
             .terminal_outcome
@@ -1045,6 +1048,11 @@ mod tests {
         );
         assert_eq!(*final_ply, 2);
         assert_eq!(*reason, TerminalReason::DoubleForcedPass);
+        assert_eq!(
+            state.terminal_reason,
+            Some(TerminalReason::DoubleForcedPass)
+        );
         assert!(terminal_hash_ref.contains("terminal=draw"));
+        assert!(terminal_hash_ref.contains("terminal_reason=double_forced_pass"));
     }
 }

@@ -1,5 +1,6 @@
 import type { ActionChoice, EffectEntry, ThreeMarksPublicView } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type ThreeMarksBoardProps = {
   view: ThreeMarksPublicView;
@@ -128,6 +129,35 @@ export function ThreeMarksBoard({
               : "Replay board is projected by Rust at this cursor."}
         </span>
       </div>
+
+      {terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "three_marks",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+            decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
+            templateKey: view.terminal_kind === "draw" ? "three_marks.full_board_draw" : "three_marks.line_completed",
+            templateParams: {
+              winner: view.winning_seat ?? "",
+              line_label: view.winning_line.join(", "),
+            },
+            finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
+            breakdownSections: [
+              {
+                id: "terminal-line",
+                heading: "Terminal detail",
+                rows: [
+                  { label: "Kind", value: view.terminal_kind },
+                  { label: "Winning line", value: view.winning_line.join(", ") || "None" },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -200,4 +230,14 @@ function boardSummary(cells: CellModel[], view: ThreeMarksPublicView): string {
     .map((target) => target.cell)
     .join(", ");
   return `${view.status_label}. Occupied: ${occupied || "none"}. Legal targets: ${legal || "none"}.`;
+}
+
+function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null) {
+  return {
+    id: seat,
+    label: seat,
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
+    emphasized: winner === seat,
+    values: [{ label: "Result", value: winner === seat ? "win" : winner ? "loss" : "draw" }],
+  };
 }
