@@ -19,6 +19,7 @@ const expectedGames = [
   "Token Bazaar",
   "Veiled Draft",
   "Crest Ledger",
+  "Plain Tricks",
 ];
 const staticForbiddenTerms = [
   "hidden_state",
@@ -99,6 +100,7 @@ try {
   await assertRulesTriggers(page);
   await assertPickerRulesFlow(page, "Race to 21");
   await assertPickerRulesFlow(page, "Crest Ledger");
+  await assertPickerRulesFlow(page, "Plain Tricks");
   await assertSetupRulesFlow(page, "Crest Ledger");
   await assertInPlayRulesFlow(page, "Crest Ledger", '[data-testid="poker-lite-board"]');
   await assertHiddenInfoRulesFlow(page, baseUrl, "Veiled Draft", "Hotseat", '[data-testid="secret-draft-board"]');

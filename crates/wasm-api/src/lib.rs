@@ -30,6 +30,8 @@ use engine_core::{
     ActionChoice, ActionPath, ActionTree, Actor, CommandEnvelope, EffectCursor, EffectEnvelope,
     EffectLog, RulesVersion, SeatId, Seed, Viewer, VisibilityScope,
 };
+#[cfg(test)]
+use engine_core::{HashValue, StableSerialize};
 use high_card_duel::{
     apply_action as high_card_apply_action,
     export_public_observer_replay as high_card_export_public_observer_replay,
@@ -38,6 +40,17 @@ use high_card_duel::{
     setup_match as high_card_setup_match, validate_command as high_card_validate_command,
     HighCardDuelEffect, HighCardDuelInternalTrace, HighCardDuelRandomBot, HighCardDuelSeat,
     HighCardDuelState, PublicReplayExport, PublicReplayStep,
+};
+use plain_tricks::{
+    apply_action as plain_apply_action, legal_action_tree as plain_legal_action_tree,
+    project_view as plain_project_view,
+    replay_support::{
+        export_public_replay as plain_export_public_replay,
+        import_public_export as plain_import_public_export, PlainTricksInternalTrace,
+        PublicReplayStep as PlainPublicReplayStep, ReplayCommand as PlainReplayCommand,
+    },
+    setup_match as plain_setup_match, PlainTricksEffect, PlainTricksLevel2Bot, PlainTricksSeat,
+    PlainTricksState,
 };
 use poker_lite::{
     apply_action as poker_apply_action, legal_action_tree as poker_legal_action_tree,
@@ -99,6 +112,8 @@ const GAME_SECRET_DRAFT: &str = "secret_draft";
 const GAME_SECRET_DRAFT_DISPLAY_NAME: &str = "Veiled Draft";
 const GAME_POKER_LITE: &str = "poker_lite";
 const GAME_POKER_LITE_DISPLAY_NAME: &str = "Crest Ledger";
+const GAME_PLAIN_TRICKS: &str = "plain_tricks";
+const GAME_PLAIN_TRICKS_DISPLAY_NAME: &str = "Plain Tricks";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -127,6 +142,7 @@ const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
 const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
 const POKER_LITE_TRACE_RULES_VERSION: &str = "poker-lite-rules-v1";
+const PLAIN_TRICKS_TRACE_RULES_VERSION: &str = "plain-tricks-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
@@ -138,6 +154,7 @@ const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
+const VARIANT_PLAIN_TRICKS_STANDARD: &str = "plain_tricks_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -213,6 +230,13 @@ enum MatchRecord {
         effects: EffectLog<PokerLiteEffect>,
         commands: Vec<AppliedCommand>,
     },
+    PlainTricks {
+        game_id: String,
+        seed: u64,
+        state: PlainTricksState,
+        effects: EffectLog<PlainTricksEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -265,6 +289,7 @@ enum RegisteredGame {
     TokenBazaar,
     SecretDraft,
     PokerLite,
+    PlainTricks,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -282,6 +307,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::TokenBazaar,
         RegisteredGame::SecretDraft,
         RegisteredGame::PokerLite,
+        RegisteredGame::PlainTricks,
     ]
         .iter()
         .map(|game| match game {
@@ -355,6 +381,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_POKER_LITE_STANDARD)
+            ),
+            RegisteredGame::PlainTricks => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\"]}}",
+                escape_json(GAME_PLAIN_TRICKS),
+                escape_json(GAME_PLAIN_TRICKS_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_PLAIN_TRICKS_STANDARD)
             ),
         })
         .collect::<Vec<_>>()
@@ -597,6 +631,31 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_POKER_LITE_STANDARD)
             ))
         }
+        RegisteredGame::PlainTricks => {
+            let seats = plain_seats();
+            let state =
+                plain_setup_match(Seed(seed), &seats, &plain_tricks::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::PlainTricks {
+                        game_id: GAME_PLAIN_TRICKS.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_PLAIN_TRICKS_STANDARD)
+            ))
+        }
     }
 }
 
@@ -648,6 +707,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = poker_viewer_for_seat(state, viewer_seat)?;
             Ok(poker_view_json(&poker_project_view(state, &viewer)))
+        }
+        MatchRecord::PlainTricks { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = plain_viewer_for_seat(state, viewer_seat)?;
+            Ok(plain_view_json(&plain_project_view(state, &viewer)))
         }
     })
 }
@@ -746,6 +810,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = poker_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&poker_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::PlainTricks { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_plain_seat(actor_seat)?;
+            if !plain_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = plain_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&plain_legal_action_tree(state, &actor)))
         }
     })
 }
@@ -1050,6 +1123,40 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 poker_view_json(&poker_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::PlainTricks {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_plain_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: plain_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                plain_tricks::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = plain_apply_action(state, action).map_err(diagnostic_json)?;
+            let viewer = plain_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = plain_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_plain_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                plain_view_json(&plain_project_view(state, &viewer))
             ))
         }
     })
@@ -1389,6 +1496,47 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 poker_view_json(&poker_project_view(state, &viewer))
             ))
         }
+        MatchRecord::PlainTricks {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_plain_seat(actor_seat)?;
+            let decision = PlainTricksLevel2Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: plain_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                plain_tricks::validate_command(state, &command).map_err(diagnostic_json)?;
+            let mut effects = decision.effects;
+            effects.extend(plain_apply_action(state, action).map_err(diagnostic_json)?);
+            let viewer = plain_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = plain_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_plain_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                plain_view_json(&plain_project_view(state, &viewer))
+            ))
+        }
     })
 }
 
@@ -1596,6 +1744,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::PlainTricks {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = plain_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        plain_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -1721,6 +1891,29 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             };
             Ok(poker_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
         }
+        MatchRecord::PlainTricks {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let trace = PlainTricksInternalTrace {
+                schema_version: SCHEMA_VERSION,
+                game_id: plain_tricks::GAME_ID.to_owned(),
+                rules_version: plain_tricks::RULES_VERSION_LABEL.to_owned(),
+                variant: plain_tricks::VARIANT_ID.to_owned(),
+                seed_evidence: *seed,
+                commands: commands
+                    .iter()
+                    .map(|command| PlainReplayCommand {
+                        actor: command.actor_seat.clone(),
+                        path: command.action_path.clone(),
+                    })
+                    .collect(),
+            };
+            Ok(plain_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
+        }
     })
 }
 
@@ -1739,6 +1932,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     }
     if is_poker_lite_public_export(doc) {
         return import_poker_lite_public_replay(doc);
+    }
+    if is_plain_tricks_public_export(doc) {
+        return import_plain_tricks_public_replay(doc);
     }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
@@ -1761,6 +1957,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_TOKEN_BAZAAR
         && parsed.game_id != GAME_SECRET_DRAFT
         && parsed.game_id != GAME_POKER_LITE
+        && parsed.game_id != GAME_PLAIN_TRICKS
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -1852,6 +2049,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 poker_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 poker_view_json(&poker_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::PlainTricks => {
+            let (state, effects) =
+                plain_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                plain_view_json(&plain_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -1994,6 +2199,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::PlainTricks => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    plain_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(plain_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
@@ -2029,6 +2246,16 @@ fn is_poker_lite_public_export(doc: &str) -> bool {
     ) && matches!(
         string_field(doc, "game_id").as_deref(),
         Ok(poker_lite::GAME_ID)
+    )
+}
+
+fn is_plain_tricks_public_export(doc: &str) -> bool {
+    matches!(
+        string_field(doc, "export_class").as_deref(),
+        Ok("viewer_scoped_observation_v1")
+    ) && matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(plain_tricks::GAME_ID)
     )
 }
 
@@ -2229,6 +2456,67 @@ fn import_poker_lite_public_replay(doc: &str) -> Result<String, String> {
     ))
 }
 
+fn import_plain_tricks_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let export =
+        plain_tricks::replay_support::PublicReplayExport::from_json(doc).map_err(|message| {
+            diagnostic_string(
+                "invalid_replay",
+                &format!("invalid public replay document: {message}"),
+            )
+        })?;
+    if export.rules_version != plain_tricks::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {}", export.rules_version),
+        ));
+    }
+    if export.variant != plain_tricks::VARIANT_ID {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {}", export.variant),
+        ));
+    }
+    if export.viewer != "observer" {
+        return Err(diagnostic_string(
+            "unsupported_replay_viewer",
+            &format!("unsupported replay viewer: {}", export.viewer),
+        ));
+    }
+    let timeline = plain_import_public_export(&export);
+    let replay_id = next_replay_id(GAME_PLAIN_TRICKS);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_PLAIN_TRICKS.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: timeline.viewer.clone(),
+                    steps: timeline
+                        .steps
+                        .iter()
+                        .map(public_timeline_step_from_plain)
+                        .collect(),
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"{}\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0}}",
+        escape_json(&replay_id),
+        escape_json(GAME_PLAIN_TRICKS),
+        escape_json(&timeline.viewer),
+        timeline.steps.len()
+    ))
+}
+
 fn high_card_step_from_public_timeline(step: &PublicTimelineStep) -> PublicReplayStep {
     PublicReplayStep {
         step_index: step.step_index,
@@ -2260,6 +2548,16 @@ fn public_timeline_step_from_secret(step: &SecretPublicReplayStep) -> PublicTime
 }
 
 fn public_timeline_step_from_poker(step: &PokerPublicReplayStep) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
+fn public_timeline_step_from_plain(step: &PlainPublicReplayStep) -> PublicTimelineStep {
     PublicTimelineStep {
         step_index: step.step_index,
         public_view_summary: step.public_view_summary.clone(),
@@ -2307,6 +2605,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
         GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
         GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
+        GAME_PLAIN_TRICKS => Ok(RegisteredGame::PlainTricks),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -2384,6 +2683,10 @@ fn seats() -> Vec<SeatId> {
     vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())]
 }
 
+fn plain_seats() -> Vec<SeatId> {
+    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+}
+
 fn trace_rules_version(game: RegisteredGame) -> &'static str {
     match game {
         RegisteredGame::RaceToN => RACE_TRACE_RULES_VERSION,
@@ -2395,6 +2698,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
         RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
         RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
+        RegisteredGame::PlainTricks => PLAIN_TRICKS_TRACE_RULES_VERSION,
     }
 }
 
@@ -2576,6 +2880,23 @@ fn trace_poker_seat(seat: PokerLiteSeat) -> &'static str {
     seat.as_str()
 }
 
+fn parse_plain_seat(value: &str) -> Result<PlainTricksSeat, String> {
+    match value {
+        "seat-0" => Ok(PlainTricksSeat::Seat0),
+        "seat-1" => Ok(PlainTricksSeat::Seat1),
+        _ => PlainTricksSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_plain_seat(seat: PlainTricksSeat) -> &'static str {
+    seat.as_str()
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -2711,6 +3032,20 @@ fn poker_actor_for_seat(state: &PokerLiteState, seat: PokerLiteSeat) -> Result<A
         })
 }
 
+fn plain_actor_for_seat(state: &PlainTricksState, seat: PlainTricksSeat) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -2787,6 +3122,14 @@ fn secret_viewer_for_seat(state: &SecretDraftState, seat: Option<&str>) -> Resul
 fn poker_viewer_for_seat(state: &PokerLiteState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_poker_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn plain_viewer_for_seat(state: &PlainTricksState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_plain_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -2878,6 +3221,16 @@ fn poker_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_poker_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn plain_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: PlainTricksSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_plain_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -3127,6 +3480,31 @@ fn poker_replay_to_cursor(
         };
         let action = poker_lite::validate_command(&state, &envelope).map_err(diagnostic_json)?;
         all_effects.extend(poker_apply_action(&mut state, action).map_err(diagnostic_json)?);
+    }
+    Ok((state, all_effects))
+}
+
+fn plain_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(PlainTricksState, Vec<EffectEnvelope<PlainTricksEffect>>), String> {
+    let seats = plain_seats();
+    let mut state = plain_setup_match(Seed(seed), &seats, &plain_tricks::SetupOptions::default())
+        .map_err(diagnostic_json)?;
+    let mut all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_plain_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: plain_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = plain_tricks::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        all_effects.extend(plain_apply_action(&mut state, action).map_err(diagnostic_json)?);
     }
     Ok((state, all_effects))
 }
@@ -3605,6 +3983,142 @@ fn token_replay_document_json(
     ))
 }
 
+#[cfg(test)]
+fn plain_replay_document_json(
+    trace_id: &str,
+    seed: u64,
+    commands: &[AppliedCommand],
+) -> Result<String, String> {
+    let mut state = plain_setup_match(
+        Seed(seed),
+        &plain_seats(),
+        &plain_tricks::SetupOptions::default(),
+    )
+    .map_err(diagnostic_json)?;
+    let mut effects = plain_tricks::setup_effects(&state);
+    let mut replay_commands = Vec::new();
+
+    for command in commands {
+        let seat = parse_plain_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: plain_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = plain_tricks::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        effects.extend(plain_apply_action(&mut state, action).map_err(diagnostic_json)?);
+        replay_commands.push(PlainReplayCommand {
+            actor: trace_plain_seat(seat).to_owned(),
+            path: command.action_path.clone(),
+        });
+    }
+
+    let trace = PlainTricksInternalTrace {
+        schema_version: SCHEMA_VERSION,
+        game_id: plain_tricks::GAME_ID.to_owned(),
+        rules_version: plain_tricks::RULES_VERSION_LABEL.to_owned(),
+        variant: plain_tricks::VARIANT_ID.to_owned(),
+        seed_evidence: seed,
+        commands: replay_commands,
+    };
+    let public_export = plain_export_public_replay(&trace, &Viewer { seat_id: None });
+    let commands_json = commands
+        .iter()
+        .enumerate()
+        .map(|(index, command)| command_record_json(index, command))
+        .collect::<Vec<_>>()
+        .join(",");
+    let checkpoints = if commands.is_empty() {
+        "[{\"id\":\"final\",\"after_command_index\":0}]".to_owned()
+    } else {
+        format!(
+            "[{{\"id\":\"final\",\"after_command_index\":{}}}]",
+            commands.len().saturating_sub(1)
+        )
+    };
+    let (terminal, winner, draw) = match state.terminal_outcome {
+        Some(plain_tricks::TerminalOutcome::TrickWin { winner, .. }) => {
+            (true, format!("\"{}\"", winner.as_str()), false)
+        }
+        Some(plain_tricks::TerminalOutcome::Split { .. }) => (true, "null".to_owned(), true),
+        None => (false, "null".to_owned(), false),
+    };
+
+    Ok(format!(
+        "{{\"schema_version\":{},\"trace_id\":\"plain-tricks-{}\",\"fixture_kind\":\"commands\",\"purpose\":\"wasm_exported\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"commands\":[{}],\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"observer\":{},\"seat_0\":{},\"seat_1\":{}}},\"expected_private_view_hashes\":{{\"seat_0\":{},\"seat_1\":{}}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_diagnostic_hashes\":null,\"expected_public_export_hashes\":{{\"final\":{}}},\"expected_diagnostics\":null,\"expected_terminal_state\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"note\":\"Plain Tricks wasm-exported fixture generated by the Rulepath WASM API.\",\"migration_update_note\":\"Refreshed with real WASM export evidence by GAT101PLATRI-016.\",\"options\":{{}},\"seats\":[{{\"seat_id\":\"seat_0\",\"player_id\":\"player_0\"}},{{\"seat_id\":\"seat_1\",\"player_id\":\"player_1\"}}],\"checkpoints\":{},\"expected_outcome\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"not_applicable\":{{\"hidden_information\":\"Plain Tricks has hidden private hands and an internal tail; viewer-scoped traces and no-leak tests verify redaction.\",\"stochastic_game_events\":\"Setup uses deterministic seeded shuffle; no later stochastic rule events occur.\",\"preview_hashes\":\"Plain Tricks uses action metadata rather than a separate preview hash.\"}}}}",
+        SCHEMA_VERSION,
+        escape_json(trace_id),
+        escape_json(GAME_PLAIN_TRICKS),
+        escape_json(PLAIN_TRICKS_TRACE_RULES_VERSION),
+        escape_json(ENGINE_VERSION),
+        escape_json(DATA_VERSION),
+        seed,
+        escape_json(VARIANT_PLAIN_TRICKS_STANDARD),
+        commands_json,
+        plain_tricks::replay_support::state_hash(&state).0,
+        plain_tricks::replay_support::effect_hash(&effects).0,
+        plain_action_tree_hash(&state).0,
+        plain_tricks::replay_support::view_hash(&state, &Viewer { seat_id: None }).0,
+        plain_tricks::replay_support::view_hash(
+            &state,
+            &Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned()))
+            }
+        )
+        .0,
+        plain_tricks::replay_support::view_hash(
+            &state,
+            &Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned()))
+            }
+        )
+        .0,
+        plain_tricks::replay_support::view_hash(
+            &state,
+            &Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned()))
+            }
+        )
+        .0,
+        plain_tricks::replay_support::view_hash(
+            &state,
+            &Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned()))
+            }
+        )
+        .0,
+        trace.stable_hash().0,
+        public_export.stable_hash().0,
+        terminal,
+        winner,
+        draw,
+        checkpoints,
+        terminal,
+        winner,
+        draw
+    ))
+}
+
+#[cfg(test)]
+fn plain_action_tree_hash(state: &PlainTricksState) -> HashValue {
+    let parts = PlainTricksSeat::ALL
+        .iter()
+        .map(|seat| {
+            let actor = Actor {
+                seat_id: state.seats[seat.index()].clone(),
+            };
+            plain_tricks::replay_support::action_tree_hash(&plain_legal_action_tree(state, &actor))
+                .0
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("|");
+    HashValue::from_stable_bytes(parts.as_bytes())
+}
+
 fn single_segment_commands(commands: &[AppliedCommand]) -> Result<Vec<String>, String> {
     commands
         .iter()
@@ -3777,6 +4291,24 @@ fn poker_replay_step_json(
         total_commands,
         poker_view_json(&poker_project_view(state, &viewer)),
         poker_effects_json(effects, &viewer)
+    )
+}
+
+fn plain_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    total_commands: usize,
+    state: &PlainTricksState,
+    effects: &[EffectEnvelope<PlainTricksEffect>],
+) -> String {
+    let viewer = Viewer { seat_id: None };
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_commands\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        total_commands,
+        plain_view_json(&plain_project_view(state, &viewer)),
+        plain_effects_json(effects, &viewer)
     )
 }
 
@@ -4898,6 +5430,176 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
     )
 }
 
+fn plain_view_json(view: &plain_tricks::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"round_index\":{},\"trick_index\":{},\"round_leader\":\"{}\",\"current_leader\":\"{}\",\"hand_counts\":{},\"current_trick\":{},\"trick_history\":[{}],\"round_trick_counts\":{},\"total_trick_counts\":{},\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.phase.as_str(),
+        option_plain_seat_json(view.active_seat),
+        view.round_index,
+        view.trick_index,
+        view.round_leader.as_str(),
+        view.current_leader.as_str(),
+        plain_counts_json(view.hand_counts.seat_0, view.hand_counts.seat_1),
+        plain_current_trick_json(&view.current_trick),
+        view.trick_history
+            .iter()
+            .map(plain_completed_trick_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        plain_counts_json(view.round_trick_counts.seat_0, view.round_trick_counts.seat_1),
+        plain_counts_json(view.total_trick_counts.seat_0, view.total_trick_counts.seat_1),
+        plain_terminal_json(&view.terminal),
+        plain_terminal_rationale(&view.terminal)
+            .map_or_else(|| "null".to_owned(), plain_outcome_rationale_json),
+        view.freshness_token.0,
+        plain_private_view_json(&view.private_view),
+        plain_ui_json(&view.ui)
+    )
+}
+
+fn plain_counts_json(seat_0: u8, seat_1: u8) -> String {
+    format!("{{\"seat_0\":{},\"seat_1\":{}}}", seat_0, seat_1)
+}
+
+fn plain_current_trick_json(trick: &plain_tricks::CurrentTrickView) -> String {
+    format!(
+        "{{\"led_suit\":{},\"plays\":[{}]}}",
+        option_string_json(trick.led_suit.as_deref()),
+        trick
+            .plays
+            .iter()
+            .map(plain_played_card_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn plain_completed_trick_json(trick: &plain_tricks::CompletedTrickView) -> String {
+    format!(
+        "{{\"round_index\":{},\"trick_index\":{},\"leader\":\"{}\",\"plays\":[{},{}],\"winner\":\"{}\",\"trick_counts_after\":{}}}",
+        trick.round_index,
+        trick.trick_index,
+        trick.leader.as_str(),
+        plain_played_card_json(&trick.plays[0]),
+        plain_played_card_json(&trick.plays[1]),
+        trick.winner.as_str(),
+        plain_counts_json(
+            trick.trick_counts_after.seat_0,
+            trick.trick_counts_after.seat_1
+        )
+    )
+}
+
+fn plain_played_card_json(play: &plain_tricks::PlayedCardView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"card\":{}}}",
+        play.seat.as_str(),
+        plain_card_json(&play.card)
+    )
+}
+
+fn plain_card_json(card: &plain_tricks::CardView) -> String {
+    format!(
+        "{{\"card_id\":\"{}\",\"suit\":\"{}\",\"rank\":\"{}\",\"rank_value\":{},\"label\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.card_id),
+        escape_json(&card.suit),
+        escape_json(&card.rank),
+        card.rank_value,
+        escape_json(&card.label),
+        escape_json(&card.accessibility_label)
+    )
+}
+
+fn plain_terminal_json(terminal: &plain_tricks::TerminalView) -> String {
+    match terminal {
+        plain_tricks::TerminalView::NonTerminal => {
+            "{\"kind\":\"non_terminal\",\"winner\":null,\"draw\":false}".to_owned()
+        }
+        plain_tricks::TerminalView::TrickWin { winner, totals, .. } => format!(
+            "{{\"kind\":\"trick_win\",\"winner\":\"{}\",\"draw\":false,\"totals\":{}}}",
+            winner.as_str(),
+            plain_counts_json(totals.seat_0, totals.seat_1)
+        ),
+        plain_tricks::TerminalView::Split { each, totals, .. } => format!(
+            "{{\"kind\":\"split\",\"winner\":null,\"draw\":true,\"each\":{},\"totals\":{}}}",
+            each,
+            plain_counts_json(totals.seat_0, totals.seat_1)
+        ),
+    }
+}
+
+fn plain_terminal_rationale(
+    terminal: &plain_tricks::TerminalView,
+) -> Option<&plain_tricks::OutcomeRationaleView> {
+    match terminal {
+        plain_tricks::TerminalView::NonTerminal => None,
+        plain_tricks::TerminalView::TrickWin { rationale, .. }
+        | plain_tricks::TerminalView::Split { rationale, .. } => Some(rationale),
+    }
+}
+
+fn plain_outcome_rationale_json(rationale: &plain_tricks::OutcomeRationaleView) -> String {
+    format!(
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"decisive_rule_ids\":[{}],\"per_seat\":[{},{}]}}",
+        escape_json(&rationale.result_kind),
+        escape_json(&rationale.decisive_cause),
+        escape_json(&rationale.template_key),
+        string_array(&rationale.decisive_rule_ids),
+        plain_outcome_breakdown_json(&rationale.per_seat[0]),
+        plain_outcome_breakdown_json(&rationale.per_seat[1])
+    )
+}
+
+fn plain_outcome_breakdown_json(breakdown: &plain_tricks::SeatOutcomeBreakdownView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"total_tricks\":{},\"result\":\"{}\"}}",
+        breakdown.seat.as_str(),
+        breakdown.total_tricks,
+        escape_json(&breakdown.result)
+    )
+}
+
+fn plain_private_view_json(private: &plain_tricks::PrivateView) -> String {
+    match private {
+        plain_tricks::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"own_hand\":[]}".to_owned()
+        }
+        plain_tricks::PrivateView::Seat(view) => format!(
+            "{{\"status\":\"seat\",\"seat\":\"{}\",\"own_hand\":[{}]}}",
+            view.seat.as_str(),
+            view.own_hand
+                .iter()
+                .map(plain_card_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn plain_ui_json(ui: &plain_tricks::UiMetadata) -> String {
+    format!(
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"table_label\":\"{}\",\"own_hand_label\":\"{}\",\"opponent_hand_label\":\"{}\",\"current_trick_label\":\"{}\",\"trick_history_label\":\"{}\",\"score_label\":\"{}\",\"play_action_label\":\"{}\",\"observer_disabled_reason\":\"{}\",\"reduced_motion_note\":\"{}\",\"rules_summary\":[{}]}}",
+        escape_json(&ui.game_id),
+        escape_json(&ui.display_name),
+        escape_json(&ui.table_label),
+        escape_json(&ui.own_hand_label),
+        escape_json(&ui.opponent_hand_label),
+        escape_json(&ui.current_trick_label),
+        escape_json(&ui.trick_history_label),
+        escape_json(&ui.score_label),
+        escape_json(&ui.play_action_label),
+        escape_json(&ui.observer_disabled_reason),
+        escape_json(&ui.reduced_motion_note),
+        string_array(&ui.rules_summary)
+    )
+}
+
 fn poker_round_json(round: &poker_lite::visibility::RoundView) -> String {
     format!(
         "{{\"round_index\":{},\"round_unit\":{},\"outstanding_actor\":{},\"outstanding_amount\":{},\"lift_cap_remaining\":{}}}",
@@ -5383,6 +6085,146 @@ fn poker_effects_json(effects: &[EffectEnvelope<PokerLiteEffect>], viewer: &View
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
+}
+
+fn plain_effects_json(effects: &[EffectEnvelope<PlainTricksEffect>], viewer: &Viewer) -> String {
+    let body = effects
+        .iter()
+        .filter(|effect| effect_visible_to_viewer(&effect.visibility, viewer))
+        .map(plain_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn plain_effect_json(effect: &EffectEnvelope<PlainTricksEffect>) -> String {
+    let payload = match &effect.payload {
+        PlainTricksEffect::DealStarted {
+            round_index,
+            cards_per_seat,
+            tail_count,
+        } => format!(
+            "{{\"type\":\"deal_started\",\"round_index\":{},\"cards_per_seat\":{},\"tail_count\":{}}}",
+            round_index, cards_per_seat, tail_count
+        ),
+        PlainTricksEffect::HandDealt { owner, cards } => format!(
+            "{{\"type\":\"hand_dealt\",\"owner\":\"{}\",\"cards\":[{}]}}",
+            owner.as_str(),
+            cards
+                .iter()
+                .map(|card| format!("\"{}\"", card.as_str()))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        PlainTricksEffect::DealCompleted {
+            round_index,
+            cards_per_seat,
+            tail_count,
+            leader,
+        } => format!(
+            "{{\"type\":\"deal_completed\",\"round_index\":{},\"cards_per_seat\":{},\"tail_count\":{},\"leader\":\"{}\"}}",
+            round_index, cards_per_seat, tail_count, leader.as_str()
+        ),
+        PlainTricksEffect::CardPlayed {
+            seat,
+            card,
+            round_index,
+            trick_index,
+            led,
+        } => format!(
+            "{{\"type\":\"card_played\",\"seat\":\"{}\",\"card\":\"{}\",\"round_index\":{},\"trick_index\":{},\"led\":{}}}",
+            seat.as_str(),
+            card.as_str(),
+            round_index,
+            trick_index,
+            led
+        ),
+        PlainTricksEffect::TrickResolved {
+            round_index,
+            trick_index,
+            plays,
+            winner,
+            trick_counts,
+        } => format!(
+            "{{\"type\":\"trick_resolved\",\"round_index\":{},\"trick_index\":{},\"plays\":[{},{}],\"winner\":\"{}\",\"trick_counts\":{}}}",
+            round_index,
+            trick_index,
+            plain_trick_play_json(plays[0]),
+            plain_trick_play_json(plays[1]),
+            winner.as_str(),
+            plain_counts_json(trick_counts.seat_0, trick_counts.seat_1)
+        ),
+        PlainTricksEffect::RoundScored {
+            round_index,
+            round_counts,
+            total_counts,
+        } => format!(
+            "{{\"type\":\"round_scored\",\"round_index\":{},\"round_counts\":{},\"total_counts\":{}}}",
+            round_index,
+            plain_counts_json(round_counts.seat_0, round_counts.seat_1),
+            plain_counts_json(total_counts.seat_0, total_counts.seat_1)
+        ),
+        PlainTricksEffect::DealRotated {
+            round_index,
+            leader,
+        } => format!(
+            "{{\"type\":\"deal_rotated\",\"round_index\":{},\"leader\":\"{}\"}}",
+            round_index,
+            leader.as_str()
+        ),
+        PlainTricksEffect::MatchResolved {
+            totals,
+            decisive_cause,
+        } => format!(
+            "{{\"type\":\"match_resolved\",\"totals\":{},\"decisive_cause\":\"{}\"}}",
+            plain_counts_json(totals.seat_0, totals.seat_1),
+            escape_json(decisive_cause)
+        ),
+        PlainTricksEffect::Terminal {
+            outcome,
+            decisive_cause,
+        } => format!(
+            "{{\"type\":\"terminal\",\"outcome\":{},\"decisive_cause\":\"{}\"}}",
+            plain_terminal_outcome_json(*outcome),
+            escape_json(decisive_cause)
+        ),
+        PlainTricksEffect::BotChoseActionPublic {
+            policy_id,
+            action_family,
+        } => format!(
+            "{{\"type\":\"bot_chose_action_public\",\"policy_id\":\"{}\",\"action_family\":\"{}\"}}",
+            escape_json(policy_id),
+            escape_json(action_family)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn plain_trick_play_json(play: plain_tricks::TrickPlay) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"card\":\"{}\"}}",
+        play.seat.as_str(),
+        play.card.as_str()
+    )
+}
+
+fn plain_terminal_outcome_json(outcome: plain_tricks::TerminalOutcome) -> String {
+    match outcome {
+        plain_tricks::TerminalOutcome::TrickWin { winner, totals } => format!(
+            "{{\"kind\":\"trick_win\",\"winner\":\"{}\",\"totals\":{}}}",
+            winner.as_str(),
+            plain_counts_json(totals.seat_0, totals.seat_1)
+        ),
+        plain_tricks::TerminalOutcome::Split { each, totals } => format!(
+            "{{\"kind\":\"split\",\"winner\":null,\"each\":{},\"totals\":{}}}",
+            each,
+            plain_counts_json(totals.seat_0, totals.seat_1)
+        ),
+    }
 }
 
 fn poker_effect_json(effect: &EffectEnvelope<PokerLiteEffect>) -> String {
@@ -5923,6 +6765,13 @@ fn directional_cell_array_json(values: &[directional_flip::CellId]) -> String {
 }
 
 fn option_column_seat_json(seat: Option<ColumnFourSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
+fn option_plain_seat_json(seat: Option<PlainTricksSeat>) -> String {
     seat.map_or_else(
         || "null".to_owned(),
         |seat| format!("\"{}\"", seat.as_str()),
@@ -6754,6 +7603,7 @@ mod tests {
         assert!(games.contains("\"game_id\":\"high_card_duel\""));
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"game_id\":\"poker_lite\""));
+        assert!(games.contains("\"game_id\":\"plain_tricks\""));
         assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
         assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
         assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
@@ -6761,9 +7611,11 @@ mod tests {
         assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
         assert!(games.contains("\"variants\":[\"token_bazaar_standard\"]"));
         assert!(games.contains("\"variants\":[\"poker_lite_standard\"]"));
+        assert!(games.contains("\"variants\":[\"plain_tricks_standard\"]"));
         assert!(games.contains("\"hidden_information\":true"));
         assert!(games.contains("\"public_replay_export\""));
         assert!(games.contains("\"bounded_pledge\""));
+        assert!(games.contains("\"trick_taking\""));
     }
 
     #[test]
@@ -7359,6 +8211,129 @@ mod tests {
     }
 
     #[test]
+    fn plain_tricks_surface_filters_hidden_cards_and_authorizes_actor() {
+        let seed = 101;
+        let created = new_match("plain_tricks", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"plain_tricks_standard\""));
+
+        let internal = plain_setup_match(
+            Seed(seed),
+            &plain_seats(),
+            &plain_tricks::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let seat_0_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned())),
+            },
+        );
+        let seat_1_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned())),
+            },
+        );
+        let seat_0_cards = plain_private_cards(&seat_0_view);
+        let seat_1_cards = plain_private_cards(&seat_1_view);
+        let hidden_cards = plain_hidden_cards_except(&[]);
+        let seat_0_private = plain_cards_except(&seat_0_cards, &[]);
+        let seat_1_private = plain_cards_except(&seat_1_cards, &[]);
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat_0 view returned");
+        let seat_1 = get_view(&match_id, Some("seat_1")).expect("seat_1 view returned");
+        assert!(observer.contains("\"game_id\":\"plain_tricks\""));
+        assert!(observer.contains("\"private_view\":{\"status\":\"observer\""));
+        assert!(seat_0.contains("\"private_view\":{\"status\":\"seat\",\"seat\":\"seat_0\""));
+        assert!(seat_1.contains("\"private_view\":{\"status\":\"seat\",\"seat\":\"seat_1\""));
+        assert_no_plain_cards(&observer, &hidden_cards);
+        for card in &seat_0_cards {
+            assert!(seat_0.contains(card.as_str()));
+        }
+        for card in &seat_1_cards {
+            assert!(seat_1.contains(card.as_str()));
+        }
+        assert_no_plain_cards(&seat_0, &seat_1_private);
+        assert_no_plain_cards(&seat_1, &seat_0_private);
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized tree returned");
+        let unauthorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_1"))
+            .expect("unauthorized tree returned");
+        let observer_tree =
+            get_action_tree_for_viewer(&match_id, "seat_0", None).expect("observer tree returned");
+        let first_card = seat_0_cards[0];
+        assert!(authorized.contains("\"segment\":\"play\""));
+        assert!(authorized.contains(first_card.as_str()));
+        assert!(unauthorized.contains("\"choices\":[]"));
+        assert!(observer_tree.contains("\"choices\":[]"));
+
+        let applied = apply_action(
+            &match_id,
+            "seat_0",
+            &format!("play>{}", first_card.as_str()),
+            0,
+        )
+        .expect("plain trick card applies");
+        assert!(applied.contains("\"type\":\"card_played\""));
+        assert!(applied.contains(first_card.as_str()));
+        assert_no_plain_cards(&applied, &seat_1_private);
+
+        let observer_effects = get_effects(&match_id, 0, None).expect("observer effects");
+        assert!(observer_effects.contains("\"type\":\"card_played\""));
+        assert_no_plain_cards(&observer_effects, &plain_hidden_cards_except(&[first_card]));
+    }
+
+    #[test]
+    fn plain_tricks_public_export_omits_seed_tail_and_unplayed_cards() {
+        let seed = 0;
+        let created = new_match("plain_tricks", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+
+        let internal = plain_setup_match(
+            Seed(seed),
+            &plain_seats(),
+            &plain_tricks::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let seat_0_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned())),
+            },
+        );
+        let seat_0_cards = plain_private_cards(&seat_0_view);
+        let played_card = seat_0_cards[0];
+        apply_action(
+            &match_id,
+            "seat_0",
+            &format!("play>{}", played_card.as_str()),
+            0,
+        )
+        .expect("card applies");
+
+        let exported = export_replay(&match_id).expect("public replay exported");
+        assert!(exported.contains("\"game_id\":\"plain_tricks\""));
+        assert!(exported.contains("\"export_class\":\"viewer_scoped_observation_v1\""));
+        assert!(exported.contains("\"viewer\":\"observer\""));
+        assert!(!exported.contains("\"commands\""));
+        assert!(!exported.contains("\"seed\""));
+        assert!(!exported.contains("\"seed_evidence\""));
+        assert_no_plain_cards(&exported, &plain_hidden_cards_except(&[played_card]));
+
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"public_export\":true"));
+        assert!(imported.contains("\"game_id\":\"plain_tricks\""));
+
+        let reset = replay_reset(&replay_id).expect("public replay reset returned");
+        assert!(reset.contains("\"public_export\":true"));
+        assert!(reset.contains("\"view\":null"));
+    }
+
+    #[test]
     fn poker_lite_view_projects_terminal_rationale_template_keys() {
         let non_terminal = get_terminal_poker_view(0, &[]);
         assert!(non_terminal.contains("\"terminal_rationale\":null"));
@@ -7386,6 +8361,48 @@ mod tests {
         assert!(yield_win.contains(
             "\"terminal_rationale\":{\"result_kind\":\"yield_win\",\"decisive_cause\":\"opponent_yielded\",\"template_key\":\"poker_lite.yield_win_no_reveal\""
         ));
+    }
+
+    #[test]
+    fn plain_tricks_view_projects_terminal_rationale_template_keys() {
+        let non_terminal = get_terminal_plain_view(0, &[]);
+        assert!(non_terminal.contains("\"terminal_rationale\":null"));
+        assert!(non_terminal
+            .contains("\"terminal\":{\"kind\":\"non_terminal\",\"winner\":null,\"draw\":false}"));
+
+        let trick_win = get_terminal_plain_view(0, &PLAIN_TRICKS_WIN_ACTIONS);
+        assert!(trick_win.contains("\"terminal\":{\"kind\":\"trick_win\""));
+        assert!(trick_win.contains("\"terminal_rationale\":{"));
+        assert!(!trick_win.contains("\"rationale\":{"));
+        assert!(trick_win.contains("\"result_kind\":\"trick_win\""));
+        assert!(trick_win.contains("\"template_key\":\"plain_tricks.trick_win\""));
+        assert!(trick_win
+            .contains("\"decisive_rule_ids\":[\"PT-SCORE-002\",\"PT-END-001\",\"PT-END-002\"]"));
+        assert!(trick_win.contains("\"total_tricks\":"));
+
+        let split = get_terminal_plain_view(5, &PLAIN_TRICKS_SPLIT_ACTIONS);
+        assert!(split.contains("\"terminal\":{\"kind\":\"split\""));
+        assert!(split.contains("\"terminal_rationale\":{"));
+        assert!(!split.contains("\"rationale\":{"));
+        assert!(split.contains("\"result_kind\":\"split\""));
+        assert!(split.contains("\"decisive_cause\":\"split:6-6\""));
+        assert!(split.contains("\"template_key\":\"plain_tricks.split\""));
+        assert!(split
+            .contains("\"decisive_rule_ids\":[\"PT-SCORE-002\",\"PT-END-001\",\"PT-END-002\"]"));
+    }
+
+    #[test]
+    fn plain_tricks_terminal_rationale_does_not_reveal_unplayed_cards() {
+        let view = get_terminal_plain_view(0, &PLAIN_TRICKS_WIN_ACTIONS[..2]);
+        assert!(view.contains("\"terminal_rationale\":null"));
+
+        let terminal = get_terminal_plain_view(0, &PLAIN_TRICKS_WIN_ACTIONS);
+        assert!(terminal.contains("\"terminal_rationale\":{"));
+        assert!(terminal.contains("\"template_key\":\"plain_tricks.trick_win\""));
+        assert_no_plain_cards(
+            &terminal,
+            &plain_hidden_cards_except(&PLAIN_TRICKS_WIN_PLAYED_CARDS),
+        );
     }
 
     #[test]
@@ -7677,6 +8694,29 @@ mod tests {
         assert_eq!(compact_json_layout(fixture), exported);
     }
 
+    #[test]
+    fn plain_tricks_wasm_export_matches_golden_fixture() {
+        let commands = [
+            AppliedCommand {
+                actor_seat: "seat_0".to_owned(),
+                action_path: vec!["play".to_owned(), "gale_1".to_owned()],
+                freshness_token: 0,
+            },
+            AppliedCommand {
+                actor_seat: "seat_1".to_owned(),
+                action_path: vec!["play".to_owned(), "gale_2".to_owned()],
+                freshness_token: 1,
+            },
+        ];
+        let exported =
+            plain_replay_document_json("wasm-exported", 0, &commands).expect("fixture exported");
+        let fixture = include_str!(
+            "../../../games/plain_tricks/tests/golden_traces/wasm-exported.trace.json"
+        );
+
+        assert_eq!(compact_json_layout(fixture), exported);
+    }
+
     fn extract_match_id(created: &str) -> String {
         created
             .split("\"match_id\":\"")
@@ -7734,6 +8774,99 @@ mod tests {
         get_view(&match_id, None).expect("observer view returned")
     }
 
+    const PLAIN_TRICKS_WIN_ACTIONS: [(&str, &str); 24] = [
+        ("seat_0", "play>gale_1"),
+        ("seat_1", "play>gale_2"),
+        ("seat_1", "play>ember_3"),
+        ("seat_0", "play>ember_6"),
+        ("seat_0", "play>river_3"),
+        ("seat_1", "play>river_6"),
+        ("seat_1", "play>gale_3"),
+        ("seat_0", "play>river_5"),
+        ("seat_1", "play>ember_2"),
+        ("seat_0", "play>ember_5"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>gale_6"),
+        ("seat_1", "play>ember_4"),
+        ("seat_0", "play>ember_2"),
+        ("seat_1", "play>gale_1"),
+        ("seat_0", "play>river_5"),
+        ("seat_1", "play>gale_6"),
+        ("seat_0", "play>river_2"),
+        ("seat_1", "play>ember_6"),
+        ("seat_0", "play>river_3"),
+        ("seat_1", "play>gale_3"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>gale_5"),
+        ("seat_0", "play>river_6"),
+    ];
+
+    const PLAIN_TRICKS_SPLIT_ACTIONS: [(&str, &str); 24] = [
+        ("seat_0", "play>river_6"),
+        ("seat_1", "play>river_5"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>river_4"),
+        ("seat_1", "play>gale_5"),
+        ("seat_0", "play>gale_2"),
+        ("seat_1", "play>ember_6"),
+        ("seat_0", "play>ember_1"),
+        ("seat_1", "play>gale_1"),
+        ("seat_0", "play>gale_6"),
+        ("seat_0", "play>gale_3"),
+        ("seat_1", "play>ember_5"),
+        ("seat_1", "play>ember_5"),
+        ("seat_0", "play>ember_2"),
+        ("seat_1", "play>gale_2"),
+        ("seat_0", "play>gale_5"),
+        ("seat_0", "play>river_1"),
+        ("seat_1", "play>river_2"),
+        ("seat_1", "play>river_4"),
+        ("seat_0", "play>river_6"),
+        ("seat_0", "play>ember_6"),
+        ("seat_1", "play>gale_1"),
+        ("seat_0", "play>gale_3"),
+        ("seat_1", "play>gale_4"),
+    ];
+
+    const PLAIN_TRICKS_WIN_PLAYED_CARDS: [plain_tricks::TrickCardId; 24] = [
+        plain_tricks::TrickCardId::Gale1,
+        plain_tricks::TrickCardId::Gale2,
+        plain_tricks::TrickCardId::Ember3,
+        plain_tricks::TrickCardId::Ember6,
+        plain_tricks::TrickCardId::River3,
+        plain_tricks::TrickCardId::River6,
+        plain_tricks::TrickCardId::Gale3,
+        plain_tricks::TrickCardId::River5,
+        plain_tricks::TrickCardId::Ember2,
+        plain_tricks::TrickCardId::Ember5,
+        plain_tricks::TrickCardId::River1,
+        plain_tricks::TrickCardId::Gale6,
+        plain_tricks::TrickCardId::Ember4,
+        plain_tricks::TrickCardId::Ember2,
+        plain_tricks::TrickCardId::Gale1,
+        plain_tricks::TrickCardId::River5,
+        plain_tricks::TrickCardId::Gale6,
+        plain_tricks::TrickCardId::River2,
+        plain_tricks::TrickCardId::Ember6,
+        plain_tricks::TrickCardId::River3,
+        plain_tricks::TrickCardId::Gale3,
+        plain_tricks::TrickCardId::River1,
+        plain_tricks::TrickCardId::Gale5,
+        plain_tricks::TrickCardId::River6,
+    ];
+
+    fn get_terminal_plain_view(seed: u64, actions: &[(&str, &str)]) -> String {
+        let created = new_match("plain_tricks", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+
+        for (freshness_token, (actor, action_path)) in actions.iter().enumerate() {
+            apply_action(&match_id, actor, action_path, freshness_token as u64)
+                .expect("plain_tricks action applies");
+        }
+
+        get_view(&match_id, None).expect("observer view returned")
+    }
+
     fn assert_ordered(input: &str, first: &str, second: &str) {
         let first_index = input.find(first).expect("first value present");
         let second_index = input.find(second).expect("second value present");
@@ -7762,6 +8895,48 @@ mod tests {
             assert!(
                 !input.contains(card.as_str()),
                 "hidden poker_lite card {} leaked in {input}",
+                card.as_str()
+            );
+        }
+    }
+
+    fn plain_private_cards(view: &plain_tricks::PublicView) -> Vec<plain_tricks::TrickCardId> {
+        match &view.private_view {
+            plain_tricks::PrivateView::Seat(private) => private
+                .own_hand
+                .iter()
+                .map(|card| plain_tricks::TrickCardId::parse(&card.card_id).expect("known card"))
+                .collect(),
+            plain_tricks::PrivateView::Observer => panic!("expected private seat view"),
+        }
+    }
+
+    fn plain_cards_except(
+        cards: &[plain_tricks::TrickCardId],
+        exceptions: &[plain_tricks::TrickCardId],
+    ) -> Vec<plain_tricks::TrickCardId> {
+        cards
+            .iter()
+            .copied()
+            .filter(|card| !exceptions.contains(card))
+            .collect()
+    }
+
+    fn plain_hidden_cards_except(
+        exceptions: &[plain_tricks::TrickCardId],
+    ) -> Vec<plain_tricks::TrickCardId> {
+        plain_tricks::TrickCardId::ALL
+            .iter()
+            .copied()
+            .filter(|card| !exceptions.contains(card))
+            .collect()
+    }
+
+    fn assert_no_plain_cards(input: &str, cards: &[plain_tricks::TrickCardId]) {
+        for card in cards {
+            assert!(
+                !input.contains(card.as_str()),
+                "hidden plain_tricks card {} leaked in {input}",
                 card.as_str()
             );
         }

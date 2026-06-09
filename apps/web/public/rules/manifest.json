@@ -61,5 +61,12 @@
     "rules_asset_path": "/rules/poker_lite.md",
     "source_rules_version_checked": "poker-lite-rules-v1",
     "sha256": "bb33cdae96ea0d1e11bf8ee650bb1ac8f9259c0179441e1aa25e3d43997678b8"
+  },
+  {
+    "game_id": "plain_tricks",
+    "display_name": "Plain Tricks",
+    "rules_asset_path": "/rules/plain_tricks.md",
+    "source_rules_version_checked": "plain-tricks-rules-v1",
+    "sha256": "8fd7d161a45bc51caa1d6b798446a9450b8fd988c0b43bbad3aef09c619fb9cb"
   }
 ]

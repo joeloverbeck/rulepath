@@ -322,6 +322,22 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
     ];
   }
 
+  if (view.game_id === "plain_tricks") {
+    return [
+      { label: "Round", value: `${view.round_index + 1} / 2` },
+      {
+        label: "Turn",
+        value:
+          view.terminal.kind !== "non_terminal"
+            ? view.terminal.draw
+              ? "split"
+              : `${view.terminal.winner} won`
+            : view.active_seat ?? "resolving",
+      },
+      { label: "Tricks", value: `${view.total_trick_counts.seat_0}-${view.total_trick_counts.seat_1}` },
+    ];
+  }
+
   return [
     { label: "Board", value: `${view.board_rows} x ${view.board_columns}` },
     { label: "Turn", value: view.terminal_kind === "win" ? `${view.winning_seat} won` : view.active_seat ?? "terminal" },

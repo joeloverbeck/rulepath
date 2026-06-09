@@ -43,14 +43,22 @@ export function DevPanel({
   onSubmitStale,
 }: DevPanelProps) {
   const redactsActionPaths = Boolean(
-    view && "game_id" in view && (view.game_id === "high_card_duel" || view.game_id === "secret_draft"),
+    view &&
+      "game_id" in view &&
+      (view.game_id === "high_card_duel" ||
+        view.game_id === "secret_draft" ||
+        view.game_id === "poker_lite" ||
+        view.game_id === "plain_tricks"),
   );
   const viewSurface =
     view && "game_id" in view && view.game_id === "token_bazaar"
       ? "Public accounting"
       : view &&
           "game_id" in view &&
-          (view.game_id === "high_card_duel" || view.game_id === "secret_draft" || view.game_id === "poker_lite")
+          (view.game_id === "high_card_duel" ||
+            view.game_id === "secret_draft" ||
+            view.game_id === "poker_lite" ||
+            view.game_id === "plain_tricks")
         ? "Viewer filtered"
         : view
           ? "Public"

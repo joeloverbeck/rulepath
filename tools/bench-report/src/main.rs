@@ -115,6 +115,10 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "high_card_duel",
             thresholds_path: "games/high_card_duel/benches/thresholds.json",
         }),
+        "plain_tricks" => Ok(RegisteredGame {
+            game_id: "plain_tricks",
+            thresholds_path: "games/plain_tricks/benches/thresholds.json",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -127,7 +131,7 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("bench-report 0.1.0");
     println!("usage: bench-report --input <report> --thresholds <thresholds>");
-    println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel> --input <report>");
+    println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel|plain_tricks> --input <report>");
 }
 
 #[derive(Clone, Debug)]

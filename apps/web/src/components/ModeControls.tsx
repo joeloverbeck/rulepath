@@ -110,6 +110,9 @@ function isTerminalView(view: PublicView | null): boolean {
   if ("winner" in view) {
     return view.winner !== null;
   }
+  if ("game_id" in view && view.game_id === "plain_tricks") {
+    return view.terminal.kind !== "non_terminal";
+  }
   if ("terminal" in view) {
     return view.terminal.terminal;
   }

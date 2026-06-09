@@ -114,6 +114,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "poker-lite-rules-v1",
             trace_dir: "games/poker_lite/tests/golden_traces",
         }),
+        "plain_tricks" => Ok(RegisteredGame {
+            game_id: "plain_tricks",
+            rules_version: "plain-tricks-rules-v1",
+            trace_dir: "games/plain_tricks/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -229,10 +234,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
 }
 
 fn check_trace_path(
@@ -555,6 +560,7 @@ impl Trace {
             "token_bazaar" => self.token_bazaar_actual_hashes(),
             "secret_draft" => self.secret_draft_actual_hashes(),
             "poker_lite" => self.poker_lite_actual_hashes(),
+            "plain_tricks" => self.plain_tricks_actual_hashes(),
             _ => unreachable!("resolved games only"),
         }
     }
@@ -1342,6 +1348,79 @@ impl Trace {
             .and_then(|seat| poker_lite::PokerLiteSeat::parse(seat))
             .ok_or_else(|| self.failure("poker_lite trace command has invalid actor_seat"))
     }
+
+    fn plain_tricks_actual_hashes(&self) -> Result<Option<ActualHashes>, String> {
+        if self.fixture_kind == "bot_action" {
+            return Ok(None);
+        }
+        if !matches!(
+            self.fixture_kind.as_str(),
+            "commands" | "terminal" | "diagnostic" | "no_leak" | "export"
+        ) {
+            return Ok(None);
+        }
+
+        let mut state = plain_tricks::setup_match(
+            engine_core::Seed(self.seed),
+            &plain_tricks::replay_support::default_seats(),
+            &plain_tricks::SetupOptions::default(),
+        )
+        .map_err(diagnostic_string)?;
+        let mut effects = plain_tricks::setup_effects(&state);
+        let mut diagnostic_hash = None;
+        let has_diagnostic = self.expected_diagnostic_hash.is_some();
+        let applied_count = if has_diagnostic {
+            self.commands.len().saturating_sub(1)
+        } else {
+            self.commands.len()
+        };
+
+        for index in 0..applied_count {
+            let seat = self.plain_tricks_actor(index)?;
+            let command = plain_tricks_command_for_seat(&state, seat, self.commands[index].clone());
+            let action =
+                plain_tricks::validate_command(&state, &command).map_err(diagnostic_string)?;
+            effects
+                .extend(plain_tricks::apply_action(&mut state, action).map_err(diagnostic_string)?);
+        }
+
+        if has_diagnostic {
+            let index = self.commands.len().saturating_sub(1);
+            let seat = self.plain_tricks_actor(index)?;
+            let mut command =
+                plain_tricks_command_for_seat(&state, seat, self.commands[index].clone());
+            if let Some(freshness) = self.diagnostic_freshness_token {
+                command.freshness_token = engine_core::FreshnessToken(freshness);
+            }
+            let diagnostic = plain_tricks::validate_command(&state, &command)
+                .expect_err("diagnostic trace rejects");
+            diagnostic_hash = Some(HashValue::from_stable_bytes(
+                format!("{diagnostic:?}").as_bytes(),
+            ));
+        }
+
+        Ok(Some(ActualHashes {
+            state_hash: plain_tricks::replay_support::state_hash(&state),
+            effect_hash: plain_tricks::replay_support::effect_hash(&effects),
+            action_tree_hash: plain_tricks_action_tree_hash(&state),
+            view_hash: plain_tricks::replay_support::view_hash(&state, &Viewer { seat_id: None }),
+            diagnostic_hash,
+            terminal: state.phase == plain_tricks::Phase::Terminal,
+            winner: match state.terminal_outcome {
+                Some(plain_tricks::TerminalOutcome::TrickWin { winner, .. }) => {
+                    Some(winner.as_str().to_owned())
+                }
+                Some(plain_tricks::TerminalOutcome::Split { .. }) | None => None,
+            },
+        }))
+    }
+
+    fn plain_tricks_actor(&self, index: usize) -> Result<plain_tricks::PlainTricksSeat, String> {
+        self.command_actor_seats
+            .get(index)
+            .and_then(|seat| plain_tricks::PlainTricksSeat::parse(seat))
+            .ok_or_else(|| self.failure("plain_tricks trace command has invalid actor_seat"))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1458,6 +1537,39 @@ fn poker_lite_action_tree_hash(state: &poker_lite::PokerLiteState) -> HashValue 
                 seat_id: state.seats[seat.index()].clone(),
             };
             poker_lite::replay_support::action_tree_hash(&poker_lite::legal_action_tree(
+                state, &actor,
+            ))
+            .0
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("|");
+    HashValue::from_stable_bytes(parts.as_bytes())
+}
+
+fn plain_tricks_command_for_seat(
+    state: &plain_tricks::PlainTricksState,
+    actor_seat: plain_tricks::PlainTricksSeat,
+    path: Vec<String>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        },
+        action_path: ActionPath { segments: path },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn plain_tricks_action_tree_hash(state: &plain_tricks::PlainTricksState) -> HashValue {
+    let parts = plain_tricks::PlainTricksSeat::ALL
+        .iter()
+        .map(|seat| {
+            let actor = Actor {
+                seat_id: state.seats[seat.index()].clone(),
+            };
+            plain_tricks::replay_support::action_tree_hash(&plain_tricks::legal_action_tree(
                 state, &actor,
             ))
             .0

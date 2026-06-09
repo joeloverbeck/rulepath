@@ -42,7 +42,8 @@ mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is
 | - | Non-gate (UI infra) | [`rules-display-shared-surface.md`](../archive/specs/rules-display-shared-surface.md) | Done |
 | - | Non-gate (UI infra) | [`victory-explanation-shared-surface.md`](../archive/specs/victory-explanation-shared-surface.md) | Done |
 | 8 | Gate 9.1 | [`gate-9-1-secret-draft-commitment-reveal.md`](../archive/specs/gate-9-1-secret-draft-commitment-reveal.md) (`secret_draft` / Veiled Draft; simultaneous commitment/reveal and pending-seat no-leak proof) | Done |
-| 9 | Gate 10 | [`poker_lite` / Crest Ledger betting-showdown proof](../archive/specs/gate-10-poker-lite-betting-showdown.md) complete; `plain_tricks` trick/follow-suit proof not yet specced | In progress |
+| 9 | Gate 10 | [`poker_lite` / Crest Ledger betting-showdown proof](../archive/specs/gate-10-poker-lite-betting-showdown.md) plus [`plain_tricks` / Plain Tricks trick-taking proof](../archive/specs/gate-10-1-plain-tricks-trick-taking-proof.md) complete the betting/showdown and trick/follow-suit halves | Done |
+| 10 | Gate 10.1 | [`gate-10-1-plain-tricks-trick-taking-proof.md`](../archive/specs/gate-10-1-plain-tricks-trick-taking-proof.md) (`plain_tricks` / Plain Tricks; lead/follow legality, trick resolution, round scoring, deal rotation; carries the third-use card/private-hand ledger hard gate; closes the remaining Gate 10 trick rows) | Done |
 | 11 | Gate 11 | `masked_claims` — not yet specced | Not started |
 | 12 | Gate 12 | `flood_watch` — not yet specced | Not started |
 | 13 | Gate 13 | `frontier_control` — not yet specced | Not started |

@@ -1,0 +1,15 @@
+variant_id = "plain_tricks_standard"
+display_name = "Plain Tricks"
+rules_version_label = "plain-tricks-rules-v1"
+seat_count = 2
+suit_count = 3
+rank_count = 6
+card_count = 18
+hand_size = 6
+tail_size = 6
+tricks_per_round = 6
+round_count = 2
+first_round_lead_seat = "seat_0"
+second_round_lead_seat = "seat_1"
+deck_order = "standard_trick_cards_v1"
+terminal_outcomes = "trick_win_split"

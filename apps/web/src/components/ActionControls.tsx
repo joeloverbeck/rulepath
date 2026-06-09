@@ -56,6 +56,10 @@ function choiceTestId(view: PublicView | null, choice: ActionChoice, index: numb
     const round = "round" in view ? view.round.round_index : 0;
     return `choice-poker-lite-round-${round}-${index}`;
   }
+  if (view && "game_id" in view && view.game_id === "plain_tricks") {
+    const trick = "trick_index" in view ? view.trick_index : 0;
+    return `choice-plain-tricks-trick-${trick}-${index}`;
+  }
   return `choice-${choice.segment}`;
 }
 
@@ -65,6 +69,9 @@ function isTerminalView(view: PublicView | null): boolean {
   }
   if ("winner" in view) {
     return view.winner !== null;
+  }
+  if ("game_id" in view && view.game_id === "plain_tricks") {
+    return view.terminal.kind !== "non_terminal";
   }
   if ("terminal" in view) {
     return view.terminal.terminal;

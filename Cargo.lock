@@ -52,6 +52,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "high_card_duel",
+ "plain_tricks",
  "poker_lite",
  "race_to_n",
  "secret_draft",
@@ -73,6 +74,14 @@ dependencies = [
  "ai-core",
  "engine-core",
  "game-stdlib",
+]
+
+[[package]]
+name = "plain_tricks"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
 ]
 
 [[package]]
@@ -101,6 +110,7 @@ dependencies = [
  "engine-core",
  "game-stdlib",
  "high_card_duel",
+ "plain_tricks",
  "poker_lite",
  "race_to_n",
  "secret_draft",
@@ -138,6 +148,7 @@ dependencies = [
  "draughts_lite",
  "engine-core",
  "high_card_duel",
+ "plain_tricks",
  "poker_lite",
  "race_to_n",
  "secret_draft",
@@ -181,6 +192,7 @@ dependencies = [
  "draughts_lite",
  "engine-core",
  "high_card_duel",
+ "plain_tricks",
  "poker_lite",
  "race_to_n",
  "secret_draft",

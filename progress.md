@@ -1,11 +1,9 @@
-Current status: Gates 0-9.1 are complete in the worktree. Gate 9 is complete
-with `token_bazaar` as the accepted public resource/economy proof, and Gate 9.1
-is complete with `secret_draft` / Veiled Draft as the accepted simultaneous
-commitment/reveal and pending-seat no-leak proof. `blackjack_lite` is deferred
-by ADR 0006 and is not a Gate 9 or Gate 9.1 blocker. Gate 10's `poker_lite` /
-Crest Ledger betting-showdown half is complete; the broader ROADMAP Gate 10 is
-not fully done because `plain_tricks` still owns the trick/follow-suit half. The
-mutable source of truth for gate progress is `specs/README.md`.
+Current status: Gates 0-10.1 are complete in the worktree. Gate 10 is complete
+with `poker_lite` / Crest Ledger as the accepted betting/showdown half and
+`plain_tricks` / Plain Tricks as the accepted trick/follow-suit half.
+`blackjack_lite` is deferred by ADR 0006 and is not a blocker for the current
+roadmap ladder. The mutable source of truth for gate progress is
+`specs/README.md`.
 
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
 
@@ -17,7 +15,40 @@ Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and c
 | `resource_race` | Alias or alternate design label for the economy proof; do not implement separately unless a future accepted spec replaces `token_bazaar`. |
 | `secret_draft` | Later simultaneous commitment / waiting / reveal proof, preferably after Token Bazaar proves public resources and browser economy UI. |
 | `blackjack_lite` | Deferred comparison case under ADR 0006; not a Gate 8.1 interlock and not a Gate 9 prerequisite. |
-| `poker_lite` / `plain_tricks` | Gate 10 card-depth candidates. `poker_lite` / Crest Ledger is complete for the betting/showdown half; `plain_tricks` remains the successor for trick/follow-suit proof. |
+| `poker_lite` / `plain_tricks` | Gate 10 card-depth candidates. `poker_lite` / Crest Ledger is complete for the betting/showdown half; `plain_tricks` / Plain Tricks is complete for the trick/follow-suit half. |
+
+## Gate 10.1 Plain Tricks
+
+- Completed on 2026-06-09 for `plain_tricks` / Plain Tricks, the
+  trick/follow-suit half of ROADMAP Gate 10.
+- Added the accepted hidden-hand trick-taking proof: deterministic two-round
+  deal, owner-private hands, internal-only tail, must-follow-suit legality,
+  void free-discard, led-suit trick resolution, trick-winner-leads turn order,
+  round scoring, deal rotation, terminal win/split rationale, public replay
+  export/import, Level 0 and Level 2 bots, golden traces, benchmarks, tool
+  registration, WASM/browser board, e2e no-leak/a11y smoke, and full
+  official-game docs.
+- Boundary notes: deterministic shuffle/private-hand pressure reached its
+  third-use hard gate and was explicitly deferred/rejected for extraction in
+  `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md`; no `engine-core`
+  noun, `game-stdlib` helper, or promotion debt was introduced. Follow-suit
+  legality, trick resolution, trick-winner-led turn order, and deal rotation
+  are first-use local-only rows in the mechanic atlas.
+- Acceptance evidence:
+  - `cargo fmt --all --check`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo test --workspace`
+  - `cargo run -p simulate -- --game plain_tricks --games 1000 --start-seed 0 --action-cap 32`
+  - `cargo run -p replay-check -- --game plain_tricks`
+  - `cargo run -p fixture-check -- --game plain_tricks`
+  - `cargo run -p rule-coverage -- --game plain_tricks`
+  - `cargo bench -p plain_tricks`
+  - `bash scripts/boundary-check.sh`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:e2e`
 | private monster-game red-team | Not part of this pass; leave late, optional, and isolated. |
 
 ## Gate 10 Crest Ledger
@@ -36,7 +67,8 @@ Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and c
   `token_bazaar`; bounded pledge/shared-pool allocation is first use. All stay
   game-local. No `engine-core` noun, `game-stdlib` helper, or promotion debt was
   introduced; the mechanic atlas §10A remains empty.
-- Deferred scope: `plain_tricks` still owns the Gate 10 trick/follow-suit half.
+- Companion scope: `plain_tricks` / Plain Tricks now closes the Gate 10
+  trick/follow-suit half.
 - Acceptance evidence:
   - `cargo fmt --all --check`
   - `cargo clippy --workspace --all-targets -- -D warnings`

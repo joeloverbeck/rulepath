@@ -13,6 +13,7 @@ import { GamePicker } from "./components/GamePicker";
 import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup } from "./components/MatchSetup";
 import { ModeControls } from "./components/ModeControls";
+import { PlainTricksBoard } from "./components/PlainTricksBoard";
 import { PokerLiteBoard } from "./components/PokerLiteBoard";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
@@ -29,6 +30,7 @@ import {
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
   type HighCardDuelPublicView,
+  type PlainTricksPublicView,
   type PokerLitePublicView,
   type PublicView,
   type RacePublicView,
@@ -450,6 +452,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
           />
+        ) : isPlainTricksView(view) ? (
+          <PlainTricksBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -468,7 +480,8 @@ function App() {
         isHighCardDuelView(view) ||
         isTokenBazaarView(view) ||
         isSecretDraftView(view) ||
-        isPokerLiteView(view) ? null : (
+        isPokerLiteView(view) ||
+        isPlainTricksView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -625,6 +638,10 @@ function isPokerLiteView(view: PublicView | null): view is PokerLitePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "poker_lite");
 }
 
+function isPlainTricksView(view: PublicView | null): view is PlainTricksPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "plain_tricks");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -637,6 +654,9 @@ function isTerminalView(view: PublicView): boolean {
   }
   if (isPokerLiteView(view)) {
     return view.terminal.terminal;
+  }
+  if (isPlainTricksView(view)) {
+    return view.terminal.kind !== "non_terminal";
   }
   return view.terminal_kind !== "non_terminal";
 }
@@ -692,6 +712,19 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
           ? "split"
           : `${view.terminal.winner} won`
         : `${view.phase}, pool ${view.shared_pool}`,
+    };
+  }
+  if (view.game_id === "plain_tricks") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.terminal.kind !== "non_terminal"
+          ? view.terminal.draw
+            ? "split"
+            : `${view.terminal.winner} won`
+          : `${view.phase}, tricks ${view.total_trick_counts.seat_0}-${view.total_trick_counts.seat_1}`,
     };
   }
   return {

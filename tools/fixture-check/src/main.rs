@@ -78,8 +78,10 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_public_explanation",
     "expected_private_explanation",
     "opponent_private_card",
+    "opponent_hand",
     "hidden_center",
     "deck_tail",
+    "tail",
     "sampling",
     "wasm_exported_trace",
     "id",
@@ -243,6 +245,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/poker_lite/data/variants.toml",
             variant_id: "poker_lite_standard",
         }),
+        "plain_tricks" => Ok(RegisteredGame {
+            game_id: "plain_tricks",
+            rules_version: "plain-tricks-rules-v1",
+            trace_dir: "games/plain_tricks/tests/golden_traces",
+            fixture_dir: "games/plain_tricks/data/fixtures",
+            manifest_path: "games/plain_tricks/data/manifest.toml",
+            variants_path: "games/plain_tricks/data/variants.toml",
+            variant_id: "plain_tricks_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -296,9 +307,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -453,6 +464,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = poker_lite::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "plain_tricks" => {
+            let manifest = plain_tricks::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = plain_tricks::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (
