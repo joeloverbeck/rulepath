@@ -1,6 +1,6 @@
 # GAT101PLATRI-015: Native benchmarks, thresholds, BENCHMARKS.md, and gate-2 CI
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/plain_tricks/benches/plain_tricks.rs`, `games/plain_tricks/benches/thresholds.json`, `games/plain_tricks/docs/BENCHMARKS.md`; modifies `tools/bench-report/src/main.rs`, `.github/workflows/gate-2-benchmarks.yml`. No `engine-core`/`game-stdlib` change.
@@ -83,3 +83,22 @@ Add a `plain_tricks` `resolve_game()` arm and gate-2 bench smoke (non-gating PR)
 1. `cargo bench -p plain_tricks`
 2. `cargo bench -p plain_tricks | tee /tmp/plain_tricks-bench.txt && cargo run -p bench-report -- --input /tmp/plain_tricks-bench.txt --thresholds games/plain_tricks/benches/thresholds.json`
 3. The bench + bench-report run is the correct boundary; CLI flag names are confirmed against `tools/bench-report` at implementation time.
+
+## Outcome
+
+Completed 2026-06-09.
+
+- Added the `plain_tricks` native benchmark target, threshold file, and benchmark documentation.
+- Registered `plain_tricks` in `bench-report` including the `--game plain_tricks` threshold resolver.
+- Added gate-2 CI smoke and threshold steps for `plain_tricks`.
+- Recorded the provisional native floor of 2,000 completed random-legal matches/sec without claiming ADR 0005 is accepted.
+
+Verification:
+
+1. `cargo bench -p plain_tricks -- legal_actions`
+2. `cargo bench -p plain_tricks`
+3. `cargo bench -p plain_tricks | tee /tmp/plain_tricks-bench.txt && cargo run -p bench-report -- --input /tmp/plain_tricks-bench.txt --thresholds games/plain_tricks/benches/thresholds.json`
+4. `cargo run -p bench-report -- --game plain_tricks --input /tmp/plain_tricks-bench.txt`
+5. `cargo fmt --all --check`
+6. `cargo test --workspace`
+7. `cargo run -p rule-coverage -- --game plain_tricks`

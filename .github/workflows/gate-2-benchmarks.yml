@@ -50,6 +50,9 @@ jobs:
       - name: poker_lite bench smoke
         run: cargo bench -p poker_lite -- legal_actions
 
+      - name: plain_tricks bench smoke
+        run: cargo bench -p plain_tricks -- legal_actions
+
   bench-gate:
     name: Benchmark threshold gate
     if: github.event_name != 'pull_request'
@@ -105,6 +108,11 @@ jobs:
 
           cargo bench -p poker_lite | tee /tmp/poker_lite-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/poker_lite-benchmark-report.txt --thresholds games/poker_lite/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p plain_tricks | tee /tmp/plain_tricks-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/plain_tricks-benchmark-report.txt --thresholds games/plain_tricks/benches/thresholds.json; then
             failed=1
           fi
 

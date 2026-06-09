@@ -11,3 +11,8 @@ engine-core = { path = "../../crates/engine-core" }
 
 [lib]
 path = "src/lib.rs"
+
+[[bench]]
+name = "plain_tricks"
+path = "benches/plain_tricks.rs"
+harness = false
