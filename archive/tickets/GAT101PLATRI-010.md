@@ -1,6 +1,6 @@
 # GAT101PLATRI-010: Property tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/plain_tricks/tests/property.rs`. No production code.
@@ -70,3 +70,22 @@ Implement properties for: deterministic replay; exactly-24-plays termination; fo
 1. `cargo test -p plain_tricks --test property`
 2. `cargo test -p plain_tricks`
 3. The per-crate property test is the correct boundary; it needs no external tool.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+1. Added `games/plain_tricks/tests/property.rs` with seeded legal playout properties over the real setup, action-tree, validation, apply, visibility, and stable-summary APIs.
+2. Covered deterministic replay, exactly 24 played commands to terminal, completed-trick and terminal point conservation, follow-suit legal-tree constraints including full-hand freedom when unable to follow, trick-winner membership/rule replay, and observer projection hidden-card-id redaction.
+
+Deviations from original plan:
+
+1. Used the existing repo pattern of deterministic seeded sample loops rather than adding a new property-test dependency.
+2. The no-leak property asserts hidden card ids/debug names in observer projection; the exhaustive suit/rank label and effect/diagnostic searches remain covered by GAT101PLATRI-009's visibility suite.
+
+Verification:
+
+1. `cargo test -p plain_tricks --test property` passed.
+2. `cargo test -p plain_tricks` passed.
