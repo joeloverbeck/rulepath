@@ -1,6 +1,6 @@
 # GAT101PLATRI-011: Replay support, serialization tests, and golden traces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/plain_tricks/src/replay_support.rs`, `games/plain_tricks/tests/{replay,serialization}.rs`, `games/plain_tricks/tests/golden_traces/*.trace.json`. No `engine-core`/`game-stdlib` change.
@@ -84,3 +84,26 @@ Author the named trace set (the diagnostic, no-leak, rules, rotation, terminal, 
 1. `cargo test -p plain_tricks --test replay && cargo test -p plain_tricks --test serialization`
 2. `cargo test -p plain_tricks`
 3. Within-crate replay/serialization tests are the correct boundary now; `cargo run -p replay-check -- --game plain_tricks` is exercised once GAT101PLATRI-014 registers the tool.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+1. Added `games/plain_tricks/src/replay_support.rs` with internal full traces, deterministic state/effect/action-tree/view hashing, viewer-scoped public export/import, strict trace/export JSON round trips, and redacted command summaries.
+2. Added replay tests covering golden trace hash drift, diagnostic traces, internal replay determinism, public export/import round trips, seed omission, and no explicit tail export.
+3. Added serialization tests for static data consistency, stable trace/export byte order, strict unknown-field rejection, and deterministic state/view summaries.
+4. Added the named `games/plain_tricks/tests/golden_traces/*.trace.json` set from the spec, including diagnostic, no-leak, rule, terminal, split, public-export, bot-placeholder, and WASM-placeholder fixtures.
+
+Deviations from original plan:
+
+1. The `bot-action` and `wasm-exported` traces are intentionally command fixtures with notes that producer/WASM payload evidence is refreshed by GAT101PLATRI-013 and GAT101PLATRI-016.
+2. Terminal export tests assert no seed material or explicit tail list/ids, because the same card ids can become public in earlier or later fresh-deal rounds without exposing the unrevealed tail as a tail surface.
+
+Verification:
+
+1. `cargo test -p plain_tricks --test replay` passed.
+2. `cargo test -p plain_tricks --test serialization` passed.
+3. `cargo test -p plain_tricks` passed.
+4. `cargo fmt --all --check` passed.
