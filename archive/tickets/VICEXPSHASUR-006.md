@@ -1,6 +1,6 @@
 # VICEXPSHASUR-006: Terminal-reason + hidden-info outcome rationale — `draughts_lite` + `high_card_duel`
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite` (project the terminal reason into `TerminalView`) and `games/high_card_duel` (final-score rationale from revealed public history), per-game docs, and golden traces. No `engine-core`/`game-stdlib` change.
@@ -90,3 +90,19 @@ Add rationale unit tests (both terminal reasons for `draughts_lite`; final-score
 1. `cargo test -p draughts_lite && cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game draughts_lite --all && cargo run -p replay-check -- --game high_card_duel --all`
 3. `cargo run -p fixture-check -- --game draughts_lite && cargo run -p fixture-check -- --game high_card_duel`
+
+## Outcome
+
+Completed 2026-06-09 in commit `4a168e2`.
+
+Implemented Rust-owned terminal-reason and hidden-information-safe final-score
+rationales for `draughts_lite` and `high_card_duel`, including no-leak
+coverage for unrevealed card/deck data, per-game documentation, tests, and
+intentional golden trace updates.
+
+Acceptance evidence was re-proven by the final capstone:
+
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game draughts_lite --all` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed.
+- `node scripts/check-outcome-explanations.mjs` passed.

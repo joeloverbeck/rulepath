@@ -1,6 +1,6 @@
 # VICEXPSHASUR-004: Line-result outcome rationale — `three_marks` + `column_four`
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `games/three_marks` and `games/column_four` (`visibility.rs` rationale projection), per-game docs, and golden traces. No `engine-core`/`game-stdlib` change.
@@ -89,3 +89,18 @@ Add win/draw rationale unit tests for both games; intentionally regenerate the a
 1. `cargo test -p three_marks && cargo test -p column_four`
 2. `cargo run -p replay-check -- --game three_marks --all && cargo run -p replay-check -- --game column_four --all`
 3. `cargo run -p fixture-check -- --game three_marks && cargo run -p fixture-check -- --game column_four`
+
+## Outcome
+
+Completed 2026-06-09 in commit `ff19ca7`.
+
+Implemented Rust-owned line-result rationale projections for `three_marks` and
+`column_four`, including win-line and draw causes, per-game UI/RULES
+documentation, tests, and intentional golden trace updates.
+
+Acceptance evidence was re-proven by the final capstone:
+
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game three_marks --all` passed.
+- `cargo run -p replay-check -- --game column_four --all` passed.
+- `node scripts/check-outcome-explanations.mjs` passed.

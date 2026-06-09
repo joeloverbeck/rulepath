@@ -1,6 +1,6 @@
 # VICEXPSHASUR-007: Tiebreak-ladder outcome rationale — `token_bazaar`
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/token_bazaar` (`visibility.rs` ladder + decisive-rung rationale on `TerminalView`), per-game docs, and golden traces / terminal fixtures. No `engine-core`/`game-stdlib` change.
@@ -82,3 +82,17 @@ Add deterministic terminal fixtures for the four outcomes (score win, fulfilled-
 1. `cargo test -p token_bazaar`
 2. `cargo run -p replay-check -- --game token_bazaar --all`
 3. `cargo run -p fixture-check -- --game token_bazaar`
+
+## Outcome
+
+Completed 2026-06-09 in commit `0d3633b`.
+
+Implemented the Rust-owned `token_bazaar` tiebreak-ladder rationale, including
+decisive rung projection, terminal-trigger/final-standing breakdowns,
+per-game documentation, tests, and intentional golden trace updates.
+
+Acceptance evidence was re-proven by the final capstone:
+
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game token_bazaar --all` passed.
+- `node scripts/check-outcome-explanations.mjs` passed.

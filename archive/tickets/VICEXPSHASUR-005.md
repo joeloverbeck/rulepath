@@ -1,6 +1,6 @@
 # VICEXPSHASUR-005: Target/score outcome rationale — `race_to_n` + `directional_flip`
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `games/race_to_n` (`visibility.rs` rationale on the public terminal view) and `games/directional_flip` (`visibility.rs` rationale projecting the terminal trigger), per-game docs, and golden traces. No `engine-core`/`game-stdlib` change.
@@ -89,3 +89,18 @@ Add rationale unit tests for both games (exact-target win; full-board and double
 1. `cargo test -p race_to_n && cargo test -p directional_flip`
 2. `cargo run -p replay-check -- --game race_to_n --all && cargo run -p replay-check -- --game directional_flip --all`
 3. `cargo run -p fixture-check -- --game race_to_n && cargo run -p fixture-check -- --game directional_flip`
+
+## Outcome
+
+Completed 2026-06-09 in commit `4526df2`.
+
+Implemented Rust-owned target/score rationale projections for `race_to_n` and
+`directional_flip`, including exact-target, final-score, terminal-trigger,
+per-game documentation, tests, and intentional golden trace updates.
+
+Acceptance evidence was re-proven by the final capstone:
+
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game race_to_n --all` passed.
+- `cargo run -p replay-check -- --game directional_flip --all` passed.
+- `node scripts/check-outcome-explanations.mjs` passed.
