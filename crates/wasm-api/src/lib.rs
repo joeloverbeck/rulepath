@@ -4870,7 +4870,7 @@ fn token_ui_json(ui: &token_bazaar::UiMetadata) -> String {
 
 fn poker_view_json(view: &poker_lite::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"shared_pool\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"round\":{},\"private_counts\":{{\"seat_0\":{},\"seat_1\":{}}},\"center\":{},\"showdown\":{},\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"shared_pool\":{},\"contributions\":{{\"seat_0\":{},\"seat_1\":{}}},\"round\":{},\"private_counts\":{{\"seat_0\":{},\"seat_1\":{}}},\"center\":{},\"showdown\":{},\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -4890,6 +4890,8 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
             .as_ref()
             .map_or_else(|| "null".to_owned(), poker_showdown_json),
         poker_terminal_json(&view.terminal),
+        poker_terminal_rationale(&view.terminal)
+            .map_or_else(|| "null".to_owned(), poker_rationale_json),
         view.freshness_token.0,
         poker_private_view_json(&view.private_view),
         poker_ui_json(&view.ui)
@@ -4975,6 +4977,75 @@ fn poker_terminal_json(terminal: &poker_lite::visibility::TerminalView) -> Strin
             shared_pool, each
         ),
     }
+}
+
+fn poker_terminal_rationale(
+    terminal: &poker_lite::visibility::TerminalView,
+) -> Option<&poker_lite::visibility::OutcomeRationaleView> {
+    match terminal {
+        poker_lite::visibility::TerminalView::NonTerminal => None,
+        poker_lite::visibility::TerminalView::YieldWin { rationale, .. }
+        | poker_lite::visibility::TerminalView::ShowdownWin { rationale, .. }
+        | poker_lite::visibility::TerminalView::Split { rationale, .. } => Some(rationale),
+    }
+}
+
+fn poker_rationale_json(rationale: &poker_lite::visibility::OutcomeRationaleView) -> String {
+    let decisive_rule_ids = rationale
+        .decisive_rule_ids
+        .iter()
+        .map(|rule_id| format!("\"{}\"", escape_json(rule_id)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let final_standing = rationale
+        .per_seat
+        .iter()
+        .map(poker_rationale_standing_json)
+        .collect::<Vec<_>>()
+        .join(",");
+
+    format!(
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
+        escape_json(&rationale.result_kind),
+        escape_json(&rationale.decisive_cause),
+        escape_json(&rationale.template_key),
+        decisive_rule_ids,
+        final_standing
+    )
+}
+
+fn poker_rationale_standing_json(
+    breakdown: &poker_lite::visibility::SeatOutcomeBreakdownView,
+) -> String {
+    let mut values = vec![
+        format!(
+            "{{\"label\":\"Contribution\",\"value\":{}}}",
+            breakdown.contribution
+        ),
+        format!(
+            "{{\"label\":\"Allocation\",\"value\":{}}}",
+            breakdown.allocation
+        ),
+    ];
+    if let Some(strength) = &breakdown.strength {
+        values.push(format!(
+            "{{\"label\":\"Pair\",\"value\":\"{}\"}}",
+            escape_json(&strength.pair_bucket)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Private rank\",\"value\":\"{}\"}}",
+            escape_json(&strength.private_rank)
+        ));
+    }
+
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{}]}}",
+        breakdown.seat.as_str(),
+        breakdown.seat.as_str(),
+        escape_json(&breakdown.result),
+        breakdown.result == "win",
+        values.join(",")
+    )
 }
 
 fn poker_private_view_json(private_view: &poker_lite::visibility::PrivateView) -> String {
@@ -7288,6 +7359,59 @@ mod tests {
     }
 
     #[test]
+    fn poker_lite_view_projects_terminal_rationale_template_keys() {
+        let non_terminal = get_terminal_poker_view(0, &[]);
+        assert!(non_terminal.contains("\"terminal_rationale\":null"));
+
+        let private_rank_showdown = get_terminal_poker_view(2, &["hold", "hold", "hold", "hold"]);
+        assert!(private_rank_showdown.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"showdown_win\",\"decisive_cause\":\"higher_private_rank\",\"template_key\":\"poker_lite.private_rank_tiebreak\""
+        ));
+        assert!(private_rank_showdown
+            .contains("\"decisive_rule_ids\":[\"CL-REVEAL-002\",\"CL-SCORE-004\",\"CL-END-002\"]"));
+        assert!(private_rank_showdown.contains("\"label\":\"Private rank\""));
+        assert!(private_rank_showdown.contains("\"label\":\"Pair\""));
+
+        let pair_showdown = get_terminal_poker_view(0, &["hold", "hold", "hold", "hold"]);
+        assert!(pair_showdown.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"showdown_win\",\"decisive_cause\":\"pair_beats_high_card\",\"template_key\":\"poker_lite.pair_beats_high_card\""
+        ));
+
+        let split = get_terminal_poker_view(1, &["hold", "hold", "hold", "hold"]);
+        assert!(split.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"split\",\"decisive_cause\":\"equal_strength_split\",\"template_key\":\"poker_lite.equal_strength_split\""
+        ));
+
+        let yield_win = get_terminal_poker_view(11, &["press", "yield"]);
+        assert!(yield_win.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"yield_win\",\"decisive_cause\":\"opponent_yielded\",\"template_key\":\"poker_lite.yield_win_no_reveal\""
+        ));
+    }
+
+    #[test]
+    fn poker_lite_yield_terminal_rationale_does_not_reveal_private_strength() {
+        let seed = 11;
+        let view = get_terminal_poker_view(seed, &["press", "yield"]);
+        let internal =
+            poker_setup_match(Seed(seed), &seats(), &poker_lite::SetupOptions::default())
+                .expect("setup succeeds");
+
+        assert!(view.contains("\"terminal_rationale\":{"));
+        assert!(view.contains("\"template_key\":\"poker_lite.yield_win_no_reveal\""));
+        assert!(!view.contains("\"label\":\"Pair\""));
+        assert!(!view.contains("\"label\":\"Private rank\""));
+        assert!(!view.contains("\"rank\":"));
+        assert_no_poker_cards(
+            &view,
+            &[
+                internal.private_card_for_internal(PokerLiteSeat::Seat0),
+                internal.private_card_for_internal(PokerLiteSeat::Seat1),
+                internal.center_card_internal(),
+            ],
+        );
+    }
+
+    #[test]
     fn high_card_public_import_replays_ordered_public_effects() {
         let source_export = high_card_export_public_observer_replay(
             &high_card_duel::generate_internal_full_trace(55),
@@ -7590,6 +7714,24 @@ mod tests {
             .collect::<Vec<_>>()
             .join(",");
         format!("[{body}]")
+    }
+
+    fn get_terminal_poker_view(seed: u64, action_paths: &[&str]) -> String {
+        let created = new_match("poker_lite", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+
+        for (freshness_token, action_path) in action_paths.iter().enumerate() {
+            let tree = get_action_tree(&match_id, "seat_0").expect("seat_0 tree returned");
+            let actor = if tree.contains("\"choices\":[]") {
+                "seat_1"
+            } else {
+                "seat_0"
+            };
+            apply_action(&match_id, actor, action_path, freshness_token as u64)
+                .expect("poker action applies");
+        }
+
+        get_view(&match_id, None).expect("observer view returned")
     }
 
     fn assert_ordered(input: &str, first: &str, second: &str) {
