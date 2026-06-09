@@ -1,6 +1,6 @@
 # VICEXPSHASUR-001: Outcome-explanation contract — doctrine, area-doc & template amendments + spec-index row
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs, templates, and the `specs/README.md` index only; no Rust/engine, WASM, or behavior surface touched.
@@ -94,3 +94,24 @@ Add the `victory-explanation-shared-surface` row matching the index's real schem
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n 'Outcome / victory explanation\|Outcome explanation documentation\|Outcome explanation traceability' docs/UI-INTERACTION.md docs/OFFICIAL-GAME-CONTRACT.md templates/GAME-UI.md templates/GAME-RULES.md`
 3. Doc-link check is the correct full-pipeline boundary: no Rust/test surface changes, so `cargo`/web smokes are not the verification boundary for a docs/template diff.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added the mandatory shared outcome/victory explanation contract to `docs/UI-INTERACTION.md`, including acceptance-check requirements for Rust-owned decisive-cause data, no coaching/counterfactuals, no hidden-info leaks, status-message accessibility, keyboard-accessible breakdowns, color independence, and reduced-motion preservation.
+- Added outcome-explanation documentation and web-exposure requirements to `docs/OFFICIAL-GAME-CONTRACT.md`.
+- Extended `templates/GAME-UI.md`, `templates/GAME-RULES.md`, and the existing `templates/GAME-HOW-TO-PLAY.md` scoring section with outcome-rationale, traceability, no-leak, and inert-template requirements.
+- Registered `specs/victory-explanation-shared-surface.md` in `specs/README.md` as a non-gate UI-infrastructure spec with `Planned` status.
+
+Deviations from original plan:
+
+- None. The ticket stayed documentation/template/index-only and did not touch Rust, WASM, TypeScript runtime, or engine/game behavior.
+
+Verification results:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -n 'Outcome / victory explanation\|Outcome explanation documentation\|Outcome explanation traceability' docs/UI-INTERACTION.md docs/OFFICIAL-GAME-CONTRACT.md templates/GAME-UI.md templates/GAME-RULES.md` found the required contract/template sections.
+- `grep -n 'victory-explanation-shared-surface' specs/README.md` found the `Planned` index row.

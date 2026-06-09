@@ -116,6 +116,16 @@ Rust MUST generate legal actions. TypeScript MUST NOT decide legality.
 | `R-END-001` | `<condition>` | `<winner/loss/draw/shared outcome>` | `<tie>` | `<notes>` |
 | `R-END-002` | `<condition>` | `<winner/loss/draw/shared outcome>` | `<tie>` | `<notes>` |
 
+## Outcome explanation traceability
+
+Every scoring and terminal rule that can decide a match MUST have a stable rule ID and enough detail for the web outcome surface to cite it.
+
+| Outcome/explanation fact | Stable rule ID(s) | Decisive when | Notes for UI explanation |
+|---|---|---|---|
+| `<score component / tiebreaker / line / showdown strength / terminal reason>` | `<R-SCORE-*/R-END-*>` | `<condition decided by Rust>` | `<player-facing wording constraint>` |
+
+This table is traceability only. It is not a behavior DSL, selector table, or TypeScript decision source. Rust remains the source of scoring, terminal detection, and rationale projection.
+
 ## Visibility and private information
 
 Public/browser payloads MUST NOT reveal hidden information through public views, action trees, previews, diagnostics, effect logs, DOM attributes, test IDs, logs, local storage, replay exports, bot explanations, candidate rankings, or dev inspectors.

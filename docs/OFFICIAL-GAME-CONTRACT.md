@@ -119,6 +119,25 @@ Hidden-information games MUST describe visibility from the player's own
 perspective and public perspective without exposing opponent secrets, deck
 tails, unrevealed commitments, or seed-derived hidden data.
 
+### Outcome explanation documentation
+
+Every official game MUST document how terminal results are explained to players.
+
+`RULES.md` MUST identify stable scoring and terminal-condition rule IDs that the outcome explanation can cite. Scoring, victory, draw, split, yield, showdown, and tiebreaker rules MUST be explicit enough that a terminal rationale can trace back to them.
+
+`HOW-TO-PLAY.md` MUST teach the same scoring and winning facts in player-facing language, especially the decisive factors that can appear in the end-of-match outcome surface.
+
+`UI.md` MUST include an "Outcome / victory explanation" section naming:
+
+- each terminal result variant;
+- the Rust public/terminal view field or terminal effect that carries the decisive cause;
+- the per-player breakdown fields shown to the viewer;
+- hidden-information redaction rules, including any no-reveal terminal outcomes;
+- the static explanation template keys, if used; and
+- the smoke/no-leak coverage that proves the surface is safe.
+
+Documentation may be concise for simple games, but omission is not allowed.
+
 ## 6. Rule coverage matrix
 
 Every rule requirement MUST be classified.
@@ -192,6 +211,18 @@ A game may be web-exposed only when:
 - the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the newly web-exposed game in its intro catalog list, its Shell Surface renderer list (when the game ships a board renderer), and its Smoke Layers `smoke:e2e` list (when the game's smoke is chained by `smoke:e2e`). This reconciliation is part of web-exposure done, not a later cleanup pass — `scripts/check-catalog-docs.mjs` enforces the intro and smoke lists mechanically against the `crates/wasm-api` catalog and `apps/web/package.json`.
 
 Public UI polish is not optional for showcase games.
+
+### Outcome explanation requirement
+
+A game is not web-exposed official unless every terminal outcome renders through the shared outcome explanation surface.
+
+The game's Rust implementation MUST project a viewer-safe terminal rationale through its public/terminal view and/or terminal semantic effect. The rationale MUST include the decisive cause of the actual result and a viewer-safe per-player final breakdown.
+
+The web UI MUST render that Rust-owned rationale without computing outcome logic in TypeScript. TypeScript may format and display safe values, but it MUST NOT decide the winner, score comparison, tiebreaker rung, card/showdown strength, winning line, terminal reason, or any other behavior fact.
+
+Hidden-information games MUST prove that outcome explanations leak no unrevealed private data through public view, private view, effect log, DOM, accessibility attributes, test IDs, logs, storage, replay export, bot explanations, or dev tools.
+
+The official-game admission and public-release checks MUST fail when a catalog game lacks outcome-rationale docs, Rust view/effect payloads, shared-surface wiring, or smoke/no-leak coverage.
 
 ## 11. Required trace set
 
