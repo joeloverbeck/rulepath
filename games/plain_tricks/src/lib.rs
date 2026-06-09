@@ -6,7 +6,9 @@ pub mod ids;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     actor_seat, legal_action_tree, legal_cards, parse_action_path, validate_command,
@@ -28,7 +30,13 @@ pub use setup::{round_leader, setup_match, shuffle_deck, SetupOptions};
 pub use state::{
     CompletedTrick, CurrentTrick, Phase, PlainTricksState, TerminalOutcome, TrickCounts, TrickPlay,
 };
+pub use ui::{card_accessibility_label, rank_label, suit_label, ui_metadata, UiMetadata};
 pub use variants::{Fixture, Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    card_view, filter_effects_for_viewer, project_view, CardView, CompletedTrickView,
+    CurrentTrickView, HandCountsView, OutcomeRationaleView, PlayedCardView, PrivateView,
+    PublicView, SeatOutcomeBreakdownView, SeatPrivateView, TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

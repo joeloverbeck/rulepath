@@ -1,6 +1,6 @@
 # GAT101PLATRI-009: Public/seat view projection, UI metadata, and no-leak tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/plain_tricks/src/visibility.rs`, `games/plain_tricks/src/ui.rs`, `games/plain_tricks/tests/visibility.rs`. No `engine-core`/`game-stdlib` change.
@@ -83,3 +83,24 @@ Exhaustive string-search no-leak tests for every unplayed card id and suit/rank 
 1. `cargo test -p plain_tricks --test visibility`
 2. `cargo test -p plain_tricks`
 3. Per-crate visibility scope is the correct boundary for the Rust firewall; the browser/export extensions of the firewall are verified in GAT101PLATRI-011/018.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+1. Added Rust-owned `plain_tricks` visibility projection with public views, seat-private views, stable summaries, viewer-scoped effect filtering, terminal rationale projection, and no tail projection.
+2. Added neutral Rust UI metadata and card accessibility labels without moving legality or redaction into TypeScript.
+3. Added integration no-leak tests covering observer view JSON, seat-private projection, non-actor action trees, public/private effects, validation diagnostics, played-card public reveal, implicit off-suit information, and terminal tail redaction.
+
+Deviations from original plan:
+
+1. Golden trace fixtures named in the test plan remain out of scope for GAT101PLATRI-011 as planned.
+2. The rules summary describes off-suit freedom without emitting an explicit `void` marker so the UI metadata stays aligned with the no-explicit-void-flag acceptance rule.
+
+Verification:
+
+1. `cargo test -p plain_tricks --test visibility` passed.
+2. `cargo test -p plain_tricks` passed.
+3. `bash scripts/boundary-check.sh` passed.
