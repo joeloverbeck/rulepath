@@ -32,6 +32,8 @@ export type ReplaySessionState = {
   step: ReplayStep | null;
 };
 
+export type RulesPanelStatus = "idle" | "loading" | "loaded" | "error";
+
 export type ShellState = {
   mode: ShellMode;
   api: RulepathApi | null;
@@ -58,6 +60,10 @@ export type ShellState = {
   autoplay: {
     running: boolean;
   };
+  rulesPanelOpen: boolean;
+  rulesPanelGameId: string | null;
+  rulesPanelStatus: RulesPanelStatus;
+  rulesPanelMarkdown: string | null;
   devPanelOpen: boolean;
   reducedMotion: boolean;
   pendingOperation: PendingOperation;
@@ -92,6 +98,11 @@ export type ShellAction =
   | { type: "botTurnStarted" }
   | { type: "autoplayStarted" }
   | { type: "autoplayPaused" }
+  | { type: "rulesPanelOpened"; gameId: string }
+  | { type: "rulesPanelClosed" }
+  | { type: "rulesPanelLoadStarted"; gameId: string }
+  | { type: "rulesPanelLoaded"; gameId: string; markdown: string }
+  | { type: "rulesPanelFailed"; gameId: string }
   | { type: "devPanelToggled" }
   | { type: "reducedMotionChanged"; reducedMotion: boolean }
   | { type: "pendingOperationChanged"; pendingOperation: PendingOperation };
@@ -122,6 +133,10 @@ export const initialShellState: ShellState = {
   autoplay: {
     running: false,
   },
+  rulesPanelOpen: false,
+  rulesPanelGameId: null,
+  rulesPanelStatus: "idle",
+  rulesPanelMarkdown: null,
   devPanelOpen: false,
   reducedMotion: false,
   pendingOperation: "loadWasm",
@@ -308,6 +323,47 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         ...state,
         autoplay: { running: false },
         pendingOperation: state.pendingOperation === "botTurn" ? null : state.pendingOperation,
+      };
+    case "rulesPanelOpened":
+      return {
+        ...state,
+        rulesPanelOpen: true,
+        rulesPanelGameId: action.gameId,
+        rulesPanelStatus: "loading",
+        rulesPanelMarkdown: null,
+      };
+    case "rulesPanelClosed":
+      return {
+        ...state,
+        rulesPanelOpen: false,
+        rulesPanelGameId: null,
+        rulesPanelStatus: "idle",
+        rulesPanelMarkdown: null,
+      };
+    case "rulesPanelLoadStarted":
+      return {
+        ...state,
+        rulesPanelGameId: action.gameId,
+        rulesPanelStatus: "loading",
+        rulesPanelMarkdown: null,
+      };
+    case "rulesPanelLoaded":
+      if (state.rulesPanelGameId !== action.gameId) {
+        return state;
+      }
+      return {
+        ...state,
+        rulesPanelStatus: "loaded",
+        rulesPanelMarkdown: action.markdown,
+      };
+    case "rulesPanelFailed":
+      if (state.rulesPanelGameId !== action.gameId) {
+        return state;
+      }
+      return {
+        ...state,
+        rulesPanelStatus: "error",
+        rulesPanelMarkdown: null,
       };
     case "devPanelToggled":
       return {

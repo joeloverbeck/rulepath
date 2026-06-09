@@ -1,6 +1,6 @@
 # RULDISSHASUR-005: Shared RulesPanel component + loader + shell state + styles
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RulesPanel.tsx`, `state/shellReducer.ts`, `wasm/client.ts` (type only), `styles.css`, `package.json`; no Rust/engine/WASM behavior, and no legality moves to TypeScript (FOUNDATIONS §2).
@@ -94,3 +94,27 @@ Add drawer/sheet, article typography, focus, status, and responsive styles; add 
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. Full e2e/a11y/no-leak verification is the boundary of RULDISSHASUR-007 (it adds the smoke); `build` + `smoke:ui` are the correct boundary for the panel-infra diff.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `apps/web/src/components/RulesPanel.tsx` with a static asset loader, accessible dialog/sheet shell, close/Escape handling, focus entry/return, loading/error/loaded states, table of contents, and a narrow React Markdown renderer.
+- Added presentation-only rules panel state/actions to `apps/web/src/state/shellReducer.ts`.
+- Added rules drawer/sheet, article, table, status, and responsive styles to `apps/web/src/styles.css`.
+
+Deviations from original plan:
+
+- No Markdown dependency was added. A local renderer handles the required subset and never uses `dangerouslySetInnerHTML`, so raw HTML/script/iframe/event-handler text remains inert React text. This avoids network/package churn while preserving the static-presentation boundary.
+- `apps/web/src/wasm/client.ts` was not changed; no helper type was needed and no WASM operation was added.
+- Access-point wiring and panel mounting remain for RULDISSHASUR-006 as planned.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node scripts/check-player-rules.mjs` passed (`player-rules check passed — 9 catalog games validated`).
+- Safety grep found no `dangerouslySetInnerHTML`, `innerHTML`, raw `<script>`/`<iframe>`, `onerror`, view/action/effect/replay/bot API calls, storage writes, or `data-testid` usage in `RulesPanel.tsx`.
+- `git diff --check` passed.
