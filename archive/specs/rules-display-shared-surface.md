@@ -3,7 +3,7 @@
 - **Spec ID:** `rules-display-shared-surface`
 - **Roadmap stage:** Cross-game web UI infrastructure — not a mechanic-ladder gate.
 - **Roadmap build gate:** None (non-gate UI-infrastructure spec; see §12.7 and §15).
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-09
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/FOUNDATIONS.md` → area docs (`docs/ARCHITECTURE.md`, `docs/ENGINE-GAME-DATA-BOUNDARY.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/UI-INTERACTION.md`, `docs/WASM-CLIENT-BOUNDARY.md`, `docs/IP-POLICY.md`) → accepted ADRs → this spec.
@@ -1315,6 +1315,29 @@ These assumptions were validated against the codebase during spec reassessment o
 - **E2E harness already exists.** `apps/web/package.json` already defines `smoke:e2e`, chaining nine `.mjs` smoke files (including `e2e/a11y-noleak.smoke.mjs`). The new `e2e/rules-display.smoke.mjs` (§10.3) chains into that existing script and runner convention; only `build:rules` / `check:rules` (§6.3) are new package scripts.
 - **No Markdown renderer is currently a dependency.** `apps/web` ships only react / react-dom / vite / typescript; the §9.2 renderer decision adds the sole new runtime dependency for this feature.
 - **Per-game prerequisite docs exist.** All nine games already have `docs/RULES.md`, `docs/UI.md`, and `docs/SOURCES.md`; seven have `docs/COMPETENT-PLAYER.md` (`race_to_n` and `three_marks` do not). No game has `HOW-TO-PLAY.md` yet. Authoring (§8.1) may read `UI.md` / `COMPETENT-PLAYER.md` only where present.
+
+## Closeout
+
+Completed: 2026-06-09
+
+Implementation summary:
+
+- Added the permanent `HOW-TO-PLAY.md` contract and template, plus the copy/check scripts that generate and verify static web rules assets for all nine catalog games.
+- Authored all nine catalog player-facing rules docs and generated `apps/web/public/rules/*.md` plus `manifest.json`.
+- Added the shared `RulesPanel`, presentation-only shell state, picker/setup/in-play access points, focus containment, and visible focus treatment for rules triggers.
+- Added `apps/web/e2e/rules-display.smoke.mjs` and chained it into `smoke:e2e` to cover rules access, content, a11y, no hidden-info leak, and no match mutation.
+- Closed the capstone by flipping `specs/README.md` to `Done` and allowing the cross-game rules smoke in `scripts/check-catalog-docs.mjs`.
+
+Acceptance evidence:
+
+- `node scripts/check-catalog-docs.mjs` passed.
+- `node scripts/copy-player-rules.mjs` copied 9 catalog games.
+- `node scripts/check-player-rules.mjs` passed.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `cargo test --workspace` passed.
+- `node scripts/check-doc-links.mjs` passed after the `Done` index flip.
 
 ---
 
