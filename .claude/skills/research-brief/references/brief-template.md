@@ -59,8 +59,9 @@ authority list above.
 
 The decisions the interview resolved — the heart of why Session 2 is *locked*. State each
 as a committed decision, not an option. This section pre-empts every clarifying question
-Session 2 might otherwise ask. Carry any early-exit gaps here as `assumption: <X>` lines so
-they read as defaults the user can override, not as open questions.
+Session 2 might otherwise ask. Carry any early-exit gaps — or a minor residual ambiguity
+surfaced at the Step 5 approval gate — here as `assumption: <X>` lines so they read as
+defaults the user can override, not as open questions.
 
 ### 4. The task
 

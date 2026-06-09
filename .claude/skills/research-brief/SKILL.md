@@ -70,9 +70,11 @@ Confidence: X%
 Gaps: [specific remaining unknowns]
 ```
 
+The Confidence figure tracks **user-intent resolution only**. Gaps you deliberately delegate to Session 2's design scope (UX/interaction details, final naming, anything the user explicitly said is "yours/Session 2's call") do **not** count against the 95% threshold — list them under `Gaps` tagged `(delegated to Session 2)` so they read as out-of-scope-for-the-user, not unresolved intent. The "95% — drafting the brief" announcement fires once user intent is locked, even when such delegated design scope remains open.
+
 Rules: ask one *conceptual* question at a time when probing motivation or uncertainty sequentially, where each answer reshapes the next; but batch independent, already-scoped bounded choices into a single `AskUserQuestion` call (≤4 questions). Prefer bounded multiple-choice (`AskUserQuestion` when available). Probe motivation before solution; challenge premature specificity; name uncertainty specifically; respect demonstrated expertise and "you decide" delegation (re-evaluate and recommend, don't re-ask). Confidence rises from both answers and exploration findings; note which gaps each closes. On receiving batched answers, re-display the `Confidence / Gaps` after-block before proceeding — unless confidence reaches threshold, in which case the "95% — drafting the brief" announcement subsumes it. Announce "95% — drafting the brief" when reached.
 
-**Determination-as-target**: when the research target is itself a decision ("what should we build / fix / spec next"), the interview MUST resolve and *lock* that decision here in Session 1. The brief then instructs Session 2 to **confirm-and-document** the chosen direction — citing the evidence that fixed it (e.g. the lowest non-`Done` gate, an empty promotion-debt register, satisfied predecessor preconditions) — never to re-open the determination open-endedly. A brief that leaves Session 2 to re-decide "what's next" violates the locked / no-questions contract (Guardrails).
+**Determination-as-target**: when the research target is itself a decision ("what should we build / fix / spec next"), the interview MUST resolve and *lock* that decision here in Session 1. The brief then instructs Session 2 to **confirm-and-document** the chosen direction — citing the evidence that fixed it (e.g. the lowest non-`Done` gate, an empty promotion-debt register, satisfied predecessor preconditions) — never to re-open the determination open-endedly. A brief that leaves Session 2 to re-decide "what's next" violates the locked / no-questions contract (Guardrails). This is distinct from a **bounded delegation**: the brief MAY ask Session 2 to *recommend among enumerated options with a required default and justification* for a scoped design sub-choice the user deliberately delegated (e.g. "you pick the delivery mechanism from these two"). That is not re-determination and does not breach the locked contract — the determination and scope stay locked; only a named, optioned sub-decision is handed down, and Session 2 still produces directly rather than asking the user.
 
 **Early exit**: if the user says "just go," announce current confidence, list remaining gaps, and carry them into the brief as labeled assumptions (`assumption: X`) so Session 2 — which will not ask — treats them as decisions the user can later correct.
 
@@ -83,6 +85,8 @@ Before writing, present in chat:
 1. the **settled intentions** — the resolved decisions the interview produced (these become §3 of the brief and are what make Session 2 "locked");
 2. the **deliverable spec** — exactly which downloadable markdown docs Session 2 must produce (replace vs. new, filenames);
 3. the **read-in-full list** (authority-ordered, with the one-line reasons).
+
+If a minor residual ambiguity persists at this gate without an early exit (e.g. the user's wording left a detail genuinely open), surface it here as a labeled `assumption: <X>` for the user to confirm or override, rather than re-interviewing — then carry it into the brief's §3 the same way an early-exit assumption is carried.
 
 Get approval (per the HARD-GATE). Revise on pushback before writing.
 
@@ -103,7 +107,7 @@ Report:
 
 - the two written files (brief + refreshed manifest) — the **upload bundle** for ChatGPT-Pro Session 2;
 - a one-line reminder that Session 2 is **locked / no-questions**: paste the brief, upload the manifest, and ChatGPT-Pro should produce the deliverable directly;
-- any labeled assumptions carried from an early exit, so the user can correct them before pasting.
+- any labeled assumptions carried from an early exit (or surfaced at the approval gate), so the user can correct them before pasting.
 
 This is an inline-completion deliverable — no next-steps menu. Surface any adjacent improvement spotted during exploration as a flagged note with a concrete trigger, not as scope creep.
 
