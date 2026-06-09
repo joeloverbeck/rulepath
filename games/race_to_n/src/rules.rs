@@ -4,7 +4,7 @@ use crate::{
     actions::{actor_seat, legal_additions, parse_add_segment},
     effects::{public_effect, RaceEffect},
     ids::RaceSeat,
-    state::{CounterValue, RaceState},
+    state::{CounterValue, RaceState, TerminalAdvance},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -86,6 +86,11 @@ pub fn apply_action(
 
     if to.0 == state.variant.target {
         state.winner = Some(action.actor);
+        state.terminal_advance = Some(TerminalAdvance {
+            counter_before: from,
+            addition: action.amount,
+            counter_after: to,
+        });
         effects.push(public_effect(RaceEffect::GameEnded {
             winner: action.actor,
         }));

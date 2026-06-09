@@ -60,6 +60,7 @@ pub fn setup_match(
         ply_count: 0,
         consecutive_forced_passes: 0,
         terminal_outcome: None,
+        terminal_reason: None,
         freshness_token: FreshnessToken(0),
     })
 }

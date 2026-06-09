@@ -4,7 +4,7 @@
   "fixture_kind": "invalid",
   "purpose": "invalid_stale_diagnostic_replay",
   "note": "Invalid and stale submissions are rejected without mutation and produce viewer-safe diagnostics.",
-  "migration_update_note": "Migrated from legacy key-value invalid-stale-diagnostic.trace to Trace Schema v1 JSON; expected hashes are unchanged.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-005 outcome rationale projection.",
   "game_id": "race_to_n",
   "rules_version": "race_to_n-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -37,10 +37,10 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 1 }
   ],
-  "expected_state_hashes": { "final": 18176667065230576156 },
+  "expected_state_hashes": { "final": 6623460725783367805 },
   "expected_effect_hashes": { "final": 14695981039346656037 },
   "expected_action_tree_hashes": { "final": 8451402319224114161 },
-  "expected_public_view_hashes": { "all": 16970779661227325598 },
+  "expected_public_view_hashes": { "all": 13031975945771217795 },
   "expected_private_view_hashes": {
     "not_applicable": "race_to_n is perfect-information and has no private-view API."
   },

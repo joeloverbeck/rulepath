@@ -105,7 +105,9 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `DF-LEGAL-006` | A submitted command comes from a non-active actor. | Reject the submission without changing state. | Diagnostic is viewer-safe and identifies the wrong-actor reason class. | Bots and humans validate through the same command path. |
 | `DF-ACTION-003` | TypeScript could infer legal cells from public data. | It still must not become the behavior authority. | not applicable | The browser may render Rust-provided data only. |
 
-## Placement, flip resolution, and accounting
+## Scoring and accounting
+
+Placement and flip-resolution rules are included here because they determine the public disc counts used by terminal scoring.
 
 | Rule ID | Rule | Timing | Tiebreaker/edge case | Notes |
 |---|---|---|---|---|
@@ -116,14 +118,19 @@ Rust must generate legal actions. TypeScript must not decide legality.
 | `DF-PREVIEW-001` | Every legal placement preview names the target cell and the ordered cells that would flip; applying that action must flip exactly that set in exactly that order. | Before and during action application. | Preview grouping by direction may be included, but it must preserve the same ordered set. | Viewer-safe explanations are Rust-supplied. |
 | `DF-SCORE-001` | Each valid placement updates the public disc counts for both seats. | Immediately after placement and flips apply. | Invalid submissions do not change counts. | Counts are public. |
 
-## Terminal conditions and scoring
+## Terminal conditions
 
 | Rule ID | Terminal condition | Outcome | Tie handling | Notes |
 |---|---|---|---|---|
-| `DF-PASS-002` | Both seats have no legal placement, proven by two consecutive forced passes. | The game ends immediately after the second forced pass. | Final counts decide win or draw. | The double-pass trace is required evidence. |
-| `DF-TERM-001` | A placement fills the board or otherwise leaves no possible continuation for either seat. | Rust terminalizes the match after explicit legal-placement checks. | Final counts decide win or draw. | A terminal state exposes no legal choices. |
+| `DF-END-001` | A placement fills the board. | Rust terminalizes the match after the placement resolves. | Final counts decide win or draw. | This is the `board_full` terminal trigger. |
+| `DF-END-002` | A placement leaves no possible continuation for either seat before the board is full. | Rust terminalizes the match after explicit legal-placement checks. | Final counts decide win or draw. | This is the `no_continuation` terminal trigger. |
+| `DF-END-003` | Both seats have no legal placement, proven by two consecutive forced passes. | The game ends immediately after the second forced pass. | Final counts decide win or draw. | This is the `double_forced_pass` terminal trigger; the double-pass trace is required evidence. |
+| `DF-PASS-002` | Both seats have no legal placement, proven by two consecutive forced passes. | The game ends immediately after the second forced pass. | Final counts decide win or draw. | Legacy pass-rule reference for `DF-END-003`. |
+| `DF-TERM-001` | A placement fills the board or otherwise leaves no possible continuation for either seat. | Rust terminalizes the match after explicit legal-placement checks. | Final counts decide win or draw. | Legacy terminal-rule reference for `DF-END-001` and `DF-END-002`. |
 | `DF-SCORE-001` | `seat_0` or `seat_1` has a higher final disc count. | The seat with the higher count wins. | not applicable | Empty cells, if any remain after no-move terminal, are not awarded. |
 | `DF-SCORE-002` | Both seats have the same final disc count. | The game ends in a draw. | Draw is the canonical wording. | Tie may appear only as secondary explanatory wording in docs. |
+
+Terminal public views also expose a Rust-owned outcome rationale. Wins use template key `directional_flip.final_score_win`, decisive cause `final_score_comparison`, final score by seat, terminal trigger, and rule ID `DF-SCORE-001` plus the matching trigger ID `DF-END-001` through `DF-END-003`. Draws use template key `directional_flip.final_score_draw`, decisive cause `final_score_comparison`, final score by seat, terminal trigger, and rule ID `DF-SCORE-002` plus the matching trigger ID.
 
 ## Semantic effects, replay, and serialization
 

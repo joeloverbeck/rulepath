@@ -510,6 +510,7 @@ mod tests {
         state.ply_count = 0;
         state.consecutive_forced_passes = 0;
         state.terminal_outcome = None;
+        state.terminal_reason = None;
         state
     }
 

@@ -1,6 +1,7 @@
 use directional_flip::{
     apply_action, legal_action_tree, setup_match, validate_command, CellId, CellOccupancy,
     ColumnId, DirectionalFlipSeat, DirectionalFlipState, RowId, SetupOptions, TerminalOutcome,
+    TerminalReason,
 };
 use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
 
@@ -221,6 +222,10 @@ fn df_pass_001_002_term_001_score_001_002_forced_pass_terminal_and_scores() {
     let second = validate_command(&state, &command(&state, "pass/forced")).unwrap();
     apply_action(&mut state, second);
     assert_eq!(state.terminal_outcome, Some(TerminalOutcome::Draw));
+    assert_eq!(
+        state.terminal_reason,
+        Some(TerminalReason::DoubleForcedPass)
+    );
     assert!(action_segments(&state).is_empty());
 }
 
@@ -246,6 +251,7 @@ fn df_score_001_higher_disc_count_wins_on_full_board_terminal() {
             seat: DirectionalFlipSeat::Seat0
         })
     );
+    assert_eq!(state.terminal_reason, Some(TerminalReason::BoardFull));
     assert!(action_segments(&state).is_empty());
 }
 

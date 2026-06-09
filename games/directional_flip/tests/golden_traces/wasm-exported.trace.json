@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "wasm_exported_replay",
   "note": "Directional Flip wasm_exported_replay golden trace. ",
-  "migration_update_note": "Initial Directional Flip Trace Schema v1 fixture established by GAT6DIRFLI-013.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-005 outcome rationale projection.",
   "game_id": "directional_flip",
   "rules_version": "directional_flip-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -23,11 +23,11 @@
   "checkpoints": [
     { "id": "final", "after_command_index": 1 }
   ],
-  "expected_state_hashes": { "final": 2787152126558142640 },
+  "expected_state_hashes": { "final": 4283364011072842381 },
   "expected_effect_hashes": { "final": 3106561790124744089 },
   "expected_action_tree_hashes": { "final": 1474168140919569041 },
   "expected_public_view_hashes": { "all": 5977257068552995358 },
-  "expected_replay_hashes": { "final": 12408234635101059065 },
+  "expected_replay_hashes": { "final": 7978882253583652148 },
   "expected_private_view_hashes": {
     "not_applicable": "directional_flip is perfect-information and has no private-view API."
   },

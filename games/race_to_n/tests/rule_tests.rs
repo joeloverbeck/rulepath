@@ -3,7 +3,7 @@ use engine_core::{
 };
 use race_to_n::{
     apply_action, legal_action_tree, setup_match, validate_command, CounterValue, RaceEffect,
-    RaceSeat, RaceToN, SetupOptions, ValidatedAction,
+    RaceSeat, RaceToN, SetupOptions, TerminalAdvance, ValidatedAction,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -104,6 +104,14 @@ fn r_end_001_r_score_001_reaching_target_ends_with_mover_as_winner() {
 
     assert_eq!(state.counter, CounterValue(21));
     assert_eq!(state.winner, Some(RaceSeat::Seat0));
+    assert_eq!(
+        state.terminal_advance,
+        Some(TerminalAdvance {
+            counter_before: CounterValue(20),
+            addition: 1,
+            counter_after: CounterValue(21),
+        })
+    );
     assert!(matches!(
         effects[2].payload,
         RaceEffect::GameEnded {

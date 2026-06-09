@@ -12,7 +12,15 @@ pub struct RaceState {
     pub active_seat: RaceSeat,
     pub seats: [SeatId; 2],
     pub winner: Option<RaceSeat>,
+    pub terminal_advance: Option<TerminalAdvance>,
     pub freshness_token: FreshnessToken,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct TerminalAdvance {
+    pub counter_before: CounterValue,
+    pub addition: u8,
+    pub counter_after: CounterValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -24,6 +32,7 @@ pub struct RaceSnapshot {
     pub active_seat: RaceSeat,
     pub seats: [SeatId; 2],
     pub winner: Option<RaceSeat>,
+    pub terminal_advance: Option<TerminalAdvance>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -37,6 +46,7 @@ impl RaceSnapshot {
             active_seat: state.active_seat,
             seats: state.seats.clone(),
             winner: state.winner,
+            terminal_advance: state.terminal_advance,
             freshness_token: state.freshness_token,
         }
     }
@@ -48,13 +58,14 @@ impl RaceSnapshot {
             active_seat: self.active_seat,
             seats: self.seats,
             winner: self.winner,
+            terminal_advance: self.terminal_advance,
             freshness_token: self.freshness_token,
         }
     }
 
     pub fn to_json(&self) -> String {
         format!(
-            "{{\"schema_version\":{},\"rules_version\":{},\"variant_id\":\"{}\",\"target\":{},\"max_add\":{},\"seat_count\":{},\"first_seat\":{},\"ending\":\"{}\",\"counter\":{},\"active_seat\":\"{}\",\"seat_0\":\"{}\",\"seat_1\":\"{}\",\"winner\":{},\"freshness_token\":{}}}",
+            "{{\"schema_version\":{},\"rules_version\":{},\"variant_id\":\"{}\",\"target\":{},\"max_add\":{},\"seat_count\":{},\"first_seat\":{},\"ending\":\"{}\",\"counter\":{},\"active_seat\":\"{}\",\"seat_0\":\"{}\",\"seat_1\":\"{}\",\"winner\":{},\"terminal_counter_before\":{},\"terminal_addition\":{},\"terminal_counter_after\":{},\"freshness_token\":{}}}",
             self.schema_version,
             self.rules_version,
             escape_json(&self.variant.id),
@@ -68,6 +79,9 @@ impl RaceSnapshot {
             escape_json(&self.seats[0].0),
             escape_json(&self.seats[1].0),
             option_seat_json(self.winner),
+            option_u8_json(self.terminal_advance.map(|advance| advance.counter_before.0)),
+            option_u8_json(self.terminal_advance.map(|advance| advance.addition)),
+            option_u8_json(self.terminal_advance.map(|advance| advance.counter_after.0)),
             self.freshness_token.0
         )
     }
@@ -88,8 +102,12 @@ impl RaceSnapshot {
             "seat_0",
             "seat_1",
             "winner",
+            "terminal_counter_before",
+            "terminal_addition",
+            "terminal_counter_after",
             "freshness_token",
         ])?;
+        let terminal_advance = terminal_advance_from_object(&object)?;
 
         Ok(Self {
             schema_version: object.required_u32("schema_version")?,
@@ -110,6 +128,7 @@ impl RaceSnapshot {
                 SeatId(object.required_string("seat_1")?),
             ],
             winner: object.optional_seat("winner")?,
+            terminal_advance,
             freshness_token: FreshnessToken(object.required_u64("freshness_token")?),
         })
     }
@@ -183,6 +202,27 @@ pub(crate) fn option_seat_json(seat: Option<RaceSeat>) -> String {
         || "null".to_owned(),
         |seat| format!("\"{}\"", seat.as_str()),
     )
+}
+
+pub(crate) fn option_u8_json(value: Option<u8>) -> String {
+    value.map_or_else(|| "null".to_owned(), |value| value.to_string())
+}
+
+fn terminal_advance_from_object(
+    object: &StrictJsonObject,
+) -> Result<Option<TerminalAdvance>, String> {
+    let counter_before = object.optional_u8("terminal_counter_before")?;
+    let addition = object.optional_u8("terminal_addition")?;
+    let counter_after = object.optional_u8("terminal_counter_after")?;
+    match (counter_before, addition, counter_after) {
+        (None, None, None) => Ok(None),
+        (Some(counter_before), Some(addition), Some(counter_after)) => Ok(Some(TerminalAdvance {
+            counter_before: CounterValue(counter_before),
+            addition,
+            counter_after: CounterValue(counter_after),
+        })),
+        _ => Err("terminal advance fields must be all null or all present".to_owned()),
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -263,6 +303,24 @@ impl StrictJsonObject {
         RaceSeat::parse(&parse_json_string(&raw)?)
             .map(Some)
             .ok_or_else(|| format!("field `{key}` must be a seat or null"))
+    }
+
+    pub(crate) fn optional_u8(&self, key: &str) -> Result<Option<u8>, String> {
+        let raw = self.required_raw(key)?;
+        if raw == "null" {
+            return Ok(None);
+        }
+        raw.parse()
+            .map(Some)
+            .map_err(|_| format!("field `{key}` must fit u8 or null"))
+    }
+
+    pub(crate) fn optional_string(&self, key: &str) -> Result<Option<String>, String> {
+        let raw = self.required_raw(key)?;
+        if raw == "null" {
+            return Ok(None);
+        }
+        parse_json_string(&raw).map(Some)
     }
 
     pub(crate) fn required_string_array(&self, key: &str) -> Result<Vec<String>, String> {

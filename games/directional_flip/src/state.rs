@@ -1,6 +1,7 @@
 use engine_core::{FreshnessToken, SeatId};
 
 use crate::{
+    effects::TerminalReason,
     ids::{CellId, ColumnId, DirectionalFlipSeat, RowId},
     variants::Variant,
 };
@@ -32,6 +33,7 @@ pub struct DirectionalFlipState {
     pub ply_count: u8,
     pub consecutive_forced_passes: u8,
     pub terminal_outcome: Option<TerminalOutcome>,
+    pub terminal_reason: Option<TerminalReason>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -68,6 +70,7 @@ pub struct DirectionalFlipSnapshot {
     pub ply_count: u8,
     pub consecutive_forced_passes: u8,
     pub terminal_outcome: Option<TerminalOutcome>,
+    pub terminal_reason: Option<TerminalReason>,
     pub freshness_token: FreshnessToken,
 }
 
@@ -84,6 +87,7 @@ impl DirectionalFlipSnapshot {
             ply_count: state.ply_count,
             consecutive_forced_passes: state.consecutive_forced_passes,
             terminal_outcome: state.terminal_outcome,
+            terminal_reason: state.terminal_reason,
             freshness_token: state.freshness_token,
         }
     }
@@ -97,6 +101,7 @@ impl DirectionalFlipSnapshot {
             ply_count: self.ply_count,
             consecutive_forced_passes: self.consecutive_forced_passes,
             terminal_outcome: self.terminal_outcome,
+            terminal_reason: self.terminal_reason,
             freshness_token: self.freshness_token,
         }
     }
@@ -114,7 +119,7 @@ impl DirectionalFlipSnapshot {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "schema={};rules={};rules_label={};variant={};seat_count={};first_seat={};columns={};rows={};cell_scheme={};opening={};ending={};cells={};active={};seat_0={};seat_1={};ply={};passes={};terminal={};freshness={}",
+            "schema={};rules={};rules_label={};variant={};seat_count={};first_seat={};columns={};rows={};cell_scheme={};opening={};ending={};cells={};active={};seat_0={};seat_1={};ply={};passes={};terminal={};terminal_reason={};freshness={}",
             self.schema_version,
             self.rules_version,
             self.rules_version_label,
@@ -133,6 +138,7 @@ impl DirectionalFlipSnapshot {
             self.ply_count,
             self.consecutive_forced_passes,
             terminal_summary(self.terminal_outcome),
+            self.terminal_reason.map_or("none", TerminalReason::as_str),
             self.freshness_token.0
         )
     }

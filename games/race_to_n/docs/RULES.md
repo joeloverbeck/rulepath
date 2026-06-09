@@ -102,6 +102,8 @@ Rust must generate legal actions. TypeScript must not decide legality.
 |---|---|---|---|---|
 | `R-END-001` | A valid action makes the counter exactly 21. | The acting seat wins immediately. | No tie. | Legal actions prevent overshooting 21. |
 
+Terminal public views also expose a Rust-owned outcome rationale. Wins use template key `race_to_n.exact_target_reached`, decisive cause `exact_target_reached`, the final counter advance (`counter_before`, `addition`, `counter_after`, `target`, `max_add`), and rule IDs `R-SCORE-001` and `R-END-001`.
+
 ## Visibility and private information
 
 Public/browser payloads must not reveal hidden information through public views,

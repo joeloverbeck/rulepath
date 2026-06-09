@@ -22,9 +22,9 @@ pub use effects::RaceEffect;
 pub use ids::RaceSeat;
 pub use rules::{apply_action, validate_command, ValidatedAction};
 pub use setup::{setup_match, SetupOptions};
-pub use state::{CounterValue, RaceReplayJson, RaceSnapshot, RaceState};
+pub use state::{CounterValue, RaceReplayJson, RaceSnapshot, RaceState, TerminalAdvance};
 pub use variants::{Manifest, Variant, VariantCatalog};
-pub use visibility::{project_view, PublicView};
+pub use visibility::{project_view, OutcomeRationaleView, PublicView};
 
 #[derive(Clone, Debug, Default)]
 pub struct RaceToN;

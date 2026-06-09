@@ -2,6 +2,7 @@ use engine_core::{Actor, FreshnessToken, StableSerialize, Viewer};
 
 use crate::{
     actions::{legal_action_tree, PASS_REASON_NO_MOVES},
+    effects::TerminalReason,
     ids::{CellId, DirectionalFlipSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     rules::{disc_counts, Score},
     state::{CellOccupancy, DirectionalFlipState, TerminalOutcome},
@@ -91,10 +92,22 @@ pub enum TerminalView {
     Win {
         winning_seat: DirectionalFlipSeat,
         final_score: ScoreView,
+        rationale: OutcomeRationaleView,
     },
     Draw {
         final_score: ScoreView,
+        rationale: OutcomeRationaleView,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub terminal_trigger: String,
+    pub final_score: ScoreView,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -120,7 +133,7 @@ pub struct UiMetadata {
 
 pub fn project_view(state: &DirectionalFlipState, _viewer: &Viewer) -> PublicView {
     let score = score_view(disc_counts(state));
-    let terminal = terminal_view(state.terminal_outcome, score.clone());
+    let terminal = terminal_view(state.terminal_outcome, state.terminal_reason, score.clone());
     let legal_targets = legal_targets(state);
 
     PublicView {
@@ -330,14 +343,64 @@ fn score_view(score: Score) -> ScoreView {
     }
 }
 
-fn terminal_view(outcome: Option<TerminalOutcome>, score: ScoreView) -> TerminalView {
+fn terminal_view(
+    outcome: Option<TerminalOutcome>,
+    reason: Option<TerminalReason>,
+    score: ScoreView,
+) -> TerminalView {
     match outcome {
         None => TerminalView::NonTerminal,
-        Some(TerminalOutcome::Draw) => TerminalView::Draw { final_score: score },
-        Some(TerminalOutcome::Win { seat }) => TerminalView::Win {
-            winning_seat: seat,
+        Some(TerminalOutcome::Draw) => TerminalView::Draw {
+            rationale: draw_rationale(reason, score.clone()),
             final_score: score,
         },
+        Some(TerminalOutcome::Win { seat }) => TerminalView::Win {
+            winning_seat: seat,
+            rationale: win_rationale(reason, score.clone()),
+            final_score: score,
+        },
+    }
+}
+
+fn win_rationale(reason: Option<TerminalReason>, score: ScoreView) -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: "win".to_owned(),
+        decisive_cause: "final_score_comparison".to_owned(),
+        template_key: "directional_flip.final_score_win".to_owned(),
+        decisive_rule_ids: vec![
+            "DF-SCORE-001".to_owned(),
+            terminal_reason_rule_id(reason).to_owned(),
+        ],
+        terminal_trigger: reason
+            .expect("terminal reason exists for terminal directional_flip win")
+            .as_str()
+            .to_owned(),
+        final_score: score,
+    }
+}
+
+fn draw_rationale(reason: Option<TerminalReason>, score: ScoreView) -> OutcomeRationaleView {
+    OutcomeRationaleView {
+        result_kind: "draw".to_owned(),
+        decisive_cause: "final_score_comparison".to_owned(),
+        template_key: "directional_flip.final_score_draw".to_owned(),
+        decisive_rule_ids: vec![
+            "DF-SCORE-002".to_owned(),
+            terminal_reason_rule_id(reason).to_owned(),
+        ],
+        terminal_trigger: reason
+            .expect("terminal reason exists for terminal directional_flip draw")
+            .as_str()
+            .to_owned(),
+        final_score: score,
+    }
+}
+
+fn terminal_reason_rule_id(reason: Option<TerminalReason>) -> &'static str {
+    match reason.expect("terminal reason exists for terminal directional_flip view") {
+        TerminalReason::BoardFull => "DF-END-001",
+        TerminalReason::NoContinuation => "DF-END-002",
+        TerminalReason::DoubleForcedPass => "DF-END-003",
     }
 }
 
@@ -459,19 +522,40 @@ fn encode_preview(preview: &PlacementPreviewView) -> String {
 fn encode_terminal(terminal: &TerminalView) -> String {
     match terminal {
         TerminalView::NonTerminal => "non_terminal".to_owned(),
-        TerminalView::Draw { final_score } => {
-            format!("draw:{}-{}", final_score.seat_0, final_score.seat_1)
-        }
+        TerminalView::Draw {
+            final_score,
+            rationale,
+        } => format!(
+            "draw:{}-{}:{}",
+            final_score.seat_0,
+            final_score.seat_1,
+            encode_rationale(rationale)
+        ),
         TerminalView::Win {
             winning_seat,
             final_score,
+            rationale,
         } => format!(
-            "win:{}:{}-{}",
+            "win:{}:{}-{}:{}",
             winning_seat.as_str(),
             final_score.seat_0,
-            final_score.seat_1
+            final_score.seat_1,
+            encode_rationale(rationale)
         ),
     }
+}
+
+fn encode_rationale(rationale: &OutcomeRationaleView) -> String {
+    format!(
+        "{}|{}|{}|{}|{}|{}-{}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join("+"),
+        rationale.terminal_trigger,
+        rationale.final_score.seat_0,
+        rationale.final_score.seat_1
+    )
 }
 
 fn encode_ui(ui: &UiMetadata) -> String {
@@ -593,6 +677,17 @@ mod tests {
                 final_score: ScoreView {
                     seat_0: 1,
                     seat_1: 0
+                },
+                rationale: OutcomeRationaleView {
+                    result_kind: "win".to_owned(),
+                    decisive_cause: "final_score_comparison".to_owned(),
+                    template_key: "directional_flip.final_score_win".to_owned(),
+                    decisive_rule_ids: vec!["DF-SCORE-001".to_owned(), "DF-END-003".to_owned()],
+                    terminal_trigger: "double_forced_pass".to_owned(),
+                    final_score: ScoreView {
+                        seat_0: 1,
+                        seat_1: 0
+                    },
                 },
             }
         );
