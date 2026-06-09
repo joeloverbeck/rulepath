@@ -1129,6 +1129,38 @@ impl Trace {
                 state.supply = ResourceCounts::new(12, 14, 12);
                 Ok(state)
             }
+            Some("terminal_score_win") => {
+                state.scores = [5, 3];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+                Ok(state)
+            }
+            Some("terminal_fulfilled_tiebreak_win") => {
+                state.scores = [3, 3];
+                state.fulfilled = [
+                    vec![ContractId::BalancedWares, ContractId::AmberGuild],
+                    vec![ContractId::IronGuild],
+                ];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+                Ok(state)
+            }
+            Some("terminal_inventory_tiebreak_win") => {
+                state.scores = [3, 3];
+                state.fulfilled = [vec![ContractId::BalancedWares], vec![ContractId::IronGuild]];
+                state.inventories = [ResourceCounts::new(1, 1, 1), ResourceCounts::new(2, 1, 1)];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::MarketExhaustion);
+                Ok(state)
+            }
+            Some("terminal_all_tied_draw") => {
+                state.scores = [3, 3];
+                state.fulfilled = [vec![ContractId::BalancedWares], vec![ContractId::IronGuild]];
+                state.inventories = [ResourceCounts::new(1, 1, 1), ResourceCounts::new(1, 1, 1)];
+                state.terminal_outcome = Some(token_bazaar::determine_terminal_outcome(&state));
+                state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+                Ok(state)
+            }
             Some(other) => Err(self.failure(&format!("unknown setup_patch `{other}`"))),
         }
     }

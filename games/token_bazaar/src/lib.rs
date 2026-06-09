@@ -39,7 +39,8 @@ pub use rules::{
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
-    ContractSpec, ResourceCounts, TerminalOutcome, TokenBazaarSnapshot, TokenBazaarState,
+    ContractSpec, ResourceCounts, TerminalOutcome, TerminalTrigger, TiebreakRung,
+    TokenBazaarSnapshot, TokenBazaarState,
 };
 pub use ui::{
     action_preview_copy, contract_accessibility_label, resource_accessibility_label, ui_metadata,
@@ -48,7 +49,8 @@ pub use ui::{
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
     project_view, project_view_with_effects, ContractView, EffectView, InventoryView,
-    LegalActionView, MarketSlotView, PublicView, ResourceSupplyView, TerminalView,
+    LegalActionView, MarketSlotView, OutcomeRationaleView, OutcomeStandingView, PublicView,
+    ResourceSupplyView, TerminalView, TiebreakLadderRungView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

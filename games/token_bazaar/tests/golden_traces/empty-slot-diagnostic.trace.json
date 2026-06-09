@@ -4,7 +4,7 @@
   "fixture_kind": "diagnostic",
   "purpose": "empty_slot_diagnostic",
   "note": "Token Bazaar empty_slot_diagnostic replay fixture.",
-  "migration_update_note": "Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-007 tiebreak rationale projection.",
   "game_id": "token_bazaar",
   "rules_version": "token-bazaar-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -21,7 +21,7 @@
     { "index": 0, "actor_seat": "seat_0", "action_path": ["fulfill/slot_0"], "freshness_token": "0", "expect": "diagnostic", "expected_diagnostic_code": "empty_slot" }
   ],
   "checkpoints": [{ "id": "final", "after_command_index": 0 }],
-  "expected_state_hashes": { "final": 7164018743120142017 },
+  "expected_state_hashes": { "final": 3847732933054093830 },
   "expected_effect_hashes": { "final": 14695981039346656037 },
   "expected_action_tree_hashes": { "final": 10553986289484721262 },
   "expected_public_view_hashes": { "all": 2346152222313940622 },

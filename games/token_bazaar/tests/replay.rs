@@ -3,10 +3,11 @@ use engine_core::{
     StableSerialize, Viewer,
 };
 use token_bazaar::{
-    action_tree_hash, apply_action, default_seats, effect_hash, export_public_replay,
-    import_public_export, legal_action_tree, project_view, setup_match, state_hash,
-    validate_command, ContractId, ResourceCounts, TerminalOutcome, TokenBazaarLevel1Bot,
-    TokenBazaarSeat, TokenBazaarState, GAME_ID, LEVEL1_POLICY_ID, RULES_VERSION_LABEL, VARIANT_ID,
+    action_tree_hash, apply_action, default_seats, determine_terminal_outcome, effect_hash,
+    export_public_replay, import_public_export, legal_action_tree, project_view, setup_match,
+    state_hash, validate_command, ContractId, ResourceCounts, TerminalOutcome,
+    TokenBazaarLevel1Bot, TokenBazaarSeat, TokenBazaarState, GAME_ID, LEVEL1_POLICY_ID,
+    RULES_VERSION_LABEL, VARIANT_ID,
 };
 
 #[derive(Debug)]
@@ -48,6 +49,10 @@ fn golden_traces_replay_hashes_diagnostics_exports_and_no_leak_surfaces() {
     let fixtures = [
         include_str!("golden_traces/shortest-normal.trace.json"),
         include_str!("golden_traces/terminal-turn-cap.trace.json"),
+        include_str!("golden_traces/terminal-score-win.trace.json"),
+        include_str!("golden_traces/terminal-fulfilled-tiebreak-win.trace.json"),
+        include_str!("golden_traces/terminal-inventory-tiebreak-win.trace.json"),
+        include_str!("golden_traces/terminal-all-tied-draw.trace.json"),
         include_str!("golden_traces/contract-fulfill-refill.trace.json"),
         include_str!("golden_traces/market-exhaustion.trace.json"),
         include_str!("golden_traces/exchange.trace.json"),
@@ -60,7 +65,7 @@ fn golden_traces_replay_hashes_diagnostics_exports_and_no_leak_surfaces() {
         include_str!("golden_traces/wasm-exported.trace.json"),
     ];
 
-    assert_eq!(fixtures.len(), 12);
+    assert_eq!(fixtures.len(), 16);
     for input in fixtures {
         assert_public_safe_trace_surface(input);
         assert_trace_fixture(parse_trace_fixture(input));
@@ -305,6 +310,38 @@ fn setup_state(fixture: &TraceFixture) -> TokenBazaarState {
             state.queue.clear();
             state.inventories[0] = ResourceCounts::new(2, 0, 2);
             state.supply = ResourceCounts::new(12, 14, 12);
+            state
+        }
+        Some("terminal_score_win") => {
+            state.scores = [5, 3];
+            state.terminal_outcome = Some(determine_terminal_outcome(&state));
+            state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+            state
+        }
+        Some("terminal_fulfilled_tiebreak_win") => {
+            state.scores = [3, 3];
+            state.fulfilled = [
+                vec![ContractId::BalancedWares, ContractId::AmberGuild],
+                vec![ContractId::IronGuild],
+            ];
+            state.terminal_outcome = Some(determine_terminal_outcome(&state));
+            state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
+            state
+        }
+        Some("terminal_inventory_tiebreak_win") => {
+            state.scores = [3, 3];
+            state.fulfilled = [vec![ContractId::BalancedWares], vec![ContractId::IronGuild]];
+            state.inventories = [ResourceCounts::new(1, 1, 1), ResourceCounts::new(2, 1, 1)];
+            state.terminal_outcome = Some(determine_terminal_outcome(&state));
+            state.terminal_trigger = Some(token_bazaar::TerminalTrigger::MarketExhaustion);
+            state
+        }
+        Some("terminal_all_tied_draw") => {
+            state.scores = [3, 3];
+            state.fulfilled = [vec![ContractId::BalancedWares], vec![ContractId::IronGuild]];
+            state.inventories = [ResourceCounts::new(1, 1, 1), ResourceCounts::new(1, 1, 1)];
+            state.terminal_outcome = Some(determine_terminal_outcome(&state));
+            state.terminal_trigger = Some(token_bazaar::TerminalTrigger::TurnCap);
             state
         }
         Some(other) => panic!("unknown setup patch {other}"),

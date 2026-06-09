@@ -4,7 +4,7 @@ use crate::{
     actions::{actor_seat, collect_gain, parse_action_segment, TokenBazaarAction},
     effects::{public_effect, TokenBazaarEffect},
     ids::{CollectBundleId, ResourceId, TokenBazaarSeat, TokenBazaarSlot},
-    state::{contract_spec, ResourceCounts, TerminalOutcome, TokenBazaarState},
+    state::{contract_spec, ResourceCounts, TerminalOutcome, TerminalTrigger, TokenBazaarState},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -136,7 +136,7 @@ pub fn determine_terminal_outcome(state: &TokenBazaarState) -> TerminalOutcome {
         };
     }
 
-    let fulfilled_counts = fulfilled_counts(state);
+    let fulfilled_counts = state.fulfilled_counts();
     if fulfilled_counts[0] > fulfilled_counts[1] {
         return TerminalOutcome::Win {
             seat: TokenBazaarSeat::Seat0,
@@ -148,7 +148,7 @@ pub fn determine_terminal_outcome(state: &TokenBazaarState) -> TerminalOutcome {
         };
     }
 
-    let inventory_totals = inventory_totals(state);
+    let inventory_totals = state.inventory_totals();
     if inventory_totals[0] > inventory_totals[1] {
         TerminalOutcome::Win {
             seat: TokenBazaarSeat::Seat0,
@@ -381,14 +381,15 @@ fn finish_turn(
     state.turns_taken[actor.index()] = state.turns_taken[actor.index()].saturating_add(1);
     state.freshness_token = state.freshness_token.next();
 
-    if terminal_by_turn_cap(state) || terminal_by_market_exhaustion(state) {
+    if let Some(trigger) = terminal_trigger(state) {
         let outcome = determine_terminal_outcome(state);
         state.terminal_outcome = Some(outcome);
+        state.terminal_trigger = Some(trigger);
         effects.push(public_effect(TokenBazaarEffect::Terminal {
             outcome,
             scores: state.scores,
-            fulfilled_counts: fulfilled_counts(state),
-            inventory_totals: inventory_totals(state),
+            fulfilled_counts: state.fulfilled_counts(),
+            inventory_totals: state.inventory_totals(),
         }));
         return;
     }
@@ -402,6 +403,16 @@ fn finish_turn(
     }));
 }
 
+fn terminal_trigger(state: &TokenBazaarState) -> Option<TerminalTrigger> {
+    if terminal_by_turn_cap(state) {
+        Some(TerminalTrigger::TurnCap)
+    } else if terminal_by_market_exhaustion(state) {
+        Some(TerminalTrigger::MarketExhaustion)
+    } else {
+        None
+    }
+}
+
 fn terminal_by_turn_cap(state: &TokenBazaarState) -> bool {
     state
         .turns_taken
@@ -411,17 +422,6 @@ fn terminal_by_turn_cap(state: &TokenBazaarState) -> bool {
 
 fn terminal_by_market_exhaustion(state: &TokenBazaarState) -> bool {
     state.queue.is_empty() && state.slots.iter().all(Option::is_none)
-}
-
-fn fulfilled_counts(state: &TokenBazaarState) -> [u8; 2] {
-    [
-        state.fulfilled[0].len() as u8,
-        state.fulfilled[1].len() as u8,
-    ]
-}
-
-fn inventory_totals(state: &TokenBazaarState) -> [u16; 2] {
-    [state.inventories[0].total(), state.inventories[1].total()]
 }
 
 fn add_counts(target: &mut ResourceCounts, delta: ResourceCounts) {
@@ -809,6 +809,10 @@ mod tests {
                 seat: TokenBazaarSeat::Seat0
             })
         );
+        assert_eq!(
+            state.terminal_trigger,
+            Some(TerminalTrigger::MarketExhaustion)
+        );
         assert!(matches!(
             effects[1].payload,
             TokenBazaarEffect::SlotEmptied {
@@ -843,6 +847,7 @@ mod tests {
 
         assert_eq!(state.turns_taken, [8, 8]);
         assert_eq!(state.terminal_outcome, Some(TerminalOutcome::Draw));
+        assert_eq!(state.terminal_trigger, Some(TerminalTrigger::TurnCap));
         assert!(matches!(
             effects.last().expect("terminal effect").payload,
             TokenBazaarEffect::Terminal {

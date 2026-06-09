@@ -25,6 +25,23 @@ The web UI presents Rust/WASM output only. It never computes legality, affordabi
 | recent accounting | `recent_effects` and effect log entries | Text list of recent public accounting effects. |
 | replay | exported command stream and WASM replay projection | Replay viewer shows command sequence and snapshots. |
 
+## Outcome / victory explanation
+
+Rust includes terminal outcome rationale in the public view so the browser can render the tiebreak ladder without selecting the decisive rung.
+
+Terminal result variants are `win` and `draw`. Terminal trigger variants are `turn_cap` and `market_exhaustion`. Decisive cause variants are `score`, `fulfilled_contracts`, `inventory_total`, and `all_tied_draw`.
+
+| Terminal kind | Template key | Decisive cause | Breakdown fields | Rule IDs |
+|---|---|---|---|---|
+| win | `token_bazaar.score_win` | `score` | `winning_seat`, final score/fulfilled/inventory standing by seat, ordered ladder with score marked decisive | `TB-END-001` or `TB-END-002`, `TB-END-003`, `TB-SCORE-001` |
+| win | `token_bazaar.fulfilled_tiebreak_win` | `fulfilled_contracts` | `winning_seat`, final score/fulfilled/inventory standing by seat, ordered ladder with fulfilled contracts marked decisive | `TB-END-001` or `TB-END-002`, `TB-END-003`, `TB-SCORE-001`, `TB-SCORE-004` |
+| win | `token_bazaar.inventory_tiebreak_win` | `inventory_total` | `winning_seat`, final score/fulfilled/inventory standing by seat, ordered ladder with inventory total marked decisive | `TB-END-001` or `TB-END-002`, `TB-END-003`, `TB-SCORE-001`, `TB-SCORE-004`, `TB-SCORE-005` |
+| draw | `token_bazaar.all_tied_draw` | `all_tied_draw` | final score/fulfilled/inventory standing by seat, ordered ladder with all tied draw marked decisive | `TB-END-001` or `TB-END-002`, `TB-END-003`, `TB-SCORE-001`, `TB-SCORE-004`, `TB-SCORE-005` |
+
+The per-player breakdown fields are all public: final score, fulfilled contract count, and total remaining inventory. Hidden-info redaction is trivial because Token Bazaar is perfect-information, but no state dumps, candidate rankings, debug internals, or recomputed tiebreak scans may be exposed through DOM attributes, logs, storage, replay export, or tests. TypeScript must render Rust's decisive marker and must not compare scores, fulfilled counts, or inventory totals to decide why the match ended.
+
+Web smoke coverage must assert that terminal explanations render from Rust fields, terminal controls disappear, and the no-leak scan stays green.
+
 ## UI Metadata
 
 Rust `ui.rs` provides the stable labels:

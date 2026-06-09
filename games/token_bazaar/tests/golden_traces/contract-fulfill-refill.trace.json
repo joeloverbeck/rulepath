@@ -4,7 +4,7 @@
   "fixture_kind": "commands",
   "purpose": "contract_fulfill_refill",
   "note": "Token Bazaar contract_fulfill_refill replay fixture.",
-  "migration_update_note": "Initial Token Bazaar Trace Schema v1 fixture established by GAT9TOKBAZBRO-010.",
+  "migration_update_note": "Updated expected hashes for VICEXPSHASUR-007 tiebreak rationale projection.",
   "game_id": "token_bazaar",
   "rules_version": "token-bazaar-rules-v1",
   "engine_version": "engine-core-0.1.0",
@@ -20,7 +20,7 @@
     { "index": 0, "actor_seat": "seat_0", "action_path": ["fulfill/slot_0"], "freshness_token": "0", "expect": "applied" }
   ],
   "checkpoints": [{ "id": "final", "after_command_index": 0 }],
-  "expected_state_hashes": { "final": 18265692189139573235 },
+  "expected_state_hashes": { "final": 1087093900456812176 },
   "expected_effect_hashes": { "final": 5178818816565598277 },
   "expected_action_tree_hashes": { "final": 2044453659011924789 },
   "expected_public_view_hashes": { "all": 1763666130277728521 },
