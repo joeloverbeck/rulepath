@@ -1,6 +1,6 @@
 # VICEXPSHASUR-002: Outcome coverage checker + static-template guard
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — adds a Node CI hygiene script (`scripts/check-outcome-explanations.mjs`) and a `gate-1-game-smoke.yml` step; no Rust/engine, WASM, or behavior surface.
@@ -80,3 +80,27 @@ Add a `node scripts/check-outcome-explanations.mjs` step in the hygiene lane nex
 1. `node scripts/check-outcome-explanations.mjs` (expected non-zero until 003–010 land; assert it names the uncovered games)
 2. `node scripts/check-doc-links.mjs` (regression — no broken links from the workflow edit)
 3. A `cargo`/web-build run is not the verification boundary: this is a Node CI guard over docs/types/templates, exercised by direct invocation.
+
+## Outcome
+
+Completed: 2026-06-09
+
+What changed:
+
+- Added `scripts/check-outcome-explanations.mjs`, a deterministic fail-closed catalog checker that enumerates `crates/wasm-api/src/lib.rs` with `CATALOG_RE` and validates outcome-specific `UI.md`, `RULES.md`, `apps/web/src/wasm/client.ts`, and static-template coverage.
+- Added forbidden-template-content checks for YAML front matter, condition/comparison logic, selector/trigger/script-like fields, tiebreak/order behavior, TypeScript outcome-decision helper names, and hidden-info leak marker names.
+- Wired `node scripts/check-outcome-explanations.mjs` into `.github/workflows/gate-1-game-smoke.yml` after the player-rules docs drift check.
+
+Deviations from original plan:
+
+- None. The checker intentionally fails while 003–010 coverage is incomplete; that expected red window is preserved for the later tickets to close.
+
+Verification results:
+
+- `node --check scripts/check-outcome-explanations.mjs` passed.
+- `node scripts/check-outcome-explanations.mjs` exited non-zero as expected and named all currently uncovered catalog games plus the missing future `outcomeExplanationTemplates.ts` file.
+- `grep -n 'CATALOG_RE\|const GAME_' scripts/check-outcome-explanations.mjs` found the catalog enumeration.
+- `grep -n 'check-outcome-explanations' .github/workflows/gate-1-game-smoke.yml` found the CI step.
+- `grep -n 'Scoring and winning' scripts/check-outcome-explanations.mjs || true` produced no matches, confirming HOW-TO-PLAY scoring-section enforcement remains owned by `check-player-rules.mjs`.
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `git diff --check` passed.
