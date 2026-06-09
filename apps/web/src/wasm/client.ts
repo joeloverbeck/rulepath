@@ -86,14 +86,59 @@ export type SeatId = "seat_0" | "seat_1";
 export type ViewerModeId = "observer" | SeatId;
 export type ViewerMode = { kind: "observer" } | { kind: "seat"; seat: SeatId };
 
-export type RacePublicView = {
+export type OutcomeRationaleField = {
+  label: string;
+  value: string | number | boolean | null;
+  emphasized?: boolean;
+  rule_id?: string;
+};
+
+export type OutcomeRationaleStanding = {
+  seat: SeatId | string;
+  label?: string;
+  result?: string;
+  emphasized?: boolean;
+  values?: OutcomeRationaleField[];
+};
+
+export type OutcomeRationaleBreakdownSection = {
+  id: string;
+  heading: string;
+  summary?: string;
+  rows?: OutcomeRationaleField[];
+};
+
+export type OutcomeRationalePayload = {
+  result_kind: string;
+  decisive_cause: string;
+  template_key: string;
+  template_params?: Record<string, string | number | boolean | null>;
+  decisive_rule_ids?: string[];
+  final_standing?: OutcomeRationaleStanding[];
+  breakdown_sections?: OutcomeRationaleBreakdownSection[];
+};
+
+export type RaceToNOutcomeRationale = OutcomeRationalePayload;
+export type ThreeMarksOutcomeRationale = OutcomeRationalePayload;
+export type ColumnFourOutcomeRationale = OutcomeRationalePayload;
+export type DirectionalFlipOutcomeRationale = OutcomeRationalePayload;
+export type DraughtsLiteOutcomeRationale = OutcomeRationalePayload;
+export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
+export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
+export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
+export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
+
+export type RaceToNPublicView = {
   counter: number;
   target: number;
   max_add: number;
   active_seat: SeatId;
   winner: SeatId | null;
+  terminal_rationale?: RaceToNOutcomeRationale | null;
   freshness_token: number;
 };
+
+export type RacePublicView = RaceToNPublicView;
 
 export type ThreeMarksPublicView = {
   schema_version: number;
@@ -113,6 +158,7 @@ export type ThreeMarksPublicView = {
   terminal_kind: "non_terminal" | "win" | "draw";
   winning_seat: SeatId | null;
   winning_line: string[];
+  terminal_rationale?: ThreeMarksOutcomeRationale | null;
   private_view_status: string;
   hidden_fields: string[];
   replay_step_index: number | null;
@@ -165,6 +211,7 @@ export type ColumnFourPublicView = {
   terminal_kind: "non_terminal" | "win" | "draw";
   winning_seat: SeatId | null;
   winning_line: string[];
+  terminal_rationale?: ColumnFourOutcomeRationale | null;
   private_view_status: string;
   hidden_fields: string[];
   replay_step_index: number | null;
@@ -250,6 +297,7 @@ export type DirectionalFlipPublicView = {
   terminal_kind: "non_terminal" | "win" | "draw";
   winning_seat: SeatId | null;
   final_score: DirectionalFlipScoreView | null;
+  terminal_rationale?: DirectionalFlipOutcomeRationale | null;
   private_view_status: string;
   hidden_fields: string[];
   ui: DirectionalFlipUiMetadata;
@@ -310,6 +358,7 @@ export type DraughtsLitePublicView = {
   freshness_token: number;
   terminal_kind: "non_terminal" | "win";
   winning_seat: SeatId | null;
+  terminal_rationale?: DraughtsLiteOutcomeRationale | null;
   private_view_status: string;
   hidden_fields: string[];
   ui: DraughtsLiteUiMetadata;
@@ -389,6 +438,7 @@ export type HighCardDuelPublicView = {
   }>;
   terminal_kind: "non_terminal" | "win" | "draw";
   winning_seat: SeatId | null;
+  terminal_rationale?: HighCardDuelOutcomeRationale | null;
   freshness_token: number;
   private_view: HighCardDuelPrivateView;
   ui: HighCardDuelUiMetadata;
@@ -461,6 +511,7 @@ export type TokenBazaarPublicView = {
   fulfilled: { seat_0: string[]; seat_1: string[] };
   legal_actions: TokenBazaarLegalActionView[];
   terminal: TokenBazaarTerminalView;
+  terminal_rationale?: TokenBazaarOutcomeRationale | null;
   freshness_token: number;
   recent_effects: Array<{ kind: string; summary: string }>;
   private_view_status: string;
@@ -530,6 +581,7 @@ export type SecretDraftPublicView = {
     contested: boolean;
   }>;
   terminal: SecretDraftTerminalView;
+  terminal_rationale?: SecretDraftOutcomeRationale | null;
   freshness_token: number;
   private_view: SecretDraftPrivateView;
   ui: SecretDraftUiMetadata;
@@ -604,6 +656,7 @@ export type PokerLitePublicView = {
   center: PokerLiteCenterView;
   showdown: PokerLiteShowdownView | null;
   terminal: PokerLiteTerminalView;
+  terminal_rationale?: PokerLiteOutcomeRationale | null;
   freshness_token: number;
   private_view: PokerLitePrivateView;
   ui: PokerLiteUiMetadata;

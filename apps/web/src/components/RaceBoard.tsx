@@ -1,5 +1,6 @@
 import type { EffectEntry, RacePublicView } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type RaceBoardProps = {
   view: RacePublicView | null;
@@ -49,6 +50,30 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
       <div className="board-status" role="status">
         <span>{latestEffect ? effectSummary(latestEffect) : "No action yet"}</span>
       </div>
+
+      {view?.winner ? (
+        <OutcomeExplanationPanel
+          explanation={outcomeSurfaceData({
+            gameId: "race_to_n",
+            heading: `${view.winner} wins`,
+            rationale: view.terminal_rationale,
+            resultKind: "win",
+            decisiveCause: "exact_target_reached",
+            templateKey: "race_to_n.exact_target_reached",
+            templateParams: { winner: view.winner, target },
+            finalStanding: [
+              {
+                id: view.winner,
+                label: view.winner,
+                result: "Winner",
+                emphasized: true,
+                values: [{ label: "Counter", value: counter }],
+              },
+            ],
+            ruleIds: ["RACE-END-001"],
+          })}
+        />
+      ) : null}
     </section>
   );
 }

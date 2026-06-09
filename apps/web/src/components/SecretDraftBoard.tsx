@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, SecretDraftItemView, SecretDraftPublicView, SeatId } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type SecretDraftBoardProps = {
   view: SecretDraftPublicView;
@@ -123,6 +124,36 @@ export function SecretDraftBoard({
         <span>{feedback?.title ?? "Waiting"}</span>
         <strong>{feedback?.detail ?? "Commitments stay hidden until Rust emits the reveal batch."}</strong>
       </div>
+
+      {terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "secret_draft",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal.draw ? "draw" : "win",
+            decisiveCause: "rust_terminal_rationale",
+            templateKey: view.terminal.draw ? "secret_draft.all_tied_draw" : "secret_draft.score_win",
+            templateParams: { winner: view.terminal.winner ?? "" },
+            finalStanding: [
+              draftStanding("seat_0", view.terminal.winner, view),
+              draftStanding("seat_1", view.terminal.winner, view),
+            ],
+            breakdownSections: [
+              {
+                id: "public-draft",
+                heading: "Public drafted collections",
+                rows: [
+                  { label: "seat_0 drafted", value: view.drafted.seat_0.map((item) => item.label).join(", ") || "None" },
+                  { label: "seat_1 drafted", value: view.drafted.seat_1.map((item) => item.label).join(", ") || "None" },
+                  { label: "Resolved rounds", value: view.revealed_history.length },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -222,4 +253,19 @@ function boardSummary(view: SecretDraftPublicView): string {
 
 function seatLabel(seat: SeatId): string {
   return seat === "seat_0" ? "Seat 0" : "Seat 1";
+}
+
+function draftStanding(seat: SeatId, winner: SeatId | null, view: SecretDraftPublicView) {
+  const score = seat === "seat_0" ? view.scores.seat_0 : view.scores.seat_1;
+  const drafted = seat === "seat_0" ? view.drafted.seat_0 : view.drafted.seat_1;
+  return {
+    id: seat,
+    label: seatLabel(seat),
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
+    emphasized: winner === seat,
+    values: [
+      { label: "Score", value: score },
+      { label: "Drafted items", value: drafted.length },
+    ],
+  };
 }

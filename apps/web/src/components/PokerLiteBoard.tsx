@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, PokerLiteCardView, PokerLitePublicView, SeatId } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type PokerLiteBoardProps = {
   view: PokerLitePublicView;
@@ -122,7 +123,39 @@ export function PokerLiteBoard({
       </section>
 
       {view.showdown ? <ShowdownPanel view={view} /> : null}
-      {view.terminal.terminal ? <TerminalPanel view={view} /> : null}
+      {view.terminal.terminal ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "poker_lite",
+            heading: terminalLabel(view),
+            rationale: view.terminal_rationale,
+            resultKind: view.terminal.draw ? "split" : "win",
+            decisiveCause: view.terminal.kind,
+            templateKey: pokerTemplateKey(view),
+            templateParams: {
+              winner: view.terminal.winner ?? "",
+              loser: view.terminal.kind === "yield_win" ? view.terminal.loser : "",
+            },
+            finalStanding: [
+              pokerStanding("seat_0", view.terminal.winner, view),
+              pokerStanding("seat_1", view.terminal.winner, view),
+            ],
+            breakdownSections: [
+              {
+                id: "ledger",
+                heading: "Public ledger",
+                rows: [
+                  { label: "Terminal kind", value: view.terminal.kind },
+                  { label: "Shared pool", value: view.terminal.shared_pool },
+                  { label: "seat_0 contribution", value: view.contributions.seat_0 },
+                  { label: "seat_1 contribution", value: view.contributions.seat_1 },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
 
       <div className="poker-lite-latest" role="status">
         <span>{feedback?.title ?? "Waiting"}</span>
@@ -184,20 +217,6 @@ function ShowdownPanel({ view }: { view: PokerLitePublicView }) {
         <CrestCard card={view.showdown.center} label="Center" tone="center" />
         <CrestCard card={view.showdown.seat_1_private} label="Seat 1" tone="revealed" />
       </div>
-    </section>
-  );
-}
-
-function TerminalPanel({ view }: { view: PokerLitePublicView }) {
-  if (!view.terminal.terminal) {
-    return null;
-  }
-  const terminal = view.terminal;
-  return (
-    <section className="poker-lite-terminal" aria-label="Terminal outcome">
-      <span>Outcome</span>
-      <strong>{terminalLabel(view)}</strong>
-      <small>{terminal.kind === "yield_win" ? "Resolved without a private reveal." : `Shared pool ${terminal.shared_pool}`}</small>
     </section>
   );
 }
@@ -280,4 +299,30 @@ function isRevealEffect(type: string): boolean {
 
 function seatLabel(seat: SeatId): string {
   return seat === "seat_0" ? "Seat 0" : "Seat 1";
+}
+
+function pokerTemplateKey(view: PokerLitePublicView): string {
+  switch (view.terminal.kind) {
+    case "yield_win":
+      return "poker_lite.yield_win_no_reveal";
+    case "showdown_win":
+      return "poker_lite.pair_beats_high_card";
+    case "split":
+      return "poker_lite.equal_strength_split";
+    case "non_terminal":
+      return "poker_lite.equal_strength_split";
+  }
+}
+
+function pokerStanding(seat: SeatId, winner: SeatId | null, view: PokerLitePublicView) {
+  return {
+    id: seat,
+    label: seatLabel(seat),
+    result: winner === seat ? "Winner" : winner ? "Loss" : "Split",
+    emphasized: winner === seat,
+    values: [
+      { label: "Contribution", value: view.contributions[seat] },
+      { label: "Private crests", value: view.private_counts[seat] },
+    ],
+  };
 }

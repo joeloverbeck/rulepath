@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { ActionChoice, ActionTree, DraughtsLiteCellView, DraughtsLitePublicView, EffectEntry } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type DraughtsLiteBoardProps = {
   view: DraughtsLitePublicView;
@@ -247,6 +248,38 @@ export function DraughtsLiteBoard({
       <p className="sr-only" aria-live="polite" data-testid="draughts-live-status">
         {liveStatus}
       </p>
+
+      {terminal && view.winning_seat ? (
+        <OutcomeExplanationPanel
+          reducedMotion={reducedMotion}
+          explanation={outcomeSurfaceData({
+            gameId: "draughts_lite",
+            heading: `${view.winning_seat} wins`,
+            rationale: view.terminal_rationale,
+            resultKind: "win",
+            decisiveCause: "terminal_position",
+            templateKey: "draughts_lite.opponent_no_pieces",
+            templateParams: {
+              winner: view.winning_seat,
+              loser: otherSeat(view.winning_seat),
+            },
+            finalStanding: [
+              pieceStanding("seat_0", view.winning_seat, view.cells),
+              pieceStanding("seat_1", view.winning_seat, view.cells),
+            ],
+            breakdownSections: [
+              {
+                id: "material",
+                heading: "Public material",
+                rows: [
+                  { label: "seat_0 pieces", value: pieceCount("seat_0", view.cells) },
+                  { label: "seat_1 pieces", value: pieceCount("seat_1", view.cells) },
+                ],
+              },
+            ],
+          })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -438,4 +471,22 @@ function boardSummary(view: DraughtsLitePublicView, choices: ActionChoice[]): st
     .join(", ");
   const legal = choices.map((choice) => choice.label).join(", ");
   return `${view.status_label}. Occupied: ${occupied || "none"}. Legal choices: ${legal || "none"}.`;
+}
+
+function otherSeat(seat: "seat_0" | "seat_1"): "seat_0" | "seat_1" {
+  return seat === "seat_0" ? "seat_1" : "seat_0";
+}
+
+function pieceCount(seat: "seat_0" | "seat_1", cells: DraughtsLiteCellView[]): number {
+  return cells.filter((cell) => cell.owner === seat).length;
+}
+
+function pieceStanding(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1", cells: DraughtsLiteCellView[]) {
+  return {
+    id: seat,
+    label: seat,
+    result: winner === seat ? "Winner" : "Loss",
+    emphasized: winner === seat,
+    values: [{ label: "Pieces", value: pieceCount(seat, cells) }],
+  };
 }

@@ -1,6 +1,6 @@
 # VICEXPSHASUR-010: Web type wiring + board integration for the shared outcome surface
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/wasm/client.ts` (per-game rationale types) and the nine `apps/web/src/components/*Board.tsx` (route terminal display to the shared panel); no Rust/engine, WASM, or behavior surface (TypeScript mirrors and renders Rust-supplied data only).
@@ -88,3 +88,41 @@ Wire each board's terminal state to render `OutcomeExplanationPanel` with the ga
 1. `npm --prefix apps/web run build`
 2. `grep -nE 'determineWinner|compareCards|findWinningLine|resolveTiebreak|scoreOutcome' apps/web/src/wasm/client.ts apps/web/src/components/*Board.tsx` (expect no matches)
 3. `npm --prefix apps/web run smoke:ui`
+
+## Outcome
+
+Added catalog-wide TypeScript rationale mirrors in
+`apps/web/src/wasm/client.ts`, including game-specific `*OutcomeRationale`
+type names and `terminal_rationale` fields on every public view type. Added the
+catalog-derived `RaceToNPublicView` alias while preserving the existing
+`RacePublicView` import surface.
+
+Routed all nine board components to `OutcomeExplanationPanel` on terminal
+states:
+
+1. `RaceBoard.tsx`
+2. `ThreeMarksBoard.tsx`
+3. `ColumnFourBoard.tsx`
+4. `DirectionalFlipBoard.tsx`
+5. `DraughtsLiteBoard.tsx`
+6. `HighCardDuelBoard.tsx`
+7. `TokenBazaarBoard.tsx`
+8. `SecretDraftBoard.tsx`
+9. `PokerLiteBoard.tsx`
+
+Boards pass Rust-supplied `terminal_rationale` through when present and provide
+only Rust-projected public fallback fields for standing/breakdown presentation.
+Board-native visualization remains in place for grids, pieces, cards, market
+state, and reveal/showdown evidence; the shared panel now owns terminal
+explanation text.
+
+Verification run:
+
+1. `npm --prefix apps/web run build` — passed.
+2. `npm --prefix apps/web run smoke:ui` — passed.
+3. `node scripts/check-outcome-explanations.mjs` — passed for all 9 catalog games.
+4. `node scripts/check-doc-links.mjs` — passed.
+5. `cargo fmt --all --check` — passed.
+6. `git diff --check` — passed.
+7. `grep -nE 'determineWinner|compareCards|findWinningLine|resolveTiebreak|scoreOutcome' apps/web/src/wasm/client.ts apps/web/src/components/*Board.tsx` — no matches.
+8. `rg -n "OutcomeExplanationPanel" apps/web/src/components/*Board.tsx` — found imports/renders in all 9 board files.

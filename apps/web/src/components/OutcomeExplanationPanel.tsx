@@ -43,6 +43,35 @@ export type OutcomeExplanationSurfaceData = {
   ruleIds?: readonly string[];
 };
 
+export type OutcomeExplanationSourceRationale = {
+  result_kind?: string;
+  decisive_cause?: string;
+  template_key?: string;
+  template_params?: OutcomeExplanationParams;
+  decisive_rule_ids?: readonly string[];
+  final_standing?: readonly {
+    seat: string;
+    label?: string;
+    result?: string;
+    emphasized?: boolean;
+    values?: readonly OutcomeExplanationField[];
+  }[];
+  breakdown_sections?: readonly OutcomeExplanationBreakdownSection[];
+} | null;
+
+export type OutcomeExplanationAdapterInput = {
+  gameId: string;
+  heading: string;
+  rationale?: OutcomeExplanationSourceRationale;
+  resultKind: string;
+  decisiveCause: string;
+  templateKey: string;
+  templateParams?: OutcomeExplanationParams;
+  finalStanding: readonly OutcomeExplanationStanding[];
+  breakdownSections?: readonly OutcomeExplanationBreakdownSection[];
+  ruleIds?: readonly string[];
+};
+
 type OutcomeExplanationPanelProps = {
   explanation: OutcomeExplanationSurfaceData | null;
   reducedMotion?: boolean;
@@ -152,6 +181,30 @@ export function OutcomeExplanationPanel({
       ) : null}
     </section>
   );
+}
+
+export function outcomeSurfaceData(input: OutcomeExplanationAdapterInput): OutcomeExplanationSurfaceData {
+  return {
+    gameId: input.gameId,
+    heading: input.heading,
+    resultKind: input.rationale?.result_kind ?? input.resultKind,
+    decisiveCause: input.rationale?.decisive_cause ?? input.decisiveCause,
+    templateKey: input.rationale?.template_key ?? input.templateKey,
+    templateParams: input.rationale?.template_params ?? input.templateParams,
+    finalStanding: input.rationale?.final_standing?.length
+      ? input.rationale.final_standing.map((standing) => ({
+          id: standing.seat,
+          label: standing.label ?? standing.seat,
+          result: standing.result,
+          emphasized: standing.emphasized,
+          values: standing.values ?? [],
+        }))
+      : input.finalStanding,
+    breakdownSections: input.rationale?.breakdown_sections?.length
+      ? input.rationale.breakdown_sections
+      : input.breakdownSections,
+    ruleIds: input.rationale?.decisive_rule_ids ?? input.ruleIds,
+  };
 }
 
 function FieldRow({ field }: { field: OutcomeExplanationField }) {
