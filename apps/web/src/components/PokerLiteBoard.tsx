@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, PokerLiteCardView, PokerLitePublicView, SeatId } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type PokerLiteBoardProps = {
   view: PokerLitePublicView;
@@ -28,6 +28,36 @@ export function PokerLiteBoard({
   const canAct = Boolean(interactive && !pending && !view.terminal.terminal && view.active_seat && choices.length > 0);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const revealActive = effects.some((entry) => isRevealEffect(entry.effect.payload.type));
+  const outcomeExplanation = view.terminal.terminal
+    ? outcomeSurfaceData({
+        gameId: "poker_lite",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale,
+        resultKind: view.terminal.draw ? "split" : "win",
+        decisiveCause: view.terminal.kind,
+        templateKey: pokerTemplateKey(view),
+        templateParams: {
+          winner: view.terminal.winner ?? "",
+          loser: view.terminal.kind === "yield_win" ? view.terminal.loser : "",
+        },
+        finalStanding: [
+          pokerStanding("seat_0", view.terminal.winner, view),
+          pokerStanding("seat_1", view.terminal.winner, view),
+        ],
+        breakdownSections: [
+          {
+            id: "ledger",
+            heading: "Public ledger",
+            rows: [
+              { label: "Terminal kind", value: view.terminal.kind },
+              { label: "Shared pool", value: view.terminal.shared_pool },
+              { label: "seat_0 contribution", value: view.contributions.seat_0 },
+              { label: "seat_1 contribution", value: view.contributions.seat_1 },
+            ],
+          },
+        ],
+      })
+    : null;
 
   return (
     <section
@@ -123,43 +153,15 @@ export function PokerLiteBoard({
       </section>
 
       {view.showdown ? <ShowdownPanel view={view} /> : null}
-      {view.terminal.terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "poker_lite",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale,
-            resultKind: view.terminal.draw ? "split" : "win",
-            decisiveCause: view.terminal.kind,
-            templateKey: pokerTemplateKey(view),
-            templateParams: {
-              winner: view.terminal.winner ?? "",
-              loser: view.terminal.kind === "yield_win" ? view.terminal.loser : "",
-            },
-            finalStanding: [
-              pokerStanding("seat_0", view.terminal.winner, view),
-              pokerStanding("seat_1", view.terminal.winner, view),
-            ],
-            breakdownSections: [
-              {
-                id: "ledger",
-                heading: "Public ledger",
-                rows: [
-                  { label: "Terminal kind", value: view.terminal.kind },
-                  { label: "Shared pool", value: view.terminal.shared_pool },
-                  { label: "seat_0 contribution", value: view.contributions.seat_0 },
-                  { label: "seat_1 contribution", value: view.contributions.seat_1 },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
 
       <div className="poker-lite-latest" role="status">
-        <span>{feedback?.title ?? "Waiting"}</span>
-        <strong>{feedback?.detail ?? "Rust/WASM supplies every visible state change."}</strong>
+        <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+        <strong>
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback?.detail ?? "Rust/WASM supplies every visible state change."}
+        </strong>
       </div>
     </section>
   );

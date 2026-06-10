@@ -203,3 +203,57 @@ export type OutcomeExplanationTemplateKey = keyof typeof outcomeExplanationTempl
 export function isOutcomeExplanationTemplateKey(value: string): value is OutcomeExplanationTemplateKey {
   return Object.prototype.hasOwnProperty.call(outcomeExplanationTemplates, value);
 }
+
+const outcomeValueCopy: Record<string, string> = {
+  all_tied_draw: "All tied draw",
+  complete_sets_tiebreak: "Complete sets tiebreak",
+  distinct_threads_tiebreak: "Distinct threads tiebreak",
+  draw: "Draw",
+  equal_strength_split: "Equal strength split",
+  exact_target_reached: "Exact target reached",
+  fewer_priority_conflict_wins_tiebreak: "Fewer priority-won conflicts tiebreak",
+  final_score: "Final score",
+  full_board_draw: "Full board draw",
+  fulfilled_tiebreak_win: "Fulfilled contracts tiebreak win",
+  high_card: "High card",
+  highest_single_tiebreak: "Highest single tiebreak",
+  inventory_tiebreak_win: "Inventory tiebreak win",
+  line_completed: "Line completed",
+  loss: "Loss",
+  low: "Low",
+  non_terminal: "Non-terminal",
+  opponent_no_legal_move: "Opponent has no legal move",
+  opponent_no_pieces: "Opponent has no pieces",
+  pair: "Pair",
+  pair_beats_high_card: "Pair beats high card",
+  private_rank_tiebreak: "Private rank tiebreak",
+  rust_terminal_rationale: "Terminal rationale",
+  score_win: "Score win",
+  showdown_win: "Showdown win",
+  split: "Split",
+  terminal_position: "Terminal position",
+  trick_win: "Trick win",
+  win: "Win",
+  yield_win: "Yield win",
+};
+
+export function seatDisplayLabel(seat: string): string {
+  const match = /^seat_(\d+)$/.exec(seat);
+  return match ? `Seat ${match[1]}` : seat;
+}
+
+export function outcomeDisplayText(value: string): string {
+  return value
+    .replace(/\bseat_(\d+)\b/g, (_match, seatIndex: string) => `Seat ${seatIndex}`)
+    .replace(/\br(\d+)c(\d+)\b/g, (_match, row: string, column: string) => `row ${row} column ${column}`)
+    .replace(/\b[a-z]+(?:_[a-z]+)+\b/g, (token) => outcomeValueCopy[token] ?? token);
+}
+
+export function outcomeDisplayValue(value: string): string {
+  const copied = outcomeValueCopy[value];
+  if (copied) {
+    return copied;
+  }
+  const seatLabel = seatDisplayLabel(value);
+  return seatLabel === value ? outcomeDisplayText(value) : seatLabel;
+}

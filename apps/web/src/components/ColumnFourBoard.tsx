@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ActionChoice, ColumnFourPublicView, EffectEntry } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type ColumnFourBoardProps = {
   view: ColumnFourPublicView;
@@ -42,6 +42,31 @@ export function ColumnFourBoard({
   const botEffect = latestEffectOfType(effects, "bot_chose_action");
   const landedCell = landedCellFromEffects(effects);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  const outcomeExplanation = terminal
+    ? outcomeSurfaceData({
+        gameId: "column_four",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale,
+        resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+        decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
+        templateKey: view.terminal_kind === "draw" ? "column_four.full_board_draw" : "column_four.line_completed",
+        templateParams: {
+          winner: view.winning_seat ?? "",
+          line_label: view.winning_line.join(", "),
+        },
+        finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
+        breakdownSections: [
+          {
+            id: "terminal-line",
+            heading: "Terminal detail",
+            rows: [
+              { label: "Kind", value: view.terminal_kind },
+              { label: "Winning line", value: view.winning_line.join(", ") || "None" },
+            ],
+          },
+        ],
+      })
+    : null;
 
   return (
     <section
@@ -141,42 +166,17 @@ export function ColumnFourBoard({
 
       <div className="board-status" role="status">
         <span>
-          {feedback
-            ? feedback.detail
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback
+              ? feedback.detail
             : interactive
               ? "Choose a column above the board."
               : "Replay board is projected by Rust at this cursor."}
         </span>
       </div>
 
-      {terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "column_four",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale,
-            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
-            decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
-            templateKey: view.terminal_kind === "draw" ? "column_four.full_board_draw" : "column_four.line_completed",
-            templateParams: {
-              winner: view.winning_seat ?? "",
-              line_label: view.winning_line.join(", "),
-            },
-            finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
-            breakdownSections: [
-              {
-                id: "terminal-line",
-                heading: "Terminal detail",
-                rows: [
-                  { label: "Kind", value: view.terminal_kind },
-                  { label: "Winning line", value: view.winning_line.join(", ") || "None" },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }

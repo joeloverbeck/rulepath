@@ -9,7 +9,7 @@ import type {
   TokenBazaarResourceCounts,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type TokenBazaarBoardProps = {
   view: TokenBazaarPublicView;
@@ -39,6 +39,33 @@ export function TokenBazaarBoard({
   const canAct = Boolean(interactive && !pending && !terminal && view.active_seat && choices.length > 0);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const recentEffects = view.recent_effects.length > 0 ? view.recent_effects : effects.map(effectSummary);
+  const outcomeExplanation = terminal
+    ? outcomeSurfaceData({
+        gameId: "token_bazaar",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale,
+        resultKind: view.terminal.draw ? "draw" : "win",
+        decisiveCause: "rust_terminal_rationale",
+        templateKey: view.terminal.draw ? "token_bazaar.all_tied_draw" : "token_bazaar.score_win",
+        templateParams: { winner: view.terminal.winner ?? "" },
+        finalStanding: [
+          tokenStanding("seat_0", view.terminal.winner, view),
+          tokenStanding("seat_1", view.terminal.winner, view),
+        ],
+        breakdownSections: [
+          {
+            id: "public-accounting",
+            heading: "Public accounting",
+            rows: [
+              { label: "seat_0 fulfilled", value: view.fulfilled.seat_0.length },
+              { label: "seat_1 fulfilled", value: view.fulfilled.seat_1.length },
+              { label: "seat_0 inventory", value: inventoryTotal(view.inventories[0].resources) },
+              { label: "seat_1 inventory", value: inventoryTotal(view.inventories[1].resources) },
+            ],
+          },
+        ],
+      })
+    : null;
 
   return (
     <section
@@ -133,12 +160,16 @@ export function TokenBazaarBoard({
         )}
       </section>
 
-      <div className="token-recent" aria-label="Recent public accounting">
+      <div className="token-recent" role="status" aria-label="Recent public accounting">
         <div>
           <span>Latest effect</span>
-          <strong>{feedback?.title ?? recentEffects.at(-1)?.kind ?? "None yet"}</strong>
+          <strong>{outcomeExplanation ? "Outcome" : feedback?.title ?? recentEffects.at(-1)?.kind ?? "None yet"}</strong>
         </div>
-        <p>{feedback?.detail ?? recentEffects.at(-1)?.summary ?? "Accounting effects will appear after a Rust action resolves."}</p>
+        <p>
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback?.detail ?? recentEffects.at(-1)?.summary ?? "Accounting effects will appear after a Rust action resolves."}
+        </p>
         {recentEffects.length > 0 ? (
           <ol>
             {recentEffects.map((effect, index) => (
@@ -151,36 +182,7 @@ export function TokenBazaarBoard({
         ) : null}
       </div>
 
-      {terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "token_bazaar",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale,
-            resultKind: view.terminal.draw ? "draw" : "win",
-            decisiveCause: "rust_terminal_rationale",
-            templateKey: view.terminal.draw ? "token_bazaar.all_tied_draw" : "token_bazaar.score_win",
-            templateParams: { winner: view.terminal.winner ?? "" },
-            finalStanding: [
-              tokenStanding("seat_0", view.terminal.winner, view),
-              tokenStanding("seat_1", view.terminal.winner, view),
-            ],
-            breakdownSections: [
-              {
-                id: "public-accounting",
-                heading: "Public accounting",
-                rows: [
-                  { label: "seat_0 fulfilled", value: view.fulfilled.seat_0.length },
-                  { label: "seat_1 fulfilled", value: view.fulfilled.seat_1.length },
-                  { label: "seat_0 inventory", value: inventoryTotal(view.inventories[0].resources) },
-                  { label: "seat_1 inventory", value: inventoryTotal(view.inventories[1].resources) },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }

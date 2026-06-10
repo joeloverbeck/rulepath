@@ -69,6 +69,8 @@ try {
 
   await playRaceToTerminal(page, baseUrl);
   await assertOutcomePanel(page, "Race to 21");
+  await assertOutcomeStyled(page, "Race to 21");
+  await assertHumanizedOutcomeCopy(page, "Race to 21");
   const racePanel = await panelText(page);
   await setReducedMotion(page);
   assert((await panelText(page)) === racePanel, "reduced motion preserves race outcome text");
@@ -76,11 +78,16 @@ try {
 
   await playThreeMarksWin(page, baseUrl);
   await assertOutcomePanel(page, "Three Marks");
+  await assertOutcomeStyled(page, "Three Marks");
+  await assertHumanizedOutcomeCopy(page, "Three Marks");
+  await assertWinnerFirstStanding(page, "Three Marks");
   await assertDisclosureKeyboardAndPointer(page);
   await assertNoLeak(page, consoleMessages, "three_marks outcome");
 
   await playThreeMarksDraw(page, baseUrl);
   await assertOutcomePanel(page, "Three Marks draw");
+  await assertHumanizedOutcomeCopy(page, "Three Marks draw");
+  await assertDrawStandingParity(page, "Three Marks draw");
   await assertStorageClean(page);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
 
@@ -98,9 +105,11 @@ async function playRaceToTerminal(page, baseUrl) {
   await clickText(page, "button", "Race to 21");
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
-  for (let index = 0; index < 7; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     await clickText(page, "button", "Add 3");
   }
+  await markPreTerminalStatusRegion(page);
+  await clickText(page, "button", "Add 3");
   await page.waitForSelector(".outcome-explanation-panel");
 }
 
@@ -110,9 +119,11 @@ async function playThreeMarksWin(page, baseUrl) {
   await clickText(page, "button", "Three Marks");
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
-  for (const cell of ["r1c1", "r2c1", "r1c2", "r2c2", "r1c3"]) {
+  for (const cell of ["r1c1", "r2c1", "r1c2", "r2c2"]) {
     await clickCell(page, cell);
   }
+  await markPreTerminalStatusRegion(page);
+  await clickCell(page, "r1c3");
   await page.waitForSelector(".outcome-explanation-panel");
 }
 
@@ -122,22 +133,27 @@ async function playThreeMarksDraw(page, baseUrl) {
   await clickText(page, "button", "Three Marks");
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
-  for (const cell of ["r1c1", "r1c2", "r1c3", "r2c1", "r2c3", "r2c2", "r3c1", "r3c3", "r3c2"]) {
+  for (const cell of ["r1c1", "r1c2", "r1c3", "r2c1", "r2c3", "r2c2", "r3c1", "r3c3"]) {
     await clickCell(page, cell);
   }
+  await markPreTerminalStatusRegion(page);
+  await clickCell(page, "r3c2");
   await page.waitForSelector(".outcome-explanation-panel");
 }
 
 async function assertOutcomePanel(page, label) {
   const summary = await page.evaluate(() => {
     const panel = document.querySelector(".outcome-explanation-panel");
-    const status = panel?.querySelector('[role="status"]');
+    const status = document.querySelector('[role="status"][data-outcome-preterminal="true"]');
     const headingId = panel?.getAttribute("aria-labelledby") ?? "";
     const heading = headingId ? document.getElementById(headingId)?.textContent ?? "" : "";
+    const summaryText = panel?.querySelector(".outcome-summary p:last-child")?.textContent ?? "";
     return {
       exists: Boolean(panel),
       heading,
+      panelStatusCount: panel?.querySelectorAll('[role="status"], [aria-live]').length ?? 0,
       statusText: status?.textContent ?? "",
+      summaryText,
       standingRows: panel?.querySelectorAll(".outcome-standing-row").length ?? 0,
       disclosureButtons: panel?.querySelectorAll("button[aria-expanded][aria-controls]").length ?? 0,
       text: panel?.textContent ?? "",
@@ -145,25 +161,107 @@ async function assertOutcomePanel(page, label) {
   });
   assert(summary.exists, `${label} renders shared outcome panel`);
   assert(summary.heading.length > 0, `${label} panel has associated heading`);
-  assert(summary.statusText.length > 0, `${label} panel exposes role status text`);
+  assert(summary.statusText.includes(summary.heading), `${label} pre-existing status node announces heading`);
+  assert(summary.statusText.includes(summary.summaryText), `${label} pre-existing status node announces decisive cause`);
+  assert(summary.panelStatusCount === 0, `${label} panel does not mount its own live/status region`);
   assert(summary.standingRows >= 1, `${label} panel renders final standing`);
   assert(summary.disclosureButtons >= 1, `${label} panel renders disclosure control`);
   assert(summary.text.includes("Outcome"), `${label} panel includes outcome label`);
 }
 
+async function markPreTerminalStatusRegion(page) {
+  await page.evaluate(() => {
+    const status = document.querySelector('[role="status"]');
+    if (!status) {
+      throw new Error("Missing pre-terminal status region");
+    }
+    status.setAttribute("data-outcome-preterminal", "true");
+  });
+}
+
+async function assertOutcomeStyled(page, label) {
+  const styles = await page.evaluate(() => {
+    const panel = document.querySelector(".outcome-explanation-panel");
+    const heading = panel?.querySelector("h2");
+    const standingRow = panel?.querySelector(".outcome-standing-row");
+    const disclosureButton = panel?.querySelector(".outcome-breakdown-section button");
+    if (!panel || !heading || !standingRow || !disclosureButton) {
+      return null;
+    }
+    const panelStyle = window.getComputedStyle(panel);
+    const headingStyle = window.getComputedStyle(heading);
+    const standingStyle = window.getComputedStyle(standingRow);
+    const buttonBefore = window.getComputedStyle(disclosureButton, "::before");
+    return {
+      borderTopWidth: panelStyle.borderTopWidth,
+      backgroundColor: panelStyle.backgroundColor,
+      headingFontSize: headingStyle.fontSize,
+      standingFontSize: standingStyle.fontSize,
+      disclosureBeforeContent: buttonBefore.content,
+      disclosureWidth: window.getComputedStyle(disclosureButton).width,
+    };
+  });
+  assert(Boolean(styles), `${label} has styled outcome elements`);
+  assert(styles.borderTopWidth !== "0px", `${label} outcome panel has a card border`);
+  assert(styles.backgroundColor !== "rgba(0, 0, 0, 0)", `${label} outcome panel has a non-transparent background`);
+  assert(
+    Number.parseFloat(styles.headingFontSize) > Number.parseFloat(styles.standingFontSize),
+    `${label} outcome heading has a stronger type scale: ${JSON.stringify(styles)}`,
+  );
+  assert(
+    styles.disclosureBeforeContent !== "none" || Number.parseFloat(styles.disclosureWidth) > 0,
+    `${label} outcome disclosure has a visible affordance: ${JSON.stringify(styles)}`,
+  );
+}
+
 async function assertDisclosureKeyboardAndPointer(page) {
   const button = await page.waitForSelector(".outcome-breakdown-section button");
+  const initialExpanded = await page.$eval(".outcome-breakdown-section button", (element) =>
+    element.getAttribute("aria-expanded"),
+  );
+  assert(initialExpanded === "true", "decisive outcome disclosure is expanded by default");
   await button.focus();
   const focused = await page.evaluate(() => document.activeElement?.matches(".outcome-breakdown-section button") ?? false);
   assert(focused, "disclosure button receives focus");
   await page.keyboard.press("Enter");
-  await page.waitForFunction(() => document.querySelector(".outcome-breakdown-section button")?.getAttribute("aria-expanded") === "true");
-  await page.click(".outcome-breakdown-section button");
   await page.waitForFunction(() => document.querySelector(".outcome-breakdown-section button")?.getAttribute("aria-expanded") === "false");
+  await page.click(".outcome-breakdown-section button");
+  await page.waitForFunction(() => document.querySelector(".outcome-breakdown-section button")?.getAttribute("aria-expanded") === "true");
 }
 
 async function panelText(page) {
   return page.$eval(".outcome-explanation-panel", (panel) => panel.textContent ?? "");
+}
+
+async function assertHumanizedOutcomeCopy(page, label) {
+  const text = await panelText(page);
+  const rawTokens = ["seat_0", "seat_1", "high_card", "r1c1", "r1c2", "r1c3", "win", "loss", "split"];
+  const hits = rawTokens.filter((token) => new RegExp(`\\b${token}\\b`).test(text));
+  assert(hits.length === 0, `${label} outcome panel exposes raw visible tokens: ${hits.join(", ")}`);
+}
+
+async function assertWinnerFirstStanding(page, label) {
+  const summary = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll(".outcome-standing-row"));
+    return {
+      rowCount: rows.length,
+      firstEmphasized: rows[0]?.classList.contains("emphasized") ?? false,
+    };
+  });
+  assert(summary.rowCount >= 2, `${label} has multiple standing rows`);
+  assert(summary.firstEmphasized, `${label} winner row is first`);
+}
+
+async function assertDrawStandingParity(page, label) {
+  const summary = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll(".outcome-standing-row"));
+    const emphasized = rows.filter((row) => row.classList.contains("emphasized")).length;
+    const classes = rows.map((row) => row.className);
+    return { rowCount: rows.length, emphasized, classes };
+  });
+  assert(summary.rowCount >= 2, `${label} has multiple standing rows`);
+  assert(summary.emphasized === 0, `${label} draw has no emphasized standing row`);
+  assert(new Set(summary.classes).size === 1, `${label} draw rows use matching treatment`);
 }
 
 async function catalogNames(page) {

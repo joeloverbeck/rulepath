@@ -1,6 +1,6 @@
 import type { EffectEntry, RacePublicView } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type RaceBoardProps = {
   view: RacePublicView | null;
@@ -12,6 +12,37 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
   const target = view?.target ?? 21;
   const progress = target > 0 ? Math.min(100, (counter / target) * 100) : 0;
   const status = view?.winner ? `${view.winner} won` : view ? `${view.active_seat} to move` : "Ready";
+  const outcomeExplanation = view?.winner
+    ? outcomeSurfaceData({
+        gameId: "race_to_n",
+        heading: `${view.winner} wins`,
+        rationale: view.terminal_rationale,
+        resultKind: "win",
+        decisiveCause: "exact_target_reached",
+        templateKey: "race_to_n.exact_target_reached",
+        templateParams: { winner: view.winner, target },
+        finalStanding: [
+          {
+            id: view.winner,
+            label: view.winner,
+            result: "Winner",
+            emphasized: true,
+            values: [{ label: "Counter", value: counter }],
+          },
+        ],
+        breakdownSections: [
+          {
+            id: "target",
+            heading: "Target",
+            rows: [
+              { label: "Counter", value: counter },
+              { label: "Target", value: target },
+            ],
+          },
+        ],
+        ruleIds: ["RACE-END-001"],
+      })
+    : null;
 
   return (
     <section className="race-board" aria-label="Current match">
@@ -48,42 +79,10 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
       </div>
 
       <div className="board-status" role="status">
-        <span>{latestEffect ? effectSummary(latestEffect) : "No action yet"}</span>
+        <span>{outcomeExplanation ? outcomeAnnouncementText(outcomeExplanation) : latestEffect ? effectSummary(latestEffect) : "No action yet"}</span>
       </div>
 
-      {view?.winner ? (
-        <OutcomeExplanationPanel
-          explanation={outcomeSurfaceData({
-            gameId: "race_to_n",
-            heading: `${view.winner} wins`,
-            rationale: view.terminal_rationale,
-            resultKind: "win",
-            decisiveCause: "exact_target_reached",
-            templateKey: "race_to_n.exact_target_reached",
-            templateParams: { winner: view.winner, target },
-            finalStanding: [
-              {
-                id: view.winner,
-                label: view.winner,
-                result: "Winner",
-                emphasized: true,
-                values: [{ label: "Counter", value: counter }],
-              },
-            ],
-            breakdownSections: [
-              {
-                id: "target",
-                heading: "Target",
-                rows: [
-                  { label: "Counter", value: counter },
-                  { label: "Target", value: target },
-                ],
-              },
-            ],
-            ruleIds: ["RACE-END-001"],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel explanation={outcomeExplanation} /> : null}
     </section>
   );
 }

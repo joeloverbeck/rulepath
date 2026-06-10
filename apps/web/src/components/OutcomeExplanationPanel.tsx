@@ -1,7 +1,10 @@
 import { useId, useMemo, useState } from "react";
 import {
   isOutcomeExplanationTemplateKey,
+  outcomeDisplayText,
+  outcomeDisplayValue,
   outcomeExplanationTemplates,
+  seatDisplayLabel,
   type OutcomeExplanationTemplate,
 } from "./outcomeExplanationTemplates";
 
@@ -29,6 +32,7 @@ export type OutcomeExplanationBreakdownSection = {
   heading: string;
   summary?: string;
   rows?: readonly OutcomeExplanationField[];
+  defaultOpen?: boolean;
 };
 
 export type OutcomeExplanationSurfaceData = {
@@ -93,8 +97,7 @@ export function OutcomeExplanationPanel({
     return null;
   }
 
-  const params = explanation.templateParams ?? {};
-  const summary = template ? renderTemplate(template.summary, params) : explanation.decisiveCause;
+  const summary = outcomeSummaryText(explanation);
   const sections = explanation.breakdownSections ?? [];
 
   return (
@@ -103,7 +106,7 @@ export function OutcomeExplanationPanel({
       aria-labelledby={headingId}
       data-outcome-game={explanation.gameId}
     >
-      <div className="outcome-summary" role="status" aria-live="polite">
+      <div className="outcome-summary">
         <p className="eyebrow">Outcome</p>
         <h2 id={headingId}>{explanation.heading}</h2>
         <p>{summary}</p>
@@ -114,14 +117,14 @@ export function OutcomeExplanationPanel({
           <article
             className={`outcome-standing-row${standing.emphasized ? " emphasized" : ""}`}
             key={standing.id}
-            aria-label={standing.result ? `${standing.label}, ${standing.result}` : standing.label}
+            aria-label={standing.result ? `${standing.label}, ${outcomeDisplayValue(standing.result)}` : standing.label}
           >
             <header>
               <strong>{standing.label}</strong>
-              {standing.result ? <span>{standing.result}</span> : null}
+              {standing.result ? <span>{outcomeDisplayValue(standing.result)}</span> : null}
             </header>
             <dl>
-              {standing.values.map((field) => (
+              {standing.values.filter((field) => !isDuplicateResultField(field, standing.result)).map((field) => (
                 <FieldRow field={field} key={`${standing.id}-${field.label}`} />
               ))}
             </dl>
@@ -132,7 +135,8 @@ export function OutcomeExplanationPanel({
       {sections.length > 0 ? (
         <div className="outcome-breakdown" id={detailsId}>
           {sections.map((section) => {
-            const sectionOpen = expandedSections[section.id] ?? initiallyExpanded;
+            const defaultOpen = section.defaultOpen ?? (initiallyExpanded || isShortSection(section));
+            const sectionOpen = expandedSections[section.id] ?? defaultOpen;
             const sectionId = `${rootId}-${section.id}`;
             const buttonId = `${sectionId}-button`;
             return (
@@ -145,7 +149,7 @@ export function OutcomeExplanationPanel({
                   onClick={() =>
                     setExpandedSections((current) => ({
                       ...current,
-                      [section.id]: !(current[section.id] ?? initiallyExpanded),
+                      [section.id]: !(current[section.id] ?? defaultOpen),
                     }))
                   }
                 >
@@ -184,33 +188,48 @@ export function OutcomeExplanationPanel({
 }
 
 export function outcomeSurfaceData(input: OutcomeExplanationAdapterInput): OutcomeExplanationSurfaceData {
+  const rationaleStanding = input.rationale?.final_standing?.length
+    ? input.rationale.final_standing.map((standing) => ({
+        id: standing.seat,
+        label: standing.label ? outcomeDisplayText(standing.label) : seatDisplayLabel(standing.seat),
+        result: standing.result,
+        emphasized: standing.emphasized,
+        values: standing.values ?? [],
+      }))
+    : null;
+
+  const breakdownSections = input.rationale?.breakdown_sections?.length
+    ? input.rationale.breakdown_sections
+    : input.breakdownSections;
+
   return {
     gameId: input.gameId,
-    heading: input.heading,
+    heading: outcomeDisplayText(input.heading),
     resultKind: input.rationale?.result_kind ?? input.resultKind,
     decisiveCause: input.rationale?.decisive_cause ?? input.decisiveCause,
     templateKey: input.rationale?.template_key ?? input.templateKey,
     templateParams: input.rationale?.template_params ?? input.templateParams,
-    finalStanding: input.rationale?.final_standing?.length
-      ? input.rationale.final_standing.map((standing) => ({
-          id: standing.seat,
-          label: standing.label ?? standing.seat,
-          result: standing.result,
-          emphasized: standing.emphasized,
-          values: standing.values ?? [],
-        }))
-      : input.finalStanding,
-    breakdownSections: input.rationale?.breakdown_sections?.length
-      ? input.rationale.breakdown_sections
-      : input.breakdownSections,
+    finalStanding: orderStandings(rationaleStanding ?? input.finalStanding.map(normalizeStanding)),
+    breakdownSections: breakdownSections?.map((section) => normalizeBreakdownSection(section, input.rationale?.decisive_cause ?? input.decisiveCause)),
     ruleIds: input.rationale?.decisive_rule_ids ?? input.ruleIds,
   };
+}
+
+export function outcomeSummaryText(explanation: OutcomeExplanationSurfaceData): string {
+  const template = templateFor(explanation.templateKey);
+  return template
+    ? renderTemplate(template.summary, explanation.templateParams ?? {})
+    : outcomeDisplayText(explanation.decisiveCause);
+}
+
+export function outcomeAnnouncementText(explanation: OutcomeExplanationSurfaceData): string {
+  return `${explanation.heading} - ${outcomeSummaryText(explanation)}`;
 }
 
 function FieldRow({ field }: { field: OutcomeExplanationField }) {
   return (
     <div className={field.emphasized ? "emphasized" : ""}>
-      <dt>{field.label}</dt>
+      <dt>{outcomeDisplayText(field.label)}</dt>
       <dd>
         {formatValue(field.value)}
         {field.ruleId ? <small>{field.ruleId}</small> : null}
@@ -237,5 +256,34 @@ function formatValue(value: OutcomeValue): string {
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";
   }
-  return String(value);
+  return outcomeDisplayValue(String(value));
+}
+
+function normalizeStanding(standing: OutcomeExplanationStanding): OutcomeExplanationStanding {
+  return {
+    ...standing,
+    label: outcomeDisplayText(standing.label),
+  };
+}
+
+function orderStandings(standings: readonly OutcomeExplanationStanding[]): OutcomeExplanationStanding[] {
+  return [...standings].sort((left, right) => Number(Boolean(right.emphasized)) - Number(Boolean(left.emphasized)));
+}
+
+function normalizeBreakdownSection(
+  section: OutcomeExplanationBreakdownSection,
+  decisiveCause: string,
+): OutcomeExplanationBreakdownSection {
+  return {
+    ...section,
+    defaultOpen: section.defaultOpen ?? (section.id === decisiveCause || isShortSection(section)),
+  };
+}
+
+function isShortSection(section: OutcomeExplanationBreakdownSection): boolean {
+  return !section.summary && (section.rows?.length ?? 0) <= 2;
+}
+
+function isDuplicateResultField(field: OutcomeExplanationField, result: string | undefined): boolean {
+  return Boolean(result) && field.label.trim().toLowerCase() === "result";
 }

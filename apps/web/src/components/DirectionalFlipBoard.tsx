@@ -8,7 +8,7 @@ import type {
   SeatId,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type DirectionalFlipBoardProps = {
   view: DirectionalFlipPublicView;
@@ -70,6 +70,32 @@ export function DirectionalFlipBoard({
   const botEffect = latestEffectOfType(effects, "bot_chose_action");
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const canPlay = interactive && !pending && !terminal;
+  const outcomeExplanation = terminal
+    ? outcomeSurfaceData({
+        gameId: "directional_flip",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale,
+        resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+        decisiveCause: "final_score",
+        templateKey:
+          view.terminal_kind === "draw" ? "directional_flip.final_score_draw" : "directional_flip.final_score_win",
+        templateParams: { winner: view.winning_seat ?? "" },
+        finalStanding: [
+          scoreStanding("seat_0", view.winning_seat, view.final_score?.seat_0 ?? view.score.seat_0),
+          scoreStanding("seat_1", view.winning_seat, view.final_score?.seat_1 ?? view.score.seat_1),
+        ],
+        breakdownSections: [
+          {
+            id: "final-score",
+            heading: "Final score",
+            rows: [
+              { label: "seat_0", value: view.final_score?.seat_0 ?? view.score.seat_0 },
+              { label: "seat_1", value: view.final_score?.seat_1 ?? view.score.seat_1 },
+            ],
+          },
+        ],
+      })
+    : null;
 
   const chooseTarget = (target: DirectionalFlipLegalTargetView | null) => {
     if (!target || !canPlay || !onChoice) {
@@ -219,8 +245,10 @@ export function DirectionalFlipBoard({
 
       <div className="board-status" role="status">
         <span>
-          {feedback
-            ? feedback.detail
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback
+              ? feedback.detail
             : forcedPassTarget
               ? "Rust requires a forced pass."
               : interactive
@@ -229,37 +257,7 @@ export function DirectionalFlipBoard({
         </span>
       </div>
 
-      {terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "directional_flip",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale,
-            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
-            decisiveCause: "final_score",
-            templateKey:
-              view.terminal_kind === "draw"
-                ? "directional_flip.final_score_draw"
-                : "directional_flip.final_score_win",
-            templateParams: { winner: view.winning_seat ?? "" },
-            finalStanding: [
-              scoreStanding("seat_0", view.winning_seat, view.final_score?.seat_0 ?? view.score.seat_0),
-              scoreStanding("seat_1", view.winning_seat, view.final_score?.seat_1 ?? view.score.seat_1),
-            ],
-            breakdownSections: [
-              {
-                id: "final-score",
-                heading: "Final score",
-                rows: [
-                  { label: "seat_0", value: view.final_score?.seat_0 ?? view.score.seat_0 },
-                  { label: "seat_1", value: view.final_score?.seat_1 ?? view.score.seat_1 },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }

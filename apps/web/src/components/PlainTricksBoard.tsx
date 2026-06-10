@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, PlainTricksCardView, PlainTricksPublicView, SeatId } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type PlainTricksBoardProps = {
   view: PlainTricksPublicView;
@@ -33,6 +33,32 @@ export function PlainTricksBoard({
   const ownSeat = view.private_view.status === "seat" ? view.private_view.seat : null;
   const opponentSeat = ownSeat === "seat_0" ? "seat_1" : "seat_0";
   const opponentCount = ownSeat ? view.hand_counts[opponentSeat] : view.hand_counts.seat_0 + view.hand_counts.seat_1;
+  const outcomeExplanation = terminal
+    ? outcomeSurfaceData({
+        gameId: "plain_tricks",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale ?? null,
+        resultKind: view.terminal.draw ? "draw" : "win",
+        decisiveCause: view.terminal.kind,
+        templateKey: view.terminal.kind === "split" ? "plain_tricks.split" : "plain_tricks.trick_win",
+        templateParams: { winner: view.terminal.winner ?? "" },
+        finalStanding: [
+          plainStanding("seat_0", view),
+          plainStanding("seat_1", view),
+        ],
+        breakdownSections: [
+          {
+            id: "tricks",
+            heading: "Trick totals",
+            rows: [
+              { label: "seat_0 tricks", value: view.total_trick_counts.seat_0 },
+              { label: "seat_1 tricks", value: view.total_trick_counts.seat_1 },
+              { label: "Resolved tricks", value: view.trick_history.length },
+            ],
+          },
+        ],
+      })
+    : null;
 
   return (
     <section
@@ -149,39 +175,15 @@ export function PlainTricksBoard({
       </section>
 
       <div className="plain-latest" role="status">
-        <span>{feedback?.title ?? "Waiting"}</span>
-        <strong>{feedback?.detail ?? "Rust/WASM supplies legal cards, trick results, and redacted views."}</strong>
+        <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+        <strong>
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback?.detail ?? "Rust/WASM supplies legal cards, trick results, and redacted views."}
+        </strong>
       </div>
 
-      {terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "plain_tricks",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale ?? null,
-            resultKind: view.terminal.draw ? "draw" : "win",
-            decisiveCause: view.terminal.kind,
-            templateKey: view.terminal.kind === "split" ? "plain_tricks.split" : "plain_tricks.trick_win",
-            templateParams: { winner: view.terminal.winner ?? "" },
-            finalStanding: [
-              plainStanding("seat_0", view),
-              plainStanding("seat_1", view),
-            ],
-            breakdownSections: [
-              {
-                id: "tricks",
-                heading: "Trick totals",
-                rows: [
-                  { label: "seat_0 tricks", value: view.total_trick_counts.seat_0 },
-                  { label: "seat_1 tricks", value: view.total_trick_counts.seat_1 },
-                  { label: "Resolved tricks", value: view.trick_history.length },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }
