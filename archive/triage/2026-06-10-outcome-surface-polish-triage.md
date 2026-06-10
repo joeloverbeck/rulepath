@@ -1,5 +1,7 @@
 # Outcome surface polish — triage (2026-06-10)
 
+**Status**: ✅ COMPLETED
+
 **Request**: the recently added OUTCOME section (VICEXPSHASUR series, 2026-06-09) looks notoriously poorer than the rest of the interface; explore games to terminal, diagnose, research usability/web-design practice, and create tickets.
 
 **Method**: drove `http://127.0.0.1:4173/` with Puppeteer to terminal in Race to 21, Three Marks (win), and Crest Ledger (poker_lite, split); read the panel/adapter/templates code, the wasm-api rationale projections, UI-INTERACTION.md §16, and the archived `victory-explanation-shared-surface.md` spec; ran an external research pass (W3C/WCAG, ARIA APG, NN/g, GOV.UK, Polaris, Soueidan, web.dev, game post-match UI analyses).
@@ -26,3 +28,20 @@ Dependency order: 001 and 002 are independent; 003 depends on both. All three ar
 ## Key research anchors
 
 WCAG 1.4.1 use-of-color & 1.4.11 non-text contrast; WCAG 4.1.3 status messages + ARIA22 (live region must pre-exist content); ARIA APG disclosure pattern (chevron, full-row button trigger); NN/g progressive disclosure ("disclose everything users frequently need up front"; ≤2 levels) and accordion guidance; GOV.UK details component (information-scent labels; don't hide majority-need content); Polaris badge tones (text-bearing status badges); key-value pair layout (≈40/60 split, group spacing > intra-pair spacing); post-match screen hierarchy (result headline ≫ standings ≫ justifying stats; winner-first ordering; emphasized winner card); chess-platform draw lessons ("Draw by stalemate" — always name the cause next to the result).
+
+## Outcome
+
+Completed: 2026-06-10
+
+What changed:
+- `OUTSURPOL-001`, `OUTSURPOL-002`, and `OUTSURPOL-003` were implemented, verified, archived, and committed.
+- The deliverables table now points to the archived ticket records.
+
+Deviations from original plan:
+- None for the triage closeout. The triage produced the ticket series and the ticket series is complete.
+
+Verification:
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/outcome-explanation.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
