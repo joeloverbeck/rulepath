@@ -18,7 +18,7 @@
 | Ticket | Scope | Priority |
 |---|---|---|
 | `archive/tickets/OUTSURPOL-001.md` | Author the missing outcome CSS (card, hierarchy, badges, winner emphasis, key-value grid, disclosure affordance, rule-ref chips, reduced motion, responsive) + styled-state smoke assertions | HIGH |
-| `tickets/OUTSURPOL-002.md` | Humanized copy: shared seat/enum display maps at the `formatValue`/`renderTemplate`/adapter chokepoints, 10-board call-site audit, render-time `Result:` dedup, template copy pass | HIGH |
+| `archive/tickets/OUTSURPOL-002.md` | Humanized copy: shared seat/enum display maps at the `formatValue`/`renderTemplate`/adapter chokepoints, 10-board call-site audit, render-time `Result:` dedup, template copy pass | HIGH |
 | `tickets/OUTSURPOL-003.md` | Announcement via pre-existing live region, winner-first standings + draw parity, decisive-section `defaultOpen` | MEDIUM |
 
 Dependency order: 001 and 002 are independent; 003 depends on both. All three are TS/CSS-only; an eventual Rust-side cleanup of the duplicated Result row is recorded as out of scope (hash migration cost).

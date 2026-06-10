@@ -70,6 +70,7 @@ try {
   await playRaceToTerminal(page, baseUrl);
   await assertOutcomePanel(page, "Race to 21");
   await assertOutcomeStyled(page, "Race to 21");
+  await assertHumanizedOutcomeCopy(page, "Race to 21");
   const racePanel = await panelText(page);
   await setReducedMotion(page);
   assert((await panelText(page)) === racePanel, "reduced motion preserves race outcome text");
@@ -78,11 +79,13 @@ try {
   await playThreeMarksWin(page, baseUrl);
   await assertOutcomePanel(page, "Three Marks");
   await assertOutcomeStyled(page, "Three Marks");
+  await assertHumanizedOutcomeCopy(page, "Three Marks");
   await assertDisclosureKeyboardAndPointer(page);
   await assertNoLeak(page, consoleMessages, "three_marks outcome");
 
   await playThreeMarksDraw(page, baseUrl);
   await assertOutcomePanel(page, "Three Marks draw");
+  await assertHumanizedOutcomeCopy(page, "Three Marks draw");
   await assertStorageClean(page);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
 
@@ -201,6 +204,13 @@ async function assertDisclosureKeyboardAndPointer(page) {
 
 async function panelText(page) {
   return page.$eval(".outcome-explanation-panel", (panel) => panel.textContent ?? "");
+}
+
+async function assertHumanizedOutcomeCopy(page, label) {
+  const text = await panelText(page);
+  const rawTokens = ["seat_0", "seat_1", "high_card", "r1c1", "r1c2", "r1c3", "win", "loss", "split"];
+  const hits = rawTokens.filter((token) => new RegExp(`\\b${token}\\b`).test(text));
+  assert(hits.length === 0, `${label} outcome panel exposes raw visible tokens: ${hits.join(", ")}`);
 }
 
 async function catalogNames(page) {

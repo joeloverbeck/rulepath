@@ -1,6 +1,6 @@
 # OUTSURPOL-002: Humanize outcome copy — display maps for seat/enum tokens, deduplicated rows
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `apps/web/src` presentation only (display-label maps, board call-site fixes, template copy). No Rust, WASM, schema, trace, or hash surface moves.
@@ -99,3 +99,24 @@ Summaries phrased as result—cause in player vocabulary; disclosure `expandedHe
 1. `node scripts/check-outcome-explanations.mjs` (targeted — template/copy contract)
 2. `npm --prefix apps/web run build && node apps/web/e2e/outcome-explanation.smoke.mjs` (targeted — rendered copy)
 3. `npm --prefix apps/web run smoke:e2e` (full pipeline — all game smokes + no-leak)
+
+## Outcome
+
+Completed: 2026-06-10
+
+What changed:
+- Added shared outcome display helpers for seat ids, known Rust enum/token values, and board cell ids in `apps/web/src/components/outcomeExplanationTemplates.ts`.
+- Routed outcome headings, template interpolation, Rust fallback standing labels, field labels, field values, and result badges through those presentation-only helpers in `OutcomeExplanationPanel.tsx`.
+- Added render-time duplicate `Result` row suppression when a standing row already has a result badge.
+- Extended `apps/web/e2e/outcome-explanation.smoke.mjs` with visible-copy assertions that block raw `seat_0`/`seat_1`, selected raw enum tokens, and raw Three Marks cell ids in the exercised terminal panels.
+
+Deviations from original plan:
+- The 10-board call-site audit landed through the shared adapter/panel chokepoints rather than per-board edits. This keeps Rust/WASM payloads and board fallback APIs unchanged while covering both rationale-provided and board-provided outcome data.
+
+Verification:
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/outcome-explanation.smoke.mjs` initially hit sandbox `listen EPERM` while binding the local smoke server after the build; rerun with localhost binding allowed passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- Grep proof found no `determineWinner|compareCards|findWinningLine|resolveTiebreak|scoreOutcome` matches under `apps/web/src/components`.
+- `git diff --name-only | rg '^(crates|games)/'` found no Rust/game diffs.
