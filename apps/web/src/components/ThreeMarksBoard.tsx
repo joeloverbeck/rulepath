@@ -1,6 +1,6 @@
 import type { ActionChoice, EffectEntry, ThreeMarksPublicView } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type ThreeMarksBoardProps = {
   view: ThreeMarksPublicView;
@@ -47,6 +47,31 @@ export function ThreeMarksBoard({
   const summary = boardSummary(cells, view);
   const botEffect = latestEffect?.effect.payload.type === "bot_chose_action" ? latestEffect : null;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  const outcomeExplanation = terminal
+    ? outcomeSurfaceData({
+        gameId: "three_marks",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale,
+        resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+        decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
+        templateKey: view.terminal_kind === "draw" ? "three_marks.full_board_draw" : "three_marks.line_completed",
+        templateParams: {
+          winner: view.winning_seat ?? "",
+          line_label: view.winning_line.join(", "),
+        },
+        finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
+        breakdownSections: [
+          {
+            id: "terminal-line",
+            heading: "Terminal detail",
+            rows: [
+              { label: "Kind", value: view.terminal_kind },
+              { label: "Winning line", value: view.winning_line.join(", ") || "None" },
+            ],
+          },
+        ],
+      })
+    : null;
 
   return (
     <section
@@ -122,42 +147,17 @@ export function ThreeMarksBoard({
 
       <div className="board-status" role="status">
         <span>
-          {feedback
-            ? feedback.detail
+          {outcomeExplanation
+              ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback
+              ? feedback.detail
             : interactive
               ? "Choose a highlighted cell to place a mark."
               : "Replay board is projected by Rust at this cursor."}
         </span>
       </div>
 
-      {terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "three_marks",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale,
-            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
-            decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
-            templateKey: view.terminal_kind === "draw" ? "three_marks.full_board_draw" : "three_marks.line_completed",
-            templateParams: {
-              winner: view.winning_seat ?? "",
-              line_label: view.winning_line.join(", "),
-            },
-            finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
-            breakdownSections: [
-              {
-                id: "terminal-line",
-                heading: "Terminal detail",
-                rows: [
-                  { label: "Kind", value: view.terminal_kind },
-                  { label: "Winning line", value: view.winning_line.join(", ") || "None" },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }

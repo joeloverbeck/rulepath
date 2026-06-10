@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { ActionChoice, ActionTree, DraughtsLiteCellView, DraughtsLitePublicView, EffectEntry } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type DraughtsLiteBoardProps = {
   view: DraughtsLitePublicView;
@@ -67,6 +67,34 @@ export function DraughtsLiteBoard({
     [cells],
   );
   const liveStatus = liveAnnouncement(view, current, pendingPath, feedback, botEffect);
+  const outcomeExplanation = terminal && view.winning_seat
+    ? outcomeSurfaceData({
+        gameId: "draughts_lite",
+        heading: `${view.winning_seat} wins`,
+        rationale: view.terminal_rationale,
+        resultKind: "win",
+        decisiveCause: "terminal_position",
+        templateKey: "draughts_lite.opponent_no_pieces",
+        templateParams: {
+          winner: view.winning_seat,
+          loser: otherSeat(view.winning_seat),
+        },
+        finalStanding: [
+          pieceStanding("seat_0", view.winning_seat, view.cells),
+          pieceStanding("seat_1", view.winning_seat, view.cells),
+        ],
+        breakdownSections: [
+          {
+            id: "material",
+            heading: "Public material",
+            rows: [
+              { label: "seat_0 pieces", value: pieceCount("seat_0", view.cells) },
+              { label: "seat_1 pieces", value: pieceCount("seat_1", view.cells) },
+            ],
+          },
+        ],
+      })
+    : null;
 
   useEffect(() => {
     if (!focusedCell && cells[0]) {
@@ -233,8 +261,10 @@ export function DraughtsLiteBoard({
 
       <div className="board-status" role="status">
         <span>
-          {feedback
-            ? feedback.detail
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback
+              ? feedback.detail
             : current.choices.some((choice) => metadataValue(choice, "forced_by_continuation") === "true")
               ? "Rust requires this capture path to continue."
               : pendingPath.length > 0
@@ -249,37 +279,7 @@ export function DraughtsLiteBoard({
         {liveStatus}
       </p>
 
-      {terminal && view.winning_seat ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "draughts_lite",
-            heading: `${view.winning_seat} wins`,
-            rationale: view.terminal_rationale,
-            resultKind: "win",
-            decisiveCause: "terminal_position",
-            templateKey: "draughts_lite.opponent_no_pieces",
-            templateParams: {
-              winner: view.winning_seat,
-              loser: otherSeat(view.winning_seat),
-            },
-            finalStanding: [
-              pieceStanding("seat_0", view.winning_seat, view.cells),
-              pieceStanding("seat_1", view.winning_seat, view.cells),
-            ],
-            breakdownSections: [
-              {
-                id: "material",
-                heading: "Public material",
-                rows: [
-                  { label: "seat_0 pieces", value: pieceCount("seat_0", view.cells) },
-                  { label: "seat_1 pieces", value: pieceCount("seat_1", view.cells) },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }

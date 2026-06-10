@@ -1,6 +1,6 @@
 # OUTSURPOL-003: Outcome announcement reliability, standings order, and decisive-section disclosure
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — `apps/web/src` presentation/interaction only (live-region timing, render ordering, disclosure defaults). No Rust, WASM, schema, or hash surface moves.
@@ -92,3 +92,28 @@ Add an optional `defaultOpen?: boolean` to `OutcomeExplanationBreakdownSection`;
 1. `npm --prefix apps/web run build && node apps/web/e2e/outcome-explanation.smoke.mjs` (targeted)
 2. `npm --prefix apps/web run smoke:e2e` (full pipeline)
 3. Manual screen-reader spot check (NVDA/VoiceOver or headless a11y tree dump): terminal in Race to 21 announces "Seat 0 wins — reached 21 exactly." exactly once.
+
+## Outcome
+
+Completed: 2026-06-10
+
+What changed:
+- Added shared `outcomeSummaryText` and `outcomeAnnouncementText` helpers so every catalog board can reuse the same Rust-supplied, humanized outcome sentence for its persistent status region and panel.
+- Removed the late-mounted live/status role from `OutcomeExplanationPanel`; the panel remains visible text while pre-existing board status regions carry terminal announcements.
+- Ordered emphasized/winner standings first with stable ordering otherwise, preserving draw/split parity.
+- Added `defaultOpen` support for breakdown sections and default-open handling for short/decisive sections.
+- Wired all catalog board components to compute `outcomeExplanation` once and reuse it for the terminal status text and panel.
+- Extended the outcome smoke with pre-terminal status-node capture, panel no-live-region assertion, winner-first ordering, draw parity, and default-open disclosure checks.
+
+Deviations from original plan:
+- Token Bazaar's latest-effect region existed before terminal but did not have `role="status"`; it now has `role="status"` so it participates in the same persistent announcement pattern as the other boards.
+- No manual screen-reader pass was run; the browser smoke verifies the DOM/live-region timing contract in headless Chromium.
+
+Verification:
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/outcome-explanation.smoke.mjs` passed with localhost binding allowed after sandbox `listen EPERM`.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- Grep proof found no `determineWinner|compareCards|findWinningLine|resolveTiebreak|scoreOutcome` matches under `apps/web/src/components`.
+- `git diff --name-only | rg '^(crates|games)/'` found no Rust/game diffs.
+- Grep proof found no remaining outcome-panel live/status carrier; the only outcome status query is the e2e pre-terminal status assertion.

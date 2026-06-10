@@ -9,7 +9,7 @@ import type {
   ViewerMode,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type HighCardDuelBoardProps = {
   view: HighCardDuelPublicView;
@@ -51,6 +51,32 @@ export function HighCardDuelBoard({
   const commitEffect = latestEffectOfType(effects, "commit_face_down");
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const viewerLabel = viewerMode.kind === "observer" ? "Observer" : seatLabel(viewerMode.seat);
+  const outcomeExplanation = terminal
+    ? outcomeSurfaceData({
+        gameId: "high_card_duel",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale,
+        resultKind: view.terminal_kind === "draw" ? "draw" : "win",
+        decisiveCause: "final_score",
+        templateKey: view.terminal_kind === "draw" ? "high_card_duel.final_score_draw" : "high_card_duel.final_score_win",
+        templateParams: { winner: view.winning_seat ?? "" },
+        finalStanding: [
+          scoreStanding("seat_0", view.winning_seat, view.score.seat_0),
+          scoreStanding("seat_1", view.winning_seat, view.score.seat_1),
+        ],
+        breakdownSections: [
+          {
+            id: "revealed-rounds",
+            heading: "Public revealed rounds",
+            rows: [
+              { label: "Revealed rounds", value: view.revealed_cards.length },
+              { label: "seat_0 score", value: view.score.seat_0 },
+              { label: "seat_1 score", value: view.score.seat_1 },
+            ],
+          },
+        ],
+      })
+    : null;
 
   return (
     <section
@@ -148,44 +174,17 @@ export function HighCardDuelBoard({
 
       <div className="board-status" role="status">
         <span>
-          {feedback
-            ? feedback.detail
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback
+              ? feedback.detail
             : commitEffect
               ? "A face-down commitment was recorded by Rust."
               : "Choose only from the Rust-provided private hand actions."}
         </span>
       </div>
 
-      {terminal ? (
-        <OutcomeExplanationPanel
-          reducedMotion={reducedMotion}
-          explanation={outcomeSurfaceData({
-            gameId: "high_card_duel",
-            heading: terminalLabel(view),
-            rationale: view.terminal_rationale,
-            resultKind: view.terminal_kind === "draw" ? "draw" : "win",
-            decisiveCause: "final_score",
-            templateKey:
-              view.terminal_kind === "draw" ? "high_card_duel.final_score_draw" : "high_card_duel.final_score_win",
-            templateParams: { winner: view.winning_seat ?? "" },
-            finalStanding: [
-              scoreStanding("seat_0", view.winning_seat, view.score.seat_0),
-              scoreStanding("seat_1", view.winning_seat, view.score.seat_1),
-            ],
-            breakdownSections: [
-              {
-                id: "revealed-rounds",
-                heading: "Public revealed rounds",
-                rows: [
-                  { label: "Revealed rounds", value: view.revealed_cards.length },
-                  { label: "seat_0 score", value: view.score.seat_0 },
-                  { label: "seat_1 score", value: view.score.seat_1 },
-                ],
-              },
-            ],
-          })}
-        />
-      ) : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
     </section>
   );
 }
