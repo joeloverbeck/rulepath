@@ -69,6 +69,7 @@ try {
 
   await playRaceToTerminal(page, baseUrl);
   await assertOutcomePanel(page, "Race to 21");
+  await assertOutcomeStyled(page, "Race to 21");
   const racePanel = await panelText(page);
   await setReducedMotion(page);
   assert((await panelText(page)) === racePanel, "reduced motion preserves race outcome text");
@@ -76,6 +77,7 @@ try {
 
   await playThreeMarksWin(page, baseUrl);
   await assertOutcomePanel(page, "Three Marks");
+  await assertOutcomeStyled(page, "Three Marks");
   await assertDisclosureKeyboardAndPointer(page);
   await assertNoLeak(page, consoleMessages, "three_marks outcome");
 
@@ -149,6 +151,41 @@ async function assertOutcomePanel(page, label) {
   assert(summary.standingRows >= 1, `${label} panel renders final standing`);
   assert(summary.disclosureButtons >= 1, `${label} panel renders disclosure control`);
   assert(summary.text.includes("Outcome"), `${label} panel includes outcome label`);
+}
+
+async function assertOutcomeStyled(page, label) {
+  const styles = await page.evaluate(() => {
+    const panel = document.querySelector(".outcome-explanation-panel");
+    const heading = panel?.querySelector("h2");
+    const standingRow = panel?.querySelector(".outcome-standing-row");
+    const disclosureButton = panel?.querySelector(".outcome-breakdown-section button");
+    if (!panel || !heading || !standingRow || !disclosureButton) {
+      return null;
+    }
+    const panelStyle = window.getComputedStyle(panel);
+    const headingStyle = window.getComputedStyle(heading);
+    const standingStyle = window.getComputedStyle(standingRow);
+    const buttonBefore = window.getComputedStyle(disclosureButton, "::before");
+    return {
+      borderTopWidth: panelStyle.borderTopWidth,
+      backgroundColor: panelStyle.backgroundColor,
+      headingFontSize: headingStyle.fontSize,
+      standingFontSize: standingStyle.fontSize,
+      disclosureBeforeContent: buttonBefore.content,
+      disclosureWidth: window.getComputedStyle(disclosureButton).width,
+    };
+  });
+  assert(Boolean(styles), `${label} has styled outcome elements`);
+  assert(styles.borderTopWidth !== "0px", `${label} outcome panel has a card border`);
+  assert(styles.backgroundColor !== "rgba(0, 0, 0, 0)", `${label} outcome panel has a non-transparent background`);
+  assert(
+    Number.parseFloat(styles.headingFontSize) > Number.parseFloat(styles.standingFontSize),
+    `${label} outcome heading has a stronger type scale: ${JSON.stringify(styles)}`,
+  );
+  assert(
+    styles.disclosureBeforeContent !== "none" || Number.parseFloat(styles.disclosureWidth) > 0,
+    `${label} outcome disclosure has a visible affordance: ${JSON.stringify(styles)}`,
+  );
 }
 
 async function assertDisclosureKeyboardAndPointer(page) {

@@ -1,6 +1,6 @@
 # OUTSURPOL-001: Outcome panel visual design — author the missing CSS
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `apps/web/src/styles.css` and `apps/web/e2e/outcome-explanation.smoke.mjs` only (presentation styling; TypeScript renders Rust-supplied data only).
@@ -88,3 +88,19 @@ After the existing `assertOutcomePanel` checks, add a small `assertOutcomeStyled
 1. `npm --prefix apps/web run build && node apps/web/e2e/outcome-explanation.smoke.mjs` (targeted; run from repo root with `apps/web/dist` built)
 2. `npm --prefix apps/web run smoke:e2e` (full pipeline)
 3. Manual play-first audit: reach terminal in Race to 21 (7× "Add 3"), Three Marks (win + draw fills), and Crest Ledger; compare the panel against the adjacent `.region`/`.effects` cards for visual consistency.
+
+## Outcome
+
+Completed: 2026-06-10
+
+What changed:
+- Added the missing shared outcome-panel CSS in `apps/web/src/styles.css`: card container, summary hierarchy, standing-row badges and winner emphasis, key-value grids, disclosure affordance, rule-reference chips, reduced-motion suppression, and narrow-width key-value stacking.
+- Added computed-style assertions to `apps/web/e2e/outcome-explanation.smoke.mjs` so the outcome panel must have a loaded card style, stronger heading scale, and disclosure affordance.
+
+Deviations from original plan:
+- None. The implementation stayed within `apps/web/src/styles.css` and `apps/web/e2e/outcome-explanation.smoke.mjs`; copy, ordering, announcement behavior, Rust/WASM, schemas, traces, and hashes were untouched.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/outcome-explanation.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.

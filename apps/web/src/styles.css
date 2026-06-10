@@ -2016,6 +2016,209 @@ h2 {
   color: #65351f;
 }
 
+.outcome-explanation-panel {
+  display: grid;
+  gap: 22px;
+  border: 1px solid #c2cec8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.outcome-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.outcome-summary h2 {
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+
+.outcome-summary p {
+  margin: 0;
+}
+
+.outcome-standing,
+.outcome-breakdown {
+  display: grid;
+  gap: 12px;
+}
+
+.outcome-standing-row {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
+.outcome-standing-row.emphasized {
+  border-left: 3px solid #b45f06;
+  background: #ffffff;
+}
+
+.outcome-standing-row header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.outcome-standing-row header strong {
+  color: #21352e;
+  overflow-wrap: anywhere;
+}
+
+.outcome-standing-row.emphasized header strong {
+  font-weight: 900;
+}
+
+.outcome-standing-row header span {
+  flex: 0 0 auto;
+  border: 1px solid #c8d3ce;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #eef5f1;
+  color: #40514a;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.outcome-standing dl,
+.outcome-breakdown-section dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.outcome-standing dl > div,
+.outcome-breakdown-section dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.4fr) minmax(0, 0.6fr);
+  gap: 4px 12px;
+  align-items: start;
+}
+
+.outcome-standing dt,
+.outcome-breakdown-section dt {
+  color: #5a6d66;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.outcome-standing dd,
+.outcome-breakdown-section dd {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  color: #21352e;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.outcome-standing small,
+.outcome-breakdown-section small {
+  color: #63756f;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.outcome-breakdown-section {
+  overflow: hidden;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  background: #f9faf7;
+}
+
+.outcome-breakdown-section button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  padding: 12px;
+  background: transparent;
+  color: #21352e;
+  font-weight: 900;
+  text-align: left;
+}
+
+.outcome-breakdown-section button::before {
+  content: "▸";
+  color: #5a6d66;
+}
+
+.outcome-breakdown-section button[aria-expanded="true"]::before {
+  content: "▾";
+}
+
+.outcome-breakdown-section button:hover {
+  background: #eef5f1;
+}
+
+.outcome-breakdown-section button:focus-visible {
+  outline: 3px solid #b45f06;
+  outline-offset: -3px;
+}
+
+.outcome-breakdown-section > div {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #d7ded9;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.outcome-breakdown-section p {
+  margin: 0;
+}
+
+.outcome-rule-refs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #63756f;
+  font-size: 0.82rem;
+}
+
+.outcome-rule-refs span {
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.outcome-rule-refs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outcome-rule-refs code {
+  border-radius: 4px;
+  padding: 2px 5px;
+  background: #eef5f1;
+  color: #1f4e41;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.outcome-explanation-panel.reduced *,
+.outcome-explanation-panel.reduced *::before,
+.outcome-explanation-panel.reduced *::after,
+.reduced-motion .outcome-explanation-panel *,
+.reduced-motion .outcome-explanation-panel *::before,
+.reduced-motion .outcome-explanation-panel *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 .effects {
   display: grid;
   gap: 10px;
@@ -2694,6 +2897,11 @@ h2 {
   }
 
   .effect-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .outcome-standing dl > div,
+  .outcome-breakdown-section dl > div {
     grid-template-columns: 1fr;
   }
 
