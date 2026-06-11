@@ -433,3 +433,38 @@ Consulted external sources shape the proof vocabulary, the anti-degeneracy analy
 - U.S. Copyright Office, "Games" registration circular, and *DaVinci Editrice S.r.l. v. ZiKo Games* (S.D. Tex. 2016), consulted for the rules-vs-expression boundary: mechanics are unprotected; rules text, art, theme, and names must be original: https://www.copyright.gov/register/tx-games.html
 
 `games/masked_claims/docs/SOURCES.md` must record consulted dates, what was used, what was not copied, why the name and labels are original, and asset/font status. The game deliberately has no named roles or abilities, avoiding the unsettled role-roster expression question entirely. If any label feels trademark-forward or trade-dress-adjacent at review time, rename it before implementation.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Gate 11 shipped `masked_claims` / Masked Claims as the accepted claim/challenge
+reaction-window hidden-information proof. The implementation added the
+game-local Rust crate, official docs, primitive-pressure ledger, native tests,
+golden traces, simulations, fixtures, rule coverage, benchmarks, WASM bridge
+registration, browser board, generated player rules, outcome explanations, CI
+and tool registration, E2E no-leak smoke, admission evidence, and public release
+checklist.
+
+Deviations from original plan:
+
+- The reaction-window mechanic stayed entirely game-local; no `engine-core` or
+  `game-stdlib` promotion occurred.
+- Masked Claims public replay export/import ships as a viewer-scoped public
+  observation surface with claim-path redaction.
+
+Verification passed:
+
+- `cargo test --workspace`
+- `bash scripts/boundary-check.sh`
+- `cargo run -p simulate -- --game masked_claims --games 1000`
+- `cargo run -p replay-check -- --game masked_claims --all`
+- `cargo run -p fixture-check -- --game masked_claims`
+- `cargo run -p rule-coverage -- --game masked_claims`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-outcome-explanations.mjs`
