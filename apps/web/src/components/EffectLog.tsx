@@ -58,6 +58,7 @@ function isRevealBatch(entry: EffectEntry): boolean {
   return (
     entry.effect.payload.type === "reveal_batch_started" ||
     entry.effect.payload.type === "choices_revealed" ||
-    entry.effect.payload.type === "draft_resolved"
+    entry.effect.payload.type === "draft_resolved" ||
+    entry.effect.payload.type === "mask_revealed"
   );
 }

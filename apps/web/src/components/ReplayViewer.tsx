@@ -5,6 +5,7 @@ import type {
   DirectionalFlipPublicView,
   DraughtsLitePublicView,
   EffectEntry,
+  MaskedClaimsPublicView,
   PublicView,
   SecretDraftPublicView,
   ThreeMarksPublicView,
@@ -249,6 +250,10 @@ function isSecretDraftView(view: PublicView | null): view is SecretDraftPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "secret_draft");
 }
 
+function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -335,6 +340,22 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
             : view.active_seat ?? "resolving",
       },
       { label: "Tricks", value: `${view.total_trick_counts.seat_0}-${view.total_trick_counts.seat_1}` },
+    ];
+  }
+
+  if (isMaskedClaimsView(view)) {
+    return [
+      { label: "Turn", value: `${view.turn_index + 1} / 8` },
+      {
+        label: "Turn holder",
+        value:
+          view.terminal.kind !== "non_terminal"
+            ? view.terminal.draw
+              ? "draw"
+              : `${view.terminal.winner} won`
+            : view.active_seat ?? "resolving",
+      },
+      { label: "Score", value: `${view.scores.seat_0}-${view.scores.seat_1}` },
     ];
   }
 

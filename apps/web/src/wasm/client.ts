@@ -739,6 +739,69 @@ export type PlainTricksPublicView = {
   };
 };
 
+export type MaskedClaimsOutcomeRationale = OutcomeRationalePayload;
+
+export type MaskedClaimsMaskView = {
+  tile_id: string;
+  grade: string;
+  label: string;
+  accessibility_label: string;
+};
+
+export type MaskedClaimsVeiledClaimView = {
+  declared_grade: string;
+  declared_label: string;
+};
+
+export type MaskedClaimsExposedMaskView = {
+  tile_id: string;
+  actual_grade: string;
+  declared_grade: string;
+  claimant: SeatId;
+  challenger: SeatId;
+};
+
+export type MaskedClaimsTerminalView =
+  | { kind: "non_terminal"; winner: null; draw: false }
+  | { kind: "score_win"; winner: SeatId; draw: false; scores: { seat_0: number; seat_1: number } }
+  | { kind: "tiebreak_win"; winner: SeatId; draw: false; tiebreak: string; scores: { seat_0: number; seat_1: number } }
+  | { kind: "draw"; winner: null; draw: true; scores: { seat_0: number; seat_1: number } };
+
+export type MaskedClaimsPrivateView =
+  | { status: "observer"; own_hand: [] }
+  | { status: "seat"; seat: SeatId; own_hand: MaskedClaimsMaskView[] };
+
+export type MaskedClaimsPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "masked_claims";
+  display_name: "Masked Claims";
+  variant_id: "masked_claims_standard";
+  rules_version_label: "masked-claims-rules-v1";
+  phase: string;
+  active_seat: SeatId | null;
+  turn_index: number;
+  claimant: SeatId;
+  hand_counts: { seat_0: number; seat_1: number };
+  pedestal: { claimant: SeatId; declared_grade: string; declared_label: string } | null;
+  veiled_gallery: [MaskedClaimsVeiledClaimView[], MaskedClaimsVeiledClaimView[]];
+  exposed_rows: [MaskedClaimsExposedMaskView[], MaskedClaimsExposedMaskView[]];
+  scores: { seat_0: number; seat_1: number };
+  counters: Array<{ exposed_lies: number; successful_challenges: number; challenges_declared: number }>;
+  terminal: MaskedClaimsTerminalView;
+  terminal_rationale?: MaskedClaimsOutcomeRationale | null;
+  freshness_token: number;
+  private_view: MaskedClaimsPrivateView;
+  ui: {
+    game_id: "masked_claims";
+    variant_id: "masked_claims_standard";
+    display_name: "Masked Claims";
+    grade_labels: string[];
+    claim_preview_template: string;
+    reaction_prompt_template: string;
+  };
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -749,7 +812,8 @@ export type PublicView =
   | TokenBazaarPublicView
   | SecretDraftPublicView
   | PokerLitePublicView
-  | PlainTricksPublicView;
+  | PlainTricksPublicView
+  | MaskedClaimsPublicView;
 
 export type ActionChoice = {
   segment: string;
@@ -856,7 +920,27 @@ export type SecretDraftPublicReplayExport = {
   }>;
 };
 
-export type ReplayExportDocument = ReplayDocument | PublicObserverReplayExport | SecretDraftPublicReplayExport;
+export type MaskedClaimsPublicReplayExport = {
+  schema_version: number;
+  export_class: "viewer_scoped_observation";
+  viewer: "observer";
+  game_id: "masked_claims";
+  rules_version: string;
+  variant: "masked_claims_standard";
+  steps: Array<{
+    step_index: number;
+    public_view_summary: string;
+    public_effects: string[];
+    redacted_command_summary: string;
+    terminal: boolean;
+  }>;
+};
+
+export type ReplayExportDocument =
+  | ReplayDocument
+  | PublicObserverReplayExport
+  | SecretDraftPublicReplayExport
+  | MaskedClaimsPublicReplayExport;
 
 export type ReplayImportSummary = {
   replay_id: string;

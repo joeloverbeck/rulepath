@@ -60,6 +60,10 @@ function choiceTestId(view: PublicView | null, choice: ActionChoice, index: numb
     const trick = "trick_index" in view ? view.trick_index : 0;
     return `choice-plain-tricks-trick-${trick}-${index}`;
   }
+  if (view && "game_id" in view && view.game_id === "masked_claims") {
+    const turn = "turn_index" in view ? view.turn_index : 0;
+    return `choice-masked-claims-turn-${turn}-${index}`;
+  }
   return `choice-${choice.segment}`;
 }
 
@@ -71,6 +75,9 @@ function isTerminalView(view: PublicView | null): boolean {
     return view.winner !== null;
   }
   if ("game_id" in view && view.game_id === "plain_tricks") {
+    return view.terminal.kind !== "non_terminal";
+  }
+  if ("game_id" in view && view.game_id === "masked_claims") {
     return view.terminal.kind !== "non_terminal";
   }
   if ("terminal" in view) {

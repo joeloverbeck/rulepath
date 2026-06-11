@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-017: React board and shell reducer/effects
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — new `apps/web/src/components/MaskedClaimsBoard.tsx`; modifies `apps/web/src/main.tsx`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/{effectFeedback.ts,ActionControls.tsx,EffectLog.tsx,outcomeExplanationTemplates.ts}` (no Rust/behavior surface — TypeScript presents Rust-provided data only)
@@ -85,3 +85,12 @@ The `smoke:ui` harness carries **hardcoded** per-game catalog and start-match as
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. The build + UI smoke are the boundary here; the reaction-window click-path and no-leak DOM assertions land in GAT11MASCLABLU-019.
+
+## Outcome
+
+Implemented the Masked Claims browser board and shell wiring. The board renders private hand claim paths, the pedestal, responder controls only from Rust action trees, claimant waiting state, veiled/exposed galleries, scores/counters, effects, and terminal outcome explanations without rendering unrevealed tile IDs in labels or `data-testid`s. The shell/client/shared components now recognize Masked Claims views, effects, terminal outcomes, replay snapshots, and dev-panel viewer-filtered surfaces.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`

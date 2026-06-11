@@ -346,6 +346,42 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: "Rust resolved final trick totals.",
         tone: "terminal",
       };
+    case "claim_placed":
+      return {
+        title: "Claim placed",
+        detail: `${payload.claimant} claimed ${payload.declared_grade}.`,
+        tone: "neutral",
+      };
+    case "reaction_window_opened":
+      return {
+        title: "Response window",
+        detail: `${payload.responder} may accept or challenge.`,
+        tone: "turn",
+      };
+    case "claim_accepted":
+      return {
+        title: "Claim accepted",
+        detail: `${payload.claimant} scored ${payload.score_delta ?? 0}; the mask stays veiled.`,
+        tone: "turn",
+      };
+    case "challenge_declared":
+      return {
+        title: "Challenge declared",
+        detail: `${payload.responder} challenged the claim.`,
+        tone: "movement",
+      };
+    case "mask_revealed":
+      return {
+        title: "Mask revealed",
+        detail: `Rust revealed a challenged ${payload.actual_grade} mask.`,
+        tone: "movement",
+      };
+    case "challenge_resolved":
+      return {
+        title: "Challenge resolved",
+        detail: `Rust resolved the challenge as ${payload.outcome}.`,
+        tone: "turn",
+      };
     case "bot_chose_action_public":
       return {
         title: "Bot chose action",
@@ -401,6 +437,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "turn",
       };
     case "terminal":
+      if (isMaskedClaimsOutcome(payload.outcome)) {
+        return {
+          title: "Claims complete",
+          detail: terminalOutcome(payload.outcome, "claim ledger"),
+          tone: "terminal",
+        };
+      }
       if (isPlainTricksOutcome(payload.outcome)) {
         return {
           title: "Tricks complete",
@@ -498,6 +541,19 @@ function isPlainTricksOutcome(value: unknown): boolean {
   }
   const outcome = value as { kind?: unknown; totals?: unknown; each?: unknown };
   return (outcome.kind === "trick_win" || outcome.kind === "split") && typeof outcome.totals === "object";
+}
+
+function isMaskedClaimsOutcome(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const outcome = value as { kind?: unknown; scores?: unknown };
+  return (
+    outcome.kind === "score_win" ||
+    outcome.kind === "tiebreak_win" ||
+    outcome.kind === "draw" ||
+    typeof outcome.scores === "object"
+  );
 }
 
 export function summarizeEffect(entry: EffectEntry): string {

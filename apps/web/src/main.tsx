@@ -12,6 +12,7 @@ import { summarizeEffect, useReducedMotionPreference } from "./components/effect
 import { GamePicker } from "./components/GamePicker";
 import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup } from "./components/MatchSetup";
+import { MaskedClaimsBoard } from "./components/MaskedClaimsBoard";
 import { ModeControls } from "./components/ModeControls";
 import { PlainTricksBoard } from "./components/PlainTricksBoard";
 import { PokerLiteBoard } from "./components/PokerLiteBoard";
@@ -30,6 +31,7 @@ import {
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
   type HighCardDuelPublicView,
+  type MaskedClaimsPublicView,
   type PlainTricksPublicView,
   type PokerLitePublicView,
   type PublicView,
@@ -462,6 +464,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
           />
+        ) : isMaskedClaimsView(view) ? (
+          <MaskedClaimsBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -481,7 +493,8 @@ function App() {
         isTokenBazaarView(view) ||
         isSecretDraftView(view) ||
         isPokerLiteView(view) ||
-        isPlainTricksView(view) ? null : (
+        isPlainTricksView(view) ||
+        isMaskedClaimsView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -642,6 +655,10 @@ function isPlainTricksView(view: PublicView | null): view is PlainTricksPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "plain_tricks");
 }
 
+function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -656,6 +673,9 @@ function isTerminalView(view: PublicView): boolean {
     return view.terminal.terminal;
   }
   if (isPlainTricksView(view)) {
+    return view.terminal.kind !== "non_terminal";
+  }
+  if (isMaskedClaimsView(view)) {
     return view.terminal.kind !== "non_terminal";
   }
   return view.terminal_kind !== "non_terminal";
@@ -725,6 +745,19 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
             ? "split"
             : `${view.terminal.winner} won`
           : `${view.phase}, tricks ${view.total_trick_counts.seat_0}-${view.total_trick_counts.seat_1}`,
+    };
+  }
+  if (view.game_id === "masked_claims") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.terminal.kind !== "non_terminal"
+          ? view.terminal.draw
+            ? "draw"
+            : `${view.terminal.winner} won`
+          : `${view.phase}, scores ${view.scores.seat_0}-${view.scores.seat_1}`,
     };
   }
   return {

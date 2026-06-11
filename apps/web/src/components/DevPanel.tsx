@@ -48,7 +48,8 @@ export function DevPanel({
       (view.game_id === "high_card_duel" ||
         view.game_id === "secret_draft" ||
         view.game_id === "poker_lite" ||
-        view.game_id === "plain_tricks"),
+        view.game_id === "plain_tricks" ||
+        view.game_id === "masked_claims"),
   );
   const viewSurface =
     view && "game_id" in view && view.game_id === "token_bazaar"
@@ -58,7 +59,8 @@ export function DevPanel({
           (view.game_id === "high_card_duel" ||
             view.game_id === "secret_draft" ||
             view.game_id === "poker_lite" ||
-            view.game_id === "plain_tricks")
+            view.game_id === "plain_tricks" ||
+            view.game_id === "masked_claims")
         ? "Viewer filtered"
         : view
           ? "Public"

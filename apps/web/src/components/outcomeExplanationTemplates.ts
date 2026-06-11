@@ -196,6 +196,27 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["plain_tricks"],
     ruleRefLabel: "Split rule",
   },
+  "masked_claims.score_win": {
+    summary: "{winner} has the higher final score.",
+    expandedHeading: "Final score",
+    requiredParams: ["winner"],
+    allowedGameIds: ["masked_claims"],
+    ruleRefLabel: "MC-END-001",
+  },
+  "masked_claims.tiebreak_win": {
+    summary: "{winner} wins on the public tiebreak ladder.",
+    expandedHeading: "Tiebreak result",
+    requiredParams: ["winner"],
+    allowedGameIds: ["masked_claims"],
+    ruleRefLabel: "MC-END-002 through MC-END-004",
+  },
+  "masked_claims.draw": {
+    summary: "Scores and all public tiebreakers are tied.",
+    expandedHeading: "Drawn claim ledger",
+    requiredParams: [],
+    allowedGameIds: ["masked_claims"],
+    ruleRefLabel: "MC-END-005",
+  },
 } as const satisfies Record<string, OutcomeExplanationTemplate>;
 
 export type OutcomeExplanationTemplateKey = keyof typeof outcomeExplanationTemplates;
@@ -221,6 +242,7 @@ const outcomeValueCopy: Record<string, string> = {
   line_completed: "Line completed",
   loss: "Loss",
   low: "Low",
+  masked_claims_draw: "Masked Claims draw",
   non_terminal: "Non-terminal",
   opponent_no_legal_move: "Opponent has no legal move",
   opponent_no_pieces: "Opponent has no pieces",
