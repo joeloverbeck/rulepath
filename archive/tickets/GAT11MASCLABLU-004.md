@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-004: State model, typed IDs, and deterministic setup
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/masked_claims/src/{state.rs,setup.rs,variants.rs}`, extends `src/ids.rs` and `src/lib.rs`; typed `data/manifest.toml` + `data/variants.toml` parsers
@@ -84,3 +84,25 @@ Validate exactly two seats; load `masked_claims_standard` constants; `SeededRng`
 1. `cargo test -p masked_claims`
 2. `cargo fmt --all --check`
 3. Unit-level tests are the correct boundary here; cross-game replay-hash and property conservation are proven in GAT11MASCLABLU-010/011 once the full pipeline exists.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/src/state.rs` with `Phase`, `PendingClaim`, gallery/exposed/tiebreak structs, terminal outcome scaffolding, `MaskedClaimsState`, and a stable internal summary.
+- Added `games/masked_claims/src/setup.rs` with two-seat validation, deterministic `SeededRng` shuffle/deal, five-mask private hands, five-mask hidden reserve, first claimant setup, and setup tests.
+- Added `games/masked_claims/src/variants.rs` with typed flat TOML/JSON parsers that reject unknown and behavior-looking fields.
+- Updated `games/masked_claims/src/lib.rs` to export setup, state, variant parsing, and static-data loaders.
+
+Deviations from original plan:
+
+- Public/seat view projection remains in the later visibility ticket; this ticket keeps hidden hands and reserve internal and introduces no browser-facing view payload.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo fmt --all --check` passed.
+- Setup tests cover wrong seat count, deterministic repeated setup, tile conservation, first claimant, fixed-seed deal order, and unbiased bounded-index rejection.
+- Static-data parser tests reject unknown and behavior-looking fields.
