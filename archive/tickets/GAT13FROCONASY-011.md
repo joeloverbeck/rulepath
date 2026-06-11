@@ -1,6 +1,6 @@
 # GAT13FROCONASY-011: Bot-strategy evidence docs and per-faction balance
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/frontier_control/docs/COMPETENT-PLAYER.md`, `games/frontier_control/docs/BOT-STRATEGY-EVIDENCE-PACK.md`)
@@ -72,3 +72,35 @@ Instantiate from template; document each Level 1 policy, the fixtures/traces exe
 1. `node scripts/check-doc-links.mjs`
 2. `cargo run -p simulate -- --game frontier_control --games 1000` (per-faction win rates, once GAT13FROCONASY-013 registers the arm; provisional via bot tests before then)
 3. Doc-link + simulation is the correct boundary; the balance band is a simulation-measured acceptance surface, not a unit test.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Implemented the two ticket-owned evidence documents:
+
+- `games/frontier_control/docs/COMPETENT-PLAYER.md`
+- `games/frontier_control/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
+
+The docs instantiate the strategy/evidence templates for Frontier Control's
+actual Level 1 scope. They document the Garrison and Prospector policy order
+from `games/frontier_control/src/bots.rs`, cite the existing bot/property trace
+evidence, keep the hidden-information boundary explicit, and state that no
+Level 2, search, MCTS/ISMCTS, Monte Carlo, ML, RL, or runtime LLM bot claim is
+made.
+
+Deviation from the plan: the registered `simulate` CLI arm is not yet available
+until GAT13FROCONASY-013, so the A5 balance evidence is recorded as a retune
+note instead of an in-band balance claim. A temporary local probe against the
+current Rust Level 1 bot APIs found standard map Garrison 16-0 and highlands
+Prospectors 15-3; the docs require constants or policy retuning before public
+polish if the later `simulate` measurement confirms an out-of-band standard-map
+result.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `cargo test -p frontier_control bots` passed (4 bot-focused tests across unit
+  and integration targets).
+- `cargo test -p frontier_control level1_bot_sequence_reaches_terminal_without_illegal_actions`
+  passed.
