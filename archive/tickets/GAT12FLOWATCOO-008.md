@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-008: Public projection, visibility, and no-leak helpers
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/flood_watch/src/visibility.rs` (single public projection, effect filtering, no-leak helpers), `src/effects.rs` (viewer-scoped payloads), action/effect/view hashes
@@ -77,3 +77,21 @@ Finalize viewer-scoped effect payloads: public fields only, drawn-card identity 
 1. `cargo test -p flood_watch --test visibility`
 2. `cargo test -p flood_watch`
 3. The browser DOM/storage no-leak assertions run at GAT12FLOWATCOO-018; the Rust no-leak visibility tests are the correct boundary for the projection diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Implemented Flood Watch's single public projection,
+public effect filtering, public effect text, no-leak helper, and deterministic
+action/effect/view hash helpers. The projection exposes public district state,
+roles, budget/phase, drawn event kinds, forecasted event kind when revealed,
+remaining composition counts, undrawn count, turn/freshness, and shared
+terminal outcome while omitting the undrawn deck order and card copy IDs. Tests
+cover identical observer/seat views, no hidden event identities in views,
+action trees, diagnostics, or unrevealed effect text, and deterministic hashes.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test visibility`
+3. `cargo clippy -p flood_watch --all-targets -- -D warnings`
+4. `cargo test -p flood_watch`

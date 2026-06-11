@@ -30,6 +30,11 @@ pub use state::{
     DistrictState, EventCard, FloodWatchState, Phase, SharedOutcome, StableComposition,
 };
 pub use variants::{EventComposition, Fixture, Manifest, ScenarioVariant, VariantCatalog};
+pub use visibility::{
+    action_tree_hash, contains_hidden_event_identity, diagnostic_hash, effect_hash,
+    filter_effects_for_viewer, project_view, public_effect_text, view_hash, CompositionView,
+    DistrictView, PhaseView, PublicView, RoleView, TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
