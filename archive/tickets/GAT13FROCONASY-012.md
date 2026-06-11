@@ -1,6 +1,6 @@
 # GAT13FROCONASY-012: WASM/API registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (modify); `apps/web/scripts/smoke-load-wasm.mjs` (modify); `apps/web/scripts/smoke-ui.mjs` (modify)
@@ -78,3 +78,34 @@ Add the `frontier_control` catalog-presence assertion to `apps/web/scripts/smoke
 1. `npm --prefix apps/web run smoke:wasm`
 2. `npm --prefix apps/web run smoke:ui`
 3. The WASM/UI smoke harnesses are the correct boundary; the full browser E2E flow lands in GAT13FROCONASY-016.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Implemented Frontier Control registration in the WASM/API bridge:
+
+- Added the `frontier_control` dependency to `crates/wasm-api`.
+- Added `GAME_FRONTIER_CONTROL`, standard/highlands variant constants, catalog metadata, and dispatch arms for setup, view projection, action tree, action application, Level 1 bot turns, effects, replay export/import, replay step/reset, and trace rules-version routing.
+- Added Frontier Control public-view/effect JSON serializers that expose Rust-owned sites, factions, scores, supply status, scoring breakdowns, and terminal outcome rationale.
+- Updated `apps/web/scripts/smoke-load-wasm.mjs` and `apps/web/scripts/smoke-ui.mjs` with Frontier Control catalog assertions; `smoke-load-wasm` also exercises setup, output-equivalent viewer projection, legal action, bot turn, and public replay export/import.
+
+Scope correction: the current `npm --prefix apps/web run smoke:ui` pipeline runs
+`scripts/copy-player-rules.mjs`, which scans `GAME_*` constants from
+`crates/wasm-api/src/lib.rs`. Once `GAME_FRONTIER_CONTROL` exists, the UI smoke
+cannot pass without `games/frontier_control/docs/HOW-TO-PLAY.md` and the
+generated `apps/web/public/rules/frontier_control.md` asset. Those two
+player-rules files and the generated manifest entry were added here to satisfy
+the ticket's required UI smoke. GAT13FROCONASY-014 was updated to treat them as
+already created and to own review/regeneration plus the remaining
+`MECHANICS.md`, `UI.md`, and `AI.md` docs.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo build -p wasm-api` passed.
+- `cargo clippy -p wasm-api --all-targets -- -D warnings` passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node scripts/check-player-rules.mjs` passed.
+- `node scripts/check-doc-links.mjs` passed.

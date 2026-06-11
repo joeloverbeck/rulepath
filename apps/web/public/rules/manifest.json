@@ -56,6 +56,13 @@
     "sha256": "09163eb41e1812cd7216e086fecf8368c3de3cad0bcf2055fbb14117939691bc"
   },
   {
+    "game_id": "frontier_control",
+    "display_name": "Frontier Control",
+    "rules_asset_path": "/rules/frontier_control.md",
+    "source_rules_version_checked": "frontier-control-rules-v1",
+    "sha256": "c91299e81640c1b90770eee1f1140b61010022616d4a9190f5275881a5f53ed0"
+  },
+  {
     "game_id": "token_bazaar",
     "display_name": "Token Bazaar",
     "rules_asset_path": "/rules/token_bazaar.md",

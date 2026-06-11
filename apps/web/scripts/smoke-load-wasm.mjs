@@ -102,6 +102,78 @@ assert(
   ),
   "list_games includes flood_watch cooperative hidden-information variants",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "frontier_control" &&
+      game.variants.includes("frontier_control_standard") &&
+      game.variants.includes("frontier_control_highlands") &&
+      game.hidden_information === false &&
+      game.tags.includes("asymmetric_factions"),
+  ),
+  "list_games includes frontier_control perfect-information variants",
+);
+
+const frontierCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
+  ["frontier_control"],
+);
+assert(frontierCreated.variant_id === "frontier_control_standard", "frontier_control starts standard variant");
+const frontierObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [frontierCreated.match_id],
+);
+const frontierSeat0 = invoke(
+  (args) => wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [frontierCreated.match_id, "seat_0"],
+);
+const frontierSeat1 = invoke(
+  (args) => wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [frontierCreated.match_id, "seat_1"],
+);
+assert(frontierObserver.game_id === "frontier_control", "frontier_control observer view is game-specific");
+assert(
+  JSON.stringify(frontierObserver) === JSON.stringify(frontierSeat0) &&
+    JSON.stringify(frontierObserver) === JSON.stringify(frontierSeat1),
+  "frontier_control projects output-equivalent views for all viewers",
+);
+const frontierTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [frontierCreated.match_id, frontierObserver.active_seat],
+);
+assert(frontierTree.choices.length > 0, "frontier_control active faction exposes legal actions");
+const frontierAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(frontierTree.freshness_token),
+    ),
+  [frontierCreated.match_id, frontierObserver.active_seat, frontierTree.choices[0].segment],
+);
+assert(frontierAfterHuman.view.game_id === "frontier_control", "frontier_control action returns Rust view");
+const frontierBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 17n),
+  [frontierCreated.match_id, frontierAfterHuman.view.active_seat],
+);
+assert(frontierBot.policy_id?.includes("frontier_control"), "frontier_control bot reports policy id");
+const frontierExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [frontierCreated.match_id],
+);
+assert(frontierExport.game_id === "frontier_control", "frontier_control exports public replay");
+assert(frontierExport.not_applicable.hidden_information_redaction.includes("perfect information"), "frontier_control export marks hidden-info as not applicable");
+const frontierImport = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(frontierExport)],
+);
+assert(frontierImport.replay_id, "frontier_control imports public replay");
 
 const maskedCreated = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 11n),
