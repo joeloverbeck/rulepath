@@ -11,3 +11,9 @@ engine-core = { path = "../../crates/engine-core" }
 
 [lib]
 path = "src/lib.rs"
+bench = false
+
+[[bench]]
+name = "masked_claims"
+path = "benches/masked_claims.rs"
+harness = false

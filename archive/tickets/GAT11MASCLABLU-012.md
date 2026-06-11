@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-012: Benchmarks, thresholds, and BENCHMARKS.md
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/masked_claims/benches/{masked_claims.rs,thresholds.json}`, new `games/masked_claims/docs/BENCHMARKS.md`; modifies `games/masked_claims/Cargo.toml` (`[[bench]]` table)
@@ -84,3 +84,26 @@ Instantiate from `templates/GAME-BENCHMARKS.md`; document the identity list, the
 1. `cargo bench -p masked_claims -- --warm-up-time 1 --measurement-time 1` (smoke run).
 2. `cargo build -p masked_claims --benches`
 3. A smoke bench run is the correct boundary; `bench-report` threshold enforcement is wired in GAT11MASCLABLU-015.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/benches/masked_claims.rs` with the twelve required benchmark identities and native JSON report output.
+- Added `games/masked_claims/benches/thresholds.json` with non-gating smoke floors for every benchmarked operation.
+- Registered the bench target in `games/masked_claims/Cargo.toml`.
+- Added `games/masked_claims/docs/BENCHMARKS.md` documenting the operations, smoke-floor posture, and ADR 0002/0003/0005 calibration follow-up.
+
+Deviations from original plan:
+
+- None. Threshold enforcement by `bench-report` remains for GAT11MASCLABLU-015 as scoped.
+
+Verification:
+
+- `cargo bench -p masked_claims -- --warm-up-time 1 --measurement-time 1` passed and ran all twelve operations.
+- `cargo build -p masked_claims --benches` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
