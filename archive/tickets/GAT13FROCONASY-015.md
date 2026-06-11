@@ -91,6 +91,8 @@ Add a `frontier_control` effect-count/effect-name block to `apps/web/scripts/smo
 
 Completed: 2026-06-11
 
+Outcome amended: 2026-06-11
+
 What changed:
 - Added `apps/web/src/components/FrontierControlBoard.tsx` with an SVG graph-map renderer, Rust-view-driven site state, supplied/cut stake highlighting, score/budget status, faction panels, grouped Rust legal choices, effect feedback, and terminal outcome explanation rendering.
 - Wired Frontier Control into the web shell, replay viewer, terminal-mode checks, TypeScript WASM public-view types, effect feedback, outcome explanation templates, and the effect-feedback smoke harness.
@@ -103,3 +105,6 @@ Verification:
 - `npm --prefix apps/web run build` passed.
 - `npm --prefix apps/web run smoke:effects` passed, including Frontier Control coverage for crew march, stake placement, guard patrol, clash, dismantle, muster, reinforce, round scoring, and terminal effects.
 - `npm --prefix apps/web run smoke:ui` passed.
+
+Post-completion refinement:
+- During GAT13FROCONASY-016 browser smoke work, the TypeScript Frontier terminal mirror and board outcome rendering were corrected to read Rust's `terminal.winner` field instead of a non-existent `terminal.faction` field.

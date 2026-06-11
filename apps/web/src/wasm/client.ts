@@ -898,7 +898,7 @@ export type FrontierControlTerminalView =
   | { kind: "non_terminal"; winner: null }
   | {
       kind: "winner";
-      faction: FrontierControlFactionId;
+      winner: FrontierControlFactionId;
       scores: FrontierControlScoreView;
       garrison_tiebreak: boolean;
       summary: string;

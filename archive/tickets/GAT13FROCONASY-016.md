@@ -1,6 +1,6 @@
 # GAT13FROCONASY-016: Browser E2E smoke, a11y/no-leak, and catalog reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/frontier-control.smoke.mjs` (new); `apps/web/package.json` (modify); `apps/web/README.md` (modify); `README.md` (modify); `.github/workflows/gate-1-game-smoke.yml` (modify)
@@ -82,3 +82,26 @@ Add the web-build + `frontier-control` E2E registration to `.github/workflows/ga
 1. `node apps/web/e2e/frontier-control.smoke.mjs`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-outcome-explanations.mjs && npm --prefix apps/web run smoke:e2e`
 3. The E2E + catalog/outcome checks are the correct browser-acceptance boundary; native acceptance is distributed across GAT13FROCONASY-009/010/013.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added `apps/web/e2e/frontier-control.smoke.mjs`, covering Frontier Control's rendered graph board, disjoint faction action panels, Prospector march/stake flow, Garrison patrol/clash/dismantle flow, round-scoring feedback, replay export/import viewer rendering, bot turns, both Prospector and Garrison terminal outcome surfaces, reduced motion, responsive layout, and DOM/export/storage no-leak checks.
+- Chained the Frontier smoke into `apps/web/package.json` `smoke:e2e` and `.github/workflows/gate-1-game-smoke.yml`.
+- Reconciled catalog surfaces in `apps/web/README.md` and `README.md` for `frontier_control` / Frontier Control.
+- Updated `apps/web/e2e/rules-display.smoke.mjs` so the shared How-to-Play smoke covers the thirteenth catalog game.
+- Updated `scripts/check-outcome-explanations.mjs` to accept the stable descriptive rule-ID forms already used by Frontier's `FC-SCORE-*` / `FC-TERM-*` docs.
+- Corrected the Frontier browser terminal mirror/rendering to use Rust's `terminal.winner` field.
+
+Deviations:
+- The first direct `node apps/web/e2e/frontier-control.smoke.mjs` run failed before assertions with sandbox `listen EPERM` on `127.0.0.1`; rerunning the same command through the approved localhost escalation path reached assertions and drove the subsequent smoke fixes.
+- The replay export does not carry a Flood-Watch-style observer marker for this perfect-information game; the smoke verifies game ID and no-leak replay surface instead.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `node scripts/check-catalog-docs.mjs` passed.
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `node apps/web/e2e/frontier-control.smoke.mjs` passed after the approved localhost escalation path.
+- `npm --prefix apps/web run smoke:e2e` passed, including the chained Frontier Control smoke.

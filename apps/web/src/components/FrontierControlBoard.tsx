@@ -75,7 +75,7 @@ export function FrontierControlBoard({
     view.terminal.kind === "winner"
       ? outcomeSurfaceData({
           gameId: "frontier_control",
-          heading: `${factionLabel(view.terminal.faction)} win`,
+          heading: `${factionLabel(view.terminal.winner)} win`,
           rationale: view.terminal_rationale ?? null,
           resultKind: "win",
           decisiveCause: view.terminal.garrison_tiebreak ? "garrison_tiebreak" : "score_compare",
@@ -83,7 +83,7 @@ export function FrontierControlBoard({
             ? "frontier_control.garrison_tiebreak"
             : "frontier_control.score_compare",
           templateParams: {
-            winner: factionLabel(view.terminal.faction),
+            winner: factionLabel(view.terminal.winner),
             garrison_score: view.terminal.scores.garrison,
             prospector_score: view.terminal.scores.prospectors,
           },
@@ -91,15 +91,15 @@ export function FrontierControlBoard({
             {
               id: "faction_garrison",
               label: "Garrison",
-              result: view.terminal.faction === "faction_garrison" ? "win" : "loss",
-              emphasized: view.terminal.faction === "faction_garrison",
+              result: view.terminal.winner === "faction_garrison" ? "win" : "loss",
+              emphasized: view.terminal.winner === "faction_garrison",
               values: [{ label: "Score", value: view.terminal.scores.garrison }],
             },
             {
               id: "faction_prospectors",
               label: "Prospectors",
-              result: view.terminal.faction === "faction_prospectors" ? "win" : "loss",
-              emphasized: view.terminal.faction === "faction_prospectors",
+              result: view.terminal.winner === "faction_prospectors" ? "win" : "loss",
+              emphasized: view.terminal.winner === "faction_prospectors",
               values: [{ label: "Score", value: view.terminal.scores.prospectors }],
             },
           ],

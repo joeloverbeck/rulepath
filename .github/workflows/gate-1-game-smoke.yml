@@ -198,10 +198,12 @@ jobs:
       - name: Static preview smoke
         run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, draughts_lite, high_card_duel, token_bazaar, secret_draft, poker_lite, plain_tricks, and masked_claims
+      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, draughts_lite, high_card_duel, token_bazaar, secret_draft, poker_lite, plain_tricks, masked_claims, flood_watch, and frontier_control
         run: |
           node apps/web/e2e/shell.smoke.mjs
           node apps/web/e2e/a11y-noleak.smoke.mjs
+          node apps/web/e2e/rules-display.smoke.mjs
+          node apps/web/e2e/outcome-explanation.smoke.mjs
           node apps/web/e2e/three-marks.smoke.mjs
           node apps/web/e2e/column-four.smoke.mjs
           node apps/web/e2e/directional-flip.smoke.mjs
@@ -212,6 +214,8 @@ jobs:
           node apps/web/e2e/poker-lite.smoke.mjs
           node apps/web/e2e/plain-tricks.smoke.mjs
           node apps/web/e2e/masked-claims.smoke.mjs
+          node apps/web/e2e/flood-watch.smoke.mjs
+          node apps/web/e2e/frontier-control.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
