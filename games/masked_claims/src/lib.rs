@@ -3,10 +3,13 @@
 pub mod actions;
 pub mod effects;
 pub mod ids;
+pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     actor_seat, claimable_tiles, command_public_summary, legal_action_metadata, legal_action_tree,
@@ -25,13 +28,20 @@ pub use ids::{
     STANDARD_GRADE_COUNT, STANDARD_HAND_SIZE, STANDARD_MASK_COUNT, STANDARD_MAX_TURNS,
     STANDARD_RESERVE_SIZE, STANDARD_SEAT_COUNT, STANDARD_TILES_PER_GRADE, VARIANT_ID,
 };
+pub use replay_support::{PublicReplayExport, PublicReplayStep, PublicReplayTimeline};
 pub use rules::apply_action;
 pub use setup::{setup_match, shuffle_masks, SetupOptions};
 pub use state::{
     ChallengeCounters, ExposedMask, MaskedClaimsState, PendingClaim, Phase, TerminalOutcome,
     VeiledClaim,
 };
+pub use ui::{grade_accessibility_label, grade_label, ui_metadata, UiMetadata};
 pub use variants::{Fixture, Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    filter_effects_for_viewer, project_view, CounterView, ExposedMaskView, HandCountsView,
+    MaskView, OutcomeRationaleView, PedestalView, PrivateView, PublicView, SeatPrivateView,
+    TerminalView, VeiledClaimView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

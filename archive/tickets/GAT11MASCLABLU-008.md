@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-008: Visibility, replay/export surfaces, and UI metadata
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/masked_claims/src/{visibility.rs,replay_support.rs,ui.rs}`, `src/lib.rs`
@@ -83,3 +83,25 @@ Viewer-safe UI metadata: grade labels, tokens, accessibility metadata, and previ
 1. `cargo test -p masked_claims`
 2. `cargo clippy -p masked_claims --all-targets -- -D warnings`
 3. Unit-level boundary; the cross-surface no-leak sweep and `replay-check` proof land in GAT11MASCLABLU-010/011/015.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/src/visibility.rs` with observer and seat-private projections, viewer-safe effect filtering, stable public serialization, and no-leak view tests.
+- Added `games/masked_claims/src/replay_support.rs` with deterministic viewer-scoped replay export/import, public replay steps, JSON round-trip support, and claim-command redaction.
+- Added `games/masked_claims/src/ui.rs` with Rust-owned viewer-safe labels, accessibility labels, and UI metadata.
+- Updated `games/masked_claims/src/lib.rs` to expose the new visibility, replay, and UI surfaces.
+
+Deviations from original plan:
+
+- Did not add a separate named internal trace type in this ticket. Native internal traces remain owned by the later replay/golden-trace tickets; this ticket lands the viewer-scoped public export/import surface required by the UI boundary.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
+- New tests cover public view redaction, seat-private hand scoping, viewer-safe UI metadata, and public replay export redaction plus deterministic round-trip.
