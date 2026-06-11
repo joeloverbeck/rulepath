@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-003: Crate skeleton, workspace registration, and static data
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/flood_watch` (`Cargo.toml`, `src/*` module stubs, `src/ids.rs`, setup constants); new static data (`data/manifest.toml`, `data/variants.toml`, two fixtures); root `Cargo.toml` workspace members (modify)
@@ -86,3 +86,41 @@ Author `data/manifest.toml` (display metadata, district IDs/labels, role labels)
 1. `cargo test -p flood_watch serialization`
 2. `cargo build --workspace && cargo clippy -p flood_watch -- -D warnings`
 3. `cargo run -p fixture-check -- --game flood_watch` is the eventual full-pipeline boundary but cannot run until the tool registers the game (GAT12FLOWATCOO-015); the serialization test is the correct boundary for the skeleton diff.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Added the `flood_watch` workspace member and crate skeleton with the expected
+module layout: `actions`, `bots`, `effects`, `ids`, `replay_support`, `rules`,
+`setup`, `state`, `ui`, `variants`, and `visibility`. Added stable typed
+district IDs, role IDs, a closed `EventKind` enum, setup constants, scenario
+variant types, fixture types, and strict static-data parsers.
+
+Added `data/manifest.toml`, `data/variants.toml`, and the standard/deluge
+fixture metadata files. Static data declares typed constants and event
+composition counts only; no fixture embeds an ordered event deck.
+
+Added `games/flood_watch/tests/serialization.rs` plus unit coverage for ID
+parsing, variant resolution, constants/static-data agreement, unknown-field
+rejection, behavior-looking-field rejection, and no ordered deck fields in
+fixtures.
+
+Deviations from plan: `cargo test -p flood_watch serialization` was not used as
+evidence because that exact name filter excludes the integration tests; the
+stronger `cargo test -p flood_watch --test serialization` and full
+`cargo test -p flood_watch` commands were run instead.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p flood_watch --test serialization` passed: 3 tests.
+- `cargo test -p flood_watch` passed: 6 unit tests, 3 integration tests.
+- `cargo build -p flood_watch` passed.
+- `cargo build --workspace` passed.
+- `cargo clippy -p flood_watch --all-targets -- -D warnings` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `cargo metadata --no-deps --format-version 1` showed `flood_watch` as a
+  workspace member.
+- `rg` proof over `games/flood_watch/data` found no `event_deck` or
+  `deck_order` fields.

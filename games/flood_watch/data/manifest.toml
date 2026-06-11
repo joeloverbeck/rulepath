@@ -1,0 +1,15 @@
+game_id = "flood_watch"
+display_name = "Flood Watch"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "flood-watch-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "flood_watch"
+seat_count = 2
+district_count = 5
+district_ids = "district_riverside,district_old_docks,district_market,district_terraces,district_gardens"
+district_labels = "Riverside,Old Docks,Market,Terraces,Gardens"
+role_ids = "pumpwright,levee_warden"
+role_labels = "Pumpwright,Levee Warden"
+event_kinds = "downpour,storm_surge,reprieve"

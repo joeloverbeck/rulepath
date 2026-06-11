@@ -16,6 +16,7 @@ members = [
     "games/poker_lite",
     "games/plain_tricks",
     "games/masked_claims",
+    "games/flood_watch",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",
