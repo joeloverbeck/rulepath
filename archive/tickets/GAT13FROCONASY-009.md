@@ -1,6 +1,6 @@
 # GAT13FROCONASY-009: Native test suite and golden traces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/frontier_control/tests/{rules,property,replay,serialization,visibility,bots}.rs` and `games/frontier_control/tests/golden_traces/*` (seventeen traces)
@@ -97,3 +97,21 @@ Commit each under `tests/golden_traces/` with the perfect-information/no-randomn
 1. `cargo test -p frontier_control`
 2. `cargo test --workspace`
 3. Crate + workspace tests are the correct boundary; `replay-check --all` validates the traces after registration in GAT13FROCONASY-013.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Changed `games/frontier_control/tests/{rules,property,replay,serialization,visibility,bots}.rs` and added all seventeen `games/frontier_control/tests/golden_traces/*.trace.json` files listed by this ticket.
+
+Implemented crate-external native coverage for faction-separated legal trees, diagnostics, clash/scoring/terminal behavior, action-tree edge invariants, bot-driven terminal playout, replay/export determinism, static-data serialization rejection, public-view equivalence, Rust-computed supply flags, and bot legality/rationale checks. Added the required seventeen Trace Schema v1 fixtures with explicit not-applicable rationale for hidden-information redaction, stochastic game-rule events, private-view hashes, and preview hashes.
+
+Deviation: the trace files are lightweight schema fixtures for the registration/checker tickets; `replay-check --all` remains deferred to GAT13FROCONASY-013 as planned.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p frontier_control` — passed, including the six integration suites.
+3. Trace count/marker checks — passed, 17 trace files and all required not-applicable marker fields present.
+4. `cargo clippy -p frontier_control --all-targets -- -D warnings` — passed.
+5. `cargo test --workspace` — passed.
