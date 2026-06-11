@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-016: Player and mechanic docs (HOW-TO-PLAY, MECHANICS, UI, AI)
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/flood_watch/docs/{HOW-TO-PLAY,MECHANICS,UI,AI}.md`); no code surface
@@ -86,3 +86,17 @@ Instantiate from `templates/GAME-AI.md`; overview the Level 0/Level 1 bots, the 
 1. `node scripts/check-doc-links.mjs`
 2. `grep -i "Outcome / victory explanation" games/flood_watch/docs/UI.md`
 3. `node scripts/check-player-rules.mjs` is the full player-rules-sync boundary but requires the generated file + `HIDDEN_INFO_GAMES` entry (GAT12FLOWATCOO-017); doc-link + section grep are the correct boundary for the authoring diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Added Flood Watch `HOW-TO-PLAY.md`,
+`MECHANICS.md`, `UI.md`, and `AI.md`. The player doc includes the required
+section set and states that undrawn deck order is hidden while remaining
+composition counts are public. `UI.md` includes the mandatory
+`Outcome / victory explanation` section and Rust-owned terminal copy contract.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs`
+2. `grep -i "Outcome / victory explanation" games/flood_watch/docs/UI.md`
+3. `rg -n "What you can see|Setup|On your turn|Actions|Scoring and winning|Hidden information and reveal timing|Common terms|undrawn deck order|remaining composition" games/flood_watch/docs/HOW-TO-PLAY.md`
