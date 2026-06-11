@@ -17,6 +17,10 @@ pub use actions::{
     role_reinforce_amount, validate_command, FloodWatchAction, ValidatedAction, ACTION_BAIL,
     ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE,
 };
+pub use bots::{
+    actor_for_seat, command_for_decision, validate_bot_decision, BotDecision, FloodWatchBotInput,
+    FloodWatchLevel1Bot, FloodWatchRandomBot, LEVEL1_POLICY_ID, RANDOM_POLICY_ID,
+};
 pub use effects::{public_effect, FloodWatchEffect, FloodWatchEffectEnvelope, TerminalSummary};
 pub use ids::{
     DistrictId, EventKind, FloodWatchRole, GAME_ID, RULES_VERSION_LABEL, STANDARD_ACTION_BUDGET,

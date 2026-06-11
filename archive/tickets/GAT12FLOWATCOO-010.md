@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-010: Level 0 and Level 1 cooperative bots
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/flood_watch/src/bots.rs` (`FloodWatchRandomBot`, `FloodWatchLevel1Bot`)
@@ -71,3 +71,21 @@ Implement `FloodWatchRandomBot` (uniform selection from the legal tree via deter
 1. `cargo test -p flood_watch --test bots`
 2. `cargo test -p flood_watch`
 3. `cargo run -p simulate -- --game flood_watch --games 1000` is the full cooperative-playout boundary but needs `simulate` registration (GAT12FLOWATCOO-015); the bot unit tests are the correct boundary for this diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Implemented `FloodWatchRandomBot` and
+`FloodWatchLevel1Bot` through the normal legal-action tree and command
+validation path. The Level 1 policy uses only the public projection and stable
+legal choices: rescue imminent shared losses, mitigate public forecast threats,
+reinforce by public remaining-composition pressure, forecast with spare budget,
+and end turn when nothing improves the position. Tests cover legal decisions
+for both seats/roles, deterministic seeded behavior, hidden deck-order
+invariance for identical public views, and viewer-safe rationales.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test bots`
+3. `cargo clippy -p flood_watch --all-targets -- -D warnings`
+4. `cargo test -p flood_watch`

@@ -65,6 +65,7 @@ dependencies = [
 name = "flood_watch"
 version = "0.1.0"
 dependencies = [
+ "ai-core",
  "engine-core",
 ]
 
