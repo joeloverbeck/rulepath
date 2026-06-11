@@ -15,10 +15,13 @@ pub mod visibility;
 pub use ids::{
     DistrictId, EventKind, FloodWatchRole, GAME_ID, RULES_VERSION_LABEL, STANDARD_ACTION_BUDGET,
     STANDARD_DECK_SIZE, STANDARD_DISTRICT_COUNT, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP,
-    STANDARD_SEAT_COUNT, VARIANT_DELUGE_ID, VARIANT_STANDARD_ID,
+    STANDARD_MAX_FLOOD_LEVEL, STANDARD_SEAT_COUNT, VARIANT_DELUGE_ID, VARIANT_STANDARD_ID,
 };
 pub use setup::SetupOptions;
-pub use state::FloodWatchState;
+pub use setup::{setup_match, shuffle_event_deck};
+pub use state::{
+    DistrictState, EventCard, FloodWatchState, Phase, SharedOutcome, StableComposition,
+};
 pub use variants::{EventComposition, Fixture, Manifest, ScenarioVariant, VariantCatalog};
 
 pub fn load_manifest() -> Result<Manifest, String> {

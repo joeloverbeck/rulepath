@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-004: State model, typed IDs, and deterministic setup
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch/src/state.rs`, `src/setup.rs` (deterministic shuffle via `engine-core::SeededRng`); typed state model
@@ -77,3 +77,34 @@ Implement deterministic setup: validate exactly two seats; assign roles from sce
 1. `cargo test -p flood_watch --test rules`
 2. `cargo test -p flood_watch`
 3. The simulation CLI (`simulate --game flood_watch`) is the eventual end-to-end boundary but needs the full action/environment loop and tool registration; the setup-determinism unit tests are the correct boundary for this diff.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Filled `games/flood_watch/src/state.rs` with the typed setup state: action and
+terminal phases, district state, duplicate-stable event cards, shared outcome,
+private internal event deck, drawn history, forecast slot, roles, seats,
+freshness token, derived remaining-composition accessors, and stable state
+serialization for setup hash checks.
+
+Filled `games/flood_watch/src/setup.rs` with deterministic setup from
+`engine_core::SeededRng`: exactly-two-seat validation, scenario validation,
+stable event deck construction, unbiased Fisher-Yates shuffle, role assignment,
+turn 1 active seat, full budget, starting district levels, empty forecast/drawn
+history, no terminal outcome, and freshness `0`.
+
+Added `games/flood_watch/tests/rules.rs` and `games/flood_watch/tests/replay.rs`
+to prove standard/deluge setup constants, bounded district/levee state,
+deterministic deck order, and stable setup-state hashes.
+
+Deviations from plan: none. Legal action generation, environment resolution,
+visibility projection, and simulation/tool registration remain in later tickets.
+
+Verification:
+
+- `cargo test -p flood_watch --test rules` passed: 3 tests.
+- `cargo test -p flood_watch --test replay` passed: 2 tests.
+- `cargo test -p flood_watch` passed: 11 unit tests, 8 integration tests.
+- `cargo clippy -p flood_watch --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
