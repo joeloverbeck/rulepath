@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-016: Remaining per-game docs (MECHANICS, AI, UI, HOW-TO-PLAY)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (new `games/masked_claims/docs/{MECHANICS,AI,UI,HOW-TO-PLAY}.md`; no Rust surface)
@@ -83,3 +83,17 @@ Instantiate from `templates/GAME-HOW-TO-PLAY.md`; carry the required player-rule
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-player-rules.mjs` — confirms the `HOW-TO-PLAY.md` section set once GAT11MASCLABLU-018 generates the public copy.
 3. Doc-link integrity is the runnable boundary now; player-rules sync is GAT11MASCLABLU-018's responsibility.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+- Added `MECHANICS.md` with the Masked Claims mechanic inventory, reaction-window first-use posture, and deterministic shuffle/private-hand fourth-use posture.
+- Added `AI.md` documenting the Level 0 random legal bot, Level 1 baseline bot, information access, explanations, tests, benchmarks, and Level 2/3 deferrals.
+- Added `UI.md` covering the play-first board plan, legal action mapping, reaction prompt and waiting state, no-leak outcome surfaces, replay, accessibility, and reduced motion.
+- Added `HOW-TO-PLAY.md` with the required player-rules section set and player-facing rules/reveal timing.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- Manual section check: `HOW-TO-PLAY.md` contains every required player-rules section. Generated player-rules sync remains GAT11MASCLABLU-018 scope.
