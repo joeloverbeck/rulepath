@@ -21,6 +21,7 @@ const expectedGames = [
   "Crest Ledger",
   "Plain Tricks",
   "Masked Claims",
+  "Flood Watch",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

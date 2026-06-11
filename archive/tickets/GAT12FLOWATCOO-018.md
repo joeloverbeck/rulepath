@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-018: Browser E2E smoke, a11y/no-leak, and catalog README reconciliation
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/flood-watch.smoke.mjs` (new); `apps/web/package.json` (modify — `smoke:e2e`); `apps/web/README.md` + root `README.md` (modify — catalog surfaces). No Rust behavior.
@@ -79,3 +79,19 @@ Add `flood_watch`/`Flood Watch` to: the `apps/web/README.md` intro catalog list,
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs && npm --prefix apps/web run build`
 3. The native pipeline (`cargo test`, `simulate`, `replay-check`) is covered by GAT12FLOWATCOO-011/015; the E2E smoke + catalog check are the correct boundary for the browser acceptance diff.
+
+## Outcome
+
+Accepted on 2026-06-11.
+
+Added `apps/web/e2e/flood-watch.smoke.mjs` and registered it in `smoke:e2e`. The smoke serves the built browser bundle, drives Flood Watch through hotseat, human-vs-bot, and bot-vs-bot flows, verifies forecast reveal, role labels, multi-action budget spending, environment effects, shared win/loss terminals, public replay export/import, reduced motion, responsive layout, and DOM/storage/test-ID/console no-leak constraints for deck-order and internal-state terms.
+
+Reconciled the web/root catalog documentation surfaces for `flood_watch` / Flood Watch, updated the Shell Surface renderer list and Smoke Layers text, and extended the no-leak/a11y checklist. Updated `rules-display.smoke.mjs` to include Flood Watch's How to Play trigger and refreshed the generated rules manifest hash.
+
+Verification passed:
+
+- `node apps/web/e2e/flood-watch.smoke.mjs`
+- `node apps/web/e2e/rules-display.smoke.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run build`
