@@ -200,6 +200,7 @@ dependencies = [
  "draughts_lite",
  "engine-core",
  "high_card_duel",
+ "masked_claims",
  "plain_tricks",
  "poker_lite",
  "race_to_n",

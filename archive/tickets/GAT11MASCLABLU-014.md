@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-014: WASM/API registration
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `crates/wasm-api/src/lib.rs` (catalog, setup, action, bot, effect, view, replay/export/import, no-leak redaction paths)
@@ -75,3 +75,20 @@ The `smoke:wasm` harness carries **hardcoded** per-game catalog assertions (conf
 1. `cargo build -p wasm-api`
 2. `cargo test -p wasm-api`
 3. `npm --prefix apps/web run smoke:wasm` is the full ABI boundary, exercised once the web pipeline (GAT11MASCLABLU-017/019) consumes the bridge.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+- Registered `masked_claims` in `wasm-api` catalog/setup/view/action-tree/apply/bot/effects/export/import dispatch.
+- Added viewer-safe Masked Claims JSON serializers and no-leak effect/view filtering through the Rust bridge.
+- Exported Masked Claims public replay documents through the viewer-scoped observation format with claim tile IDs redacted to declared grade summaries.
+- Added wasm-api unit coverage for catalog registration, viewer filtering, action application, bot bridge output, and public replay import/export redaction.
+- Extended `apps/web` `smoke:wasm` to exercise `masked_claims` catalog, view, legal action, action application, bot turn, and redacted export.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo test -p wasm-api`
+- `cargo build -p wasm-api`
+- `npm --prefix apps/web run smoke:wasm`

@@ -41,6 +41,11 @@ use high_card_duel::{
     HighCardDuelEffect, HighCardDuelInternalTrace, HighCardDuelRandomBot, HighCardDuelSeat,
     HighCardDuelState, PublicReplayExport, PublicReplayStep,
 };
+use masked_claims::{
+    apply_action as masked_apply_action, legal_action_tree as masked_legal_action_tree,
+    project_view as masked_project_view, setup_match as masked_setup_match, MaskedClaimsEffect,
+    MaskedClaimsLevel1Bot, MaskedClaimsSeat, MaskedClaimsState,
+};
 use plain_tricks::{
     apply_action as plain_apply_action, legal_action_tree as plain_legal_action_tree,
     project_view as plain_project_view,
@@ -106,6 +111,8 @@ const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
 const GAME_DRAUGHTS_LITE_DISPLAY_NAME: &str = "Draughts Lite";
 const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_HIGH_CARD_DUEL_DISPLAY_NAME: &str = "High Card Duel";
+const GAME_MASKED_CLAIMS: &str = "masked_claims";
+const GAME_MASKED_CLAIMS_DISPLAY_NAME: &str = "Masked Claims";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_TOKEN_BAZAAR_DISPLAY_NAME: &str = "Token Bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
@@ -139,6 +146,7 @@ const COLUMN_FOUR_TRACE_RULES_VERSION: &str = "column_four-rules-v1";
 const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
 const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
+const MASKED_CLAIMS_TRACE_RULES_VERSION: &str = "masked-claims-rules-v1";
 const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
 const POKER_LITE_TRACE_RULES_VERSION: &str = "poker-lite-rules-v1";
@@ -151,6 +159,7 @@ const VARIANT_COLUMN_FOUR_STANDARD: &str = "column_four_standard";
 const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
 const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
+const VARIANT_MASKED_CLAIMS_STANDARD: &str = "masked_claims_standard";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
@@ -207,6 +216,12 @@ enum MatchRecord {
         seed: u64,
         state: HighCardDuelState,
         effects: EffectLog<HighCardDuelEffect>,
+        commands: Vec<AppliedCommand>,
+    },
+    MaskedClaims {
+        game_id: String,
+        state: MaskedClaimsState,
+        effects: EffectLog<MaskedClaimsEffect>,
         commands: Vec<AppliedCommand>,
     },
     TokenBazaar {
@@ -286,6 +301,7 @@ enum RegisteredGame {
     DirectionalFlip,
     DraughtsLite,
     HighCardDuel,
+    MaskedClaims,
     TokenBazaar,
     SecretDraft,
     PokerLite,
@@ -304,6 +320,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::DirectionalFlip,
         RegisteredGame::DraughtsLite,
         RegisteredGame::HighCardDuel,
+        RegisteredGame::MaskedClaims,
         RegisteredGame::TokenBazaar,
         RegisteredGame::SecretDraft,
         RegisteredGame::PokerLite,
@@ -357,6 +374,14 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
+            ),
+            RegisteredGame::MaskedClaims => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"reaction_window\",\"bluffing\"]}}",
+                escape_json(GAME_MASKED_CLAIMS),
+                escape_json(GAME_MASKED_CLAIMS_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_MASKED_CLAIMS_STANDARD)
             ),
             RegisteredGame::TokenBazaar => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
@@ -558,6 +583,30 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
             ))
         }
+        RegisteredGame::MaskedClaims => {
+            let seats = masked_seats();
+            let state =
+                masked_setup_match(Seed(seed), &seats, &masked_claims::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::MaskedClaims {
+                        game_id: GAME_MASKED_CLAIMS.to_owned(),
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_MASKED_CLAIMS_STANDARD)
+            ))
+        }
         RegisteredGame::TokenBazaar => {
             let seats = seats();
             let state =
@@ -693,6 +742,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             let viewer = high_card_viewer_for_seat(state, viewer_seat)?;
             Ok(high_card_view_json(&high_card_project_view(state, &viewer)))
         }
+        MatchRecord::MaskedClaims { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = masked_viewer_for_seat(state, viewer_seat)?;
+            Ok(masked_view_json(&masked_project_view(state, &viewer)))
+        }
         MatchRecord::TokenBazaar { game_id, state, .. } => {
             resolve_game(game_id)?;
             let viewer = token_viewer_for_seat(state, viewer_seat)?;
@@ -783,6 +837,15 @@ pub fn get_action_tree_for_viewer(
             Ok(action_tree_json(&high_card_legal_action_tree(
                 state, &actor,
             )))
+        }
+        MatchRecord::MaskedClaims { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_masked_seat(actor_seat)?;
+            if !masked_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = masked_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&masked_legal_action_tree(state, &actor)))
         }
         MatchRecord::TokenBazaar { game_id, state, .. } => {
             resolve_game(game_id)?;
@@ -1023,6 +1086,40 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 high_card_view_json(&high_card_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::MaskedClaims {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_masked_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: masked_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                masked_claims::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = masked_apply_action(state, action).map_err(diagnostic_json)?;
+            let viewer = masked_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = masked_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_masked_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                masked_view_json(&masked_project_view(state, &viewer))
             ))
         }
         MatchRecord::TokenBazaar {
@@ -1380,6 +1477,46 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 high_card_view_json(&high_card_project_view(state, &viewer))
             ))
         }
+        MatchRecord::MaskedClaims {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_masked_seat(actor_seat)?;
+            let decision = MaskedClaimsLevel1Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: masked_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                masked_claims::validate_command(state, &command).map_err(diagnostic_json)?;
+            let effects = masked_apply_action(state, action).map_err(diagnostic_json)?;
+            let viewer = masked_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = masked_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_masked_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                masked_view_json(&masked_project_view(state, &viewer))
+            ))
+        }
         MatchRecord::TokenBazaar {
             game_id,
             state,
@@ -1678,6 +1815,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::MaskedClaims {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = masked_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        masked_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
         MatchRecord::TokenBazaar {
             game_id,
             state,
@@ -1836,6 +1995,31 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             };
             Ok(high_card_export_public_observer_replay(&trace).to_json())
         }
+        MatchRecord::MaskedClaims {
+            game_id,
+            state,
+            effects,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let view = masked_project_view(state, &Viewer { seat_id: None });
+            let public_effects = effects
+                .since(EffectCursor(0), &Viewer { seat_id: None })
+                .into_iter()
+                .map(|logged| format!("{:?}", logged.envelope.payload))
+                .collect::<Vec<_>>();
+            let steps = vec![masked_claims::PublicReplayStep::from_view(
+                0,
+                &view,
+                public_effects,
+                commands
+                    .last()
+                    .map_or_else(|| "setup".to_owned(), masked_redacted_command_summary),
+                matches!(state.phase, masked_claims::Phase::Terminal),
+            )];
+            Ok(masked_claims::PublicReplayExport::new("observer", steps).to_json())
+        }
         MatchRecord::TokenBazaar {
             game_id,
             seed,
@@ -1927,6 +2111,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if is_high_card_public_export(doc) {
         return import_high_card_public_replay(doc);
     }
+    if is_masked_public_export(doc) {
+        return import_masked_public_replay(doc);
+    }
     if is_secret_draft_public_export(doc) {
         return import_secret_draft_public_replay(doc);
     }
@@ -1954,6 +2141,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_DIRECTIONAL_FLIP
         && parsed.game_id != GAME_DRAUGHTS_LITE
         && parsed.game_id != GAME_HIGH_CARD_DUEL
+        && parsed.game_id != GAME_MASKED_CLAIMS
         && parsed.game_id != GAME_TOKEN_BAZAAR
         && parsed.game_id != GAME_SECRET_DRAFT
         && parsed.game_id != GAME_POKER_LITE
@@ -2026,6 +2214,24 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             (
                 high_card_view_json(&high_card_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
+            )
+        }
+        RegisteredGame::MaskedClaims => {
+            if command_count != 0 {
+                return Err(diagnostic_string(
+                    "unsupported_replay_commands",
+                    "masked_claims command replay uses viewer-scoped public export/import in this bridge",
+                ));
+            }
+            let state = masked_setup_match(
+                Seed(parsed.seed),
+                &masked_seats(),
+                &masked_claims::SetupOptions::default(),
+            )
+            .map_err(diagnostic_json)?;
+            (
+                masked_view_json(&masked_project_view(&state, &Viewer { seat_id: None })),
+                0,
             )
         }
         RegisteredGame::TokenBazaar => {
@@ -2163,6 +2369,19 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::MaskedClaims => {
+                let state = masked_setup_match(
+                    Seed(record.seed),
+                    &masked_seats(),
+                    &masked_claims::SetupOptions::default(),
+                )
+                .map_err(diagnostic_json)?;
+                Ok(format!(
+                    "{{\"replay_id\":\"{}\",\"cursor\":0,\"total_commands\":0,\"view\":{},\"effects\":[]}}",
+                    escape_json(replay_id),
+                    masked_view_json(&masked_project_view(&state, &Viewer { seat_id: None }))
+                ))
+            }
             RegisteredGame::TokenBazaar => {
                 let bounded_cursor = cursor.min(record.commands.len());
                 let (state, effects) =
@@ -2236,6 +2455,16 @@ fn is_secret_draft_public_export(doc: &str) -> bool {
     ) && matches!(
         string_field(doc, "game_id").as_deref(),
         Ok(secret_draft::GAME_ID)
+    )
+}
+
+fn is_masked_public_export(doc: &str) -> bool {
+    matches!(
+        string_field(doc, "export_class").as_deref(),
+        Ok("viewer_scoped_observation")
+    ) && matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(masked_claims::GAME_ID)
     )
 }
 
@@ -2456,6 +2685,65 @@ fn import_poker_lite_public_replay(doc: &str) -> Result<String, String> {
     ))
 }
 
+fn import_masked_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let export = masked_claims::PublicReplayExport::from_json(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    if export.rules_version != masked_claims::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {}", export.rules_version),
+        ));
+    }
+    if export.variant != masked_claims::VARIANT_ID {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {}", export.variant),
+        ));
+    }
+    if export.viewer != "observer" {
+        return Err(diagnostic_string(
+            "unsupported_replay_viewer",
+            &format!("unsupported replay viewer: {}", export.viewer),
+        ));
+    }
+    let replay_id = next_replay_id(GAME_MASKED_CLAIMS);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_MASKED_CLAIMS.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: export.viewer.clone(),
+                    steps: export
+                        .steps
+                        .iter()
+                        .map(public_timeline_step_from_masked)
+                        .collect(),
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"{}\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0}}",
+        escape_json(&replay_id),
+        escape_json(GAME_MASKED_CLAIMS),
+        escape_json(&export.viewer),
+        export.steps.len()
+    ))
+}
+
 fn import_plain_tricks_public_replay(doc: &str) -> Result<String, String> {
     validate_json_object(doc).map_err(|message| {
         diagnostic_string(
@@ -2537,6 +2825,16 @@ fn public_timeline_step_from_high_card(step: &PublicReplayStep) -> PublicTimelin
     }
 }
 
+fn public_timeline_step_from_masked(step: &masked_claims::PublicReplayStep) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
 fn public_timeline_step_from_secret(step: &SecretPublicReplayStep) -> PublicTimelineStep {
     PublicTimelineStep {
         step_index: step.step_index,
@@ -2594,6 +2892,15 @@ fn public_replay_step_json(
     )
 }
 
+fn masked_redacted_command_summary(command: &AppliedCommand) -> String {
+    match command.action_path.as_slice() {
+        [family, _tile, declared] if family == masked_claims::ACTION_CLAIM => {
+            format!("claim/grade-{declared}")
+        }
+        _ => command.action_path.join("/"),
+    }
+}
+
 fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
     match game_id {
         GAME_RACE_TO_N => Ok(RegisteredGame::RaceToN),
@@ -2602,6 +2909,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_DIRECTIONAL_FLIP => Ok(RegisteredGame::DirectionalFlip),
         GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
+        GAME_MASKED_CLAIMS => Ok(RegisteredGame::MaskedClaims),
         GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
         GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
         GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
@@ -2687,6 +2995,10 @@ fn plain_seats() -> Vec<SeatId> {
     vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
 }
 
+fn masked_seats() -> Vec<SeatId> {
+    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+}
+
 fn trace_rules_version(game: RegisteredGame) -> &'static str {
     match game {
         RegisteredGame::RaceToN => RACE_TRACE_RULES_VERSION,
@@ -2695,6 +3007,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::DirectionalFlip => DIRECTIONAL_FLIP_TRACE_RULES_VERSION,
         RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
+        RegisteredGame::MaskedClaims => MASKED_CLAIMS_TRACE_RULES_VERSION,
         RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
         RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
         RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
@@ -2824,6 +3137,23 @@ fn trace_high_card_seat(seat: HighCardDuelSeat) -> &'static str {
         HighCardDuelSeat::Seat0 => "seat-0",
         HighCardDuelSeat::Seat1 => "seat-1",
     }
+}
+
+fn parse_masked_seat(value: &str) -> Result<MaskedClaimsSeat, String> {
+    match value {
+        "seat-0" => Ok(MaskedClaimsSeat::Seat0),
+        "seat-1" => Ok(MaskedClaimsSeat::Seat1),
+        _ => MaskedClaimsSeat::parse(value).ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                escape_json(value)
+            )
+        }),
+    }
+}
+
+fn trace_masked_seat(seat: MaskedClaimsSeat) -> &'static str {
+    seat.as_str()
 }
 
 fn parse_token_seat(value: &str) -> Result<TokenBazaarSeat, String> {
@@ -2990,6 +3320,23 @@ fn high_card_actor_for_seat(
         })
 }
 
+fn masked_actor_for_seat(
+    state: &MaskedClaimsState,
+    seat: MaskedClaimsSeat,
+) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn token_actor_for_seat(state: &TokenBazaarState, seat: TokenBazaarSeat) -> Result<Actor, String> {
     state
         .seats
@@ -3103,6 +3450,14 @@ fn high_card_viewer_for_seat(
     Ok(Viewer { seat_id })
 }
 
+fn masked_viewer_for_seat(state: &MaskedClaimsState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_masked_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
 fn token_viewer_for_seat(state: &TokenBazaarState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_token_seat)
@@ -3191,6 +3546,16 @@ fn high_card_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_high_card_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn masked_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: MaskedClaimsSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_masked_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -5463,6 +5828,193 @@ fn plain_view_json(view: &plain_tricks::PublicView) -> String {
     )
 }
 
+fn masked_view_json(view: &masked_claims::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"turn_index\":{},\"claimant\":\"{}\",\"hand_counts\":{},\"pedestal\":{},\"veiled_gallery\":[{},{}],\"exposed_rows\":[{},{}],\"scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"counters\":[{},{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        view.phase.as_str(),
+        option_masked_seat_json(view.active_seat),
+        view.turn_index,
+        view.claimant.as_str(),
+        masked_counts_json(view.hand_counts.seat_0, view.hand_counts.seat_1),
+        view.pedestal
+            .map_or_else(|| "null".to_owned(), masked_pedestal_json),
+        masked_veiled_json(&view.veiled_gallery[0]),
+        masked_veiled_json(&view.veiled_gallery[1]),
+        masked_exposed_json(&view.exposed_rows[0]),
+        masked_exposed_json(&view.exposed_rows[1]),
+        view.scores[0],
+        view.scores[1],
+        masked_counter_json(view.counters[0]),
+        masked_counter_json(view.counters[1]),
+        masked_terminal_json(&view.terminal),
+        masked_terminal_rationale(&view.terminal)
+            .map_or_else(|| "null".to_owned(), masked_outcome_rationale_json),
+        view.freshness_token.0,
+        masked_private_view_json(&view.private_view),
+        masked_ui_json(&view.ui)
+    )
+}
+
+fn option_masked_seat_json(seat: Option<MaskedClaimsSeat>) -> String {
+    seat.map_or_else(
+        || "null".to_owned(),
+        |seat| format!("\"{}\"", seat.as_str()),
+    )
+}
+
+fn masked_counts_json(seat_0: u8, seat_1: u8) -> String {
+    format!("{{\"seat_0\":{},\"seat_1\":{}}}", seat_0, seat_1)
+}
+
+fn masked_pedestal_json(pedestal: masked_claims::PedestalView) -> String {
+    format!(
+        "{{\"claimant\":\"{}\",\"declared_grade\":\"{}\",\"declared_label\":\"{}\"}}",
+        pedestal.claimant.as_str(),
+        pedestal.declared_grade.as_str(),
+        pedestal.declared_grade.label()
+    )
+}
+
+fn masked_veiled_json(veiled: &[masked_claims::VeiledClaimView]) -> String {
+    let body = veiled
+        .iter()
+        .map(|claim| {
+            format!(
+                "{{\"declared_grade\":\"{}\",\"declared_label\":\"{}\"}}",
+                claim.declared_grade.as_str(),
+                claim.declared_grade.label()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn masked_exposed_json(exposed: &[masked_claims::ExposedMaskView]) -> String {
+    let body = exposed
+        .iter()
+        .map(|mask| {
+            format!(
+                "{{\"tile_id\":\"{}\",\"actual_grade\":\"{}\",\"declared_grade\":\"{}\",\"claimant\":\"{}\",\"challenger\":\"{}\"}}",
+                escape_json(&mask.tile_id),
+                mask.actual_grade.as_str(),
+                mask.declared_grade.as_str(),
+                mask.claimant.as_str(),
+                mask.challenger.as_str()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn masked_counter_json(counter: masked_claims::CounterView) -> String {
+    format!(
+        "{{\"exposed_lies\":{},\"successful_challenges\":{},\"challenges_declared\":{}}}",
+        counter.exposed_lies, counter.successful_challenges, counter.challenges_declared
+    )
+}
+
+fn masked_terminal_json(terminal: &masked_claims::TerminalView) -> String {
+    match terminal {
+        masked_claims::TerminalView::NonTerminal => {
+            "{\"kind\":\"non_terminal\",\"winner\":null,\"draw\":false}".to_owned()
+        }
+        masked_claims::TerminalView::Complete { outcome, .. } => {
+            masked_terminal_outcome_json(*outcome)
+        }
+    }
+}
+
+fn masked_terminal_rationale(
+    terminal: &masked_claims::TerminalView,
+) -> Option<&masked_claims::OutcomeRationaleView> {
+    match terminal {
+        masked_claims::TerminalView::NonTerminal => None,
+        masked_claims::TerminalView::Complete { rationale, .. } => Some(rationale),
+    }
+}
+
+fn masked_outcome_rationale_json(rationale: &masked_claims::OutcomeRationaleView) -> String {
+    format!(
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"decisive_rule_ids\":[{}],\"final_scores\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+        escape_json(&rationale.result_kind),
+        escape_json(&rationale.decisive_cause),
+        string_array(&rationale.decisive_rule_ids),
+        rationale.final_scores[0],
+        rationale.final_scores[1]
+    )
+}
+
+fn masked_private_view_json(private: &masked_claims::PrivateView) -> String {
+    match private {
+        masked_claims::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"own_hand\":[]}".to_owned()
+        }
+        masked_claims::PrivateView::Seat(view) => format!(
+            "{{\"status\":\"seat\",\"seat\":\"{}\",\"own_hand\":[{}]}}",
+            view.seat.as_str(),
+            view.own_hand
+                .iter()
+                .map(masked_mask_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn masked_mask_json(mask: &masked_claims::MaskView) -> String {
+    format!(
+        "{{\"tile_id\":\"{}\",\"grade\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&mask.tile_id),
+        mask.grade.as_str(),
+        escape_json(&mask.label),
+        escape_json(&mask.accessibility_label)
+    )
+}
+
+fn masked_ui_json(ui: &masked_claims::UiMetadata) -> String {
+    format!(
+        "{{\"game_id\":\"{}\",\"variant_id\":\"{}\",\"display_name\":\"{}\",\"grade_labels\":[{}],\"claim_preview_template\":\"{}\",\"reaction_prompt_template\":\"{}\"}}",
+        escape_json(&ui.game_id),
+        escape_json(&ui.variant_id),
+        escape_json(&ui.display_name),
+        string_array(&ui.grade_labels),
+        escape_json(&ui.claim_preview_template),
+        escape_json(&ui.reaction_prompt_template)
+    )
+}
+
+fn masked_terminal_outcome_json(outcome: masked_claims::TerminalOutcome) -> String {
+    match outcome {
+        masked_claims::TerminalOutcome::ScoreWin { winner, scores } => format!(
+            "{{\"kind\":\"score_win\",\"winner\":\"{}\",\"draw\":false,\"scores\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+            winner.as_str(), scores[0], scores[1]
+        ),
+        masked_claims::TerminalOutcome::TiebreakWin {
+            winner,
+            scores,
+            tiebreak,
+        } => format!(
+            "{{\"kind\":\"tiebreak_win\",\"winner\":\"{}\",\"draw\":false,\"tiebreak\":\"{}\",\"scores\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+            winner.as_str(),
+            escape_json(tiebreak),
+            scores[0],
+            scores[1]
+        ),
+        masked_claims::TerminalOutcome::Draw { scores } => format!(
+            "{{\"kind\":\"draw\",\"winner\":null,\"draw\":true,\"scores\":{{\"seat_0\":{},\"seat_1\":{}}}}}",
+            scores[0], scores[1]
+        ),
+    }
+}
+
 fn plain_counts_json(seat_0: u8, seat_1: u8) -> String {
     format!("{{\"seat_0\":{},\"seat_1\":{}}}", seat_0, seat_1)
 }
@@ -6439,6 +6991,126 @@ fn poker_terminal_outcome_json(outcome: poker_lite::TerminalOutcome) -> String {
             poker_reveal_json(reveal)
         ),
     }
+}
+
+fn masked_effects_json(effects: &[EffectEnvelope<MaskedClaimsEffect>], viewer: &Viewer) -> String {
+    let body = masked_claims::filter_effects_for_viewer(effects, viewer)
+        .iter()
+        .map(masked_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn masked_effect_json(effect: &EffectEnvelope<MaskedClaimsEffect>) -> String {
+    let payload = match &effect.payload {
+        MaskedClaimsEffect::ClaimPlaced {
+            turn,
+            claimant,
+            declared_grade,
+            ..
+        } => format!(
+            "{{\"type\":\"claim_placed\",\"turn\":{},\"claimant\":\"{}\",\"declared_grade\":\"{}\"}}",
+            turn,
+            claimant.as_str(),
+            declared_grade.as_str()
+        ),
+        MaskedClaimsEffect::ReactionWindowOpened {
+            turn,
+            responder,
+            declared_grade,
+            choices,
+            ..
+        } => format!(
+            "{{\"type\":\"reaction_window_opened\",\"turn\":{},\"responder\":\"{}\",\"declared_grade\":\"{}\",\"choices\":[{}]}}",
+            turn,
+            responder.as_str(),
+            declared_grade.as_str(),
+            string_array(choices)
+        ),
+        MaskedClaimsEffect::ClaimAccepted {
+            turn,
+            claimant,
+            declared_grade,
+            score_delta,
+            ..
+        } => format!(
+            "{{\"type\":\"claim_accepted\",\"turn\":{},\"claimant\":\"{}\",\"declared_grade\":\"{}\",\"score_delta\":{}}}",
+            turn,
+            claimant.as_str(),
+            declared_grade.as_str(),
+            score_delta
+        ),
+        MaskedClaimsEffect::ChallengeDeclared {
+            turn, responder, ..
+        } => format!(
+            "{{\"type\":\"challenge_declared\",\"turn\":{},\"responder\":\"{}\"}}",
+            turn,
+            responder.as_str()
+        ),
+        MaskedClaimsEffect::MaskRevealed {
+            turn,
+            tile_id,
+            actual_grade,
+            ..
+        } => format!(
+            "{{\"type\":\"mask_revealed\",\"turn\":{},\"tile_id\":\"{}\",\"actual_grade\":\"{}\"}}",
+            turn,
+            escape_json(tile_id),
+            actual_grade.as_str()
+        ),
+        MaskedClaimsEffect::ChallengeResolved {
+            turn,
+            outcome,
+            claimant,
+            responder,
+            claimant_award,
+            responder_award,
+            ..
+        } => format!(
+            "{{\"type\":\"challenge_resolved\",\"turn\":{},\"outcome\":\"{}\",\"claimant\":\"{}\",\"responder\":\"{}\",\"claimant_award\":{},\"responder_award\":{}}}",
+            turn,
+            outcome.as_str(),
+            claimant.as_str(),
+            responder.as_str(),
+            claimant_award,
+            responder_award
+        ),
+        MaskedClaimsEffect::ScoreChanged {
+            seat,
+            delta,
+            total,
+            reason,
+        } => format!(
+            "{{\"type\":\"score_changed\",\"seat\":\"{}\",\"delta\":{},\"total\":{},\"reason\":\"{}\"}}",
+            seat.as_str(),
+            delta,
+            total,
+            escape_json(reason)
+        ),
+        MaskedClaimsEffect::TurnAdvanced { turn, claimant, .. } => format!(
+            "{{\"type\":\"turn_advanced\",\"turn\":{},\"claimant\":\"{}\"}}",
+            turn,
+            claimant.as_str()
+        ),
+        MaskedClaimsEffect::Terminal {
+            outcome,
+            final_scores,
+            tiebreak_summary,
+            ..
+        } => format!(
+            "{{\"type\":\"terminal\",\"outcome\":{},\"final_scores\":{{\"seat_0\":{},\"seat_1\":{}}},\"tiebreak_summary\":\"{}\"}}",
+            masked_terminal_outcome_json(*outcome),
+            final_scores[0],
+            final_scores[1],
+            escape_json(tiebreak_summary)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
 }
 
 fn secret_effects_json(effects: &[EffectEnvelope<SecretDraftEffect>], viewer: &Viewer) -> String {
@@ -7601,6 +8273,7 @@ mod tests {
         assert!(games.contains("\"game_id\":\"directional_flip\""));
         assert!(games.contains("\"game_id\":\"draughts_lite\""));
         assert!(games.contains("\"game_id\":\"high_card_duel\""));
+        assert!(games.contains("\"game_id\":\"masked_claims\""));
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"game_id\":\"poker_lite\""));
         assert!(games.contains("\"game_id\":\"plain_tricks\""));
@@ -7609,11 +8282,13 @@ mod tests {
         assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
         assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
         assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
+        assert!(games.contains("\"variants\":[\"masked_claims_standard\"]"));
         assert!(games.contains("\"variants\":[\"token_bazaar_standard\"]"));
         assert!(games.contains("\"variants\":[\"poker_lite_standard\"]"));
         assert!(games.contains("\"variants\":[\"plain_tricks_standard\"]"));
         assert!(games.contains("\"hidden_information\":true"));
         assert!(games.contains("\"public_replay_export\""));
+        assert!(games.contains("\"reaction_window\""));
         assert!(games.contains("\"bounded_pledge\""));
         assert!(games.contains("\"trick_taking\""));
     }
@@ -8287,6 +8962,51 @@ mod tests {
     }
 
     #[test]
+    fn masked_claims_bridge_filters_unrevealed_masks_and_exports_redacted_claims() {
+        let created = new_match("masked_claims", 41).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"masked_claims_standard\""));
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        assert!(observer.contains("\"game_id\":\"masked_claims\""));
+        assert!(observer.contains("\"status\":\"observer\""));
+        assert!(
+            !observer.contains("mask_g"),
+            "observer view leaked hidden mask id: {observer}"
+        );
+
+        let seat_0 = get_view(&match_id, Some("seat_0")).expect("seat view returned");
+        let first_mask = first_mask_segment(&seat_0);
+        assert!(seat_0.contains(&first_mask));
+
+        let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
+        assert!(tree.contains("\"segment\":\"claim\""));
+        assert!(tree.contains(&first_mask));
+        let applied = apply_action(&match_id, "seat_0", &format!("claim>{first_mask}>5"), 0)
+            .expect("claim applies");
+        assert!(applied.contains("reaction"));
+        assert!(
+            !applied.contains(&format!("\"tile_id\":\"{first_mask}\"")),
+            "pending claim leaked pedestal tile id: {applied}"
+        );
+
+        let exported = export_replay(&match_id).expect("export succeeds");
+        assert!(exported.contains("\"game_id\":\"masked_claims\""));
+        assert!(exported.contains("claim/grade-5"));
+        assert!(
+            !exported.contains("claim/mask_g"),
+            "export leaked raw claim path: {exported}"
+        );
+        let imported = import_replay(&exported).expect("public export imports");
+        assert!(imported.contains("\"game_id\":\"masked_claims\""));
+        assert!(imported.contains("\"public_export\":true"));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot response applies");
+        assert!(bot.contains("\"policy_id\":\"masked-claims-level1-v1\""));
+        assert!(!bot.contains("reserve"));
+    }
+
+    #[test]
     fn plain_tricks_public_export_omits_seed_tail_and_unplayed_cards() {
         let seed = 0;
         let created = new_match("plain_tricks", seed).expect("match created");
@@ -8898,6 +9618,13 @@ mod tests {
                 card.as_str()
             );
         }
+    }
+
+    fn first_mask_segment(input: &str) -> String {
+        let start = input.find("mask_g").expect("mask id is present");
+        let rest = &input[start..];
+        let end = rest.find('"').expect("mask id terminates");
+        rest[..end].to_owned()
     }
 
     fn plain_private_cards(view: &plain_tricks::PublicView) -> Vec<plain_tricks::TrickCardId> {
