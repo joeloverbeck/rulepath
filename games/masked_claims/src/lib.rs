@@ -1,16 +1,23 @@
 //! `masked_claims` official-game crate skeleton for Masked Claims.
 
+pub mod actions;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;
 
+pub use actions::{
+    actor_seat, claimable_tiles, command_public_summary, legal_action_tree, parse_action_path,
+    validate_command, MaskedClaimsAction, ValidatedClaim,
+};
 pub use ids::{
     canonical_masks, Grade, MaskTileId, MaskedClaimsSeat, ACTION_CLAIM, ACTION_RESPOND_ACCEPT,
     ACTION_RESPOND_CHALLENGE, GAME_ID, RULES_VERSION_LABEL, STANDARD_CLAIMS_PER_SEAT,
     STANDARD_GRADE_COUNT, STANDARD_HAND_SIZE, STANDARD_MASK_COUNT, STANDARD_MAX_TURNS,
     STANDARD_RESERVE_SIZE, STANDARD_SEAT_COUNT, STANDARD_TILES_PER_GRADE, VARIANT_ID,
 };
+pub use rules::apply_claim_placeholder;
 pub use setup::{setup_match, shuffle_masks, SetupOptions};
 pub use state::{
     ChallengeCounters, ExposedMask, MaskedClaimsState, PendingClaim, Phase, TerminalOutcome,

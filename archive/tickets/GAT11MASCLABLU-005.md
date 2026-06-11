@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-005: Claim-phase action tree and validation
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/masked_claims/src/{actions.rs,rules.rs}`, extends `src/lib.rs`
@@ -78,3 +78,24 @@ Reject: stale freshness token; actor not seated; terminal phase; claim outside `
 1. `cargo test -p masked_claims`
 2. `cargo clippy -p masked_claims --all-targets -- -D warnings`
 3. Unit-level rule tests are the correct boundary; end-to-end no-leak sweeps over all surfaces land in GAT11MASCLABLU-010.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/src/actions.rs` with claimant-only `claim/<tile-id>/<grade>` action trees, actor-seat mapping, claim parsing, fail-closed validation, viewer-safe diagnostics, and public command-summary redaction to `claim/grade-<g>`.
+- Added `games/masked_claims/src/rules.rs` as a narrow placeholder seam for the validated claim output; application/resolution remains out of scope for later tickets.
+- Updated `games/masked_claims/src/lib.rs` exports for actions and rules.
+
+Deviations from original plan:
+
+- None for behavior. The claim path keeps tile IDs only in the actor-submitted internal action path; public metadata and summaries are redacted to grade.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
+- New tests cover claimant tree shape, responder/unseated empty trees, validation reject branches, viewer-safe diagnostics, and absence of tile IDs from public metadata/summary surfaces.
