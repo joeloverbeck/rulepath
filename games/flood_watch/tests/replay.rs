@@ -1,7 +1,10 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize,
 };
-use flood_watch::{apply_command, setup_match, ScenarioVariant, SetupOptions, ACTION_END_TURN};
+use flood_watch::{
+    apply_command, setup_match, DistrictId, EventCard, EventKind, FloodWatchState, ScenarioVariant,
+    SetupOptions, ACTION_END_TURN,
+};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -20,6 +23,10 @@ fn end_turn_command(state: &flood_watch::FloodWatchState) -> CommandEnvelope {
     }
 }
 
+fn card(kind: EventKind, copy_index: u8) -> EventCard {
+    EventCard { kind, copy_index }
+}
+
 #[test]
 fn setup_state_hash_is_deterministic_for_same_seed_and_scenario() {
     let options = SetupOptions::default();
@@ -28,6 +35,28 @@ fn setup_state_hash_is_deterministic_for_same_seed_and_scenario() {
     let second = setup_match(Seed(55), &seats(), &options).unwrap();
 
     assert_eq!(first.event_deck_internal(), second.event_deck_internal());
+    assert_eq!(first.stable_hash(), second.stable_hash());
+}
+
+#[test]
+fn terminal_outcome_replays_deterministically() {
+    let deck = vec![card(
+        EventKind::StormSurge {
+            district: DistrictId::OldDocks,
+        },
+        1,
+    )];
+    let mut first =
+        FloodWatchState::new_after_setup(ScenarioVariant::standard(), seats(), deck.clone());
+    let mut second = FloodWatchState::new_after_setup(ScenarioVariant::standard(), seats(), deck);
+    let first_command = end_turn_command(&first);
+    let second_command = end_turn_command(&second);
+
+    let first_applied = apply_command(&mut first, &first_command).unwrap();
+    let second_applied = apply_command(&mut second, &second_command).unwrap();
+
+    assert_eq!(first.terminal_outcome, second.terminal_outcome);
+    assert_eq!(first_applied.effects, second_applied.effects);
     assert_eq!(first.stable_hash(), second.stable_hash());
 }
 

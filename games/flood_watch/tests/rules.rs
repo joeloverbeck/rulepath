@@ -2,8 +2,9 @@ use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersi
 use flood_watch::{
     apply_command, legal_action_metadata, legal_action_tree, setup_match, DistrictId, EventCard,
     EventKind, FloodWatchEffect, FloodWatchRole, FloodWatchState, Phase, ScenarioVariant,
-    SetupOptions, ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE, STANDARD_ACTION_BUDGET,
-    STANDARD_DECK_SIZE, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP, STANDARD_MAX_FLOOD_LEVEL,
+    SetupOptions, SharedOutcome, ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE,
+    STANDARD_ACTION_BUDGET, STANDARD_DECK_SIZE, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP,
+    STANDARD_MAX_FLOOD_LEVEL,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -486,11 +487,12 @@ fn inundation_stops_environment_before_remaining_draws() {
             .count(),
         1
     );
+    assert_eq!(state.phase, Phase::Terminal);
     assert_eq!(
-        state.phase,
-        Phase::Action {
-            budget_remaining: 0
-        }
+        state.terminal_outcome,
+        Some(SharedOutcome::Lost {
+            district: DistrictId::Terraces
+        })
     );
 }
 
@@ -530,4 +532,80 @@ fn deck_exhaustion_effect_emits_without_undrawn_order_leak() {
         .effects
         .iter()
         .any(|effect| matches!(effect.payload, FloodWatchEffect::DeckExhausted)));
+    assert!(applied.effects.iter().any(|effect| {
+        matches!(
+            &effect.payload,
+            FloodWatchEffect::Terminal { outcome, summary }
+                if outcome == "won" && summary.rule_id == "FW-END-002"
+        )
+    }));
+    assert_eq!(exhausted.phase, Phase::Terminal);
+    assert_eq!(exhausted.terminal_outcome, Some(SharedOutcome::Won));
+}
+
+#[test]
+fn terminal_loss_effect_is_shared_and_public_safe() {
+    let mut state = state_with_deck(vec![
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::OldDocks,
+            },
+            1,
+        ),
+        card(
+            EventKind::Downpour {
+                district: DistrictId::Gardens,
+            },
+            1,
+        ),
+    ]);
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+    let terminal = applied
+        .effects
+        .iter()
+        .find_map(|effect| match &effect.payload {
+            FloodWatchEffect::Terminal { outcome, summary } => Some((outcome, summary)),
+            _ => None,
+        })
+        .expect("terminal effect");
+
+    assert_eq!(state.phase, Phase::Terminal);
+    assert_eq!(
+        state.terminal_outcome,
+        Some(SharedOutcome::Lost {
+            district: DistrictId::OldDocks
+        })
+    );
+    assert_eq!(terminal.0, "lost:district_old_docks");
+    assert_eq!(terminal.1.rule_id, "FW-END-001");
+    assert_eq!(terminal.1.drawn_card_count, 1);
+    assert_eq!(terminal.1.surviving_levels.len(), DistrictId::ALL.len());
+    assert!(!format!("{:?}", terminal).contains("downpour/district_gardens"));
+
+    assert!(legal_action_tree(&state, &actor("seat_0"))
+        .root
+        .choices
+        .is_empty());
+    let post_terminal = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let err = apply_command(&mut state, &post_terminal).unwrap_err();
+    assert_eq!(err.code, "terminal_state");
+}
+
+#[test]
+fn terminal_win_effect_has_no_per_seat_winner() {
+    let mut state = state_with_deck(vec![card(EventKind::Reprieve, 1)]);
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+    let rendered = format!("{:?}", applied.effects);
+
+    assert_eq!(state.phase, Phase::Terminal);
+    assert_eq!(state.terminal_outcome, Some(SharedOutcome::Won));
+    assert!(rendered.contains("FW-END-002"));
+    assert!(rendered.contains("won"));
+    assert!(!rendered.contains("winner"));
+    assert!(!rendered.contains("seat_0"));
+    assert!(!rendered.contains("seat_1"));
 }

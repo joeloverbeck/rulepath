@@ -9,7 +9,7 @@ use crate::{
     },
     effects::{public_effect, FloodWatchEffect, FloodWatchEffectEnvelope},
     ids::{DistrictId, EventKind},
-    state::{FloodWatchState, Phase},
+    state::{FloodWatchState, Phase, SharedOutcome},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,6 +127,7 @@ fn resolve_environment_phase(
     for draw_index in 1..=draw_limit {
         let Some(card) = state.draw_next_event() else {
             effects.push(public_effect(FloodWatchEffect::DeckExhausted));
+            finalize_terminal(state, SharedOutcome::Won, effects);
             return;
         };
         effects.push(public_effect(FloodWatchEffect::EventDrawn {
@@ -141,13 +142,21 @@ fn resolve_environment_phase(
         if rise == 0 {
             continue;
         }
-        if resolve_rise(state, district, rise, effects) {
+        if let Some(inundated) = resolve_rise(state, district, rise, effects) {
+            finalize_terminal(
+                state,
+                SharedOutcome::Lost {
+                    district: inundated,
+                },
+                effects,
+            );
             return;
         }
     }
 
     if state.undrawn_deck_len() == 0 {
         effects.push(public_effect(FloodWatchEffect::DeckExhausted));
+        finalize_terminal(state, SharedOutcome::Won, effects);
         return;
     }
 
@@ -160,11 +169,9 @@ fn resolve_rise(
     district: DistrictId,
     rise: u8,
     effects: &mut Vec<FloodWatchEffectEnvelope>,
-) -> bool {
+) -> Option<DistrictId> {
     let max_flood_level = state.variant.max_flood_level;
-    let Some(district_state) = state.district_mut(district) else {
-        return false;
-    };
+    let district_state = state.district_mut(district)?;
 
     let absorbed = district_state.levees.min(rise);
     if absorbed > 0 {
@@ -197,10 +204,10 @@ fn resolve_rise(
         effects.push(public_effect(FloodWatchEffect::DistrictInundated {
             district,
         }));
-        return true;
+        return Some(district);
     }
 
-    false
+    None
 }
 
 fn event_district(kind: EventKind) -> Option<DistrictId> {
@@ -215,5 +222,55 @@ fn event_rise(kind: EventKind) -> u8 {
         EventKind::Downpour { .. } => 1,
         EventKind::StormSurge { .. } => 2,
         EventKind::Reprieve => 0,
+    }
+}
+
+fn finalize_terminal(
+    state: &mut FloodWatchState,
+    outcome: SharedOutcome,
+    effects: &mut Vec<FloodWatchEffectEnvelope>,
+) {
+    if state.terminal_outcome.is_some() {
+        return;
+    }
+
+    state.terminal_outcome = Some(outcome.clone());
+    state.phase = Phase::Terminal;
+    effects.push(public_effect(FloodWatchEffect::Terminal {
+        outcome: outcome.stable_summary(),
+        summary: terminal_summary(state, &outcome),
+    }));
+}
+
+fn terminal_summary(
+    state: &FloodWatchState,
+    outcome: &SharedOutcome,
+) -> crate::effects::TerminalSummary {
+    let surviving_levels = state
+        .districts
+        .iter()
+        .map(|district| (district.district, district.flood_level))
+        .collect::<Vec<_>>();
+    let drawn_card_count = state.drawn.len() as u8;
+
+    match outcome {
+        SharedOutcome::Won => crate::effects::TerminalSummary {
+            rule_id: "FW-END-002".to_owned(),
+            public_summary: format!(
+                "Shared win: the final event resolved with all districts below inundation after {drawn_card_count} drawn cards."
+            ),
+            drawn_card_count,
+            surviving_levels,
+        },
+        SharedOutcome::Lost { district } => crate::effects::TerminalSummary {
+            rule_id: "FW-END-001".to_owned(),
+            public_summary: format!(
+                "Shared loss: {} reached inundation on turn {} after {drawn_card_count} drawn cards.",
+                district.label(),
+                state.turn_number
+            ),
+            drawn_card_count,
+            surviving_levels,
+        },
     }
 }

@@ -5,6 +5,14 @@ use engine_core::{EffectEnvelope, VisibilityScope};
 use crate::ids::{DistrictId, EventKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TerminalSummary {
+    pub rule_id: String,
+    pub public_summary: String,
+    pub drawn_card_count: u8,
+    pub surviving_levels: Vec<(DistrictId, u8)>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FloodWatchEffect {
     DistrictBailed {
         district: DistrictId,
@@ -40,7 +48,8 @@ pub enum FloodWatchEffect {
     },
     DeckExhausted,
     Terminal {
-        shared_outcome: String,
+        outcome: String,
+        summary: TerminalSummary,
     },
 }
 

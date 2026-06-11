@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-007: Shared outcome and terminal detection
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch/src/rules.rs` (terminal detection), `src/effects.rs` (`Terminal` effect with shared outcome + public summary)
@@ -77,3 +77,22 @@ Define `Terminal { outcome, summary }` carrying the shared outcome, surviving fl
 1. `cargo test -p flood_watch --test rules`
 2. `cargo test -p flood_watch`
 3. The outcome-explanation render is verified at GAT12FLOWATCOO-017 via `check-outcome-explanations.mjs`; the rule + property tests are the correct boundary for the Rust terminal logic.
+
+## Outcome
+
+Accepted on 2026-06-11. Implemented shared terminal detection for Flood
+Watch: inundation immediately sets `SharedOutcome::Lost`, deck exhaustion
+without loss sets `SharedOutcome::Won`, terminal states move to
+`Phase::Terminal`, and post-terminal action trees/validation are closed.
+`Terminal` effects now carry a shared outcome plus a public summary containing
+the stable `FW-END-*` rule ID, drawn-card count, and surviving flood levels,
+with no per-seat winner and no undrawn-deck data.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test rules`
+3. `cargo test -p flood_watch --test property`
+4. `cargo test -p flood_watch --test replay`
+5. `cargo clippy -p flood_watch --all-targets -- -D warnings`
+6. `cargo test -p flood_watch`
