@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-019: Browser E2E smoke, a11y/no-leak, and catalog README reconciliation
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation/CI) — new `apps/web/e2e/masked-claims.smoke.mjs`; modifies `apps/web/package.json` (`smoke:e2e`), `apps/web/README.md`, `README.md`, `.github/workflows/gate-1-game-smoke.yml` (no Rust/behavior surface)
@@ -86,3 +86,13 @@ Add the `masked_claims` web build + E2E registration step (coordinate the shared
 1. `node apps/web/e2e/masked-claims.smoke.mjs`
 2. `npm --prefix apps/web run smoke:e2e && node scripts/check-catalog-docs.mjs`
 3. The full `smoke:e2e` plus `check-catalog-docs` is the correct browser-acceptance boundary; native-pipeline acceptance is GAT11MASCLABLU-015's.
+
+## Outcome
+
+Added the Masked Claims browser E2E smoke covering hotseat claim/accept, reaction prompt controls, challenge reveal resolution, bot-vs-bot claimant waiting and response flow, reduced-motion rendering, public replay export/import, and DOM/storage/console/`data-testid` no-leak assertions for unrevealed mask IDs. Registered the smoke in `smoke:e2e` and CI, reconciled the root/web catalog README surfaces, and updated the rules-display catalog smoke for the eleventh game. Normalized replay import JSON in the web import component so pretty-printed public exports round-trip through Rust.
+
+Verification:
+
+1. `node apps/web/e2e/masked-claims.smoke.mjs`
+2. `node scripts/check-catalog-docs.mjs`
+3. `npm --prefix apps/web run smoke:e2e`

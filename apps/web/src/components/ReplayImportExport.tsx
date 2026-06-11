@@ -30,7 +30,7 @@ export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImpo
       return;
     }
     try {
-      onImport(documentText);
+      onImport(normalizeJsonDocument(documentText));
     } catch (error: unknown) {
       setDiagnostic(error as ApiError);
     }
@@ -77,6 +77,10 @@ export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImpo
       ) : null}
     </section>
   );
+}
+
+function normalizeJsonDocument(documentText: string): string {
+  return JSON.stringify(JSON.parse(documentText));
 }
 
 function replayCommandSummary(documentText: string): { index: number; actor: string; path: string }[] {
