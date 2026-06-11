@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-006: Reaction-window phase and pending-response tree
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/masked_claims/src/effects.rs`, extends `src/actions.rs` and `src/rules.rs`, `src/lib.rs`
@@ -82,3 +82,25 @@ Applying a claim transitions to `Phase::Reaction { responder }` and emits the tw
 1. `cargo test -p masked_claims`
 2. `cargo clippy -p masked_claims --all-targets -- -D warnings`
 3. Unit-level boundary; the golden-trace proof of the window's log line is exercised in GAT11MASCLABLU-011.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/src/effects.rs` with public `ClaimPlaced` and `ReactionWindowOpened` effects, Rust-owned log copy, responder choices, and no tile IDs.
+- Extended `games/masked_claims/src/actions.rs` with response choices, reaction-window action trees, waiting metadata, response validation, and public response summaries.
+- Replaced the rules placeholder with `apply_action` for validated claims: moves the mask to the pedestal, opens `Phase::Reaction`, switches active seat to the responder, advances freshness, and emits the two public effects.
+- Updated `games/masked_claims/src/lib.rs` exports for effects and the expanded action/rule API.
+
+Deviations from original plan:
+
+- None for scope. Conditional accept/challenge resolution remains out of scope for GAT11MASCLABLU-007.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
+- New tests cover responder-only reaction actions, claimant waiting metadata, response diagnostics, one open pedestal/window after claim apply, reaction log copy, and effect payload no-leak for all mask tile IDs.
