@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-010: Native test suite (rules, property, replay, serialization, visibility, bots)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/masked_claims/tests/{rules,property,replay,serialization,visibility,bots}.rs`
@@ -78,3 +78,23 @@ The official-game contract (FOUNDATIONS §6) requires the full native evidence s
 1. `cargo test -p masked_claims`
 2. `cargo clippy -p masked_claims --all-targets -- -D warnings`
 3. `cargo test --workspace` is the correct full-pipeline boundary once registered, but per-crate test is the reviewable boundary for this ticket; scaled simulation lands in GAT11MASCLABLU-015.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added six native integration suites under `games/masked_claims/tests/`: `rules.rs`, `property.rs`, `replay.rs`, `serialization.rs`, `visibility.rs`, and `bots.rs`.
+- Covered claim/reaction validation, fail-closed diagnostics, accept/challenge resolution, many-seed invariant checks, deterministic replay surfaces, stable view/export serialization, no-leak visibility surfaces, and Level 0/Level 1 bot legality.
+- Kept each invariant class in its own file, matching the hidden-information-game convention.
+
+Deviations from original plan:
+
+- Full golden-trace fixture assertions and scaled simulation remain for the later trace/tool tickets. This ticket adds native integration coverage over the public crate API.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
