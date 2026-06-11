@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-001: Rules and IP source docs for Flood Watch
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/flood_watch/docs/RULES.md`, `games/flood_watch/docs/SOURCES.md`); no Rust, schema, or trace surface
@@ -76,3 +76,29 @@ Instantiate from `templates/GAME-SOURCES.md`. Record the consulted-mechanics-onl
 1. `node scripts/check-doc-links.mjs`
 2. `grep -E "FW-(SETUP|ACT|ENV|END)" games/flood_watch/docs/RULES.md && grep -E "Scoring and accounting|Terminal conditions" games/flood_watch/docs/RULES.md`
 3. A full `cargo`/tool pipeline is not the verification boundary here: no code exists yet, and `rule-coverage` cannot run until the crate and tests land. The correct boundary is doc-link integrity plus rule-ID/section grep-proofs that downstream tickets bind to.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Implemented `games/flood_watch/docs/RULES.md` with original Flood Watch rules,
+stable `FW-*` rule IDs, shared-outcome terminal IDs, the required "Scoring and
+accounting" and "Terminal conditions" sections, replay/randomness notes,
+visibility boundaries, bot constraints, and explicit out-of-scope variants.
+
+Implemented `games/flood_watch/docs/SOURCES.md` with the project-authority
+source list, original-name rationale, variant/deviation notes, ambiguity log,
+trade-dress avoidance register, asset/font status, public/private content
+boundary, and rule-ID cross-reference.
+
+Deviations from plan: none. No Rust, schema, fixture, trace, web, or tool
+surface was changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -E "FW-(SETUP|ACT|ENV|END)" games/flood_watch/docs/RULES.md` returned
+  the setup/action/environment/end rule IDs, including `FW-END-001` and
+  `FW-END-002`.
+- `grep -E "Scoring and accounting|Terminal conditions" games/flood_watch/docs/RULES.md`
+  returned both required section headers.
