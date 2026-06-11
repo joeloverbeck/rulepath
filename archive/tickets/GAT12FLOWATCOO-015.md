@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-015: Native tools, RULE-COVERAGE.md, boundary-check, and gate-1 CI
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `tools/{simulate,replay-check,fixture-check,rule-coverage}/src/main.rs` (modify — register `flood_watch`); `games/flood_watch/docs/RULE-COVERAGE.md` (new); `scripts/boundary-check.sh` (modify — add `role`/`scenario`); `.github/workflows/gate-1-game-smoke.yml` (modify — add `flood_watch` steps)
@@ -86,3 +86,25 @@ Add `flood_watch` steps to `.github/workflows/gate-1-game-smoke.yml`: `simulate 
 1. `cargo run -p rule-coverage -- --game flood_watch && cargo run -p replay-check -- --game flood_watch --all`
 2. `cargo run -p simulate -- --game flood_watch --games 1000 && cargo run -p fixture-check -- --game flood_watch && bash scripts/boundary-check.sh`
 3. These native-tool runs are the correct boundary; the web/E2E lane is GAT12FLOWATCOO-017/018.
+
+## Outcome
+
+Accepted on 2026-06-11. Registered `flood_watch` in `simulate`,
+`replay-check`, `fixture-check`, and `rule-coverage`; added
+`RULE-COVERAGE.md`; extended `boundary-check.sh` to mechanically enforce
+`role` and `scenario` in `engine-core`; and added Flood Watch native steps to
+the gate-1 workflow. `event` was evaluated and deferred from the shared grep
+pattern because it is a high-risk general term for substring/architecture false
+positives; `role` and `scenario` are the gate's headline kernel-noun risks and
+are now enforced.
+
+Verification:
+
+1. `cargo run -p simulate -- --game flood_watch --games 1000`
+2. `cargo run -p replay-check -- --game flood_watch --all`
+3. `cargo run -p fixture-check -- --game flood_watch`
+4. `cargo run -p rule-coverage -- --game flood_watch`
+5. `cargo fmt --all --check`
+6. `cargo clippy -p simulate -p replay-check -p fixture-check -p rule-coverage --all-targets -- -D warnings`
+7. `bash scripts/boundary-check.sh`
+8. `node scripts/check-doc-links.mjs`

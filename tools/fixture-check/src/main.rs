@@ -55,6 +55,20 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_diagnostics",
     "expected_outcome",
     "expected_terminal_state",
+    "shared_outcome",
+    "expected_effects",
+    "expected_event",
+    "expected_role",
+    "expected_starting_levels",
+    "expected_draw_count",
+    "expected_state_change",
+    "expected_reinforce_amount",
+    "expected_bail_amount",
+    "expected_public_deck_count",
+    "expected_rise",
+    "public_export_contains_ordered_deck",
+    "viewer_scope",
+    "district",
     "expected_resolution",
     "expected_window",
     "expected_bot_rationale",
@@ -244,6 +258,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/masked_claims/data/variants.toml",
             variant_id: "masked_claims_standard",
         }),
+        "flood_watch" => Ok(RegisteredGame {
+            game_id: "flood_watch",
+            rules_version: "flood-watch-rules-v1",
+            trace_dir: "games/flood_watch/tests/golden_traces",
+            fixture_dir: "games/flood_watch/data/fixtures",
+            manifest_path: "games/flood_watch/data/manifest.toml",
+            variants_path: "games/flood_watch/data/variants.toml",
+            variant_id: "flood_watch_standard",
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_version: "token-bazaar-rules-v1",
@@ -333,9 +356,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -468,6 +491,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 manifest.data_version,
                 manifest.schema_version,
                 variants.selected.id,
+            )
+        }
+        "flood_watch" => {
+            let manifest = flood_watch::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = flood_watch::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.standard.id,
             )
         }
         "token_bazaar" => {
@@ -638,6 +676,49 @@ fn validate_trace(
     }
 
     let fixture_kind = required_string(path, input, "fixture_kind")?;
+    if game.game_id == "flood_watch" {
+        for field in [
+            "schema_version",
+            "purpose",
+            "note",
+            "game_id",
+            "rules_version",
+            "engine_version",
+            "data_version",
+            "seed",
+            "variant",
+            "public_no_leak",
+        ] {
+            require_key(path, input, field)?;
+        }
+        if fixture_kind != "setup" {
+            require_key(path, input, "commands")?;
+        }
+        if required_number(path, input, "schema_version")? != 1 {
+            return Err(format!("{}: schema_version must be 1", path.display()));
+        }
+        if required_string(path, input, "game_id")? != game.game_id {
+            return Err(format!(
+                "{}: game_id must be {}",
+                path.display(),
+                game.game_id
+            ));
+        }
+        if required_string(path, input, "rules_version")? != game.rules_version {
+            return Err(format!(
+                "{}: rules_version must be {}",
+                path.display(),
+                game.rules_version
+            ));
+        }
+        if !input.contains("\"public_no_leak\":true") {
+            return Err(format!(
+                "{}: flood_watch trace must assert public_no_leak",
+                path.display()
+            ));
+        }
+        return Ok(());
+    }
     let required_fields = [
         "schema_version",
         "purpose",
