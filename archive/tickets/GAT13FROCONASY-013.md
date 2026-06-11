@@ -1,6 +1,6 @@
 # GAT13FROCONASY-013: Native tools, RULE-COVERAGE.md, boundary-check, and gate-1 CI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/{simulate,replay-check,fixture-check,rule-coverage,bench-report}/src/main.rs` (modify), `scripts/boundary-check.sh` (modify), `games/frontier_control/docs/RULE-COVERAGE.md` (new), `.github/workflows/gate-1-game-smoke.yml` (modify)
@@ -88,3 +88,27 @@ Add the `frontier_control` simulate/replay/fixture/rule-coverage steps to `.gith
 1. `cargo run -p rule-coverage -- --game frontier_control && bash scripts/boundary-check.sh`
 2. `cargo run -p simulate -- --game frontier_control --games 1000 && cargo run -p replay-check -- --game frontier_control --all && cargo run -p fixture-check -- --game frontier_control`
 3. The native tool CLIs are the correct boundary; the browser E2E + catalog reconciliation are GAT13FROCONASY-016.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Changes:
+
+1. Registered `frontier_control` in the native tool suite: `simulate`, `replay-check`, `fixture-check`, `rule-coverage`, and `bench-report`.
+2. Added Frontier Control simulation output with per-faction win counts, Garrison tiebreak count, average faction scores, average rounds, average length, and throughput.
+3. Added `games/frontier_control/docs/RULE-COVERAGE.md` with one coverage row for every stable `FC-*` rule ID in `RULES.md`.
+4. Extended `scripts/boundary-check.sh` with `faction|territory`; evaluated `faction`, `territory`, `adjacency`, `movement`, and `graph` against `crates/engine-core/src` with zero matches. `adjacency`, `movement`, and `graph` were not added in this ticket.
+5. Added Frontier Control native simulate/replay/fixture/rule-coverage lanes to `.github/workflows/gate-1-game-smoke.yml`.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo check -p simulate -p replay-check -p fixture-check -p rule-coverage -p bench-report`
+3. `cargo run -p simulate -- --game frontier_control --games 1000`
+4. `cargo run -p replay-check -- --game frontier_control --all`
+5. `cargo run -p fixture-check -- --game frontier_control`
+6. `cargo run -p rule-coverage -- --game frontier_control`
+7. `bash scripts/boundary-check.sh`
+8. `cargo clippy -p simulate -p replay-check -p fixture-check -p rule-coverage -p bench-report --all-targets -- -D warnings`
+9. `cargo test -p rule-coverage -p replay-check -p fixture-check`

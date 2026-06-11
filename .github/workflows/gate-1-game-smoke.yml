@@ -51,6 +51,9 @@ jobs:
       - name: flood_watch quick simulation
         run: cargo run -p simulate -- --game flood_watch --games 1000
 
+      - name: frontier_control quick simulation
+        run: cargo run -p simulate -- --game frontier_control --games 1000
+
       - name: token_bazaar quick simulation
         run: cargo run -p simulate -- --game token_bazaar --games 1000
 
@@ -86,6 +89,9 @@ jobs:
 
       - name: Flood Watch replay drift check
         run: cargo run -p replay-check -- --game flood_watch --all
+
+      - name: Frontier Control replay drift check
+        run: cargo run -p replay-check -- --game frontier_control --all
 
       - name: Token Bazaar replay drift check
         run: cargo run -p replay-check -- --game token_bazaar --all
@@ -123,6 +129,9 @@ jobs:
       - name: Flood Watch fixture validation
         run: cargo run -p fixture-check -- --game flood_watch
 
+      - name: Frontier Control fixture validation
+        run: cargo run -p fixture-check -- --game frontier_control
+
       - name: Token Bazaar fixture validation
         run: cargo run -p fixture-check -- --game token_bazaar
 
@@ -158,6 +167,9 @@ jobs:
 
       - name: Flood Watch rule coverage drift check
         run: cargo run -p rule-coverage -- --game flood_watch
+
+      - name: Frontier Control rule coverage drift check
+        run: cargo run -p rule-coverage -- --game frontier_control
 
       - name: Token Bazaar rule coverage drift check
         run: cargo run -p rule-coverage -- --game token_bazaar

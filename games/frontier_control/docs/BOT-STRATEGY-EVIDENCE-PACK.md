@@ -222,34 +222,32 @@ that bypass the public view.
 | Weakness | Why acceptable for Level 1 | Mitigation | Future trigger |
 |---|---|---|---|
 | Current policies do not use score-race urgency. | Level 1 only needs obvious public tactics and legal baseline play. | Documented as a known weakness and balance-retune surface. | Public polish or Level 2 work. |
-| Garrison currently prioritizes dismantle before patrol. | It is simple, explainable, and legal, but may overfit immediate stake removal. | Simulation will expose balance misses. | A5 miss after `simulate` registration. |
-| Prospectors currently stake before path preservation. | It creates visible scoring pressure but can allow easy Garrison denial. | Tune map constants or priority order if the standard map stays outside band. | A5 miss after `simulate` registration. |
+| Garrison currently prioritizes dismantle before patrol. | It is simple, explainable, and legal, but may overfit immediate stake removal. | Simulation exposed a standard-map balance miss. | Public polish or Level 2 retune work. |
+| Prospectors currently stake before path preservation. | It creates visible scoring pressure but can allow easy Garrison denial. | Tune map constants or priority order before claiming balanced public play. | Public polish or Level 2 retune work. |
 | Level 1 seed is not materially used by deterministic priority branches. | Stable deterministic behavior is acceptable for Level 1. | Random legal bot covers seeded random baseline; Level 1 tie-breaks remain stable. | Need for varied public difficulty profiles. |
 
 ## Balance evidence and retune posture
 
 Assumption A5 targets a 35-65% per-faction Level-1-vs-Level-1 win band on the
-standard map. The full CLI measurement command is scheduled by
-GAT13FROCONASY-013:
+standard map. The registered CLI measurement command is:
 
 ```sh
 cargo run -p simulate -- --game frontier_control --games 1000
 ```
 
-Until that registration exists, the current evidence is provisional:
+The current evidence is:
 
 | Evidence | Command/source | Result | A5 interpretation |
 |---|---|---|---|
 | Level 1 legality and explanation smoke | `cargo test -p frontier_control bots` | both factions select legal public actions and produce faction-named rationales | required policy evidence, not a win-rate measure |
 | Level-1-vs-Level-1 terminal smoke | `cargo test -p frontier_control level1_bot_sequence_reaches_terminal_without_illegal_actions` | standard-map bot sequence reaches terminal without illegal actions | proves completion, not balance |
-| Temporary local probe on 2026-06-11 | current Rust Level 1 policies over one deterministic standard-map playout | Garrison wins 16-0 | outside the A5 band; retune required if confirmed by `simulate` |
+| Registered simulation on 2026-06-11 | `cargo run -p simulate -- --game frontier_control --games 1000` | Garrison wins 1000-0; average score 16-0; average rounds 8; average length 32 | outside the A5 band; retune required before claiming balanced public play |
 | Temporary local probe on 2026-06-11 | current Rust Level 1 policies over one deterministic highlands playout | Prospectors win 15-3 | cross-map signal only; A5 names standard map |
 
 This pack therefore records a retune note instead of asserting balance. Before
-public polish, the registered simulation lane must refresh this table with
-per-faction win counts, average scores, average rounds, and tiebreak frequency.
-If standard-map Level-1-vs-Level-1 remains outside the 35-65% band, adjust
-typed constants or Level 1 priority order and rerun the measurement.
+public polish, adjust typed constants or Level 1 priority order and rerun the
+measurement until the standard-map Level-1-vs-Level-1 result has an acceptable
+retune decision.
 
 ## Test plan
 
@@ -263,7 +261,7 @@ typed constants or Level 1 priority order and rerun the measurement.
 | bounded scoring | yes | tuple tie-break doc review, no large weights | current code uses small tuple keys only |
 | seeded tie-break | yes | deterministic bot test and random legal bot smoke | seed is declared; Level 1 branches are stable |
 | explanations | yes | bot tests assert faction-named rationale; examples documented here | existing bot tests |
-| simulation/fuzz | yes | `cargo run -p simulate -- --game frontier_control --games 1000` | pending GAT13FROCONASY-013; retune note recorded |
+| simulation/fuzz | yes | `cargo run -p simulate -- --game frontier_control --games 1000` | registered; current 1000-game standard-map run records a retune note |
 | replay/hash | yes | bot golden trace and replay support tests | existing trace/replay coverage |
 | benchmark | yes | `cargo bench -p frontier_control` | benchmark operations include both Level 1 decision functions |
 

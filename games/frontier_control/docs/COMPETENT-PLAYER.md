@@ -172,23 +172,19 @@ change the next scoring round, not merely to move pieces.
 ## Level 1 balance evidence
 
 Assumption A5 sets a target that each faction wins roughly 35-65% of Level 1 vs
-Level 1 games on the standard map. The registered native `simulate` arm is
-scheduled for GAT13FROCONASY-013, so this ticket records provisional evidence
-from the current bot-vs-bot harness and a temporary local probe over the same
-Rust bot APIs.
+Level 1 games on the standard map. The registered native `simulate` arm now
+records current standard-map evidence alongside the bot-vs-bot harness.
 
 | Evidence source | Scope | Result | A5 status | Required follow-up |
 |---|---|---|---|---|
 | `cargo test -p frontier_control bots` | bot legality and explanation smoke | both faction bots validate through the normal command path | does not measure band | keep as policy fidelity evidence |
 | `cargo test -p frontier_control level1_bot_sequence_reaches_terminal_without_illegal_actions` | deterministic Level-1-vs-Level-1 terminal smoke | completes a full standard-map game without illegal actions | does not measure band | keep as provisional terminal evidence |
-| temporary 2026-06-11 Level-1-vs-Level-1 probe | one deterministic standard-map playout through current public Level 1 policies | Garrison wins 16-0 | outside A5 band | retune constants or policy before public polish if `simulate` confirms |
+| 2026-06-11 registered simulation | `cargo run -p simulate -- --game frontier_control --games 1000` | Garrison wins 1000-0; average score 16-0; average rounds 8; average length 32 | outside A5 band | retune constants or policy before claiming balanced public play |
 | temporary 2026-06-11 Level-1-vs-Level-1 probe | one deterministic highlands playout through current public Level 1 policies | Prospectors win 15-3 | informational, not A5 standard-map band | use as cross-map tuning signal |
 
 The current docs therefore do not claim balance is achieved. They record a
-retune trigger: once `cargo run -p simulate -- --game frontier_control --games
-1000` is registered, refresh this section with per-faction win counts. If the
-standard-map Level-1-vs-Level-1 result remains outside 35-65%, constants or
-Level 1 priorities must be retuned before public polish.
+retune trigger: the standard-map Level-1-vs-Level-1 result is outside 35-65%,
+so constants or Level 1 priorities must be retuned before public polish.
 
 ## Translation to candidate future Level 2 features
 
@@ -208,7 +204,7 @@ These are future candidates only. They are not implemented policy promises.
 | Bots choose only legal action paths. | `FC-ACT-001` through `FC-ACT-009` | bot decision | `bots_select_legal_paths_for_both_factions` | Existing unit coverage. |
 | Level 1 decisions are deterministic under declared inputs. | `FC-RNG-001`, `FC-BOT-002`, `FC-BOT-003` | bot decision | `bots_are_deterministic_under_declared_inputs` | Existing unit coverage. |
 | Bot-vs-bot play can reach terminal without illegal actions. | `FC-TURN-008`, `FC-TERM-NO-ACTIONS` | property/invariant | `level1_bot_sequence_reaches_terminal_without_illegal_actions` | Existing integration coverage. |
-| Standard-map Level 1 balance falls in A5 band or has a retune note. | Assumption A5 | simulation | `cargo run -p simulate -- --game frontier_control --games 1000` | Pending GAT13FROCONASY-013 registration; this doc records the current retune note. |
+| Standard-map Level 1 balance falls in A5 band or has a retune note. | Assumption A5 | simulation | `cargo run -p simulate -- --game frontier_control --games 1000` | Current registered simulation records a retune note. |
 
 ## Review checklist
 
