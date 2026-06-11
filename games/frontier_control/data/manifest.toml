@@ -1,0 +1,15 @@
+game_id = "frontier_control"
+display_name = "Frontier Control"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "frontier-control-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "frontier_control"
+seat_count = 2
+site_count = 7
+site_ids = "site_gatehouse,site_signal_hill,site_base_camp,site_ford,site_quarry,site_timberline,site_goldfield"
+site_labels = "Gatehouse,Signal Hill,Base Camp,Ford,Quarry,Timberline,Goldfield"
+faction_ids = "faction_garrison,faction_prospectors"
+faction_labels = "Garrison,Prospectors"
+unit_cap_per_site = 3

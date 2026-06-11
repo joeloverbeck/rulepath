@@ -1,6 +1,6 @@
 # GAT13FROCONASY-003: Crate skeleton, workspace registration, and static data
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/frontier_control` (skeleton modules + `Cargo.toml`); root `Cargo.toml` workspace member; new typed static data (`data/manifest.toml`, `data/variants.toml`, two fixtures)
@@ -95,3 +95,24 @@ Skeleton manifest/variant/fixture parsers in `setup.rs`/`variants.rs` that rejec
 1. `cargo build -p frontier_control`
 2. `cargo test -p frontier_control` (skeleton-level parser tests) and `cargo build --workspace`
 3. Building the single crate plus workspace is the correct boundary; full data-driven validation is exercised once setup logic lands in GAT13FROCONASY-004.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added the `frontier_control` workspace crate with the required twelve source modules, a compiling library surface, typed local IDs, setup options, and static-data parser stubs.
+- Registered `games/frontier_control` in the root workspace and updated `Cargo.lock` with the new package entry.
+- Added typed content-only `manifest.toml`, `variants.toml`, and standard/highlands fixture metadata files using the `frontier_control_<variant>` naming convention.
+- Added parser tests proving the new flat static-data parsers reject unknown and behavior-looking fields.
+
+Deviations from the plan:
+- None. This ticket stayed at crate/data scaffold scope; full setup graph validation and gameplay behavior remain for later tickets.
+
+Verification:
+- `cargo fmt --all --check` passed.
+- `cargo build -p frontier_control` passed.
+- `cargo test -p frontier_control` passed (6 tests).
+- `cargo clippy -p frontier_control --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).

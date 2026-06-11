@@ -71,6 +71,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "frontier_control"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
+
+[[package]]
 name = "game-stdlib"
 version = "0.1.0"
 dependencies = [
