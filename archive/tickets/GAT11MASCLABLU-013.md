@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-013: Bot-strategy evidence docs
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (new `games/masked_claims/docs/COMPETENT-PLAYER.md`, `games/masked_claims/docs/BOT-STRATEGY-EVIDENCE-PACK.md`; no Rust surface)
@@ -73,3 +73,21 @@ Instantiate from `templates/BOT-STRATEGY-EVIDENCE-PACK.md`: the Level 1 claim po
 1. `node scripts/check-doc-links.mjs`
 2. `cargo test -p masked_claims --test bots` — confirms the behavior the docs describe still holds.
 3. Doc-link + the bot suite are the correct boundary; balance numbers are produced by the mirrored simulation named in GAT11MASCLABLU-009/010.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/docs/COMPETENT-PLAYER.md` with competent-play guidance, hidden-information boundaries, examples, mistakes, and balance-calibration posture.
+- Added `games/masked_claims/docs/BOT-STRATEGY-EVIDENCE-PACK.md` documenting the implemented Level 1 policy, allowed input view, candidate extraction, response/claim policy, explanation contract, and evidence surfaces.
+
+Deviations from original plan:
+
+- The docs do not claim calibrated mirrored win-rate evidence yet. They record the current executable evidence and name the 40-60 balance/Assumption A4 retune trigger as follow-up, consistent with `BENCHMARKS.md` smoke-floor posture.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `cargo test -p masked_claims --test bots` passed.
