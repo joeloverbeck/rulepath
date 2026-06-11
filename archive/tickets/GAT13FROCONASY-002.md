@@ -1,6 +1,6 @@
 # GAT13FROCONASY-002: Primitive-pressure ledger and mechanic-atlas reviews
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/frontier_control/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `docs/MECHANIC-ATLAS.md`)
@@ -74,3 +74,19 @@ Record the audit outcomes per the spec §Documentation-updates atlas bullets: §
 1. `grep -nE '_None_|frontier_control' docs/MECHANIC-ATLAS.md`
 2. `node scripts/check-doc-links.mjs`
 3. Grep + doc-link is the correct boundary: the atlas is prose/contract, validated by content presence, not by a compiler.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added `games/frontier_control/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the required pre-implementation reviews: `board_space` not-applicable audit, role/faction modifier second-use comparison, multi-action-budget second-use comparison, shared-outcome non-use, reaction-window non-use, deterministic-shuffle non-use, and first-use graph/control/asymmetry records.
+- Updated `docs/MECHANIC-ATLAS.md` to record the Gate 13 audit outcomes and first-use rows while keeping all graph, site-control, faction, budget, and role/faction behavior local.
+
+Deviations from the plan:
+- None. No helper was promoted, no ADR was required, and no implementation code or static data was introduced.
+
+Verification:
+- `grep -nE '_None_|frontier_control|graph-map|site control|faction-asymmetric|multi-action turn budgets|role-modified' docs/MECHANIC-ATLAS.md` confirmed §10A still records `Current debt: _None_` and the required Frontier Control atlas rows/reviews are present.
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- Manual review confirmed all seven required ledger items record their expected outcome and the `board_space` audit is explicitly not applicable with rationale.
