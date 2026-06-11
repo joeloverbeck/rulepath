@@ -5,7 +5,7 @@
 | Spec ID | `gate-11-masked-claims-bluff-reaction-proof` |
 | Roadmap stage | 11 |
 | Roadmap build gate | Gate 11 — bluffing / reaction-window proof |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-10 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `masked_claims` |

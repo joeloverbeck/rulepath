@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-020: Capstone — admission evidence and status reconciliation
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (docs/status) — new `games/masked_claims/docs/{GAME-IMPLEMENTATION-ADMISSION.md,PUBLIC-RELEASE-CHECKLIST.md}`; modifies `progress.md`, `specs/README.md`, `specs/gate-11-masked-claims-bluff-reaction-proof.md` (no Rust/behavior surface)
@@ -81,3 +81,23 @@ Instantiate from `templates/PUBLIC-RELEASE-CHECKLIST.md`.
 1. `cargo test --workspace && bash scripts/boundary-check.sh`
 2. `cargo run -p simulate -- --game masked_claims --games 1000 && cargo run -p replay-check -- --game masked_claims --all && cargo run -p fixture-check -- --game masked_claims && cargo run -p rule-coverage -- --game masked_claims`
 3. `npm --prefix apps/web run smoke:e2e && node scripts/check-catalog-docs.mjs && node scripts/check-player-rules.mjs && node scripts/check-outcome-explanations.mjs` — the full exit-criteria boundary; the capstone passes only when every prior ticket's surface is green.
+
+## Outcome
+
+Created the Masked Claims implementation admission and public release checklist, flipped the Gate 11 spec and `specs/README.md` status to `Done`, updated `progress.md`, corrected the root README status to Gate 11 complete, and confirmed the mechanic atlas records the realized reaction-window use with no open promotion debt.
+
+Verification:
+
+1. `cargo test --workspace`
+2. `bash scripts/boundary-check.sh`
+3. `cargo run -p simulate -- --game masked_claims --games 1000`
+4. `cargo run -p replay-check -- --game masked_claims --all`
+5. `cargo run -p fixture-check -- --game masked_claims`
+6. `cargo run -p rule-coverage -- --game masked_claims`
+7. `npm --prefix apps/web run smoke:wasm`
+8. `npm --prefix apps/web run smoke:ui`
+9. `npm --prefix apps/web run smoke:e2e`
+10. `node scripts/check-doc-links.mjs`
+11. `node scripts/check-catalog-docs.mjs`
+12. `node scripts/check-player-rules.mjs`
+13. `node scripts/check-outcome-explanations.mjs`

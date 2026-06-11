@@ -14,7 +14,7 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gates 0-11 browser proof in progress** — Rulepath now ships eleven local-playable
+**Gates 0-11 complete; reaction-window proof accepted** — Rulepath now ships eleven local-playable
 official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
 **Column Four** (`column_four`), **Directional Flip** (`directional_flip`),
 **Draughts Lite** (`draughts_lite`), **High Card Duel**
@@ -23,7 +23,7 @@ official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
 (`plain_tricks`), and **Masked Claims** (`masked_claims`). Gate 9 is complete with Token Bazaar as the accepted public
 resource/economy proof, Gate 9.1 adds the accepted simultaneous
 commitment/reveal proof, Gate 10 adds the accepted betting/showdown proof, and
-Gate 10.1 adds the accepted trick-taking proof. Gate 11 is adding the accepted
+Gate 10.1 adds the accepted trick-taking proof, and Gate 11 adds the accepted
 claims/challenges/reaction-window hidden-information proof.
 `blackjack_lite` is deferred by
 [ADR 0006](docs/adr/0006-blackjack-lite-roadmap-placement.md) and does not
