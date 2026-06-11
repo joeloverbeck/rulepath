@@ -1,9 +1,43 @@
-Current status: Gates 0-10.1 are complete in the worktree. Gate 10 is complete
+Current status: Gates 0-11 are complete in the worktree. Gate 10 is complete
 with `poker_lite` / Crest Ledger as the accepted betting/showdown half and
-`plain_tricks` / Plain Tricks as the accepted trick/follow-suit half.
+`plain_tricks` / Plain Tricks as the accepted trick/follow-suit half. Gate 11 is
+complete with `masked_claims` / Masked Claims as the accepted claim/challenge
+reaction-window proof.
 `blackjack_lite` is deferred by ADR 0006 and is not a blocker for the current
 roadmap ladder. The mutable source of truth for gate progress is
 `specs/README.md`.
+
+## Gate 11 Masked Claims
+
+- Completed on 2026-06-11 for `masked_claims` / Masked Claims, the
+  claim/challenge reaction-window proof for ROADMAP Gate 11.
+- Added the accepted hidden-information bluffing proof: deterministic mask
+  setup, owner-private hands, hidden reserve, claim pedestal, responder-only
+  accept/challenge window, accepted masks that never reveal, challenged one-mask
+  reveal, deterministic scoring and tiebreaks, public rationale, viewer-scoped
+  public export/import, Level 0 and Level 1 bots for claim and response roles,
+  golden traces, benchmarks, tool/CI registration, WASM/browser board,
+  player-rules and outcome-explanation surfaces, and no-leak browser smoke.
+- Boundary notes: mask, grade, claim, challenge, reaction window, pedestal,
+  gallery, and exposed-row vocabulary stayed game-local. The fourth-use
+  deterministic shuffle/private-hand/staged-reveal hard gate was reopened and
+  extraction was defer/rejected; no `engine-core` noun, `game-stdlib` helper, or
+  promotion debt was introduced. Reaction window / pending response is recorded
+  as first official local use and remains ADR-required for broad promotion.
+- Acceptance evidence:
+  - `cargo test --workspace`
+  - `bash scripts/boundary-check.sh`
+  - `cargo run -p simulate -- --game masked_claims --games 1000`
+  - `cargo run -p replay-check -- --game masked_claims --all`
+  - `cargo run -p fixture-check -- --game masked_claims`
+  - `cargo run -p rule-coverage -- --game masked_claims`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:e2e`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
+  - `node scripts/check-player-rules.mjs`
+  - `node scripts/check-outcome-explanations.mjs`
 
 Original prompt: Implement the GAT1RACTON tickets one at a time, archiving and committing each ticket before moving on.
 

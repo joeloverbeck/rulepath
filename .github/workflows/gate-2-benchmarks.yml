@@ -41,6 +41,9 @@ jobs:
       - name: high_card_duel bench smoke
         run: cargo bench -p high_card_duel -- legal_actions
 
+      - name: masked_claims bench smoke
+        run: cargo bench -p masked_claims -- legal_actions
+
       - name: token_bazaar bench smoke
         run: cargo bench -p token_bazaar -- legal_actions
 
@@ -93,6 +96,11 @@ jobs:
 
           cargo bench -p high_card_duel | tee /tmp/high_card_duel-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/high_card_duel-benchmark-report.txt --thresholds games/high_card_duel/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p masked_claims | tee /tmp/masked_claims-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/masked_claims-benchmark-report.txt --thresholds games/masked_claims/benches/thresholds.json; then
             failed=1
           fi
 

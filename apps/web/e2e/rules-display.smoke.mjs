@@ -20,6 +20,7 @@ const expectedGames = [
   "Veiled Draft",
   "Crest Ledger",
   "Plain Tricks",
+  "Masked Claims",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

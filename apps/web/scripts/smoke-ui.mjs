@@ -161,6 +161,12 @@ assert(
   ),
   "Rust catalog includes plain_tricks standard variant",
 );
+assert(
+  catalog.some(
+    (game) => game.game_id === "masked_claims" && game.variants.includes("masked_claims_standard"),
+  ),
+  "Rust catalog includes masked_claims standard variant",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
@@ -288,6 +294,100 @@ const plainImport = invoke(
 );
 assert(plainImport.public_export === true, "plain_tricks public replay imports");
 
+const maskedClaims = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
+  ["masked_claims"],
+);
+assert(maskedClaims.match_id, "masked_claims start match returns a match id");
+assert(maskedClaims.variant_id === "masked_claims_standard", "masked_claims standard variant starts");
+const maskedObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [maskedClaims.match_id],
+);
+assert(maskedObserver.game_id === "masked_claims", "masked_claims Rust view is returned");
+assert(maskedObserver.private_view.status === "observer", "masked_claims observer view is redacted");
+assert(!JSON.stringify(maskedObserver).includes("mask_g"), "masked_claims observer view hides unrevealed mask ids");
+const maskedSeat0 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [maskedClaims.match_id, "seat_0"],
+);
+assert(maskedSeat0.private_view.own_hand.length > 0, "masked_claims seat view exposes own hand");
+const maskedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [maskedClaims.match_id, "seat_0", "seat_0"],
+);
+const maskedClaim = maskedTree.choices.find((choice) => choice.segment === "claim");
+const maskedTile = maskedClaim?.next?.choices?.[0];
+const maskedDeclared = maskedTile?.next?.choices?.[0];
+assert(maskedClaim && maskedTile && maskedDeclared, "masked_claims action tree exposes Rust claim path");
+const maskedAfterClaim = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(maskedTree.freshness_token),
+    ),
+  [maskedClaims.match_id, "seat_0", `claim>${maskedTile.segment}>${maskedDeclared.segment}`],
+);
+assert(maskedAfterClaim.view.phase.includes("reaction"), "masked_claims claim opens reaction window");
+assert(!JSON.stringify(maskedAfterClaim.view).includes(maskedTile.segment), "masked_claims pending claim hides unrevealed tile id");
+const maskedResponseTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [maskedClaims.match_id, "seat_1", "seat_1"],
+);
+assert(
+  maskedResponseTree.choices.some((choice) => choice.tags.includes("respond")),
+  "masked_claims response tree exposes Rust response controls",
+);
+const maskedResponse = maskedResponseTree.choices.find((choice) => choice.tags.includes("respond"));
+const maskedAfterResponse = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(maskedResponseTree.freshness_token),
+    ),
+  [maskedClaims.match_id, "seat_1", maskedResponse.segment],
+);
+assert(maskedAfterResponse.effects.length > 0, "masked_claims response emits effects");
+const maskedExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [maskedClaims.match_id],
+);
+assert(maskedExport.game_id === "masked_claims", "masked_claims replay export preserves game id");
+assert(maskedExport.export_class === "viewer_scoped_observation", "masked_claims replay export is viewer scoped");
+assert(!JSON.stringify(maskedExport).includes(maskedTile.segment), "masked_claims replay export hides unrevealed mask ids");
+const maskedImport = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(maskedExport)],
+);
+assert(maskedImport.public_export === true, "masked_claims public replay imports");
+
 const hotseat = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 2n),
   ["race_to_n"],
@@ -349,5 +449,6 @@ console.log(
     replay_cursor: replayStep.cursor,
     token_bazaar_match_id: tokenBazaar.match_id,
     plain_tricks_match_id: plainTricks.match_id,
+    masked_claims_match_id: maskedClaims.match_id,
   }),
 );

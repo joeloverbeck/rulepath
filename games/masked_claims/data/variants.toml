@@ -1,0 +1,14 @@
+variant_id = "masked_claims_standard"
+display_name = "Masked Claims"
+rules_version_label = "masked-claims-rules-v1"
+seat_count = 2
+grade_count = 5
+tiles_per_grade = 3
+mask_count = 15
+hand_size = 5
+reserve_size = 5
+claims_per_seat = 4
+max_turns = 8
+first_claimant_seat = "seat_0"
+mask_order = "standard_masks_v1"
+terminal_outcomes = "score_tiebreak_draw"

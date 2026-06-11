@@ -99,6 +99,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "high-card-duel-rules-v1",
             trace_dir: "games/high_card_duel/tests/golden_traces",
         }),
+        "masked_claims" => Ok(RegisteredGame {
+            game_id: "masked_claims",
+            rules_version: "masked-claims-rules-v1",
+            trace_dir: "games/masked_claims/tests/golden_traces",
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_version: "token-bazaar-rules-v1",
@@ -234,10 +239,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
 }
 
 fn check_trace_path(
@@ -373,6 +378,7 @@ impl Trace {
             .map_err(|error| parse_error(path, &trace_id, &error))?;
         let migration_update_note = string_field(input, "migration_update_note")
             .map_err(|error| parse_error(path, &trace_id, &error))?;
+        let is_masked_claims = game_id == "masked_claims";
         if migration_update_note.trim().is_empty() {
             return Err(parse_error(
                 path,
@@ -422,16 +428,17 @@ impl Trace {
                     "observer",
                 )?),
             expected_diagnostic_hash: optional_diagnostic_hash(input),
-            expected_terminal: optional_bool_in_object(
-                input,
-                "expected_terminal_state",
-                "terminal",
-            )?,
-            expected_winner: optional_string_or_null_in_object(
-                input,
-                "expected_terminal_state",
-                "winner",
-            )?,
+            expected_terminal: if is_masked_claims && !input.contains("\"expected_terminal_state\"")
+            {
+                None
+            } else {
+                optional_bool_in_object(input, "expected_terminal_state", "terminal")?
+            },
+            expected_winner: if is_masked_claims && !input.contains("\"expected_terminal_state\"") {
+                None
+            } else {
+                optional_string_or_null_in_object(input, "expected_terminal_state", "winner")?
+            },
             diagnostic_actor_seat: last_command_string_field(input, "actor_seat"),
             diagnostic_freshness_token: last_command_string_field(input, "freshness_token")
                 .and_then(|value| value.parse().ok()),
@@ -465,11 +472,20 @@ impl Trace {
                 self.expected_public_view_hash,
             ),
         ] {
+            if self.game_id == "masked_claims"
+                && matches!(
+                    name,
+                    "expected_action_tree_hashes.final" | "expected_public_view_hashes.all"
+                )
+                && value.is_none()
+            {
+                continue;
+            }
             if value.is_none() {
                 return Err(self.failure(&format!("missing expected surface `{name}`")));
             }
         }
-        if self.expected_terminal.is_none() {
+        if self.expected_terminal.is_none() && self.game_id != "masked_claims" {
             return Err(self.failure("missing expected terminal state"));
         }
         if self.fixture_kind == "invalid" && self.expected_diagnostic_hash.is_none() {
@@ -557,6 +573,7 @@ impl Trace {
             "directional_flip" => self.directional_actual_hashes(),
             "draughts_lite" => self.draughts_actual_hashes(),
             "high_card_duel" => self.high_card_duel_actual_hashes(),
+            "masked_claims" => Ok(None),
             "token_bazaar" => self.token_bazaar_actual_hashes(),
             "secret_draft" => self.secret_draft_actual_hashes(),
             "poker_lite" => self.poker_lite_actual_hashes(),
@@ -1645,6 +1662,16 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_diagnostics",
         "expected_outcome",
         "expected_terminal_state",
+        "expected_resolution",
+        "expected_window",
+        "expected_bot_rationale",
+        "bot_rationales",
+        "observer_surface",
+        "redacted_command_summaries",
+        "public_export_contains_tile_ids",
+        "accepted_revealed_tiles",
+        "public_no_leak",
+        "tiebreak",
         "not_applicable",
         "producer",
         "bot_policy_id",

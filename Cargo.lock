@@ -52,6 +52,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "high_card_duel",
+ "masked_claims",
  "plain_tricks",
  "poker_lite",
  "race_to_n",
@@ -74,6 +75,14 @@ dependencies = [
  "ai-core",
  "engine-core",
  "game-stdlib",
+]
+
+[[package]]
+name = "masked_claims"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
 ]
 
 [[package]]
@@ -110,6 +119,7 @@ dependencies = [
  "engine-core",
  "game-stdlib",
  "high_card_duel",
+ "masked_claims",
  "plain_tricks",
  "poker_lite",
  "race_to_n",
@@ -148,6 +158,7 @@ dependencies = [
  "draughts_lite",
  "engine-core",
  "high_card_duel",
+ "masked_claims",
  "plain_tricks",
  "poker_lite",
  "race_to_n",
@@ -192,6 +203,7 @@ dependencies = [
  "draughts_lite",
  "engine-core",
  "high_card_duel",
+ "masked_claims",
  "plain_tricks",
  "poker_lite",
  "race_to_n",

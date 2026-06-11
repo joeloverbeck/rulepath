@@ -165,8 +165,11 @@ Use this phase only when the user asks to implement audit findings.
 6. **Verify the skill.** Re-read or grep changed regions and confirm:
    frontmatter is still valid, numbering and sections are coherent, referenced
    files exist, and related text is not stale.
-7. **Cross-skill scan.** List current sibling skills with
-   `find .agents/skills -maxdepth 2 -name SKILL.md -print`. If an edit changes shared terminology,
+7. **Cross-skill scan.** List current sibling skills across all skill roots with
+   `find .agents/skills .claude/skills -maxdepth 2 -name SKILL.md -print`. When the
+   target itself has a twin/port under another root, record an explicit per-edit
+   propagate-or-diverge decision for the twin — never an automatic cascade, since
+   ports differ by design. If an edit changes shared terminology,
    conventions, prompt forms, output paths, or workflow ordering, grep siblings
    for the affected tokens and repair inconsistencies when in scope.
 8. **Summarize per finding.** Report each finding as `implemented`,

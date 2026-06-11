@@ -1,13 +1,15 @@
 ---
 name: ticket-series
-description: Use for Rulepath goals that implement a glob or series of tickets in dependency order from tickets/ with a referenced spec in specs/, including foundation-doc loading, one-ticket-at-a-time implementation, acceptance verification, per-ticket archival and commits, final spec archival, and repository truthing.
+description: Use for Rulepath goals that implement a glob or series of tickets in dependency order from tickets/ with a referenced spec in specs/ or another reference artifact, including foundation-doc loading, one-ticket-at-a-time implementation, acceptance verification, per-ticket archival and commits, final reference closeout, and repository truthing.
 ---
 
 # Ticket Series
 
 Use this skill when the user asks to implement a Rulepath ticket series such as
 `tickets/GATEPREFIX-*` with a reference spec such as `specs/gate-*`, especially
-inside a `/goal`.
+inside a `/goal`. Some maintenance series are ticket-only or are rooted in a
+non-spec reference artifact such as a triage note, plan, or task document; close
+that reference artifact instead of forcing a spec workflow.
 
 Rulepath is Rust-first. Rust owns game behavior; TypeScript/React presents
 Rust/WASM output only. Keep every ticket inside the boundaries in the live
@@ -16,7 +18,8 @@ foundation docs.
 ## Inputs
 
 - Ticket selector: usually a glob under `tickets/`.
-- Reference spec selector: usually a glob under `specs/`.
+- Reference selector: usually a glob under `specs/`, but sometimes a triage,
+  task, plan, or other document that created the ticket family.
 - Any explicit sequencing, verification, commit, or archival constraints from
   the prompt.
 
@@ -27,7 +30,7 @@ families plausibly match.
 ## Startup
 
 1. Read the live checkout first. Do not rely on memory or prior runs for current
-   ticket/spec state.
+   ticket/reference state.
 2. Check `git status --short` before editing. Preserve unrelated user changes.
 3. Read the always-required Rulepath orientation and workflow docs:
    - `AGENTS.md`
@@ -37,9 +40,12 @@ families plausibly match.
    - `docs/archival-workflow.md`
    - `specs/README.md`
    - `tickets/README.md`
-4. Resolve the ticket and spec selectors to concrete paths.
-5. Read the resolved spec and tickets. Determine dependency order from explicit
-   dependency sections, numbering, ticket prose, and spec sequencing.
+4. Resolve the ticket selector and any reference selector to concrete paths.
+   If there is no active spec, identify whether a triage, task, plan, or
+   ticket-only series is the authoritative reference. Do not invent a spec.
+5. Read the resolved reference artifact and tickets. Determine dependency order
+   from explicit dependency sections, numbering, ticket prose, and reference
+   sequencing.
 6. Load targeted foundation docs from `docs/` for the surfaces the tickets touch.
    Use `docs/README.md` as the routing index. At minimum:
    - `docs/ARCHITECTURE.md` for crate ownership, dependency direction, action
@@ -53,17 +59,20 @@ families plausibly match.
    - `docs/AI-BOTS.md` for bot policy, bot explanations, determinism, hidden
      information, candidate ranking, or strategy evidence.
    - `docs/UI-INTERACTION.md` for web presentation, legal-only controls,
-     preview UX, semantic-effect animation, replay UI, accessibility, or
-     browser no-leak work.
+     preview UX, semantic-effect animation, replay UI, accessibility, browser
+     no-leak work, outcome surfaces, or status/live-region behavior.
    - `docs/TESTING-REPLAY-BENCHMARKING.md` and `docs/TRACE-SCHEMA-v1.md` for
      tests, golden traces, replay, hashes, fixtures, simulations, no-leak proof,
-     benchmarks, or CI evidence.
-   - `docs/WASM-CLIENT-BOUNDARY.md` for Rust/WASM/browser API contracts.
+     benchmarks, CI evidence, browser smoke, e2e harness, or proof-lane changes
+     even when no Rust behavior changes.
+   - `docs/WASM-CLIENT-BOUNDARY.md` for Rust/WASM/browser API contracts, raw
+     WASM payload shape, client bridge, or web smoke changes that depend on the
+     built WASM artifact.
    - `docs/IP-POLICY.md` and `docs/SOURCES.md` for public rules prose, source
      notes, naming, assets, or private/licensed content risk.
-   - relevant `docs/adr/*.md` files when the ticket/spec invokes an accepted
-     ADR or trips an ADR trigger in `docs/FOUNDATIONS.md`.
-7. If the ticket/spec conflicts with a foundation doc, the foundation doc wins.
+   - relevant `docs/adr/*.md` files when the ticket/reference invokes an
+     accepted ADR or trips an ADR trigger in `docs/FOUNDATIONS.md`.
+7. If the ticket/reference conflicts with a foundation doc, the foundation doc wins.
    Stop and reassess when a `docs/FOUNDATIONS.md` stop condition appears.
 
 ## Per-Ticket Loop
@@ -74,8 +83,8 @@ For each ticket:
 
 1. Reassess assumptions against current code, docs, templates, specs, and crate
    ownership. Apply `tickets/README.md` pre-implementation checks.
-2. If the ticket/spec diverges from current truth, update the ticket/spec first
-   before implementation. Commit material ticket/spec correction separately when
+2. If the ticket/reference diverges from current truth, update it first before
+   implementation. Commit material ticket/reference correction separately when
    it changes scope or acceptance.
 3. Identify the narrow implementation surface and exact acceptance criteria.
 4. Make the minimal code/doc/test changes that satisfy the ticket while
@@ -106,6 +115,9 @@ For each ticket:
    - Use `git mv` for tracked tickets.
    - Use plain `mv` only for untracked tickets.
    - Confirm the original `tickets/` path is gone.
+   - Stage archived renames with path-scoped staging such as
+     `git add -A tickets archive/tickets`; after `git mv`, do not rely on
+     adding the removed source path directly.
 8. Sweep active specs, tickets, docs, indexes, README tables, and scripts for
    stale live ticket paths. Update references that should now point to
    `archive/tickets/`.
@@ -116,13 +128,14 @@ For each ticket:
 Do not advance to the next ticket on plausible implementation alone. Acceptance
 criteria must pass, or the ticket must be explicitly blocked with evidence.
 
-## Final Spec Closeout
+## Final Reference Closeout
 
 After all tickets in the series are complete:
 
-1. Re-read the reference spec and verify every work item and exit criterion is
-   done, explicitly rejected, deferred, not implemented, or not applicable.
-2. Run the relevant final gates. Choose based on the spec and touched surfaces.
+1. Re-read the reference artifact and verify every work item and exit criterion
+   is done, explicitly rejected, deferred, not implemented, or not applicable.
+2. Run the relevant final gates. Choose based on the reference artifact and
+   touched surfaces.
    Common Rulepath gates include:
 
 ```sh
@@ -144,23 +157,34 @@ npm --prefix apps/web run smoke:ui
 npm --prefix apps/web run smoke:e2e
 ```
 
-3. Update the spec following `docs/archival-workflow.md`:
+If a browser smoke fails before assertions because the environment cannot bind
+its local `127.0.0.1` server, for example `listen EPERM`, rerun through the
+approved escalation path for localhost binding and record both the sandbox
+failure and successful rerun. Treat assertion failures as real test failures.
+
+3. Update the reference artifact following `docs/archival-workflow.md`:
    - mark final status at the top (`COMPLETED`, `REJECTED`, `DEFERRED`, or
      `NOT IMPLEMENTED`, with emoji variants allowed by the workflow);
-   - add a bottom `Outcome` section for completed specs;
+   - add a bottom `Outcome` section for completed specs or reference docs;
    - include completion date, what changed, deviations from the plan, and
      verification results.
-4. Archive the spec to `archive/specs/`, using `git mv` when tracked.
+4. Archive the reference artifact, using `git mv` when tracked:
+   - specs to `archive/specs/`;
+   - triage notes from `docs/triage/` to `archive/triage/`;
+   - task docs to `archive/tasks/`;
+   - plans to `archive/plans/`.
+   If the series is ticket-only and has no reference artifact, state that and
+   skip this archive step.
 5. Repair active references and progress surfaces, especially `specs/README.md`
-   and any active tickets, docs, app README tables, catalog/smoke lists, or
-   scripts that referenced the live spec path.
-6. Assert the archived spec is truthy before goal completion:
-   - read or grep the archived spec and confirm final status and `Outcome`;
-   - confirm the original active spec path is gone;
+   when a spec was closed, and any active tickets, docs, app README tables,
+   catalog/smoke lists, or scripts that referenced the live reference path.
+6. Assert the archived reference is truthy before goal completion:
+   - read or grep the archived artifact and confirm final status and `Outcome`;
+   - confirm the original active reference path is gone;
    - confirm active references point to the archive path when they should.
-7. Run a final status/diff check and commit the spec archive/truthing work.
+7. Run a final status/diff check and commit the reference archive/truthing work.
 8. If a `/goal` is active, mark it complete only after implementation,
-   verification, ticket archives, spec archive, reference repair, and required
+   verification, ticket archives, reference archive, reference repair, and required
    commits are done.
 
 ## Completion Audit
@@ -168,15 +192,15 @@ npm --prefix apps/web run smoke:e2e
 Before reporting done or marking a `/goal` complete, prove the final state from
 the live checkout:
 
-- Active ticket/spec globs are empty, or any remaining active files are
+- Active ticket/reference globs are empty, or any remaining active files are
   intentionally out of scope and explained.
 - `archive/tickets/` contains every expected ticket in the series; each archived
   ticket has final status and an `Outcome` or a clear non-completed disposition.
-- `archive/specs/` contains the reference spec when the series closes it; the
-  archived spec has final status and an `Outcome`.
+- The appropriate archive directory contains the reference artifact when the
+  series closes one; the archived artifact has final status and an `Outcome`.
 - `specs/README.md`, progress surfaces, README/catalog surfaces, docs, scripts,
-  and active tickets/specs no longer point at stale live paths.
-- Required verification commands were actually run and match the ticket/spec
+  and active tickets/reference artifacts no longer point at stale live paths.
+- Required verification commands were actually run and match the ticket/reference
   scope; skipped checks are named with reasons.
 - The final diff/status excludes unrelated user changes, and required commits
   are present.
@@ -186,7 +210,7 @@ the live checkout:
 Final responses must include:
 
 - Tickets completed and archived.
-- Spec archived or reason it remains active.
+- Reference artifact archived, or reason no spec/reference artifact was closed.
 - Verification commands actually run.
 - Any checks not run and why.
 - Any unrelated pre-existing changes left untouched.

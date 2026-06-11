@@ -81,6 +81,72 @@ assert(
   ),
   "list_games includes plain_tricks standard hidden-information variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "masked_claims" &&
+      game.variants.includes("masked_claims_standard") &&
+      game.hidden_information === true &&
+      game.tags.includes("reaction_window"),
+  ),
+  "list_games includes masked_claims standard hidden-information variant",
+);
+
+const maskedCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 11n),
+  ["masked_claims"],
+);
+assert(maskedCreated.variant_id === "masked_claims_standard", "masked_claims starts standard variant");
+const maskedObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [maskedCreated.match_id],
+);
+assert(maskedObserver.game_id === "masked_claims", "masked_claims observer view is game-specific");
+assert(maskedObserver.private_view.status === "observer", "masked_claims observer view is public");
+assert(JSON.stringify(maskedObserver).includes("mask_g") === false, "masked_claims observer hides hand and reserve ids");
+const maskedSeat0 = invoke(
+  (args) => wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [maskedCreated.match_id, "seat_0"],
+);
+assert(maskedSeat0.private_view.own_hand.length > 0, "masked_claims seat view includes own hand");
+const maskedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [maskedCreated.match_id, "seat_0"],
+);
+const claimChoice = maskedTree.choices.find((choice) => choice.segment === "claim");
+assert(claimChoice?.next?.choices?.length > 0, "masked_claims claim tree exposes own mask choices");
+const maskChoice = claimChoice.next.choices[0];
+const declaredChoice = maskChoice.next.choices.find((choice) => choice.segment === "5") ?? maskChoice.next.choices[0];
+const maskedClaimPath = `claim>${maskChoice.segment}>${declaredChoice.segment}`;
+const maskedAfterClaim = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(maskedTree.freshness_token),
+    ),
+  [maskedCreated.match_id, "seat_0", maskedClaimPath],
+);
+assert(maskedAfterClaim.view.phase.includes("reaction"), "masked_claims claim opens reaction window");
+assert(JSON.stringify(maskedAfterClaim.view).includes(maskChoice.segment) === false, "masked_claims pending pedestal is redacted");
+const maskedBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 44n),
+  [maskedCreated.match_id, "seat_1"],
+);
+assert(maskedBot.policy_id === "masked-claims-level1-v1", "masked_claims bot reports policy id");
+assert(JSON.stringify(maskedBot).includes("reserve") === false, "masked_claims bot payload omits reserve references");
+const maskedExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [maskedCreated.match_id],
+);
+assert(maskedExport.game_id === "masked_claims", "masked_claims export is game-specific");
+assert(JSON.stringify(maskedExport).includes("claim/mask_g") === false, "masked_claims export redacts claim tile path");
 
 const created = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 1n),
