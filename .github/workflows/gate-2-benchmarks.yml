@@ -44,6 +44,9 @@ jobs:
       - name: masked_claims bench smoke
         run: cargo bench -p masked_claims -- legal_actions
 
+      - name: flood_watch bench smoke
+        run: cargo bench -p flood_watch -- legal_actions
+
       - name: token_bazaar bench smoke
         run: cargo bench -p token_bazaar -- legal_actions
 
@@ -101,6 +104,11 @@ jobs:
 
           cargo bench -p masked_claims | tee /tmp/masked_claims-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/masked_claims-benchmark-report.txt --thresholds games/masked_claims/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p flood_watch | tee /tmp/flood_watch-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/flood_watch-benchmark-report.txt --thresholds games/flood_watch/benches/thresholds.json; then
             failed=1
           fi
 

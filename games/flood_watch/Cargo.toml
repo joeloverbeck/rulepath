@@ -12,3 +12,8 @@ engine-core = { path = "../../crates/engine-core" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "flood_watch"
+path = "benches/flood_watch.rs"
+harness = false

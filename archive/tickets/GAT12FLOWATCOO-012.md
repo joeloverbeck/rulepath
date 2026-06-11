@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-012: Benchmarks, thresholds, BENCHMARKS.md, and gate-2 CI
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch/benches/flood_watch.rs`, `benches/thresholds.json`, `games/flood_watch/docs/BENCHMARKS.md`; `tools/bench-report/src/main.rs` (modify — register game); `.github/workflows/gate-2-benchmarks.yml` (modify — add bench smoke step)
@@ -84,3 +84,22 @@ Add the `flood_watch` arm to `tools/bench-report/src/main.rs` `resolve_game()` (
 1. `cargo bench -p flood_watch -- legal_actions` (smoke subset)
 2. `cargo bench -p flood_watch | tee /tmp/flood_watch-bench.txt && cargo run -p bench-report -- --input /tmp/flood_watch-bench.txt --thresholds games/flood_watch/benches/thresholds.json`
 3. The narrower bench-filter smoke is the correct PR boundary (full calibration is a named non-blocking follow-up per ADR 0002/0003/0005).
+
+## Outcome
+
+Accepted on 2026-06-11. Added the Flood Watch native benchmark harness,
+non-blocking smoke-floor thresholds, `BENCHMARKS.md`, `bench-report`
+registration, and gate-2 benchmark workflow entries. The harness covers all
+ten required operations, including environment automation, public export,
+terminal hashing, Level 1 bot decisions, and a legal cooperative playout. The
+threshold posture is `baseline_pending_non_blocking` pending variance-aware
+calibration under ADR 0002/0003/0005.
+
+Verification:
+
+1. `cargo bench -p flood_watch -- legal_actions`
+2. `cargo bench -p flood_watch > /tmp/flood_watch-bench-full.txt`
+3. `cargo run -p bench-report -- --input /tmp/flood_watch-bench-full.txt --thresholds games/flood_watch/benches/thresholds.json`
+4. `cargo run -p bench-report -- --game flood_watch --input /tmp/flood_watch-bench-full.txt`
+5. `cargo fmt --all --check`
+6. `cargo clippy -p flood_watch --all-targets -- -D warnings`
