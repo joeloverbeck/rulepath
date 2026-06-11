@@ -182,6 +182,15 @@ impl FloodWatchState {
         self.event_deck.first()
     }
 
+    pub fn draw_next_event(&mut self) -> Option<EventCard> {
+        if self.event_deck.is_empty() {
+            return None;
+        }
+        let card = self.event_deck.remove(0);
+        self.drawn.push(card.clone());
+        Some(card)
+    }
+
     pub fn undrawn_deck_len(&self) -> usize {
         self.event_deck.len()
     }
@@ -205,6 +214,20 @@ impl FloodWatchState {
     pub fn active_role(&self) -> Option<FloodWatchRole> {
         self.seat_index(&self.active_seat)
             .map(|index| self.roles[index])
+    }
+
+    pub fn advance_to_next_turn(&mut self) {
+        let next_index = match self.seat_index(&self.active_seat) {
+            Some(0) => 1,
+            Some(_) => 0,
+            None => 0,
+        };
+        self.turn_number = self.turn_number.saturating_add(1);
+        self.active_seat = self.seats[next_index].clone();
+        self.phase = Phase::Action {
+            budget_remaining: self.variant.action_budget,
+        };
+        self.forecast = None;
     }
 
     pub fn remaining_composition(&self) -> StableComposition {

@@ -17,6 +17,7 @@ pub use actions::{
     role_reinforce_amount, validate_command, FloodWatchAction, ValidatedAction, ACTION_BAIL,
     ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE,
 };
+pub use effects::{public_effect, FloodWatchEffect, FloodWatchEffectEnvelope};
 pub use ids::{
     DistrictId, EventKind, FloodWatchRole, GAME_ID, RULES_VERSION_LABEL, STANDARD_ACTION_BUDGET,
     STANDARD_DECK_SIZE, STANDARD_DISTRICT_COUNT, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP,

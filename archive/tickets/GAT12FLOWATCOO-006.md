@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-006: Environment automation and event resolution
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/flood_watch/src/rules.rs` (environment phase inside the turn-ending command's application), `src/effects.rs` (grouped semantic automation effects)
@@ -78,3 +78,22 @@ Define the environment-phase semantic effects with public payloads per the spec'
 1. `cargo test -p flood_watch --test rules`
 2. `cargo test -p flood_watch`
 3. `cargo run -p replay-check -- --game flood_watch --all` is the eventual golden-trace boundary but needs the traces (GAT12FLOWATCOO-011) and tool registration (GAT12FLOWATCOO-015); the rule + replay unit tests are the correct boundary for this diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Implemented deterministic environment automation
+inside the turn-ending command application, with no synthetic actor and no
+seat-actionable environment phase. The resolver draws from the hidden event
+deck, emits public semantic effects in deterministic order, resolves levee
+absorption before flood-level rise, stops immediately on inundation, emits
+deck-exhaustion effects, and advances to the next action turn only when no
+terminal boundary is reached. Effect payloads reveal drawn cards only.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test rules`
+3. `cargo test -p flood_watch --test property`
+4. `cargo test -p flood_watch --test replay`
+5. `cargo clippy -p flood_watch --all-targets -- -D warnings`
+6. `cargo test -p flood_watch`

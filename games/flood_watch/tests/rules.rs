@@ -1,9 +1,9 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use flood_watch::{
-    apply_command, legal_action_metadata, legal_action_tree, setup_match, DistrictId,
-    FloodWatchRole, Phase, ScenarioVariant, SetupOptions, ACTION_END_TURN, ACTION_FORECAST,
-    ACTION_REINFORCE, STANDARD_ACTION_BUDGET, STANDARD_DECK_SIZE, STANDARD_DRAWS_PER_PHASE,
-    STANDARD_LEVEE_CAP, STANDARD_MAX_FLOOD_LEVEL,
+    apply_command, legal_action_metadata, legal_action_tree, setup_match, DistrictId, EventCard,
+    EventKind, FloodWatchEffect, FloodWatchRole, FloodWatchState, Phase, ScenarioVariant,
+    SetupOptions, ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE, STANDARD_ACTION_BUDGET,
+    STANDARD_DECK_SIZE, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP, STANDARD_MAX_FLOOD_LEVEL,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -29,6 +29,14 @@ fn command(
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn card(kind: EventKind, copy_index: u8) -> EventCard {
+    EventCard { kind, copy_index }
+}
+
+fn state_with_deck(deck: Vec<EventCard>) -> FloodWatchState {
+    FloodWatchState::new_after_setup(ScenarioVariant::standard(), seats(), deck)
 }
 
 #[test]
@@ -213,32 +221,57 @@ fn forecast_reveals_top_card_without_drawing_and_then_becomes_unavailable() {
 }
 
 #[test]
-fn final_budget_action_and_end_turn_mark_environment_pending() {
-    let mut state = setup_match(Seed(3), &seats(), &SetupOptions::default()).unwrap();
+fn final_budget_action_and_end_turn_resolve_environment_atomically() {
+    let mut state = state_with_deck(vec![
+        card(EventKind::Reprieve, 1),
+        card(EventKind::Reprieve, 2),
+        card(EventKind::Reprieve, 3),
+    ]);
     state.phase = Phase::Action {
         budget_remaining: 1,
     };
 
     let cmd = command(&state, "seat_0", vec!["reinforce", "district_market"]);
     let applied = apply_command(&mut state, &cmd).unwrap();
-    assert!(applied.environment_pending);
+    assert!(!applied.environment_pending);
+    assert!(matches!(
+        applied.effects.first().map(|effect| &effect.payload),
+        Some(FloodWatchEffect::LeveePlaced {
+            district: DistrictId::Market,
+            amount: 1
+        })
+    ));
+    assert_eq!(
+        applied.effects.get(1).map(|effect| &effect.payload),
+        Some(&FloodWatchEffect::EnvironmentPhaseBegan { turn: 1, draws: 2 })
+    );
     assert_eq!(
         state.phase,
         Phase::Action {
-            budget_remaining: 0
+            budget_remaining: STANDARD_ACTION_BUDGET
         }
     );
+    assert_eq!(state.active_seat, SeatId("seat_1".to_owned()));
 
-    let mut state = setup_match(Seed(3), &seats(), &SetupOptions::default()).unwrap();
+    let mut state = state_with_deck(vec![
+        card(EventKind::Reprieve, 1),
+        card(EventKind::Reprieve, 2),
+        card(EventKind::Reprieve, 3),
+    ]);
     let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
     let applied = apply_command(&mut state, &cmd).unwrap();
-    assert!(applied.environment_pending);
+    assert!(!applied.environment_pending);
+    assert_eq!(
+        applied.effects.first().map(|effect| &effect.payload),
+        Some(&FloodWatchEffect::EnvironmentPhaseBegan { turn: 1, draws: 2 })
+    );
     assert_eq!(
         state.phase,
         Phase::Action {
-            budget_remaining: 0
+            budget_remaining: STANDARD_ACTION_BUDGET
         }
     );
+    assert_eq!(state.active_seat, SeatId("seat_1".to_owned()));
 }
 
 #[test]
@@ -305,4 +338,196 @@ fn diagnostics_are_fail_closed_and_deck_safe() {
         .code,
         "out_of_budget"
     );
+}
+
+#[test]
+fn environment_absorbs_levees_before_flood_rises() {
+    let mut state = state_with_deck(vec![
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Riverside,
+            },
+            1,
+        ),
+        card(EventKind::Reprieve, 1),
+        card(EventKind::Reprieve, 2),
+    ]);
+    state.district_mut(DistrictId::Riverside).unwrap().levees = 1;
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+    let payloads = applied
+        .effects
+        .iter()
+        .map(|effect| &effect.payload)
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        payloads[..5],
+        [
+            &FloodWatchEffect::EnvironmentPhaseBegan { turn: 1, draws: 2 },
+            &FloodWatchEffect::EventDrawn {
+                index: 1,
+                card: EventKind::StormSurge {
+                    district: DistrictId::Riverside
+                }
+            },
+            &FloodWatchEffect::LeveeAbsorbed {
+                district: DistrictId::Riverside,
+                amount: 1,
+                remaining_levees: 0
+            },
+            &FloodWatchEffect::FloodLevelRose {
+                district: DistrictId::Riverside,
+                amount: 1,
+                new_level: 1
+            },
+            &FloodWatchEffect::EventDrawn {
+                index: 2,
+                card: EventKind::Reprieve
+            },
+        ]
+    );
+    let riverside = state.district(DistrictId::Riverside).unwrap();
+    assert_eq!(riverside.levees, 0);
+    assert_eq!(riverside.flood_level, 1);
+}
+
+#[test]
+fn storm_surge_can_raise_two_levels_without_levees() {
+    let mut state = state_with_deck(vec![
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Market,
+            },
+            1,
+        ),
+        card(EventKind::Reprieve, 1),
+        card(EventKind::Reprieve, 2),
+    ]);
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+
+    assert!(applied.effects.iter().any(|effect| {
+        effect.payload
+            == FloodWatchEffect::FloodLevelRose {
+                district: DistrictId::Market,
+                amount: 2,
+                new_level: 2,
+            }
+    }));
+    assert_eq!(state.district(DistrictId::Market).unwrap().flood_level, 2);
+}
+
+#[test]
+fn reprieve_draws_without_changing_districts() {
+    let mut state = state_with_deck(vec![
+        card(EventKind::Reprieve, 1),
+        card(EventKind::Reprieve, 2),
+        card(
+            EventKind::Downpour {
+                district: DistrictId::Gardens,
+            },
+            1,
+        ),
+    ]);
+    let before = state.districts.clone();
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+
+    assert_eq!(state.districts, before);
+    assert_eq!(state.drawn.len(), 2);
+    assert!(applied
+        .effects
+        .iter()
+        .all(|effect| !matches!(effect.payload, FloodWatchEffect::LeveeAbsorbed { .. })));
+    assert!(applied
+        .effects
+        .iter()
+        .all(|effect| !matches!(effect.payload, FloodWatchEffect::FloodLevelRose { .. })));
+}
+
+#[test]
+fn inundation_stops_environment_before_remaining_draws() {
+    let mut state = state_with_deck(vec![
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Terraces,
+            },
+            1,
+        ),
+        card(
+            EventKind::Downpour {
+                district: DistrictId::Market,
+            },
+            1,
+        ),
+        card(EventKind::Reprieve, 1),
+    ]);
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+
+    assert_eq!(state.drawn.len(), 1);
+    assert_eq!(state.undrawn_deck_len(), 2);
+    assert!(applied.effects.iter().any(|effect| {
+        effect.payload
+            == FloodWatchEffect::DistrictInundated {
+                district: DistrictId::Terraces,
+            }
+    }));
+    assert_eq!(
+        applied
+            .effects
+            .iter()
+            .filter(|effect| matches!(effect.payload, FloodWatchEffect::EventDrawn { .. }))
+            .count(),
+        1
+    );
+    assert_eq!(
+        state.phase,
+        Phase::Action {
+            budget_remaining: 0
+        }
+    );
+}
+
+#[test]
+fn deck_exhaustion_effect_emits_without_undrawn_order_leak() {
+    let mut state = state_with_deck(vec![
+        card(EventKind::Reprieve, 1),
+        card(
+            EventKind::Downpour {
+                district: DistrictId::Market,
+            },
+            1,
+        ),
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Gardens,
+            },
+            1,
+        ),
+    ]);
+
+    let cmd = command(&state, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut state, &cmd).unwrap();
+    let rendered = format!("{:?}", applied.effects);
+
+    assert!(rendered.contains("downpour/district_market") || rendered.contains("Market"));
+    assert!(!rendered.contains("storm_surge/district_gardens"));
+    assert!(!applied
+        .effects
+        .iter()
+        .any(|effect| matches!(effect.payload, FloodWatchEffect::DeckExhausted)));
+
+    let mut exhausted = state_with_deck(vec![card(EventKind::Reprieve, 1)]);
+    let cmd = command(&exhausted, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut exhausted, &cmd).unwrap();
+    assert!(applied
+        .effects
+        .iter()
+        .any(|effect| matches!(effect.payload, FloodWatchEffect::DeckExhausted)));
 }
