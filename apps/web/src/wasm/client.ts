@@ -73,6 +73,7 @@ export type GameCatalogEntry = {
   variants?: string[];
   viewer_modes?: ViewerModeId[];
   hidden_information?: boolean;
+  cooperative?: boolean;
   tags?: string[];
 };
 
@@ -802,6 +803,67 @@ export type MaskedClaimsPublicView = {
   };
 };
 
+export type FloodWatchOutcomeRationale = OutcomeRationalePayload;
+
+export type FloodWatchRoleView = {
+  seat: SeatId;
+  role: string;
+  label: string;
+};
+
+export type FloodWatchPhaseView =
+  | { kind: "action"; budget_remaining: number }
+  | { kind: "terminal"; budget_remaining: 0 };
+
+export type FloodWatchDistrictView = {
+  district: string;
+  label: string;
+  flood_level: number;
+  levees: number;
+};
+
+export type FloodWatchRemainingComposition = {
+  downpours_per_district: Array<{ district: string; count: number }>;
+  surges_per_district: Array<{ district: string; count: number }>;
+  reprieves: number;
+};
+
+export type FloodWatchTerminalSummary = {
+  rule_id: string;
+  public_summary: string;
+  drawn_card_count: number;
+  surviving_levels: Array<{ district: string; count: number }>;
+};
+
+export type FloodWatchTerminalView =
+  | { kind: "non_terminal"; outcome: null; summary: null }
+  | { kind: "complete"; outcome: "won" | "lost" | string; summary: FloodWatchTerminalSummary };
+
+export type FloodWatchPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "flood_watch";
+  display_name: "Flood Watch";
+  variant_id: "flood_watch_standard" | "flood_watch_deluge" | string;
+  rules_version_label: "flood-watch-rules-v1" | string;
+  seats: SeatId[];
+  roles: FloodWatchRoleView[];
+  turn_number: number;
+  active_seat: SeatId;
+  phase: FloodWatchPhaseView;
+  districts: FloodWatchDistrictView[];
+  drawn_cards: string[];
+  forecast: string | null;
+  remaining_composition: FloodWatchRemainingComposition;
+  undrawn_count: number;
+  terminal: FloodWatchTerminalView;
+  terminal_rationale?: FloodWatchOutcomeRationale | null;
+  freshness_token: number;
+  ui: {
+    display_name: "Flood Watch" | string;
+  };
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -813,7 +875,8 @@ export type PublicView =
   | SecretDraftPublicView
   | PokerLitePublicView
   | PlainTricksPublicView
-  | MaskedClaimsPublicView;
+  | MaskedClaimsPublicView
+  | FloodWatchPublicView;
 
 export type ActionChoice = {
   segment: string;

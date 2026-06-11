@@ -81,6 +81,13 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             benchmarks_path: "games/masked_claims/docs/BENCHMARKS.md",
             benchmarks_required: true,
         }),
+        "flood_watch" => Ok(RegisteredGame {
+            game_id: "flood_watch",
+            rules_path: "games/flood_watch/docs/RULES.md",
+            coverage_path: "games/flood_watch/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/flood_watch/docs/BENCHMARKS.md",
+            benchmarks_required: true,
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_path: "games/token_bazaar/docs/RULES.md",
@@ -137,7 +144,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks>"
                     );
                     process::exit(0);
                 }
@@ -249,7 +256,7 @@ fn is_rule_id(value: &str) -> bool {
     parts.len() == 3
         && matches!(
             parts[0],
-            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD" | "CL" | "PT" | "MC"
+            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD" | "CL" | "PT" | "MC" | "FW"
         )
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())

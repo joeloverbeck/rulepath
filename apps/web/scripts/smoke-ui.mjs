@@ -167,6 +167,16 @@ assert(
   ),
   "Rust catalog includes masked_claims standard variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "flood_watch" &&
+      game.variants.includes("flood_watch_standard") &&
+      game.hidden_information === true &&
+      game.cooperative === true,
+  ),
+  "Rust catalog includes cooperative hidden-info flood_watch standard variant",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
@@ -375,6 +385,14 @@ const maskedAfterResponse = invoke(
   [maskedClaims.match_id, "seat_1", maskedResponse.segment],
 );
 assert(maskedAfterResponse.effects.length > 0, "masked_claims response emits effects");
+assert(
+  maskedAfterResponse.effects.some((effect) => effect.payload.type === "claim_score_changed"),
+  "masked_claims score changes use a claim-specific effect discriminator",
+);
+assert(
+  maskedAfterResponse.effects.some((effect) => effect.payload.type === "claim_turn_advanced"),
+  "masked_claims turn advances use a claim-specific effect discriminator",
+);
 const maskedExport = invoke(
   (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
   [maskedClaims.match_id],
@@ -387,6 +405,77 @@ const maskedImport = invoke(
   [JSON.stringify(maskedExport)],
 );
 assert(maskedImport.public_export === true, "masked_claims public replay imports");
+
+const floodWatch = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 41n),
+  ["flood_watch"],
+);
+assert(floodWatch.match_id, "flood_watch start match returns a match id");
+assert(floodWatch.variant_id === "flood_watch_standard", "flood_watch standard variant starts");
+const floodObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [floodWatch.match_id],
+);
+assert(floodObserver.game_id === "flood_watch", "flood_watch Rust view is returned");
+assert(floodObserver.variant_id === "flood_watch_standard", "flood_watch Rust view reports selected variant");
+assert(floodObserver.remaining_composition.reprieves >= 0, "flood_watch projects public composition counts");
+assert(floodObserver.undrawn_count > 0, "flood_watch projects only undrawn count");
+assert(!JSON.stringify(floodObserver).includes("full_deck_order"), "flood_watch observer view hides full deck order");
+assert(!JSON.stringify(floodObserver).includes("event_deck"), "flood_watch observer view hides event deck");
+const floodTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [floodWatch.match_id, "seat_0", "seat_0"],
+);
+assert(floodTree.choices.some((choice) => choice.segment.startsWith("reinforce/")), "flood_watch exposes reinforce actions");
+assert(floodTree.choices.some((choice) => choice.segment === "forecast"), "flood_watch exposes forecast action");
+const floodAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(floodTree.freshness_token),
+    ),
+  [floodWatch.match_id, "seat_0", "end_turn"],
+);
+assert(floodAfterHuman.view.active_seat === "seat_1", "flood_watch alternates to teammate after storm resolution");
+assert(
+  floodAfterHuman.effects.some((effect) => effect.payload.type === "event_drawn"),
+  "flood_watch emits public storm draw effect",
+);
+assert(!JSON.stringify(floodAfterHuman.view).includes("full_deck_order"), "flood_watch updated view hides full deck order");
+const floodBot = invoke(
+  (args) => wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 410n),
+  [floodWatch.match_id, "seat_1"],
+);
+assert(floodBot.view.game_id === "flood_watch", "flood_watch bot turn returns public view");
+assert(JSON.stringify(floodBot).includes("flood_watch_level1_public_priority_v1"), "flood_watch bot emits public policy id");
+const floodExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [floodWatch.match_id],
+);
+assert(floodExport.game_id === "flood_watch", "flood_watch replay export preserves game id");
+assert(floodExport.viewer === "observer", "flood_watch replay export is observer scoped");
+assert(floodExport.redacted_command_summary || floodExport.steps?.[0]?.redacted_command_summary, "flood_watch replay export redacts commands");
+assert(!("commands" in floodExport), "flood_watch replay export omits raw command stream");
+assert(!JSON.stringify(floodExport).includes("full_deck_order"), "flood_watch replay export hides full deck order");
+assert(!JSON.stringify(floodExport).includes("event_deck"), "flood_watch replay export hides event deck");
+const floodImport = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(floodExport)],
+);
+assert(floodImport.public_export === true, "flood_watch public replay imports");
 
 const hotseat = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 2n),
@@ -450,5 +539,6 @@ console.log(
     token_bazaar_match_id: tokenBazaar.match_id,
     plain_tricks_match_id: plainTricks.match_id,
     masked_claims_match_id: maskedClaims.match_id,
+    flood_watch_match_id: floodWatch.match_id,
   }),
 );

@@ -35,6 +35,7 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Veiled Draft pending/reveal accessibility: pending seat statuses, priority, score, visible pool, drafted collections, and reveal history are exposed as text with non-color cues.
 - Veiled Draft reduced motion: the smoke verifies reduced-motion mode suppresses item/reveal animation while preserving pending/reveal order.
 - Veiled Draft replay accessibility: replay import/reset/step renders the public observer timeline with redacted command summaries rather than raw command paths.
+- Flood Watch cooperative path: the Flood Watch smoke covers forecast reveal, role labels, multi-action budget spending, environment-phase effects, human-vs-bot teammate automation, bot-vs-bot stepping, shared win/loss terminals, replay import/export, reduced motion, and responsive layout.
 
 ## No-Leak Surfaces
 
@@ -61,6 +62,9 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Veiled Draft pending UI: post-commit anchors use seat/round identifiers, and the board shows only committed/waiting state until Rust emits the grouped reveal.
 - Veiled Draft replay export/import: default export is `viewer_scoped_observation_v1`, omits command stream and seed evidence, and replay viewer consumes public effects/redacted command summaries.
 - Veiled Draft bot/effect text: the Human vs bot smoke verifies Rust's automatic bot commitment reaches grouped reveal without candidate ranking, hidden state, private state, or internal debug text.
+- Flood Watch DOM/test IDs/storage/logs: checked by `flood-watch.smoke.mjs`; district test IDs use public district IDs only, storage remains UI-only, and forbidden deck-order/internal-state terms are absent before and after terminal states.
+- Flood Watch replay export/import: public export is observer scoped, includes redacted command summaries, omits raw commands and seed evidence, and never exposes full event-deck order.
+- Flood Watch bot/effect text: browser smoke verifies the public cooperative bot policy id and Rust semantic storm effects without candidate rankings, private state, internal state, or deck-order payloads.
 
 ## Later Hidden-Information Games
 

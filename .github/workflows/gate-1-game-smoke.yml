@@ -48,6 +48,9 @@ jobs:
       - name: masked_claims quick simulation
         run: cargo run -p simulate -- --game masked_claims --games 1000 --action-cap 24
 
+      - name: flood_watch quick simulation
+        run: cargo run -p simulate -- --game flood_watch --games 1000
+
       - name: token_bazaar quick simulation
         run: cargo run -p simulate -- --game token_bazaar --games 1000
 
@@ -80,6 +83,9 @@ jobs:
 
       - name: Masked Claims replay drift check
         run: cargo run -p replay-check -- --game masked_claims --all
+
+      - name: Flood Watch replay drift check
+        run: cargo run -p replay-check -- --game flood_watch --all
 
       - name: Token Bazaar replay drift check
         run: cargo run -p replay-check -- --game token_bazaar --all
@@ -114,6 +120,9 @@ jobs:
       - name: Masked Claims fixture validation
         run: cargo run -p fixture-check -- --game masked_claims
 
+      - name: Flood Watch fixture validation
+        run: cargo run -p fixture-check -- --game flood_watch
+
       - name: Token Bazaar fixture validation
         run: cargo run -p fixture-check -- --game token_bazaar
 
@@ -146,6 +155,9 @@ jobs:
 
       - name: Masked Claims rule coverage drift check
         run: cargo run -p rule-coverage -- --game masked_claims
+
+      - name: Flood Watch rule coverage drift check
+        run: cargo run -p rule-coverage -- --game flood_watch
 
       - name: Token Bazaar rule coverage drift check
         run: cargo run -p rule-coverage -- --game token_bazaar

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mechanic_pattern='board|card|deck|grid|suit|resource|capture|hand|pile|trick|pot|auction|betting|drafting'
+mechanic_pattern='board|card|deck|grid|suit|resource|capture|hand|pile|trick|pot|auction|betting|drafting|role|scenario'
 
 if grep -RniE "${mechanic_pattern}" crates/engine-core/src; then
   echo "engine-core contains mechanic vocabulary" >&2

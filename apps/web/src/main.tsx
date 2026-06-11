@@ -9,6 +9,7 @@ import { DirectionalFlipBoard } from "./components/DirectionalFlipBoard";
 import { DraughtsLiteBoard } from "./components/DraughtsLiteBoard";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
+import { FloodWatchBoard } from "./components/FloodWatchBoard";
 import { GamePicker } from "./components/GamePicker";
 import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup } from "./components/MatchSetup";
@@ -30,6 +31,7 @@ import {
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
+  type FloodWatchPublicView,
   type HighCardDuelPublicView,
   type MaskedClaimsPublicView,
   type PlainTricksPublicView,
@@ -474,6 +476,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
           />
+        ) : isFloodWatchView(view) ? (
+          <FloodWatchBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -494,7 +506,8 @@ function App() {
         isSecretDraftView(view) ||
         isPokerLiteView(view) ||
         isPlainTricksView(view) ||
-        isMaskedClaimsView(view) ? null : (
+        isMaskedClaimsView(view) ||
+        isFloodWatchView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -659,6 +672,10 @@ function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublic
   return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
 }
 
+function isFloodWatchView(view: PublicView | null): view is FloodWatchPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "flood_watch");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -676,6 +693,9 @@ function isTerminalView(view: PublicView): boolean {
     return view.terminal.kind !== "non_terminal";
   }
   if (isMaskedClaimsView(view)) {
+    return view.terminal.kind !== "non_terminal";
+  }
+  if (isFloodWatchView(view)) {
     return view.terminal.kind !== "non_terminal";
   }
   return view.terminal_kind !== "non_terminal";
@@ -758,6 +778,17 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
             ? "draw"
             : `${view.terminal.winner} won`
           : `${view.phase}, scores ${view.scores.seat_0}-${view.scores.seat_1}`,
+    };
+  }
+  if (view.game_id === "flood_watch") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.terminal.kind !== "non_terminal"
+          ? view.terminal.summary.public_summary
+          : `turn ${view.turn_number}, budget ${view.phase.kind === "action" ? view.phase.budget_remaining : 0}`,
     };
   }
   return {

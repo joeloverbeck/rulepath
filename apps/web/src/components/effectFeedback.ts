@@ -226,6 +226,12 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: "Secret Draft scores were updated by Rust.",
         tone: "turn",
       };
+    case "claim_score_changed":
+      return {
+        title: "Score changed",
+        detail: `${payload.seat} now holds ${payload.total} (+${payload.delta}).`,
+        tone: "turn",
+      };
     case "round_advanced":
       return {
         title: "Round advanced",
@@ -430,6 +436,66 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.active_seat} is now active.`,
         tone: "turn",
       };
+    case "claim_turn_advanced":
+      return {
+        title: "Turn advanced",
+        detail: `${payload.claimant} is now active.`,
+        tone: "turn",
+      };
+    case "district_bailed":
+      return {
+        title: "District bailed",
+        detail: `${payload.district} flood level fell by ${payload.amount ?? 0}.`,
+        tone: "movement",
+      };
+    case "levee_placed":
+      return {
+        title: "Levee placed",
+        detail: `${payload.district} gained ${payload.amount ?? 0} levee${payload.amount === 1 ? "" : "s"}.`,
+        tone: "movement",
+      };
+    case "forecast_revealed":
+      return {
+        title: "Forecast revealed",
+        detail: `The next public storm card is ${payload.card}.`,
+        tone: "turn",
+      };
+    case "environment_phase_began":
+      return {
+        title: "Storm phase",
+        detail: `Rust started turn ${payload.turn ?? "current"} storm resolution.`,
+        tone: "turn",
+      };
+    case "event_drawn":
+      return {
+        title: "Storm card drawn",
+        detail: `Storm card ${payload.index ?? "next"} was revealed as ${payload.card}.`,
+        tone: "movement",
+      };
+    case "levee_absorbed":
+      return {
+        title: "Levee absorbed flood",
+        detail: `${payload.district} spent ${payload.amount ?? 0} levee; ${payload.remaining_levees ?? 0} remain.`,
+        tone: "movement",
+      };
+    case "flood_level_rose":
+      return {
+        title: "Flood rose",
+        detail: `${payload.district} rose by ${payload.amount ?? 0} to ${payload.new_level ?? 0}.`,
+        tone: "movement",
+      };
+    case "district_inundated":
+      return {
+        title: "District inundated",
+        detail: `${payload.district} reached the inundation threshold.`,
+        tone: "terminal",
+      };
+    case "deck_exhausted":
+      return {
+        title: "Storm deck exhausted",
+        detail: "The team survived every public storm card.",
+        tone: "terminal",
+      };
     case "refill_started":
       return {
         title: "Next round",
@@ -441,6 +507,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         return {
           title: "Claims complete",
           detail: terminalOutcome(payload.outcome, "claim ledger"),
+          tone: "terminal",
+        };
+      }
+      if (typeof payload.outcome === "string" && "summary" in payload) {
+        return {
+          title: "Flood Watch complete",
+          detail: payload.outcome === "won" ? "The team survived the storm deck." : "The team lost to inundation.",
           tone: "terminal",
         };
       }

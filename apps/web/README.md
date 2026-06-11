@@ -5,7 +5,8 @@
 Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `high_card_duel` / High Card Duel, `token_bazaar` / Token Bazaar, and
 `secret_draft` / Veiled Draft, `poker_lite` / Crest Ledger, and
-`plain_tricks` / Plain Tricks, and `masked_claims` / Masked Claims.
+`plain_tricks` / Plain Tricks, `masked_claims` / Masked Claims, and
+`flood_watch` / Flood Watch.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -20,6 +21,7 @@ npm --prefix apps/web run build
 npm --prefix apps/web run preview
 npm --prefix apps/web run smoke:wasm
 npm --prefix apps/web run smoke:ui
+npm --prefix apps/web run smoke:effects
 npm --prefix apps/web run smoke:preview
 npm --prefix apps/web run smoke:e2e
 ```
@@ -56,7 +58,7 @@ The shell includes:
 - Race to 21 public board and status;
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
-  Plain Tricks, and Masked Claims;
+  Plain Tricks, Masked Claims, and Flood Watch;
 - Rust action-tree-driven buttons;
 - semantic effect log with reduced-motion support;
 - local replay export/import/reset/step;
@@ -71,9 +73,10 @@ panel data whitelist is documented in
 - `smoke:wasm`: raw ABI coverage for version/features, catalog, match, action,
   bot, effects, stale diagnostics, replay, and all registered games.
 - `smoke:ui`: fast Node/WASM shell-state smoke through `render_game_to_text`.
+- `smoke:effects`: Node/WASM effect-feedback projection guard for every catalog game.
 - `smoke:preview`: built `dist` static-serving and WASM fetch smoke.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
-  Plain Tricks, and Masked Claims. A standalone Directional Flip E2E smoke file also exists under
+  Plain Tricks, Masked Claims, and Flood Watch. A standalone Directional Flip E2E smoke file also exists under
   `e2e/`, but is not chained by `smoke:e2e`.

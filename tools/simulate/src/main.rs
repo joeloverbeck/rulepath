@@ -7,6 +7,7 @@ use engine_core::{
     Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize,
 };
+use flood_watch::FloodWatchLevel1Bot;
 use masked_claims::{MaskedClaimsLevel1Bot, MaskedClaimsSeat};
 use plain_tricks::PlainTricksLevel2Bot;
 use poker_lite::PokerLiteLevel2Bot;
@@ -25,6 +26,7 @@ const GAME_DIRECTIONAL_FLIP: &str = "directional_flip";
 const GAME_DRAUGHTS_LITE: &str = "draughts_lite";
 const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_MASKED_CLAIMS: &str = "masked_claims";
+const GAME_FLOOD_WATCH: &str = "flood_watch";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
 const GAME_POKER_LITE: &str = "poker_lite";
@@ -154,13 +156,14 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_DRAUGHTS_LITE
         && config.game != GAME_HIGH_CARD_DUEL
         && config.game != GAME_MASKED_CLAIMS
+        && config.game != GAME_FLOOD_WATCH
         && config.game != GAME_TOKEN_BAZAAR
         && config.game != GAME_SECRET_DRAFT
         && config.game != GAME_POKER_LITE
         && config.game != GAME_PLAIN_TRICKS
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}\n",
             config.game
         ));
     }
@@ -193,7 +196,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -216,6 +219,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_MASKED_CLAIMS {
         return run_masked_claims_simulation(config);
+    }
+    if config.game == GAME_FLOOD_WATCH {
+        return run_flood_watch_simulation(config);
     }
     if config.game == GAME_TOKEN_BAZAAR {
         return run_token_bazaar_simulation(config);
@@ -464,6 +470,46 @@ fn run_masked_claims_simulation(config: Config) -> Result<String, String> {
          seat_0_wins={seat_0_wins}\n\
          seat_1_wins={seat_1_wins}\n\
          draws={draws}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
+    ))
+}
+
+fn run_flood_watch_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut shared_wins = 0_u64;
+    let mut shared_losses = 0_u64;
+    let mut total_actions = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (outcome, actions) = run_one_flood_watch_game(&config, seed)?;
+        games_run += 1;
+        total_actions += actions as u64;
+        match outcome {
+            flood_watch::SharedOutcome::Won => shared_wins += 1,
+            flood_watch::SharedOutcome::Lost { .. } => shared_losses += 1,
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=flood_watch\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         shared_wins={shared_wins}\n\
+         shared_losses={shared_losses}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
         config.start_seed
@@ -1183,6 +1229,52 @@ fn run_one_masked_claims_game(
          action_cap={}\n\
          failure_reason=action cap reached before terminal outcome\n\
          replay_command=cargo run -p simulate -- --game masked_claims --games 1 --start-seed {seed} --action-cap {}\n",
+        config.action_cap, config.action_cap
+    ))
+}
+
+fn run_one_flood_watch_game(
+    config: &Config,
+    seed: u64,
+) -> Result<(flood_watch::SharedOutcome, usize), String> {
+    let seats = vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())];
+    let mut state =
+        flood_watch::setup_match(Seed(seed), &seats, &flood_watch::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+
+    for action_index in 0..config.action_cap {
+        if let Some(outcome) = state.terminal_outcome {
+            return Ok((outcome, action_index));
+        }
+
+        let actor = Actor {
+            seat_id: state.active_seat.clone(),
+        };
+        let bot = FloodWatchLevel1Bot::new(Seed(bot_seed(seed, action_index)));
+        let decision = bot
+            .select_decision(&state, &state.active_seat)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = CommandEnvelope {
+            actor,
+            action_path: decision.action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let validated = flood_watch::validate_command(&state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        flood_watch::apply_validated_action(&mut state, validated)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+    }
+
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id=flood_watch\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         action_cap={}\n\
+         failure_reason=action cap reached before terminal outcome\n\
+         replay_command=cargo run -p simulate -- --game flood_watch --games 1 --start-seed {seed} --action-cap {}\n",
         config.action_cap, config.action_cap
     ))
 }

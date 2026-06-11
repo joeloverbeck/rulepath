@@ -1,0 +1,20 @@
+{
+  "fixture_id": "flood_watch_deluge_gate12",
+  "game_id": "flood_watch",
+  "variant": "flood_watch_deluge",
+  "rules_version": "flood-watch-rules-v1",
+  "phase": "action",
+  "active_seat": "seat_0",
+  "action_budget": 3,
+  "draws_per_phase": 2,
+  "levee_cap": 2,
+  "max_flood_level": 3,
+  "starting_levels": "1,1,1,2,1",
+  "downpours_per_district": 3,
+  "surges_per_district": 2,
+  "reprieves": 2,
+  "event_deck_order_status": "computed_from_seed",
+  "terminal_outcome": "none",
+  "purpose": "Gate 12 Flood Watch deluge fixture metadata for the typed variant and static-data boundary.",
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, actions, rules, visibility, replay, bot, and WASM code. No ordered event deck is authored here."
+}

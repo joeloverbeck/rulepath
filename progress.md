@@ -1,11 +1,46 @@
-Current status: Gates 0-11 are complete in the worktree. Gate 10 is complete
+Current status: Gates 0-12 are complete in the worktree. Gate 10 is complete
 with `poker_lite` / Crest Ledger as the accepted betting/showdown half and
 `plain_tricks` / Plain Tricks as the accepted trick/follow-suit half. Gate 11 is
 complete with `masked_claims` / Masked Claims as the accepted claim/challenge
-reaction-window proof.
+reaction-window proof. Gate 12 is complete with `flood_watch` / Flood Watch as
+the accepted cooperative event-pressure proof.
 `blackjack_lite` is deferred by ADR 0006 and is not a blocker for the current
 roadmap ladder. The mutable source of truth for gate progress is
 `specs/README.md`.
+
+## Gate 12 Flood Watch
+
+- Completed on 2026-06-11 for `flood_watch` / Flood Watch, the cooperative
+  event-pressure proof for ROADMAP Gate 12.
+- Added the accepted shared-outcome cooperative game proof: deterministic hidden
+  event-deck setup, public forecast/draw reveal, Rust-owned environment
+  automation, role-modified bail/reinforce powers, multi-action turn budgets,
+  standard and Deluge scenario variants, shared win/loss terminal rationale,
+  viewer-scoped public export/import, Level 0 and Level 1 cooperative bots,
+  golden traces, benchmarks, native tool/CI registration, WASM/browser board,
+  generated player rules, outcome explanations, catalog reconciliation, and
+  no-leak browser smoke.
+- Boundary notes: district, flood, levee, event, role, scenario, action-budget,
+  environment, and shared-outcome vocabulary stayed game-local. Flood Watch was
+  reviewed as not reaction-capable and not a fifth full deterministic
+  shuffle/private-hand/staged-reveal use because it has no per-seat private
+  holdings. No `engine-core` noun, `game-stdlib` helper, or promotion debt was
+  introduced; `docs/MECHANIC-ATLAS.md` §10A remains `_None_`.
+- Acceptance evidence:
+  - `cargo test --workspace`
+  - `bash scripts/boundary-check.sh`
+  - `cargo run -p simulate -- --game flood_watch --games 1000`
+  - `cargo run -p replay-check -- --game flood_watch --all`
+  - `cargo run -p fixture-check -- --game flood_watch`
+  - `cargo run -p rule-coverage -- --game flood_watch`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:effects`
+  - `npm --prefix apps/web run smoke:e2e`
+  - `node scripts/check-catalog-docs.mjs`
+  - `node scripts/check-player-rules.mjs`
+  - `node scripts/check-outcome-explanations.mjs`
+  - `node scripts/check-doc-links.mjs`
 
 ## Gate 11 Masked Claims
 
