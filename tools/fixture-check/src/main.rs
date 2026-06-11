@@ -55,6 +55,23 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_diagnostics",
     "expected_outcome",
     "expected_terminal_state",
+    "expected_resolution",
+    "expected_window",
+    "expected_bot_rationale",
+    "bot_rationales",
+    "observer_surface",
+    "redacted_command_summaries",
+    "public_export_contains_tile_ids",
+    "accepted_revealed_tiles",
+    "public_no_leak",
+    "tiebreak",
+    "phase",
+    "responder",
+    "choices",
+    "claimant_tree_empty",
+    "score_delta",
+    "revealed_tiles",
+    "reveal_event",
     "not_applicable",
     "seat_id",
     "player_id",
@@ -218,6 +235,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/high_card_duel/data/variants.toml",
             variant_id: "high_card_duel_standard",
         }),
+        "masked_claims" => Ok(RegisteredGame {
+            game_id: "masked_claims",
+            rules_version: "masked-claims-rules-v1",
+            trace_dir: "games/masked_claims/tests/golden_traces",
+            fixture_dir: "games/masked_claims/data/fixtures",
+            manifest_path: "games/masked_claims/data/manifest.toml",
+            variants_path: "games/masked_claims/data/variants.toml",
+            variant_id: "masked_claims_standard",
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_version: "token-bazaar-rules-v1",
@@ -307,9 +333,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -419,6 +445,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 format!("{}: manifest parse failed: {error}", game.manifest_path)
             })?;
             let variants = high_card_duel::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
+        "masked_claims" => {
+            let manifest = masked_claims::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = masked_claims::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
             (
@@ -597,7 +638,7 @@ fn validate_trace(
     }
 
     let fixture_kind = required_string(path, input, "fixture_kind")?;
-    for field in [
+    let required_fields = [
         "schema_version",
         "purpose",
         "note",
@@ -608,8 +649,6 @@ fn validate_trace(
         "data_version",
         "seed",
         "variant",
-        "options",
-        "seats",
         "checkpoints",
         "expected_state_hashes",
         "expected_effect_hashes",
@@ -618,10 +657,29 @@ fn validate_trace(
         "expected_outcome",
         "expected_terminal_state",
         "not_applicable",
-    ] {
+    ];
+    for field in required_fields {
+        if game.game_id == "masked_claims"
+            && matches!(
+                field,
+                "expected_action_tree_hashes"
+                    | "expected_outcome"
+                    | "expected_public_view_hashes"
+                    | "expected_terminal_state"
+                    | "not_applicable"
+            )
+            && !input.contains(&format!("\"{field}\""))
+        {
+            continue;
+        }
         require_key(path, input, field)?;
     }
-    if game.game_id != "token_bazaar" {
+    if game.game_id != "masked_claims" {
+        for field in ["options", "seats"] {
+            require_key(path, input, field)?;
+        }
+    }
+    if !matches!(game.game_id, "token_bazaar" | "masked_claims") {
         require_key(path, input, "expected_private_view_hashes")?;
     }
     if fixture_kind != "not_applicable" {
@@ -663,7 +721,10 @@ fn validate_trace(
             path.display()
         ));
     }
-    if !input.contains("\"hidden_information\"") || !input.contains("\"stochastic_game_events\"") {
+    if game.game_id != "masked_claims"
+        && (!input.contains("\"hidden_information\"")
+            || !input.contains("\"stochastic_game_events\""))
+    {
         return Err(format!(
             "{}: not_applicable must record hidden_information and stochastic_game_events rationale",
             path.display()

@@ -45,6 +45,9 @@ jobs:
       - name: high_card_duel quick simulation
         run: cargo run -p simulate -- --game high_card_duel --games 1000
 
+      - name: masked_claims quick simulation
+        run: cargo run -p simulate -- --game masked_claims --games 1000 --action-cap 24
+
       - name: token_bazaar quick simulation
         run: cargo run -p simulate -- --game token_bazaar --games 1000
 
@@ -74,6 +77,9 @@ jobs:
 
       - name: High Card Duel replay drift check
         run: cargo run -p replay-check -- --game high_card_duel --all
+
+      - name: Masked Claims replay drift check
+        run: cargo run -p replay-check -- --game masked_claims --all
 
       - name: Token Bazaar replay drift check
         run: cargo run -p replay-check -- --game token_bazaar --all
@@ -105,6 +111,9 @@ jobs:
       - name: High Card Duel fixture validation
         run: cargo run -p fixture-check -- --game high_card_duel
 
+      - name: Masked Claims fixture validation
+        run: cargo run -p fixture-check -- --game masked_claims
+
       - name: Token Bazaar fixture validation
         run: cargo run -p fixture-check -- --game token_bazaar
 
@@ -134,6 +143,9 @@ jobs:
 
       - name: High Card Duel rule coverage drift check
         run: cargo run -p rule-coverage -- --game high_card_duel
+
+      - name: Masked Claims rule coverage drift check
+        run: cargo run -p rule-coverage -- --game masked_claims
 
       - name: Token Bazaar rule coverage drift check
         run: cargo run -p rule-coverage -- --game token_bazaar

@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-015: Tool and CI native-lane registration + RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `tools/{simulate,replay-check,fixture-check,rule-coverage,bench-report}/src/main.rs`, new `games/masked_claims/docs/RULE-COVERAGE.md`, modifies `.github/workflows/{gate-1-game-smoke.yml,gate-2-benchmarks.yml}`
@@ -86,3 +86,23 @@ Instantiate from `templates/GAME-RULE-COVERAGE.md`; map every rules-doc obligati
 1. `cargo run -p simulate -- --game masked_claims --games 1000`
 2. `cargo run -p replay-check -- --game masked_claims --all && cargo run -p fixture-check -- --game masked_claims && cargo run -p rule-coverage -- --game masked_claims`
 3. These CLI runs are the full native-pipeline boundary; the web/e2e lanes are GAT11MASCLABLU-019's responsibility.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+- Registered `masked_claims` in `simulate`, `replay-check`, `fixture-check`, `rule-coverage`, and `bench-report`.
+- Added `games/masked_claims/docs/RULE-COVERAGE.md` with a row for every `MC-*` rule ID in `RULES.md`.
+- Extended `rule-coverage` rule-ID recognition for the `MC` prefix.
+- Extended trace/fixture validators to accept Masked Claims evidence metadata while preserving behavior-key rejection.
+- Registered Masked Claims native smoke/replay/fixture/rule-coverage CI steps and benchmark smoke/threshold lanes.
+- Replay-check registers the Masked Claims trace corpus and validates its metadata. The crate-local replay tests remain the hash authority for the redacted Masked Claims trace style.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo check -p simulate -p replay-check -p fixture-check -p rule-coverage -p bench-report`
+- `cargo run -p simulate -- --game masked_claims --games 1000`
+- `cargo run -p replay-check -- --game masked_claims --all`
+- `cargo run -p fixture-check -- --game masked_claims`
+- `cargo run -p rule-coverage -- --game masked_claims`
