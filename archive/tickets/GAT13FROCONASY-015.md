@@ -1,6 +1,6 @@
 # GAT13FROCONASY-015: React board and presentation-shell wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/FrontierControlBoard.tsx` (new); `apps/web/src/components/{ActionControls,effectFeedback,outcomeExplanationTemplates,ReplayViewer}.tsx/.ts` (modify); `apps/web/src/wasm/client.ts` (modify); `apps/web/scripts/smoke-effect-feedback.mjs` (modify)
@@ -86,3 +86,20 @@ Add a `frontier_control` effect-count/effect-name block to `apps/web/scripts/smo
 1. `npm --prefix apps/web run smoke:effects`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 3. The UI/effects smoke harnesses are the correct boundary; the full E2E click-path lands in GAT13FROCONASY-016.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added `apps/web/src/components/FrontierControlBoard.tsx` with an SVG graph-map renderer, Rust-view-driven site state, supplied/cut stake highlighting, score/budget status, faction panels, grouped Rust legal choices, effect feedback, and terminal outcome explanation rendering.
+- Wired Frontier Control into the web shell, replay viewer, terminal-mode checks, TypeScript WASM public-view types, effect feedback, outcome explanation templates, and the effect-feedback smoke harness.
+- Kept Frontier browser code presentation-only: TypeScript renders fixed visual site/trail layout and Rust-projected view/effect fields, but does not compute legality, connectivity, clash resolution, scoring, terminal state, or bot policy.
+
+Deviations:
+- `apps/web/src/main.tsx`, `apps/web/src/components/ModeControls.tsx`, and `apps/web/src/styles.css` were also touched because the board needs shell dispatch, terminal-mode handling, and responsive presentation styles. No Rust behavior or engine boundary changed.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:effects` passed, including Frontier Control coverage for crew march, stake placement, guard patrol, clash, dismantle, muster, reinforce, round scoring, and terminal effects.
+- `npm --prefix apps/web run smoke:ui` passed.

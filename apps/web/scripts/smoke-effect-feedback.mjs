@@ -152,6 +152,41 @@ try {
     return result.view;
   }
 
+  function playRequiredSegment(matchId, gameId, view, segment) {
+    const actor = activeSeat(view);
+    const tree = getActionTree(matchId, actor);
+    const choice = tree.choices.find((candidate) => candidate.segment === segment);
+    assert(choice, `${gameId} exposes ${segment} for ${actor}`);
+    const result = applyAction(matchId, actor, segment, tree.freshness_token);
+    recordEffects(gameId, result.effects);
+    return result.view;
+  }
+
+  function playPreferredSegment(matchId, gameId, view, preferredSegment) {
+    const actor = activeSeat(view);
+    const tree = getActionTree(matchId, actor);
+    const choice = tree.choices.find((candidate) => candidate.segment === preferredSegment) ?? tree.choices[0];
+    assert(choice, `${gameId} exposes a legal path for ${actor}`);
+    const result = applyAction(matchId, actor, choice.segment, tree.freshness_token);
+    recordEffects(gameId, result.effects);
+    return result.view;
+  }
+
+  function playFrontierControl(matchId) {
+    let view = getView(matchId);
+    view = playRequiredSegment(matchId, "frontier_control", view, "march/site_base_camp/site_ford");
+    view = playRequiredSegment(matchId, "frontier_control", view, "stake/site_ford");
+    view = playRequiredSegment(matchId, "frontier_control", view, "patrol/site_gatehouse/site_ford");
+    view = playRequiredSegment(matchId, "frontier_control", view, "dismantle/site_ford");
+    view = playRequiredSegment(matchId, "frontier_control", view, "muster");
+    view = playPreferredSegment(matchId, "frontier_control", view, "end_turn");
+    view = playRequiredSegment(matchId, "frontier_control", view, "reinforce/site_gatehouse");
+    for (let turn = 0; turn < 30 && view.terminal?.kind === "non_terminal"; turn += 1) {
+      view = playPreferredSegment(matchId, "frontier_control", view, "end_turn");
+    }
+    assert(view.terminal?.kind !== "non_terminal", "frontier_control reaches terminal in effect feedback smoke");
+  }
+
   function playGame(gameId, seed, turns) {
     const created = newMatch(gameId, seed);
     let view = getView(created.match_id);
@@ -162,6 +197,10 @@ try {
       assert(endTurn, "flood_watch exposes end_turn for storm feedback smoke");
       const result = applyAction(created.match_id, actor, "end_turn", tree.freshness_token);
       recordEffects(gameId, result.effects);
+      return;
+    }
+    if (gameId === "frontier_control") {
+      playFrontierControl(created.match_id);
       return;
     }
     for (let turn = 0; turn < turns && activeSeat(view, null); turn += 1) {
@@ -176,6 +215,7 @@ try {
     ["secret_draft", 2],
     ["masked_claims", 2],
     ["flood_watch", 2],
+    ["frontier_control", 2],
   ]);
 
   for (const [index, game] of catalog.entries()) {
@@ -200,6 +240,15 @@ try {
     ["plain_tricks", "round_scored"],
     ["high_card_duel", "round_scored"],
     ["flood_watch", "event_drawn"],
+    ["frontier_control", "crew_marched"],
+    ["frontier_control", "stake_placed"],
+    ["frontier_control", "guard_patrolled"],
+    ["frontier_control", "clash_resolved"],
+    ["frontier_control", "stake_dismantled"],
+    ["frontier_control", "crew_mustered"],
+    ["frontier_control", "guard_reinforced"],
+    ["frontier_control", "round_scored"],
+    ["frontier_control", "terminal"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {

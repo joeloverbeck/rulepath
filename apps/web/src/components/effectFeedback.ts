@@ -169,7 +169,11 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
       return {
         title: "Round scored",
         detail:
-          "round_counts" in payload
+          "garrison_points" in payload || "prospector_points" in payload
+            ? `Rust scored round ${payload.round ?? "current"}: Garrison +${payload.garrison_points ?? 0}, Prospectors +${
+                payload.prospector_points ?? 0
+              }.`
+            : "round_counts" in payload
             ? "Rust updated round and match trick totals."
             : payload.winner
               ? `${payload.winner} won the round.`
@@ -496,6 +500,54 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: "The team survived every public storm card.",
         tone: "terminal",
       };
+    case "crew_marched":
+      return {
+        title: "Crew marched",
+        detail: `Prospectors moved from ${siteLabel(payload.from)} to ${siteLabel(payload.to)}.`,
+        tone: "movement",
+      };
+    case "guard_patrolled":
+      return {
+        title: "Guard patrolled",
+        detail: `Garrison moved from ${siteLabel(payload.from)} to ${siteLabel(payload.to)}.`,
+        tone: "movement",
+      };
+    case "clash_resolved":
+      return {
+        title: "Clash resolved",
+        detail: `${siteLabel(payload.site)} resolved for ${factionLabel(payload.entering_faction)}.`,
+        tone: "movement",
+      };
+    case "stake_placed":
+      return {
+        title: "Stake placed",
+        detail: `Prospectors placed a stake at ${siteLabel(payload.site)}.`,
+        tone: "movement",
+      };
+    case "stake_dismantled":
+      return {
+        title: "Stake dismantled",
+        detail: `Garrison dismantled the stake at ${siteLabel(payload.site)}.`,
+        tone: "movement",
+      };
+    case "crew_mustered":
+      return {
+        title: "Crew mustered",
+        detail: `Prospectors mustered at ${siteLabel(payload.site)}; crews now ${payload.crews ?? 0}.`,
+        tone: "movement",
+      };
+    case "guard_reinforced":
+      return {
+        title: "Guard reinforced",
+        detail: `Garrison reinforced ${siteLabel(payload.site)}; guards now ${payload.guards ?? 0}.`,
+        tone: "movement",
+      };
+    case "turn_ended":
+      return {
+        title: "Turn ended",
+        detail: `${factionLabel(payload.faction)} ended round ${payload.round ?? "current"}.`,
+        tone: "turn",
+      };
     case "refill_started":
       return {
         title: "Next round",
@@ -514,6 +566,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         return {
           title: "Flood Watch complete",
           detail: payload.outcome === "won" ? "The team survived the storm deck." : "The team lost to inundation.",
+          tone: "terminal",
+        };
+      }
+      if ("garrison_total" in payload || "prospector_total" in payload) {
+        return {
+          title: "Frontier complete",
+          detail: `${factionLabel(payload.winner)} wins ${payload.garrison_total ?? 0}-${payload.prospector_total ?? 0}.`,
           tone: "terminal",
         };
       }
@@ -585,6 +644,23 @@ function resourceCounts(value: unknown): string {
   }
   const counts = value as { amber?: unknown; jade?: unknown; iron?: unknown };
   return `amber ${counts.amber ?? 0}, jade ${counts.jade ?? 0}, iron ${counts.iron ?? 0}`;
+}
+
+function siteLabel(value: unknown): string {
+  if (typeof value !== "string") {
+    return "the site";
+  }
+  return value.replace(/^site_/, "").replaceAll("_", " ");
+}
+
+function factionLabel(value: unknown): string {
+  if (value === "faction_garrison") {
+    return "Garrison";
+  }
+  if (value === "faction_prospectors") {
+    return "Prospectors";
+  }
+  return typeof value === "string" ? value.replace(/^faction_/, "").replaceAll("_", " ") : "the faction";
 }
 
 function terminalOutcome(value: unknown, noun: string): string {
