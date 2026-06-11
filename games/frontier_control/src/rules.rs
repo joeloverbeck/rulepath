@@ -11,7 +11,7 @@ use crate::{
         StakeScoreBreakdown,
     },
     ids::{FactionId, SiteId},
-    state::{FactionScores, FrontierControlState, Phase, TerminalOutcome},
+    state::{FactionScores, FrontierControlState, Phase, StakeSupplyStatus, TerminalOutcome},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -237,6 +237,13 @@ fn score_round(state: &mut FrontierControlState, effects: &mut Vec<FrontierContr
         garrison: state.scores.garrison.saturating_add(garrison_points),
         prospectors: state.scores.prospectors.saturating_add(prospector_points),
     };
+    state.last_stake_supply = stake_breakdown
+        .iter()
+        .map(|entry| StakeSupplyStatus {
+            site: entry.site,
+            supplied: entry.supplied,
+        })
+        .collect();
 
     effects.push(public_effect(FrontierControlEffect::RoundScored {
         round: state.round_number,

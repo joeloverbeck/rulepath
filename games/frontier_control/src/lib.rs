@@ -26,13 +26,24 @@ pub use ids::{
     STANDARD_SEAT_COUNT, STANDARD_SITE_COUNT, UNIT_CAP_PER_SITE, VARIANT_HIGHLANDS_ID,
     VARIANT_STANDARD_ID,
 };
+pub use replay_support::{
+    export_public_replay, import_public_export, import_public_export_json, public_replay_step,
+    trace_not_applicable, ImportedPublicReplay, PublicReplayExport, PublicReplayStep,
+    TraceNotApplicable,
+};
 pub use rules::{apply_command, apply_validated_action, AppliedAction};
 pub use setup::SetupOptions;
 pub use setup::{setup_match, validate_variant};
 pub use state::{
-    AdjacencyEntry, FactionScores, FrontierControlState, Phase, SiteState, TerminalOutcome,
+    AdjacencyEntry, FactionScores, FrontierControlState, Phase, SiteState, StakeSupplyStatus,
+    TerminalOutcome,
 };
 pub use variants::{Fixture, Manifest, SiteDefinition, StartUnits, VariantCatalog, VariantMap};
+pub use visibility::{
+    action_tree_hash, diagnostic_hash, effect_hash, filter_effects_for_viewer, project_view,
+    public_effect_text, view_hash, FactionView, PhaseView, PublicView, ScoreView, SiteView,
+    TerminalView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

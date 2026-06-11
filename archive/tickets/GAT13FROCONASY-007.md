@@ -1,6 +1,6 @@
 # GAT13FROCONASY-007: Public projection, visibility, and replay surfaces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/frontier_control/src/{visibility,replay_support}.rs` (single public projection, identity effect filter, action/effect/view hashes, full-timeline replay export/import)
@@ -77,3 +77,21 @@ Export/import the full public command/effect timeline losslessly; determinism ov
 1. `cargo test -p frontier_control visibility replay`
 2. `cargo test -p frontier_control`
 3. Crate-scoped tests are the correct boundary; cross-tool `replay-check --all` runs after trace registration in GAT13FROCONASY-013.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Changed `games/frontier_control/src/visibility.rs`, `games/frontier_control/src/replay_support.rs`, `games/frontier_control/src/state.rs`, `games/frontier_control/src/rules.rs`, and `games/frontier_control/src/lib.rs`.
+
+Implemented the single public Frontier Control projection, identity effect filtering, public effect text, stable view/effect/action-tree/diagnostic hash helpers, public replay export/import, and Trace Schema v1 not-applicable rationale for hidden-information redaction, stochastic game-rule events, private-view hashes, and preview hashes. Added state storage for the last Rust-computed stake supply status so the view projects supplied/cut flags without UI recomputation.
+
+Deviation: the ticket command was run as separate Cargo filters (`visibility` and `replay`) because Cargo accepts a single test filter in that position; full replay-check integration remains deferred to the later trace/tool tickets named by this ticket.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p frontier_control visibility` — passed, 3 tests.
+3. `cargo test -p frontier_control replay` — passed, 1 test.
+4. `cargo test -p frontier_control` — passed, 25 tests plus doc tests.
+5. `cargo clippy -p frontier_control --all-targets -- -D warnings` — passed.

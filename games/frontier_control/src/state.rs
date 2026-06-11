@@ -60,6 +60,12 @@ impl FactionScores {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StakeSupplyStatus {
+    pub site: SiteId,
+    pub supplied: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalOutcome {
     Winner {
@@ -98,6 +104,7 @@ pub struct FrontierControlState {
     pub sites: Vec<SiteState>,
     pub adjacency: Vec<AdjacencyEntry>,
     pub scores: FactionScores,
+    pub last_stake_supply: Vec<StakeSupplyStatus>,
     pub terminal_outcome: Option<TerminalOutcome>,
     pub freshness_token: FreshnessToken,
 }
@@ -133,6 +140,7 @@ impl FrontierControlState {
             sites,
             adjacency,
             scores: FactionScores::zero(),
+            last_stake_supply: Vec::new(),
             terminal_outcome: None,
             freshness_token: FreshnessToken(0),
         }
@@ -177,7 +185,7 @@ impl FrontierControlState {
 
     pub fn stable_summary(&self) -> String {
         format!(
-            "variant={};seats={}|{};factions={}|{};round={};active={};phase={};sites={};adjacency={};scores={}:{};terminal={};freshness={}",
+            "variant={};seats={}|{};factions={}|{};round={};active={};phase={};sites={};adjacency={};scores={}:{};supply={};terminal={};freshness={}",
             self.variant.id,
             self.seats[0].0,
             self.seats[1].0,
@@ -190,6 +198,7 @@ impl FrontierControlState {
             adjacency_summary(&self.adjacency),
             self.scores.garrison,
             self.scores.prospectors,
+            supply_summary(&self.last_stake_supply),
             self.terminal_outcome
                 .as_ref()
                 .map(TerminalOutcome::stable_summary)
@@ -246,6 +255,14 @@ fn adjacency_summary(adjacency: &[AdjacencyEntry]) -> String {
                 .join("|");
             format!("{}=[{}]", entry.site.as_str(), neighbors)
         })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn supply_summary(supply: &[StakeSupplyStatus]) -> String {
+    supply
+        .iter()
+        .map(|entry| format!("{}:{}", entry.site.as_str(), u8::from(entry.supplied)))
         .collect::<Vec<_>>()
         .join(",")
 }
