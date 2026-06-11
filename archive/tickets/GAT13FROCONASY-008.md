@@ -1,6 +1,6 @@
 # GAT13FROCONASY-008: Per-faction Level 0 and Level 1 bots
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/frontier_control/src/bots.rs` (Level 0 random + Level 1 `FrontierGarrisonLevel1Bot` / `FrontierProspectorLevel1Bot`); `ai-core` deterministic RNG helpers (consumed, not modified)
@@ -79,3 +79,20 @@ The documented priority policy (deterministic shortest path, trade-only-when-pro
 1. `cargo test -p frontier_control bots`
 2. `cargo test -p frontier_control`
 3. Crate-scoped bot tests are the correct boundary; per-faction win-rate metrics come from `simulate` after tool registration in GAT13FROCONASY-013.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Changed `games/frontier_control/src/bots.rs` and `games/frontier_control/src/lib.rs`.
+
+Implemented `FrontierRandomBot`, `FrontierGarrisonLevel1Bot`, and `FrontierProspectorLevel1Bot` using the Rust legal action tree and public view only. Added decision/command/validation helpers, stable policy IDs, viewer-safe rationale strings, separate faction Level 1 ranking policies, and bot tests for per-faction legality, deterministic decisions, and a Level 1 bot-vs-bot game completion smoke.
+
+Deviation: full simulation metrics and golden bot traces remain deferred to the later simulation/trace tickets named by this ticket.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p frontier_control bots` — passed, 3 tests.
+3. `cargo test -p frontier_control` — passed, 28 tests plus doc tests.
+4. `cargo clippy -p frontier_control --all-targets -- -D warnings` — passed.

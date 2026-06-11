@@ -17,6 +17,11 @@ pub use actions::{
     FrontierControlAction, ValidatedAction, ACTION_DISMANTLE, ACTION_END_TURN, ACTION_MARCH,
     ACTION_MUSTER, ACTION_PATROL, ACTION_REINFORCE, ACTION_STAKE,
 };
+pub use bots::{
+    actor_for_seat, command_for_decision, validate_bot_decision, BotDecision, FrontierBotInput,
+    FrontierGarrisonLevel1Bot, FrontierProspectorLevel1Bot, FrontierRandomBot,
+    GARRISON_LEVEL1_POLICY_ID, PROSPECTOR_LEVEL1_POLICY_ID, RANDOM_POLICY_ID,
+};
 pub use effects::{
     public_effect, FortScoreBreakdown, FrontierControlEffect, FrontierControlEffectEnvelope,
     StakeScoreBreakdown,
