@@ -1,6 +1,6 @@
 # GAT13FROCONASY-014: Player and mechanic docs (HOW-TO-PLAY, MECHANICS, UI, AI)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/frontier_control/docs/{HOW-TO-PLAY,MECHANICS,UI,AI}.md`; generated `apps/web/public/rules/frontier_control.md`)
@@ -78,3 +78,22 @@ Run `scripts/copy-player-rules.mjs` to confirm `apps/web/public/rules/frontier_c
 1. `node scripts/check-player-rules.mjs`
 2. `node scripts/check-doc-links.mjs`
 3. The player-rules + doc-link checks are the correct boundary; the outcome-explanation TS check runs in GAT13FROCONASY-016 once the templates land.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Changes:
+
+1. Reviewed the existing `HOW-TO-PLAY.md` created during GAT13FROCONASY-012 and kept its perfect-information "not applicable" hidden-information section.
+2. Added `games/frontier_control/docs/MECHANICS.md`, `UI.md`, and `AI.md` from the repo templates, grounded in the implemented Rust rules, effects, public view, and bot policy IDs.
+3. Ran `scripts/copy-player-rules.mjs`; `apps/web/public/rules/frontier_control.md` was already in sync with `HOW-TO-PLAY.md`.
+4. Added the mandatory `## Outcome / victory explanation` section to `UI.md`, with Rust-owned terminal result variants, decisive cause payload fields, no-leak rules, and future smoke cases.
+
+Verification:
+
+1. `node scripts/copy-player-rules.mjs`
+2. `grep -n 'Outcome / victory explanation' games/frontier_control/docs/UI.md`
+3. `node scripts/check-player-rules.mjs`
+4. `node scripts/check-doc-links.mjs`
+5. `git diff --check`
