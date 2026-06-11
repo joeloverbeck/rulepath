@@ -5,7 +5,7 @@
 | Spec ID | `gate-13-frontier-control-asymmetric-area-control-proof` |
 | Roadmap stage | 13 |
 | Roadmap build gate | Gate 13 — asymmetric area-control proof |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-11 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `frontier_control` |

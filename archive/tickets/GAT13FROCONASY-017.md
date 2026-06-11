@@ -1,6 +1,6 @@
 # GAT13FROCONASY-017: Capstone — admission docs, status hygiene, and gate closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — documentation / status reconciliation (`games/frontier_control/docs/{GAME-IMPLEMENTATION-ADMISSION,PUBLIC-RELEASE-CHECKLIST}.md`; `specs/README.md`; `specs/gate-13-frontier-control-asymmetric-area-control-proof.md` Status; `progress.md`)
@@ -77,3 +77,32 @@ Flip the `specs/README.md` Gate 13 index row to `Done`, flip the spec's own Stat
 1. `node scripts/check-doc-links.mjs && grep -n 'frontier_control' specs/README.md progress.md`
 2. `cargo test --workspace && cargo run -p simulate -- --game frontier_control --games 1000 && cargo run -p replay-check -- --game frontier_control --all && bash scripts/boundary-check.sh && node scripts/check-catalog-docs.mjs`
 3. Re-running the full acceptance set is the correct capstone boundary; this ticket adds no logic of its own.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added `games/frontier_control/docs/GAME-IMPLEMENTATION-ADMISSION.md` and `games/frontier_control/docs/PUBLIC-RELEASE-CHECKLIST.md`, recording the Gate 13 official-game, public-release, no-leak, browser, benchmark, and balance-constraint evidence.
+- Flipped the Gate 13 spec status and `specs/README.md` index row to `Done`.
+- Updated `progress.md` with the Frontier Control completion entry and evidence list.
+- Updated the root status paragraph from Gate 13 in progress to Gates 0-13 complete.
+
+Deviations:
+- The release checklist records a release constraint rather than hiding the imbalance: `simulate --game frontier_control --games 1000` currently reports a 1000-0 Garrison Level 1 result. Existing strategy/bot docs also record that retune debt.
+
+Verification:
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo test --workspace` passed.
+- `cargo run -p simulate -- --game frontier_control --games 1000` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` passed.
+- `cargo run -p fixture-check -- --game frontier_control` passed.
+- `cargo run -p rule-coverage -- --game frontier_control` passed.
+- `cargo bench -p frontier_control` passed smoke thresholds.
+- `bash scripts/boundary-check.sh` passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:effects` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `node scripts/check-catalog-docs.mjs`, `node scripts/check-player-rules.mjs`, `node scripts/check-outcome-explanations.mjs`, and `node scripts/check-doc-links.mjs` passed.
