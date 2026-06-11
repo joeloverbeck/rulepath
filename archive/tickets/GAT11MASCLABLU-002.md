@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-002: Resolve fourth-use primitive-pressure ledger and update atlas §10B
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new `games/masked_claims/docs/PRIMITIVE-PRESSURE-LEDGER.md`; modifies `docs/MECHANIC-ATLAS.md` §10B (documentation/decision artifacts; no Rust behavior)
@@ -77,3 +77,23 @@ Instantiate from `templates/PRIMITIVE-PRESSURE-LEDGER.md`. Record (a) the fourth
 1. `grep -n "_None_" docs/MECHANIC-ATLAS.md` (confirm §10A debt status) and `grep -n "masked_claims" docs/MECHANIC-ATLAS.md` (confirm §10B rows updated).
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command set is correct because the decision artifact has no Rust surface to compile or test; atlas/ledger consistency is proven by grep + doc-link integrity.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the Gate 11 fourth-use hard-gate decision for deterministic shuffle / private hand / staged reveal.
+- Recorded the decision as defer/reject extraction and keep local: no `engine-core` mechanic noun, no `game-stdlib` helper, no trace/hash migration, and no promotion debt.
+- Updated `docs/MECHANIC-ATLAS.md` §10B to name `masked_claims` in the deterministic hidden-component row, record the Stage 11 simultaneous-commitment review, and convert `reaction window/pending response` to realized first official local use.
+
+Deviations from original plan:
+
+- None. The expected defer/reject outcome was recorded; §10A stayed `_None_`.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `rg -n "_None_|masked_claims|reaction window/pending response|simultaneous commitment/reveal|deterministic shuffle / private hand / staged reveal" docs/MECHANIC-ATLAS.md` confirmed §10A and §10B updates.
+- `rg -n "Decision:|defer/reject|No promotion debt|fourth-use|first official local use|ADR required" games/masked_claims/docs/PRIMITIVE-PRESSURE-LEDGER.md` confirmed the ledger decision and first-use reaction-window record.
