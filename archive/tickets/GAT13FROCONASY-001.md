@@ -1,6 +1,6 @@
 # GAT13FROCONASY-001: Rules and IP source docs for Frontier Control
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/frontier_control/docs/RULES.md`, `games/frontier_control/docs/SOURCES.md`)
@@ -74,3 +74,19 @@ Instantiate from `templates/GAME-SOURCES.md`. Record: no external research pass 
 1. `node scripts/check-doc-links.mjs`
 2. `grep -nE 'FC-(SCORE|TERM)' games/frontier_control/docs/RULES.md`
 3. Doc-link + grep are the correct boundary: no Rust exists yet, so rule-coverage/outcome-explanation enforcement is deferred to the tickets that author those consumers.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added `games/frontier_control/docs/RULES.md` with original Rulepath rules prose for the standard and highlands variants, including stable `FC-SCORE-*` and `FC-TERM-*` rule IDs for later rule coverage and outcome-explanation wiring.
+- Added `games/frontier_control/docs/SOURCES.md` with the project-authority source posture, original naming rationale, trade-dress avoidance register, asset/font status, and rules-vs-expression notes.
+
+Deviations from the plan:
+- None. This ticket remained documentation-only and did not touch Rust, static data, WASM, or web code.
+
+Verification:
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -nE 'FC-(SCORE|TERM)' games/frontier_control/docs/RULES.md` returned the expected scoring, terminal, tiebreak, and outcome-traceability rule IDs.
+- Manual IP-conservatism review: the docs use original Rulepath prose and labels, avoid the named area-control/asymmetric-faction hazard vocabulary as public-facing source identity, and introduce no copied prose, assets, screenshots, scans, fonts, or trade dress.
