@@ -1,9 +1,10 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize,
+    ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
 };
 use flood_watch::{
-    apply_command, setup_match, DistrictId, EventCard, EventKind, FloodWatchState, ScenarioVariant,
-    SetupOptions, ACTION_END_TURN,
+    apply_command, export_public_replay, import_public_export, public_replay_step, setup_match,
+    DistrictId, EventCard, EventKind, FloodWatchState, ScenarioVariant, SetupOptions,
+    ACTION_END_TURN,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -25,6 +26,10 @@ fn end_turn_command(state: &flood_watch::FloodWatchState) -> CommandEnvelope {
 
 fn card(kind: EventKind, copy_index: u8) -> EventCard {
     EventCard { kind, copy_index }
+}
+
+fn observer() -> Viewer {
+    Viewer { seat_id: None }
 }
 
 #[test]
@@ -96,4 +101,31 @@ fn environment_effects_and_hashes_replay_deterministically() {
     assert_eq!(first.drawn, second.drawn);
     assert_eq!(first.event_deck_internal(), second.event_deck_internal());
     assert_eq!(first.stable_hash(), second.stable_hash());
+}
+
+#[test]
+fn public_export_import_redacts_undrawn_deck_after_terminal() {
+    let deck = vec![
+        card(EventKind::Reprieve, 1),
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Gardens,
+            },
+            1,
+        ),
+    ];
+    let mut state = FloodWatchState::new_after_setup(ScenarioVariant::standard(), seats(), deck);
+    let command = end_turn_command(&state);
+    let applied = apply_command(&mut state, &command).unwrap();
+    let step = public_replay_step(0, &state, &command, &applied.effects, &observer());
+    let export = export_public_replay(state.variant.id.clone(), &observer(), vec![step]);
+    let imported = import_public_export(&export);
+    let rendered = imported.raw_json;
+
+    assert!(state.terminal_outcome.is_some());
+    assert!(rendered.contains("Event 1 drawn: reprieve"));
+    assert!(rendered.contains("Event 2 drawn: storm_surge/district_gardens"));
+    assert!(!rendered.contains("storm_surge/district_gardens#1"));
+    assert!(!rendered.contains("full_deck_order"));
+    assert!(!rendered.contains("deck_order"));
 }

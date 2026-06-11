@@ -23,6 +23,11 @@ pub use ids::{
     STANDARD_DECK_SIZE, STANDARD_DISTRICT_COUNT, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP,
     STANDARD_MAX_FLOOD_LEVEL, STANDARD_SEAT_COUNT, VARIANT_DELUGE_ID, VARIANT_STANDARD_ID,
 };
+pub use replay_support::{
+    export_public_replay, generate_internal_full_trace, import_public_export,
+    import_public_export_json, public_replay_step, FloodWatchInternalTrace, ImportedPublicReplay,
+    PublicReplayExport, PublicReplayStep,
+};
 pub use rules::{apply_command, apply_validated_action, AppliedAction};
 pub use setup::SetupOptions;
 pub use setup::{setup_match, shuffle_event_deck};

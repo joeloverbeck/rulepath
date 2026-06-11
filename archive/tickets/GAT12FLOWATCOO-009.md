@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-009: Replay support and viewer-scoped export/import
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/flood_watch/src/replay_support.rs` (internal full trace with deck order; viewer-scoped export/import with the undrawn deck redacted), stable summaries
@@ -72,3 +72,22 @@ Implement: the internal full trace carrying seed + full deck order (native test 
 1. `cargo test -p flood_watch --test replay`
 2. `cargo test -p flood_watch`
 3. `cargo run -p replay-check -- --game flood_watch --all` is the full golden-trace boundary but needs the traces (GAT12FLOWATCOO-011) and tool registration (GAT12FLOWATCOO-015); the replay + serialization unit tests are the correct boundary for the machinery diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Implemented Flood Watch replay/export support with a
+separate internal native trace carrying seed, variant, and full deck order for
+test authority, plus a viewer-scoped public replay export/import path built
+only from public view summaries, filtered public effects, and redacted command
+summaries. Public import rejects unknown fields and never reconstructs or
+requires the hidden deck order. Tests cover deterministic replay hashes,
+terminal outcome replay, stable public export summaries, unknown-field
+rejection, and redacted public export/import after terminal.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test replay`
+3. `cargo test -p flood_watch --test serialization`
+4. `cargo clippy -p flood_watch --all-targets -- -D warnings`
+5. `cargo test -p flood_watch`
