@@ -104,8 +104,12 @@ For each ticket:
    simulation, benchmark, browser, no-leak, or docs-link evidence when the ticket
    requires those surfaces.
 6. Update the ticket following `docs/archival-workflow.md`:
-   - mark final status at the top (`COMPLETED`, `REJECTED`, `DEFERRED`, or
-     `NOT IMPLEMENTED`, with emoji variants allowed by the workflow);
+   - mark final status at the top using exactly the archival workflow vocabulary:
+     `**Status**: COMPLETED`, `**Status**: REJECTED`,
+     `**Status**: DEFERRED`, or `**Status**: NOT IMPLEMENTED`
+     (emoji variants allowed by the workflow);
+   - for implemented tickets, use `COMPLETED`; `ACCEPTED` is an acceptance
+     review state, not an archival final status;
    - add a bottom `Outcome` section for completed items;
    - include completion date, what changed, deviations from the plan, and
      verification results.
@@ -150,21 +154,30 @@ cargo run -p rule-coverage -- --game <game_id>
 bash scripts/boundary-check.sh
 node scripts/check-doc-links.mjs
 node scripts/check-catalog-docs.mjs
+node scripts/check-player-rules.mjs
+node scripts/check-outcome-explanations.mjs
 npm --prefix apps/web ci
 npm --prefix apps/web run smoke:wasm
 npm --prefix apps/web run build
 npm --prefix apps/web run smoke:ui
+npm --prefix apps/web run smoke:effects
 npm --prefix apps/web run smoke:e2e
 ```
 
 If a browser smoke fails before assertions because the environment cannot bind
 its local `127.0.0.1` server, for example `listen EPERM`, rerun through the
 approved escalation path for localhost binding and record both the sandbox
-failure and successful rerun. Treat assertion failures as real test failures.
+failure and successful rerun in the ticket `Outcome`, reference `Outcome`, or
+final report, whichever owns the evidence. Treat assertion failures as real test
+failures.
 
 3. Update the reference artifact following `docs/archival-workflow.md`:
-   - mark final status at the top (`COMPLETED`, `REJECTED`, `DEFERRED`, or
-     `NOT IMPLEMENTED`, with emoji variants allowed by the workflow);
+   - mark final status at the top using exactly the archival workflow vocabulary:
+     `**Status**: COMPLETED`, `**Status**: REJECTED`,
+     `**Status**: DEFERRED`, or `**Status**: NOT IMPLEMENTED`
+     (emoji variants allowed by the workflow);
+   - for implemented references, use `COMPLETED`; `Done`, `ACCEPTED`, or other
+     informal statuses are not archival final statuses;
    - add a bottom `Outcome` section for completed specs or reference docs;
    - include completion date, what changed, deviations from the plan, and
      verification results.
@@ -179,7 +192,8 @@ failure and successful rerun. Treat assertion failures as real test failures.
    when a spec was closed, and any active tickets, docs, app README tables,
    catalog/smoke lists, or scripts that referenced the live reference path.
 6. Assert the archived reference is truthy before goal completion:
-   - read or grep the archived artifact and confirm final status and `Outcome`;
+   - read or grep the archived artifact and confirm archival final status and
+     `Outcome`;
    - confirm the original active reference path is gone;
    - confirm active references point to the archive path when they should.
 7. Run a final status/diff check and commit the reference archive/truthing work.
@@ -195,15 +209,34 @@ the live checkout:
 - Active ticket/reference globs are empty, or any remaining active files are
   intentionally out of scope and explained.
 - `archive/tickets/` contains every expected ticket in the series; each archived
-  ticket has final status and an `Outcome` or a clear non-completed disposition.
+  ticket has archival final status (`COMPLETED`, `REJECTED`, `DEFERRED`, or
+  `NOT IMPLEMENTED`, with allowed emoji variants) and an `Outcome` or a clear
+  non-completed disposition. Reject `ACCEPTED` or other review-state statuses
+  for archived implemented tickets.
 - The appropriate archive directory contains the reference artifact when the
-  series closes one; the archived artifact has final status and an `Outcome`.
+  series closes one; the archived artifact has archival final status and an
+  `Outcome`. Reject `Done`, `ACCEPTED`, or other informal statuses before
+  reporting done or calling `update_goal`.
 - `specs/README.md`, progress surfaces, README/catalog surfaces, docs, scripts,
   and active tickets/reference artifacts no longer point at stale live paths.
 - Required verification commands were actually run and match the ticket/reference
   scope; skipped checks are named with reasons.
 - The final diff/status excludes unrelated user changes, and required commits
   are present.
+
+Run a concrete version of this checklist before reporting done or calling
+`update_goal`; adapt placeholders to the ticket prefix and reference path:
+
+```sh
+rg -n "TICKET_PREFIX" tickets || true
+find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
+rg -n "^\*\*Status\*\*:|^## Outcome" archive/tickets/TICKET_PREFIX*.md
+test ! -e ACTIVE_REFERENCE_PATH
+rg -n "^\*\*Status\*\*:|^## Outcome" archive/specs/ARCHIVED_REFERENCE.md
+rg -n "ACTIVE_REFERENCE_PATH|tickets/TICKET_PREFIX" specs tickets docs apps scripts || true
+git status --short
+git diff --cached --name-status
+```
 
 ## Reporting
 
