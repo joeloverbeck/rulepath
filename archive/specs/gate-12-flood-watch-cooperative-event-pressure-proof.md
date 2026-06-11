@@ -5,7 +5,7 @@
 | Spec ID | `gate-12-flood-watch-cooperative-event-pressure-proof` |
 | Roadmap stage | 12 |
 | Roadmap build gate | Gate 12 — cooperative event pressure |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-11 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `flood_watch` |

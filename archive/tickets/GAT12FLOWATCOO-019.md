@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-019: Capstone — admission docs, status hygiene, and gate closeout
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch/docs/{GAME-IMPLEMENTATION-ADMISSION,PUBLIC-RELEASE-CHECKLIST}.md` (new); `progress.md`, `specs/README.md`, `specs/gate-12-flood-watch-cooperative-event-pressure-proof.md` (modify — status hygiene). No production logic.
@@ -79,3 +79,28 @@ Flip the `specs/README.md` Gate 12 row to `Done`; flip the spec's own Status fie
 1. `cargo test --workspace && bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs`
 2. `cargo run -p simulate -- --game flood_watch --games 1000 && cargo run -p replay-check -- --game flood_watch --all && cargo run -p fixture-check -- --game flood_watch && cargo run -p rule-coverage -- --game flood_watch`
 3. `node scripts/check-catalog-docs.mjs && node scripts/check-player-rules.mjs && node scripts/check-outcome-explanations.mjs` — the gate's full closeout boundary; web smokes (`smoke:e2e` etc.) run per GAT12FLOWATCOO-018.
+
+## Outcome
+
+Accepted on 2026-06-11.
+
+Added Flood Watch's final official-game closeout docs: `GAME-IMPLEMENTATION-ADMISSION.md` and `PUBLIC-RELEASE-CHECKLIST.md`. Recorded the implemented variants, rule/source/IP readiness, primitive-pressure decisions, hidden-information no-leak safeguards, bot levels, UI exposure, release constraints, command transcript, and no blocking issues.
+
+Completed the Gate 12 status hygiene: flipped the spec Status and `specs/README.md` Gate 12 row to `Done`, updated `progress.md`, re-confirmed `docs/MECHANIC-ATLAS.md` §10A still reads `_None_`, and archived the completed spec at `archive/specs/gate-12-flood-watch-cooperative-event-pressure-proof.md`.
+
+Verification passed:
+
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game flood_watch --games 1000`
+- `cargo run -p replay-check -- --game flood_watch --all`
+- `cargo run -p fixture-check -- --game flood_watch`
+- `cargo run -p rule-coverage -- --game flood_watch`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
