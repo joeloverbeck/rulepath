@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-003: Crate skeleton and workspace registration
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — new crate `games/masked_claims` (`Cargo.toml`, `src/lib.rs`, `src/ids.rs`), new `data/{manifest.toml,variants.toml,fixtures/}`; modifies root `Cargo.toml` workspace members
@@ -88,3 +88,24 @@ Append `games/masked_claims` to the `[workspace] members` list.
 1. `cargo build -p masked_claims`
 2. `cargo fmt --all --check`
 3. A build + format check is the correct boundary: no game behavior exists yet, so full `cargo test` has nothing game-specific to assert until GAT11MASCLABLU-004.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added the `masked_claims` crate skeleton with `Cargo.toml`, `src/lib.rs`, and `src/ids.rs`.
+- Registered `games/masked_claims` in the root workspace.
+- Added typed inert metadata files under `games/masked_claims/data/`: `manifest.toml`, `variants.toml`, and `fixtures/masked_claims_standard.fixture.json`.
+- Defined stable game ID, variant ID, rules version label, seat IDs, grade IDs/labels, mask tile IDs, standard counts, and action segment constants.
+
+Deviations from original plan:
+
+- None. The bench table and behavior modules remain out of scope for later tickets.
+
+Verification:
+
+- `cargo build -p masked_claims` passed.
+- `cargo fmt --all --check` passed after applying `cargo fmt --all`.
+- `rg -n "when|if|then|else|selector|condition|trigger|script|loop|foreach|priority_expression|ai_condition|effect_script|requires|valid_if|on_play|on_reveal" games/masked_claims/data` returned no behavior-looking fields.

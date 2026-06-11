@@ -1,0 +1,15 @@
+{
+  "fixture_id": "masked_claims_standard_gate11",
+  "game_id": "masked_claims",
+  "variant": "masked_claims_standard",
+  "rules_version": "masked-claims-rules-v1",
+  "phase": "claim",
+  "active_seat": "seat_0",
+  "mask_order": "mask_g1_a,mask_g1_b,mask_g1_c,mask_g2_a,mask_g2_b,mask_g2_c,mask_g3_a,mask_g3_b,mask_g3_c,mask_g4_a,mask_g4_b,mask_g4_c,mask_g5_a,mask_g5_b,mask_g5_c",
+  "hand_status": "hidden_by_setup",
+  "reserve_status": "internal_only",
+  "turn_index": 0,
+  "terminal_outcome": "none",
+  "purpose": "Gate 11 Masked Claims standard fixture metadata for the typed variant and static-data boundary.",
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, actions, rules, visibility, replay, bot, and WASM code."
+}
