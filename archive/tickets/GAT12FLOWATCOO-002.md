@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-002: Primitive-pressure ledger and mechanic-atlas reviews
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch/docs/PRIMITIVE-PRESSURE-LEDGER.md` (new); `docs/MECHANIC-ATLAS.md` §10B/§10A (modify). No code surface.
@@ -76,3 +76,32 @@ Update §10B: append the review outcomes to the `reaction window/pending respons
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n "local-only" docs/MECHANIC-ATLAS.md && grep -A2 "## 10A" docs/MECHANIC-ATLAS.md`
 3. A code/test pipeline is not the verification boundary: this ticket precedes all implementation by design (Work-breakdown item 1 blocks it). The boundary is atlas/ledger grep-proofs that the reviews landed with triggers intact.
+
+## Outcome
+
+Completed: 2026-06-11
+
+Implemented `games/flood_watch/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the
+pre-implementation reaction-window review, deterministic-shuffle/private-holdings
+review, and first-use records for shared-outcome cooperative terminal,
+event-deck environment automation, role-modified action effects, and
+multi-action turn budgets.
+
+Updated `docs/MECHANIC-ATLAS.md` §10B to record that `flood_watch` is not a
+reaction-capable second use and is not the fifth full deterministic-shuffle /
+private-holdings / redacted-reveal use. Added the four new first-use `local-only`
+rows with Gate 13/14 revisit triggers. Added a §10A current-state sentence so
+the ticket's exact grep proof reports `_None_` directly.
+
+Deviations from plan: none. No code, crate skeleton, static data, tests, traces,
+or `game-stdlib`/`engine-core` surface was changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -c "local-only" docs/MECHANIC-ATLAS.md` returned `17`, reflecting the
+  four new local-only first-use atlas rows.
+- `grep -A2 "## 10A" docs/MECHANIC-ATLAS.md` returned `Current debt: _None_.`
+- Grep proof confirmed the unchanged reaction-window and deterministic-shuffle
+  reopen trigger text plus the four new first-use rows and Gate 13/14 revisit
+  candidates.
