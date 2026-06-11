@@ -348,6 +348,15 @@ function templateKey(view: MaskedClaimsPublicView): string {
     return "masked_claims.draw";
   }
   if (view.terminal.kind === "tiebreak_win") {
+    if (view.terminal.tiebreak === "fewer_exposed_lies") {
+      return "masked_claims.tiebreak_exposed_lies";
+    }
+    if (view.terminal.tiebreak === "more_successful_challenges") {
+      return "masked_claims.tiebreak_successful_challenges";
+    }
+    if (view.terminal.tiebreak === "fewer_challenges_declared") {
+      return "masked_claims.tiebreak_challenges_declared";
+    }
     return "masked_claims.tiebreak_win";
   }
   return "masked_claims.score_win";

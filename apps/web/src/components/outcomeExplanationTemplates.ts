@@ -210,6 +210,27 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["masked_claims"],
     ruleRefLabel: "MC-END-002 through MC-END-004",
   },
+  "masked_claims.tiebreak_exposed_lies": {
+    summary: "{winner} wins with fewer exposed lies.",
+    expandedHeading: "Exposed-lie tiebreak",
+    requiredParams: ["winner"],
+    allowedGameIds: ["masked_claims"],
+    ruleRefLabel: "MC-END-002",
+  },
+  "masked_claims.tiebreak_successful_challenges": {
+    summary: "{winner} wins with more successful challenges.",
+    expandedHeading: "Successful-challenge tiebreak",
+    requiredParams: ["winner"],
+    allowedGameIds: ["masked_claims"],
+    ruleRefLabel: "MC-END-003",
+  },
+  "masked_claims.tiebreak_challenges_declared": {
+    summary: "{winner} wins with fewer declared challenges.",
+    expandedHeading: "Challenge-discipline tiebreak",
+    requiredParams: ["winner"],
+    allowedGameIds: ["masked_claims"],
+    ruleRefLabel: "MC-END-004",
+  },
   "masked_claims.draw": {
     summary: "Scores and all public tiebreakers are tied.",
     expandedHeading: "Drawn claim ledger",

@@ -42,6 +42,13 @@
     "sha256": "eb8157efc5056fa984a6cf9a7b04c2abd0d2f07264278d48b1bebb63350febd4"
   },
   {
+    "game_id": "masked_claims",
+    "display_name": "Masked Claims",
+    "rules_asset_path": "/rules/masked_claims.md",
+    "source_rules_version_checked": "masked-claims-rules-v1",
+    "sha256": "9be912dcffa8725bbdbeceaf8d8c3c7b202a289b8d963a809e6bc3f3e43d1a0a"
+  },
+  {
     "game_id": "token_bazaar",
     "display_name": "Token Bazaar",
     "rules_asset_path": "/rules/token_bazaar.md",

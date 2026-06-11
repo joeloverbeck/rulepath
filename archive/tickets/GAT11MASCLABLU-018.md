@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-018: Player-rules generation and outcome-explanation registration
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (presentation/tooling) — modifies `scripts/check-player-rules.mjs` (`HIDDEN_INFO_GAMES`); generates `apps/web/public/rules/masked_claims.md` + updates `apps/web/public/rules/manifest.json`; registers masked-claims outcome explanations (no Rust surface)
@@ -78,3 +78,14 @@ Ensure the masked-claims outcome templates (from `outcomeExplanationTemplates.ts
 1. `node scripts/check-player-rules.mjs`
 2. `node scripts/check-outcome-explanations.mjs`
 3. The two guard scripts are the exact verification boundary; they fail closed if the copy is stale or a template is missing.
+
+## Outcome
+
+Generated `apps/web/public/rules/masked_claims.md` from the Masked Claims `HOW-TO-PLAY.md` source and updated the public rules manifest. Registered `masked_claims` as a hidden-information game in the player-rules guard, aligned the formal rules heading with the outcome guard contract, and added the Masked Claims tiebreak template keys required by `games/masked_claims/docs/UI.md`.
+
+Verification:
+
+1. `node scripts/check-player-rules.mjs`
+2. `node scripts/check-outcome-explanations.mjs`
+3. `test -f apps/web/public/rules/masked_claims.md`
+4. `npm --prefix apps/web run build`

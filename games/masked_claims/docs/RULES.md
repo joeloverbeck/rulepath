@@ -172,7 +172,7 @@ hidden-info filtering, or bot policy.
 | `MC-RESTRICT-007` | A response is submitted outside a reaction window. | Reject without mutation. | Viewer-safe wrong-phase diagnostic. | No state mutation. |
 | `MC-RESTRICT-008` | A gameplay action is submitted in terminal state. | Reject without mutation. | Viewer-safe terminal-state diagnostic. | Outcome is final. |
 
-## Resolution and scoring
+## Scoring and accounting
 
 | Rule ID | Scoring/accounting rule | Timing | Tiebreaker/edge case | Notes |
 |---|---|---|---|---|
