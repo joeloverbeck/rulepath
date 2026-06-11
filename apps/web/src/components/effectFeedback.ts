@@ -226,6 +226,12 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: "Secret Draft scores were updated by Rust.",
         tone: "turn",
       };
+    case "claim_score_changed":
+      return {
+        title: "Score changed",
+        detail: `${payload.seat} now holds ${payload.total} (+${payload.delta}).`,
+        tone: "turn",
+      };
     case "round_advanced":
       return {
         title: "Round advanced",
@@ -428,6 +434,12 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
       return {
         title: "Turn advanced",
         detail: `${payload.active_seat} is now active.`,
+        tone: "turn",
+      };
+    case "claim_turn_advanced":
+      return {
+        title: "Turn advanced",
+        detail: `${payload.claimant} is now active.`,
         tone: "turn",
       };
     case "refill_started":

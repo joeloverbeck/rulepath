@@ -7082,14 +7082,14 @@ fn masked_effect_json(effect: &EffectEnvelope<MaskedClaimsEffect>) -> String {
             total,
             reason,
         } => format!(
-            "{{\"type\":\"score_changed\",\"seat\":\"{}\",\"delta\":{},\"total\":{},\"reason\":\"{}\"}}",
+            "{{\"type\":\"claim_score_changed\",\"seat\":\"{}\",\"delta\":{},\"total\":{},\"reason\":\"{}\"}}",
             seat.as_str(),
             delta,
             total,
             escape_json(reason)
         ),
         MaskedClaimsEffect::TurnAdvanced { turn, claimant, .. } => format!(
-            "{{\"type\":\"turn_advanced\",\"turn\":{},\"claimant\":\"{}\"}}",
+            "{{\"type\":\"claim_turn_advanced\",\"turn\":{},\"claimant\":\"{}\"}}",
             turn,
             claimant.as_str()
         ),

@@ -375,6 +375,14 @@ const maskedAfterResponse = invoke(
   [maskedClaims.match_id, "seat_1", maskedResponse.segment],
 );
 assert(maskedAfterResponse.effects.length > 0, "masked_claims response emits effects");
+assert(
+  maskedAfterResponse.effects.some((effect) => effect.payload.type === "claim_score_changed"),
+  "masked_claims score changes use a claim-specific effect discriminator",
+);
+assert(
+  maskedAfterResponse.effects.some((effect) => effect.payload.type === "claim_turn_advanced"),
+  "masked_claims turn advances use a claim-specific effect discriminator",
+);
 const maskedExport = invoke(
   (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
   [maskedClaims.match_id],
