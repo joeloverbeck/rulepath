@@ -14,7 +14,10 @@ pub use actions::{
     ResponseChoice, ValidatedAction, ValidatedClaim, ValidatedResponse,
 };
 pub use effects::{
-    claim_placed_effect, public_effect, reaction_window_opened_effect, MaskedClaimsEffect,
+    challenge_declared_effect, challenge_resolved_effect, claim_accepted_effect,
+    claim_placed_effect, mask_revealed_effect, public_effect, reaction_window_opened_effect,
+    score_changed_effect, terminal_effect, turn_advanced_effect, ChallengeOutcome,
+    MaskedClaimsEffect,
 };
 pub use ids::{
     canonical_masks, Grade, MaskTileId, MaskedClaimsSeat, ACTION_CLAIM, ACTION_RESPOND_ACCEPT,

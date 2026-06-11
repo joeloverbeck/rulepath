@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-007: Conditional resolution, scoring, terminal, and tie-breaks
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — extends `games/masked_claims/src/{rules.rs,effects.rs}`, `src/lib.rs`
@@ -77,3 +77,25 @@ Accept: score declared grade, move pedestal tile face-down to the claimant's vei
 1. `cargo test -p masked_claims`
 2. `cargo clippy -p masked_claims --all-targets -- -D warnings`
 3. Unit-level boundary; golden-trace resolution proofs and the export no-leak sweep are exercised in GAT11MASCLABLU-008/010/011.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Extended `games/masked_claims/src/rules.rs` to resolve response actions: accept scores the declared grade and moves the mask to a veiled gallery without reveal; challenge emits reveal/resolution effects and applies honest/exposed scoring.
+- Added turn advancement, terminal detection after turn 8, and the deterministic public tie-break ladder: score, fewer exposed lies, more successful challenges, fewer challenges declared, then draw.
+- Extended `games/masked_claims/src/effects.rs` with `ClaimAccepted`, `ChallengeDeclared`, `MaskRevealed`, `ChallengeResolved`, `ScoreChanged`, `TurnAdvanced`, and `Terminal` effects.
+- Updated exports in `games/masked_claims/src/lib.rs`.
+
+Deviations from original plan:
+
+- None. Public/seat view projection and replay/export redaction remain for later tickets.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
+- New tests cover accept, honest challenge, exposed lie, underclaim-as-honest through actual >= declared, terminal after turn 8, all tiebreak rungs, accepted-mask no-reveal, and challenged-mask reveal through `MaskRevealed`.
