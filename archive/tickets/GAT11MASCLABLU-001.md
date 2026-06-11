@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-001: Author Masked Claims rules and IP source docs
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (new `games/masked_claims/docs/RULES.md`, `games/masked_claims/docs/SOURCES.md`; no Rust/engine surface)
@@ -76,3 +76,21 @@ Instantiate from `templates/GAME-SOURCES.md`. Record the seven consulted sources
 1. `node scripts/check-doc-links.mjs`
 2. `cargo run -p rule-coverage -- --game masked_claims` — deferred verification boundary: passes only after the tool is registered (GAT11MASCLABLU-015) and rules-doc obligations have backing tests/traces; named here as the eventual proof surface for layer 1.
 3. Narrower command is correct now because no Rust/test pipeline exists for this game yet; doc-link integrity is the runnable boundary at this stage.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/docs/RULES.md` as the original Rulepath rules contract for `masked_claims_standard`, including stable `MC-*` rule IDs for components, setup, phases, legal actions, restrictions, scoring, terminal tiebreaks, visibility, replay, bots, variants, deviations, and ambiguities.
+- Added `games/masked_claims/docs/SOURCES.md` as the IP/source note for the original game, recording consulted project and external sources, what was used, what was not copied, naming/trade-dress rationale, asset/font status, public/private boundaries, and rule-ID cross-references.
+
+Deviations from original plan:
+
+- None. This ticket remained documentation-only and introduced no Rust, engine, tool, or web behavior.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed.
+- Manual IP review posture recorded in `SOURCES.md`: names, labels, prose, and current asset/font status are original or not applicable; no source prose/assets are copied.
