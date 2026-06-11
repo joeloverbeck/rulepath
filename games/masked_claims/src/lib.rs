@@ -1,6 +1,7 @@
 //! `masked_claims` official-game crate skeleton for Masked Claims.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod replay_support;
@@ -15,6 +16,10 @@ pub use actions::{
     actor_seat, claimable_tiles, command_public_summary, legal_action_metadata, legal_action_tree,
     parse_action_path, response_public_summary, validate_command, MaskedClaimsAction,
     ResponseChoice, ValidatedAction, ValidatedClaim, ValidatedResponse,
+};
+pub use bots::{
+    action_from_decision, actor_for_seat, BotDecision, MaskedClaimsBotInput, MaskedClaimsLevel1Bot,
+    MaskedClaimsRandomBot, LEVEL1_POLICY_ID, RANDOM_POLICY_ID,
 };
 pub use effects::{
     challenge_declared_effect, challenge_resolved_effect, claim_accepted_effect,

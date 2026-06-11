@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-009: Level 0 and Level 1 bots
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/masked_claims/src/bots.rs`, `src/lib.rs`
@@ -72,3 +72,25 @@ Both bot roles — claimant and responder — must act through the same legal ac
 1. `cargo test -p masked_claims`
 2. `cargo clippy -p masked_claims --all-targets -- -D warnings`
 3. Unit-level boundary; many-game legality at scale is proven by `simulate` in GAT11MASCLABLU-015.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added `games/masked_claims/src/bots.rs` with `MaskedClaimsRandomBot`, `MaskedClaimsLevel1Bot`, `MaskedClaimsBotInput`, `BotDecision`, and helper conversion functions.
+- Level 0 delegates to the shared deterministic random-legal bot over the Rust legal action tree.
+- Level 1 chooses claim and response actions from the same legal tree using only the seat-scoped projection: own hand, public exposed rows, public pedestal declaration, scores, and phase data.
+- Added viewer-safe bot rationales and exported the bot API from `games/masked_claims/src/lib.rs`.
+
+Deviations from original plan:
+
+- Level 1 uses a simple deterministic policy seed gate for bluff/underclaim posture and a public-counting response threshold. Broader balance calibration remains for the later simulation/evidence tickets.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
+- New unit tests cover legal-only Level 0 and Level 1 decisions in claim and response phases, deterministic Level 1 decisions, and viewer-safe response rationale stability over identical allowed input.
