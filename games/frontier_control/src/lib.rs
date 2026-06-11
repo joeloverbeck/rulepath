@@ -18,6 +18,10 @@ pub use ids::{
     VARIANT_STANDARD_ID,
 };
 pub use setup::SetupOptions;
+pub use setup::{setup_match, validate_variant};
+pub use state::{
+    AdjacencyEntry, FactionScores, FrontierControlState, Phase, SiteState, TerminalOutcome,
+};
 pub use variants::{Fixture, Manifest, SiteDefinition, StartUnits, VariantCatalog, VariantMap};
 
 pub fn load_manifest() -> Result<Manifest, String> {

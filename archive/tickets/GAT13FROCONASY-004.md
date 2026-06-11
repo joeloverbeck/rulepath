@@ -1,6 +1,6 @@
 # GAT13FROCONASY-004: State model, typed IDs, and deterministic setup
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/frontier_control/src/{state,ids,setup,variants}.rs` (typed state model, ID types, deterministic setup, map-graph validation)
@@ -82,3 +82,22 @@ Load and validate the chosen variant; build the adjacency index; place start uni
 1. `cargo test -p frontier_control setup`
 2. `cargo test -p frontier_control`
 3. Crate-scoped tests are the correct boundary; cross-tool determinism (replay-check) is exercised after the replay surface lands in GAT13FROCONASY-007.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+- Added the typed `FrontierControlState`, `Phase`, `SiteState`, validated adjacency index, faction scores, terminal outcome placeholder, and stable state summary/hash surface.
+- Implemented deterministic setup as a pure function of seats plus variant, with no game-rule RNG.
+- Added variant validation for seat count, nonzero budget/round/cap, required faction order, duplicate edges/sites, disconnected graphs, duplicate starts/stake values, and over-cap starting units.
+- Added setup tests for standard/highlands initialization, repeated-setup stable hash equality, wrong seat count, duplicate edge rejection, disconnected graph rejection, duplicate start rejection, and over-cap start rejection.
+
+Deviations from the plan:
+- None. Action legality/application, scoring/connectivity, visibility, and replay hashing beyond the stable state surface remain for later tickets.
+
+Verification:
+- `cargo fmt --all --check` passed.
+- `cargo test -p frontier_control setup` passed (5 setup-filtered tests).
+- `cargo test -p frontier_control` passed (11 tests).
+- `cargo clippy -p frontier_control --all-targets -- -D warnings` passed.
