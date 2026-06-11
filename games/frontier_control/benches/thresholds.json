@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "game_id": "frontier_control",
+  "rules_version": "frontier-control-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    { "operation_name": "legal_actions_garrison_midgame", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "legal_actions_prospectors_midgame", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "validate_action", "unit": "validations_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "apply_march_with_clash", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "apply_end_turn_round_scoring", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "supply_connectivity_traversal", "unit": "scores_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "project_public_view_midgame", "unit": "views_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "state_hash_terminal", "unit": "hashes_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "garrison_level1_bot_decision", "unit": "decisions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "prospector_level1_bot_decision", "unit": "decisions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." },
+    { "operation_name": "random_playout", "unit": "playouts_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until frontier_control has repeated CI benchmark measurements." }
+  ]
+}

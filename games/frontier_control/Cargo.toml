@@ -12,3 +12,8 @@ engine-core = { path = "../../crates/engine-core" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "frontier_control"
+path = "benches/frontier_control.rs"
+harness = false

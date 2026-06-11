@@ -1,6 +1,6 @@
 # GAT13FROCONASY-010: Benchmarks, thresholds, BENCHMARKS.md, and gate-2 CI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/frontier_control/benches/frontier_control.rs`, `games/frontier_control/benches/thresholds.json`, `games/frontier_control/docs/BENCHMARKS.md`, `.github/workflows/gate-2-benchmarks.yml` (modify)
@@ -79,3 +79,20 @@ Add a `frontier_control bench smoke` step to `.github/workflows/gate-2-benchmark
 1. `cargo bench -p frontier_control -- legal_actions`
 2. `cargo bench -p frontier_control`
 3. Bench-filter smoke is the correct boundary for PR; full calibration is the named ADR 0005 follow-up.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Changed `games/frontier_control/Cargo.toml`, `games/frontier_control/benches/frontier_control.rs`, `games/frontier_control/benches/thresholds.json`, `games/frontier_control/docs/BENCHMARKS.md`, and `.github/workflows/gate-2-benchmarks.yml`.
+
+Added the harness-free Frontier Control benchmark binary with all eleven required identities, non-blocking smoke-floor thresholds using `baseline_pending_non_blocking`, BENCHMARKS.md documentation with the ADR 0002/0003/0005 calibration follow-up, and gate-2 CI smoke/threshold registration.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo bench -p frontier_control -- legal_actions` — passed, ran both legal-action operations.
+3. `cargo bench -p frontier_control` — passed, ran all eleven benchmark operations.
+4. `node scripts/check-doc-links.mjs` — passed, checked 25 markdown files.
+5. Workflow registration grep — passed, found smoke and threshold-gate entries.
+6. `cargo clippy -p frontier_control --all-targets -- -D warnings` — passed.

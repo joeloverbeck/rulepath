@@ -47,6 +47,9 @@ jobs:
       - name: flood_watch bench smoke
         run: cargo bench -p flood_watch -- legal_actions
 
+      - name: frontier_control bench smoke
+        run: cargo bench -p frontier_control -- legal_actions
+
       - name: token_bazaar bench smoke
         run: cargo bench -p token_bazaar -- legal_actions
 
@@ -109,6 +112,11 @@ jobs:
 
           cargo bench -p flood_watch | tee /tmp/flood_watch-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/flood_watch-benchmark-report.txt --thresholds games/flood_watch/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p frontier_control | tee /tmp/frontier_control-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/frontier_control-benchmark-report.txt --thresholds games/frontier_control/benches/thresholds.json; then
             failed=1
           fi
 
