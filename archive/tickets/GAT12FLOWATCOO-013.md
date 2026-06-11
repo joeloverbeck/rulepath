@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-013: Bot-strategy evidence docs and cooperative balance
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch/docs/COMPETENT-PLAYER.md`, `games/flood_watch/docs/BOT-STRATEGY-EVIDENCE-PACK.md` (no code surface)
@@ -75,3 +75,21 @@ Instantiate from `templates/BOT-STRATEGY-EVIDENCE-PACK.md`; document the Level 1
 1. `cargo run -p simulate -- --game flood_watch --games 1000` (win-rate evidence; requires GAT12FLOWATCOO-015 registration)
 2. `node scripts/check-doc-links.mjs`
 3. The simulation run is the correct evidence boundary for balance; full rule-coverage cross-checking of these docs is exercised by GAT12FLOWATCOO-015's `rule-coverage` registration.
+
+## Outcome
+
+Accepted on 2026-06-11. Added `COMPETENT-PLAYER.md` and
+`BOT-STRATEGY-EVIDENCE-PACK.md` for Flood Watch. The docs record competent
+cooperative play, the implemented Level 1 priority order, deterministic and
+hidden-order-invariant bot evidence, no-leak/search-class boundaries, and the
+balance calibration posture. The requested simulator win-rate command was run
+and currently reports `unsupported game: flood_watch`; numeric win-rate
+evidence remains pending GAT12FLOWATCOO-015 simulator registration, and the
+docs state that no win-rate is claimed until that registration lands.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs`
+2. `cargo bench -p flood_watch -- random_playout`
+3. `cargo run -p simulate -- --game flood_watch --games 1000` (expected blocker: simulator registration deferred to GAT12FLOWATCOO-015)
+4. `rg -n "Rescue|Mitigate|Reinforce|Forecast|End turn|public projection|undrawn deck|simulate|random_playout" games/flood_watch/docs/COMPETENT-PLAYER.md games/flood_watch/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
