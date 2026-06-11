@@ -210,6 +210,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "flood_watch",
  "high_card_duel",
  "masked_claims",
  "plain_tricks",

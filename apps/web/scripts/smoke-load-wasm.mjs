@@ -91,6 +91,17 @@ assert(
   ),
   "list_games includes masked_claims standard hidden-information variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "flood_watch" &&
+      game.variants.includes("flood_watch_standard") &&
+      game.variants.includes("flood_watch_deluge") &&
+      game.hidden_information === true &&
+      game.cooperative === true,
+  ),
+  "list_games includes flood_watch cooperative hidden-information variants",
+);
 
 const maskedCreated = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 11n),

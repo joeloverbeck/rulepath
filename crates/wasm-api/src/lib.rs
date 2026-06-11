@@ -32,6 +32,11 @@ use engine_core::{
 };
 #[cfg(test)]
 use engine_core::{HashValue, StableSerialize};
+use flood_watch::{
+    apply_validated_action as flood_apply_action, legal_action_tree as flood_legal_action_tree,
+    project_view as flood_project_view, setup_match as flood_setup_match, FloodWatchEffect,
+    FloodWatchLevel1Bot, FloodWatchState,
+};
 use high_card_duel::{
     apply_action as high_card_apply_action,
     export_public_observer_replay as high_card_export_public_observer_replay,
@@ -113,6 +118,8 @@ const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_HIGH_CARD_DUEL_DISPLAY_NAME: &str = "High Card Duel";
 const GAME_MASKED_CLAIMS: &str = "masked_claims";
 const GAME_MASKED_CLAIMS_DISPLAY_NAME: &str = "Masked Claims";
+const GAME_FLOOD_WATCH: &str = "flood_watch";
+const GAME_FLOOD_WATCH_DISPLAY_NAME: &str = "Flood Watch";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_TOKEN_BAZAAR_DISPLAY_NAME: &str = "Token Bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
@@ -147,6 +154,7 @@ const DIRECTIONAL_FLIP_TRACE_RULES_VERSION: &str = "directional_flip-rules-v1";
 const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
 const MASKED_CLAIMS_TRACE_RULES_VERSION: &str = "masked-claims-rules-v1";
+const FLOOD_WATCH_TRACE_RULES_VERSION: &str = "flood-watch-rules-v1";
 const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
 const POKER_LITE_TRACE_RULES_VERSION: &str = "poker-lite-rules-v1";
@@ -160,6 +168,8 @@ const VARIANT_DIRECTIONAL_FLIP_STANDARD: &str = "directional_flip_standard";
 const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const VARIANT_MASKED_CLAIMS_STANDARD: &str = "masked_claims_standard";
+const VARIANT_FLOOD_WATCH_STANDARD: &str = "flood_watch_standard";
+const VARIANT_FLOOD_WATCH_DELUGE: &str = "flood_watch_deluge";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
@@ -222,6 +232,12 @@ enum MatchRecord {
         game_id: String,
         state: MaskedClaimsState,
         effects: EffectLog<MaskedClaimsEffect>,
+        commands: Vec<AppliedCommand>,
+    },
+    FloodWatch {
+        game_id: String,
+        state: FloodWatchState,
+        effects: EffectLog<FloodWatchEffect>,
         commands: Vec<AppliedCommand>,
     },
     TokenBazaar {
@@ -302,6 +318,7 @@ enum RegisteredGame {
     DraughtsLite,
     HighCardDuel,
     MaskedClaims,
+    FloodWatch,
     TokenBazaar,
     SecretDraft,
     PokerLite,
@@ -321,6 +338,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::DraughtsLite,
         RegisteredGame::HighCardDuel,
         RegisteredGame::MaskedClaims,
+        RegisteredGame::FloodWatch,
         RegisteredGame::TokenBazaar,
         RegisteredGame::SecretDraft,
         RegisteredGame::PokerLite,
@@ -382,6 +400,15 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_MASKED_CLAIMS_STANDARD)
+            ),
+            RegisteredGame::FloodWatch => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"cooperative\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"cooperative\",\"environment_automation\"],\"docs\":[\"games/flood_watch/docs/RULES.md\",\"games/flood_watch/docs/SOURCES.md\"]}}",
+                escape_json(GAME_FLOOD_WATCH),
+                escape_json(GAME_FLOOD_WATCH_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_FLOOD_WATCH_STANDARD),
+                escape_json(VARIANT_FLOOD_WATCH_DELUGE)
             ),
             RegisteredGame::TokenBazaar => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
@@ -607,6 +634,30 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_MASKED_CLAIMS_STANDARD)
             ))
         }
+        RegisteredGame::FloodWatch => {
+            let seats = flood_seats();
+            let state =
+                flood_setup_match(Seed(seed), &seats, &flood_watch::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::FloodWatch {
+                        game_id: GAME_FLOOD_WATCH.to_owned(),
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_FLOOD_WATCH_STANDARD)
+            ))
+        }
         RegisteredGame::TokenBazaar => {
             let seats = seats();
             let state =
@@ -747,6 +798,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             let viewer = masked_viewer_for_seat(state, viewer_seat)?;
             Ok(masked_view_json(&masked_project_view(state, &viewer)))
         }
+        MatchRecord::FloodWatch { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = flood_viewer_for_seat(state, viewer_seat)?;
+            Ok(flood_view_json(&flood_project_view(state, &viewer)))
+        }
         MatchRecord::TokenBazaar { game_id, state, .. } => {
             resolve_game(game_id)?;
             let viewer = token_viewer_for_seat(state, viewer_seat)?;
@@ -846,6 +902,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = masked_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&masked_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::FloodWatch { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_flood_seat(actor_seat)?;
+            if !flood_viewer_authorizes_actor(viewer_seat, &seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = flood_actor_for_seat(state, &seat)?;
+            Ok(action_tree_json(&flood_legal_action_tree(state, &actor)))
         }
         MatchRecord::TokenBazaar { game_id, state, .. } => {
             resolve_game(game_id)?;
@@ -1120,6 +1185,40 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 masked_view_json(&masked_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::FloodWatch {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_flood_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: flood_actor_for_seat(state, &seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = flood_watch::validate_command(state, &command).map_err(diagnostic_json)?;
+            let applied = flood_apply_action(state, action).map_err(diagnostic_json)?;
+            let effects = applied.effects;
+            let viewer = flood_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = flood_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: seat.0,
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                flood_view_json(&flood_project_view(state, &viewer))
             ))
         }
         MatchRecord::TokenBazaar {
@@ -1517,6 +1616,46 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 masked_view_json(&masked_project_view(state, &viewer))
             ))
         }
+        MatchRecord::FloodWatch {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_flood_seat(actor_seat)?;
+            let decision = FloodWatchLevel1Bot::new(Seed(bot_seed))
+                .select_decision(state, &seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: flood_actor_for_seat(state, &seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action = flood_watch::validate_command(state, &command).map_err(diagnostic_json)?;
+            let applied = flood_apply_action(state, action).map_err(diagnostic_json)?;
+            let effects = applied.effects;
+            let viewer = flood_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = flood_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: seat.0,
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                flood_view_json(&flood_project_view(state, &viewer))
+            ))
+        }
         MatchRecord::TokenBazaar {
             game_id,
             state,
@@ -1837,6 +1976,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::FloodWatch {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = flood_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        flood_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
         MatchRecord::TokenBazaar {
             game_id,
             state,
@@ -2020,6 +2181,34 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             )];
             Ok(masked_claims::PublicReplayExport::new("observer", steps).to_json())
         }
+        MatchRecord::FloodWatch {
+            game_id,
+            state,
+            effects,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = Viewer { seat_id: None };
+            let public_effects = effects
+                .since(EffectCursor(0), &viewer)
+                .into_iter()
+                .map(|logged| flood_watch::public_effect_text(&logged.envelope.payload))
+                .collect::<Vec<_>>();
+            let steps = vec![flood_watch::PublicReplayStep {
+                step_index: 0,
+                public_view_summary: flood_project_view(state, &viewer).stable_summary(),
+                public_effects,
+                redacted_command_summary: commands
+                    .last()
+                    .map_or_else(|| "setup".to_owned(), flood_redacted_command_summary),
+                terminal: state.terminal_outcome.is_some(),
+            }];
+            Ok(
+                flood_watch::export_public_replay(state.variant.id.clone(), &viewer, steps)
+                    .to_json(),
+            )
+        }
         MatchRecord::TokenBazaar {
             game_id,
             seed,
@@ -2114,6 +2303,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if is_masked_public_export(doc) {
         return import_masked_public_replay(doc);
     }
+    if is_flood_watch_public_export(doc) {
+        return import_flood_watch_public_replay(doc);
+    }
     if is_secret_draft_public_export(doc) {
         return import_secret_draft_public_replay(doc);
     }
@@ -2142,6 +2334,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_DRAUGHTS_LITE
         && parsed.game_id != GAME_HIGH_CARD_DUEL
         && parsed.game_id != GAME_MASKED_CLAIMS
+        && parsed.game_id != GAME_FLOOD_WATCH
         && parsed.game_id != GAME_TOKEN_BAZAAR
         && parsed.game_id != GAME_SECRET_DRAFT
         && parsed.game_id != GAME_POKER_LITE
@@ -2231,6 +2424,24 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             .map_err(diagnostic_json)?;
             (
                 masked_view_json(&masked_project_view(&state, &Viewer { seat_id: None })),
+                0,
+            )
+        }
+        RegisteredGame::FloodWatch => {
+            if command_count != 0 {
+                return Err(diagnostic_string(
+                    "unsupported_replay_commands",
+                    "flood_watch command replay uses viewer-scoped public export/import in this bridge",
+                ));
+            }
+            let state = flood_setup_match(
+                Seed(parsed.seed),
+                &flood_seats(),
+                &flood_watch::SetupOptions::default(),
+            )
+            .map_err(diagnostic_json)?;
+            (
+                flood_view_json(&flood_project_view(&state, &Viewer { seat_id: None })),
                 0,
             )
         }
@@ -2382,6 +2593,19 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     masked_view_json(&masked_project_view(&state, &Viewer { seat_id: None }))
                 ))
             }
+            RegisteredGame::FloodWatch => {
+                let state = flood_setup_match(
+                    Seed(record.seed),
+                    &flood_seats(),
+                    &flood_watch::SetupOptions::default(),
+                )
+                .map_err(diagnostic_json)?;
+                Ok(format!(
+                    "{{\"replay_id\":\"{}\",\"cursor\":0,\"total_commands\":0,\"view\":{},\"effects\":[]}}",
+                    escape_json(replay_id),
+                    flood_view_json(&flood_project_view(&state, &Viewer { seat_id: None }))
+                ))
+            }
             RegisteredGame::TokenBazaar => {
                 let bounded_cursor = cursor.min(record.commands.len());
                 let (state, effects) =
@@ -2466,6 +2690,14 @@ fn is_masked_public_export(doc: &str) -> bool {
         string_field(doc, "game_id").as_deref(),
         Ok(masked_claims::GAME_ID)
     )
+}
+
+fn is_flood_watch_public_export(doc: &str) -> bool {
+    matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(flood_watch::GAME_ID)
+    ) && string_field(doc, "rules_version_label").is_ok()
+        && string_field(doc, "viewer").is_ok()
 }
 
 fn is_poker_lite_public_export(doc: &str) -> bool {
@@ -2744,6 +2976,79 @@ fn import_masked_public_replay(doc: &str) -> Result<String, String> {
     ))
 }
 
+fn import_flood_watch_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let rules_version = string_field(doc, "rules_version_label")?;
+    if rules_version != flood_watch::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {rules_version}"),
+        ));
+    }
+    let variant = string_field(doc, "variant")?;
+    if variant != flood_watch::VARIANT_STANDARD_ID && variant != flood_watch::VARIANT_DELUGE_ID {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {variant}"),
+        ));
+    }
+    let viewer = string_field(doc, "viewer")?;
+    if viewer != "observer" {
+        return Err(diagnostic_string(
+            "unsupported_replay_viewer",
+            &format!("unsupported replay viewer: {viewer}"),
+        ));
+    }
+    let steps = parse_public_replay_steps(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let export = flood_watch::PublicReplayExport {
+        schema_version: SCHEMA_VERSION,
+        game_id: flood_watch::GAME_ID.to_owned(),
+        rules_version_label: rules_version,
+        variant,
+        viewer,
+        steps: steps.iter().map(flood_step_from_public_timeline).collect(),
+    };
+    let _timeline = flood_watch::import_public_export(&export);
+    let viewer = export.viewer.clone();
+    let step_count = export.steps.len();
+    let replay_id = next_replay_id(GAME_FLOOD_WATCH);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_FLOOD_WATCH.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: viewer.clone(),
+                    steps: export
+                        .steps
+                        .iter()
+                        .map(public_timeline_step_from_flood)
+                        .collect(),
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"{}\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0}}",
+        escape_json(&replay_id),
+        escape_json(GAME_FLOOD_WATCH),
+        escape_json(&viewer),
+        step_count
+    ))
+}
+
 fn import_plain_tricks_public_replay(doc: &str) -> Result<String, String> {
     validate_json_object(doc).map_err(|message| {
         diagnostic_string(
@@ -2835,6 +3140,26 @@ fn public_timeline_step_from_masked(step: &masked_claims::PublicReplayStep) -> P
     }
 }
 
+fn flood_step_from_public_timeline(step: &PublicTimelineStep) -> flood_watch::PublicReplayStep {
+    flood_watch::PublicReplayStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
+fn public_timeline_step_from_flood(step: &flood_watch::PublicReplayStep) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
 fn public_timeline_step_from_secret(step: &SecretPublicReplayStep) -> PublicTimelineStep {
     PublicTimelineStep {
         step_index: step.step_index,
@@ -2901,6 +3226,10 @@ fn masked_redacted_command_summary(command: &AppliedCommand) -> String {
     }
 }
 
+fn flood_redacted_command_summary(command: &AppliedCommand) -> String {
+    command.action_path.join("/")
+}
+
 fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
     match game_id {
         GAME_RACE_TO_N => Ok(RegisteredGame::RaceToN),
@@ -2910,6 +3239,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
         GAME_MASKED_CLAIMS => Ok(RegisteredGame::MaskedClaims),
+        GAME_FLOOD_WATCH => Ok(RegisteredGame::FloodWatch),
         GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
         GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
         GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
@@ -2999,6 +3329,10 @@ fn masked_seats() -> Vec<SeatId> {
     vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
 }
 
+fn flood_seats() -> Vec<SeatId> {
+    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+}
+
 fn trace_rules_version(game: RegisteredGame) -> &'static str {
     match game {
         RegisteredGame::RaceToN => RACE_TRACE_RULES_VERSION,
@@ -3008,6 +3342,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
         RegisteredGame::MaskedClaims => MASKED_CLAIMS_TRACE_RULES_VERSION,
+        RegisteredGame::FloodWatch => FLOOD_WATCH_TRACE_RULES_VERSION,
         RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
         RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
         RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
@@ -3154,6 +3489,17 @@ fn parse_masked_seat(value: &str) -> Result<MaskedClaimsSeat, String> {
 
 fn trace_masked_seat(seat: MaskedClaimsSeat) -> &'static str {
     seat.as_str()
+}
+
+fn parse_flood_seat(value: &str) -> Result<SeatId, String> {
+    match value {
+        "seat-0" | "seat_0" => Ok(SeatId("seat_0".to_owned())),
+        "seat-1" | "seat_1" => Ok(SeatId("seat_1".to_owned())),
+        _ => Err(format!(
+            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+            escape_json(value)
+        )),
+    }
 }
 
 fn parse_token_seat(value: &str) -> Result<TokenBazaarSeat, String> {
@@ -3337,6 +3683,19 @@ fn masked_actor_for_seat(
         })
 }
 
+fn flood_actor_for_seat(state: &FloodWatchState, seat: &SeatId) -> Result<Actor, String> {
+    if state.seat_index(seat).is_some() {
+        Ok(Actor {
+            seat_id: seat.clone(),
+        })
+    } else {
+        Err(format!(
+            "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+            escape_json(&seat.0)
+        ))
+    }
+}
+
 fn token_actor_for_seat(state: &TokenBazaarState, seat: TokenBazaarSeat) -> Result<Actor, String> {
     state
         .seats
@@ -3458,6 +3817,14 @@ fn masked_viewer_for_seat(state: &MaskedClaimsState, seat: Option<&str>) -> Resu
     Ok(Viewer { seat_id })
 }
 
+fn flood_viewer_for_seat(state: &FloodWatchState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat.map(parse_flood_seat).transpose()?;
+    if let Some(seat_id) = &seat_id {
+        flood_actor_for_seat(state, seat_id)?;
+    }
+    Ok(Viewer { seat_id })
+}
+
 fn token_viewer_for_seat(state: &TokenBazaarState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_token_seat)
@@ -3558,6 +3925,16 @@ fn masked_viewer_authorizes_actor(
         .map(parse_masked_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
+}
+
+fn flood_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: &SeatId,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_flood_seat)
+        .transpose()
+        .map(|viewer| viewer.as_ref() == Some(actor))
 }
 
 fn token_viewer_authorizes_actor(
@@ -5861,6 +6238,128 @@ fn masked_view_json(view: &masked_claims::PublicView) -> String {
     )
 }
 
+fn flood_view_json(view: &flood_watch::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"roles\":[{}],\"turn_number\":{},\"active_seat\":\"{}\",\"phase\":{},\"districts\":[{}],\"drawn_cards\":[{}],\"forecast\":{},\"remaining_composition\":{},\"undrawn_count\":{},\"terminal\":{},\"freshness_token\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        string_array(&view.seats),
+        view.roles
+            .iter()
+            .map(flood_role_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.turn_number,
+        escape_json(&view.active_seat),
+        flood_phase_json(view.phase),
+        view.districts
+            .iter()
+            .map(flood_district_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        string_array(&view.drawn_cards),
+        option_string_json(view.forecast.as_deref()),
+        flood_composition_json(&view.remaining_composition),
+        view.undrawn_count,
+        flood_terminal_json(&view.terminal),
+        view.freshness_token,
+        flood_ui_json(&view.ui)
+    )
+}
+
+fn flood_role_json(role: &flood_watch::visibility::RoleView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"role\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(&role.seat),
+        role.role.as_str(),
+        escape_json(&role.label)
+    )
+}
+
+fn flood_phase_json(phase: flood_watch::visibility::PhaseView) -> String {
+    match phase {
+        flood_watch::visibility::PhaseView::Action { budget_remaining } => {
+            format!("{{\"kind\":\"action\",\"budget_remaining\":{budget_remaining}}}")
+        }
+        flood_watch::visibility::PhaseView::Terminal => {
+            "{\"kind\":\"terminal\",\"budget_remaining\":0}".to_owned()
+        }
+    }
+}
+
+fn flood_district_json(district: &flood_watch::DistrictView) -> String {
+    format!(
+        "{{\"district\":\"{}\",\"label\":\"{}\",\"flood_level\":{},\"levees\":{}}}",
+        district.district.as_str(),
+        escape_json(district.label),
+        district.flood_level,
+        district.levees
+    )
+}
+
+fn flood_composition_json(composition: &flood_watch::CompositionView) -> String {
+    format!(
+        "{{\"downpours_per_district\":[{}],\"surges_per_district\":[{}],\"reprieves\":{}}}",
+        composition
+            .downpours_per_district
+            .iter()
+            .map(flood_composition_entry_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        composition
+            .surges_per_district
+            .iter()
+            .map(flood_composition_entry_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        composition.reprieves
+    )
+}
+
+fn flood_composition_entry_json(entry: &(flood_watch::DistrictId, u8)) -> String {
+    format!(
+        "{{\"district\":\"{}\",\"count\":{}}}",
+        entry.0.as_str(),
+        entry.1
+    )
+}
+
+fn flood_terminal_json(terminal: &flood_watch::TerminalView) -> String {
+    match terminal {
+        flood_watch::TerminalView::NonTerminal => {
+            "{\"kind\":\"non_terminal\",\"outcome\":null,\"summary\":null}".to_owned()
+        }
+        flood_watch::TerminalView::Complete { outcome, summary } => format!(
+            "{{\"kind\":\"complete\",\"outcome\":\"{}\",\"summary\":{}}}",
+            escape_json(outcome),
+            flood_terminal_summary_json(summary)
+        ),
+    }
+}
+
+fn flood_terminal_summary_json(summary: &flood_watch::TerminalSummary) -> String {
+    format!(
+        "{{\"rule_id\":\"{}\",\"public_summary\":\"{}\",\"drawn_card_count\":{},\"surviving_levels\":[{}]}}",
+        escape_json(&summary.rule_id),
+        escape_json(&summary.public_summary),
+        summary.drawn_card_count,
+        summary
+            .surviving_levels
+            .iter()
+            .map(flood_composition_entry_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn flood_ui_json(ui: &flood_watch::ui::UiMetadata) -> String {
+    format!("{{\"display_name\":\"{}\"}}", escape_json(&ui.display_name))
+}
+
 fn option_masked_seat_json(seat: Option<MaskedClaimsSeat>) -> String {
     seat.map_or_else(
         || "null".to_owned(),
@@ -7113,6 +7612,79 @@ fn masked_effect_json(effect: &EffectEnvelope<MaskedClaimsEffect>) -> String {
     )
 }
 
+fn flood_effects_json(effects: &[EffectEnvelope<FloodWatchEffect>], viewer: &Viewer) -> String {
+    let body = flood_watch::filter_effects_for_viewer(effects, viewer)
+        .iter()
+        .map(flood_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn flood_effect_json(effect: &EffectEnvelope<FloodWatchEffect>) -> String {
+    let payload = match &effect.payload {
+        FloodWatchEffect::DistrictBailed { district, amount } => format!(
+            "{{\"type\":\"district_bailed\",\"district\":\"{}\",\"amount\":{}}}",
+            district.as_str(),
+            amount
+        ),
+        FloodWatchEffect::LeveePlaced { district, amount } => format!(
+            "{{\"type\":\"levee_placed\",\"district\":\"{}\",\"amount\":{}}}",
+            district.as_str(),
+            amount
+        ),
+        FloodWatchEffect::ForecastRevealed { card } => format!(
+            "{{\"type\":\"forecast_revealed\",\"card\":\"{}\"}}",
+            escape_json(&card.id())
+        ),
+        FloodWatchEffect::EnvironmentPhaseBegan { turn, draws } => format!(
+            "{{\"type\":\"environment_phase_began\",\"turn\":{},\"draws\":{}}}",
+            turn,
+            draws
+        ),
+        FloodWatchEffect::EventDrawn { index, card } => format!(
+            "{{\"type\":\"event_drawn\",\"index\":{},\"card\":\"{}\"}}",
+            index,
+            escape_json(&card.id())
+        ),
+        FloodWatchEffect::LeveeAbsorbed {
+            district,
+            amount,
+            remaining_levees,
+        } => format!(
+            "{{\"type\":\"levee_absorbed\",\"district\":\"{}\",\"amount\":{},\"remaining_levees\":{}}}",
+            district.as_str(),
+            amount,
+            remaining_levees
+        ),
+        FloodWatchEffect::FloodLevelRose {
+            district,
+            amount,
+            new_level,
+        } => format!(
+            "{{\"type\":\"flood_level_rose\",\"district\":\"{}\",\"amount\":{},\"new_level\":{}}}",
+            district.as_str(),
+            amount,
+            new_level
+        ),
+        FloodWatchEffect::DistrictInundated { district } => format!(
+            "{{\"type\":\"district_inundated\",\"district\":\"{}\"}}",
+            district.as_str()
+        ),
+        FloodWatchEffect::DeckExhausted => "{\"type\":\"deck_exhausted\"}".to_owned(),
+        FloodWatchEffect::Terminal { outcome, summary } => format!(
+            "{{\"type\":\"terminal\",\"outcome\":\"{}\",\"summary\":{}}}",
+            escape_json(outcome),
+            flood_terminal_summary_json(summary)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
 fn secret_effects_json(effects: &[EffectEnvelope<SecretDraftEffect>], viewer: &Viewer) -> String {
     let body = secret_draft::visibility::filter_effects_for_viewer(effects, viewer)
         .iter()
@@ -8274,6 +8846,7 @@ mod tests {
         assert!(games.contains("\"game_id\":\"draughts_lite\""));
         assert!(games.contains("\"game_id\":\"high_card_duel\""));
         assert!(games.contains("\"game_id\":\"masked_claims\""));
+        assert!(games.contains("\"game_id\":\"flood_watch\""));
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"game_id\":\"poker_lite\""));
         assert!(games.contains("\"game_id\":\"plain_tricks\""));
@@ -8283,12 +8856,15 @@ mod tests {
         assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
         assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
         assert!(games.contains("\"variants\":[\"masked_claims_standard\"]"));
+        assert!(games.contains("\"variants\":[\"flood_watch_standard\",\"flood_watch_deluge\"]"));
         assert!(games.contains("\"variants\":[\"token_bazaar_standard\"]"));
         assert!(games.contains("\"variants\":[\"poker_lite_standard\"]"));
         assert!(games.contains("\"variants\":[\"plain_tricks_standard\"]"));
         assert!(games.contains("\"hidden_information\":true"));
         assert!(games.contains("\"public_replay_export\""));
         assert!(games.contains("\"reaction_window\""));
+        assert!(games.contains("\"cooperative\":true"));
+        assert!(games.contains("\"environment_automation\""));
         assert!(games.contains("\"bounded_pledge\""));
         assert!(games.contains("\"trick_taking\""));
     }
@@ -9004,6 +9580,55 @@ mod tests {
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot response applies");
         assert!(bot.contains("\"policy_id\":\"masked-claims-level1-v1\""));
         assert!(!bot.contains("reserve"));
+    }
+
+    #[test]
+    fn flood_watch_bridge_projects_public_view_effects_bot_and_export_without_deck_order() {
+        let created = new_match("flood_watch", 41).expect("match created");
+        let match_id = extract_match_id(&created);
+        assert!(created.contains("\"variant_id\":\"flood_watch_standard\""));
+
+        let observer = get_view(&match_id, None).expect("observer view returned");
+        assert!(observer.contains("\"game_id\":\"flood_watch\""));
+        assert!(observer.contains("\"variant_id\":\"flood_watch_standard\""));
+        assert!(observer.contains("\"undrawn_count\":"));
+        assert!(!observer.contains("full_deck_order"));
+        assert!(!observer.contains("event_deck"));
+
+        let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
+        assert!(tree.contains("\"segment\":\"end_turn\""));
+        assert!(tree.contains("\"freshness_token\":0"));
+
+        let applied =
+            apply_action(&match_id, "seat_0", "end_turn", 0).expect("turn-ending action applies");
+        assert!(applied.contains("\"type\":\"environment_phase_began\""));
+        assert!(applied.contains("\"type\":\"event_drawn\""));
+        assert!(applied.contains("\"active_seat\":\"seat_1\""));
+        assert!(!applied.contains("full_deck_order"));
+        assert!(!applied.contains("event_deck"));
+
+        let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot action applies");
+        assert!(bot.contains("\"policy_id\":\"flood_watch_level1_public_priority_v1\""));
+        assert!(!bot.contains("full_deck_order"));
+        assert!(!bot.contains("event_deck"));
+
+        let exported = export_replay(&match_id).expect("public replay exported");
+        assert!(exported.contains("\"game_id\":\"flood_watch\""));
+        assert!(exported.contains("\"rules_version_label\":\"flood-watch-rules-v1\""));
+        assert!(exported.contains("\"viewer\":\"observer\""));
+        assert!(exported.contains("\"redacted_command_summary\""));
+        assert!(!exported.contains("\"commands\""));
+        assert!(!exported.contains("\"full_deck_order\""));
+        assert!(!exported.contains("\"event_deck\""));
+
+        let imported = import_replay(&exported).expect("public replay imported");
+        let replay_id = extract_replay_id(&imported);
+        assert!(imported.contains("\"game_id\":\"flood_watch\""));
+        assert!(imported.contains("\"public_export\":true"));
+
+        let reset = replay_reset(&replay_id).expect("public replay reset returned");
+        assert!(reset.contains("\"public_export\":true"));
+        assert!(reset.contains("\"view\":null"));
     }
 
     #[test]

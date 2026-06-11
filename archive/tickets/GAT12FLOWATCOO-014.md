@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-014: WASM/API registration
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (catalog, setup, action, bot, effect, view, replay/export/import, no-leak paths); `apps/web/scripts/smoke-load-wasm.mjs` (modify — add `flood_watch` catalog assertion)
@@ -77,3 +77,20 @@ Add a `flood_watch` catalog assertion (`catalog.some((game) => game.game_id === 
 1. `cargo build -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm`
 3. `smoke:ui`/`smoke:e2e` are exercised once the renderer and e2e land (GAT12FLOWATCOO-017/018); `smoke:wasm` is the correct boundary for the ABI registration diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Registered `flood_watch` in the WASM/API bridge with
+catalog metadata, setup, action tree, action application, bot turn, effects,
+viewer-safe view JSON, viewer-scoped public replay export/import, replay-step
+timeline import, and no-leak bridge coverage. Added the `flood_watch` catalog
+assertion to the web WASM smoke harness. `engine-core` remains untouched; the
+bridge dispatches to the game-local Flood Watch Rust surfaces.
+
+Verification:
+
+1. `cargo test -p wasm-api`
+2. `cargo build -p wasm-api`
+3. `cargo fmt --all --check`
+4. `npm --prefix apps/web run smoke:wasm`
+5. `cargo clippy -p wasm-api --all-targets -- -D warnings`
