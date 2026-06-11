@@ -7,6 +7,7 @@ use flood_watch::{
     setup_match, Fixture, Manifest, ScenarioVariant, SetupOptions, VariantCatalog, ACTION_END_TURN,
     GAME_ID, RULES_VERSION_LABEL, STANDARD_DECK_SIZE, VARIANT_DELUGE_ID, VARIANT_STANDARD_ID,
 };
+use std::{collections::BTreeSet, fs};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -108,4 +109,52 @@ fn internal_trace_is_separate_full_order_authority() {
         trace.stable_hash(),
         generate_internal_full_trace(11, &state).stable_hash()
     );
+}
+
+#[test]
+fn golden_trace_set_is_complete_and_public_redacted() {
+    let expected = [
+        "bail-dry-district-diagnostic.trace.json",
+        "bot-coop-full-game.trace.json",
+        "budget-exhaustion-auto-environment.trace.json",
+        "early-end-turn.trace.json",
+        "forecast-public-reveal.trace.json",
+        "levee-absorption.trace.json",
+        "loss-by-inundation.trace.json",
+        "mid-phase-early-stop.trace.json",
+        "out-of-budget-diagnostic.trace.json",
+        "public-observer-no-leak.trace.json",
+        "public-replay-export-import.trace.json",
+        "reprieve-no-op.trace.json",
+        "role-power-levee-warden.trace.json",
+        "role-power-pumpwright.trace.json",
+        "scenario-deluge-setup.trace.json",
+        "standard-win.trace.json",
+        "storm-surge-double-rise.trace.json",
+        "wrong-seat-diagnostic.trace.json",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect::<BTreeSet<_>>();
+    let dir = format!("{}/tests/golden_traces", env!("CARGO_MANIFEST_DIR"));
+    let actual = fs::read_dir(&dir)
+        .expect("golden trace dir exists")
+        .map(|entry| {
+            entry
+                .expect("trace entry")
+                .file_name()
+                .to_string_lossy()
+                .to_string()
+        })
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(actual, expected);
+    for file in &actual {
+        let text = fs::read_to_string(format!("{dir}/{file}")).expect("trace reads");
+        assert!(text.contains("\"game_id\":\"flood_watch\""));
+        assert!(text.contains("\"public_no_leak\":true"));
+        assert!(!text.contains("full_deck_order"));
+        assert!(!text.contains("deck_order"));
+        assert!(!text.contains('#'));
+    }
 }

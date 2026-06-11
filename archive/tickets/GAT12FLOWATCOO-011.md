@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-011: Native test suite and golden traces
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/flood_watch/tests/{rules,property,replay,serialization,visibility,bots}.rs`; `games/flood_watch/tests/golden_traces/*.trace.json`
@@ -79,3 +79,20 @@ Author all eighteen traces under `games/flood_watch/tests/golden_traces/`: `stan
 1. `cargo test -p flood_watch`
 2. `cargo run -p replay-check -- --game flood_watch --all` (full green after GAT12FLOWATCOO-015 registers the game; the traces are authored and unit-replayable here)
 3. The simulate/rule-coverage full-pipeline runs land with tool registration (GAT12FLOWATCOO-015); `cargo test -p flood_watch` is the correct boundary for the test/trace authoring diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Completed the native evidence surface for the current
+Flood Watch implementation by adding all eighteen enumerated golden trace files
+under `games/flood_watch/tests/golden_traces/` and a serialization guard that
+enforces the exact trace set plus public no-leak constraints. Existing rule,
+property, replay, serialization, visibility, and bot suites now run together
+through `cargo test -p flood_watch`; replay-check registration remains in
+GAT12FLOWATCOO-015 as scoped.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test serialization`
+3. `cargo test -p flood_watch`
+4. `cargo clippy -p flood_watch --all-targets -- -D warnings`
