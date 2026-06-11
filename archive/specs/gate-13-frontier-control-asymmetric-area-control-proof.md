@@ -1,5 +1,7 @@
 # Gate 13 Frontier Control Asymmetric Area-Control Proof
 
+**Status**: COMPLETED
+
 | Field | Value |
 |---|---|
 | Spec ID | `gate-13-frontier-control-asymmetric-area-control-proof` |
@@ -431,3 +433,55 @@ No external research pass backs this spec (Assumption A10); this register names 
 - Mechanics themselves — graph maps, area control, asymmetric factions, action points, supply lines — are unprotected rules territory (the same rules-vs-expression boundary recorded in the Gate 11 and Gate 12 specs via the U.S. Copyright Office games circular and *DaVinci Editrice v. ZiKo Games*).
 
 `games/frontier_control/docs/SOURCES.md` must record what was actually consulted at implementation time, what was used and not copied, why every name and label is original, and asset/font status. If any label feels trademark-forward or trade-dress-adjacent at review time, rename it before implementation.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Gate 13 shipped `frontier_control` / Frontier Control as the asymmetric graph-map
+area-control proof. The completed gate includes the game crate, typed standard
+and Highlands graph-map variants, deterministic setup, adjacency-constrained
+movement, immediate asymmetric clash resolution, site control, supply-connected
+stake scoring, Garrison fort scoring, comparable terminal score track with
+Garrison tiebreak, Level 0 and Level 1 bots for both factions, native tests and
+golden traces, benchmarks, tool and CI registration, WASM/API bridge
+registration, SVG browser board, generated player rules, outcome explanations,
+catalog documentation, and browser E2E no-leak coverage.
+
+The mechanic-atlas reviews completed as planned: `game-stdlib::board_space` was
+audited not applicable to site/edge graph topology, graph/control/asymmetry
+shapes remain local-only first uses, role/faction modifiers and multi-action
+turn budgets remain local second-use comparisons, shared-outcome and
+reaction-window rows were reviewed as not applicable to this competitive
+immediate-clash gate, and deterministic shuffle is not used. No `engine-core`
+noun, `game-stdlib` helper, or promotion debt was introduced; `docs/MECHANIC-ATLAS.md`
+§10A remains `Current debt: _None_`.
+
+Final verification passed:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game frontier_control --games 1000`
+- `cargo run -p replay-check -- --game frontier_control --all`
+- `cargo run -p fixture-check -- --game frontier_control`
+- `cargo run -p rule-coverage -- --game frontier_control`
+- `cargo bench -p frontier_control`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+
+Release constraint: the registered Level 1 simulation currently reports a
+Garrison-dominant 1000-0 result on the standard map; the balance retune debt is
+recorded in the game docs and does not block the Gate 13 architecture proof.
+
+No unresolved blocking issues remain. The completed tickets are archived under
+`archive/tickets/GAT13FROCONASY-001.md` through
+`archive/tickets/GAT13FROCONASY-017.md`, and this spec is archived at
+`archive/specs/gate-13-frontier-control-asymmetric-area-control-proof.md`.
