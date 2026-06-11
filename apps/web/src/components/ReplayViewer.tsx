@@ -5,6 +5,7 @@ import type {
   DirectionalFlipPublicView,
   DraughtsLitePublicView,
   EffectEntry,
+  FloodWatchPublicView,
   MaskedClaimsPublicView,
   PublicView,
   SecretDraftPublicView,
@@ -254,6 +255,10 @@ function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublic
   return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
 }
 
+function isFloodWatchView(view: PublicView | null): view is FloodWatchPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "flood_watch");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -356,6 +361,17 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
             : view.active_seat ?? "resolving",
       },
       { label: "Score", value: `${view.scores.seat_0}-${view.scores.seat_1}` },
+    ];
+  }
+
+  if (isFloodWatchView(view)) {
+    return [
+      { label: "Turn", value: String(view.turn_number) },
+      {
+        label: "Storm status",
+        value: view.terminal.kind === "non_terminal" ? `${view.undrawn_count} undrawn` : view.terminal.summary.public_summary,
+      },
+      { label: "Forecast", value: view.forecast ?? "None" },
     ];
   }
 

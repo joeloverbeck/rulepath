@@ -238,6 +238,20 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["masked_claims"],
     ruleRefLabel: "MC-END-005",
   },
+  "flood_watch.shared_loss_inundation": {
+    summary: "A public district reached the inundation threshold after {drawn_card_count} drawn storm cards.",
+    expandedHeading: "Shared loss",
+    requiredParams: ["drawn_card_count"],
+    allowedGameIds: ["flood_watch"],
+    ruleRefLabel: "FW-END-001",
+  },
+  "flood_watch.shared_win_deck_exhausted": {
+    summary: "The team survived all {drawn_card_count} drawn storm cards.",
+    expandedHeading: "Shared win",
+    requiredParams: ["drawn_card_count"],
+    allowedGameIds: ["flood_watch"],
+    ruleRefLabel: "FW-END-002",
+  },
 } as const satisfies Record<string, OutcomeExplanationTemplate>;
 
 export type OutcomeExplanationTemplateKey = keyof typeof outcomeExplanationTemplates;
@@ -257,6 +271,7 @@ const outcomeValueCopy: Record<string, string> = {
   final_score: "Final score",
   full_board_draw: "Full board draw",
   fulfilled_tiebreak_win: "Fulfilled contracts tiebreak win",
+  flood_watch: "Flood Watch",
   high_card: "High card",
   highest_single_tiebreak: "Highest single tiebreak",
   inventory_tiebreak_win: "Inventory tiebreak win",
@@ -272,6 +287,8 @@ const outcomeValueCopy: Record<string, string> = {
   private_rank_tiebreak: "Private rank tiebreak",
   rust_terminal_rationale: "Terminal rationale",
   score_win: "Score win",
+  shared_loss_inundation: "Shared loss by inundation",
+  shared_win_deck_exhausted: "Shared win by deck exhaustion",
   showdown_win: "Showdown win",
   split: "Split",
   terminal_position: "Terminal position",

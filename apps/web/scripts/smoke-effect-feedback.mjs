@@ -155,6 +155,15 @@ try {
   function playGame(gameId, seed, turns) {
     const created = newMatch(gameId, seed);
     let view = getView(created.match_id);
+    if (gameId === "flood_watch") {
+      const actor = activeSeat(view);
+      const tree = getActionTree(created.match_id, actor);
+      const endTurn = tree.choices.find((choice) => choice.segment === "end_turn");
+      assert(endTurn, "flood_watch exposes end_turn for storm feedback smoke");
+      const result = applyAction(created.match_id, actor, "end_turn", tree.freshness_token);
+      recordEffects(gameId, result.effects);
+      return;
+    }
     for (let turn = 0; turn < turns && activeSeat(view, null); turn += 1) {
       view = playFirstLegal(created.match_id, gameId, view);
     }
@@ -166,6 +175,7 @@ try {
     ["plain_tricks", 12],
     ["secret_draft", 2],
     ["masked_claims", 2],
+    ["flood_watch", 2],
   ]);
 
   for (const [index, game] of catalog.entries()) {
@@ -189,6 +199,7 @@ try {
     ["masked_claims", "claim_score_changed"],
     ["plain_tricks", "round_scored"],
     ["high_card_duel", "round_scored"],
+    ["flood_watch", "event_drawn"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {

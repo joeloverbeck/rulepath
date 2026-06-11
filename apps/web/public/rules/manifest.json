@@ -49,6 +49,13 @@
     "sha256": "9be912dcffa8725bbdbeceaf8d8c3c7b202a289b8d963a809e6bc3f3e43d1a0a"
   },
   {
+    "game_id": "flood_watch",
+    "display_name": "Flood Watch",
+    "rules_asset_path": "/rules/flood_watch.md",
+    "source_rules_version_checked": "flood-watch-rules-v1",
+    "sha256": "66200af4245d454938aa5bbfa415dc236c0e327b71a6f03525ae4ac0cc6b4779"
+  },
+  {
     "game_id": "token_bazaar",
     "display_name": "Token Bazaar",
     "rules_asset_path": "/rules/token_bazaar.md",

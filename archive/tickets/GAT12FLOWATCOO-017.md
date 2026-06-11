@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-017: React board and presentation-shell wiring
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/FloodWatchBoard.tsx` (new); `apps/web/src/components/{effectFeedback.ts,outcomeExplanationTemplates.ts}`, `apps/web/src/wasm/client.ts`, `apps/web/src/state/shellReducer.ts` (modify); `apps/web/public/rules/flood_watch.md` (new, generated); `scripts/check-player-rules.mjs`, `apps/web/scripts/{smoke-ui.mjs,smoke-effect-feedback.mjs}` (modify). No Rust behavior — legality, automation, outcome, and redaction stay in Rust.
@@ -85,3 +85,19 @@ Generate `apps/web/public/rules/flood_watch.md` via `scripts/copy-player-rules.m
 1. `npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects`
 2. `node scripts/check-outcome-explanations.mjs && node scripts/check-player-rules.mjs && npm --prefix apps/web run build`
 3. The E2E browser smoke + DOM/storage no-leak assertions are the GAT12FLOWATCOO-018 boundary; `smoke:ui`/`smoke:effects` + the check scripts are the correct boundary for the renderer diff.
+
+## Outcome
+
+Accepted on 2026-06-11.
+
+Implemented the Flood Watch web presentation surface with `FloodWatchBoard.tsx`, Rust-view-only action rendering, district flood/levee counters, public remaining-composition/deck accounting, forecast and role displays, effect-driven status feedback, and shared win/loss outcome explanations. Wired the board into the React shell, client public-view types, terminal/text helpers, replay snapshot summaries, and generic terminal guards without adding TypeScript legality or automation.
+
+Generated `apps/web/public/rules/flood_watch.md`, registered Flood Watch as a hidden-information player-rules game, and extended smoke coverage for catalog metadata, public view redaction, legal action tree exposure, public storm effects, bot policy output, public replay export/import, and effect-feedback rendering.
+
+Verification passed:
+
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `node scripts/check-outcome-explanations.mjs`
+- `node scripts/check-player-rules.mjs`
+- `npm --prefix apps/web run build`
