@@ -222,7 +222,7 @@ Do not, in this gate:
 
 ## Documentation updates required
 
-- `specs/README.md`: Gate 12 row points at this spec with status `Planned` on acceptance; flip to `In progress` when AGENT-TASKs execute and `Done` only after exit criteria pass with evidence.
+- `specs/README.md`: Gate 12 row points at the archived spec with status `Done` after exit criteria passed with evidence.
 - Do **not** edit `docs/ROADMAP.md` to record progress.
 - `docs/MECHANIC-ATLAS.md`:
   - §10B `reaction window/pending response`: record the work-item-1 review outcome (expected: `flood_watch` is not a second reaction-capable use — no seat responds to another seat's pending action and the environment phase is automation, not a response window; the second-use trigger stays armed for Gate 13/14 event games). If implementation contradicts this, the row's review fires before proceeding.
@@ -423,3 +423,30 @@ No external research pass backs this spec (Assumption A10); this register names 
 - Mechanics themselves — cooperative shared outcome, event decks, action points, role asymmetry — are unprotected rules territory (the same rules-vs-expression boundary the Gate 11 spec recorded via the U.S. Copyright Office games circular and *DaVinci Editrice v. ZiKo Games*).
 
 `games/flood_watch/docs/SOURCES.md` must record what was actually consulted at implementation time, what was used and not copied, why every name and label is original, and asset/font status. If any label feels trademark-forward or trade-dress-adjacent at review time, rename it before implementation.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Gate 12 shipped `flood_watch` / Flood Watch as the cooperative event-pressure proof. The completed gate includes the game crate, typed standard and Deluge scenarios, deterministic hidden event-deck setup, Rust-owned action budgets and environment automation, public forecast/draw reveal, role-modified bail/reinforce effects, shared win/loss terminal rationale, Level 0 and Level 1 cooperative bots, native tests and golden traces, benchmarks, tool and CI registration, WASM/API bridge registration, browser board, player-rules and outcome-explanation surfaces, catalog documentation, and browser E2E no-leak coverage.
+
+The mechanic-atlas reviews completed as planned: Flood Watch is not reaction-capable, is not a fifth full deterministic-shuffle/private-hand/staged-reveal use because it has no per-seat private holdings, and records first official local uses for shared-outcome cooperative terminal, event-deck environment automation, role-modified action effects, and multi-action turn budgets. `docs/MECHANIC-ATLAS.md` §10A remains `Current debt: _None_`.
+
+Final verification passed:
+
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game flood_watch --games 1000`
+- `cargo run -p replay-check -- --game flood_watch --all`
+- `cargo run -p fixture-check -- --game flood_watch`
+- `cargo run -p rule-coverage -- --game flood_watch`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+
+No unresolved blocking issues remain. The completed tickets are archived under `archive/tickets/GAT12FLOWATCOO-001.md` through `archive/tickets/GAT12FLOWATCOO-019.md`, and this spec is archived at `archive/specs/gate-12-flood-watch-cooperative-event-pressure-proof.md`.
