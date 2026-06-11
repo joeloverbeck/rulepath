@@ -11,6 +11,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "smoke:wasm": "npm run build:wasm && node scripts/smoke-load-wasm.mjs",
     "smoke:ui": "npm run build && node scripts/smoke-ui.mjs",
+    "smoke:effects": "npm run build && node scripts/smoke-effect-feedback.mjs",
     "smoke:preview": "npm run build && node scripts/smoke-preview.mjs",
     "smoke:e2e": "npm run build && node e2e/shell.smoke.mjs && node e2e/a11y-noleak.smoke.mjs && node e2e/rules-display.smoke.mjs && node e2e/outcome-explanation.smoke.mjs && node e2e/three-marks.smoke.mjs && node e2e/column-four.smoke.mjs && node e2e/draughts-lite.smoke.mjs && node e2e/high-card-duel.smoke.mjs && node e2e/token-bazaar.smoke.mjs && node e2e/secret-draft.smoke.mjs && node e2e/poker-lite.smoke.mjs && node e2e/plain-tricks.smoke.mjs && node e2e/masked-claims.smoke.mjs"
   },

@@ -20,6 +20,7 @@ npm --prefix apps/web run build
 npm --prefix apps/web run preview
 npm --prefix apps/web run smoke:wasm
 npm --prefix apps/web run smoke:ui
+npm --prefix apps/web run smoke:effects
 npm --prefix apps/web run smoke:preview
 npm --prefix apps/web run smoke:e2e
 ```
@@ -71,6 +72,7 @@ panel data whitelist is documented in
 - `smoke:wasm`: raw ABI coverage for version/features, catalog, match, action,
   bot, effects, stale diagnostics, replay, and all registered games.
 - `smoke:ui`: fast Node/WASM shell-state smoke through `render_game_to_text`.
+- `smoke:effects`: Node/WASM effect-feedback projection guard for every catalog game.
 - `smoke:preview`: built `dist` static-serving and WASM fetch smoke.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, rules display, outcome explanation, Three Marks, Column Four,

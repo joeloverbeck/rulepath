@@ -64,6 +64,7 @@ npm --prefix apps/web ci
 npm --prefix apps/web run smoke:wasm
 npm --prefix apps/web run build
 npm --prefix apps/web run smoke:ui
+npm --prefix apps/web run smoke:effects
 ```
 
 Benchmarks, when performance or benchmark gates change:
