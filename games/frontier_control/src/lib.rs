@@ -12,11 +12,18 @@ pub mod ui;
 pub mod variants;
 pub mod visibility;
 
+pub use actions::{
+    action_segment, legal_action_metadata, legal_action_tree, parse_action_path, validate_command,
+    FrontierControlAction, ValidatedAction, ACTION_DISMANTLE, ACTION_END_TURN, ACTION_MARCH,
+    ACTION_MUSTER, ACTION_PATROL, ACTION_REINFORCE, ACTION_STAKE,
+};
+pub use effects::{public_effect, FrontierControlEffect, FrontierControlEffectEnvelope};
 pub use ids::{
     FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL, STANDARD_ACTION_BUDGET, STANDARD_ROUND_COUNT,
     STANDARD_SEAT_COUNT, STANDARD_SITE_COUNT, UNIT_CAP_PER_SITE, VARIANT_HIGHLANDS_ID,
     VARIANT_STANDARD_ID,
 };
+pub use rules::{apply_command, apply_validated_action, AppliedAction};
 pub use setup::SetupOptions;
 pub use setup::{setup_match, validate_variant};
 pub use state::{

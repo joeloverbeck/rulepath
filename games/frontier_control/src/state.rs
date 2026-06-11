@@ -142,6 +142,12 @@ impl FrontierControlState {
         self.sites.iter().find(|candidate| candidate.site == site)
     }
 
+    pub fn site_mut(&mut self, site: SiteId) -> Option<&mut SiteState> {
+        self.sites
+            .iter_mut()
+            .find(|candidate| candidate.site == site)
+    }
+
     pub fn neighbors(&self, site: SiteId) -> Option<&[SiteId]> {
         self.adjacency
             .iter()
@@ -154,6 +160,19 @@ impl FrontierControlState {
             .iter()
             .position(|candidate| candidate == seat)
             .map(|index| self.factions[index])
+    }
+
+    pub fn active_seat(&self) -> Option<&SeatId> {
+        self.factions
+            .iter()
+            .position(|faction| *faction == self.active_faction)
+            .map(|index| &self.seats[index])
+    }
+
+    pub fn sites_are_adjacent(&self, left: SiteId, right: SiteId) -> bool {
+        self.neighbors(left)
+            .map(|neighbors| neighbors.contains(&right))
+            .unwrap_or(false)
     }
 
     pub fn stable_summary(&self) -> String {

@@ -1,6 +1,6 @@
 # GAT13FROCONASY-005: Faction action trees, validation, application, and clash
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/frontier_control/src/{actions,rules,effects}.rs` (two disjoint faction action trees, validation/diagnostics, application, asymmetric clash resolution)
@@ -83,3 +83,20 @@ Apply each action, decrement budget, regenerate the tree, and resolve clashes as
 1. `cargo test -p frontier_control rules`
 2. `cargo test -p frontier_control`
 3. Crate-scoped rule/property tests are the correct boundary; the full golden-trace set and simulation runs land in GAT13FROCONASY-009.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Changed `games/frontier_control/src/actions.rs`, `games/frontier_control/src/rules.rs`, `games/frontier_control/src/effects.rs`, `games/frontier_control/src/state.rs`, and `games/frontier_control/src/lib.rs`.
+
+Implemented Rust-owned Frontier Control action vocabulary, faction-filtered legal action trees, safe waiting metadata, command parsing, validation diagnostics, budget spending, end-turn advancement, public semantic effects, stake/muster/reinforce/dismantle application, and asymmetric clash resolution. Added crate-local unit coverage for faction-action separation, waiting metadata, stale/wrong-faction/non-adjacent rejection, both clash directions, budget exhaustion, and stake/reinforce/dismantle validation paths.
+
+Deviation: standalone property tests and golden traces remain deferred to the later verification tickets named by this ticket; this ticket's crate-level unit tests cover the action/rule behavior introduced here.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p frontier_control rules` — passed, 4 tests.
+3. `cargo test -p frontier_control` — passed, 18 tests plus doc tests.
+4. `cargo clippy -p frontier_control --all-targets -- -D warnings` — passed.
