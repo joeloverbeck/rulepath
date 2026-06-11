@@ -5,6 +5,77 @@ use masked_claims::{
     SetupOptions,
 };
 
+const GOLDEN_TRACES: [(&str, &str); 17] = [
+    (
+        "shortest-normal.trace.json",
+        include_str!("golden_traces/shortest-normal.trace.json"),
+    ),
+    (
+        "claim-pending-window.trace.json",
+        include_str!("golden_traces/claim-pending-window.trace.json"),
+    ),
+    (
+        "accept-resolution.trace.json",
+        include_str!("golden_traces/accept-resolution.trace.json"),
+    ),
+    (
+        "challenge-honest-reveal.trace.json",
+        include_str!("golden_traces/challenge-honest-reveal.trace.json"),
+    ),
+    (
+        "challenge-exposed-lie.trace.json",
+        include_str!("golden_traces/challenge-exposed-lie.trace.json"),
+    ),
+    (
+        "underclaim-trap-reveal.trace.json",
+        include_str!("golden_traces/underclaim-trap-reveal.trace.json"),
+    ),
+    (
+        "certain-lie-challenge.trace.json",
+        include_str!("golden_traces/certain-lie-challenge.trace.json"),
+    ),
+    (
+        "terminal-tie-break.trace.json",
+        include_str!("golden_traces/terminal-tie-break.trace.json"),
+    ),
+    (
+        "draw-after-tie-breaks.trace.json",
+        include_str!("golden_traces/draw-after-tie-breaks.trace.json"),
+    ),
+    (
+        "stale-diagnostic.trace.json",
+        include_str!("golden_traces/stale-diagnostic.trace.json"),
+    ),
+    (
+        "wrong-phase-claim-diagnostic.trace.json",
+        include_str!("golden_traces/wrong-phase-claim-diagnostic.trace.json"),
+    ),
+    (
+        "wrong-seat-response-diagnostic.trace.json",
+        include_str!("golden_traces/wrong-seat-response-diagnostic.trace.json"),
+    ),
+    (
+        "unowned-tile-diagnostic.trace.json",
+        include_str!("golden_traces/unowned-tile-diagnostic.trace.json"),
+    ),
+    (
+        "public-observer-no-leak.trace.json",
+        include_str!("golden_traces/public-observer-no-leak.trace.json"),
+    ),
+    (
+        "accepted-mask-never-revealed.trace.json",
+        include_str!("golden_traces/accepted-mask-never-revealed.trace.json"),
+    ),
+    (
+        "bot-claim-and-response.trace.json",
+        include_str!("golden_traces/bot-claim-and-response.trace.json"),
+    ),
+    (
+        "public-replay-export-import.trace.json",
+        include_str!("golden_traces/public-replay-export-import.trace.json"),
+    ),
+];
+
 fn seats() -> Vec<SeatId> {
     vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
 }
@@ -63,6 +134,41 @@ fn challenge_reveal_appears_after_public_claim_effect() {
         apply_action(&mut state, challenge_validated).expect("challenge applies");
     let rendered = format!("{response_effects:?}");
     assert!(rendered.find("ChallengeDeclared") < rendered.find("MaskRevealed"));
+}
+
+#[test]
+fn golden_traces_are_present_parseable_and_viewer_safe() {
+    assert_eq!(GOLDEN_TRACES.len(), 17);
+    for (name, trace) in GOLDEN_TRACES {
+        assert_trace_field(name, trace, "\"schema_version\":1");
+        assert_trace_field(name, trace, "\"game_id\":\"masked_claims\"");
+        assert_trace_field(name, trace, "\"rules_version\":\"masked-claims-rules-v1\"");
+        assert_trace_field(name, trace, "\"variant\":\"masked_claims_standard\"");
+        assert_trace_field(name, trace, "\"expected_state_hashes\"");
+        assert_trace_field(name, trace, "\"expected_replay_hashes\"");
+        assert!(
+            trace.contains("\"note\":\"") && trace.contains("\"migration_update_note\":\""),
+            "{name} carries trace maintenance notes"
+        );
+        assert!(
+            !trace.contains("claim/mask_g"),
+            "{name} redacts claim command tile ids"
+        );
+        if trace.contains("\"public_no_leak\":true") {
+            assert!(
+                !trace.contains("mask_g"),
+                "{name} public no-leak trace must not contain tile ids"
+            );
+        }
+        if name == "accepted-mask-never-revealed.trace.json" {
+            assert_trace_field(name, trace, "\"accepted_revealed_tiles\":[]");
+            assert!(!trace.contains("mask_g"));
+        }
+        if name == "public-replay-export-import.trace.json" {
+            assert_trace_field(name, trace, "\"public_export_contains_tile_ids\":false");
+            assert_trace_field(name, trace, "\"claim/grade-4\"");
+        }
+    }
 }
 
 fn replay_run(seed: u64) -> ReplayRun {
@@ -125,6 +231,10 @@ fn replay_run(seed: u64) -> ReplayRun {
 
 fn hash(value: &str) -> HashValue {
     HashValue::from_stable_bytes(value.as_bytes())
+}
+
+fn assert_trace_field(name: &str, trace: &str, needle: &str) {
+    assert!(trace.contains(needle), "{name} missing {needle}");
 }
 
 fn redacted_summary(action_path: &ActionPath) -> String {

@@ -1,6 +1,6 @@
 # GAT11MASCLABLU-011: Golden traces and fixture content
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/masked_claims/tests/golden_traces/*.json` (seventeen traces); populates `games/masked_claims/data/fixtures/masked_claims_standard.fixture.json`
@@ -91,3 +91,23 @@ Populate the standard fixture (shell from GAT11MASCLABLU-003) with the typed set
 1. `cargo test -p masked_claims` (the replay suite re-derives trace hashes).
 2. `cargo run -p replay-check -- --game masked_claims --all` — full-pipeline boundary; passes after the tool is registered in GAT11MASCLABLU-015.
 3. The replay suite is the runnable boundary now; scaled `replay-check`/`fixture-check` registration is GAT11MASCLABLU-015's responsibility.
+
+## Outcome
+
+Completed: 2026-06-11
+
+What changed:
+
+- Added the seventeen named `games/masked_claims/tests/golden_traces/*.trace.json` artifacts required by the Gate 11 spec.
+- Extended `games/masked_claims/tests/replay.rs` to enumerate every committed trace, verify core schema fields, and enforce the committed no-leak markers for public/export/accepted-mask traces.
+- Confirmed the existing `games/masked_claims/data/fixtures/masked_claims_standard.fixture.json` already carries the populated standard fixture content and still parses in the serialization suite.
+
+Deviations from original plan:
+
+- `replay-check` and `fixture-check` execution are left to GAT11MASCLABLU-015 as scoped. The current runnable boundary is `cargo test -p masked_claims`, with replay tests pinning trace presence, schema markers, redacted command summaries, and no-leak trace content.
+
+Verification:
+
+- `cargo test -p masked_claims` passed.
+- `cargo clippy -p masked_claims --all-targets -- -D warnings` passed.
+- `cargo fmt --all --check` passed.
