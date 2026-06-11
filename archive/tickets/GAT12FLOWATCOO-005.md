@@ -1,6 +1,6 @@
 # GAT12FLOWATCOO-005: Budgeted action phase — tree, validation, application
 
-**Status**: PENDING
+**Status**: ACCEPTED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/flood_watch/src/actions.rs`, `src/rules.rs` (legal-action tree, validation, application, role-power modifiers)
@@ -78,3 +78,20 @@ Implement validation (all rejections in Assumption 2, fail-closed, viewer-safe d
 1. `cargo test -p flood_watch --test rules`
 2. `cargo test -p flood_watch`
 3. The environment-phase and full-game simulation are exercised once GAT12FLOWATCOO-006 lands; the action-phase rule/diagnostic/property tests are the correct boundary for this diff.
+
+## Outcome
+
+Accepted on 2026-06-11. Implemented the Flood Watch action-phase legal tree,
+validation, and budgeted application in Rust. The active seat receives
+`bail/<district>`, `reinforce/<district>`, `forecast`, and `end_turn` choices
+with public metadata; inactive seats receive an empty waiting tree with safe
+metadata. Role powers, budget spending, final-budget environment handoff, and
+fail-closed diagnostics are covered in rule and property tests.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p flood_watch --test rules`
+3. `cargo test -p flood_watch --test property`
+4. `cargo clippy -p flood_watch --all-targets -- -D warnings`
+5. `cargo test -p flood_watch`

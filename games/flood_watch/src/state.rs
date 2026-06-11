@@ -178,8 +178,33 @@ impl FloodWatchState {
         &self.event_deck
     }
 
+    pub fn top_undrawn_card(&self) -> Option<&EventCard> {
+        self.event_deck.first()
+    }
+
     pub fn undrawn_deck_len(&self) -> usize {
         self.event_deck.len()
+    }
+
+    pub fn district(&self, district: DistrictId) -> Option<&DistrictState> {
+        self.districts
+            .iter()
+            .find(|candidate| candidate.district == district)
+    }
+
+    pub fn district_mut(&mut self, district: DistrictId) -> Option<&mut DistrictState> {
+        self.districts
+            .iter_mut()
+            .find(|candidate| candidate.district == district)
+    }
+
+    pub fn seat_index(&self, seat: &SeatId) -> Option<usize> {
+        self.seats.iter().position(|candidate| candidate == seat)
+    }
+
+    pub fn active_role(&self) -> Option<FloodWatchRole> {
+        self.seat_index(&self.active_seat)
+            .map(|index| self.roles[index])
     }
 
     pub fn remaining_composition(&self) -> StableComposition {

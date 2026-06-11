@@ -12,11 +12,17 @@ pub mod ui;
 pub mod variants;
 pub mod visibility;
 
+pub use actions::{
+    legal_action_metadata, legal_action_tree, parse_action_path, role_bail_amount,
+    role_reinforce_amount, validate_command, FloodWatchAction, ValidatedAction, ACTION_BAIL,
+    ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE,
+};
 pub use ids::{
     DistrictId, EventKind, FloodWatchRole, GAME_ID, RULES_VERSION_LABEL, STANDARD_ACTION_BUDGET,
     STANDARD_DECK_SIZE, STANDARD_DISTRICT_COUNT, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP,
     STANDARD_MAX_FLOOD_LEVEL, STANDARD_SEAT_COUNT, VARIANT_DELUGE_ID, VARIANT_STANDARD_ID,
 };
+pub use rules::{apply_command, apply_validated_action, AppliedAction};
 pub use setup::SetupOptions;
 pub use setup::{setup_match, shuffle_event_deck};
 pub use state::{
