@@ -17,7 +17,10 @@ pub use actions::{
     FrontierControlAction, ValidatedAction, ACTION_DISMANTLE, ACTION_END_TURN, ACTION_MARCH,
     ACTION_MUSTER, ACTION_PATROL, ACTION_REINFORCE, ACTION_STAKE,
 };
-pub use effects::{public_effect, FrontierControlEffect, FrontierControlEffectEnvelope};
+pub use effects::{
+    public_effect, FortScoreBreakdown, FrontierControlEffect, FrontierControlEffectEnvelope,
+    StakeScoreBreakdown,
+};
 pub use ids::{
     FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL, STANDARD_ACTION_BUDGET, STANDARD_ROUND_COUNT,
     STANDARD_SEAT_COUNT, STANDARD_SITE_COUNT, UNIT_CAP_PER_SITE, VARIANT_HIGHLANDS_ID,

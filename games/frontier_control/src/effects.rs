@@ -5,6 +5,21 @@ use engine_core::{EffectEnvelope, VisibilityScope};
 use crate::ids::{FactionId, SiteId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FortScoreBreakdown {
+    pub site: SiteId,
+    pub held: bool,
+    pub points: u16,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StakeScoreBreakdown {
+    pub site: SiteId,
+    pub value: u8,
+    pub supplied: bool,
+    pub points: u16,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FrontierControlEffect {
     CrewMarched {
         from: SiteId,
@@ -37,6 +52,20 @@ pub enum FrontierControlEffect {
     TurnEnded {
         faction: FactionId,
         round: u8,
+    },
+    RoundScored {
+        round: u8,
+        garrison_points: u16,
+        prospector_points: u16,
+        fort_breakdown: Vec<FortScoreBreakdown>,
+        stake_breakdown: Vec<StakeScoreBreakdown>,
+    },
+    Terminal {
+        winner: FactionId,
+        garrison_total: u16,
+        prospector_total: u16,
+        tiebreak_applied: bool,
+        summary: String,
     },
 }
 

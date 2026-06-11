@@ -1,12 +1,17 @@
 //! Rule application for Frontier Control.
 
+use std::collections::{BTreeSet, VecDeque};
+
 use engine_core::Diagnostic;
 
 use crate::{
     actions::{validate_command, FrontierControlAction, ValidatedAction},
-    effects::{public_effect, FrontierControlEffect, FrontierControlEffectEnvelope},
+    effects::{
+        public_effect, FortScoreBreakdown, FrontierControlEffect, FrontierControlEffectEnvelope,
+        StakeScoreBreakdown,
+    },
     ids::{FactionId, SiteId},
-    state::{FrontierControlState, Phase},
+    state::{FactionScores, FrontierControlState, Phase, TerminalOutcome},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -199,16 +204,164 @@ fn end_turn(
     match actor_faction {
         FactionId::Prospectors => {
             state.active_faction = FactionId::Garrison;
+            state.phase = Phase::Action {
+                budget_remaining: state.variant.action_budget,
+            };
         }
         FactionId::Garrison => {
+            score_round(state, effects);
+            if state.round_number >= state.variant.round_count {
+                finish_terminal(state, effects);
+                return;
+            }
             state.active_faction = FactionId::Prospectors;
             state.round_number = state.round_number.saturating_add(1);
+            state.phase = Phase::Action {
+                budget_remaining: state.variant.action_budget,
+            };
         }
     }
-    state.phase = Phase::Action {
-        budget_remaining: state.variant.action_budget,
-    };
     state.freshness_token = state.freshness_token.next();
+}
+
+fn score_round(state: &mut FrontierControlState, effects: &mut Vec<FrontierControlEffectEnvelope>) {
+    let fort_breakdown = score_forts(state);
+    let stake_breakdown = score_stakes(state);
+    let garrison_points = fort_breakdown.iter().map(|entry| entry.points).sum::<u16>();
+    let prospector_points = stake_breakdown
+        .iter()
+        .map(|entry| entry.points)
+        .sum::<u16>();
+
+    state.scores = FactionScores {
+        garrison: state.scores.garrison.saturating_add(garrison_points),
+        prospectors: state.scores.prospectors.saturating_add(prospector_points),
+    };
+
+    effects.push(public_effect(FrontierControlEffect::RoundScored {
+        round: state.round_number,
+        garrison_points,
+        prospector_points,
+        fort_breakdown,
+        stake_breakdown,
+    }));
+}
+
+fn score_forts(state: &FrontierControlState) -> Vec<FortScoreBreakdown> {
+    state
+        .sites
+        .iter()
+        .filter(|site| site.fort)
+        .map(|site| {
+            let held = site.guards > 0 && site.crews == 0;
+            FortScoreBreakdown {
+                site: site.site,
+                held,
+                points: u16::from(held),
+            }
+        })
+        .collect()
+}
+
+fn score_stakes(state: &FrontierControlState) -> Vec<StakeScoreBreakdown> {
+    state
+        .sites
+        .iter()
+        .filter(|site| site.stake)
+        .map(|site| {
+            let supplied = is_supplied(state, site.site);
+            StakeScoreBreakdown {
+                site: site.site,
+                value: site.stake_value,
+                supplied,
+                points: if supplied {
+                    u16::from(site.stake_value)
+                } else {
+                    0
+                },
+            }
+        })
+        .collect()
+}
+
+fn is_supplied(state: &FrontierControlState, stake_site: SiteId) -> bool {
+    if state
+        .site(stake_site)
+        .map(|site| site.guards > 0)
+        .unwrap_or(true)
+    {
+        return false;
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut frontier = VecDeque::from([stake_site]);
+    while let Some(site) = frontier.pop_front() {
+        if !seen.insert(site) {
+            continue;
+        }
+        if site == state.variant.base_camp {
+            return true;
+        }
+        let Some(neighbors) = state.neighbors(site) else {
+            continue;
+        };
+        for neighbor in neighbors {
+            if seen.contains(neighbor) {
+                continue;
+            }
+            let Some(neighbor_state) = state.site(*neighbor) else {
+                continue;
+            };
+            if neighbor_state.guards == 0 {
+                frontier.push_back(*neighbor);
+            }
+        }
+    }
+    false
+}
+
+fn finish_terminal(
+    state: &mut FrontierControlState,
+    effects: &mut Vec<FrontierControlEffectEnvelope>,
+) {
+    let (winner, tiebreak_applied) = if state.scores.prospectors > state.scores.garrison {
+        (FactionId::Prospectors, false)
+    } else if state.scores.garrison > state.scores.prospectors {
+        (FactionId::Garrison, false)
+    } else {
+        (FactionId::Garrison, true)
+    };
+    state.terminal_outcome = Some(TerminalOutcome::Winner {
+        faction: winner,
+        scores: state.scores,
+        garrison_tiebreak: tiebreak_applied,
+    });
+    state.phase = Phase::Terminal;
+    effects.push(public_effect(FrontierControlEffect::Terminal {
+        winner,
+        garrison_total: state.scores.garrison,
+        prospector_total: state.scores.prospectors,
+        tiebreak_applied,
+        summary: terminal_summary(winner, state.scores, tiebreak_applied),
+    }));
+    state.freshness_token = state.freshness_token.next();
+}
+
+fn terminal_summary(winner: FactionId, scores: FactionScores, tiebreak_applied: bool) -> String {
+    if tiebreak_applied {
+        return format!(
+            "{} wins the frontier on the Garrison tiebreak, {}-{}",
+            winner.label(),
+            scores.garrison,
+            scores.prospectors
+        );
+    }
+    format!(
+        "{} wins the frontier, {}-{}",
+        winner.label(),
+        scores.garrison,
+        scores.prospectors
+    )
 }
 
 fn action_unavailable() -> Diagnostic {
@@ -375,5 +528,114 @@ mod tests {
             state.site(SiteId::SignalHill).expect("site").guards,
             before + 1
         );
+    }
+
+    #[test]
+    fn scoring_connected_stakes_and_held_forts_add_points() {
+        let mut state = state();
+        state.site_mut(SiteId::Ford).expect("ford").stake = true;
+        let mut effects = Vec::new();
+
+        score_round(&mut state, &mut effects);
+
+        assert_eq!(state.scores.garrison, 2);
+        assert_eq!(state.scores.prospectors, 1);
+        assert!(effects.iter().any(|effect| {
+            matches!(
+                &effect.payload,
+                FrontierControlEffect::RoundScored {
+                    round: 1,
+                    garrison_points: 2,
+                    prospector_points: 1,
+                    ..
+                }
+            )
+        }));
+    }
+
+    #[test]
+    fn scoring_cut_stakes_score_zero_then_reconnect_restores_points() {
+        let mut state = state();
+        state.site_mut(SiteId::Goldfield).expect("goldfield").stake = true;
+        state
+            .site_mut(SiteId::Timberline)
+            .expect("timberline")
+            .guards = 1;
+        let mut effects = Vec::new();
+
+        score_round(&mut state, &mut effects);
+
+        assert_eq!(state.scores.prospectors, 0);
+        let cut_round = effects.iter().find_map(|effect| match &effect.payload {
+            FrontierControlEffect::RoundScored {
+                stake_breakdown, ..
+            } => stake_breakdown
+                .iter()
+                .find(|entry| entry.site == SiteId::Goldfield)
+                .cloned(),
+            _ => None,
+        });
+        assert!(!cut_round.expect("goldfield scored").supplied);
+
+        state
+            .site_mut(SiteId::Timberline)
+            .expect("timberline")
+            .guards = 0;
+        effects.clear();
+        score_round(&mut state, &mut effects);
+
+        assert_eq!(state.scores.prospectors, 3);
+        let reconnected_round = effects.iter().find_map(|effect| match &effect.payload {
+            FrontierControlEffect::RoundScored {
+                stake_breakdown, ..
+            } => stake_breakdown
+                .iter()
+                .find(|entry| entry.site == SiteId::Goldfield)
+                .cloned(),
+            _ => None,
+        });
+        assert!(reconnected_round.expect("goldfield scored").supplied);
+    }
+
+    #[test]
+    fn scoring_final_round_terminal_uses_garrison_tiebreak() {
+        let mut state = state();
+        state.round_number = state.variant.round_count;
+        state.active_faction = FactionId::Garrison;
+        state.phase = Phase::Action {
+            budget_remaining: state.variant.action_budget,
+        };
+        state.site_mut(SiteId::Gatehouse).expect("gatehouse").guards = 0;
+        state
+            .site_mut(SiteId::SignalHill)
+            .expect("signal hill")
+            .guards = 0;
+        let end_turn = command(&state, FactionId::Garrison, vec![ACTION_END_TURN]);
+
+        let applied = apply_command(&mut state, &end_turn).expect("terminal applies");
+
+        assert!(applied.turn_ended);
+        assert_eq!(state.phase, Phase::Terminal);
+        assert_eq!(
+            state.terminal_outcome,
+            Some(TerminalOutcome::Winner {
+                faction: FactionId::Garrison,
+                scores: FactionScores {
+                    garrison: 0,
+                    prospectors: 0
+                },
+                garrison_tiebreak: true,
+            })
+        );
+        assert!(applied.effects.iter().any(|effect| {
+            matches!(
+                &effect.payload,
+                FrontierControlEffect::Terminal {
+                    winner: FactionId::Garrison,
+                    tiebreak_applied: true,
+                    ..
+                }
+            )
+        }));
     }
 }

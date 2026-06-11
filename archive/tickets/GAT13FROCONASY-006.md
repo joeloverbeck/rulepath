@@ -1,6 +1,6 @@
 # GAT13FROCONASY-006: Round scoring, supply connectivity, and terminal
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/frontier_control/src/{rules,effects}.rs` (end-of-round scoring, Rust connectivity traversal, terminal detection + tiebreak, `RoundScored`/`Terminal` effects)
@@ -81,3 +81,20 @@ Emit `RoundScored` (with fort/stake breakdown and per-stake supplied/cut flags) 
 1. `cargo test -p frontier_control scoring`
 2. `cargo test -p frontier_control`
 3. Crate-scoped tests are the correct boundary; cross-tool replay-hash of the scoring breakdown is exercised after the replay surface lands in GAT13FROCONASY-007.
+
+## Outcome
+
+Completed on 2026-06-11.
+
+Changed `games/frontier_control/src/rules.rs`, `games/frontier_control/src/effects.rs`, and `games/frontier_control/src/lib.rs`.
+
+Implemented Rust-owned round scoring inside the Garrison turn-ending command, including held-fort points, guard-free supply connectivity traversal from stakes to Base Camp, cumulative scores, final-round terminal detection, and the Garrison score-tie tiebreak. Added public `RoundScored` and `Terminal` effects with fort and stake breakdown payloads, including per-stake supplied/cut flags.
+
+Deviation: standalone property tests and golden traces remain deferred to the later verification/replay tickets named by this ticket; crate-local scoring tests cover connected stakes, cut stakes scoring zero, reconnection restoring stake value, fort scoring, final-round terminal, and tiebreak behavior.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p frontier_control scoring` — passed, 3 tests.
+3. `cargo test -p frontier_control` — passed, 21 tests plus doc tests.
+4. `cargo clippy -p frontier_control --all-targets -- -D warnings` — passed.
