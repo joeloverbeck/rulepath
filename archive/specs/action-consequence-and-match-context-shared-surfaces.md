@@ -8,7 +8,7 @@
   `victory-explanation-shared-surface`, and
   `card-and-action-presentation-shared-surfaces`, motivated by a live-app
   usability audit of `event_frontier` (Gate 14) on 2026-06-12.
-- **Status:** Done
+**Status**: COMPLETED
 - **Date:** 2026-06-12
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` →
@@ -610,3 +610,24 @@ with a typed display label.
    `{id, label}` objects). One-line variant *descriptions* are out of scope —
    none exist in the manifest today, and authoring net-new presentation prose
    is deferred; revisit if richer setup copy is wanted.
+
+## Outcome
+
+Completion date: 2026-06-12.
+
+Implemented and verified the action consequence, match context, automation
+narration, detail-tier, rules/setup, runtime-guard, and bot-why surfaces
+described by this spec. The area-doc amendments were lifted into
+`docs/UI-INTERACTION.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, and
+`apps/web/README.md`; `specs/README.md` was flipped to `Done`.
+
+Deviations from original plan: the bot-why audit found a viewer-safe rationale
+already exposed by `run_bot_turn`, so the affordance was rendered instead of
+recording a follow-up. The final archival move was performed after the
+capstone status-flip ticket.
+
+Verification results: `cargo fmt --all --check`, clippy, workspace build, and
+workspace tests passed; `event_frontier` and `flood_watch` simulate/replay/
+fixture/rule-coverage lanes passed; web `smoke:wasm`, `smoke:ui`,
+`smoke:effects`, and `smoke:e2e` passed; doc, catalog, player-rules,
+presentation-copy, and boundary checks passed.
