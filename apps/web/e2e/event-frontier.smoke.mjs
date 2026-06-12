@@ -17,6 +17,51 @@ const forbiddenLeakTerms = [
   "bot_candidate",
   "candidate_ranking",
 ];
+const authoredEventLabels = [
+  "Border Survey",
+  "Toll Roads",
+  "River Mists",
+  "Storehouse Fire",
+  "Survey Ban",
+  "High Meadow Fair",
+  "First Reckoning",
+  "Depot Grants",
+  "Long Season",
+  "Trail Washout",
+  "Charter Audit",
+  "Freeholder Moot",
+  "Requisition",
+  "Second Reckoning",
+  "Old Mill Strike",
+  "Crossing Market",
+  "Granite Pass Snows",
+  "Cache Boom",
+  "Agents Recall",
+  "Last Light",
+  "Final Reckoning",
+];
+const authoredEventSummaries = [
+  "Charter places an agent at Crossing.",
+  "An edict makes movement along roads harder until the next Reckoning.",
+  "Freeholders move a settler from Landing toward High Meadow.",
+  "Charter loses one fund if any.",
+  "An edict limits survey operations until the next Reckoning.",
+  "Freeholders gain a provision and rally a settler at High Meadow.",
+  "Resolve the first scoring Reckoning.",
+  "Charter gains two funds.",
+  "An edict extends operation capacity until the next Reckoning.",
+  "A settler at Crossing washes back to Landing.",
+  "Charter gains a fund and removes one cache at Landing.",
+  "Freeholders gain two provisions.",
+  "An edict changes requisition pressure until the next Reckoning.",
+  "Resolve the second scoring Reckoning.",
+  "Remove one Charter agent from Charterhouse if present.",
+  "Both factions gain one resource.",
+  "Charter loses one fund if any.",
+  "Freeholders place a cache at High Meadow.",
+  "Move one Charter agent from Crossing back to Charterhouse if possible.",
+  "Resolve the final scoring Reckoning.",
+];
 
 await access(executablePath);
 
@@ -68,6 +113,7 @@ try {
   await clickButtonText(page, "pass");
   await waitForText(page, "Reckoning resolved");
   await waitForText(page, "reckoning 1");
+  await assertEventFrontierDiscardDisclosure(page);
   await assertNoLeak(page, consoleMessages, "charter event edict reckoning");
 
   await startEventFrontier(page, baseUrl, "Hotseat", 1);
@@ -162,7 +208,12 @@ async function assertEventFrontierBoardA11y(page) {
         .filter((button) => !((button.getAttribute("aria-label") || button.textContent || "").trim()))
         .map((button) => button.getAttribute("data-testid") ?? button.className),
       latest: document.querySelector(".plain-latest")?.textContent ?? "",
-      hiddenOrder: document.body.textContent?.includes("Hidden order") ?? false,
+      deckText: document.querySelector('[data-testid="deck-flow-panel"]')?.textContent ?? "",
+      currentText: document.querySelector('[data-testid="deck-current-card"]')?.textContent ?? "",
+      nextText: document.querySelector('[data-testid="deck-next-card"]')?.textContent ?? "",
+      faceDownText: document.querySelector('[data-testid="deck-face-down"]')?.textContent ?? "",
+      faceDownCount: Boolean(document.querySelector('[data-testid="deck-face-down-count"]')),
+      discard: Boolean(document.querySelector('[data-testid="deck-discard"]')),
       actionButtons: Array.from(document.querySelectorAll('[data-testid^="event-frontier-choice-"]')).map((button) =>
         button.textContent?.trim(),
       ),
@@ -173,9 +224,40 @@ async function assertEventFrontierBoardA11y(page) {
   assert(summary.trails >= 6, `event_frontier renders public trail lines, got ${summary.trails}`);
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);
   assert(summary.latest.length > 0, "event_frontier latest-effect region has text");
-  assert(summary.hiddenOrder, "event_frontier explicitly redacts hidden deck order");
+  assert(summary.deckText.includes("Event deck"), "event_frontier renders Rust deck label");
+  assert(includesAny(summary.currentText, authoredEventLabels), "event_frontier renders authored current card label");
+  assert(includesAny(summary.currentText, authoredEventSummaries), "event_frontier renders authored current card summary");
+  assert(includesAny(summary.nextText, authoredEventLabels), "event_frontier renders authored next card label");
+  assert(includesAny(summary.nextText, authoredEventSummaries), "event_frontier renders authored next card summary");
+  assert(summary.faceDownText.includes("Face-down event deck"), "event_frontier renders Rust face-down label");
+  assert(summary.faceDownText.includes("Order hidden until cards become public."), "event_frontier renders Rust face-down summary");
+  assert(!summary.faceDownCount, "event_frontier face-down slot omits count when Rust provides none");
+  assert(summary.discard, "event_frontier renders discard disclosure");
+  assert(!summary.deckText.includes("ef_"), "event_frontier deck panel omits raw card ids");
   assert(summary.actionButtons.some((label) => label === "event"), "event_frontier renders Rust event choice");
   assert(summary.actionButtons.some((label) => label.includes("operation / survey")), "event_frontier renders Rust operation leaves");
+}
+
+function includesAny(value, candidates) {
+  return candidates.some((candidate) => value.includes(candidate));
+}
+
+async function assertEventFrontierDiscardDisclosure(page) {
+  const summary = await page.evaluate(() => {
+    const disclosure = document.querySelector('[data-testid="deck-discard"]');
+    if (disclosure instanceof HTMLDetailsElement) {
+      disclosure.open = true;
+    }
+    return {
+      open: disclosure instanceof HTMLDetailsElement ? disclosure.open : false,
+      labels: Array.from(document.querySelectorAll('[data-testid="deck-discard-card"]')).map((card) => card.textContent ?? ""),
+      text: disclosure?.textContent ?? "",
+    };
+  });
+  assert(summary.open, "event_frontier discard disclosure expands");
+  assert(summary.labels.length > 0, "event_frontier discard disclosure lists resolved cards");
+  assert(summary.labels.some((label) => includesAny(label, authoredEventLabels)), "event_frontier discard disclosure lists authored card labels");
+  assert(!summary.text.includes("ef_"), "event_frontier discard disclosure omits raw card ids");
 }
 
 async function playBotVsBotToTerminal(page, maxSteps = 32) {

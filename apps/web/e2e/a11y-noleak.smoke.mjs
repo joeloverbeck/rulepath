@@ -166,14 +166,32 @@ async function assertEventFrontierBoardA11y(page) {
       missingNames: buttons
         .filter((button) => !((button.getAttribute("aria-label") || button.textContent || "").trim()))
         .map((button) => button.getAttribute("data-testid") ?? button.className),
-      redaction: document.body.textContent?.includes("Hidden order") ?? false,
+      deckText: document.querySelector('[data-testid="deck-flow-panel"]')?.textContent ?? "",
+      currentText: document.querySelector('[data-testid="deck-current-card"]')?.textContent ?? "",
+      nextText: document.querySelector('[data-testid="deck-next-card"]')?.textContent ?? "",
+      faceDownText: document.querySelector('[data-testid="deck-face-down"]')?.textContent ?? "",
+      faceDownAttributes: document.querySelector('[data-testid="deck-face-down"]')
+        ? Array.from(document.querySelector('[data-testid="deck-face-down"]').attributes).map((attribute) => `${attribute.name}=${attribute.value}`)
+        : [],
+      faceDownCount: Boolean(document.querySelector('[data-testid="deck-face-down-count"]')),
+      discard: Boolean(document.querySelector('[data-testid="deck-discard"]')),
       latest: document.querySelector(".event-frontier-board .plain-latest")?.textContent ?? "",
     };
   });
   assert(summary.sites === 6, `event_frontier renders six sites, got ${summary.sites}`);
   assert(summary.trails >= 6, `event_frontier renders public trail lines, got ${summary.trails}`);
   assert(summary.missingNames.length === 0, `event_frontier buttons have accessible names: ${summary.missingNames.join(", ")}`);
-  assert(summary.redaction, "event_frontier renders explicit hidden-order redaction");
+  assert(summary.deckText.includes("Event deck"), "event_frontier renders Rust deck label");
+  assert(summary.currentText.includes("High Meadow Fair"), "event_frontier renders authored current card label");
+  assert(summary.currentText.includes("Freeholders gain a provision and rally a settler at High Meadow."), "event_frontier renders authored current card summary");
+  assert(summary.nextText.includes("First Reckoning"), "event_frontier renders authored next card label");
+  assert(summary.nextText.includes("Resolve the first scoring Reckoning."), "event_frontier renders authored next card summary");
+  assert(summary.faceDownText.includes("Face-down event deck"), "event_frontier renders Rust face-down label");
+  assert(summary.faceDownText.includes("Order hidden until cards become public."), "event_frontier renders Rust face-down summary");
+  assert(!summary.faceDownCount, "event_frontier face-down slot omits count when Rust provides none");
+  assert(summary.discard, "event_frontier renders discard disclosure");
+  assert(!summary.faceDownText.includes("ef_"), "event_frontier face-down text omits raw card ids");
+  assert(!summary.faceDownAttributes.join("\n").includes("ef_"), "event_frontier face-down attributes omit raw card ids");
   assert(summary.latest.length > 0, "event_frontier latest-effect region has text");
 }
 

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView } from "../wasm/client";
+import { DeckFlowPanel } from "./DeckFlowPanel";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -103,7 +104,7 @@ export function EventFrontierBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, current card {cardLabel(view.current_card)}, next public card {cardLabel(view.next_public_card)}, {leaves.length} Rust
+        {view.display_name}, current card {view.current_card?.label ?? "none"}, next public card {view.next_public_card?.label ?? "none"}, {leaves.length} Rust
         legal choices. Undrawn deck order beyond the next public card is hidden.
       </p>
 
@@ -114,29 +115,17 @@ export function EventFrontierBoard({
         <Metric label="Freeholder score" value={String(view.scores.freeholders)} />
       </div>
 
-      <section className="plain-history" aria-label="Public event cards">
-        <div className="plain-section-heading">
-          <span>Event deck</span>
-          <strong>{view.discard.length} discarded</strong>
-        </div>
-        <ol>
-          <li>
-            <span>Current</span>
-            <strong>{cardLabel(view.current_card)}</strong>
-            <small>public</small>
-          </li>
-          <li>
-            <span>Next</span>
-            <strong>{cardLabel(view.next_public_card)}</strong>
-            <small>public</small>
-          </li>
-          <li>
-            <span>Hidden order</span>
-            <strong>redacted</strong>
-            <small>undrawn beyond next card</small>
-          </li>
-        </ol>
-      </section>
+      <DeckFlowPanel
+        label={view.ui.event_deck_label}
+        currentLabel={view.ui.current_card_label}
+        nextLabel={view.ui.next_card_label}
+        discardLabel={view.ui.discard_label}
+        faceDownLabel={view.ui.face_down_label}
+        faceDownSummary={view.ui.face_down_summary}
+        current={view.current_card}
+        next={view.next_public_card}
+        discard={view.discard}
+      />
 
       <div className="frontier-layout">
         <div className="frontier-map-panel">
@@ -298,10 +287,6 @@ function factionLabel(faction: string | null | undefined): string {
   if (faction === "faction_charter") return "Charter";
   if (faction === "faction_freeholders") return "Freeholders";
   return faction ?? "Rust";
-}
-
-function cardLabel(card: string | null): string {
-  return card ? card.replace(/^ef_/, "").replaceAll("_", " ") : "none";
 }
 
 function siteSummary(site: EventFrontierSiteView): string {

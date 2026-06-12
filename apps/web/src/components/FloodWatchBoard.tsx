@@ -100,7 +100,7 @@ export function FloodWatchBoard({
       <div className="plain-tricks-metrics" aria-label="Flood Watch status">
         <Metric label="Turn" value={String(view.turn_number)} />
         <Metric label="Budget" value={budgetLabel(view)} />
-        <Metric label="Forecast" value={view.forecast ?? "None"} />
+        <Metric label="Forecast" value={cardFaceLabel(view.forecast)} />
         <Metric label="Undrawn" value={String(view.undrawn_count)} />
       </div>
 
@@ -256,6 +256,13 @@ function statusLabel(view: FloodWatchPublicView): string {
 
 function budgetLabel(view: FloodWatchPublicView): string {
   return view.phase.kind === "action" ? String(view.phase.budget_remaining) : "Terminal";
+}
+
+function cardFaceLabel(value: unknown): string {
+  if (value && typeof value === "object" && "label" in value && typeof value.label === "string") {
+    return value.label;
+  }
+  return typeof value === "string" ? value : "None";
 }
 
 function districtLabel(view: FloodWatchPublicView, district: string): string {

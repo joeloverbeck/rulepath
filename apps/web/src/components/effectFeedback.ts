@@ -461,7 +461,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "forecast_revealed":
       return {
         title: "Forecast revealed",
-        detail: `The next public storm card is ${payload.card}.`,
+        detail: `The next public storm card is ${cardLabel(payload.card)}.`,
         tone: "turn",
       };
     case "environment_phase_began":
@@ -473,7 +473,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "event_drawn":
       return {
         title: "Storm card drawn",
-        detail: `Storm card ${payload.index ?? "next"} was revealed as ${payload.card}.`,
+        detail: `Storm card ${payload.index ?? "next"} was revealed as ${cardLabel(payload.card)}.`,
         tone: "movement",
       };
     case "levee_absorbed":
@@ -779,6 +779,9 @@ function factionLabel(value: unknown): string {
 }
 
 function cardLabel(value: unknown): string {
+  if (value && typeof value === "object" && "label" in value && typeof value.label === "string") {
+    return value.label;
+  }
   const text = String(value ?? "none");
   return text === "none" ? "none" : text.replace(/^ef_/, "").replaceAll("_", " ");
 }

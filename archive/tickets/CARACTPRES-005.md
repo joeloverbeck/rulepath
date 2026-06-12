@@ -1,6 +1,6 @@
 # CARACTPRES-005: Shared DeckFlowPanel, client types, and Event Frontier adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web` (wasm client types, shared deck component, Event Frontier board adoption, smoke); no Rust surface touched
@@ -92,3 +92,21 @@ Extend `event-frontier.smoke.mjs` (slots render resolved labels/summaries; disca
 1. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:effects && npm --prefix apps/web run smoke:e2e`
 3. Narrow boundary rationale: presentation-only diff; Rust gates ran at CARACTPRES-001.
+
+## Outcome
+
+Completed on 2026-06-12.
+
+- Added shared `DeckFlowPanel` with current, next, face-down, and discard disclosure slots, plus mini-card labels, families, summaries, and accessible details.
+- Updated Event Frontier web types and board rendering to consume Rust/WASM card-face objects and `ui` copy instead of deriving labels from `ef_` IDs.
+- Extended Event Frontier and a11y/no-leak smokes to assert authored labels/summaries, no face-down count for Event Frontier, expandable discard contents, and no raw card IDs in deck surfaces.
+- Added a narrow Flood Watch card-face compatibility display helper in web/effect/replay surfaces so the required aggregate web e2e lane remains green until CARACTPRES-006 performs full Flood Watch deck adoption.
+
+Verification:
+
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/event-frontier.smoke.mjs`
+- `node apps/web/e2e/flood-watch.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`

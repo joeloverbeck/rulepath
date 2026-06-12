@@ -315,6 +315,13 @@ function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
 
+function cardFaceLabel(value: unknown): string {
+  if (value && typeof value === "object" && "label" in value && typeof value.label === "string") {
+    return value.label;
+  }
+  return typeof value === "string" ? value : "None";
+}
+
 function snapshotItems(view: PublicView | null, done: boolean | undefined): { label: string; value: string }[] {
   if (!view) {
     return [
@@ -423,7 +430,7 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
         label: "Storm status",
         value: view.terminal.kind === "non_terminal" ? `${view.undrawn_count} undrawn` : view.terminal.summary.public_summary,
       },
-      { label: "Forecast", value: view.forecast ?? "None" },
+      { label: "Forecast", value: cardFaceLabel(view.forecast) },
     ];
   }
 
