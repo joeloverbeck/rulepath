@@ -237,8 +237,13 @@ impl PublicView {
 
 fn encode_card_face(card: &CardFaceView) -> String {
     format!(
-        "{}:{}:{}:{}:{}",
-        card.id, card.label, card.summary, card.family, card.accessibility_label
+        "{}:{}:{}:{}:{}:{}",
+        card.id,
+        card.label,
+        card.summary,
+        card.details.as_deref().unwrap_or("none"),
+        card.family,
+        card.accessibility_label
     )
 }
 

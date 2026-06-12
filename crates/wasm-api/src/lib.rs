@@ -7169,10 +7169,11 @@ fn option_flood_card_face_json(card: Option<&flood_watch::CardFaceView>) -> Stri
 
 fn flood_card_face_json(card: &flood_watch::CardFaceView) -> String {
     format!(
-        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"details\":{},\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
         escape_json(&card.id),
         escape_json(&card.label),
         escape_json(&card.summary),
+        option_string_json(card.details.as_deref()),
         escape_json(&card.family),
         escape_json(&card.accessibility_label)
     )
@@ -7323,10 +7324,11 @@ fn option_event_frontier_card_face_json(card: Option<&event_frontier::CardFaceVi
 
 fn event_frontier_card_face_json(card: &event_frontier::CardFaceView) -> String {
     format!(
-        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"details\":{},\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
         escape_json(&card.id),
         escape_json(&card.label),
         escape_json(&card.summary),
+        option_string_json(card.details.as_deref()),
         escape_json(&card.family),
         escape_json(&card.accessibility_label)
     )

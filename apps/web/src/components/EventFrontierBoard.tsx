@@ -188,8 +188,8 @@ export function EventFrontierBoard({
               <strong>{entry.eligible}</strong>
               <small>
                 {entry.faction === "faction_charter"
-                  ? `${view.victory_distance.charter_sites_needed} sites needed`
-                  : `${view.victory_distance.freeholder_caches_needed} caches needed`}
+                  ? `${charterLabel} needs ${view.victory_distance.charter_sites_needed} controlled sites for instant victory`
+                  : `${freeholdersLabel} needs ${view.victory_distance.freeholder_caches_needed} caches for instant victory`}
               </small>
             </li>
           ))}

@@ -94,10 +94,12 @@ function MiniCard({ card }: { card: CardFaceView }) {
       <span>{card.family}</span>
       <strong>{card.label}</strong>
       <p>{card.summary}</p>
-      <details className="deck-flow-card-details">
-        <summary>Details</summary>
-        <p>{card.summary}</p>
-      </details>
+      {card.details ? (
+        <details className="deck-flow-card-details">
+          <summary>Details</summary>
+          <p>{card.details}</p>
+        </details>
+      ) : null}
     </article>
   );
 }

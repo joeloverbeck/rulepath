@@ -968,6 +968,7 @@ export type CardFaceView = {
   id: string;
   label: string;
   summary: string;
+  details?: string | null;
   family: string;
   accessibility_label: string;
 };

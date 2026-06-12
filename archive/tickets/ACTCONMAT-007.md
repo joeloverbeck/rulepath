@@ -1,6 +1,6 @@
 # ACTCONMAT-007: Deep-detail tier + status-copy clarity
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier` + `games/flood_watch` (`cards_presentation.toml` `details` parallel array + loader, `CardFaceView` projection, status/threshold copy); `apps/web/src/wasm/client.ts` (`CardFaceView.details`), `apps/web/src/components/DeckFlowPanel.tsx` (render the disclosure).
@@ -91,3 +91,25 @@ Frame victory-threshold copy and reckoning-resolution copy in `visibility.rs`/bo
 1. `cargo test -p event_frontier && cargo test -p flood_watch`
 2. `cargo run -p fixture-check -- --game event_frontier && cargo run -p fixture-check -- --game flood_watch`
 3. `npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed 2026-06-12.
+
+- Added optional `details` prose to Event Frontier and Flood Watch card-presentation data, parser validation, card-face projection, stable summaries, WASM JSON, and TS types.
+- Replaced the no-op deck Details disclosure with an authored-detail-only disclosure.
+- Authored deep details for all Event Frontier and Flood Watch cards, including precise Event Frontier edict scope.
+- Clarified Event Frontier victory-threshold copy and Reckoning `none` copy.
+- Refreshed Event Frontier golden trace public-view hashes after adding card details to stable card faces.
+- Updated Event Frontier browser smoke coverage for details, threshold copy, and clarified Reckoning copy.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p event_frontier`
+- `cargo test -p flood_watch`
+- `cargo run -p fixture-check -- --game event_frontier`
+- `cargo run -p fixture-check -- --game flood_watch`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/event-frontier.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`

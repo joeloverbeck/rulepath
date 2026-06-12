@@ -544,6 +544,7 @@ pub struct CardPresentation {
     pub id: CardId,
     pub label: String,
     pub summary: String,
+    pub details: Option<String>,
     pub family: String,
     pub accessibility_label: String,
 }
@@ -562,6 +563,7 @@ impl CardPresentationCatalog {
                 "card_ids",
                 "labels",
                 "summaries",
+                "details",
                 "families",
                 "accessibility_labels",
             ],
@@ -571,6 +573,10 @@ impl CardPresentationCatalog {
         let labels = parse_non_empty_string_list(&required_string(&values, "labels")?, "labels")?;
         let summaries =
             parse_non_empty_string_list(&required_string(&values, "summaries")?, "summaries")?;
+        let details = values
+            .get("details")
+            .map(|value| parse_optional_string_list(value, "details"))
+            .transpose()?;
         let families =
             parse_non_empty_string_list(&required_string(&values, "families")?, "families")?;
         let accessibility_labels = parse_non_empty_string_list(
@@ -583,6 +589,7 @@ impl CardPresentationCatalog {
         for (field, field_len) in [
             ("labels", labels.len()),
             ("summaries", summaries.len()),
+            ("details", details.as_ref().map_or(len, Vec::len)),
             ("families", families.len()),
             ("accessibility_labels", accessibility_labels.len()),
         ] {
@@ -598,6 +605,7 @@ impl CardPresentationCatalog {
                 id,
                 label: labels[index].clone(),
                 summary: summaries[index].clone(),
+                details: details.as_ref().and_then(|entries| entries[index].clone()),
                 family: families[index].clone(),
                 accessibility_label: accessibility_labels[index].clone(),
             })
@@ -714,6 +722,20 @@ fn parse_non_empty_string_list(value: &str, field: &str) -> Result<Vec<String>, 
     Ok(entries)
 }
 
+fn parse_optional_string_list(value: &str, field: &str) -> Result<Vec<Option<String>>, String> {
+    Ok(parse_non_empty_string_list(value, field)?
+        .into_iter()
+        .map(|entry| {
+            let trimmed = entry.trim();
+            if trimmed == "-" {
+                None
+            } else {
+                Some(trimmed.to_owned())
+            }
+        })
+        .collect())
+}
+
 fn validate_complete_unique_ids(ids: &[CardId]) -> Result<(), String> {
     if ids.len() != STANDARD_CARD_COUNT as usize {
         return Err(format!(
@@ -801,8 +823,23 @@ mod tests {
             presentation.get(CardId::HighMeadowFair).unwrap().label,
             "High Meadow Fair"
         );
+        assert!(presentation
+            .get(CardId::SurveyBan)
+            .unwrap()
+            .details
+            .as_deref()
+            .unwrap()
+            .contains("contested site"));
         assert!(CardPresentationCatalog::parse(
             "card_ids = \"ef_border_survey\"\nlabels = \"Border Survey\"\nsummaries = \"x\"\nfamilies = \"ordinary\"\naccessibility_labels = \"x\"\ntrigger = \"bad\"\n"
+        )
+        .is_err());
+        assert!(CardPresentationCatalog::parse(
+            "card_ids = \"ef_border_survey\"\nlabels = \"Border Survey\"\nsummaries = \"x\"\ndetails = \"x\"\nfamilies = \"ordinary\"\naccessibility_labels = \"x\"\nselector = \"bad\"\n"
+        )
+        .is_err());
+        assert!(CardPresentationCatalog::parse(
+            "card_ids = \"ef_border_survey\"\nlabels = \"Border Survey\"\nsummaries = \"x\"\ndetails = \"x,y\"\nfamilies = \"ordinary\"\naccessibility_labels = \"x\"\n"
         )
         .is_err());
         assert!(CardPresentationCatalog::parse(

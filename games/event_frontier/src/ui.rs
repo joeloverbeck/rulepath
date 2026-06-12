@@ -42,6 +42,7 @@ pub struct CardFaceView {
     pub id: String,
     pub label: String,
     pub summary: String,
+    pub details: Option<String>,
     pub family: String,
     pub accessibility_label: String,
 }
@@ -144,6 +145,7 @@ pub fn card_face(card: CardId) -> CardFaceView {
         id: card.as_str().to_owned(),
         label: presentation.label.clone(),
         summary: presentation.summary.clone(),
+        details: presentation.details.clone(),
         family: presentation.family.clone(),
         accessibility_label: presentation.accessibility_label.clone(),
     }
@@ -215,6 +217,7 @@ mod tests {
         assert_eq!(face.id, "ef_high_meadow_fair");
         assert_eq!(face.label, "High Meadow Fair");
         assert!(face.summary.contains("Freeholders gain"));
+        assert!(face.details.as_deref().unwrap().contains("High Meadow"));
         assert_eq!(face.family, "ordinary");
     }
 

@@ -108,12 +108,14 @@ try {
   await startEventFrontier(page, baseUrl, "Hotseat", 3);
   await assertFactionFirstCopy(page);
   await assertEventFrontierBoardA11y(page);
+  await assertEventFrontierDetailsAndStatusCopy(page);
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_0");
   await chooseAndConfirmAction(page, ["Event"]);
   await waitForText(page, "Edict activated");
   await chooseAndConfirmAction(page, ["Pass"]);
   await waitForText(page, "Reckoning resolved");
   await waitForText(page, "reckoning 1");
+  await waitForText(page, "no instant victory");
   await assertEventFrontierTurnReport(page);
   await assertEventFrontierDiscardDisclosure(page);
   await clickButtonText(page, "Developer panel");
@@ -263,6 +265,35 @@ async function assertEventFrontierBoardA11y(page) {
   assert(!summary.deckText.includes("ef_"), "event_frontier deck panel omits raw card ids");
   assert(summary.actionButtons.some((label) => label === "Event"), "event_frontier renders Rust event choice label");
   assert(summary.actionButtons.some((label) => label === "Operation"), "event_frontier renders Rust operation choice label");
+}
+
+async function assertEventFrontierDetailsAndStatusCopy(page) {
+  const summary = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('[data-testid="deck-current-card"] .deck-flow-card, [data-testid="deck-next-card"] .deck-flow-card'));
+    const details = cards.map((card) => {
+      const disclosure = card.querySelector(".deck-flow-card-details");
+      if (disclosure instanceof HTMLDetailsElement) {
+        disclosure.open = true;
+      }
+      return {
+        label: card.querySelector("strong")?.textContent ?? "",
+        summary: card.querySelector("p")?.textContent ?? "",
+        detail: disclosure?.querySelector("p")?.textContent ?? "",
+      };
+    });
+    return {
+      details,
+      eligibility: document.querySelector('[aria-label="Eligibility and victory distance"]')?.textContent ?? "",
+    };
+  });
+  assert(summary.details.length > 0, "event_frontier card slots render cards");
+  assert(summary.details.every((entry) => entry.detail && entry.detail !== entry.summary), "event_frontier card details use authored deep prose");
+  assert(
+    summary.details.some((entry) => entry.detail.includes("until the next Reckoning") || entry.detail.includes("public scoring")),
+    "event_frontier detail prose explains edict or Reckoning scope",
+  );
+  assert(summary.eligibility.includes("controlled sites for instant victory"), "Charter threshold copy is framed");
+  assert(summary.eligibility.includes("caches for instant victory"), "Freeholders threshold copy is framed");
 }
 
 async function assertFactionFirstCopy(page) {
