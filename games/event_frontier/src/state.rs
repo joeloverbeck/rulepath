@@ -139,7 +139,7 @@ pub struct ActiveEdict {
     pub expires_at_reckoning: u8,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VictoryType {
     CharterInstant,
     FreeholderInstant,
@@ -161,6 +161,7 @@ pub enum TerminalOutcome {
     Winner {
         faction: FactionId,
         victory_type: VictoryType,
+        scores: FactionScores,
         decisive_rule: &'static str,
     },
 }
@@ -171,11 +172,14 @@ impl TerminalOutcome {
             Self::Winner {
                 faction,
                 victory_type,
+                scores,
                 decisive_rule,
             } => format!(
-                "winner:{}:{}:{}",
+                "winner:{}:{}:{}:{}:{}",
                 faction.as_str(),
                 victory_type.as_str(),
+                scores.charter,
+                scores.freeholders,
                 decisive_rule
             ),
         }

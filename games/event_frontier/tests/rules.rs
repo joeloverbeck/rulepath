@@ -9,6 +9,7 @@ use event_frontier::{
     rules::advance_to_next_card,
     setup_match, CardPhase, Eligibility, EventFrontierEffect, FactionId, SetupOptions,
 };
+use event_frontier::{resolve_reckoning, FactionScores, TerminalOutcome, VictoryType};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -546,4 +547,182 @@ fn edict_expiry_is_a_deterministic_list_clear() {
         })
         .collect::<Vec<_>>();
     assert_eq!(expired, vec!["toll_roads", "requisition"]);
+}
+
+#[test]
+fn reckoning_pipeline_scores_income_then_reset_in_order() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    resolve_event_card(&mut state, event_frontier::CardId::TollRoads);
+    state.set_eligibility(FactionId::Charter, Eligibility::Ineligible);
+    state.set_eligibility(FactionId::Freeholders, Eligibility::Ineligible);
+    state.deck.current = Some(event_frontier::CardId::ReckoningOne);
+    state.card_phase = CardPhase::Reckoning;
+
+    let result = resolve_reckoning(&mut state).expect("reckoning");
+
+    assert_eq!(state.scores.charter, 1);
+    assert_eq!(state.scores.freeholders, 1);
+    assert_eq!(state.resources.funds, 5);
+    assert_eq!(state.resources.provisions, 5);
+    assert!(state.active_edicts.is_empty());
+    assert_eq!(
+        state.eligibility_for(FactionId::Charter),
+        Eligibility::Eligible
+    );
+    let rendered = result
+        .effects
+        .iter()
+        .map(|effect| format!("{:?}", effect.payload))
+        .collect::<Vec<_>>();
+    let income = rendered
+        .iter()
+        .position(|entry| entry.contains("reckoning_income"))
+        .expect("income");
+    let expiry = rendered
+        .iter()
+        .position(|entry| entry.contains("EdictExpired"))
+        .expect("expiry");
+    let reset = rendered
+        .iter()
+        .position(|entry| entry.contains("reckoning_reset"))
+        .expect("reset");
+    let resolved = rendered
+        .iter()
+        .position(|entry| entry.contains("ReckoningResolved"))
+        .expect("resolved");
+    assert!(income < expiry && expiry < reset && reset < resolved);
+}
+
+#[test]
+fn charter_freeholder_and_both_met_instant_victories_are_deterministic() {
+    let mut charter = reckoning_state();
+    for site in [
+        event_frontier::SiteId::Charterhouse,
+        event_frontier::SiteId::Crossing,
+        event_frontier::SiteId::GranitePass,
+        event_frontier::SiteId::OldMill,
+    ] {
+        charter.site_mut(site).expect("site").agents = 1;
+    }
+    resolve_reckoning(&mut charter).expect("charter reckoning");
+    assert_terminal(
+        &charter,
+        FactionId::Charter,
+        VictoryType::CharterInstant,
+        "EF-END-001",
+    );
+
+    let mut freeholder = reckoning_state();
+    set_caches(&mut freeholder, 8);
+    resolve_reckoning(&mut freeholder).expect("freeholder reckoning");
+    assert_terminal(
+        &freeholder,
+        FactionId::Freeholders,
+        VictoryType::FreeholderInstant,
+        "EF-END-002",
+    );
+
+    let mut both = reckoning_state();
+    for site in [
+        event_frontier::SiteId::Charterhouse,
+        event_frontier::SiteId::Crossing,
+        event_frontier::SiteId::GranitePass,
+        event_frontier::SiteId::OldMill,
+    ] {
+        both.site_mut(site).expect("site").agents = 1;
+    }
+    set_caches(&mut both, 8);
+    resolve_reckoning(&mut both).expect("both reckoning");
+    assert_terminal(
+        &both,
+        FactionId::Freeholders,
+        VictoryType::FreeholderInstant,
+        "EF-END-003",
+    );
+}
+
+#[test]
+fn third_reckoning_final_fallback_and_tiebreak_are_stable() {
+    let mut charter = empty_reckoning_state();
+    charter.reckoning_count = 2;
+    charter.scores = FactionScores {
+        charter: 5,
+        freeholders: 4,
+    };
+    resolve_reckoning(&mut charter).expect("fallback");
+    assert_terminal(
+        &charter,
+        FactionId::Charter,
+        VictoryType::FinalFallback,
+        "EF-END-004",
+    );
+
+    let mut tied = empty_reckoning_state();
+    tied.reckoning_count = 2;
+    tied.scores = FactionScores {
+        charter: 4,
+        freeholders: 4,
+    };
+    resolve_reckoning(&mut tied).expect("tiebreak");
+    assert_terminal(
+        &tied,
+        FactionId::Freeholders,
+        VictoryType::FinalFallback,
+        "EF-END-004",
+    );
+}
+
+#[test]
+fn post_terminal_commands_are_rejected() {
+    let mut state = reckoning_state();
+    set_caches(&mut state, 8);
+    resolve_reckoning(&mut state).expect("terminal");
+    let freshness = state.freshness_token;
+    let diagnostic = apply_command(&mut state, &command("seat_1", ACTION_PASS, freshness))
+        .expect_err("terminal rejects command");
+    assert_eq!(diagnostic.code, "terminal");
+}
+
+fn reckoning_state() -> event_frontier::EventFrontierState {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    state.deck.current = Some(event_frontier::CardId::ReckoningOne);
+    state.card_phase = CardPhase::Reckoning;
+    state
+}
+
+fn empty_reckoning_state() -> event_frontier::EventFrontierState {
+    let mut state = reckoning_state();
+    for site in &mut state.sites {
+        site.agents = 0;
+        site.settlers = 0;
+        site.depot = false;
+        site.cache_count = 0;
+    }
+    state
+}
+
+fn set_caches(state: &mut event_frontier::EventFrontierState, count: u8) {
+    let mut remaining = count;
+    for site in &mut state.sites {
+        let placed = remaining.min(2);
+        site.cache_count = placed;
+        remaining -= placed;
+    }
+}
+
+fn assert_terminal(
+    state: &event_frontier::EventFrontierState,
+    faction: FactionId,
+    victory_type: VictoryType,
+    decisive_rule: &'static str,
+) {
+    assert!(matches!(
+        state.terminal_outcome,
+        Some(TerminalOutcome::Winner {
+            faction: winner,
+            victory_type: actual_type,
+            decisive_rule: actual_rule,
+            ..
+        }) if winner == faction && actual_type == victory_type && actual_rule == decisive_rule
+    ));
 }

@@ -1,5 +1,5 @@
 use engine_core::{SeatId, Seed, StableSerialize};
-use event_frontier::{setup_match, CardId, SetupOptions};
+use event_frontier::{resolve_reckoning, setup_match, CardId, CardPhase, SetupOptions};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -51,4 +51,26 @@ fn is_reckoning(card: CardId) -> bool {
         card,
         CardId::ReckoningOne | CardId::ReckoningTwo | CardId::ReckoningThree
     )
+}
+
+#[test]
+fn reckoning_breakdown_scores_and_terminal_reproduce_for_same_state() {
+    let seats = seats();
+    let mut first = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup");
+    let mut second = first.clone();
+    for state in [&mut first, &mut second] {
+        state.deck.current = Some(CardId::ReckoningOne);
+        state.card_phase = CardPhase::Reckoning;
+    }
+
+    let first_result = resolve_reckoning(&mut first).expect("first reckoning");
+    let second_result = resolve_reckoning(&mut second).expect("second reckoning");
+
+    assert_eq!(first.scores, second.scores);
+    assert_eq!(first.terminal_outcome, second.terminal_outcome);
+    assert_eq!(
+        format!("{:?}", first_result.effects),
+        format!("{:?}", second_result.effects)
+    );
+    assert_eq!(first.stable_hash(), second.stable_hash());
 }

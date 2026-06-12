@@ -7,11 +7,14 @@ use crate::{
         operation_cost, validate_command, ChoicePosition, EventFrontierAction, OperationKind,
         OperationSelection, ValidatedAction,
     },
-    cards::{resolve_event_card, CardCatalog, CardId},
-    effects::{public_effect, EventFrontierEffect, EventFrontierEffectEnvelope},
-    ids::FactionId,
+    cards::{expire_all_edicts, resolve_event_card, CardCatalog, CardId},
+    effects::{
+        public_effect, EventFrontierEffect, EventFrontierEffectEnvelope, SiteScoreBreakdown,
+    },
+    ids::{FactionId, SiteId},
     state::{
         epoch_for_card, is_reckoning, CardPhase, Eligibility, EventFrontierState, FirstChoice,
+        TerminalOutcome, VictoryType,
     },
 };
 
@@ -65,6 +68,72 @@ pub fn apply_validated_action(
         ChoicePosition::Second { first_choice } => {
             apply_second_choice(state, validated, first_choice, &mut effects)?
         }
+    }
+
+    state.freshness_token = state.freshness_token.next();
+    Ok(AppliedAction { effects })
+}
+
+pub fn resolve_reckoning(state: &mut EventFrontierState) -> Result<AppliedAction, Diagnostic> {
+    if state.card_phase != CardPhase::Reckoning || state.deck.current.is_none() {
+        return Err(Diagnostic {
+            code: "wrong_phase".to_owned(),
+            message: "no Event Frontier Reckoning is ready to resolve".to_owned(),
+        });
+    }
+
+    let round = state.reckoning_count.saturating_add(1);
+    let mut effects = Vec::new();
+    let instant = instant_victory(state);
+    if let Some((winner, victory_type, decisive_rule, summary)) = instant {
+        state.reckoning_count = round;
+        set_terminal(state, winner, victory_type, decisive_rule);
+        effects.push(public_effect(EventFrontierEffect::ReckoningResolved {
+            round,
+            victory_check: summary.clone(),
+            site_breakdown: Vec::new(),
+            income: (0, 0),
+            expired_edicts: Vec::new(),
+        }));
+        push_terminal_effect(state, winner, victory_type, summary, &mut effects);
+        state.freshness_token = state.freshness_token.next();
+        return Ok(AppliedAction { effects });
+    }
+
+    let site_breakdown = score_sites(state);
+    let income = apply_reckoning_income(state, &mut effects);
+    let expiry_effects = expire_all_edicts(state);
+    let expired_edicts = expiry_effects
+        .iter()
+        .filter_map(|effect| match &effect.payload {
+            EventFrontierEffect::EdictExpired { edict } => Some(edict.clone()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    effects.extend(expiry_effects);
+    restore_all_eligibility(state, "reckoning_reset", &mut effects);
+    state.reckoning_count = round;
+
+    effects.push(public_effect(EventFrontierEffect::ReckoningResolved {
+        round,
+        victory_check: "none".to_owned(),
+        site_breakdown,
+        income,
+        expired_edicts,
+    }));
+
+    if round >= 3 {
+        let (winner, decisive_rule, summary) = final_fallback(state);
+        set_terminal(state, winner, VictoryType::FinalFallback, decisive_rule);
+        push_terminal_effect(
+            state,
+            winner,
+            VictoryType::FinalFallback,
+            summary,
+            &mut effects,
+        );
+    } else {
+        advance_to_next_card(state, "reckoning_resolved", &mut effects);
     }
 
     state.freshness_token = state.freshness_token.next();
@@ -193,6 +262,160 @@ fn apply_operation(
         apply_operation_selection(state, faction, kind, selection, effects)?;
     }
     Ok(())
+}
+
+fn instant_victory(
+    state: &EventFrontierState,
+) -> Option<(FactionId, VictoryType, &'static str, String)> {
+    let charter_sites = charter_majority_site_count(state);
+    let freeholder_caches = freeholder_cache_count(state);
+    let charter_met = charter_sites >= state.variant.charter_site_threshold;
+    let freeholder_met = freeholder_caches >= state.variant.freeholder_cache_threshold;
+
+    match (charter_met, freeholder_met) {
+        (true, true) => Some((
+            FactionId::Freeholders,
+            VictoryType::FreeholderInstant,
+            "EF-END-003",
+            format!("both_met:charter_sites={charter_sites}:freeholder_caches={freeholder_caches}"),
+        )),
+        (true, false) => Some((
+            FactionId::Charter,
+            VictoryType::CharterInstant,
+            "EF-END-001",
+            format!("charter_instant:charter_sites={charter_sites}"),
+        )),
+        (false, true) => Some((
+            FactionId::Freeholders,
+            VictoryType::FreeholderInstant,
+            "EF-END-002",
+            format!("freeholder_instant:caches={freeholder_caches}"),
+        )),
+        (false, false) => None,
+    }
+}
+
+fn score_sites(state: &mut EventFrontierState) -> Vec<SiteScoreBreakdown> {
+    let mut breakdown = Vec::new();
+    for site_id in SiteId::ALL {
+        let Some(site) = state.site(site_id) else {
+            continue;
+        };
+        let charter_presence = charter_presence(site);
+        let freeholder_presence = site.settlers;
+        let awarded_to = if charter_presence > freeholder_presence {
+            state.scores.charter = state.scores.charter.saturating_add(1);
+            Some(FactionId::Charter)
+        } else if freeholder_presence > charter_presence {
+            state.scores.freeholders = state.scores.freeholders.saturating_add(1);
+            Some(FactionId::Freeholders)
+        } else {
+            None
+        };
+        breakdown.push(SiteScoreBreakdown {
+            site: site_id,
+            charter_presence,
+            freeholder_presence,
+            awarded_to,
+        });
+    }
+    breakdown
+}
+
+fn apply_reckoning_income(
+    state: &mut EventFrontierState,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) -> (u8, u8) {
+    let previous_funds = state.resources.funds;
+    let previous_provisions = state.resources.provisions;
+    let cap = state.variant.resource_cap;
+    state.resources.funds = state.resources.funds.saturating_add(2).min(cap);
+    state.resources.provisions = state.resources.provisions.saturating_add(2).min(cap);
+    effects.push(public_effect(EventFrontierEffect::ResourcesChanged {
+        faction: FactionId::Charter,
+        previous: previous_funds,
+        new: state.resources.funds,
+        reason: "reckoning_income".to_owned(),
+    }));
+    effects.push(public_effect(EventFrontierEffect::ResourcesChanged {
+        faction: FactionId::Freeholders,
+        previous: previous_provisions,
+        new: state.resources.provisions,
+        reason: "reckoning_income".to_owned(),
+    }));
+    (state.resources.funds, state.resources.provisions)
+}
+
+fn final_fallback(state: &EventFrontierState) -> (FactionId, &'static str, String) {
+    if state.scores.charter > state.scores.freeholders {
+        (
+            FactionId::Charter,
+            "EF-END-004",
+            format!(
+                "final_fallback:charter:{}:freeholders:{}",
+                state.scores.charter, state.scores.freeholders
+            ),
+        )
+    } else {
+        (
+            FactionId::Freeholders,
+            "EF-END-004",
+            format!(
+                "final_fallback_freeholder_tiebreak:charter:{}:freeholders:{}",
+                state.scores.charter, state.scores.freeholders
+            ),
+        )
+    }
+}
+
+fn set_terminal(
+    state: &mut EventFrontierState,
+    winner: FactionId,
+    victory_type: VictoryType,
+    decisive_rule: &'static str,
+) {
+    state.card_phase = CardPhase::Terminal;
+    state.terminal_outcome = Some(TerminalOutcome::Winner {
+        faction: winner,
+        victory_type,
+        scores: state.scores,
+        decisive_rule,
+    });
+}
+
+fn push_terminal_effect(
+    state: &EventFrontierState,
+    winner: FactionId,
+    victory_type: VictoryType,
+    summary: String,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    effects.push(public_effect(EventFrontierEffect::Terminal {
+        winner,
+        victory_type: victory_type.as_str().to_owned(),
+        totals: (state.scores.charter, state.scores.freeholders),
+        summary,
+    }));
+}
+
+fn charter_majority_site_count(state: &EventFrontierState) -> u8 {
+    state
+        .sites
+        .iter()
+        .filter(|site| charter_presence(site) > site.settlers)
+        .count() as u8
+}
+
+fn freeholder_cache_count(state: &EventFrontierState) -> u8 {
+    state
+        .sites
+        .iter()
+        .map(|site| site.cache_count)
+        .fold(0u8, u8::saturating_add)
+}
+
+fn charter_presence(site: &crate::state::SiteState) -> u8 {
+    site.agents.saturating_add(u8::from(site.depot))
 }
 
 fn spend_operation_cost(

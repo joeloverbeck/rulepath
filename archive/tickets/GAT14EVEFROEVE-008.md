@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-008: Reckoning pipeline, asymmetric victory, and terminal
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier/src/{rules,effects,state}.rs` (ordered Reckoning pipeline, asymmetric instant victory, terminal detection)
@@ -82,3 +82,21 @@ Emit `ReckoningResolved { round, victory_check, site_breakdown, income, expired_
 1. `cargo test -p event_frontier --test rules`
 2. `cargo test -p event_frontier`
 3. The per-crate rule/replay tests are the correct boundary — the full game now resolves end to end natively; visibility and tools layers land in later tickets.
+
+## Outcome
+
+Implemented the ordered Reckoning and terminal pipeline:
+
+- Added `resolve_reckoning` with the fixed order: instant victory check, site-majority scoring, income, reset, third-Reckoning fallback, and card advance when non-terminal.
+- Added asymmetric instant victory checks for Charter site-majority, Freeholder cache threshold, and both-met -> Freeholders.
+- Added final fallback after the third Reckoning by cumulative score, with Freeholders winning tied totals.
+- Added terminal state score totals and public `ReckoningResolved` / `Terminal` effects with site breakdown, income, expired edicts, winner, victory type, totals, and summary.
+- Reused ticket-007 edict expiry as a deterministic list clear during Reckoning reset and restored all eligibility markers.
+- Added rule and replay coverage for pipeline order, instant victories, both-met, final fallback, tiebreak, terminal rejection, and deterministic Reckoning reproduction.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p event_frontier --test rules` — passed, 22 tests.
+3. `cargo test -p event_frontier --test replay` — passed, 3 tests.
+4. `cargo test -p event_frontier` — passed, 16 unit tests, 30 integration tests, 0 doctests.

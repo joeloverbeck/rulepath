@@ -6,6 +6,14 @@ use crate::ids::SiteId;
 use crate::{cards::CardId, ids::FactionId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SiteScoreBreakdown {
+    pub site: SiteId,
+    pub charter_presence: u8,
+    pub freeholder_presence: u8,
+    pub awarded_to: Option<FactionId>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EventFrontierEffect {
     EventResolved {
         card: CardId,
@@ -74,6 +82,19 @@ pub enum EventFrontierEffect {
     SettlerRallied {
         site: SiteId,
         new_count: u8,
+    },
+    ReckoningResolved {
+        round: u8,
+        victory_check: String,
+        site_breakdown: Vec<SiteScoreBreakdown>,
+        income: (u8, u8),
+        expired_edicts: Vec<String>,
+    },
+    Terminal {
+        winner: FactionId,
+        victory_type: String,
+        totals: (u16, u16),
+        summary: String,
     },
 }
 
