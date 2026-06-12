@@ -131,6 +131,8 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "kind",
     "hidden_information",
     "hidden_information_redaction",
+    "per_seat_hidden_surface",
+    "internal_trace_full_deck_hash",
     "stochastic_game_events",
     "stochastic_game_rule_events",
     "private_view_hashes",
@@ -278,6 +280,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/frontier_control/data/variants.toml",
             variant_id: "frontier_control_standard",
         }),
+        "event_frontier" => Ok(RegisteredGame {
+            game_id: "event_frontier",
+            rules_version: "event-frontier-rules-v1",
+            trace_dir: "games/event_frontier/tests/golden_traces",
+            fixture_dir: "games/event_frontier/data/fixtures",
+            manifest_path: "games/event_frontier/data/manifest.toml",
+            variants_path: "games/event_frontier/data/variants.toml",
+            variant_id: "event_frontier_standard",
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_version: "token-bazaar-rules-v1",
@@ -367,9 +378,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -526,6 +537,23 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
             let variants = frontier_control::load_variants().map_err(|error| {
                 format!("{}: variants parse failed: {error}", game.variants_path)
             })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.standard.id,
+            )
+        }
+        "event_frontier" => {
+            let manifest = event_frontier::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = event_frontier::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            let _cards = event_frontier::load_cards()
+                .map_err(|error| format!("games/event_frontier/data/cards.toml: {error}"))?;
             (
                 manifest.game_id,
                 manifest.rules_version,
@@ -832,7 +860,7 @@ fn validate_trace(
         || (game.game_id == "frontier_control"
             && input.contains("\"hidden_information_redaction\""));
     let has_stochastic_na = input.contains("\"stochastic_game_events\"")
-        || (game.game_id == "frontier_control"
+        || (matches!(game.game_id, "frontier_control" | "event_frontier")
             && input.contains("\"stochastic_game_rule_events\""));
     if game.game_id != "masked_claims" && (!has_hidden_na || !has_stochastic_na) {
         return Err(format!(

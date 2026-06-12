@@ -95,6 +95,13 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             benchmarks_path: "games/frontier_control/docs/BENCHMARKS.md",
             benchmarks_required: true,
         }),
+        "event_frontier" => Ok(RegisteredGame {
+            game_id: "event_frontier",
+            rules_path: "games/event_frontier/docs/RULES.md",
+            coverage_path: "games/event_frontier/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/event_frontier/docs/BENCHMARKS.md",
+            benchmarks_required: true,
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_path: "games/token_bazaar/docs/RULES.md",
@@ -151,7 +158,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks>"
                     );
                     process::exit(0);
                 }
@@ -272,7 +279,18 @@ fn is_rule_id(value: &str) -> bool {
     parts.len() == 3
         && matches!(
             parts[0],
-            "R" | "TM" | "CF" | "DF" | "DL" | "HCD" | "TB" | "SD" | "CL" | "PT" | "MC" | "FW"
+            "R" | "TM"
+                | "CF"
+                | "DF"
+                | "DL"
+                | "HCD"
+                | "TB"
+                | "SD"
+                | "CL"
+                | "PT"
+                | "MC"
+                | "FW"
+                | "EF"
         )
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())

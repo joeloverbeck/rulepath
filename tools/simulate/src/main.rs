@@ -7,6 +7,10 @@ use engine_core::{
     Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize,
 };
+use event_frontier::{
+    command_for_decision as event_frontier_command_for_decision,
+    FactionId as EventFrontierFactionId, VictoryType as EventFrontierVictoryType,
+};
 use flood_watch::FloodWatchLevel1Bot;
 use frontier_control::{
     command_for_decision as frontier_command_for_decision, FactionId as FrontierFactionId,
@@ -32,6 +36,7 @@ const GAME_HIGH_CARD_DUEL: &str = "high_card_duel";
 const GAME_MASKED_CLAIMS: &str = "masked_claims";
 const GAME_FLOOD_WATCH: &str = "flood_watch";
 const GAME_FRONTIER_CONTROL: &str = "frontier_control";
+const GAME_EVENT_FRONTIER: &str = "event_frontier";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
 const GAME_POKER_LITE: &str = "poker_lite";
@@ -163,13 +168,14 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_MASKED_CLAIMS
         && config.game != GAME_FLOOD_WATCH
         && config.game != GAME_FRONTIER_CONTROL
+        && config.game != GAME_EVENT_FRONTIER
         && config.game != GAME_TOKEN_BAZAAR
         && config.game != GAME_SECRET_DRAFT
         && config.game != GAME_POKER_LITE
         && config.game != GAME_PLAIN_TRICKS
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}\n",
             config.game
         ));
     }
@@ -202,7 +208,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -231,6 +237,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_FRONTIER_CONTROL {
         return run_frontier_control_simulation(config);
+    }
+    if config.game == GAME_EVENT_FRONTIER {
+        return run_event_frontier_simulation(config);
     }
     if config.game == GAME_TOKEN_BAZAAR {
         return run_token_bazaar_simulation(config);
@@ -585,6 +594,90 @@ fn run_frontier_control_simulation(config: Config) -> Result<String, String> {
          average_garrison_score={average_garrison_score:.2}\n\
          average_prospector_score={average_prospector_score:.2}\n\
          average_rounds={average_rounds:.2}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
+    ))
+}
+
+fn run_event_frontier_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut charter_wins = 0_u64;
+    let mut freeholder_wins = 0_u64;
+    let mut charter_instant_wins = 0_u64;
+    let mut freeholder_instant_wins = 0_u64;
+    let mut final_fallback_wins = 0_u64;
+    let mut total_actions = 0_u64;
+    let mut total_cards_seen = 0_u64;
+    let mut total_reckonings = 0_u64;
+    let mut total_charter_score = 0_u64;
+    let mut total_freeholder_score = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (outcome, scores, reckoning_count, cards_seen, actions) =
+            run_one_event_frontier_game(&config, seed)?;
+        games_run += 1;
+        total_actions += actions as u64;
+        total_cards_seen += cards_seen as u64;
+        total_reckonings += u64::from(reckoning_count);
+        total_charter_score += u64::from(scores.charter);
+        total_freeholder_score += u64::from(scores.freeholders);
+        match outcome {
+            event_frontier::TerminalOutcome::Winner {
+                faction,
+                victory_type,
+                ..
+            } => {
+                match faction {
+                    EventFrontierFactionId::Charter => charter_wins += 1,
+                    EventFrontierFactionId::Freeholders => freeholder_wins += 1,
+                }
+                match victory_type {
+                    EventFrontierVictoryType::CharterInstant => charter_instant_wins += 1,
+                    EventFrontierVictoryType::FreeholderInstant => freeholder_instant_wins += 1,
+                    EventFrontierVictoryType::FinalFallback => final_fallback_wins += 1,
+                }
+            }
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let average_cards_seen = total_cards_seen as f64 / games_run as f64;
+    let average_reckonings = total_reckonings as f64 / games_run as f64;
+    let average_charter_score = total_charter_score as f64 / games_run as f64;
+    let average_freeholder_score = total_freeholder_score as f64 / games_run as f64;
+    let pass_rate = if total_actions == 0 {
+        0.0
+    } else {
+        100.0 * final_fallback_wins as f64 / games_run as f64
+    };
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=event_frontier\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         charter_wins={charter_wins}\n\
+         freeholder_wins={freeholder_wins}\n\
+         charter_instant_wins={charter_instant_wins}\n\
+         freeholder_instant_wins={freeholder_instant_wins}\n\
+         final_fallback_wins={final_fallback_wins}\n\
+         action_cap_failures=0\n\
+         simulation_pass_rate_percent=100.00\n\
+         final_fallback_rate_percent={pass_rate:.2}\n\
+         average_cards_seen={average_cards_seen:.2}\n\
+         average_reckonings={average_reckonings:.2}\n\
+         average_charter_score={average_charter_score:.2}\n\
+         average_freeholder_score={average_freeholder_score:.2}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
         config.start_seed
@@ -1409,6 +1502,96 @@ fn run_one_frontier_control_game(
          failure_reason=action cap reached before terminal outcome\n\
          replay_command=cargo run -p simulate -- --game frontier_control --games 1 --start-seed {seed} --action-cap {action_cap}\n"
     ))
+}
+
+fn run_one_event_frontier_game(
+    config: &Config,
+    seed: u64,
+) -> Result<
+    (
+        event_frontier::TerminalOutcome,
+        event_frontier::FactionScores,
+        u8,
+        usize,
+        usize,
+    ),
+    String,
+> {
+    let seats = [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())];
+    let mut state =
+        event_frontier::setup_match(Seed(seed), &seats, &event_frontier::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+    let action_cap = config.action_cap.max(256);
+
+    for action_index in 0..action_cap {
+        if let Some(outcome) = state.terminal_outcome.clone() {
+            return Ok((
+                outcome,
+                state.scores,
+                state.reckoning_count,
+                event_frontier_cards_seen(&state),
+                action_index,
+            ));
+        }
+
+        if matches!(state.card_phase, event_frontier::CardPhase::Reckoning) {
+            event_frontier::resolve_reckoning(&mut state)
+                .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+            continue;
+        }
+
+        let seat = event_frontier_active_seat(&state)
+            .ok_or_else(|| "non-terminal state has no active event_frontier seat".to_owned())?;
+        let faction = state
+            .faction_for_seat(&seat)
+            .ok_or_else(|| "active event_frontier seat has no faction".to_owned())?;
+        let decision = match faction {
+            EventFrontierFactionId::Charter => {
+                event_frontier::EventCharterLevel1Bot::new(Seed(bot_seed(seed, action_index)))
+                    .select_decision(&state, &seat)
+            }
+            EventFrontierFactionId::Freeholders => {
+                event_frontier::EventFreeholdersLevel1Bot::new(Seed(bot_seed(seed, action_index)))
+                    .select_decision(&state, &seat)
+            }
+        }
+        .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = event_frontier_command_for_decision(&state, &seat, &decision);
+        event_frontier::validate_bot_decision(&state, &seat, &decision)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        event_frontier::apply_command(&mut state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+    }
+
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id=event_frontier\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         action_cap={action_cap}\n\
+         failure_reason=action cap reached before terminal outcome\n\
+         replay_command=cargo run -p simulate -- --game event_frontier --games 1 --start-seed {seed} --action-cap {action_cap}\n"
+    ))
+}
+
+fn event_frontier_active_seat(state: &event_frontier::EventFrontierState) -> Option<SeatId> {
+    let faction = match &state.card_phase {
+        event_frontier::CardPhase::AwaitingFirstChoice { faction } => *faction,
+        event_frontier::CardPhase::AwaitingSecondChoice { second_faction, .. } => *second_faction,
+        event_frontier::CardPhase::Reckoning | event_frontier::CardPhase::Terminal => return None,
+    };
+    state
+        .seats
+        .iter()
+        .find(|seat| state.faction_for_seat(seat) == Some(faction))
+        .cloned()
+}
+
+fn event_frontier_cards_seen(state: &event_frontier::EventFrontierState) -> usize {
+    state.deck.discard.len()
+        + usize::from(state.deck.current.is_some())
+        + usize::from(state.deck.next_public.is_some())
 }
 
 fn high_card_duel_winner(

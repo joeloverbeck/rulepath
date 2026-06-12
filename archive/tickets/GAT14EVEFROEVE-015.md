@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-015: Native tools, RULE-COVERAGE.md, boundary-check, and gate-1 CI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/{simulate,replay-check,fixture-check,rule-coverage,bench-report}/src/main.rs` (modify); `scripts/boundary-check.sh` (modify); `games/event_frontier/docs/RULE-COVERAGE.md` (new); `.github/workflows/gate-1-game-smoke.yml` (modify)
@@ -87,3 +87,22 @@ Add the `event_frontier` native steps (simulate/replay/fixture/rule-coverage, we
 1. `cargo run -p simulate -- --game event_frontier --games 1000 && cargo run -p replay-check -- --game event_frontier --all`
 2. `cargo run -p fixture-check -- --game event_frontier && cargo run -p rule-coverage -- --game event_frontier && bash scripts/boundary-check.sh`
 3. The tool CLIs plus the boundary check are the correct boundary — they validate the gate's native evidence end to end before the browser layer.
+
+## Outcome
+
+Implemented `event_frontier` registration across `simulate`, `replay-check`,
+`fixture-check`, `rule-coverage`, and `bench-report`; added Gate 1 native CI
+steps; authored `games/event_frontier/docs/RULE-COVERAGE.md`; and extended the
+engine boundary mechanic vocabulary with `initiative` and `eligibility` after
+confirming no `engine-core` false positives.
+
+Verification completed:
+
+1. `cargo fmt --all --check`
+2. `cargo run -p simulate -- --game event_frontier --games 1000`
+3. `cargo run -p replay-check -- --game event_frontier --all`
+4. `cargo run -p fixture-check -- --game event_frontier`
+5. `cargo run -p rule-coverage -- --game event_frontier`
+6. `bash scripts/boundary-check.sh`
+7. `cargo build -p bench-report`
+8. `node scripts/check-doc-links.mjs`

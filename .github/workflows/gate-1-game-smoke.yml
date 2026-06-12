@@ -54,6 +54,9 @@ jobs:
       - name: frontier_control quick simulation
         run: cargo run -p simulate -- --game frontier_control --games 1000
 
+      - name: event_frontier quick simulation
+        run: cargo run -p simulate -- --game event_frontier --games 1000
+
       - name: token_bazaar quick simulation
         run: cargo run -p simulate -- --game token_bazaar --games 1000
 
@@ -92,6 +95,9 @@ jobs:
 
       - name: Frontier Control replay drift check
         run: cargo run -p replay-check -- --game frontier_control --all
+
+      - name: Event Frontier replay drift check
+        run: cargo run -p replay-check -- --game event_frontier --all
 
       - name: Token Bazaar replay drift check
         run: cargo run -p replay-check -- --game token_bazaar --all
@@ -132,6 +138,9 @@ jobs:
       - name: Frontier Control fixture validation
         run: cargo run -p fixture-check -- --game frontier_control
 
+      - name: Event Frontier fixture validation
+        run: cargo run -p fixture-check -- --game event_frontier
+
       - name: Token Bazaar fixture validation
         run: cargo run -p fixture-check -- --game token_bazaar
 
@@ -170,6 +179,9 @@ jobs:
 
       - name: Frontier Control rule coverage drift check
         run: cargo run -p rule-coverage -- --game frontier_control
+
+      - name: Event Frontier rule coverage drift check
+        run: cargo run -p rule-coverage -- --game event_frontier
 
       - name: Token Bazaar rule coverage drift check
         run: cargo run -p rule-coverage -- --game token_bazaar
