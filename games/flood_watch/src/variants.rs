@@ -336,7 +336,7 @@ fn parse_variant(
     })
 }
 
-fn parse_flat_toml(input: &str) -> Result<BTreeMap<String, String>, String> {
+pub(crate) fn parse_flat_toml(input: &str) -> Result<BTreeMap<String, String>, String> {
     let mut values = BTreeMap::new();
 
     for (line_index, raw_line) in input.lines().enumerate() {
@@ -434,7 +434,10 @@ fn reject_behavior_key(key: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn reject_unknown_keys(values: &BTreeMap<String, String>, allowed: &[&str]) -> Result<(), String> {
+pub(crate) fn reject_unknown_keys(
+    values: &BTreeMap<String, String>,
+    allowed: &[&str],
+) -> Result<(), String> {
     for key in values.keys() {
         if !allowed.contains(&key.as_str()) {
             return Err(format!("unknown key `{key}`"));
@@ -443,7 +446,10 @@ fn reject_unknown_keys(values: &BTreeMap<String, String>, allowed: &[&str]) -> R
     Ok(())
 }
 
-fn required_string(values: &BTreeMap<String, String>, key: &str) -> Result<String, String> {
+pub(crate) fn required_string(
+    values: &BTreeMap<String, String>,
+    key: &str,
+) -> Result<String, String> {
     values
         .get(key)
         .cloned()
@@ -462,7 +468,7 @@ fn required_u8(values: &BTreeMap<String, String>, key: &str) -> Result<u8, Strin
         .map_err(|_| format!("key `{key}` must fit u8"))
 }
 
-fn parse_string_list(value: &str) -> Vec<String> {
+pub(crate) fn parse_string_list(value: &str) -> Vec<String> {
     value
         .split(',')
         .map(str::trim)

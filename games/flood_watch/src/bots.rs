@@ -234,7 +234,7 @@ fn forecast_response(
     let forecast = view
         .forecast
         .as_ref()
-        .and_then(|value| EventKind::parse(value))?;
+        .and_then(|value| EventKind::parse(&value.id))?;
     let (district, rise): (DistrictId, u8) = match forecast {
         EventKind::Downpour { district } => (district, 1),
         EventKind::StormSurge { district } => (district, 2),

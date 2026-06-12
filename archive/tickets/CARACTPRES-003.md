@@ -1,6 +1,6 @@
 # CARACTPRES-003: Flood Watch presentation metadata parity
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/flood_watch` (additive public-view extension, static presentation-data loader, `ui.rs` metadata channel); no `engine-core` or `game-stdlib` changes
@@ -87,3 +87,29 @@ Replace the stub with `UiMetadata` + `ui_metadata()` + face resolution; project 
 1. `cargo test -p flood_watch`
 2. `cargo run -p replay-check -- --game flood_watch --all && cargo run -p fixture-check -- --game flood_watch && cargo run -p rule-coverage -- --game flood_watch`
 3. Narrow boundary rationale: single-crate change; workspace hygiene runs at CARACTPRES-010 evidence.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `games/flood_watch/data/cards_presentation.toml` with authored presentation rows for all Flood Watch event kinds.
+- Expanded `games/flood_watch/src/ui.rs` from a display-name stub into `UiMetadata`, `CardFaceView`, and a strict `CardPresentationCatalog` loader with completeness, duplicate, unknown-key, behavior-key, and empty-field rejection.
+- Changed Flood Watch `PublicView.drawn_cards` and `PublicView.forecast` from raw event-kind strings to resolved card-face views while preserving the existing public `undrawn_count`.
+- Updated Flood Watch bot forecast parsing, visibility/no-leak checks, public effect text, replay assertions, and the WASM public-view serializer for the new card-face shape.
+
+Deviations from plan:
+
+- `crates/wasm-api/src/lib.rs` was included for the same current-code reason found in CARACTPRES-001: Flood Watch view JSON is manually serialized by the bridge.
+- No golden trace files changed; replay hashes remained valid after the view/text updates.
+
+Verification:
+
+- `cargo test -p flood_watch` — passed.
+- `cargo run -p replay-check -- --game flood_watch --all` — passed.
+- `cargo run -p fixture-check -- --game flood_watch` — passed.
+- `cargo run -p rule-coverage -- --game flood_watch` — passed.
+- `cargo check -p wasm-api` — passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` — passed.
+- `cargo fmt --all --check` — passed after formatting.

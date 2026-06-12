@@ -7147,13 +7147,33 @@ fn flood_view_json(view: &flood_watch::PublicView) -> String {
             .map(flood_district_json)
             .collect::<Vec<_>>()
             .join(","),
-        string_array(&view.drawn_cards),
-        option_string_json(view.forecast.as_deref()),
+        view.drawn_cards
+            .iter()
+            .map(flood_card_face_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        option_flood_card_face_json(view.forecast.as_ref()),
         flood_composition_json(&view.remaining_composition),
         view.undrawn_count,
         flood_terminal_json(&view.terminal),
         view.freshness_token,
         flood_ui_json(&view.ui)
+    )
+}
+
+fn option_flood_card_face_json(card: Option<&flood_watch::CardFaceView>) -> String {
+    card.map(flood_card_face_json)
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn flood_card_face_json(card: &flood_watch::CardFaceView) -> String {
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.id),
+        escape_json(&card.label),
+        escape_json(&card.summary),
+        escape_json(&card.family),
+        escape_json(&card.accessibility_label)
     )
 }
 
@@ -7538,7 +7558,16 @@ fn flood_terminal_summary_json(summary: &flood_watch::TerminalSummary) -> String
 }
 
 fn flood_ui_json(ui: &flood_watch::ui::UiMetadata) -> String {
-    format!("{{\"display_name\":\"{}\"}}", escape_json(&ui.display_name))
+    format!(
+        "{{\"display_name\":\"{}\",\"event_deck_label\":\"{}\",\"forecast_label\":\"{}\",\"drawn_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        escape_json(&ui.display_name),
+        escape_json(&ui.event_deck_label),
+        escape_json(&ui.forecast_label),
+        escape_json(&ui.drawn_label),
+        escape_json(&ui.face_down_label),
+        escape_json(&ui.face_down_summary),
+        escape_json(&ui.reduced_motion_token)
+    )
 }
 
 fn option_masked_seat_json(seat: Option<MaskedClaimsSeat>) -> String {
