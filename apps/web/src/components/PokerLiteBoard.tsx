@@ -125,10 +125,10 @@ export function PokerLiteBoard({
         )}
       </section>
 
-      <section className="poker-lite-actions" aria-label="Rust legal Crest Ledger actions">
+      <section className="poker-lite-actions" aria-label="Legal Crest Ledger actions">
         <div className="poker-lite-section-heading">
           <span>Actions</span>
-          <strong>{canAct ? "Rust legal choices" : actionStatus(view, pending)}</strong>
+          <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
         </div>
         <div className="poker-lite-action-grid">
           {choices.length === 0 ? (
@@ -160,7 +160,7 @@ export function PokerLiteBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Rust/WASM supplies every visible state change."}
+            : feedback?.detail ?? "Visible state changes will update here."}
         </strong>
       </div>
     </section>

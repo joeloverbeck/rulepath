@@ -160,7 +160,7 @@ export function ColumnFourBoard({
       {botEffect ? (
         <div className="bot-note" data-testid="bot-explanation">
           <span>Bot</span>
-          <strong>{String(botEffect.effect.payload.rationale ?? "Rust bot selected a column.")}</strong>
+          <strong>{String(botEffect.effect.payload.rationale ?? "The bot selected a column.")}</strong>
         </div>
       ) : null}
 
@@ -172,7 +172,7 @@ export function ColumnFourBoard({
               ? feedback.detail
             : interactive
               ? "Choose a column above the board."
-              : "Replay board is projected by Rust at this cursor."}
+              : "Replay board reflects this cursor."}
         </span>
       </div>
 

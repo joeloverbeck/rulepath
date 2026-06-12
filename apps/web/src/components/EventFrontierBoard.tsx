@@ -72,7 +72,7 @@ export function EventFrontierBoard({
           breakdownSections: [
             {
               id: "event-frontier-terminal",
-              heading: "Rust terminal cause",
+              heading: "Terminal cause",
               rows: [
                 { label: "Victory type", value: view.terminal.victory_type },
                 { label: "Decisive rule", value: view.terminal.decisive_rule },
@@ -130,7 +130,7 @@ export function EventFrontierBoard({
         <div className="frontier-map-panel">
           <svg className="frontier-map" viewBox="0 0 100 100" role="img" aria-label="Event Frontier site map">
             <title>Event Frontier site map</title>
-            <desc>Public sites, trails, agents, settlers, depots, and caches from the Rust view.</desc>
+            <desc>Public sites, trails, agents, settlers, depots, and caches.</desc>
             {view.adjacency.flatMap((entry) =>
               entry.neighbors
                 .filter((neighbor) => entry.site < neighbor)
@@ -166,7 +166,7 @@ export function EventFrontierBoard({
       <section className="plain-history" aria-label="Eligibility and victory distance">
         <div className="plain-section-heading">
           <span>Eligibility</span>
-          <strong>Rust projection</strong>
+          <strong>Public status</strong>
         </div>
         <ol>
           {view.eligibility.map((entry) => (
@@ -194,7 +194,7 @@ export function EventFrontierBoard({
               <li key={edict}>
                 <span>{edict}</span>
                 <strong>active</strong>
-                <small>Rust modifier</small>
+                <small>active modifier</small>
               </li>
             ))}
           </ol>
@@ -206,7 +206,7 @@ export function EventFrontierBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Rust/WASM supplies card flow, eligibility, operation paths, and public scoring."}
+            : feedback?.detail ?? "Card flow, eligibility, operation paths, and public scoring will update here."}
         </strong>
       </div>
 
@@ -264,7 +264,7 @@ function activeFactionLabel(view: EventFrontierPublicView): string {
 function factionLabel(faction: string | null | undefined): string {
   if (faction === "faction_charter") return "Charter";
   if (faction === "faction_freeholders") return "Freeholders";
-  return faction ?? "Rust";
+  return faction ?? "Active faction";
 }
 
 function siteSummary(site: EventFrontierSiteView): string {

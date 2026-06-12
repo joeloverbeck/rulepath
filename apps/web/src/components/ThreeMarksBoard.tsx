@@ -141,7 +141,7 @@ export function ThreeMarksBoard({
       {botEffect ? (
         <div className="bot-note" data-testid="bot-explanation">
           <span>Bot</span>
-          <strong>{String(botEffect.effect.payload.explanation ?? "Rust bot selected a move.")}</strong>
+          <strong>{String(botEffect.effect.payload.explanation ?? "The bot selected a move.")}</strong>
         </div>
       ) : null}
 
@@ -153,7 +153,7 @@ export function ThreeMarksBoard({
               ? feedback.detail
             : interactive
               ? "Choose a highlighted cell to place a mark."
-              : "Replay board is projected by Rust at this cursor."}
+              : "Replay board reflects this cursor."}
         </span>
       </div>
 

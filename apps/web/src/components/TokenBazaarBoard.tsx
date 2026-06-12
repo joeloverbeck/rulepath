@@ -111,7 +111,7 @@ export function TokenBazaarBoard({
       <section className="token-market" aria-label={view.ui.market_label}>
         <div className="token-section-heading">
           <span>{view.ui.market_label}</span>
-          <strong>Rust market slots</strong>
+          <strong>Market slots</strong>
         </div>
         <div className="token-market-row">
           {view.market_slots.map((slot) => (
@@ -134,13 +134,13 @@ export function TokenBazaarBoard({
         </div>
       </section>
 
-      <section className="token-actions" aria-label="Rust legal economy actions">
+      <section className="token-actions" aria-label="Legal economy actions">
         <div className="token-section-heading">
           <span>Actions</span>
-          <strong>{canAct ? "Rust legal tree" : terminal ? "Match complete" : "Waiting"}</strong>
+          <strong>{canAct ? "Available actions" : terminal ? "Match complete" : "Waiting"}</strong>
         </div>
         {choices.length === 0 ? (
-          <p className="muted">No Rust-supplied legal actions.</p>
+          <p className="muted">No legal actions available.</p>
         ) : (
           <div className="token-action-grid">
             {choices.map((choice) => (
@@ -168,7 +168,7 @@ export function TokenBazaarBoard({
         <p>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? recentEffects.at(-1)?.summary ?? "Accounting effects will appear after a Rust action resolves."}
+            : feedback?.detail ?? recentEffects.at(-1)?.summary ?? "Accounting effects will appear after an action resolves."}
         </p>
         {recentEffects.length > 0 ? (
           <ol>

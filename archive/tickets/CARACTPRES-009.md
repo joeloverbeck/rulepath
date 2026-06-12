@@ -1,6 +1,6 @@
 # CARACTPRES-009: Catalog copy hygiene and check-presentation-copy CI guard
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web` board copy edits, plus `scripts/` guard and CI wiring; no Rust surface touched
@@ -83,3 +83,20 @@ Add the `node scripts/check-presentation-copy.mjs` step to `.github/workflows/ga
 1. `node scripts/check-presentation-copy.mjs`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 3. Narrow boundary rationale: copy + tooling only; Rust strings were proven clean at CARACTPRES-002.
+
+## Outcome
+
+Completed on 2026-06-12.
+
+- Swept normal-mode board copy to remove debug/engine vocabulary from play surfaces while leaving dev/replay surfaces out of scope.
+- Added `scripts/check-presentation-copy.mjs` with a scoped play-surface scan and `--self-test` seeded violation check.
+- Wired the presentation copy guard into `.github/workflows/gate-1-game-smoke.yml` beside sibling catalog/doc checks.
+- Confirmed the guard passes on the swept tree and diagnoses seeded violations with file/line output.
+
+Verification:
+
+- `node scripts/check-presentation-copy.mjs --self-test`
+- `node scripts/check-presentation-copy.mjs`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`

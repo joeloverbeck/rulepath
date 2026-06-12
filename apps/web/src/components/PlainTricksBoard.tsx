@@ -179,7 +179,7 @@ export function PlainTricksBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Rust/WASM supplies legal cards, trick results, and redacted views."}
+            : feedback?.detail ?? "Legal cards, trick results, and hidden views will update here."}
         </strong>
       </div>
 
@@ -254,7 +254,7 @@ function terminalLabel(view: PlainTricksPublicView): string {
 function boardSummary(view: PlainTricksPublicView, legalCount: number): string {
   return `${view.display_name}, ${statusLabel(view)}, round ${view.round_index + 1}, trick ${
     view.trick_index + 1
-  }, ${legalCount} Rust legal card choices.`;
+    }, ${legalCount} legal card choices.`;
 }
 
 function seatLabel(seat: SeatId): string {

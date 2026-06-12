@@ -236,6 +236,9 @@ jobs:
       - name: Catalog/docs drift check
         run: node scripts/check-catalog-docs.mjs
 
+      - name: Presentation copy check
+        run: node scripts/check-presentation-copy.mjs
+
       - name: Player rules docs drift check
         run: |
           node scripts/copy-player-rules.mjs

@@ -245,7 +245,7 @@ export function DraughtsLiteBoard({
         </button>
       </div>
 
-      <div className="draughts-lite-cues" aria-label="Rust-provided move cues">
+      <div className="draughts-lite-cues" aria-label="Move cues">
         <Cue label="Choices" value={current.choices.length.toString()} />
         <Cue label="Captures" value={captureChoiceCount.toString()} />
         <Cue label="Promotion" value={countTagged(current.choices, "promotion").toString()} />
@@ -255,7 +255,7 @@ export function DraughtsLiteBoard({
       {botEffect ? (
         <div className="bot-note" data-testid="bot-explanation">
           <span>Bot</span>
-          <strong>{String(botEffect.effect.payload.rationale ?? "Rust bot selected a complete path.")}</strong>
+          <strong>{String(botEffect.effect.payload.rationale ?? "The bot selected a complete path.")}</strong>
         </div>
       ) : null}
 
@@ -266,12 +266,12 @@ export function DraughtsLiteBoard({
             : feedback
               ? feedback.detail
             : current.choices.some((choice) => metadataValue(choice, "forced_by_continuation") === "true")
-              ? "Rust requires this capture path to continue."
+              ? "This capture path must continue."
               : pendingPath.length > 0
-                ? "Choose one of the Rust-provided continuations."
+                ? "Choose one of the available continuations."
                 : interactive
                   ? "Choose a highlighted origin."
-                  : "Replay board is projected by Rust at this cursor."}
+                  : "Replay board reflects this cursor."}
         </span>
       </div>
 
@@ -424,7 +424,7 @@ function liveAnnouncement(
   const effectText = feedback
     ? `${feedback.detail} `
     : botEffect
-      ? `${String(botEffect.effect.payload.rationale ?? "Rust bot selected a complete path.")} `
+      ? `${String(botEffect.effect.payload.rationale ?? "The bot selected a complete path.")} `
       : "";
   const selected = current.selectedCell ? `Selected ${current.selectedCell}. ` : "";
   const captureText = mandatoryCapture ? "Capture is mandatory. " : captures > 0 ? `${captures} capture destination${captures === 1 ? "" : "s"}. ` : "";

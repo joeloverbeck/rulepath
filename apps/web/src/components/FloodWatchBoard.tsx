@@ -171,7 +171,7 @@ export function FloodWatchBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Rust/WASM supplies cooperative legal actions and public storm accounting."}
+            : feedback?.detail ?? "Cooperative actions and public storm accounting will update here."}
         </strong>
       </div>
 
