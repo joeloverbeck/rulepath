@@ -1,4 +1,5 @@
 import type { EffectEntry } from "../wasm/client";
+import { latestResolutionBurst } from "../animation/bursts";
 import { feedbackForEffect } from "./effectFeedback";
 
 type TurnReportPanelProps = {
@@ -7,24 +8,24 @@ type TurnReportPanelProps = {
 };
 
 const ADOPTED_GAMES = new Set(["event_frontier", "flood_watch"]);
-const MAX_REPORT_EVENTS = 6;
 
 export function TurnReportPanel({ gameId, effects }: TurnReportPanelProps) {
   if (!ADOPTED_GAMES.has(gameId)) {
     return null;
   }
 
-  const report = latestReportBurst(effects);
+  const report = latestResolutionBurst(effects);
+  const reportEntries = report?.visibleEntries ?? [];
 
   return (
     <section className="turn-report-panel" aria-label="Turn report" data-testid="turn-report-panel">
       <div className="plain-section-heading">
         <span>Turn report</span>
-        <strong>{report.length ? "Latest resolution" : "Waiting"}</strong>
+        <strong>{reportEntries.length ? report?.label ?? "Latest resolution" : "Waiting"}</strong>
       </div>
       <ol aria-live="polite">
-        {report.length ? (
-          report.map((entry) => {
+        {reportEntries.length ? (
+          reportEntries.map((entry) => {
             const feedback = feedbackForEffect(entry);
             return (
               <li key={entry.cursor}>
@@ -42,14 +43,4 @@ export function TurnReportPanel({ gameId, effects }: TurnReportPanelProps) {
       </ol>
     </section>
   );
-}
-
-function latestReportBurst(effects: EffectEntry[]): EffectEntry[] {
-  const visible = effects.filter((entry) => !isDecisionMarker(entry));
-  return visible.slice(-MAX_REPORT_EVENTS);
-}
-
-function isDecisionMarker(entry: EffectEntry): boolean {
-  const type = entry.effect.payload.type;
-  return type === "action_started" || type === "choice_taken" || type === "bot_chose_action" || type === "bot_chose_action_public";
 }

@@ -1,6 +1,6 @@
 # EFFANITUR-001: Shared burst-segmentation module + TurnReport/EffectLog re-base
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`); Rust/WASM untouched. Consumes the existing viewer-filtered `EffectEntry` stream unchanged.
@@ -87,3 +87,26 @@ Add `apps/web/scripts/smoke-bursts.mjs` asserting boundary placement across huma
 1. `node apps/web/scripts/smoke-bursts.mjs`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run build` (type-check the new module + re-based consumers)
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `apps/web/src/animation/bursts.ts` as the shared pure burst segmentation module over the existing viewer-filtered `EffectEntry[]` stream.
+- Rebased `TurnReportPanel` on `latestResolutionBurst`, removing the prior last-6 heuristic.
+- Rebased `EffectLog` to render grouped burst history while preserving reduced-motion controls and per-effect feedback.
+- Added `apps/web/scripts/smoke-bursts.mjs` for human, bot, automated-phase, and leading-effect burst fixtures.
+
+Deviations from the plan:
+
+- The burst smoke transpiles the TypeScript source in memory with the project TypeScript dependency instead of importing a Vite output asset, because production asset filenames are hashed.
+
+Verification results:
+
+- `node apps/web/scripts/smoke-bursts.mjs` passed.
+- `rg -n "MAX_REPORT_EVENTS|latestReportBurst" apps/web/src/components/TurnReportPanel.tsx` returned no matches.
+- `rg -n "effect\\.payload\\." apps/web/src/animation/bursts.ts` showed reads only of `effect.payload.type`.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.

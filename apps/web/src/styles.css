@@ -2692,6 +2692,35 @@ h2 {
   list-style: none;
 }
 
+.effects .effect-bursts {
+  min-height: 150px;
+}
+
+.effect-burst {
+  display: grid;
+  gap: 8px;
+}
+
+.effect-burst-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #4d5d57;
+  font-size: 0.82rem;
+}
+
+.effect-burst-heading span {
+  color: #73827c;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.effect-burst ol {
+  min-height: 0;
+}
+
 .effect-entry {
   display: grid;
   grid-template-columns: auto minmax(110px, 0.4fr) minmax(0, 1fr);
