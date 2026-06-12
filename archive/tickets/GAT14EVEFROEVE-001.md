@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-001: Rules and IP source docs for Event Frontier
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/event_frontier/docs/RULES.md`, `games/event_frontier/docs/SOURCES.md`)
@@ -76,3 +76,22 @@ Instantiate from `templates/GAME-SOURCES.md`. Record the consulted-mechanics pos
 1. `node scripts/check-doc-links.mjs`
 2. `grep -nE "rule[-_ ]?id|RULE-" games/event_frontier/docs/RULES.md`
 3. A narrower full-build command is not the correct boundary here — this is prose with no compilable surface; doc-link integrity plus the rule-ID/IP greps are the verification boundary.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `games/event_frontier/docs/RULES.md` as the original Rulepath formal rules contract for Event Frontier, with stable `EF-*` rule IDs covering scope, variants, components, setup, eligibility/card flow, action menus, compound operations, events, edicts, restrictions, scoring, terminal outcomes, outcome-explanation traceability, hidden-order visibility, replay/randomness, bot boundaries, ambiguities, deviations, and out-of-scope variants.
+- Added `games/event_frontier/docs/SOURCES.md` with mechanics-only source-use notes, project-authority references, trade-dress/IP avoidance, asset/font/public-private boundaries, ambiguity cross-references, and a rule-ID-to-rationale matrix.
+
+Deviations from original plan:
+
+- None. This ticket remained documentation-only; no Rust crate, data file, tool, or UI scaffold was introduced.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -nE "rule[-_ ]?id|RULE-|EF-(ACT|AMB|BOT|COMP|DEV|EDICT|END|EVENT|OOS|OP|RESTRICT|RNG|SCORE|SCOPE|SETUP|TURN|VAR|VIS)" games/event_frontier/docs/RULES.md` showed the stable Event Frontier rule-ID surface, including eligibility/card-flow, edict, Reckoning, victory, and tiebreak IDs.
+- `grep -niE "propaganda|coup|defcon|castillo|caballero|clearing" games/event_frontier/docs/RULES.md games/event_frontier/docs/SOURCES.md` returned no matches.
