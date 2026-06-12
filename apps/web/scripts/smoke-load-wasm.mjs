@@ -113,6 +113,18 @@ assert(
   ),
   "list_games includes frontier_control perfect-information variants",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "event_frontier" &&
+      game.variants.includes("event_frontier_standard") &&
+      game.variants.includes("event_frontier_hard_winter") &&
+      game.variants.includes("event_frontier_land_rush") &&
+      game.hidden_information === true &&
+      game.tags.includes("event_deck"),
+  ),
+  "list_games includes event_frontier hidden-information variants",
+);
 
 const frontierCreated = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
@@ -174,6 +186,88 @@ const frontierImport = invoke(
   [JSON.stringify(frontierExport)],
 );
 assert(frontierImport.replay_id, "frontier_control imports public replay");
+
+const eventFrontierCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 19n),
+  ["event_frontier"],
+);
+assert(eventFrontierCreated.variant_id === "event_frontier_standard", "event_frontier starts standard variant");
+const eventFrontierObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [eventFrontierCreated.match_id],
+);
+const eventFrontierSeat0 = invoke(
+  (args) => wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [eventFrontierCreated.match_id, "seat_0"],
+);
+const eventFrontierSeat1 = invoke(
+  (args) => wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [eventFrontierCreated.match_id, "seat_1"],
+);
+assert(eventFrontierObserver.game_id === "event_frontier", "event_frontier observer view is game-specific");
+assert(eventFrontierObserver.variant_id === "event_frontier_standard", "event_frontier view reports selected variant");
+assert(eventFrontierObserver.current_card, "event_frontier projects current public card");
+assert(eventFrontierObserver.next_public_card, "event_frontier projects next public card");
+assert(!JSON.stringify(eventFrontierObserver).includes("undrawn"), "event_frontier observer view hides undrawn deck order");
+assert(
+  JSON.stringify(eventFrontierObserver) === JSON.stringify(eventFrontierSeat0) &&
+    JSON.stringify(eventFrontierObserver) === JSON.stringify(eventFrontierSeat1),
+  "event_frontier projects output-equivalent views for all viewers",
+);
+const eventFrontierSeat0Tree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [eventFrontierCreated.match_id, "seat_0"],
+);
+const eventFrontierSeat1Tree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [eventFrontierCreated.match_id, "seat_1"],
+);
+const eventFrontierActor = eventFrontierSeat0Tree.choices.length > 0 ? "seat_0" : "seat_1";
+const eventFrontierBotSeat = eventFrontierActor === "seat_0" ? "seat_1" : "seat_0";
+const eventFrontierTree =
+  eventFrontierActor === "seat_0" ? eventFrontierSeat0Tree : eventFrontierSeat1Tree;
+assert(eventFrontierTree.choices.some((choice) => choice.segment === "pass"), "event_frontier exposes pass action");
+const eventFrontierAfterPass = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(eventFrontierTree.freshness_token),
+    ),
+  [eventFrontierCreated.match_id, eventFrontierActor, "pass"],
+);
+assert(eventFrontierAfterPass.view.game_id === "event_frontier", "event_frontier action returns Rust view");
+const eventFrontierBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 21n),
+  [eventFrontierCreated.match_id, eventFrontierBotSeat],
+);
+assert(eventFrontierBot.policy_id?.includes("event_frontier"), "event_frontier bot reports policy id");
+const eventFrontierEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n, 0, 0),
+  [eventFrontierCreated.match_id],
+);
+assert(eventFrontierEffects.length > 0, "event_frontier exposes public effects");
+const eventFrontierExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [eventFrontierCreated.match_id],
+);
+assert(eventFrontierExport.game_id === "event_frontier", "event_frontier exports public replay");
+assert(eventFrontierExport.viewer === "observer", "event_frontier replay export is observer scoped");
+assert(eventFrontierExport.hidden_information === "undrawn_deck_order", "event_frontier export names hidden surface");
+assert(!("commands" in eventFrontierExport), "event_frontier replay export omits raw command stream");
+assert(!JSON.stringify(eventFrontierExport).includes("full_deck_order"), "event_frontier replay export hides full deck order");
+const eventFrontierImport = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(eventFrontierExport)],
+);
+assert(eventFrontierImport.public_export === true, "event_frontier public replay imports");
 
 const maskedCreated = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 11n),

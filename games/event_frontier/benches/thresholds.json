@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "game_id": "event_frontier",
+  "rules_version": "event-frontier-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    { "operation_name": "setup_standard", "unit": "setups_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "shuffle_and_deal_epochs", "unit": "traces_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "legal_tree_first_choice", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "legal_tree_peak_op_branching", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "apply_event", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "apply_op_multi_site", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "edict_modifier_projection", "unit": "views_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "reckoning_pipeline", "unit": "reckonings_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "serialize_view", "unit": "serializations_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "bot_l1_choice_charter", "unit": "decisions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "bot_l1_choice_freeholders", "unit": "decisions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." },
+    { "operation_name": "full_random_playout", "unit": "turns_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor only until event_frontier has repeated CI benchmark measurements." }
+  ]
+}

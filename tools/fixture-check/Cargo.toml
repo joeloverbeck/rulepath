@@ -9,6 +9,7 @@ repository.workspace = true
 column_four = { path = "../../games/column_four" }
 directional_flip = { path = "../../games/directional_flip" }
 draughts_lite = { path = "../../games/draughts_lite" }
+event_frontier = { path = "../../games/event_frontier" }
 flood_watch = { path = "../../games/flood_watch" }
 frontier_control = { path = "../../games/frontier_control" }
 high_card_duel = { path = "../../games/high_card_duel" }

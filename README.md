@@ -14,20 +14,22 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gates 0-13 complete; asymmetric area-control proof accepted** — Rulepath now ships thirteen local-playable
+**Gates 0-14 complete; event-deck complexity capstone proof accepted** — Rulepath now ships fourteen local-playable
 official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
 **Column Four** (`column_four`), **Directional Flip** (`directional_flip`),
 **Draughts Lite** (`draughts_lite`), **High Card Duel**
 (`high_card_duel`), **Token Bazaar** (`token_bazaar`), and **Veiled Draft**
 (`secret_draft`), **Crest Ledger** (`poker_lite`), and **Plain Tricks**
 (`plain_tricks`), **Masked Claims** (`masked_claims`), and **Flood Watch**
-(`flood_watch`), and **Frontier Control** (`frontier_control`). Gate 9 is complete with Token Bazaar as the accepted public
+(`flood_watch`), **Frontier Control** (`frontier_control`), and **Event Frontier**
+(`event_frontier`). Gate 9 is complete with Token Bazaar as the accepted public
 resource/economy proof, Gate 9.1 adds the accepted simultaneous
 commitment/reveal proof, Gate 10 adds the accepted betting/showdown proof, and
 Gate 10.1 adds the accepted trick-taking proof, and Gate 11 adds the accepted
 claims/challenges/reaction-window hidden-information proof, and Gate 12 adds the
-accepted cooperative event-pressure proof, and Gate 13 adds the accepted
-asymmetric graph-map area-control proof.
+accepted cooperative event-pressure proof, Gate 13 adds the accepted asymmetric
+graph-map area-control proof, and Gate 14 adds the accepted event-deck
+complexity capstone proof.
 `blackjack_lite` is deferred by
 [ADR 0006](docs/adr/0006-blackjack-lite-roadmap-placement.md) and does not
 block later gates. See
@@ -93,8 +95,8 @@ cargo test --workspace
 **Per-game checks** (replace the game id as needed; current official games are
 `race_to_n`, `three_marks`, `column_four`, `directional_flip`,
 `draughts_lite`, `high_card_duel`, `token_bazaar`, `secret_draft`,
-`poker_lite`, `plain_tricks`, `masked_claims`, `flood_watch`, and
-`frontier_control`)
+`poker_lite`, `plain_tricks`, `masked_claims`, `flood_watch`,
+`frontier_control`, and `event_frontier`)
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000

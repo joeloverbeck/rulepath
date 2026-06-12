@@ -122,7 +122,18 @@ try {
   assert(animationName === "none", "directional_flip reduced-motion suppresses flip animation");
   await assertNoLeak(page, consoleMessages, "directional_flip DOM");
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced directional_flip" }));
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startEventFrontier(page);
+  await assertEventFrontierBoardA11y(page);
+  await page.select(".motion-field select", "reduce");
+  await page.waitForSelector(".event-frontier-board.reduced");
+  const eventAnimationName = await page.$eval(".event-frontier-board.reduced .frontier-site", (element) =>
+    window.getComputedStyle(element).animationName,
+  );
+  assert(eventAnimationName === "none", "event_frontier reduced-motion suppresses site animation");
+  await assertNoLeak(page, consoleMessages, "event_frontier DOM");
+
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced directional_flip event_frontier" }));
 } finally {
   if (browser) {
     await browser.close();
@@ -137,6 +148,33 @@ async function startDirectionalFlip(page, mode = "Human vs bot") {
   }
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="directional-flip-board"]');
+}
+
+async function startEventFrontier(page) {
+  await clickText(page, "button", "Event Frontier");
+  await clickLabel(page, "Hotseat");
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="event-frontier-board"]');
+}
+
+async function assertEventFrontierBoardA11y(page) {
+  const summary = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll("button"));
+    return {
+      sites: document.querySelectorAll(".event-frontier-board .frontier-site").length,
+      trails: document.querySelectorAll(".event-frontier-board .frontier-trail").length,
+      missingNames: buttons
+        .filter((button) => !((button.getAttribute("aria-label") || button.textContent || "").trim()))
+        .map((button) => button.getAttribute("data-testid") ?? button.className),
+      redaction: document.body.textContent?.includes("Hidden order") ?? false,
+      latest: document.querySelector(".event-frontier-board .plain-latest")?.textContent ?? "",
+    };
+  });
+  assert(summary.sites === 6, `event_frontier renders six sites, got ${summary.sites}`);
+  assert(summary.trails >= 6, `event_frontier renders public trail lines, got ${summary.trails}`);
+  assert(summary.missingNames.length === 0, `event_frontier buttons have accessible names: ${summary.missingNames.join(", ")}`);
+  assert(summary.redaction, "event_frontier renders explicit hidden-order redaction");
+  assert(summary.latest.length > 0, "event_frontier latest-effect region has text");
 }
 
 async function assertDirectionalBoardA11y(page) {

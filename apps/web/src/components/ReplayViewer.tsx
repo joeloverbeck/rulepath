@@ -5,6 +5,7 @@ import type {
   DirectionalFlipPublicView,
   DraughtsLitePublicView,
   EffectEntry,
+  EventFrontierPublicView,
   FloodWatchPublicView,
   FrontierControlPublicView,
   MaskedClaimsPublicView,
@@ -16,6 +17,7 @@ import type {
 import { ColumnFourBoard } from "./ColumnFourBoard";
 import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
 import { DraughtsLiteBoard } from "./DraughtsLiteBoard";
+import { EventFrontierBoard } from "./EventFrontierBoard";
 import { FrontierControlBoard } from "./FrontierControlBoard";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
@@ -44,6 +46,8 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
     : [];
   const frontierControlView: FrontierControlPublicView | null =
     step && isFrontierControlView(step.view) ? step.view : null;
+  const eventFrontierView: EventFrontierPublicView | null =
+    step && isEventFrontierView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -134,6 +138,29 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
                 pending={false}
                 interactive={false}
               />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : eventFrontierView ? (
+            <div className="replay-board">
+              <EventFrontierBoard
+                view={eventFrontierView}
+                actionTree={null}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              <div className="replay-snapshot" aria-label="Event Frontier replay markers">
+                <div>
+                  <span>Epoch</span>
+                  <strong>{eventFrontierView.epoch}</strong>
+                </div>
+                <div>
+                  <span>Reckoning</span>
+                  <strong>{eventFrontierView.reckoning_count}</strong>
+                </div>
+              </div>
               {replay ? <PlacementSequence replay={replay} /> : null}
             </div>
           ) : null}
@@ -280,6 +307,10 @@ function isFrontierControlView(view: PublicView | null): view is FrontierControl
   return Boolean(view && "game_id" in view && view.game_id === "frontier_control");
 }
 
+function isEventFrontierView(view: PublicView | null): view is EventFrontierPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "event_frontier");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -404,6 +435,17 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
         value: view.terminal.kind === "non_terminal" ? view.active_seat ?? "terminal" : view.terminal.summary,
       },
       { label: "Score", value: `${view.scores.garrison}-${view.scores.prospectors}` },
+    ];
+  }
+
+  if (isEventFrontierView(view)) {
+    return [
+      { label: "Epoch", value: String(view.epoch) },
+      {
+        label: "Turn",
+        value: view.terminal.kind === "non_terminal" ? view.active_seat ?? "resolving" : `${view.terminal.winner} won`,
+      },
+      { label: "Score", value: `${view.scores.charter}-${view.scores.freeholders}` },
     ];
   }
 

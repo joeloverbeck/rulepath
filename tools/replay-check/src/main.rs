@@ -114,6 +114,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "frontier-control-rules-v1",
             trace_dir: "games/frontier_control/tests/golden_traces",
         }),
+        "event_frontier" => Ok(RegisteredGame {
+            game_id: "event_frontier",
+            rules_version: "event-frontier-rules-v1",
+            trace_dir: "games/event_frontier/tests/golden_traces",
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_version: "token-bazaar-rules-v1",
@@ -249,10 +254,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
 }
 
 fn check_trace_path(
@@ -279,6 +284,19 @@ fn check_trace_path(
             return Err(trace.failure("duplicate trace_id in checked trace set"));
         }
         println!("{}: frontier_control trace accepted", path.display());
+        return Ok(());
+    }
+    if game.game_id == "event_frontier" {
+        validate_event_frontier_trace(game, path, &input)?;
+        let trace_id = string_field(&input, "trace_id")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if !seen_ids.insert(trace_id) {
+            return Err(format!(
+                "{}: duplicate trace_id in checked trace set",
+                path.display()
+            ));
+        }
+        println!("{}: event_frontier trace accepted", path.display());
         return Ok(());
     }
     let trace = Trace::parse(path, &input)?;
@@ -364,6 +382,58 @@ fn validate_frontier_control_trace(
     if !input.contains("\"stochastic_game_rule_events\"") {
         return Err(format!(
             "{}: frontier_control trace must mark stochastic_game_rule_events not applicable",
+            path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn validate_event_frontier_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    validate_json_object(path, input)?;
+    let game_id =
+        string_field(input, "game_id").map_err(|error| format!("{}: {error}", path.display()))?;
+    if game_id != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}, got `{}`",
+            path.display(),
+            game.game_id,
+            game_id
+        ));
+    }
+    let rules_version = string_field(input, "rules_version")
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    if rules_version != game.rules_version {
+        return Err(format!(
+            "{}: rules_version must be {}, got `{}`",
+            path.display(),
+            game.rules_version,
+            rules_version
+        ));
+    }
+    for field in [
+        "\"expected_state_hashes\"",
+        "\"expected_effect_hashes\"",
+        "\"expected_action_tree_hashes\"",
+        "\"expected_public_view_hashes\"",
+        "\"expected_terminal_state\"",
+        "\"hidden_information\":\"undrawn_deck_order\"",
+        "\"stochastic_game_rule_events\":\"setup_shuffle\"",
+        "\"public_no_leak\":true",
+    ] {
+        if !input.contains(field) {
+            return Err(format!(
+                "{}: event_frontier trace missing required surface {field}",
+                path.display()
+            ));
+        }
+    }
+    if input.contains("full_deck_order") || input.contains("undrawn_deck_order\":[") {
+        return Err(format!(
+            "{}: event_frontier public trace leaks undrawn deck order",
             path.display()
         ));
     }

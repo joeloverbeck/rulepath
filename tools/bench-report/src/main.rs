@@ -127,6 +127,10 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "frontier_control",
             thresholds_path: "games/frontier_control/benches/thresholds.json",
         }),
+        "event_frontier" => Ok(RegisteredGame {
+            game_id: "event_frontier",
+            thresholds_path: "games/event_frontier/benches/thresholds.json",
+        }),
         "plain_tricks" => Ok(RegisteredGame {
             game_id: "plain_tricks",
             thresholds_path: "games/plain_tricks/benches/thresholds.json",
@@ -143,7 +147,7 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("bench-report 0.1.0");
     println!("usage: bench-report --input <report> --thresholds <thresholds>");
-    println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|plain_tricks> --input <report>");
+    println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|plain_tricks> --input <report>");
 }
 
 #[derive(Clone, Debug)]

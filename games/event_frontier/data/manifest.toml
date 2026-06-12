@@ -1,0 +1,17 @@
+game_id = "event_frontier"
+display_name = "Event Frontier"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "event-frontier-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "event_frontier"
+seat_count = 2
+site_count = 6
+card_count = 21
+epoch_count = 3
+resource_cap = 9
+site_ids = "site_charterhouse,site_landing,site_crossing,site_granite_pass,site_high_meadow,site_old_mill"
+site_labels = "Charterhouse,Landing,Crossing,Granite Pass,High Meadow,Old Mill"
+faction_ids = "faction_charter,faction_freeholders"
+faction_labels = "Charter,Freeholders"

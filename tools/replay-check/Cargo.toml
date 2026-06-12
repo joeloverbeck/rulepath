@@ -10,6 +10,7 @@ column_four = { path = "../../games/column_four" }
 directional_flip = { path = "../../games/directional_flip" }
 draughts_lite = { path = "../../games/draughts_lite" }
 engine-core = { path = "../../crates/engine-core" }
+event_frontier = { path = "../../games/event_frontier" }
 flood_watch = { path = "../../games/flood_watch" }
 game-stdlib = { path = "../../crates/game-stdlib" }
 high_card_duel = { path = "../../games/high_card_duel" }

@@ -45,12 +45,22 @@ name = "engine-core"
 version = "0.1.0"
 
 [[package]]
+name = "event_frontier"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
  "column_four",
  "directional_flip",
  "draughts_lite",
+ "event_frontier",
  "flood_watch",
  "frontier_control",
  "high_card_duel",
@@ -135,6 +145,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "event_frontier",
  "flood_watch",
  "game-stdlib",
  "high_card_duel",
@@ -176,6 +187,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "event_frontier",
  "flood_watch",
  "frontier_control",
  "high_card_duel",
@@ -223,6 +235,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "event_frontier",
  "flood_watch",
  "frontier_control",
  "high_card_duel",
