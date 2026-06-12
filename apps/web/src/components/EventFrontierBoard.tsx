@@ -1,5 +1,5 @@
-import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView } from "../wasm/client";
+import { ActionPathBuilder, type ActionPathSelection } from "./ActionPathBuilder";
 import { DeckFlowPanel } from "./DeckFlowPanel";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
@@ -35,7 +35,6 @@ export function EventFrontierBoard({
   onPathSubmit,
 }: EventFrontierBoardProps) {
   const choices = actionTree?.choices ?? [];
-  const leaves = useMemo(() => collectLeaves(choices), [choices]);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const terminal = view.terminal.kind !== "non_terminal";
   const canAct = Boolean(interactive && !pending && !terminal);
@@ -104,7 +103,7 @@ export function EventFrontierBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, current card {view.current_card?.label ?? "none"}, next public card {view.next_public_card?.label ?? "none"}, {leaves.length} Rust
+        {view.display_name}, current card {view.current_card?.label ?? "none"}, next public card {view.next_public_card?.label ?? "none"}, {choices.length} action
         legal choices. Undrawn deck order beyond the next public card is hidden.
       </p>
 
@@ -213,24 +212,11 @@ export function EventFrontierBoard({
 
       {!terminal ? (
         <section className="frontier-actions" aria-label="Event Frontier actions">
-          <div className="frontier-action-group">
-            <h3>Rust legal choices</h3>
-            <div className="action-list">
-              {leaves.map((leaf) => (
-                <button
-                  type="button"
-                  key={leaf.path.join(">")}
-                  disabled={!canAct}
-                  aria-label={leaf.choice.accessibility_label}
-                  data-testid={`event-frontier-choice-${leaf.path.join("-").replaceAll("/", "-")}`}
-                  onClick={() => onPathSubmit?.(eventFrontierSubmitPath(leaf))}
-                >
-                  {leaf.path.map(actionLabel).join(" / ")}
-                </button>
-              ))}
-            </div>
-            {leaves.length === 0 ? <p className="muted">No Rust legal actions available.</p> : null}
-          </div>
+          <ActionPathBuilder
+            tree={actionTree}
+            disabled={!canAct}
+            onSubmit={(selection) => onPathSubmit?.(eventFrontierSubmitPath(selection))}
+          />
         </section>
       ) : null}
 
@@ -265,16 +251,8 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function collectLeaves(choices: ActionChoice[], prefix: string[] = []): Array<{ choice: ActionChoice; path: string[] }> {
-  return choices.flatMap((choice) => {
-    const path = [...prefix, choice.segment];
-    const next = choice.next?.choices ?? [];
-    return next.length ? collectLeaves(next, path) : [{ choice, path }];
-  });
-}
-
-function eventFrontierSubmitPath(leaf: { choice: ActionChoice; path: string[] }): string[] {
-  return leaf.choice.segment.includes("/") ? [leaf.choice.segment] : leaf.path;
+function eventFrontierSubmitPath(selection: ActionPathSelection): string[] {
+  return selection.leaf.segment.includes("/") ? [selection.leaf.segment] : selection.segments;
 }
 
 function activeFactionLabel(view: EventFrontierPublicView): string {
@@ -291,10 +269,6 @@ function factionLabel(faction: string | null | undefined): string {
 
 function siteSummary(site: EventFrontierSiteView): string {
   return `A${site.agents} S${site.settlers}`;
-}
-
-function actionLabel(segment: string): string {
-  return segment.replaceAll("_", " ").replaceAll("/", " / ");
 }
 
 function terminalLabel(view: EventFrontierPublicView): string {

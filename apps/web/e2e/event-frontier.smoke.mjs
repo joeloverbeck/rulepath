@@ -108,20 +108,24 @@ try {
   await startEventFrontier(page, baseUrl, "Hotseat", 3);
   await assertEventFrontierBoardA11y(page);
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_0");
-  await clickButtonText(page, "event");
+  await chooseAndConfirmAction(page, ["Event"]);
   await waitForText(page, "Edict activated");
-  await clickButtonText(page, "pass");
+  await chooseAndConfirmAction(page, ["Pass"]);
   await waitForText(page, "Reckoning resolved");
   await waitForText(page, "reckoning 1");
   await assertEventFrontierDiscardDisclosure(page);
+  await clickButtonText(page, "Developer panel");
+  await clickButtonText(page, "Submit Stale Action");
+  await waitForText(page, "stale_action");
   await assertNoLeak(page, consoleMessages, "charter event edict reckoning");
 
   await startEventFrontier(page, baseUrl, "Hotseat", 1);
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_1");
-  await clickButtonText(page, "site landing>site crossing,site high meadow>site old mill");
+  await exerciseActionBuilderBackCancel(page);
+  await chooseFirstOperationPath(page);
   await waitForText(page, "Operation resolved");
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_0");
-  await clickButtonText(page, "pass");
+  await chooseAndConfirmAction(page, ["Pass"]);
   await waitForText(page, "Reckoning resolved");
   await assertNoLeak(page, consoleMessages, "freeholder multi-site operation and pass");
 
@@ -214,7 +218,7 @@ async function assertEventFrontierBoardA11y(page) {
       faceDownText: document.querySelector('[data-testid="deck-face-down"]')?.textContent ?? "",
       faceDownCount: Boolean(document.querySelector('[data-testid="deck-face-down-count"]')),
       discard: Boolean(document.querySelector('[data-testid="deck-discard"]')),
-      actionButtons: Array.from(document.querySelectorAll('[data-testid^="event-frontier-choice-"]')).map((button) =>
+      actionButtons: Array.from(document.querySelectorAll('[data-testid^="action-path-choice-"]')).map((button) =>
         button.textContent?.trim(),
       ),
     };
@@ -234,8 +238,8 @@ async function assertEventFrontierBoardA11y(page) {
   assert(!summary.faceDownCount, "event_frontier face-down slot omits count when Rust provides none");
   assert(summary.discard, "event_frontier renders discard disclosure");
   assert(!summary.deckText.includes("ef_"), "event_frontier deck panel omits raw card ids");
-  assert(summary.actionButtons.some((label) => label === "event"), "event_frontier renders Rust event choice");
-  assert(summary.actionButtons.some((label) => label.includes("operation / survey")), "event_frontier renders Rust operation leaves");
+  assert(summary.actionButtons.some((label) => label === "Event"), "event_frontier renders Rust event choice label");
+  assert(summary.actionButtons.some((label) => label === "Operation"), "event_frontier renders Rust operation choice label");
 }
 
 function includesAny(value, candidates) {
@@ -258,6 +262,62 @@ async function assertEventFrontierDiscardDisclosure(page) {
   assert(summary.labels.length > 0, "event_frontier discard disclosure lists resolved cards");
   assert(summary.labels.some((label) => includesAny(label, authoredEventLabels)), "event_frontier discard disclosure lists authored card labels");
   assert(!summary.text.includes("ef_"), "event_frontier discard disclosure omits raw card ids");
+}
+
+async function exerciseActionBuilderBackCancel(page) {
+  await clickButtonText(page, "Operation");
+  await waitForActionTrail(page, "Operation");
+  await clickButtonText(page, "Back");
+  await waitForText(page, "Event");
+  await clickButtonText(page, "Operation");
+  await waitForActionTrail(page, "Operation");
+  await clickButtonText(page, "Cancel");
+  await waitForText(page, "Event");
+}
+
+async function chooseFirstOperationPath(page) {
+  await clickButtonText(page, "Operation");
+  await clickFirstActionPathChoice(page);
+  await clickPreferredLeafChoice(page);
+  await waitForText(page, "Ready");
+  await clickButtonText(page, "Confirm");
+}
+
+async function chooseAndConfirmAction(page, labels) {
+  for (const label of labels) {
+    await clickButtonText(page, label);
+  }
+  await waitForText(page, "Ready");
+  await clickButtonText(page, "Confirm");
+}
+
+async function waitForActionTrail(page, text) {
+  await page.waitForFunction((expected) => document.querySelector('[data-testid="action-path-trail"]')?.textContent?.includes(expected), {}, text);
+}
+
+async function clickFirstActionPathChoice(page) {
+  await page.waitForSelector('[data-testid^="action-path-choice-"]');
+  const choices = await page.$$('[data-testid^="action-path-choice-"]');
+  if (!choices.length) {
+    throw new Error("No action path choices rendered");
+  }
+  await choices[0].click();
+}
+
+async function clickPreferredLeafChoice(page) {
+  await page.waitForSelector('[data-testid^="action-path-choice-"]');
+  const choices = await page.$$('[data-testid^="action-path-choice-"]');
+  for (const choice of choices) {
+    const text = await choice.evaluate((element) => element.textContent ?? "");
+    if (text.includes(",")) {
+      await choice.click();
+      return;
+    }
+  }
+  if (!choices.length) {
+    throw new Error("No leaf choices rendered");
+  }
+  await choices[0].click();
 }
 
 async function playBotVsBotToTerminal(page, maxSteps = 32) {

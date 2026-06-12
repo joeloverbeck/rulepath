@@ -1,6 +1,6 @@
 # CARACTPRES-007: Shared ActionPathBuilder and Event Frontier adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web` (shared progressive-construction component, Event Frontier action panel replacement, smoke); no Rust surface touched
@@ -84,3 +84,20 @@ Extend `apps/web/e2e/event-frontier.smoke.mjs`: stage walk, Back/Cancel, Confirm
 1. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:e2e`
 3. Narrow boundary rationale: presentation-only; Rust action generation/validation untouched (no crate tests affected).
+
+## Outcome
+
+Completed on 2026-06-12.
+
+- Added shared `ActionPathBuilder` that walks Rust-projected `ActionTree` stages, renders `choice.label` / `accessibility_label`, supports Back and Cancel, and confirms only at leaves.
+- Replaced Event Frontier's flat leaf dump with the builder while preserving the existing compound-segment submission adapter for byte-identical action paths.
+- Removed Event Frontier deck-action label derivation helpers from the board.
+- Extended Event Frontier smoke coverage for staged Event/Pass/Operation submission, Back/Cancel, Confirm, and stale-action diagnostics with the builder active.
+
+Verification:
+
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/event-frontier.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
