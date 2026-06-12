@@ -5,7 +5,7 @@
 - **Target type:** New spec
 - **Roadmap stage:** Cross-game web UI infrastructure — not a mechanic-ladder gate
 - **Roadmap build gate:** None. This is a non-gate sibling of `rules-display-shared-surface` and `victory-explanation-shared-surface`, motivated by Gate 14 (`event_frontier`) exposing presentation debt that also affects earlier games.
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-12
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs (`docs/OFFICIAL-GAME-CONTRACT.md`, `docs/MECHANIC-ATLAS.md`, `docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`) → `docs/ROADMAP.md` → `docs/IP-POLICY.md` → `docs/AGENT-DISCIPLINE.md` → `docs/WASM-CLIENT-BOUNDARY.md` → accepted ADRs → this spec.
@@ -225,6 +225,22 @@ Dependency order; each item is one reviewable diff.
 - Tools: `fixture-check`, `replay-check`, `rule-coverage` for `event_frontier` and `flood_watch`; `boundary-check.sh` clean (no kernel contamination).
 - Web: `smoke:wasm`, `smoke:ui`, `smoke:effects` green; new smoke cases for deck surface, action builder staging, and copy guard; no-leak DOM sweep evidence attached to the closeout ticket.
 - Screenshots: before/after of the event deck panel and action panel attached to WB5/WB6 outcomes.
+
+### Closeout evidence (2026-06-12)
+
+- CARACTPRES-001 through CARACTPRES-004 completed the Rust presentation
+  metadata backfills and frontier-control audit before web adoption.
+- CARACTPRES-005 and CARACTPRES-006 adopted `DeckFlowPanel` for Event Frontier
+  and Flood Watch with browser smoke/no-leak coverage.
+- CARACTPRES-007 adopted `ActionPathBuilder` for Event Frontier staged action
+  construction with Back/Cancel/Confirm and stale-selection smoke coverage.
+- CARACTPRES-008 recorded the catalog action-presentation audit, one row per
+  registered game.
+- CARACTPRES-009 added and wired the presentation-copy guard; the guard,
+  web build, `smoke:ui`, and `smoke:e2e` passed before this Done flip.
+- CARACTPRES-010 applied the law-doc amendments, README/game-doc
+  reconciliation, doc-link/catalog checks, full Rust hygiene snapshot, and web
+  build snapshot for closeout.
 
 ---
 

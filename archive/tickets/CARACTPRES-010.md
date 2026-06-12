@@ -1,6 +1,6 @@
 # CARACTPRES-010: Closeout — doc amendments, README reconciliation, spec Done-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — documentation and status surfaces only
@@ -85,3 +85,26 @@ Set the spec's header Status to `Done` and flip the `specs/README.md` row, citin
 1. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs`
 2. `cargo test --workspace && npm --prefix apps/web run build`
 3. Narrow boundary rationale: markdown-only diff; the workspace commands are the flip-time evidence snapshot, not new verification surface.
+
+## Outcome
+
+Completed on 2026-06-12. Lifted the UI interaction and official-game contract
+amendments, reconciled the web README and Event Frontier/Flood Watch UI docs,
+flipped the spec and index row to `Done`, and recorded distributed closeout
+evidence in the spec. During the required full workspace snapshot, repaired a
+stale Flood Watch WASM no-leak assertion so `event_deck_label` remains allowed
+as public UI metadata while the forbidden internal `"event_deck":` key remains
+blocked.
+
+Verification passed:
+
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- grep proofs for the UI-INTERACTION amendment lines, official-contract
+  metadata clause, `DeckFlowPanel`/`ActionPathBuilder`, and `Done` status
+  surfaces
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test -p wasm-api flood_watch_bridge_projects_public_view_effects_bot_and_export_without_deck_order -- --nocapture`
+- `cargo test --workspace`
+- `npm --prefix apps/web run build`

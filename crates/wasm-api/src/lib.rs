@@ -11118,7 +11118,7 @@ mod tests {
         assert!(observer.contains("\"variant_id\":\"flood_watch_standard\""));
         assert!(observer.contains("\"undrawn_count\":"));
         assert!(!observer.contains("full_deck_order"));
-        assert!(!observer.contains("event_deck"));
+        assert!(!observer.contains("\"event_deck\":"));
 
         let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
         assert!(tree.contains("\"segment\":\"end_turn\""));
@@ -11130,12 +11130,12 @@ mod tests {
         assert!(applied.contains("\"type\":\"event_drawn\""));
         assert!(applied.contains("\"active_seat\":\"seat_1\""));
         assert!(!applied.contains("full_deck_order"));
-        assert!(!applied.contains("event_deck"));
+        assert!(!applied.contains("\"event_deck\":"));
 
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot action applies");
         assert!(bot.contains("\"policy_id\":\"flood_watch_level1_public_priority_v1\""));
         assert!(!bot.contains("full_deck_order"));
-        assert!(!bot.contains("event_deck"));
+        assert!(!bot.contains("\"event_deck\":"));
 
         let exported = export_replay(&match_id).expect("public replay exported");
         assert!(exported.contains("\"game_id\":\"flood_watch\""));

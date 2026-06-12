@@ -61,6 +61,8 @@ The shell includes:
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event
   Frontier;
+- shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
+- shared `ActionPathBuilder` staged construction for nested Rust action trees;
 - Rust action-tree-driven buttons;
 - semantic effect log with reduced-motion support;
 - local replay export/import/reset/step;
