@@ -1,0 +1,51 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Rulepath
+      - heading "Rulepath" [level=1] [ref=e7]
+    - paragraph [ref=e8]: Loading wasm-api...
+  - region "Choose a game" [ref=e9]:
+    - generic [ref=e10]:
+      - paragraph [ref=e11]: Game
+      - heading "Choose a game" [level=2] [ref=e12]
+    - list [ref=e13]:
+      - paragraph [ref=e14]: Waiting for the Rust catalog...
+  - region "Match setup" [ref=e15]:
+    - generic [ref=e16]:
+      - paragraph [ref=e17]: Setup
+      - heading "Match setup" [level=2] [ref=e18]
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]: Selected
+        - strong [ref=e22]: No game selected
+        - generic [ref=e23]: Load the Rust catalog to continue
+        - button "How to play selected game" [disabled] [ref=e24]: How to Play / Rules
+      - generic [ref=e25]:
+        - generic [ref=e26]: Seed
+        - spinbutton "Seed" [ref=e27]: "1"
+    - group "Mode" [ref=e28]:
+      - generic [ref=e29]: Mode
+      - generic [ref=e30] [cursor=pointer]:
+        - radio "Human vs bot Seat 0 is local; Seat 1 uses Rust's legal bot." [checked] [ref=e31]
+        - generic [ref=e32]: Human vs bot
+        - generic [ref=e33]: Seat 0 is local; Seat 1 uses Rust's legal bot.
+      - generic [ref=e34] [cursor=pointer]:
+        - radio "Hotseat Both seats are local on this device." [ref=e35]
+        - generic [ref=e36]: Hotseat
+        - generic [ref=e37]: Both seats are local on this device.
+      - generic [ref=e38] [cursor=pointer]:
+        - radio "Bot vs bot Both seats are driven by Rust bot turns." [ref=e39]
+        - generic [ref=e40]: Bot vs bot
+        - generic [ref=e41]: Both seats are driven by Rust bot turns.
+    - generic "Seat roles" [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]: Seat 0
+        - strong [ref=e45]: Local
+      - generic [ref=e46]:
+        - generic [ref=e47]: Seat 1
+        - strong [ref=e48]: Bot
+    - button "Start Match" [disabled] [ref=e49]
+  - region "Developer panel" [ref=e50]:
+    - button "Developer panel Show" [ref=e51] [cursor=pointer]:
+      - generic [ref=e52]: Developer panel
+      - generic [ref=e53]: Show

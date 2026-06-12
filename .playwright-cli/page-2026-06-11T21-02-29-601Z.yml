@@ -1,0 +1,135 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Rulepath
+      - heading "Rulepath" [level=1] [ref=e7]
+    - paragraph [ref=e8]: rulepath-wasm-api/0.1.0
+  - region "Choose a game" [ref=e9]:
+    - generic [ref=e10]:
+      - paragraph [ref=e11]: Game
+      - heading "Choose a game" [level=2] [ref=e12]
+    - list [ref=e13]:
+      - listitem [ref=e54]:
+        - button "Race to 21 rules 1 / schema 1" [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]: Race to 21
+          - generic [ref=e57]: rules 1 / schema 1
+        - button "How to play Race to 21" [ref=e58] [cursor=pointer]: How to Play
+      - listitem [ref=e59]:
+        - button "Three Marks rules 1 / schema 1 / three_marks_standard" [ref=e60] [cursor=pointer]:
+          - generic [ref=e61]: Three Marks
+          - generic [ref=e62]: rules 1 / schema 1 / three_marks_standard
+        - button "How to play Three Marks" [ref=e63] [cursor=pointer]: How to Play
+      - listitem [ref=e64]:
+        - button "Column Four rules 1 / schema 1 / column_four_standard" [ref=e65] [cursor=pointer]:
+          - generic [ref=e66]: Column Four
+          - generic [ref=e67]: rules 1 / schema 1 / column_four_standard
+        - button "How to play Column Four" [ref=e68] [cursor=pointer]: How to Play
+      - listitem [ref=e69]:
+        - button "Directional Flip rules 1 / schema 1 / directional_flip_standard" [ref=e70] [cursor=pointer]:
+          - generic [ref=e71]: Directional Flip
+          - generic [ref=e72]: rules 1 / schema 1 / directional_flip_standard
+        - button "How to play Directional Flip" [ref=e73] [cursor=pointer]: How to Play
+      - listitem [ref=e74]:
+        - button "Draughts Lite rules 1 / schema 1 / draughts_lite_standard" [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: Draughts Lite
+          - generic [ref=e77]: rules 1 / schema 1 / draughts_lite_standard
+        - button "How to play Draughts Lite" [ref=e78] [cursor=pointer]: How to Play
+      - listitem [ref=e79]:
+        - button "High Card Duel rules 1 / schema 1 / high_card_duel_standard Hidden info 3 views" [ref=e80] [cursor=pointer]:
+          - generic [ref=e81]: High Card Duel
+          - generic [ref=e82]: rules 1 / schema 1 / high_card_duel_standard
+          - generic [ref=e83]:
+            - generic [ref=e84]: Hidden info
+            - generic [ref=e85]: 3 views
+        - button "How to play High Card Duel" [ref=e86] [cursor=pointer]: How to Play
+      - listitem [ref=e87]:
+        - button "Masked Claims rules 1 / schema 1 / masked_claims_standard Hidden info 3 views" [ref=e88] [cursor=pointer]:
+          - generic [ref=e89]: Masked Claims
+          - generic [ref=e90]: rules 1 / schema 1 / masked_claims_standard
+          - generic [ref=e91]:
+            - generic [ref=e92]: Hidden info
+            - generic [ref=e93]: 3 views
+        - button "How to play Masked Claims" [ref=e94] [cursor=pointer]: How to Play
+      - listitem [ref=e95]:
+        - button "Flood Watch rules 1 / schema 1 / flood_watch_standard, flood_watch_deluge Hidden info 3 views" [ref=e96] [cursor=pointer]:
+          - generic [ref=e97]: Flood Watch
+          - generic [ref=e98]: rules 1 / schema 1 / flood_watch_standard, flood_watch_deluge
+          - generic [ref=e99]:
+            - generic [ref=e100]: Hidden info
+            - generic [ref=e101]: 3 views
+        - button "How to play Flood Watch" [ref=e102] [cursor=pointer]: How to Play
+      - listitem [ref=e103]:
+        - button "Frontier Control rules 1 / schema 1 / frontier_control_standard, frontier_control_highlands 3 views" [active] [pressed] [ref=e104] [cursor=pointer]:
+          - generic [ref=e105]: Frontier Control
+          - generic [ref=e106]: rules 1 / schema 1 / frontier_control_standard, frontier_control_highlands
+          - generic [ref=e108]: 3 views
+        - button "How to play Frontier Control" [ref=e109] [cursor=pointer]: How to Play
+      - listitem [ref=e110]:
+        - button "Token Bazaar rules 1 / schema 1 / token_bazaar_standard 3 views" [ref=e111] [cursor=pointer]:
+          - generic [ref=e112]: Token Bazaar
+          - generic [ref=e113]: rules 1 / schema 1 / token_bazaar_standard
+          - generic [ref=e115]: 3 views
+        - button "How to play Token Bazaar" [ref=e116] [cursor=pointer]: How to Play
+      - listitem [ref=e117]:
+        - button "Veiled Draft rules 1 / schema 1 / secret_draft_standard Hidden info 3 views" [ref=e118] [cursor=pointer]:
+          - generic [ref=e119]: Veiled Draft
+          - generic [ref=e120]: rules 1 / schema 1 / secret_draft_standard
+          - generic [ref=e121]:
+            - generic [ref=e122]: Hidden info
+            - generic [ref=e123]: 3 views
+        - button "How to play Veiled Draft" [ref=e124] [cursor=pointer]: How to Play
+      - listitem [ref=e125]:
+        - button "Crest Ledger rules 1 / schema 1 / poker_lite_standard Hidden info 3 views" [ref=e126] [cursor=pointer]:
+          - generic [ref=e127]: Crest Ledger
+          - generic [ref=e128]: rules 1 / schema 1 / poker_lite_standard
+          - generic [ref=e129]:
+            - generic [ref=e130]: Hidden info
+            - generic [ref=e131]: 3 views
+        - button "How to play Crest Ledger" [ref=e132] [cursor=pointer]: How to Play
+      - listitem [ref=e133]:
+        - button "Plain Tricks rules 1 / schema 1 / plain_tricks_standard Hidden info 3 views" [ref=e134] [cursor=pointer]:
+          - generic [ref=e135]: Plain Tricks
+          - generic [ref=e136]: rules 1 / schema 1 / plain_tricks_standard
+          - generic [ref=e137]:
+            - generic [ref=e138]: Hidden info
+            - generic [ref=e139]: 3 views
+        - button "How to play Plain Tricks" [ref=e140] [cursor=pointer]: How to Play
+  - region "Match setup" [ref=e15]:
+    - generic [ref=e16]:
+      - paragraph [ref=e17]: Setup
+      - heading "Match setup" [level=2] [ref=e18]
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]: Selected
+        - strong [ref=e22]: Frontier Control
+        - generic [ref=e23]: rules 1 / schema 1 / frontier_control_standard, frontier_control_highlands
+        - button "How to play Frontier Control" [ref=e142] [cursor=pointer]: How to Play / Rules
+      - generic [ref=e25]:
+        - generic [ref=e26]: Seed
+        - spinbutton "Seed" [ref=e27]: "1"
+    - group "Mode" [ref=e28]:
+      - generic [ref=e29]: Mode
+      - generic [ref=e30] [cursor=pointer]:
+        - radio "Human vs bot Seat 0 is local; Seat 1 uses Rust's legal bot." [checked] [ref=e31]
+        - generic [ref=e32]: Human vs bot
+        - generic [ref=e33]: Seat 0 is local; Seat 1 uses Rust's legal bot.
+      - generic [ref=e34] [cursor=pointer]:
+        - radio "Hotseat Both seats are local on this device." [ref=e35]
+        - generic [ref=e36]: Hotseat
+        - generic [ref=e37]: Both seats are local on this device.
+      - generic [ref=e38] [cursor=pointer]:
+        - radio "Bot vs bot Both seats are driven by Rust bot turns." [ref=e39]
+        - generic [ref=e40]: Bot vs bot
+        - generic [ref=e41]: Both seats are driven by Rust bot turns.
+    - generic "Seat roles" [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]: Seat 0
+        - strong [ref=e45]: Local
+      - generic [ref=e46]:
+        - generic [ref=e47]: Seat 1
+        - strong [ref=e48]: Bot
+    - button "Start Match" [ref=e49] [cursor=pointer]
+  - region "Developer panel" [ref=e50]:
+    - button "Developer panel Show" [ref=e51] [cursor=pointer]:
+      - generic [ref=e52]: Developer panel
+      - generic [ref=e53]: Show
