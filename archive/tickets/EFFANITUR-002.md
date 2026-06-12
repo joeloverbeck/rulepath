@@ -1,6 +1,6 @@
 # EFFANITUR-002: Effect-driven animation scheduler core
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`); Rust/WASM untouched. The scheduler's sole input is the existing viewer-filtered `EffectEntry[]`.
@@ -85,3 +85,23 @@ Add `apps/web/scripts/smoke-scheduler.mjs` using `node:test` mock timers for det
 1. `node apps/web/scripts/smoke-scheduler.mjs`
 2. `npm --prefix apps/web run build`
 3. A narrower targeted node smoke (not `smoke:e2e`) is the correct boundary here because the scheduler is pure timing logic with no DOM/browser surface yet — DOM realization is exercised by EFFANITUR-003/009.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `apps/web/src/animation/scheduler.ts` with an effect/burst-driven queue, presenter callback, settle hook, flush-to-settle path, rate control, and reduced-motion dwell collapse.
+- Added `apps/web/scripts/smoke-scheduler.mjs` covering ordered drain, flush finishing, rate scaling, and reduced-motion behavior under Node mocked timers.
+
+Deviations from the plan:
+
+- The scheduler uses `globalThis.setTimeout` for dwell timing so the same manager-owned timing path works in browsers and is observable by Node's mocked timers.
+
+Verification results:
+
+- `node apps/web/scripts/smoke-scheduler.mjs` passed.
+- `rg -n "cancel\\(|state|snapshot" apps/web/src/animation/scheduler.ts` returned no matches.
+- `rg -n "EffectEntry\\[\\]|ResolutionBurst|segmentResolutionBursts|PublicView|view" apps/web/src/animation/scheduler.ts` showed the scheduler API consumes `EffectEntry[]`/`ResolutionBurst` and no public-view/state-snapshot input.
+- `npm --prefix apps/web run build` passed.
