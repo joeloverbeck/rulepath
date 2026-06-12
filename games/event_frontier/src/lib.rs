@@ -19,6 +19,12 @@ pub use ids::{
     STANDARD_RESOURCE_CAP, STANDARD_SEAT_COUNT, STANDARD_SITE_COUNT, VARIANT_HARD_WINTER_ID,
     VARIANT_LAND_RUSH_ID, VARIANT_STANDARD_ID,
 };
+pub use setup::{setup_match, validate_variant, SetupOptions};
+pub use state::{
+    ActiveEdict, AdjacencyEntry, CardPhase, DeckState, Eligibility, EventFrontierSnapshot,
+    EventFrontierState, FactionScores, FirstChoice, ResourcePools, SiteState, TerminalOutcome,
+    VictoryType,
+};
 pub use variants::{Manifest, ScenarioVariant, VariantCatalog};
 
 pub fn load_manifest() -> Result<Manifest, String> {

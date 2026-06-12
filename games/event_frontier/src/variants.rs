@@ -128,6 +128,7 @@ impl VariantCatalog {
                 "standard_start_depots",
                 "standard_start_settlers",
                 "standard_start_caches",
+                "standard_edges",
                 "standard_faction_order",
                 "hard_winter_variant_id",
                 "hard_winter_display_name",
@@ -142,6 +143,7 @@ impl VariantCatalog {
                 "hard_winter_start_depots",
                 "hard_winter_start_settlers",
                 "hard_winter_start_caches",
+                "hard_winter_edges",
                 "hard_winter_faction_order",
                 "land_rush_variant_id",
                 "land_rush_display_name",
@@ -156,6 +158,7 @@ impl VariantCatalog {
                 "land_rush_start_depots",
                 "land_rush_start_settlers",
                 "land_rush_start_caches",
+                "land_rush_edges",
                 "land_rush_faction_order",
             ],
         )?;
@@ -183,6 +186,7 @@ pub struct ScenarioVariant {
     pub start_depots: Vec<SiteId>,
     pub start_settlers: Vec<(SiteId, u8)>,
     pub start_caches: Vec<(SiteId, u8)>,
+    pub edges: Vec<(SiteId, SiteId)>,
     pub faction_order: [FactionId; 2],
 }
 
@@ -237,6 +241,7 @@ fn parse_variant(
             values,
             &format!("{prefix}_start_caches"),
         )?)?,
+        edges: parse_edges(&required_string(values, &format!("{prefix}_edges"))?)?,
         faction_order: parse_faction_order(&required_string(
             values,
             &format!("{prefix}_faction_order"),
@@ -384,6 +389,18 @@ fn parse_site_counts(value: &str) -> Result<Vec<(SiteId, u8)>, String> {
                 .parse::<u8>()
                 .map_err(|_| format!("invalid count `{count}`"))?;
             Ok((parse_site(site)?, count))
+        })
+        .collect()
+}
+
+fn parse_edges(value: &str) -> Result<Vec<(SiteId, SiteId)>, String> {
+    parse_string_list(value)
+        .into_iter()
+        .map(|part| {
+            let (left, right) = part
+                .split_once('-')
+                .ok_or_else(|| format!("edge `{part}` must use `site_a-site_b`"))?;
+            Ok((parse_site(left)?, parse_site(right)?))
         })
         .collect()
 }

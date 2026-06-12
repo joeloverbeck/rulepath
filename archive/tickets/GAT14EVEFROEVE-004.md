@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-004: State model, typed IDs, and deterministic seeded setup
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier/src/{state,setup}.rs` (state model, deterministic epoch shuffle); `games/event_frontier/data/fixtures/*.fixture.json` (three scenario fixtures)
@@ -85,3 +85,20 @@ Author `data/fixtures/event_frontier_standard.fixture.json`, `event_frontier_har
 1. `cargo test -p event_frontier`
 2. `cargo test -p event_frontier --test replay --test serialization`
 3. The per-crate test run is the correct boundary — setup determinism is provable without the tools/CI layer, which registers later.
+
+## Outcome
+
+Implemented the Event Frontier state/setup foundation:
+
+- Added full typed state and snapshot models for scenario, seats/factions, adjacency, per-site agents/settlers/depot/cache counts, resources, deck state, eligibility, card phase, active edicts, scores, Reckoning count, terminal outcome, and freshness token.
+- Added deterministic setup from `engine-core::SeededRng`, including per-scenario validation, connected eight-trail graph validation, stable adjacency order, three epoch shuffles, and deterministic Reckoning-never-first enforcement.
+- Extended typed scenario data with per-scenario edge lists so trails remain scenario content and are validated by Rust.
+- Added seed-1 setup fixtures for standard, Hard Winter, and Land Rush with computed current/next/undrawn deck order and scenario starts.
+- Added replay and serialization integration tests plus setup/state unit coverage for deterministic state hash reproduction, many-seed Reckoning placement, stable snapshot round-trip, and fixed seed deck order.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p event_frontier` — passed, 15 unit tests, 2 replay integration tests, 1 serialization integration test, 0 doctests.
+3. `cargo test -p event_frontier --test replay --test serialization` — passed, 3 integration tests.
+4. `rg -n "event_frontier_(standard|hard_winter|land_rush)|undrawn_deck_order|ef_reckoning_one|site_charterhouse-site_crossing" games/event_frontier/data/fixtures games/event_frontier/data/variants.toml` — confirmed all three fixtures, computed hidden order fields, next-public card, and edge content.
