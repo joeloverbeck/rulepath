@@ -46,3 +46,16 @@ with `bench-report`.
 Thresholds live in `games/event_frontier/benches/thresholds.json`; the benchmark
 binary emits matching operation names and units in the standard Rulepath
 benchmark-report JSON format.
+
+## Balance Retune Note
+
+During ticket `GAT14EVEFROEVE-013`, the standard scenario was retuned after a
+1,000-game Level 1 versus Level 1 probe missed Assumption A5. The old standard
+constants produced Charter 865 wins, Freeholders 135 wins, and no Freeholder
+instant victories.
+
+The current standard scenario uses Charter 2 / Freeholders 4 starting resources,
+a Freeholder cache threshold of 6, and a starting High Meadow settler/cache. The
+post-retune 1,000-game probe produced Charter 602 wins, Freeholders 398 wins,
+Charter instant 110, Freeholder instant 22, final fallback 868, and no capped
+nonterminal games.

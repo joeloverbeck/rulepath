@@ -1,9 +1,9 @@
 # GAT14EVEFROEVE-013: Bot-strategy evidence docs and per-faction balance
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
-**Engine Changes**: None — documentation only (`games/event_frontier/docs/COMPETENT-PLAYER.md`, `games/event_frontier/docs/BOT-STRATEGY-EVIDENCE-PACK.md`)
+**Engine Changes**: Scenario-data retune plus documentation (`games/event_frontier/docs/COMPETENT-PLAYER.md`, `games/event_frontier/docs/BOT-STRATEGY-EVIDENCE-PACK.md`)
 **Deps**: GAT14EVEFROEVE-010, GAT14EVEFROEVE-011
 
 ## Problem
@@ -75,3 +75,30 @@ Instantiate from `templates/BOT-STRATEGY-EVIDENCE-PACK.md`; record each faction'
 1. `node scripts/check-doc-links.mjs`
 2. `cargo test -p event_frontier --test bots` (re-confirm the documented tables match the conformance tests)
 3. The doc-link check plus a bots-test re-run is the correct boundary — the docs transcribe verified behavior; the full 1,000-game metric run is exercised at the simulate-CLI registration (ticket 015).
+
+## Outcome (2026-06-12)
+
+Implemented the required competent-player and bot-strategy evidence docs.
+The initial 1,000-game Level 1 probe missed Assumption A5
+(`Charter=865`, `Freeholders=135`, `CharterInstant=212`,
+`FreeholderInstant=0`, `FinalFallback=788`), so this ticket also applied the
+allowed standard-scenario constants retune and refreshed dependent tests/traces.
+
+Retuned standard constants:
+
+- Charter/Freeholders starting resources: `2,4`.
+- Freeholder cache threshold: `6`.
+- Starting Freeholder settlers: `site_landing:3,site_high_meadow:1`.
+- Starting Freeholder caches: `site_landing:1,site_high_meadow:1`.
+
+Post-retune 1,000-game Level 1 probe, seeds `0..999`, action cap 96:
+`Charter=602` (`60.2%`), `Freeholders=398` (`39.8%`),
+`CharterInstant=110`, `FreeholderInstant=22`, `FinalFallback=868`,
+`capped=0`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p event_frontier`
+- `cargo test -p event_frontier --test bots`
+- `node scripts/check-doc-links.mjs`

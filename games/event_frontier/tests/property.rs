@@ -164,5 +164,5 @@ fn simultaneous_edicts_have_stable_order_and_expiry_restores_base_costs() {
     };
     assert_eq!(freshness.0, 0);
     apply_command(&mut first, &command).expect("base survey after expiry");
-    assert_eq!(first.resources.funds, 2);
+    assert_eq!(first.resources.funds, 1);
 }

@@ -200,7 +200,7 @@ is a closed Rust match on card ID.
 | Rule ID | Terminal condition | Outcome | Tie handling | Notes |
 |---|---|---|---|---|
 | `EF-END-001` | At a Reckoning victory check, the Charter has majority presence at at least four of six sites. | Charter instant victory unless Freeholders also meet their instant condition. | See `EF-END-003`. | Checked before site scoring, income, edict expiry, and eligibility reset. |
-| `EF-END-002` | At a Reckoning victory check, the Freeholders have at least eight total caches. | Freeholder instant victory. | See `EF-END-003`. | Caches are public. |
+| `EF-END-002` | At a Reckoning victory check, the Freeholders have at least the selected variant's cache threshold. The standard variant uses six total caches. | Freeholder instant victory. | See `EF-END-003`. | Caches are public. |
 | `EF-END-003` | Both instant victory conditions are true during the same Reckoning victory check. | Freeholders win. | Freeholders win the both-met rule. | The frontier outlasts the Charter's claim. |
 | `EF-END-004` | The third Reckoning pipeline completes without an instant victory. | Higher cumulative score wins. | Freeholders win tied cumulative scores. | Final fallback uses public scores. |
 | `EF-END-005` | Terminal state is reached. | No further gameplay actions are legal. | not applicable | Terminal state does not reveal undrawn deck order. |
@@ -213,7 +213,7 @@ enough detail for the web outcome surface to cite it.
 | Outcome/explanation fact | Stable rule ID(s) | Decisive when | Notes for UI explanation |
 |---|---|---|---|
 | Charter site-majority instant victory | `EF-END-001`, `EF-SCORE-004` | Charter controls at least four sites at a Reckoning victory check and Freeholders do not also meet cache victory. | Cite the public controlled-site count and Reckoning number. |
-| Freeholder cache instant victory | `EF-END-002` | Freeholders have at least eight public caches at a Reckoning victory check. | Cite the public cache count. |
+| Freeholder cache instant victory | `EF-END-002` | Freeholders have at least the selected variant's public cache threshold at a Reckoning victory check. | Cite the public cache count and variant threshold. |
 | Both-met instant victory rule | `EF-END-003` | Both instant conditions are true at the same Reckoning victory check. | State that Freeholders win the both-met rule; do not call it a draw. |
 | Final fallback score comparison | `EF-END-004`, `EF-SCORE-006` | The third Reckoning completes without instant victory and scores differ. | Cite both final public scores. |
 | Final fallback tiebreak | `EF-END-004`, `EF-SCORE-006` | The third Reckoning completes without instant victory and scores are tied. | State that Freeholders win tied fallback totals. |

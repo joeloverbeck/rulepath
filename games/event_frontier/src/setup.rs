@@ -322,8 +322,8 @@ mod tests {
         let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup");
 
         assert_eq!(state.factions, [FactionId::Charter, FactionId::Freeholders]);
-        assert_eq!(state.resources.funds, 3);
-        assert_eq!(state.resources.provisions, 3);
+        assert_eq!(state.resources.funds, 2);
+        assert_eq!(state.resources.provisions, 4);
         assert_eq!(state.scores.charter, 0);
         assert_eq!(state.scores.freeholders, 0);
         assert_eq!(state.reckoning_count, 0);

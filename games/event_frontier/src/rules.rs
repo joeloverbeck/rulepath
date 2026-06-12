@@ -746,7 +746,7 @@ mod tests {
         let result = apply_command(&mut state, &command("seat_1", ACTION_PASS, freshness_token))
             .expect("pass applies");
 
-        assert_eq!(state.resources.provisions, 4);
+        assert_eq!(state.resources.provisions, 5);
         assert_eq!(
             state.eligibility_for(FactionId::Freeholders),
             Eligibility::Eligible
@@ -763,8 +763,8 @@ mod tests {
             effect.payload,
             EventFrontierEffect::ResourcesChanged {
                 faction: FactionId::Freeholders,
-                previous: 3,
-                new: 4,
+                previous: 4,
+                new: 5,
                 ..
             }
         )));

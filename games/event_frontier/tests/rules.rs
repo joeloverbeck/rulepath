@@ -95,7 +95,7 @@ fn first_pass_offers_second_full_menu_and_preserves_eligibility() {
         state.eligibility_for(FactionId::Freeholders),
         Eligibility::Eligible
     );
-    assert_eq!(state.resources.provisions, 4);
+    assert_eq!(state.resources.provisions, 5);
     assert_eq!(
         segments_for("seat_0", &state),
         vec![
@@ -224,7 +224,7 @@ fn charter_survey_is_one_compound_command_that_spends_and_places_agent() {
     )
     .expect("survey");
 
-    assert_eq!(state.resources.funds, 2);
+    assert_eq!(state.resources.funds, 1);
     assert_eq!(
         state
             .site(event_frontier::SiteId::GranitePass)
@@ -282,7 +282,7 @@ fn charter_fortify_and_writ_apply_public_site_changes() {
             .cache_count,
         0
     );
-    assert_eq!(writ.resources.funds, 3);
+    assert_eq!(writ.resources.funds, 2);
 }
 
 #[test]
@@ -479,7 +479,7 @@ fn toll_roads_and_requisition_modify_operation_cost_without_patching_base_rules(
         &command("seat_1", "operation/cache/site_landing", freshness),
     )
     .expect("toll cache");
-    assert_eq!(toll.resources.provisions, 1);
+    assert_eq!(toll.resources.provisions, 2);
 
     let mut requisition =
         setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup requisition");
@@ -492,7 +492,7 @@ fn toll_roads_and_requisition_modify_operation_cost_without_patching_base_rules(
         &command("seat_0", "operation/survey/site_charterhouse", freshness),
     )
     .expect("free depot survey");
-    assert_eq!(requisition.resources.funds, 3);
+    assert_eq!(requisition.resources.funds, 2);
 }
 
 #[test]
@@ -513,6 +513,7 @@ fn survey_ban_and_long_season_modify_legality_and_bounds() {
     assert_eq!(diagnostic.code, "survey_ban_contested_site");
 
     let mut long = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup long");
+    long.resources.funds = 3;
     resolve_event_card(&mut long, event_frontier::CardId::LongSeason);
     long.deck.current = Some(event_frontier::CardId::TollRoads);
     long.card_phase = CardPhase::AwaitingFirstChoice {
@@ -561,9 +562,9 @@ fn reckoning_pipeline_scores_income_then_reset_in_order() {
     let result = resolve_reckoning(&mut state).expect("reckoning");
 
     assert_eq!(state.scores.charter, 1);
-    assert_eq!(state.scores.freeholders, 1);
-    assert_eq!(state.resources.funds, 5);
-    assert_eq!(state.resources.provisions, 5);
+    assert_eq!(state.scores.freeholders, 2);
+    assert_eq!(state.resources.funds, 4);
+    assert_eq!(state.resources.provisions, 6);
     assert!(state.active_edicts.is_empty());
     assert_eq!(
         state.eligibility_for(FactionId::Charter),
