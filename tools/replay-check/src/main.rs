@@ -109,6 +109,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "flood-watch-rules-v1",
             trace_dir: "games/flood_watch/tests/golden_traces",
         }),
+        "frontier_control" => Ok(RegisteredGame {
+            game_id: "frontier_control",
+            rules_version: "frontier-control-rules-v1",
+            trace_dir: "games/frontier_control/tests/golden_traces",
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_version: "token-bazaar-rules-v1",
@@ -244,10 +249,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks> --all");
 }
 
 fn check_trace_path(
@@ -265,6 +270,15 @@ fn check_trace_path(
     if game.game_id == "flood_watch" {
         validate_flood_watch_trace(game, path, &input)?;
         println!("{}: flood_watch trace accepted", path.display());
+        return Ok(());
+    }
+    if game.game_id == "frontier_control" {
+        validate_frontier_control_trace(game, path, &input)?;
+        let trace = Trace::parse(path, &input)?;
+        if !seen_ids.insert(trace.trace_id.clone()) {
+            return Err(trace.failure("duplicate trace_id in checked trace set"));
+        }
+        println!("{}: frontier_control trace accepted", path.display());
         return Ok(());
     }
     let trace = Trace::parse(path, &input)?;
@@ -309,6 +323,47 @@ fn validate_flood_watch_trace(
     if input.contains("full_deck_order") || input.contains("event_deck") {
         return Err(format!(
             "{}: flood_watch public trace leaks event deck order",
+            path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn validate_frontier_control_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    validate_json_object(path, input)?;
+    let game_id =
+        string_field(input, "game_id").map_err(|error| format!("{}: {error}", path.display()))?;
+    if game_id != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}, got `{}`",
+            path.display(),
+            game.game_id,
+            game_id
+        ));
+    }
+    let rules_version = string_field(input, "rules_version")
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    if rules_version != game.rules_version {
+        return Err(format!(
+            "{}: rules_version must be {}, got `{}`",
+            path.display(),
+            game.rules_version,
+            rules_version
+        ));
+    }
+    if !input.contains("\"hidden_information_redaction\"") {
+        return Err(format!(
+            "{}: frontier_control trace must mark hidden_information_redaction not applicable",
+            path.display()
+        ));
+    }
+    if !input.contains("\"stochastic_game_rule_events\"") {
+        return Err(format!(
+            "{}: frontier_control trace must mark stochastic_game_rule_events not applicable",
             path.display()
         ));
     }

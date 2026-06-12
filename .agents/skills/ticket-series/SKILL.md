@@ -32,7 +32,14 @@ families plausibly match.
 1. Read the live checkout first. Do not rely on memory or prior runs for current
    ticket/reference state.
 2. Check `git status --short` before editing. Preserve unrelated user changes.
-3. Read the always-required Rulepath orientation and workflow docs:
+3. If the prompt or dirty worktree indicates an interrupted or partially
+   implemented prior run, reconcile the existing state before editing:
+   - inspect staged, modified, and untracked paths;
+   - classify which changes belong to the current ticket, earlier completed
+     tickets, unrelated user work, generated output, or unknown state;
+   - identify the resumed ticket boundary and evidence for that boundary;
+   - do not commit or archive until the boundary is clear.
+4. Read the always-required Rulepath orientation and workflow docs:
    - `AGENTS.md`
    - `docs/README.md`
    - `docs/FOUNDATIONS.md`
@@ -40,13 +47,13 @@ families plausibly match.
    - `docs/archival-workflow.md`
    - `specs/README.md`
    - `tickets/README.md`
-4. Resolve the ticket selector and any reference selector to concrete paths.
+5. Resolve the ticket selector and any reference selector to concrete paths.
    If there is no active spec, identify whether a triage, task, plan, or
    ticket-only series is the authoritative reference. Do not invent a spec.
-5. Read the resolved reference artifact and tickets. Determine dependency order
+6. Read the resolved reference artifact and tickets. Determine dependency order
    from explicit dependency sections, numbering, ticket prose, and reference
    sequencing.
-6. Load targeted foundation docs from `docs/` for the surfaces the tickets touch.
+7. Load targeted foundation docs from `docs/` for the surfaces the tickets touch.
    Use `docs/README.md` as the routing index. At minimum:
    - `docs/ARCHITECTURE.md` for crate ownership, dependency direction, action
      tree, replay, view, effect, WASM, or app boundary work.
@@ -72,7 +79,7 @@ families plausibly match.
      notes, naming, assets, or private/licensed content risk.
    - relevant `docs/adr/*.md` files when the ticket/reference invokes an
      accepted ADR or trips an ADR trigger in `docs/FOUNDATIONS.md`.
-7. If the ticket/reference conflicts with a foundation doc, the foundation doc wins.
+8. If the ticket/reference conflicts with a foundation doc, the foundation doc wins.
    Stop and reassess when a `docs/FOUNDATIONS.md` stop condition appears.
 
 ## Per-Ticket Loop
@@ -125,8 +132,16 @@ For each ticket:
 8. Sweep active specs, tickets, docs, indexes, README tables, and scripts for
    stale live ticket paths. Update references that should now point to
    `archive/tickets/`.
-9. Review the diff for unrelated changes.
-10. Commit the completed ticket work before moving on. Use a concise message
+9. If current changes refine behavior, ownership, or verification facts from an
+   already archived ticket in the same series, amend that archived ticket's
+   `Outcome` before finalization. Follow `docs/archival-workflow.md` and add
+   `Outcome amended: YYYY-MM-DD` inside `## Outcome` for each post-completion
+   refinement.
+10. Review the diff for unrelated changes. Before every per-ticket commit,
+    inspect the staged index with `git diff --cached --name-status` or an
+    equivalent path-scoped staged diff, and also check `git status --short`.
+    Unstage or exclude unrelated user changes before committing.
+11. Commit the completed ticket work before moving on. Use a concise message
     that names the ticket.
 
 Do not advance to the next ticket on plausible implementation alone. Acceptance

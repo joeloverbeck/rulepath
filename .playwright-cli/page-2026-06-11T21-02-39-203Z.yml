@@ -1,0 +1,144 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Rulepath
+      - heading "Rulepath" [level=1] [ref=e7]
+    - paragraph [ref=e8]: rulepath-wasm-api/0.1.0
+  - region "Frontier Control play surface" [ref=e143]:
+    - region "Prospectors to act" [ref=e144]:
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - paragraph [ref=e147]: Frontier Control
+          - heading "Prospectors to act" [level=2] [ref=e148]
+        - generic [ref=e149]: Prospectors round 1
+      - paragraph [ref=e150]: "Frontier Control, round 1, Prospectors active, 0 Rust legal choices. Scores: Garrison 0, Prospectors 0."
+      - generic "Frontier Control status" [ref=e151]:
+        - generic [ref=e152]:
+          - generic [ref=e153]: Round
+          - strong [ref=e154]: "1"
+        - generic [ref=e155]:
+          - generic [ref=e156]: Budget
+          - strong [ref=e157]: "2"
+        - generic [ref=e158]:
+          - generic [ref=e159]: Garrison
+          - strong [ref=e160]: "0"
+        - generic [ref=e161]:
+          - generic [ref=e162]: Prospectors
+          - strong [ref=e163]: "0"
+      - generic [ref=e164]:
+        - img "Frontier trail map" [ref=e166]:
+          - generic [ref=e177]:
+            - generic [ref=e180]: Gatehouse
+            - generic [ref=e181]: G2 C0
+          - generic [ref=e182]:
+            - generic [ref=e185]: Signal Hill
+            - generic [ref=e186]: G2 C0
+          - generic [ref=e187]:
+            - generic [ref=e189]: Base Camp
+            - generic [ref=e190]: G0 C3
+          - generic [ref=e191]:
+            - generic [ref=e193]: Ford
+            - generic [ref=e194]: G0 C0
+          - generic [ref=e195]:
+            - generic [ref=e197]: Quarry
+            - generic [ref=e198]: G0 C0
+          - generic [ref=e199]:
+            - generic [ref=e201]: Timberline
+            - generic [ref=e202]: G0 C0
+          - generic [ref=e203]:
+            - generic [ref=e205]: Goldfield
+            - generic [ref=e206]: G0 C0
+        - region "Frontier sites" [ref=e207]:
+          - generic [ref=e208]:
+            - generic [ref=e209]: Sites
+            - strong [ref=e210]: Rust public view
+          - list [ref=e211]:
+            - listitem [ref=e212]:
+              - generic [ref=e213]: Gatehouse
+              - strong [ref=e214]: fort
+              - generic [ref=e215]: guards 2, crews 0, supply n/a
+            - listitem [ref=e216]:
+              - generic [ref=e217]: Signal Hill
+              - strong [ref=e218]: fort
+              - generic [ref=e219]: guards 2, crews 0, supply n/a
+            - listitem [ref=e220]:
+              - generic [ref=e221]: Base Camp
+              - strong [ref=e222]: route
+              - generic [ref=e223]: guards 0, crews 3, supply n/a
+            - listitem [ref=e224]:
+              - generic [ref=e225]: Ford
+              - strong [ref=e226]: value 1
+              - generic [ref=e227]: guards 0, crews 0, supply n/a
+            - listitem [ref=e228]:
+              - generic [ref=e229]: Quarry
+              - strong [ref=e230]: value 2
+              - generic [ref=e231]: guards 0, crews 0, supply n/a
+            - listitem [ref=e232]:
+              - generic [ref=e233]: Timberline
+              - strong [ref=e234]: value 1
+              - generic [ref=e235]: guards 0, crews 0, supply n/a
+            - listitem [ref=e236]:
+              - generic [ref=e237]: Goldfield
+              - strong [ref=e238]: value 3
+              - generic [ref=e239]: guards 0, crews 0, supply n/a
+      - region "Faction seats" [ref=e240]:
+        - generic [ref=e241]:
+          - generic [ref=e242]: Factions
+          - strong [ref=e243]: Prospectors active
+        - list [ref=e244]:
+          - listitem [ref=e245]:
+            - generic [ref=e246]: Garrison
+            - strong [ref=e247]: seat_0
+            - generic [ref=e248]: waiting
+          - listitem [ref=e249]:
+            - generic [ref=e250]: Prospectors
+            - strong [ref=e251]: seat_1
+            - generic [ref=e252]: active
+      - status [ref=e253]:
+        - generic [ref=e254]: Waiting
+        - strong [ref=e255]: Rust/WASM supplies legal faction actions and public supply status.
+      - region "Frontier Control actions" [ref=e256]:
+        - paragraph [ref=e257]: No Rust legal actions available.
+    - region "Play mode controls" [ref=e258]:
+      - generic [ref=e259]:
+        - paragraph [ref=e260]: Mode
+        - heading "Human vs bot" [level=2] [ref=e261]
+        - paragraph [ref=e262]: Seat 1 is active
+      - generic [ref=e263]:
+        - button "How to play Frontier Control" [ref=e264] [cursor=pointer]: Rules
+        - button "Run Bot Turn" [ref=e265] [cursor=pointer]
+  - region "semantic effects" [ref=e266]:
+    - generic [ref=e267]:
+      - generic [ref=e268]:
+        - paragraph [ref=e269]: Effects
+        - heading "Effect log" [level=2] [ref=e270]
+      - generic [ref=e271]:
+        - generic [ref=e272]: Motion
+        - combobox "Motion" [ref=e273]:
+          - option "System" [selected]
+          - option "Reduced"
+          - option "Motion"
+    - list [ref=e274]:
+      - listitem [ref=e275]: No effects yet
+  - region "Import / export" [ref=e276]:
+    - generic [ref=e277]:
+      - paragraph [ref=e278]: Replay
+      - heading "Import / export" [level=2] [ref=e279]
+    - generic [ref=e280]:
+      - button "Export Current Run" [ref=e281] [cursor=pointer]
+      - button "Import Replay" [disabled] [ref=e282]
+    - generic [ref=e283]:
+      - generic [ref=e284]: Replay document
+      - textbox "Replay document" [ref=e285]
+  - region "Replay viewer" [ref=e286]:
+    - generic [ref=e287]:
+      - paragraph [ref=e288]: Viewer
+      - heading "Replay viewer" [level=2] [ref=e289]
+    - paragraph [ref=e290]: Export or import a replay to inspect it here.
+    - generic [ref=e291]:
+      - button "Reset" [disabled] [ref=e292]
+      - button "Step" [disabled] [ref=e293]
+  - region "Developer panel" [ref=e50]:
+    - button "Developer panel Show" [ref=e51] [cursor=pointer]:
+      - generic [ref=e52]: Developer panel
+      - generic [ref=e53]: Show

@@ -252,6 +252,20 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["flood_watch"],
     ruleRefLabel: "FW-END-002",
   },
+  "frontier_control.score_compare": {
+    summary: "{winner} wins the frontier {garrison_score}-{prospector_score}.",
+    expandedHeading: "Final score",
+    requiredParams: ["winner", "garrison_score", "prospector_score"],
+    allowedGameIds: ["frontier_control"],
+    ruleRefLabel: "FC-TERM-SCORE-COMPARE",
+  },
+  "frontier_control.garrison_tiebreak": {
+    summary: "The Garrison wins the tied frontier {garrison_score}-{prospector_score}.",
+    expandedHeading: "Garrison tiebreak",
+    requiredParams: ["garrison_score", "prospector_score"],
+    allowedGameIds: ["frontier_control"],
+    ruleRefLabel: "FC-TERM-GARRISON-TIEBREAK",
+  },
 } as const satisfies Record<string, OutcomeExplanationTemplate>;
 
 export type OutcomeExplanationTemplateKey = keyof typeof outcomeExplanationTemplates;
@@ -272,6 +286,10 @@ const outcomeValueCopy: Record<string, string> = {
   full_board_draw: "Full board draw",
   fulfilled_tiebreak_win: "Fulfilled contracts tiebreak win",
   flood_watch: "Flood Watch",
+  frontier_control: "Frontier Control",
+  faction_garrison: "Garrison",
+  faction_prospectors: "Prospectors",
+  garrison_tiebreak: "Garrison tiebreak",
   high_card: "High card",
   highest_single_tiebreak: "Highest single tiebreak",
   inventory_tiebreak_win: "Inventory tiebreak win",

@@ -22,6 +22,7 @@ const expectedGames = [
   "Plain Tricks",
   "Masked Claims",
   "Flood Watch",
+  "Frontier Control",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

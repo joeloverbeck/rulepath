@@ -88,6 +88,13 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             benchmarks_path: "games/flood_watch/docs/BENCHMARKS.md",
             benchmarks_required: true,
         }),
+        "frontier_control" => Ok(RegisteredGame {
+            game_id: "frontier_control",
+            rules_path: "games/frontier_control/docs/RULES.md",
+            coverage_path: "games/frontier_control/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/frontier_control/docs/BENCHMARKS.md",
+            benchmarks_required: true,
+        }),
         "token_bazaar" => Ok(RegisteredGame {
             game_id: "token_bazaar",
             rules_path: "games/token_bazaar/docs/RULES.md",
@@ -144,7 +151,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|token_bazaar|secret_draft|poker_lite|plain_tricks>"
                     );
                     process::exit(0);
                 }
@@ -253,6 +260,15 @@ fn extract_rule_ids(input: &str) -> Vec<String> {
 
 fn is_rule_id(value: &str) -> bool {
     let parts = value.split('-').collect::<Vec<_>>();
+    if parts.first() == Some(&"FC") {
+        return parts.len() >= 3
+            && parts[1..].iter().all(|part| {
+                !part.is_empty()
+                    && part
+                        .chars()
+                        .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit())
+            });
+    }
     parts.len() == 3
         && matches!(
             parts[0],
@@ -335,6 +351,8 @@ mod tests {
         assert!(is_rule_id("HCD-SETUP-001"));
         assert!(is_rule_id("TB-SETUP-001"));
         assert!(is_rule_id("CL-SETUP-001"));
+        assert!(is_rule_id("FC-ACT-001"));
+        assert!(is_rule_id("FC-SCORE-GARRISON-FORT"));
         assert!(!is_rule_id("XX-SCOPE-001"));
     }
 

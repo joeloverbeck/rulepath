@@ -1,0 +1,20 @@
+{
+  "fixture_id": "frontier_control_highlands_gate13",
+  "game_id": "frontier_control",
+  "variant": "frontier_control_highlands",
+  "rules_version": "frontier-control-rules-v1",
+  "phase": "action",
+  "active_seat": "seat_1",
+  "action_budget": 2,
+  "round_count": 7,
+  "unit_cap_per_site": 3,
+  "edges": "site_gatehouse-site_signal_hill,site_gatehouse-site_ford,site_signal_hill-site_quarry,site_signal_hill-site_goldfield,site_quarry-site_goldfield,site_quarry-site_timberline,site_quarry-site_ford,site_ford-site_base_camp,site_timberline-site_base_camp,site_timberline-site_goldfield",
+  "fort_sites": "site_gatehouse,site_quarry",
+  "base_camp": "site_base_camp",
+  "stake_values": "site_goldfield:2,site_quarry:3,site_ford:1,site_timberline:2",
+  "start_guards": "site_gatehouse:2,site_quarry:1",
+  "start_crews": "site_base_camp:2,site_timberline:1",
+  "terminal_outcome": "score_compare_garrison_tiebreak",
+  "purpose": "Gate 13 Frontier Control highlands fixture metadata for a second typed graph-map content variant.",
+  "notes": "Fixture metadata only; behavior is owned by Rust setup, actions, rules, visibility, replay, bot, and WASM code. No movement, clash, supply, or scoring formulas are authored here."
+}

@@ -17,6 +17,7 @@ members = [
     "games/plain_tricks",
     "games/masked_claims",
     "games/flood_watch",
+    "games/frontier_control",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",

@@ -123,6 +123,10 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             game_id: "flood_watch",
             thresholds_path: "games/flood_watch/benches/thresholds.json",
         }),
+        "frontier_control" => Ok(RegisteredGame {
+            game_id: "frontier_control",
+            thresholds_path: "games/frontier_control/benches/thresholds.json",
+        }),
         "plain_tricks" => Ok(RegisteredGame {
             game_id: "plain_tricks",
             thresholds_path: "games/plain_tricks/benches/thresholds.json",
@@ -139,7 +143,7 @@ fn next_arg(iter: &mut impl Iterator<Item = String>, flag: &str) -> Result<Strin
 fn print_help() {
     println!("bench-report 0.1.0");
     println!("usage: bench-report --input <report> --thresholds <thresholds>");
-    println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|plain_tricks> --input <report>");
+    println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|plain_tricks> --input <report>");
 }
 
 #[derive(Clone, Debug)]

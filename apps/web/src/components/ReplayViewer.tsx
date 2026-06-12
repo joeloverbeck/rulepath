@@ -6,6 +6,7 @@ import type {
   DraughtsLitePublicView,
   EffectEntry,
   FloodWatchPublicView,
+  FrontierControlPublicView,
   MaskedClaimsPublicView,
   PublicView,
   SecretDraftPublicView,
@@ -15,6 +16,7 @@ import type {
 import { ColumnFourBoard } from "./ColumnFourBoard";
 import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
 import { DraughtsLiteBoard } from "./DraughtsLiteBoard";
+import { FrontierControlBoard } from "./FrontierControlBoard";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
@@ -40,6 +42,8 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
   const replayEffectEntries: EffectEntry[] = step
     ? effects.map((effect, index) => ({ cursor: step.cursor + index, effect }))
     : [];
+  const frontierControlView: FrontierControlPublicView | null =
+    step && isFrontierControlView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -118,6 +122,19 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
           ) : (tokenBazaarView || secretDraftView) && replay ? (
             <div className="replay-board">
               <PlacementSequence replay={replay} />
+            </div>
+          ) : frontierControlView ? (
+            <div className="replay-board">
+              <FrontierControlBoard
+                view={frontierControlView}
+                actionTree={null}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
             </div>
           ) : null}
 
@@ -259,6 +276,10 @@ function isFloodWatchView(view: PublicView | null): view is FloodWatchPublicView
   return Boolean(view && "game_id" in view && view.game_id === "flood_watch");
 }
 
+function isFrontierControlView(view: PublicView | null): view is FrontierControlPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "frontier_control");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -372,6 +393,17 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
         value: view.terminal.kind === "non_terminal" ? `${view.undrawn_count} undrawn` : view.terminal.summary.public_summary,
       },
       { label: "Forecast", value: view.forecast ?? "None" },
+    ];
+  }
+
+  if (isFrontierControlView(view)) {
+    return [
+      { label: "Round", value: String(view.round_number) },
+      {
+        label: "Turn",
+        value: view.terminal.kind === "non_terminal" ? view.active_seat ?? "terminal" : view.terminal.summary,
+      },
+      { label: "Score", value: `${view.scores.garrison}-${view.scores.prospectors}` },
     ];
   }
 

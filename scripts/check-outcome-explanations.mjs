@@ -141,7 +141,7 @@ function checkRulesDoc(game, rulesDoc) {
   if (!/^## Terminal conditions\s*$/m.test(rulesDoc)) {
     failures.push(`${game.id}: games/${game.id}/docs/RULES.md missing Terminal conditions section`);
   }
-  if (!/\b[A-Z]+-(?:SCORE|END)-\d{3}\b/.test(rulesDoc)) {
+  if (!/\b[A-Z]+-(?:SCORE|END|TERM)-[A-Z0-9]+(?:-[A-Z0-9]+)*\b/.test(rulesDoc)) {
     failures.push(`${game.id}: games/${game.id}/docs/RULES.md lacks stable scoring/end rule IDs`);
   }
 }

@@ -864,6 +864,66 @@ export type FloodWatchPublicView = {
   };
 };
 
+export type FrontierControlOutcomeRationale = OutcomeRationalePayload;
+
+export type FrontierControlFactionId = "faction_garrison" | "faction_prospectors" | string;
+
+export type FrontierControlFactionView = {
+  seat: SeatId;
+  faction: FrontierControlFactionId;
+  label: string;
+};
+
+export type FrontierControlPhaseView =
+  | { kind: "action"; budget_remaining: number }
+  | { kind: "terminal" };
+
+export type FrontierControlSiteView = {
+  site: string;
+  label: string;
+  guards: number;
+  crews: number;
+  stake: boolean;
+  fort: boolean;
+  stake_value: number;
+  supplied: boolean | null;
+};
+
+export type FrontierControlScoreView = {
+  garrison: number;
+  prospectors: number;
+};
+
+export type FrontierControlTerminalView =
+  | { kind: "non_terminal"; winner: null }
+  | {
+      kind: "winner";
+      winner: FrontierControlFactionId;
+      scores: FrontierControlScoreView;
+      garrison_tiebreak: boolean;
+      summary: string;
+    };
+
+export type FrontierControlPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "frontier_control";
+  display_name: string;
+  variant_id: "frontier_control_standard" | "frontier_control_highlands" | string;
+  rules_version_label: "frontier-control-rules-v1" | string;
+  seats: SeatId[];
+  factions: FrontierControlFactionView[];
+  round_number: number;
+  active_faction: FrontierControlFactionId;
+  active_seat: SeatId | null;
+  phase: FrontierControlPhaseView;
+  sites: FrontierControlSiteView[];
+  scores: FrontierControlScoreView;
+  terminal: FrontierControlTerminalView;
+  terminal_rationale?: FrontierControlOutcomeRationale | null;
+  freshness_token: number;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -876,7 +936,8 @@ export type PublicView =
   | PokerLitePublicView
   | PlainTricksPublicView
   | MaskedClaimsPublicView
-  | FloodWatchPublicView;
+  | FloodWatchPublicView
+  | FrontierControlPublicView;
 
 export type ActionChoice = {
   segment: string;

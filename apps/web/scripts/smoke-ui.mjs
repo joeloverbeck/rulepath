@@ -177,6 +177,15 @@ assert(
   ),
   "Rust catalog includes cooperative hidden-info flood_watch standard variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "frontier_control" &&
+      game.variants.includes("frontier_control_standard") &&
+      game.hidden_information === false,
+  ),
+  "Rust catalog includes frontier_control standard perfect-information variant",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),

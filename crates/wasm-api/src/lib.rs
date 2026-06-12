@@ -37,6 +37,14 @@ use flood_watch::{
     project_view as flood_project_view, setup_match as flood_setup_match, FloodWatchEffect,
     FloodWatchLevel1Bot, FloodWatchState,
 };
+use frontier_control::{
+    apply_command as frontier_apply_command, command_for_decision as frontier_command_for_decision,
+    legal_action_tree as frontier_legal_action_tree, project_view as frontier_project_view,
+    public_effect_text as frontier_public_effect_text, setup_match as frontier_setup_match,
+    validate_command as frontier_validate_command, FactionId as FrontierFactionId,
+    FrontierControlEffect, FrontierControlState, FrontierGarrisonLevel1Bot,
+    FrontierProspectorLevel1Bot,
+};
 use high_card_duel::{
     apply_action as high_card_apply_action,
     export_public_observer_replay as high_card_export_public_observer_replay,
@@ -120,6 +128,8 @@ const GAME_MASKED_CLAIMS: &str = "masked_claims";
 const GAME_MASKED_CLAIMS_DISPLAY_NAME: &str = "Masked Claims";
 const GAME_FLOOD_WATCH: &str = "flood_watch";
 const GAME_FLOOD_WATCH_DISPLAY_NAME: &str = "Flood Watch";
+const GAME_FRONTIER_CONTROL: &str = "frontier_control";
+const GAME_FRONTIER_CONTROL_DISPLAY_NAME: &str = "Frontier Control";
 const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_TOKEN_BAZAAR_DISPLAY_NAME: &str = "Token Bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
@@ -155,6 +165,7 @@ const DRAUGHTS_LITE_TRACE_RULES_VERSION: &str = "draughts_lite-rules-v1";
 const HIGH_CARD_DUEL_TRACE_RULES_VERSION: &str = "high-card-duel-rules-v1";
 const MASKED_CLAIMS_TRACE_RULES_VERSION: &str = "masked-claims-rules-v1";
 const FLOOD_WATCH_TRACE_RULES_VERSION: &str = "flood-watch-rules-v1";
+const FRONTIER_CONTROL_TRACE_RULES_VERSION: &str = "frontier-control-rules-v1";
 const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
 const POKER_LITE_TRACE_RULES_VERSION: &str = "poker-lite-rules-v1";
@@ -170,6 +181,8 @@ const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const VARIANT_MASKED_CLAIMS_STANDARD: &str = "masked_claims_standard";
 const VARIANT_FLOOD_WATCH_STANDARD: &str = "flood_watch_standard";
 const VARIANT_FLOOD_WATCH_DELUGE: &str = "flood_watch_deluge";
+const VARIANT_FRONTIER_CONTROL_STANDARD: &str = "frontier_control_standard";
+const VARIANT_FRONTIER_CONTROL_HIGHLANDS: &str = "frontier_control_highlands";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
@@ -238,6 +251,12 @@ enum MatchRecord {
         game_id: String,
         state: FloodWatchState,
         effects: EffectLog<FloodWatchEffect>,
+        commands: Vec<AppliedCommand>,
+    },
+    FrontierControl {
+        game_id: String,
+        state: FrontierControlState,
+        effects: EffectLog<FrontierControlEffect>,
         commands: Vec<AppliedCommand>,
     },
     TokenBazaar {
@@ -319,6 +338,7 @@ enum RegisteredGame {
     HighCardDuel,
     MaskedClaims,
     FloodWatch,
+    FrontierControl,
     TokenBazaar,
     SecretDraft,
     PokerLite,
@@ -339,6 +359,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::HighCardDuel,
         RegisteredGame::MaskedClaims,
         RegisteredGame::FloodWatch,
+        RegisteredGame::FrontierControl,
         RegisteredGame::TokenBazaar,
         RegisteredGame::SecretDraft,
         RegisteredGame::PokerLite,
@@ -409,6 +430,15 @@ pub fn list_games() -> Result<String, String> {
                 SCHEMA_VERSION,
                 escape_json(VARIANT_FLOOD_WATCH_STANDARD),
                 escape_json(VARIANT_FLOOD_WATCH_DELUGE)
+            ),
+            RegisteredGame::FrontierControl => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"perfect_information\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/frontier_control/docs/RULES.md\",\"games/frontier_control/docs/SOURCES.md\",\"games/frontier_control/docs/COMPETENT-PLAYER.md\",\"games/frontier_control/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"]}}",
+                escape_json(GAME_FRONTIER_CONTROL),
+                escape_json(GAME_FRONTIER_CONTROL_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                escape_json(VARIANT_FRONTIER_CONTROL_STANDARD),
+                escape_json(VARIANT_FRONTIER_CONTROL_HIGHLANDS)
             ),
             RegisteredGame::TokenBazaar => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
@@ -658,6 +688,29 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 escape_json(VARIANT_FLOOD_WATCH_STANDARD)
             ))
         }
+        RegisteredGame::FrontierControl => {
+            let seats = frontier_seats();
+            let state = frontier_setup_match(&seats, &frontier_control::SetupOptions::default())
+                .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::FrontierControl {
+                        game_id: GAME_FRONTIER_CONTROL.to_owned(),
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_FRONTIER_CONTROL_STANDARD)
+            ))
+        }
         RegisteredGame::TokenBazaar => {
             let seats = seats();
             let state =
@@ -803,6 +856,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             let viewer = flood_viewer_for_seat(state, viewer_seat)?;
             Ok(flood_view_json(&flood_project_view(state, &viewer)))
         }
+        MatchRecord::FrontierControl { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = frontier_viewer_for_seat(state, viewer_seat)?;
+            Ok(frontier_view_json(&frontier_project_view(state, &viewer)))
+        }
         MatchRecord::TokenBazaar { game_id, state, .. } => {
             resolve_game(game_id)?;
             let viewer = token_viewer_for_seat(state, viewer_seat)?;
@@ -911,6 +969,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = flood_actor_for_seat(state, &seat)?;
             Ok(action_tree_json(&flood_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::FrontierControl { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_frontier_seat(actor_seat)?;
+            if !frontier_viewer_authorizes_actor(viewer_seat, &seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = frontier_actor_for_seat(state, &seat)?;
+            Ok(action_tree_json(&frontier_legal_action_tree(state, &actor)))
         }
         MatchRecord::TokenBazaar { game_id, state, .. } => {
             resolve_game(game_id)?;
@@ -1219,6 +1286,40 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 flood_view_json(&flood_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::FrontierControl {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_frontier_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: frontier_actor_for_seat(state, &seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            frontier_validate_command(state, &command).map_err(diagnostic_json)?;
+            let applied = frontier_apply_command(state, &command).map_err(diagnostic_json)?;
+            let effects = applied.effects;
+            let viewer = frontier_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = frontier_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: seat.0,
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                frontier_view_json(&frontier_project_view(state, &viewer))
             ))
         }
         MatchRecord::TokenBazaar {
@@ -1656,6 +1757,51 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 flood_view_json(&flood_project_view(state, &viewer))
             ))
         }
+        MatchRecord::FrontierControl {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_frontier_seat(actor_seat)?;
+            let faction = state.faction_for_seat(&seat).ok_or_else(|| {
+                format!(
+                    "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+                    escape_json(actor_seat)
+                )
+            })?;
+            let decision = match faction {
+                FrontierFactionId::Garrison => FrontierGarrisonLevel1Bot::new(Seed(bot_seed))
+                    .select_decision(state, &seat)
+                    .map_err(diagnostic_json)?,
+                FrontierFactionId::Prospectors => FrontierProspectorLevel1Bot::new(Seed(bot_seed))
+                    .select_decision(state, &seat)
+                    .map_err(diagnostic_json)?,
+            };
+            let command = frontier_command_for_decision(state, &seat, &decision);
+            let applied = frontier_apply_command(state, &command).map_err(diagnostic_json)?;
+            let effects = applied.effects;
+            let viewer = frontier_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = frontier_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: seat.0,
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                frontier_view_json(&frontier_project_view(state, &viewer))
+            ))
+        }
         MatchRecord::TokenBazaar {
             game_id,
             state,
@@ -1998,6 +2144,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::FrontierControl {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = frontier_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        frontier_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
         MatchRecord::TokenBazaar {
             game_id,
             state,
@@ -2209,6 +2377,31 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
                     .to_json(),
             )
         }
+        MatchRecord::FrontierControl {
+            game_id,
+            state,
+            effects,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = Viewer { seat_id: None };
+            let public_effects = effects
+                .since(EffectCursor(0), &viewer)
+                .into_iter()
+                .map(|logged| frontier_public_effect_text(&logged.envelope.payload))
+                .collect::<Vec<_>>();
+            let steps = vec![frontier_control::PublicReplayStep {
+                step_index: 0,
+                public_view_summary: frontier_project_view(state, &viewer).stable_summary(),
+                public_effects,
+                command_summary: commands
+                    .last()
+                    .map_or_else(|| "setup".to_owned(), frontier_command_summary),
+                terminal: state.terminal_outcome.is_some(),
+            }];
+            Ok(frontier_control::export_public_replay(state.variant.id.clone(), steps).to_json())
+        }
         MatchRecord::TokenBazaar {
             game_id,
             seed,
@@ -2306,6 +2499,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if is_flood_watch_public_export(doc) {
         return import_flood_watch_public_replay(doc);
     }
+    if is_frontier_control_public_export(doc) {
+        return import_frontier_control_public_replay(doc);
+    }
     if is_secret_draft_public_export(doc) {
         return import_secret_draft_public_replay(doc);
     }
@@ -2335,6 +2531,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_HIGH_CARD_DUEL
         && parsed.game_id != GAME_MASKED_CLAIMS
         && parsed.game_id != GAME_FLOOD_WATCH
+        && parsed.game_id != GAME_FRONTIER_CONTROL
         && parsed.game_id != GAME_TOKEN_BAZAAR
         && parsed.game_id != GAME_SECRET_DRAFT
         && parsed.game_id != GAME_POKER_LITE
@@ -2442,6 +2639,23 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             .map_err(diagnostic_json)?;
             (
                 flood_view_json(&flood_project_view(&state, &Viewer { seat_id: None })),
+                0,
+            )
+        }
+        RegisteredGame::FrontierControl => {
+            if command_count != 0 {
+                return Err(diagnostic_string(
+                    "unsupported_replay_commands",
+                    "frontier_control command replay uses public export/import in this bridge",
+                ));
+            }
+            let state = frontier_setup_match(
+                &frontier_seats(),
+                &frontier_control::SetupOptions::default(),
+            )
+            .map_err(diagnostic_json)?;
+            (
+                frontier_view_json(&frontier_project_view(&state, &Viewer { seat_id: None })),
                 0,
             )
         }
@@ -2606,6 +2820,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     flood_view_json(&flood_project_view(&state, &Viewer { seat_id: None }))
                 ))
             }
+            RegisteredGame::FrontierControl => {
+                let state = frontier_setup_match(
+                    &frontier_seats(),
+                    &frontier_control::SetupOptions::default(),
+                )
+                .map_err(diagnostic_json)?;
+                Ok(format!(
+                    "{{\"replay_id\":\"{}\",\"cursor\":0,\"total_commands\":0,\"view\":{},\"effects\":[]}}",
+                    escape_json(replay_id),
+                    frontier_view_json(&frontier_project_view(&state, &Viewer { seat_id: None }))
+                ))
+            }
             RegisteredGame::TokenBazaar => {
                 let bounded_cursor = cursor.min(record.commands.len());
                 let (state, effects) =
@@ -2698,6 +2924,14 @@ fn is_flood_watch_public_export(doc: &str) -> bool {
         Ok(flood_watch::GAME_ID)
     ) && string_field(doc, "rules_version_label").is_ok()
         && string_field(doc, "viewer").is_ok()
+}
+
+fn is_frontier_control_public_export(doc: &str) -> bool {
+    matches!(
+        string_field(doc, "game_id").as_deref(),
+        Ok(frontier_control::GAME_ID)
+    ) && string_field(doc, "rules_version_label").is_ok()
+        && doc.contains("\"not_applicable\"")
 }
 
 fn is_poker_lite_public_export(doc: &str) -> bool {
@@ -3049,6 +3283,83 @@ fn import_flood_watch_public_replay(doc: &str) -> Result<String, String> {
     ))
 }
 
+fn import_frontier_control_public_replay(doc: &str) -> Result<String, String> {
+    validate_json_object(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    frontier_control::import_public_export_json(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let rules_version = string_field(doc, "rules_version_label")?;
+    if rules_version != frontier_control::RULES_VERSION_LABEL {
+        return Err(diagnostic_string(
+            "unsupported_replay_rules",
+            &format!("unsupported replay rules version: {rules_version}"),
+        ));
+    }
+    let variant = string_field(doc, "variant")?;
+    if variant != frontier_control::VARIANT_STANDARD_ID
+        && variant != frontier_control::VARIANT_HIGHLANDS_ID
+    {
+        return Err(diagnostic_string(
+            "unsupported_replay_variant",
+            &format!("unsupported replay variant: {variant}"),
+        ));
+    }
+    let steps = parse_frontier_public_replay_steps(doc).map_err(|message| {
+        diagnostic_string(
+            "invalid_replay",
+            &format!("invalid public replay document: {message}"),
+        )
+    })?;
+    let export = frontier_control::PublicReplayExport {
+        schema_version: SCHEMA_VERSION,
+        game_id: frontier_control::GAME_ID.to_owned(),
+        rules_version_label: rules_version,
+        variant,
+        not_applicable: frontier_control::trace_not_applicable(),
+        steps: steps
+            .iter()
+            .map(frontier_step_from_public_timeline)
+            .collect(),
+    };
+    let imported = frontier_control::import_public_export(&export);
+    let timeline_steps = export
+        .steps
+        .iter()
+        .map(public_timeline_step_from_frontier)
+        .collect::<Vec<_>>();
+    let step_count = timeline_steps.len();
+    let replay_id = next_replay_id(GAME_FRONTIER_CONTROL);
+    REPLAYS.with(|replays| {
+        replays.borrow_mut().insert(
+            replay_id.clone(),
+            ReplayRecord {
+                game_id: GAME_FRONTIER_CONTROL.to_owned(),
+                seed: 0,
+                commands: Vec::new(),
+                public_timeline: Some(PublicTimelineReplay {
+                    viewer: "observer".to_owned(),
+                    steps: timeline_steps,
+                }),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"replay_id\":\"{}\",\"game_id\":\"{}\",\"public_export\":true,\"viewer\":\"observer\",\"step_count\":{},\"command_count\":0,\"final_view\":null,\"effect_count\":0,\"raw_size\":{}}}",
+        escape_json(&replay_id),
+        escape_json(GAME_FRONTIER_CONTROL),
+        step_count,
+        imported.raw_json.len()
+    ))
+}
+
 fn import_plain_tricks_public_replay(doc: &str) -> Result<String, String> {
     validate_json_object(doc).map_err(|message| {
         diagnostic_string(
@@ -3160,6 +3471,30 @@ fn public_timeline_step_from_flood(step: &flood_watch::PublicReplayStep) -> Publ
     }
 }
 
+fn frontier_step_from_public_timeline(
+    step: &PublicTimelineStep,
+) -> frontier_control::PublicReplayStep {
+    frontier_control::PublicReplayStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        command_summary: step.redacted_command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
+fn public_timeline_step_from_frontier(
+    step: &frontier_control::PublicReplayStep,
+) -> PublicTimelineStep {
+    PublicTimelineStep {
+        step_index: step.step_index,
+        public_view_summary: step.public_view_summary.clone(),
+        public_effects: step.public_effects.clone(),
+        redacted_command_summary: step.command_summary.clone(),
+        terminal: step.terminal,
+    }
+}
+
 fn public_timeline_step_from_secret(step: &SecretPublicReplayStep) -> PublicTimelineStep {
     PublicTimelineStep {
         step_index: step.step_index,
@@ -3230,6 +3565,15 @@ fn flood_redacted_command_summary(command: &AppliedCommand) -> String {
     command.action_path.join("/")
 }
 
+fn frontier_command_summary(command: &AppliedCommand) -> String {
+    format!(
+        "{}:{}:{}",
+        command.actor_seat,
+        command.action_path.join("/"),
+        command.freshness_token
+    )
+}
+
 fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
     match game_id {
         GAME_RACE_TO_N => Ok(RegisteredGame::RaceToN),
@@ -3240,6 +3584,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
         GAME_MASKED_CLAIMS => Ok(RegisteredGame::MaskedClaims),
         GAME_FLOOD_WATCH => Ok(RegisteredGame::FloodWatch),
+        GAME_FRONTIER_CONTROL => Ok(RegisteredGame::FrontierControl),
         GAME_TOKEN_BAZAAR => Ok(RegisteredGame::TokenBazaar),
         GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
         GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
@@ -3333,6 +3678,10 @@ fn flood_seats() -> Vec<SeatId> {
     vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
 }
 
+fn frontier_seats() -> Vec<SeatId> {
+    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+}
+
 fn trace_rules_version(game: RegisteredGame) -> &'static str {
     match game {
         RegisteredGame::RaceToN => RACE_TRACE_RULES_VERSION,
@@ -3343,6 +3692,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
         RegisteredGame::MaskedClaims => MASKED_CLAIMS_TRACE_RULES_VERSION,
         RegisteredGame::FloodWatch => FLOOD_WATCH_TRACE_RULES_VERSION,
+        RegisteredGame::FrontierControl => FRONTIER_CONTROL_TRACE_RULES_VERSION,
         RegisteredGame::TokenBazaar => TOKEN_BAZAAR_TRACE_RULES_VERSION,
         RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
         RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
@@ -3492,6 +3842,17 @@ fn trace_masked_seat(seat: MaskedClaimsSeat) -> &'static str {
 }
 
 fn parse_flood_seat(value: &str) -> Result<SeatId, String> {
+    match value {
+        "seat-0" | "seat_0" => Ok(SeatId("seat_0".to_owned())),
+        "seat-1" | "seat_1" => Ok(SeatId("seat_1".to_owned())),
+        _ => Err(format!(
+            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+            escape_json(value)
+        )),
+    }
+}
+
+fn parse_frontier_seat(value: &str) -> Result<SeatId, String> {
     match value {
         "seat-0" | "seat_0" => Ok(SeatId("seat_0".to_owned())),
         "seat-1" | "seat_1" => Ok(SeatId("seat_1".to_owned())),
@@ -3696,6 +4057,19 @@ fn flood_actor_for_seat(state: &FloodWatchState, seat: &SeatId) -> Result<Actor,
     }
 }
 
+fn frontier_actor_for_seat(state: &FrontierControlState, seat: &SeatId) -> Result<Actor, String> {
+    if state.seats.iter().any(|candidate| candidate == seat) {
+        Ok(Actor {
+            seat_id: seat.clone(),
+        })
+    } else {
+        Err(format!(
+            "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+            escape_json(&seat.0)
+        ))
+    }
+}
+
 fn token_actor_for_seat(state: &TokenBazaarState, seat: TokenBazaarSeat) -> Result<Actor, String> {
     state
         .seats
@@ -3825,6 +4199,17 @@ fn flood_viewer_for_seat(state: &FloodWatchState, seat: Option<&str>) -> Result<
     Ok(Viewer { seat_id })
 }
 
+fn frontier_viewer_for_seat(
+    state: &FrontierControlState,
+    seat: Option<&str>,
+) -> Result<Viewer, String> {
+    let seat_id = seat.map(parse_frontier_seat).transpose()?;
+    if let Some(seat_id) = &seat_id {
+        frontier_actor_for_seat(state, seat_id)?;
+    }
+    Ok(Viewer { seat_id })
+}
+
 fn token_viewer_for_seat(state: &TokenBazaarState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_token_seat)
@@ -3933,6 +4318,16 @@ fn flood_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_flood_seat)
+        .transpose()
+        .map(|viewer| viewer.as_ref() == Some(actor))
+}
+
+fn frontier_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: &SeatId,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_frontier_seat)
         .transpose()
         .map(|viewer| viewer.as_ref() == Some(actor))
 }
@@ -6271,6 +6666,97 @@ fn flood_view_json(view: &flood_watch::PublicView) -> String {
     )
 }
 
+fn frontier_view_json(view: &frontier_control::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"round_number\":{},\"active_faction\":\"{}\",\"active_seat\":{},\"phase\":{},\"sites\":[{}],\"scores\":{},\"terminal\":{},\"freshness_token\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        string_array(&view.seats),
+        view.factions
+            .iter()
+            .map(frontier_faction_view_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.round_number,
+        view.active_faction.as_str(),
+        option_string_json(view.active_seat.as_deref()),
+        frontier_phase_json(view.phase),
+        view.sites
+            .iter()
+            .map(frontier_site_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        frontier_score_json(&view.scores),
+        frontier_terminal_json(&view.terminal),
+        view.freshness_token
+    )
+}
+
+fn frontier_faction_view_json(faction: &frontier_control::FactionView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"faction\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(&faction.seat),
+        faction.faction.as_str(),
+        escape_json(&faction.label)
+    )
+}
+
+fn frontier_phase_json(phase: frontier_control::PhaseView) -> String {
+    match phase {
+        frontier_control::PhaseView::Action { budget_remaining } => {
+            format!("{{\"kind\":\"action\",\"budget_remaining\":{budget_remaining}}}")
+        }
+        frontier_control::PhaseView::Terminal => {
+            "{\"kind\":\"terminal\",\"budget_remaining\":0}".to_owned()
+        }
+    }
+}
+
+fn frontier_site_json(site: &frontier_control::SiteView) -> String {
+    format!(
+        "{{\"site\":\"{}\",\"label\":\"{}\",\"guards\":{},\"crews\":{},\"stake\":{},\"fort\":{},\"stake_value\":{},\"supplied\":{}}}",
+        site.site.as_str(),
+        escape_json(site.label),
+        site.guards,
+        site.crews,
+        site.stake,
+        site.fort,
+        site.stake_value,
+        option_bool_json(site.supplied)
+    )
+}
+
+fn frontier_score_json(score: &frontier_control::ScoreView) -> String {
+    format!(
+        "{{\"garrison\":{},\"prospectors\":{}}}",
+        score.garrison, score.prospectors
+    )
+}
+
+fn frontier_terminal_json(terminal: &frontier_control::TerminalView) -> String {
+    match terminal {
+        frontier_control::TerminalView::NonTerminal => {
+            "{\"kind\":\"non_terminal\",\"winner\":null}".to_owned()
+        }
+        frontier_control::TerminalView::Winner {
+            faction,
+            scores,
+            garrison_tiebreak,
+            summary,
+        } => format!(
+            "{{\"kind\":\"winner\",\"winner\":\"{}\",\"scores\":{},\"garrison_tiebreak\":{},\"summary\":\"{}\"}}",
+            faction.as_str(),
+            frontier_score_json(scores),
+            garrison_tiebreak,
+            escape_json(summary)
+        ),
+    }
+}
+
 fn flood_role_json(role: &flood_watch::visibility::RoleView) -> String {
     format!(
         "{{\"seat\":\"{}\",\"role\":\"{}\",\"label\":\"{}\"}}",
@@ -7685,6 +8171,128 @@ fn flood_effect_json(effect: &EffectEnvelope<FloodWatchEffect>) -> String {
     )
 }
 
+fn frontier_effects_json(
+    effects: &[EffectEnvelope<FrontierControlEffect>],
+    viewer: &Viewer,
+) -> String {
+    let body = frontier_control::filter_effects_for_viewer(effects, viewer)
+        .iter()
+        .map(frontier_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn frontier_effect_json(effect: &EffectEnvelope<FrontierControlEffect>) -> String {
+    let payload = match &effect.payload {
+        FrontierControlEffect::CrewMarched { from, to } => format!(
+            "{{\"type\":\"crew_marched\",\"from\":\"{}\",\"to\":\"{}\"}}",
+            from.as_str(),
+            to.as_str()
+        ),
+        FrontierControlEffect::GuardPatrolled { from, to } => format!(
+            "{{\"type\":\"guard_patrolled\",\"from\":\"{}\",\"to\":\"{}\"}}",
+            from.as_str(),
+            to.as_str()
+        ),
+        FrontierControlEffect::ClashResolved {
+            site,
+            guard_removed,
+            crew_removed,
+            entering_faction,
+        } => format!(
+            "{{\"type\":\"clash_resolved\",\"site\":\"{}\",\"guard_removed\":{},\"crew_removed\":{},\"entering_faction\":\"{}\"}}",
+            site.as_str(),
+            guard_removed,
+            crew_removed,
+            entering_faction.as_str()
+        ),
+        FrontierControlEffect::StakePlaced { site } => format!(
+            "{{\"type\":\"stake_placed\",\"site\":\"{}\"}}",
+            site.as_str()
+        ),
+        FrontierControlEffect::StakeDismantled { site } => format!(
+            "{{\"type\":\"stake_dismantled\",\"site\":\"{}\"}}",
+            site.as_str()
+        ),
+        FrontierControlEffect::CrewMustered { site, crews } => format!(
+            "{{\"type\":\"crew_mustered\",\"site\":\"{}\",\"crews\":{}}}",
+            site.as_str(),
+            crews
+        ),
+        FrontierControlEffect::GuardReinforced { site, guards } => format!(
+            "{{\"type\":\"guard_reinforced\",\"site\":\"{}\",\"guards\":{}}}",
+            site.as_str(),
+            guards
+        ),
+        FrontierControlEffect::TurnEnded { faction, round } => format!(
+            "{{\"type\":\"turn_ended\",\"faction\":\"{}\",\"round\":{}}}",
+            faction.as_str(),
+            round
+        ),
+        FrontierControlEffect::RoundScored {
+            round,
+            garrison_points,
+            prospector_points,
+            fort_breakdown,
+            stake_breakdown,
+        } => format!(
+            "{{\"type\":\"round_scored\",\"round\":{},\"garrison_points\":{},\"prospector_points\":{},\"fort_breakdown\":[{}],\"stake_breakdown\":[{}]}}",
+            round,
+            garrison_points,
+            prospector_points,
+            fort_breakdown
+                .iter()
+                .map(frontier_fort_score_json)
+                .collect::<Vec<_>>()
+                .join(","),
+            stake_breakdown
+                .iter()
+                .map(frontier_stake_score_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        FrontierControlEffect::Terminal {
+            winner,
+            garrison_total,
+            prospector_total,
+            tiebreak_applied,
+            summary,
+        } => format!(
+            "{{\"type\":\"terminal\",\"winner\":\"{}\",\"garrison_total\":{},\"prospector_total\":{},\"tiebreak_applied\":{},\"summary\":\"{}\"}}",
+            winner.as_str(),
+            garrison_total,
+            prospector_total,
+            tiebreak_applied,
+            escape_json(summary)
+        ),
+    };
+    format!(
+        "{{\"visibility\":{},\"payload\":{}}}",
+        visibility_json(&effect.visibility),
+        payload
+    )
+}
+
+fn frontier_fort_score_json(breakdown: &frontier_control::FortScoreBreakdown) -> String {
+    format!(
+        "{{\"site\":\"{}\",\"held\":{},\"points\":{}}}",
+        breakdown.site.as_str(),
+        breakdown.held,
+        breakdown.points
+    )
+}
+
+fn frontier_stake_score_json(breakdown: &frontier_control::StakeScoreBreakdown) -> String {
+    format!(
+        "{{\"site\":\"{}\",\"value\":{},\"supplied\":{},\"points\":{}}}",
+        breakdown.site.as_str(),
+        breakdown.value,
+        breakdown.supplied,
+        breakdown.points
+    )
+}
+
 fn secret_effects_json(effects: &[EffectEnvelope<SecretDraftEffect>], viewer: &Viewer) -> String {
     let body = secret_draft::visibility::filter_effects_for_viewer(effects, viewer)
         .iter()
@@ -8036,6 +8644,10 @@ fn option_string_json(value: Option<&str>) -> String {
     )
 }
 
+fn option_bool_json(value: Option<bool>) -> String {
+    value.map_or_else(|| "null".to_owned(), |value| value.to_string())
+}
+
 fn string_array(values: &[String]) -> String {
     values
         .iter()
@@ -8156,6 +8768,13 @@ fn parse_public_replay_steps(input: &str) -> Result<Vec<PublicTimelineStep>, Str
         .collect()
 }
 
+fn parse_frontier_public_replay_steps(input: &str) -> Result<Vec<PublicTimelineStep>, String> {
+    array_items(input, "steps")?
+        .into_iter()
+        .map(|item| parse_frontier_public_replay_step(&item))
+        .collect()
+}
+
 fn parse_public_replay_step(input: &str) -> Result<PublicTimelineStep, String> {
     validate_json_object(input)?;
     reject_unknown_root_fields(
@@ -8176,6 +8795,30 @@ fn parse_public_replay_step(input: &str) -> Result<PublicTimelineStep, String> {
         public_view_summary: string_field(input, "public_view_summary")?,
         public_effects: string_array_field(input, "public_effects")?,
         redacted_command_summary: string_field(input, "redacted_command_summary")?,
+        terminal: bool_field(input, "terminal")?,
+    })
+}
+
+fn parse_frontier_public_replay_step(input: &str) -> Result<PublicTimelineStep, String> {
+    validate_json_object(input)?;
+    reject_unknown_root_fields(
+        input,
+        &[
+            "step_index",
+            "public_view_summary",
+            "public_effects",
+            "command_summary",
+            "terminal",
+        ],
+    )?;
+    let step_index = number_field(input, "step_index")?
+        .try_into()
+        .map_err(|_| "step_index does not fit usize".to_owned())?;
+    Ok(PublicTimelineStep {
+        step_index,
+        public_view_summary: string_field(input, "public_view_summary")?,
+        public_effects: string_array_field(input, "public_effects")?,
+        redacted_command_summary: string_field(input, "command_summary")?,
         terminal: bool_field(input, "terminal")?,
     })
 }

@@ -1,12 +1,53 @@
-Current status: Gates 0-12 are complete in the worktree. Gate 10 is complete
+Current status: Gates 0-13 are complete in the worktree. Gate 10 is complete
 with `poker_lite` / Crest Ledger as the accepted betting/showdown half and
 `plain_tricks` / Plain Tricks as the accepted trick/follow-suit half. Gate 11 is
 complete with `masked_claims` / Masked Claims as the accepted claim/challenge
 reaction-window proof. Gate 12 is complete with `flood_watch` / Flood Watch as
-the accepted cooperative event-pressure proof.
+the accepted cooperative event-pressure proof. Gate 13 is complete with
+`frontier_control` / Frontier Control as the accepted asymmetric graph-map
+area-control proof.
 `blackjack_lite` is deferred by ADR 0006 and is not a blocker for the current
 roadmap ladder. The mutable source of truth for gate progress is
 `specs/README.md`.
+
+## Gate 13 Frontier Control
+
+- Completed on 2026-06-11 for `frontier_control` / Frontier Control, the
+  asymmetric graph-map area-control proof for ROADMAP Gate 13.
+- Added the accepted perfect-information asymmetric proof: typed site/edge graph
+  maps, adjacency-constrained movement, deterministic clash resolution, site
+  control, faction-disjoint action sets, faction-specific scoring formulas,
+  comparable final score track with Garrison tiebreak, per-faction Level 0 and
+  Level 1 bots, public semantic effects, golden traces, native tools,
+  benchmarks, WASM/browser board, generated player rules, outcome
+  explanations, catalog reconciliation, and no-leak browser smoke.
+- Boundary notes: graph, site, edge, faction, unit, guard, crew, stake, fort,
+  clash, supply, control, and scoring vocabulary stayed game-local. No
+  `engine-core` noun, `game-stdlib` helper, or promotion debt was introduced;
+  `docs/MECHANIC-ATLAS.md` §10A remains `_None_`. The multi-action turn-budget
+  third-use hard gate is armed for Gate 14, and graph/control/asymmetry rows are
+  local-only first uses pending future pressure.
+- Acceptance evidence:
+  - `cargo fmt --all --check`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo test --workspace`
+  - `cargo run -p simulate -- --game frontier_control --games 1000`
+  - `cargo run -p replay-check -- --game frontier_control --all`
+  - `cargo run -p fixture-check -- --game frontier_control`
+  - `cargo run -p rule-coverage -- --game frontier_control`
+  - `cargo bench -p frontier_control`
+  - `bash scripts/boundary-check.sh`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:effects`
+  - `npm --prefix apps/web run smoke:e2e`
+  - `node scripts/check-catalog-docs.mjs`
+  - `node scripts/check-player-rules.mjs`
+  - `node scripts/check-outcome-explanations.mjs`
+  - `node scripts/check-doc-links.mjs`
+- Release constraint: the registered Level 1 simulation currently reports a
+  Garrison-dominant 1000-0 result on the standard map; docs record this as
+  balance retune debt before any stronger public balance claim.
 
 ## Gate 12 Flood Watch
 
