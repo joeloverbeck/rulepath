@@ -105,6 +105,13 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
 
+  await startEventFrontier(page, baseUrl, "Hotseat", 2, "Event Frontier: Hard Winter");
+  await assertRenderedTextView(
+    page,
+    (view) => view?.game_id === "event_frontier" && view.variant_id === "event_frontier_hard_winter",
+  );
+  await assertNoLeak(page, consoleMessages, "hard winter variant start");
+
   await startEventFrontier(page, baseUrl, "Hotseat", 3);
   await assertFactionFirstCopy(page);
   await assertEventFrontierBoardA11y(page);
@@ -187,10 +194,15 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startEventFrontier(page, baseUrl, modeLabel, seed) {
+async function startEventFrontier(page, baseUrl, modeLabel, seed, variantLabel = "Event Frontier") {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "Event Frontier");
+  await assertPickerAndSetupHygiene(page);
   await clickButtonText(page, "Event Frontier");
+  if (variantLabel !== "Event Frontier") {
+    await page.select(".setup-region label.field select", variantLabelToId(variantLabel));
+    await waitForText(page, variantLabel);
+  }
   await page.$eval(
     ".field input[type='number']",
     (input, value) => {
@@ -204,6 +216,32 @@ async function startEventFrontier(page, baseUrl, modeLabel, seed) {
   await assertEventFrontierSetupCopy(page, modeLabel);
   await clickButtonText(page, "Start Match");
   await page.waitForSelector('[data-testid="event-frontier-board"]');
+}
+
+async function assertPickerAndSetupHygiene(page) {
+  const summary = await page.evaluate(() => ({
+    pickerText: document.querySelector(".game-list")?.textContent ?? "",
+    setupText: document.querySelector(".setup-region")?.textContent ?? "",
+    eventCardSelectable: Boolean(document.querySelector('.game-card[aria-label="Select Event Frontier"]')),
+  }));
+  for (const text of [summary.pickerText, summary.setupText]) {
+    assert(!text.includes("rules 1"), "normal setup surfaces omit rules version copy");
+    assert(!text.includes("schema 1"), "normal setup surfaces omit schema version copy");
+    assert(!text.includes("event_frontier_hard_winter"), "normal setup surfaces omit raw hard-winter variant id");
+    assert(!text.includes("event_frontier_land_rush"), "normal setup surfaces omit raw land-rush variant id");
+  }
+  assert(summary.eventCardSelectable, "Event Frontier game-card wrapper is selectable");
+}
+
+function variantLabelToId(label) {
+  switch (label) {
+    case "Event Frontier: Hard Winter":
+      return "event_frontier_hard_winter";
+    case "Event Frontier: Land Rush":
+      return "event_frontier_land_rush";
+    default:
+      return "event_frontier_standard";
+  }
 }
 
 async function assertEventFrontierSetupCopy(page, modeLabel) {

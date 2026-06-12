@@ -1821,6 +1821,13 @@ h2 {
 .game-card {
   display: grid;
   gap: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.game-card:focus-visible {
+  outline: 3px solid #256f5c;
+  outline-offset: 3px;
 }
 
 .game-option,
@@ -1840,6 +1847,7 @@ h2 {
   justify-self: stretch;
 }
 
+.game-card.selected .game-option,
 .game-option.selected,
 .mode-option.selected {
   border-color: #1f6d59;

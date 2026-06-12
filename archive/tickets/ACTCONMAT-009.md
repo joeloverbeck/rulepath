@@ -1,6 +1,6 @@
 # ACTCONMAT-009: Match-setup variant selector + picker hygiene
 
-**Status**: PENDING
+**Status**: DONE
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (catalog projection of per-variant `{id, label}` objects); plus presentation (`apps/web/src/wasm/client.ts` `GameCatalogEntry.variants` object type, `apps/web/src/main.tsx`, `apps/web/src/components/GamePicker.tsx`).
@@ -83,3 +83,29 @@ In `main.tsx`/`GamePicker.tsx`: add a typed variant selector (default standard);
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run build`
 3. `npm --prefix apps/web run smoke:e2e`
+
+## Completion Notes (2026-06-12)
+
+Projected catalog variants as `{id, label}` objects from Rust-authored variant
+data and migrated the TypeScript catalog type/consumers away from `string[]`.
+Added `rulepath_new_match_with_variant` while preserving the default
+`rulepath_new_match` path, and wired setup state so multi-variant games start
+the selected Rust variant.
+
+Added a normal-mode variant selector in setup, removed rules/schema/raw variant
+IDs from picker/setup copy, and made the `.game-card` wrapper mouse-clickable
+while keeping the existing game button as the keyboard target and the separate
+How-to-Play button intact.
+
+Updated the wasm smoke scripts and Event Frontier browser smoke for the catalog
+object shape, picker/setup hygiene, and a UI start of
+`event_frontier_hard_winter`.
+
+Verification passed:
+
+1. `cargo test -p wasm-api`
+2. `git diff --check`
+3. `npm --prefix apps/web run smoke:wasm`
+4. `npm --prefix apps/web run build`
+5. `node apps/web/e2e/a11y-noleak.smoke.mjs` after the initial tab-order fix
+6. `npm --prefix apps/web run smoke:e2e`

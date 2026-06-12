@@ -5,9 +5,11 @@ type MatchSetupProps = {
   selectedGame: GameCatalogEntry | null;
   seed: number;
   playMode: SetupPlayMode;
+  variantId: string | null;
   canStart: boolean;
   onSeedChange: (seed: number) => void;
   onPlayModeChange: (mode: SetupPlayMode) => void;
+  onVariantChange: (variantId: string) => void;
   onRulesOpen: (gameId: string) => void;
   onStart: () => void;
 };
@@ -31,12 +33,16 @@ export function MatchSetup({
   selectedGame,
   seed,
   playMode,
+  variantId,
   canStart,
   onSeedChange,
   onPlayModeChange,
+  onVariantChange,
   onRulesOpen,
   onStart,
 }: MatchSetupProps) {
+  const variants = selectedGame?.variants ?? [];
+  const selectedVariant = variants.find((variant) => variant.id === variantId) ?? variants[0] ?? null;
   return (
     <section className="region setup-region" aria-labelledby="setup-heading">
       <div className="region-heading">
@@ -50,7 +56,7 @@ export function MatchSetup({
           <strong>{selectedGame?.display_name ?? "No game selected"}</strong>
           <small>
             {selectedGame
-              ? gameMetadata(selectedGame)
+              ? gameMetadata(selectedGame, selectedVariant?.label ?? null)
               : "Load the Rust catalog to continue"}
           </small>
           <button
@@ -74,6 +80,19 @@ export function MatchSetup({
             onChange={(event) => onSeedChange(Number(event.currentTarget.value) || 1)}
           />
         </label>
+
+        {variants.length > 1 ? (
+          <label className="field">
+            <span>Variant</span>
+            <select value={selectedVariant?.id ?? ""} onChange={(event) => onVariantChange(event.currentTarget.value)}>
+              {variants.map((variant) => (
+                <option value={variant.id} key={variant.id}>
+                  {variant.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
 
       <fieldset className="mode-picker">
@@ -109,10 +128,11 @@ export function MatchSetup({
   );
 }
 
-function gameMetadata(game: GameCatalogEntry): string {
-  const version = `rules ${game.rules_version} / schema ${game.schema_version}`;
-  const variants = game.variants?.length ? ` / ${game.variants.join(", ")}` : "";
-  return `${version}${variants}`;
+function gameMetadata(game: GameCatalogEntry, selectedVariantLabel: string | null): string {
+  if (game.variants && game.variants.length > 1) {
+    return selectedVariantLabel ? `Variant: ${selectedVariantLabel}` : `${game.variants.length} variants available`;
+  }
+  return "Standard setup";
 }
 
 function modeDetail(playMode: SetupPlayMode, game: GameCatalogEntry | null): string {

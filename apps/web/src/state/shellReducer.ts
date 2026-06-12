@@ -44,6 +44,7 @@ export type ShellState = {
   setup: {
     seed: number;
     playMode: SetupPlayMode;
+    variantId: string | null;
   };
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
@@ -83,6 +84,7 @@ export type ShellAction =
   | { type: "gameSelected"; gameId: string }
   | { type: "setupSeedChanged"; seed: number }
   | { type: "setupPlayModeChanged"; playMode: SetupPlayMode }
+  | { type: "setupVariantChanged"; variantId: string }
   | { type: "viewerModeChanged"; viewerMode: ViewerMode }
   | { type: "matchStarting" }
   | { type: "matchStarted"; matchId: string }
@@ -117,6 +119,7 @@ export const initialShellState: ShellState = {
   setup: {
     seed: 1,
     playMode: "human_vs_bot",
+    variantId: null,
   },
   matchId: null,
   actorSeat: "seat_0",
@@ -154,6 +157,10 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         catalog,
         featureReport: action.featureReport ?? state.featureReport,
         selectedGameId: state.selectedGameId || catalog[0]?.game_id || "",
+        setup: {
+          ...state.setup,
+          variantId: state.setup.variantId ?? catalog[0]?.variants?.[0]?.id ?? null,
+        },
         pendingOperation: null,
       };
     case "wasmLoadFailed":
@@ -164,11 +171,16 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         diagnostic: { code: "wasm_load_failed", message: action.message },
         pendingOperation: null,
       };
-    case "gameSelected":
+    case "gameSelected": {
+      const selectedGame = state.catalog.find((game) => game.game_id === action.gameId) ?? null;
       return {
         ...state,
         mode: "setup",
         selectedGameId: action.gameId,
+        setup: {
+          ...state.setup,
+          variantId: selectedGame?.variants?.[0]?.id ?? null,
+        },
         matchId: null,
         view: null,
         actionTree: null,
@@ -181,6 +193,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         replay: null,
         autoplay: { running: false },
       };
+    }
     case "setupSeedChanged":
       return {
         ...state,
@@ -197,6 +210,14 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           playMode: action.playMode,
         },
         viewerMode: viewerModeForPlayMode(action.playMode),
+      };
+    case "setupVariantChanged":
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          variantId: action.variantId,
+        },
       };
     case "viewerModeChanged":
       return {

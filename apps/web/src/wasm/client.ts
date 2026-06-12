@@ -9,6 +9,13 @@ type WasmExports = {
   rulepath_feature_report: () => number;
   rulepath_list_games: () => number;
   rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
+  rulepath_new_match_with_variant: (
+    gamePtr: number,
+    gameLen: number,
+    variantPtr: number,
+    variantLen: number,
+    seed: bigint,
+  ) => number;
   rulepath_get_view: (matchPtr: number, matchLen: number) => number;
   rulepath_get_view_for_viewer: (
     matchPtr: number,
@@ -65,12 +72,17 @@ export type MatchCreated = {
   variant_id?: string;
 };
 
+export type GameVariantCatalogEntry = {
+  id: string;
+  label: string;
+};
+
 export type GameCatalogEntry = {
   game_id: string;
   display_name: string;
   rules_version: number;
   schema_version: number;
-  variants?: string[];
+  variants?: GameVariantCatalogEntry[];
   viewer_modes?: ViewerModeId[];
   hidden_information?: boolean;
   cooperative?: boolean;
@@ -1208,10 +1220,24 @@ export class RulepathApi {
     return this.invokeJson<FeatureReport>(() => this.exports.rulepath_feature_report(), []);
   }
 
-  newMatch(gameId: string, seed: number): MatchCreated {
-    return this.invokeJson<MatchCreated>((args) =>
-      this.exports.rulepath_new_match(args[0].ptr, args[0].len, BigInt(seed)),
-    [gameId]);
+  newMatch(gameId: string, seed: number, variantId?: string): MatchCreated {
+    if (variantId) {
+      return this.invokeJson<MatchCreated>(
+        (args) =>
+          this.exports.rulepath_new_match_with_variant(
+            args[0].ptr,
+            args[0].len,
+            args[1].ptr,
+            args[1].len,
+            BigInt(seed),
+          ),
+        [gameId, variantId],
+      );
+    }
+    return this.invokeJson<MatchCreated>(
+      (args) => this.exports.rulepath_new_match(args[0].ptr, args[0].len, BigInt(seed)),
+      [gameId],
+    );
   }
 
   getView(matchId: string, viewerMode: ViewerMode = { kind: "observer" }): PublicView {

@@ -160,6 +160,7 @@ const SUPPORTED_OPERATIONS: &[&str] = &[
     "feature_report",
     "list_games",
     "new_match",
+    "new_match_with_variant",
     "get_view",
     "get_view_for_viewer",
     "get_action_tree",
@@ -197,12 +198,8 @@ const VARIANT_DRAUGHTS_LITE_STANDARD: &str = "draughts_lite_standard";
 const VARIANT_HIGH_CARD_DUEL_STANDARD: &str = "high_card_duel_standard";
 const VARIANT_MASKED_CLAIMS_STANDARD: &str = "masked_claims_standard";
 const VARIANT_FLOOD_WATCH_STANDARD: &str = "flood_watch_standard";
-const VARIANT_FLOOD_WATCH_DELUGE: &str = "flood_watch_deluge";
 const VARIANT_FRONTIER_CONTROL_STANDARD: &str = "frontier_control_standard";
-const VARIANT_FRONTIER_CONTROL_HIGHLANDS: &str = "frontier_control_highlands";
 const VARIANT_EVENT_FRONTIER_STANDARD: &str = "event_frontier_standard";
-const VARIANT_EVENT_FRONTIER_HARD_WINTER: &str = "event_frontier_hard_winter";
-const VARIANT_EVENT_FRONTIER_LAND_RUSH: &str = "event_frontier_land_rush";
 const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
@@ -376,7 +373,29 @@ pub fn placeholder_version() -> &'static str {
     API_VERSION
 }
 
+fn variant_json(id: &str, label: &str) -> String {
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(id),
+        escape_json(label)
+    )
+}
+
+fn variants_json(variants: &[(&str, &str)]) -> String {
+    format!(
+        "[{}]",
+        variants
+            .iter()
+            .map(|(id, label)| variant_json(id, label))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
 pub fn list_games() -> Result<String, String> {
+    let flood_variants = flood_watch::load_variants()?;
+    let frontier_variants = frontier_control::load_variants()?;
+    let event_variants = event_frontier::load_variants()?;
     let games = [
         RegisteredGame::RaceToN,
         RegisteredGame::ThreeMarks,
@@ -403,113 +422,119 @@ pub fn list_games() -> Result<String, String> {
                 SCHEMA_VERSION
             ),
             RegisteredGame::ThreeMarks => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
                 escape_json(GAME_THREE_MARKS),
                 escape_json(GAME_THREE_MARKS_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_THREE_MARKS_STANDARD)
+                variants_json(&[(VARIANT_THREE_MARKS_STANDARD, GAME_THREE_MARKS_DISPLAY_NAME)])
             ),
             RegisteredGame::ColumnFour => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
                 escape_json(GAME_COLUMN_FOUR),
                 escape_json(GAME_COLUMN_FOUR_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_COLUMN_FOUR_STANDARD)
+                variants_json(&[(VARIANT_COLUMN_FOUR_STANDARD, GAME_COLUMN_FOUR_DISPLAY_NAME)])
             ),
             RegisteredGame::DirectionalFlip => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
                 escape_json(GAME_DIRECTIONAL_FLIP),
                 escape_json(GAME_DIRECTIONAL_FLIP_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_DIRECTIONAL_FLIP_STANDARD)
+                variants_json(&[(VARIANT_DIRECTIONAL_FLIP_STANDARD, GAME_DIRECTIONAL_FLIP_DISPLAY_NAME)])
             ),
             RegisteredGame::DraughtsLite => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
                 escape_json(GAME_DRAUGHTS_LITE),
                 escape_json(GAME_DRAUGHTS_LITE_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_DRAUGHTS_LITE_STANDARD)
+                variants_json(&[(VARIANT_DRAUGHTS_LITE_STANDARD, GAME_DRAUGHTS_LITE_DISPLAY_NAME)])
             ),
             RegisteredGame::HighCardDuel => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\"]}}",
                 escape_json(GAME_HIGH_CARD_DUEL),
                 escape_json(GAME_HIGH_CARD_DUEL_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_HIGH_CARD_DUEL_STANDARD)
+                variants_json(&[(VARIANT_HIGH_CARD_DUEL_STANDARD, GAME_HIGH_CARD_DUEL_DISPLAY_NAME)])
             ),
             RegisteredGame::MaskedClaims => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"reaction_window\",\"bluffing\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"reaction_window\",\"bluffing\"]}}",
                 escape_json(GAME_MASKED_CLAIMS),
                 escape_json(GAME_MASKED_CLAIMS_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_MASKED_CLAIMS_STANDARD)
+                variants_json(&[(VARIANT_MASKED_CLAIMS_STANDARD, GAME_MASKED_CLAIMS_DISPLAY_NAME)])
             ),
             RegisteredGame::FloodWatch => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"cooperative\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"cooperative\",\"environment_automation\"],\"docs\":[\"games/flood_watch/docs/RULES.md\",\"games/flood_watch/docs/SOURCES.md\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"cooperative\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"cooperative\",\"environment_automation\"],\"docs\":[\"games/flood_watch/docs/RULES.md\",\"games/flood_watch/docs/SOURCES.md\"]}}",
                 escape_json(GAME_FLOOD_WATCH),
                 escape_json(GAME_FLOOD_WATCH_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_FLOOD_WATCH_STANDARD),
-                escape_json(VARIANT_FLOOD_WATCH_DELUGE)
+                variants_json(&[
+                    (&flood_variants.standard.id, &flood_variants.standard.display_name),
+                    (&flood_variants.deluge.id, &flood_variants.deluge.display_name),
+                ])
             ),
             RegisteredGame::FrontierControl => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"perfect_information\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/frontier_control/docs/RULES.md\",\"games/frontier_control/docs/SOURCES.md\",\"games/frontier_control/docs/COMPETENT-PLAYER.md\",\"games/frontier_control/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"perfect_information\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/frontier_control/docs/RULES.md\",\"games/frontier_control/docs/SOURCES.md\",\"games/frontier_control/docs/COMPETENT-PLAYER.md\",\"games/frontier_control/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"]}}",
                 escape_json(GAME_FRONTIER_CONTROL),
                 escape_json(GAME_FRONTIER_CONTROL_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_FRONTIER_CONTROL_STANDARD),
-                escape_json(VARIANT_FRONTIER_CONTROL_HIGHLANDS)
+                variants_json(&[
+                    (&frontier_variants.standard.id, &frontier_variants.standard.display_name),
+                    (&frontier_variants.highlands.id, &frontier_variants.highlands.display_name),
+                ])
             ),
             RegisteredGame::EventFrontier => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"event_deck\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/event_frontier/docs/RULES.md\",\"games/event_frontier/docs/SOURCES.md\",\"games/event_frontier/docs/COMPETENT-PLAYER.md\",\"games/event_frontier/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"],\"ui\":{}}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"event_deck\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/event_frontier/docs/RULES.md\",\"games/event_frontier/docs/SOURCES.md\",\"games/event_frontier/docs/COMPETENT-PLAYER.md\",\"games/event_frontier/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"],\"ui\":{}}}",
                 escape_json(GAME_EVENT_FRONTIER),
                 escape_json(GAME_EVENT_FRONTIER_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_EVENT_FRONTIER_STANDARD),
-                escape_json(VARIANT_EVENT_FRONTIER_HARD_WINTER),
-                escape_json(VARIANT_EVENT_FRONTIER_LAND_RUSH),
+                variants_json(&[
+                    (&event_variants.standard.id, &event_variants.standard.display_name),
+                    (&event_variants.hard_winter.id, &event_variants.hard_winter.display_name),
+                    (&event_variants.land_rush.id, &event_variants.land_rush.display_name),
+                ]),
                 event_frontier_catalog_ui_json()
             ),
             RegisteredGame::TokenBazaar => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
                 escape_json(GAME_TOKEN_BAZAAR),
                 escape_json(GAME_TOKEN_BAZAAR_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_TOKEN_BAZAAR_STANDARD)
+                variants_json(&[(VARIANT_TOKEN_BAZAAR_STANDARD, GAME_TOKEN_BAZAAR_DISPLAY_NAME)])
             ),
             RegisteredGame::SecretDraft => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"simultaneous_commit\",\"viewer_filtered\",\"public_replay_export\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"simultaneous_commit\",\"viewer_filtered\",\"public_replay_export\"]}}",
                 escape_json(GAME_SECRET_DRAFT),
                 escape_json(GAME_SECRET_DRAFT_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_SECRET_DRAFT_STANDARD)
+                variants_json(&[(VARIANT_SECRET_DRAFT_STANDARD, GAME_SECRET_DRAFT_DISPLAY_NAME)])
             ),
             RegisteredGame::PokerLite => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"public_accounting\",\"bounded_pledge\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"public_accounting\",\"bounded_pledge\"]}}",
                 escape_json(GAME_POKER_LITE),
                 escape_json(GAME_POKER_LITE_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_POKER_LITE_STANDARD)
+                variants_json(&[(VARIANT_POKER_LITE_STANDARD, GAME_POKER_LITE_DISPLAY_NAME)])
             ),
             RegisteredGame::PlainTricks => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\"]}}",
                 escape_json(GAME_PLAIN_TRICKS),
                 escape_json(GAME_PLAIN_TRICKS_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                escape_json(VARIANT_PLAIN_TRICKS_STANDARD)
+                variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME)])
             ),
         })
         .collect::<Vec<_>>()
@@ -527,6 +552,14 @@ pub fn feature_report() -> Result<String, String> {
 }
 
 pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
+    new_match_for_variant(game_id, None, seed)
+}
+
+pub fn new_match_for_variant(
+    game_id: &str,
+    variant_id: Option<&str>,
+    seed: u64,
+) -> Result<String, String> {
     match resolve_game(game_id)? {
         RegisteredGame::RaceToN => {
             let seats = seats();
@@ -705,8 +738,11 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
         }
         RegisteredGame::FloodWatch => {
             let seats = flood_seats();
+            let selected_variant = variant_id.unwrap_or(VARIANT_FLOOD_WATCH_STANDARD);
+            let variant = flood_watch::ScenarioVariant::resolve(selected_variant)
+                .map_err(|message| unsupported_variant_json(game_id, &message))?;
             let state =
-                flood_setup_match(Seed(seed), &seats, &flood_watch::SetupOptions::default())
+                flood_setup_match(Seed(seed), &seats, &flood_watch::SetupOptions { variant })
                     .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
             MATCHES.with(|matches| {
@@ -724,12 +760,15 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
                 escape_json(&match_id),
                 escape_json(game_id),
-                escape_json(VARIANT_FLOOD_WATCH_STANDARD)
+                escape_json(selected_variant)
             ))
         }
         RegisteredGame::FrontierControl => {
             let seats = frontier_seats();
-            let state = frontier_setup_match(&seats, &frontier_control::SetupOptions::default())
+            let selected_variant = variant_id.unwrap_or(VARIANT_FRONTIER_CONTROL_STANDARD);
+            let variant = frontier_control::VariantMap::resolve(selected_variant)
+                .map_err(|message| unsupported_variant_json(game_id, &message))?;
+            let state = frontier_setup_match(&seats, &frontier_control::SetupOptions { variant })
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
             MATCHES.with(|matches| {
@@ -747,15 +786,18 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
                 escape_json(&match_id),
                 escape_json(game_id),
-                escape_json(VARIANT_FRONTIER_CONTROL_STANDARD)
+                escape_json(selected_variant)
             ))
         }
         RegisteredGame::EventFrontier => {
             let seats = event_frontier_seats();
+            let selected_variant = variant_id.unwrap_or(VARIANT_EVENT_FRONTIER_STANDARD);
+            let variant = event_frontier::ScenarioVariant::resolve(selected_variant)
+                .map_err(|message| unsupported_variant_json(game_id, &message))?;
             let state = event_frontier_setup_match(
                 Seed(seed),
                 &seats,
-                &event_frontier::SetupOptions::default(),
+                &event_frontier::SetupOptions { variant },
             )
             .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -774,7 +816,7 @@ pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
                 "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
                 escape_json(&match_id),
                 escape_json(game_id),
-                escape_json(VARIANT_EVENT_FRONTIER_STANDARD)
+                escape_json(selected_variant)
             ))
         }
         RegisteredGame::TokenBazaar => {
@@ -9643,6 +9685,10 @@ fn diagnostic_string(code: &str, message: &str) -> String {
     )
 }
 
+fn unsupported_variant_json(game_id: &str, message: &str) -> String {
+    diagnostic_string("unsupported_variant", &format!("{game_id}: {message}"))
+}
+
 fn escape_json(input: &str) -> String {
     input.replace('\\', "\\\\").replace('"', "\\\"")
 }
@@ -10194,6 +10240,26 @@ pub unsafe extern "C" fn rulepath_new_match(
 #[no_mangle]
 /// # Safety
 ///
+/// `game_ptr..game_ptr + game_len` and
+/// `variant_ptr..variant_ptr + variant_len` must be valid UTF-8 buffers for
+/// the duration of the call.
+pub unsafe extern "C" fn rulepath_new_match_with_variant(
+    game_ptr: *const u8,
+    game_len: usize,
+    variant_ptr: *const u8,
+    variant_len: usize,
+    seed: u64,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    let variant_id = unsafe { read_string(variant_ptr, variant_len) };
+    write_result(game_id.and_then(|game_id| {
+        variant_id.and_then(|variant_id| new_match_for_variant(&game_id, Some(&variant_id), seed))
+    }))
+}
+
+#[no_mangle]
+/// # Safety
+///
 /// `match_ptr..match_ptr + match_len` must be a valid UTF-8 buffer for the
 /// duration of the call.
 pub unsafe extern "C" fn rulepath_get_view(match_ptr: *const u8, match_len: usize) -> i32 {
@@ -10438,16 +10504,43 @@ mod tests {
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"game_id\":\"poker_lite\""));
         assert!(games.contains("\"game_id\":\"plain_tricks\""));
-        assert!(games.contains("\"variants\":[\"three_marks_standard\"]"));
-        assert!(games.contains("\"variants\":[\"column_four_standard\"]"));
-        assert!(games.contains("\"variants\":[\"directional_flip_standard\"]"));
-        assert!(games.contains("\"variants\":[\"draughts_lite_standard\"]"));
-        assert!(games.contains("\"variants\":[\"high_card_duel_standard\"]"));
-        assert!(games.contains("\"variants\":[\"masked_claims_standard\"]"));
-        assert!(games.contains("\"variants\":[\"flood_watch_standard\",\"flood_watch_deluge\"]"));
-        assert!(games.contains("\"variants\":[\"token_bazaar_standard\"]"));
-        assert!(games.contains("\"variants\":[\"poker_lite_standard\"]"));
-        assert!(games.contains("\"variants\":[\"plain_tricks_standard\"]"));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"three_marks_standard\",\"label\":\"Three Marks\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"column_four_standard\",\"label\":\"Column Four\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"directional_flip_standard\",\"label\":\"Directional Flip\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"draughts_lite_standard\",\"label\":\"Draughts Lite\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"high_card_duel_standard\",\"label\":\"High Card Duel\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"masked_claims_standard\",\"label\":\"Masked Claims\"}]"
+        ));
+        assert!(games.contains("{\"id\":\"flood_watch_deluge\",\"label\":\"Flood Watch: Deluge\"}"));
+        assert!(games.contains(
+            "{\"id\":\"frontier_control_highlands\",\"label\":\"Frontier Control: Highlands\"}"
+        ));
+        assert!(games.contains(
+            "{\"id\":\"event_frontier_hard_winter\",\"label\":\"Event Frontier: Hard Winter\"}"
+        ));
+        assert!(games.contains(
+            "{\"id\":\"event_frontier_land_rush\",\"label\":\"Event Frontier: Land Rush\"}"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"token_bazaar_standard\",\"label\":\"Token Bazaar\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"poker_lite_standard\",\"label\":\"Crest Ledger\"}]"
+        ));
+        assert!(games.contains(
+            "\"variants\":[{\"id\":\"plain_tricks_standard\",\"label\":\"Plain Tricks\"}]"
+        ));
         assert!(games.contains("\"hidden_information\":true"));
         assert!(games.contains("\"public_replay_export\""));
         assert!(games.contains("\"reaction_window\""));
@@ -10470,6 +10563,26 @@ mod tests {
         assert!(report.contains(
             "\"features\":[\"catalog\",\"match_store\",\"legal_action_tree\",\"effects\"]"
         ));
+    }
+
+    #[test]
+    fn new_match_for_variant_starts_multi_variant_games() {
+        let event_created =
+            new_match_for_variant(GAME_EVENT_FRONTIER, Some("event_frontier_hard_winter"), 7)
+                .expect("event frontier variant match created");
+        let event_match_id = extract_match_id(&event_created);
+        assert!(event_created.contains("\"variant_id\":\"event_frontier_hard_winter\""));
+        let event_view = get_view(&event_match_id, Some("seat_0")).expect("event variant view");
+        assert!(event_view.contains("\"variant_id\":\"event_frontier_hard_winter\""));
+
+        let flood_created = new_match_for_variant(GAME_FLOOD_WATCH, Some("flood_watch_deluge"), 7)
+            .expect("flood watch variant match created");
+        assert!(flood_created.contains("\"variant_id\":\"flood_watch_deluge\""));
+
+        let frontier_created =
+            new_match_for_variant(GAME_FRONTIER_CONTROL, Some("frontier_control_highlands"), 7)
+                .expect("frontier control variant match created");
+        assert!(frontier_created.contains("\"variant_id\":\"frontier_control_highlands\""));
     }
 
     #[test]

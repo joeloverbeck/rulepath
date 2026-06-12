@@ -59,6 +59,7 @@ type AppTextState = {
   view:
     | {
         game_id: string;
+        variant_id?: string;
         active_seat: SeatId;
         freshness_token: number;
         status: string;
@@ -141,10 +142,10 @@ function App() {
       return;
     }
     dispatch({ type: "matchStarting" });
-    const created = api.newMatch(state.selectedGameId, state.setup.seed);
+    const created = api.newMatch(state.selectedGameId, state.setup.seed, selectedVariantForStart(selectedGame, state.setup.variantId));
     dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
-  }, [api, refresh, state.selectedGameId, state.setup.seed]);
+  }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seed, state.setup.variantId]);
 
   const playChoice = useCallback(
     (choice: ActionChoice) => {
@@ -375,9 +376,11 @@ function App() {
             selectedGame={selectedGame}
             seed={state.setup.seed}
             playMode={state.setup.playMode}
+            variantId={state.setup.variantId}
             canStart={Boolean(api && state.selectedGameId)}
             onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
             onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
+            onVariantChange={(variantId) => dispatch({ type: "setupVariantChanged", variantId })}
             onRulesOpen={openRules}
             onStart={start}
           />
@@ -660,6 +663,13 @@ function seatRoleLabelsForMode(playMode: SetupPlayMode): Partial<Record<SeatId, 
   return { seat_0: "bot", seat_1: "bot" };
 }
 
+function selectedVariantForStart(selectedGame: { variants?: Array<{ id: string }> } | null, variantId: string | null): string | undefined {
+  if (!selectedGame?.variants || selectedGame.variants.length <= 1) {
+    return undefined;
+  }
+  return selectedGame.variants.some((variant) => variant.id === variantId) ? variantId ?? undefined : selectedGame.variants[0]?.id;
+}
+
 function parseReplayDocument(documentText: string): ReplayExportDocument | null {
   try {
     return JSON.parse(documentText) as ReplayExportDocument;
@@ -837,6 +847,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   if (view.game_id === "flood_watch") {
     return {
       game_id: view.game_id,
+      variant_id: view.variant_id,
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status:
@@ -848,6 +859,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   if (view.game_id === "frontier_control") {
     return {
       game_id: view.game_id,
+      variant_id: view.variant_id,
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status:
@@ -859,6 +871,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   if (view.game_id === "event_frontier") {
     return {
       game_id: view.game_id,
+      variant_id: view.variant_id,
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status:
