@@ -1,6 +1,6 @@
 # CARACTPRES-001: Event Frontier card presentation metadata and view projection
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier` (additive public-view extension, static presentation-data loader, `ui.rs` metadata channel); no `engine-core` or `game-stdlib` changes
@@ -97,3 +97,30 @@ In `src/visibility.rs`: project `current_card`/`next_public_card`/`discard` as r
 1. `cargo test -p event_frontier`
 2. `cargo run -p replay-check -- --game event_frontier --all && cargo run -p fixture-check -- --game event_frontier && cargo run -p rule-coverage -- --game event_frontier`
 3. `cargo clippy --workspace --all-targets -- -D warnings` — full-hygiene boundary since the crate's public surface changed.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `games/event_frontier/data/cards_presentation.toml` with one authored, viewer-safe presentation row for each Event Frontier card: label, summary, family, and accessibility label.
+- Added a strict `CardPresentationCatalog` parser with unknown-key, behavior-looking-key, duplicate-ID, missing-ID, and empty-string rejection.
+- Replaced the Event Frontier `ui.rs` stub with `UiMetadata`, `CardFaceView`, and card-face resolution helpers.
+- Extended `PublicView` to project resolved card faces for `current_card`, `next_public_card`, and `discard`, plus the `ui` metadata block, without exposing the hidden undrawn deck tail.
+- Updated the `wasm-api` Event Frontier view serializer because the current bridge manually serializes `PublicView`; the ticket assumption that the bridge was opaque was stale.
+- Updated Event Frontier bot/read-only view consumers and golden traces for the intentional public-view hash migration.
+
+Deviations from plan:
+
+- `crates/wasm-api/src/lib.rs` was included in this ticket. This was required by current code truth: Event Frontier view JSON is manually serialized there, so the Rust producer extension could not compile or reach the browser bridge without updating it. TypeScript consumer types remain deferred to CARACTPRES-005 as planned.
+
+Verification:
+
+- `cargo test -p event_frontier` — passed.
+- `cargo run -p replay-check -- --game event_frontier --all` — passed.
+- `cargo run -p fixture-check -- --game event_frontier` — passed.
+- `cargo run -p rule-coverage -- --game event_frontier` — passed.
+- `cargo check -p wasm-api` — passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` — passed.
+- `cargo fmt --all --check` — passed after formatting.

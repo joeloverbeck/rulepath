@@ -7247,7 +7247,7 @@ fn frontier_terminal_json(terminal: &frontier_control::TerminalView) -> String {
 
 fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"active_seat\":{},\"sites\":[{}],\"adjacency\":[{}],\"resources\":{},\"scores\":{},\"eligibility\":[{}],\"current_card\":{},\"next_public_card\":{},\"discard\":[{}],\"active_edicts\":[{}],\"epoch\":{},\"reckoning_count\":{},\"victory_distance\":{},\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"active_seat\":{},\"sites\":[{}],\"adjacency\":[{}],\"resources\":{},\"scores\":{},\"eligibility\":[{}],\"current_card\":{},\"next_public_card\":{},\"discard\":[{}],\"active_edicts\":[{}],\"epoch\":{},\"reckoning_count\":{},\"victory_distance\":{},\"terminal\":{},\"terminal_rationale\":{},\"ui\":{},\"freshness_token\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7274,16 +7274,51 @@ fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
             .map(event_frontier_eligibility_json)
             .collect::<Vec<_>>()
             .join(","),
-        option_string_json(view.current_card.as_deref()),
-        option_string_json(view.next_public_card.as_deref()),
-        string_array(&view.discard),
+        option_event_frontier_card_face_json(view.current_card.as_ref()),
+        option_event_frontier_card_face_json(view.next_public_card.as_ref()),
+        view.discard
+            .iter()
+            .map(event_frontier_card_face_json)
+            .collect::<Vec<_>>()
+            .join(","),
         string_array(&view.active_edicts),
         view.epoch,
         view.reckoning_count,
         event_frontier_victory_distance_json(&view.victory_distance),
         event_frontier_terminal_json(&view.terminal),
         event_frontier_terminal_rationale_json(view),
+        event_frontier_ui_json(&view.ui),
         view.freshness_token
+    )
+}
+
+fn option_event_frontier_card_face_json(card: Option<&event_frontier::CardFaceView>) -> String {
+    card.map(event_frontier_card_face_json)
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn event_frontier_card_face_json(card: &event_frontier::CardFaceView) -> String {
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.id),
+        escape_json(&card.label),
+        escape_json(&card.summary),
+        escape_json(&card.family),
+        escape_json(&card.accessibility_label)
+    )
+}
+
+fn event_frontier_ui_json(ui: &event_frontier::UiMetadata) -> String {
+    format!(
+        "{{\"table_label\":\"{}\",\"event_deck_label\":\"{}\",\"current_card_label\":\"{}\",\"next_card_label\":\"{}\",\"discard_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        escape_json(&ui.table_label),
+        escape_json(&ui.event_deck_label),
+        escape_json(&ui.current_card_label),
+        escape_json(&ui.next_card_label),
+        escape_json(&ui.discard_label),
+        escape_json(&ui.face_down_label),
+        escape_json(&ui.face_down_summary),
+        escape_json(&ui.reduced_motion_token)
     )
 }
 

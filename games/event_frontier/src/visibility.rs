@@ -8,6 +8,7 @@ use crate::{
     effects::{EventFrontierEffect, EventFrontierEffectEnvelope},
     ids::{FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL},
     state::{CardPhase, Eligibility, EventFrontierState, TerminalOutcome},
+    ui::{card_face, ui_metadata, CardFaceView, UiMetadata},
 };
 
 pub const HIDDEN_SURFACE: &str = "undrawn_deck_order";
@@ -27,14 +28,15 @@ pub struct PublicView {
     pub resources: ResourceView,
     pub scores: ScoreView,
     pub eligibility: Vec<(FactionId, Eligibility)>,
-    pub current_card: Option<String>,
-    pub next_public_card: Option<String>,
-    pub discard: Vec<String>,
+    pub current_card: Option<CardFaceView>,
+    pub next_public_card: Option<CardFaceView>,
+    pub discard: Vec<CardFaceView>,
     pub active_edicts: Vec<String>,
     pub epoch: u8,
     pub reckoning_count: u8,
     pub victory_distance: VictoryDistanceView,
     pub terminal: TerminalView,
+    pub ui: UiMetadata,
     pub freshness_token: u64,
 }
 
@@ -118,14 +120,9 @@ pub fn project_view(state: &EventFrontierState, _viewer: &Viewer) -> PublicView 
             .into_iter()
             .map(|faction| (faction, state.eligibility_for(faction)))
             .collect(),
-        current_card: state.deck.current.map(|card| card.as_str().to_owned()),
-        next_public_card: state.deck.next_public.map(|card| card.as_str().to_owned()),
-        discard: state
-            .deck
-            .discard
-            .iter()
-            .map(|card| card.as_str().to_owned())
-            .collect(),
+        current_card: state.deck.current.map(card_face),
+        next_public_card: state.deck.next_public.map(card_face),
+        discard: state.deck.discard.iter().copied().map(card_face).collect(),
         active_edicts: state
             .active_edicts
             .iter()
@@ -142,6 +139,7 @@ pub fn project_view(state: &EventFrontierState, _viewer: &Viewer) -> PublicView 
         reckoning_count: state.reckoning_count,
         victory_distance: victory_distance(state),
         terminal: terminal_view(state),
+        ui: ui_metadata(),
         freshness_token: state.freshness_token.0,
     }
 }
@@ -269,7 +267,7 @@ pub fn view_hash(view: &PublicView) -> HashValue {
 impl PublicView {
     pub fn stable_summary(&self) -> String {
         format!(
-            "schema={};rules={};game={};variant={};rules_label={};seats={};factions={};active={};sites={};adjacency={};resources={}:{};scores={}:{};eligibility={};current={};next={};discard={};edicts={};epoch={};reckonings={};distance={}:{};terminal={};freshness={}",
+            "schema={};rules={};game={};variant={};rules_label={};seats={};factions={};active={};sites={};adjacency={};resources={}:{};scores={}:{};eligibility={};current={};next={};discard={};edicts={};epoch={};reckonings={};distance={}:{};terminal={};ui={};freshness={}",
             self.schema_version,
             self.rules_version,
             self.game_id,
@@ -285,18 +283,46 @@ impl PublicView {
             self.scores.charter,
             self.scores.freeholders,
             self.eligibility.iter().map(encode_eligibility).collect::<Vec<_>>().join(","),
-            self.current_card.as_deref().unwrap_or("none"),
-            self.next_public_card.as_deref().unwrap_or("none"),
-            self.discard.join(","),
+            self.current_card
+                .as_ref()
+                .map(encode_card_face)
+                .unwrap_or_else(|| "none".to_owned()),
+            self.next_public_card
+                .as_ref()
+                .map(encode_card_face)
+                .unwrap_or_else(|| "none".to_owned()),
+            self.discard.iter().map(encode_card_face).collect::<Vec<_>>().join(","),
             self.active_edicts.join(","),
             self.epoch,
             self.reckoning_count,
             self.victory_distance.charter_sites_needed,
             self.victory_distance.freeholder_caches_needed,
             encode_terminal(&self.terminal),
+            encode_ui(&self.ui),
             self.freshness_token
         )
     }
+}
+
+fn encode_card_face(card: &CardFaceView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        card.id, card.label, card.summary, card.family, card.accessibility_label
+    )
+}
+
+fn encode_ui(ui: &UiMetadata) -> String {
+    format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}",
+        ui.table_label,
+        ui.event_deck_label,
+        ui.current_card_label,
+        ui.next_card_label,
+        ui.discard_label,
+        ui.face_down_label,
+        ui.face_down_summary,
+        ui.reduced_motion_token
+    )
 }
 
 fn active_seat(state: &EventFrontierState) -> Option<String> {
