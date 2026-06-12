@@ -15,7 +15,7 @@ export function TurnReportPanel({ gameId, effects }: TurnReportPanelProps) {
   }
 
   const report = latestResolutionBurst(effects);
-  const reportEntries = report?.visibleEntries ?? [];
+  const reportEntries = report?.entries ?? [];
 
   return (
     <section className="turn-report-panel" aria-label="Turn report" data-testid="turn-report-panel">

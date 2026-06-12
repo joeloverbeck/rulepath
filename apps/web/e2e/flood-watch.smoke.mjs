@@ -213,6 +213,9 @@ async function assertFloodWatchA11y(page) {
 }
 
 async function assertFloodWatchTurnReport(page) {
+  await page.waitForFunction(
+    () => document.querySelector('[data-testid="turn-report-panel"]')?.textContent?.includes("Storm phase"),
+  );
   const report = await page.$eval('[data-testid="turn-report-panel"]', (element) => element.textContent ?? "");
   assert(report.includes("Turn report"), "flood_watch turn report renders near the board");
   assert(report.includes("Storm phase"), "flood_watch turn report includes the environment automation burst");

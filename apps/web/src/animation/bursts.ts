@@ -92,7 +92,7 @@ function labelFor(marker: EffectEntry | null, markerKind: BurstMarkerKind, index
     case "human_choice":
       return "Player choice";
     case "bot_action":
-      return `Bot turn${typeof payload.policy_id === "string" ? ` (${payload.policy_id})` : ""}`;
+      return `Bot chose action${typeof payload.policy_id === "string" ? ` (${payload.policy_id})` : ""}`;
     case "automated_phase":
       return "Automated phase";
     case "initial":

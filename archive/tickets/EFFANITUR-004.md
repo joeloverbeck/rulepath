@@ -1,6 +1,6 @@
 # EFFANITUR-004: Turn orchestration in human_vs_bot (auto-advance, remove manual trigger)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`). Orchestration changes *when* `runBotTurn` is called and *how* its effects render; it never changes what the bot decides, the seed derivation, or the submitted command bytes (FOUNDATIONS §2).
@@ -89,3 +89,35 @@ Add a recorded command-log/replay-export comparison (scripted `human_vs_bot` ses
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run build`
 3. Recorded command-log/replay-export diff for a scripted `human_vs_bot` session (the determinism boundary; no Rust test changes are expected since no Rust changes).
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Removed the synchronous `runBotTurn` call from human `playChoice` / `playPath` handlers.
+- Added a shell-level `human_vs_bot` orchestration effect that waits for the scheduler to drain the latest Rust effects, then calls `runBotTurn` with the same `botSeed(view)` derivation and refreshes.
+- Added always-visible `Skip` plus `Pause` / `Resume` controls for `human_vs_bot`; removed the normal-mode "Run Bot Turn" button.
+- Added `orchestration.paused` state in `shellReducer`.
+- Added `apps/web/scripts/smoke-human-vs-bot-orchestration.mjs` proving the old inline and new refresh-between-steps sequences produce identical command logs and normalized replay exports.
+- Updated existing human-vs-bot browser smokes that still clicked the removed manual trigger to wait for auto-advanced Rust effects instead.
+- Amended archived `EFFANITUR-001` outcome after preserving "Bot chose action" burst text and marker-inclusive turn-report rendering needed by existing player-facing/browser proof surfaces.
+
+Deviations from the plan:
+
+- The replay-export byte-identity smoke normalizes only the generated `trace_id` / export handle because two separate matches necessarily receive different match ids; command logs, hashes, and replay content otherwise match exactly.
+- Frontier Control's human-vs-bot setup does not emit a `bot_chose_action` marker, so its smoke asserts the auto-advanced public Rust effects ("Turn ended") and freshness advancement instead of a nonexistent marker.
+
+Verification results:
+
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/scripts/smoke-human-vs-bot-orchestration.mjs` passed.
+- `rg -n "Run Bot Turn|api\\.runBotTurn\\(matchId, afterHuman" apps/web/src/main.tsx apps/web/src/components/ModeControls.tsx` returned no matches.
+- `node apps/web/e2e/three-marks.smoke.mjs` passed.
+- `node apps/web/e2e/plain-tricks.smoke.mjs` passed.
+- `node apps/web/e2e/flood-watch.smoke.mjs` passed.
+- `node apps/web/e2e/frontier-control.smoke.mjs` passed.
+- `node apps/web/e2e/event-frontier.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.

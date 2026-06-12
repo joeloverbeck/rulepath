@@ -110,3 +110,8 @@ Verification results:
 - `rg -n "effect\\.payload\\." apps/web/src/animation/bursts.ts` showed reads only of `effect.payload.type`.
 - `npm --prefix apps/web run build` passed.
 - `npm --prefix apps/web run smoke:ui` passed.
+
+Outcome amended: 2026-06-12
+
+- Preserved the public "Bot chose action" phrase in bot burst labels so existing browser smokes and player-facing effect text still expose Rust bot-action narration after grouping.
+- Adjusted `TurnReportPanel` to render the marker entry along with visible burst entries so automated-phase markers such as "Storm phase" remain part of the player-facing latest resolution report while scheduler timing still uses `visibleEntries`.

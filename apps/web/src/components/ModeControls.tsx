@@ -7,10 +7,14 @@ type ModeControlsProps = {
   gameId: string;
   gameName: string;
   autoplayRunning: boolean;
+  orchestrationPaused: boolean;
   lastBotDecision: BotDecisionSummary | null;
   pending: boolean;
   onRulesOpen: (gameId: string) => void;
   onBotStep: () => void;
+  onSkip: () => void;
+  onOrchestrationPause: () => void;
+  onOrchestrationResume: () => void;
   onAutoplayStart: () => void;
   onAutoplayPause: () => void;
 };
@@ -21,10 +25,14 @@ export function ModeControls({
   gameId,
   gameName,
   autoplayRunning,
+  orchestrationPaused,
   lastBotDecision,
   pending,
   onRulesOpen,
   onBotStep,
+  onSkip,
+  onOrchestrationPause,
+  onOrchestrationResume,
   onAutoplayStart,
   onAutoplayPause,
 }: ModeControlsProps) {
@@ -33,7 +41,12 @@ export function ModeControls({
   const botActive = activeSeat ? isBotSeat(playMode, activeSeat) : false;
   const canRunBot = Boolean(view && botActive && !terminal && !pending);
   const canAutoplay = playMode === "bot_vs_bot" && Boolean(view && !terminal);
-  const status = activeSeat ? `${activeActorLabel(view, activeSeat, playMode)} to act` : "No active player";
+  const status =
+    playMode === "human_vs_bot" && botActive && activeSeat && !terminal
+      ? `${activeActorLabel(view, activeSeat, playMode)} turn in progress`
+      : activeSeat
+        ? `${activeActorLabel(view, activeSeat, playMode)} to act`
+        : "No active player";
 
   return (
     <section className="mode-controls" aria-label="Play mode controls">
@@ -55,9 +68,20 @@ export function ModeControls({
         </button>
 
         {playMode === "human_vs_bot" ? (
-          <button type="button" onClick={onBotStep} disabled={!canRunBot}>
-            Run Bot Turn
-          </button>
+          <>
+            <button type="button" onClick={onSkip} disabled={terminal}>
+              Skip
+            </button>
+            {orchestrationPaused ? (
+              <button type="button" onClick={onOrchestrationResume} disabled={terminal}>
+                Resume
+              </button>
+            ) : (
+              <button type="button" onClick={onOrchestrationPause} disabled={terminal}>
+                Pause
+              </button>
+            )}
+          </>
         ) : null}
 
         {playMode === "bot_vs_bot" ? (
