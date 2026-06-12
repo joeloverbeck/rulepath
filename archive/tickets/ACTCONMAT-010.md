@@ -1,6 +1,6 @@
 # ACTCONMAT-010: Runtime raw-identifier DOM guard + negative test
 
-**Status**: PENDING
+**Status**: DONE (2026-06-12)
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — test infrastructure only (`apps/web/e2e/a11y-noleak.smoke.mjs`); `scripts/check-presentation-copy.mjs` gets a scope note.
@@ -78,3 +78,16 @@ Add a comment in `scripts/check-presentation-copy.mjs` documenting that it scans
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-presentation-copy.mjs` (source guard still green)
 3. `npm --prefix apps/web run smoke:ui`
+
+## Completion Notes (2026-06-12)
+
+Implemented the runtime raw-identifier DOM sweep in `apps/web/e2e/a11y-noleak.smoke.mjs`, covering normal-mode visible text and accessibility labels while excluding diagnostic/dev/replay/effect surfaces. Added an induced-drift negative check that injects a raw identifier into normal DOM and proves the guard catches it before the catalog sweep continues.
+
+Documented the complementary source/runtime guard scope in `scripts/check-presentation-copy.mjs`. The new guard found existing public-copy leaks, so the ticket also normalized player-facing labels in Race to N, Directional Flip, and Flood Watch, adjusted Event Frontier waiting copy, and updated the Flood Watch smoke to assert the public seat label.
+
+Verification:
+
+1. `node scripts/check-presentation-copy.mjs` — passed (`presentation-copy check passed - 17 play-surface files scanned`).
+2. `npm --prefix apps/web run smoke:ui` — passed.
+3. `node apps/web/e2e/flood-watch.smoke.mjs` — passed after updating the public label assertion.
+4. `npm --prefix apps/web run smoke:e2e` — passed.

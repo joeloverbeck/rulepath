@@ -228,7 +228,7 @@ export function EventFrontierBoard({
           <ActionPathBuilder
             tree={actionTree}
             disabled={!canAct}
-            emptyLabel={`${activeFactionLabel(view)} is waiting for the next Rust legal action.`}
+            emptyLabel={`${activeFactionLabel(view)} is waiting for the next available action.`}
             affordanceTemplates={view.ui.action_affordance_templates}
             costResource={activeResourceContext(view)}
             onTargetHighlight={setHighlightedTargets}

@@ -91,12 +91,12 @@ export function FloodWatchBoard({
           <h2 id="flood-watch-heading">{statusLabel(view)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
-          {terminal ? view.terminal.outcome : view.active_seat}
+          {terminal ? view.terminal.outcome : statusLabel(view)}
         </span>
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, {statusLabel(view)}, {choices.length} Rust legal choices, {view.forecast ? `${view.ui.forecast_label} ${view.forecast.label}` : "no forecast"}, {view.undrawn_count} {view.ui.face_down_label}.
+        {view.display_name}, {statusLabel(view)}, {choices.length} legal choices, {view.forecast ? `${view.ui.forecast_label} ${view.forecast.label}` : "no forecast"}, {view.undrawn_count} {view.ui.face_down_label}.
       </p>
 
       <div className="plain-tricks-metrics" aria-label="Flood Watch status">
@@ -160,7 +160,7 @@ export function FloodWatchBoard({
             <li key={role.seat}>
               <span>{seatLabel(role.seat)}</span>
               <strong>{role.label}</strong>
-              <small>{role.role}</small>
+              <small>Cooperative role</small>
             </li>
           ))}
         </ol>

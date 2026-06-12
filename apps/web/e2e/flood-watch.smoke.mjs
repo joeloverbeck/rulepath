@@ -79,7 +79,7 @@ try {
   await clickText(page, "button", "End turn");
   await waitForText(page, "Storm card drawn");
   await assertFloodWatchTurnReport(page);
-  await waitForText(page, "seat_1");
+  await waitForText(page, "Seat 1");
   await assertNoLeak(page, consoleMessages, "environment phase");
 
   await clickText(page, "button", "Export Current Run");

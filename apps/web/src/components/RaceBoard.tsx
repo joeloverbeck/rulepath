@@ -11,11 +11,11 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
   const counter = view?.counter ?? 0;
   const target = view?.target ?? 21;
   const progress = target > 0 ? Math.min(100, (counter / target) * 100) : 0;
-  const status = view?.winner ? `${view.winner} won` : view ? `${view.active_seat} to move` : "Ready";
+  const status = view?.winner ? `${seatLabel(view.winner)} won` : view ? `${seatLabel(view.active_seat)} to move` : "Ready";
   const outcomeExplanation = view?.winner
     ? outcomeSurfaceData({
         gameId: "race_to_n",
-        heading: `${view.winner} wins`,
+        heading: `${seatLabel(view.winner)} wins`,
         rationale: view.terminal_rationale,
         resultKind: "win",
         decisiveCause: "exact_target_reached",
@@ -24,7 +24,7 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
         finalStanding: [
           {
             id: view.winner,
-            label: view.winner,
+            label: seatLabel(view.winner),
             result: "Winner",
             emphasized: true,
             values: [{ label: "Counter", value: counter }],
@@ -87,6 +87,10 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
   );
 }
 
+function seatLabel(seat: string): string {
+  return seat === "seat_0" ? "Player 1" : seat === "seat_1" ? "Player 2" : seat;
+}
+
 function effectSummary(entry: EffectEntry): string {
-  return feedbackForEffect(entry).detail;
+  return feedbackForEffect(entry).detail.replace(/\bseat_0\b/g, "Player 1").replace(/\bseat_1\b/g, "Player 2");
 }
