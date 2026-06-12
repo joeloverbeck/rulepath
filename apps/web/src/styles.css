@@ -2497,6 +2497,22 @@ h2 {
   min-height: 42px;
 }
 
+.action-cost-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.45rem;
+  padding: 0.16rem 0.45rem;
+  border: 1px solid rgba(95, 65, 38, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 246, 222, 0.92);
+  color: #5c3b1f;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .action-path-trail {
   display: flex;
   flex-wrap: wrap;
@@ -2528,6 +2544,14 @@ h2 {
 .action-path-confirm strong {
   color: #241c16;
   line-height: 1.25;
+}
+
+.action-path-summary,
+.action-path-consequence {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .frontier-site-list ol {

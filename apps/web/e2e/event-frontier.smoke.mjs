@@ -278,8 +278,10 @@ async function exerciseActionBuilderBackCancel(page) {
 async function chooseFirstOperationPath(page) {
   await clickButtonText(page, "Operation");
   await clickFirstActionPathChoice(page);
+  await assertActionCostDisplay(page);
   await clickPreferredLeafChoice(page);
   await waitForText(page, "Ready");
+  await assertActionConfirmSummary(page);
   await clickButtonText(page, "Confirm");
 }
 
@@ -318,6 +320,25 @@ async function clickPreferredLeafChoice(page) {
     throw new Error("No leaf choices rendered");
   }
   await choices[0].click();
+}
+
+async function assertActionCostDisplay(page) {
+  const summary = await page.evaluate(() => ({
+    chipText: Array.from(document.querySelectorAll('[data-testid="action-cost-chip"]')).map((chip) => chip.textContent ?? ""),
+    consequence: document.querySelector(".action-path-consequence")?.textContent ?? "",
+  }));
+  assert(summary.chipText.some((text) => /\b[1-9][0-9]* (funds?|provisions?)\b/.test(text)), "operation leaves render Rust-supplied cost chips");
+  assert(
+    summary.consequence.includes("forfeits your eligibility for the next card"),
+    "operation stage renders Rust-authored eligibility consequence",
+  );
+}
+
+async function assertActionConfirmSummary(page) {
+  const summary = await page.$eval('[data-testid="action-path-confirm-summary"]', (element) => element.textContent ?? "");
+  assert(summary.includes("Spends "), "confirm summary states operation cost");
+  assert(summary.includes(" of your "), "confirm summary compares cost against visible balance");
+  assert(summary.includes("forfeits your eligibility for the next card"), "confirm summary states eligibility consequence");
 }
 
 async function playBotVsBotToTerminal(page, maxSteps = 32) {

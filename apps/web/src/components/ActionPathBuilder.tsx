@@ -6,6 +6,11 @@ type ActionPathBuilderProps = {
   disabled?: boolean;
   label?: string;
   emptyLabel?: string;
+  affordanceTemplates?: Array<{ id: string; text: string }>;
+  costResource?: {
+    label: string;
+    balance: number;
+  } | null;
   onSubmit: (selection: ActionPathSelection) => void;
 };
 
@@ -20,6 +25,8 @@ export function ActionPathBuilder({
   disabled = false,
   label = "Actions",
   emptyLabel = "No legal actions available.",
+  affordanceTemplates = [],
+  costResource = null,
   onSubmit,
 }: ActionPathBuilderProps) {
   const rootChoices = useMemo(() => tree?.choices ?? [], [tree]);
@@ -27,6 +34,8 @@ export function ActionPathBuilder({
   const currentChoices = selectedChoices.at(-1)?.next?.choices ?? rootChoices;
   const leaf = selectedChoices.at(-1) ?? null;
   const canConfirm = Boolean(leaf && !leaf.next?.choices?.length);
+  const stageConsequence = resolvedConsequence(currentChoices, affordanceTemplates);
+  const confirmSummary = leaf ? actionConfirmSummary(selectedChoices, leaf, affordanceTemplates, costResource) : null;
 
   useEffect(() => {
     setSelectedChoices([]);
@@ -75,25 +84,34 @@ export function ActionPathBuilder({
         <div className="action-path-confirm" data-testid="action-path-confirm">
           <span>Ready</span>
           <strong>{selectedChoices.map((choice) => choice.label).join(" / ")}</strong>
+          {confirmSummary ? (
+            <p className="action-path-summary" data-testid="action-path-confirm-summary">
+              {confirmSummary}
+            </p>
+          ) : null}
           <button type="button" disabled={disabled} onClick={confirm} aria-label={`Confirm ${leaf.accessibility_label}`}>
             Confirm
           </button>
         </div>
       ) : currentChoices.length ? (
-        <div className="action-path-options" data-testid="action-path-options">
-          {currentChoices.map((choice) => (
-            <button
-              type="button"
-              key={choice.segment}
-              disabled={disabled}
-              aria-label={choice.accessibility_label}
-              data-testid={`action-path-choice-${stableSegment(choice.segment)}`}
-              onClick={() => choose(choice)}
-            >
-              <span>{choice.label}</span>
-            </button>
-          ))}
-        </div>
+        <>
+          {stageConsequence ? <p className="action-path-consequence">{stageConsequence}</p> : null}
+          <div className="action-path-options" data-testid="action-path-options">
+            {currentChoices.map((choice) => (
+              <button
+                type="button"
+                key={choice.segment}
+                disabled={disabled}
+                aria-label={choice.accessibility_label}
+                data-testid={`action-path-choice-${stableSegment(choice.segment)}`}
+                onClick={() => choose(choice)}
+              >
+                <span>{choice.label}</span>
+                <ChoiceCost choice={choice} costResourceLabel={costResource?.label ?? null} />
+              </button>
+            ))}
+          </div>
+        </>
       ) : (
         <p className="muted">{emptyLabel}</p>
       )}
@@ -114,4 +132,79 @@ export function ActionPathBuilder({
 
 function stableSegment(segment: string): string {
   return segment.replaceAll("/", "-").replaceAll(",", "-").replaceAll(" ", "-");
+}
+
+function ChoiceCost({ choice, costResourceLabel }: { choice: ActionChoice; costResourceLabel: string | null }) {
+  const cost = metadataValue(choice, "cost");
+  if (!cost) {
+    return null;
+  }
+  return (
+    <small className="action-cost-chip" data-testid="action-cost-chip">
+      {formatCost(cost, costResourceLabel)}
+    </small>
+  );
+}
+
+function actionConfirmSummary(
+  selectedChoices: ActionChoice[],
+  leaf: ActionChoice,
+  templates: Array<{ id: string; text: string }>,
+  costResource: { label: string; balance: number } | null,
+): string {
+  const pieces: string[] = [leaf.label];
+  const cost = metadataValue(leaf, "cost");
+  if (cost && costResource) {
+    pieces.push(`Spends ${formatCost(cost, costResource.label)} of your ${costResource.balance} ${costResource.label}`);
+  } else if (cost) {
+    pieces.push(`Spends ${formatCost(cost, null)}`);
+  }
+  const consequence = resolvedTemplate(metadataValue(leaf, "eligibility_consequence"), templates);
+  if (consequence) {
+    pieces.push(consequence);
+  }
+  const costRule = selectedChoices
+    .map((choice) => resolvedTemplate(metadataValue(choice, "cost_rule"), templates))
+    .find((value): value is string => Boolean(value));
+  if (costRule && cost) {
+    pieces.push(costRule);
+  }
+  return pieces.join(" · ");
+}
+
+function resolvedConsequence(choices: ActionChoice[], templates: Array<{ id: string; text: string }>): string | null {
+  const consequenceIds = new Set(choices.map((choice) => metadataValue(choice, "eligibility_consequence")).filter(Boolean));
+  if (consequenceIds.size !== 1) {
+    return null;
+  }
+  return resolvedTemplate(Array.from(consequenceIds)[0] ?? null, templates);
+}
+
+function resolvedTemplate(id: string | null, templates: Array<{ id: string; text: string }>): string | null {
+  if (!id) {
+    return null;
+  }
+  return templates.find((template) => template.id === id)?.text ?? null;
+}
+
+function metadataValue(choice: ActionChoice, key: string): string | null {
+  return choice.metadata?.find((entry) => entry.key === key)?.value ?? null;
+}
+
+function formatCost(value: string, resourceLabel: string | null): string {
+  const label = resourceLabel ? pluralizeResource(resourceLabel, value) : "resources";
+  return `${value} ${label}`;
+}
+
+function pluralizeResource(resourceLabel: string, value: string): string {
+  if (value !== "1") {
+    return resourceLabel;
+  }
+  if (resourceLabel === "funds") {
+    return "fund";
+  }
+  if (resourceLabel === "provisions") {
+    return "provision";
+  }
+  return resourceLabel;
 }

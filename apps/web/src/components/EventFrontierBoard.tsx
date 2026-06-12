@@ -215,6 +215,8 @@ export function EventFrontierBoard({
           <ActionPathBuilder
             tree={actionTree}
             disabled={!canAct}
+            affordanceTemplates={view.ui.action_affordance_templates}
+            costResource={activeResourceContext(view)}
             onSubmit={(selection) => onPathSubmit?.(eventFrontierSubmitPath(selection))}
           />
         </section>
@@ -265,6 +267,22 @@ function factionLabel(faction: string | null | undefined): string {
   if (faction === "faction_charter") return "Charter";
   if (faction === "faction_freeholders") return "Freeholders";
   return faction ?? "Active faction";
+}
+
+function activeResourceContext(view: EventFrontierPublicView): { label: string; balance: number } | null {
+  const active = activeFaction(view);
+  if (active === "faction_charter") {
+    return { label: "funds", balance: view.resources.funds };
+  }
+  if (active === "faction_freeholders") {
+    return { label: "provisions", balance: view.resources.provisions };
+  }
+  return null;
+}
+
+function activeFaction(view: EventFrontierPublicView): string | null {
+  const activeSeatIndex = view.active_seat ? view.seats.indexOf(view.active_seat) : -1;
+  return activeSeatIndex >= 0 ? view.factions[activeSeatIndex] : null;
 }
 
 function siteSummary(site: EventFrontierSiteView): string {

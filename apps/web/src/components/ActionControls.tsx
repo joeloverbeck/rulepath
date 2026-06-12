@@ -35,7 +35,8 @@ export function ActionControls({ actionTree, view, actorSeat, pending, onChoice,
               aria-label={choice.accessibility_label}
               data-testid={choiceTestId(view, choice, index)}
             >
-              {choice.label}
+              <span>{choice.label}</span>
+              <ChoiceCost choice={choice} />
             </button>
           ))
         )}
@@ -45,6 +46,14 @@ export function ActionControls({ actionTree, view, actorSeat, pending, onChoice,
       </div>
     </section>
   );
+}
+
+function ChoiceCost({ choice }: { choice: ActionChoice }) {
+  const cost = choice.metadata?.find((entry) => entry.key === "cost")?.value ?? null;
+  if (!cost) {
+    return null;
+  }
+  return <small className="action-cost-chip">{cost} resources</small>;
 }
 
 function choiceTestId(view: PublicView | null, choice: ActionChoice, index: number): string {

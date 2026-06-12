@@ -1,6 +1,6 @@
 # ACTCONMAT-003: Cost/consequence rendering in shared action surfaces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/ActionPathBuilder.tsx`, `apps/web/src/components/ActionControls.tsx`. No Rust/engine behavior.
@@ -79,3 +79,29 @@ Render a confirm summary built from Rust labels, leaf metadata, and the public v
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run build`
 3. `npm --prefix apps/web run smoke:ui` (shared-surface render smoke)
+
+## Outcome
+
+Completed: 2026-06-12
+
+Implemented cost/consequence rendering in the shared action surfaces. Choices
+with Rust-supplied `cost` metadata now render compact cost chips, Event
+Frontier passes its Rust-projected action-affordance templates and visible
+resource balance into `ActionPathBuilder`, and the confirmation stage now
+summarizes the selected Rust label, cost against the visible balance, resolved
+eligibility consequence, and the Rust-authored cost-rule prose. The generic
+`ActionControls` surface also renders a fallback cost chip when a flat choice
+emits `cost` metadata.
+
+No legality, cost, or eligibility decisions moved to TypeScript. The UI only
+formats `ActionChoice.metadata`, `UiMetadata.action_affordance_templates`, and
+the viewer-safe public resource fields already supplied by Rust/WASM.
+
+Verification:
+
+- `npm --prefix apps/web run build` passed after an isolated rerun. An earlier
+  parallel build invocation raced with `smoke:ui` over `dist/` and failed with
+  an `ENOENT`; rerunning the build by itself passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:e2e` passed, including Event Frontier cost
+  chip, consequence line, and confirm-summary assertions.
