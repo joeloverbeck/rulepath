@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-012: Benchmarks, thresholds, BENCHMARKS.md, and gate-2 CI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier/benches/event_frontier.rs` (new), `games/event_frontier/benches/thresholds.json` (new), `games/event_frontier/docs/BENCHMARKS.md` (new), `.github/workflows/gate-2-benchmarks.yml` (modify)
@@ -84,3 +84,19 @@ Add `event_frontier` bench-smoke and bench-gate steps to `.github/workflows/gate
 1. `cargo bench -p event_frontier -- --warm-up-time 1 --measurement-time 1` (smoke run)
 2. `cargo bench -p event_frontier`
 3. A smoke bench run is the correct boundary on the PR lane (ADR 0002 non-gating); full calibrated thresholds follow once CI variance is characterized.
+
+## Outcome
+
+- Added the custom native bench target `games/event_frontier/benches/event_frontier.rs` and registered it in `games/event_frontier/Cargo.toml`.
+- Added smoke-floor thresholds for the 12 emitted benchmark identities in `games/event_frontier/benches/thresholds.json`.
+- Added `games/event_frontier/docs/BENCHMARKS.md` documenting the identities, smoke-floor posture, ADR 0002/0003/0005 calibration follow-up, and the 100+ turns/sec full-playout budget.
+- Registered `event_frontier` in `.github/workflows/gate-2-benchmarks.yml` for pull-request bench smoke and non-PR threshold gating.
+
+## Verification
+
+- `cargo fmt --all --check`
+- `cargo bench -p event_frontier -- --warm-up-time 1 --measurement-time 1`
+- `cargo bench -p event_frontier`
+- `cargo run -p bench-report -- --input /tmp/event_frontier-benchmark-report.txt --thresholds games/event_frontier/benches/thresholds.json`
+- `node scripts/check-doc-links.mjs`
+- `python3 -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/gate-2-benchmarks.yml').read_text()); print('workflow yaml ok')"`

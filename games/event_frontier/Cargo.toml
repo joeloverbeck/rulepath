@@ -13,3 +13,8 @@ game-stdlib = { path = "../../crates/game-stdlib" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "event_frontier"
+path = "benches/event_frontier.rs"
+harness = false
