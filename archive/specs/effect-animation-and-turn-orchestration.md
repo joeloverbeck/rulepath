@@ -9,7 +9,7 @@
   and `action-consequence-and-match-context-shared-surfaces`. Sourced from the
   prioritization brainstorm `brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md`
   (recommendation P1 = candidates C1 + C2, absorbing part of C8).
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-12
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` →
@@ -680,3 +680,27 @@ and automated phases.
 9. **(A9) Effort is spec-sized analogy** — 8–12 tickets, sized against the
    two predecessor specs, not measured; `/reassess-spec` re-grounds it before
    decomposition.
+
+---
+
+## Outcome
+
+Completed on 2026-06-12 through archived tickets `EFFANITUR-001` through
+`EFFANITUR-010`.
+
+Implemented the shared burst segmentation, scheduler core, presentation
+registry, human-vs-bot orchestration, bot-vs-bot scheduler pacing, Event
+Frontier and Flood Watch authored animation adoption, catalog sweep, dev
+settle assertion, animation smoke wiring, and closeout documentation lift.
+
+Verification evidence included:
+
+- `npm --prefix apps/web run smoke:e2e` including `e2e/animation.smoke.mjs`;
+- `npm --prefix apps/web run smoke:animation`;
+- `npm --prefix apps/web run smoke:wasm`;
+- `npm --prefix apps/web run smoke:ui`;
+- `npm --prefix apps/web run smoke:effects`;
+- `node scripts/check-doc-links.mjs`;
+- `node scripts/check-catalog-docs.mjs`;
+- `node scripts/check-presentation-copy.mjs`;
+- `bash scripts/boundary-check.sh`.

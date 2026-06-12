@@ -86,7 +86,7 @@ Bounded practitioner pass (2026-06-12); see §7 note on research degradation.
 ### P1 — Animation scheduler + turn orchestration (C1 + C2, absorbing part of C8) — **do first**
 
 **Status: DONE** — delivered by
-`specs/effect-animation-and-turn-orchestration.md` and archived
+`archive/specs/effect-animation-and-turn-orchestration.md` and archived
 `EFFANITUR-001` through `EFFANITUR-010` on 2026-06-12.
 
 **What:** One spec, two fused workstreams:
@@ -183,7 +183,7 @@ modest payoff — defer until the replay viewer gets product attention.
 ### P4 — `game-stdlib` UiMetadata/label-helper promotion (C7) — **defer; record the pressure properly**
 
 **Status: DONE** — disposition recorded by
-`specs/effect-animation-and-turn-orchestration.md` and lifted into
+`archive/specs/effect-animation-and-turn-orchestration.md` and lifted into
 `docs/UI-INTERACTION.md` §10A on 2026-06-12.
 
 **Verdict:** Correctly deferred, and should stay deferred. The repeated
@@ -238,7 +238,7 @@ plus fixture/no-leak sweep updates. Nothing to schedule today.
 
 | Order | Work | Vehicle | ADR? |
 |---|---|---|---|
-| 1 | Animation scheduler + turn orchestration (C1+C2+part C8) | Done via `specs/effect-animation-and-turn-orchestration.md` | No |
+| 1 | Animation scheduler + turn orchestration (C1+C2+part C8) | Done via `archive/specs/effect-animation-and-turn-orchestration.md` | No |
 | 2 | Catalog & setup visual redesign (C5+C6) | New non-gate UI-infra spec; per-asset IP checks in closeout | No |
 | 3 | Effect-log history residue (C8) | Done as burst-grouped `EffectLog`/`TurnReportPanel` work inside spec 1 | No |
 | 4 | Presentation-shape register (C7 disposition) | Done as a UI-INTERACTION §10A governance paragraph in spec 1 closeout | No |
@@ -287,7 +287,7 @@ with evidence.
 
 ## 8. Next steps
 
-1. Done: P1 shipped as `specs/effect-animation-and-turn-orchestration.md`.
+1. Done: P1 shipped as `archive/specs/effect-animation-and-turn-orchestration.md`.
 2. Author the P2 spec after P1 lands (or in parallel; no dependency).
 3. Land the P4 one-paragraph register with P1's closeout amendments.
 4. Record the C3/C5 triggers in P1's sequencing section.
