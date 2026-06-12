@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-014: WASM/API registration and player rules
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (modify) + `crates/wasm-api/Cargo.toml` (modify); `apps/web/scripts/{smoke-load-wasm,smoke-ui}.mjs` (modify); `scripts/check-player-rules.mjs` (modify); `games/event_frontier/docs/HOW-TO-PLAY.md` (new); generated `apps/web/public/rules/event_frontier.md`
@@ -86,3 +86,25 @@ Author `games/event_frontier/docs/HOW-TO-PLAY.md` (from `templates/GAME-HOW-TO-P
 1. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui`
 2. `node scripts/check-player-rules.mjs`
 3. The WASM/UI smoke plus player-rules check is the correct boundary — the bridge and viewer-safety are provable here; the DOM no-leak smoke lands in ticket 018.
+
+## Outcome (2026-06-12)
+
+Registered `event_frontier` in `wasm-api` across catalog, setup, view,
+action-tree, action application, Level 1 bot turn, effects, public replay
+export/import, replay reset, and trace rules-version dispatch. The WASM public
+view is output-equivalent for observer and both seats, and `smoke:wasm` now
+exercises setup/action/bot/effects/export/import without exposing undrawn deck
+order.
+
+Authored `games/event_frontier/docs/HOW-TO-PLAY.md`, generated
+`apps/web/public/rules/event_frontier.md`, added `event_frontier` to
+`HIDDEN_INFO_GAMES`, and updated WASM/UI smoke catalog assertions.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo build -p wasm-api`
+- `node scripts/check-player-rules.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `node scripts/check-doc-links.mjs`

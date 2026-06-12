@@ -232,6 +232,7 @@ dependencies = [
  "directional_flip",
  "draughts_lite",
  "engine-core",
+ "event_frontier",
  "flood_watch",
  "frontier_control",
  "high_card_duel",

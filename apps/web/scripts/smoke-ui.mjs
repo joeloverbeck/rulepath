@@ -186,6 +186,16 @@ assert(
   ),
   "Rust catalog includes frontier_control standard perfect-information variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "event_frontier" &&
+      game.variants.includes("event_frontier_standard") &&
+      game.hidden_information === true &&
+      game.tags.includes("event_deck"),
+  ),
+  "Rust catalog includes event_frontier standard hidden-information variant",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
