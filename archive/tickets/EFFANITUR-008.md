@@ -1,6 +1,6 @@
 # EFFANITUR-008: Catalog adoption sweep + dev settle-assertion
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`); Rust/WASM untouched. The dev settle-assertion compares rendered DOM against the authoritative view as a diagnostic only.
@@ -83,3 +83,21 @@ Add `apps/web/scripts/smoke-catalog-sweep.mjs` exercising baseline motion + sett
 1. `node apps/web/scripts/smoke-catalog-sweep.mjs`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed on 2026-06-12.
+
+Added `apps/web/src/animation/settleAssertion.ts`, a dev-only settle diagnostic wired through the scheduler settle hook. It compares the post-settle DOM against the current viewer-safe view only as a diagnostic and reports missing board targets, lingering animation ghosts, or still-running animations. It is guarded by `import.meta.env.DEV` plus the explicit `localStorage` flag `rulepath.devSettleAssertion=on`, so normal/public builds do not enable the assertion.
+
+Added `apps/web/scripts/smoke-catalog-sweep.mjs`. The smoke verifies the 12 non-adopter catalog games use the shared generic registry fallback to produce baseline animation, verifies the seeded settle diagnostic reports a lingering ghost coverage gap, and asserts the effect-animation adoption matrix contains all 14 catalog games.
+
+Updated `apps/web/README.md` with a 14-row effect-animation adoption matrix: `event_frontier` and `flood_watch` are `adopt`; the remaining 12 catalog games are `generic-only` with rationale.
+
+Verification:
+
+1. `node apps/web/scripts/smoke-catalog-sweep.mjs` -> passed.
+2. `npm --prefix apps/web run build` -> passed.
+3. `npm --prefix apps/web run smoke:ui` -> passed.
+4. `rg -n "import\\.meta\\.env\\.DEV|rulepath\\.devSettleAssertion|createDevSettleAssertion|settle:" apps/web/src/animation/settleAssertion.ts apps/web/src/main.tsx` -> dev guard and settle-hook wiring present.
+5. `sed -n '/Effect Animation Adoption Audit/,/Smoke Layers/p' apps/web/README.md | rg -n '^\\| `[^`]+` \\| (adopt|generic-only|board-native mapping|not applicable) \\|'` -> 14 scoped adoption rows.

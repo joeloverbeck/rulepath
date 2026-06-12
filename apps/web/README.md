@@ -101,6 +101,30 @@ single-stage `ActionControls` surface is sufficient.
 | `poker_lite` | board-native | Poker action buttons map directly to Rust hold/press/lift/match/yield choices. |
 | `plain_tricks` | board-native | Hand-card buttons map to Rust play-card choices. |
 
+### Effect Animation Adoption Audit
+
+Every catalog game has an explicit effect-animation disposition. `adopt` means
+the game registers authored effect-to-animation mappings on the shared registry.
+`generic-only` means the game intentionally relies on the shared tone-keyed
+presentations for the current catalog surface.
+
+| Game | Disposition | Rationale |
+| --- | --- | --- |
+| `race_to_n` | generic-only | Tiny counter effects are covered by shared highlight/turn/terminal presentations. |
+| `three_marks` | generic-only | Board mark/drop effects remain legible through shared board highlighting and text. |
+| `column_four` | generic-only | Column drops and terminal effects use baseline shared motion without per-game mapping. |
+| `directional_flip` | generic-only | Directional flip effects are simple public board updates covered by generic highlighting. |
+| `draughts_lite` | generic-only | Move/capture effects are viewer-safe and covered by generic movement/highlight motion. |
+| `high_card_duel` | generic-only | Reveal/score/terminal effects stay readable through shared generic presentations. |
+| `masked_claims` | generic-only | Redacted and reveal effects use the shared viewer-safe redacted/reveal baseline. |
+| `flood_watch` | adopt | Flood phases, storm deck flow, and district automation use authored registry mappings. |
+| `frontier_control` | generic-only | Public graph/control effects use baseline highlighting without authored overrides. |
+| `event_frontier` | adopt | Event deck flow, resources, Reckoning, site changes, and terminal settlement use authored mappings. |
+| `token_bazaar` | generic-only | Market/resource/contract effects use baseline shared movement/highlight presentations. |
+| `secret_draft` | generic-only | Draft/reveal effects use shared redacted/reveal-safe presentations. |
+| `poker_lite` | generic-only | Public poker-lite score/reveal effects use baseline shared presentations. |
+| `plain_tricks` | generic-only | Deal/play/trick/score effects use baseline shared movement/highlight presentations. |
+
 ## Smoke Layers
 
 - `smoke:wasm`: raw ABI coverage for version/features, catalog, match, action,

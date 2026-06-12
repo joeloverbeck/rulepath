@@ -28,6 +28,7 @@ import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { TurnReportPanel } from "./components/TurnReportPanel";
 import { animationRegistry } from "./animation/registry";
 import { EffectAnimationScheduler } from "./animation/scheduler";
+import { createDevSettleAssertion } from "./animation/settleAssertion";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
   loadApi,
@@ -84,6 +85,7 @@ function App() {
   const autoBotInFlightRef = useRef(false);
   const autoplayInFlightRef = useRef(false);
   const activeGameIdRef = useRef(state.selectedGameId);
+  const activeViewRef = useRef(view);
   const orchestrationPausedRef = useRef(state.orchestration.paused);
   const autoplayRunningRef = useRef(state.autoplay.running);
 
@@ -95,6 +97,7 @@ function App() {
           root: document,
           reducedMotion: step.reducedMotion,
         }),
+      settle: createDevSettleAssertion(() => activeViewRef.current),
     });
   }
 
@@ -161,6 +164,10 @@ function App() {
   useEffect(() => {
     activeGameIdRef.current = state.selectedGameId;
   }, [state.selectedGameId]);
+
+  useEffect(() => {
+    activeViewRef.current = view;
+  }, [view]);
 
   useEffect(() => {
     schedulerRef.current?.setRate(state.orchestration.rate);
