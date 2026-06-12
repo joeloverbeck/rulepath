@@ -17,6 +17,7 @@ const forbiddenLeakTerms = [
   "candidate_ranking",
   "bot_explanation",
 ];
+const rawIdentifierRe = /\b[a-z0-9]+_[a-z0-9_]+\b/;
 
 await access(executablePath);
 
@@ -63,6 +64,7 @@ try {
 
   await waitForText(page, "Race to 21");
   await assertNamedControls(page);
+  await assertRawIdentifierGuardTrips(page);
   await assertNoLeak(page, consoleMessages, "initial DOM");
 
   await focusByText(page, "Start Match");
@@ -351,6 +353,7 @@ async function assertStorageClean(page) {
 }
 
 async function assertNoLeak(page, consoleMessages, label) {
+  await assertNoRawIdentifiers(page, label);
   const surface = await page.evaluate(() => {
     const attributes = Array.from(document.querySelectorAll("*")).flatMap((element) =>
       Array.from(element.attributes).map((attribute) => `${attribute.name}=${attribute.value}`),
@@ -363,6 +366,67 @@ async function assertNoLeak(page, consoleMessages, label) {
   });
   assertNoForbiddenTerms(surface, label);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`);
+}
+
+async function assertRawIdentifierGuardTrips(page) {
+  await page.evaluate(() => {
+    const probe = document.createElement("p");
+    probe.dataset.rawIdentifierProbe = "true";
+    probe.textContent = "site_charterhouse should fail the runtime identifier guard";
+    document.querySelector("main")?.append(probe);
+  });
+  const hits = await collectRawIdentifierHits(page);
+  await page.evaluate(() => document.querySelector("[data-raw-identifier-probe]")?.remove());
+  assert(
+    hits.some((hit) => hit.token === "site_charterhouse"),
+    `runtime raw-identifier guard did not catch induced drift: ${JSON.stringify(hits)}`,
+  );
+}
+
+async function assertNoRawIdentifiers(page, label) {
+  const hits = await collectRawIdentifierHits(page);
+  assert(hits.length === 0, `${label} contains raw internal identifiers: ${JSON.stringify(hits)}`);
+}
+
+async function collectRawIdentifierHits(page) {
+  const samples = await page.evaluate(() => {
+    const excludedSelector = '.dev-panel, .replay-io, .replay-viewer, .diagnostic, [data-testid="effects"], script, style';
+    const textSamples = [];
+    const attributeSamples = [];
+
+    const isExcluded = (element) => Boolean(element.closest(excludedSelector));
+    const isVisible = (element) => {
+      if (isExcluded(element) || element.getAttribute("aria-hidden") === "true") return false;
+      const style = window.getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden";
+    };
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const parent = node.parentElement;
+      const text = node.textContent?.trim() ?? "";
+      if (parent && text && isVisible(parent)) {
+        textSamples.push({ source: "text", value: text });
+      }
+    }
+
+    for (const element of Array.from(document.querySelectorAll("*"))) {
+      if (isExcluded(element) || !isVisible(element)) continue;
+      for (const name of ["aria-label", "title", "alt", "aria-valuetext"]) {
+        const value = element.getAttribute(name);
+        if (value?.trim()) {
+          attributeSamples.push({ source: name, value });
+        }
+      }
+    }
+
+    return [...textSamples, ...attributeSamples];
+  });
+  return samples.flatMap((sample) => {
+    const tokens = sample.value.match(new RegExp(rawIdentifierRe.source, "g")) ?? [];
+    return tokens.map((token) => ({ ...sample, token }));
+  });
 }
 
 function assertNoForbiddenTerms(surface, label) {

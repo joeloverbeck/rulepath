@@ -1,5 +1,10 @@
 use crate::ids::{TrickCardId, TrickRank, TrickSuit, GAME_ID};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Plain Tricks is factionless; keep existing player/seat naming for hand ownership.";
+pub const TURN_REPORT_AUDIT: &str =
+    "Not adopted by ACTCONMAT-006; Plain Tricks has no automated non-interactive burst surface in scope.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: String,

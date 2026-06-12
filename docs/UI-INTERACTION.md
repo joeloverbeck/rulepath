@@ -95,6 +95,14 @@ The browser may receive only viewer-safe payloads.
 | UI metadata | Rust/static typed content | labels, icons, layout hints, accessibility text | legality, rule behavior, hidden state |
 | Bot explanation | Rust bot policy | viewer-safe reason summary | hidden facts unavailable to bot/viewer |
 
+Action-tree leaves MAY carry reserved presentation metadata keys with fixed
+meaning: `cost` (viewer-visible cost in the acting seat's primary resource),
+`cost_rule` (stable rule-reference tag), `eligibility_consequence` (stable
+consequence tag resolved through authored explanation templates). When a game
+emits reserved keys, shared action surfaces MUST render them at choice and
+confirmation time. Reserved keys are documented here, not typed into
+engine-core; the kernel treats metadata as opaque.
+
 ## 6. Action lifecycle
 
 ```text
@@ -329,6 +337,17 @@ A web-exposed game is acceptable only when:
 - renderer settles to latest public view;
 - replay can step through actions;
 - bot choices have public-safe explanations when non-random;
+- choices carrying reserved cost/consequence metadata display them before
+  selection and in the confirmation summary, interpolated only with
+  Rust-supplied numbers and viewer-safe balances;
+- action labels and accessibility labels contain display names, never raw
+  internal identifiers; a runtime DOM sweep enforces this in normal mode;
+- multi-target stages render as composed target selection or a recorded
+  board-native mapping, never one control per combination;
+- normal-mode surfaces name the local viewer's faction/role and the acting
+  faction in display terms; seat indices are dev-panel vocabulary;
+- non-interactive advances (bot turns, automated phases) are narrated near
+  the board from viewer-filtered semantic effects in authored vocabulary.
 - dev inspectors are safe and secondary;
 - reduced motion works;
 - basic focus/keyboard behavior exists where practical;

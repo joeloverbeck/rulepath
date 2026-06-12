@@ -1,6 +1,7 @@
 use engine_core::{SeatId, Seed, StableSerialize};
 use event_frontier::{
     setup_match, CardCatalog, CardPresentationCatalog, EventFrontierSnapshot, SetupOptions,
+    SitePresentationCatalog,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -34,6 +35,13 @@ fn card_data_rejects_behavior_looking_fields() {
         assert!(
             CardPresentationCatalog::parse(&presentation_input).is_err(),
             "{key} was accepted by presentation metadata"
+        );
+        let site_presentation_input = format!(
+            "site_ids = \"site_charterhouse\"\nlabels = \"Charterhouse\"\naccessibility_labels = \"Charterhouse site\"\n{key} = \"bad\"\n"
+        );
+        assert!(
+            SitePresentationCatalog::parse(&site_presentation_input).is_err(),
+            "{key} was accepted by site presentation metadata"
         );
     }
 }

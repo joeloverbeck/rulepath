@@ -1,4 +1,4 @@
-import type { SetupPlayMode } from "../state/shellReducer";
+import type { BotDecisionSummary, SetupPlayMode } from "../state/shellReducer";
 import type { PublicView, SeatId } from "../wasm/client";
 
 type ModeControlsProps = {
@@ -7,6 +7,7 @@ type ModeControlsProps = {
   gameId: string;
   gameName: string;
   autoplayRunning: boolean;
+  lastBotDecision: BotDecisionSummary | null;
   pending: boolean;
   onRulesOpen: (gameId: string) => void;
   onBotStep: () => void;
@@ -20,6 +21,7 @@ export function ModeControls({
   gameId,
   gameName,
   autoplayRunning,
+  lastBotDecision,
   pending,
   onRulesOpen,
   onBotStep,
@@ -31,13 +33,14 @@ export function ModeControls({
   const botActive = activeSeat ? isBotSeat(playMode, activeSeat) : false;
   const canRunBot = Boolean(view && botActive && !terminal && !pending);
   const canAutoplay = playMode === "bot_vs_bot" && Boolean(view && !terminal);
+  const status = activeSeat ? `${activeActorLabel(view, activeSeat, playMode)} to act` : "No active player";
 
   return (
     <section className="mode-controls" aria-label="Play mode controls">
       <div>
         <p className="eyebrow">Mode</p>
         <h2>{modeLabel(playMode)}</h2>
-        <p>{activeSeat ? `${seatLabel(activeSeat)} is active` : "No active seat"}</p>
+        <p>{status}</p>
       </div>
 
       <div className="mode-actions">
@@ -74,8 +77,22 @@ export function ModeControls({
           </>
         ) : null}
       </div>
+
+      {gameId === "event_frontier" && lastBotDecision ? (
+        <details className="bot-note bot-why" data-testid="bot-explanation">
+          <summary>Bot why</summary>
+          <strong>{lastBotDecision.rationale}</strong>
+          <span>{policyLabel(lastBotDecision)}</span>
+        </details>
+      ) : null}
     </section>
   );
+}
+
+function policyLabel(decision: BotDecisionSummary): string {
+  const version = decision.policyVersion === null ? "" : ` v${decision.policyVersion}`;
+  const level = decision.policyId.includes("level1") ? "Level 1" : "Rust";
+  return `${level} bot policy${version}`;
 }
 
 function isBotSeat(playMode: SetupPlayMode, seat: SeatId): boolean {
@@ -99,8 +116,26 @@ function modeLabel(playMode: SetupPlayMode): string {
   }
 }
 
-function seatLabel(seat: SeatId): string {
-  return seat === "seat_0" ? "Seat 0" : "Seat 1";
+function activeActorLabel(view: PublicView | null, seat: SeatId, playMode: SetupPlayMode): string {
+  if (view && "game_id" in view && view.game_id === "event_frontier") {
+    const label = view.ui.seat_labels.find((entry) => entry.seat === seat)?.label;
+    return `${label ?? playerLabel(seat)}${roleSuffix(playMode, seat)}`;
+  }
+  return playerLabel(seat);
+}
+
+function playerLabel(seat: SeatId): string {
+  return seat === "seat_0" ? "Player 1" : "Player 2";
+}
+
+function roleSuffix(playMode: SetupPlayMode, seat: SeatId): string {
+  if (playMode === "bot_vs_bot") {
+    return " (bot)";
+  }
+  if (playMode === "hotseat") {
+    return seat === "seat_0" ? " (you)" : " (local)";
+  }
+  return seat === "seat_0" ? " (you)" : " (bot)";
 }
 
 function isTerminalView(view: PublicView | null): boolean {

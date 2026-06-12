@@ -1,5 +1,10 @@
 use crate::ids::{CellId, ColumnFourSeat, ColumnId};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Column Four is factionless; keep existing first-player/second-player token labels.";
+pub const TURN_REPORT_AUDIT: &str =
+    "Not adopted by ACTCONMAT-006; Column Four has no automated non-interactive burst surface in scope.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PieceTokenMetadata {
     pub seat: ColumnFourSeat,

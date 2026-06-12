@@ -105,14 +105,25 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
 
+  await startEventFrontier(page, baseUrl, "Hotseat", 2, "Event Frontier: Hard Winter");
+  await assertRenderedTextView(
+    page,
+    (view) => view?.game_id === "event_frontier" && view.variant_id === "event_frontier_hard_winter",
+  );
+  await assertNoLeak(page, consoleMessages, "hard winter variant start");
+
   await startEventFrontier(page, baseUrl, "Hotseat", 3);
+  await assertFactionFirstCopy(page);
   await assertEventFrontierBoardA11y(page);
+  await assertEventFrontierDetailsAndStatusCopy(page);
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_0");
   await chooseAndConfirmAction(page, ["Event"]);
   await waitForText(page, "Edict activated");
   await chooseAndConfirmAction(page, ["Pass"]);
   await waitForText(page, "Reckoning resolved");
   await waitForText(page, "reckoning 1");
+  await waitForText(page, "no instant victory");
+  await assertEventFrontierTurnReport(page);
   await assertEventFrontierDiscardDisclosure(page);
   await clickButtonText(page, "Developer panel");
   await clickButtonText(page, "Submit Stale Action");
@@ -134,6 +145,7 @@ try {
   assert(charterInstant.status.includes("charter_instant"), "seed 3 reaches Charter instant victory");
   assert(charterInstant.seenSeats.has("seat_0") && charterInstant.seenSeats.has("seat_1"), "bot-vs-bot stepped both Event Frontier factions");
   await page.waitForSelector(".outcome-explanation-panel");
+  await assertEventFrontierBotWhy(page);
   await assertNoLeak(page, consoleMessages, "charter instant terminal");
 
   await startEventFrontier(page, baseUrl, "Bot vs bot", 55);
@@ -183,10 +195,15 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startEventFrontier(page, baseUrl, modeLabel, seed) {
+async function startEventFrontier(page, baseUrl, modeLabel, seed, variantLabel = "Event Frontier") {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "Event Frontier");
+  await assertPickerAndSetupHygiene(page);
   await clickButtonText(page, "Event Frontier");
+  if (variantLabel !== "Event Frontier") {
+    await page.select(".setup-region label.field select", variantLabelToId(variantLabel));
+    await waitForText(page, variantLabel);
+  }
   await page.$eval(
     ".field input[type='number']",
     (input, value) => {
@@ -197,8 +214,55 @@ async function startEventFrontier(page, baseUrl, modeLabel, seed) {
     seed,
   );
   await clickLabel(page, modeLabel);
+  await assertEventFrontierSetupCopy(page, modeLabel);
   await clickButtonText(page, "Start Match");
   await page.waitForSelector('[data-testid="event-frontier-board"]');
+}
+
+async function assertPickerAndSetupHygiene(page) {
+  const summary = await page.evaluate(() => ({
+    pickerText: document.querySelector(".game-list")?.textContent ?? "",
+    setupText: document.querySelector(".setup-region")?.textContent ?? "",
+    eventCardSelectable: Boolean(document.querySelector('.game-card[aria-label="Select Event Frontier"]')),
+  }));
+  for (const text of [summary.pickerText, summary.setupText]) {
+    assert(!text.includes("rules 1"), "normal setup surfaces omit rules version copy");
+    assert(!text.includes("schema 1"), "normal setup surfaces omit schema version copy");
+    assert(!text.includes("event_frontier_hard_winter"), "normal setup surfaces omit raw hard-winter variant id");
+    assert(!text.includes("event_frontier_land_rush"), "normal setup surfaces omit raw land-rush variant id");
+  }
+  assert(summary.eventCardSelectable, "Event Frontier game-card wrapper is selectable");
+}
+
+function variantLabelToId(label) {
+  switch (label) {
+    case "Event Frontier: Hard Winter":
+      return "event_frontier_hard_winter";
+    case "Event Frontier: Land Rush":
+      return "event_frontier_land_rush";
+    default:
+      return "event_frontier_standard";
+  }
+}
+
+async function assertEventFrontierSetupCopy(page, modeLabel) {
+  await page.waitForFunction(() => document.querySelector(".seat-roles")?.textContent?.includes("Charter"));
+  const summary = await page.evaluate(() => ({
+    roles: Array.from(document.querySelectorAll(".seat-roles > div")).map((element) => element.textContent ?? ""),
+    setup: document.querySelector(".setup-region")?.textContent ?? "",
+  }));
+  const expectedFirstRole = modeLabel === "Bot vs bot" ? "bot" : "you (local)";
+  const expectedSecondRole = modeLabel === "Hotseat" ? "local" : "bot";
+  assert(
+    summary.roles.some((text) => text.includes("Charter") && text.includes(expectedFirstRole)),
+    `setup names Charter without raw seat copy: ${JSON.stringify(summary.roles)}`,
+  );
+  assert(
+    summary.roles.some((text) => text.includes("Freeholders") && text.includes(expectedSecondRole)),
+    "setup names Freeholders without raw seat copy",
+  );
+  assert(!summary.setup.includes("Seat 0"), "Event Frontier setup omits Seat 0 copy");
+  assert(!summary.setup.includes("Seat 1"), "Event Frontier setup omits Seat 1 copy");
 }
 
 async function assertEventFrontierBoardA11y(page) {
@@ -242,6 +306,65 @@ async function assertEventFrontierBoardA11y(page) {
   assert(summary.actionButtons.some((label) => label === "Operation"), "event_frontier renders Rust operation choice label");
 }
 
+async function assertEventFrontierDetailsAndStatusCopy(page) {
+  const summary = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('[data-testid="deck-current-card"] .deck-flow-card, [data-testid="deck-next-card"] .deck-flow-card'));
+    const details = cards.map((card) => {
+      const disclosure = card.querySelector(".deck-flow-card-details");
+      if (disclosure instanceof HTMLDetailsElement) {
+        disclosure.open = true;
+      }
+      return {
+        label: card.querySelector("strong")?.textContent ?? "",
+        summary: card.querySelector("p")?.textContent ?? "",
+        detail: disclosure?.querySelector("p")?.textContent ?? "",
+      };
+    });
+    return {
+      details,
+      eligibility: document.querySelector('[aria-label="Eligibility and victory distance"]')?.textContent ?? "",
+    };
+  });
+  assert(summary.details.length > 0, "event_frontier card slots render cards");
+  assert(summary.details.every((entry) => entry.detail && entry.detail !== entry.summary), "event_frontier card details use authored deep prose");
+  assert(
+    summary.details.some((entry) => entry.detail.includes("until the next Reckoning") || entry.detail.includes("public scoring")),
+    "event_frontier detail prose explains edict or Reckoning scope",
+  );
+  assert(summary.eligibility.includes("controlled sites for instant victory"), "Charter threshold copy is framed");
+  assert(summary.eligibility.includes("caches for instant victory"), "Freeholders threshold copy is framed");
+}
+
+async function assertFactionFirstCopy(page) {
+  const summary = await page.evaluate(() => {
+    const body = document.body.textContent ?? "";
+    const devPanel = document.querySelector(".dev-panel")?.textContent ?? "";
+    return {
+      body,
+      devPanel,
+      board: document.querySelector('[data-testid="event-frontier-board"]')?.textContent ?? "",
+      mode: document.querySelector(".mode-controls")?.textContent ?? "",
+    };
+  });
+  assert(summary.board.includes("You play the Charter"), "board states the local faction identity");
+  assert(summary.board.includes("Funds - Charter (you)"), "fund resource names Charter owner");
+  assert(summary.board.includes("Provisions - Freeholders (local)"), "provision resource names Freeholders owner");
+  assert(summary.mode.includes("Charter (you) to act"), "mode line uses faction-first active actor copy");
+  const normalSurface = summary.body.replace(summary.devPanel, "");
+  assert(!normalSurface.includes("Seat 0"), "normal Event Frontier surface omits Seat 0 copy");
+  assert(!normalSurface.includes("Seat 1"), "normal Event Frontier surface omits Seat 1 copy");
+  assert(!normalSurface.includes("seat_0"), "normal Event Frontier surface omits raw seat_0 copy");
+  assert(!normalSurface.includes("seat_1"), "normal Event Frontier surface omits raw seat_1 copy");
+}
+
+async function assertEventFrontierTurnReport(page) {
+  const report = await page.$eval('[data-testid="turn-report-panel"]', (element) => element.textContent ?? "");
+  assert(report.includes("Turn report"), "Event Frontier turn report renders near the board");
+  assert(report.includes("Reckoning resolved"), "Event Frontier turn report includes the Reckoning burst");
+  assert(report.includes("First Reckoning") || report.includes("Reckoning 1"), "Event Frontier turn report uses authored Reckoning vocabulary");
+  assert(!report.includes("full_deck_order"), "Event Frontier turn report does not expose hidden deck order");
+}
+
 function includesAny(value, candidates) {
   return candidates.some((candidate) => value.includes(candidate));
 }
@@ -278,8 +401,10 @@ async function exerciseActionBuilderBackCancel(page) {
 async function chooseFirstOperationPath(page) {
   await clickButtonText(page, "Operation");
   await clickFirstActionPathChoice(page);
+  await assertActionCostDisplay(page);
   await clickPreferredLeafChoice(page);
   await waitForText(page, "Ready");
+  await assertActionConfirmSummary(page);
   await clickButtonText(page, "Confirm");
 }
 
@@ -305,6 +430,11 @@ async function clickFirstActionPathChoice(page) {
 }
 
 async function clickPreferredLeafChoice(page) {
+  const composer = await page.$('[data-testid="action-target-composer"]');
+  if (composer) {
+    await assertTargetComposer(page);
+    return;
+  }
   await page.waitForSelector('[data-testid^="action-path-choice-"]');
   const choices = await page.$$('[data-testid^="action-path-choice-"]');
   for (const choice of choices) {
@@ -318,6 +448,65 @@ async function clickPreferredLeafChoice(page) {
     throw new Error("No leaf choices rendered");
   }
   await choices[0].click();
+}
+
+async function assertTargetComposer(page) {
+  await page.waitForSelector('[data-testid^="action-target-toggle-"]');
+  const before = await page.evaluate(() => ({
+    targetCount: document.querySelectorAll('[data-testid^="action-target-toggle-"]').length,
+    confirmCount: document.querySelectorAll('[data-testid="action-target-confirm"]').length,
+    legacyLeafButtons: Array.from(document.querySelectorAll('[data-testid^="action-path-choice-"]')).filter((button) =>
+      button.textContent?.includes(","),
+    ).length,
+  }));
+  assert(before.targetCount > 1, "target composer renders per-target toggles");
+  assert(before.targetCount + before.confirmCount <= before.targetCount + 1, "target composer renders no more controls than targets plus confirm");
+  assert(before.legacyLeafButtons === 0, "target composer replaces pre-joined combination buttons");
+
+  const toggles = await page.$$('[data-testid^="action-target-toggle-"]');
+  await toggles[0].click();
+  if (toggles.length > 1) {
+    await toggles[1].click();
+  }
+  const after = await page.evaluate(() => ({
+    disabledRemainder: Array.from(document.querySelectorAll('[data-testid^="action-target-toggle-"]'))
+      .filter((button) => button.getAttribute("aria-pressed") !== "true")
+      .every((button) => button.hasAttribute("disabled")),
+    highlighted: document.querySelectorAll(".frontier-site.highlighted").length,
+  }));
+  assert(after.disabledRemainder, "composer disables target additions without a matching Rust leaf");
+  assert(after.highlighted >= Math.min(2, toggles.length), "map sites highlight selected composer targets");
+}
+
+async function assertActionCostDisplay(page) {
+  const summary = await page.evaluate(() => ({
+    chipText: Array.from(document.querySelectorAll('[data-testid="action-cost-chip"]')).map((chip) => chip.textContent ?? ""),
+    consequence: document.querySelector(".action-path-consequence")?.textContent ?? "",
+  }));
+  assert(summary.chipText.some((text) => /\b[1-9][0-9]* (funds?|provisions?)\b/.test(text)), "operation leaves render Rust-supplied cost chips");
+  assert(
+    summary.consequence.includes("forfeits your eligibility for the next card"),
+    "operation stage renders Rust-authored eligibility consequence",
+  );
+}
+
+async function assertActionConfirmSummary(page) {
+  const summary = await page.$eval('[data-testid="action-path-confirm-summary"]', (element) => element.textContent ?? "");
+  assert(summary.includes("Spends "), "confirm summary states operation cost");
+  assert(summary.includes(" of your "), "confirm summary compares cost against visible balance");
+  assert(summary.includes("forfeits your eligibility for the next card"), "confirm summary states eligibility consequence");
+}
+
+async function assertEventFrontierBotWhy(page) {
+  await page.waitForSelector('[data-testid="bot-explanation"]');
+  const open = await page.$eval('[data-testid="bot-explanation"]', (element) => element.hasAttribute("open"));
+  if (!open) {
+    await page.click('[data-testid="bot-explanation"] summary');
+  }
+  const text = await page.$eval('[data-testid="bot-explanation"]', (element) => element.textContent ?? "");
+  assert(text.includes("Bot why"), "Event Frontier exposes the bot why affordance");
+  assert(/Charter|Freeholders/.test(text), "Event Frontier bot why shows Rust rationale in player vocabulary");
+  assert(text.includes("Level 1 bot policy"), "Event Frontier bot why identifies the human-readable Rust policy tier");
 }
 
 async function playBotVsBotToTerminal(page, maxSteps = 32) {

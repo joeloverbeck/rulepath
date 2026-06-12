@@ -19,7 +19,16 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
           <p className="muted">Waiting for the Rust catalog...</p>
         ) : (
           games.map((game) => (
-            <div className="game-card" role="listitem" key={game.game_id}>
+            <div
+              className={game.game_id === selectedGameId ? "game-card selected" : "game-card"}
+              role="listitem"
+              key={game.game_id}
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("button")) return;
+                onSelect(game.game_id);
+              }}
+              aria-label={`Select ${game.display_name}`}
+            >
               <button
                 type="button"
                 className={game.game_id === selectedGameId ? "game-option selected" : "game-option"}
@@ -27,10 +36,7 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
                 aria-pressed={game.game_id === selectedGameId}
               >
                 <span>{game.display_name}</span>
-                <small>
-                  rules {game.rules_version} / schema {game.schema_version}
-                  {game.variants?.length ? ` / ${game.variants.join(", ")}` : ""}
-                </small>
+                <small>{gameSummary(game)}</small>
                 {game.hidden_information || game.viewer_modes?.length ? (
                   <span className="game-flags">
                     {game.hidden_information ? <span>Hidden info</span> : null}
@@ -52,4 +58,11 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
       </div>
     </section>
   );
+}
+
+function gameSummary(game: GameCatalogEntry): string {
+  if (!game.variants?.length || game.variants.length === 1) {
+    return game.variants?.[0]?.label ?? "Standard setup";
+  }
+  return `${game.variants.length} variants`;
 }

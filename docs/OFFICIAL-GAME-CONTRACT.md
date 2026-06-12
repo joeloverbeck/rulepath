@@ -119,6 +119,12 @@ Hidden-information games MUST describe visibility from the player's own
 perspective and public perspective without exposing opponent secrets, deck
 tails, unrevealed commitments, or seed-derived hidden data.
 
+The public How-to-Play file MUST NOT contain maintainer-facing sections or
+internal seat identifiers, and MUST document the game's resource economy
+(sources, sinks, caps, costs) when the game has spendable resources. Games
+with multiple public variants MUST expose every variant through match setup
+with a typed display label.
+
 ### Outcome explanation documentation
 
 Every official game MUST document how terminal results are explained to players.

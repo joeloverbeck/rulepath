@@ -1,6 +1,7 @@
 import type {
   ActionTree,
   ApiError,
+  BotTurnResult,
   EffectEntry,
   FeatureReport,
   GameCatalogEntry,
@@ -32,6 +33,12 @@ export type ReplaySessionState = {
   step: ReplayStep | null;
 };
 
+export type BotDecisionSummary = {
+  policyId: string;
+  policyVersion: number | null;
+  rationale: string;
+};
+
 export type RulesPanelStatus = "idle" | "loading" | "loaded" | "error";
 
 export type ShellState = {
@@ -44,6 +51,7 @@ export type ShellState = {
   setup: {
     seed: number;
     playMode: SetupPlayMode;
+    variantId: string | null;
   };
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
@@ -55,6 +63,7 @@ export type ShellState = {
   effects: EffectEntry[];
   effectCursor: number;
   diagnostic: ApiError | null;
+  lastBotDecision: BotDecisionSummary | null;
   staleToken: number | null;
   replay: ReplaySessionState | null;
   autoplay: {
@@ -83,6 +92,7 @@ export type ShellAction =
   | { type: "gameSelected"; gameId: string }
   | { type: "setupSeedChanged"; seed: number }
   | { type: "setupPlayModeChanged"; playMode: SetupPlayMode }
+  | { type: "setupVariantChanged"; variantId: string }
   | { type: "viewerModeChanged"; viewerMode: ViewerMode }
   | { type: "matchStarting" }
   | { type: "matchStarted"; matchId: string }
@@ -96,6 +106,7 @@ export type ShellAction =
   | { type: "replayStepped"; step: ReplayStep }
   | { type: "replayReset"; step: ReplayStep }
   | { type: "botTurnStarted" }
+  | { type: "botTurnCompleted"; result: BotTurnResult }
   | { type: "autoplayStarted" }
   | { type: "autoplayPaused" }
   | { type: "rulesPanelOpened"; gameId: string }
@@ -117,6 +128,7 @@ export const initialShellState: ShellState = {
   setup: {
     seed: 1,
     playMode: "human_vs_bot",
+    variantId: null,
   },
   matchId: null,
   actorSeat: "seat_0",
@@ -128,6 +140,7 @@ export const initialShellState: ShellState = {
   effects: [],
   effectCursor: 0,
   diagnostic: null,
+  lastBotDecision: null,
   staleToken: null,
   replay: null,
   autoplay: {
@@ -154,6 +167,10 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         catalog,
         featureReport: action.featureReport ?? state.featureReport,
         selectedGameId: state.selectedGameId || catalog[0]?.game_id || "",
+        setup: {
+          ...state.setup,
+          variantId: state.setup.variantId ?? catalog[0]?.variants?.[0]?.id ?? null,
+        },
         pendingOperation: null,
       };
     case "wasmLoadFailed":
@@ -164,11 +181,16 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         diagnostic: { code: "wasm_load_failed", message: action.message },
         pendingOperation: null,
       };
-    case "gameSelected":
+    case "gameSelected": {
+      const selectedGame = state.catalog.find((game) => game.game_id === action.gameId) ?? null;
       return {
         ...state,
         mode: "setup",
         selectedGameId: action.gameId,
+        setup: {
+          ...state.setup,
+          variantId: selectedGame?.variants?.[0]?.id ?? null,
+        },
         matchId: null,
         view: null,
         actionTree: null,
@@ -177,10 +199,12 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effectCursor: 0,
         viewerMode: viewerModeForPlayMode(state.setup.playMode),
         diagnostic: null,
+        lastBotDecision: null,
         staleToken: null,
         replay: null,
         autoplay: { running: false },
       };
+    }
     case "setupSeedChanged":
       return {
         ...state,
@@ -197,6 +221,14 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           playMode: action.playMode,
         },
         viewerMode: viewerModeForPlayMode(action.playMode),
+      };
+    case "setupVariantChanged":
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          variantId: action.variantId,
+        },
       };
     case "viewerModeChanged":
       return {
@@ -221,6 +253,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effectCursor: 0,
         viewerMode: viewerModeForPlayMode(state.setup.playMode),
         diagnostic: null,
+        lastBotDecision: null,
         staleToken: null,
         replay: null,
         autoplay: { running: false },
@@ -243,6 +276,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         ...state,
         staleToken: action.staleToken,
         diagnostic: null,
+        lastBotDecision: null,
         pendingActionPath: [],
         pendingOperation: "applyAction",
       };
@@ -260,6 +294,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
       return {
         ...state,
         diagnostic: action.diagnostic,
+        lastBotDecision: null,
         pendingActionPath: [],
         pendingOperation: null,
       };
@@ -279,6 +314,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           step: action.step,
         },
         autoplay: { running: false },
+        lastBotDecision: null,
         pendingActionPath: [],
         pendingOperation: null,
       };
@@ -312,6 +348,11 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
       return {
         ...state,
         pendingOperation: "botTurn",
+      };
+    case "botTurnCompleted":
+      return {
+        ...state,
+        lastBotDecision: botDecisionSummary(action.result),
       };
     case "autoplayStarted":
       return {
@@ -383,6 +424,17 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
     default:
       return state;
   }
+}
+
+function botDecisionSummary(result: BotTurnResult): BotDecisionSummary | null {
+  if (!result.policy_id || !result.rationale) {
+    return null;
+  }
+  return {
+    policyId: result.policy_id,
+    policyVersion: result.policy_version ?? null,
+    rationale: result.rationale,
+  };
 }
 
 function viewerModeForPlayMode(playMode: SetupPlayMode): ViewerMode {

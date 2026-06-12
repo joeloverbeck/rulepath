@@ -63,6 +63,11 @@ The shell includes:
   Frontier;
 - shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
 - shared `ActionPathBuilder` staged construction for nested Rust action trees;
+- shared action-affordance rendering for Rust-emitted cost/consequence metadata
+  and confirmation summaries;
+- `TurnReportPanel` narration of viewer-filtered bot turns and automated
+  advances near the board;
+- typed setup variant selector driven by Rust/WASM catalog variant labels;
 - Rust action-tree-driven buttons;
 - semantic effect log with reduced-motion support;
 - local replay export/import/reset/step;
@@ -107,5 +112,8 @@ single-stage `ActionControls` surface is sufficient.
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event Frontier.
+  The accessibility/no-leak layer includes a runtime raw-identifier DOM guard
+  over normal-mode visible text and accessibility labels, with induced-drift
+  negative coverage in `e2e/a11y-noleak.smoke.mjs`.
   A standalone Directional Flip E2E smoke file also exists under
   `e2e/`, but is not chained by `smoke:e2e`.

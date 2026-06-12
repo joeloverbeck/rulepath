@@ -25,6 +25,7 @@ import { ReplayViewer } from "./components/ReplayViewer";
 import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
+import { TurnReportPanel } from "./components/TurnReportPanel";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
   loadApi,
@@ -58,6 +59,7 @@ type AppTextState = {
   view:
     | {
         game_id: string;
+        variant_id?: string;
         active_seat: SeatId;
         freshness_token: number;
         status: string;
@@ -140,10 +142,10 @@ function App() {
       return;
     }
     dispatch({ type: "matchStarting" });
-    const created = api.newMatch(state.selectedGameId, state.setup.seed);
+    const created = api.newMatch(state.selectedGameId, state.setup.seed, selectedVariantForStart(selectedGame, state.setup.variantId));
     dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
-  }, [api, refresh, state.selectedGameId, state.setup.seed]);
+  }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seed, state.setup.variantId]);
 
   const playChoice = useCallback(
     (choice: ActionChoice) => {
@@ -166,7 +168,8 @@ function App() {
           afterHumanSeat &&
           botSeatForMode(state.setup.playMode, afterHumanSeat)
         ) {
-          api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          const botResult = api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          dispatch({ type: "botTurnCompleted", result: botResult });
         }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
@@ -197,7 +200,8 @@ function App() {
           afterHumanSeat &&
           botSeatForMode(state.setup.playMode, afterHumanSeat)
         ) {
-          api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          const botResult = api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          dispatch({ type: "botTurnCompleted", result: botResult });
         }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
@@ -220,7 +224,8 @@ function App() {
     }
     dispatch({ type: "botTurnStarted" });
     try {
-      api.runBotTurn(matchId, view.active_seat, botSeed(view));
+      const botResult = api.runBotTurn(matchId, view.active_seat, botSeed(view));
+      dispatch({ type: "botTurnCompleted", result: botResult });
       refresh(api, matchId, effectCursor);
     } catch (error: unknown) {
       dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
@@ -374,9 +379,11 @@ function App() {
             selectedGame={selectedGame}
             seed={state.setup.seed}
             playMode={state.setup.playMode}
+            variantId={state.setup.variantId}
             canStart={Boolean(api && state.selectedGameId)}
             onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
             onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
+            onVariantChange={(variantId) => dispatch({ type: "setupVariantChanged", variantId })}
             onRulesOpen={openRules}
             onStart={start}
           />
@@ -508,6 +515,7 @@ function App() {
             effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            seatRoleLabels={seatRoleLabelsForMode(state.setup.playMode)}
             onPathSubmit={playPath}
           />
         ) : isThreeMarksView(view) ? (
@@ -544,12 +552,15 @@ function App() {
           />
         )}
 
+        <TurnReportPanel gameId={state.selectedGameId} effects={effects} />
+
         <ModeControls
           playMode={state.setup.playMode}
           view={view}
           gameId={state.selectedGameId}
           gameName={selectedGame?.display_name ?? "selected game"}
           autoplayRunning={state.autoplay.running}
+          lastBotDecision={state.lastBotDecision}
           pending={state.pendingOperation !== null}
           onRulesOpen={openRules}
           onBotStep={runBotStep}
@@ -644,6 +655,23 @@ function botSeatForMode(playMode: SetupPlayMode, seat: SeatId): boolean {
 
 function botSeed(view: PublicView): number {
   return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
+}
+
+function seatRoleLabelsForMode(playMode: SetupPlayMode): Partial<Record<SeatId, string>> {
+  if (playMode === "human_vs_bot") {
+    return { seat_0: "you", seat_1: "bot" };
+  }
+  if (playMode === "hotseat") {
+    return { seat_0: "you", seat_1: "local" };
+  }
+  return { seat_0: "bot", seat_1: "bot" };
+}
+
+function selectedVariantForStart(selectedGame: { variants?: Array<{ id: string }> } | null, variantId: string | null): string | undefined {
+  if (!selectedGame?.variants || selectedGame.variants.length <= 1) {
+    return undefined;
+  }
+  return selectedGame.variants.some((variant) => variant.id === variantId) ? variantId ?? undefined : selectedGame.variants[0]?.id;
 }
 
 function parseReplayDocument(documentText: string): ReplayExportDocument | null {
@@ -823,6 +851,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   if (view.game_id === "flood_watch") {
     return {
       game_id: view.game_id,
+      variant_id: view.variant_id,
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status:
@@ -834,6 +863,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   if (view.game_id === "frontier_control") {
     return {
       game_id: view.game_id,
+      variant_id: view.variant_id,
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status:
@@ -845,6 +875,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
   if (view.game_id === "event_frontier") {
     return {
       game_id: view.game_id,
+      variant_id: view.variant_id,
       active_seat: view.active_seat ?? "seat_0",
       freshness_token: view.freshness_token,
       status:

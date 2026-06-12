@@ -67,7 +67,7 @@
     "display_name": "Event Frontier",
     "rules_asset_path": "/rules/event_frontier.md",
     "source_rules_version_checked": "event-frontier-rules-v1",
-    "sha256": "945bc17e6f3f62d69007e94e66de3b9ecaa64e7d561453a9fe5c04aba1cd903e"
+    "sha256": "62c634d1af83345b94c2e67f9cfdc5a471a978dc3965dd286b8bb7a252980800"
   },
   {
     "game_id": "token_bazaar",

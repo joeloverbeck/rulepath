@@ -382,6 +382,41 @@ h2 {
   background: #f9faf7;
 }
 
+.turn-report-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #cbd8d2;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fbfcfa;
+}
+
+.turn-report-panel ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.turn-report-panel li {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border-top: 1px solid #dbe4df;
+  padding-top: 8px;
+}
+
+.turn-report-panel li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.turn-report-panel li span {
+  color: #40514b;
+}
+
 .plain-tricks-metrics span,
 .plain-section-heading span,
 .plain-history span,
@@ -1480,6 +1515,15 @@ h2 {
   background: #fff9e8;
 }
 
+.bot-why {
+  flex: 1 0 100%;
+}
+
+.bot-why summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1786,6 +1830,13 @@ h2 {
 .game-card {
   display: grid;
   gap: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.game-card:focus-visible {
+  outline: 3px solid #256f5c;
+  outline-offset: 3px;
 }
 
 .game-option,
@@ -1805,6 +1856,7 @@ h2 {
   justify-self: stretch;
 }
 
+.game-card.selected .game-option,
 .game-option.selected,
 .mode-option.selected {
   border-color: #1f6d59;
@@ -2424,6 +2476,11 @@ h2 {
   stroke-dasharray: 2.5 1.8;
 }
 
+.frontier-site.highlighted circle {
+  stroke: #d68a2d;
+  stroke-width: 2;
+}
+
 .frontier-site path {
   fill: #3d6472;
 }
@@ -2491,10 +2548,45 @@ h2 {
   gap: 0.55rem;
 }
 
+.action-target-composer {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.action-target-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .action-path-options button,
+.action-target-options button,
 .action-path-tools button,
-.action-path-confirm button {
+.action-path-confirm button,
+.action-target-composer > button {
   min-height: 42px;
+}
+
+.action-target-options button[aria-pressed="true"] {
+  border-color: rgba(54, 103, 95, 0.62);
+  background: #e2f3ed;
+  color: #21433d;
+}
+
+.action-cost-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.45rem;
+  padding: 0.16rem 0.45rem;
+  border: 1px solid rgba(95, 65, 38, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 246, 222, 0.92);
+  color: #5c3b1f;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .action-path-trail {
@@ -2528,6 +2620,14 @@ h2 {
 .action-path-confirm strong {
   color: #241c16;
   line-height: 1.25;
+}
+
+.action-path-summary,
+.action-path-consequence {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .frontier-site-list ol {
@@ -3407,6 +3507,10 @@ h2 {
 }
 
 @media (max-width: 720px) {
+  .turn-report-panel li {
+    grid-template-columns: 1fr;
+  }
+
   .rules-panel-backdrop {
     justify-content: stretch;
   }

@@ -78,7 +78,8 @@ try {
   await assertNoLeak(page, consoleMessages, "reinforce action");
   await clickText(page, "button", "End turn");
   await waitForText(page, "Storm card drawn");
-  await waitForText(page, "seat_1");
+  await assertFloodWatchTurnReport(page);
+  await waitForText(page, "Seat 1");
   await assertNoLeak(page, consoleMessages, "environment phase");
 
   await clickText(page, "button", "Export Current Run");
@@ -209,6 +210,14 @@ async function assertFloodWatchA11y(page) {
   assert(summary.discardText.includes("Resolved storm cards"), "flood_watch drawn-card disclosure uses Rust label");
   assert(!summary.deckText.includes("downpour/") && !summary.deckText.includes("storm_surge/"), "flood_watch deck panel omits raw card ids");
   assert(summary.liveText.length > 0, "flood_watch latest-effect region has text");
+}
+
+async function assertFloodWatchTurnReport(page) {
+  const report = await page.$eval('[data-testid="turn-report-panel"]', (element) => element.textContent ?? "");
+  assert(report.includes("Turn report"), "flood_watch turn report renders near the board");
+  assert(report.includes("Storm phase"), "flood_watch turn report includes the environment automation burst");
+  assert(report.includes("Storm card drawn"), "flood_watch turn report narrates drawn storm cards");
+  assert(!report.includes("event_deck") && !report.includes("deck_order"), "flood_watch turn report omits hidden deck terms");
 }
 
 async function clickFirstFloodAction(page, text) {

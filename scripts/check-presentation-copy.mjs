@@ -12,6 +12,10 @@ import { readdir, readFile } from "node:fs/promises";
 // vocabulary, transport vocabulary, and raw internal ids. Machine-readable
 // props such as test ids, template keys, CSS class names, and rule ids are
 // exempt by line-level context.
+//
+// Runtime Rust-origin strings are covered by the normal-mode DOM guard in
+// `apps/web/e2e/a11y-noleak.smoke.mjs`; keep both layers because they catch
+// different failure modes.
 
 const repoRoot = process.cwd();
 const componentRoot = join(repoRoot, "apps/web/src/components");
@@ -19,7 +23,7 @@ const scannedNames = /(?:Board|DeckFlowPanel|ActionPathBuilder|OutcomeExplanatio
 const debugTerms = [/\bRust\b/, /\bWASM\b/, /\bprojection\b/i, /\bredacted\b/i, /\bpayload\b/i];
 const rawIdentifier = /\b(?:ef_[a-z0-9_]+|site_[a-z0-9_]+|faction_[a-z0-9_]+|seat_[0-9]+|[a-z]+_[a-z0-9_]+\/[a-z0-9_]+)\b/;
 const exemptLine =
-  /^\s*\/\/|data-testid|className|gameId|templateKey|ruleIds|decisiveCause|resultKind|type ===|payload\.|effect\.payload|metadata|segment|variant_id|rules_version|terminal_kind|private_view|active_seat|terminal_rationale|current_card|next_public_card|display_name|item_id|tile_id|slot_id|cell_id|district_/;
+  /^\s*\/\/|data-testid|className|gameId|templateKey|ruleIds|decisiveCause|resultKind|type ===|payload\.|return payload|effect\.payload|metadata|segment|variant_id|rules_version|terminal_kind|private_view|active_seat|terminal_rationale|current_card|next_public_card|display_name|item_id|tile_id|slot_id|cell_id|district_/;
 
 if (process.argv.includes("--self-test")) {
   await runSelfTest();

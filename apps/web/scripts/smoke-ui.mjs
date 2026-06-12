@@ -50,6 +50,10 @@ function assert(condition, message) {
   }
 }
 
+function hasVariant(game, id, label) {
+  return game.variants?.some((variant) => variant.id === id && variant.label === label);
+}
+
 const version = read(
   wasm.rulepath_placeholder_version_ptr(),
   wasm.rulepath_placeholder_version_len(),
@@ -151,19 +155,19 @@ assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog inclu
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
 assert(
   catalog.some(
-    (game) => game.game_id === "token_bazaar" && game.variants.includes("token_bazaar_standard"),
+    (game) => game.game_id === "token_bazaar" && hasVariant(game, "token_bazaar_standard", "Token Bazaar"),
   ),
   "Rust catalog includes token_bazaar standard variant",
 );
 assert(
   catalog.some(
-    (game) => game.game_id === "plain_tricks" && game.variants.includes("plain_tricks_standard"),
+    (game) => game.game_id === "plain_tricks" && hasVariant(game, "plain_tricks_standard", "Plain Tricks"),
   ),
   "Rust catalog includes plain_tricks standard variant",
 );
 assert(
   catalog.some(
-    (game) => game.game_id === "masked_claims" && game.variants.includes("masked_claims_standard"),
+    (game) => game.game_id === "masked_claims" && hasVariant(game, "masked_claims_standard", "Masked Claims"),
   ),
   "Rust catalog includes masked_claims standard variant",
 );
@@ -171,7 +175,7 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "flood_watch" &&
-      game.variants.includes("flood_watch_standard") &&
+      hasVariant(game, "flood_watch_standard", "Flood Watch") &&
       game.hidden_information === true &&
       game.cooperative === true,
   ),
@@ -181,7 +185,7 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "frontier_control" &&
-      game.variants.includes("frontier_control_standard") &&
+      hasVariant(game, "frontier_control_standard", "Frontier Control") &&
       game.hidden_information === false,
   ),
   "Rust catalog includes frontier_control standard perfect-information variant",
@@ -190,7 +194,7 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "event_frontier" &&
-      game.variants.includes("event_frontier_standard") &&
+      hasVariant(game, "event_frontier_standard", "Event Frontier") &&
       game.hidden_information === true &&
       game.tags.includes("event_deck"),
   ),

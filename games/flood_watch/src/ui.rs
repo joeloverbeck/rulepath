@@ -7,6 +7,11 @@ use crate::{
     variants::{parse_flat_toml, parse_string_list, reject_unknown_keys, required_string},
 };
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Flood Watch is cooperative and role-first; role labels remain authored in the Rust view.";
+pub const TURN_REPORT_ADOPTION: &str =
+    "Adopted by ACTCONMAT-006; Flood Watch reports viewer-filtered automation and storm bursts near the board.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub display_name: String,
@@ -35,6 +40,7 @@ pub struct CardFaceView {
     pub id: String,
     pub label: String,
     pub summary: String,
+    pub details: Option<String>,
     pub family: String,
     pub accessibility_label: String,
 }
@@ -44,6 +50,7 @@ pub struct CardPresentation {
     pub kind: EventKind,
     pub label: String,
     pub summary: String,
+    pub details: Option<String>,
     pub family: String,
     pub accessibility_label: String,
 }
@@ -62,6 +69,7 @@ impl CardPresentationCatalog {
                 "event_ids",
                 "labels",
                 "summaries",
+                "details",
                 "families",
                 "accessibility_labels",
             ],
@@ -71,6 +79,10 @@ impl CardPresentationCatalog {
         let labels = parse_non_empty_string_list(&required_string(&values, "labels")?, "labels")?;
         let summaries =
             parse_non_empty_string_list(&required_string(&values, "summaries")?, "summaries")?;
+        let details = values
+            .get("details")
+            .map(|value| parse_optional_string_list(value, "details"))
+            .transpose()?;
         let families =
             parse_non_empty_string_list(&required_string(&values, "families")?, "families")?;
         let accessibility_labels = parse_non_empty_string_list(
@@ -83,6 +95,7 @@ impl CardPresentationCatalog {
         for (field, field_len) in [
             ("labels", labels.len()),
             ("summaries", summaries.len()),
+            ("details", details.as_ref().map_or(len, Vec::len)),
             ("families", families.len()),
             ("accessibility_labels", accessibility_labels.len()),
         ] {
@@ -98,6 +111,7 @@ impl CardPresentationCatalog {
                 kind,
                 label: labels[index].clone(),
                 summary: summaries[index].clone(),
+                details: details.as_ref().and_then(|entries| entries[index].clone()),
                 family: families[index].clone(),
                 accessibility_label: accessibility_labels[index].clone(),
             })
@@ -121,6 +135,7 @@ pub fn card_face(kind: EventKind) -> CardFaceView {
         id: kind.id(),
         label: presentation.label.clone(),
         summary: presentation.summary.clone(),
+        details: presentation.details.clone(),
         family: presentation.family.clone(),
         accessibility_label: presentation.accessibility_label.clone(),
     }
@@ -139,6 +154,20 @@ fn parse_non_empty_string_list(value: &str, field: &str) -> Result<Vec<String>, 
         return Err(format!("{field} entry {empty_index} must not be empty"));
     }
     Ok(entries)
+}
+
+fn parse_optional_string_list(value: &str, field: &str) -> Result<Vec<Option<String>>, String> {
+    Ok(parse_non_empty_string_list(value, field)?
+        .into_iter()
+        .map(|entry| {
+            let trimmed = entry.trim();
+            if trimmed == "-" {
+                None
+            } else {
+                Some(trimmed.to_owned())
+            }
+        })
+        .collect())
 }
 
 fn validate_complete_unique_ids(ids: &[EventKind]) -> Result<(), String> {
@@ -198,8 +227,25 @@ mod tests {
                 .label,
             "Storm Surge at Market"
         );
+        assert!(catalog
+            .get(EventKind::StormSurge {
+                district: DistrictId::Market
+            })
+            .expect("market surge")
+            .details
+            .as_deref()
+            .unwrap()
+            .contains("two separate Market rise steps"));
         assert!(CardPresentationCatalog::parse(
             "event_ids = \"reprieve\"\nlabels = \"Reprieve\"\nsummaries = \"No rise.\"\nfamilies = \"reprieve\"\naccessibility_labels = \"Reprieve.\"\ntrigger = \"bad\"\n"
+        )
+        .is_err());
+        assert!(CardPresentationCatalog::parse(
+            "event_ids = \"reprieve\"\nlabels = \"Reprieve\"\nsummaries = \"No rise.\"\ndetails = \"No rise.\"\nfamilies = \"reprieve\"\naccessibility_labels = \"Reprieve.\"\nselector = \"bad\"\n"
+        )
+        .is_err());
+        assert!(CardPresentationCatalog::parse(
+            "event_ids = \"reprieve\"\nlabels = \"Reprieve\"\nsummaries = \"No rise.\"\ndetails = \"A,B\"\nfamilies = \"reprieve\"\naccessibility_labels = \"Reprieve.\"\n"
         )
         .is_err());
         assert!(CardPresentationCatalog::parse(
@@ -220,5 +266,6 @@ mod tests {
         assert_eq!(face.id, "downpour/district_riverside");
         assert_eq!(face.label, "Downpour at Riverside");
         assert!(face.summary.contains("Riverside rises"));
+        assert!(face.details.as_deref().unwrap().contains("Riverside flood"));
     }
 }

@@ -1,4 +1,5 @@
-import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView } from "../wasm/client";
+import { useState } from "react";
+import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView, SeatId } from "../wasm/client";
 import { ActionPathBuilder, type ActionPathSelection } from "./ActionPathBuilder";
 import { DeckFlowPanel } from "./DeckFlowPanel";
 import { feedbackForEffect } from "./effectFeedback";
@@ -11,6 +12,7 @@ type EventFrontierBoardProps = {
   effects?: EffectEntry[];
   reducedMotion: boolean;
   pending: boolean;
+  seatRoleLabels?: Partial<Record<SeatId, string>>;
   interactive?: boolean;
   onPathSubmit?: (path: string[]) => void;
 };
@@ -31,6 +33,7 @@ export function EventFrontierBoard({
   effects = latestEffect ? [latestEffect] : [],
   reducedMotion,
   pending,
+  seatRoleLabels = {},
   interactive = true,
   onPathSubmit,
 }: EventFrontierBoardProps) {
@@ -39,31 +42,34 @@ export function EventFrontierBoard({
   const terminal = view.terminal.kind !== "non_terminal";
   const canAct = Boolean(interactive && !pending && !terminal);
   const activeEffects = new Set(effects.map((entry) => String(entry.effect.payload.type)));
+  const [highlightedTargets, setHighlightedTargets] = useState<string[]>([]);
+  const charterLabel = factionLabel(view, "faction_charter");
+  const freeholdersLabel = factionLabel(view, "faction_freeholders");
   const outcomeExplanation =
     view.terminal.kind === "winner"
       ? outcomeSurfaceData({
           gameId: "event_frontier",
-          heading: `${factionLabel(view.terminal.winner)} win`,
+          heading: `${factionLabel(view, view.terminal.winner)} win`,
           rationale: view.terminal_rationale ?? null,
           resultKind: "win",
           decisiveCause: eventFrontierCause(view),
           templateKey: eventFrontierTemplateKey(view),
           templateParams: {
-            winner: factionLabel(view.terminal.winner),
+            winner: factionLabel(view, view.terminal.winner),
             charter_score: view.terminal.scores.charter,
             freeholder_score: view.terminal.scores.freeholders,
           },
           finalStanding: [
             {
               id: "faction_charter",
-              label: "Charter",
+              label: charterLabel,
               result: view.terminal.winner === "faction_charter" ? "win" : "loss",
               emphasized: view.terminal.winner === "faction_charter",
               values: [{ label: "Score", value: view.terminal.scores.charter }],
             },
             {
               id: "faction_freeholders",
-              label: "Freeholders",
+              label: freeholdersLabel,
               result: view.terminal.winner === "faction_freeholders" ? "win" : "loss",
               emphasized: view.terminal.winner === "faction_freeholders",
               values: [{ label: "Score", value: view.terminal.scores.freeholders }],
@@ -102,16 +108,18 @@ export function EventFrontierBoard({
         </span>
       </div>
 
+      {seatRoleLabels.seat_0 === "you" ? <p className="event-frontier-identity">You play the {seatLabel(view, "seat_0")}.</p> : null}
+
       <p className="sr-only" aria-live="polite">
         {view.display_name}, current card {view.current_card?.label ?? "none"}, next public card {view.next_public_card?.label ?? "none"}, {choices.length} action
         legal choices. Undrawn deck order beyond the next public card is hidden.
       </p>
 
       <div className="plain-tricks-metrics" aria-label="Event Frontier status">
-        <Metric label="Funds" value={String(view.resources.funds)} />
-        <Metric label="Provisions" value={String(view.resources.provisions)} />
-        <Metric label="Charter score" value={String(view.scores.charter)} />
-        <Metric label="Freeholder score" value={String(view.scores.freeholders)} />
+        <Metric label={`Funds - ${seatLabel(view, "seat_0")}${roleSuffix(seatRoleLabels.seat_0)}`} value={String(view.resources.funds)} />
+        <Metric label={`Provisions - ${seatLabel(view, "seat_1")}${roleSuffix(seatRoleLabels.seat_1)}`} value={String(view.resources.provisions)} />
+        <Metric label={`${charterLabel} score`} value={String(view.scores.charter)} />
+        <Metric label={`${freeholdersLabel} score`} value={String(view.scores.freeholders)} />
       </div>
 
       <DeckFlowPanel
@@ -141,7 +149,12 @@ export function EventFrontierBoard({
                 }),
             )}
             {view.sites.map((site) => (
-              <SiteNode key={site.site} site={site} active={activeEffects.has("op_resolved") || activeEffects.has("reckoning_resolved")} />
+              <SiteNode
+                key={site.site}
+                site={site}
+                active={activeEffects.has("op_resolved") || activeEffects.has("reckoning_resolved") || highlightedTargets.includes(site.site)}
+                highlighted={highlightedTargets.includes(site.site)}
+              />
             ))}
           </svg>
         </div>
@@ -171,12 +184,12 @@ export function EventFrontierBoard({
         <ol>
           {view.eligibility.map((entry) => (
             <li key={entry.faction}>
-              <span>{factionLabel(entry.faction)}</span>
+              <span>{factionLabel(view, entry.faction)}</span>
               <strong>{entry.eligible}</strong>
               <small>
                 {entry.faction === "faction_charter"
-                  ? `${view.victory_distance.charter_sites_needed} sites needed`
-                  : `${view.victory_distance.freeholder_caches_needed} caches needed`}
+                  ? `${charterLabel} needs ${view.victory_distance.charter_sites_needed} controlled sites for instant victory`
+                  : `${freeholdersLabel} needs ${view.victory_distance.freeholder_caches_needed} caches for instant victory`}
               </small>
             </li>
           ))}
@@ -215,6 +228,10 @@ export function EventFrontierBoard({
           <ActionPathBuilder
             tree={actionTree}
             disabled={!canAct}
+            emptyLabel={`${activeFactionLabel(view)} is waiting for the next available action.`}
+            affordanceTemplates={view.ui.action_affordance_templates}
+            costResource={activeResourceContext(view)}
+            onTargetHighlight={setHighlightedTargets}
             onSubmit={(selection) => onPathSubmit?.(eventFrontierSubmitPath(selection))}
           />
         </section>
@@ -225,10 +242,14 @@ export function EventFrontierBoard({
   );
 }
 
-function SiteNode({ site, active }: { site: EventFrontierSiteView; active: boolean }) {
+function SiteNode({ site, active, highlighted }: { site: EventFrontierSiteView; active: boolean; highlighted: boolean }) {
   const point = SITE_POINTS[site.site] ?? { x: 50, y: 50 };
   return (
-    <g className={`frontier-site${site.depot ? " fort" : ""}${site.cache_count > 0 ? " staked" : ""}${active ? " active" : ""}`}>
+    <g
+      className={`frontier-site${site.depot ? " fort" : ""}${site.cache_count > 0 ? " staked" : ""}${active ? " active" : ""}${
+        highlighted ? " highlighted" : ""
+      }`}
+    >
       <circle cx={point.x} cy={point.y} r={7} />
       {site.depot ? <path d={`M ${point.x - 4} ${point.y - 7} h 8 v 4 h -8 z`} /> : null}
       {site.cache_count > 0 ? <rect x={point.x - 2.4} y={point.y - 10.5} width="4.8" height="5.8" rx="0.8" /> : null}
@@ -258,13 +279,37 @@ function eventFrontierSubmitPath(selection: ActionPathSelection): string[] {
 function activeFactionLabel(view: EventFrontierPublicView): string {
   const activeSeatIndex = view.active_seat ? view.seats.indexOf(view.active_seat) : -1;
   const candidate = activeSeatIndex >= 0 ? view.factions[activeSeatIndex] : null;
-  return factionLabel(candidate);
+  return factionLabel(view, candidate);
 }
 
-function factionLabel(faction: string | null | undefined): string {
-  if (faction === "faction_charter") return "Charter";
-  if (faction === "faction_freeholders") return "Freeholders";
+function factionLabel(view: EventFrontierPublicView, faction: string | null | undefined): string {
+  const authored = view.ui.faction_labels.find((entry) => entry.faction === faction)?.label;
+  if (authored) return authored;
   return faction ?? "Active faction";
+}
+
+function seatLabel(view: EventFrontierPublicView, seat: string): string {
+  return view.ui.seat_labels.find((entry) => entry.seat === seat)?.label ?? seat;
+}
+
+function roleSuffix(role: string | undefined): string {
+  return role ? ` (${role})` : "";
+}
+
+function activeResourceContext(view: EventFrontierPublicView): { label: string; balance: number } | null {
+  const active = activeFaction(view);
+  if (active === "faction_charter") {
+    return { label: "funds", balance: view.resources.funds };
+  }
+  if (active === "faction_freeholders") {
+    return { label: "provisions", balance: view.resources.provisions };
+  }
+  return null;
+}
+
+function activeFaction(view: EventFrontierPublicView): string | null {
+  const activeSeatIndex = view.active_seat ? view.seats.indexOf(view.active_seat) : -1;
+  return activeSeatIndex >= 0 ? view.factions[activeSeatIndex] : null;
 }
 
 function siteSummary(site: EventFrontierSiteView): string {
@@ -272,7 +317,7 @@ function siteSummary(site: EventFrontierSiteView): string {
 }
 
 function terminalLabel(view: EventFrontierPublicView): string {
-  return view.terminal.kind === "winner" ? `${factionLabel(view.terminal.winner)} won` : "Event Frontier";
+  return view.terminal.kind === "winner" ? `${factionLabel(view, view.terminal.winner)} won` : "Event Frontier";
 }
 
 function eventFrontierCause(view: EventFrontierPublicView): string {

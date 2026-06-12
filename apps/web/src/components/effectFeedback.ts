@@ -641,7 +641,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "reckoning_resolved":
       return {
         title: "Reckoning resolved",
-        detail: `Reckoning ${payload.round ?? "current"} resolved: ${String(payload.victory_check ?? "public scoring complete")}.`,
+        detail: `Reckoning ${payload.round ?? "current"} resolved: ${reckoningResult(payload.victory_check)}.`,
         tone: "turn",
       };
     case "turn_ended":
@@ -788,6 +788,13 @@ function cardLabel(value: unknown): string {
 
 function formatSites(value: unknown): string {
   return Array.isArray(value) ? value.map(siteLabel).join(", ") : siteLabel(value);
+}
+
+function reckoningResult(value: unknown): string {
+  if (value === "none" || value === null || typeof value === "undefined") {
+    return "no instant victory; public scoring and income resolved";
+  }
+  return String(value);
 }
 
 function terminalOutcome(value: unknown, noun: string): string {

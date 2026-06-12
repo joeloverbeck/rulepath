@@ -131,7 +131,7 @@ export function DirectionalFlipBoard({
       <div className="directional-flip-banner">
         <div>
           <p className="eyebrow">Directional Flip</p>
-          <h2 id="directional-flip-heading">{view.status_label}</h2>
+          <h2 id="directional-flip-heading">{playerFacingText(view.status_label)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
           {terminalLabel(view)}
@@ -248,7 +248,7 @@ export function DirectionalFlipBoard({
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
             : feedback
-              ? feedback.detail
+              ? playerFacingText(feedback.detail)
             : forcedPassTarget
               ? "A forced pass is required."
               : interactive
@@ -359,30 +359,38 @@ function terminalLabel(view: DirectionalFlipPublicView): string {
     return "Draw";
   }
   if (view.terminal_kind === "win") {
-    return `${view.winning_seat} wins`;
+    return `${seatLabel(view.winning_seat)} wins`;
   }
-  return `${view.active_seat} to move`;
+  return `${seatLabel(view.active_seat)} to move`;
 }
 
 function boardSummary(view: DirectionalFlipPublicView): string {
   const occupied = view.cells
     .filter((cell) => cell.owner)
-    .map((cell) => `${cell.cell_id} ${cell.owner}`)
+    .map((cell) => `${cell.cell_id} ${seatLabel(cell.owner)}`)
     .join(", ");
   const legal = view.legal_targets
     .filter((target) => target.cell)
     .map((target) => target.cell)
     .join(", ");
-  return `${view.status_label}. Score ${view.score.seat_0} to ${view.score.seat_1}. Occupied: ${
+  return `${playerFacingText(view.status_label)}. Score ${view.score.seat_0} to ${view.score.seat_1}. Occupied: ${
     occupied || "none"
   }. Legal targets: ${legal || "none"}.`;
 }
 
 function cellLabel(cell: DirectionalFlipCellView): string {
   if (cell.owner) {
-    return `${cell.cell_id}, occupied by ${cell.owner}`;
+    return `${cell.cell_id}, occupied by ${seatLabel(cell.owner)}`;
   }
   return `${cell.cell_id}, empty`;
+}
+
+function seatLabel(seat: string | null): string {
+  return seat === "seat_0" ? "Player 1" : seat === "seat_1" ? "Player 2" : "No player";
+}
+
+function playerFacingText(value: string): string {
+  return value.replace(/\bseat_0\b/g, "Player 1").replace(/\bseat_1\b/g, "Player 2");
 }
 
 function discLabel(cell: DirectionalFlipCellView): string {

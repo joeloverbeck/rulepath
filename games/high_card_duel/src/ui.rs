@@ -1,3 +1,8 @@
+pub const SEAT_LABEL_AUDIT: &str =
+    "High Card Duel is factionless; keep existing player/seat naming for hidden-commitment views.";
+pub const TURN_REPORT_AUDIT: &str =
+    "Not adopted by ACTCONMAT-006; High Card Duel reveal narration already stays in its board surface.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub table_label: String,

@@ -21,6 +21,7 @@ const requiredExports = [
   "rulepath_feature_report",
   "rulepath_list_games",
   "rulepath_new_match",
+  "rulepath_new_match_with_variant",
   "rulepath_get_view",
   "rulepath_get_view_for_viewer",
   "rulepath_get_action_tree",
@@ -46,7 +47,7 @@ assert(version === "rulepath-wasm-api/0.1.0", "wasm artifact loads");
 
 const featureReport = invoke(() => wasm.rulepath_feature_report(), []);
 assert(featureReport.api_version === version, "feature_report returns the API version");
-for (const op of ["new_match", "get_view", "apply_action", "export_replay", "import_replay"]) {
+for (const op of ["new_match", "new_match_with_variant", "get_view", "apply_action", "export_replay", "import_replay"]) {
   assert(featureReport.operations.includes(op), `feature_report includes ${op}`);
 }
 
@@ -58,7 +59,7 @@ assert(catalog.some((game) => game.game_id === "directional_flip"), "list_games 
 assert(catalog.some((game) => game.game_id === "draughts_lite"), "list_games includes draughts_lite");
 assert(
   catalog.some(
-    (game) => game.game_id === "token_bazaar" && game.variants.includes("token_bazaar_standard"),
+    (game) => game.game_id === "token_bazaar" && hasVariant(game, "token_bazaar_standard", "Token Bazaar"),
   ),
   "list_games includes token_bazaar standard variant",
 );
@@ -66,7 +67,7 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "secret_draft" &&
-      game.variants.includes("secret_draft_standard") &&
+      hasVariant(game, "secret_draft_standard", "Veiled Draft") &&
       game.hidden_information === true,
   ),
   "list_games includes secret_draft standard hidden-information variant",
@@ -75,7 +76,7 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "plain_tricks" &&
-      game.variants.includes("plain_tricks_standard") &&
+      hasVariant(game, "plain_tricks_standard", "Plain Tricks") &&
       game.hidden_information === true &&
       game.tags.includes("trick_taking"),
   ),
@@ -85,7 +86,7 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "masked_claims" &&
-      game.variants.includes("masked_claims_standard") &&
+      hasVariant(game, "masked_claims_standard", "Masked Claims") &&
       game.hidden_information === true &&
       game.tags.includes("reaction_window"),
   ),
@@ -95,8 +96,8 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "flood_watch" &&
-      game.variants.includes("flood_watch_standard") &&
-      game.variants.includes("flood_watch_deluge") &&
+      hasVariant(game, "flood_watch_standard", "Flood Watch") &&
+      hasVariant(game, "flood_watch_deluge", "Flood Watch: Deluge") &&
       game.hidden_information === true &&
       game.cooperative === true,
   ),
@@ -106,8 +107,8 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "frontier_control" &&
-      game.variants.includes("frontier_control_standard") &&
-      game.variants.includes("frontier_control_highlands") &&
+      hasVariant(game, "frontier_control_standard", "Frontier Control") &&
+      hasVariant(game, "frontier_control_highlands", "Frontier Control: Highlands") &&
       game.hidden_information === false &&
       game.tags.includes("asymmetric_factions"),
   ),
@@ -117,14 +118,20 @@ assert(
   catalog.some(
     (game) =>
       game.game_id === "event_frontier" &&
-      game.variants.includes("event_frontier_standard") &&
-      game.variants.includes("event_frontier_hard_winter") &&
-      game.variants.includes("event_frontier_land_rush") &&
+      hasVariant(game, "event_frontier_standard", "Event Frontier") &&
+      hasVariant(game, "event_frontier_hard_winter", "Event Frontier: Hard Winter") &&
+      hasVariant(game, "event_frontier_land_rush", "Event Frontier: Land Rush") &&
       game.hidden_information === true &&
       game.tags.includes("event_deck"),
   ),
   "list_games includes event_frontier hidden-information variants",
 );
+
+const eventFrontierHardWinter = invoke(
+  (args) => wasm.rulepath_new_match_with_variant(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 23n),
+  ["event_frontier", "event_frontier_hard_winter"],
+);
+assert(eventFrontierHardWinter.variant_id === "event_frontier_hard_winter", "event_frontier hard winter variant starts");
 
 const frontierCreated = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
@@ -1170,6 +1177,10 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function hasVariant(game, id, label) {
+  return game.variants?.some((variant) => variant.id === id && variant.label === label);
 }
 
 function firstCompletePath(choices, prefix = []) {
