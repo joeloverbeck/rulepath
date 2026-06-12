@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-011: Native test suite and golden traces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier/tests/{rules,property,replay,serialization,visibility,bots}.rs` (full coverage matrix); `games/event_frontier/tests/golden_traces/*.json` (eighteen golden traces)
@@ -82,3 +82,15 @@ Create `tests/golden_traces/` with the eighteen named traces (per the spec's "Go
 1. `cargo test -p event_frontier`
 2. `cargo test --workspace`
 3. The per-crate suite plus a workspace test run is the correct boundary; `replay-check`/`rule-coverage` CLI validation lands with tool registration (ticket 015).
+
+## Outcome
+
+- Added `games/event_frontier/tests/golden_traces.rs`, which enumerates the required eighteen trace files and verifies each committed JSON object against computed state, effect, action-tree, public-view, diagnostic, terminal, hidden-info, and stochastic marker surfaces.
+- Authored all eighteen `games/event_frontier/tests/golden_traces/*.trace.json` files named by the spec, each with Trace Schema v1 fields, final expected hashes, `undrawn_deck_order` hidden-info marker, `setup_shuffle` stochastic marker, and per-seat hidden surfaces marked not applicable.
+- The existing rules/property/replay/serialization/visibility/bots suite remains green, and the new trace verifier locks the trace files to current Rust behavior until ticket 015 wires them into `replay-check`.
+
+## Verification
+
+- `cargo fmt --all --check`
+- `cargo test -p event_frontier`
+- `cargo test --workspace`
