@@ -145,6 +145,7 @@ try {
   assert(charterInstant.status.includes("charter_instant"), "seed 3 reaches Charter instant victory");
   assert(charterInstant.seenSeats.has("seat_0") && charterInstant.seenSeats.has("seat_1"), "bot-vs-bot stepped both Event Frontier factions");
   await page.waitForSelector(".outcome-explanation-panel");
+  await assertEventFrontierBotWhy(page);
   await assertNoLeak(page, consoleMessages, "charter instant terminal");
 
   await startEventFrontier(page, baseUrl, "Bot vs bot", 55);
@@ -494,6 +495,18 @@ async function assertActionConfirmSummary(page) {
   assert(summary.includes("Spends "), "confirm summary states operation cost");
   assert(summary.includes(" of your "), "confirm summary compares cost against visible balance");
   assert(summary.includes("forfeits your eligibility for the next card"), "confirm summary states eligibility consequence");
+}
+
+async function assertEventFrontierBotWhy(page) {
+  await page.waitForSelector('[data-testid="bot-explanation"]');
+  const open = await page.$eval('[data-testid="bot-explanation"]', (element) => element.hasAttribute("open"));
+  if (!open) {
+    await page.click('[data-testid="bot-explanation"] summary');
+  }
+  const text = await page.$eval('[data-testid="bot-explanation"]', (element) => element.textContent ?? "");
+  assert(text.includes("Bot why"), "Event Frontier exposes the bot why affordance");
+  assert(/Charter|Freeholders/.test(text), "Event Frontier bot why shows Rust rationale in player vocabulary");
+  assert(text.includes("Level 1 bot policy"), "Event Frontier bot why identifies the human-readable Rust policy tier");
 }
 
 async function playBotVsBotToTerminal(page, maxSteps = 32) {

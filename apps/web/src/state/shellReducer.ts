@@ -1,6 +1,7 @@
 import type {
   ActionTree,
   ApiError,
+  BotTurnResult,
   EffectEntry,
   FeatureReport,
   GameCatalogEntry,
@@ -32,6 +33,12 @@ export type ReplaySessionState = {
   step: ReplayStep | null;
 };
 
+export type BotDecisionSummary = {
+  policyId: string;
+  policyVersion: number | null;
+  rationale: string;
+};
+
 export type RulesPanelStatus = "idle" | "loading" | "loaded" | "error";
 
 export type ShellState = {
@@ -56,6 +63,7 @@ export type ShellState = {
   effects: EffectEntry[];
   effectCursor: number;
   diagnostic: ApiError | null;
+  lastBotDecision: BotDecisionSummary | null;
   staleToken: number | null;
   replay: ReplaySessionState | null;
   autoplay: {
@@ -98,6 +106,7 @@ export type ShellAction =
   | { type: "replayStepped"; step: ReplayStep }
   | { type: "replayReset"; step: ReplayStep }
   | { type: "botTurnStarted" }
+  | { type: "botTurnCompleted"; result: BotTurnResult }
   | { type: "autoplayStarted" }
   | { type: "autoplayPaused" }
   | { type: "rulesPanelOpened"; gameId: string }
@@ -131,6 +140,7 @@ export const initialShellState: ShellState = {
   effects: [],
   effectCursor: 0,
   diagnostic: null,
+  lastBotDecision: null,
   staleToken: null,
   replay: null,
   autoplay: {
@@ -189,6 +199,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effectCursor: 0,
         viewerMode: viewerModeForPlayMode(state.setup.playMode),
         diagnostic: null,
+        lastBotDecision: null,
         staleToken: null,
         replay: null,
         autoplay: { running: false },
@@ -242,6 +253,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effectCursor: 0,
         viewerMode: viewerModeForPlayMode(state.setup.playMode),
         diagnostic: null,
+        lastBotDecision: null,
         staleToken: null,
         replay: null,
         autoplay: { running: false },
@@ -264,6 +276,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         ...state,
         staleToken: action.staleToken,
         diagnostic: null,
+        lastBotDecision: null,
         pendingActionPath: [],
         pendingOperation: "applyAction",
       };
@@ -281,6 +294,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
       return {
         ...state,
         diagnostic: action.diagnostic,
+        lastBotDecision: null,
         pendingActionPath: [],
         pendingOperation: null,
       };
@@ -300,6 +314,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           step: action.step,
         },
         autoplay: { running: false },
+        lastBotDecision: null,
         pendingActionPath: [],
         pendingOperation: null,
       };
@@ -333,6 +348,11 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
       return {
         ...state,
         pendingOperation: "botTurn",
+      };
+    case "botTurnCompleted":
+      return {
+        ...state,
+        lastBotDecision: botDecisionSummary(action.result),
       };
     case "autoplayStarted":
       return {
@@ -404,6 +424,17 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
     default:
       return state;
   }
+}
+
+function botDecisionSummary(result: BotTurnResult): BotDecisionSummary | null {
+  if (!result.policy_id || !result.rationale) {
+    return null;
+  }
+  return {
+    policyId: result.policy_id,
+    policyVersion: result.policy_version ?? null,
+    rationale: result.rationale,
+  };
 }
 
 function viewerModeForPlayMode(playMode: SetupPlayMode): ViewerMode {

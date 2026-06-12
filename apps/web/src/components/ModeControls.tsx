@@ -1,4 +1,4 @@
-import type { SetupPlayMode } from "../state/shellReducer";
+import type { BotDecisionSummary, SetupPlayMode } from "../state/shellReducer";
 import type { PublicView, SeatId } from "../wasm/client";
 
 type ModeControlsProps = {
@@ -7,6 +7,7 @@ type ModeControlsProps = {
   gameId: string;
   gameName: string;
   autoplayRunning: boolean;
+  lastBotDecision: BotDecisionSummary | null;
   pending: boolean;
   onRulesOpen: (gameId: string) => void;
   onBotStep: () => void;
@@ -20,6 +21,7 @@ export function ModeControls({
   gameId,
   gameName,
   autoplayRunning,
+  lastBotDecision,
   pending,
   onRulesOpen,
   onBotStep,
@@ -75,8 +77,22 @@ export function ModeControls({
           </>
         ) : null}
       </div>
+
+      {gameId === "event_frontier" && lastBotDecision ? (
+        <details className="bot-note bot-why" data-testid="bot-explanation">
+          <summary>Bot why</summary>
+          <strong>{lastBotDecision.rationale}</strong>
+          <span>{policyLabel(lastBotDecision)}</span>
+        </details>
+      ) : null}
     </section>
   );
+}
+
+function policyLabel(decision: BotDecisionSummary): string {
+  const version = decision.policyVersion === null ? "" : ` v${decision.policyVersion}`;
+  const level = decision.policyId.includes("level1") ? "Level 1" : "Rust";
+  return `${level} bot policy${version}`;
 }
 
 function isBotSeat(playMode: SetupPlayMode, seat: SeatId): boolean {

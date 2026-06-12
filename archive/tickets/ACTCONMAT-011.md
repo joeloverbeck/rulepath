@@ -1,6 +1,6 @@
 # ACTCONMAT-011: Bot "why?" audit and conditional §15 affordance
 
-**Status**: PENDING
+**Status**: DONE (2026-06-12)
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Conditional — `Yes (presentation-only)` if a viewer-safe explanation is exposed and the affordance is rendered (`apps/web` reading the existing bot explanation from the wasm bridge); `None` if the audit finds nothing viewer-safe exposed and records a named follow-up. No new bot reasoning either way.
@@ -80,3 +80,18 @@ Record the blocking gap as a named follow-up (what the bridge would need to expo
 1. `npm --prefix apps/web run smoke:e2e`
 2. `cargo test -p event_frontier` (bot legality unchanged)
 3. `grep -n "explanation\|reason" crates/wasm-api/src/lib.rs` (audit surface)
+
+## Completion Notes (2026-06-12)
+
+Audit outcome: affordance rendered. `crates/wasm-api/src/lib.rs` already projects Event Frontier Level 1 bot decisions through `run_bot_turn` as `{ policy_id, policy_version, rationale, effects, view }`; `games/event_frontier/src/bots.rs` builds the rationale from public-view policy inputs, and the existing bot tests include `bot_inputs_and_explanations_do_not_expose_undrawn_deck_order`.
+
+Implemented a presentation-only "Bot why" disclosure in the shell mode controls for Event Frontier. The web client now preserves the full bot-turn response, stores the latest viewer-safe rationale in shell state, and renders the Rust-authored rationale plus a human-readable policy tier. The raw Rust policy id remains internal and is not shown in normal-mode UI.
+
+Verification:
+
+1. `grep -n "explanation\|reason" crates/wasm-api/src/lib.rs` — audit command run.
+2. `grep -n "rationale" crates/wasm-api/src/lib.rs` — confirmed Event Frontier bot-turn response projects `rationale` at the bridge.
+3. `cargo test -p event_frontier` — passed.
+4. `npm --prefix apps/web run build` — passed.
+5. `node apps/web/e2e/event-frontier.smoke.mjs` — passed with the opened "Bot why" no-leak assertion.
+6. `npm --prefix apps/web run smoke:e2e` — passed.

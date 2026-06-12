@@ -168,7 +168,8 @@ function App() {
           afterHumanSeat &&
           botSeatForMode(state.setup.playMode, afterHumanSeat)
         ) {
-          api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          const botResult = api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          dispatch({ type: "botTurnCompleted", result: botResult });
         }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
@@ -199,7 +200,8 @@ function App() {
           afterHumanSeat &&
           botSeatForMode(state.setup.playMode, afterHumanSeat)
         ) {
-          api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          const botResult = api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
+          dispatch({ type: "botTurnCompleted", result: botResult });
         }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
@@ -222,7 +224,8 @@ function App() {
     }
     dispatch({ type: "botTurnStarted" });
     try {
-      api.runBotTurn(matchId, view.active_seat, botSeed(view));
+      const botResult = api.runBotTurn(matchId, view.active_seat, botSeed(view));
+      dispatch({ type: "botTurnCompleted", result: botResult });
       refresh(api, matchId, effectCursor);
     } catch (error: unknown) {
       dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
@@ -557,6 +560,7 @@ function App() {
           gameId={state.selectedGameId}
           gameName={selectedGame?.display_name ?? "selected game"}
           autoplayRunning={state.autoplay.running}
+          lastBotDecision={state.lastBotDecision}
           pending={state.pendingOperation !== null}
           onRulesOpen={openRules}
           onBotStep={runBotStep}

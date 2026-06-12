@@ -1073,6 +1073,13 @@ export type EffectEntry = {
   };
 };
 
+export type BotTurnResult = {
+  view: PublicView;
+  policy_id?: string;
+  policy_version?: number;
+  rationale?: string;
+};
+
 export type ApiError = {
   code: string;
   message: string;
@@ -1290,11 +1297,10 @@ export class RulepathApi {
     return response.view;
   }
 
-  runBotTurn(matchId: string, seat: string, seed: number): PublicView {
-    const response = this.invokeJson<{ view: PublicView }>((args) =>
+  runBotTurn(matchId: string, seat: string, seed: number): BotTurnResult {
+    return this.invokeJson<BotTurnResult>((args) =>
       this.exports.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, BigInt(seed)),
     [matchId, seat]);
-    return response.view;
   }
 
   getEffects(matchId: string, sinceCursor: number, viewerMode: ViewerMode = { kind: "observer" }): EffectEntry[] {

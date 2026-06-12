@@ -1515,6 +1515,15 @@ h2 {
   background: #fff9e8;
 }
 
+.bot-why {
+  flex: 1 0 100%;
+}
+
+.bot-why summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
