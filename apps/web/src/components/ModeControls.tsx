@@ -8,6 +8,7 @@ type ModeControlsProps = {
   gameName: string;
   autoplayRunning: boolean;
   orchestrationPaused: boolean;
+  orchestrationRate: number;
   lastBotDecision: BotDecisionSummary | null;
   pending: boolean;
   onRulesOpen: (gameId: string) => void;
@@ -15,6 +16,7 @@ type ModeControlsProps = {
   onSkip: () => void;
   onOrchestrationPause: () => void;
   onOrchestrationResume: () => void;
+  onOrchestrationRateChange: (rate: number) => void;
   onAutoplayStart: () => void;
   onAutoplayPause: () => void;
 };
@@ -26,6 +28,7 @@ export function ModeControls({
   gameName,
   autoplayRunning,
   orchestrationPaused,
+  orchestrationRate,
   lastBotDecision,
   pending,
   onRulesOpen,
@@ -33,6 +36,7 @@ export function ModeControls({
   onSkip,
   onOrchestrationPause,
   onOrchestrationResume,
+  onOrchestrationRateChange,
   onAutoplayStart,
   onAutoplayPause,
 }: ModeControlsProps) {
@@ -89,6 +93,14 @@ export function ModeControls({
             <button type="button" onClick={onBotStep} disabled={!canRunBot}>
               Step Bot
             </button>
+            <label className="speed-field">
+              <span>Speed</span>
+              <select value={orchestrationRate} onChange={(event) => onOrchestrationRateChange(Number(event.currentTarget.value))}>
+                <option value={0.5}>0.5x</option>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+              </select>
+            </label>
             {autoplayRunning ? (
               <button type="button" onClick={onAutoplayPause}>
                 Pause

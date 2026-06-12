@@ -81,7 +81,9 @@ function App() {
   const schedulerRef = useRef<EffectAnimationScheduler | null>(null);
   const lastAnimatedCursorRef = useRef(0);
   const autoBotInFlightRef = useRef(false);
+  const autoplayInFlightRef = useRef(false);
   const orchestrationPausedRef = useRef(state.orchestration.paused);
+  const autoplayRunningRef = useRef(state.autoplay.running);
 
   if (!schedulerRef.current) {
     schedulerRef.current = new EffectAnimationScheduler({ reducedMotion: state.reducedMotion });
@@ -148,12 +150,21 @@ function App() {
   }, [motion.reducedMotion]);
 
   useEffect(() => {
+    schedulerRef.current?.setRate(state.orchestration.rate);
+  }, [state.orchestration.rate]);
+
+  useEffect(() => {
     orchestrationPausedRef.current = state.orchestration.paused;
   }, [state.orchestration.paused]);
 
   useEffect(() => {
+    autoplayRunningRef.current = state.autoplay.running;
+  }, [state.autoplay.running]);
+
+  useEffect(() => {
     lastAnimatedCursorRef.current = 0;
     autoBotInFlightRef.current = false;
+    autoplayInFlightRef.current = false;
     void schedulerRef.current?.flush();
   }, [matchId]);
 
@@ -314,23 +325,25 @@ function App() {
     [api],
   );
 
-  const stepReplay = useCallback(() => {
+  const stepReplay = useCallback(async () => {
     if (!api || !state.replay) {
       return;
     }
+    await flushScheduler();
     dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
     const step = api.replayStep(state.replay.replayId, state.replay.cursor + 1);
     dispatch({ type: "replayStepped", step });
-  }, [api, state.replay]);
+  }, [api, flushScheduler, state.replay]);
 
-  const resetReplay = useCallback(() => {
+  const resetReplay = useCallback(async () => {
     if (!api || !state.replay) {
       return;
     }
+    await flushScheduler();
     dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
     const step = api.replayReset(state.replay.replayId);
     dispatch({ type: "replayReset", step });
-  }, [api, state.replay]);
+  }, [api, flushScheduler, state.replay]);
 
   const openRules = useCallback((gameId: string) => {
     dispatch({ type: "rulesPanelOpened", gameId });
@@ -370,14 +383,27 @@ function App() {
       state.setup.playMode !== "bot_vs_bot" ||
       state.pendingOperation !== null ||
       !view ||
-      isTerminalView(view)
+      isTerminalView(view) ||
+      autoplayInFlightRef.current
     ) {
       return;
     }
-    const delay = state.reducedMotion ? 80 : 520;
-    const timer = window.setTimeout(runBotStep, delay);
-    return () => window.clearTimeout(timer);
-  }, [runBotStep, state.autoplay.running, state.pendingOperation, state.reducedMotion, state.setup.playMode, view]);
+    autoplayInFlightRef.current = true;
+    const effectsToDrain = effects.filter((entry) => entry.cursor > lastAnimatedCursorRef.current);
+    const newestCursor = effectsToDrain.reduce((cursor, entry) => Math.max(cursor, entry.cursor), lastAnimatedCursorRef.current);
+
+    void (async () => {
+      try {
+        await schedulerRef.current?.enqueueEffects(effectsToDrain);
+        lastAnimatedCursorRef.current = newestCursor;
+        if (autoplayRunningRef.current) {
+          runBotStep();
+        }
+      } finally {
+        autoplayInFlightRef.current = false;
+      }
+    })();
+  }, [effects, runBotStep, state.autoplay.running, state.pendingOperation, state.setup.playMode, view]);
 
   const textState = useMemo<AppTextState>(
     () => ({
@@ -607,6 +633,7 @@ function App() {
           gameName={selectedGame?.display_name ?? "selected game"}
           autoplayRunning={state.autoplay.running}
           orchestrationPaused={state.orchestration.paused}
+          orchestrationRate={state.orchestration.rate}
           lastBotDecision={state.lastBotDecision}
           pending={state.pendingOperation !== null}
           onRulesOpen={openRules}
@@ -614,6 +641,7 @@ function App() {
           onSkip={() => void flushScheduler()}
           onOrchestrationPause={() => dispatch({ type: "orchestrationPaused" })}
           onOrchestrationResume={() => dispatch({ type: "orchestrationResumed" })}
+          onOrchestrationRateChange={(rate) => dispatch({ type: "orchestrationRateChanged", rate })}
           onAutoplayStart={() => dispatch({ type: "autoplayStarted" })}
           onAutoplayPause={() => dispatch({ type: "autoplayPaused" })}
         />

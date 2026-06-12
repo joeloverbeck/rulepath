@@ -1574,6 +1574,19 @@ h2 {
   gap: 10px;
 }
 
+.speed-field {
+  display: grid;
+  gap: 4px;
+  min-width: 88px;
+}
+
+.speed-field span {
+  color: #687973;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .replay-io,
 .replay-viewer {
   display: grid;
@@ -3290,7 +3303,8 @@ svg g[data-effect-kind] {
     flex-direction: column;
   }
 
-  .motion-field {
+  .motion-field,
+  .speed-field {
     width: 100%;
   }
 

@@ -71,6 +71,7 @@ export type ShellState = {
   };
   orchestration: {
     paused: boolean;
+    rate: number;
   };
   rulesPanelOpen: boolean;
   rulesPanelGameId: string | null;
@@ -114,6 +115,7 @@ export type ShellAction =
   | { type: "autoplayPaused" }
   | { type: "orchestrationPaused" }
   | { type: "orchestrationResumed" }
+  | { type: "orchestrationRateChanged"; rate: number }
   | { type: "rulesPanelOpened"; gameId: string }
   | { type: "rulesPanelClosed" }
   | { type: "rulesPanelLoadStarted"; gameId: string }
@@ -153,6 +155,7 @@ export const initialShellState: ShellState = {
   },
   orchestration: {
     paused: false,
+    rate: 1,
   },
   rulesPanelOpen: false,
   rulesPanelGameId: null,
@@ -211,7 +214,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         staleToken: null,
         replay: null,
         autoplay: { running: false },
-        orchestration: { paused: false },
+        orchestration: { paused: false, rate: state.orchestration.rate },
       };
     }
     case "setupSeedChanged":
@@ -266,7 +269,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         staleToken: null,
         replay: null,
         autoplay: { running: false },
-        orchestration: { paused: false },
+        orchestration: { paused: false, rate: state.orchestration.rate },
         pendingOperation: null,
       };
     case "refreshed":
@@ -378,12 +381,17 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
     case "orchestrationPaused":
       return {
         ...state,
-        orchestration: { paused: true },
+        orchestration: { ...state.orchestration, paused: true },
       };
     case "orchestrationResumed":
       return {
         ...state,
-        orchestration: { paused: false },
+        orchestration: { ...state.orchestration, paused: false },
+      };
+    case "orchestrationRateChanged":
+      return {
+        ...state,
+        orchestration: { ...state.orchestration, rate: action.rate },
       };
     case "rulesPanelOpened":
       return {
