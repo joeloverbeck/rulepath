@@ -206,6 +206,10 @@ failures.
 5. Repair active references and progress surfaces, especially `specs/README.md`
    when a spec was closed, and any active tickets, docs, app README tables,
    catalog/smoke lists, or scripts that referenced the live reference path.
+   For specs, distinguish the progress index from the archived artifact:
+   `specs/README.md` may keep its progress status as `Done`, while the archived
+   spec document itself must use archival status `**Status**: COMPLETED` plus
+   `## Outcome`.
 6. Assert the archived reference is truthy before goal completion:
    - read or grep the archived artifact and confirm archival final status and
      `Outcome`;
@@ -245,13 +249,20 @@ Run a concrete version of this checklist before reporting done or calling
 ```sh
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
+find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
 rg -n "^\*\*Status\*\*:|^## Outcome" archive/tickets/TICKET_PREFIX*.md
 test ! -e ACTIVE_REFERENCE_PATH
-rg -n "^\*\*Status\*\*:|^## Outcome" archive/specs/ARCHIVED_REFERENCE.md
+rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^## Outcome" archive/specs/ARCHIVED_REFERENCE.md
+rg -n "^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*" archive/specs/ARCHIVED_REFERENCE.md && exit 1 || true
 rg -n "ACTIVE_REFERENCE_PATH|tickets/TICKET_PREFIX" specs tickets docs apps scripts || true
 git status --short
 git diff --cached --name-status
 ```
+
+Compare the archived ticket name list and count against the concrete ticket
+paths resolved at startup. If the reference status grep finds no valid archival
+status line, or the informal-status guard finds `Done`, `ACCEPTED`, or a
+bullet-style status field, the reference is not truthy enough for completion.
 
 ## Reporting
 

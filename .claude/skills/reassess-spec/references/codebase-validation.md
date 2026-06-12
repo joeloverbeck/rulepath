@@ -2,7 +2,7 @@
 
 Validate every reference from Step 2 against the current codebase.
 
-**Parallel grep-batch guard**: when validating via direct `grep` / `find` / `test` calls batched in one parallel turn, guard each with `|| true`. A non-zero exit from one call (grep finding nothing, `test` on a missing path) cancels its siblings in the batch. Zero-match results are expected and valid during validation.
+**Parallel grep-batch guard**: when validating via direct `grep` / `find` / `test` calls batched in one parallel turn, guard each with `|| true`. A non-zero exit from one call (grep finding nothing, `test` on a missing path) cancels its siblings in the batch. Zero-match results are expected and valid during validation. Prefer several small independent Bash calls over one long `{ …; } | head` compound — a sub-command that dies mid-block silently loses every later command's output; if a compound block returns fewer results than commands, re-run the missing checks individually rather than trusting the partial output.
 
 Substep applicability by Pre-Process classification:
 
