@@ -1,6 +1,6 @@
 # ACTCONMAT-012: Lift-ready doc amendments
 
-**Status**: PENDING
+**Status**: DONE (2026-06-12)
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — documentation only (`docs/UI-INTERACTION.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `apps/web/README.md`).
@@ -79,3 +79,18 @@ Add the Shell Surface entries (TurnReportPanel, composer, variant selector) and 
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-catalog-docs.mjs`
 3. `grep -n "reserved" docs/UI-INTERACTION.md && grep -n "Costs and economy\|resource economy" docs/OFFICIAL-GAME-CONTRACT.md`
+
+## Completion Notes (2026-06-12)
+
+Applied the WB10 lift-ready amendments to `docs/UI-INTERACTION.md`: the reserved presentation metadata key contract and the §19 acceptance additions for cost/consequence display, runtime raw-identifier guard coverage, multi-target composition, faction-first naming, and near-board narration of non-interactive advances.
+
+Applied the `docs/OFFICIAL-GAME-CONTRACT.md` §5 player-facing rules additions: no maintainer sections or internal seat ids in `HOW-TO-PLAY.md`, resource-economy documentation for spendable-resource games, and typed public variant labels in setup.
+
+Updated `apps/web/README.md` with the shared action-affordance surface, `TurnReportPanel`, typed variant selector, and runtime raw-identifier DOM guard smoke-layer note.
+
+Verification:
+
+1. `grep -n "reserved" docs/UI-INTERACTION.md` — passed.
+2. `grep -n "Costs and economy\|resource economy" docs/OFFICIAL-GAME-CONTRACT.md` — passed.
+3. `node scripts/check-doc-links.mjs` — passed (`Checked 25 markdown files`).
+4. `node scripts/check-catalog-docs.mjs` — passed (`catalog-docs check passed - 14 games reflected in intro, root, and smoke surfaces`).
