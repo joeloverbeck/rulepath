@@ -70,6 +70,30 @@ Replay import is capped at 128 KiB in the UI before Rust parsing. The developer
 panel data whitelist is documented in
 [`../../docs/WASM-CLIENT-BOUNDARY.md`](../../docs/WASM-CLIENT-BOUNDARY.md).
 
+### Action Presentation Audit
+
+Every catalog game has an explicit action-presentation disposition. `adopt`
+means the board uses `ActionPathBuilder`; `board-native` means the board maps
+domain controls directly to Rust-supplied choices; `fallback` means the generic
+single-stage `ActionControls` surface is sufficient.
+
+| Game | Disposition | Rationale |
+| --- | --- | --- |
+| `race_to_n` | fallback | Single-stage add choices render through `ActionControls`; no compound tree. |
+| `three_marks` | board-native | Board cells/buttons map one-to-one to Rust mark/drop choices. |
+| `column_four` | board-native | Column controls map one-to-one to Rust column choices. |
+| `directional_flip` | board-native | Board cells expose Rust legal targets directly. |
+| `draughts_lite` | board-native | Board-native pending-path flow walks Rust move choices with piece/cell controls. |
+| `high_card_duel` | board-native | Hand card controls map to Rust commit choices. |
+| `masked_claims` | board-native | Claim and response controls are derived from Rust choice groups without flattening compound paths. |
+| `flood_watch` | board-native | District and turn controls map directly to Rust bail/reinforce/forecast/end-turn choices. |
+| `frontier_control` | board-native | Grouped action controls render Rust choices directly; no nested action tree is flattened. |
+| `event_frontier` | adopt | Compound Event Frontier operation trees use `ActionPathBuilder` for staged selection and leaf confirmation. |
+| `token_bazaar` | board-native | Market/action grid maps to Rust legal actions and public slot metadata. |
+| `secret_draft` | board-native | Pool-item controls map to Rust draft/reveal choices. |
+| `poker_lite` | board-native | Poker action buttons map directly to Rust hold/press/lift/match/yield choices. |
+| `plain_tricks` | board-native | Hand-card buttons map to Rust play-card choices. |
+
 ## Smoke Layers
 
 - `smoke:wasm`: raw ABI coverage for version/features, catalog, match, action,

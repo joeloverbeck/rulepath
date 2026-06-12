@@ -1,6 +1,6 @@
 # CARACTPRES-008: Catalog action-presentation audit and residual migrations
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web` (audit record + audit-mandated board migrations); no Rust surface touched
@@ -82,3 +82,21 @@ Implement every "adopt" row surfaced by the audit using `ActionPathBuilder` (per
 1. `grep -c '^|' apps/web/README.md` region check vs. `grep -c 'GAME_' crates/wasm-api/src/lib.rs` (exact commands refined at implementation to the table's anchor).
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 3. Narrow boundary rationale: presentation + docs only; Rust untouched.
+
+## Outcome
+
+Completed on 2026-06-12.
+
+- Added a 14-row action-presentation audit table to `apps/web/README.md`, one row per WASM catalog game.
+- Recorded Event Frontier as the sole `ActionPathBuilder` adoption from this pass; all remaining custom boards are explicit `board-native` dispositions or the `race_to_n` generic fallback.
+- Verified no residual Event Frontier-style flattened leaf-path renderer remains in web board components.
+- No additional migrations were required by the audit.
+
+Verification:
+
+- `rg -N "^const GAME_[A-Z0-9_]+: &str =" crates/wasm-api/src/lib.rs | rg -v "DISPLAY_NAME" | wc -l` -> 14
+- `sed -n '/### Action Presentation Audit/,/## Smoke Layers/p' apps/web/README.md | rg -N '^\| `.*` \|' | wc -l` -> 14
+- `rg -n "collectLeaves|leaf\\.path|path\\.map\\(actionLabel\\)|function actionLabel" apps/web/src/components apps/web/src/main.tsx` -> no matches
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
