@@ -158,7 +158,7 @@ Prioritize references most likely to have drifted (crate/module paths, function 
 
 **Load `references/findings-and-questions.md` before classifying.** Classify findings into Issues (CRITICAL / HIGH / MEDIUM / LOW), Improvements, Additions, and Questions; present using the template there.
 
-**Redesign-count checkpoint**: count deliverables (or Work-breakdown items) whose *approach* materially changed (eliminated, replaced with a different mechanism, or restructured beyond a refinement) over the pre-reassessment total. Emit the `N/total` ratio in the Step 6 Classification block. If it exceeds 50%, the Substantial Redesign Flag section is mandatory immediately above Questions.
+**Redesign-count checkpoint**: count deliverables (or Work-breakdown items) whose *approach* materially changed (eliminated, replaced with a different mechanism, or restructured beyond a refinement) over the pre-reassessment total. When a spec carries multiple parallel enumerations, the §Work-breakdown table is the canonical denominator (see `references/findings-and-questions.md`). Emit the `N/total` ratio in the Step 6 Classification block. If it exceeds 50%, the Substantial Redesign Flag section is mandatory immediately above Questions.
 
 **Wait for the user before Step 7.** In plan mode, write the plan file per `references/plan-mode.md`, then call ExitPlanMode. Auto-mode / no-stopping directives proceed directly to Step 7 ONLY when there are no Issues (CRITICAL/HIGH) and no open Questions; cite the directive inline.
 
