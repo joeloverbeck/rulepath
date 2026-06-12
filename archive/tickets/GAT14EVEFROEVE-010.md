@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-010: Per-faction Level 0 and Level 1 scripted bots
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier/src/bots.rs` (per-faction Level 0 random + Level 1 scripted policy bots)
@@ -75,3 +75,16 @@ The gate's "scripted bots are demo-coherent" exit line needs per-faction determi
 1. `cargo test -p event_frontier --test bots`
 2. `cargo test -p event_frontier`
 3. The per-crate bot test is the correct boundary — legality/determinism are provable without the simulate CLI; aggregate balance is evidenced in ticket 013.
+
+## Outcome
+
+- Implemented `EventFrontierRandomBot`, `EventCharterLevel1Bot`, and `EventFreeholdersLevel1Bot` with public bot inputs, decision records, command construction, and validation helpers.
+- Level 0 selects from a flattened validating legal-action surface using `ai-core` deterministic random legal selection.
+- Level 1 bots use public views plus legal paths only: a deterministic event/op/pass table and faction-specific operation rankers with stable site/path tiebreaks, plus viewer-safe explanations.
+- Added `games/event_frontier/tests/bots.rs` covering many-seed legality, deterministic repeat decisions, favorable-event table conformance, distinct faction operation families, and hidden deck order no-leak for bot inputs/explanations.
+
+## Verification
+
+- `cargo fmt --all --check`
+- `cargo test -p event_frontier --test bots`
+- `cargo test -p event_frontier`

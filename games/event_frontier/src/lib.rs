@@ -18,6 +18,12 @@ pub use actions::{
     EventFrontierAction, MenuEntry, OperationKind, OperationSelection, ValidatedAction,
     ACTION_EVENT, ACTION_LIMITED_OPERATION, ACTION_OPERATION, ACTION_PASS,
 };
+pub use bots::{
+    actor_for_seat, command_for_decision, validate_bot_decision, BotDecision,
+    EventCharterLevel1Bot, EventFreeholdersLevel1Bot, EventFrontierBotInput,
+    EventFrontierRandomBot, CHARTER_LEVEL1_POLICY_ID, FREEHOLDERS_LEVEL1_POLICY_ID,
+    RANDOM_POLICY_ID,
+};
 pub use cards::{CardCatalog, CardData, CardId};
 pub use effects::{EventFrontierEffect, EventFrontierEffectEnvelope, SiteScoreBreakdown};
 pub use ids::{
