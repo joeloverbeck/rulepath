@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-002: Primitive-pressure ledger and mechanic-atlas reviews
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/event_frontier/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `docs/MECHANIC-ATLAS.md`)
@@ -76,3 +76,22 @@ Apply every touched §10/§10B row update named above; add the four new first-us
 1. `node scripts/check-doc-links.mjs`
 2. `grep -nE "event_frontier|_None_" docs/MECHANIC-ATLAS.md`
 3. A compile/test command is not the correct boundary — the ledger gates code that does not yet exist; the verification boundary is the atlas/ledger consistency greps plus the §4 alignment review.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `games/event_frontier/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the Gate 14 pre-implementation hard-gate decisions and comparison reviews.
+- Updated `docs/MECHANIC-ATLAS.md` to record Event Frontier's public-resource-accounting defer/reject decision, multi-action-budget non-use, `board_space` not-applicable audit, second-use/comparison rows, non-use reviews, and four new `local-only` first-use rows.
+
+Deviations from original plan:
+
+- None. No code, data, helper promotion, ADR, or extraction ticket was introduced.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 25 markdown files`).
+- `grep -nE "event_frontier|_None_" docs/MECHANIC-ATLAS.md` showed Event Frontier in the resource-accounting hard-gate rows, budget non-use row, second-use comparison rows, new first-use rows, and §10A `_None_`.
+- `grep -nE "resource-accounting|resource accounting|defer/reject|multi-action|non-use|board_space|local-only|promotion debt|_None_" games/event_frontier/docs/PRIMITIVE-PRESSURE-LEDGER.md docs/MECHANIC-ATLAS.md` confirmed the ledger/atlas hard-gate and no-promotion-debt language.
