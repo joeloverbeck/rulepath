@@ -32,7 +32,10 @@ use engine_core::{
 };
 #[cfg(test)]
 use engine_core::{HashValue, StableSerialize};
-use event_frontier::visibility::public_effect_text as event_frontier_public_effect_text;
+use event_frontier::visibility::{
+    public_effect_text as event_frontier_public_effect_text,
+    reason_label as event_frontier_reason_label,
+};
 use event_frontier::{
     apply_command as event_frontier_apply_command,
     command_for_decision as event_frontier_command_for_decision,
@@ -8213,7 +8216,7 @@ fn event_frontier_effect_json(effect: &EffectEnvelope<EventFrontierEffect>) -> S
         EventFrontierEffect::CardDiscarded { card, reason } => format!(
             "{{\"type\":\"card_discarded\",\"card\":\"{}\",\"reason\":\"{}\"}}",
             card.as_str(),
-            escape_json(reason)
+            escape_json(event_frontier_reason_label(reason))
         ),
         EventFrontierEffect::EligibilityChanged {
             faction,
@@ -8223,7 +8226,7 @@ fn event_frontier_effect_json(effect: &EffectEnvelope<EventFrontierEffect>) -> S
             "{{\"type\":\"eligibility_changed\",\"faction\":\"{}\",\"eligible\":{},\"reason\":\"{}\"}}",
             faction.as_str(),
             eligible,
-            escape_json(reason)
+            escape_json(event_frontier_reason_label(reason))
         ),
         EventFrontierEffect::ResourcesChanged {
             faction,
@@ -8235,7 +8238,7 @@ fn event_frontier_effect_json(effect: &EffectEnvelope<EventFrontierEffect>) -> S
             faction.as_str(),
             previous,
             new,
-            escape_json(reason)
+            escape_json(event_frontier_reason_label(reason))
         ),
         EventFrontierEffect::OpResolved { faction, op, sites } => format!(
             "{{\"type\":\"op_resolved\",\"faction\":\"{}\",\"op\":\"{}\",\"sites\":[{}]}}",

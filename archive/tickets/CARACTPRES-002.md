@@ -1,6 +1,6 @@
 # CARACTPRES-002: Event Frontier Rust player-facing copy hygiene
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/event_frontier` (player-facing string resolution in rules/effects copy); no schema-shape change beyond regenerated trace text
@@ -84,3 +84,27 @@ Regenerate golden traces whose recorded effect text changed; update any string-a
 1. `cargo test -p event_frontier`
 2. `cargo run -p replay-check -- --game event_frontier --all && cargo run -p fixture-check -- --game event_frontier`
 3. Narrow boundary rationale: only this crate's strings change; workspace-wide tests run at CARACTPRES-010 closeout evidence.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added Event Frontier player-facing label resolution for effect text, covering card names, faction names, site names, edict names, operation names, terminal victory types, and internal reason tokens.
+- Kept internal `EventFrontierEffect` reason codes stable while resolving `CardDiscarded`, `EligibilityChanged`, and `ResourcesChanged` `reason` fields to player-facing phrases at the WASM JSON boundary.
+- Added a regression test that samples all Event Frontier effect variants and rejects raw snake_case tokens in `public_effect_text`.
+
+Deviations from plan:
+
+- Updated `crates/wasm-api/src/lib.rs` as well as `games/event_frontier`, because the live normal-mode effect panel renders reason strings from the Rust/WASM effect JSON. This preserves the ticket intent without changing TypeScript behavior or internal reason codes.
+- No golden trace files changed; the existing trace set remained valid after the player-facing text resolver because no expected trace hashes drifted.
+
+Verification:
+
+- `cargo test -p event_frontier` — passed.
+- `cargo run -p replay-check -- --game event_frontier --all` — passed.
+- `cargo run -p fixture-check -- --game event_frontier` — passed.
+- `cargo check -p wasm-api` — passed.
+- `cargo fmt --all --check` — passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` — passed.
