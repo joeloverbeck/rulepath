@@ -387,7 +387,7 @@ struct RankedCandidate {
 fn best_charter_writ(view: &PublicView, legal: &[ActionPath]) -> Option<RankedCandidate> {
     legal
         .iter()
-        .filter_map(|path| operation_candidate(path))
+        .filter_map(operation_candidate)
         .filter(|candidate| candidate.kind == "writ")
         .filter_map(|candidate| {
             let site = candidate.primary_site()?;
@@ -409,7 +409,7 @@ fn best_charter_writ(view: &PublicView, legal: &[ActionPath]) -> Option<RankedCa
 fn best_charter_survey(view: &PublicView, legal: &[ActionPath]) -> Option<RankedCandidate> {
     legal
         .iter()
-        .filter_map(|path| operation_candidate(path))
+        .filter_map(operation_candidate)
         .filter(|candidate| candidate.kind == "survey")
         .filter_map(|candidate| {
             let site = candidate.primary_site()?;
@@ -434,7 +434,7 @@ fn best_charter_survey(view: &PublicView, legal: &[ActionPath]) -> Option<Ranked
 fn best_charter_fortify(view: &PublicView, legal: &[ActionPath]) -> Option<RankedCandidate> {
     legal
         .iter()
-        .filter_map(|path| operation_candidate(path))
+        .filter_map(operation_candidate)
         .filter(|candidate| candidate.kind == "fortify")
         .filter_map(|candidate| {
             let site = candidate.primary_site()?;
@@ -456,7 +456,7 @@ fn best_charter_fortify(view: &PublicView, legal: &[ActionPath]) -> Option<Ranke
 fn best_freeholder_cache(view: &PublicView, legal: &[ActionPath]) -> Option<RankedCandidate> {
     legal
         .iter()
-        .filter_map(|path| operation_candidate(path))
+        .filter_map(operation_candidate)
         .filter(|candidate| candidate.kind == "cache")
         .filter_map(|candidate| {
             let site = candidate.primary_site()?;
@@ -481,7 +481,7 @@ fn best_freeholder_trek_to_cache(
 ) -> Option<RankedCandidate> {
     legal
         .iter()
-        .filter_map(|path| operation_candidate(path))
+        .filter_map(operation_candidate)
         .filter(|candidate| candidate.kind == "trek")
         .filter_map(|candidate| {
             let target = candidate.primary_destination()?;
@@ -503,7 +503,7 @@ fn best_freeholder_trek_to_cache(
 fn best_freeholder_spread(view: &PublicView, legal: &[ActionPath]) -> Option<RankedCandidate> {
     legal
         .iter()
-        .filter_map(|path| operation_candidate(path))
+        .filter_map(operation_candidate)
         .filter(|candidate| candidate.kind == "rally" || candidate.kind == "trek")
         .filter_map(|candidate| {
             let site = candidate

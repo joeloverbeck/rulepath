@@ -14,7 +14,7 @@ end to end, and safe against hidden-information leaks by construction.
 
 ## Status
 
-**Gates 0-14 in progress; event-deck asymmetry proof in browser acceptance** — Rulepath now ships fourteen local-playable
+**Gates 0-14 complete; event-deck complexity capstone proof accepted** — Rulepath now ships fourteen local-playable
 official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
 **Column Four** (`column_four`), **Directional Flip** (`directional_flip`),
 **Draughts Lite** (`draughts_lite`), **High Card Duel**
@@ -27,9 +27,9 @@ resource/economy proof, Gate 9.1 adds the accepted simultaneous
 commitment/reveal proof, Gate 10 adds the accepted betting/showdown proof, and
 Gate 10.1 adds the accepted trick-taking proof, and Gate 11 adds the accepted
 claims/challenges/reaction-window hidden-information proof, and Gate 12 adds the
-accepted cooperative event-pressure proof, and Gate 13 adds the accepted
-asymmetric graph-map area-control proof, and Gate 14 is in browser acceptance
-for the event-deck asymmetry proof.
+accepted cooperative event-pressure proof, Gate 13 adds the accepted asymmetric
+graph-map area-control proof, and Gate 14 adds the accepted event-deck
+complexity capstone proof.
 `blackjack_lite` is deferred by
 [ADR 0006](docs/adr/0006-blackjack-lite-roadmap-placement.md) and does not
 block later gates. See

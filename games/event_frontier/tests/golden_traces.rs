@@ -324,10 +324,10 @@ fn actual(
     let hidden = actual_hidden_card_for_state(&state);
     let rendered = format!("{state:?}{effects:?}{diagnostic:?}");
     let terminal = state.terminal_outcome.is_some();
-    let winner = match &state.terminal_outcome {
-        Some(TerminalOutcome::Winner { faction, .. }) => Some(*faction),
-        None => None,
-    };
+    let winner = state
+        .terminal_outcome
+        .as_ref()
+        .map(|TerminalOutcome::Winner { faction, .. }| *faction);
     TraceActual {
         state,
         effects,

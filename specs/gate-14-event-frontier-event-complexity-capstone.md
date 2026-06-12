@@ -5,7 +5,7 @@
 | Spec ID | `gate-14-event-frontier-event-complexity-capstone` |
 | Roadmap stage | 14 |
 | Roadmap build gate | Gate 14 — highest public complexity before private red-team |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-12 |
 | Owner | Rulepath maintainers |
 | Primary crate / internal game id | `event_frontier` |

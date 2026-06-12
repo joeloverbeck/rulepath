@@ -23,6 +23,7 @@ const expectedGames = [
   "Masked Claims",
   "Flood Watch",
   "Frontier Control",
+  "Event Frontier",
 ];
 const staticForbiddenTerms = [
   "hidden_state",
@@ -104,6 +105,7 @@ try {
   await assertPickerRulesFlow(page, "Race to 21");
   await assertPickerRulesFlow(page, "Crest Ledger");
   await assertPickerRulesFlow(page, "Plain Tricks");
+  await assertPickerRulesFlow(page, "Event Frontier");
   await assertSetupRulesFlow(page, "Crest Ledger");
   await assertInPlayRulesFlow(page, "Crest Ledger", '[data-testid="poker-lite-board"]');
   await assertHiddenInfoRulesFlow(page, baseUrl, "Veiled Draft", "Hotseat", '[data-testid="secret-draft-board"]');

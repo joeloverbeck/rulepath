@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-019: Capstone — admission docs, status hygiene, and gate closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — documentation / status reconciliation (`games/event_frontier/docs/{GAME-IMPLEMENTATION-ADMISSION,PUBLIC-RELEASE-CHECKLIST}.md`; `specs/README.md`; `specs/gate-14-event-frontier-event-complexity-capstone.md` Status; `progress.md`)
@@ -78,3 +78,36 @@ Flip the `specs/README.md` Gate 14 row to `Done` and the spec's own `Status` to 
 1. `cargo test --workspace && bash scripts/boundary-check.sh`
 2. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-player-rules.mjs && node scripts/check-outcome-explanations.mjs`
 3. The full-suite run is the correct boundary — the capstone asserts the composed gate passes end to end; it adds no logic of its own.
+
+## Outcome
+
+Closed Gate 14 for `event_frontier` / Event Frontier:
+
+1. Added `GAME-IMPLEMENTATION-ADMISSION.md` and `PUBLIC-RELEASE-CHECKLIST.md` from the official templates with Gate 14 evidence, no-leak surfaces, release decision, and primitive-pressure status.
+2. Flipped `specs/README.md` Gate 14 and the spec's own status to `Done`; updated `progress.md` and root README status to Gate 14 complete.
+3. Confirmed `docs/MECHANIC-ATLAS.md` §10A remains `_None_`.
+4. Fixed final closeout hygiene found by the full suite: Event Frontier player rules now avoid formal rule-ID/validation-table language in the public rules dialog, the rules-display smoke includes Event Frontier, and Event Frontier bot/golden-trace code satisfies workspace clippy.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo clippy --workspace --all-targets -- -D warnings`
+3. `cargo test --workspace`
+4. `cargo test -p event_frontier`
+5. `cargo run -p simulate -- --game event_frontier --games 1000`
+6. `cargo run -p replay-check -- --game event_frontier --all`
+7. `cargo run -p fixture-check -- --game event_frontier`
+8. `cargo run -p rule-coverage -- --game event_frontier`
+9. `cargo bench -p event_frontier`
+10. `cargo build -p bench-report`
+11. `bash scripts/boundary-check.sh`
+12. `npm --prefix apps/web run build`
+13. `npm --prefix apps/web run smoke:wasm`
+14. `npm --prefix apps/web run smoke:ui`
+15. `npm --prefix apps/web run smoke:effects`
+16. `npm --prefix apps/web run smoke:e2e`
+17. `node scripts/check-doc-links.mjs`
+18. `node scripts/check-catalog-docs.mjs`
+19. `node scripts/check-player-rules.mjs`
+20. `node scripts/check-outcome-explanations.mjs`
+21. `grep -n "_None_" docs/MECHANIC-ATLAS.md`

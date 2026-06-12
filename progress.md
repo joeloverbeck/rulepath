@@ -1,14 +1,55 @@
-Current status: Gates 0-13 are complete in the worktree. Gate 10 is complete
+Current status: Gates 0-14 are complete in the worktree. Gate 10 is complete
 with `poker_lite` / Crest Ledger as the accepted betting/showdown half and
 `plain_tricks` / Plain Tricks as the accepted trick/follow-suit half. Gate 11 is
 complete with `masked_claims` / Masked Claims as the accepted claim/challenge
 reaction-window proof. Gate 12 is complete with `flood_watch` / Flood Watch as
 the accepted cooperative event-pressure proof. Gate 13 is complete with
 `frontier_control` / Frontier Control as the accepted asymmetric graph-map
-area-control proof.
+area-control proof. Gate 14 is complete with `event_frontier` / Event Frontier
+as the accepted event-deck complexity capstone proof.
 `blackjack_lite` is deferred by ADR 0006 and is not a blocker for the current
 roadmap ladder. The mutable source of truth for gate progress is
 `specs/README.md`.
+
+## Gate 14 Event Frontier
+
+- Completed on 2026-06-12 for `event_frontier` / Event Frontier, the public
+  ladder capstone for ROADMAP Gate 14.
+- Added the accepted event-deck complexity proof: deterministic hidden deck
+  order with public current/next reveal, event/op/pass eligibility initiative,
+  typed edicts, automated Reckoning scoring/reset, asymmetric instant victory,
+  final fallback scoring, three scenario variants, Level 0 and Level 1 bots,
+  golden traces, native tools, benchmarks, WASM/browser board, generated player
+  rules, outcome explanations, catalog reconciliation, and browser no-leak
+  smoke.
+- Boundary notes: event, card, deck, edict, Reckoning, site, cache, depot,
+  faction, eligibility, and asymmetric-victory vocabulary stayed game-local.
+  The public-resource-accounting third-use hard gate was defer/rejected for
+  extraction, and the multi-action-budget candidate was recorded as a non-use.
+  No `engine-core` noun, `game-stdlib` helper, or promotion debt was introduced;
+  `docs/MECHANIC-ATLAS.md` §10A remains `_None_`. Gate P / private red-team work
+  was not started.
+- Acceptance evidence:
+  - `cargo fmt --all --check`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo test --workspace`
+  - `cargo run -p simulate -- --game event_frontier --games 1000`
+  - `cargo run -p replay-check -- --game event_frontier --all`
+  - `cargo run -p fixture-check -- --game event_frontier`
+  - `cargo run -p rule-coverage -- --game event_frontier`
+  - `cargo bench -p event_frontier`
+  - `cargo build -p bench-report`
+  - `bash scripts/boundary-check.sh`
+  - `npm --prefix apps/web run build`
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:effects`
+  - `node apps/web/e2e/event-frontier.smoke.mjs`
+  - `node apps/web/e2e/a11y-noleak.smoke.mjs`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
+  - `node scripts/check-player-rules.mjs`
+  - `node scripts/check-outcome-explanations.mjs`
 
 ## Gate 13 Frontier Control
 
