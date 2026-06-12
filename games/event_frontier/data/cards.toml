@@ -1,0 +1,7 @@
+card_ids = "ef_border_survey,ef_toll_roads,ef_river_mists,ef_storehouse_fire,ef_survey_ban,ef_high_meadow_fair,ef_reckoning_one,ef_depot_grants,ef_long_season,ef_trail_washout,ef_charter_audit,ef_freeholder_moot,ef_requisition,ef_reckoning_two,ef_old_mill_strike,ef_crossing_market,ef_granite_pass_snows,ef_cache_boom,ef_agents_recall,ef_last_light,ef_reckoning_three"
+labels = "Border Survey,Toll Roads,River Mists,Storehouse Fire,Survey Ban,High Meadow Fair,First Reckoning,Depot Grants,Long Season,Trail Washout,Charter Audit,Freeholder Moot,Requisition,Second Reckoning,Old Mill Strike,Crossing Market,Granite Pass Snows,Cache Boom,Agents Recall,Last Light,Final Reckoning"
+epoch_pools = "1,1,1,1,1,1,1,2,2,2,2,2,2,2,3,3,3,3,3,3,3"
+first_eligible = "faction_charter,faction_charter,faction_freeholders,faction_freeholders,faction_charter,faction_freeholders,faction_charter,faction_charter,faction_freeholders,faction_freeholders,faction_charter,faction_freeholders,faction_charter,faction_freeholders,faction_freeholders,faction_charter,faction_charter,faction_freeholders,faction_charter,faction_freeholders,faction_charter"
+ops_values = "1,2,1,2,1,2,0,2,3,1,2,2,2,0,1,2,3,2,1,3,0"
+edict_flags = "false,true,false,false,true,false,false,false,true,false,false,false,true,false,false,false,false,false,false,false,false"
+ui_families = "ordinary,edict,ordinary,ordinary,edict,ordinary,reckoning,ordinary,edict,ordinary,ordinary,ordinary,edict,reckoning,ordinary,ordinary,ordinary,ordinary,ordinary,ordinary,reckoning"

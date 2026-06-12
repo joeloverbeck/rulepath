@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-003: Crate skeleton, workspace registration, and typed data parsing
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/event_frontier` (all `src/*.rs` modules, stubbed where later tickets fill them); root `Cargo.toml` workspace member; typed static data (`data/manifest.toml`, `data/variants.toml`, `data/cards.toml`)
@@ -87,3 +87,28 @@ Author `data/manifest.toml` (display metadata, data version), `data/variants.tom
 1. `cargo test -p event_frontier`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. The workspace build is the correct full-pipeline boundary here because registering a new crate must not break the workspace; the parse tests are the targeted boundary.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added the `event_frontier` Rust crate and registered it in the root workspace.
+- Added the crate module skeleton (`actions`, `bots`, `cards`, `effects`, `ids`, `replay_support`, `rules`, `setup`, `state`, `ui`, `variants`, `visibility`) with behavior deferred to later tickets.
+- Added strict typed static data for `manifest.toml`, `variants.toml`, and `cards.toml`.
+- Added closed `FactionId`, `SiteId`, and `CardId` enums plus parser tests proving unknown and behavior-looking fields are rejected.
+
+Deviations from original plan:
+
+- None. The ticket remained scaffold/data-parse only; no setup shuffle, rule application, card effects, WASM registration, tools, or UI wiring were added.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p event_frontier` passed: 8 unit tests and 0 doctests.
+- `cargo build -p event_frontier` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `grep -n "games/event_frontier" Cargo.toml` confirmed the workspace member.
+- `grep -n "enum CardId\\|CardId::ALL\\|ef_reckoning_three" games/event_frontier/src/cards.rs` confirmed the closed card enum surface.

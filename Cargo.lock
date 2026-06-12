@@ -45,6 +45,15 @@ name = "engine-core"
 version = "0.1.0"
 
 [[package]]
+name = "event_frontier"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
