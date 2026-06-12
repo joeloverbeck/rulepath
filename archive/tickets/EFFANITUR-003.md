@@ -1,6 +1,6 @@
 # EFFANITUR-003: Presentation layer + per-game animation registry
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`); Rust/WASM untouched. Generic presentations key off the existing Rust-authored effect-tone taxonomy.
@@ -89,3 +89,26 @@ Add `apps/web/scripts/smoke-presenters.mjs` asserting tone→presentation select
 1. `node apps/web/scripts/smoke-presenters.mjs`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Added `apps/web/src/animation/presenters.ts` with generic tone-keyed presentation selection, WAAPI transform/opacity helpers, FLIP helper, and ghost-overlay cloning.
+- Added `apps/web/src/animation/registry.ts` with per-game effect-type registration and generic fallback resolution.
+- Added overlay, ghost, SVG `<g>` transform-box, and reduced-motion CSS hooks in `apps/web/src/styles.css`.
+- Added `apps/web/scripts/smoke-presenters.mjs` covering all four feedback tones, redacted generic selection, and registry override resolution.
+
+Deviations from the plan:
+
+- The node smoke stubs the React import from `effectFeedback.ts` during in-memory transpilation because this ticket tests the pure `feedbackForEffect` selection path, not the React reduced-motion hook.
+
+Verification results:
+
+- `node apps/web/scripts/smoke-presenters.mjs` passed.
+- `rg -n "hidden|private|deck|card|hand|mask|commit" apps/web/src/animation/presenters.ts` showed only the explicit redacted-effect type list and `aria-hidden` on cloned ghosts; no hidden/private payload fields are read.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node apps/web/e2e/a11y-noleak.smoke.mjs` passed.

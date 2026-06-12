@@ -2753,6 +2753,36 @@ h2 {
   background: #f3f8fb;
 }
 
+.animation-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.animation-ghost {
+  position: absolute;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+[data-animation-surface],
+svg g[data-animation-surface],
+svg g[data-effect-kind] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animation-ghost,
+  [data-animation-surface],
+  svg g[data-animation-surface],
+  svg g[data-effect-kind] {
+    transition-duration: 80ms;
+  }
+}
+
 .effect-cursor {
   min-width: 2.2rem;
   color: #65766f;
