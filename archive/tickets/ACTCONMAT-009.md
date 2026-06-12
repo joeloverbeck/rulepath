@@ -1,6 +1,6 @@
 # ACTCONMAT-009: Match-setup variant selector + picker hygiene
 
-**Status**: DONE
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (catalog projection of per-variant `{id, label}` objects); plus presentation (`apps/web/src/wasm/client.ts` `GameCatalogEntry.variants` object type, `apps/web/src/main.tsx`, `apps/web/src/components/GamePicker.tsx`).
@@ -84,7 +84,7 @@ In `main.tsx`/`GamePicker.tsx`: add a typed variant selector (default standard);
 2. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run build`
 3. `npm --prefix apps/web run smoke:e2e`
 
-## Completion Notes (2026-06-12)
+## Outcome
 
 Projected catalog variants as `{id, label}` objects from Rust-authored variant
 data and migrated the TypeScript catalog type/consumers away from `string[]`.

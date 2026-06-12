@@ -1,6 +1,6 @@
 # ACTCONMAT-013: Capstone — acceptance evidence + spec closeout
 
-**Status**: DONE (2026-06-12)
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — verification-only acceptance evidence + status reconciliation (`specs/README.md` index row, the spec's own `Status`).
@@ -80,7 +80,7 @@ Set the spec `Status` to `Done` and update its `specs/README.md` index row to `D
 2. `cargo run -p simulate -- --game event_frontier --games 1000 && cargo run -p replay-check -- --game event_frontier --all && cargo run -p fixture-check -- --game event_frontier && cargo run -p rule-coverage -- --game event_frontier` (repeat for `flood_watch` where touched)
 3. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects && npm --prefix apps/web run smoke:e2e && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-player-rules.mjs && bash scripts/boundary-check.sh`
 
-## Completion Notes (2026-06-12)
+## Outcome
 
 Ran the full capstone evidence set and flipped the spec plus `specs/README.md` index row to `Done`. Added the capstone evidence summary to the spec's acceptance evidence section.
 

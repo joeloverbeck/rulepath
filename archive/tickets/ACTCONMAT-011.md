@@ -1,6 +1,6 @@
 # ACTCONMAT-011: Bot "why?" audit and conditional §15 affordance
 
-**Status**: DONE (2026-06-12)
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Conditional — `Yes (presentation-only)` if a viewer-safe explanation is exposed and the affordance is rendered (`apps/web` reading the existing bot explanation from the wasm bridge); `None` if the audit finds nothing viewer-safe exposed and records a named follow-up. No new bot reasoning either way.
@@ -81,7 +81,7 @@ Record the blocking gap as a named follow-up (what the bridge would need to expo
 2. `cargo test -p event_frontier` (bot legality unchanged)
 3. `grep -n "explanation\|reason" crates/wasm-api/src/lib.rs` (audit surface)
 
-## Completion Notes (2026-06-12)
+## Outcome
 
 Audit outcome: affordance rendered. `crates/wasm-api/src/lib.rs` already projects Event Frontier Level 1 bot decisions through `run_bot_turn` as `{ policy_id, policy_version, rationale, effects, view }`; `games/event_frontier/src/bots.rs` builds the rationale from public-view policy inputs, and the existing bot tests include `bot_inputs_and_explanations_do_not_expose_undrawn_deck_order`.
 

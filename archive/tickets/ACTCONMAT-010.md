@@ -1,6 +1,6 @@
 # ACTCONMAT-010: Runtime raw-identifier DOM guard + negative test
 
-**Status**: DONE (2026-06-12)
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — test infrastructure only (`apps/web/e2e/a11y-noleak.smoke.mjs`); `scripts/check-presentation-copy.mjs` gets a scope note.
@@ -79,7 +79,7 @@ Add a comment in `scripts/check-presentation-copy.mjs` documenting that it scans
 2. `node scripts/check-presentation-copy.mjs` (source guard still green)
 3. `npm --prefix apps/web run smoke:ui`
 
-## Completion Notes (2026-06-12)
+## Outcome
 
 Implemented the runtime raw-identifier DOM sweep in `apps/web/e2e/a11y-noleak.smoke.mjs`, covering normal-mode visible text and accessibility labels while excluding diagnostic/dev/replay/effect surfaces. Added an induced-drift negative check that injects a raw identifier into normal DOM and proves the guard catches it before the catalog sweep continues.
 

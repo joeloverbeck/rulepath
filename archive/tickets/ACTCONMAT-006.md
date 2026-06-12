@@ -1,6 +1,6 @@
 # ACTCONMAT-006: TurnReportPanel — narrate non-interactive advances
 
-**Status**: COMPLETE
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only for the panel) — `apps/web/src/components/TurnReportPanel.tsx` (new), `apps/web/src/main.tsx`; plus `games/event_frontier` / `games/flood_watch` adoption notes + per-game audit rows. Re-presents the existing viewer-filtered effect payload — no new data crosses the boundary.

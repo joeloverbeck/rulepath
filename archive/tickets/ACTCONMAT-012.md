@@ -1,6 +1,6 @@
 # ACTCONMAT-012: Lift-ready doc amendments
 
-**Status**: DONE (2026-06-12)
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — documentation only (`docs/UI-INTERACTION.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `apps/web/README.md`).
@@ -80,7 +80,7 @@ Add the Shell Surface entries (TurnReportPanel, composer, variant selector) and 
 2. `node scripts/check-catalog-docs.mjs`
 3. `grep -n "reserved" docs/UI-INTERACTION.md && grep -n "Costs and economy\|resource economy" docs/OFFICIAL-GAME-CONTRACT.md`
 
-## Completion Notes (2026-06-12)
+## Outcome
 
 Applied the WB10 lift-ready amendments to `docs/UI-INTERACTION.md`: the reserved presentation metadata key contract and the §19 acceptance additions for cost/consequence display, runtime raw-identifier guard coverage, multi-target composition, faction-first naming, and near-board narration of non-interactive advances.
 

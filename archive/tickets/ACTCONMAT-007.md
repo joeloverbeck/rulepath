@@ -1,6 +1,6 @@
 # ACTCONMAT-007: Deep-detail tier + status-copy clarity
 
-**Status**: COMPLETE
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier` + `games/flood_watch` (`cards_presentation.toml` `details` parallel array + loader, `CardFaceView` projection, status/threshold copy); `apps/web/src/wasm/client.ts` (`CardFaceView.details`), `apps/web/src/components/DeckFlowPanel.tsx` (render the disclosure).

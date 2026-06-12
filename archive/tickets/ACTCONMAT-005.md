@@ -1,6 +1,6 @@
 # ACTCONMAT-005: Faction-first match-context surface
 
-**Status**: COMPLETE
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier/src/ui.rs` (seat/faction display labels), `games/*/src/ui.rs` (seat-label backfill audit, 13 games), `crates/wasm-api/src/lib.rs` (seat/faction label projection); plus presentation (`apps/web/src/main.tsx`, `apps/web/src/components/EventFrontierBoard.tsx`).

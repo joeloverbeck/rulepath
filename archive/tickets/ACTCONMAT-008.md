@@ -1,6 +1,6 @@
 # ACTCONMAT-008: Rules surface fix + player-rules content
 
-**Status**: DONE
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RulesPanel.tsx`; plus canonical player-rules docs (`games/event_frontier/docs/HOW-TO-PLAY.md`, `games/event_frontier/docs/SOURCES.md`) and the regenerated `apps/web/public/rules/event_frontier.md` asset. No Rust/engine behavior.
@@ -86,7 +86,7 @@ Audit the other catalog games' player-rules files against the (drafted) extended
 2. `node scripts/check-doc-links.mjs`
 3. `npm --prefix apps/web run smoke:e2e`
 
-## Completion Notes (2026-06-12)
+## Outcome
 
 Implemented a boundary-aware inline Markdown scanner in `RulesPanel.tsx` so
 snake_case identifiers render literally while normal emphasis, strong text, and
