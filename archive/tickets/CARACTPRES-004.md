@@ -1,6 +1,6 @@
 # CARACTPRES-004: Frontier Control UiMetadata audit
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes — `games/frontier_control` (possible additive `ui` view field), or none if the audit records a sufficient-as-is exception
@@ -80,3 +80,23 @@ Enumerate `FrontierControlBoard.tsx` player-facing string literals; classify eac
 1. `grep -n '"' apps/web/src/components/FrontierControlBoard.tsx` — audit enumeration input.
 2. `cargo test -p frontier_control && cargo run -p replay-check -- --game frontier_control --all` (adoption path) or `node scripts/check-doc-links.mjs` (exception path, doc edit only).
 3. Narrow boundary rationale: single-game audit; catalog-wide guards land in CARACTPRES-009/010.
+
+## Outcome
+
+Completed: 2026-06-12
+
+What changed:
+
+- Audited `apps/web/src/components/FrontierControlBoard.tsx` string sources and recorded the result in `games/frontier_control/docs/UI.md`.
+- Chose the documented exception path: no Frontier Control `PublicView.ui` field is needed because gameplay-meaningful labels already come from Rust public-view fields, Rust action-tree labels, or Rust terminal data.
+- Clarified that the remaining debug-flavored board copy is real but belongs to CARACTPRES-009's catalog-wide copy-hygiene pass.
+- Narrowed the Flood Watch `smoke:ui` hidden-deck assertion so safe `event_deck_label` UI metadata from CARACTPRES-003 is not treated as internal deck leakage.
+
+Deviations from plan:
+
+- `apps/web/scripts/smoke-ui.mjs` was updated during this ticket because the required `npm --prefix apps/web run smoke:ui` surfaced an overbroad assertion after CARACTPRES-003 added safe deck-label metadata. The assertion still checks for internal deck-order leakage.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` — passed.
+- `npm --prefix apps/web run smoke:ui` — passed.
