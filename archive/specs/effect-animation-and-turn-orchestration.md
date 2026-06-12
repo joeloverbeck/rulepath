@@ -9,7 +9,7 @@
   and `action-consequence-and-match-context-shared-surfaces`. Sourced from the
   prioritization brainstorm `brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md`
   (recommendation P1 = candidates C1 + C2, absorbing part of C8).
-- **Status:** Done
+**Status**: COMPLETED
 - **Date:** 2026-06-12
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` →
