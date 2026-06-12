@@ -10,7 +10,7 @@ use crate::{
     effects::{EventFrontierEffect, EventFrontierEffectEnvelope},
     ids::{FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL},
     state::{CardPhase, Eligibility, EventFrontierState, TerminalOutcome},
-    ui::{card_face, ui_metadata, CardFaceView, UiMetadata},
+    ui::{card_face, site_label, ui_metadata, CardFaceView, UiMetadata},
 };
 
 pub const HIDDEN_SURFACE: &str = "undrawn_deck_order";
@@ -42,9 +42,10 @@ pub struct PublicView {
     pub freshness_token: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SiteView {
     pub site: SiteId,
+    pub label: String,
     pub agents: u8,
     pub settlers: u8,
     pub depot: bool,
@@ -99,6 +100,7 @@ pub fn project_view(state: &EventFrontierState, _viewer: &Viewer) -> PublicView 
             .iter()
             .map(|site| SiteView {
                 site: site.site,
+                label: site_label(site.site),
                 agents: site.agents,
                 settlers: site.settlers,
                 depot: site.depot,
@@ -241,7 +243,10 @@ pub fn public_effect_text(effect: &EventFrontierEffect) -> String {
             round,
             victory_check,
             ..
-        } => format!("reckoning {round} resolved: {victory_check}"),
+        } => format!(
+            "{} resolved: {victory_check}",
+            reckoning_round_label(*round)
+        ),
         EventFrontierEffect::Terminal {
             winner,
             victory_type,
@@ -303,6 +308,15 @@ fn card_label(card: CardId) -> &'static str {
         CardId::AgentsRecall => "Agents Recall",
         CardId::LastLight => "Last Light",
         CardId::ReckoningThree => "Final Reckoning",
+    }
+}
+
+fn reckoning_round_label(round: u8) -> &'static str {
+    match round {
+        1 => "First Reckoning",
+        2 => "Second Reckoning",
+        3 => "Final Reckoning",
+        _ => "Reckoning",
     }
 }
 
@@ -492,8 +506,9 @@ fn terminal_view(state: &EventFrontierState) -> TerminalView {
 
 fn encode_site(site: &SiteView) -> String {
     format!(
-        "{}:a{}:s{}:d{}:c{}",
+        "{}:{}:a{}:s{}:d{}:c{}",
         site.site.as_str(),
+        site.label,
         site.agents,
         site.settlers,
         u8::from(site.depot),

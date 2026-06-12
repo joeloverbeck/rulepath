@@ -1,4 +1,7 @@
-use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, Viewer};
+use engine_core::{
+    ActionChoice, ActionNode, ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed,
+    Viewer,
+};
 use event_frontier::{
     apply_command, export_public_replay, legal_action_tree, project_view, public_replay_step,
     setup_match, validate_command, EventFrontierEffect, SetupOptions, ACTION_PASS,
@@ -52,6 +55,40 @@ fn seat_and_observer_views_are_output_equivalent() {
     assert_eq!(next.id, "ef_reckoning_one");
     assert_eq!(next.label, "First Reckoning");
     assert_eq!(observer.ui.face_down_label, "Face-down event deck");
+    assert_eq!(
+        observer
+            .sites
+            .iter()
+            .find(|site| site.site == event_frontier::SiteId::GranitePass)
+            .expect("Granite Pass site")
+            .label,
+        "Granite Pass"
+    );
+}
+
+#[test]
+fn operation_action_labels_use_authored_site_names() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    state.deck.current = Some(event_frontier::CardId::LastLight);
+    state.card_phase = event_frontier::CardPhase::AwaitingFirstChoice {
+        faction: event_frontier::FactionId::Charter,
+    };
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let labels = action_labels(&tree.root);
+
+    assert!(labels
+        .iter()
+        .any(|text| text.contains("Survey Charterhouse")));
+    assert!(labels
+        .iter()
+        .any(|text| text.contains("Apply Survey Charterhouse")));
+    assert!(labels.iter().any(|text| text.contains("Granite Pass")));
+    assert!(
+        !labels
+            .iter()
+            .any(|text| contains_raw_site_or_card_token(text)),
+        "raw token leaked through action labels: {labels:?}"
+    );
 }
 
 #[test]
@@ -98,4 +135,21 @@ fn effect_filtering_keeps_public_payloads_only() {
     }];
     let filtered = event_frontier::filter_effects_for_viewer(&effects, &viewer(Some("seat_0")));
     assert_eq!(filtered, effects);
+}
+
+fn contains_raw_site_or_card_token(text: &str) -> bool {
+    text.split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_'))
+        .any(|token| token.starts_with("site_") || token.starts_with("ef_"))
+}
+
+fn action_labels(node: &ActionNode) -> Vec<String> {
+    node.choices.iter().flat_map(choice_labels).collect()
+}
+
+fn choice_labels(choice: &ActionChoice) -> Vec<String> {
+    let mut labels = vec![choice.label.clone(), choice.accessibility_label.clone()];
+    if let Some(next) = &choice.next {
+        labels.extend(action_labels(next));
+    }
+    labels
 }

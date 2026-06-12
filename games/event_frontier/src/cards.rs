@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::variants::{parse_flat_toml, parse_string_list, reject_unknown_keys, required_string};
 use crate::{
     effects::{public_effect, EventFrontierEffect, EventFrontierEffectEnvelope},
-    ids::{FactionId, SiteId, STANDARD_CARD_COUNT},
+    ids::{FactionId, SiteId, STANDARD_CARD_COUNT, STANDARD_SITE_COUNT},
     state::{ActiveEdict, EventFrontierState},
 };
 
@@ -611,10 +611,70 @@ impl CardPresentationCatalog {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SitePresentation {
+    pub id: SiteId,
+    pub label: String,
+    pub accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SitePresentationCatalog {
+    pub sites: Vec<SitePresentation>,
+}
+
+impl SitePresentationCatalog {
+    pub fn parse(input: &str) -> Result<Self, String> {
+        let values = parse_flat_toml(input)?;
+        reject_unknown_keys(&values, &["site_ids", "labels", "accessibility_labels"])?;
+
+        let ids = parse_site_list(&required_string(&values, "site_ids")?)?;
+        let labels = parse_non_empty_string_list(&required_string(&values, "labels")?, "labels")?;
+        let accessibility_labels = parse_non_empty_string_list(
+            &required_string(&values, "accessibility_labels")?,
+            "accessibility_labels",
+        )?;
+
+        validate_complete_unique_site_ids(&ids)?;
+        let len = ids.len();
+        for (field, field_len) in [
+            ("labels", labels.len()),
+            ("accessibility_labels", accessibility_labels.len()),
+        ] {
+            if field_len != len {
+                return Err(format!("{field} must contain {len} entries"));
+            }
+        }
+
+        let sites = ids
+            .into_iter()
+            .enumerate()
+            .map(|(index, id)| SitePresentation {
+                id,
+                label: labels[index].clone(),
+                accessibility_label: accessibility_labels[index].clone(),
+            })
+            .collect();
+
+        Ok(Self { sites })
+    }
+
+    pub fn get(&self, id: SiteId) -> Option<&SitePresentation> {
+        self.sites.iter().find(|site| site.id == id)
+    }
+}
+
 fn parse_card_list(value: &str) -> Result<Vec<CardId>, String> {
     parse_string_list(value)
         .into_iter()
         .map(|part| CardId::parse(&part).ok_or_else(|| format!("unknown card `{part}`")))
+        .collect()
+}
+
+fn parse_site_list(value: &str) -> Result<Vec<SiteId>, String> {
+    parse_string_list(value)
+        .into_iter()
+        .map(|part| SiteId::parse(&part).ok_or_else(|| format!("unknown site `{part}`")))
         .collect()
 }
 
@@ -678,6 +738,30 @@ fn validate_complete_unique_ids(ids: &[CardId]) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_complete_unique_site_ids(ids: &[SiteId]) -> Result<(), String> {
+    if ids.len() != STANDARD_SITE_COUNT as usize {
+        return Err(format!(
+            "site_ids must contain {STANDARD_SITE_COUNT} presentation rows"
+        ));
+    }
+
+    let mut seen = BTreeSet::new();
+    for id in ids {
+        if !seen.insert(*id) {
+            return Err(format!("duplicate presentation row for `{}`", id.as_str()));
+        }
+    }
+    for expected in SiteId::ALL {
+        if !seen.contains(&expected) {
+            return Err(format!(
+                "missing presentation row for `{}`",
+                expected.as_str()
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -727,6 +811,30 @@ mod tests {
         .is_err());
         assert!(CardPresentationCatalog::parse(
             "card_ids = \"ef_border_survey\"\nlabels = \"\"\nsummaries = \"A\"\nfamilies = \"ordinary\"\naccessibility_labels = \"A\"\n"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn site_presentation_parse_is_complete_and_fail_closed() {
+        let presentation =
+            SitePresentationCatalog::parse(include_str!("../data/sites_presentation.toml"))
+                .unwrap();
+        assert_eq!(presentation.sites.len(), STANDARD_SITE_COUNT as usize);
+        assert_eq!(
+            presentation.get(SiteId::GranitePass).unwrap().label,
+            "Granite Pass"
+        );
+        assert!(SitePresentationCatalog::parse(
+            "site_ids = \"site_charterhouse\"\nlabels = \"Charterhouse\"\naccessibility_labels = \"Charterhouse site\"\ntrigger = \"bad\"\n"
+        )
+        .is_err());
+        assert!(SitePresentationCatalog::parse(
+            "site_ids = \"site_charterhouse,site_charterhouse,site_crossing,site_landing,site_granite_pass,site_high_meadow\"\nlabels = \"A,B,C,D,E,F\"\naccessibility_labels = \"A,B,C,D,E,F\"\n"
+        )
+        .is_err());
+        assert!(SitePresentationCatalog::parse(
+            "site_ids = \"site_charterhouse\"\nlabels = \"\"\naccessibility_labels = \"Charterhouse site\"\n"
         )
         .is_err());
     }

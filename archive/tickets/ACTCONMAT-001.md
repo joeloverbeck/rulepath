@@ -1,6 +1,6 @@
 # ACTCONMAT-001: Event Frontier Rust label resolution
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier` (`visibility.rs` SiteView label projection + effect-copy/ordinal resolution, `actions.rs` resolved action/accessibility labels, `ui.rs`/`cards.rs` site-label loader, new `data/sites_presentation.toml` static-data manifest); fixtures/golden traces/serialization tests
@@ -98,3 +98,30 @@ Regenerate golden traces and serialization fixtures for the new view shape; add 
 1. `cargo test -p event_frontier`
 2. `cargo run -p fixture-check -- --game event_frontier && cargo run -p replay-check -- --game event_frontier --all && cargo run -p rule-coverage -- --game event_frontier`
 3. `cargo run -p simulate -- --game event_frontier --games 1000` (smoke; label resolution exercised under play)
+
+## Outcome
+
+Completed: 2026-06-12
+
+Implemented Event Frontier Rust-side site presentation metadata through
+`games/event_frontier/data/sites_presentation.toml`, a strict
+`SitePresentationCatalog`, and `SiteView.label` projection. Operation labels and
+accessibility labels now use authored site names while retaining byte-identical
+raw action path segments for replay and validation. Public effect copy now uses
+authored Reckoning ordinal vocabulary. The WASM Event Frontier view serializer
+now emits the Rust-projected `SiteView.label` field.
+
+Golden trace public-view and affected action-tree hashes were regenerated for
+the additive deterministic view/label surface; rule state and effect behavior
+were not changed intentionally.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p event_frontier` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo run -p fixture-check -- --game event_frontier` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.
+- `cargo run -p rule-coverage -- --game event_frontier` passed.
+- `cargo run -p simulate -- --game event_frontier --games 1000` passed
+  (`games_run=1000`, `simulation_pass_rate_percent=100.00`).

@@ -1,6 +1,9 @@
 //! UI metadata and presentation helpers for Event Frontier.
 
-use crate::cards::{CardId, CardPresentationCatalog};
+use crate::{
+    cards::{CardId, CardPresentationCatalog, SitePresentationCatalog},
+    ids::SiteId,
+};
 
 pub const DISPLAY_NAME: &str = "Event Frontier";
 
@@ -53,6 +56,26 @@ pub fn card_face(card: CardId) -> CardFaceView {
     }
 }
 
+pub fn site_label(site: SiteId) -> String {
+    let catalog = SitePresentationCatalog::parse(include_str!("../data/sites_presentation.toml"))
+        .expect("checked Event Frontier site presentation metadata");
+    catalog
+        .get(site)
+        .expect("presentation catalog covers every Event Frontier site")
+        .label
+        .clone()
+}
+
+pub fn site_accessibility_label(site: SiteId) -> String {
+    let catalog = SitePresentationCatalog::parse(include_str!("../data/sites_presentation.toml"))
+        .expect("checked Event Frontier site presentation metadata");
+    catalog
+        .get(site)
+        .expect("presentation catalog covers every Event Frontier site")
+        .accessibility_label
+        .clone()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,5 +102,14 @@ mod tests {
         assert_eq!(face.label, "High Meadow Fair");
         assert!(face.summary.contains("Freeholders gain"));
         assert_eq!(face.family, "ordinary");
+    }
+
+    #[test]
+    fn site_labels_resolve_authored_presentation() {
+        assert_eq!(site_label(SiteId::GranitePass), "Granite Pass");
+        assert_eq!(
+            site_accessibility_label(SiteId::HighMeadow),
+            "High Meadow site"
+        );
     }
 }

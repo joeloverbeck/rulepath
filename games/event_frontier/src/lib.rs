@@ -24,7 +24,10 @@ pub use bots::{
     EventFrontierRandomBot, CHARTER_LEVEL1_POLICY_ID, FREEHOLDERS_LEVEL1_POLICY_ID,
     RANDOM_POLICY_ID,
 };
-pub use cards::{CardCatalog, CardData, CardId, CardPresentation, CardPresentationCatalog};
+pub use cards::{
+    CardCatalog, CardData, CardId, CardPresentation, CardPresentationCatalog, SitePresentation,
+    SitePresentationCatalog,
+};
 pub use effects::{EventFrontierEffect, EventFrontierEffectEnvelope, SiteScoreBreakdown};
 pub use ids::{
     FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT, STANDARD_EPOCH_COUNT,
@@ -46,7 +49,9 @@ pub use state::{
     EventFrontierState, FactionScores, FirstChoice, ResourcePools, SiteState, TerminalOutcome,
     VictoryType,
 };
-pub use ui::{card_face, ui_metadata, CardFaceView, UiMetadata};
+pub use ui::{
+    card_face, site_accessibility_label, site_label, ui_metadata, CardFaceView, UiMetadata,
+};
 pub use variants::{Manifest, ScenarioVariant, VariantCatalog};
 pub use visibility::{filter_effects_for_viewer, project_view, PublicView, HIDDEN_SURFACE};
 
@@ -66,6 +71,10 @@ pub fn load_card_presentation() -> Result<CardPresentationCatalog, String> {
     CardPresentationCatalog::parse(include_str!("../data/cards_presentation.toml"))
 }
 
+pub fn load_site_presentation() -> Result<SitePresentationCatalog, String> {
+    SitePresentationCatalog::parse(include_str!("../data/sites_presentation.toml"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -76,6 +85,7 @@ mod tests {
         let variants = load_variants().expect("variants parse");
         let cards = load_cards().expect("cards parse");
         let card_presentation = load_card_presentation().expect("card presentation parses");
+        let site_presentation = load_site_presentation().expect("site presentation parses");
 
         assert_eq!(manifest.game_id, GAME_ID);
         assert_eq!(manifest.display_name, "Event Frontier");
@@ -94,6 +104,13 @@ mod tests {
                 .label,
             "High Meadow Fair"
         );
+        assert_eq!(
+            site_presentation
+                .get(SiteId::HighMeadow)
+                .expect("site presentation")
+                .label,
+            "High Meadow"
+        );
 
         assert!(Manifest::parse("game_id = \"event_frontier\"\ntrigger = \"bad\"\n").is_err());
         assert!(VariantCatalog::parse(
@@ -106,6 +123,10 @@ mod tests {
         );
         assert!(CardPresentationCatalog::parse(
             "card_ids = \"ef_border_survey\"\nlabels = \"Border Survey\"\nsummaries = \"x\"\nfamilies = \"ordinary\"\naccessibility_labels = \"x\"\nscript = \"bad\"\n"
+        )
+        .is_err());
+        assert!(SitePresentationCatalog::parse(
+            "site_ids = \"site_charterhouse\"\nlabels = \"Charterhouse\"\naccessibility_labels = \"Charterhouse site\"\nscript = \"bad\"\n"
         )
         .is_err());
     }

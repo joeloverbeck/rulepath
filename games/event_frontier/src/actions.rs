@@ -9,6 +9,7 @@ use crate::{
     cards::{sorted_active_edicts, CardCatalog, CardId, EdictKind},
     ids::{FactionId, SiteId},
     state::{CardPhase, EventFrontierState, FirstChoice},
+    ui::site_label,
 };
 
 pub const ACTION_EVENT: &str = "event";
@@ -470,11 +471,8 @@ fn operation_leaf_choices(
                 kind.as_str(),
                 payload
             );
-            let mut choice = ActionChoice::leaf(
-                segment,
-                selection_label(kind, &selections),
-                format!("Apply {} to {}", kind.label(), payload),
-            );
+            let label = selection_label(kind, &selections);
+            let mut choice = ActionChoice::leaf(segment, label.clone(), format!("Apply {label}"));
             choice.preview = ActionPreview::Available;
             choice.tags.push("operation-leaf".to_owned());
             choice.metadata = vec![
@@ -756,7 +754,44 @@ fn encode_selections(selections: &[OperationSelection]) -> String {
 }
 
 fn selection_label(kind: OperationKind, selections: &[OperationSelection]) -> String {
-    format!("{} {}", kind.label(), encode_selections(selections))
+    format!("{} {}", kind.label(), selection_display_list(selections))
+}
+
+fn selection_display_list(selections: &[OperationSelection]) -> String {
+    human_join(
+        selections
+            .iter()
+            .map(selection_display_label)
+            .collect::<Vec<_>>()
+            .as_slice(),
+    )
+}
+
+fn selection_display_label(selection: &OperationSelection) -> String {
+    match selection.destination {
+        Some(destination) => {
+            format!(
+                "{} to {}",
+                site_label(selection.site),
+                site_label(destination)
+            )
+        }
+        None => site_label(selection.site),
+    }
+}
+
+fn human_join(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => one.clone(),
+        [left, right] => format!("{left} and {right}"),
+        _ => {
+            let mut joined = items[..items.len() - 1].join(", ");
+            joined.push_str(", and ");
+            joined.push_str(&items[items.len() - 1]);
+            joined
+        }
+    }
 }
 
 fn parse_single_segment(segment: &str) -> Option<EventFrontierAction> {

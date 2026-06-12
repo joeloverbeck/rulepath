@@ -1,0 +1,3 @@
+site_ids = "site_charterhouse,site_landing,site_crossing,site_granite_pass,site_high_meadow,site_old_mill"
+labels = "Charterhouse,Landing,Crossing,Granite Pass,High Meadow,Old Mill"
+accessibility_labels = "Charterhouse site,Landing site,Crossing site,Granite Pass site,High Meadow site,Old Mill site"

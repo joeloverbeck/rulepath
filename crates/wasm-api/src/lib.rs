@@ -7349,7 +7349,7 @@ fn event_frontier_site_json(site: &event_frontier::visibility::SiteView) -> Stri
     format!(
         "{{\"site\":\"{}\",\"label\":\"{}\",\"agents\":{},\"settlers\":{},\"depot\":{},\"cache_count\":{}}}",
         site.site.as_str(),
-        escape_json(site.site.label()),
+        escape_json(&site.label),
         site.agents,
         site.settlers,
         site.depot,
