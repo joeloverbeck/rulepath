@@ -8,7 +8,7 @@
   `victory-explanation-shared-surface`, and
   `card-and-action-presentation-shared-surfaces`, motivated by a live-app
   usability audit of `event_frontier` (Gate 14) on 2026-06-12.
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-12
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` →
@@ -460,6 +460,22 @@ than a gate's row-for-row exit list, since this is a non-gate UI-infra spec):
 - **Docs/boundary**: `node scripts/check-doc-links.mjs`,
   `node scripts/check-catalog-docs.mjs`, `node scripts/check-player-rules.mjs`,
   `node scripts/check-presentation-copy.mjs`, `bash scripts/boundary-check.sh`.
+
+Capstone evidence recorded 2026-06-12:
+
+- `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
+  `cargo build --workspace`, and `cargo test --workspace` passed.
+- `event_frontier`: `simulate --games 1000` passed with
+  `simulation_pass_rate_percent=100.00`; `replay-check --all`,
+  `fixture-check`, and `rule-coverage` passed.
+- `flood_watch`: `simulate --games 1000` passed; `replay-check --all`,
+  `fixture-check`, and `rule-coverage` passed.
+- Web: `smoke:wasm`, `smoke:ui`, `smoke:effects`, and `smoke:e2e` passed.
+- Docs/boundary: `check-doc-links`, `check-catalog-docs`,
+  `check-player-rules`, `check-presentation-copy`, and `boundary-check`
+  passed.
+- Event Frontier detail enumeration: 21 card ids, 21 labels, and 21 detail
+  entries in the static presentation rows.
 
 ---
 
