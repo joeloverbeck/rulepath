@@ -1219,7 +1219,7 @@ export class RulepathApi {
         args[2].len,
         BigInt(freshnessToken),
       ),
-    [matchId, seat, path.join(">")]);
+    [matchId, seat, encodeActionPath(path)]);
     return response.view;
   }
 
@@ -1299,6 +1299,10 @@ export class RulepathApi {
   private read(ptr: number, len: number): string {
     return this.decoder.decode(new Uint8Array(this.exports.memory.buffer, ptr, len));
   }
+}
+
+function encodeActionPath(path: string[]): string {
+  return path.map((segment) => encodeURIComponent(segment)).join(">");
 }
 
 function viewerModeArg(viewerMode: ViewerMode): SeatId | null {

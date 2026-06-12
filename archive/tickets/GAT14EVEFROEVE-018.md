@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-018: Browser E2E smoke, a11y/no-leak, and catalog reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/event-frontier.smoke.mjs` (new); `apps/web/package.json` (modify); `apps/web/README.md` (modify); `README.md` (modify); `.github/workflows/gate-1-game-smoke.yml` (modify)
@@ -79,3 +79,26 @@ Add `event_frontier` / `Event Frontier` to the `apps/web/README.md` intro catalo
 1. `npm --prefix apps/web run build && node apps/web/e2e/event-frontier.smoke.mjs`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-outcome-explanations.mjs`
 3. The E2E run plus the catalog/outcome checks is the correct boundary — it exercises the whole browser surface and closes the CI red window in one PR.
+
+## Outcome
+
+Implemented the Event Frontier browser acceptance capstone:
+
+1. Added `apps/web/e2e/event-frontier.smoke.mjs` covering both faction menus, event resolution, a multi-site operation, pass, edict activation/expiry through Reckoning, bot-vs-bot terminal paths for Charter instant, Freeholder instant, and final fallback, public replay export/import/step, reduced motion, and no-leak assertions.
+2. Extended `a11y-noleak.smoke.mjs` with Event Frontier board accessibility, reduced-motion, and no-leak coverage.
+3. Registered the Event Frontier E2E in `smoke:e2e` and the Gate 1 CI browser lane, then reconciled the root and web README catalog surfaces.
+4. Fixed two browser-facing Rust/WASM boundary issues found by the E2E: the bridge now completes Event Frontier automated Reckoning phases after human/bot actions, and web action paths percent-encode path segments so Rust action segments containing `>` are submitted without TypeScript parsing game rules.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo build -p wasm-api`
+3. `npm --prefix apps/web run build`
+4. `node apps/web/e2e/event-frontier.smoke.mjs`
+5. `node apps/web/e2e/a11y-noleak.smoke.mjs`
+6. `npm --prefix apps/web run smoke:wasm`
+7. `npm --prefix apps/web run smoke:ui`
+8. `npm --prefix apps/web run smoke:effects`
+9. `node scripts/check-catalog-docs.mjs`
+10. `node scripts/check-outcome-explanations.mjs`
+11. `node scripts/check-doc-links.mjs`

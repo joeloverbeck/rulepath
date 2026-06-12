@@ -6,7 +6,8 @@ Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `high_card_duel` / High Card Duel, `token_bazaar` / Token Bazaar, and
 `secret_draft` / Veiled Draft, `poker_lite` / Crest Ledger, and
 `plain_tricks` / Plain Tricks, `masked_claims` / Masked Claims, and
-`flood_watch` / Flood Watch, and `frontier_control` / Frontier Control.
+`flood_watch` / Flood Watch, `frontier_control` / Frontier Control, and
+`event_frontier` / Event Frontier.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -58,7 +59,8 @@ The shell includes:
 - Race to 21 public board and status;
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
-  Plain Tricks, Masked Claims, Flood Watch, and Frontier Control;
+  Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event
+  Frontier;
 - Rust action-tree-driven buttons;
 - semantic effect log with reduced-motion support;
 - local replay export/import/reset/step;
@@ -78,5 +80,6 @@ panel data whitelist is documented in
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
-  Plain Tricks, Masked Claims, Flood Watch, and Frontier Control. A standalone Directional Flip E2E smoke file also exists under
+  Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event Frontier.
+  A standalone Directional Flip E2E smoke file also exists under
   `e2e/`, but is not chained by `smoke:e2e`.

@@ -37,9 +37,10 @@ use event_frontier::{
     apply_command as event_frontier_apply_command,
     command_for_decision as event_frontier_command_for_decision,
     legal_action_tree as event_frontier_legal_action_tree,
-    project_view as event_frontier_project_view, setup_match as event_frontier_setup_match,
-    validate_command as event_frontier_validate_command, EventCharterLevel1Bot,
-    EventFreeholdersLevel1Bot, EventFrontierEffect, EventFrontierState,
+    project_view as event_frontier_project_view,
+    resolve_reckoning as event_frontier_resolve_reckoning,
+    setup_match as event_frontier_setup_match, validate_command as event_frontier_validate_command,
+    EventCharterLevel1Bot, EventFreeholdersLevel1Bot, EventFrontierEffect, EventFrontierState,
     FactionId as EventFrontierFactionId,
 };
 use flood_watch::{
@@ -1418,7 +1419,8 @@ pub fn apply_action(
             };
             event_frontier_validate_command(state, &command).map_err(diagnostic_json)?;
             let applied = event_frontier_apply_command(state, &command).map_err(diagnostic_json)?;
-            let effects = applied.effects;
+            let mut effects = applied.effects;
+            effects.extend(event_frontier_finish_automated_phases(state)?);
             let viewer = event_frontier_viewer_for_seat(state, Some(actor_seat))?;
             let effect_json = event_frontier_effects_json(&effects, &viewer);
             for effect in effects {
@@ -1942,7 +1944,8 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
             };
             let command = event_frontier_command_for_decision(state, &seat, &decision);
             let applied = event_frontier_apply_command(state, &command).map_err(diagnostic_json)?;
-            let effects = applied.effects;
+            let mut effects = applied.effects;
+            effects.extend(event_frontier_finish_automated_phases(state)?);
             let viewer = event_frontier_viewer_for_seat(state, Some(actor_seat))?;
             let effect_json = event_frontier_effects_json(&effects, &viewer);
             for effect in effects {
@@ -4807,8 +4810,37 @@ fn parse_action_path(action_path: &str) -> ActionPath {
         segments: if action_path.is_empty() {
             Vec::new()
         } else {
-            action_path.split('>').map(str::to_owned).collect()
+            action_path.split('>').map(percent_decode_segment).collect()
         },
+    }
+}
+
+fn percent_decode_segment(segment: &str) -> String {
+    let bytes = segment.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'%' && index + 2 < bytes.len() {
+            if let (Some(high), Some(low)) =
+                (hex_value(bytes[index + 1]), hex_value(bytes[index + 2]))
+            {
+                decoded.push((high << 4) | low);
+                index += 3;
+                continue;
+            }
+        }
+        decoded.push(bytes[index]);
+        index += 1;
+    }
+    String::from_utf8(decoded).unwrap_or_else(|_| segment.to_owned())
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
     }
 }
 
@@ -5191,6 +5223,20 @@ fn event_frontier_effects_json(
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
+}
+
+fn event_frontier_finish_automated_phases(
+    state: &mut EventFrontierState,
+) -> Result<Vec<EffectEnvelope<EventFrontierEffect>>, String> {
+    let mut effects = Vec::new();
+    while state.card_phase == event_frontier::CardPhase::Reckoning {
+        effects.extend(
+            event_frontier_resolve_reckoning(state)
+                .map_err(diagnostic_json)?
+                .effects,
+        );
+    }
+    Ok(effects)
 }
 
 fn token_effects_json(effects: &[EffectEnvelope<TokenBazaarEffect>]) -> String {

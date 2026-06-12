@@ -234,7 +234,7 @@ export function EventFrontierBoard({
                   disabled={!canAct}
                   aria-label={leaf.choice.accessibility_label}
                   data-testid={`event-frontier-choice-${leaf.path.join("-").replaceAll("/", "-")}`}
-                  onClick={() => onPathSubmit?.(leaf.path)}
+                  onClick={() => onPathSubmit?.(eventFrontierSubmitPath(leaf))}
                 >
                   {leaf.path.map(actionLabel).join(" / ")}
                 </button>
@@ -282,6 +282,10 @@ function collectLeaves(choices: ActionChoice[], prefix: string[] = []): Array<{ 
     const next = choice.next?.choices ?? [];
     return next.length ? collectLeaves(next, path) : [{ choice, path }];
   });
+}
+
+function eventFrontierSubmitPath(leaf: { choice: ActionChoice; path: string[] }): string[] {
+  return leaf.choice.segment.includes("/") ? [leaf.choice.segment] : leaf.path;
 }
 
 function activeFactionLabel(view: EventFrontierPublicView): string {
