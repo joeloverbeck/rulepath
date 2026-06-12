@@ -828,7 +828,7 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
       status:
         view.terminal.kind !== "non_terminal"
           ? view.terminal.summary.public_summary
-          : `turn ${view.turn_number}, budget ${view.phase.kind === "action" ? view.phase.budget_remaining : 0}`,
+          : `turn ${view.turn_number}, budget ${view.phase.kind === "action" ? view.phase.budget_remaining : 0}, undrawn ${view.undrawn_count}`,
     };
   }
   if (view.game_id === "frontier_control") {

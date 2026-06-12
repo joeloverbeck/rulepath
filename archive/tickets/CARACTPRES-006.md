@@ -1,6 +1,6 @@
 # CARACTPRES-006: Flood Watch DeckFlowPanel adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web` (Flood Watch board adoption, client types, smoke); no Rust surface touched
@@ -84,3 +84,21 @@ Extend `flood-watch.smoke.mjs` (resolved labels/summaries render; count badge ma
 1. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:e2e`
 3. Narrow boundary rationale: presentation-only adoption diff; Rust gates ran at CARACTPRES-003.
+
+## Outcome
+
+Completed on 2026-06-12.
+
+- Updated Flood Watch web types to match the Rust/WASM card-face and `ui` projection from CARACTPRES-003.
+- Replaced the bespoke Storm deck section with shared `DeckFlowPanel`, mapping latest drawn card, forecast card, drawn-card disclosure, and the public `undrawn_count` badge.
+- Extended Flood Watch and shared a11y/no-leak smokes for authored forecast text, count-badge fidelity, expandable drawn-card disclosure, and raw-ID absence.
+- Kept Rust untouched; this is a presentation-only web adoption.
+
+Verification:
+
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/flood-watch.smoke.mjs`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`

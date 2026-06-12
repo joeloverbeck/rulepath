@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, FloodWatchDistrictView, FloodWatchPublicView } from "../wasm/client";
+import { DeckFlowPanel } from "./DeckFlowPanel";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -33,6 +34,7 @@ export function FloodWatchBoard({
   const terminalSummary = view.terminal.kind === "complete" ? view.terminal.summary : null;
   const stormActive = effects.some((entry) => isStormEffect(entry.effect.payload.type));
   const canAct = Boolean(interactive && !pending && !terminal);
+  const latestDrawn = view.drawn_cards.at(-1) ?? null;
   const outcomeExplanation = terminalSummary
     ? outcomeSurfaceData({
         gameId: "flood_watch",
@@ -94,15 +96,27 @@ export function FloodWatchBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, {statusLabel(view)}, {choices.length} Rust legal choices, {view.undrawn_count} undrawn storm cards.
+        {view.display_name}, {statusLabel(view)}, {choices.length} Rust legal choices, {view.forecast ? `${view.ui.forecast_label} ${view.forecast.label}` : "no forecast"}, {view.undrawn_count} {view.ui.face_down_label}.
       </p>
 
       <div className="plain-tricks-metrics" aria-label="Flood Watch status">
         <Metric label="Turn" value={String(view.turn_number)} />
         <Metric label="Budget" value={budgetLabel(view)} />
-        <Metric label="Forecast" value={cardFaceLabel(view.forecast)} />
         <Metric label="Undrawn" value={String(view.undrawn_count)} />
       </div>
+
+      <DeckFlowPanel
+        label={view.ui.event_deck_label}
+        currentLabel={view.ui.drawn_label}
+        nextLabel={view.ui.forecast_label}
+        discardLabel={view.ui.drawn_label}
+        faceDownLabel={view.ui.face_down_label}
+        faceDownSummary={view.ui.face_down_summary}
+        current={latestDrawn}
+        next={view.forecast}
+        discard={view.drawn_cards}
+        faceDownCount={view.undrawn_count}
+      />
 
       <div className="plain-tricks-table" aria-label="Flood Watch districts">
         {view.districts.map((district) => {
@@ -135,27 +149,6 @@ export function FloodWatchBoard({
           );
         })}
       </div>
-
-      <section className="plain-history" aria-label="Storm deck public accounting">
-        <div className="plain-section-heading">
-          <span>Storm deck</span>
-          <strong>{view.drawn_cards.length} drawn</strong>
-        </div>
-        <ol>
-          <li>
-            <span>Reprieves</span>
-            <strong>{view.remaining_composition.reprieves}</strong>
-            <small>remaining count</small>
-          </li>
-          {view.remaining_composition.downpours_per_district.map((entry) => (
-            <li key={`downpour-${entry.district}`}>
-              <span>{districtLabel(view, entry.district)}</span>
-              <strong>{entry.count} downpour</strong>
-              <small>{surgeCount(view, entry.district)} surge</small>
-            </li>
-          ))}
-        </ol>
-      </section>
 
       <section className="plain-history" aria-label="Team roles">
         <div className="plain-section-heading">
@@ -258,19 +251,8 @@ function budgetLabel(view: FloodWatchPublicView): string {
   return view.phase.kind === "action" ? String(view.phase.budget_remaining) : "Terminal";
 }
 
-function cardFaceLabel(value: unknown): string {
-  if (value && typeof value === "object" && "label" in value && typeof value.label === "string") {
-    return value.label;
-  }
-  return typeof value === "string" ? value : "None";
-}
-
 function districtLabel(view: FloodWatchPublicView, district: string): string {
   return view.districts.find((item) => item.district === district)?.label ?? district;
-}
-
-function surgeCount(view: FloodWatchPublicView, district: string): number {
-  return view.remaining_composition.surges_per_district.find((entry) => entry.district === district)?.count ?? 0;
 }
 
 function seatLabel(seat: string): string {

@@ -123,6 +123,11 @@ try {
   await assertNoLeak(page, consoleMessages, "directional_flip DOM");
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startFloodWatch(page);
+  await assertFloodWatchDeckA11y(page);
+  await assertNoLeak(page, consoleMessages, "flood_watch DOM");
+
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startEventFrontier(page);
   await assertEventFrontierBoardA11y(page);
   await page.select(".motion-field select", "reduce");
@@ -133,7 +138,7 @@ try {
   assert(eventAnimationName === "none", "event_frontier reduced-motion suppresses site animation");
   await assertNoLeak(page, consoleMessages, "event_frontier DOM");
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced directional_flip event_frontier" }));
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced directional_flip flood_watch event_frontier" }));
 } finally {
   if (browser) {
     await browser.close();
@@ -155,6 +160,34 @@ async function startEventFrontier(page) {
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="event-frontier-board"]');
+}
+
+async function startFloodWatch(page) {
+  await clickText(page, "button", "Flood Watch");
+  await clickLabel(page, "Hotseat");
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="flood-watch-board"]');
+}
+
+async function assertFloodWatchDeckA11y(page) {
+  const summary = await page.evaluate(() => {
+    const countText = document.querySelector('[data-testid="deck-face-down-count"]')?.textContent ?? "";
+    const undrawnMetric =
+      Array.from(document.querySelectorAll(".plain-tricks-metrics div")).find((item) => item.querySelector("span")?.textContent === "Undrawn")?.querySelector("strong")?.textContent ?? "";
+    const faceDown = document.querySelector('[data-testid="deck-face-down"]');
+    return {
+      deckText: document.querySelector('[data-testid="deck-flow-panel"]')?.textContent ?? "",
+      faceDownText: faceDown?.textContent ?? "",
+      faceDownAttributes: faceDown ? Array.from(faceDown.attributes).map((attribute) => `${attribute.name}=${attribute.value}`) : [],
+      faceDownCount: countText,
+      viewUndrawnCount: undrawnMetric,
+    };
+  });
+  assert(summary.deckText.includes("Storm deck"), "flood_watch renders Rust deck label");
+  assert(summary.faceDownCount === summary.viewUndrawnCount, "flood_watch face-down count matches the public view");
+  assert(summary.faceDownText.includes("Remaining storm cards stay face down. The count is public."), "flood_watch renders face-down no-leak copy");
+  assert(!summary.faceDownText.includes("downpour/") && !summary.faceDownText.includes("storm_surge/"), "flood_watch face-down text omits raw card ids");
+  assert(!summary.faceDownAttributes.join("\n").includes("downpour/"), "flood_watch face-down attributes omit raw card ids");
 }
 
 async function assertEventFrontierBoardA11y(page) {

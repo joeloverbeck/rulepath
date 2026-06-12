@@ -839,6 +839,16 @@ export type FloodWatchTerminalView =
   | { kind: "non_terminal"; outcome: null; summary: null }
   | { kind: "complete"; outcome: "won" | "lost" | string; summary: FloodWatchTerminalSummary };
 
+export type FloodWatchUiMetadata = {
+  display_name: "Flood Watch" | string;
+  event_deck_label: string;
+  forecast_label: string;
+  drawn_label: string;
+  face_down_label: string;
+  face_down_summary: string;
+  reduced_motion_token: string;
+};
+
 export type FloodWatchPublicView = {
   schema_version: number;
   rules_version: number;
@@ -852,16 +862,14 @@ export type FloodWatchPublicView = {
   active_seat: SeatId;
   phase: FloodWatchPhaseView;
   districts: FloodWatchDistrictView[];
-  drawn_cards: string[];
-  forecast: string | null;
+  drawn_cards: CardFaceView[];
+  forecast: CardFaceView | null;
   remaining_composition: FloodWatchRemainingComposition;
   undrawn_count: number;
   terminal: FloodWatchTerminalView;
   terminal_rationale?: FloodWatchOutcomeRationale | null;
   freshness_token: number;
-  ui: {
-    display_name: "Flood Watch" | string;
-  };
+  ui: FloodWatchUiMetadata;
 };
 
 export type FrontierControlOutcomeRationale = OutcomeRationalePayload;
