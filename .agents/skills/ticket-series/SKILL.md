@@ -129,6 +129,16 @@ For each ticket:
    - Stage archived renames with path-scoped staging such as
      `git add -A tickets archive/tickets`; after `git mv`, do not rely on
      adding the removed source path directly.
+   - Before committing, run a strict archived-ticket truth check against the
+     archived ticket path. It must have an archival final status and `## Outcome`,
+     and it must not have informal statuses such as `DONE`, `COMPLETE`,
+     `ACCEPTED`, or `## Completion Notes`:
+
+```sh
+rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^## Outcome" archive/tickets/TICKET_ID.md
+rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)|^## Completion Notes" archive/tickets/TICKET_ID.md && exit 1 || true
+```
+
 8. Sweep active specs, tickets, docs, indexes, README tables, and scripts for
    stale live ticket paths. Update references that should now point to
    `archive/tickets/`.
@@ -203,6 +213,11 @@ failures.
    - plans to `archive/plans/`.
    If the series is ticket-only and has no reference artifact, state that and
    skip this archive step.
+   If the final/capstone ticket says reference archival is out of that ticket's
+   local scope, do not let that ticket-local note override the series-level
+   closeout. Finish, archive, and commit the capstone ticket first; then perform
+   the reference artifact archival and truthing as a separate final closeout
+   step unless the user explicitly forbids reference archival.
 5. Repair active references and progress surfaces, especially `specs/README.md`
    when a spec was closed, and any active tickets, docs, app README tables,
    catalog/smoke lists, or scripts that referenced the live reference path.
@@ -219,6 +234,18 @@ failures.
 8. If a `/goal` is active, mark it complete only after implementation,
    verification, ticket archives, reference archive, reference repair, and required
    commits are done.
+
+For large capstones, record a compact evidence ledger in the reference artifact
+and/or final ticket before archival. Use headings that match the actual proof
+surface, for example:
+
+- Rust: fmt, clippy, build, workspace tests.
+- Per-game: simulation, replay-check, fixture-check, rule-coverage.
+- Web: build, smoke:wasm, smoke:ui, smoke:effects, smoke:e2e.
+- Docs/boundary: doc links, catalog docs, player rules, presentation copy,
+  boundary checks.
+- Archive truthing: active glob empty, archived ticket count/status/outcome,
+  archived reference status/outcome, stale live-path sweep.
 
 ## Completion Audit
 
