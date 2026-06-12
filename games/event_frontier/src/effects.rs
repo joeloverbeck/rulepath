@@ -7,6 +7,17 @@ use crate::{cards::CardId, ids::FactionId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EventFrontierEffect {
+    EventResolved {
+        card: CardId,
+        summary: String,
+    },
+    EdictActivated {
+        card: CardId,
+        edict: String,
+    },
+    EdictExpired {
+        edict: String,
+    },
     CardRevealed {
         card: CardId,
         next_public: Option<CardId>,
@@ -36,6 +47,10 @@ pub enum EventFrontierEffect {
         sites: Vec<SiteId>,
     },
     AgentPlaced {
+        site: SiteId,
+        new_count: u8,
+    },
+    AgentRemoved {
         site: SiteId,
         new_count: u8,
     },

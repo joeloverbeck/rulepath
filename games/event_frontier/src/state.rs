@@ -3,7 +3,7 @@
 use engine_core::{FreshnessToken, SeatId, StableSerialize};
 
 use crate::{
-    cards::CardId,
+    cards::{CardId, EdictKind},
     ids::{FactionId, SiteId},
     variants::ScenarioVariant,
 };
@@ -133,6 +133,7 @@ impl FactionScores {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActiveEdict {
+    pub kind: EdictKind,
     pub card: CardId,
     pub activation_index: u8,
     pub expires_at_reckoning: u8,
@@ -518,10 +519,11 @@ fn edict_summary(edicts: &[ActiveEdict]) -> String {
         .iter()
         .map(|edict| {
             format!(
-                "{}:{}:{}",
+                "{}:{}:{}:{}",
+                edict.kind.as_str(),
                 edict.card.as_str(),
                 edict.activation_index,
-                edict.expires_at_reckoning
+                edict.expires_at_reckoning,
             )
         })
         .collect::<Vec<_>>()

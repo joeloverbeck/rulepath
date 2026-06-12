@@ -1,5 +1,5 @@
 use engine_core::{SeatId, Seed, StableSerialize};
-use event_frontier::{setup_match, EventFrontierSnapshot, SetupOptions};
+use event_frontier::{setup_match, CardCatalog, EventFrontierSnapshot, SetupOptions};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -19,4 +19,12 @@ fn setup_snapshot_round_trips_and_serializes_stably() {
     assert!(snapshot
         .stable_summary()
         .contains("sites=site_charterhouse:agents1:settlers0:depot1:caches0"));
+}
+
+#[test]
+fn card_data_rejects_behavior_looking_fields() {
+    for key in ["when", "condition", "trigger", "effect", "script"] {
+        let input = format!("card_ids = \"ef_border_survey\"\n{key} = \"bad\"\n");
+        assert!(CardCatalog::parse(&input).is_err(), "{key} was accepted");
+    }
 }

@@ -1,5 +1,9 @@
-use crate::ids::{FactionId, STANDARD_CARD_COUNT};
 use crate::variants::{parse_flat_toml, parse_string_list, reject_unknown_keys, required_string};
+use crate::{
+    effects::{public_effect, EventFrontierEffect, EventFrontierEffectEnvelope},
+    ids::{FactionId, SiteId, STANDARD_CARD_COUNT},
+    state::{ActiveEdict, EventFrontierState},
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum CardId {
@@ -101,6 +105,357 @@ impl CardId {
             "ef_last_light" => Some(Self::LastLight),
             "ef_reckoning_three" => Some(Self::ReckoningThree),
             _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum EdictKind {
+    TollRoads,
+    SurveyBan,
+    LongSeason,
+    Requisition,
+}
+
+impl EdictKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::TollRoads => "toll_roads",
+            Self::SurveyBan => "survey_ban",
+            Self::LongSeason => "long_season",
+            Self::Requisition => "requisition",
+        }
+    }
+
+    pub const fn stable_order(self) -> u8 {
+        match self {
+            Self::TollRoads => 0,
+            Self::SurveyBan => 1,
+            Self::LongSeason => 2,
+            Self::Requisition => 3,
+        }
+    }
+
+    pub fn for_card(card: CardId) -> Option<Self> {
+        match card {
+            CardId::TollRoads => Some(Self::TollRoads),
+            CardId::SurveyBan => Some(Self::SurveyBan),
+            CardId::LongSeason => Some(Self::LongSeason),
+            CardId::Requisition => Some(Self::Requisition),
+            _ => None,
+        }
+    }
+}
+
+pub fn resolve_event_card(
+    state: &mut EventFrontierState,
+    card: CardId,
+) -> Vec<EventFrontierEffectEnvelope> {
+    let mut effects = Vec::new();
+    match card {
+        CardId::BorderSurvey => {
+            place_agent(state, SiteId::Crossing, &mut effects);
+            resolved(card, "placed a Charter agent at Crossing", &mut effects);
+        }
+        CardId::TollRoads | CardId::SurveyBan | CardId::LongSeason | CardId::Requisition => {
+            activate_edict(state, card, &mut effects);
+            resolved(card, "activated an edict", &mut effects);
+        }
+        CardId::RiverMists => {
+            move_settler_if_possible(state, SiteId::Landing, SiteId::HighMeadow, &mut effects);
+            resolved(card, "moved a settler through the mists", &mut effects);
+        }
+        CardId::StorehouseFire => {
+            change_resource(
+                state,
+                FactionId::Charter,
+                -1,
+                "storehouse_fire",
+                &mut effects,
+            );
+            resolved(card, "reduced Charter funds", &mut effects);
+        }
+        CardId::HighMeadowFair => {
+            change_resource(
+                state,
+                FactionId::Freeholders,
+                1,
+                "high_meadow_fair",
+                &mut effects,
+            );
+            rally_settler(state, SiteId::HighMeadow, &mut effects);
+            resolved(card, "fair raised provisions and a settler", &mut effects);
+        }
+        CardId::ReckoningOne | CardId::ReckoningTwo | CardId::ReckoningThree => {
+            resolved(
+                card,
+                "Reckoning resolution is handled by the Reckoning pipeline",
+                &mut effects,
+            );
+        }
+        CardId::DepotGrants => {
+            change_resource(state, FactionId::Charter, 2, "depot_grants", &mut effects);
+            resolved(card, "granted Charter funds", &mut effects);
+        }
+        CardId::TrailWashout => {
+            move_settler_if_possible(state, SiteId::Crossing, SiteId::Landing, &mut effects);
+            resolved(card, "washed a settler back toward Landing", &mut effects);
+        }
+        CardId::CharterAudit => {
+            change_resource(state, FactionId::Charter, 1, "charter_audit", &mut effects);
+            remove_cache_if_present(state, SiteId::Landing, &mut effects);
+            resolved(card, "audited caches and raised funds", &mut effects);
+        }
+        CardId::FreeholderMoot => {
+            change_resource(
+                state,
+                FactionId::Freeholders,
+                2,
+                "freeholder_moot",
+                &mut effects,
+            );
+            resolved(card, "raised Freeholder provisions", &mut effects);
+        }
+        CardId::OldMillStrike => {
+            remove_agent_if_present(state, SiteId::Charterhouse, &mut effects);
+            resolved(card, "pulled back a Charter agent", &mut effects);
+        }
+        CardId::CrossingMarket => {
+            change_resource(
+                state,
+                FactionId::Charter,
+                1,
+                "crossing_market",
+                &mut effects,
+            );
+            change_resource(
+                state,
+                FactionId::Freeholders,
+                1,
+                "crossing_market",
+                &mut effects,
+            );
+            resolved(card, "market raised both resources", &mut effects);
+        }
+        CardId::GranitePassSnows => {
+            change_resource(
+                state,
+                FactionId::Charter,
+                -1,
+                "granite_pass_snows",
+                &mut effects,
+            );
+            resolved(card, "snows reduced Charter funds", &mut effects);
+        }
+        CardId::CacheBoom => {
+            lay_cache(state, SiteId::HighMeadow, &mut effects);
+            resolved(card, "laid a cache at High Meadow", &mut effects);
+        }
+        CardId::AgentsRecall => {
+            remove_agent_if_present(state, SiteId::Crossing, &mut effects);
+            place_agent(state, SiteId::Charterhouse, &mut effects);
+            resolved(card, "recalled agents toward Charterhouse", &mut effects);
+        }
+        CardId::LastLight => {
+            change_resource(state, FactionId::Charter, 1, "last_light", &mut effects);
+            change_resource(state, FactionId::Freeholders, 1, "last_light", &mut effects);
+            resolved(card, "last light paid both factions", &mut effects);
+        }
+    }
+    effects
+}
+
+pub fn expire_all_edicts(state: &mut EventFrontierState) -> Vec<EventFrontierEffectEnvelope> {
+    let mut active = sorted_active_edicts(state);
+    state.active_edicts.clear();
+    active
+        .drain(..)
+        .map(|edict| {
+            public_effect(EventFrontierEffect::EdictExpired {
+                edict: edict.kind.as_str().to_owned(),
+            })
+        })
+        .collect()
+}
+
+pub fn sorted_active_edicts(state: &EventFrontierState) -> Vec<ActiveEdict> {
+    let mut edicts = state.active_edicts.clone();
+    edicts.sort_by_key(|edict| (edict.kind.stable_order(), edict.activation_index));
+    edicts
+}
+
+fn activate_edict(
+    state: &mut EventFrontierState,
+    card: CardId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    let Some(kind) = EdictKind::for_card(card) else {
+        return;
+    };
+    let activation_index = state.active_edicts.len() as u8;
+    state.active_edicts.push(ActiveEdict {
+        kind,
+        card,
+        activation_index,
+        expires_at_reckoning: state.reckoning_count.saturating_add(1),
+    });
+    effects.push(public_effect(EventFrontierEffect::EdictActivated {
+        card,
+        edict: kind.as_str().to_owned(),
+    }));
+}
+
+fn resolved(card: CardId, summary: &str, effects: &mut Vec<EventFrontierEffectEnvelope>) {
+    effects.push(public_effect(EventFrontierEffect::EventResolved {
+        card,
+        summary: summary.to_owned(),
+    }));
+}
+
+fn change_resource(
+    state: &mut EventFrontierState,
+    faction: FactionId,
+    delta: i8,
+    reason: &str,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    let cap = state.variant.resource_cap;
+    let (previous, new) = match faction {
+        FactionId::Charter => {
+            let previous = state.resources.funds;
+            state.resources.funds = apply_delta(previous, delta, cap);
+            (previous, state.resources.funds)
+        }
+        FactionId::Freeholders => {
+            let previous = state.resources.provisions;
+            state.resources.provisions = apply_delta(previous, delta, cap);
+            (previous, state.resources.provisions)
+        }
+    };
+    effects.push(public_effect(EventFrontierEffect::ResourcesChanged {
+        faction,
+        previous,
+        new,
+        reason: reason.to_owned(),
+    }));
+}
+
+fn apply_delta(value: u8, delta: i8, cap: u8) -> u8 {
+    if delta.is_negative() {
+        value.saturating_sub(delta.unsigned_abs())
+    } else {
+        value.saturating_add(delta as u8).min(cap)
+    }
+}
+
+fn place_agent(
+    state: &mut EventFrontierState,
+    site: SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    if let Some(site_state) = state.site_mut(site) {
+        let previous = site_state.agents;
+        site_state.agents = site_state.agents.saturating_add(1).min(3);
+        if site_state.agents != previous {
+            effects.push(public_effect(EventFrontierEffect::AgentPlaced {
+                site,
+                new_count: site_state.agents,
+            }));
+        }
+    }
+}
+
+fn remove_agent_if_present(
+    state: &mut EventFrontierState,
+    site: SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    if let Some(site_state) = state.site_mut(site) {
+        if site_state.agents > 0 {
+            site_state.agents -= 1;
+            effects.push(public_effect(EventFrontierEffect::AgentRemoved {
+                site,
+                new_count: site_state.agents,
+            }));
+        }
+    }
+}
+
+fn rally_settler(
+    state: &mut EventFrontierState,
+    site: SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    if let Some(site_state) = state.site_mut(site) {
+        let previous = site_state.settlers;
+        site_state.settlers = site_state.settlers.saturating_add(1).min(3);
+        if site_state.settlers != previous {
+            effects.push(public_effect(EventFrontierEffect::SettlerRallied {
+                site,
+                new_count: site_state.settlers,
+            }));
+        }
+    }
+}
+
+fn move_settler_if_possible(
+    state: &mut EventFrontierState,
+    from: SiteId,
+    to: SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    let can_move = state.site(from).is_some_and(|site| site.settlers > 0)
+        && state.site(to).is_some_and(|site| site.settlers < 3);
+    if !can_move {
+        return;
+    }
+    {
+        let from_site = state.site_mut(from).expect("checked source site");
+        from_site.settlers -= 1;
+    }
+    let from_count = state.site(from).map(|site| site.settlers).unwrap_or(0);
+    let to_count = {
+        let to_site = state.site_mut(to).expect("checked target site");
+        to_site.settlers += 1;
+        to_site.settlers
+    };
+    effects.push(public_effect(EventFrontierEffect::SettlerMoved {
+        from,
+        to,
+        from_count,
+        to_count,
+    }));
+}
+
+fn lay_cache(
+    state: &mut EventFrontierState,
+    site: SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    if let Some(site_state) = state.site_mut(site) {
+        let previous = site_state.cache_count;
+        site_state.cache_count = site_state.cache_count.saturating_add(1).min(2);
+        if site_state.cache_count != previous {
+            effects.push(public_effect(EventFrontierEffect::CacheLaid {
+                site,
+                new_count: site_state.cache_count,
+            }));
+        }
+    }
+}
+
+fn remove_cache_if_present(
+    state: &mut EventFrontierState,
+    site: SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    if let Some(site_state) = state.site_mut(site) {
+        if site_state.cache_count > 0 {
+            site_state.cache_count -= 1;
+            effects.push(public_effect(EventFrontierEffect::CacheRemoved {
+                site,
+                new_count: site_state.cache_count,
+            }));
         }
     }
 }

@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-007: Event effects and edict modifier system
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier/src/{cards,effects,rules}.rs` (exhaustive typed event match; typed edict modifier list)
@@ -79,3 +79,21 @@ Implement the four edicts as typed `ActiveEdict` variants appended to `state.act
 1. `cargo test -p event_frontier --test rules --test serialization`
 2. `cargo test -p event_frontier`
 3. The per-crate rule/serialization tests are the correct boundary — the §5 boundary is provable at the crate level; the full no-leak suite lands in ticket 011.
+
+## Outcome
+
+Implemented typed Event Frontier event and edict behavior:
+
+- Added `EdictKind`, typed active-edict state, deterministic active-edict sorting, activation, and list-clear expiry helpers.
+- Implemented an exhaustive Rust match for all ordinary event cards and edict cards; card data remains identity/parameter-only.
+- Wired Event choices through the typed card resolver.
+- Added public event/edict effects (`EventResolved`, `EdictActivated`, `EdictExpired`) plus `AgentRemoved`.
+- Consulted active edicts at fixed operation points: Toll Roads modifies cost, Requisition zeros Charter depot-site costs, Survey Ban blocks survey/rally at contested sites, and Long Season extends first-choice full-op bounds only.
+- Added rule/serialization/property coverage for all fourteen ordinary events, four edict activations, modified-rule consequences, deterministic expiry/order, behavior-field rejection, and no reverse-patch after expiry.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p event_frontier --test rules --test serialization` — passed, 20 tests.
+3. `cargo test -p event_frontier --test property` — passed, 3 tests.
+4. `cargo test -p event_frontier` — passed, 16 unit tests, 25 integration tests, 0 doctests.

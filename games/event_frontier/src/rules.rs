@@ -7,7 +7,7 @@ use crate::{
         operation_cost, validate_command, ChoicePosition, EventFrontierAction, OperationKind,
         OperationSelection, ValidatedAction,
     },
-    cards::{CardCatalog, CardId},
+    cards::{resolve_event_card, CardCatalog, CardId},
     effects::{public_effect, EventFrontierEffect, EventFrontierEffectEnvelope},
     ids::FactionId,
     state::{
@@ -109,6 +109,9 @@ fn apply_first_choice(
 ) -> Result<(), Diagnostic> {
     match validated.action {
         EventFrontierAction::Event => {
+            if let Some(card) = state.deck.current {
+                effects.extend(resolve_event_card(state, card));
+            }
             mark_ineligible(state, validated.actor_faction, "event_choice", effects);
             offer_second_or_cleanup(state, validated.actor_faction, FirstChoice::Event, effects);
         }
@@ -140,6 +143,9 @@ fn apply_second_choice(
 ) -> Result<(), Diagnostic> {
     match validated.action {
         EventFrontierAction::Event => {
+            if let Some(card) = state.deck.current {
+                effects.extend(resolve_event_card(state, card));
+            }
             mark_ineligible(state, validated.actor_faction, "event_choice", effects);
             advance_to_next_card(state, "resolved_after_second_choice", effects);
         }
@@ -170,7 +176,12 @@ fn apply_operation(
     selections: &[OperationSelection],
     effects: &mut Vec<EventFrontierEffectEnvelope>,
 ) -> Result<(), Diagnostic> {
-    spend_operation_cost(state, faction, operation_cost(selections), effects);
+    spend_operation_cost(
+        state,
+        faction,
+        operation_cost(state, faction, kind, selections),
+        effects,
+    );
     let mut sorted = selections.to_vec();
     sorted.sort();
     effects.push(public_effect(EventFrontierEffect::OpResolved {

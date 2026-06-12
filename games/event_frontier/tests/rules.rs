@@ -3,7 +3,9 @@ use event_frontier::{
     actions::{
         choosing_menu, ACTION_EVENT, ACTION_LIMITED_OPERATION, ACTION_OPERATION, ACTION_PASS,
     },
-    apply_command, legal_action_metadata, legal_action_tree,
+    apply_command,
+    cards::{expire_all_edicts, resolve_event_card, EdictKind},
+    legal_action_metadata, legal_action_tree,
     rules::advance_to_next_card,
     setup_match, CardPhase, Eligibility, EventFrontierEffect, FactionId, SetupOptions,
 };
@@ -404,4 +406,144 @@ fn limited_operation_rejects_more_than_one_site() {
     .expect_err("limited op over one site");
 
     assert_eq!(diagnostic.code, "operation_site_bound_exceeded");
+}
+
+#[test]
+fn every_ordinary_event_card_has_typed_rust_effects() {
+    let ordinary = [
+        event_frontier::CardId::BorderSurvey,
+        event_frontier::CardId::RiverMists,
+        event_frontier::CardId::StorehouseFire,
+        event_frontier::CardId::HighMeadowFair,
+        event_frontier::CardId::DepotGrants,
+        event_frontier::CardId::TrailWashout,
+        event_frontier::CardId::CharterAudit,
+        event_frontier::CardId::FreeholderMoot,
+        event_frontier::CardId::OldMillStrike,
+        event_frontier::CardId::CrossingMarket,
+        event_frontier::CardId::GranitePassSnows,
+        event_frontier::CardId::CacheBoom,
+        event_frontier::CardId::AgentsRecall,
+        event_frontier::CardId::LastLight,
+    ];
+
+    for card in ordinary {
+        let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+        let effects = resolve_event_card(&mut state, card);
+        assert!(
+            effects.iter().any(|effect| matches!(
+                effect.payload,
+                EventFrontierEffect::EventResolved {
+                    card: resolved,
+                    ..
+                } if resolved == card
+            )),
+            "{card:?} did not emit EventResolved"
+        );
+    }
+}
+
+#[test]
+fn edicts_activate_as_typed_modifiers() {
+    let edicts = [
+        (event_frontier::CardId::TollRoads, EdictKind::TollRoads),
+        (event_frontier::CardId::SurveyBan, EdictKind::SurveyBan),
+        (event_frontier::CardId::LongSeason, EdictKind::LongSeason),
+        (event_frontier::CardId::Requisition, EdictKind::Requisition),
+    ];
+
+    for (card, kind) in edicts {
+        let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+        let effects = resolve_event_card(&mut state, card);
+
+        assert_eq!(state.active_edicts.len(), 1);
+        assert_eq!(state.active_edicts[0].kind, kind);
+        assert!(effects.iter().any(|effect| matches!(
+            &effect.payload,
+            EventFrontierEffect::EdictActivated {
+                edict,
+                ..
+            } if edict == kind.as_str()
+        )));
+    }
+}
+
+#[test]
+fn toll_roads_and_requisition_modify_operation_cost_without_patching_base_rules() {
+    let mut toll = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup toll");
+    resolve_event_card(&mut toll, event_frontier::CardId::TollRoads);
+    let freshness = toll.freshness_token;
+    apply_command(
+        &mut toll,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect("toll cache");
+    assert_eq!(toll.resources.provisions, 1);
+
+    let mut requisition =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup requisition");
+    resolve_event_card(&mut requisition, event_frontier::CardId::Requisition);
+    let freshness = requisition.freshness_token;
+    apply_command(&mut requisition, &command("seat_1", ACTION_PASS, freshness)).expect("pass");
+    let freshness = requisition.freshness_token;
+    apply_command(
+        &mut requisition,
+        &command("seat_0", "operation/survey/site_charterhouse", freshness),
+    )
+    .expect("free depot survey");
+    assert_eq!(requisition.resources.funds, 3);
+}
+
+#[test]
+fn survey_ban_and_long_season_modify_legality_and_bounds() {
+    let mut banned =
+        setup_match(Seed(1), &seats(), &SetupOptions::hard_winter()).expect("setup banned");
+    banned
+        .site_mut(event_frontier::SiteId::Landing)
+        .expect("landing")
+        .agents = 1;
+    resolve_event_card(&mut banned, event_frontier::CardId::SurveyBan);
+    let freshness = banned.freshness_token;
+    let diagnostic = apply_command(
+        &mut banned,
+        &command("seat_1", "operation/rally/site_landing", freshness),
+    )
+    .expect_err("survey ban blocks contested rally");
+    assert_eq!(diagnostic.code, "survey_ban_contested_site");
+
+    let mut long = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup long");
+    resolve_event_card(&mut long, event_frontier::CardId::LongSeason);
+    long.deck.current = Some(event_frontier::CardId::TollRoads);
+    long.card_phase = CardPhase::AwaitingFirstChoice {
+        faction: FactionId::Charter,
+    };
+    let freshness = long.freshness_token;
+    apply_command(
+        &mut long,
+        &command(
+            "seat_0",
+            "operation/survey/site_charterhouse,site_crossing,site_granite_pass",
+            freshness,
+        ),
+    )
+    .expect("long season extra site");
+}
+
+#[test]
+fn edict_expiry_is_a_deterministic_list_clear() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    resolve_event_card(&mut state, event_frontier::CardId::Requisition);
+    resolve_event_card(&mut state, event_frontier::CardId::TollRoads);
+
+    let effects = expire_all_edicts(&mut state);
+
+    assert!(state.active_edicts.is_empty());
+    let expired = effects
+        .iter()
+        .filter_map(|effect| match &effect.payload {
+            EventFrontierEffect::EdictExpired { edict } => Some(edict.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(expired, vec!["toll_roads", "requisition"]);
 }

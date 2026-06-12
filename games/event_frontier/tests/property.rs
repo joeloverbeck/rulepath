@@ -1,8 +1,10 @@
 use engine_core::{ActionChoice, ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
 use event_frontier::{
     actions::{choosing_menu, validate_command},
-    apply_command, legal_action_tree, setup_match, CardPhase, FactionId, SetupOptions,
-    ACTION_OPERATION, ACTION_PASS,
+    apply_command,
+    cards::{expire_all_edicts, resolve_event_card, sorted_active_edicts},
+    legal_action_tree, setup_match, CardPhase, FactionId, SetupOptions, ACTION_OPERATION,
+    ACTION_PASS,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -123,4 +125,44 @@ fn collect_leaves(choice: &ActionChoice, out: &mut Vec<String>) {
     } else if choice.segment.starts_with(ACTION_OPERATION) {
         out.push(choice.segment.clone());
     }
+}
+
+#[test]
+fn simultaneous_edicts_have_stable_order_and_expiry_restores_base_costs() {
+    let seats = seats();
+    let mut first = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup");
+    let mut second = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup");
+
+    resolve_event_card(&mut first, event_frontier::CardId::Requisition);
+    resolve_event_card(&mut first, event_frontier::CardId::TollRoads);
+    resolve_event_card(&mut second, event_frontier::CardId::TollRoads);
+    resolve_event_card(&mut second, event_frontier::CardId::Requisition);
+
+    let first_order = sorted_active_edicts(&first)
+        .iter()
+        .map(|edict| edict.kind.as_str())
+        .collect::<Vec<_>>();
+    let second_order = sorted_active_edicts(&second)
+        .iter()
+        .map(|edict| edict.kind.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(first_order, second_order);
+    assert_eq!(first_order, vec!["toll_roads", "requisition"]);
+
+    expire_all_edicts(&mut first);
+    let freshness = first.freshness_token;
+    let pass = command_for(FactionId::Freeholders, &first);
+    apply_command(&mut first, &pass).expect("base pass still works");
+    let freshness_after_pass = first.freshness_token;
+    let command = CommandEnvelope {
+        actor: actor_for(FactionId::Charter),
+        action_path: ActionPath {
+            segments: vec!["operation/survey/site_granite_pass".to_owned()],
+        },
+        freshness_token: freshness_after_pass,
+        rules_version: RulesVersion(1),
+    };
+    assert_eq!(freshness.0, 0);
+    apply_command(&mut first, &command).expect("base survey after expiry");
+    assert_eq!(first.resources.funds, 2);
 }

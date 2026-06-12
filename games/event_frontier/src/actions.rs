@@ -6,7 +6,7 @@ use engine_core::{
 };
 
 use crate::{
-    cards::{CardCatalog, CardId},
+    cards::{sorted_active_edicts, CardCatalog, CardId, EdictKind},
     ids::{FactionId, SiteId},
     state::{CardPhase, EventFrontierState, FirstChoice},
 };
@@ -289,15 +289,11 @@ pub fn validate_operation(
     if selections.is_empty() {
         return Err(empty_operation_diagnostic());
     }
-    let max_sites = if limited {
-        1
-    } else {
-        current_ops_value(state).ok_or_else(wrong_phase_diagnostic)?
-    };
+    let max_sites = effective_ops_bound(state, limited).ok_or_else(wrong_phase_diagnostic)?;
     if selections.len() > max_sites as usize {
         return Err(over_budget_diagnostic());
     }
-    if operation_cost(selections) > resource_pool(state, faction) {
+    if operation_cost(state, faction, kind, selections) > resource_pool(state, faction) {
         return Err(unaffordable_diagnostic());
     }
     ensure_unique_operation_sites(selections)?;
@@ -308,8 +304,45 @@ pub fn validate_operation(
     Ok(())
 }
 
-pub fn operation_cost(selections: &[OperationSelection]) -> u8 {
-    selections.len() as u8
+pub fn operation_cost(
+    state: &EventFrontierState,
+    faction: FactionId,
+    kind: OperationKind,
+    selections: &[OperationSelection],
+) -> u8 {
+    let mut per_site = selections
+        .iter()
+        .map(|selection| (selection.site, 1u8))
+        .collect::<Vec<_>>();
+
+    for edict in sorted_active_edicts(state) {
+        match edict.kind {
+            EdictKind::TollRoads => {
+                for (_, cost) in &mut per_site {
+                    *cost = cost.saturating_add(1);
+                }
+            }
+            EdictKind::Requisition
+                if faction == FactionId::Charter
+                    && matches!(
+                        kind,
+                        OperationKind::Survey | OperationKind::Fortify | OperationKind::Writ
+                    ) =>
+            {
+                for (site, cost) in &mut per_site {
+                    if state.site(*site).is_some_and(|site| site.depot) {
+                        *cost = 0;
+                    }
+                }
+            }
+            EdictKind::SurveyBan | EdictKind::LongSeason | EdictKind::Requisition => {}
+        }
+    }
+
+    per_site
+        .into_iter()
+        .map(|(_, cost)| cost)
+        .fold(0u8, u8::saturating_add)
 }
 
 pub fn resource_pool(state: &EventFrontierState, faction: FactionId) -> u8 {
@@ -416,11 +449,7 @@ fn operation_leaf_choices(
     kind: OperationKind,
     limited: bool,
 ) -> Vec<ActionChoice> {
-    let bound = if limited {
-        1
-    } else {
-        current_ops_value(state).unwrap_or(0)
-    };
+    let bound = effective_ops_bound(state, limited).unwrap_or(0);
     let max_sites = bound.min(resource_pool(state, faction));
     if max_sites == 0 {
         return Vec::new();
@@ -451,7 +480,10 @@ fn operation_leaf_choices(
             choice.metadata = vec![
                 metadata("op", kind.as_str()),
                 metadata("site_count", selections.len().to_string()),
-                metadata("cost", operation_cost(&selections).to_string()),
+                metadata(
+                    "cost",
+                    operation_cost(state, faction, kind, &selections).to_string(),
+                ),
                 metadata("ops_bound", bound.to_string()),
                 metadata("eligibility_consequence", "acting_forfeits_next_card"),
             ];
@@ -513,6 +545,9 @@ fn validate_operation_selection(
         OperationKind::Survey => {
             if selection.destination.is_some() {
                 return Err(malformed_action_diagnostic());
+            }
+            if survey_ban_blocks(state, selection.site) {
+                return Err(precondition_diagnostic("survey_ban_contested_site"));
             }
             if site.agents >= 3 {
                 return Err(site_cap_diagnostic("agent_cap"));
@@ -585,6 +620,9 @@ fn validate_operation_selection(
             if selection.destination.is_some() {
                 return Err(malformed_action_diagnostic());
             }
+            if survey_ban_blocks(state, selection.site) {
+                return Err(precondition_diagnostic("survey_ban_contested_site"));
+            }
             if site.settlers >= 3 {
                 return Err(site_cap_diagnostic("settler_cap"));
             }
@@ -605,6 +643,13 @@ fn adjacent_to_charter_presence(state: &EventFrontierState, site: SiteId) -> boo
                 .is_some_and(|candidate| candidate.agents > 0 || candidate.depot)
         })
     })
+}
+
+fn survey_ban_blocks(state: &EventFrontierState, site: SiteId) -> bool {
+    has_edict(state, EdictKind::SurveyBan)
+        && state
+            .site(site)
+            .is_some_and(|site| site.agents > 0 && site.settlers > 0)
 }
 
 fn ensure_unique_operation_sites(selections: &[OperationSelection]) -> Result<(), Diagnostic> {
@@ -768,9 +813,23 @@ fn validate_menu_allows(
         .ok_or_else(unavailable_action_diagnostic)
 }
 
+fn effective_ops_bound(state: &EventFrontierState, limited: bool) -> Option<u8> {
+    if limited {
+        return Some(1);
+    }
+    let base = current_ops_value(state)?;
+    let extra = matches!(state.card_phase, CardPhase::AwaitingFirstChoice { .. })
+        && has_edict(state, EdictKind::LongSeason);
+    Some(base.saturating_add(u8::from(extra)))
+}
+
 fn current_ops_value(state: &EventFrontierState) -> Option<u8> {
     let current = state.deck.current?;
     card_ops_value(current)
+}
+
+fn has_edict(state: &EventFrontierState, kind: EdictKind) -> bool {
+    state.active_edicts.iter().any(|edict| edict.kind == kind)
 }
 
 fn card_ops_value(card: CardId) -> Option<u8> {
