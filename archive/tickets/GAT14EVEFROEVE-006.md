@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-006: Operations — compound action trees, validation, application
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier/src/{actions,rules,effects}.rs` (progressive compound op trees, per-op validation, application)
@@ -82,3 +82,20 @@ Apply the compound op as one command; emit `OpResolved { faction, op, sites }` p
 1. `cargo test -p event_frontier --test rules`
 2. `cargo test -p event_frontier`
 3. The per-crate tests are the correct boundary; peak-branching latency is asserted at the benchmark layer (ticket 012), not here.
+
+## Outcome
+
+Implemented base Event Frontier operations as single compound commands:
+
+- Expanded operation action trees into typed operation roots and legal target leaves for Charter `survey`/`fortify`/`writ` and Freeholder `trek`/`cache`/`rally`.
+- Added compound operation parsing/validation for `operation/<kind>/<payload>` and `limited_operation/<kind>/<payload>`, including faction ownership, full vs limited site bounds, affordability, duplicate-site rejection, and per-op preconditions.
+- Added the documented ticket-007 edict consultation metadata point without implementing edict modifiers early.
+- Applied operations as one command with stable selected-site order, resource spending, public `OpResolved`, and per-site effects for agent placement, depot build, cache removal, settler movement, cache laying, and rally.
+- Added rule/property coverage for every op family, resource/cap/bound/precondition diagnostics, limited operations, single-command shape, and bounded legal operation leaves.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p event_frontier --test rules` — passed, 13 tests.
+3. `cargo test -p event_frontier --test property` — passed, 2 tests.
+4. `cargo test -p event_frontier` — passed, 16 unit tests, 18 integration tests, 0 doctests.

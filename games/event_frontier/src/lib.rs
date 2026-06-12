@@ -15,8 +15,8 @@ pub mod visibility;
 
 pub use actions::{
     legal_action_metadata, legal_action_tree, parse_action_path, validate_command,
-    EventFrontierAction, ValidatedAction, ACTION_EVENT, ACTION_LIMITED_OPERATION, ACTION_OPERATION,
-    ACTION_PASS,
+    EventFrontierAction, MenuEntry, OperationKind, OperationSelection, ValidatedAction,
+    ACTION_EVENT, ACTION_LIMITED_OPERATION, ACTION_OPERATION, ACTION_PASS,
 };
 pub use cards::{CardCatalog, CardData, CardId};
 pub use effects::{EventFrontierEffect, EventFrontierEffectEnvelope};

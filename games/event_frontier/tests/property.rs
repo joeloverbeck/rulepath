@@ -1,7 +1,8 @@
-use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
+use engine_core::{ActionChoice, ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
 use event_frontier::{
-    actions::choosing_menu, apply_command, legal_action_tree, setup_match, CardPhase, FactionId,
-    SetupOptions, ACTION_PASS,
+    actions::{choosing_menu, validate_command},
+    apply_command, legal_action_tree, setup_match, CardPhase, FactionId, SetupOptions,
+    ACTION_OPERATION, ACTION_PASS,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -76,5 +77,50 @@ fn other_faction(faction: FactionId) -> FactionId {
     match faction {
         FactionId::Charter => FactionId::Freeholders,
         FactionId::Freeholders => FactionId::Charter,
+    }
+}
+
+#[test]
+fn operation_tree_is_bounded_and_every_leaf_validates_as_one_command() {
+    let seats = seats();
+    let state = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup succeeds");
+    let (faction, _) = choosing_menu(&state).expect("choice menu");
+    let tree = legal_action_tree(&state, &actor_for(faction));
+    let operation = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == ACTION_OPERATION)
+        .expect("operation root");
+
+    let mut leaves = Vec::new();
+    collect_leaves(operation, &mut leaves);
+    assert!(!leaves.is_empty());
+    assert!(leaves.len() < 100);
+
+    for leaf in leaves {
+        let command = CommandEnvelope {
+            actor: actor_for(faction),
+            action_path: ActionPath {
+                segments: vec![leaf],
+            },
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(1),
+        };
+        let validated = validate_command(&state, &command).expect("operation leaf validates");
+        assert!(matches!(
+            validated.action,
+            event_frontier::EventFrontierAction::Operation { .. }
+        ));
+    }
+}
+
+fn collect_leaves(choice: &ActionChoice, out: &mut Vec<String>) {
+    if let Some(next) = &choice.next {
+        for child in &next.choices {
+            collect_leaves(child, out);
+        }
+    } else if choice.segment.starts_with(ACTION_OPERATION) {
+        out.push(choice.segment.clone());
     }
 }

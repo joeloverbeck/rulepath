@@ -57,7 +57,11 @@ fn first_operation_constrains_second_to_event_limited_operation_or_pass() {
     let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
     let freshness = state.freshness_token;
 
-    apply_command(&mut state, &command("seat_1", ACTION_OPERATION, freshness)).expect("operation");
+    apply_command(
+        &mut state,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect("operation");
 
     assert_eq!(
         segments_for("seat_0", &state),
@@ -202,4 +206,202 @@ fn choosing_menu_matches_current_card_phase() {
 
     assert_eq!(faction, FactionId::Freeholders);
     assert_eq!(choices.len(), 3);
+}
+
+#[test]
+fn charter_survey_is_one_compound_command_that_spends_and_places_agent() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let freshness = state.freshness_token;
+    apply_command(&mut state, &command("seat_1", ACTION_PASS, freshness)).expect("pass");
+    let freshness = state.freshness_token;
+
+    let result = apply_command(
+        &mut state,
+        &command("seat_0", "operation/survey/site_granite_pass", freshness),
+    )
+    .expect("survey");
+
+    assert_eq!(state.resources.funds, 2);
+    assert_eq!(
+        state
+            .site(event_frontier::SiteId::GranitePass)
+            .expect("site")
+            .agents,
+        1
+    );
+    assert!(result.effects.iter().any(|effect| matches!(
+        effect.payload,
+        EventFrontierEffect::OpResolved {
+            faction: FactionId::Charter,
+            ..
+        }
+    )));
+}
+
+#[test]
+fn charter_fortify_and_writ_apply_public_site_changes() {
+    let mut fortify =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup fortify");
+    fortify
+        .site_mut(event_frontier::SiteId::Charterhouse)
+        .expect("site")
+        .depot = false;
+    let freshness = fortify.freshness_token;
+    apply_command(&mut fortify, &command("seat_1", ACTION_PASS, freshness)).expect("pass");
+    let freshness = fortify.freshness_token;
+    apply_command(
+        &mut fortify,
+        &command("seat_0", "operation/fortify/site_charterhouse", freshness),
+    )
+    .expect("fortify");
+    assert!(
+        fortify
+            .site(event_frontier::SiteId::Charterhouse)
+            .expect("site")
+            .depot
+    );
+
+    let mut writ = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup writ");
+    writ.site_mut(event_frontier::SiteId::Charterhouse)
+        .expect("site")
+        .cache_count = 1;
+    let freshness = writ.freshness_token;
+    apply_command(&mut writ, &command("seat_1", ACTION_PASS, freshness)).expect("pass");
+    let freshness = writ.freshness_token;
+    apply_command(
+        &mut writ,
+        &command("seat_0", "operation/writ/site_charterhouse", freshness),
+    )
+    .expect("writ");
+    assert_eq!(
+        writ.site(event_frontier::SiteId::Charterhouse)
+            .expect("site")
+            .cache_count,
+        0
+    );
+    assert_eq!(writ.resources.funds, 3);
+}
+
+#[test]
+fn freeholder_trek_cache_and_rally_apply_public_site_changes() {
+    let mut trek = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup trek");
+    let freshness = trek.freshness_token;
+    apply_command(
+        &mut trek,
+        &command(
+            "seat_1",
+            "operation/trek/site_landing>site_crossing",
+            freshness,
+        ),
+    )
+    .expect("trek");
+    assert_eq!(
+        trek.site(event_frontier::SiteId::Landing)
+            .expect("landing")
+            .settlers,
+        2
+    );
+    assert_eq!(
+        trek.site(event_frontier::SiteId::Crossing)
+            .expect("crossing")
+            .settlers,
+        1
+    );
+
+    let mut cache = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup cache");
+    let freshness = cache.freshness_token;
+    apply_command(
+        &mut cache,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect("cache");
+    assert_eq!(
+        cache
+            .site(event_frontier::SiteId::Landing)
+            .expect("landing")
+            .cache_count,
+        2
+    );
+
+    let mut rally =
+        setup_match(Seed(1), &seats(), &SetupOptions::hard_winter()).expect("setup rally");
+    let freshness = rally.freshness_token;
+    apply_command(
+        &mut rally,
+        &command("seat_1", "operation/rally/site_landing", freshness),
+    )
+    .expect("rally");
+    assert_eq!(
+        rally
+            .site(event_frontier::SiteId::Landing)
+            .expect("landing")
+            .settlers,
+        3
+    );
+}
+
+#[test]
+fn operation_diagnostics_are_viewer_safe_for_bounds_costs_and_preconditions() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let freshness = state.freshness_token;
+    apply_command(&mut state, &command("seat_1", ACTION_PASS, freshness)).expect("pass");
+    let freshness = state.freshness_token;
+    let over = apply_command(
+        &mut state,
+        &command(
+            "seat_0",
+            "operation/survey/site_charterhouse,site_crossing,site_granite_pass",
+            freshness,
+        ),
+    )
+    .expect_err("over budget");
+    assert_eq!(over.code, "operation_site_bound_exceeded");
+    assert!(!format!("{over:?}").contains("ef_survey_ban"));
+
+    let mut poor = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup poor");
+    poor.resources.provisions = 0;
+    let freshness = poor.freshness_token;
+    let unaffordable = apply_command(
+        &mut poor,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect_err("unaffordable");
+    assert_eq!(unaffordable.code, "unaffordable_operation");
+
+    let mut invalid =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup invalid");
+    let freshness = invalid.freshness_token;
+    let precondition = apply_command(
+        &mut invalid,
+        &command("seat_1", "operation/cache/site_charterhouse", freshness),
+    )
+    .expect_err("precondition");
+    assert_eq!(
+        precondition.code,
+        "cache_requires_settler_no_depot_under_cap"
+    );
+}
+
+#[test]
+fn limited_operation_rejects_more_than_one_site() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let freshness = state.freshness_token;
+    apply_command(
+        &mut state,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect("first op");
+    let freshness = state.freshness_token;
+
+    let diagnostic = apply_command(
+        &mut state,
+        &command(
+            "seat_0",
+            "limited_operation/survey/site_crossing,site_granite_pass",
+            freshness,
+        ),
+    )
+    .expect_err("limited op over one site");
+
+    assert_eq!(diagnostic.code, "operation_site_bound_exceeded");
 }

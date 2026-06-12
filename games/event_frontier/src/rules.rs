@@ -3,7 +3,10 @@
 use engine_core::{CommandEnvelope, Diagnostic};
 
 use crate::{
-    actions::{validate_command, ChoicePosition, EventFrontierAction, ValidatedAction},
+    actions::{
+        operation_cost, validate_command, ChoicePosition, EventFrontierAction, OperationKind,
+        OperationSelection, ValidatedAction,
+    },
     cards::{CardCatalog, CardId},
     effects::{public_effect, EventFrontierEffect, EventFrontierEffectEnvelope},
     ids::FactionId,
@@ -109,7 +112,10 @@ fn apply_first_choice(
             mark_ineligible(state, validated.actor_faction, "event_choice", effects);
             offer_second_or_cleanup(state, validated.actor_faction, FirstChoice::Event, effects);
         }
-        EventFrontierAction::OperationPlaceholder => {
+        EventFrontierAction::Operation {
+            kind, selections, ..
+        } => {
+            apply_operation(state, validated.actor_faction, kind, &selections, effects)?;
             mark_ineligible(state, validated.actor_faction, "operation_choice", effects);
             offer_second_or_cleanup(
                 state,
@@ -121,13 +127,6 @@ fn apply_first_choice(
         EventFrontierAction::Pass => {
             apply_pass_income(state, validated.actor_faction, effects);
             offer_second_or_cleanup(state, validated.actor_faction, FirstChoice::Pass, effects);
-        }
-        EventFrontierAction::LimitedOperationPlaceholder => {
-            return Err(Diagnostic {
-                code: "action_unavailable".to_owned(),
-                message: "limited operations are only available to the second eligible faction"
-                    .to_owned(),
-            });
         }
     }
     Ok(())
@@ -144,8 +143,10 @@ fn apply_second_choice(
             mark_ineligible(state, validated.actor_faction, "event_choice", effects);
             advance_to_next_card(state, "resolved_after_second_choice", effects);
         }
-        EventFrontierAction::OperationPlaceholder
-        | EventFrontierAction::LimitedOperationPlaceholder => {
+        EventFrontierAction::Operation {
+            kind, selections, ..
+        } => {
+            apply_operation(state, validated.actor_faction, kind, &selections, effects)?;
             mark_ineligible(state, validated.actor_faction, "operation_choice", effects);
             advance_to_next_card(state, "resolved_after_second_choice", effects);
         }
@@ -160,6 +161,179 @@ fn apply_second_choice(
         }
     }
     Ok(())
+}
+
+fn apply_operation(
+    state: &mut EventFrontierState,
+    faction: FactionId,
+    kind: OperationKind,
+    selections: &[OperationSelection],
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) -> Result<(), Diagnostic> {
+    spend_operation_cost(state, faction, operation_cost(selections), effects);
+    let mut sorted = selections.to_vec();
+    sorted.sort();
+    effects.push(public_effect(EventFrontierEffect::OpResolved {
+        faction,
+        op: kind.as_str().to_owned(),
+        sites: sorted.iter().map(|selection| selection.site).collect(),
+    }));
+    for selection in sorted {
+        apply_operation_selection(state, faction, kind, selection, effects)?;
+    }
+    Ok(())
+}
+
+fn spend_operation_cost(
+    state: &mut EventFrontierState,
+    faction: FactionId,
+    cost: u8,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    let (previous, new) = match faction {
+        FactionId::Charter => {
+            let previous = state.resources.funds;
+            state.resources.funds = state.resources.funds.saturating_sub(cost);
+            (previous, state.resources.funds)
+        }
+        FactionId::Freeholders => {
+            let previous = state.resources.provisions;
+            state.resources.provisions = state.resources.provisions.saturating_sub(cost);
+            (previous, state.resources.provisions)
+        }
+    };
+    effects.push(public_effect(EventFrontierEffect::ResourcesChanged {
+        faction,
+        previous,
+        new,
+        reason: "operation_cost".to_owned(),
+    }));
+}
+
+fn apply_operation_selection(
+    state: &mut EventFrontierState,
+    faction: FactionId,
+    kind: OperationKind,
+    selection: OperationSelection,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) -> Result<(), Diagnostic> {
+    match kind {
+        OperationKind::Survey => {
+            let site = state
+                .site_mut(selection.site)
+                .ok_or_else(action_unavailable)?;
+            site.agents = site.agents.saturating_add(1).min(3);
+            effects.push(public_effect(EventFrontierEffect::AgentPlaced {
+                site: selection.site,
+                new_count: site.agents,
+            }));
+        }
+        OperationKind::Fortify => {
+            let site = state
+                .site_mut(selection.site)
+                .ok_or_else(action_unavailable)?;
+            site.depot = true;
+            effects.push(public_effect(EventFrontierEffect::DepotBuilt {
+                site: selection.site,
+            }));
+        }
+        OperationKind::Writ => {
+            let site = state
+                .site_mut(selection.site)
+                .ok_or_else(action_unavailable)?;
+            site.cache_count = site.cache_count.saturating_sub(1);
+            effects.push(public_effect(EventFrontierEffect::CacheRemoved {
+                site: selection.site,
+                new_count: site.cache_count,
+            }));
+            gain_resource(state, faction, 1, "writ_gain", effects);
+        }
+        OperationKind::Trek => {
+            let destination = selection.destination.ok_or_else(action_unavailable)?;
+            move_settler(state, selection.site, destination, effects)?;
+        }
+        OperationKind::Cache => {
+            let site = state
+                .site_mut(selection.site)
+                .ok_or_else(action_unavailable)?;
+            site.cache_count = site.cache_count.saturating_add(1).min(2);
+            effects.push(public_effect(EventFrontierEffect::CacheLaid {
+                site: selection.site,
+                new_count: site.cache_count,
+            }));
+        }
+        OperationKind::Rally => {
+            let site = state
+                .site_mut(selection.site)
+                .ok_or_else(action_unavailable)?;
+            site.settlers = site.settlers.saturating_add(1).min(3);
+            effects.push(public_effect(EventFrontierEffect::SettlerRallied {
+                site: selection.site,
+                new_count: site.settlers,
+            }));
+        }
+    }
+    Ok(())
+}
+
+fn move_settler(
+    state: &mut EventFrontierState,
+    from: crate::SiteId,
+    to: crate::SiteId,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) -> Result<(), Diagnostic> {
+    {
+        let from_site = state.site_mut(from).ok_or_else(action_unavailable)?;
+        from_site.settlers = from_site.settlers.saturating_sub(1);
+    }
+    let from_count = state.site(from).map(|site| site.settlers).unwrap_or(0);
+    let to_count = {
+        let to_site = state.site_mut(to).ok_or_else(action_unavailable)?;
+        to_site.settlers = to_site.settlers.saturating_add(1).min(3);
+        to_site.settlers
+    };
+    effects.push(public_effect(EventFrontierEffect::SettlerMoved {
+        from,
+        to,
+        from_count,
+        to_count,
+    }));
+    Ok(())
+}
+
+fn gain_resource(
+    state: &mut EventFrontierState,
+    faction: FactionId,
+    amount: u8,
+    reason: &str,
+    effects: &mut Vec<EventFrontierEffectEnvelope>,
+) {
+    let cap = state.variant.resource_cap;
+    let (previous, new) = match faction {
+        FactionId::Charter => {
+            let previous = state.resources.funds;
+            state.resources.funds = state.resources.funds.saturating_add(amount).min(cap);
+            (previous, state.resources.funds)
+        }
+        FactionId::Freeholders => {
+            let previous = state.resources.provisions;
+            state.resources.provisions = state.resources.provisions.saturating_add(amount).min(cap);
+            (previous, state.resources.provisions)
+        }
+    };
+    effects.push(public_effect(EventFrontierEffect::ResourcesChanged {
+        faction,
+        previous,
+        new,
+        reason: reason.to_owned(),
+    }));
+}
+
+fn action_unavailable() -> Diagnostic {
+    Diagnostic {
+        code: "action_unavailable".to_owned(),
+        message: "that Event Frontier action is not available now".to_owned(),
+    }
 }
 
 fn offer_second_or_cleanup(
