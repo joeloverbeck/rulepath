@@ -25,9 +25,12 @@ impl Eligibility {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CardPhase {
-    AwaitingFirstChoice,
+    AwaitingFirstChoice {
+        faction: FactionId,
+    },
     AwaitingSecondChoice {
         first_faction: FactionId,
+        second_faction: FactionId,
         first_choice: FirstChoice,
     },
     Reckoning,
@@ -37,13 +40,17 @@ pub enum CardPhase {
 impl CardPhase {
     pub fn stable_summary(&self) -> String {
         match self {
-            Self::AwaitingFirstChoice => "awaiting_first_choice".to_owned(),
+            Self::AwaitingFirstChoice { faction } => {
+                format!("awaiting_first_choice:{}", faction.as_str())
+            }
             Self::AwaitingSecondChoice {
                 first_faction,
+                second_faction,
                 first_choice,
             } => format!(
-                "awaiting_second_choice:{}:{}",
+                "awaiting_second_choice:{}:{}:{}",
                 first_faction.as_str(),
+                second_faction.as_str(),
                 first_choice.as_str()
             ),
             Self::Reckoning => "reckoning".to_owned(),
@@ -233,7 +240,9 @@ impl EventFrontierState {
             eligibility: [Eligibility::Eligible, Eligibility::Eligible],
             card_phase: match current {
                 Some(card) if is_reckoning(card) => CardPhase::Reckoning,
-                Some(_) => CardPhase::AwaitingFirstChoice,
+                Some(_) => CardPhase::AwaitingFirstChoice {
+                    faction: FactionId::Charter,
+                },
                 None => CardPhase::Terminal,
             },
             active_edicts: Vec::new(),
@@ -271,6 +280,11 @@ impl EventFrontierState {
     pub fn eligibility_for(&self, faction: FactionId) -> Eligibility {
         let index = faction_index(faction);
         self.eligibility[index]
+    }
+
+    pub fn set_eligibility(&mut self, faction: FactionId, eligibility: Eligibility) {
+        let index = faction_index(faction);
+        self.eligibility[index] = eligibility;
     }
 
     pub fn stable_summary(&self) -> String {

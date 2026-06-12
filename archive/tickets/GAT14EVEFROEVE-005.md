@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-005: Eligibility/initiative card flow
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier/src/{actions,rules,effects}.rs` (card reveal, first/second-eligible determination, constrained menus, eligibility transitions)
@@ -81,3 +81,21 @@ Emit `CardRevealed { card, next_public }`, `ChoiceTaken { faction, choice }`, `C
 1. `cargo test -p event_frontier --test rules`
 2. `cargo test -p event_frontier`
 3. The per-crate rule/property tests are the correct boundary — initiative correctness is provable without operations/effects, which land in later tickets.
+
+## Outcome
+
+Implemented the deterministic Event Frontier eligibility/initiative card flow:
+
+- Added Rust-owned legal action tree construction, waiting metadata, action parsing, and command validation for first-choice and constrained second-choice menus.
+- Added public card-flow effects for revealed cards, choices, discards, eligibility changes, and pass income; effects and action metadata expose only current/next public cards, never undrawn order.
+- Added rule application for first event/operation/pass, second event/operation/limited-operation/pass, pass income, eligibility transitions, double-pass discard, no-second-faction cleanup, no-eligible-faction auto-discard, and card advance/reveal.
+- Updated state phase to carry the choosing faction and wired setup to initialize the first-choice phase from card data and eligibility.
+- Updated setup fixtures' phase field to match the now-explicit choosing-faction phase.
+- Added `tests/rules.rs` and `tests/property.rs` for the eligibility table, no-stall invariant, pass income, double pass, no-eligible discard, safe waiting tree, and no-leak assertions.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p event_frontier --test rules` — passed, 8 tests.
+3. `cargo test -p event_frontier --test property` — passed, 1 test.
+4. `cargo test -p event_frontier` — passed, 16 unit tests, 12 integration tests, 0 doctests.

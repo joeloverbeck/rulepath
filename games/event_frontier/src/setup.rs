@@ -7,6 +7,7 @@ use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
 use crate::{
     cards::{CardCatalog, CardId},
     ids::{FactionId, SiteId, STANDARD_CARD_COUNT, STANDARD_EPOCH_COUNT, STANDARD_SEAT_COUNT},
+    rules::initialize_card_phase,
     state::{is_reckoning, AdjacencyEntry, EventFrontierState},
     variants::{ScenarioVariant, VariantCatalog},
 };
@@ -65,12 +66,14 @@ pub fn setup_match(
         .map_err(|message| diagnostic("invalid_card_catalog", &message))?;
     let deck_order = build_seeded_deck(seed, &catalog)?;
 
-    Ok(EventFrontierState::new_after_setup(
+    let mut state = EventFrontierState::new_after_setup(
         options.variant.clone(),
         [seats[0].clone(), seats[1].clone()],
         adjacency,
         deck_order,
-    ))
+    );
+    initialize_card_phase(&mut state)?;
+    Ok(state)
 }
 
 pub fn validate_variant(variant: &ScenarioVariant) -> Result<Vec<AdjacencyEntry>, Diagnostic> {
@@ -327,7 +330,9 @@ mod tests {
         assert_eq!(state.terminal_outcome, None);
         assert_eq!(
             state.card_phase,
-            crate::state::CardPhase::AwaitingFirstChoice
+            crate::state::CardPhase::AwaitingFirstChoice {
+                faction: FactionId::Freeholders
+            }
         );
         assert_eq!(state.site(SiteId::Charterhouse).expect("site").agents, 2);
         assert!(state.site(SiteId::Charterhouse).expect("site").depot);

@@ -4,7 +4,7 @@
   "variant": "event_frontier_hard_winter",
   "rules_version": "event-frontier-rules-v1",
   "seed": 1,
-  "phase": "awaiting_first_choice",
+  "phase": "awaiting_first_choice:faction_freeholders",
   "seats": "seat_0,seat_1",
   "factions": "faction_charter,faction_freeholders",
   "resources": "funds:2,provisions:2",

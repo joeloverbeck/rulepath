@@ -13,12 +13,19 @@ pub mod ui;
 pub mod variants;
 pub mod visibility;
 
+pub use actions::{
+    legal_action_metadata, legal_action_tree, parse_action_path, validate_command,
+    EventFrontierAction, ValidatedAction, ACTION_EVENT, ACTION_LIMITED_OPERATION, ACTION_OPERATION,
+    ACTION_PASS,
+};
 pub use cards::{CardCatalog, CardData, CardId};
+pub use effects::{EventFrontierEffect, EventFrontierEffectEnvelope};
 pub use ids::{
     FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT, STANDARD_EPOCH_COUNT,
     STANDARD_RESOURCE_CAP, STANDARD_SEAT_COUNT, STANDARD_SITE_COUNT, VARIANT_HARD_WINTER_ID,
     VARIANT_LAND_RUSH_ID, VARIANT_STANDARD_ID,
 };
+pub use rules::{apply_command, apply_validated_action, initialize_card_phase, AppliedAction};
 pub use setup::{setup_match, validate_variant, SetupOptions};
 pub use state::{
     ActiveEdict, AdjacencyEntry, CardPhase, DeckState, Eligibility, EventFrontierSnapshot,
