@@ -2,6 +2,8 @@ use crate::ids::{CellId, ThreeMarksSeat};
 
 pub const SEAT_LABEL_AUDIT: &str =
     "Three Marks is factionless; keep existing first-player/second-player mark labels.";
+pub const TURN_REPORT_AUDIT: &str =
+    "Not adopted by ACTCONMAT-006; Three Marks has no automated non-interactive burst surface in scope.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MarkTokenMetadata {

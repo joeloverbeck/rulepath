@@ -114,6 +114,7 @@ try {
   await chooseAndConfirmAction(page, ["Pass"]);
   await waitForText(page, "Reckoning resolved");
   await waitForText(page, "reckoning 1");
+  await assertEventFrontierTurnReport(page);
   await assertEventFrontierDiscardDisclosure(page);
   await clickButtonText(page, "Developer panel");
   await clickButtonText(page, "Submit Stale Action");
@@ -284,6 +285,14 @@ async function assertFactionFirstCopy(page) {
   assert(!normalSurface.includes("Seat 1"), "normal Event Frontier surface omits Seat 1 copy");
   assert(!normalSurface.includes("seat_0"), "normal Event Frontier surface omits raw seat_0 copy");
   assert(!normalSurface.includes("seat_1"), "normal Event Frontier surface omits raw seat_1 copy");
+}
+
+async function assertEventFrontierTurnReport(page) {
+  const report = await page.$eval('[data-testid="turn-report-panel"]', (element) => element.textContent ?? "");
+  assert(report.includes("Turn report"), "Event Frontier turn report renders near the board");
+  assert(report.includes("Reckoning resolved"), "Event Frontier turn report includes the Reckoning burst");
+  assert(report.includes("First Reckoning") || report.includes("Reckoning 1"), "Event Frontier turn report uses authored Reckoning vocabulary");
+  assert(!report.includes("full_deck_order"), "Event Frontier turn report does not expose hidden deck order");
 }
 
 function includesAny(value, candidates) {

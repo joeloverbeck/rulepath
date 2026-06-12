@@ -7,6 +7,8 @@ use crate::{
 };
 
 pub const DISPLAY_NAME: &str = "Event Frontier";
+pub const TURN_REPORT_ADOPTION: &str =
+    "Adopted by ACTCONMAT-006; Event Frontier reports viewer-filtered event/reckoning bursts near the board.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {

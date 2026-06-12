@@ -7,6 +7,8 @@ use crate::{
 
 pub const SEAT_LABEL_AUDIT: &str =
     "Draughts Lite is factionless; keep existing first-player/second-player piece labels.";
+pub const TURN_REPORT_AUDIT: &str =
+    "Not adopted by ACTCONMAT-006; Draughts Lite has no automated non-interactive burst surface in scope.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PieceTokenMetadata {

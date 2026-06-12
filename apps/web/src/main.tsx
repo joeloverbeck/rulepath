@@ -25,6 +25,7 @@ import { ReplayViewer } from "./components/ReplayViewer";
 import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
+import { TurnReportPanel } from "./components/TurnReportPanel";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
   loadApi,
@@ -544,6 +545,8 @@ function App() {
             onRestart={start}
           />
         )}
+
+        <TurnReportPanel gameId={state.selectedGameId} effects={effects} />
 
         <ModeControls
           playMode={state.setup.playMode}

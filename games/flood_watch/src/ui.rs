@@ -9,6 +9,8 @@ use crate::{
 
 pub const SEAT_LABEL_AUDIT: &str =
     "Flood Watch is cooperative and role-first; role labels remain authored in the Rust view.";
+pub const TURN_REPORT_ADOPTION: &str =
+    "Adopted by ACTCONMAT-006; Flood Watch reports viewer-filtered automation and storm bursts near the board.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {

@@ -2,6 +2,8 @@ use crate::ids::{CrestCardId, GAME_ID};
 
 pub const SEAT_LABEL_AUDIT: &str =
     "Crest Ledger is factionless; keep existing player/seat naming for hidden-card ownership.";
+pub const TURN_REPORT_AUDIT: &str =
+    "Not adopted by ACTCONMAT-006; Crest Ledger reveal narration already stays in its board surface.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {

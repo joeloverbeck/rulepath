@@ -1,6 +1,6 @@
 # ACTCONMAT-006: TurnReportPanel — narrate non-interactive advances
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only for the panel) — `apps/web/src/components/TurnReportPanel.tsx` (new), `apps/web/src/main.tsx`; plus `games/event_frontier` / `games/flood_watch` adoption notes + per-game audit rows. Re-presents the existing viewer-filtered effect payload — no new data crosses the boundary.
@@ -82,3 +82,21 @@ Mount the panel in `main.tsx` adjacent to the action surface (the bottom `Effect
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run smoke:effects`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed 2026-06-12.
+
+- Added `TurnReportPanel`, mounted adjacent to the play surface for Event Frontier and Flood Watch, reusing only the existing viewer-filtered `EffectEntry[]` payload and `feedbackForEffect` copy.
+- Added compact responsive styling for the near-board report while preserving the bottom `EffectLog` as full history.
+- Added Event Frontier and Flood Watch turn-report assertions for Reckoning and storm automation bursts.
+- Added per-game `TURN_REPORT_ADOPTION` / `TURN_REPORT_AUDIT` rows in `games/*/src/ui.rs`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/event-frontier.smoke.mjs`
+- `node apps/web/e2e/flood-watch.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run smoke:effects`
