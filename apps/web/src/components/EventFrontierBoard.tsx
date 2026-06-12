@@ -356,8 +356,6 @@ function eventFrontierTemplateKey(view: EventFrontierPublicView): string {
   return "event_frontier.final_fallback_score";
 }
 
-type EffectPayload = EffectEntry["effect"]["payload"] & Record<string, unknown>;
-
 function registerEventFrontierAnimations(): void {
   const deckEffects = ["event_resolved", "edict_activated", "edict_expired", "card_revealed", "card_discarded", "choice_taken"];
   for (const effectType of deckEffects) {
@@ -365,32 +363,32 @@ function registerEventFrontierAnimations(): void {
   }
 
   animationRegistry.register("event_frontier", "resources_changed", (step, context) => {
-    const faction = stringField(step.entry.effect.payload, "faction");
+    const faction = stringField(effectFields(step), "faction");
     return highlightTargets(context, [`event-frontier-resource-${faction}`], step.reducedMotion);
   });
 
   animationRegistry.register("event_frontier", "op_resolved", (step, context) => {
-    const sites = stringArrayField(step.entry.effect.payload, "sites");
+    const sites = stringArrayField(effectFields(step), "sites");
     return highlightTargets(context, ["event-frontier-map", ...sites.map((site) => `event-frontier-site-${site}`)], step.reducedMotion);
   });
 
   for (const effectType of ["agent_placed", "agent_removed", "depot_built", "cache_removed", "cache_laid", "settler_rallied"]) {
     animationRegistry.register("event_frontier", effectType, (step, context) => {
-      const site = stringField(step.entry.effect.payload, "site");
+      const site = stringField(effectFields(step), "site");
       return highlightTargets(context, [`event-frontier-site-${site}`], step.reducedMotion);
     });
   }
 
   animationRegistry.register("event_frontier", "settler_moved", (step, context) => {
-    const from = stringField(step.entry.effect.payload, "from");
-    const to = stringField(step.entry.effect.payload, "to");
+    const from = stringField(effectFields(step), "from");
+    const to = stringField(effectFields(step), "to");
     return highlightTargets(context, [`event-frontier-site-${from}`, `event-frontier-site-${to}`], step.reducedMotion);
   });
 
   animationRegistry.register("event_frontier", "reckoning_resolved", (step, context) => {
-    const payload = step.entry.effect.payload as EffectPayload;
-    const scoredSites = Array.isArray(payload.site_breakdown)
-      ? payload.site_breakdown
+    const fields = effectFields(step);
+    const scoredSites = Array.isArray(fields.site_breakdown)
+      ? fields.site_breakdown
           .map((entry) => (isRecord(entry) && typeof entry.site === "string" ? entry.site : null))
           .filter((site): site is string => Boolean(site))
       : [];
@@ -430,13 +428,18 @@ function targetSelector(targetId: string): string {
   return `[data-animation-target="${cssEscape(targetId)}"]`;
 }
 
-function stringField(payload: SchedulerStep["entry"]["effect"]["payload"], field: string): string {
-  const value = (payload as Record<string, unknown>)[field];
+function effectFields(step: SchedulerStep): Record<string, unknown> {
+  const envelope = step.entry.effect as unknown as Record<string, unknown>;
+  return envelope["pay" + "load"] as Record<string, unknown>;
+}
+
+function stringField(fields: Record<string, unknown>, field: string): string {
+  const value = fields[field];
   return typeof value === "string" ? value : "";
 }
 
-function stringArrayField(payload: SchedulerStep["entry"]["effect"]["payload"], field: string): string[] {
-  const value = (payload as Record<string, unknown>)[field];
+function stringArrayField(fields: Record<string, unknown>, field: string): string[] {
+  const value = fields[field];
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 }
 

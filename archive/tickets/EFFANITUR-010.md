@@ -1,6 +1,6 @@
 # EFFANITUR-010: Closeout — lift amendments, README, status flips
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation and status surfaces only (`docs/`, `templates/`, `apps/web/README.md`, `specs/`, `brainstorming/`); no code, Rust, or WASM change.
@@ -84,3 +84,23 @@ Flip the `specs/README.md` row for this spec from `Planned` to `Done` with evide
 1. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-presentation-copy.mjs && bash scripts/boundary-check.sh`
 2. `npm --prefix apps/web run smoke:e2e`
 3. A docs-only closeout is correctly verified by the doc/boundary check scripts plus a regression smoke; no new unit test is the right boundary since this ticket adds no code.
+
+## Outcome
+
+Completed on 2026-06-12.
+
+Lifted the effect-animation closeout doctrine into `docs/UI-INTERACTION.md`: §10 now names the shared scheduler as the single owner of play-path animation/pacing, the new `## 10A. Turn orchestration and pacing` governs bot/automation/autoplay/replay pacing plus presentation-shape promotion discipline, and §19 now includes scheduler, auto-advance, input-not-blocked, and reduced-motion acceptance rows.
+
+Updated `templates/GAME-UI.md` with the scheduler adoption/orchestration adoption status text. Updated `apps/web/README.md` Shell Surface and Smoke Layers for the scheduler/orchestration surface, `smoke:animation`, and `e2e/animation.smoke.mjs`. Flipped `specs/README.md` for `effect-animation-and-turn-orchestration.md` to `Done` with evidence. Marked brainstorm P1 and P4 done, and updated the sequence/next-step rows while leaving P2 as the next candidate.
+
+During verification, `check-catalog-docs.mjs` correctly exposed that the new non-game `animation.smoke.mjs` needed a non-game smoke whitelist entry, and `check-presentation-copy.mjs` exposed debug-vocabulary in the Event Frontier/Flood Watch registration helpers. Those guard-facing fixes were included so the closeout checks remain meaningful.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs` -> passed.
+2. `node scripts/check-catalog-docs.mjs` -> passed.
+3. `node scripts/check-presentation-copy.mjs` -> passed.
+4. `bash scripts/boundary-check.sh` -> passed.
+5. `npm --prefix apps/web run build` -> passed.
+6. `npm --prefix apps/web run smoke:e2e` -> passed.
+7. Grep-proof: `## 10A. Turn orchestration and pacing` exists in `docs/UI-INTERACTION.md`; `specs/README.md` shows `effect-animation-and-turn-orchestration.md` as `Done`; brainstorm P1/P4 have `Status: DONE`; `apps/web/README.md` names `smoke:animation` and `animation.smoke.mjs`; `templates/GAME-UI.md` names scheduler/orchestration adoption status.

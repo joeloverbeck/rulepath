@@ -65,6 +65,10 @@ The shell includes:
 - shared `ActionPathBuilder` staged construction for nested Rust action trees;
 - shared action-affordance rendering for Rust-emitted cost/consequence metadata
   and confirmation summaries;
+- shared effect-animation scheduler, burst grouping, registry, and dev settle
+  assertion for viewer-filtered semantic effects;
+- scheduler-owned turn orchestration for auto-advancing bot turns, automated
+  phases, skip/pause, replay-step interruption, and reduced-motion pacing;
 - `TurnReportPanel` narration of viewer-filtered bot turns and automated
   advances near the board;
 - typed setup variant selector driven by Rust/WASM catalog variant labels;
@@ -131,11 +135,15 @@ presentations for the current catalog surface.
   bot, effects, stale diagnostics, replay, and all registered games.
 - `smoke:ui`: fast Node/WASM shell-state smoke through `render_game_to_text`.
 - `smoke:effects`: Node/WASM effect-feedback projection guard for every catalog game.
+- `smoke:animation`: Node checks for burst segmentation, scheduler behavior,
+  presenter/registry behavior, and the catalog animation adoption sweep.
 - `smoke:preview`: built `dist` static-serving and WASM fetch smoke.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event Frontier.
+  The chain also runs `e2e/animation.smoke.mjs` for animate-and-settle, skip,
+  replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard
   over normal-mode visible text and accessibility labels, with induced-drift
   negative coverage in `e2e/a11y-noleak.smoke.mjs`.

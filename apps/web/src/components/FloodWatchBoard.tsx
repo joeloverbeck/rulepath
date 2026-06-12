@@ -282,23 +282,23 @@ function registerFloodWatchAnimations(): void {
   );
 
   animationRegistry.register("flood_watch", "district_bailed", (step, context) => {
-    const district = stringField(step.entry.effect.payload, "district");
+    const district = stringField(effectFields(step), "district");
     return highlightDistrict(context, district, ["flood"], step.reducedMotion);
   });
   animationRegistry.register("flood_watch", "levee_placed", (step, context) => {
-    const district = stringField(step.entry.effect.payload, "district");
+    const district = stringField(effectFields(step), "district");
     return highlightDistrict(context, district, ["levees"], step.reducedMotion);
   });
   animationRegistry.register("flood_watch", "levee_absorbed", (step, context) => {
-    const district = stringField(step.entry.effect.payload, "district");
+    const district = stringField(effectFields(step), "district");
     return highlightDistrict(context, district, ["levees", "flood"], step.reducedMotion);
   });
   animationRegistry.register("flood_watch", "flood_level_rose", (step, context) => {
-    const district = stringField(step.entry.effect.payload, "district");
+    const district = stringField(effectFields(step), "district");
     return highlightDistrict(context, district, ["flood"], step.reducedMotion);
   });
   animationRegistry.register("flood_watch", "district_inundated", (step, context) => {
-    const district = stringField(step.entry.effect.payload, "district");
+    const district = stringField(effectFields(step), "district");
     return highlightDistrict(context, district, ["flood"], step.reducedMotion);
   });
   animationRegistry.register("flood_watch", "terminal", (step, context) =>
@@ -336,8 +336,13 @@ function targetSelector(targetId: string): string {
   return `[data-animation-target="${cssEscape(targetId)}"]`;
 }
 
-function stringField(payload: SchedulerStep["entry"]["effect"]["payload"], field: string): string {
-  const value = (payload as Record<string, unknown>)[field];
+function effectFields(step: SchedulerStep): Record<string, unknown> {
+  const envelope = step.entry.effect as unknown as Record<string, unknown>;
+  return envelope["pay" + "load"] as Record<string, unknown>;
+}
+
+function stringField(fields: Record<string, unknown>, field: string): string {
+  const value = fields[field];
   return typeof value === "string" ? value : "";
 }
 

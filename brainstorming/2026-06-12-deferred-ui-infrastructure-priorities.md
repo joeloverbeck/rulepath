@@ -85,6 +85,10 @@ Bounded practitioner pass (2026-06-12); see §7 note on research degradation.
 
 ### P1 — Animation scheduler + turn orchestration (C1 + C2, absorbing part of C8) — **do first**
 
+**Status: DONE** — delivered by
+`specs/effect-animation-and-turn-orchestration.md` and archived
+`EFFANITUR-001` through `EFFANITUR-010` on 2026-06-12.
+
 **What:** One spec, two fused workstreams:
 
 1. A shared **effect-driven animation scheduler** in `apps/web` implementing
@@ -178,6 +182,10 @@ modest payoff — defer until the replay viewer gets product attention.
 
 ### P4 — `game-stdlib` UiMetadata/label-helper promotion (C7) — **defer; record the pressure properly**
 
+**Status: DONE** — disposition recorded by
+`specs/effect-animation-and-turn-orchestration.md` and lifted into
+`docs/UI-INTERACTION.md` §10A on 2026-06-12.
+
 **Verdict:** Correctly deferred, and should stay deferred. The repeated
 `ui.rs` shape is a presentation convention, not a behavior primitive; the
 atlas hard gate (MECHANIC-ATLAS §4) governs *mechanic* shapes. Promotion would
@@ -230,10 +238,10 @@ plus fixture/no-leak sweep updates. Nothing to schedule today.
 
 | Order | Work | Vehicle | ADR? |
 |---|---|---|---|
-| 1 | Animation scheduler + turn orchestration (C1+C2+part C8) | New non-gate UI-infra spec (`specs/`, same admission class as the four Done siblings) | No |
+| 1 | Animation scheduler + turn orchestration (C1+C2+part C8) | Done via `specs/effect-animation-and-turn-orchestration.md` | No |
 | 2 | Catalog & setup visual redesign (C5+C6) | New non-gate UI-infra spec; per-asset IP checks in closeout | No |
-| 3 | Effect-log history residue (C8) | Workstream inside spec 1; no standalone spec | No |
-| 4 | Presentation-shape register (C7 disposition) | One-paragraph doc amendment (atlas or UI-INTERACTION) — can ride spec 1's closeout | No |
+| 3 | Effect-log history residue (C8) | Done as burst-grouped `EffectLog`/`TurnReportPanel` work inside spec 1 | No |
+| 4 | Presentation-shape register (C7 disposition) | Done as a UI-INTERACTION §10A governance paragraph in spec 1 closeout | No |
 | 5 | Staged multi-target encoding (C3) | Dormant; named trigger recorded in spec 1's sequencing/successor section | Yes, when triggered |
 | 6 | EF undrawn-count visibility (C4) | Rejected as debt; playtest-evidence-gated | Yes, if ever |
 
@@ -279,8 +287,7 @@ with evidence.
 
 ## 8. Next steps
 
-1. Author the P1 spec (`specs/effect-animation-and-turn-orchestration.md`,
-   name indicative) — the brainstorm's §4-P1 section is its skeleton.
+1. Done: P1 shipped as `specs/effect-animation-and-turn-orchestration.md`.
 2. Author the P2 spec after P1 lands (or in parallel; no dependency).
 3. Land the P4 one-paragraph register with P1's closeout amendments.
 4. Record the C3/C5 triggers in P1's sequencing section.
