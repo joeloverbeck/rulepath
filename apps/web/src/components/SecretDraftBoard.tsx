@@ -92,7 +92,7 @@ export function SecretDraftBoard({
         <section className="secret-pool" aria-label={view.ui.visible_pool_label}>
           <div className="secret-section-heading">
             <span>{view.ui.visible_pool_label}</span>
-            <strong>{canAct ? "Rust legal choices" : pendingCopy(view)}</strong>
+            <strong>{canAct ? "Available choices" : pendingCopy(view)}</strong>
           </div>
           <div className="secret-pool-grid">
             {view.visible_pool.map((item, index) => {
@@ -151,7 +151,7 @@ export function SecretDraftBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Commitments stay hidden until Rust emits the reveal batch."}
+            : feedback?.detail ?? "Commitments stay hidden until the reveal batch."}
         </strong>
       </div>
 

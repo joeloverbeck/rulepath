@@ -2,7 +2,7 @@
 
 Before decomposing, validate the spec's assumptions against the actual Rulepath codebase. Collect everything; surface Issues to the user before Step 3.
 
-**Parallel grep-batch guard**: when validating via `grep` / `find` / `test` calls batched in one parallel turn, guard each with `|| true`. A non-zero exit from one call (grep finding nothing, `test` on a missing path) cancels its siblings. Zero-match results are expected and valid during validation.
+**Parallel grep-batch guard**: when validating via `grep` / `find` / `test` calls batched in one parallel turn, guard each with `|| true`. A non-zero exit from one call (grep finding nothing, `test` on a missing path) cancels its siblings. Zero-match results are expected and valid during validation. Prefer several small independent Bash calls over one long `{ …; } | head` compound — a sub-command that dies mid-block silently loses every later command's output; if a compound block returns fewer results than commands, re-run the missing checks individually rather than trusting the partial output.
 
 ## Full Validation Path (default)
 

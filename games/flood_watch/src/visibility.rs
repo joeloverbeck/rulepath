@@ -8,7 +8,7 @@ use crate::{
     effects::{FloodWatchEffect, FloodWatchEffectEnvelope, TerminalSummary},
     ids::{DistrictId, EventKind, FloodWatchRole, GAME_ID, RULES_VERSION_LABEL},
     state::{DistrictState, FloodWatchState, Phase, SharedOutcome, StableComposition},
-    ui::{ui_metadata, UiMetadata},
+    ui::{card_face, ui_metadata, CardFaceView, UiMetadata},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,8 +25,8 @@ pub struct PublicView {
     pub active_seat: String,
     pub phase: PhaseView,
     pub districts: Vec<DistrictView>,
-    pub drawn_cards: Vec<String>,
-    pub forecast: Option<String>,
+    pub drawn_cards: Vec<CardFaceView>,
+    pub forecast: Option<CardFaceView>,
     pub remaining_composition: CompositionView,
     pub undrawn_count: u8,
     pub terminal: TerminalView,
@@ -94,8 +94,12 @@ pub fn project_view(state: &FloodWatchState, _viewer: &Viewer) -> PublicView {
         active_seat: state.active_seat.0.clone(),
         phase: phase_view(state.phase),
         districts: state.districts.iter().map(district_view).collect(),
-        drawn_cards: state.drawn.iter().map(|card| card.kind.id()).collect(),
-        forecast: state.forecast.as_ref().map(|card| card.kind.id()),
+        drawn_cards: state
+            .drawn
+            .iter()
+            .map(|card| card_face(card.kind))
+            .collect(),
+        forecast: state.forecast.as_ref().map(|card| card_face(card.kind)),
         remaining_composition: composition_view(state.remaining_composition()),
         undrawn_count: state.undrawn_deck_len() as u8,
         terminal: terminal_view(state),
@@ -127,13 +131,13 @@ pub fn public_effect_text(effect: &FloodWatchEffect) -> String {
             format!("{} reinforced by {amount}", district.label())
         }
         FloodWatchEffect::ForecastRevealed { card } => {
-            format!("Forecast revealed {}", card.id())
+            format!("Forecast revealed {}", card_face(*card).label)
         }
         FloodWatchEffect::EnvironmentPhaseBegan { turn, draws } => {
             format!("Environment phase began on turn {turn} for {draws} draws")
         }
         FloodWatchEffect::EventDrawn { index, card } => {
-            format!("Event {index} drawn: {}", card.id())
+            format!("Event {index} drawn: {}", card_face(*card).label)
         }
         FloodWatchEffect::LeveeAbsorbed {
             district,
@@ -164,6 +168,12 @@ pub fn contains_hidden_event_identity<T: std::fmt::Debug>(
     value: &T,
 ) -> bool {
     let rendered = format!("{value:?}");
+    let visible_kind_ids = state
+        .drawn
+        .iter()
+        .map(|card| card.kind.id())
+        .chain(state.forecast.as_ref().map(|card| card.kind.id()))
+        .collect::<Vec<_>>();
     state
         .event_deck_internal()
         .iter()
@@ -172,7 +182,8 @@ pub fn contains_hidden_event_identity<T: std::fmt::Debug>(
             rendered.contains(&card.stable_id())
                 || match card.kind {
                     EventKind::Downpour { .. } | EventKind::StormSurge { .. } => {
-                        rendered.contains(&card.kind.id())
+                        let kind_id = card.kind.id();
+                        !visible_kind_ids.contains(&kind_id) && rendered.contains(&kind_id)
                     }
                     EventKind::Reprieve => false,
                 }
@@ -210,15 +221,38 @@ impl PublicView {
             self.active_seat,
             encode_phase(self.phase),
             self.districts.iter().map(encode_district).collect::<Vec<_>>().join(","),
-            self.drawn_cards.join(","),
-            self.forecast.as_deref().unwrap_or("none"),
+            self.drawn_cards.iter().map(encode_card_face).collect::<Vec<_>>().join(","),
+            self.forecast
+                .as_ref()
+                .map(encode_card_face)
+                .unwrap_or_else(|| "none".to_owned()),
             encode_composition(&self.remaining_composition),
             self.undrawn_count,
             encode_terminal(&self.terminal),
             self.freshness_token,
-            self.ui.display_name,
+            encode_ui(&self.ui),
         )
     }
+}
+
+fn encode_card_face(card: &CardFaceView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        card.id, card.label, card.summary, card.family, card.accessibility_label
+    )
+}
+
+fn encode_ui(ui: &UiMetadata) -> String {
+    format!(
+        "{}:{}:{}:{}:{}:{}:{}",
+        ui.display_name,
+        ui.event_deck_label,
+        ui.forecast_label,
+        ui.drawn_label,
+        ui.face_down_label,
+        ui.face_down_summary,
+        ui.reduced_motion_token
+    )
 }
 
 impl StableSerialize for PublicView {

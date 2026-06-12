@@ -68,6 +68,19 @@ Not applicable. Flood Watch uses flat action paths.
 | action metadata | legal tree request | action labels, target district, public phase/budget | undrawn deck order | `cargo test -p flood_watch --test visibility` |
 | terminal view | terminal projection | shared outcome, public reason, public district levels | undrawn event identities | `public-replay-export-import.trace.json` |
 
+## Presentation metadata
+
+Flood Watch event card faces are projected by Rust as viewer-safe component
+display metadata: `id`, player-facing label, one-line summary, family tag, and
+accessibility label. The authored source is
+`games/flood_watch/data/cards_presentation.toml`, validated by the typed Rust
+UI loader before exposure.
+
+The web renderer presents forecast, drawn, discard, and face-down deck state
+through `DeckFlowPanel`. Its public remainder badge uses Rust-projected
+`undrawn_count`; the panel never names unrevealed event cards or reconstructs
+hidden order.
+
 ## Semantic effect-to-animation mapping
 
 | Semantic effect | Visual animation | Timing/priority | Reduced-motion replacement | Settle-to-view check | Rule IDs |

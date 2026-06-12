@@ -78,6 +78,20 @@ terminal rationale. The browser maps those safe payloads to controls and text.
 | legal-tree metadata | current action tree | labels, public metadata, safe disabled/waiting reason | hidden deck tail, guessed future effects | WASM smoke, ticket 018 browser smoke |
 | effect feedback | after apply/bot/replay step | viewer-filtered semantic effect text | hidden order or nonpublic diagnostics | smoke effects, no-leak smoke |
 
+## Presentation metadata
+
+Event card faces are projected by Rust as viewer-safe component display
+metadata: `id`, player-facing label, one-line summary, family tag, and
+accessibility label. The authored source is
+`games/event_frontier/data/cards_presentation.toml`, validated by the typed
+Rust UI loader before exposure.
+
+The web renderer presents current, next, resolved, and discarded public cards
+through `DeckFlowPanel`; the face-down remainder uses Rust/static-supplied deck
+copy and never exposes hidden order. Compound Event Frontier action trees use
+`ActionPathBuilder` for staged Event/Operation/Pass selection, Back/Cancel, and
+leaf confirmation while submitting Rust action paths unchanged.
+
 ## Semantic effect-to-animation mapping
 
 | Semantic effect | Visual animation | Timing/priority | Reduced-motion replacement | Settle-to-view check | Rule IDs |

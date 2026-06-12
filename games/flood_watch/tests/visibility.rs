@@ -54,6 +54,7 @@ fn all_viewers_receive_identical_public_projection() {
         observer.remaining_composition.reprieves,
         state.remaining_composition().reprieves
     );
+    assert_eq!(observer.ui.event_deck_label, "Storm deck");
 }
 
 #[test]
@@ -104,13 +105,11 @@ fn card_identity_first_appears_in_forecast_or_draw_effects() {
         .map(|effect| public_effect_text(&effect.payload))
         .collect::<Vec<_>>();
 
-    assert!(texts.iter().any(|text| text.contains("reprieve")));
-    assert!(texts
-        .iter()
-        .any(|text| text.contains("downpour/district_market")));
+    assert!(texts.iter().any(|text| text.contains("Reprieve")));
+    assert!(texts.iter().any(|text| text.contains("Downpour at Market")));
     assert!(!texts
         .iter()
-        .any(|text| text.contains("storm_surge/district_gardens")));
+        .any(|text| text.contains("Storm Surge at Gardens")));
     assert!(!applied.effects.iter().any(|effect| {
         matches!(
             effect.payload,

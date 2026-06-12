@@ -592,8 +592,8 @@ fn fallback_pass(
 
 fn current_event_favors(view: &PublicView, faction: FactionId) -> bool {
     view.current_card
-        .as_deref()
-        .is_some_and(|card| event_favors(card, faction))
+        .as_ref()
+        .is_some_and(|card| event_favors(&card.id, faction))
 }
 
 fn event_favors(card: &str, faction: FactionId) -> bool {

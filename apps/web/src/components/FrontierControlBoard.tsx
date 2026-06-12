@@ -106,7 +106,7 @@ export function FrontierControlBoard({
           breakdownSections: [
             {
               id: "terminal-summary",
-              heading: "Rust terminal summary",
+              heading: "Terminal summary",
               summary: view.terminal.summary,
               rows: [
                 { label: "Garrison tiebreak", value: view.terminal.garrison_tiebreak ? "applied" : "not applied" },
@@ -152,7 +152,7 @@ export function FrontierControlBoard({
         <div className="frontier-map-panel">
           <svg className="frontier-map" viewBox="0 0 100 100" role="img" aria-label="Frontier trail map">
             <title>Frontier trail map</title>
-            <desc>Sites, trails, public units, forts, stakes, and Rust-projected supplied state.</desc>
+            <desc>Sites, trails, public units, forts, stakes, and supplied state.</desc>
             {trails.map(([from, to]) => {
               const a = SITE_POINTS[from];
               const b = SITE_POINTS[to];
@@ -168,7 +168,7 @@ export function FrontierControlBoard({
         <section className="plain-history frontier-site-list" aria-label="Frontier sites">
           <div className="plain-section-heading">
             <span>Sites</span>
-            <strong>Rust public view</strong>
+            <strong>Public view</strong>
           </div>
           <ol>
             {view.sites.map((site) => (
@@ -203,7 +203,7 @@ export function FrontierControlBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Rust/WASM supplies legal faction actions and public supply status."}
+            : feedback?.detail ?? "Legal faction actions and public supply status will update here."}
         </strong>
       </div>
 
@@ -228,7 +228,7 @@ export function FrontierControlBoard({
               </div>
             </div>
           ))}
-          {choices.length === 0 ? <p className="muted">No Rust legal actions available.</p> : null}
+          {choices.length === 0 ? <p className="muted">No legal actions available.</p> : null}
         </section>
       ) : null}
 

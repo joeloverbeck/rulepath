@@ -232,14 +232,14 @@ export function DirectionalFlipBoard({
         ) : null}
         <div className="directional-preview" aria-live="polite">
           <span>Preview</span>
-          <strong>{activePreview ? activePreview.explanation : interactive ? "Focus a legal cell." : "Replay projection."}</strong>
+          <strong>{activePreview ? activePreview.explanation : interactive ? "Focus a legal cell." : "Replay view."}</strong>
         </div>
       </div>
 
       {botEffect || view.bot_rationale ? (
         <div className="bot-note" data-testid="bot-explanation">
           <span>Bot</span>
-          <strong>{String(botEffect?.effect.payload.rationale ?? view.bot_rationale ?? "Rust bot selected a move.")}</strong>
+          <strong>{String(botEffect?.effect.payload.rationale ?? view.bot_rationale ?? "The bot selected a move.")}</strong>
         </div>
       ) : null}
 
@@ -250,10 +250,10 @@ export function DirectionalFlipBoard({
             : feedback
               ? feedback.detail
             : forcedPassTarget
-              ? "Rust requires a forced pass."
+              ? "A forced pass is required."
               : interactive
                 ? "Choose a highlighted cell."
-                : "Replay board is projected by Rust at this cursor."}
+                : "Replay board reflects this cursor."}
         </span>
       </div>
 

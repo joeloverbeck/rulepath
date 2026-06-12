@@ -440,7 +440,7 @@ assert(floodObserver.variant_id === "flood_watch_standard", "flood_watch Rust vi
 assert(floodObserver.remaining_composition.reprieves >= 0, "flood_watch projects public composition counts");
 assert(floodObserver.undrawn_count > 0, "flood_watch projects only undrawn count");
 assert(!JSON.stringify(floodObserver).includes("full_deck_order"), "flood_watch observer view hides full deck order");
-assert(!JSON.stringify(floodObserver).includes("event_deck"), "flood_watch observer view hides event deck");
+assert(!JSON.stringify(floodObserver).includes("event_deck_internal"), "flood_watch observer view hides internal event deck");
 const floodTree = invoke(
   (args) =>
     wasm.rulepath_get_action_tree_for_viewer(
@@ -489,7 +489,7 @@ assert(floodExport.viewer === "observer", "flood_watch replay export is observer
 assert(floodExport.redacted_command_summary || floodExport.steps?.[0]?.redacted_command_summary, "flood_watch replay export redacts commands");
 assert(!("commands" in floodExport), "flood_watch replay export omits raw command stream");
 assert(!JSON.stringify(floodExport).includes("full_deck_order"), "flood_watch replay export hides full deck order");
-assert(!JSON.stringify(floodExport).includes("event_deck"), "flood_watch replay export hides event deck");
+assert(!JSON.stringify(floodExport).includes("event_deck_internal"), "flood_watch replay export hides internal event deck");
 const floodImport = invoke(
   (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
   [JSON.stringify(floodExport)],

@@ -1,5 +1,7 @@
 use engine_core::{SeatId, Seed, StableSerialize};
-use event_frontier::{setup_match, CardCatalog, EventFrontierSnapshot, SetupOptions};
+use event_frontier::{
+    setup_match, CardCatalog, CardPresentationCatalog, EventFrontierSnapshot, SetupOptions,
+};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -26,5 +28,12 @@ fn card_data_rejects_behavior_looking_fields() {
     for key in ["when", "condition", "trigger", "effect", "script"] {
         let input = format!("card_ids = \"ef_border_survey\"\n{key} = \"bad\"\n");
         assert!(CardCatalog::parse(&input).is_err(), "{key} was accepted");
+        let presentation_input = format!(
+            "card_ids = \"ef_border_survey\"\nlabels = \"Border Survey\"\nsummaries = \"x\"\nfamilies = \"ordinary\"\naccessibility_labels = \"x\"\n{key} = \"bad\"\n"
+        );
+        assert!(
+            CardPresentationCatalog::parse(&presentation_input).is_err(),
+            "{key} was accepted by presentation metadata"
+        );
     }
 }

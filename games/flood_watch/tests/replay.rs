@@ -123,8 +123,8 @@ fn public_export_import_redacts_undrawn_deck_after_terminal() {
     let rendered = imported.raw_json;
 
     assert!(state.terminal_outcome.is_some());
-    assert!(rendered.contains("Event 1 drawn: reprieve"));
-    assert!(rendered.contains("Event 2 drawn: storm_surge/district_gardens"));
+    assert!(rendered.contains("Event 1 drawn: Reprieve"));
+    assert!(rendered.contains("Event 2 drawn: Storm Surge at Gardens"));
     assert!(!rendered.contains("storm_surge/district_gardens#1"));
     assert!(!rendered.contains("full_deck_order"));
     assert!(!rendered.contains("deck_order"));

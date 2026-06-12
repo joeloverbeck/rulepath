@@ -41,14 +41,17 @@ fn seat_and_observer_views_are_output_equivalent() {
 
     assert_eq!(observer, seat_0);
     assert_eq!(observer, seat_1);
-    assert_eq!(
-        observer.current_card.as_deref(),
-        Some("ef_high_meadow_fair")
-    );
-    assert_eq!(
-        observer.next_public_card.as_deref(),
-        Some("ef_reckoning_one")
-    );
+    let current = observer.current_card.as_ref().expect("current card");
+    let next = observer
+        .next_public_card
+        .as_ref()
+        .expect("next public card");
+    assert_eq!(current.id, "ef_high_meadow_fair");
+    assert_eq!(current.label, "High Meadow Fair");
+    assert!(current.summary.contains("Freeholders gain"));
+    assert_eq!(next.id, "ef_reckoning_one");
+    assert_eq!(next.label, "First Reckoning");
+    assert_eq!(observer.ui.face_down_label, "Face-down event deck");
 }
 
 #[test]

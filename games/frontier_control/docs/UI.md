@@ -208,3 +208,32 @@ policy metadata.
 | controls/action panel | side panel grouped by faction/action type | below map, active faction first | legal actions remain reachable | E2E smoke |
 | score/log | side column | collapsible below controls | scores and latest effect visible | E2E smoke |
 | bot explanation/help | compact panel | disclosure under latest action | explanation text readable | E2E smoke |
+
+## UiMetadata audit for card/action presentation
+
+Audit date: 2026-06-12
+
+Spec context: `specs/card-and-action-presentation-shared-surfaces.md`
+CARACTPRES-004 requires Frontier Control to either adopt a Rust `ui` metadata
+field or record why the existing projection is sufficient.
+
+Outcome: exception recorded; no `PublicView.ui` field is needed for this ticket.
+
+String audit of `apps/web/src/components/FrontierControlBoard.tsx`:
+
+| Surface | Current source | Classification | Decision |
+|---|---|---|---|
+| game name, active faction, faction labels | `view.display_name`, `view.active_faction`, `view.factions[].label` | gameplay label | already Rust-projected |
+| site names and site state | `view.sites[].label`, `guards`, `crews`, `fort`, `stake`, `supplied` | gameplay label/status | already Rust-projected public view data |
+| action buttons | `ActionChoice.label` and `accessibility_label` | gameplay action copy | already Rust legal-tree copy |
+| terminal summary and scores | `view.terminal`, `terminal_rationale` | gameplay outcome copy | already Rust-projected terminal data |
+| map title, section headings, metric labels, generic waiting/empty text | TypeScript literals | layout/chrome | presentation-owned |
+| "Rust public view", "Rust/WASM supplies...", "No Rust legal actions available", "Rust terminal summary" | TypeScript literals | debug-flavored player-facing copy | intentionally deferred to CARACTPRES-009 catalog copy hygiene |
+
+Rationale: Frontier Control does not project component identifiers such as card
+IDs and does not need deck/pile copy. Its gameplay-meaningful labels are already
+carried by Rust public-view fields or Rust action-tree labels. Adding a
+symmetry-only `UiMetadata` field would not move any current gameplay copy out of
+TypeScript; it would add a contract surface without a real consumer. The
+remaining debug vocabulary is real but belongs to the catalog-wide copy-hygiene
+ticket so the guard and wording land consistently across boards.

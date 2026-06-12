@@ -73,7 +73,7 @@ Before acting, this skill MUST read:
 - `<spec_path>` — the target spec, entire contents (Step 1).
 - `tickets/_TEMPLATE.md` — the canonical ticket structure; every ticket must follow it exactly (Step 1).
 - `tickets/README.md` — the ticket authoring contract (Step 1).
-- `docs/FOUNDATIONS.md` — the non-negotiable design contract. Skip only if read earlier this session and unmodified (Step 1).
+- `docs/FOUNDATIONS.md` — the non-negotiable design contract. Step 1's in-context skip allowance applies to all four mandatory reads.
 - Every file path, crate/module, skill directory, type, schema field, and spec reference extracted from the spec — read on demand at Step 2.
 
 Reading scope: anything under `specs/`, `.claude/skills/`, `docs/`, `templates/`, `tickets/`, and the code tree (`crates/`, `games/`, `apps/`, `tools/`). This skill does not author game content (rules, traces, engine code) — it reasons about specs that plan app behavior.
@@ -102,7 +102,7 @@ If any of checks 1–4 fails, abort with a clear missing-file error. If check 5'
 
 ## Step 1: Mandatory Reads
 
-Read ALL of: the spec file (entire), `tickets/_TEMPLATE.md`, `tickets/README.md`, and `docs/FOUNDATIONS.md` (skip the last only if read earlier this session and unmodified).
+Read ALL of: the spec file (entire), `tickets/_TEMPLATE.md`, `tickets/README.md`, and `docs/FOUNDATIONS.md` — skipping any of these whose full content is already current in this session's context (read via the Read tool, or authored via Write this session) and unmodified since.
 
 **House-style calibration (optional)**: when prior tickets already exist under `tickets/` or `archive/tickets/`, skim one as a depth/voice exemplar — the citation density, Verification-Layers granularity, and FOUNDATIONS §-referencing the repo expects. Structure is still governed by `tickets/_TEMPLATE.md`; the exemplar only calibrates detail level.
 
@@ -137,7 +137,7 @@ Column roles: **Title** matches the ticket's first line; **Scope** is the delive
 
 **Contingent ticket count from a Step-2 Issue disposition or spec-level conditionality**: when a Step-2 Issue's disposition — or a conditionality declared in the spec's own Assumptions / a §Conditional / decision-gated ticket (see `references/decomposition-patterns.md`), e.g. a `game-stdlib` extraction ticket added only if a primitive-pressure ledger decides *promote* — would add or remove a ticket (e.g. an ADR-decision ticket added only under one option), present the count-affecting delta inline in the table (e.g. `21 tickets, +1 if Issue I1 → option (a)`) and resolve that disposition together with table approval — HARD-GATE (b) before (c) — so the approved count is unambiguous before any write. This applies **even when the gating decision is expected to resolve the no-extra-ticket way**: a §4 third-use hard gate whose ledger is *expected* to decide defer/reject (no `game-stdlib` extraction) still warrants the one-line delta (e.g. `19 tickets, +1 if the resource-accounting ledger → promote: conditional game-stdlib extraction`), so the contingency is surfaced rather than silently assumed away by the expected outcome.
 
-**Wait for user approval or adjustments.** Do not write files until the user confirms. **Auto-mode / no-stopping carve-out**: when auto mode (or an in-session "work without stopping" directive) is active AND Step 2 surfaced no Issues AND no `/reassess-spec` findings were deferred, auto-approve and proceed; announce it inline and cite the directive. Any open Issue or deferred finding holds the wait-gate per HARD-GATE clause (c). When every Issue carries an explicit recommended disposition under a no-stopping directive, the operator MAY proceed by applying the named dispositions, citing each before the writes; the user can redirect.
+**Wait for user approval or adjustments.** Do not write files until the user confirms. **Auto-mode / no-stopping carve-out**: when auto mode (or an in-session "work without stopping" directive) is active AND Step 2 surfaced no Issues AND no `/reassess-spec` findings were deferred, auto-approve and proceed; announce it inline and cite the directive. When the carve-out fires, do not end the turn after the table — emit the rehearsal and continue straight into the first write batch in the same agentic continuation; a text-only stop re-introduces the wait the carve-out just waived. Any open Issue or deferred finding holds the wait-gate per HARD-GATE clause (c). When every Issue carries an explicit recommended disposition under a no-stopping directive, the operator MAY proceed by applying the named dispositions, citing each before the writes; the user can redirect.
 
 ## Step 5: Batched Ticket Writes
 

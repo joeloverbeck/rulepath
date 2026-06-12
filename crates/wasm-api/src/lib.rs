@@ -32,7 +32,10 @@ use engine_core::{
 };
 #[cfg(test)]
 use engine_core::{HashValue, StableSerialize};
-use event_frontier::visibility::public_effect_text as event_frontier_public_effect_text;
+use event_frontier::visibility::{
+    public_effect_text as event_frontier_public_effect_text,
+    reason_label as event_frontier_reason_label,
+};
 use event_frontier::{
     apply_command as event_frontier_apply_command,
     command_for_decision as event_frontier_command_for_decision,
@@ -7144,13 +7147,33 @@ fn flood_view_json(view: &flood_watch::PublicView) -> String {
             .map(flood_district_json)
             .collect::<Vec<_>>()
             .join(","),
-        string_array(&view.drawn_cards),
-        option_string_json(view.forecast.as_deref()),
+        view.drawn_cards
+            .iter()
+            .map(flood_card_face_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        option_flood_card_face_json(view.forecast.as_ref()),
         flood_composition_json(&view.remaining_composition),
         view.undrawn_count,
         flood_terminal_json(&view.terminal),
         view.freshness_token,
         flood_ui_json(&view.ui)
+    )
+}
+
+fn option_flood_card_face_json(card: Option<&flood_watch::CardFaceView>) -> String {
+    card.map(flood_card_face_json)
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn flood_card_face_json(card: &flood_watch::CardFaceView) -> String {
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.id),
+        escape_json(&card.label),
+        escape_json(&card.summary),
+        escape_json(&card.family),
+        escape_json(&card.accessibility_label)
     )
 }
 
@@ -7247,7 +7270,7 @@ fn frontier_terminal_json(terminal: &frontier_control::TerminalView) -> String {
 
 fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"active_seat\":{},\"sites\":[{}],\"adjacency\":[{}],\"resources\":{},\"scores\":{},\"eligibility\":[{}],\"current_card\":{},\"next_public_card\":{},\"discard\":[{}],\"active_edicts\":[{}],\"epoch\":{},\"reckoning_count\":{},\"victory_distance\":{},\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"active_seat\":{},\"sites\":[{}],\"adjacency\":[{}],\"resources\":{},\"scores\":{},\"eligibility\":[{}],\"current_card\":{},\"next_public_card\":{},\"discard\":[{}],\"active_edicts\":[{}],\"epoch\":{},\"reckoning_count\":{},\"victory_distance\":{},\"terminal\":{},\"terminal_rationale\":{},\"ui\":{},\"freshness_token\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7274,16 +7297,51 @@ fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
             .map(event_frontier_eligibility_json)
             .collect::<Vec<_>>()
             .join(","),
-        option_string_json(view.current_card.as_deref()),
-        option_string_json(view.next_public_card.as_deref()),
-        string_array(&view.discard),
+        option_event_frontier_card_face_json(view.current_card.as_ref()),
+        option_event_frontier_card_face_json(view.next_public_card.as_ref()),
+        view.discard
+            .iter()
+            .map(event_frontier_card_face_json)
+            .collect::<Vec<_>>()
+            .join(","),
         string_array(&view.active_edicts),
         view.epoch,
         view.reckoning_count,
         event_frontier_victory_distance_json(&view.victory_distance),
         event_frontier_terminal_json(&view.terminal),
         event_frontier_terminal_rationale_json(view),
+        event_frontier_ui_json(&view.ui),
         view.freshness_token
+    )
+}
+
+fn option_event_frontier_card_face_json(card: Option<&event_frontier::CardFaceView>) -> String {
+    card.map(event_frontier_card_face_json)
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn event_frontier_card_face_json(card: &event_frontier::CardFaceView) -> String {
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"summary\":\"{}\",\"family\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.id),
+        escape_json(&card.label),
+        escape_json(&card.summary),
+        escape_json(&card.family),
+        escape_json(&card.accessibility_label)
+    )
+}
+
+fn event_frontier_ui_json(ui: &event_frontier::UiMetadata) -> String {
+    format!(
+        "{{\"table_label\":\"{}\",\"event_deck_label\":\"{}\",\"current_card_label\":\"{}\",\"next_card_label\":\"{}\",\"discard_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        escape_json(&ui.table_label),
+        escape_json(&ui.event_deck_label),
+        escape_json(&ui.current_card_label),
+        escape_json(&ui.next_card_label),
+        escape_json(&ui.discard_label),
+        escape_json(&ui.face_down_label),
+        escape_json(&ui.face_down_summary),
+        escape_json(&ui.reduced_motion_token)
     )
 }
 
@@ -7500,7 +7558,16 @@ fn flood_terminal_summary_json(summary: &flood_watch::TerminalSummary) -> String
 }
 
 fn flood_ui_json(ui: &flood_watch::ui::UiMetadata) -> String {
-    format!("{{\"display_name\":\"{}\"}}", escape_json(&ui.display_name))
+    format!(
+        "{{\"display_name\":\"{}\",\"event_deck_label\":\"{}\",\"forecast_label\":\"{}\",\"drawn_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        escape_json(&ui.display_name),
+        escape_json(&ui.event_deck_label),
+        escape_json(&ui.forecast_label),
+        escape_json(&ui.drawn_label),
+        escape_json(&ui.face_down_label),
+        escape_json(&ui.face_down_summary),
+        escape_json(&ui.reduced_motion_token)
+    )
 }
 
 fn option_masked_seat_json(seat: Option<MaskedClaimsSeat>) -> String {
@@ -8178,7 +8245,7 @@ fn event_frontier_effect_json(effect: &EffectEnvelope<EventFrontierEffect>) -> S
         EventFrontierEffect::CardDiscarded { card, reason } => format!(
             "{{\"type\":\"card_discarded\",\"card\":\"{}\",\"reason\":\"{}\"}}",
             card.as_str(),
-            escape_json(reason)
+            escape_json(event_frontier_reason_label(reason))
         ),
         EventFrontierEffect::EligibilityChanged {
             faction,
@@ -8188,7 +8255,7 @@ fn event_frontier_effect_json(effect: &EffectEnvelope<EventFrontierEffect>) -> S
             "{{\"type\":\"eligibility_changed\",\"faction\":\"{}\",\"eligible\":{},\"reason\":\"{}\"}}",
             faction.as_str(),
             eligible,
-            escape_json(reason)
+            escape_json(event_frontier_reason_label(reason))
         ),
         EventFrontierEffect::ResourcesChanged {
             faction,
@@ -8200,7 +8267,7 @@ fn event_frontier_effect_json(effect: &EffectEnvelope<EventFrontierEffect>) -> S
             faction.as_str(),
             previous,
             new,
-            escape_json(reason)
+            escape_json(event_frontier_reason_label(reason))
         ),
         EventFrontierEffect::OpResolved { faction, op, sites } => format!(
             "{{\"type\":\"op_resolved\",\"faction\":\"{}\",\"op\":\"{}\",\"sites\":[{}]}}",
@@ -11051,7 +11118,7 @@ mod tests {
         assert!(observer.contains("\"variant_id\":\"flood_watch_standard\""));
         assert!(observer.contains("\"undrawn_count\":"));
         assert!(!observer.contains("full_deck_order"));
-        assert!(!observer.contains("event_deck"));
+        assert!(!observer.contains("\"event_deck\":"));
 
         let tree = get_action_tree(&match_id, "seat_0").expect("action tree returned");
         assert!(tree.contains("\"segment\":\"end_turn\""));
@@ -11063,12 +11130,12 @@ mod tests {
         assert!(applied.contains("\"type\":\"event_drawn\""));
         assert!(applied.contains("\"active_seat\":\"seat_1\""));
         assert!(!applied.contains("full_deck_order"));
-        assert!(!applied.contains("event_deck"));
+        assert!(!applied.contains("\"event_deck\":"));
 
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot action applies");
         assert!(bot.contains("\"policy_id\":\"flood_watch_level1_public_priority_v1\""));
         assert!(!bot.contains("full_deck_order"));
-        assert!(!bot.contains("event_deck"));
+        assert!(!bot.contains("\"event_deck\":"));
 
         let exported = export_replay(&match_id).expect("public replay exported");
         assert!(exported.contains("\"game_id\":\"flood_watch\""));

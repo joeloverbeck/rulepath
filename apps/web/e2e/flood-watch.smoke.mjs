@@ -71,6 +71,7 @@ try {
   await waitForText(page, "Levee Warden");
   await clickText(page, "button", "Forecast");
   await waitForText(page, "Forecast revealed");
+  await assertFloodWatchA11y(page);
   await assertNoLeak(page, consoleMessages, "forecast reveal");
   await clickFirstFloodAction(page, "Reinforce");
   await waitForText(page, "Levee placed");
@@ -170,18 +171,43 @@ async function startFloodWatch(page, baseUrl, modeLabel, seed) {
 async function assertFloodWatchA11y(page) {
   const summary = await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll("button"));
+    const countText = document.querySelector('[data-testid="deck-face-down-count"]')?.textContent ?? "";
+    const undrawnMetric =
+      Array.from(document.querySelectorAll(".plain-tricks-metrics div")).find((item) => item.querySelector("span")?.textContent === "Undrawn")?.querySelector("strong")?.textContent ?? "";
+    const disclosure = document.querySelector('[data-testid="deck-discard"]');
+    if (disclosure instanceof HTMLDetailsElement) {
+      disclosure.open = true;
+    }
     return {
       board: Boolean(document.querySelector('[data-testid="flood-watch-board"]')),
       districts: document.querySelectorAll('[data-testid^="flood-watch-district-"]').length,
       unnamed: buttons
         .filter((button) => !((button.getAttribute("aria-label") || button.textContent || "").trim()))
         .map((button) => button.getAttribute("data-testid") ?? button.className),
+      deckText: document.querySelector('[data-testid="deck-flow-panel"]')?.textContent ?? "",
+      nextText: document.querySelector('[data-testid="deck-next-card"]')?.textContent ?? "",
+      faceDownText: document.querySelector('[data-testid="deck-face-down"]')?.textContent ?? "",
+      faceDownCount: countText,
+      viewUndrawnCount: undrawnMetric,
+      discardOpen: disclosure instanceof HTMLDetailsElement ? disclosure.open : false,
+      discardText: disclosure?.textContent ?? "",
       liveText: document.querySelector(".plain-latest")?.textContent ?? "",
     };
   });
   assert(summary.board, "flood_watch board renders");
   assert(summary.districts === 5, "flood_watch renders five district gauges");
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);
+  assert(summary.deckText.includes("Storm deck"), "flood_watch renders Rust deck label");
+  assert(summary.nextText.includes("Forecast"), "flood_watch renders Rust forecast slot label");
+  if (!summary.nextText.includes("None")) {
+    assert(summary.nextText.includes("Downpour") || summary.nextText.includes("Storm Surge") || summary.nextText.includes("Reprieve"), "flood_watch renders authored forecast card label");
+    assert(summary.nextText.includes("rises") || summary.nextText.includes("faces") || summary.nextText.includes("No district rises"), "flood_watch renders authored forecast summary");
+  }
+  assert(summary.faceDownText.includes("Remaining storm cards stay face down. The count is public."), "flood_watch renders Rust face-down summary");
+  assert(summary.faceDownCount === summary.viewUndrawnCount, "flood_watch face-down count matches the public view");
+  assert(summary.discardOpen, "flood_watch drawn-card disclosure expands");
+  assert(summary.discardText.includes("Resolved storm cards"), "flood_watch drawn-card disclosure uses Rust label");
+  assert(!summary.deckText.includes("downpour/") && !summary.deckText.includes("storm_surge/"), "flood_watch deck panel omits raw card ids");
   assert(summary.liveText.length > 0, "flood_watch latest-effect region has text");
 }
 

@@ -210,6 +210,11 @@ A game may be web-exposed only when:
 - hidden-information games prove no leak through browser-facing payloads and DOM-safe fixtures;
 - the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the newly web-exposed game in its intro catalog list, its Shell Surface renderer list (when the game ships a board renderer), and its Smoke Layers `smoke:e2e` list (when the game's smoke is chained by `smoke:e2e`). This reconciliation is part of web-exposure done, not a later cleanup pass — `scripts/check-catalog-docs.mjs` enforces the intro and smoke lists mechanically against the `crates/wasm-api` catalog and `apps/web/package.json`.
 
+Games whose public views project component identifiers MUST project
+viewer-safe component display metadata (label, short summary, family tag,
+accessibility label) for every projected identifier, loaded from typed static
+presentation data or authored Rust copy, validated at load.
+
 Public UI polish is not optional for showcase games.
 
 ### Outcome explanation requirement

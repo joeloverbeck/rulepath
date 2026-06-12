@@ -247,7 +247,7 @@ export function MaskedClaimsBoard({
         <strong>
           {outcomeExplanation
             ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Rust/WASM supplies legal claims, responses, and redacted mask views."}
+            : feedback?.detail ?? "Legal claims, responses, and hidden mask views will update here."}
         </strong>
       </div>
 
@@ -393,11 +393,11 @@ function responsePrompt(view: MaskedClaimsPublicView, responseCount: number): st
   if (view.pedestal) {
     return `${seatLabel(view.pedestal.claimant)} is waiting for a response.`;
   }
-  return "Waiting for Rust to open a response window.";
+  return "Waiting for a response window.";
 }
 
 function boardSummary(view: MaskedClaimsPublicView, claimCount: number, responseCount: number): string {
-  return `${view.display_name}, ${statusLabel(view)}, turn ${view.turn_index + 1}, ${claimCount} Rust claim choices, ${responseCount} Rust response choices.`;
+  return `${view.display_name}, ${statusLabel(view)}, turn ${view.turn_index + 1}, ${claimCount} claim choices, ${responseCount} response choices.`;
 }
 
 function gradeLabel(grade: string, view: MaskedClaimsPublicView): string {

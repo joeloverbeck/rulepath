@@ -38,6 +38,7 @@ pub use setup::{setup_match, shuffle_event_deck};
 pub use state::{
     DistrictState, EventCard, FloodWatchState, Phase, SharedOutcome, StableComposition,
 };
+pub use ui::{card_face, CardFaceView, CardPresentation, CardPresentationCatalog, UiMetadata};
 pub use variants::{EventComposition, Fixture, Manifest, ScenarioVariant, VariantCatalog};
 pub use visibility::{
     action_tree_hash, contains_hidden_event_identity, diagnostic_hash, effect_hash,
@@ -65,6 +66,10 @@ pub fn load_deluge_fixture() -> Result<Fixture, String> {
     ))
 }
 
+pub fn load_card_presentation() -> Result<CardPresentationCatalog, String> {
+    CardPresentationCatalog::parse(include_str!("../data/cards_presentation.toml"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -75,6 +80,7 @@ mod tests {
         let variants = load_variants().expect("variants parse");
         let standard = load_standard_fixture().expect("standard fixture parses");
         let deluge = load_deluge_fixture().expect("deluge fixture parses");
+        let presentation = load_card_presentation().expect("presentation parses");
 
         assert_eq!(manifest.game_id, GAME_ID);
         assert_eq!(manifest.display_name, "Flood Watch");
@@ -91,6 +97,7 @@ mod tests {
         assert_eq!(deluge.variant, VARIANT_DELUGE_ID);
         assert_eq!(standard.event_deck_order_status, "computed_from_seed");
         assert_eq!(deluge.event_deck_order_status, "computed_from_seed");
+        assert_eq!(presentation.cards.len(), 11);
 
         assert!(Manifest::parse("game_id = \"flood_watch\"\ntrigger = \"bad\"\n").is_err());
         assert!(VariantCatalog::parse(
@@ -98,5 +105,9 @@ mod tests {
         )
         .is_err());
         assert!(Fixture::parse("{\"game_id\":\"flood_watch\",\"valid_if\":\"bad\"}").is_err());
+        assert!(CardPresentationCatalog::parse(
+            "event_ids = \"reprieve\"\nlabels = \"Reprieve\"\nsummaries = \"x\"\nfamilies = \"reprieve\"\naccessibility_labels = \"x\"\nscript = \"bad\"\n"
+        )
+        .is_err());
     }
 }

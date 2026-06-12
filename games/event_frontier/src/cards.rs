@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::variants::{parse_flat_toml, parse_string_list, reject_unknown_keys, required_string};
 use crate::{
     effects::{public_effect, EventFrontierEffect, EventFrontierEffectEnvelope},
@@ -537,6 +539,78 @@ impl CardCatalog {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardPresentation {
+    pub id: CardId,
+    pub label: String,
+    pub summary: String,
+    pub family: String,
+    pub accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardPresentationCatalog {
+    pub cards: Vec<CardPresentation>,
+}
+
+impl CardPresentationCatalog {
+    pub fn parse(input: &str) -> Result<Self, String> {
+        let values = parse_flat_toml(input)?;
+        reject_unknown_keys(
+            &values,
+            &[
+                "card_ids",
+                "labels",
+                "summaries",
+                "families",
+                "accessibility_labels",
+            ],
+        )?;
+
+        let ids = parse_card_list(&required_string(&values, "card_ids")?)?;
+        let labels = parse_non_empty_string_list(&required_string(&values, "labels")?, "labels")?;
+        let summaries =
+            parse_non_empty_string_list(&required_string(&values, "summaries")?, "summaries")?;
+        let families =
+            parse_non_empty_string_list(&required_string(&values, "families")?, "families")?;
+        let accessibility_labels = parse_non_empty_string_list(
+            &required_string(&values, "accessibility_labels")?,
+            "accessibility_labels",
+        )?;
+
+        validate_complete_unique_ids(&ids)?;
+        let len = ids.len();
+        for (field, field_len) in [
+            ("labels", labels.len()),
+            ("summaries", summaries.len()),
+            ("families", families.len()),
+            ("accessibility_labels", accessibility_labels.len()),
+        ] {
+            if field_len != len {
+                return Err(format!("{field} must contain {len} entries"));
+            }
+        }
+
+        let cards = ids
+            .into_iter()
+            .enumerate()
+            .map(|(index, id)| CardPresentation {
+                id,
+                label: labels[index].clone(),
+                summary: summaries[index].clone(),
+                family: families[index].clone(),
+                accessibility_label: accessibility_labels[index].clone(),
+            })
+            .collect();
+
+        Ok(Self { cards })
+    }
+
+    pub fn get(&self, id: CardId) -> Option<&CardPresentation> {
+        self.cards.iter().find(|card| card.id == id)
+    }
+}
+
 fn parse_card_list(value: &str) -> Result<Vec<CardId>, String> {
     parse_string_list(value)
         .into_iter()
@@ -572,6 +646,38 @@ fn parse_bool_list(value: &str) -> Result<Vec<bool>, String> {
         .collect()
 }
 
+fn parse_non_empty_string_list(value: &str, field: &str) -> Result<Vec<String>, String> {
+    let entries = parse_string_list(value);
+    if let Some(empty_index) = entries.iter().position(|entry| entry.trim().is_empty()) {
+        return Err(format!("{field} entry {empty_index} must not be empty"));
+    }
+    Ok(entries)
+}
+
+fn validate_complete_unique_ids(ids: &[CardId]) -> Result<(), String> {
+    if ids.len() != STANDARD_CARD_COUNT as usize {
+        return Err(format!(
+            "card_ids must contain {STANDARD_CARD_COUNT} presentation rows"
+        ));
+    }
+
+    let mut seen = BTreeSet::new();
+    for id in ids {
+        if !seen.insert(*id) {
+            return Err(format!("duplicate presentation row for `{}`", id.as_str()));
+        }
+    }
+    for expected in CardId::ALL {
+        if !seen.contains(&expected) {
+            return Err(format!(
+                "missing presentation row for `{}`",
+                expected.as_str()
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -599,5 +705,29 @@ mod tests {
         let cards = CardCatalog::parse(include_str!("../data/cards.toml")).unwrap();
         assert_eq!(cards.cards.len(), STANDARD_CARD_COUNT as usize);
         assert_eq!(cards.cards.iter().filter(|card| card.edict).count(), 4);
+    }
+
+    #[test]
+    fn card_presentation_parse_is_complete_and_fail_closed() {
+        let presentation =
+            CardPresentationCatalog::parse(include_str!("../data/cards_presentation.toml"))
+                .unwrap();
+        assert_eq!(presentation.cards.len(), STANDARD_CARD_COUNT as usize);
+        assert_eq!(
+            presentation.get(CardId::HighMeadowFair).unwrap().label,
+            "High Meadow Fair"
+        );
+        assert!(CardPresentationCatalog::parse(
+            "card_ids = \"ef_border_survey\"\nlabels = \"Border Survey\"\nsummaries = \"x\"\nfamilies = \"ordinary\"\naccessibility_labels = \"x\"\ntrigger = \"bad\"\n"
+        )
+        .is_err());
+        assert!(CardPresentationCatalog::parse(
+            "card_ids = \"ef_border_survey,ef_border_survey\"\nlabels = \"A,B\"\nsummaries = \"A,B\"\nfamilies = \"ordinary,ordinary\"\naccessibility_labels = \"A,B\"\n"
+        )
+        .is_err());
+        assert!(CardPresentationCatalog::parse(
+            "card_ids = \"ef_border_survey\"\nlabels = \"\"\nsummaries = \"A\"\nfamilies = \"ordinary\"\naccessibility_labels = \"A\"\n"
+        )
+        .is_err());
     }
 }

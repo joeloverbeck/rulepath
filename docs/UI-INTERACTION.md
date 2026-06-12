@@ -340,3 +340,7 @@ A web-exposed game is acceptable only when:
 - the surface explains only the actual result and contains no coaching, counterfactuals, or strategy advice;
 - hidden-information games prove that outcome explanations do not leak unrevealed private state through text, DOM attributes, accessibility labels, test IDs, storage, logs, effect logs, replay export, dev panels, or bot explanation surfaces;
 - the terminal summary is accessible to screen readers as a status/result message; expanded breakdowns are keyboard-accessible and color-independent; reduced-motion mode preserves all outcome facts.
+- components with ordered card/component flows display Rust/static-supplied labels and short effect summaries at a glance; full text sits in an accessible detail tier; TypeScript derives no display text from IDs;
+- face-down/redacted piles use the shared deck presentation with Rust/static-supplied copy; no hardcoded redaction prose;
+- compound actions route through the shared progressive construction surface or a recorded board-native mapping; no flat leaf-path dumps;
+- normal-mode surfaces contain no engine/debug vocabulary or raw internal identifiers; the presentation-copy CI guard passes.

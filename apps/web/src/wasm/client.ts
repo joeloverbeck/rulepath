@@ -839,6 +839,16 @@ export type FloodWatchTerminalView =
   | { kind: "non_terminal"; outcome: null; summary: null }
   | { kind: "complete"; outcome: "won" | "lost" | string; summary: FloodWatchTerminalSummary };
 
+export type FloodWatchUiMetadata = {
+  display_name: "Flood Watch" | string;
+  event_deck_label: string;
+  forecast_label: string;
+  drawn_label: string;
+  face_down_label: string;
+  face_down_summary: string;
+  reduced_motion_token: string;
+};
+
 export type FloodWatchPublicView = {
   schema_version: number;
   rules_version: number;
@@ -852,16 +862,14 @@ export type FloodWatchPublicView = {
   active_seat: SeatId;
   phase: FloodWatchPhaseView;
   districts: FloodWatchDistrictView[];
-  drawn_cards: string[];
-  forecast: string | null;
+  drawn_cards: CardFaceView[];
+  forecast: CardFaceView | null;
   remaining_composition: FloodWatchRemainingComposition;
   undrawn_count: number;
   terminal: FloodWatchTerminalView;
   terminal_rationale?: FloodWatchOutcomeRationale | null;
   freshness_token: number;
-  ui: {
-    display_name: "Flood Watch" | string;
-  };
+  ui: FloodWatchUiMetadata;
 };
 
 export type FrontierControlOutcomeRationale = OutcomeRationalePayload;
@@ -947,6 +955,25 @@ export type EventFrontierTerminalView =
       decisive_rule: string;
     };
 
+export type CardFaceView = {
+  id: string;
+  label: string;
+  summary: string;
+  family: string;
+  accessibility_label: string;
+};
+
+export type EventFrontierUiMetadata = {
+  table_label: string;
+  event_deck_label: string;
+  current_card_label: string;
+  next_card_label: string;
+  discard_label: string;
+  face_down_label: string;
+  face_down_summary: string;
+  reduced_motion_token: string;
+};
+
 export type EventFrontierPublicView = {
   schema_version: number;
   rules_version: number;
@@ -962,9 +989,9 @@ export type EventFrontierPublicView = {
   resources: { funds: number; provisions: number };
   scores: { charter: number; freeholders: number };
   eligibility: Array<{ faction: EventFrontierFactionId; eligible: "eligible" | "ineligible" | string }>;
-  current_card: string | null;
-  next_public_card: string | null;
-  discard: string[];
+  current_card: CardFaceView | null;
+  next_public_card: CardFaceView | null;
+  discard: CardFaceView[];
   active_edicts: string[];
   epoch: number;
   reckoning_count: number;
@@ -972,6 +999,7 @@ export type EventFrontierPublicView = {
   terminal: EventFrontierTerminalView;
   terminal_rationale?: EventFrontierOutcomeRationale | null;
   freshness_token: number;
+  ui: EventFrontierUiMetadata;
 };
 
 export type PublicView =

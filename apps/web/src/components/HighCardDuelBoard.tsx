@@ -147,10 +147,10 @@ export function HighCardDuelBoard({
         />
       </div>
 
-      <div className="high-card-actions" aria-label="Rust legal commit actions">
+      <div className="high-card-actions" aria-label="Legal commit actions">
         <div>
           <span>Action source</span>
-          <strong>{canAct ? "Rust legal tree" : viewerSeat ? "Waiting for active seat" : "Observer only"}</strong>
+          <strong>{canAct ? "Available commits" : viewerSeat ? "Waiting for active seat" : "Observer only"}</strong>
         </div>
         {commitChoices.length === 0 ? (
           <p className="muted">No private commit actions for this viewer.</p>
@@ -179,8 +179,8 @@ export function HighCardDuelBoard({
             : feedback
               ? feedback.detail
             : commitEffect
-              ? "A face-down commitment was recorded by Rust."
-              : "Choose only from the Rust-provided private hand actions."}
+              ? "A face-down commitment was recorded."
+              : "Choose only from the available private hand actions."}
         </span>
       </div>
 
