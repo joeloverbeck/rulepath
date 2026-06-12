@@ -9,6 +9,7 @@ import { DirectionalFlipBoard } from "./components/DirectionalFlipBoard";
 import { DraughtsLiteBoard } from "./components/DraughtsLiteBoard";
 import { EffectLog } from "./components/EffectLog";
 import { summarizeEffect, useReducedMotionPreference } from "./components/effectFeedback";
+import { EventFrontierBoard } from "./components/EventFrontierBoard";
 import { FloodWatchBoard } from "./components/FloodWatchBoard";
 import { FrontierControlBoard } from "./components/FrontierControlBoard";
 import { GamePicker } from "./components/GamePicker";
@@ -32,6 +33,7 @@ import {
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
+  type EventFrontierPublicView,
   type FloodWatchPublicView,
   type FrontierControlPublicView,
   type HighCardDuelPublicView,
@@ -498,6 +500,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
           />
+        ) : isEventFrontierView(view) ? (
+          <EventFrontierBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -520,7 +532,8 @@ function App() {
         isPlainTricksView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
-        isFrontierControlView(view) ? null : (
+        isFrontierControlView(view) ||
+        isEventFrontierView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -693,6 +706,10 @@ function isFrontierControlView(view: PublicView | null): view is FrontierControl
   return Boolean(view && "game_id" in view && view.game_id === "frontier_control");
 }
 
+function isEventFrontierView(view: PublicView | null): view is EventFrontierPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "event_frontier");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -716,6 +733,9 @@ function isTerminalView(view: PublicView): boolean {
     return view.terminal.kind !== "non_terminal";
   }
   if (isFrontierControlView(view)) {
+    return view.terminal.kind !== "non_terminal";
+  }
+  if (isEventFrontierView(view)) {
     return view.terminal.kind !== "non_terminal";
   }
   return view.terminal_kind !== "non_terminal";
@@ -820,6 +840,17 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
         view.terminal.kind !== "non_terminal"
           ? view.terminal.summary
           : `round ${view.round_number}, budget ${view.phase.kind === "action" ? view.phase.budget_remaining : 0}, scores ${view.scores.garrison}-${view.scores.prospectors}`,
+    };
+  }
+  if (view.game_id === "event_frontier") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.terminal.kind !== "non_terminal"
+          ? `${view.terminal.winner} won by ${view.terminal.victory_type}`
+          : `epoch ${view.epoch}, card ${view.current_card ?? "none"}, scores ${view.scores.charter}-${view.scores.freeholders}`,
     };
   }
   return {

@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-017: React board and presentation-shell wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/EventFrontierBoard.tsx` (new); `apps/web/src/components/{ActionControls,effectFeedback,outcomeExplanationTemplates,ReplayViewer}.tsx/.ts` (modify); `apps/web/src/wasm/client.ts` (modify); `apps/web/scripts/smoke-effect-feedback.mjs` (modify)
@@ -82,3 +82,22 @@ Wire `ActionControls.tsx` (constrained menu / progressive op), `effectFeedback.t
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects`
 3. The build + UI/effects smoke is the correct boundary — the full E2E click-path and DOM no-leak land in ticket 018.
+
+## Outcome
+
+Implemented the Event Frontier presentation shell in React/WASM:
+
+1. Added `EventFrontierBoard.tsx` with the SVG site graph, public event-card panel, Rust-projected active seat, resources/scores, eligibility/victory distance, edicts, semantic-effect status, Rust action-tree leaf buttons, and terminal outcome panel.
+2. Wired Event Frontier into `main.tsx`, `ReplayViewer.tsx`, `ActionControls.tsx`, typed WASM client surfaces, outcome templates, and semantic effect feedback.
+3. Extended the WASM JSON view with Rust-projected `active_seat` and terminal outcome rationale so TypeScript renders rather than derives legality or victory cause.
+4. Added an Event Frontier path to `smoke-effect-feedback.mjs` and regenerated Event Frontier golden trace hashes for the intentional public-view hash drift from `active_seat`.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo build -p wasm-api`
+3. `npm --prefix apps/web run build`
+4. `npm --prefix apps/web run smoke:ui`
+5. `npm --prefix apps/web run smoke:effects`
+6. `RULEPATH_OUTCOME_GAME_IDS=event_frontier node scripts/check-outcome-explanations.mjs`
+7. `cargo test -p event_frontier --test golden_traces`

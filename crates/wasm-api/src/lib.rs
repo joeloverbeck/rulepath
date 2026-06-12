@@ -7201,7 +7201,7 @@ fn frontier_terminal_json(terminal: &frontier_control::TerminalView) -> String {
 
 fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"sites\":[{}],\"adjacency\":[{}],\"resources\":{},\"scores\":{},\"eligibility\":[{}],\"current_card\":{},\"next_public_card\":{},\"discard\":[{}],\"active_edicts\":[{}],\"epoch\":{},\"reckoning_count\":{},\"victory_distance\":{},\"terminal\":{},\"freshness_token\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"seats\":[{}],\"factions\":[{}],\"active_seat\":{},\"sites\":[{}],\"adjacency\":[{}],\"resources\":{},\"scores\":{},\"eligibility\":[{}],\"current_card\":{},\"next_public_card\":{},\"discard\":[{}],\"active_edicts\":[{}],\"epoch\":{},\"reckoning_count\":{},\"victory_distance\":{},\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7210,6 +7210,7 @@ fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
         escape_json(&view.rules_version_label),
         string_array(&view.seats),
         string_array(&view.factions),
+        option_string_json(view.active_seat.as_deref()),
         view.sites
             .iter()
             .map(event_frontier_site_json)
@@ -7235,6 +7236,7 @@ fn event_frontier_view_json(view: &event_frontier::PublicView) -> String {
         view.reckoning_count,
         event_frontier_victory_distance_json(&view.victory_distance),
         event_frontier_terminal_json(&view.terminal),
+        event_frontier_terminal_rationale_json(view),
         view.freshness_token
     )
 }
@@ -7316,6 +7318,54 @@ fn event_frontier_terminal_json(terminal: &event_frontier::visibility::TerminalV
             escape_json(decisive_rule)
         ),
     }
+}
+
+fn event_frontier_terminal_rationale_json(view: &event_frontier::PublicView) -> String {
+    let event_frontier::visibility::TerminalView::Complete {
+        winner,
+        victory_type,
+        scores,
+        decisive_rule,
+    } = &view.terminal
+    else {
+        return "null".to_owned();
+    };
+    let cause = if decisive_rule == "EF-END-003" {
+        "both_met_freeholder"
+    } else if victory_type == "charter_instant" {
+        "charter_instant"
+    } else if victory_type == "freeholder_instant" {
+        "freeholder_instant"
+    } else if scores.charter == scores.freeholders {
+        "final_fallback_tiebreak"
+    } else {
+        "final_fallback_score"
+    };
+    let template_key = match cause {
+        "charter_instant" => "event_frontier.charter_instant",
+        "freeholder_instant" => "event_frontier.freeholder_instant",
+        "both_met_freeholder" => "event_frontier.both_met_freeholder",
+        "final_fallback_tiebreak" => "event_frontier.final_fallback_tiebreak",
+        _ => "event_frontier.final_fallback_score",
+    };
+    format!(
+        "{{\"result_kind\":\"win\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"template_params\":{{\"winner\":\"{}\",\"charter_score\":{},\"freeholder_score\":{}}},\"decisive_rule_ids\":[\"{}\"],\"final_standing\":[{{\"seat\":\"faction_charter\",\"label\":\"Charter\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{{\"label\":\"Score\",\"value\":{}}}]}},{{\"seat\":\"faction_freeholders\",\"label\":\"Freeholders\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{{\"label\":\"Score\",\"value\":{}}}]}}],\"breakdown_sections\":[{{\"id\":\"event-frontier-terminal\",\"heading\":\"Rust terminal cause\",\"rows\":[{{\"label\":\"Victory type\",\"value\":\"{}\"}},{{\"label\":\"Decisive rule\",\"value\":\"{}\"}},{{\"label\":\"Reckonings\",\"value\":{}}}]}}]}}",
+        cause,
+        template_key,
+        escape_json(winner.as_str()),
+        scores.charter,
+        scores.freeholders,
+        escape_json(decisive_rule),
+        if *winner == EventFrontierFactionId::Charter { "win" } else { "loss" },
+        *winner == EventFrontierFactionId::Charter,
+        scores.charter,
+        if *winner == EventFrontierFactionId::Freeholders { "win" } else { "loss" },
+        *winner == EventFrontierFactionId::Freeholders,
+        scores.freeholders,
+        escape_json(victory_type),
+        escape_json(decisive_rule),
+        view.reckoning_count
+    )
 }
 
 fn flood_role_json(role: &flood_watch::visibility::RoleView) -> String {

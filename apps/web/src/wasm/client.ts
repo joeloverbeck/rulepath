@@ -924,6 +924,56 @@ export type FrontierControlPublicView = {
   freshness_token: number;
 };
 
+export type EventFrontierOutcomeRationale = OutcomeRationalePayload;
+
+export type EventFrontierFactionId = "faction_charter" | "faction_freeholders" | string;
+
+export type EventFrontierSiteView = {
+  site: string;
+  label: string;
+  agents: number;
+  settlers: number;
+  depot: boolean;
+  cache_count: number;
+};
+
+export type EventFrontierTerminalView =
+  | { kind: "non_terminal"; winner: null }
+  | {
+      kind: "winner";
+      winner: EventFrontierFactionId;
+      victory_type: "charter_instant" | "freeholder_instant" | "final_fallback" | string;
+      scores: { charter: number; freeholders: number };
+      decisive_rule: string;
+    };
+
+export type EventFrontierPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "event_frontier";
+  display_name: string;
+  variant_id: "event_frontier_standard" | "event_frontier_hard_winter" | "event_frontier_land_rush" | string;
+  rules_version_label: "event-frontier-rules-v1" | string;
+  seats: SeatId[];
+  factions: EventFrontierFactionId[];
+  active_seat: SeatId | null;
+  sites: EventFrontierSiteView[];
+  adjacency: Array<{ site: string; neighbors: string[] }>;
+  resources: { funds: number; provisions: number };
+  scores: { charter: number; freeholders: number };
+  eligibility: Array<{ faction: EventFrontierFactionId; eligible: "eligible" | "ineligible" | string }>;
+  current_card: string | null;
+  next_public_card: string | null;
+  discard: string[];
+  active_edicts: string[];
+  epoch: number;
+  reckoning_count: number;
+  victory_distance: { charter_sites_needed: number; freeholder_caches_needed: number };
+  terminal: EventFrontierTerminalView;
+  terminal_rationale?: EventFrontierOutcomeRationale | null;
+  freshness_token: number;
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -937,7 +987,8 @@ export type PublicView =
   | PlainTricksPublicView
   | MaskedClaimsPublicView
   | FloodWatchPublicView
-  | FrontierControlPublicView;
+  | FrontierControlPublicView
+  | EventFrontierPublicView;
 
 export type ActionChoice = {
   segment: string;

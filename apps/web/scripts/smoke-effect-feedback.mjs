@@ -187,6 +187,22 @@ try {
     assert(view.terminal?.kind !== "non_terminal", "frontier_control reaches terminal in effect feedback smoke");
   }
 
+  function playEventFrontier(matchId) {
+    let view = getView(matchId);
+    for (let turn = 0; turn < 12 && view.active_seat; turn += 1) {
+      const tree = getActionTree(matchId, view.active_seat);
+      const preferred =
+        tree.choices.find((choice) => choice.segment === "event") ??
+        tree.choices.find((choice) => choice.segment === "pass") ??
+        tree.choices[0];
+      assert(preferred, "event_frontier exposes a legal event/pass/operation choice");
+      const path = preferred.next?.choices?.length ? firstLeafPath([preferred]) : [preferred.segment];
+      const result = applyAction(matchId, view.active_seat, path.join(">"), tree.freshness_token);
+      recordEffects("event_frontier", result.effects);
+      view = result.view;
+    }
+  }
+
   function playGame(gameId, seed, turns) {
     const created = newMatch(gameId, seed);
     let view = getView(created.match_id);
@@ -201,6 +217,10 @@ try {
     }
     if (gameId === "frontier_control") {
       playFrontierControl(created.match_id);
+      return;
+    }
+    if (gameId === "event_frontier") {
+      playEventFrontier(created.match_id);
       return;
     }
     for (let turn = 0; turn < turns && activeSeat(view, null); turn += 1) {
@@ -249,6 +269,8 @@ try {
     ["frontier_control", "guard_reinforced"],
     ["frontier_control", "round_scored"],
     ["frontier_control", "terminal"],
+    ["event_frontier", "choice_taken"],
+    ["event_frontier", "event_resolved"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {

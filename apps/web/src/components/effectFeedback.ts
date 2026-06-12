@@ -542,6 +542,108 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `Garrison reinforced ${siteLabel(payload.site)}; guards now ${payload.guards ?? 0}.`,
         tone: "movement",
       };
+    case "event_resolved":
+      return {
+        title: "Event resolved",
+        detail: `${cardLabel(payload.card)} resolved: ${String(payload.summary ?? "public event effect")}.`,
+        tone: "movement",
+      };
+    case "edict_activated":
+      return {
+        title: "Edict activated",
+        detail: `${cardLabel(payload.card)} activated ${String(payload.edict ?? "an edict")}.`,
+        tone: "turn",
+      };
+    case "edict_expired":
+      return {
+        title: "Edict expired",
+        detail: `${String(payload.edict ?? "An edict")} expired at Reckoning.`,
+        tone: "turn",
+      };
+    case "card_revealed":
+      return {
+        title: "Card revealed",
+        detail: `${cardLabel(payload.card)} is current; next public card is ${cardLabel(payload.next_public)}.`,
+        tone: "movement",
+      };
+    case "choice_taken":
+      return {
+        title: "Choice taken",
+        detail: `${factionLabel(payload.faction)} chose ${String(payload.choice ?? "an action")}.`,
+        tone: "turn",
+      };
+    case "card_discarded":
+      return {
+        title: "Card discarded",
+        detail: `${cardLabel(payload.card)} was discarded: ${String(payload.reason ?? "resolved")}.`,
+        tone: "turn",
+      };
+    case "eligibility_changed":
+      return {
+        title: "Eligibility changed",
+        detail: `${factionLabel(payload.faction)} is ${payload.eligible ? "eligible" : "ineligible"}: ${String(payload.reason ?? "Rust updated eligibility")}.`,
+        tone: "turn",
+      };
+    case "resources_changed":
+      return {
+        title: "Resources changed",
+        detail: `${factionLabel(payload.faction)} resource changed from ${payload.previous ?? 0} to ${payload.new ?? 0}.`,
+        tone: "turn",
+      };
+    case "op_resolved":
+      return {
+        title: "Operation resolved",
+        detail: `${factionLabel(payload.faction)} resolved ${String(payload.op ?? "operation")} on ${formatSites(payload.sites)}.`,
+        tone: "movement",
+      };
+    case "agent_placed":
+      return {
+        title: "Agent placed",
+        detail: `${siteLabel(payload.site)} now has ${payload.new_count ?? 0} agents.`,
+        tone: "movement",
+      };
+    case "agent_removed":
+      return {
+        title: "Agent removed",
+        detail: `${siteLabel(payload.site)} now has ${payload.new_count ?? 0} agents.`,
+        tone: "movement",
+      };
+    case "depot_built":
+      return {
+        title: "Depot built",
+        detail: `${siteLabel(payload.site)} gained a depot.`,
+        tone: "movement",
+      };
+    case "cache_removed":
+      return {
+        title: "Cache removed",
+        detail: `${siteLabel(payload.site)} now has ${payload.new_count ?? 0} caches.`,
+        tone: "movement",
+      };
+    case "settler_moved":
+      return {
+        title: "Settler moved",
+        detail: `Settler moved from ${siteLabel(payload.from)} to ${siteLabel(payload.to)}.`,
+        tone: "movement",
+      };
+    case "cache_laid":
+      return {
+        title: "Cache laid",
+        detail: `${siteLabel(payload.site)} now has ${payload.new_count ?? 0} caches.`,
+        tone: "movement",
+      };
+    case "settler_rallied":
+      return {
+        title: "Settler rallied",
+        detail: `${siteLabel(payload.site)} now has ${payload.new_count ?? 0} settlers.`,
+        tone: "movement",
+      };
+    case "reckoning_resolved":
+      return {
+        title: "Reckoning resolved",
+        detail: `Reckoning ${payload.round ?? "current"} resolved: ${String(payload.victory_check ?? "public scoring complete")}.`,
+        tone: "turn",
+      };
     case "turn_ended":
       return {
         title: "Turn ended",
@@ -573,6 +675,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         return {
           title: "Frontier complete",
           detail: `${factionLabel(payload.winner)} wins ${payload.garrison_total ?? 0}-${payload.prospector_total ?? 0}.`,
+          tone: "terminal",
+        };
+      }
+      if ("victory_type" in payload && "totals" in payload) {
+        return {
+          title: "Event Frontier complete",
+          detail: `${factionLabel(payload.winner)} won by ${String(payload.victory_type)}.`,
           tone: "terminal",
         };
       }
@@ -660,7 +769,22 @@ function factionLabel(value: unknown): string {
   if (value === "faction_prospectors") {
     return "Prospectors";
   }
+  if (value === "faction_charter") {
+    return "Charter";
+  }
+  if (value === "faction_freeholders") {
+    return "Freeholders";
+  }
   return typeof value === "string" ? value.replace(/^faction_/, "").replaceAll("_", " ") : "the faction";
+}
+
+function cardLabel(value: unknown): string {
+  const text = String(value ?? "none");
+  return text === "none" ? "none" : text.replace(/^ef_/, "").replaceAll("_", " ");
+}
+
+function formatSites(value: unknown): string {
+  return Array.isArray(value) ? value.map(siteLabel).join(", ") : siteLabel(value);
 }
 
 function terminalOutcome(value: unknown, noun: string): string {

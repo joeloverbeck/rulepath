@@ -7,7 +7,7 @@ use engine_core::{
 use crate::{
     effects::{EventFrontierEffect, EventFrontierEffectEnvelope},
     ids::{FactionId, SiteId, GAME_ID, RULES_VERSION_LABEL},
-    state::{Eligibility, EventFrontierState, TerminalOutcome},
+    state::{CardPhase, Eligibility, EventFrontierState, TerminalOutcome},
 };
 
 pub const HIDDEN_SURFACE: &str = "undrawn_deck_order";
@@ -21,6 +21,7 @@ pub struct PublicView {
     pub rules_version_label: String,
     pub seats: Vec<String>,
     pub factions: Vec<String>,
+    pub active_seat: Option<String>,
     pub sites: Vec<SiteView>,
     pub adjacency: Vec<(SiteId, Vec<SiteId>)>,
     pub resources: ResourceView,
@@ -88,6 +89,7 @@ pub fn project_view(state: &EventFrontierState, _viewer: &Viewer) -> PublicView 
             .iter()
             .map(|faction| faction.as_str().to_owned())
             .collect(),
+        active_seat: active_seat(state),
         sites: state
             .sites
             .iter()
@@ -267,7 +269,7 @@ pub fn view_hash(view: &PublicView) -> HashValue {
 impl PublicView {
     pub fn stable_summary(&self) -> String {
         format!(
-            "schema={};rules={};game={};variant={};rules_label={};seats={};factions={};sites={};adjacency={};resources={}:{};scores={}:{};eligibility={};current={};next={};discard={};edicts={};epoch={};reckonings={};distance={}:{};terminal={};freshness={}",
+            "schema={};rules={};game={};variant={};rules_label={};seats={};factions={};active={};sites={};adjacency={};resources={}:{};scores={}:{};eligibility={};current={};next={};discard={};edicts={};epoch={};reckonings={};distance={}:{};terminal={};freshness={}",
             self.schema_version,
             self.rules_version,
             self.game_id,
@@ -275,6 +277,7 @@ impl PublicView {
             self.rules_version_label,
             self.seats.join("|"),
             self.factions.join("|"),
+            self.active_seat.as_deref().unwrap_or("none"),
             self.sites.iter().map(encode_site).collect::<Vec<_>>().join(","),
             self.adjacency.iter().map(encode_adjacency).collect::<Vec<_>>().join(","),
             self.resources.funds,
@@ -294,6 +297,19 @@ impl PublicView {
             self.freshness_token
         )
     }
+}
+
+fn active_seat(state: &EventFrontierState) -> Option<String> {
+    let faction = match &state.card_phase {
+        CardPhase::AwaitingFirstChoice { faction } => *faction,
+        CardPhase::AwaitingSecondChoice { second_faction, .. } => *second_faction,
+        CardPhase::Reckoning | CardPhase::Terminal => return None,
+    };
+    state
+        .seats
+        .iter()
+        .find(|seat| state.faction_for_seat(seat) == Some(faction))
+        .map(|seat| seat.0.clone())
 }
 
 impl StableSerialize for PublicView {
