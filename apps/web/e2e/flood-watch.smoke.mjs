@@ -69,15 +69,20 @@ try {
   await assertNoLeak(page, consoleMessages, "initial hotseat");
   await waitForText(page, "Pumpwright");
   await waitForText(page, "Levee Warden");
+  await installAnimationProbe(page);
   await clickText(page, "button", "Forecast");
   await waitForText(page, "Forecast revealed");
+  await assertAnimationTargets(page, ["flood-watch-deck"], "forecast");
   await assertFloodWatchA11y(page);
   await assertNoLeak(page, consoleMessages, "forecast reveal");
   await clickFirstFloodAction(page, "Reinforce");
   await waitForText(page, "Levee placed");
+  await assertAnimationTargetPrefix(page, "flood-watch-levees-", "reinforce");
   await assertNoLeak(page, consoleMessages, "reinforce action");
   await clickText(page, "button", "End turn");
   await waitForText(page, "Storm card drawn");
+  await assertAnimationTargets(page, ["flood-watch-deck"], "environment phase");
+  await assertAnimationTargetPrefix(page, "flood-watch-district-", "environment district");
   await assertFloodWatchTurnReport(page);
   await waitForText(page, "Seat 1");
   await assertNoLeak(page, consoleMessages, "environment phase");
@@ -231,6 +236,61 @@ async function clickFirstFloodAction(page, text) {
 async function assertReplayViewerNoLeak(page) {
   const surface = await page.$eval(".replay-viewer", (element) => element.textContent ?? "");
   assertNoForbiddenTerms(surface, "flood_watch public replay viewer", forbiddenTerms);
+}
+
+async function installAnimationProbe(page) {
+  await page.evaluate(() => {
+    if (window.__floodWatchAnimationProbeInstalled) {
+      window.__floodWatchAnimationTargets = [];
+      return;
+    }
+    window.__floodWatchAnimationProbeInstalled = true;
+    window.__floodWatchAnimationTargets = [];
+    const originalAnimate = Element.prototype.animate;
+    Element.prototype.animate = function patchedAnimate(...args) {
+      const target = this.closest("[data-animation-target]")?.getAttribute("data-animation-target");
+      if (target) {
+        window.__floodWatchAnimationTargets.push(target);
+      }
+      return originalAnimate.apply(this, args);
+    };
+  });
+}
+
+async function assertAnimationTargets(page, targets, label) {
+  try {
+    await page.waitForFunction(
+      (expectedTargets) => {
+        const seen = window.__floodWatchAnimationTargets ?? [];
+        return expectedTargets.every((target) => seen.includes(target));
+      },
+      {},
+      targets,
+    );
+  } catch (error) {
+    const debug = await page.evaluate(() => ({
+      seen: window.__floodWatchAnimationTargets ?? [],
+      targets: Array.from(document.querySelectorAll("[data-animation-target]")).map((element) =>
+        element.getAttribute("data-animation-target"),
+      ),
+      text: window.render_game_to_text ? JSON.parse(window.render_game_to_text()) : null,
+    }));
+    throw new Error(`${label} animation targets missing ${targets.join(", ")}; debug=${JSON.stringify(debug)}`, { cause: error });
+  }
+  const seen = await page.evaluate(() => window.__floodWatchAnimationTargets ?? []);
+  for (const target of targets) {
+    assert(seen.includes(target), `${label} animated ${target}`);
+  }
+}
+
+async function assertAnimationTargetPrefix(page, prefix, label) {
+  await page.waitForFunction(
+    (expectedPrefix) => (window.__floodWatchAnimationTargets ?? []).some((target) => target.startsWith(expectedPrefix)),
+    {},
+    prefix,
+  );
+  const seen = await page.evaluate(() => window.__floodWatchAnimationTargets ?? []);
+  assert(seen.some((target) => target.startsWith(prefix)), `${label} animated target with prefix ${prefix}`);
 }
 
 async function assertNoLeak(page, consoleMessages, label) {

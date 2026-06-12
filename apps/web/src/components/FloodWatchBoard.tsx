@@ -1,5 +1,8 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, FloodWatchDistrictView, FloodWatchPublicView } from "../wasm/client";
+import { animationRegistry } from "../animation/registry";
+import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
+import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
 import { DeckFlowPanel } from "./DeckFlowPanel";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
@@ -14,6 +17,8 @@ type FloodWatchBoardProps = {
   interactive?: boolean;
   onPathSubmit?: (path: string[]) => void;
 };
+
+registerFloodWatchAnimations();
 
 export function FloodWatchBoard({
   view,
@@ -100,25 +105,27 @@ export function FloodWatchBoard({
       </p>
 
       <div className="plain-tricks-metrics" aria-label="Flood Watch status">
-        <Metric label="Turn" value={String(view.turn_number)} />
-        <Metric label="Budget" value={budgetLabel(view)} />
-        <Metric label="Undrawn" value={String(view.undrawn_count)} />
+        <Metric label="Turn" value={String(view.turn_number)} animationTarget="flood-watch-turn" />
+        <Metric label="Budget" value={budgetLabel(view)} animationTarget="flood-watch-budget" />
+        <Metric label="Undrawn" value={String(view.undrawn_count)} animationTarget="flood-watch-undrawn" />
       </div>
 
-      <DeckFlowPanel
-        label={view.ui.event_deck_label}
-        currentLabel={view.ui.drawn_label}
-        nextLabel={view.ui.forecast_label}
-        discardLabel={view.ui.drawn_label}
-        faceDownLabel={view.ui.face_down_label}
-        faceDownSummary={view.ui.face_down_summary}
-        current={latestDrawn}
-        next={view.forecast}
-        discard={view.drawn_cards}
-        faceDownCount={view.undrawn_count}
-      />
+      <div data-animation-target="flood-watch-deck">
+        <DeckFlowPanel
+          label={view.ui.event_deck_label}
+          currentLabel={view.ui.drawn_label}
+          nextLabel={view.ui.forecast_label}
+          discardLabel={view.ui.drawn_label}
+          faceDownLabel={view.ui.face_down_label}
+          faceDownSummary={view.ui.face_down_summary}
+          current={latestDrawn}
+          next={view.forecast}
+          discard={view.drawn_cards}
+          faceDownCount={view.undrawn_count}
+        />
+      </div>
 
-      <div className="plain-tricks-table" aria-label="Flood Watch districts">
+      <div className="plain-tricks-table" aria-label="Flood Watch districts" data-animation-target="flood-watch-districts">
         {view.districts.map((district) => {
           const legal = districtChoices.get(district.district) ?? {};
           return (
@@ -126,6 +133,7 @@ export function FloodWatchBoard({
               className="plain-seat"
               aria-label={`${district.label} district`}
               data-testid={`flood-watch-district-${district.district}`}
+              data-animation-target={`flood-watch-district-${district.district}`}
               key={district.district}
             >
               <div className="plain-section-heading">
@@ -133,8 +141,8 @@ export function FloodWatchBoard({
                 <strong>{district.flood_level >= 5 ? "Inundation risk" : `${district.flood_level} flood`}</strong>
               </div>
               <div className="plain-tricks-metrics" aria-label={`${district.label} public counters`}>
-                <Metric label="Flood" value={String(district.flood_level)} />
-                <Metric label="Levees" value={String(district.levees)} />
+                <Metric label="Flood" value={String(district.flood_level)} animationTarget={`flood-watch-flood-${district.district}`} />
+                <Metric label="Levees" value={String(district.levees)} animationTarget={`flood-watch-levees-${district.district}`} />
               </div>
               <div className="action-list">
                 <DistrictButton choice={legal.bail} disabled={!canAct || !legal.bail} onPathSubmit={onPathSubmit} fallback="Bail" />
@@ -166,7 +174,7 @@ export function FloodWatchBoard({
         </ol>
       </section>
 
-      <div className="plain-latest" role="status">
+      <div className="plain-latest" role="status" data-animation-target="flood-watch-outcome">
         <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
         <strong>
           {outcomeExplanation
@@ -213,9 +221,9 @@ function DistrictButton({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, animationTarget }: { label: string; value: string; animationTarget: string }) {
   return (
-    <div>
+    <div data-animation-target={animationTarget}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -257,4 +265,89 @@ function districtLabel(view: FloodWatchPublicView, district: string): string {
 
 function seatLabel(seat: string): string {
   return seat === "seat_0" ? "Seat 0" : seat === "seat_1" ? "Seat 1" : seat;
+}
+
+function registerFloodWatchAnimations(): void {
+  animationRegistry.register("flood_watch", "forecast_revealed", (step, context) =>
+    highlightTargets(context, ["flood-watch-deck"], step.reducedMotion),
+  );
+  animationRegistry.register("flood_watch", "environment_phase_began", (step, context) =>
+    highlightTargets(context, ["flood-watch-turn", "flood-watch-districts"], step.reducedMotion),
+  );
+  animationRegistry.register("flood_watch", "event_drawn", (step, context) =>
+    highlightTargets(context, ["flood-watch-deck", "flood-watch-undrawn"], step.reducedMotion),
+  );
+  animationRegistry.register("flood_watch", "deck_exhausted", (step, context) =>
+    highlightTargets(context, ["flood-watch-deck", "flood-watch-undrawn"], step.reducedMotion),
+  );
+
+  animationRegistry.register("flood_watch", "district_bailed", (step, context) => {
+    const district = stringField(step.entry.effect.payload, "district");
+    return highlightDistrict(context, district, ["flood"], step.reducedMotion);
+  });
+  animationRegistry.register("flood_watch", "levee_placed", (step, context) => {
+    const district = stringField(step.entry.effect.payload, "district");
+    return highlightDistrict(context, district, ["levees"], step.reducedMotion);
+  });
+  animationRegistry.register("flood_watch", "levee_absorbed", (step, context) => {
+    const district = stringField(step.entry.effect.payload, "district");
+    return highlightDistrict(context, district, ["levees", "flood"], step.reducedMotion);
+  });
+  animationRegistry.register("flood_watch", "flood_level_rose", (step, context) => {
+    const district = stringField(step.entry.effect.payload, "district");
+    return highlightDistrict(context, district, ["flood"], step.reducedMotion);
+  });
+  animationRegistry.register("flood_watch", "district_inundated", (step, context) => {
+    const district = stringField(step.entry.effect.payload, "district");
+    return highlightDistrict(context, district, ["flood"], step.reducedMotion);
+  });
+  animationRegistry.register("flood_watch", "terminal", (step, context) =>
+    highlightTargets(context, ["flood-watch-outcome"], step.reducedMotion, "fade"),
+  );
+}
+
+function highlightDistrict(
+  context: PresentationContext,
+  district: string,
+  counters: Array<"flood" | "levees">,
+  reducedMotion: boolean,
+): SchedulerPresentation {
+  return highlightTargets(
+    context,
+    [`flood-watch-district-${district}`, ...counters.map((counter) => `flood-watch-${counter}-${district}`)],
+    reducedMotion,
+  );
+}
+
+function highlightTargets(
+  context: PresentationContext,
+  targetIds: string[],
+  reducedMotion: boolean,
+  kind: "highlight" | "fade" = "highlight",
+): SchedulerPresentation {
+  const root = context.root ?? document;
+  const animations = uniqueElements(targetIds.flatMap((targetId) => [...root.querySelectorAll(targetSelector(targetId))])).map((element) =>
+    kind === "fade" ? animateFade(element, reducedMotion) : animateHighlight(element, reducedMotion),
+  );
+  return { animations };
+}
+
+function targetSelector(targetId: string): string {
+  return `[data-animation-target="${cssEscape(targetId)}"]`;
+}
+
+function stringField(payload: SchedulerStep["entry"]["effect"]["payload"], field: string): string {
+  const value = (payload as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : "";
+}
+
+function uniqueElements(elements: Element[]): Element[] {
+  return [...new Set(elements)];
+}
+
+function cssEscape(value: string): string {
+  if (typeof CSS !== "undefined" && CSS.escape) {
+    return CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, "\\$&");
 }

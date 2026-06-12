@@ -1,6 +1,6 @@
 # EFFANITUR-007: flood_watch animation adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`); Rust/WASM untouched. Registers game-specific effect→animation mappings against the shared registry.
@@ -75,3 +75,22 @@ Record flood_watch's `adopt` adoption row (matrix consolidated in EFFANITUR-008'
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed on 2026-06-12.
+
+Flood Watch now registers authored effect animations on the shared registry for forecast reveal, environment-phase start, storm card draw, deck exhaustion, district bail/reinforce/levee absorption/flood rise/inundation, and terminal settlement.
+
+Public animation targets were added to Flood Watch turn/budget/undrawn metrics, storm deck flow, district table, per-district flood/levee counters, and outcome status. The registrations only read Rust-emitted public effect payload fields (`type` and `district`) and do not read hidden deck order or private state.
+
+The Flood Watch browser smoke now instruments `Element.animate` and asserts that forecast reveal animates the deck target, reinforce animates a public levee target, and the automated storm burst animates deck plus district targets before the viewer-safe board settles. `environment_phase_began` is registered for completeness, but the smoke asserts the visible automated burst effects after segmentation because marker entries are not animated as visible entries.
+
+Verification:
+
+1. `npm --prefix apps/web run build` -> passed.
+2. `node apps/web/e2e/flood-watch.smoke.mjs` -> passed.
+3. `npm --prefix apps/web run smoke:ui` -> passed.
+4. `npm --prefix apps/web run smoke:e2e` -> passed.
+5. `rg -n "animationRegistry\\.register\\(\"flood_watch\"" apps/web/src/components/FloodWatchBoard.tsx` -> registrations present.
+6. `rg -n "full_deck_order|deck_order|hidden_state|private_state|internal_state|debug_state|seed_evidence|candidate_ranking|bot_candidate" apps/web/src/components/FloodWatchBoard.tsx apps/web/src/main.tsx` -> no matches.
