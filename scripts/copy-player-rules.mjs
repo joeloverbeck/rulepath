@@ -36,7 +36,6 @@ const REQUIRED_SECTIONS = [
   "Hidden information and reveal timing",
   "Common terms",
   "What this page is not",
-  "Source notes for maintainers",
 ];
 
 const FORBIDDEN_TAG_RE = /<\s*(script|iframe|embed|object)\b/i;

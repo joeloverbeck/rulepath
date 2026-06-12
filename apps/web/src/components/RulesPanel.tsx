@@ -259,32 +259,107 @@ export function renderRulesMarkdown(markdown: string): { headings: Heading[]; no
 
 function renderInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  const tokenRe = /(`[^`]+`|\*\*[^*]+\*\*|_[^_]+_)/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = tokenRe.exec(text))) {
-    if (match.index > lastIndex) {
-      nodes.push(text.slice(lastIndex, match.index));
+  let plain = "";
+  let index = 0;
+
+  const flushPlain = () => {
+    if (!plain) return;
+    nodes.push(plain);
+    plain = "";
+  };
+
+  while (index < text.length) {
+    if (text[index] === "`") {
+      const end = text.indexOf("`", index + 1);
+      if (end > index) {
+        flushPlain();
+        nodes.push(<code key={`${index}-code`}>{text.slice(index + 1, end)}</code>);
+        index = end + 1;
+        continue;
+      }
     }
-    const token = match[0];
-    const key = `${match.index}-${token}`;
-    if (token.startsWith("`")) {
-      nodes.push(<code key={key}>{token.slice(1, -1)}</code>);
-    } else if (token.startsWith("**")) {
-      nodes.push(<strong key={key}>{token.slice(2, -2)}</strong>);
-    } else {
-      nodes.push(<em key={key}>{token.slice(1, -1)}</em>);
+
+    if (text.startsWith("**", index)) {
+      const end = text.indexOf("**", index + 2);
+      if (end > index) {
+        flushPlain();
+        nodes.push(<strong key={`${index}-strong`}>{renderInline(text.slice(index + 2, end))}</strong>);
+        index = end + 2;
+        continue;
+      }
     }
-    lastIndex = match.index + token.length;
+
+    if (text[index] === "_" && isEmphasisBoundary(text[index - 1]) && text[index + 1] && !/\s/.test(text[index + 1])) {
+      const end = findClosingEmphasis(text, index + 1);
+      if (end > index) {
+        flushPlain();
+        nodes.push(<em key={`${index}-em`}>{renderInline(text.slice(index + 1, end))}</em>);
+        index = end + 1;
+        continue;
+      }
+    }
+
+    plain += text[index];
+    index += 1;
   }
-  if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
-  }
+
+  flushPlain();
   return nodes;
 }
 
 function stripInlineMarkdown(text: string): string {
-  return text.replace(/[`*_]/g, "");
+  return renderInlinePlain(text);
+}
+
+function renderInlinePlain(text: string): string {
+  let rendered = "";
+  let index = 0;
+  while (index < text.length) {
+    if (text[index] === "`") {
+      const end = text.indexOf("`", index + 1);
+      if (end > index) {
+        rendered += text.slice(index + 1, end);
+        index = end + 1;
+        continue;
+      }
+    }
+
+    if (text.startsWith("**", index)) {
+      const end = text.indexOf("**", index + 2);
+      if (end > index) {
+        rendered += renderInlinePlain(text.slice(index + 2, end));
+        index = end + 2;
+        continue;
+      }
+    }
+
+    if (text[index] === "_" && isEmphasisBoundary(text[index - 1]) && text[index + 1] && !/\s/.test(text[index + 1])) {
+      const end = findClosingEmphasis(text, index + 1);
+      if (end > index) {
+        rendered += renderInlinePlain(text.slice(index + 1, end));
+        index = end + 1;
+        continue;
+      }
+    }
+
+    rendered += text[index];
+    index += 1;
+  }
+  return rendered;
+}
+
+function findClosingEmphasis(text: string, fromIndex: number): number {
+  for (let index = fromIndex; index < text.length; index += 1) {
+    if (text[index] !== "_") continue;
+    if (!/\s/.test(text[index - 1] ?? "") && isEmphasisBoundary(text[index + 1])) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function isEmphasisBoundary(value: string | undefined): boolean {
+  return !value || !/[A-Za-z0-9_]/.test(value);
 }
 
 function uniqueSlug(text: string, headings: Heading[]): string {

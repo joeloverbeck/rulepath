@@ -47,7 +47,6 @@ const REQUIRED_SECTIONS = [
   "Hidden information and reveal timing",
   "Common terms",
   "What this page is not",
-  "Source notes for maintainers",
 ];
 
 const failures = [];

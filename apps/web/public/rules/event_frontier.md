@@ -8,8 +8,8 @@ _Strategy guide: `games/event_frontier/docs/COMPETENT-PLAYER.md`_
 ## At a glance
 
 - Event Frontier is a two-seat competitive game across six public sites.
-- `seat_0` plays the Charter, using agents, depots, and funds.
-- `seat_1` plays the Freeholders, using settlers, caches, and provisions.
+- The Charter uses agents, depots, and funds.
+- The Freeholders use settlers, caches, and provisions.
 - Each public event card offers an event choice, operation choices, or a pass.
 - Reckoning cards check instant victories, score site presence, pay income, and reset edicts.
 - The current card and next public card are visible. Deeper undrawn deck order is hidden.
@@ -78,6 +78,20 @@ Landing or at a public cache site, up to the settler cap.
 Pass gives the passing faction one resource, up to the cap, and preserves that
 faction's eligibility. If both factions pass, Rust discards the current card.
 
+## Costs and economy
+
+Funds belong to the Charter. Provisions belong to the Freeholders. Both
+resource pools are public, capped, and owned by Rust.
+
+Passing gains one matching resource if the faction is below its cap. Operations
+spend the printed resource cost before their effect resolves. Survey, fortify,
+and writ spend Charter funds. Trek, cache, and rally spend Freeholder
+provisions. Rust blocks unaffordable operations from the legal action tree.
+
+Active edicts can change operation costs or block a class of operation until
+the next Reckoning. Reckoning income then pays each faction from its public
+presence and clears temporary edicts before the next card flow begins.
+
 ## Scoring and winning
 
 At each Reckoning, Rust checks instant victories before site scoring. The
@@ -109,8 +123,8 @@ history are legal public facts.
 
 | Term | Meaning |
 |---|---|
-| Charter | The institutional faction controlled by `seat_0`. |
-| Freeholders | The independent settler faction controlled by `seat_1`. |
+| Charter | The institutional faction that uses agents, depots, and funds. |
+| Freeholders | The independent settler faction that uses settlers, caches, and provisions. |
 | Site | A public map place connected by trails. |
 | Agent | Charter presence at a site. |
 | Depot | Charter structure that also counts as Charter presence. |
@@ -128,15 +142,3 @@ Formal implementation details, coverage, bot evidence, source/IP notes, UI
 presentation constraints, mechanic inventory, and implementation constraints
 live in the other Event Frontier docs, including `MECHANICS.md`, `UI.md`, and
 `AI.md`.
-
-## Source notes for maintainers
-
-Confirm before merging:
-
-- [x] Prose is original Rulepath wording.
-- [x] No copied rulebook text, examples, diagrams, assets, names, fonts, or trade dress.
-- [x] No strategy advice copied from `COMPETENT-PLAYER.md`.
-- [x] No hidden match-state examples or seed-specific deck order.
-- [x] No YAML front matter.
-- [x] No selectors, conditions, triggers, or action schemas.
-- [x] Formal rules version checked matches `RULES.md`.

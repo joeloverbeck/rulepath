@@ -239,6 +239,30 @@ async function assertRulesDialog(page, gameName) {
   assert(summary.closeFocused, `${gameName} rules dialog initially focuses Close`);
   assert(summary.unnamedControls.length === 0, `${gameName} rules dialog controls are named`);
   assert(summary.ruleIdMentions.length === 0, `${gameName} rules dialog omits rule-ID validation tables`);
+  if (gameName === "Event Frontier") {
+    await assertEventFrontierRulesRendering(page);
+  }
+}
+
+async function assertEventFrontierRulesRendering(page) {
+  const summary = await page.evaluate(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    return {
+      text: dialog?.textContent ?? "",
+      codeTexts: Array.from(dialog?.querySelectorAll("code") ?? []).map((element) => element.textContent ?? ""),
+      emphasisTexts: Array.from(dialog?.querySelectorAll("em") ?? []).map((element) => element.textContent ?? ""),
+    };
+  });
+  assert(summary.text.includes("Game ID: event_frontier"), "Event Frontier rules preserve underscored game ID text");
+  assert(summary.codeTexts.includes("event_frontier"), "Event Frontier rules render event_frontier as one code span");
+  assert(!summary.text.includes("seat_0"), "Event Frontier rules omit seat_0 from player-facing copy");
+  assert(!summary.text.includes("seat_1"), "Event Frontier rules omit seat_1 from player-facing copy");
+  assert(summary.text.includes("Costs and economy"), "Event Frontier rules include costs and economy section");
+  assert(!summary.text.includes("Source notes for maintainers"), "Event Frontier rules omit maintainer source notes");
+  assert(
+    summary.emphasisTexts.every((text) => !text.includes("`event") && !text.includes("frontier`")),
+    "Event Frontier rules do not split underscored identifiers into emphasis",
+  );
 }
 
 async function assertFocusContained(page) {

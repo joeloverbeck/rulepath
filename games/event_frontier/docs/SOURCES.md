@@ -183,6 +183,18 @@ public docs, or public web bundles.
 | Public visual design has not yet undergone asset/trade-dress review. | no for this ticket | Review generated or drawn assets when browser presentation lands. | Rulepath maintainers |
 | Public card labels may need final naming review before release. | no for this ticket | Rename locally before implementation if maintainers prefer different labels. | Rulepath maintainers |
 
+## Player-rules source notes
+
+Confirm before merging player-facing rules:
+
+- [x] Prose is original Rulepath wording.
+- [x] No copied rulebook text, examples, diagrams, assets, names, fonts, or trade dress.
+- [x] No strategy advice copied from `COMPETENT-PLAYER.md`.
+- [x] No hidden match-state examples or seed-specific deck order.
+- [x] No YAML front matter.
+- [x] No selectors, conditions, triggers, or action schemas.
+- [x] Formal rules version checked matches `RULES.md`.
+
 ## Rule-source-to-rule-ID cross-reference
 
 Every release-relevant stable rule ID in `RULES.md` must have source or design
