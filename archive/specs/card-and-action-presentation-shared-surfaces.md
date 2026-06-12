@@ -5,7 +5,7 @@
 - **Target type:** New spec
 - **Roadmap stage:** Cross-game web UI infrastructure — not a mechanic-ladder gate
 - **Roadmap build gate:** None. This is a non-gate sibling of `rules-display-shared-surface` and `victory-explanation-shared-surface`, motivated by Gate 14 (`event_frontier`) exposing presentation debt that also affects earlier games.
-- **Status:** Done
+**Status**: COMPLETED
 - **Date:** 2026-06-12
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs (`docs/OFFICIAL-GAME-CONTRACT.md`, `docs/MECHANIC-ATLAS.md`, `docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`) → `docs/ROADMAP.md` → `docs/IP-POLICY.md` → `docs/AGENT-DISCIPLINE.md` → `docs/WASM-CLIENT-BOUNDARY.md` → accepted ADRs → this spec.
@@ -334,3 +334,32 @@ viewer-safe component display metadata (label, short summary, family tag,
 accessibility label) for every projected identifier, loaded from typed
 static presentation data or authored Rust copy, validated at load.
 ```
+
+## Outcome
+
+Completed on 2026-06-12. The ticket series implemented the component display
+metadata, shared deck/pile presentation, staged action construction, catalog
+action audit, and presentation-copy guard workstreams, then lifted the future
+binding amendments into `docs/UI-INTERACTION.md` and
+`docs/OFFICIAL-GAME-CONTRACT.md`.
+
+Deviations from the original plan:
+
+- The closeout corrected one stale Flood Watch WASM no-leak assertion: public
+  `event_deck_label` metadata is allowed, while the internal `"event_deck":`
+  state key remains forbidden.
+- The spec was archived after completion and `specs/README.md` now links to the
+  archived spec while keeping the progress status `Done`.
+
+Verification passed:
+
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- grep proofs for the UI-INTERACTION amendment lines, official-contract
+  metadata clause, `DeckFlowPanel`/`ActionPathBuilder`, and completed status
+  surfaces
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test -p wasm-api flood_watch_bridge_projects_public_view_effects_bot_and_export_without_deck_order -- --nocapture`
+- `cargo test --workspace`
+- `npm --prefix apps/web run build`
