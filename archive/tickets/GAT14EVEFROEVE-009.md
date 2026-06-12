@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-009: Visibility, hidden deck order, and replay surfaces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier/src/{visibility,replay_support}.rs` (output-equivalent projections, hidden-order firewall, replay export/import, trace markers)
@@ -77,3 +77,15 @@ Implement replay reproduction (seed + scenario + command stream → full timelin
 1. `cargo test -p event_frontier --test visibility --test replay`
 2. `cargo test -p event_frontier`
 3. The per-crate visibility/replay tests are the correct boundary; the WASM/DOM no-leak surface is additionally exercised by the browser smoke (ticket 018).
+
+## Outcome
+
+- Implemented a single public projection for Event Frontier that exposes public map, resources, scores, eligibility, current/next/discard card surfaces, active edicts, reckoning progress, victory distance, terminal state, and freshness without exposing `deck.undrawn`.
+- Added public effect filtering/text, stable public view summaries/hashes, ADR 0004-style public replay export/import, and internal trace markers for `undrawn_deck_order` plus `setup_shuffle`.
+- Added visibility and replay tests for seat/observer output equivalence, serialize-and-search hidden-order firewall coverage, public export/import hash reproduction, replayed state/effect/action-tree/view hash determinism, and hidden/stochastic marker emission.
+
+## Verification
+
+- `cargo fmt --all --check`
+- `cargo test -p event_frontier --test visibility --test replay`
+- `cargo test -p event_frontier`

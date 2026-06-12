@@ -25,6 +25,12 @@ pub use ids::{
     STANDARD_RESOURCE_CAP, STANDARD_SEAT_COUNT, STANDARD_SITE_COUNT, VARIANT_HARD_WINTER_ID,
     VARIANT_LAND_RUSH_ID, VARIANT_STANDARD_ID,
 };
+pub use replay_support::{
+    export_public_replay, generate_internal_full_trace, import_public_export,
+    import_public_export_json, public_replay_step, EventFrontierInternalTrace,
+    ImportedPublicReplay, PublicReplayExport, PublicReplayStep, TRACE_HIDDEN_SURFACE,
+    TRACE_STOCHASTIC_SURFACE,
+};
 pub use rules::{
     apply_command, apply_validated_action, initialize_card_phase, resolve_reckoning, AppliedAction,
 };
@@ -35,6 +41,7 @@ pub use state::{
     VictoryType,
 };
 pub use variants::{Manifest, ScenarioVariant, VariantCatalog};
+pub use visibility::{filter_effects_for_viewer, project_view, PublicView, HIDDEN_SURFACE};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))
