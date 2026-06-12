@@ -4,6 +4,9 @@ use crate::{
     state::contract_spec,
 };
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Token Bazaar is factionless; keep existing player/seat naming for inventories.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub table_label: String,

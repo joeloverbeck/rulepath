@@ -1,5 +1,8 @@
 use crate::ids::{CellId, ThreeMarksSeat};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Three Marks is factionless; keep existing first-player/second-player mark labels.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MarkTokenMetadata {
     pub seat: ThreeMarksSeat,

@@ -106,6 +106,7 @@ try {
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
 
   await startEventFrontier(page, baseUrl, "Hotseat", 3);
+  await assertFactionFirstCopy(page);
   await assertEventFrontierBoardA11y(page);
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_0");
   await chooseAndConfirmAction(page, ["Event"]);
@@ -197,8 +198,29 @@ async function startEventFrontier(page, baseUrl, modeLabel, seed) {
     seed,
   );
   await clickLabel(page, modeLabel);
+  await assertEventFrontierSetupCopy(page, modeLabel);
   await clickButtonText(page, "Start Match");
   await page.waitForSelector('[data-testid="event-frontier-board"]');
+}
+
+async function assertEventFrontierSetupCopy(page, modeLabel) {
+  await page.waitForFunction(() => document.querySelector(".seat-roles")?.textContent?.includes("Charter"));
+  const summary = await page.evaluate(() => ({
+    roles: Array.from(document.querySelectorAll(".seat-roles > div")).map((element) => element.textContent ?? ""),
+    setup: document.querySelector(".setup-region")?.textContent ?? "",
+  }));
+  const expectedFirstRole = modeLabel === "Bot vs bot" ? "bot" : "you (local)";
+  const expectedSecondRole = modeLabel === "Hotseat" ? "local" : "bot";
+  assert(
+    summary.roles.some((text) => text.includes("Charter") && text.includes(expectedFirstRole)),
+    `setup names Charter without raw seat copy: ${JSON.stringify(summary.roles)}`,
+  );
+  assert(
+    summary.roles.some((text) => text.includes("Freeholders") && text.includes(expectedSecondRole)),
+    "setup names Freeholders without raw seat copy",
+  );
+  assert(!summary.setup.includes("Seat 0"), "Event Frontier setup omits Seat 0 copy");
+  assert(!summary.setup.includes("Seat 1"), "Event Frontier setup omits Seat 1 copy");
 }
 
 async function assertEventFrontierBoardA11y(page) {
@@ -240,6 +262,28 @@ async function assertEventFrontierBoardA11y(page) {
   assert(!summary.deckText.includes("ef_"), "event_frontier deck panel omits raw card ids");
   assert(summary.actionButtons.some((label) => label === "Event"), "event_frontier renders Rust event choice label");
   assert(summary.actionButtons.some((label) => label === "Operation"), "event_frontier renders Rust operation choice label");
+}
+
+async function assertFactionFirstCopy(page) {
+  const summary = await page.evaluate(() => {
+    const body = document.body.textContent ?? "";
+    const devPanel = document.querySelector(".dev-panel")?.textContent ?? "";
+    return {
+      body,
+      devPanel,
+      board: document.querySelector('[data-testid="event-frontier-board"]')?.textContent ?? "",
+      mode: document.querySelector(".mode-controls")?.textContent ?? "",
+    };
+  });
+  assert(summary.board.includes("You play the Charter"), "board states the local faction identity");
+  assert(summary.board.includes("Funds - Charter (you)"), "fund resource names Charter owner");
+  assert(summary.board.includes("Provisions - Freeholders (local)"), "provision resource names Freeholders owner");
+  assert(summary.mode.includes("Charter (you) to act"), "mode line uses faction-first active actor copy");
+  const normalSurface = summary.body.replace(summary.devPanel, "");
+  assert(!normalSurface.includes("Seat 0"), "normal Event Frontier surface omits Seat 0 copy");
+  assert(!normalSurface.includes("Seat 1"), "normal Event Frontier surface omits Seat 1 copy");
+  assert(!normalSurface.includes("seat_0"), "normal Event Frontier surface omits raw seat_0 copy");
+  assert(!normalSurface.includes("seat_1"), "normal Event Frontier surface omits raw seat_1 copy");
 }
 
 function includesAny(value, candidates) {

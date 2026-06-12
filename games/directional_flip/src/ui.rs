@@ -1,5 +1,8 @@
 use crate::ids::{CellId, DirectionalFlipSeat};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Directional Flip is factionless; keep existing first-player/second-player token labels.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DiscTokenMetadata {
     pub seat: DirectionalFlipSeat,

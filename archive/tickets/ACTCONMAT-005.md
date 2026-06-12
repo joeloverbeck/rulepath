@@ -1,6 +1,6 @@
 # ACTCONMAT-005: Faction-first match-context surface
 
-**Status**: PENDING
+**Status**: COMPLETE
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/event_frontier/src/ui.rs` (seat/faction display labels), `games/*/src/ui.rs` (seat-label backfill audit, 13 games), `crates/wasm-api/src/lib.rs` (seat/faction label projection); plus presentation (`apps/web/src/main.tsx`, `apps/web/src/components/EventFrontierBoard.tsx`).
@@ -89,3 +89,21 @@ In `EventFrontierBoard.tsx`: an identity line ("You play the Charter") and resou
 1. `cargo test -p event_frontier`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `npm --prefix apps/web run smoke:ui`
+
+## Outcome
+
+Completed 2026-06-12.
+
+- Added Rust-authored Event Frontier seat/faction display labels to `UiMetadata`, projected them through WASM catalog/view JSON, and refreshed Event Frontier public-view golden hashes.
+- Updated setup, mode status, Event Frontier board identity/resource copy, and empty-action copy to render faction-first labels without normal-mode `Seat N`/`seat_0` vocabulary.
+- Added explicit `SEAT_LABEL_AUDIT` rows to sibling `games/*/src/ui.rs` files.
+- Updated Event Frontier browser smoke assertions for setup labels, identity line, resource owner attribution, active faction copy, and normal-mode seat vocabulary exclusion.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p event_frontier`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/event-frontier.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run smoke:ui`

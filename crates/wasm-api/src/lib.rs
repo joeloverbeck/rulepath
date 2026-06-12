@@ -469,14 +469,15 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(VARIANT_FRONTIER_CONTROL_HIGHLANDS)
             ),
             RegisteredGame::EventFrontier => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"event_deck\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/event_frontier/docs/RULES.md\",\"games/event_frontier/docs/SOURCES.md\",\"games/event_frontier/docs/COMPETENT-PLAYER.md\",\"games/event_frontier/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\",\"{}\",\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"event_deck\",\"graph_map\",\"asymmetric_factions\",\"public_replay_export\"],\"docs\":[\"games/event_frontier/docs/RULES.md\",\"games/event_frontier/docs/SOURCES.md\",\"games/event_frontier/docs/COMPETENT-PLAYER.md\",\"games/event_frontier/docs/BOT-STRATEGY-EVIDENCE-PACK.md\"],\"ui\":{}}}",
                 escape_json(GAME_EVENT_FRONTIER),
                 escape_json(GAME_EVENT_FRONTIER_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 escape_json(VARIANT_EVENT_FRONTIER_STANDARD),
                 escape_json(VARIANT_EVENT_FRONTIER_HARD_WINTER),
-                escape_json(VARIANT_EVENT_FRONTIER_LAND_RUSH)
+                escape_json(VARIANT_EVENT_FRONTIER_LAND_RUSH),
+                event_frontier_catalog_ui_json()
             ),
             RegisteredGame::TokenBazaar => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":[\"{}\"],\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":false,\"tags\":[\"public_accounting\",\"economy\",\"public_replay_export\"]}}",
@@ -7333,7 +7334,7 @@ fn event_frontier_card_face_json(card: &event_frontier::CardFaceView) -> String 
 
 fn event_frontier_ui_json(ui: &event_frontier::UiMetadata) -> String {
     format!(
-        "{{\"table_label\":\"{}\",\"event_deck_label\":\"{}\",\"current_card_label\":\"{}\",\"next_card_label\":\"{}\",\"discard_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\",\"action_affordance_templates\":[{}]}}",
+        "{{\"table_label\":\"{}\",\"event_deck_label\":\"{}\",\"current_card_label\":\"{}\",\"next_card_label\":\"{}\",\"discard_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\",\"seat_labels\":[{}],\"faction_labels\":[{}],\"action_affordance_templates\":[{}]}}",
         escape_json(&ui.table_label),
         escape_json(&ui.event_deck_label),
         escape_json(&ui.current_card_label),
@@ -7342,11 +7343,56 @@ fn event_frontier_ui_json(ui: &event_frontier::UiMetadata) -> String {
         escape_json(&ui.face_down_label),
         escape_json(&ui.face_down_summary),
         escape_json(&ui.reduced_motion_token),
+        ui.seat_labels
+            .iter()
+            .map(event_frontier_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        ui.faction_labels
+            .iter()
+            .map(event_frontier_faction_display_label_json)
+            .collect::<Vec<_>>()
+            .join(","),
         ui.action_affordance_templates
             .iter()
             .map(event_frontier_action_affordance_template_json)
             .collect::<Vec<_>>()
             .join(",")
+    )
+}
+
+fn event_frontier_catalog_ui_json() -> String {
+    let ui = event_frontier::ui_metadata();
+    format!(
+        "{{\"seat_labels\":[{}],\"faction_labels\":[{}]}}",
+        ui.seat_labels
+            .iter()
+            .map(event_frontier_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        ui.faction_labels
+            .iter()
+            .map(event_frontier_faction_display_label_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn event_frontier_seat_display_label_json(label: &event_frontier::ui::SeatDisplayLabel) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(&label.seat),
+        escape_json(&label.label)
+    )
+}
+
+fn event_frontier_faction_display_label_json(
+    label: &event_frontier::ui::FactionDisplayLabel,
+) -> String {
+    format!(
+        "{{\"faction\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(&label.faction),
+        escape_json(&label.label)
     )
 }
 

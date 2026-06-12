@@ -1,5 +1,8 @@
 use crate::ids::{Grade, GAME_ID, VARIANT_ID};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Masked Claims is factionless; keep existing viewer-safe player/seat naming.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: String,

@@ -75,6 +75,15 @@ export type GameCatalogEntry = {
   hidden_information?: boolean;
   cooperative?: boolean;
   tags?: string[];
+  ui?: GameCatalogUiMetadata;
+};
+
+export type SeatDisplayLabel = { seat: SeatId | string; label: string };
+export type FactionDisplayLabel = { faction: string; label: string };
+
+export type GameCatalogUiMetadata = {
+  seat_labels?: SeatDisplayLabel[];
+  faction_labels?: FactionDisplayLabel[];
 };
 
 export type FeatureReport = {
@@ -972,6 +981,8 @@ export type EventFrontierUiMetadata = {
   face_down_label: string;
   face_down_summary: string;
   reduced_motion_token: string;
+  seat_labels: SeatDisplayLabel[];
+  faction_labels: FactionDisplayLabel[];
   action_affordance_templates: Array<{ id: string; text: string }>;
 };
 

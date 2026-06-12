@@ -1,5 +1,8 @@
 use crate::ids::{CrestCardId, GAME_ID};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Crest Ledger is factionless; keep existing player/seat naming for hidden-card ownership.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: String,

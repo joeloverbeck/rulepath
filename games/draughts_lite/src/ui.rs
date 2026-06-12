@@ -5,6 +5,9 @@ use crate::{
     state::{Piece, PieceKind},
 };
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Draughts Lite is factionless; keep existing first-player/second-player piece labels.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PieceTokenMetadata {
     pub seat: DraughtsLiteSeat,

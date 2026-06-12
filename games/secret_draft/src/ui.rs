@@ -1,5 +1,8 @@
 use crate::ids::{DraftItemId, GAME_ID};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Veiled Draft is factionless; keep existing player/seat naming for simultaneous commitments.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: &'static str,

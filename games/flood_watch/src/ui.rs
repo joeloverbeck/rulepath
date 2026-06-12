@@ -7,6 +7,9 @@ use crate::{
     variants::{parse_flat_toml, parse_string_list, reject_unknown_keys, required_string},
 };
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Flood Watch is cooperative and role-first; role labels remain authored in the Rust view.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub display_name: String,

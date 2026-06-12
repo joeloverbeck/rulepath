@@ -2,7 +2,7 @@
 
 use crate::{
     cards::{CardId, CardPresentationCatalog, SitePresentationCatalog},
-    ids::SiteId,
+    ids::{FactionId, SiteId},
     variants::{parse_flat_toml, parse_string_list, reject_unknown_keys, required_string},
 };
 
@@ -18,7 +18,21 @@ pub struct UiMetadata {
     pub face_down_label: String,
     pub face_down_summary: String,
     pub reduced_motion_token: String,
+    pub seat_labels: Vec<SeatDisplayLabel>,
+    pub faction_labels: Vec<FactionDisplayLabel>,
     pub action_affordance_templates: Vec<ActionAffordanceTemplate>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatDisplayLabel {
+    pub seat: String,
+    pub label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FactionDisplayLabel {
+    pub faction: String,
+    pub label: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -89,8 +103,33 @@ pub fn ui_metadata() -> UiMetadata {
         face_down_label: "Face-down event deck".to_owned(),
         face_down_summary: "Order hidden until cards become public.".to_owned(),
         reduced_motion_token: "event-frontier-reduced-motion".to_owned(),
+        seat_labels: seat_display_labels(),
+        faction_labels: faction_display_labels(),
         action_affordance_templates: action_affordance_templates(),
     }
+}
+
+pub fn seat_display_labels() -> Vec<SeatDisplayLabel> {
+    [
+        ("seat_0", FactionId::Charter),
+        ("seat_1", FactionId::Freeholders),
+    ]
+    .into_iter()
+    .map(|(seat, faction)| SeatDisplayLabel {
+        seat: seat.to_owned(),
+        label: faction.label().to_owned(),
+    })
+    .collect()
+}
+
+pub fn faction_display_labels() -> Vec<FactionDisplayLabel> {
+    FactionId::ALL
+        .into_iter()
+        .map(|faction| FactionDisplayLabel {
+            faction: faction.as_str().to_owned(),
+            label: faction.label().to_owned(),
+        })
+        .collect()
 }
 
 pub fn card_face(card: CardId) -> CardFaceView {
@@ -154,6 +193,9 @@ mod tests {
             metadata.face_down_summary,
             "Order hidden until cards become public."
         );
+        assert_eq!(metadata.seat_labels[0].label, "Charter");
+        assert_eq!(metadata.seat_labels[1].label, "Freeholders");
+        assert_eq!(metadata.faction_labels[0].faction, "faction_charter");
         let combined = format!("{metadata:?}");
         assert!(!combined.contains("debug"));
         assert!(!combined.contains("candidate"));

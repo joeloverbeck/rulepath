@@ -1,5 +1,8 @@
 use crate::ids::{TrickCardId, TrickRank, TrickSuit, GAME_ID};
 
+pub const SEAT_LABEL_AUDIT: &str =
+    "Plain Tricks is factionless; keep existing player/seat naming for hand ownership.";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: String,

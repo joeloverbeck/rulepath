@@ -508,6 +508,7 @@ function App() {
             effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            seatRoleLabels={seatRoleLabelsForMode(state.setup.playMode)}
             onPathSubmit={playPath}
           />
         ) : isThreeMarksView(view) ? (
@@ -644,6 +645,16 @@ function botSeatForMode(playMode: SetupPlayMode, seat: SeatId): boolean {
 
 function botSeed(view: PublicView): number {
   return view.freshness_token + (view.active_seat === "seat_0" ? 101 : 211);
+}
+
+function seatRoleLabelsForMode(playMode: SetupPlayMode): Partial<Record<SeatId, string>> {
+  if (playMode === "human_vs_bot") {
+    return { seat_0: "you", seat_1: "bot" };
+  }
+  if (playMode === "hotseat") {
+    return { seat_0: "you", seat_1: "local" };
+  }
+  return { seat_0: "bot", seat_1: "bot" };
 }
 
 function parseReplayDocument(documentText: string): ReplayExportDocument | null {

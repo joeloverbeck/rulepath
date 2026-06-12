@@ -430,7 +430,7 @@ fn encode_card_face(card: &CardFaceView) -> String {
 
 fn encode_ui(ui: &UiMetadata) -> String {
     format!(
-        "{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         ui.table_label,
         ui.event_deck_label,
         ui.current_card_label,
@@ -439,6 +439,16 @@ fn encode_ui(ui: &UiMetadata) -> String {
         ui.face_down_label,
         ui.face_down_summary,
         ui.reduced_motion_token,
+        ui.seat_labels
+            .iter()
+            .map(|label| format!("{}={}", label.seat, label.label))
+            .collect::<Vec<_>>()
+            .join("|"),
+        ui.faction_labels
+            .iter()
+            .map(|label| format!("{}={}", label.faction, label.label))
+            .collect::<Vec<_>>()
+            .join("|"),
         ui.action_affordance_templates
             .iter()
             .map(|template| format!("{}={}", template.id, template.text))
