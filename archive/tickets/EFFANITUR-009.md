@@ -1,6 +1,6 @@
 # EFFANITUR-009: Animation smoke suite + smoke:e2e wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/React presentation shell + test harness only (`apps/web`); Rust/WASM untouched. Adds browser-smoke test infrastructure (the gate's verification harness is itself this deliverable).
@@ -84,3 +84,23 @@ Update the existing `e2e/*.smoke.mjs` game smokes for auto-advancing bot turns (
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run smoke:animation`
 3. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects` (full web smoke set, regression)
+
+## Outcome
+
+Completed on 2026-06-12.
+
+Added `apps/web/e2e/animation.smoke.mjs`, a browser smoke covering authored animation settle, no lingering animation ghosts after settle, replay stepping after animated Event Frontier effects, skip during Flood Watch human-vs-bot automation, and reduced-motion text equivalence for Flood Watch forecast effects.
+
+Updated `apps/web/package.json` so `smoke:e2e` now ends with `node e2e/animation.smoke.mjs`, closing the created-but-unrun smoke gap. Added `smoke:animation`, which runs the node unit smokes for burst segmentation, scheduler behavior, presenter/registry behavior, and the catalog sweep. Because npm package scripts run from `apps/web`, `smoke:animation` explicitly changes to the repo root before invoking those repo-root-relative scripts.
+
+Existing game smokes already carried the auto-advance updates from EFFANITUR-004/006/007; the full `smoke:e2e` run re-proved them with the new animation smoke in the chain.
+
+Verification:
+
+1. `npm --prefix apps/web run smoke:animation` -> passed.
+2. `node apps/web/e2e/animation.smoke.mjs` -> passed (required local test-server approval in the sandbox).
+3. `npm --prefix apps/web run smoke:e2e` -> passed, including `animation.smoke.mjs` at the tail.
+4. `npm --prefix apps/web run smoke:wasm` -> passed.
+5. `npm --prefix apps/web run smoke:ui` -> passed.
+6. `npm --prefix apps/web run smoke:effects` -> passed.
+7. `rg -n "animation\\.smoke\\.mjs|smoke:animation|smoke-catalog-sweep" apps/web/package.json` -> `smoke:e2e` wiring and `smoke:animation` script present.
