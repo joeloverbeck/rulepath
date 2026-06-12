@@ -11,6 +11,7 @@ type ActionPathBuilderProps = {
     label: string;
     balance: number;
   } | null;
+  onTargetHighlight?: (targets: string[]) => void;
   onSubmit: (selection: ActionPathSelection) => void;
 };
 
@@ -27,19 +28,31 @@ export function ActionPathBuilder({
   emptyLabel = "No legal actions available.",
   affordanceTemplates = [],
   costResource = null,
+  onTargetHighlight,
   onSubmit,
 }: ActionPathBuilderProps) {
   const rootChoices = useMemo(() => tree?.choices ?? [], [tree]);
   const [selectedChoices, setSelectedChoices] = useState<ActionChoice[]>([]);
+  const [composedTargets, setComposedTargets] = useState<string[]>([]);
   const currentChoices = selectedChoices.at(-1)?.next?.choices ?? rootChoices;
   const leaf = selectedChoices.at(-1) ?? null;
   const canConfirm = Boolean(leaf && !leaf.next?.choices?.length);
+  const composer = buildTargetComposer(currentChoices);
+  const composedLeaf = composer ? leafForTargetSet(composer.leaves, composedTargets) : null;
   const stageConsequence = resolvedConsequence(currentChoices, affordanceTemplates);
-  const confirmSummary = leaf ? actionConfirmSummary(selectedChoices, leaf, affordanceTemplates, costResource) : null;
+  const confirmLeaf = composedLeaf ?? leaf;
+  const confirmSummary = confirmLeaf ? actionConfirmSummary([...selectedChoices, confirmLeaf], confirmLeaf, affordanceTemplates, costResource) : null;
 
   useEffect(() => {
     setSelectedChoices([]);
+    setComposedTargets([]);
+    onTargetHighlight?.([]);
   }, [tree?.freshness_token]);
+
+  useEffect(() => {
+    setComposedTargets([]);
+    onTargetHighlight?.([]);
+  }, [currentChoices]);
 
   function choose(choice: ActionChoice) {
     setSelectedChoices((current) => [...current, choice]);
@@ -47,10 +60,14 @@ export function ActionPathBuilder({
 
   function back() {
     setSelectedChoices((current) => current.slice(0, -1));
+    setComposedTargets([]);
+    onTargetHighlight?.([]);
   }
 
   function cancel() {
     setSelectedChoices([]);
+    setComposedTargets([]);
+    onTargetHighlight?.([]);
   }
 
   function confirm() {
@@ -63,6 +80,30 @@ export function ActionPathBuilder({
       leaf,
     });
     setSelectedChoices([]);
+    setComposedTargets([]);
+    onTargetHighlight?.([]);
+  }
+
+  function confirmComposed() {
+    if (!composedLeaf) {
+      return;
+    }
+    onSubmit({
+      choices: [...selectedChoices, composedLeaf],
+      segments: [...selectedChoices.map((choice) => choice.segment), composedLeaf.segment],
+      leaf: composedLeaf,
+    });
+    setSelectedChoices([]);
+    setComposedTargets([]);
+    onTargetHighlight?.([]);
+  }
+
+  function toggleTarget(targetId: string) {
+    setComposedTargets((current) => {
+      const next = current.includes(targetId) ? current.filter((id) => id !== targetId) : [...current, targetId];
+      onTargetHighlight?.(next);
+      return next;
+    });
   }
 
   return (
@@ -80,7 +121,45 @@ export function ActionPathBuilder({
         </ol>
       ) : null}
 
-      {canConfirm && leaf ? (
+      {composer ? (
+        <div className="action-target-composer" data-testid="action-target-composer">
+          {stageConsequence ? <p className="action-path-consequence">{stageConsequence}</p> : null}
+          <div className="action-target-options" role="group" aria-label={`${composer.operationLabel} targets`}>
+            {composer.targets.map((target) => {
+              const selected = composedTargets.includes(target.id);
+              const nextTargets = selected ? composedTargets.filter((id) => id !== target.id) : [...composedTargets, target.id];
+              const enabled = nextTargets.length === 0 || hasLeafContainingTargets(composer.leaves, nextTargets);
+              return (
+                <button
+                  type="button"
+                  key={target.id}
+                  disabled={disabled || !enabled}
+                  aria-pressed={selected}
+                  data-testid={`action-target-toggle-${stableSegment(target.id)}`}
+                  onClick={() => toggleTarget(target.id)}
+                >
+                  {target.label}
+                </button>
+              );
+            })}
+          </div>
+          {confirmSummary ? (
+            <p className="action-path-summary" data-testid="action-path-confirm-summary">
+              {confirmSummary}
+            </p>
+          ) : null}
+          {composedLeaf ? <span>Ready</span> : null}
+          <button
+            type="button"
+            disabled={disabled || !composedLeaf}
+            onClick={confirmComposed}
+            data-testid="action-target-confirm"
+            aria-label={`Confirm ${composedLeaf?.accessibility_label ?? composer.operationLabel}`}
+          >
+            Confirm
+          </button>
+        </div>
+      ) : canConfirm && leaf ? (
         <div className="action-path-confirm" data-testid="action-path-confirm">
           <span>Ready</span>
           <strong>{selectedChoices.map((choice) => choice.label).join(" / ")}</strong>
@@ -132,6 +211,86 @@ export function ActionPathBuilder({
 
 function stableSegment(segment: string): string {
   return segment.replaceAll("/", "-").replaceAll(",", "-").replaceAll(" ", "-");
+}
+
+type TargetComposer = {
+  operationLabel: string;
+  targets: Array<{ id: string; label: string }>;
+  leaves: Array<{ choice: ActionChoice; targetIds: string[] }>;
+};
+
+function buildTargetComposer(choices: ActionChoice[]): TargetComposer | null {
+  if (choices.length < 3 || !choices.every((choice) => choice.tags?.includes("operation-leaf"))) {
+    return null;
+  }
+  const leaves = choices.map((choice) => ({ choice, targetIds: targetIdsForChoice(choice) }));
+  if (leaves.some((leaf) => leaf.targetIds.some((id) => id.includes(">")))) {
+    return null;
+  }
+  if (leaves.some((leaf) => leaf.targetIds.length === 0) || !leaves.some((leaf) => leaf.targetIds.length > 1)) {
+    return null;
+  }
+  const operationLabel = operationLabelForChoice(choices[0]);
+  if (!operationLabel || !choices.every((choice) => operationLabelForChoice(choice) === operationLabel)) {
+    return null;
+  }
+  const singleLabels = new Map<string, string>();
+  for (const leaf of leaves) {
+    if (leaf.targetIds.length === 1) {
+      singleLabels.set(leaf.targetIds[0], targetLabelFromChoice(operationLabel, leaf.choice));
+    }
+  }
+  if (!leaves.every((leaf) => leaf.targetIds.every((id) => singleLabels.has(id)))) {
+    return null;
+  }
+  const targets: Array<{ id: string; label: string }> = [];
+  for (const leaf of leaves) {
+    for (const id of leaf.targetIds) {
+      if (!targets.some((target) => target.id === id)) {
+        targets.push({ id, label: singleLabels.get(id) ?? id });
+      }
+    }
+  }
+  if (choices.length <= targets.length) {
+    return null;
+  }
+  return { operationLabel, targets, leaves };
+}
+
+function targetIdsForChoice(choice: ActionChoice): string[] {
+  const payload = choice.segment.split("/")[2] ?? "";
+  return payload
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .sort();
+}
+
+function operationLabelForChoice(choice: ActionChoice): string | null {
+  const label = choice.label.trim();
+  const firstSpace = label.indexOf(" ");
+  return firstSpace > 0 ? label.slice(0, firstSpace) : null;
+}
+
+function targetLabelFromChoice(operationLabel: string, choice: ActionChoice): string {
+  return choice.label.replace(new RegExp(`^${escapeRegExp(operationLabel)}\\s+`), "");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function leafForTargetSet(leaves: TargetComposer["leaves"], targetIds: string[]): ActionChoice | null {
+  const normalized = [...targetIds].sort();
+  return leaves.find((leaf) => sameTargetSet(leaf.targetIds, normalized))?.choice ?? null;
+}
+
+function hasLeafContainingTargets(leaves: TargetComposer["leaves"], targetIds: string[]): boolean {
+  return leaves.some((leaf) => targetIds.every((id) => leaf.targetIds.includes(id)));
+}
+
+function sameTargetSet(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 function ChoiceCost({ choice, costResourceLabel }: { choice: ActionChoice; costResourceLabel: string | null }) {

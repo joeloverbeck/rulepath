@@ -2424,6 +2424,11 @@ h2 {
   stroke-dasharray: 2.5 1.8;
 }
 
+.frontier-site.highlighted circle {
+  stroke: #d68a2d;
+  stroke-width: 2;
+}
+
 .frontier-site path {
   fill: #3d6472;
 }
@@ -2491,10 +2496,29 @@ h2 {
   gap: 0.55rem;
 }
 
+.action-target-composer {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.action-target-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .action-path-options button,
+.action-target-options button,
 .action-path-tools button,
-.action-path-confirm button {
+.action-path-confirm button,
+.action-target-composer > button {
   min-height: 42px;
+}
+
+.action-target-options button[aria-pressed="true"] {
+  border-color: rgba(54, 103, 95, 0.62);
+  background: #e2f3ed;
+  color: #21433d;
 }
 
 .action-cost-chip {

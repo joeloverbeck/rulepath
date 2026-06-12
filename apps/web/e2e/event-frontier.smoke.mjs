@@ -307,6 +307,11 @@ async function clickFirstActionPathChoice(page) {
 }
 
 async function clickPreferredLeafChoice(page) {
+  const composer = await page.$('[data-testid="action-target-composer"]');
+  if (composer) {
+    await assertTargetComposer(page);
+    return;
+  }
   await page.waitForSelector('[data-testid^="action-path-choice-"]');
   const choices = await page.$$('[data-testid^="action-path-choice-"]');
   for (const choice of choices) {
@@ -320,6 +325,34 @@ async function clickPreferredLeafChoice(page) {
     throw new Error("No leaf choices rendered");
   }
   await choices[0].click();
+}
+
+async function assertTargetComposer(page) {
+  await page.waitForSelector('[data-testid^="action-target-toggle-"]');
+  const before = await page.evaluate(() => ({
+    targetCount: document.querySelectorAll('[data-testid^="action-target-toggle-"]').length,
+    confirmCount: document.querySelectorAll('[data-testid="action-target-confirm"]').length,
+    legacyLeafButtons: Array.from(document.querySelectorAll('[data-testid^="action-path-choice-"]')).filter((button) =>
+      button.textContent?.includes(","),
+    ).length,
+  }));
+  assert(before.targetCount > 1, "target composer renders per-target toggles");
+  assert(before.targetCount + before.confirmCount <= before.targetCount + 1, "target composer renders no more controls than targets plus confirm");
+  assert(before.legacyLeafButtons === 0, "target composer replaces pre-joined combination buttons");
+
+  const toggles = await page.$$('[data-testid^="action-target-toggle-"]');
+  await toggles[0].click();
+  if (toggles.length > 1) {
+    await toggles[1].click();
+  }
+  const after = await page.evaluate(() => ({
+    disabledRemainder: Array.from(document.querySelectorAll('[data-testid^="action-target-toggle-"]'))
+      .filter((button) => button.getAttribute("aria-pressed") !== "true")
+      .every((button) => button.hasAttribute("disabled")),
+    highlighted: document.querySelectorAll(".frontier-site.highlighted").length,
+  }));
+  assert(after.disabledRemainder, "composer disables target additions without a matching Rust leaf");
+  assert(after.highlighted >= Math.min(2, toggles.length), "map sites highlight selected composer targets");
 }
 
 async function assertActionCostDisplay(page) {

@@ -1,6 +1,6 @@
 # ACTCONMAT-004: Multi-target composer in the shared action surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/ActionPathBuilder.tsx`, `apps/web/src/components/EventFrontierBoard.tsx`. No Rust/engine behavior; submitted command bytes unchanged.
@@ -80,3 +80,27 @@ Add optional target-highlight hooks boards can register; `EventFrontierBoard.tsx
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run build`
 3. `cargo run -p replay-check -- --game event_frontier --all` (confirms no submitted-path drift reaches replay)
+
+## Outcome
+
+Completed: 2026-06-12
+
+Implemented a presentation-only multi-target composer in
+`ActionPathBuilder`. When a legal leaf set contains site-target combinations
+for one operation, the builder now renders per-target toggles, derives enabled
+states only from Rust-emitted legal leaves, and confirms by submitting the
+exact matching Rust leaf segment. Single-target and route-style leaves remain
+on the ordinary leaf-button path. Event Frontier now receives selected target
+ids through a highlight hook and marks matching map sites while a composed
+selection is active.
+
+The composer does not restructure the action tree and does not synthesize
+command bytes. A target set is confirmable only when an emitted leaf has the
+same target set; adding targets without a Rust leaf is disabled.
+
+Verification:
+
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/event-frontier.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.

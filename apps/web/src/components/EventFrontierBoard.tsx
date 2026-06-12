@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView } from "../wasm/client";
 import { ActionPathBuilder, type ActionPathSelection } from "./ActionPathBuilder";
 import { DeckFlowPanel } from "./DeckFlowPanel";
@@ -39,6 +40,7 @@ export function EventFrontierBoard({
   const terminal = view.terminal.kind !== "non_terminal";
   const canAct = Boolean(interactive && !pending && !terminal);
   const activeEffects = new Set(effects.map((entry) => String(entry.effect.payload.type)));
+  const [highlightedTargets, setHighlightedTargets] = useState<string[]>([]);
   const outcomeExplanation =
     view.terminal.kind === "winner"
       ? outcomeSurfaceData({
@@ -141,7 +143,12 @@ export function EventFrontierBoard({
                 }),
             )}
             {view.sites.map((site) => (
-              <SiteNode key={site.site} site={site} active={activeEffects.has("op_resolved") || activeEffects.has("reckoning_resolved")} />
+              <SiteNode
+                key={site.site}
+                site={site}
+                active={activeEffects.has("op_resolved") || activeEffects.has("reckoning_resolved") || highlightedTargets.includes(site.site)}
+                highlighted={highlightedTargets.includes(site.site)}
+              />
             ))}
           </svg>
         </div>
@@ -217,6 +224,7 @@ export function EventFrontierBoard({
             disabled={!canAct}
             affordanceTemplates={view.ui.action_affordance_templates}
             costResource={activeResourceContext(view)}
+            onTargetHighlight={setHighlightedTargets}
             onSubmit={(selection) => onPathSubmit?.(eventFrontierSubmitPath(selection))}
           />
         </section>
@@ -227,10 +235,14 @@ export function EventFrontierBoard({
   );
 }
 
-function SiteNode({ site, active }: { site: EventFrontierSiteView; active: boolean }) {
+function SiteNode({ site, active, highlighted }: { site: EventFrontierSiteView; active: boolean; highlighted: boolean }) {
   const point = SITE_POINTS[site.site] ?? { x: 50, y: 50 };
   return (
-    <g className={`frontier-site${site.depot ? " fort" : ""}${site.cache_count > 0 ? " staked" : ""}${active ? " active" : ""}`}>
+    <g
+      className={`frontier-site${site.depot ? " fort" : ""}${site.cache_count > 0 ? " staked" : ""}${active ? " active" : ""}${
+        highlighted ? " highlighted" : ""
+      }`}
+    >
       <circle cx={point.x} cy={point.y} r={7} />
       {site.depot ? <path d={`M ${point.x - 4} ${point.y - 7} h 8 v 4 h -8 z`} /> : null}
       {site.cache_count > 0 ? <rect x={point.x - 2.4} y={point.y - 10.5} width="4.8" height="5.8" rx="0.8" /> : null}
