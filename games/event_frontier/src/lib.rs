@@ -50,7 +50,8 @@ pub use state::{
     VictoryType,
 };
 pub use ui::{
-    card_face, site_accessibility_label, site_label, ui_metadata, CardFaceView, UiMetadata,
+    action_affordance_templates, card_face, site_accessibility_label, site_label, ui_metadata,
+    ActionAffordanceTemplate, ActionAffordanceTemplateCatalog, CardFaceView, UiMetadata,
 };
 pub use variants::{Manifest, ScenarioVariant, VariantCatalog};
 pub use visibility::{filter_effects_for_viewer, project_view, PublicView, HIDDEN_SURFACE};
@@ -75,6 +76,10 @@ pub fn load_site_presentation() -> Result<SitePresentationCatalog, String> {
     SitePresentationCatalog::parse(include_str!("../data/sites_presentation.toml"))
 }
 
+pub fn load_action_affordance_templates() -> Result<ActionAffordanceTemplateCatalog, String> {
+    ActionAffordanceTemplateCatalog::parse(include_str!("../data/action_affordance_templates.toml"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,6 +91,8 @@ mod tests {
         let cards = load_cards().expect("cards parse");
         let card_presentation = load_card_presentation().expect("card presentation parses");
         let site_presentation = load_site_presentation().expect("site presentation parses");
+        let affordance_templates =
+            load_action_affordance_templates().expect("action templates parse");
 
         assert_eq!(manifest.game_id, GAME_ID);
         assert_eq!(manifest.display_name, "Event Frontier");
@@ -111,6 +118,11 @@ mod tests {
                 .label,
             "High Meadow"
         );
+        assert!(affordance_templates
+            .get("base_one_resource_per_site")
+            .expect("template")
+            .text
+            .contains("one matching resource"));
 
         assert!(Manifest::parse("game_id = \"event_frontier\"\ntrigger = \"bad\"\n").is_err());
         assert!(VariantCatalog::parse(
@@ -127,6 +139,10 @@ mod tests {
         .is_err());
         assert!(SitePresentationCatalog::parse(
             "site_ids = \"site_charterhouse\"\nlabels = \"Charterhouse\"\naccessibility_labels = \"Charterhouse site\"\nscript = \"bad\"\n"
+        )
+        .is_err());
+        assert!(ActionAffordanceTemplateCatalog::parse(
+            "template_ids = \"acting_forfeits_next_card\"\ntexts = \"x\"\nscript = \"bad\"\n"
         )
         .is_err());
     }

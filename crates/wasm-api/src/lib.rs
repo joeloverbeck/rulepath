@@ -7333,7 +7333,7 @@ fn event_frontier_card_face_json(card: &event_frontier::CardFaceView) -> String 
 
 fn event_frontier_ui_json(ui: &event_frontier::UiMetadata) -> String {
     format!(
-        "{{\"table_label\":\"{}\",\"event_deck_label\":\"{}\",\"current_card_label\":\"{}\",\"next_card_label\":\"{}\",\"discard_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\"}}",
+        "{{\"table_label\":\"{}\",\"event_deck_label\":\"{}\",\"current_card_label\":\"{}\",\"next_card_label\":\"{}\",\"discard_label\":\"{}\",\"face_down_label\":\"{}\",\"face_down_summary\":\"{}\",\"reduced_motion_token\":\"{}\",\"action_affordance_templates\":[{}]}}",
         escape_json(&ui.table_label),
         escape_json(&ui.event_deck_label),
         escape_json(&ui.current_card_label),
@@ -7341,7 +7341,22 @@ fn event_frontier_ui_json(ui: &event_frontier::UiMetadata) -> String {
         escape_json(&ui.discard_label),
         escape_json(&ui.face_down_label),
         escape_json(&ui.face_down_summary),
-        escape_json(&ui.reduced_motion_token)
+        escape_json(&ui.reduced_motion_token),
+        ui.action_affordance_templates
+            .iter()
+            .map(event_frontier_action_affordance_template_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn event_frontier_action_affordance_template_json(
+    template: &event_frontier::ActionAffordanceTemplate,
+) -> String {
+    format!(
+        "{{\"id\":\"{}\",\"text\":\"{}\"}}",
+        escape_json(&template.id),
+        escape_json(&template.text)
     )
 }
 

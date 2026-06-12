@@ -4,7 +4,8 @@ use engine_core::{
 };
 use event_frontier::{
     apply_command, export_public_replay, legal_action_tree, project_view, public_replay_step,
-    setup_match, validate_command, EventFrontierEffect, SetupOptions, ACTION_PASS,
+    setup_match, validate_command, EventFrontierEffect, SetupOptions, ACTION_OPERATION,
+    ACTION_PASS,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -92,6 +93,56 @@ fn operation_action_labels_use_authored_site_names() {
 }
 
 #[test]
+fn action_affordance_templates_cover_actual_metadata_tags() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    state.deck.current = Some(event_frontier::CardId::LastLight);
+    state.card_phase = event_frontier::CardPhase::AwaitingFirstChoice {
+        faction: event_frontier::FactionId::Charter,
+    };
+    let view = project_view(&state, &viewer(None));
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let operation = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == ACTION_OPERATION)
+        .expect("operation root");
+    let survey = operation
+        .next
+        .as_ref()
+        .expect("operation kinds")
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "survey")
+        .expect("survey kind");
+    let survey_leaf = survey
+        .next
+        .as_ref()
+        .expect("survey leaves")
+        .choices
+        .first()
+        .expect("survey leaf");
+
+    assert_eq!(
+        metadata_value(survey, "cost_rule"),
+        Some("base_one_resource_per_site")
+    );
+    assert_eq!(
+        metadata_value(survey_leaf, "eligibility_consequence"),
+        Some("acting_forfeits_next_card")
+    );
+    let templates = &view.ui.action_affordance_templates;
+    assert!(templates.iter().any(|template| {
+        template.id == "base_one_resource_per_site"
+            && template.text.contains("one matching resource")
+    }));
+    assert!(templates.iter().any(|template| {
+        template.id == "acting_forfeits_next_card"
+            && template.text.contains("forfeits your eligibility")
+    }));
+}
+
+#[test]
 fn public_surfaces_do_not_contain_hidden_undrawn_order() {
     let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
     let hidden = state.deck.undrawn[0].as_str();
@@ -152,4 +203,12 @@ fn choice_labels(choice: &ActionChoice) -> Vec<String> {
         labels.extend(action_labels(next));
     }
     labels
+}
+
+fn metadata_value<'a>(choice: &'a ActionChoice, key: &str) -> Option<&'a str> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .map(|entry| entry.value.as_str())
 }

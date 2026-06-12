@@ -972,6 +972,7 @@ export type EventFrontierUiMetadata = {
   face_down_label: string;
   face_down_summary: string;
   reduced_motion_token: string;
+  action_affordance_templates: Array<{ id: string; text: string }>;
 };
 
 export type EventFrontierPublicView = {

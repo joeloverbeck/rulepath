@@ -1,6 +1,6 @@
 # ACTCONMAT-002: Reserved action-metadata key convention + explanation templates
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/event_frontier` (explanation-template static data + `ui.rs` projection of tag → plain-language text) and `apps/web/src/wasm/client.ts` (presentation-only type additions). No `engine-core` change.
@@ -85,3 +85,42 @@ Author the §5/§9 reserved-key table text inside this ticket's notes for liftin
 1. `cargo test -p event_frontier`
 2. `npm --prefix apps/web run build`
 3. `bash scripts/boundary-check.sh` (engine-core stays noun-free)
+
+## Outcome
+
+Completed: 2026-06-12
+
+Implemented Event Frontier action-affordance explanation templates as inert,
+typed static presentation data in
+`games/event_frontier/data/action_affordance_templates.toml`. The new
+`ActionAffordanceTemplateCatalog` rejects unknown fields and duplicate/empty
+entries, and `UiMetadata.action_affordance_templates` projects resolved public
+text through Rust/WASM for later shared action surfaces. The existing
+`ActionChoice.metadata` keys remain opaque to `engine-core`; no kernel changes
+were made.
+
+The projection covers the current reserved tags:
+
+- `eligibility_consequence = acting_forfeits_next_card` on operation leaves.
+- `cost_rule = base_one_resource_per_site` on operation-kind nodes.
+
+Draft for ACTCONMAT-012 lift into `docs/UI-INTERACTION.md` §5/§9:
+
+```text
+Action-tree leaves MAY carry reserved presentation metadata keys with fixed
+meaning: `cost` (viewer-visible cost in the acting seat's primary resource),
+`cost_rule` (stable rule-reference tag), `eligibility_consequence` (stable
+consequence tag resolved through authored explanation templates). When a game
+emits reserved keys, shared action surfaces MUST render them at choice and
+confirmation time. Reserved keys are documented here, not typed into
+engine-core; the kernel treats metadata as opaque.
+```
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p event_frontier` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.
+- `npm --prefix apps/web run build` passed.
+- `bash scripts/boundary-check.sh` passed.
