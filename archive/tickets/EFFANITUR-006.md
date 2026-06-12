@@ -1,6 +1,6 @@
 # EFFANITUR-006: event_frontier animation adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — TypeScript/React presentation shell only (`apps/web`); Rust/WASM untouched. Registers game-specific effect→animation mappings against the shared registry.
@@ -75,3 +75,22 @@ Record EF's `adopt` adoption row (the spec adoption matrix consolidated in EFFAN
 1. `npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed on 2026-06-12.
+
+Event Frontier now registers authored effect animations on the shared registry for public deck/card flow, resource changes, operation/site changes, Reckoning bursts, and terminal settlement. The scheduler is wired through the registry presenter, and hotseat effect refreshes now drain through the scheduler so human Event Frontier actions exercise the same animation path.
+
+Public animation targets were added to Event Frontier metrics, deck flow, map, outcome, and site nodes. The registrations only read Rust-emitted public effect payload fields (`type`, `faction`, `sites`, `site`, `from`, `to`, and `site_breakdown.site`) and do not read hidden deck order or private state.
+
+The Event Frontier browser smoke now instruments `Element.animate` and asserts that an event action animates the deck target, a Reckoning animates map/resource/score targets, and at least one public site target animates before the board settles.
+
+Verification:
+
+1. `npm --prefix apps/web run build` -> passed.
+2. `node apps/web/e2e/event-frontier.smoke.mjs` -> passed.
+3. `npm --prefix apps/web run smoke:ui` -> passed.
+4. `npm --prefix apps/web run smoke:e2e` -> passed.
+5. `rg -n "animationRegistry\\.register\\(\"event_frontier\"" apps/web/src/components/EventFrontierBoard.tsx` -> registrations present.
+6. `rg -n "full_deck_order|internal_trace_full_deck_hash|private_state|hidden_state|bot_candidate|candidate_ranking" apps/web/src/components/EventFrontierBoard.tsx apps/web/src/main.tsx` -> no matches.

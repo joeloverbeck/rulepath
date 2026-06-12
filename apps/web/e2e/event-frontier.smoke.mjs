@@ -117,12 +117,21 @@ try {
   await assertEventFrontierBoardA11y(page);
   await assertEventFrontierDetailsAndStatusCopy(page);
   await assertRenderedTextView(page, (view) => view?.game_id === "event_frontier" && view.active_seat === "seat_0");
+  await installAnimationProbe(page);
   await chooseAndConfirmAction(page, ["Event"]);
   await waitForText(page, "Edict activated");
+  await assertAnimationTargets(page, ["event-frontier-deck"], "event action");
   await chooseAndConfirmAction(page, ["Pass"]);
   await waitForText(page, "Reckoning resolved");
   await waitForText(page, "reckoning 1");
   await waitForText(page, "no instant victory");
+  await assertAnimationTargets(
+    page,
+    ["event-frontier-map", "event-frontier-resource-faction_charter", "event-frontier-score-faction_charter"],
+    "reckoning",
+  );
+  await assertAnimationTargetPrefix(page, "event-frontier-site-", "reckoning site highlights");
+  await page.waitForSelector('[data-testid="event-frontier-board"] .frontier-site');
   await assertEventFrontierTurnReport(page);
   await assertEventFrontierDiscardDisclosure(page);
   await clickButtonText(page, "Developer panel");
@@ -385,6 +394,61 @@ async function assertEventFrontierDiscardDisclosure(page) {
   assert(summary.labels.length > 0, "event_frontier discard disclosure lists resolved cards");
   assert(summary.labels.some((label) => includesAny(label, authoredEventLabels)), "event_frontier discard disclosure lists authored card labels");
   assert(!summary.text.includes("ef_"), "event_frontier discard disclosure omits raw card ids");
+}
+
+async function installAnimationProbe(page) {
+  await page.evaluate(() => {
+    if (window.__eventFrontierAnimationProbeInstalled) {
+      window.__eventFrontierAnimationTargets = [];
+      return;
+    }
+    window.__eventFrontierAnimationProbeInstalled = true;
+    window.__eventFrontierAnimationTargets = [];
+    const originalAnimate = Element.prototype.animate;
+    Element.prototype.animate = function patchedAnimate(...args) {
+      const target = this.closest("[data-animation-target]")?.getAttribute("data-animation-target");
+      if (target) {
+        window.__eventFrontierAnimationTargets.push(target);
+      }
+      return originalAnimate.apply(this, args);
+    };
+  });
+}
+
+async function assertAnimationTargets(page, targets, label) {
+  try {
+    await page.waitForFunction(
+      (expectedTargets) => {
+        const seen = window.__eventFrontierAnimationTargets ?? [];
+        return expectedTargets.every((target) => seen.includes(target));
+      },
+      {},
+      targets,
+    );
+  } catch (error) {
+    const debug = await page.evaluate(() => ({
+      seen: window.__eventFrontierAnimationTargets ?? [],
+      targets: Array.from(document.querySelectorAll("[data-animation-target]")).map((element) =>
+        element.getAttribute("data-animation-target"),
+      ),
+      text: window.render_game_to_text ? JSON.parse(window.render_game_to_text()) : null,
+    }));
+    throw new Error(`${label} animation targets missing ${targets.join(", ")}; debug=${JSON.stringify(debug)}`, { cause: error });
+  }
+  const seen = await page.evaluate(() => window.__eventFrontierAnimationTargets ?? []);
+  for (const target of targets) {
+    assert(seen.includes(target), `${label} animated ${target}`);
+  }
+}
+
+async function assertAnimationTargetPrefix(page, prefix, label) {
+  await page.waitForFunction(
+    (expectedPrefix) => (window.__eventFrontierAnimationTargets ?? []).some((target) => target.startsWith(expectedPrefix)),
+    {},
+    prefix,
+  );
+  const seen = await page.evaluate(() => window.__eventFrontierAnimationTargets ?? []);
+  assert(seen.some((target) => target.startsWith(prefix)), `${label} animated target with prefix ${prefix}`);
 }
 
 async function exerciseActionBuilderBackCancel(page) {

@@ -26,6 +26,7 @@ import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { TurnReportPanel } from "./components/TurnReportPanel";
+import { animationRegistry } from "./animation/registry";
 import { EffectAnimationScheduler } from "./animation/scheduler";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
@@ -82,11 +83,19 @@ function App() {
   const lastAnimatedCursorRef = useRef(0);
   const autoBotInFlightRef = useRef(false);
   const autoplayInFlightRef = useRef(false);
+  const activeGameIdRef = useRef(state.selectedGameId);
   const orchestrationPausedRef = useRef(state.orchestration.paused);
   const autoplayRunningRef = useRef(state.autoplay.running);
 
   if (!schedulerRef.current) {
-    schedulerRef.current = new EffectAnimationScheduler({ reducedMotion: state.reducedMotion });
+    schedulerRef.current = new EffectAnimationScheduler({
+      reducedMotion: state.reducedMotion,
+      presenter: (step) =>
+        animationRegistry.resolve(activeGameIdRef.current ?? "", step, {
+          root: document,
+          reducedMotion: step.reducedMotion,
+        }),
+    });
   }
 
   const refresh = useCallback(
@@ -148,6 +157,10 @@ function App() {
     dispatch({ type: "reducedMotionChanged", reducedMotion: motion.reducedMotion });
     schedulerRef.current?.setReducedMotion(motion.reducedMotion);
   }, [motion.reducedMotion]);
+
+  useEffect(() => {
+    activeGameIdRef.current = state.selectedGameId;
+  }, [state.selectedGameId]);
 
   useEffect(() => {
     schedulerRef.current?.setRate(state.orchestration.rate);
@@ -288,6 +301,22 @@ function App() {
       }
     })();
   }, [api, effectCursor, effects, matchId, refresh, state.orchestration.paused, state.pendingOperation, state.setup.playMode, view]);
+
+  useEffect(() => {
+    if (state.setup.playMode !== "hotseat" || state.pendingOperation !== null || !view) {
+      return;
+    }
+    const effectsToDrain = effects.filter((entry) => entry.cursor > lastAnimatedCursorRef.current);
+    if (effectsToDrain.length === 0) {
+      return;
+    }
+    const newestCursor = effectsToDrain.reduce((cursor, entry) => Math.max(cursor, entry.cursor), lastAnimatedCursorRef.current);
+
+    void (async () => {
+      await schedulerRef.current?.enqueueEffects(effectsToDrain);
+      lastAnimatedCursorRef.current = newestCursor;
+    })();
+  }, [effects, state.pendingOperation, state.setup.playMode, view]);
 
   const changeViewerMode = useCallback(
     (viewerMode: ViewerMode) => {
