@@ -125,7 +125,9 @@ This page teaches player-facing flow. It is not the formal implementation
 contract, not a strategy guide, and not a data schema.
 
 Formal rule IDs, validation details, rule coverage, bot evidence, source/IP
-notes, and implementation constraints live in the other Event Frontier docs.
+notes, UI presentation constraints, mechanic inventory, and implementation
+constraints live in the other Event Frontier docs, including `MECHANICS.md`,
+`UI.md`, and `AI.md`.
 
 ## Source notes for maintainers
 

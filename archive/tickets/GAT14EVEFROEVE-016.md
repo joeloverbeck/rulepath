@@ -1,6 +1,6 @@
 # GAT14EVEFROEVE-016: Player and mechanic docs (MECHANICS, UI, AI)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — documentation only (`games/event_frontier/docs/{MECHANICS,UI,AI}.md`; sync `HOW-TO-PLAY.md`)
@@ -77,3 +77,17 @@ Review `HOW-TO-PLAY.md` (created in ticket 014) for consistency with the final i
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "victory|tiebreak|outcome" games/event_frontier/docs/UI.md`
 3. The doc-link check plus the outcome-section grep is the correct boundary — the runnable `check-outcome-explanations` gate needs the code half (ticket 017) and is run at the gate-1 reconciliation (ticket 018).
+
+## Outcome
+
+Authored the Event Frontier mechanic inventory, UI presentation contract, and AI
+registry docs from the repo templates. Reviewed `HOW-TO-PLAY.md` against the
+implemented rules and synced its maintainer references to the new docs. `UI.md`
+includes the mandatory `Outcome / victory explanation` section with victory
+types, final-fallback tiebreak handling, viewer-safe breakdown fields, no-leak
+rules, and smoke expectations.
+
+Verification completed:
+
+1. `node scripts/check-doc-links.mjs`
+2. `grep -niE "victory|tiebreak|outcome" games/event_frontier/docs/UI.md`
