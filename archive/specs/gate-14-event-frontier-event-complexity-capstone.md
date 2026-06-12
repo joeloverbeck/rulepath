@@ -269,6 +269,42 @@ Do not, in this gate:
 - A11: "Long-game replay/debug tools" is satisfied by Reckoning/epoch replay markers driven from the effect log, the richer simulation metrics, and export/import at the longest command timeline yet — presentation and metrics over existing replay contracts, not new tooling architecture. If implementation proves existing contracts insufficient, stop and re-scope rather than improvise infrastructure.
 - A12: If any assumption is wrong, correct the smallest local game/spec surface; do not generalize the engine.
 
+## Outcome
+
+Completed on 2026-06-12.
+
+Event Frontier shipped as the Gate 14 public ladder capstone with the `event_frontier` game crate, three scenario variants, typed event cards and edicts, eligibility/initiative flow, automated Reckoning scoring/reset, asymmetric instant victories, final fallback scoring, hidden deck-order visibility, golden traces, Level 0 and Level 1 bots, native tool registration, benchmark identities, WASM/browser registration, React/SVG board, player docs, outcome explanations, catalog reconciliation, and CI/browser smoke coverage.
+
+Deviations from the plan:
+
+- The browser-facing WASM bridge completes Event Frontier automated Reckoning phases after human/bot actions so the UI never stalls on a no-actor automated phase.
+- Web action paths percent-encode action segments before joining them so Rust action leaves containing `>` remain single legal segments.
+- Public Event Frontier replay import currently presents the stored public timeline step rather than reconstructing an internal command stream, matching the hidden-order redaction model.
+
+Verification completed:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo test -p event_frontier`
+- `cargo run -p simulate -- --game event_frontier --games 1000`
+- `cargo run -p replay-check -- --game event_frontier --all`
+- `cargo run -p fixture-check -- --game event_frontier`
+- `cargo run -p rule-coverage -- --game event_frontier`
+- `cargo bench -p event_frontier`
+- `cargo build -p bench-report`
+- `bash scripts/boundary-check.sh`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `grep -n "_None_" docs/MECHANIC-ATLAS.md`
+
 ---
 
 # Implementation reference

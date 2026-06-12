@@ -41,7 +41,7 @@ copied.
 
 | Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
 |---|---|---|---|---|---|---|
-| Rulepath Gate 14 Event Frontier capstone spec | `../../../specs/gate-14-event-frontier-event-complexity-capstone.md` | 2026-06-12 | project authority | product scope, original rules proposal, event/eligibility/Reckoning/victory shape, IP-risk register, and ticket sequencing | none | Governs this game's implementation tickets and acceptance evidence. |
+| Rulepath Gate 14 Event Frontier capstone spec | `../../../archive/specs/gate-14-event-frontier-event-complexity-capstone.md` | 2026-06-12 | project authority | product scope, original rules proposal, event/eligibility/Reckoning/victory shape, IP-risk register, and ticket sequencing | none | Governs this game's implementation tickets and acceptance evidence. |
 | Rulepath Foundations | `../../../docs/FOUNDATIONS.md` | 2026-06-12 | project authority | behavior authority, static-data boundary, kernel vocabulary boundary, no-leak invariants, public-bot limits, and IP conservatism | none | Establishes the non-negotiable architecture and no-leak constraints. |
 | Rulepath Official Game Contract | `../../../docs/OFFICIAL-GAME-CONTRACT.md` | 2026-06-12 | project authority | documentation and evidence workflow | none | Governs source notes, original rules prose, coverage matrix, outcome explanation documentation, and official-game evidence. |
 | Rulepath Engine/Game/Data Boundary | `../../../docs/ENGINE-GAME-DATA-BOUNDARY.md` | 2026-06-12 | project authority | typed static content, behavior-looking field rejection, and no behavior-in-data rule | none | Especially relevant because event-card data is the gate's highest-risk static-data surface. |
