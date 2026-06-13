@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-003: FOUNDATIONS + ARCHITECTURE N-seat clarifications
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `docs/FOUNDATIONS.md` + `docs/ARCHITECTURE.md` edits only.
@@ -75,3 +75,29 @@ Add a "Multi-seat match model" subsection: game crates declare min/max seats and
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. `grep -nE "^## " docs/FOUNDATIONS.md` (confirm all thirteen sections intact)
+
+## Outcome
+
+Completed: 2026-06-13
+
+Added meaning-preserving N-seat clarifications to `docs/FOUNDATIONS.md` and
+`docs/ARCHITECTURE.md`. FOUNDATIONS now states that behavior authority and
+universal invariants apply to every declared positive seat count, reinforces
+that N-seat turn-order/table/team/pot/graph/deck/wall/faction/partnership/
+evaluator concepts stay game-local or atlas-earned `game-stdlib`, and adds the
+stop condition that a 3+ seat game cannot ship without viewer-safe public and
+per-seat projection proof. ARCHITECTURE now has a `Multi-seat match model`
+subsection covering Rust-owned seat-count validation, active/pending actors,
+viewer projections, and ordered replay seat assignments.
+
+Deviations from plan: none. These were documentation clarifications only; no
+kernel, schema, WASM, trace, or gameplay files changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -nE "^## " docs/FOUNDATIONS.md` showed all thirteen `##` sections
+  intact.
+- `rg -n "Multi-seat match model|any positive seat count|3\\+ seat game|N-seat pressure|MULTI-SEAT-AND-SURFACE-CONTRACT" docs/FOUNDATIONS.md docs/ARCHITECTURE.md`
+  confirmed the requested clarification points.

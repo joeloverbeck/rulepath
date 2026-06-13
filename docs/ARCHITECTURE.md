@@ -99,6 +99,31 @@ replay(seed, seats, options, command stream)
 
 The UI may hold a local match handle through WASM, but Rust remains the only authority for legality, previews, validation, application, effects, bots, replay, and views.
 
+### 4.1 Multi-seat match model
+
+Game crates declare their supported seat counts, seat labels, and any
+game-local role/team metadata. Setup validation for unsupported counts is a Rust
+responsibility, not a browser rule.
+
+Rust owns the active-seat model. A game may have one active actor, an active set,
+pending responders, simultaneous commitments, all-active phases, or forced
+wait/pass states, but those are game-local action-tree and phase facts. They are
+not new `engine-core` concepts. TypeScript may display active and pending seats
+from viewer-safe Rust/WASM payloads; it must not infer turn order from seat
+index, local mode, or DOM state.
+
+Every view projection accepts a viewer: public observer (`seat_id: None`) or an
+authorized seat viewer. Perfect-information games may produce equivalent
+projections for all viewers, but hidden-information games must filter each
+projection in Rust before it reaches the browser. Multi-seat and hidden-info
+projection obligations are detailed in
+[MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md).
+
+Replay records ordered seat assignments. That order is part of deterministic
+setup, trace readability, and result summaries, but game-local rules still own
+dealer rotation, lead selection, initiative, partnerships, teams, and response
+priority.
+
 ## 5. Action tree, action path, and command contracts
 
 | Concept | Meaning | Authority |
