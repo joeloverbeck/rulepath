@@ -29,14 +29,12 @@ The scaling phase is seeded from two advisory research reports:
 - [`../reports/public-game-ladder-and-implementation-order.md`](../reports/public-game-ladder-and-implementation-order.md)
   — the public game ladder (Gate 15+) and phased implementation order.
 
-**Hard prerequisite.** `docs/ROADMAP.md` currently ends at Gate 14 with a Gate P
-appendix, and its header is law: *a stage or gate may be skipped or reordered
-only by accepted ADR.* The public scaling phase (Gate 15+) and the move of Gate P
-to the tail therefore depend on an **accepted ADR 0007**, which is authored as
-the first work-breakdown item of the Phase 0 spec below. Every Gate 15+ row is
-`Not started` and cannot be admitted until ADR 0007 is accepted and ROADMAP
-records the new phase. The infrastructure interlocks additionally depend on the
-Phase 0 doctrine (the new multi-seat contract and the N-seat no-leak taxonomy).
+**Roadmap admission.** ADR 0007 is accepted, and `docs/ROADMAP.md` now records
+the public scaling phase after Gate 14 with Gate P moved to the final tail. The
+Gate 15+ rows below are admitted as roadmap law, but remain `Not started` until
+their predecessor specs are authored and closed in order. The infrastructure
+interlocks additionally depend on the Phase 0 doctrine: the multi-seat contract,
+N-seat no-leak taxonomy, and template realignment.
 
 ## Completed — public mechanic ladder (Gates 0–14)
 
@@ -81,19 +79,18 @@ brainstorm that wants to "produce the next spec to continue the roadmap" should
 read this first and pick the lowest unit whose status is not `Done`, honoring the
 interlocks below (open primitive-promotion debt in
 [`../docs/MECHANIC-ATLAS.md`](../docs/MECHANIC-ATLAS.md) closes before the next
-mechanic-ladder gate; Gate 15+ stays blocked until ADR 0007 is accepted). Only
-the Phase 0 spec is written; every other unit is a forward seed authored when it
-becomes the lowest non-`Done` row. `docs/ROADMAP.md` is not edited to record
-progress; this table is.
+mechanic-ladder gate). Phase 0 is closed; every later unit is a forward seed
+authored when it becomes the lowest non-`Done` row. `docs/ROADMAP.md` is not
+edited to record progress; this table is.
 
 | Order | Unit | Spec | Status | Interlock |
 |---:|---|---|---|---|
-| 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](phase-0-next-phase-foundation-realignment.md) | Planned | Authors + accepts ADR 0007; adds the multi-seat contract; realigns docs/templates/ROADMAP. |
-| 1 | Infra A — N-seat setup/catalog metadata | _(seed; unwritten)_ | Not started | Pending Phase 0 multi-seat contract. No kernel change; no TS legality. |
-| 2 | Infra B — N-seat simulator summaries | _(seed; unwritten)_ | Not started | Pending Phase 0. Replaces `seat_0_wins`/`seat_1_wins` with indexed maps; deterministic order. |
-| 3 | Infra C — Multi-seat shell frame | _(seed; unwritten)_ | Not started | Pending Phase 0. Presentation-only; Rust owns turn order / active-pending seats. |
-| 4 | Infra D — N-player no-leak test harness | _(seed; unwritten)_ | Not started | Pending Phase 0 no-leak taxonomy; conforms to ADR 0004. |
-| 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending ADR 0007 + Phase 0. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
+| 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](phase-0-next-phase-foundation-realignment.md) | Done | ADR 0007 accepted; multi-seat contract, foundation docs, templates, ROADMAP, and this index reconciled. Evidence below. |
+| 1 | Infra A — N-seat setup/catalog metadata | _(seed; unwritten)_ | Not started | Next admissible unit. Roadmap phase is recorded; no kernel change; no TS legality. |
+| 2 | Infra B — N-seat simulator summaries | _(seed; unwritten)_ | Not started | Pending Infra A. Replaces `seat_0_wins`/`seat_1_wins` with indexed maps; deterministic order. |
+| 3 | Infra C — Multi-seat shell frame | _(seed; unwritten)_ | Not started | Pending Infra B. Presentation-only; Rust owns turn order / active-pending seats. |
+| 4 | Infra D — N-player no-leak test harness | _(seed; unwritten)_ | Not started | Pending Infra C and Phase 0 no-leak taxonomy; conforms to ADR 0004. |
+| 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending Infra A-D. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
 | 6 | Gate 15.1 — River Ledger all-in / side pots | _(seed; unwritten)_ | Not started | Pending Gate 15. Public-resource/allocation accounting; kept separate from base Hold'Em. |
 | 7 | Gate 16 — Hearts | _(seed; unwritten)_ | Not started | Pending Gate 15. Fixed 4-seat trick-taking; trick-taking promotion evaluation. |
 | 8 | Gate 17 — Oh Hell | _(seed; unwritten)_ | Not started | Pending Gate 16. Variable-N (3–7) bidding/trick-taking; trick-taking helper promotion likely. |
@@ -108,6 +105,19 @@ progress; this table is.
 Status values: `Not started` → `Planned` (spec written) → `In progress`
 (AGENT-TASKs executing) → `Done` (gate exit criteria pass). Flip a spec to
 `Done` only after its exit-criteria section is satisfied with evidence.
+
+### Phase 0 closeout evidence
+
+Completed: 2026-06-13
+
+Evidence:
+
+- ADR 0007 is `Status: Accepted`.
+- `docs/ROADMAP.md` records the public scaling phase after Gate 14 and Gate P as
+  the tail.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed — 14 games reflected in intro, root, and smoke surfaces`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
 
 ## Spec format
 
@@ -141,9 +151,9 @@ omissions.
 
 ## Workflow
 
-1. Pick the lowest non-`Done` unit from the active-epoch tracker. Gate 15+ stays
-   blocked until ADR 0007 is accepted and ROADMAP records the public scaling
-   phase (Phase 0 delivers both).
+1. Pick the lowest non-`Done` unit from the active-epoch tracker. The public
+   scaling phase is admitted by accepted ADR 0007 and recorded in ROADMAP; the
+   next unit after Phase 0 is Infra A.
 2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for
    open promotion debt and close it first unless an accepted exception or ADR says
    otherwise.

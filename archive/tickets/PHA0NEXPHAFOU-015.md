@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-015: Capstone — reconcile specs/README.md index and run the realignment gates
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — `specs/README.md` status reconciliation only; verification-only closeout.
@@ -75,3 +75,25 @@ Run `node scripts/check-doc-links.mjs`, `node scripts/check-catalog-docs.mjs`, a
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-catalog-docs.mjs && bash scripts/boundary-check.sh`
 3. `grep -nE "Phase 0 .*Done|Done" specs/README.md` (confirm the Phase 0 row flip)
+
+## Outcome
+
+Completed: 2026-06-13
+
+Summary:
+
+- Reconciled `specs/README.md` after ADR 0007 acceptance and ROADMAP admission.
+- Flipped the Phase 0 row to `Done`.
+- Refreshed Gate 15+ interlock notes so they no longer block on ADR 0007 and instead point to the live predecessor sequence starting with Infra A.
+- Recorded Phase 0 closeout evidence in the active-epoch tracker.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `bash scripts/boundary-check.sh`
+- `grep -nE "Phase 0 .*Done|Done" specs/README.md`
