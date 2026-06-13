@@ -214,6 +214,26 @@ Hidden-information games MUST prove unauthorized viewers cannot see:
 
 Tests SHOULD serialize public payloads and search for known hidden IDs. This is blunt and valuable.
 
+### N-seat no-leak taxonomy
+
+For N-seat hidden-information games, no-leak proof is pairwise. For every source
+seat A and every distinct viewer seat B, A's private payload MUST NOT appear in
+B's view, legal action tree, preview, diagnostic, effect log, bot explanation,
+candidate/ranking output, replay export, DOM, storage, logs, accessibility text,
+or UI test identifiers unless Rust has made that fact public or authorized for
+that viewer.
+
+Hidden-information games with 3+ seats MUST include a public-observer export
+check and at least two seat-private export checks. Games with 4+ seats SHOULD
+exercise every seat viewer in CI smoke; if runtime cost is too high, the game
+spec must document the sampled matrix and why it covers distinct roles, teams,
+hidden zones, and action phases.
+
+Pairwise no-leak tests should use known private tokens for each source seat and
+search every viewer-scoped artifact that claims to be public or seat-private.
+Internal full traces may remain omniscient test evidence under ADR 0004; public
+and browser exports must stay viewer-scoped.
+
 ## 9. Serialization tests
 
 Serialization tests MUST cover:
@@ -311,6 +331,16 @@ Measure at least:
 - WASM smoke performance for public games.
 
 Do not optimize without a benchmark target. Do not claim performance without benchmark evidence.
+
+Benchmarks for N-seat or larger-surface games MUST name the seat count and max
+surface fixture they measure. Relevant fixture dimensions include maximum
+official seat count, maximum public objects, maximum private objects per seat,
+maximum topology sites/edges, maximum deck/wall/list size, maximum action-tree
+fanout/depth, maximum semantic-effect batch size, and largest viewer payload.
+
+When a game supports multiple materially different seat counts, benchmark at the
+default public count and at the largest official count unless the spec records a
+smaller representative fixture with rationale.
 
 ## 15. Provisional performance budgets
 

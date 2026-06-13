@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-007: TESTING-REPLAY-BENCHMARKING + TRACE-SCHEMA-v1 N-seat semantics (no schema change)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `docs/TESTING-REPLAY-BENCHMARKING.md` + `docs/TRACE-SCHEMA-v1.md` edits only; no trace field/version change.
@@ -76,3 +76,36 @@ State that no migration is required for N seats when the existing fields are use
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "version|seats array|per-seat standing" docs/TRACE-SCHEMA-v1.md`
 3. `grep -niE "no-leak|seat count|pairwise" docs/TESTING-REPLAY-BENCHMARKING.md`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Updated `docs/TESTING-REPLAY-BENCHMARKING.md` with an N-seat no-leak taxonomy:
+for every source seat A and distinct viewer seat B, A's private payload must not
+appear in B's view, action tree, preview, diagnostic, effect log, bot
+explanation, candidate/ranking output, replay export, DOM, storage, logs,
+accessibility text, or test identifiers unless Rust authorizes it. Added public
+observer and seat-private export expectations plus CI/sample-matrix guidance for
+4+ seat games. Added benchmark fixture guidance keyed by seat count and maximum
+surface dimensions.
+
+Updated `docs/TRACE-SCHEMA-v1.md` with N-seat semantics on existing fields only:
+no migration is required for N seats; `seats` array order is stable and
+authoritative; `actor_seat` values must be present in `seats`; hidden-info games
+should record public-observer and authorized-seat view hashes or document a
+sampled matrix; terminal traces should use per-seat/per-team standing arrays
+rather than fixed `seat_0`/`seat_1` scalars.
+
+Deviations from plan: none. No trace field, root field, hash meaning, schema
+version, engine code, or replay tooling changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `grep -niE "version|seats array|per-seat standing" docs/TRACE-SCHEMA-v1.md`
+  confirmed the schema-version references and new N-seat semantics.
+- `grep -niE "no-leak|seat count|pairwise" docs/TESTING-REPLAY-BENCHMARKING.md`
+  confirmed the pairwise no-leak and seat-count benchmark guidance.
+- `git diff -- docs/TRACE-SCHEMA-v1.md` showed only the new semantics note, not a
+  field table or schema-version change.

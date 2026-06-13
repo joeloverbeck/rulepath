@@ -57,6 +57,26 @@ Required parser behavior:
 
 Field names in this table are authoritative. Older names such as `action_stream` and `expected_legal_action_hashes` are legacy wording and MUST NOT appear in Trace Schema v1 JSON.
 
+Trace Schema v1 is already N-seat capable when these existing fields are used.
+No migration is required merely because a game supports more than two seats.
+The `seats` array order is stable and authoritative for setup, replay, hash
+comparison, actor validation, and human trace review.
+
+For N-seat traces:
+
+- every `actor_seat` in `commands` must be present in `seats`;
+- public-observer view hashes should be recorded when the game supports public
+  observer replay/export;
+- hidden-information games should record view hashes for every authorized seat
+  viewer unless the game spec documents a sampled matrix and why it is enough;
+- terminal expectations should record per-seat standing arrays, or per-team
+  arrays when teams are first-class, rather than fixed `seat_0`/`seat_1`
+  scalars.
+
+Changing any field name, root field, nested field, hash meaning, or
+`schema_version` still requires an accepted ADR or explicit migration note as
+defined by this document.
+
 ## 3. Command Records
 
 Each command in `commands` is a JSON object.
