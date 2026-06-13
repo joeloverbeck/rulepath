@@ -1,6 +1,6 @@
 # CATSETVIS-001: CSS design-token layer over vanilla CSS
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/styles.css`
@@ -79,3 +79,21 @@ Migrate the existing catalog/setup base selectors onto the tokens and add the `@
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. `grep -E '\-\-rp-|\-\-game-' apps/web/src/styles.css` — confirms the token layer is present (narrower than a full visual diff; the redesign's visual proof lands with CATSETVIS-004/007 + the CATSETVIS-008 screenshot set).
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Added a primitive and semantic CSS custom-property token layer to `apps/web/src/styles.css`, including `--rp-*` surface/text/border/focus/timing tokens and default `--game-*` catalog theme tokens.
+- Migrated the existing catalog/setup base selectors onto the new token vocabulary without changing markup, behavior, legality, or data flow.
+- Added a reduced-motion token override so later catalog/setup motion can share the same timing switch.
+
+Deviations from plan:
+- None. This ticket stayed CSS-only and introduced no UI framework or dependency.
+
+Verification:
+- `grep -E '\-\-rp-(color|space|radius)|\-\-game-accent' apps/web/src/styles.css` confirmed the token set.
+- `rg -n "tailwindcss|@chakra-ui|@mui|bootstrap" apps/web/package.json` returned no matches.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
