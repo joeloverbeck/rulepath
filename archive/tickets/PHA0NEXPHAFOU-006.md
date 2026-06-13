@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-006: AI-BOTS — N-player imperfect-information bot subsection
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `docs/AI-BOTS.md` edit only; no `ai-core`/`games/*` code.
@@ -71,3 +71,28 @@ Add an "N-player imperfect-information bots" subsection. **Legal sources**: the 
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "N-player|MCTS|Monte Carlo|per viewer" docs/AI-BOTS.md`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Added `docs/AI-BOTS.md` §4A, `N-player imperfect-information bots`. The new
+subsection lists legal bot sources for 3+ seat hidden-info games, bans other
+seats' hidden data, deck/wall tails, unredacted replays, DOM/dev/full-state
+peeking, hidden-state-derived rankings, sampled hidden worlds copied from actual
+hidden state, and the public v1/v2 excluded bot classes (MCTS, ISMCTS, Monte
+Carlo, ML, RL, runtime LLM move selection). It requires Level 1+ multi-opponent
+policy notes for target opponent set, risk model, visible inference facts,
+deterministic tie-breaks, and explanation redaction per viewer.
+
+Deviations from plan: none. This was documentation-only; no `ai-core`, game,
+kernel, schema, or bot implementation changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -niE "N-player|MCTS|Monte Carlo|per viewer" docs/AI-BOTS.md` confirmed
+  the subsection and forbidden-class assertion.
+- `rg -n "own authorized private view|unredacted replay|sampled hidden worlds|target opponent set|risk model|deterministic tie-breaks" docs/AI-BOTS.md`
+  confirmed the legal-source, forbidden-source, and policy-note details.
