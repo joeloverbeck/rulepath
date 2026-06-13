@@ -1,6 +1,6 @@
 # CATSETVIS-006: WASM/TS `description?` projection
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`
@@ -77,3 +77,24 @@ Add `description?: string` to `GameVariantCatalogEntry`, and a small `selectVari
 1. `npm --prefix apps/web run smoke:wasm`
 2. `npm --prefix apps/web run build`
 3. `npm --prefix apps/web run smoke:ui` — confirms the extended catalog shape still loads (the precise `description?` assertion is added in CATSETVIS-008).
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Extended `crates/wasm-api/src/lib.rs` `variant_json` / `variants_json` to accept `Option<&str>` and emit `"description"` only when present.
+- Passed multi-variant descriptions from the `flood_watch`, `frontier_control`, and `event_frontier` Rust variant structs into `list_games()`.
+- Left all single-variant constant-fed catalog entries as `None`.
+- Added `description?: string` and `selectVariantDescription(...)` to `apps/web/src/wasm/client.ts`.
+
+Deviations from plan:
+- None. `description` is never emitted as `null` and TypeScript does not synthesize a fallback from raw ids.
+
+Verification:
+- `cargo fmt --all` ran after Rust edits.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `grep -n 'description' crates/wasm-api/src/lib.rs` and `grep -n 'description?' apps/web/src/wasm/client.ts` confirmed the projection/type surfaces.
+- Direct WASM catalog sample showed `flood_watch_standard` has `description` and `token_bazaar_standard` does not have a `description` property.

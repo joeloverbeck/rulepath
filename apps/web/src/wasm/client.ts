@@ -75,7 +75,13 @@ export type MatchCreated = {
 export type GameVariantCatalogEntry = {
   id: string;
   label: string;
+  description?: string;
 };
+
+export function selectVariantDescription(variant: GameVariantCatalogEntry | null | undefined): string | undefined {
+  const description = variant?.description?.trim();
+  return description ? description : undefined;
+}
 
 export type GameCatalogEntry = {
   game_id: string;

@@ -373,20 +373,24 @@ pub fn placeholder_version() -> &'static str {
     API_VERSION
 }
 
-fn variant_json(id: &str, label: &str) -> String {
+fn variant_json(id: &str, label: &str, description: Option<&str>) -> String {
+    let description_field = description
+        .map(|value| format!(",\"description\":\"{}\"", escape_json(value)))
+        .unwrap_or_default();
     format!(
-        "{{\"id\":\"{}\",\"label\":\"{}\"}}",
+        "{{\"id\":\"{}\",\"label\":\"{}\"{}}}",
         escape_json(id),
-        escape_json(label)
+        escape_json(label),
+        description_field
     )
 }
 
-fn variants_json(variants: &[(&str, &str)]) -> String {
+fn variants_json(variants: &[(&str, &str, Option<&str>)]) -> String {
     format!(
         "[{}]",
         variants
             .iter()
-            .map(|(id, label)| variant_json(id, label))
+            .map(|(id, label, description)| variant_json(id, label, *description))
             .collect::<Vec<_>>()
             .join(",")
     )
@@ -427,7 +431,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_THREE_MARKS_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_THREE_MARKS_STANDARD, GAME_THREE_MARKS_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_THREE_MARKS_STANDARD, GAME_THREE_MARKS_DISPLAY_NAME, None)])
             ),
             RegisteredGame::ColumnFour => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
@@ -435,7 +439,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_COLUMN_FOUR_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_COLUMN_FOUR_STANDARD, GAME_COLUMN_FOUR_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_COLUMN_FOUR_STANDARD, GAME_COLUMN_FOUR_DISPLAY_NAME, None)])
             ),
             RegisteredGame::DirectionalFlip => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
@@ -443,7 +447,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_DIRECTIONAL_FLIP_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_DIRECTIONAL_FLIP_STANDARD, GAME_DIRECTIONAL_FLIP_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_DIRECTIONAL_FLIP_STANDARD, GAME_DIRECTIONAL_FLIP_DISPLAY_NAME, None)])
             ),
             RegisteredGame::DraughtsLite => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{}}}",
@@ -451,7 +455,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_DRAUGHTS_LITE_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_DRAUGHTS_LITE_STANDARD, GAME_DRAUGHTS_LITE_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_DRAUGHTS_LITE_STANDARD, GAME_DRAUGHTS_LITE_DISPLAY_NAME, None)])
             ),
             RegisteredGame::HighCardDuel => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\"]}}",
@@ -459,7 +463,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_HIGH_CARD_DUEL_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_HIGH_CARD_DUEL_STANDARD, GAME_HIGH_CARD_DUEL_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_HIGH_CARD_DUEL_STANDARD, GAME_HIGH_CARD_DUEL_DISPLAY_NAME, None)])
             ),
             RegisteredGame::MaskedClaims => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"reaction_window\",\"bluffing\"]}}",
@@ -467,7 +471,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_MASKED_CLAIMS_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_MASKED_CLAIMS_STANDARD, GAME_MASKED_CLAIMS_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_MASKED_CLAIMS_STANDARD, GAME_MASKED_CLAIMS_DISPLAY_NAME, None)])
             ),
             RegisteredGame::FloodWatch => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"cooperative\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"cooperative\",\"environment_automation\"],\"docs\":[\"games/flood_watch/docs/RULES.md\",\"games/flood_watch/docs/SOURCES.md\"]}}",
@@ -476,8 +480,8 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[
-                    (&flood_variants.standard.id, &flood_variants.standard.display_name),
-                    (&flood_variants.deluge.id, &flood_variants.deluge.display_name),
+                    (&flood_variants.standard.id, &flood_variants.standard.display_name, flood_variants.standard.description.as_deref()),
+                    (&flood_variants.deluge.id, &flood_variants.deluge.display_name, flood_variants.deluge.description.as_deref()),
                 ])
             ),
             RegisteredGame::FrontierControl => format!(
@@ -487,8 +491,8 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[
-                    (&frontier_variants.standard.id, &frontier_variants.standard.display_name),
-                    (&frontier_variants.highlands.id, &frontier_variants.highlands.display_name),
+                    (&frontier_variants.standard.id, &frontier_variants.standard.display_name, frontier_variants.standard.description.as_deref()),
+                    (&frontier_variants.highlands.id, &frontier_variants.highlands.display_name, frontier_variants.highlands.description.as_deref()),
                 ])
             ),
             RegisteredGame::EventFrontier => format!(
@@ -498,9 +502,9 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[
-                    (&event_variants.standard.id, &event_variants.standard.display_name),
-                    (&event_variants.hard_winter.id, &event_variants.hard_winter.display_name),
-                    (&event_variants.land_rush.id, &event_variants.land_rush.display_name),
+                    (&event_variants.standard.id, &event_variants.standard.display_name, event_variants.standard.description.as_deref()),
+                    (&event_variants.hard_winter.id, &event_variants.hard_winter.display_name, event_variants.hard_winter.description.as_deref()),
+                    (&event_variants.land_rush.id, &event_variants.land_rush.display_name, event_variants.land_rush.description.as_deref()),
                 ]),
                 event_frontier_catalog_ui_json()
             ),
@@ -510,7 +514,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_TOKEN_BAZAAR_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_TOKEN_BAZAAR_STANDARD, GAME_TOKEN_BAZAAR_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_TOKEN_BAZAAR_STANDARD, GAME_TOKEN_BAZAAR_DISPLAY_NAME, None)])
             ),
             RegisteredGame::SecretDraft => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"simultaneous_commit\",\"viewer_filtered\",\"public_replay_export\"]}}",
@@ -518,7 +522,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_SECRET_DRAFT_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_SECRET_DRAFT_STANDARD, GAME_SECRET_DRAFT_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_SECRET_DRAFT_STANDARD, GAME_SECRET_DRAFT_DISPLAY_NAME, None)])
             ),
             RegisteredGame::PokerLite => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"public_accounting\",\"bounded_pledge\"]}}",
@@ -526,7 +530,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_POKER_LITE_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_POKER_LITE_STANDARD, GAME_POKER_LITE_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_POKER_LITE_STANDARD, GAME_POKER_LITE_DISPLAY_NAME, None)])
             ),
             RegisteredGame::PlainTricks => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\"]}}",
@@ -534,7 +538,7 @@ pub fn list_games() -> Result<String, String> {
                 escape_json(GAME_PLAIN_TRICKS_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
-                variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME)])
+                variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME, None)])
             ),
         })
         .collect::<Vec<_>>()
