@@ -1931,15 +1931,16 @@ h2 {
 
 .game-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--rp-space-5);
 }
 
 .game-card {
+  position: relative;
   display: grid;
-  gap: 8px;
+  gap: var(--rp-space-3);
   cursor: pointer;
-  border-radius: var(--rp-radius-sm);
+  border-radius: var(--rp-radius-md);
 }
 
 .game-card[data-game-id="race_to_n"],
@@ -2061,15 +2062,100 @@ h2 {
 
 .game-option,
 .mode-option {
-  min-height: 74px;
   display: grid;
-  align-content: center;
-  gap: 5px;
   text-align: left;
 }
 
 .game-option {
+  position: relative;
+  overflow: hidden;
   width: 100%;
+  min-height: 0;
+  aspect-ratio: 4 / 5;
+  align-content: stretch;
+  grid-template-rows: minmax(84px, 0.9fr) auto minmax(28px, auto);
+  gap: var(--rp-space-4);
+  border-color: color-mix(in srgb, var(--game-accent) 34%, var(--rp-border-medium));
+  border-radius: var(--rp-radius-md);
+  padding: var(--rp-space-5);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(249, 250, 247, 0.94)),
+    var(--rp-surface-panel);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.54);
+}
+
+.game-option:hover:not(:disabled) {
+  border-color: var(--game-accent);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--game-card-art-bg) 68%, white)),
+    var(--rp-surface-panel);
+  transform: translateY(-1px);
+}
+
+.game-option:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.game-option:focus-visible {
+  outline-color: var(--game-accent-2);
+  outline-offset: 3px;
+}
+
+.game-card-accent {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background:
+    linear-gradient(180deg, var(--game-accent), var(--game-accent-2));
+}
+
+.game-art {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 24%, var(--rp-border-subtle));
+  border-radius: var(--rp-radius-md);
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.78), transparent 34%),
+    var(--game-card-art-bg);
+  color: var(--game-accent);
+}
+
+.game-art svg {
+  width: min(74px, 58%);
+  height: auto;
+  color: var(--game-accent);
+}
+
+.game-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: var(--rp-space-2);
+}
+
+.game-card-eyebrow {
+  color: var(--game-accent);
+  font-size: var(--rp-text-xs);
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.game-card-title {
+  color: var(--rp-text-primary);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.game-option small {
+  display: -webkit-box;
+  min-height: 2.15em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.2;
 }
 
 .rules-trigger {
@@ -2079,8 +2165,37 @@ h2 {
 .game-card.selected .game-option,
 .game-option.selected,
 .mode-option.selected {
-  border-color: var(--rp-interactive-strong);
+  border-color: var(--game-accent);
   background: var(--rp-surface-selected);
+}
+
+.game-card.selected .game-option {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--game-accent) 38%, transparent),
+    var(--rp-shadow-soft);
+}
+
+.game-selected-mark {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rp-space-2);
+  border: 1px solid color-mix(in srgb, var(--game-accent) 44%, var(--rp-border-subtle));
+  border-radius: var(--rp-radius-pill);
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--game-card-art-bg) 74%, white);
+  color: var(--rp-text-primary);
+  font-size: var(--rp-text-xs);
+  font-weight: 900;
+}
+
+.game-selected-mark::before {
+  content: "";
+  inline-size: 0.62rem;
+  block-size: 0.62rem;
+  border-radius: 50%;
+  background: var(--game-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--game-accent) 18%, transparent);
 }
 
 .game-option small,

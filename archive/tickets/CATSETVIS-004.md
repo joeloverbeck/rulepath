@@ -1,6 +1,6 @@
 # CATSETVIS-004: Catalog card redesign (`GamePicker.tsx`)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/GamePicker.tsx`, `apps/web/src/styles.css`
@@ -79,3 +79,21 @@ Native document order (primary button + How-to-Play button as tab stops); any op
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run smoke:e2e` — the `e2e/a11y-noleak.smoke.mjs` step is the no-raw-ID / no-leak verification boundary for the card DOM.
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Rebuilt `apps/web/src/components/GamePicker.tsx` cards around fixed slots: accent rail, art well using `GameCatalogIcon`, eyebrow, display-name title, summary, flags, selected mark, and separate How-to-Play action.
+- Added `data-game-id` to card containers so the CATSETVIS-003 per-game token overrides can theme the card without TypeScript deciding behavior.
+- Added responsive fixed-aspect catalog-card CSS, including hover, focus-visible, active, selected, and text-clamp states on the CATSETVIS-001 token layer.
+
+Deviations from plan:
+- None. Whole-card selection and the separate How-to-Play button were preserved without nested buttons.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:e2e` passed, including the a11y/no-leak raw-identifier guard.
+- Manual CSS review confirmed focus-visible uses outline/offset, selected state uses rail + text chip + dot shape, and titles render `display_name` rather than raw ids.
