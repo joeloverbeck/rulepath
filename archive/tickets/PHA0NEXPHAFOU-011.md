@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-011: Templates — game-contract cluster N-seat/surface fields
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — `templates/GAME-RULES.md`, `GAME-MECHANICS.md`, `GAME-RULE-COVERAGE.md`, `GAME-IMPLEMENTATION-ADMISSION.md`, `GAME-HOW-TO-PLAY.md`, `GAME-SOURCES.md` edits only.
@@ -95,3 +95,22 @@ Add rows: public-domain/common-system fact; source fact used; original prose/ass
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "seat model|pairwise|min/max seats|public-domain/common" templates/GAME-RULES.md templates/GAME-RULE-COVERAGE.md templates/GAME-IMPLEMENTATION-ADMISSION.md templates/GAME-SOURCES.md`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Summary:
+
+- Added mandatory seat model, showdown/evaluator, terminal/viewer coverage, pairwise N-seat hidden-information, admission, player-facing, and source/IP prompts to the six game-contract templates.
+- Kept the changes documentation-only and confined to the template files named by this ticket.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `grep -niE "seat model|pairwise|min/max seats|public-domain/common" templates/GAME-RULES.md templates/GAME-RULE-COVERAGE.md templates/GAME-IMPLEMENTATION-ADMISSION.md templates/GAME-SOURCES.md`
+- `bash scripts/boundary-check.sh`

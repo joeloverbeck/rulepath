@@ -64,6 +64,20 @@ Suggested rule-ID prefixes:
 | `R-VAR-001` | `<exact variant implemented>` | `GAME-SOURCES.md#...` |
 | `R-VAR-002` | `<variant parameters, player count, setup options, or scoring options>` | `GAME-SOURCES.md#...` |
 
+## Seat model
+
+Every official game MUST state its seat model explicitly, including two-seat games.
+
+| Rule ID | Seat-model field | Rule statement | Source/rationale link | Notes |
+|---|---|---|---|---|
+| `R-SEAT-001` | min/max seats | `<minimum and maximum supported seats; use exact counts or bounded ranges>` | `GAME-SOURCES.md#...` / `<design rationale>` | `<notes>` |
+| `R-SEAT-002` | official seat IDs | `<stable seat identifiers used by Rust, traces, replays, and views>` | `<source/rationale>` | `<notes>` |
+| `R-SEAT-003` | seat labels | `<player-facing labels for each seat or label-generation rule>` | `<source/rationale>` | `<notes>` |
+| `R-SEAT-004` | role/team assignment | `<solo, team, partnership, asymmetric role, coalition, or not applicable>` | `<source/rationale>` | `<notes>` |
+| `R-SEAT-005` | order of play | `<seat order, dealer/lead/priority rule, simultaneous order, or initiative rule>` | `<source/rationale>` | `<notes>` |
+| `R-SEAT-006` | setup rejection | `<wrong-seat-count, invalid role assignment, unsupported topology, or variant rejection rules>` | `<source/rationale>` | `<viewer-safe diagnostic expectations>` |
+| `R-SEAT-007` | viewer classes | `<public observer, owning seat, teammate, opponent, eliminated seat, replay viewer, dev-only harness, etc.>` | `<source/rationale>` | `<notes>` |
+
 ## Components and game-local vocabulary
 
 Define only terms needed for this game. Game nouns belong here or in `games/*`, not in `engine-core`.
@@ -108,6 +122,14 @@ Rust MUST generate legal actions. TypeScript MUST NOT decide legality.
 | Rule ID | Scoring/accounting rule | Timing | Tiebreaker/edge case | Notes |
 |---|---|---|---|---|
 | `R-SCORE-001` | `<points/resources/counters/pots/etc.>` | `<when>` | `<tie/edge>` | `<notes>` |
+
+## Showdown and evaluator rules
+
+Required when final ranking, hand comparison, reveal resolution, pairwise comparison, allocation, or table-wide evaluator logic can decide the result. For games without showdown/evaluator behavior, add one explicit `not applicable` row.
+
+| Rule ID | Evaluator/showdown rule | Applies to seats | Decisive facts | Reveal/no-reveal limit | Notes |
+|---|---|---|---|---|---|
+| `R-SHOW-001` | `<ranking/comparison/evaluator/allocation rule or not applicable>` | `<seat set / pairwise / table-wide / team>` | `<facts Rust may cite in outcome explanation>` | `<what remains hidden per viewer>` | `<notes>` |
 
 ## Terminal conditions
 

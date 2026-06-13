@@ -41,9 +41,12 @@ Source quality guidance:
 |---|---|---|---:|
 | implemented variant | `<variant>` | `<source/rationale>` | yes/no |
 | player count | `<count>` | `<source/rationale>` | yes/no |
+| public-domain/common-system fact | `<fact>` / not applicable | `<source/rationale>` | yes/no |
+| source fact used | `<fact that shaped rules, seat model, topology, scoring, or terminology>` | `<source/rationale>` | yes/no |
 | optional rule included | `<rule>` / not applicable | `<source/rationale>` | yes/no |
 | optional rule excluded | `<rule>` / not applicable | `<source/rationale>` | yes/no |
 | Rulepath deviation from common variant | `<deviation>` / none | `<source/rationale>` | yes/no |
+| variant/source conflict resolved | `<conflict>` / none | `<chosen source or design rationale>` | yes/no |
 | out-of-scope variant | `<variant>` / none | `<source/rationale>` | yes/no |
 
 ## Ambiguity log
@@ -64,6 +67,8 @@ Display name: `<display_name>`
 | neutral name chosen? | yes/no/not applicable | `<notes>` |
 | trademark risk considered? | yes/no | `<notes>` |
 | trade-dress risk considered? | yes/no | `<notes>` |
+| name/trade-dress risk mitigated? | yes/no/unclear | `<notes>` |
+| casino/brand term avoided? | yes/no/not applicable | `<notes>` |
 | affiliation implication avoided? | yes/no | `<notes>` |
 | public help text needs disclaimer? | yes/no | `<notes>` |
 
@@ -82,6 +87,14 @@ Avoid proprietary mimicry. Public games should look and read like Rulepath, not 
 | `<asset_group>` | `<files_or_ids>` | original / project-owned / public-domain verified / license-reviewed / generated-reviewed / placeholder / human review needed | `<details>` | `<notes>` | yes/no |
 
 No copied card text, board art, scans, screenshots, icons, fonts, or trade dress may enter public files without explicit review.
+
+## Original prose and asset plan
+
+| Public artifact area | Original prose/asset plan | Source facts allowed | Copied material excluded | Review owner |
+|---|---|---|---|---|
+| rules prose | `<how Rulepath will write original rules>` | `<public-domain/common facts or design rationale>` | copied rulebook prose, examples, diagrams, protected terminology | `<owner>` |
+| UI/help copy | `<how player-facing text stays original>` | `<source facts used only for context>` | copied help text, publisher examples, strategy text | `<owner>` |
+| visual assets | `<original/project-owned/public-domain/license-reviewed/generation-reviewed plan>` | `<allowed references>` | copied art, scans, screenshots, icons, fonts, trade dress | `<owner>` |
 
 ## Generated asset review notes
 

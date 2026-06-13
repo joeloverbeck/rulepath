@@ -31,18 +31,26 @@ Use only these status labels:
 
 | Category | Game-local description | Evidence in rules | Current status | Notes |
 |---|---|---|---|---|
+| N-seat model | `<min/max seats, seat IDs, viewer classes, role/team assignment>` | `<rule_ids>` | `<status>` | `<notes>` |
+| turn-order policy | `<fixed rotation/leader/dealer/priority/simultaneous/reaction/passed/eliminated seats>` | `<rule_ids>` | `<status>` | `<notes>` |
+| team/partnership/coalition | `<solo/team/partnership/temporary coalition/asymmetric roles/none>` | `<rule_ids>` | `<status>` | `<notes>` |
 | topology/spatial model | `<positions/tracks/maps/graphs/routes/regions/none>` | `<rule_ids>` | `<status>` | `<notes>` |
+| graph/track/topology size | `<object count, branch factor, map bounds, generated/static topology, scaling pressure>` | `<rule_ids>` | `<status>` | `<notes>` |
 | component/zone model | `<components/zones/decks/hands/public-private areas>` | `<rule_ids>` | `<status>` | `<notes>` |
+| hidden-hand/deck/wall model | `<private hand/deck/wall/bag/stock/discard visibility and ownership>` | `<rule_ids>` | `<status>` | `<notes>` |
 | action shape | `<flat/action tree/progressive/simultaneous/reaction/forced>` | `<rule_ids>` | `<status>` | `<notes>` |
 | turn/phase model | `<turns/rounds/phases/tricks/reactions/cleanup/events>` | `<rule_ids>` | `<status>` | `<notes>` |
 | randomness/chance | `<none/setup shuffle/draw/event sample/etc.>` | `<rule_ids>` | `<status>` | `<notes>` |
 | visibility/hidden information | `<perfect/private hands/commitments/roles/redacted logs>` | `<rule_ids>` | `<status>` | `<notes>` |
 | resource/accounting | `<counters/payments/scores/pots/budgets/conservation/debts>` | `<rule_ids>` | `<status>` | `<notes>` |
+| shared accounting/side-pot/split allocation | `<shared pool/pot/side pot/team score/split allocation/remainder rule/none>` | `<rule_ids>` | `<status>` | `<notes>` |
 | movement/capture/placement | `<placement/removal/movement paths/capture/conversion/promotion>` | `<rule_ids>` | `<status>` | `<notes>` |
 | pattern/line/directional scanning | `<alignment/scanning rays/neighborhood/pattern/bracketed flips>` | `<rule_ids>` | `<status>` | `<notes>` |
 | commitment/reveal | `<secret choices/simultaneous selection/reveal timing/redaction/waiting>` | `<rule_ids>` | `<status>` | `<notes>` |
 | reaction/window/pending response | `<responders/priority/cancellation/replacement/forced windows>` | `<rule_ids>` | `<status>` | `<notes>` |
+| reaction/simultaneous windows | `<pending responder set, response order, timeout/non-response policy, reveal barrier>` | `<rule_ids>` | `<status>` | `<notes>` |
 | scoring/outcome | `<instant win/score totals/shared outcome/asymmetric victory/tie>` | `<rule_ids>` | `<status>` | `<notes>` |
+| evaluator/showdown/ranking | `<hand evaluator/standing comparator/pairwise ranking/table-wide ranking/no evaluator>` | `<rule_ids>` | `<status>` | `<notes>` |
 | semantic effect shape | `<effects needed for logs/animation/replay/bots/explanations>` | `<rule_ids>` | `<status>` | `<notes>` |
 | UI interaction pattern | `<direct selection/progressive construction/drag optionality/previews/confirmations/replay>` | `<rule_ids>` | `<status>` | `<notes>` |
 | bot policy pattern | `<random/baseline/authored priorities/search/belief model>` | `<rule_ids>` | `<status>` | `<notes>` |
