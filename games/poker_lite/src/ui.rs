@@ -6,6 +6,27 @@ pub const TURN_REPORT_AUDIT: &str =
     "Not adopted by ACTCONMAT-006; Crest Ledger reveal narration already stays in its board surface.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "crest_ledger",
+        theme_key: "crest-ledger",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "center-pool-card-slabs",
+        accessibility_label: "Crest Ledger abstract center pool with card slabs",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: String,
     pub display_name: String,

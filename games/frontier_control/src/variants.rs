@@ -22,6 +22,9 @@ const BEHAVIOR_KEYS: &[&str] = &[
     "rule",
     "requires",
     "valid_if",
+    "action",
+    "legal",
+    "effect",
     "on_play",
     "on_reveal",
     "formula",
@@ -110,6 +113,7 @@ impl VariantCatalog {
             &[
                 "standard_variant_id",
                 "standard_display_name",
+                "standard_description",
                 "standard_rules_version_label",
                 "standard_seat_count",
                 "standard_action_budget",
@@ -125,6 +129,7 @@ impl VariantCatalog {
                 "standard_terminal_outcomes",
                 "highlands_variant_id",
                 "highlands_display_name",
+                "highlands_description",
                 "highlands_rules_version_label",
                 "highlands_seat_count",
                 "highlands_action_budget",
@@ -152,6 +157,7 @@ impl VariantCatalog {
 pub struct VariantMap {
     pub id: String,
     pub display_name: String,
+    pub description: Option<String>,
     pub rules_version_label: String,
     pub seat_count: u8,
     pub action_budget: u8,
@@ -171,6 +177,9 @@ impl VariantMap {
         Self {
             id: VARIANT_STANDARD_ID.to_owned(),
             display_name: "Frontier Control".to_owned(),
+            description: Some(
+                "Classic asymmetric map fight with clear stakes and balanced pressure.".to_owned(),
+            ),
             rules_version_label: RULES_VERSION_LABEL.to_owned(),
             seat_count: STANDARD_SEAT_COUNT,
             action_budget: STANDARD_ACTION_BUDGET,
@@ -197,6 +206,9 @@ impl VariantMap {
         Self {
             id: VARIANT_HIGHLANDS_ID.to_owned(),
             display_name: "Frontier Control: Highlands".to_owned(),
+            description: Some(
+                "Highlands shifts table pressure toward quarry routes and high ground.".to_owned(),
+            ),
             rules_version_label: RULES_VERSION_LABEL.to_owned(),
             seat_count: STANDARD_SEAT_COUNT,
             action_budget: STANDARD_ACTION_BUDGET,
@@ -326,6 +338,7 @@ fn parse_variant(values: &BTreeMap<String, String>, prefix: &str) -> Result<Vari
     Ok(VariantMap {
         id: required_string(values, &format!("{prefix}_variant_id"))?,
         display_name: required_string(values, &format!("{prefix}_display_name"))?,
+        description: optional_description(values, prefix)?,
         rules_version_label: required_string(values, &format!("{prefix}_rules_version_label"))?,
         seat_count: required_u8(values, &format!("{prefix}_seat_count"))?,
         action_budget: required_u8(values, &format!("{prefix}_action_budget"))?,
@@ -445,6 +458,44 @@ fn reject_behavior_key(key: &str) -> Result<(), String> {
         return Err(format!("behavior-looking key `{key}` is not allowed"));
     }
     Ok(())
+}
+
+fn optional_description(
+    values: &BTreeMap<String, String>,
+    prefix: &str,
+) -> Result<Option<String>, String> {
+    let key = format!("{prefix}_description");
+    values
+        .get(&key)
+        .map(|value| validate_description(value, &key))
+        .transpose()
+}
+
+fn validate_description(value: &str, key: &str) -> Result<String, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(format!("key `{key}` must not be empty"));
+    }
+    if trimmed.chars().count() > 120 {
+        return Err(format!("key `{key}` must be at most 120 characters"));
+    }
+    if trimmed.contains('_') {
+        return Err(format!("key `{key}` must not contain raw identifiers"));
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    for token in [
+        "if", "when", "then", "selector", "trigger", "valid_if", "legal", "effect", "action",
+    ] {
+        if lower
+            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+            .any(|part| part == token)
+        {
+            return Err(format!(
+                "key `{key}` contains behavior-looking prose token `{token}`"
+            ));
+        }
+    }
+    Ok(trimmed.to_owned())
 }
 
 fn reject_unknown_keys(values: &BTreeMap<String, String>, allowed: &[&str]) -> Result<(), String> {
@@ -567,6 +618,21 @@ mod tests {
         )
         .is_err());
         assert!(Fixture::parse("{\n  \"fixture_id\": \"x\",\n  \"extra\": \"bad\"\n}").is_err());
+    }
+
+    #[test]
+    fn variant_descriptions_are_validated() {
+        let variants = VariantCatalog::parse(include_str!("../data/variants.toml")).unwrap();
+        assert!(variants.standard.description.as_deref().unwrap().len() <= 120);
+        assert!(VariantCatalog::parse(
+            "standard_variant_id = \"frontier_control_standard\"\nstandard_display_name = \"Frontier Control\"\nstandard_description = \"Choose this when control is easy.\"\n"
+        )
+        .is_err());
+        assert!(VariantCatalog::parse(&format!(
+            "standard_variant_id = \"frontier_control_standard\"\nstandard_display_name = \"Frontier Control\"\nstandard_description = \"{}\"\n",
+            "a".repeat(121)
+        ))
+        .is_err());
     }
 
     #[test]

@@ -10,6 +10,27 @@ pub const TURN_REPORT_AUDIT: &str =
     "Not adopted by ACTCONMAT-006; Token Bazaar accounting narration is outside this ticket.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "token_bazaar",
+        theme_key: "token-bazaar",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "faceted-token-market",
+        accessibility_label: "Token Bazaar abstract faceted token market",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub table_label: String,
     pub supply_label: String,

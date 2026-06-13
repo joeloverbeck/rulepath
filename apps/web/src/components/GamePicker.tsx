@@ -1,4 +1,5 @@
 import type { GameCatalogEntry } from "../wasm/client";
+import { GameCatalogIcon } from "./GameCatalogIcon";
 
 type GamePickerProps = {
   games: GameCatalogEntry[];
@@ -21,6 +22,7 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
           games.map((game) => (
             <div
               className={game.game_id === selectedGameId ? "game-card selected" : "game-card"}
+              data-game-id={game.game_id}
               role="listitem"
               key={game.game_id}
               onClick={(event) => {
@@ -35,12 +37,24 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
                 onClick={() => onSelect(game.game_id)}
                 aria-pressed={game.game_id === selectedGameId}
               >
-                <span>{game.display_name}</span>
-                <small>{gameSummary(game)}</small>
+                <span className="game-card-accent" aria-hidden="true" />
+                <span className="game-art" aria-hidden="true">
+                  <GameCatalogIcon gameId={game.game_id} title={`${game.display_name} icon`} />
+                </span>
+                <span className="game-card-copy">
+                  <span className="game-card-eyebrow">{gameEyebrow(game)}</span>
+                  <span className="game-card-title">{game.display_name}</span>
+                  <small>{gameSummary(game)}</small>
+                </span>
                 {game.hidden_information || game.viewer_modes?.length ? (
                   <span className="game-flags">
                     {game.hidden_information ? <span>Hidden info</span> : null}
                     {game.viewer_modes?.length ? <span>{game.viewer_modes.length} views</span> : null}
+                  </span>
+                ) : null}
+                {game.game_id === selectedGameId ? (
+                  <span className="game-selected-mark" aria-hidden="true">
+                    Selected
                   </span>
                 ) : null}
               </button>
@@ -58,6 +72,13 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
       </div>
     </section>
   );
+}
+
+function gameEyebrow(game: GameCatalogEntry): string {
+  if (game.cooperative) return "Cooperative";
+  if (game.hidden_information) return "Hidden information";
+  if (game.viewer_modes && game.viewer_modes.length > 1) return "Multi-view";
+  return "Classic table";
 }
 
 function gameSummary(game: GameCatalogEntry): string {

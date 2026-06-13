@@ -8,6 +8,7 @@ pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod state;
+pub mod ui;
 pub mod variants;
 pub mod visibility;
 

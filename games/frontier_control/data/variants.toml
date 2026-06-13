@@ -1,5 +1,6 @@
 standard_variant_id = "frontier_control_standard"
 standard_display_name = "Frontier Control"
+standard_description = "Classic asymmetric map fight with clear stakes and balanced pressure."
 standard_rules_version_label = "frontier-control-rules-v1"
 standard_seat_count = 2
 standard_action_budget = 2
@@ -15,6 +16,7 @@ standard_faction_order = "faction_garrison,faction_prospectors"
 standard_terminal_outcomes = "score_compare_garrison_tiebreak"
 highlands_variant_id = "frontier_control_highlands"
 highlands_display_name = "Frontier Control: Highlands"
+highlands_description = "Highlands shifts table pressure toward quarry routes and high ground."
 highlands_rules_version_label = "frontier-control-rules-v1"
 highlands_seat_count = 2
 highlands_action_budget = 2

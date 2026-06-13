@@ -11,6 +11,27 @@ pub const TURN_REPORT_ADOPTION: &str =
     "Adopted by ACTCONMAT-006; Event Frontier reports viewer-filtered event/reckoning bursts near the board.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "event_frontier",
+        theme_key: "event-frontier",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "frontier-peak-event-spark",
+        accessibility_label: "Event Frontier abstract frontier ridge with event spark",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub table_label: String,
     pub event_deck_label: String,

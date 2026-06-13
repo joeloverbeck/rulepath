@@ -220,6 +220,23 @@ into `game-stdlib` is deferred until a third structural divergence between
 implementations of the same presentation shape, or an official-game count
 above 20, and routes through the atlas ledger at that time.
 
+Each official game carries an inert per-game catalog identity in
+`games/<id>/src/ui.rs` (icon id, theme key, accent/shape token names, and an
+accessibility label). This metadata selects presentation tokens and an original
+SVG icon only; it MUST NOT encode legality, selectors, hidden identities,
+action availability, rule branches, or behavior-by-naming. Catalog identity is
+rendered with color plus shape and visible text, never color alone.
+
+A variant MAY carry an optional one-line `description` (`Option<String>` in
+Rust, projected as `GameVariantCatalogEntry.description?` in TypeScript). It is
+inert choice-support prose: one line, <=120 characters, neutral and original.
+It MUST NOT contain hidden information, rule procedure, conditionals,
+selectors, triggers, legality, scoring, strategy advice, trademarks, copied
+prose, casino terms, or raw IDs. It is omitted entirely when absent (never
+`null`), never synthesized in TypeScript, and never parsed for behavior.
+Repeated per-game catalog-theme and variant-description shapes are governed
+here and are not mechanic-atlas promotion pressure.
+
 ## 11. Settle-to-view rule
 
 After animations complete, the renderer MUST settle to the latest viewer-safe public view.

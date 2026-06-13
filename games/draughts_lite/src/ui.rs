@@ -11,6 +11,27 @@ pub const TURN_REPORT_AUDIT: &str =
     "Not adopted by ACTCONMAT-006; Draughts Lite has no automated non-interactive burst surface in scope.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "draughts_lite",
+        theme_key: "draughts-lite",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "diagonal-jump-pieces",
+        accessibility_label: "Draughts Lite abstract diagonal move across a grid",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PieceTokenMetadata {
     pub seat: DraughtsLiteSeat,
     pub kind: PieceKind,

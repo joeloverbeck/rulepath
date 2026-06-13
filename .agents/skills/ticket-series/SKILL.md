@@ -214,6 +214,13 @@ failure and successful rerun in the ticket `Outcome`, reference `Outcome`, or
 final report, whichever owns the evidence. Treat assertion failures as real test
 failures.
 
+If the ticket or reference requires non-command visual evidence such as
+screenshots, manual focus-visible checks, reduced-motion observations, contrast
+notes, or visual review notes, either produce and name the artifact/note in the
+ticket or reference `Outcome`, or explicitly record the skipped evidence with a
+reason. Do not silently substitute browser smoke commands for requested visual
+evidence.
+
 3. Update the reference artifact following `docs/archival-workflow.md`:
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
@@ -257,6 +264,12 @@ failures.
    verification, ticket archives, reference archive/repair when applicable, and
    required commits are done.
 
+If a final gate uncovers a stale test assertion, proof fixture, or small defect
+owned by an earlier archived ticket, fix it before closeout. Record the fix in
+the current ticket or reference `Outcome`. Amend the earlier archived ticket
+only when its recorded behavior, accepted surface, or verification claim became
+inaccurate.
+
 For large capstones, record a compact evidence ledger in the reference artifact
 and/or final ticket before archival. Use headings that match the actual proof
 surface, for example:
@@ -278,6 +291,18 @@ instead of memory. A compact checklist is enough:
 - Note intentionally skipped gates with reasons.
 - Confirm the archived reference status/outcome and stale-path sweep.
 
+For a final reference `Outcome`, this compact structure is usually enough:
+
+- Completed tickets: archived paths and count.
+- Implementation summary: major shipped surfaces.
+- Deviations: intentional differences from the plan.
+- Verification evidence: grouped commands actually run.
+- Manual/non-command evidence: screenshots, focus/contrast notes, or skipped
+  evidence with reasons.
+- Archive truthing: active glob empty, archived status/outcome checks, stale
+  path sweeps.
+- Unrelated worktree changes: named paths left untouched.
+
 ## Completion Audit
 
 Before reporting done or marking a `/goal` complete, prove the final state from
@@ -296,6 +321,9 @@ the live checkout:
   reporting done or calling `update_goal`.
 - `specs/README.md`, progress surfaces, README/catalog surfaces, docs, scripts,
   and active tickets/reference artifacts no longer point at stale live paths.
+  Distinguish live paths from archive paths during this sweep; references to
+  `archive/specs/...` or `archive/tickets/...` are acceptable when the active
+  tracker intentionally points there.
 - Required verification commands were actually run and match the ticket/reference
   scope; skipped checks are named with reasons.
 - The final diff/status excludes unrelated user changes, and required commits

@@ -21,6 +21,8 @@ const BEHAVIOR_KEYS: &[&str] = &[
     "rule",
     "requires",
     "valid_if",
+    "action",
+    "legal",
     "on_play",
     "on_reveal",
     "effect",
@@ -117,6 +119,7 @@ impl VariantCatalog {
             &[
                 "standard_variant_id",
                 "standard_display_name",
+                "standard_description",
                 "standard_rules_version_label",
                 "standard_seat_count",
                 "standard_starting_resources",
@@ -132,6 +135,7 @@ impl VariantCatalog {
                 "standard_faction_order",
                 "hard_winter_variant_id",
                 "hard_winter_display_name",
+                "hard_winter_description",
                 "hard_winter_rules_version_label",
                 "hard_winter_seat_count",
                 "hard_winter_starting_resources",
@@ -147,6 +151,7 @@ impl VariantCatalog {
                 "hard_winter_faction_order",
                 "land_rush_variant_id",
                 "land_rush_display_name",
+                "land_rush_description",
                 "land_rush_rules_version_label",
                 "land_rush_seat_count",
                 "land_rush_starting_resources",
@@ -175,6 +180,7 @@ impl VariantCatalog {
 pub struct ScenarioVariant {
     pub id: String,
     pub display_name: String,
+    pub description: Option<String>,
     pub rules_version_label: String,
     pub seat_count: u8,
     pub starting_resources: (u8, u8),
@@ -209,6 +215,7 @@ fn parse_variant(
     Ok(ScenarioVariant {
         id: required_string(values, &format!("{prefix}_variant_id"))?,
         display_name: required_string(values, &format!("{prefix}_display_name"))?,
+        description: optional_description(values, prefix)?,
         rules_version_label: required_string(values, &format!("{prefix}_rules_version_label"))?,
         seat_count: required_u8(values, &format!("{prefix}_seat_count"))?,
         starting_resources: parse_pair(&required_string(
@@ -296,6 +303,44 @@ fn reject_behavior_key(key: &str) -> Result<(), String> {
         return Err(format!("behavior-looking key `{key}` is not allowed"));
     }
     Ok(())
+}
+
+fn optional_description(
+    values: &BTreeMap<String, String>,
+    prefix: &str,
+) -> Result<Option<String>, String> {
+    let key = format!("{prefix}_description");
+    values
+        .get(&key)
+        .map(|value| validate_description(value, &key))
+        .transpose()
+}
+
+fn validate_description(value: &str, key: &str) -> Result<String, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(format!("key `{key}` must not be empty"));
+    }
+    if trimmed.chars().count() > 120 {
+        return Err(format!("key `{key}` must be at most 120 characters"));
+    }
+    if trimmed.contains('_') {
+        return Err(format!("key `{key}` must not contain raw identifiers"));
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    for token in [
+        "if", "when", "then", "selector", "trigger", "valid_if", "legal", "effect", "action",
+    ] {
+        if lower
+            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+            .any(|part| part == token)
+        {
+            return Err(format!(
+                "key `{key}` contains behavior-looking prose token `{token}`"
+            ));
+        }
+    }
+    Ok(trimmed.to_owned())
 }
 
 pub fn reject_unknown_keys(
@@ -421,6 +466,21 @@ mod tests {
         )
         .is_err());
         assert!(Manifest::parse("game_id = \"event_frontier\"\nextra = \"bad\"\n").is_err());
+    }
+
+    #[test]
+    fn variant_descriptions_are_validated() {
+        let variants = VariantCatalog::parse(include_str!("../data/variants.toml")).unwrap();
+        assert!(variants.standard.description.as_deref().unwrap().len() <= 120);
+        assert!(VariantCatalog::parse(
+            "standard_variant_id = \"event_frontier_standard\"\nstandard_display_name = \"Event Frontier\"\nstandard_description = \"Play this when the event trigger is visible.\"\n"
+        )
+        .is_err());
+        assert!(VariantCatalog::parse(&format!(
+            "standard_variant_id = \"event_frontier_standard\"\nstandard_display_name = \"Event Frontier\"\nstandard_description = \"{}\"\n",
+            "a".repeat(121)
+        ))
+        .is_err());
     }
 
     #[test]
