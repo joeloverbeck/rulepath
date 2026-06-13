@@ -1,6 +1,6 @@
 # CATSETVIS-005: Variant `description` Rust structs + parser hardening
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/{flood_watch,frontier_control,event_frontier}/src/variants.rs`, `games/{flood_watch,frontier_control,event_frontier}/data/variants.toml`
@@ -85,3 +85,25 @@ Extend each game's variant parser to accept only the new `description` key, keep
 1. `cargo test -p flood_watch -p frontier_control -p event_frontier`
 2. `cargo run -p replay-check -- --game flood_watch --all && cargo run -p fixture-check -- --game flood_watch` (repeat for `frontier_control`, `event_frontier`) — proves canonical forms are unchanged.
 3. `cargo test --workspace` — full regression (the field is additive; no other crate should change behavior).
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Added optional inert `description: Option<String>` to the multi-variant catalog structs for `flood_watch`, `frontier_control`, and `event_frontier`.
+- Added authored one-line descriptions to the three games' `data/variants.toml` files.
+- Extended each parser allowlist to accept only the new description keys and added fail-closed validation for empty, over-120-character, raw-identifier, and behavior-like prose.
+- Added parser tests proving valid descriptions parse and behavior-like / over-length descriptions reject.
+
+Deviations from plan:
+- None. Single-variant games remain out of scope, and no behavior, replay, fixture, or visibility schema was changed.
+
+Verification:
+- `cargo fmt --all` ran before tests.
+- `grep -rl 'description' games/{flood_watch,frontier_control,event_frontier}/src/variants.rs games/{flood_watch,frontier_control,event_frontier}/data/variants.toml | wc -l` returned `6`.
+- `cargo test -p flood_watch -p frontier_control -p event_frontier` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` and `cargo run -p fixture-check -- --game flood_watch` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` and `cargo run -p fixture-check -- --game frontier_control` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` and `cargo run -p fixture-check -- --game event_frontier` passed.
+- `cargo test --workspace` passed.

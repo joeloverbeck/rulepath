@@ -1,5 +1,6 @@
 standard_variant_id = "flood_watch_standard"
 standard_display_name = "Flood Watch"
+standard_description = "Cooperative flood planning with steady pressure and full district visibility."
 standard_rules_version_label = "flood-watch-rules-v1"
 standard_seat_count = 2
 standard_action_budget = 3
@@ -14,6 +15,7 @@ standard_role_order = "pumpwright,levee_warden"
 standard_terminal_outcomes = "shared_win_shared_loss"
 deluge_variant_id = "flood_watch_deluge"
 deluge_display_name = "Flood Watch: Deluge"
+deluge_description = "Higher water starts and heavier surges create a tighter shared rescue."
 deluge_rules_version_label = "flood-watch-rules-v1"
 deluge_seat_count = 2
 deluge_action_budget = 3
