@@ -1,6 +1,6 @@
 # ADR: Next Public Scaling Phase and Gate P Tail Placement
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-06-13
 

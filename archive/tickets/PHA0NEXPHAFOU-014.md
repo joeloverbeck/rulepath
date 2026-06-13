@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-014: ROADMAP — add the public scaling phase and restate Gate P as the tail
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `docs/ROADMAP.md` edit only.
@@ -71,3 +71,23 @@ After Gate 14, add the public scaling phase: Gate 15 (River Ledger / Texas Hold'
 1. `grep -niE "Status:.*Accepted" docs/adr/0007-*.md`
 2. `grep -niE "Gate 15|Gate P" docs/ROADMAP.md`
 3. `node scripts/check-doc-links.mjs`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Summary:
+
+- Added the public scaling phase to `docs/ROADMAP.md` after Gate 14, including Phase 0, Infra A-D, Gate 15, Gate 15.1, Gates 16-23, and the medium-heavy public capstone.
+- Restated Gate P as the last tail item: private, optional, isolated, non-public, and non-architectural.
+- Preserved the maintainer acceptance of ADR 0007 (`Status: Accepted`) as the authorizing precondition for this roadmap edit.
+
+Deviations:
+
+- Included the one-line ADR 0007 status change in the commit because it is the maintainer-provided precondition required by this ticket's acceptance criteria.
+
+Verification:
+
+- `grep -niE "Status:.*Accepted" docs/adr/0007-*.md`
+- `grep -niE "Gate 15|Gate P" docs/ROADMAP.md`
+- `node scripts/check-doc-links.mjs`

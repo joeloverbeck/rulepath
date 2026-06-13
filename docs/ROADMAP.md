@@ -26,7 +26,19 @@ V1/v2 exclude hosted multiplayer, accounts, databases, matchmaking, chat, ranked
 | 12 | Gate 12 | `flood_watch` | Cooperative event pressure. |
 | 13 | Gate 13 | `frontier_control` | Asymmetric area-control proof. |
 | 14 | Gate 14 | `event_frontier` | Highest public complexity before private red-team. |
-| Appendix | Gate P | Private monster-game red-team | Late, isolated, optional, non-public. |
+| 15P | Phase 0 | Foundation realignment and next-phase admission | Documentation/law pass for the public scaling phase. |
+| 15A | Infra A-D | N-seat setup, simulator, shell, and no-leak infrastructure | Public scaling interlocks before the next game gate. |
+| 15 | Gate 15 | `river_ledger` / Texas Hold'Em rules family | First official N-seat hidden-information betting game. |
+| 15.1 | Gate 15.1 | River Ledger all-in / side-pot extension | Multi-way allocation and side-pot rationale. |
+| 16 | Gate 16 | Hearts | Fixed four-seat trick-taking. |
+| 17 | Gate 17 | Oh Hell | Variable-N bidding and trick-taking. |
+| 18 | Gate 18 | Spades | Partnerships, teams, and grouped outcomes. |
+| 19 | Gate 19 | Five Hundred Rummy | Public meld tableau plus private hands. |
+| 20 | Gate 20 | Star Halma / Chinese Checkers family | Larger topology and board-surface scaling. |
+| 21 | Gate 21 | Pachisi-family race | Track topology, deterministic chance, capture/safety. |
+| 22 | Gate 22 | Four Winds Melds | Scoped meld/reaction proof with concealed state. |
+| 23 | Gate 23 | Commonwealth Frontier | Original medium-heavy public capstone. |
+| Tail | Gate P | Private monster-game red-team | Last, isolated, optional, non-public, non-architectural. |
 
 Every stage and gate must satisfy [OFFICIAL-GAME-CONTRACT.md](OFFICIAL-GAME-CONTRACT.md) for any official game and the universal invariants in [FOUNDATIONS.md](FOUNDATIONS.md).
 
@@ -77,6 +89,16 @@ introduce a new mechanic gate unless explicitly accepted as a roadmap item.
 | 12 | `flood_watch` | shared outcome, event pressure, role powers, automation, multi-action budgets | cooperative original game | event/role local |
 | 13 | `frontier_control` | graph maps, control, asymmetry, faction-specific actions/scoring | asymmetric strategy showcase | graph/control candidates only after pressure |
 | 14 | `event_frontier` | event decks, eligibility/initiative, periodic scoring/reset, asymmetric victory, large action trees | highest public complexity | every repeated shape resolved |
+| 15 | `river_ledger` / Texas Hold'Em rules family | 3-6 seats, 52-card deck, multi-street betting, showdown explanation, split winners | first public N-seat hidden-information betting game | card/deck/private-hand/outcome/accounting pressure |
+| 15.1 | River Ledger all-in / side pots | partial eligibility, nested pots, all-in contribution caps, multi-way allocation explanation | scoped allocation extension | public resource accounting and edge-case golden-trace pressure |
+| 16 | Hearts | fixed 4-seat trick-taking, pass direction, follow-suit, negative scoring | classic fixed N-seat trick-taking | trick-taking and N-seat private-hand pressure |
+| 17 | Oh Hell | 3-7 seats, dealer rotation, bids/contracts, changing hand size | variable-N trick-taking/bidding proof | trick-taking promotion decision pressure |
+| 18 | Spades | partnership pairs, team scoring, contract evaluation, grouped UI | team/partnership proof | team outcome and partnership visibility pressure |
+| 19 | Five Hundred Rummy | draw/discard piles, public meld tableau, private hands, multi-round target | larger card-zone/action-surface proof | meld/tableau pressure |
+| 20 | Star Halma / Chinese Checkers family | 121-space star board, long jump chains, multi-seat spatial race | larger board/topology proof | topology/path/jump helper hard gate |
+| 21 | Pachisi-family race | track topology, dice/chance, safe/capture spaces, multiple pawns per seat | public track-race proof | track topology and deterministic chance pressure |
+| 22 | Four Winds Melds | draw/discard rhythm, exposed/concealed sets, discard-claim priority | scoped meld/reaction proof | reaction-window and wall/concealed-set pressure |
+| 23 | Commonwealth Frontier | 3-4 asymmetric factions, 24-36 sites, event queues, public tracks | medium-heavy public capstone | graph/site/faction/resource/event/outcome pressure resolved before Gate P |
 
 ## 4. Gate 0: skeleton
 
@@ -364,14 +386,239 @@ Exit: public Rulepath stands without private experiments; action trees remain us
 
 Not allowed: private licensed content, DSL by stealth, architecture claims beyond proven games.
 
-## 15. Gate P: private monster-game red-team
+## 15. Public scaling phase
 
-Admit: Gate 14 is complete and public Rulepath is coherent without private work.
+Admit: Gate 14 is complete, ADR 0007 is accepted, and the Phase 0 foundation
+realignment has recorded the N-seat/larger-surface contract in the foundation
+document set and templates.
+
+Purpose: prove 3+ official seats, larger public surfaces, N-player hidden
+information safety, multi-seat UI presentation, larger benchmark envelopes, and
+larger outcome explanations through public, IP-safe games before any private
+monster-game red-team work can influence architecture.
+
+This phase is public-first and requirements-first. The living status tracker is
+[`../specs/README.md`](../specs/README.md); this roadmap records the ladder law,
+not per-spec progress.
+
+### Phase 0: foundation realignment and next-phase admission
+
+Purpose: complete the documentation and template realignment needed before
+Gate 15+ specs can be grounded.
+
+Exit:
+
+- ADR 0007 is accepted and records the public scaling phase plus Gate P tail
+  placement;
+- `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` exists and is indexed;
+- foundation, area, template, ADR-note, source/IP, discipline, and archival docs
+  carry N-seat/larger-surface clarifications without changing kernel boundaries,
+  trace schema fields, WASM exported API, replay/hash contracts, bot policy law,
+  or no-leak law;
+- `docs/ROADMAP.md` records this public scaling phase and moves Gate P to the
+  tail;
+- `specs/README.md` records Phase 0 completion and refreshes Gate 15+
+  interlock notes.
+
+Not allowed: Rust/WASM/tool/game code, trace/schema migration, YAML/DSL work,
+kernel noun growth, or public/private content-policy relaxation.
+
+### Infra A-D: N-seat public infrastructure interlocks
+
+Purpose: close cross-cutting public infrastructure assumptions before the first
+N-seat game gate.
+
+Required units:
+
+- Infra A: N-seat setup and catalog metadata; Rust owns seat-count acceptance,
+  setup validation, and variant metadata, while TypeScript only presents it.
+- Infra B: N-seat simulator summaries; summary output uses deterministic
+  indexed maps instead of two-seat-only counters.
+- Infra C: multi-seat shell frame; seat rails, active/pending seats, observer
+  mode, and viewer selection render Rust/WASM-projected state only.
+- Infra D: N-player no-leak test harness; pairwise private-datum by viewer by
+  surface assertions cover browser payloads, DOM, storage, logs, bot
+  explanations, candidate rankings, and replay exports where applicable.
+
+Exit:
+
+- N-seat setup/catalog, simulator, shell, and no-leak harness specs are complete
+  with evidence;
+- no TypeScript legality or turn-order inference is introduced;
+- hidden information remains viewer-safe across every public/browser/replay/bot
+  surface;
+- benchmark and smoke evidence names the supported seat counts and max-surface
+  fixtures it covers.
+
+### Gate 15: River Ledger / Texas Hold'Em rules family
+
+Purpose: first official N-seat hidden-information betting game.
+
+Scope: 3-6 seats, standard 52-card deck, deterministic shuffle, two private
+hole cards per seat, community cards, multi-street fixed-limit capped-raise
+betting, showdown explanation, split winners, and original neutral Rulepath
+presentation.
+
+Exit:
+
+- setup accepts and rejects the documented seat range deterministically;
+- public and private views prove N-player no-leak, including public observer
+  and replay export surfaces;
+- betting state, legal actions, contribution accounting, terminal conditions,
+  showdown rationale, and split results are covered by rules, tests, traces,
+  simulations, replay/hash checks, serialization checks, and benchmarks;
+- bots use only legal action APIs and authorized seat views;
+- UI shows seat order, active/pending seats, safe previews, showdown/final
+  breakdown, and viewer-safe explanations without casino trade dress.
+
+Not allowed: real-money/casino features, tournament/product mimicry, hidden
+card/deck leakage, omniscient bots, public MCTS/ISMCTS/Monte Carlo/ML/RL, or
+side-pot/all-in scope unless explicitly admitted by Gate 15.1.
+
+### Gate 15.1: River Ledger all-in and side-pot extension
+
+Purpose: prove multi-way partial eligibility and allocation accounting after
+the base Hold'Em rules are stable.
+
+Exit:
+
+- all-in contribution caps, side-pot construction, eligibility, remainders,
+  split winners, and terminal explanations are covered by named rules, tests,
+  golden traces, replay/hash checks, no-leak checks, and benchmarks;
+- the outcome surface explains every public allocation without revealing
+  private cards that remain hidden to a viewer;
+- accounting stays in typed Rust and does not become static-data behavior.
+
+### Gate 16: Hearts
+
+Purpose: prove fixed four-seat trick-taking with full private hands.
+
+Exit:
+
+- passing, lead/follow obligations, trick capture, round scoring, match
+  accumulation, and shoot-the-moon or scoped equivalent are covered for the
+  chosen variant;
+- four-seat private-hand no-leak holds across views, UI, replay exports, logs,
+  storage, and bot explanations;
+- trick-taking helper pressure is recorded and resolved or deferred through the
+  mechanic atlas before later gates depend on it.
+
+### Gate 17: Oh Hell
+
+Purpose: generalize trick-taking from fixed four seats to variable N with
+contract/bid pressure.
+
+Exit:
+
+- official seat range, dealer rotation, changing hand size, bidding order,
+  last-bidder constraint, trick play, scoring, and terminal standings are
+  covered;
+- simulations and benchmarks record results by seat count;
+- trick-taking and bidding helper decisions are resolved through the primitive
+  pressure process.
+
+### Gate 18: Spades
+
+Purpose: prove teams, partnerships, grouped UI, and team outcome explanations.
+
+Exit:
+
+- team assignment, partnership visibility, bidding/contracts, trick scoring,
+  nil-style risk if scoped, bag/penalty rules if scoped, and terminal outcomes
+  are covered;
+- UI and outcome surfaces clearly distinguish per-seat and per-team facts;
+- no hidden or teammate-only information leaks to unauthorized viewers.
+
+### Gate 19: Five Hundred Rummy
+
+Purpose: prove public meld tableau plus private hands and larger card-action
+surfaces outside trick-taking.
+
+Exit:
+
+- draw/discard, public melds, laying off if scoped, private hands, scoring,
+  round/match flow, and terminal results are covered;
+- action affordances remain usable with larger hand/tableau surfaces;
+- meld/tableau primitive pressure is recorded and resolved or deferred.
+
+### Gate 20: Star Halma / Chinese Checkers family
+
+Purpose: prove a larger public board surface and topology/path pressure without
+hidden cards.
+
+Exit:
+
+- official seat variants, 121-space topology, move/jump chains, blocked-path
+  behavior, win conditions, replay, serialization, and benchmarks are covered;
+- renderer performance and accessibility are proven for the largest official
+  board fixture;
+- topology/path helper pressure is resolved before the next topology-dependent
+  gate.
+
+### Gate 21: Pachisi-family race
+
+Purpose: prove track topology, deterministic chance, capture/safety spaces, and
+multiple pieces per seat.
+
+Exit:
+
+- source/IP notes choose a stable public-domain rules source and original
+  presentation;
+- dice/chance, track movement, capture, safety, entry/home rules, partnerships
+  if scoped, no-leak if any private state exists, and outcome explanations are
+  covered;
+- track topology and deterministic chance pressure are recorded.
+
+### Gate 22: Four Winds Melds
+
+Purpose: prove scoped Mahjong-family draw/discard rhythm, concealed state, and
+multi-opponent reaction priority without importing a sprawling clone.
+
+Exit:
+
+- wall/deck draw, discard, exposed and concealed sets, claim priority,
+  reaction windows, scoring, and terminal explanations are covered for a small
+  original scoped variant;
+- wall/concealed information does not leak through public/browser/replay/bot
+  surfaces;
+- reaction-window hard-gate and meld/zone pressure are resolved or explicitly
+  deferred.
+
+### Gate 23: Commonwealth Frontier
+
+Purpose: prove the medium-heavy public ambition ceiling with an original
+asymmetric game.
+
+Scope: 3-4 asymmetric factions, 24-36 sites, regional adjacency, several public
+tracks, original events, public resource accounting, event queues, periodic
+scoring, faction-specific actions, and explainable outcomes.
+
+Exit:
+
+- graph topology, site control, faction asymmetry, resource accounting, event
+  timing, periodic scoring, large view payloads, replay, serialization,
+  benchmarks, UI, bots, and outcome explanations are all covered;
+- all armed mechanic-atlas interlocks from Gate 15+ are resolved, promoted,
+  deferred, rejected, or escalated to ADR before Gate P;
+- public Rulepath can stand on public, IP-safe evidence without private
+  monster-game assumptions.
+
+Not allowed across the public scaling phase: private licensed content, copied
+rules prose or trade dress, YAML/DSL behavior, TypeScript legality, public
+MCTS/ISMCTS/Monte Carlo/ML/RL bots, kernel noun growth, hidden-state leakage,
+or private work shaping public architecture.
+
+## 16. Gate P: private monster-game red-team
+
+Admit: Gate 23 is complete, all public scaling-phase interlocks are resolved,
+and public Rulepath is coherent without private work.
 
 Purpose: stress-test architecture without driving public architecture.
 
 Rules:
 
+- last tail item only;
+- optional and non-architectural;
 - private repo/submodule/local-only folder only;
 - no public build;
 - no public CI dependency;
@@ -380,4 +627,6 @@ Rules:
 - strict kernel-contamination review;
 - public atlas may record generic pressure only without private names or proprietary details.
 
-Exit: no kernel contamination; missing abstractions are documented without private names; performance is measurable; public Rulepath can abandon the experiment without damage.
+Exit: no kernel contamination; missing abstractions are documented without
+private names; performance is measurable; public Rulepath can abandon the
+experiment without damage.
