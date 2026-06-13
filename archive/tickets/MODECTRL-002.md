@@ -1,6 +1,6 @@
 # MODECTRL-002: Human-vs-bot Skip and Pause controls must reflect actual orchestration activity
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — presentation/orchestration policy only. Touches `apps/web/src/components/ModeControls.tsx`, `apps/web/src/main.tsx`, and `apps/web/src/animation/scheduler.ts`. No Rust crates, schemas, traces, command/effect/view contracts, or determinism surfaces.
@@ -94,3 +94,24 @@ npm --prefix apps/web run build
 npm --prefix apps/web run smoke:animation
 npm --prefix apps/web run smoke:e2e
 ```
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- `EffectAnimationScheduler` now exposes an observable `active` state plus `subscribeActivity`, covering queued, running, flushing, and in-flight animation work without changing flush/drain semantics.
+- `main.tsx` derives `orchestrationActive` from scheduler activity, human-vs-bot bot-seat availability, `botTurn` pending state, and the auto-bot in-flight flag, then passes it into the shared `ModeControls` panel.
+- In human-vs-bot mode, Skip and Pause/Resume remain visible but are disabled when no non-interactive advance is active or pending. Their accessible labels and titles explain the idle no-op state.
+- Bot-vs-bot and hotseat controls were left behaviorally unchanged.
+- `apps/web/scripts/smoke-scheduler.mjs` now verifies scheduler activity subscription transitions.
+- `apps/web/e2e/event-frontier.smoke.mjs` now asserts idle human-vs-bot controls are disabled and uses a DOM probe installed before a bot-first start to verify the controls enter the enabled state during the short bot-controlled advance window.
+
+Deviations from original plan:
+- The active-enabled Event Frontier assertion observes the transient DOM state with a probe instead of waiting after `Start Match`; the bot advance can complete before a post-start wait observes it.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:animation` passed.
+- `node apps/web/e2e/event-frontier.smoke.mjs` passed as a focused rerun after refining the browser assertion.
+- `npm --prefix apps/web run smoke:e2e` passed.

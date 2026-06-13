@@ -16,6 +16,7 @@ export type SchedulerPresentation = {
 export type SchedulerPresenter = (step: SchedulerStep) => SchedulerPresentation | Promise<SchedulerPresentation | void> | void;
 
 export type SchedulerSettleHook = () => Promise<void> | void;
+export type SchedulerActivityListener = (active: boolean) => void;
 
 export type EffectAnimationSchedulerOptions = {
   presenter?: SchedulerPresenter;
@@ -42,6 +43,8 @@ export class EffectAnimationScheduler {
   private rate: number;
   private reducedMotion: boolean;
   private inFlightAnimations: Animation[] = [];
+  private activityListeners = new Set<SchedulerActivityListener>();
+  private lastActivity = false;
 
   constructor(options: EffectAnimationSchedulerOptions = {}) {
     this.presenter = options.presenter ?? (() => undefined);
@@ -68,6 +71,7 @@ export class EffectAnimationScheduler {
         });
       }
     }
+    this.notifyActivityIfChanged();
     return this.drain();
   }
 
@@ -84,6 +88,7 @@ export class EffectAnimationScheduler {
 
   async flush(): Promise<void> {
     this.flushing = true;
+    this.notifyActivityIfChanged();
     for (const animation of this.currentAnimations()) {
       animation.finish();
     }
@@ -91,10 +96,23 @@ export class EffectAnimationScheduler {
     this.queue = [];
     await this.runSettle();
     this.flushing = false;
+    this.notifyActivityIfChanged();
   }
 
   get pendingSteps(): number {
     return this.queue.length;
+  }
+
+  get active(): boolean {
+    return this.running || this.flushing || this.queue.length > 0 || this.inFlightAnimations.length > 0;
+  }
+
+  subscribeActivity(listener: SchedulerActivityListener): () => void {
+    this.activityListeners.add(listener);
+    listener(this.active);
+    return () => {
+      this.activityListeners.delete(listener);
+    };
   }
 
   private async drain(): Promise<void> {
@@ -102,6 +120,7 @@ export class EffectAnimationScheduler {
       return;
     }
     this.running = true;
+    this.notifyActivityIfChanged();
     try {
       while (this.queue.length > 0 && !this.flushing) {
         const step = this.queue.shift();
@@ -115,6 +134,7 @@ export class EffectAnimationScheduler {
       }
     } finally {
       this.running = false;
+      this.notifyActivityIfChanged();
     }
   }
 
@@ -122,12 +142,14 @@ export class EffectAnimationScheduler {
     const presentation = await this.presenter(step);
     const animations = presentation?.animations ?? [];
     this.inFlightAnimations = animations;
+    this.notifyActivityIfChanged();
     for (const animation of animations) {
       animation.playbackRate = this.rate;
     }
     await presentation?.done;
     await dwell(this.scaledDuration(step.durationMs));
     this.inFlightAnimations = [];
+    this.notifyActivityIfChanged();
   }
 
   private async runSettle(): Promise<void> {
@@ -144,6 +166,17 @@ export class EffectAnimationScheduler {
 
   private currentAnimations(): Animation[] {
     return [...this.inFlightAnimations, ...(this.animationSource?.getAnimations() ?? [])];
+  }
+
+  private notifyActivityIfChanged(): void {
+    const active = this.active;
+    if (active === this.lastActivity) {
+      return;
+    }
+    this.lastActivity = active;
+    for (const listener of this.activityListeners) {
+      listener(active);
+    }
   }
 }
 

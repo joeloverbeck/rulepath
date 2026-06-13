@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
@@ -83,6 +83,8 @@ function App() {
   const schedulerRef = useRef<EffectAnimationScheduler | null>(null);
   const lastAnimatedCursorRef = useRef(0);
   const autoBotInFlightRef = useRef(false);
+  const [schedulerActive, setSchedulerActive] = useState(false);
+  const [autoBotInFlight, setAutoBotInFlight] = useState(false);
   const autoplayInFlightRef = useRef(false);
   const activeGameIdRef = useRef(state.selectedGameId);
   const activeViewRef = useRef(view);
@@ -161,6 +163,8 @@ function App() {
     schedulerRef.current?.setReducedMotion(motion.reducedMotion);
   }, [motion.reducedMotion]);
 
+  useEffect(() => schedulerRef.current?.subscribeActivity(setSchedulerActive), []);
+
   useEffect(() => {
     activeGameIdRef.current = state.selectedGameId;
   }, [state.selectedGameId]);
@@ -184,6 +188,7 @@ function App() {
   useEffect(() => {
     lastAnimatedCursorRef.current = 0;
     autoBotInFlightRef.current = false;
+    setAutoBotInFlight(false);
     autoplayInFlightRef.current = false;
     void schedulerRef.current?.flush();
   }, [matchId]);
@@ -287,6 +292,7 @@ function App() {
 
     const botSeat = view.active_seat;
     autoBotInFlightRef.current = true;
+    setAutoBotInFlight(true);
     const effectsToDrain = effects.filter((entry) => entry.cursor > lastAnimatedCursorRef.current);
     const newestCursor = effectsToDrain.reduce((cursor, entry) => Math.max(cursor, entry.cursor), lastAnimatedCursorRef.current);
 
@@ -305,6 +311,7 @@ function App() {
         dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
       } finally {
         autoBotInFlightRef.current = false;
+        setAutoBotInFlight(false);
       }
     })();
   }, [api, effectCursor, effects, matchId, refresh, state.orchestration.paused, state.pendingOperation, state.setup.playMode, view]);
@@ -453,6 +460,12 @@ function App() {
     }),
     [actionTree, diagnostic, effects, matchId, state.mode, version, view],
   );
+
+  const humanVsBotAdvanceAvailable =
+    state.setup.playMode === "human_vs_bot" &&
+    Boolean(view && !isTerminalView(view) && view.active_seat && botSeatForMode(state.setup.playMode, view.active_seat));
+  const orchestrationActive =
+    schedulerActive || autoBotInFlight || state.pendingOperation === "botTurn" || humanVsBotAdvanceAvailable;
 
   useEffect(() => {
     window.render_game_to_text = () => JSON.stringify(textState);
@@ -669,6 +682,7 @@ function App() {
           gameName={selectedGame?.display_name ?? "selected game"}
           autoplayRunning={state.autoplay.running}
           orchestrationPaused={state.orchestration.paused}
+          orchestrationActive={orchestrationActive}
           orchestrationRate={state.orchestration.rate}
           lastBotDecision={state.lastBotDecision}
           pending={state.pendingOperation !== null}

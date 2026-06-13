@@ -24,6 +24,7 @@ try {
   await assertFlushFinishesAndSettles();
   await assertRateScale();
   await assertReducedMotion();
+  await assertActivityObservable();
 } finally {
   mock.timers.reset();
 }
@@ -127,6 +128,38 @@ async function assertReducedMotion() {
   assert.equal(seen.length, 2, "reduced-motion dwell uses fast duration");
   mock.timers.tick(20);
   await drained;
+}
+
+async function assertActivityObservable() {
+  const activity = [];
+  const scheduler = new EffectAnimationScheduler({
+    defaultDurationMs: 30,
+    presenter: () => undefined,
+  });
+  const unsubscribe = scheduler.subscribeActivity((active) => {
+    activity.push(active);
+  });
+  assert.deepEqual(activity, [false], "activity subscription reports initial idle state");
+
+  const drained = scheduler.enqueueEffects([entry(1, "action_started"), entry(2, "counter_advanced"), entry(3, "turn_changed")]);
+  await flushMicrotasks();
+  assert.equal(scheduler.active, true, "scheduler reports active during drain");
+  assert(activity.includes(true), "activity subscription reports active drain");
+
+  mock.timers.tick(30);
+  await flushMicrotasks();
+  mock.timers.tick(30);
+  await drained;
+  assert.equal(scheduler.active, false, "scheduler reports idle after drain");
+  assert.equal(activity.at(-1), false, "activity subscription reports idle after settle");
+
+  unsubscribe();
+  const countAfterUnsubscribe = activity.length;
+  const secondDrain = scheduler.enqueueEffects([entry(4, "counter_advanced")]);
+  await flushMicrotasks();
+  mock.timers.tick(30);
+  await secondDrain;
+  assert.equal(activity.length, countAfterUnsubscribe, "unsubscribe stops activity updates");
 }
 
 async function flushMicrotasks() {

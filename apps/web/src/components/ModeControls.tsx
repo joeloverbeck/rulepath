@@ -8,6 +8,7 @@ type ModeControlsProps = {
   gameName: string;
   autoplayRunning: boolean;
   orchestrationPaused: boolean;
+  orchestrationActive: boolean;
   orchestrationRate: number;
   lastBotDecision: BotDecisionSummary | null;
   pending: boolean;
@@ -28,6 +29,7 @@ export function ModeControls({
   gameName,
   autoplayRunning,
   orchestrationPaused,
+  orchestrationActive,
   orchestrationRate,
   lastBotDecision,
   pending,
@@ -45,6 +47,15 @@ export function ModeControls({
   const botActive = activeSeat ? isBotSeat(playMode, activeSeat) : false;
   const canRunBot = Boolean(view && botActive && !terminal && !pending);
   const canAutoplay = playMode === "bot_vs_bot" && Boolean(view && !terminal);
+  const humanOrchestrationDisabled = terminal || !orchestrationActive;
+  const skipLabel = humanOrchestrationDisabled ? "Skip: nothing to skip right now" : "Skip current bot or animation advance";
+  const pauseLabel = orchestrationPaused
+    ? humanOrchestrationDisabled
+      ? "Resume: nothing is paused right now"
+      : "Resume bot or animation advance"
+    : humanOrchestrationDisabled
+      ? "Pause: nothing to pause right now"
+      : "Pause bot or animation advance";
   const status =
     playMode === "human_vs_bot" && botActive && activeSeat && !terminal
       ? `${activeActorLabel(view, activeSeat, playMode)} turn in progress`
@@ -74,15 +85,27 @@ export function ModeControls({
 
           {playMode === "human_vs_bot" ? (
             <>
-              <button type="button" onClick={onSkip} disabled={terminal}>
+              <button type="button" onClick={onSkip} disabled={humanOrchestrationDisabled} aria-label={skipLabel} title={skipLabel}>
                 Skip
               </button>
               {orchestrationPaused ? (
-                <button type="button" onClick={onOrchestrationResume} disabled={terminal}>
+                <button
+                  type="button"
+                  onClick={onOrchestrationResume}
+                  disabled={humanOrchestrationDisabled}
+                  aria-label={pauseLabel}
+                  title={pauseLabel}
+                >
                   Resume
                 </button>
               ) : (
-                <button type="button" onClick={onOrchestrationPause} disabled={terminal}>
+                <button
+                  type="button"
+                  onClick={onOrchestrationPause}
+                  disabled={humanOrchestrationDisabled}
+                  aria-label={pauseLabel}
+                  title={pauseLabel}
+                >
                   Pause
                 </button>
               )}
