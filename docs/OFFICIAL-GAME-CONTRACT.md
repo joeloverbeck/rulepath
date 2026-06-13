@@ -22,6 +22,13 @@ Every official game MUST have:
 
 Hidden-information games additionally require no-leak tests for public/private views, action trees, previews, diagnostics, effect logs, serialized payloads, UI fixtures, DOM-safe attributes, local storage, replay exports, bot views, bot explanations, and dev candidate rankings.
 
+Games with more than two supported seats additionally require declared
+minimum/default/maximum seat counts, Rust-owned wrong-seat-count diagnostics, and
+viewer-safe evidence for public observer plus every authorized seat viewer.
+Hidden-information N-seat games require a pairwise no-leak proof matrix covering
+public observer, each seat viewer, replay export, effect log, bot explanation,
+and dev panel surfaces.
+
 ## 2. Readiness labels
 
 Use these labels honestly:
@@ -144,6 +151,13 @@ Every official game MUST document how terminal results are explained to players.
 
 Documentation may be concise for simple games, but omission is not allowed.
 
+For games with teams, partnerships, or more than two seats, outcome docs MUST
+name the per-seat and, when applicable, per-team final breakdown fields. If a
+game has showdown, evaluation, allocation, or ranking logic, Rust MUST produce
+each contender's evaluated result, comparison vector or equivalent rank facts,
+split/tie reason, and decisive comparison reason. TypeScript may present those
+facts through the shared outcome surface; it MUST NOT compute them.
+
 ## 6. Rule coverage matrix
 
 Every rule requirement MUST be classified.
@@ -214,6 +228,10 @@ A game may be web-exposed only when:
 - `games/<game_id>/docs/HOW-TO-PLAY.md` exists and is rendered by the shared web How to Play / Rules surface rather than rendering formal `RULES.md`;
 - UI smoke tests cover start, legal action display, one human action, one bot action where applicable, effects, replay stepping, safe dev toggle, and reduced-motion behavior once animation exists;
 - hidden-information games prove no leak through browser-facing payloads and DOM-safe fixtures;
+- games with more than two supported seats prove their declared seat range,
+  public observer projection, every authorized seat projection, and any
+  pairwise hidden-information no-leak matrix required by
+  [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md);
 - the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the newly web-exposed game in its intro catalog list, its Shell Surface renderer list (when the game ships a board renderer), and its Smoke Layers `smoke:e2e` list (when the game's smoke is chained by `smoke:e2e`). This reconciliation is part of web-exposure done, not a later cleanup pass — `scripts/check-catalog-docs.mjs` enforces the intro and smoke lists mechanically against the `crates/wasm-api` catalog and `apps/web/package.json`.
 
 Games whose public views project component identifiers MUST project
@@ -228,6 +246,13 @@ Public UI polish is not optional for showcase games.
 A game is not web-exposed official unless every terminal outcome renders through the shared outcome explanation surface.
 
 The game's Rust implementation MUST project a viewer-safe terminal rationale through its public/terminal view and/or terminal semantic effect. The rationale MUST include the decisive cause of the actual result and a viewer-safe per-player final breakdown.
+
+For N-seat games, the rationale MUST include every seat and, where applicable,
+every team. For showdown/evaluation games, the Rust-owned rationale MUST include
+each revealed contender's evaluated combination or equivalent result, the used
+components when they are public or viewer-authorized, the comparison vector or
+ranking facts, the decisive comparison reason, and any split/tie explanation.
+Folded, non-revealed, or unauthorized private data must remain redacted.
 
 The web UI MUST render that Rust-owned rationale without computing outcome logic in TypeScript. TypeScript may format and display safe values, but it MUST NOT decide the winner, score comparison, tiebreaker rung, card/showdown strength, winning line, terminal reason, or any other behavior fact.
 
@@ -269,5 +294,7 @@ Before marking a game official, verify:
 - CLI simulation can reproduce failing seeds;
 - native benchmarks exist;
 - UI smoke tests pass if web-exposed;
+- declared seat range, per-seat/per-team final breakdowns, and any
+  showdown/evaluation rationale are Rust-authored and documented;
 - if web-exposed, the web-shell catalog README ([`../apps/web/README.md`](../apps/web/README.md)) names the game across its intro, renderer, and smoke lists, and `scripts/check-catalog-docs.mjs` passes;
 - public presentation is neutral/original and does not imitate trade dress.

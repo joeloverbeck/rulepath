@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-005: OFFICIAL-GAME-CONTRACT + UI-INTERACTION N-seat & showdown clarifications
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `docs/OFFICIAL-GAME-CONTRACT.md` + `docs/UI-INTERACTION.md` edits only.
@@ -76,3 +76,33 @@ Add "multi-seat layout" guidance: the seat rail handles 3–7 seats without two-
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "pairwise|showdown|seat range|seat rail" docs/OFFICIAL-GAME-CONTRACT.md docs/UI-INTERACTION.md`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Updated `docs/OFFICIAL-GAME-CONTRACT.md` with declared-seat-range,
+per-seat/per-team final-breakdown, Rust-authored showdown/evaluation rationale,
+and hidden-info N-seat pairwise no-leak proof-matrix requirements. The contract
+now names public observer, each seat viewer, replay export, effect log, bot
+explanation, and dev panel surfaces for N-seat hidden-info proof.
+
+Updated `docs/UI-INTERACTION.md` with multi-seat payload and layout doctrine:
+Rust/WASM supplies active seats, pending responders, viewer/observer identity,
+turn-order cues, and safe role/team labels; TypeScript presents those facts and
+does not infer turn order or legality. Added showdown/comparison rendering
+requirements for evaluated results, used components, comparison vectors,
+split/tie reasons, decisive reasons, and redaction for folded/non-revealed
+private data.
+
+Deviations from plan: none. `apps/web/src/components/OutcomeExplanationPanel.tsx`
+was inspected and exists, but no web or Rust code was changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -niE "pairwise|showdown|seat range|seat rail" docs/OFFICIAL-GAME-CONTRACT.md docs/UI-INTERACTION.md`
+  found the new proof, showdown, seat-range, and seat-rail doctrine.
+- `test -e apps/web/src/components/OutcomeExplanationPanel.tsx` confirmed the
+  cited shared outcome panel exists.
