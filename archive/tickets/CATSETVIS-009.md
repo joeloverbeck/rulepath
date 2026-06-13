@@ -1,6 +1,6 @@
 # CATSETVIS-009: Closeout — doc lift + per-asset IP + `Done`-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None
@@ -81,3 +81,25 @@ Flip the `specs/README.md` `CATSETVIS` row `Planned`→`Done` (after exit criter
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n 'Done' specs/README.md | grep -i catalog-setup` and `grep -niE 'P2.*DONE|Status: DONE' brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md`
 3. `cargo test --workspace && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects && npm --prefix apps/web run smoke:e2e && bash scripts/boundary-check.sh && node scripts/check-catalog-docs.mjs && node scripts/check-presentation-copy.mjs` — the aggregate exit-criteria sweep gating the `Done`-flip.
+
+## Outcome
+
+Completed 2026-06-13.
+
+- Lifted the catalog-identity and variant-description contract into `docs/UI-INTERACTION.md`, keeping it governed as non-atlas presentation shape under §10A.
+- Added the catalog identity and optional variant-description authoring rows to `templates/GAME-UI.md`.
+- Flipped the `specs/README.md` catalog-setup visual redesign row to `Done` and marked brainstorming P2 Done with a pointer to the spec.
+- Updated the stale `wasm-api` catalog unit test to assert the new described-variant JSON fields instead of the pre-description exact fragment shape exposed by the aggregate exit sweep.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `rg -n "catalog identity|variant descriptions|GameVariantCatalogEntry.description|catalog-theme" docs/UI-INTERACTION.md templates/GAME-UI.md`
+- `grep -n 'Done' specs/README.md | grep -i catalog-setup`
+- `grep -niE 'P2.*DONE|Status: DONE|Done: P2' brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-presentation-copy.mjs`
+- `cargo test -p wasm-api --lib list_games_reports_registered_games`
+- `cargo fmt --all --check`
+- `cargo test --workspace`

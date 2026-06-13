@@ -10526,15 +10526,19 @@ mod tests {
         assert!(games.contains(
             "\"variants\":[{\"id\":\"masked_claims_standard\",\"label\":\"Masked Claims\"}]"
         ));
-        assert!(games.contains("{\"id\":\"flood_watch_deluge\",\"label\":\"Flood Watch: Deluge\"}"));
+        assert!(games.contains("\"id\":\"flood_watch_deluge\""));
+        assert!(games.contains("\"label\":\"Flood Watch: Deluge\""));
+        assert!(games.contains("\"description\":\"Higher water starts and heavier surges create a tighter shared rescue.\""));
+        assert!(games.contains("\"id\":\"frontier_control_highlands\""));
+        assert!(games.contains("\"label\":\"Frontier Control: Highlands\""));
+        assert!(games.contains("\"description\":\"Highlands shifts table pressure toward quarry routes and high ground.\""));
+        assert!(games.contains("\"id\":\"event_frontier_hard_winter\""));
+        assert!(games.contains("\"label\":\"Event Frontier: Hard Winter\""));
+        assert!(games.contains("\"description\":\"Leaner opening resources make recovery feel tighter from the first turn.\""));
+        assert!(games.contains("\"id\":\"event_frontier_land_rush\""));
+        assert!(games.contains("\"label\":\"Event Frontier: Land Rush\""));
         assert!(games.contains(
-            "{\"id\":\"frontier_control_highlands\",\"label\":\"Frontier Control: Highlands\"}"
-        ));
-        assert!(games.contains(
-            "{\"id\":\"event_frontier_hard_winter\",\"label\":\"Event Frontier: Hard Winter\"}"
-        ));
-        assert!(games.contains(
-            "{\"id\":\"event_frontier_land_rush\",\"label\":\"Event Frontier: Land Rush\"}"
+            "\"description\":\"Broader opening reach creates a faster public buildup.\""
         ));
         assert!(games.contains(
             "\"variants\":[{\"id\":\"token_bazaar_standard\",\"label\":\"Token Bazaar\"}]"

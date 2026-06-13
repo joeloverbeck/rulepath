@@ -27,6 +27,8 @@ TypeScript never decides legality. Rust/WASM owns legal action trees, validation
 | visual risk to avoid | debug-console-first / casino vibe / SaaS dashboard / proprietary mimicry / clutter / `<risk>` |
 | public onboarding need | none / light / substantial |
 | help/learning mode need | none / light / substantial |
+| catalog identity | original SVG icon id + theme key + accent/shape token names + a11y label in `games/<id>/src/ui.rs`; color-plus-shape, smallest-size legible, project-authored; no AI, figurative, or proprietary art |
+| variant descriptions | optional one-line inert `description?` per variant; <=120 chars, neutral, no behavior, hidden-info, trademark, or raw-ID prose; omitted when absent |
 
 ## Renderer assumptions
 
