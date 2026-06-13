@@ -63,6 +63,36 @@ Implement Stage 3 `column_four` legal action generation, validation, semantic ef
 Add viewer-filtered effect-log tests for `high_card_duel`. First decide whether failing tests are still valid, then whether the issue is the SUT or tests. Add regression coverage for any bug found.
 ```
 
+```text
+Generalize the simulator summary map from fixed `seat_0`/`seat_1` winner
+fields to a deterministic winner-id map. Do not change game rules, replay
+hashes, or browser presentation. Add machine-output tests for 2-seat and
+3-seat fixtures.
+```
+
+```text
+Add a 3-seat setup fixture for one named game and verify Rust-owned wrong-seat
+diagnostics. Do not add a generic multiplayer setup system or TypeScript
+legality.
+```
+
+```text
+Add a pairwise no-leak matrix harness for one hidden-information game. Name the
+source seat, viewer seat, and checked surfaces. Do not expose internal full
+traces to browser exports.
+```
+
+```text
+Add Rust-owned showdown rationale for a Hold'Em-family game: evaluated result,
+comparison vector, decisive reason, and split/tie explanation. TypeScript may
+render the payload but must not compute winners or hand strength.
+```
+
+```text
+Add a multi-seat seat-rail UI fed by the Rust view. It may display active seats
+and pending responders, but it must not infer turn order or legal actors.
+```
+
 Bad tasks are vague or architecture-seeking:
 
 - “make the engine support any board game”;

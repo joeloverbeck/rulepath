@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-009: IP-POLICY + SOURCES + AGENT-DISCIPLINE + archival-workflow next-phase notes
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — `docs/IP-POLICY.md`, `docs/SOURCES.md`, `docs/AGENT-DISCIPLINE.md`, `docs/archival-workflow.md` edits only.
@@ -86,3 +86,34 @@ Add a "roadmap phase rollover" section: archive the old living spec index date-s
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "casino|next-phase scaling|seat-rail|phase rollover" docs/IP-POLICY.md docs/SOURCES.md docs/AGENT-DISCIPLINE.md docs/archival-workflow.md`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Updated four policy/process docs for the public scaling phase:
+
+- `docs/IP-POLICY.md` now has a Texas Hold'Em / common card-system note requiring
+  original Rulepath prose, neutral display names where useful, original
+  cards/icons, and no casino product framing; it distinguishes existing
+  `poker_lite` / Crest Ledger from a future proper Hold'Em-family gate.
+- `docs/SOURCES.md` now has a `Next-phase scaling sources` section covering
+  Pagat Texas Hold'Em, hand ranking, Hearts, Oh Hell, Spades, 500 Rum, Chinese
+  Checkers / Star Halma, OpenSpiel, boardgame.io, plus TBD rows for Pachisi and
+  Mahjong-family source selection.
+- `docs/AGENT-DISCIPLINE.md` now includes bounded N-seat task examples for
+  simulator summary maps, 3-seat setup fixtures, pairwise no-leak harnesses,
+  Rust-owned Hold'Em showdown rationale, and Rust-view-fed seat-rail UI.
+- `docs/archival-workflow.md` now has a `Roadmap Phase Rollover` section for
+  date-suffixed spec-index archival, authority commit/manifest notes, new index
+  seeding, archive links, and bounded rollover commits.
+
+Deviations from plan: none. No code, contract, kernel, schema, or archived spec
+was changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -niE "casino|next-phase scaling|seat-rail|phase rollover" docs/IP-POLICY.md docs/SOURCES.md docs/AGENT-DISCIPLINE.md docs/archival-workflow.md`
+  confirmed the four required note/section surfaces.
