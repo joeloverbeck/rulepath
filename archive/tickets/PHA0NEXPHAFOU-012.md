@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-012: Templates — bot cluster multi-opponent fields
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — `templates/GAME-AI.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, `COMPETENT-PLAYER.md` edits only.
@@ -81,3 +81,22 @@ Add "number of opponents," "partnership/team roles," "public table inference all
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "seat range|MCTS|redaction|opponent set" templates/GAME-AI.md templates/BOT-STRATEGY-EVIDENCE-PACK.md templates/COMPETENT-PLAYER.md`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Summary:
+
+- Added supported-seat-range, opponent-set, N-seat orchestration, multi-winner/split metric, and per-viewer explanation-redaction fields to the bot template cluster.
+- Added the explicit no-MCTS/Monte Carlo/ML/RL assertion to the Level 2 evidence-pack template.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `grep -niE "seat range|MCTS|redaction|opponent set" templates/GAME-AI.md templates/BOT-STRATEGY-EVIDENCE-PACK.md templates/COMPETENT-PLAYER.md`
+- `bash scripts/boundary-check.sh`
