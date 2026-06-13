@@ -381,15 +381,14 @@ because shared CI runners are not a valid throughput-gating environment. See
 [ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). This relocates enforcement; it
 does not weaken any threshold value.
 
-Per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md) and the
-variance-aware calibration rule in
-[ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md), the committed
+Per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md), the committed
 `thresholds.json` value is the enforced floor for the CI runner that executes the
-scheduled / manual / `main`-push gate. That CI floor is at least 15% below the
-minimum observed across representative CI runs, not a single-sample floor. Faster
-native workstation baselines and native targets MUST remain documented in each
-game's `BENCHMARKS.md`; lowering a CI floor without preserving that native
-evidence still hides performance and violates this doctrine.
+scheduled / manual / `main`-push gate. Faster native workstation baselines and
+native targets MUST remain documented in each game's `BENCHMARKS.md`; lowering a
+CI floor without preserving that native evidence still hides performance and
+violates this doctrine. [ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md)
+proposes a variance-aware calibration rule, but it remains Proposed and is not
+binding doctrine unless accepted.
 
 ## 16. Benchmark report contents
 
@@ -442,10 +441,10 @@ Gate 2 benchmark-report threshold checks MUST hard-fail the scheduled / manual /
 `main`-push benchmark lane when required thresholds fail. Pull requests run a
 non-gating benchmark smoke instead; the lane split is defined in
 [ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). The enforced thresholds are
-CI-runner floors per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md),
-and variance-aware floors per
-[ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md), while native targets
-such as the accepted Stage 1 `race_to_n` target in
+CI-runner floors per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md).
+[ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md) is Proposed; apply it
+only if maintainers accept it. Native targets such as the accepted Stage 1
+`race_to_n` target in
 [ADR 0001](adr/0001-stage-1-random-playout-budget.md) remain documented in the
 game benchmark notes.
 

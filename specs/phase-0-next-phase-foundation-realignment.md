@@ -65,8 +65,8 @@ records the new public phase with Gate P moved to the tail.
   (conceptual refresh, no exported-API schema change); `IP-POLICY.md`;
   `SOURCES.md`; `AGENT-DISCIPLINE.md`; `archival-workflow.md` (add an index
   rollover section); explanatory notes on ADRs `0004` and `0006`.
-- **Resolve the ADR 0005 status ambiguity** — either accept it through the normal
-  ADR process and update status/index references, or stop citing it as accepted.
+- **Resolve the ADR 0005 status ambiguity** — either adopt it through the normal
+  ADR process and update status/index references, or stop citing it as binding.
   New-phase specs must not rely on a `Proposed` ADR as law.
 - **Template realignment** across `templates/**` — add seat-range, turn-order,
   view-matrix, pairwise no-leak, outcome-matrix, and surface-scale fields per the
@@ -115,7 +115,7 @@ This realignment pass MUST NOT:
 | D4 | Foundation docs (`FOUNDATIONS.md`, `ARCHITECTURE.md`, `ENGINE-GAME-DATA-BOUNDARY.md`, `OFFICIAL-GAME-CONTRACT.md`) | Meaning-preserving N-seat clarifications per the report's per-document matrix (invariants apply to any positive seat count; pairwise seat-private redaction; N-seat nouns are game-local/atlas-only; per-seat/per-team outcome + showdown rationale). |
 | D5 | Bot/UI/testing/trace/WASM/atlas docs (`AI-BOTS.md`, `UI-INTERACTION.md`, `TESTING-REPLAY-BENCHMARKING.md`, `TRACE-SCHEMA-v1.md`, `WASM-CLIENT-BOUNDARY.md`, `MECHANIC-ATLAS.md`) | N-player imperfect-info bot subsection; multi-seat layout + showdown rendering; N-seat no-leak taxonomy + benchmark-by-seat-count; N-seat trace semantics (no schema change); multi-seat WASM operations (conceptual); next-phase armed-interlock register. |
 | D6 | IP / sources / discipline / archival (`IP-POLICY.md`, `SOURCES.md`, `AGENT-DISCIPLINE.md`, `archival-workflow.md`) | Hold'Em casino-trade-dress note; next-phase scaling sources; canonical bounded N-seat task examples; spec-index rollover section. |
-| D7 | ADR notes / status | Explanatory cross-reference notes on ADR `0004` (pairwise export) and `0006` (placement precedent); **resolve ADR `0005` status** (accept-and-update or stop-citing-as-accepted); optional `ADR-TEMPLATE.md` fields for scaling ADRs. |
+| D7 | ADR notes / status | Explanatory cross-reference notes on ADR `0004` (pairwise export) and `0006` (placement precedent); **resolve ADR `0005` status** (adopt-and-update or keep Proposed and stop citing as binding); optional `ADR-TEMPLATE.md` fields for scaling ADRs. |
 | D8 | `templates/**` | Seat-range / turn-order / view-matrix / pairwise-no-leak / outcome-matrix / surface-scale fields across the templates named in the report's per-template matrix; `templates/README.md` adoption note. |
 | D9 | `docs/ROADMAP.md` | After D1 is accepted: public scaling phase after Gate 14; Gate P restated as last/private/optional/non-architectural. |
 | D10 | `specs/README.md` | Flip Phase 0 row to `Done` on exit; refresh Gate 15+ interlock notes once ADR 0007 + ROADMAP land. |
@@ -150,7 +150,7 @@ ticket per reviewable diff. Dependency order is load-bearing — ADR 0007 first.
 | No schema/contract drift | `TRACE-SCHEMA-v1.md` fields/version unchanged; no replay/hash/RNG/serialization contract changed; WASM exported-API schema unchanged. |
 | Boundary preserved | `engine-core` gains no mechanic noun; `bash scripts/boundary-check.sh` passes. |
 | Templates carry N-seat fields | Each template named in the report's matrix has the seat/surface/no-leak/outcome additions. |
-| ADR 0005 ambiguity resolved | ADR 0005 is either accepted (status/index updated) or no longer cited as accepted anywhere. |
+| ADR 0005 ambiguity resolved | ADR 0005 is either adopted through the normal process (status/index updated) or remains Proposed and is no longer cited as binding anywhere. |
 | Index + links truthful | `specs/README.md` Phase 0 row is `Done`; `node scripts/check-doc-links.mjs` passes. |
 
 ## Acceptance evidence

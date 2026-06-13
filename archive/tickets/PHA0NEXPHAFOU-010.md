@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-010: docs/adr edits — 0004/0006 cross-reference notes, ADR-TEMPLATE fields, resolve 0005 status
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — `docs/adr/0004-*.md`, `docs/adr/0006-*.md`, `docs/adr/ADR-TEMPLATE.md`, `docs/adr/0005-*.md` edits only.
@@ -87,3 +87,34 @@ Add optional rows for scaling ADRs: affected foundation sections, superseded dec
 1. `node scripts/check-doc-links.mjs`
 2. `grep -rniE "0005|variance-aware" docs/ specs/ .claude/skills/ | grep -i accept` (expect no "accepted" citation unless 0005 was flipped)
 3. `grep -niE "pairwise|precedent|affected foundation sections" docs/adr/0004-*.md docs/adr/0006-*.md docs/adr/ADR-TEMPLATE.md`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Resolved the ADR 0005 branch by keeping `docs/adr/0005-variance-aware-ci-benchmark-floors.md`
+`Status: Proposed` and stopping active doctrine from citing it as binding law.
+Added a status note to ADR 0005, adjusted its alternatives wording so it does not
+look accepted inside a Proposed ADR, and updated
+`docs/TESTING-REPLAY-BENCHMARKING.md` to treat ADR 0005 as a proposal that
+applies only if maintainers accept it. The active Phase 0 spec wording was also
+updated from "accepted" language to the chosen "binding" consistency branch.
+
+Added a non-normative N-player pairwise export note to ADR 0004, pointing to the
+multi-seat contract while leaving the ADR decision unchanged. Added a
+non-normative casino-adjacent placement precedent note to ADR 0006 for future
+Hold'Em-family scope work, also without changing the ADR decision. Added optional
+scaling/supersession fields to `docs/adr/ADR-TEMPLATE.md`.
+
+Deviations from plan: touched `docs/TESTING-REPLAY-BENCHMARKING.md` and the
+active Phase 0 spec to complete the required ADR 0005 consistency cleanup across
+active doctrine. No code, benchmark thresholds, schemas, or accepted ADR
+decisions changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `grep -rniE "0005|variance-aware" docs/ specs/ .claude/skills/ 2>/dev/null | grep -i accept`
+  returned no matches, proving no active surface cites ADR 0005 as accepted.
+- `grep -niE "pairwise|precedent|affected foundation sections" docs/adr/0004-*.md docs/adr/0006-*.md docs/adr/ADR-TEMPLATE.md`
+  found the ADR 0004 note, ADR 0006 note, and ADR template field.

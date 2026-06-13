@@ -55,6 +55,12 @@ Any future Blackjack-family admission MUST state explicitly:
 - what public name and UI avoid casino/trade-dress direction;
 - which mechanics are proved that `high_card_duel` did not already prove.
 
+Non-normative next-phase note: this ADR is a placement and presentation
+precedent for casino-adjacent public work. A future Hold'Em-family spec may cite
+it for neutral naming, original prose, no copied casino table presentation, and
+scope-first discipline, while still distinguishing Hold'Em from the deferred
+Blackjack-family comparison recorded here.
+
 ## Alternatives considered
 
 | Alternative | Why considered | Why accepted/rejected |
