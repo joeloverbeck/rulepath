@@ -140,7 +140,7 @@ For each ticket:
 
 ```sh
 rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^## Outcome" archive/tickets/TICKET_ID.md
-rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)|^## Completion Notes" archive/tickets/TICKET_ID.md && exit 1 || true
+rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes" archive/tickets/TICKET_ID.md && exit 1 || true
 ```
 
 8. Sweep active specs, tickets, docs, indexes, README tables, and scripts for
@@ -164,6 +164,15 @@ criteria must pass, or the ticket must be explicitly blocked with evidence.
 ## Final Reference Closeout
 
 After all tickets in the series are complete:
+
+For ticket-only series with no reference artifact, do not force a spec or
+reference closeout. Instead, perform a ticket-only closeout: confirm the active
+ticket glob is empty, the archived ticket list and count match the startup
+resolution, every archived ticket has a valid final status plus `## Outcome`,
+active specs/tickets/docs/apps/scripts have no stale live ticket paths, required
+verification commands were run, required per-ticket commits exist, and the final
+worktree/index excludes unrelated changes. State that no reference artifact was
+closed and skip the reference archival steps below.
 
 1. Re-read the reference artifact and verify every work item and exit criterion
    is done, explicitly rejected, deferred, not implemented, or not applicable.
@@ -245,8 +254,8 @@ failures.
    truthing.
 7. Run a final status/diff check and commit the reference archive/truthing work.
 8. If a `/goal` is active, mark it complete only after implementation,
-   verification, ticket archives, reference archive, reference repair, and required
-   commits are done.
+   verification, ticket archives, reference archive/repair when applicable, and
+   required commits are done.
 
 For large capstones, record a compact evidence ledger in the reference artifact
 and/or final ticket before archival. Use headings that match the actual proof

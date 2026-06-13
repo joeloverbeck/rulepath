@@ -4,8 +4,8 @@ use column_four::{ColumnFourRandomBot, ColumnFourSeat};
 use directional_flip::{DirectionalFlipRandomBot, DirectionalFlipSeat};
 use draughts_lite::{DraughtsLiteRandomBot, DraughtsLiteSeat};
 use engine_core::{
-    Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionTree, Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion,
+    SeatId, Seed, StableSerialize,
 };
 use event_frontier::{
     command_for_decision as event_frontier_command_for_decision,
@@ -917,6 +917,14 @@ fn run_one_three_marks_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = three_marks::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_THREE_MARKS,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = ThreeMarksRandomBot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -970,6 +978,14 @@ fn run_one_column_four_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = column_four::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_COLUMN_FOUR,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = ColumnFourRandomBot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1027,6 +1043,8 @@ fn run_one_directional_flip_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = directional_flip::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(GAME_DIRECTIONAL_FLIP, seed, action_index, action_cap, &tree)?;
         let bot = DirectionalFlipRandomBot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1082,6 +1100,14 @@ fn run_one_draughts_lite_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = draughts_lite::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_DRAUGHTS_LITE,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = DraughtsLiteRandomBot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1119,6 +1145,14 @@ fn run_one_high_card_duel_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = high_card_duel::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_HIGH_CARD_DUEL,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = high_card_duel::HighCardDuelRandomBot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1165,6 +1199,14 @@ fn run_one_token_bazaar_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = token_bazaar::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_TOKEN_BAZAAR,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = TokenBazaarRandomBot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1214,6 +1256,14 @@ fn run_one_secret_draft_game(
             let actor = Actor {
                 seat_id: state.seats[actor_seat.index()].clone(),
             };
+            let tree = secret_draft::legal_action_tree(&state, &actor);
+            assert_tree_well_formed(
+                GAME_SECRET_DRAFT,
+                seed,
+                action_index,
+                config.action_cap,
+                &tree,
+            )?;
             let bot = SecretDraftRandomBot::new(Seed(bot_seed(seed, action_index)));
             let action_path = bot
                 .select_action(&state, actor_seat)
@@ -1268,6 +1318,14 @@ fn run_one_poker_lite_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = poker_lite::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_POKER_LITE,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = PokerLiteLevel2Bot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1317,6 +1375,14 @@ fn run_one_plain_tricks_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = plain_tricks::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_PLAIN_TRICKS,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = PlainTricksLevel2Bot::new(Seed(bot_seed(seed, action_index)));
         let action_path = bot
             .select_action(&state, actor_seat)
@@ -1373,6 +1439,14 @@ fn run_one_masked_claims_game(
         let actor = Actor {
             seat_id: state.seats[actor_seat.index()].clone(),
         };
+        let tree = masked_claims::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_MASKED_CLAIMS,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let decision = MaskedClaimsLevel1Bot::new(Seed(bot_seed(seed, action_index)))
             .select_decision(&state, actor_seat)
             .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
@@ -1418,6 +1492,14 @@ fn run_one_flood_watch_game(
         let actor = Actor {
             seat_id: state.active_seat.clone(),
         };
+        let tree = flood_watch::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_FLOOD_WATCH,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
         let bot = FloodWatchLevel1Bot::new(Seed(bot_seed(seed, action_index)));
         let decision = bot
             .select_decision(&state, &state.active_seat)
@@ -1474,6 +1556,11 @@ fn run_one_frontier_control_game(
             .active_seat()
             .ok_or_else(|| "non-terminal state has no active frontier_control seat".to_owned())?
             .clone();
+        let actor = Actor {
+            seat_id: seat.clone(),
+        };
+        let tree = frontier_control::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(GAME_FRONTIER_CONTROL, seed, action_index, action_cap, &tree)?;
         let decision = match state.active_faction {
             FrontierFactionId::Garrison => {
                 FrontierGarrisonLevel1Bot::new(Seed(bot_seed(seed, action_index)))
@@ -1545,6 +1632,11 @@ fn run_one_event_frontier_game(
         let faction = state
             .faction_for_seat(&seat)
             .ok_or_else(|| "active event_frontier seat has no faction".to_owned())?;
+        let actor = Actor {
+            seat_id: seat.clone(),
+        };
+        let tree = event_frontier::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(GAME_EVENT_FRONTIER, seed, action_index, action_cap, &tree)?;
         let decision = match faction {
             EventFrontierFactionId::Charter => {
                 event_frontier::EventCharterLevel1Bot::new(Seed(bot_seed(seed, action_index)))
@@ -1723,7 +1815,9 @@ fn run_one_game(config: &Config, seed: u64) -> Result<GameOutcome, Box<Simulatio
         command_stream.push(format!("{}:{chosen_path}", actor_seat.as_str()));
         effects.extend(apply_action(&mut state, validated));
 
-        if let Err(reason) = check_invariants(&state, actor_seat) {
+        if let Err(reason) =
+            check_invariants(&state, actor_seat, seed, config.action_cap, action_index)
+        {
             return Err(Box::new(build_failure(FailureContext {
                 state: &state,
                 effects: &effects,
@@ -1814,7 +1908,13 @@ impl WithActor for SimulationFailure {
     }
 }
 
-fn check_invariants(state: &RaceState, actor_seat: RaceSeat) -> Result<(), String> {
+fn check_invariants(
+    state: &RaceState,
+    actor_seat: RaceSeat,
+    seed: u64,
+    action_cap: usize,
+    action_index: usize,
+) -> Result<(), String> {
     if state.counter.0 > state.variant.target {
         return Err("counter exceeded target".to_owned());
     }
@@ -1835,6 +1935,7 @@ fn check_invariants(state: &RaceState, actor_seat: RaceSeat) -> Result<(), Strin
         if tree.root.choices.is_empty() {
             return Err("non-terminal state has no legal action".to_owned());
         }
+        assert_tree_well_formed(GAME_ID, seed, action_index, action_cap, &tree)?;
     }
     Ok(())
 }
@@ -1842,6 +1943,35 @@ fn check_invariants(state: &RaceState, actor_seat: RaceSeat) -> Result<(), Strin
 fn bot_seed(seed: u64, action_index: usize) -> u64 {
     seed.wrapping_mul(0x9e37_79b9_7f4a_7c15)
         .wrapping_add(action_index as u64)
+}
+
+fn assert_tree_well_formed(
+    game_id: &str,
+    seed: u64,
+    action_index: usize,
+    action_cap: usize,
+    tree: &ActionTree,
+) -> Result<(), String> {
+    let dead_branch_paths = tree.dead_branch_paths();
+    if dead_branch_paths.is_empty() {
+        return Ok(());
+    }
+    let paths = dead_branch_paths
+        .iter()
+        .map(|path| format_action_path(path))
+        .collect::<Vec<_>>()
+        .join(",");
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id={game_id}\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         action_cap={action_cap}\n\
+         action_index={action_index}\n\
+         failure_reason=dead branch action tree paths [{paths}]\n\
+         replay_command=cargo run -p simulate -- --game {game_id} --games 1 --start-seed {seed} --action-cap {action_cap}\n"
+    ))
 }
 
 fn effect_hash(effects: &[EffectEnvelope<RaceEffect>]) -> HashValue {
@@ -2015,6 +2145,7 @@ fn escape_json(input: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use engine_core::{ActionChoice, ActionNode, FreshnessToken};
 
     #[test]
     fn small_seed_run_completes_and_checks_invariants() {
@@ -2070,5 +2201,33 @@ mod tests {
         assert!(report.contains("\"view_hash\""));
         assert!(report.contains("\"failure_reason\": \"injected failure\""));
         assert!(report.contains("\"replay_command\""));
+    }
+
+    #[test]
+    fn dead_branch_tree_is_rejected() {
+        let mut choice = ActionChoice::leaf("operation", "Operation", "Operation");
+        choice.next = Some(Box::new(ActionNode {
+            choices: Vec::new(),
+        }));
+        let tree = ActionTree::flat(FreshnessToken(1), vec![choice]);
+
+        let error = assert_tree_well_formed("example_game", 7, 3, 64, &tree)
+            .expect_err("dead branch should fail");
+
+        assert!(error.contains("failure_reason=dead branch action tree paths [operation]"));
+        assert!(error.contains(
+            "replay_command=cargo run -p simulate -- --game example_game --games 1 --start-seed 7 --action-cap 64"
+        ));
+    }
+
+    #[test]
+    fn well_formed_nested_tree_passes() {
+        let mut choice = ActionChoice::leaf("operation", "Operation", "Operation");
+        choice.next = Some(Box::new(ActionNode {
+            choices: vec![ActionChoice::leaf("target", "Target", "Target")],
+        }));
+        let tree = ActionTree::flat(FreshnessToken(1), vec![choice]);
+
+        assert!(assert_tree_well_formed("example_game", 7, 3, 64, &tree).is_ok());
     }
 }
