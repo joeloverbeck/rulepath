@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-001: Author ADR 0007 — admit the public scaling phase and move Gate P to the tail
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new `docs/adr/0007-*.md` only; no crates/schemas/traces/code surfaces.
@@ -80,3 +80,24 @@ Build from `docs/adr/ADR-TEMPLATE.md`, every section present:
 1. `ls docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md`
 2. `grep -E "^## " docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md` (confirm template section set)
 3. `node scripts/check-doc-links.mjs`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Created `docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md` from the
+canonical ADR section set. The ADR records the proposed public scaling phase,
+keeps Gate P private/optional/isolated at the tail, and explicitly leaves
+ROADMAP editing gated on maintainer acceptance.
+
+Deviations from plan: none. The ADR remains `Status: Proposed` because this
+ticket forbids self-accepting it.
+
+Verification:
+
+- `ls docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md` passed.
+- `grep -E "^## " docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md`
+  showed every `ADR-TEMPLATE.md` section.
+- `node scripts/check-doc-links.mjs` passed (`Checked 26 markdown files`).
+- `git diff --name-only` showed no tracked ROADMAP edit; only the new untracked
+  ADR file was present before archival.
