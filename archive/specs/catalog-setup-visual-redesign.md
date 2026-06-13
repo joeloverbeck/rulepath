@@ -11,7 +11,7 @@
   brainstorm `brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md`
   (recommendation **P2** = candidates **C5** picker visual redesign + **C6**
   one-line variant descriptions).
-- **Status:** Planned
+**Status**: COMPLETED
 - **Date:** 2026-06-13
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` →
@@ -640,3 +640,112 @@ absent.
    existing `display_name`, is catalog/setup presentation metadata only and never
    enters any canonical serialization, hash, or trace form (exit criterion 8
    proves this as a regression check).
+
+---
+
+## Outcome
+
+Completed 2026-06-13.
+
+The CATSETVIS ticket series shipped the catalog/setup visual redesign and
+optional typed variant-description contract end to end:
+
+- Added a vanilla-CSS design-token layer and per-game `data-game-id` theme
+  tokens for the catalog cards and setup hero.
+- Added the original inline-SVG `GameCatalogIcon` registry for all 14 official
+  games, plus inert `catalog_theme()` metadata in each game `ui.rs` module,
+  including the new `games/race_to_n/src/ui.rs`.
+- Reworked the catalog cards and match setup to render iconography, accent
+  rails, selected-state treatment, setup hero identity, variant descriptions,
+  prominent seat/faction labels, and separate How-to-Play actions without raw
+  IDs or engine/debug normal-mode copy.
+- Added optional multi-variant `description` fields for `flood_watch`,
+  `frontier_control`, and `event_frontier`; projected them through `wasm-api`
+  into `GameVariantCatalogEntry.description?`; kept absent descriptions omitted
+  rather than `null`; and added `smoke-ui.mjs` shape assertions for the present
+  and absent cases.
+- Lifted the catalog identity and variant-description contract into
+  `docs/UI-INTERACTION.md` and `templates/GAME-UI.md`; flipped the
+  `specs/README.md` row to Done; and marked brainstorming P2 Done.
+
+Deviations:
+
+- `poker_lite` catalog metadata uses the neutral theme key `crest_ledger` /
+  `crest-ledger` to satisfy the existing presentation-copy guard. The
+  `data-game-id` selector remains `poker_lite` because it is an internal
+  catalog identifier, not visible player copy.
+- The final aggregate Rust sweep exposed one stale `wasm-api` catalog unit-test
+  assertion that still expected exact pre-description variant JSON fragments.
+  The assertion was updated to verify the new described-variant fields directly.
+
+Verification evidence:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo build --workspace`
+- `cargo test --workspace`
+- `cargo test -p flood_watch -p frontier_control -p event_frontier`
+- `cargo test -p wasm-api --lib list_games_reports_registered_games`
+- `cargo run -p simulate -- --game flood_watch --games 1000`
+- `cargo run -p replay-check -- --game flood_watch --all`
+- `cargo run -p fixture-check -- --game flood_watch`
+- `cargo run -p rule-coverage -- --game flood_watch`
+- `cargo run -p simulate -- --game frontier_control --games 1000`
+- `cargo run -p replay-check -- --game frontier_control --all`
+- `cargo run -p fixture-check -- --game frontier_control`
+- `cargo run -p rule-coverage -- --game frontier_control`
+- `cargo run -p simulate -- --game event_frontier --games 1000`
+- `cargo run -p replay-check -- --game event_frontier --all`
+- `cargo run -p fixture-check -- --game event_frontier`
+- `cargo run -p rule-coverage -- --game event_frontier`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-presentation-copy.mjs`
+
+Variant-description JSON sample:
+
+```json
+{
+  "flood_watch_standard": {
+    "has_description": true,
+    "description": "Cooperative flood planning with steady pressure and full district visibility."
+  },
+  "token_bazaar_standard": {
+    "has_description": false,
+    "description": null
+  }
+}
+```
+
+Boundary audit:
+
+- TypeScript renders `description?` as optional display copy only via
+  `selectVariantDescription(...)`; behavior-looking prose is rejected by Rust
+  parser tests and the `smoke-ui.mjs` assertion; no TypeScript path parses
+  descriptions for legality, selectors, effects, or action availability.
+
+Per-asset IP closeout:
+
+| Asset / motif | Origin | Copied refs? | AI-generated? | Trade-dress proximity | Smallest-size legibility |
+|---|---|---:|---:|---|---|
+| `race_to_n` stepped track + marker | Project-authored abstract SVG geometry | No | No | Generic race/progress abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `three_marks` grid + two marks | Project-authored abstract SVG geometry | No | No | Generic grid abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `column_four` vertical rack + discs | Project-authored abstract SVG geometry | No | No | Generic alignment-game abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `directional_flip` paired arrows + center disc | Project-authored abstract SVG geometry | No | No | Generic flip/motion abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `draughts_lite` board lines + diagonal pieces | Project-authored abstract SVG geometry | No | No | Generic board/checker abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `high_card_duel` paired cards + rank stroke | Project-authored abstract SVG geometry | No | No | Generic card abstraction; no casino/trade-dress mimicry | Checked in catalog/setup icon sizes |
+| `token_bazaar` market gem/token | Project-authored abstract SVG geometry | No | No | Generic market/token abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `secret_draft` shield/packet + concealed lines | Project-authored abstract SVG geometry | No | No | Generic hidden-selection abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `poker_lite` paired cards + neutral crest dot | Project-authored abstract SVG geometry | No | No | Uses neutral `crest_ledger` naming/copy; no casino/trade-dress mimicry | Checked in catalog/setup icon sizes |
+| `plain_tricks` paired cards + arrow | Project-authored abstract SVG geometry | No | No | Generic trick-taking abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `masked_claims` mask + claim marks | Project-authored abstract SVG geometry | No | No | Generic mask/claim abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `flood_watch` waves + drop | Project-authored abstract SVG geometry | No | No | Generic flood/water abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `frontier_control` folder/terrain + route lines | Project-authored abstract SVG geometry | No | No | Generic map/control abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| `event_frontier` mountain/event star | Project-authored abstract SVG geometry | No | No | Generic event/frontier abstraction; no proprietary mimicry | Checked in catalog/setup icon sizes |
+| Per-game CSS color/accent themes | Project-authored token choices | No | No | Abstract palette/shape treatment; no proprietary brand mimicry | Checked for text/icon contrast and compact card/setup use |

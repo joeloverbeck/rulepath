@@ -141,7 +141,7 @@ wall-clock pacing stays out of Rust; replays/traces byte-identical.
 ### P2 — Catalog & setup visual redesign (C5 + C6) — **DONE**
 
 **Status: DONE** — delivered by
-`specs/catalog-setup-visual-redesign.md` and its CATSETVIS ticket series on
+`archive/specs/catalog-setup-visual-redesign.md` and its CATSETVIS ticket series on
 2026-06-13.
 
 **What:** The twice-named successor spec: original visual identity for the
@@ -243,7 +243,7 @@ plus fixture/no-leak sweep updates. Nothing to schedule today.
 | Order | Work | Vehicle | ADR? |
 |---|---|---|---|
 | 1 | Animation scheduler + turn orchestration (C1+C2+part C8) | Done via `archive/specs/effect-animation-and-turn-orchestration.md` | No |
-| 2 | Catalog & setup visual redesign (C5+C6) | Done via `specs/catalog-setup-visual-redesign.md`; per-asset IP checks recorded in closeout | No |
+| 2 | Catalog & setup visual redesign (C5+C6) | Done via `archive/specs/catalog-setup-visual-redesign.md`; per-asset IP checks recorded in closeout | No |
 | 3 | Effect-log history residue (C8) | Done as burst-grouped `EffectLog`/`TurnReportPanel` work inside spec 1 | No |
 | 4 | Presentation-shape register (C7 disposition) | Done as a UI-INTERACTION §10A governance paragraph in spec 1 closeout | No |
 | 5 | Staged multi-target encoding (C3) | Dormant; named trigger recorded in spec 1's sequencing/successor section | Yes, when triggered |
@@ -292,6 +292,6 @@ with evidence.
 ## 8. Next steps
 
 1. Done: P1 shipped as `archive/specs/effect-animation-and-turn-orchestration.md`.
-2. Done: P2 shipped as `specs/catalog-setup-visual-redesign.md`.
+2. Done: P2 shipped as `archive/specs/catalog-setup-visual-redesign.md`.
 3. Land the P4 one-paragraph register with P1's closeout amendments.
 4. Record the C3/C5 triggers in P1's sequencing section.
