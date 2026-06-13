@@ -54,6 +54,25 @@ function hasVariant(game, id, label) {
   return game.variants?.some((variant) => variant.id === id && variant.label === label);
 }
 
+function variantById(game, id) {
+  return game.variants?.find((variant) => variant.id === id);
+}
+
+function assertVariantDescription(game, id, expected) {
+  const variant = variantById(game, id);
+  assert(variant, `${game.game_id} includes variant ${id}`);
+  const behaviorToken = /\b(if|when|then|selector|trigger|valid_if|legal|effect|action)\b/i;
+  if (expected === undefined) {
+    assert(!Object.prototype.hasOwnProperty.call(variant, "description"), `${id} omits description when absent`);
+    return;
+  }
+  assert(typeof variant.description === "string", `${id} description is a string`);
+  assert(variant.description.trim().length > 0, `${id} description is non-empty`);
+  assert(variant.description.length <= 120, `${id} description is <=120 characters`);
+  assert(!behaviorToken.test(variant.description), `${id} description contains no behavior-looking token`);
+  assert(variant.description === expected, `${id} description matches Rust-authored catalog copy`);
+}
+
 const version = read(
   wasm.rulepath_placeholder_version_ptr(),
   wasm.rulepath_placeholder_version_len(),
@@ -153,6 +172,16 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+const tokenBazaarCatalog = catalog.find((game) => game.game_id === "token_bazaar");
+assert(tokenBazaarCatalog, "Rust catalog includes token_bazaar");
+assertVariantDescription(tokenBazaarCatalog, "token_bazaar_standard", undefined);
+const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
+assert(floodWatchCatalog, "Rust catalog includes flood_watch");
+assertVariantDescription(
+  floodWatchCatalog,
+  "flood_watch_standard",
+  "Cooperative flood planning with steady pressure and full district visibility.",
+);
 assert(
   catalog.some(
     (game) => game.game_id === "token_bazaar" && hasVariant(game, "token_bazaar_standard", "Token Bazaar"),

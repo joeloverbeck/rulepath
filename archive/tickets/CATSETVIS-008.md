@@ -1,6 +1,6 @@
 # CATSETVIS-008: Smoke + a11y verification (`description?` assertion + full sweep)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/scripts/smoke-ui.mjs`
@@ -74,3 +74,18 @@ Run `smoke:wasm`/`ui`/`effects`/`e2e` and confirm no raw `game_id`/engine copy i
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:effects && npm --prefix apps/web run smoke:e2e`
 3. Manual focus-visible + reduced-motion check and screenshot capture (desktop/mobile catalog, selected setup, multi-variant setup, focus-visible card/control) — the UI-observation portion that the node smokes cannot assert, recorded for CATSETVIS-009.
+
+## Outcome
+
+Completed 2026-06-13.
+
+- Added `assertVariantDescription(...)` to `apps/web/scripts/smoke-ui.mjs`, covering the described `flood_watch_standard` multi-variant case and the structurally omitted `token_bazaar_standard` case.
+- The smoke assertion enforces non-empty string descriptions, the 120-character ceiling, the behavior-token guard, and absence of the `description` property when no Rust-authored description exists.
+- Confirmed `apps/web/scripts/smoke-effect-feedback.mjs` remained untouched.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
