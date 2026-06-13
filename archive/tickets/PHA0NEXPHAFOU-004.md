@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-004: ENGINE-GAME-DATA-BOUNDARY + MECHANIC-ATLAS N-seat/surface clarifications
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — `docs/ENGINE-GAME-DATA-BOUNDARY.md` + `docs/MECHANIC-ATLAS.md` edits only.
@@ -76,3 +76,34 @@ Add a "next-phase armed interlocks" section: Texas Hold'Em trips deterministic s
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. `grep -niE "armed interlock|large map is not a DSL" docs/MECHANIC-ATLAS.md docs/ENGINE-GAME-DATA-BOUNDARY.md`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Updated `docs/ENGINE-GAME-DATA-BOUNDARY.md` to name N-seat and larger-surface
+danger points explicitly: seat-range validators, graph topology, route networks,
+community-card evaluators, wall/deck shuffles, partnerships, side-pot
+allocators, and tile-meld validators start game-local and may move to
+`game-stdlib` only through the atlas. Added the "large map is not a DSL license"
+warning that topology and surface budgets can be typed content while conditions,
+triggers, formulas, selectors, legality, scoring, visibility, bot tactics, and
+exception logic remain Rust-owned.
+
+Added `docs/MECHANIC-ATLAS.md` §9A, `Next-phase armed interlocks`, arming future
+ledger checks for River Ledger/Hold'Em, side pots, Hearts/Oh Hell/Spades, Rummy,
+Star Halma/Pachisi, Four Winds Melds, and Commonwealth Frontier. The section
+requires ledger decisions before third official uses but promotes no helper and
+does not relax the hard gate.
+
+Deviations from plan: none. No code, kernel vocabulary, static behavior data,
+YAML, or DSL was introduced.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -niE "armed interlock|large map is not a DSL" docs/MECHANIC-ATLAS.md docs/ENGINE-GAME-DATA-BOUNDARY.md`
+  found the new atlas section and boundary warning.
+- `rg -n "Seat-range validators|community-card evaluators|side-pot allocators|tile-meld validators|Next-phase armed interlocks|third official use" docs/ENGINE-GAME-DATA-BOUNDARY.md docs/MECHANIC-ATLAS.md`
+  confirmed the requested examples and hard-gate wording.
