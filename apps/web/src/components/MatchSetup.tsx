@@ -1,5 +1,6 @@
 import type { SetupPlayMode } from "../state/shellReducer";
-import type { GameCatalogEntry, SeatDisplayLabel } from "../wasm/client";
+import { selectVariantDescription, type GameCatalogEntry, type SeatDisplayLabel } from "../wasm/client";
+import { GameCatalogIcon } from "./GameCatalogIcon";
 
 type MatchSetupProps = {
   selectedGame: GameCatalogEntry | null;
@@ -43,6 +44,7 @@ export function MatchSetup({
 }: MatchSetupProps) {
   const variants = selectedGame?.variants ?? [];
   const selectedVariant = variants.find((variant) => variant.id === variantId) ?? variants[0] ?? null;
+  const variantDescription = selectVariantDescription(selectedVariant);
   return (
     <section className="region setup-region" aria-labelledby="setup-heading">
       <div className="region-heading">
@@ -50,15 +52,25 @@ export function MatchSetup({
         <h2 id="setup-heading">Match setup</h2>
       </div>
 
-      <div className="setup-grid">
-        <div className="setup-summary">
-          <span>Selected</span>
+      <div className="setup-hero" data-game-id={selectedGame?.game_id}>
+        <div className="setup-hero-art" aria-hidden="true">
+          {selectedGame ? (
+            <GameCatalogIcon gameId={selectedGame.game_id} title={`${selectedGame.display_name} icon`} />
+          ) : null}
+        </div>
+        <div className="setup-hero-copy">
+          <span>Selected game</span>
           <strong>{selectedGame?.display_name ?? "No game selected"}</strong>
-          <small>
-            {selectedGame
-              ? gameMetadata(selectedGame, selectedVariant?.label ?? null)
-              : "Load the Rust catalog to continue"}
-          </small>
+          <small>{selectedGame ? gameMetadata(selectedGame, selectedVariant?.label ?? null) : "Load the Rust catalog to continue"}</small>
+          {selectedGame?.ui?.faction_labels?.length ? (
+            <div className="faction-chips" aria-label="Factions">
+              {selectedGame.ui.faction_labels.map((faction) => (
+                <span key={faction.faction}>{faction.label}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="setup-hero-actions setup-summary">
           <button
             type="button"
             className="secondary rules-trigger"
@@ -69,7 +81,9 @@ export function MatchSetup({
             How to Play / Rules
           </button>
         </div>
+      </div>
 
+      <div className="setup-grid">
         <label className="field">
           <span>Seed</span>
           <input
@@ -91,6 +105,7 @@ export function MatchSetup({
                 </option>
               ))}
             </select>
+            {variantDescription ? <small className="variant-description">{variantDescription}</small> : null}
           </label>
         ) : null}
       </div>
@@ -112,14 +127,20 @@ export function MatchSetup({
         ))}
       </fieldset>
 
-      <div className="seat-roles" aria-label="Seat roles">
-        {setupSeatRoles(selectedGame, playMode).map((role) => (
-          <div key={role.seat}>
-            <span>{role.label}</span>
-            <strong>{role.actor}</strong>
-          </div>
-        ))}
-      </div>
+      <section className="players-roles" aria-label="Players and roles">
+        <div className="players-roles-heading">
+          <span>Players & roles</span>
+          <small>{selectedGame?.ui?.seat_labels?.length ? "From the Rust catalog" : "Fallback labels"}</small>
+        </div>
+        <div className="seat-roles">
+          {setupSeatRoles(selectedGame, playMode).map((role) => (
+            <div key={role.seat}>
+              <span>{role.label}</span>
+              <strong>{role.actor}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <button type="button" className="primary setup-start" onClick={onStart} disabled={!canStart}>
         Start Match
@@ -140,20 +161,20 @@ function modeDetail(playMode: SetupPlayMode, game: GameCatalogEntry | null): str
   if (labels.length >= 2) {
     switch (playMode) {
       case "human_vs_bot":
-        return `${labels[0].label} is you; ${labels[1].label} uses Rust's legal bot.`;
+        return `${labels[0].label} is you; ${labels[1].label} is an automated opponent.`;
       case "hotseat":
         return `${labels[0].label} and ${labels[1].label} are local on this device.`;
       case "bot_vs_bot":
-        return `${labels[0].label} and ${labels[1].label} are driven by Rust bot turns.`;
+        return `${labels[0].label} and ${labels[1].label} are automated locally.`;
     }
   }
   switch (playMode) {
     case "human_vs_bot":
-      return "First player is local; second player uses Rust's legal bot.";
+      return "First player is local; second player is automated.";
     case "hotseat":
       return "Both players are local on this device.";
     case "bot_vs_bot":
-      return "Both players are driven by Rust bot turns.";
+      return "Both players are automated locally.";
   }
 }
 

@@ -2210,9 +2210,90 @@ h2 {
   gap: 16px;
 }
 
+.setup-hero {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.22fr) minmax(0, 1fr) auto;
+  gap: var(--rp-space-5);
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 24%, var(--rp-border-subtle));
+  border-radius: var(--rp-radius-md);
+  padding: var(--rp-space-5);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--game-card-art-bg) 70%, white)),
+    var(--rp-surface-panel);
+}
+
+.setup-hero-art {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 28%, var(--rp-border-subtle));
+  border-radius: var(--rp-radius-md);
+  background: var(--game-card-art-bg);
+  color: var(--game-accent);
+}
+
+.setup-hero-art svg {
+  width: min(72px, 68%);
+  height: auto;
+}
+
+.setup-hero-copy {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: var(--rp-space-2);
+}
+
+.setup-hero-copy > span,
+.players-roles-heading span {
+  color: var(--game-accent);
+  font-size: var(--rp-text-sm);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.setup-hero-copy strong {
+  color: var(--rp-text-primary);
+  font-size: 1.38rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.setup-hero-copy small,
+.players-roles-heading small,
+.variant-description {
+  color: var(--rp-text-muted);
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.setup-hero-actions {
+  display: grid;
+  align-content: center;
+}
+
+.faction-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rp-space-2);
+  margin-top: var(--rp-space-1);
+}
+
+.faction-chips span {
+  border: 1px solid color-mix(in srgb, var(--game-accent) 34%, var(--rp-border-subtle));
+  border-radius: var(--rp-radius-pill);
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--game-card-art-bg) 72%, white);
+  color: var(--rp-text-primary);
+  font-size: var(--rp-text-xs);
+  font-weight: 900;
+}
+
 .setup-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -2279,6 +2360,18 @@ h2 {
 
 .mode-option span {
   font-weight: 800;
+}
+
+.players-roles {
+  display: grid;
+  gap: var(--rp-space-4);
+}
+
+.players-roles-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--rp-space-4);
 }
 
 .seat-roles {
@@ -3745,9 +3838,14 @@ svg g[data-effect-kind] {
   }
 
   .setup-grid,
+  .setup-hero,
   .mode-picker,
   .seat-roles {
     grid-template-columns: 1fr;
+  }
+
+  .setup-hero-actions {
+    justify-items: stretch;
   }
 
   .controls {

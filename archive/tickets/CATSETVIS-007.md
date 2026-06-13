@@ -1,6 +1,6 @@
 # CATSETVIS-007: Match-setup polish (hero + variant description + seat/faction labels)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/MatchSetup.tsx`, `apps/web/src/styles.css`
@@ -83,3 +83,23 @@ Add the `.match-setup` / `.setup-hero` styles on the CATSETVIS-001 tokens.
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run smoke:e2e` — the no-leak/a11y boundary for hidden-role and raw-ID checks in setup.
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Redesigned `MatchSetup.tsx` around a selected-game hero with `GameCatalogIcon`, display name, setup summary, How-to-Play action, and per-game `data-game-id` theming.
+- Rendered the selected variant's optional description through `selectVariantDescription(...)`, omitting the element when absent.
+- Added prominent "Players & roles" presentation for Rust-projected `seat_labels`, plus faction chips when `ui.faction_labels` is present.
+- Rewrote normal-mode play-mode details to user-facing automated-opponent copy without "Rust legal bot" wording.
+- Added setup hero, faction chip, variant-description, and players/roles CSS.
+
+Deviations from plan:
+- The first `smoke:e2e` run failed because `rules-display.smoke.mjs` still expects the setup How-to-Play button under `.setup-summary`. The hero action container now carries `setup-summary` as a compatibility class while preserving the new hero layout; the rerun passed.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:e2e` passed after the selector compatibility fix, including a11y/no-leak coverage.
+- Manual review confirmed variant descriptions render only when present, faction labels surface from Rust-projected catalog metadata, and fallback player labels remain available when metadata is absent.
