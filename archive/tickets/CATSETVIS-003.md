@@ -1,6 +1,6 @@
 # CATSETVIS-003: Per-game `catalog_theme` metadata + per-game accents
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/*/src/ui.rs` (Rust inert UI metadata, incl. new `games/race_to_n/src/ui.rs` + its `lib.rs` module wiring), `apps/web/src/styles.css`
@@ -94,3 +94,23 @@ Add per-game `.game-card[data-game-id="…"]` / setup-header accent overrides in
 1. `cargo build --workspace && cargo test --workspace`
 2. `grep -rl 'catalog_theme' games/*/src/ui.rs | wc -l` (expect `14`)
 3. `npm --prefix apps/web run smoke:ui && bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Added inert `CatalogThemeMetadata` plus `catalog_theme()` to the 13 existing `games/<id>/src/ui.rs` modules.
+- Added the missing `games/race_to_n/src/ui.rs` and wired `pub mod ui;` into `games/race_to_n/src/lib.rs`.
+- Added per-game `data-game-id` CSS custom-property accent overrides in `apps/web/src/styles.css` for the catalog/setup surfaces.
+
+Deviations from plan:
+- The `poker_lite` local UI-copy guard rejected the term `poker` in the new inert metadata. The theme metadata was corrected to use the public vocabulary `crest_ledger` / `crest-ledger` while the web-facing CSS selector remains keyed by the existing game id.
+
+Verification:
+- `cargo fmt --all --check` passed.
+- `grep -rl 'catalog_theme' games/*/src/ui.rs | wc -l` returned `14`.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- Initial `cargo test --workspace` exposed the `poker_lite` guarded-vocabulary issue above; after correction, `cargo test -p poker_lite --lib ui::tests::ui_copy_uses_neutral_terms` passed and `cargo test --workspace` passed.

@@ -1,9 +1,9 @@
-//! UI metadata placeholders for Frontier Control.
+//! UI metadata for Race to 21.
 
 pub const SEAT_LABEL_AUDIT: &str =
-    "Frontier Control already projects faction labels through its Rust faction view.";
+    "Race to 21 is factionless; keep existing first-player/second-player labels.";
 pub const TURN_REPORT_AUDIT: &str =
-    "Not adopted by ACTCONMAT-006; Frontier Control automation narration is outside this ticket.";
+    "Not adopted by ACTCONMAT-006; Race to 21 has no automated non-interactive burst surface in scope.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CatalogThemeMetadata {
@@ -17,11 +17,11 @@ pub struct CatalogThemeMetadata {
 
 pub fn catalog_theme() -> CatalogThemeMetadata {
     CatalogThemeMetadata {
-        icon_id: "frontier_control",
-        theme_key: "frontier-control",
+        icon_id: "race_to_n",
+        theme_key: "race-to-n",
         accent_token: "--game-accent",
         secondary_accent_token: "--game-accent-2",
-        shape_token: "folded-frontier-map",
-        accessibility_label: "Frontier Control abstract folded frontier map",
+        shape_token: "ascending-step-path",
+        accessibility_label: "Race to 21 abstract ascending step path",
     }
 }

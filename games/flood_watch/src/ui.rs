@@ -13,6 +13,27 @@ pub const TURN_REPORT_ADOPTION: &str =
     "Adopted by ACTCONMAT-006; Flood Watch reports viewer-filtered automation and storm bursts near the board.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "flood_watch",
+        theme_key: "flood-watch",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "drop-and-wave-lines",
+        accessibility_label: "Flood Watch abstract drop above wave lines",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub display_name: String,
     pub event_deck_label: String,

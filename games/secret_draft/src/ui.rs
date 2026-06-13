@@ -6,6 +6,27 @@ pub const TURN_REPORT_AUDIT: &str =
     "Not adopted by ACTCONMAT-006; Veiled Draft reveal narration already stays in its board surface.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "secret_draft",
+        theme_key: "secret-draft",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "folded-hidden-draft",
+        accessibility_label: "Veiled Draft abstract folded hidden draft panel",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
     pub game_id: &'static str,
     pub display_name: &'static str,

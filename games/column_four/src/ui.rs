@@ -6,6 +6,27 @@ pub const TURN_REPORT_AUDIT: &str =
     "Not adopted by ACTCONMAT-006; Column Four has no automated non-interactive burst surface in scope.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "column_four",
+        theme_key: "column-four",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "stacked-column-tokens",
+        accessibility_label: "Column Four abstract vertical token stack",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PieceTokenMetadata {
     pub seat: ColumnFourSeat,
     pub token_key: &'static str,

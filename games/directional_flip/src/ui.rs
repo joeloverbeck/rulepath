@@ -6,6 +6,27 @@ pub const TURN_REPORT_AUDIT: &str =
     "Not adopted by ACTCONMAT-006; Directional Flip has no automated non-interactive burst surface in scope.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogThemeMetadata {
+    pub icon_id: &'static str,
+    pub theme_key: &'static str,
+    pub accent_token: &'static str,
+    pub secondary_accent_token: &'static str,
+    pub shape_token: &'static str,
+    pub accessibility_label: &'static str,
+}
+
+pub fn catalog_theme() -> CatalogThemeMetadata {
+    CatalogThemeMetadata {
+        icon_id: "directional_flip",
+        theme_key: "directional-flip",
+        accent_token: "--game-accent",
+        secondary_accent_token: "--game-accent-2",
+        shape_token: "opposing-rotation-arrows",
+        accessibility_label: "Directional Flip abstract opposing rotation arrows",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DiscTokenMetadata {
     pub seat: DirectionalFlipSeat,
     pub token_key: &'static str,

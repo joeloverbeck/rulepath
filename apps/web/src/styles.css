@@ -1942,6 +1942,118 @@ h2 {
   border-radius: var(--rp-radius-sm);
 }
 
+.game-card[data-game-id="race_to_n"],
+.setup-hero[data-game-id="race_to_n"] {
+  --game-accent: #2f7d68;
+  --game-accent-2: #c18732;
+  --game-card-art-bg: #edf6f0;
+  --game-card-art-line: #265b4d;
+}
+
+.game-card[data-game-id="three_marks"],
+.setup-hero[data-game-id="three_marks"] {
+  --game-accent: #6f5fa8;
+  --game-accent-2: #d08a38;
+  --game-card-art-bg: #f2eff8;
+  --game-card-art-line: #4d4277;
+}
+
+.game-card[data-game-id="column_four"],
+.setup-hero[data-game-id="column_four"] {
+  --game-accent: #b05f36;
+  --game-accent-2: #2d7b73;
+  --game-card-art-bg: #fbf1ea;
+  --game-card-art-line: #743f28;
+}
+
+.game-card[data-game-id="directional_flip"],
+.setup-hero[data-game-id="directional_flip"] {
+  --game-accent: #2f6f9f;
+  --game-accent-2: #c6a13b;
+  --game-card-art-bg: #eef6fa;
+  --game-card-art-line: #244e70;
+}
+
+.game-card[data-game-id="draughts_lite"],
+.setup-hero[data-game-id="draughts_lite"] {
+  --game-accent: #7a4f86;
+  --game-accent-2: #54803d;
+  --game-card-art-bg: #f5eff7;
+  --game-card-art-line: #56375f;
+}
+
+.game-card[data-game-id="high_card_duel"],
+.setup-hero[data-game-id="high_card_duel"] {
+  --game-accent: #8b5e3c;
+  --game-accent-2: #3f7f90;
+  --game-card-art-bg: #f7f1eb;
+  --game-card-art-line: #62432d;
+}
+
+.game-card[data-game-id="token_bazaar"],
+.setup-hero[data-game-id="token_bazaar"] {
+  --game-accent: #28736b;
+  --game-accent-2: #b98c2e;
+  --game-card-art-bg: #edf7f4;
+  --game-card-art-line: #215853;
+}
+
+.game-card[data-game-id="secret_draft"],
+.setup-hero[data-game-id="secret_draft"] {
+  --game-accent: #6b668f;
+  --game-accent-2: #c77c56;
+  --game-card-art-bg: #f2f1f8;
+  --game-card-art-line: #4d4968;
+}
+
+.game-card[data-game-id="poker_lite"],
+.setup-hero[data-game-id="poker_lite"] {
+  --game-accent: #7b5734;
+  --game-accent-2: #2f7662;
+  --game-card-art-bg: #f8f1e8;
+  --game-card-art-line: #5a3f29;
+}
+
+.game-card[data-game-id="plain_tricks"],
+.setup-hero[data-game-id="plain_tricks"] {
+  --game-accent: #386f8a;
+  --game-accent-2: #a56a3b;
+  --game-card-art-bg: #edf5f8;
+  --game-card-art-line: #2c5366;
+}
+
+.game-card[data-game-id="masked_claims"],
+.setup-hero[data-game-id="masked_claims"] {
+  --game-accent: #8a536b;
+  --game-accent-2: #5d7d3d;
+  --game-card-art-bg: #f8eef3;
+  --game-card-art-line: #653d4f;
+}
+
+.game-card[data-game-id="flood_watch"],
+.setup-hero[data-game-id="flood_watch"] {
+  --game-accent: #2d6f86;
+  --game-accent-2: #4d8b6a;
+  --game-card-art-bg: #ebf5f8;
+  --game-card-art-line: #234f60;
+}
+
+.game-card[data-game-id="frontier_control"],
+.setup-hero[data-game-id="frontier_control"] {
+  --game-accent: #6f7041;
+  --game-accent-2: #3c7d76;
+  --game-card-art-bg: #f4f4e8;
+  --game-card-art-line: #53542f;
+}
+
+.game-card[data-game-id="event_frontier"],
+.setup-hero[data-game-id="event_frontier"] {
+  --game-accent: #7c5b8f;
+  --game-accent-2: #bf7a35;
+  --game-card-art-bg: #f4eff7;
+  --game-card-art-line: #5a4267;
+}
+
 .game-card:focus-visible {
   outline: 3px solid var(--rp-interactive-focus);
   outline-offset: 3px;
