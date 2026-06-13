@@ -1,6 +1,6 @@
 # CATSETVIS-002: Original inline-SVG catalog icon registry
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/GameCatalogIcon.tsx` (new)
@@ -79,3 +79,21 @@ Expose a `decorative` vs `standalone` mode: `aria-hidden="true"` when a visible 
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui`
 3. `grep -c 'game_id' apps/web/src/components/GameCatalogIcon.tsx` — confirms the registry enumerates per-game entries (the 14-id count assertion above is the precise check; legibility/IP are manual-review surfaces, not command-runnable).
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- Added `apps/web/src/components/GameCatalogIcon.tsx`, a presentation-only inline SVG registry with one project-authored abstract icon for each of the 14 official catalog game ids.
+- Added decorative and standalone accessibility modes: decorative icons are hidden from assistive tech when adjacent text names the game; standalone icons expose a `<title>` via `role="img"`.
+- Kept the component independent of catalog markup until CATSETVIS-004/007 consume it.
+
+Deviations from plan:
+- None. No external image assets, AI-generated art, UI framework, behavior logic, or dependency changes were introduced.
+
+Verification:
+- `grep -oE '"(race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|token_bazaar|secret_draft|poker_lite|plain_tricks|masked_claims|flood_watch|frontier_control|event_frontier)"' apps/web/src/components/GameCatalogIcon.tsx | sort -u | wc -l` returned `14`.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- Manual IP/legibility review: every motif is original abstract inline SVG geometry, uses color plus shape, has no copied source/trade-dress dependency, and is structured for small-size monochrome review in the CATSETVIS-009 asset table.
