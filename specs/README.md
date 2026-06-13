@@ -85,7 +85,7 @@ edited to record progress; this table is.
 
 | Order | Unit | Spec | Status | Interlock |
 |---:|---|---|---|---|
-| 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](phase-0-next-phase-foundation-realignment.md) | Done | ADR 0007 accepted; multi-seat contract, foundation docs, templates, ROADMAP, and this index reconciled. Evidence below. |
+| 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](../archive/specs/phase-0-next-phase-foundation-realignment.md) | Done | ADR 0007 accepted; multi-seat contract, foundation docs, templates, ROADMAP, and this index reconciled. Evidence below. |
 | 1 | Infra A — N-seat setup/catalog metadata | _(seed; unwritten)_ | Not started | Next admissible unit. Roadmap phase is recorded; no kernel change; no TS legality. |
 | 2 | Infra B — N-seat simulator summaries | _(seed; unwritten)_ | Not started | Pending Infra A. Replaces `seat_0_wins`/`seat_1_wins` with indexed maps; deterministic order. |
 | 3 | Infra C — Multi-seat shell frame | _(seed; unwritten)_ | Not started | Pending Infra B. Presentation-only; Rust owns turn order / active-pending seats. |

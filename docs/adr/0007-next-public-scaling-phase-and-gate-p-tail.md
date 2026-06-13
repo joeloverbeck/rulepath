@@ -20,7 +20,7 @@ Related documents:
 - `docs/IP-POLICY.md`
 - `docs/AGENT-DISCIPLINE.md`
 - `specs/README.md`
-- `specs/phase-0-next-phase-foundation-realignment.md`
+- `archive/specs/phase-0-next-phase-foundation-realignment.md`
 - `reports/foundation-doc-realignment.md`
 - `reports/public-game-ladder-and-implementation-order.md`
 
@@ -222,7 +222,7 @@ Existing docs to update:
 - `docs/ROADMAP.md` after this ADR is accepted.
 - `specs/README.md` after the ROADMAP update lands.
 - Phase 0 foundation docs and templates as tracked by
-  `specs/phase-0-next-phase-foundation-realignment.md`.
+  `archive/specs/phase-0-next-phase-foundation-realignment.md`.
 
 Existing games to back-port:
 

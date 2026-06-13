@@ -1,11 +1,13 @@
 # Phase 0 — Foundation Realignment & Next-Phase Admission
 
+**Status**: COMPLETED
+
 | Field | Value |
 |---|---|
 | Spec ID | `phase-0-next-phase-foundation-realignment` |
 | Roadmap stage | Public scaling phase — Order 0 (pre-Gate-15 foundation pass) |
 | Roadmap build gate | Phase 0 — **non-feature** docs/templates/admission realignment |
-| Status | Planned |
+| Status | Completed |
 | Date | 2026-06-13 |
 | Owner | Rulepath maintainers |
 | Primary targets | `docs/adr/0007-*.md` (new), `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` (new), the foundation/area doc set, `templates/**`, `docs/ROADMAP.md` |
@@ -254,3 +256,50 @@ Do not:
   research-or-skip decision (`research-brief` / `deep-research`) is made explicit.
 - A6: The two source reports' commit baseline (`e3b1729`) is close enough to live
   `main` that per-file re-reads at decomposition time will reconcile any drift.
+
+## Outcome
+
+Completed: 2026-06-13
+
+Completed tickets:
+
+- `archive/tickets/PHA0NEXPHAFOU-001.md`
+- `archive/tickets/PHA0NEXPHAFOU-002.md`
+- `archive/tickets/PHA0NEXPHAFOU-003.md`
+- `archive/tickets/PHA0NEXPHAFOU-004.md`
+- `archive/tickets/PHA0NEXPHAFOU-005.md`
+- `archive/tickets/PHA0NEXPHAFOU-006.md`
+- `archive/tickets/PHA0NEXPHAFOU-007.md`
+- `archive/tickets/PHA0NEXPHAFOU-008.md`
+- `archive/tickets/PHA0NEXPHAFOU-009.md`
+- `archive/tickets/PHA0NEXPHAFOU-010.md`
+- `archive/tickets/PHA0NEXPHAFOU-011.md`
+- `archive/tickets/PHA0NEXPHAFOU-012.md`
+- `archive/tickets/PHA0NEXPHAFOU-013.md`
+- `archive/tickets/PHA0NEXPHAFOU-014.md`
+- `archive/tickets/PHA0NEXPHAFOU-015.md`
+
+Implementation summary:
+
+- ADR 0007 was authored and accepted, admitting the public scaling phase and moving Gate P to the tail.
+- Added and indexed `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`.
+- Realigned the foundation, area, IP/source, discipline, archival, ADR, and template documents with N-seat, pairwise no-leak, larger-surface, outcome, bot, UI, testing, benchmark, and bounded-task fields.
+- Recorded the public scaling phase in `docs/ROADMAP.md` and reconciled `specs/README.md` so Phase 0 is `Done` and the next admissible unit is Infra A.
+
+Deviations:
+
+- ADR 0007 was initially authored as `Proposed` because the authoring ticket forbade self-acceptance. A later maintainer status change to `Accepted` unblocked the ROADMAP admission ticket and was included with that ticket's commit.
+- No Rust, WASM, tooling, CI, trace, fixture, benchmark, or game code was changed by this realignment.
+
+Verification evidence:
+
+- `node scripts/check-doc-links.mjs` passed.
+- `node scripts/check-catalog-docs.mjs` passed.
+- `bash scripts/boundary-check.sh` passed.
+- Ticket-specific grep checks recorded in each archived ticket outcome passed.
+- Archive truthing confirmed the active `tickets/PHA0NEXPHAFOU*.md` glob is empty, all 15 archived tickets carry archival status plus `## Outcome`, and this archived spec carries archival status plus `## Outcome`.
+
+Unrelated worktree changes:
+
+- `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md` was left untouched.
