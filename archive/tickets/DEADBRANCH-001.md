@@ -1,6 +1,6 @@
 # DEADBRANCH-001: engine-core ActionTree dead-branch detection
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `engine-core` (`crates/engine-core/src/action.rs`): new generic well-formedness API on `ActionTree`/`ActionNode`. No behavior change to existing types' fields or serialization.
@@ -139,3 +139,25 @@ may assert on stable output. Do not mutate or prune the tree — detection only.
 2. `cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings`
 3. Narrow `-p engine-core` command isolates the new primitive; the workspace run
    proves no consumer of the shared `ActionTree` type regressed.
+
+## Outcome
+
+Completed: 2026-06-13
+
+Added `ActionTree::dead_branch_paths`, `ActionTree::has_dead_branches`, and
+`ActionNode::dead_branch_paths` in `crates/engine-core/src/action.rs`. The detector
+is read-only, deterministic, depth-first, and reports the path to each non-leaf
+choice whose subtree contains no reachable leaf.
+
+Added engine-core unit coverage for all-leaf trees, healthy nested choices, empty
+child nodes, recursively dead subtrees, and deterministic report ordering.
+
+Deviations from plan: none. The change added methods only and did not alter the
+serialized action-tree schema or any consumer contract.
+
+Verification:
+
+- `cargo test -p engine-core action::`
+- `cargo test --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `bash scripts/boundary-check.sh`
