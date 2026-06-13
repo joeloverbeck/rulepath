@@ -112,6 +112,14 @@ try {
   );
   await assertNoLeak(page, consoleMessages, "hard winter variant start");
 
+  await startEventFrontier(page, baseUrl, "Human vs bot", 2);
+  await assertHumanVsBotModeControlsIdle(page);
+  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
+  await startEventFrontier(page, baseUrl, "Human vs bot", 1, "Event Frontier", { modeControlProbe: true });
+  await assertHumanVsBotModeControlsActive(page);
+  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+  await assertNoLeak(page, consoleMessages, "human-vs-bot orchestration controls");
+
   await startEventFrontier(page, baseUrl, "Hotseat", 3);
   await assertFactionFirstCopy(page);
   await assertEventFrontierBoardA11y(page);
@@ -204,7 +212,7 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startEventFrontier(page, baseUrl, modeLabel, seed, variantLabel = "Event Frontier") {
+async function startEventFrontier(page, baseUrl, modeLabel, seed, variantLabel = "Event Frontier", options = {}) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "Event Frontier");
   await assertPickerAndSetupHygiene(page);
@@ -224,6 +232,9 @@ async function startEventFrontier(page, baseUrl, modeLabel, seed, variantLabel =
   );
   await clickLabel(page, modeLabel);
   await assertEventFrontierSetupCopy(page, modeLabel);
+  if (options.modeControlProbe) {
+    await installHumanVsBotControlProbe(page);
+  }
   await clickButtonText(page, "Start Match");
   await page.waitForSelector('[data-testid="event-frontier-board"]');
 }
@@ -563,6 +574,36 @@ async function assertActionConfirmSummary(page) {
 
 async function assertEventFrontierBotWhy(page) {
   await page.waitForSelector('[data-testid="bot-explanation"]');
+  const layout = await page.evaluate(() => {
+    const controls = document.querySelector(".mode-controls");
+    const header = document.querySelector(".mode-controls-header");
+    const botWhy = document.querySelector('[data-testid="bot-explanation"]');
+    const buttonWidths = Array.from(document.querySelectorAll(".mode-actions button")).map((button) => ({
+      text: button.textContent?.trim() ?? "",
+      width: button.getBoundingClientRect().width,
+      flexBasis: window.getComputedStyle(button).flexBasis,
+      flexGrow: window.getComputedStyle(button).flexGrow,
+    }));
+    const controlsRect = controls?.getBoundingClientRect();
+    const headerRect = header?.getBoundingClientRect();
+    const botWhyRect = botWhy?.getBoundingClientRect();
+    return {
+      childClasses: Array.from(controls?.children ?? []).map((child) => child.className),
+      headerContainsBotWhy: Boolean(header?.contains(botWhy)),
+      botWhyBelowHeader: Boolean(headerRect && botWhyRect && botWhyRect.top >= headerRect.bottom),
+      botWhyWidth: botWhyRect?.width ?? 0,
+      controlsWidth: controlsRect?.width ?? 0,
+      buttonWidths,
+    };
+  });
+  assert(layout.childClasses[0] === "mode-controls-header", "Mode controls render a header row first");
+  assert(!layout.headerContainsBotWhy, "Bot why is outside the mode controls header row");
+  assert(layout.botWhyBelowHeader, "Bot why sits beneath the mode controls header row");
+  assert(layout.botWhyWidth >= layout.controlsWidth * 0.9, "Bot why spans the mode controls stack");
+  assert(
+    layout.buttonWidths.every((entry) => entry.flexBasis !== "140px" && entry.flexGrow === "0"),
+    `Mode action buttons do not use the old stretch rule: ${JSON.stringify(layout.buttonWidths)}`,
+  );
   const open = await page.$eval('[data-testid="bot-explanation"]', (element) => element.hasAttribute("open"));
   if (!open) {
     await page.click('[data-testid="bot-explanation"] summary');
@@ -571,6 +612,90 @@ async function assertEventFrontierBotWhy(page) {
   assert(text.includes("Bot why"), "Event Frontier exposes the bot why affordance");
   assert(/Charter|Freeholders/.test(text), "Event Frontier bot why shows Rust rationale in player vocabulary");
   assert(text.includes("Level 1 bot policy"), "Event Frontier bot why identifies the human-readable Rust policy tier");
+}
+
+async function assertHumanVsBotModeControlsIdle(page) {
+  await page.waitForFunction(() => {
+    const mode = document.querySelector(".mode-controls")?.textContent ?? "";
+    return mode.includes("Human vs bot") && mode.includes("Charter (you) to act");
+  });
+  const controls = await humanVsBotControlState(page);
+  assert(controls.skipDisabled === true, "human-vs-bot idle turn disables Skip");
+  assert(controls.pauseDisabled === true, "human-vs-bot idle turn disables Pause");
+  assert(controls.skipLabel.includes("nothing to skip"), "idle Skip label explains no-op state");
+  assert(controls.pauseLabel.includes("nothing to pause"), "idle Pause label explains no-op state");
+}
+
+async function assertHumanVsBotModeControlsActive(page) {
+  await page.waitForFunction(() => (window.__modeControlStates ?? []).length > 0);
+  const observed = await page.evaluate(() => window.__modeControlStates ?? []);
+  const enabled = observed.some((entry) => entry.skipDisabled === false && entry.pauseDisabled === false);
+  if (!enabled) {
+    const debug = await page.evaluate(() => ({
+      textView: window.render_game_to_text ? JSON.parse(window.render_game_to_text()) : null,
+      modeText: document.querySelector(".mode-controls")?.textContent ?? "",
+      observed: window.__modeControlStates ?? [],
+      controls: Array.from(document.querySelectorAll(".mode-controls button")).map((button) => ({
+        text: button.textContent?.trim() ?? "",
+        disabled: button.disabled,
+        ariaLabel: button.getAttribute("aria-label"),
+      })),
+    }));
+    throw new Error(`human-vs-bot active controls did not enable: ${JSON.stringify(debug)}`);
+  }
+  const enabledEntry = observed.find((entry) => entry.skipDisabled === false && entry.pauseDisabled === false);
+  assert(enabledEntry && !enabledEntry.skipLabel.includes("nothing to skip"), "active Skip label describes the available advance");
+  assert(enabledEntry && !enabledEntry.pauseLabel.includes("nothing to pause"), "active Pause label describes the available advance");
+}
+
+async function humanVsBotControlState(page) {
+  return page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll(".mode-controls button"));
+    const byText = (label) => buttons.find((button) => button.textContent?.trim() === label);
+    const pause = byText("Pause") ?? byText("Resume");
+    const skip = byText("Skip");
+    return {
+      skipDisabled: skip?.disabled ?? null,
+      pauseDisabled: pause?.disabled ?? null,
+      skipLabel: skip?.getAttribute("aria-label") ?? "",
+      pauseLabel: pause?.getAttribute("aria-label") ?? "",
+    };
+  });
+}
+
+async function installHumanVsBotControlProbe(page) {
+  await page.evaluate(() => {
+    window.__modeControlStates = [];
+    const sample = () => {
+      const buttons = Array.from(document.querySelectorAll(".mode-controls button"));
+      const byText = (label) => buttons.find((button) => button.textContent?.trim() === label);
+      const pause = byText("Pause") ?? byText("Resume");
+      const skip = byText("Skip");
+      if (!skip || !pause) {
+        return;
+      }
+      window.__modeControlStates.push({
+        skipDisabled: skip.disabled,
+        pauseDisabled: pause.disabled,
+        skipLabel: skip.getAttribute("aria-label") ?? "",
+        pauseLabel: pause.getAttribute("aria-label") ?? "",
+        modeText: document.querySelector(".mode-controls")?.textContent ?? "",
+      });
+    };
+    const observer = new MutationObserver(sample);
+    observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+    let frames = 0;
+    const tick = () => {
+      sample();
+      frames += 1;
+      if (frames < 180) {
+        requestAnimationFrame(tick);
+      } else {
+        observer.disconnect();
+      }
+    };
+    tick();
+  });
 }
 
 async function playBotVsBotToTerminal(page, maxSteps = 32) {

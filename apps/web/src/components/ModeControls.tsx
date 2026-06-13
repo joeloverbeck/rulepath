@@ -8,6 +8,7 @@ type ModeControlsProps = {
   gameName: string;
   autoplayRunning: boolean;
   orchestrationPaused: boolean;
+  orchestrationActive: boolean;
   orchestrationRate: number;
   lastBotDecision: BotDecisionSummary | null;
   pending: boolean;
@@ -28,6 +29,7 @@ export function ModeControls({
   gameName,
   autoplayRunning,
   orchestrationPaused,
+  orchestrationActive,
   orchestrationRate,
   lastBotDecision,
   pending,
@@ -45,6 +47,15 @@ export function ModeControls({
   const botActive = activeSeat ? isBotSeat(playMode, activeSeat) : false;
   const canRunBot = Boolean(view && botActive && !terminal && !pending);
   const canAutoplay = playMode === "bot_vs_bot" && Boolean(view && !terminal);
+  const humanOrchestrationDisabled = terminal || !orchestrationActive;
+  const skipLabel = humanOrchestrationDisabled ? "Skip: nothing to skip right now" : "Skip current bot or animation advance";
+  const pauseLabel = orchestrationPaused
+    ? humanOrchestrationDisabled
+      ? "Resume: nothing is paused right now"
+      : "Resume bot or animation advance"
+    : humanOrchestrationDisabled
+      ? "Pause: nothing to pause right now"
+      : "Pause bot or animation advance";
   const status =
     playMode === "human_vs_bot" && botActive && activeSeat && !terminal
       ? `${activeActorLabel(view, activeSeat, playMode)} turn in progress`
@@ -54,64 +65,78 @@ export function ModeControls({
 
   return (
     <section className="mode-controls" aria-label="Play mode controls">
-      <div>
-        <p className="eyebrow">Mode</p>
-        <h2>{modeLabel(playMode)}</h2>
-        <p>{status}</p>
-      </div>
+      <div className="mode-controls-header">
+        <div>
+          <p className="eyebrow">Mode</p>
+          <h2>{modeLabel(playMode)}</h2>
+          <p>{status}</p>
+        </div>
 
-      <div className="mode-actions">
-        <button
-          type="button"
-          className="secondary rules-trigger"
-          onClick={() => onRulesOpen(gameId)}
-          disabled={!gameId}
-          aria-label={`How to play ${gameName}`}
-        >
-          Rules
-        </button>
+        <div className="mode-actions">
+          <button
+            type="button"
+            className="secondary rules-trigger"
+            onClick={() => onRulesOpen(gameId)}
+            disabled={!gameId}
+            aria-label={`How to play ${gameName}`}
+          >
+            Rules
+          </button>
 
-        {playMode === "human_vs_bot" ? (
-          <>
-            <button type="button" onClick={onSkip} disabled={terminal}>
-              Skip
-            </button>
-            {orchestrationPaused ? (
-              <button type="button" onClick={onOrchestrationResume} disabled={terminal}>
-                Resume
+          {playMode === "human_vs_bot" ? (
+            <>
+              <button type="button" onClick={onSkip} disabled={humanOrchestrationDisabled} aria-label={skipLabel} title={skipLabel}>
+                Skip
               </button>
-            ) : (
-              <button type="button" onClick={onOrchestrationPause} disabled={terminal}>
-                Pause
-              </button>
-            )}
-          </>
-        ) : null}
+              {orchestrationPaused ? (
+                <button
+                  type="button"
+                  onClick={onOrchestrationResume}
+                  disabled={humanOrchestrationDisabled}
+                  aria-label={pauseLabel}
+                  title={pauseLabel}
+                >
+                  Resume
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOrchestrationPause}
+                  disabled={humanOrchestrationDisabled}
+                  aria-label={pauseLabel}
+                  title={pauseLabel}
+                >
+                  Pause
+                </button>
+              )}
+            </>
+          ) : null}
 
-        {playMode === "bot_vs_bot" ? (
-          <>
-            <button type="button" onClick={onBotStep} disabled={!canRunBot}>
-              Step Bot
-            </button>
-            <label className="speed-field">
-              <span>Speed</span>
-              <select value={orchestrationRate} onChange={(event) => onOrchestrationRateChange(Number(event.currentTarget.value))}>
-                <option value={0.5}>0.5x</option>
-                <option value={1}>1x</option>
-                <option value={2}>2x</option>
-              </select>
-            </label>
-            {autoplayRunning ? (
-              <button type="button" onClick={onAutoplayPause}>
-                Pause
+          {playMode === "bot_vs_bot" ? (
+            <>
+              <button type="button" onClick={onBotStep} disabled={!canRunBot}>
+                Step Bot
               </button>
-            ) : (
-              <button type="button" onClick={onAutoplayStart} disabled={!canAutoplay || pending}>
-                Start Autoplay
-              </button>
-            )}
-          </>
-        ) : null}
+              <label className="speed-field">
+                <span>Speed</span>
+                <select value={orchestrationRate} onChange={(event) => onOrchestrationRateChange(Number(event.currentTarget.value))}>
+                  <option value={0.5}>0.5x</option>
+                  <option value={1}>1x</option>
+                  <option value={2}>2x</option>
+                </select>
+              </label>
+              {autoplayRunning ? (
+                <button type="button" onClick={onAutoplayPause}>
+                  Pause
+                </button>
+              ) : (
+                <button type="button" onClick={onAutoplayStart} disabled={!canAutoplay || pending}>
+                  Start Autoplay
+                </button>
+              )}
+            </>
+          ) : null}
+        </div>
       </div>
 
       {gameId === "event_frontier" && lastBotDecision ? (
