@@ -6,53 +6,104 @@ Specs sit between law and execution:
 
 - [`../docs/ROADMAP.md`](../docs/ROADMAP.md) is the prescriptive ladder (law).
 - A **spec** turns one roadmap gate into a concrete, reviewable plan.
-- A filled [`../templates/AGENT-TASK.md`](../templates/AGENT-TASK.md) (in `tasks/`)
-  is the bounded packet an agent or human actually executes.
+- A filled [`../templates/AGENT-TASK.md`](../templates/AGENT-TASK.md) is the
+  bounded packet an agent or human actually executes.
 
 Specs are subordinate to the foundation set in
 [`../docs/README.md`](../docs/README.md). A spec MUST NOT redefine or override any
 foundation contract. Where a spec and a foundation document disagree, the
 foundation document wins.
 
-## Spec index (progress tracker)
+## Epoch rollover note (2026-06-13)
 
-This table is the **living progress record**. A new brainstorm that wants to
-"produce the next spec to continue the roadmap" should read this first and pick
-the lowest-numbered gate or maintenance interlock whose status is not `Done`.
-Open primitive-promotion debt is treated as an interlock before the next new
-mechanic-ladder gate. ROADMAP.md is not edited to record progress; this table is.
+This index was rolled over on 2026-06-13 to open the **public scaling phase** —
+the next-phase ladder that proves 3+ official seats and substantially larger
+surfaces through public, IP-safe games. The pre-rollover index (the fully
+annotated record of Gates 0–14) is frozen at
+[`../archive/specs/README-2026-06-13.md`](../archive/specs/README-2026-06-13.md).
 
-| Stage | Gate | Spec | Status |
-|---:|---|---|---|
-| 0 | Gate 0 | [`gate-0-repository-skeleton.md`](../archive/specs/gate-0-repository-skeleton.md) | Done |
-| 1 | Gate 1 | [`gate-1-race-to-n.md`](../archive/specs/gate-1-race-to-n.md) | Done |
-| 1 | Gate 2 | [`gate-2-trace-replay-benchmark-hardening.md`](../archive/specs/gate-2-trace-replay-benchmark-hardening.md) | Done |
-| 1 | Gate 3 | [`gate-3-wasm-static-web-shell.md`](../archive/specs/gate-3-wasm-static-web-shell.md) | Done |
-| 2 | Gate 4 | [`gate-4-three-marks-board-smoke.md`](../archive/specs/gate-4-three-marks-board-smoke.md) | Done |
-| 3 | Gate 5 | [`gate-5-column-four-public-polish.md`](../archive/specs/gate-5-column-four-public-polish.md) | Done |
-| 4 | Gate 6 | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
-| 5 | Gate 7 | [`gate-7-draughts-lite-compound-action-tree.md`](../archive/specs/gate-7-draughts-lite-compound-action-tree.md) | Done |
-| 5M | Gate 7.1 | [`gate-7-1-board-space-primitive-back-port.md`](../archive/specs/gate-7-1-board-space-primitive-back-port.md) | Done |
-| 5M | Gate 7.2 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](../archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Done |
-| 6 | Gate 8 | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](../archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Done |
-| 6C | Post-Gate-8 Blackjack placement audit | [`../docs/adr/0006-blackjack-lite-roadmap-placement.md`](../docs/adr/0006-blackjack-lite-roadmap-placement.md) closes the checkpoint: `blackjack_lite` is not a Gate 8.1 implementation target and is deferred as a Gate 10-or-later comparison case. Gate 8's `high_card_duel` evidence satisfies deterministic shuffle, private-view, effect-filter, public replay/export, bot-view, browser no-leak, and benchmark proof. No Blackjack interlock blocks Gate 9. | Done |
-| 6M | Gate 8 aftermath / roadmap realignment | [`gate-8-aftermath-roadmap-realignment.md`](../archive/specs/gate-8-aftermath-roadmap-realignment.md) reconciles root, progress, web, source-note, and CI smoke routing after Gate 8 so Gate 9 starts from truthful docs. | Done |
-| 7 | Gate 9 | [`gate-9-token-bazaar-browser-proof.md`](../archive/specs/gate-9-token-bazaar-browser-proof.md) (`token_bazaar`; `secret_draft` deferred to a Gate 9.1 commitment/reveal gate) | Done |
-| 7M | Gate 9 aftermath / web README realignment | [`gate-9-aftermath-roadmap-realignment.md`](../archive/specs/gate-9-aftermath-roadmap-realignment.md) realigns the web-shell README (intro, Shell Surface, Smoke Layers) to register Token Bazaar after Gate 9. | Done |
-| - | Non-gate (UI infra) | [`rules-display-shared-surface.md`](../archive/specs/rules-display-shared-surface.md) | Done |
-| - | Non-gate (UI infra) | [`victory-explanation-shared-surface.md`](../archive/specs/victory-explanation-shared-surface.md) | Done |
-| 8 | Gate 9.1 | [`gate-9-1-secret-draft-commitment-reveal.md`](../archive/specs/gate-9-1-secret-draft-commitment-reveal.md) (`secret_draft` / Veiled Draft; simultaneous commitment/reveal and pending-seat no-leak proof) | Done |
-| 9 | Gate 10 | [`poker_lite` / Crest Ledger betting-showdown proof](../archive/specs/gate-10-poker-lite-betting-showdown.md) plus [`plain_tricks` / Plain Tricks trick-taking proof](../archive/specs/gate-10-1-plain-tricks-trick-taking-proof.md) complete the betting/showdown and trick/follow-suit halves | Done |
-| 10 | Gate 10.1 | [`gate-10-1-plain-tricks-trick-taking-proof.md`](../archive/specs/gate-10-1-plain-tricks-trick-taking-proof.md) (`plain_tricks` / Plain Tricks; lead/follow legality, trick resolution, round scoring, deal rotation; carries the third-use card/private-hand ledger hard gate; closes the remaining Gate 10 trick rows) | Done |
-| 11 | Gate 11 | [`gate-11-masked-claims-bluff-reaction-proof.md`](../archive/specs/gate-11-masked-claims-bluff-reaction-proof.md) (`masked_claims` / Masked Claims; claim/challenge reaction-window, pending-response, and conditional-resolution proof; carries the fourth-use shuffle/private-hand ledger reopen as pre-implementation work) | Done |
-| 12 | Gate 12 | [`gate-12-flood-watch-cooperative-event-pressure-proof.md`](../archive/specs/gate-12-flood-watch-cooperative-event-pressure-proof.md) (`flood_watch` / Flood Watch; shared-outcome cooperative event-pressure proof: deterministic effect-log-driven environment automation, role powers, multi-action budgets, scenario setup; carries pre-implementation atlas reviews for the reaction-window and deterministic-shuffle rows) | Done |
-| 13 | Gate 13 | [`gate-13-frontier-control-asymmetric-area-control-proof.md`](../archive/specs/gate-13-frontier-control-asymmetric-area-control-proof.md) (`frontier_control` / Frontier Control; asymmetric graph-map area-control proof: graph topology, site control, faction-asymmetric actions and scoring, per-faction UI and bots; carries pre-implementation atlas reviews for the board_space audit, role-modifier and multi-action-budget second uses, and the shared-outcome and reaction-window comparison rows) | Done |
-| 14 | Gate 14 | [`gate-14-event-frontier-event-complexity-capstone.md`](../archive/specs/gate-14-event-frontier-event-complexity-capstone.md) (`event_frontier` / Event Frontier; event-deck/eligibility-initiative/periodic-scoring/asymmetric-victory capstone proof with scripted policy bots, scenarios, and long-game replay; carries two pre-implementation atlas hard gates — the public-resource-accounting third use and the multi-action-budget third-use candidate — plus the second-use comparisons Gate 13 armed) | Done |
-| - | Non-gate (UI infra) | [`card-and-action-presentation-shared-surfaces.md`](../archive/specs/card-and-action-presentation-shared-surfaces.md) (component display metadata + shared deck presentation + shared progressive action construction + catalog copy hygiene; motivated by Gate 14 presentation debt; backfills `event_frontier`/`flood_watch`, audits `frontier_control` and all action panels; future-binding via UI-INTERACTION/OFFICIAL-GAME-CONTRACT amendments) | Done |
-| - | Non-gate (UI infra) | [`action-consequence-and-match-context-shared-surfaces.md`](../archive/specs/action-consequence-and-match-context-shared-surfaces.md) (action cost/consequence display + faction-first match identity + turn-report narration of bot/automated advances + deep-detail tier + rules/setup fixes incl. variant selector; motivated by the 2026-06-12 `event_frontier` live-app usability audit; carries a runtime raw-identifier DOM guard and the bot-why §15 audit; future-binding via UI-INTERACTION/OFFICIAL-GAME-CONTRACT amendments; capstone evidence recorded in the spec's acceptance evidence) | Done |
-| - | Non-gate (UI infra) | [`effect-animation-and-turn-orchestration.md`](../archive/specs/effect-animation-and-turn-orchestration.md) (effect-driven animation scheduler implementing UI-INTERACTION §10 + turn orchestration/pacing — auto-advancing bot turns, skip/pause, never-block-input, reduced-motion equivalence; absorbs the effect-log burst-grouping residue; records the dormant C3 staged-encoding and C4 visibility ADR triggers in its sequencing; sourced from `brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md` P1; closeout evidence: `smoke:e2e` includes `e2e/animation.smoke.mjs`, `smoke:animation` covers burst/scheduler/presenter/catalog sweep, doc/boundary checks passed, and brainstorm P1/P4 rows are Done) | Done |
-| - | Non-gate (UI infra) | [`catalog-setup-visual-redesign.md`](../archive/specs/catalog-setup-visual-redesign.md) (catalog picker + match-setup visual redesign: CSS design-token layer over vanilla CSS, original inline-SVG icon system for all 14 games + inert per-game `catalog_theme` `ui.rs` metadata incl. new `race_to_n/src/ui.rs`, fixed-aspect card anatomy, selected-game setup hero with prominent seat/faction labels, and one optional typed inert `description?` variant field projected `variants.rs` → `crates/wasm-api` → `GameVariantCatalogEntry.description?` with parser behavior-key rejection + `smoke-ui.mjs` shape assertion; sourced from `brainstorming/2026-06-12-deferred-ui-infrastructure-priorities.md` P2 and `reports/catalog-setup-*`; no ADR / no FOUNDATIONS amendment; per-asset IP closeout; closeout evidence recorded in the spec) | Done |
-| — | Gate P | private monster-game red-team (late, isolated, non-public) | Not started |
+The scaling phase is seeded from two advisory research reports:
+
+- [`../reports/foundation-doc-realignment.md`](../reports/foundation-doc-realignment.md)
+  — the doc/template realignment the phase needs before execution.
+- [`../reports/public-game-ladder-and-implementation-order.md`](../reports/public-game-ladder-and-implementation-order.md)
+  — the public game ladder (Gate 15+) and phased implementation order.
+
+**Hard prerequisite.** `docs/ROADMAP.md` currently ends at Gate 14 with a Gate P
+appendix, and its header is law: *a stage or gate may be skipped or reordered
+only by accepted ADR.* The public scaling phase (Gate 15+) and the move of Gate P
+to the tail therefore depend on an **accepted ADR 0007**, which is authored as
+the first work-breakdown item of the Phase 0 spec below. Every Gate 15+ row is
+`Not started` and cannot be admitted until ADR 0007 is accepted and ROADMAP
+records the new phase. The infrastructure interlocks additionally depend on the
+Phase 0 doctrine (the new multi-seat contract and the N-seat no-leak taxonomy).
+
+## Completed — public mechanic ladder (Gates 0–14)
+
+This ladder is `Done`. Full annotations and links live in the frozen snapshot
+[`../archive/specs/README-2026-06-13.md`](../archive/specs/README-2026-06-13.md);
+each archived spec carries its own Outcome section.
+
+| Stage | Gate | Game / focus | Spec | Status |
+|---:|---|---|---|---|
+| 0 | Gate 0 | Repository skeleton | [`gate-0-repository-skeleton.md`](../archive/specs/gate-0-repository-skeleton.md) | Done |
+| 1 | Gate 1 | `race_to_n` | [`gate-1-race-to-n.md`](../archive/specs/gate-1-race-to-n.md) | Done |
+| 1 | Gate 2 | Trace/replay/benchmark hardening | [`gate-2-trace-replay-benchmark-hardening.md`](../archive/specs/gate-2-trace-replay-benchmark-hardening.md) | Done |
+| 1 | Gate 3 | WASM static web shell | [`gate-3-wasm-static-web-shell.md`](../archive/specs/gate-3-wasm-static-web-shell.md) | Done |
+| 2 | Gate 4 | `three_marks` | [`gate-4-three-marks-board-smoke.md`](../archive/specs/gate-4-three-marks-board-smoke.md) | Done |
+| 3 | Gate 5 | `column_four` | [`gate-5-column-four-public-polish.md`](../archive/specs/gate-5-column-four-public-polish.md) | Done |
+| 4 | Gate 6 | `directional_flip` | [`gate-6-directional-flip.md`](../archive/specs/gate-6-directional-flip.md) | Done |
+| 5 | Gate 7 | `draughts_lite` (compound action tree) | [`gate-7-draughts-lite-compound-action-tree.md`](../archive/specs/gate-7-draughts-lite-compound-action-tree.md) | Done |
+| 5M | Gate 7.1 | `board_space` primitive back-port | [`gate-7-1-board-space-primitive-back-port.md`](../archive/specs/gate-7-1-board-space-primitive-back-port.md) | Done |
+| 5M | Gate 7.2 / 6 | `high_card_duel` (hidden-info / chance) | [`gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md`](../archive/specs/gate-7-2-and-gate-8-high-card-duel-hidden-info-chance-proof.md) | Done |
+| 6C | Post-Gate-8 | Blackjack-lite placement audit | [`../docs/adr/0006-blackjack-lite-roadmap-placement.md`](../docs/adr/0006-blackjack-lite-roadmap-placement.md) | Done |
+| 6M | Gate 8 aftermath | Roadmap realignment | [`gate-8-aftermath-roadmap-realignment.md`](../archive/specs/gate-8-aftermath-roadmap-realignment.md) | Done |
+| 7 | Gate 9 | `token_bazaar` | [`gate-9-token-bazaar-browser-proof.md`](../archive/specs/gate-9-token-bazaar-browser-proof.md) | Done |
+| 7M | Gate 9 aftermath | Web README realignment | [`gate-9-aftermath-roadmap-realignment.md`](../archive/specs/gate-9-aftermath-roadmap-realignment.md) | Done |
+| 8 | Gate 9.1 | `secret_draft` (commitment/reveal) | [`gate-9-1-secret-draft-commitment-reveal.md`](../archive/specs/gate-9-1-secret-draft-commitment-reveal.md) | Done |
+| 9 | Gate 10 | `poker_lite` (betting/showdown) | [`gate-10-poker-lite-betting-showdown.md`](../archive/specs/gate-10-poker-lite-betting-showdown.md) | Done |
+| 10 | Gate 10.1 | `plain_tricks` (trick-taking) | [`gate-10-1-plain-tricks-trick-taking-proof.md`](../archive/specs/gate-10-1-plain-tricks-trick-taking-proof.md) | Done |
+| 11 | Gate 11 | `masked_claims` (bluff/reaction) | [`gate-11-masked-claims-bluff-reaction-proof.md`](../archive/specs/gate-11-masked-claims-bluff-reaction-proof.md) | Done |
+| 12 | Gate 12 | `flood_watch` (cooperative event pressure) | [`gate-12-flood-watch-cooperative-event-pressure-proof.md`](../archive/specs/gate-12-flood-watch-cooperative-event-pressure-proof.md) | Done |
+| 13 | Gate 13 | `frontier_control` (asymmetric area control) | [`gate-13-frontier-control-asymmetric-area-control-proof.md`](../archive/specs/gate-13-frontier-control-asymmetric-area-control-proof.md) | Done |
+| 14 | Gate 14 | `event_frontier` (event-complexity capstone) | [`gate-14-event-frontier-event-complexity-capstone.md`](../archive/specs/gate-14-event-frontier-event-complexity-capstone.md) | Done |
+| — | Non-gate (UI infra) | Rules-display shared surface | [`rules-display-shared-surface.md`](../archive/specs/rules-display-shared-surface.md) | Done |
+| — | Non-gate (UI infra) | Victory-explanation shared surface | [`victory-explanation-shared-surface.md`](../archive/specs/victory-explanation-shared-surface.md) | Done |
+| — | Non-gate (UI infra) | Card & action presentation shared surfaces | [`card-and-action-presentation-shared-surfaces.md`](../archive/specs/card-and-action-presentation-shared-surfaces.md) | Done |
+| — | Non-gate (UI infra) | Action-consequence & match-context surfaces | [`action-consequence-and-match-context-shared-surfaces.md`](../archive/specs/action-consequence-and-match-context-shared-surfaces.md) | Done |
+| — | Non-gate (UI infra) | Effect animation & turn orchestration | [`effect-animation-and-turn-orchestration.md`](../archive/specs/effect-animation-and-turn-orchestration.md) | Done |
+| — | Non-gate (UI infra) | Catalog/setup visual redesign | [`catalog-setup-visual-redesign.md`](../archive/specs/catalog-setup-visual-redesign.md) | Done |
+
+## Active epoch — public scaling phase (progress tracker)
+
+This table is the **living progress record** for the public scaling phase. A new
+brainstorm that wants to "produce the next spec to continue the roadmap" should
+read this first and pick the lowest unit whose status is not `Done`, honoring the
+interlocks below (open primitive-promotion debt in
+[`../docs/MECHANIC-ATLAS.md`](../docs/MECHANIC-ATLAS.md) closes before the next
+mechanic-ladder gate; Gate 15+ stays blocked until ADR 0007 is accepted). Only
+the Phase 0 spec is written; every other unit is a forward seed authored when it
+becomes the lowest non-`Done` row. `docs/ROADMAP.md` is not edited to record
+progress; this table is.
+
+| Order | Unit | Spec | Status | Interlock |
+|---:|---|---|---|---|
+| 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](phase-0-next-phase-foundation-realignment.md) | Planned | Authors + accepts ADR 0007; adds the multi-seat contract; realigns docs/templates/ROADMAP. |
+| 1 | Infra A — N-seat setup/catalog metadata | _(seed; unwritten)_ | Not started | Pending Phase 0 multi-seat contract. No kernel change; no TS legality. |
+| 2 | Infra B — N-seat simulator summaries | _(seed; unwritten)_ | Not started | Pending Phase 0. Replaces `seat_0_wins`/`seat_1_wins` with indexed maps; deterministic order. |
+| 3 | Infra C — Multi-seat shell frame | _(seed; unwritten)_ | Not started | Pending Phase 0. Presentation-only; Rust owns turn order / active-pending seats. |
+| 4 | Infra D — N-player no-leak test harness | _(seed; unwritten)_ | Not started | Pending Phase 0 no-leak taxonomy; conforms to ADR 0004. |
+| 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending ADR 0007 + Phase 0. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
+| 6 | Gate 15.1 — River Ledger all-in / side pots | _(seed; unwritten)_ | Not started | Pending Gate 15. Public-resource/allocation accounting; kept separate from base Hold'Em. |
+| 7 | Gate 16 — Hearts | _(seed; unwritten)_ | Not started | Pending Gate 15. Fixed 4-seat trick-taking; trick-taking promotion evaluation. |
+| 8 | Gate 17 — Oh Hell | _(seed; unwritten)_ | Not started | Pending Gate 16. Variable-N (3–7) bidding/trick-taking; trick-taking helper promotion likely. |
+| 9 | Gate 18 — Spades (partnerships) | _(seed; unwritten)_ | Not started | Pending Gate 17. Teams/partnership scoring + UI grouping. |
+| 10 | Gate 19 — Five Hundred Rummy | _(seed; unwritten)_ | Not started | Pending Gate 18. Public meld tableau + private hands; meld/tableau primitive pressure. |
+| 11 | Gate 20 — Star Halma / Chinese Checkers | _(seed; unwritten)_ | Not started | Pending Gate 19. 121-space board topology; topology helper hard gate likely. |
+| 12 | Gate 21 — Pachisi-family race | _(seed; unwritten)_ | Not started | Pending Gate 20. Track topology + deterministic chance; capture/safety semantics. |
+| 13 | Gate 22 — Four Winds Melds (scoped Mahjong-family) | _(seed; unwritten)_ | Not started | Pending Gate 21. Reaction-window hard gate; wall/concealed-set no-leak. |
+| 14 | Gate 23 — Commonwealth Frontier capstone | _(seed; unwritten)_ | Not started | Pending Gate 22 + all armed atlas promotions resolved. Medium-heavy original asymmetric map. |
+| 15 | Gate P — private monster-game red-team | _(private; non-public)_ | Not started | Last. Isolated, optional; must not drive public architecture. |
 
 Status values: `Not started` → `Planned` (spec written) → `In progress`
 (AGENT-TASKs executing) → `Done` (gate exit criteria pass). Flip a spec to
@@ -90,9 +141,14 @@ omissions.
 
 ## Workflow
 
-1. Pick the lowest non-`Done` gate or maintenance interlock from the index.
-2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for open promotion debt and close it first unless an accepted exception or ADR says otherwise.
+1. Pick the lowest non-`Done` unit from the active-epoch tracker. Gate 15+ stays
+   blocked until ADR 0007 is accepted and ROADMAP records the public scaling
+   phase (Phase 0 delivers both).
+2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for
+   open promotion debt and close it first unless an accepted exception or ADR says
+   otherwise.
 3. Write its spec from the format above, grounded in ROADMAP + the foundation set.
-4. Decompose the work breakdown into `tasks/` AGENT-TASK packets after the spec is accepted.
+4. Decompose the work breakdown into `tickets/` AGENT-TASK packets via
+   `/reassess-spec` then `/spec-to-tickets` after the spec is accepted.
 5. Execute, gathering the acceptance evidence.
-6. When exit criteria pass, flip the index status to `Done` and admit the next gate.
+6. When exit criteria pass, flip the index status to `Done` and admit the next unit.
