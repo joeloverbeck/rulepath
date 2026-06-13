@@ -1,6 +1,6 @@
 # DEADBRANCH-002: Event Frontier must not offer an operation with no legal target
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `games/event_frontier` (`src/actions.rs`): legal action tree construction. No `engine-core`/`game-stdlib` change.
@@ -158,3 +158,29 @@ remains the fail-closed backstop for any malformed submission.
 3. The per-game gate set is the correct verification boundary because the change is
    confined to Event Frontier's legal-action generation; the workspace build/clippy run
    in DEADBRANCH-001/003 covers cross-crate effects.
+
+## Outcome
+
+Completed: 2026-06-13
+
+Changed Event Frontier legal action tree construction so `Operation` and
+`Limited operation` roots are omitted when their computed operation-kind subtree has
+no legal child choices. Event and Pass menu choices remain unaffected, and
+`validate_command` still rejects bare operation-root submissions as malformed.
+
+Added regression tests for the reported second-choice no-target case: Charter sees
+only Event and Pass, the tree has no dead branches through the generic
+`ActionTree::dead_branch_paths` primitive, and a bare `limited_operation` path still
+returns `malformed_action`.
+
+Deviations from plan: none. The fix is game-local in `games/event_frontier`; no
+action-tree schema, parser, validation diagnostic, UI, `engine-core`, or
+`game-stdlib` behavior was changed.
+
+Verification:
+
+- `cargo test -p event_frontier`
+- `cargo run -p simulate -- --game event_frontier --games 1000`
+- `cargo run -p replay-check -- --game event_frontier --all`
+- `cargo run -p rule-coverage -- --game event_frontier`
+- `cargo run -p fixture-check -- --game event_frontier`

@@ -130,7 +130,7 @@ pub fn legal_action_tree(state: &EventFrontierState, actor: &Actor) -> ActionTre
 
     let choices = menu
         .into_iter()
-        .map(|entry| menu_choice(state, choosing_faction, entry))
+        .filter_map(|entry| menu_choice(state, choosing_faction, entry))
         .collect();
     ActionTree::flat(state.freshness_token, choices)
 }
@@ -353,24 +353,28 @@ pub fn resource_pool(state: &EventFrontierState, faction: FactionId) -> u8 {
     }
 }
 
-fn menu_choice(state: &EventFrontierState, faction: FactionId, entry: MenuEntry) -> ActionChoice {
+fn menu_choice(
+    state: &EventFrontierState,
+    faction: FactionId,
+    entry: MenuEntry,
+) -> Option<ActionChoice> {
     match entry {
-        MenuEntry::Event => simple_choice(
+        MenuEntry::Event => Some(simple_choice(
             ACTION_EVENT,
             "Event",
             "Resolve the current event card",
             "event",
             state,
             faction,
-        ),
-        MenuEntry::Pass => simple_choice(
+        )),
+        MenuEntry::Pass => Some(simple_choice(
             ACTION_PASS,
             "Pass",
             "Pass and gain one resource",
             "pass",
             state,
             faction,
-        ),
+        )),
         MenuEntry::Operation { limited } => operation_root_choice(state, faction, limited),
     }
 }
@@ -379,12 +383,16 @@ fn operation_root_choice(
     state: &EventFrontierState,
     faction: FactionId,
     limited: bool,
-) -> ActionChoice {
+) -> Option<ActionChoice> {
     let segment = if limited {
         ACTION_LIMITED_OPERATION
     } else {
         ACTION_OPERATION
     };
+    let kind_choices = operation_kind_choices(state, faction, limited);
+    if kind_choices.is_empty() {
+        return None;
+    }
     let mut choice = simple_choice(
         segment,
         if limited {
@@ -406,9 +414,9 @@ fn operation_root_choice(
         faction,
     );
     choice.next = Some(Box::new(ActionNode {
-        choices: operation_kind_choices(state, faction, limited),
+        choices: kind_choices,
     }));
-    choice
+    Some(choice)
 }
 
 fn operation_kind_choices(

@@ -7,7 +7,8 @@ use event_frontier::{
     cards::{expire_all_edicts, resolve_event_card, EdictKind},
     legal_action_metadata, legal_action_tree,
     rules::advance_to_next_card,
-    setup_match, CardPhase, Eligibility, EventFrontierEffect, FactionId, SetupOptions,
+    setup_match, validate_command, CardPhase, Eligibility, EventFrontierEffect, FactionId,
+    FirstChoice, SetupOptions,
 };
 use event_frontier::{resolve_reckoning, FactionScores, TerminalOutcome, VictoryType};
 
@@ -74,6 +75,52 @@ fn first_operation_constrains_second_to_event_limited_operation_or_pass() {
             ACTION_PASS.to_owned()
         ]
     );
+}
+
+#[test]
+fn limited_operation_without_legal_target_is_not_offered() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    state.card_phase = CardPhase::AwaitingSecondChoice {
+        first_faction: FactionId::Freeholders,
+        second_faction: FactionId::Charter,
+        first_choice: FirstChoice::Operation,
+    };
+    for site in &mut state.sites {
+        site.agents = 3;
+        site.depot = true;
+        site.cache_count = 0;
+    }
+
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+
+    assert_eq!(
+        tree.root
+            .choices
+            .iter()
+            .map(|choice| choice.segment.as_str())
+            .collect::<Vec<_>>(),
+        vec![ACTION_EVENT, ACTION_PASS]
+    );
+    assert!(tree.dead_branch_paths().is_empty());
+    assert!(segments_for("seat_1", &state).is_empty());
+}
+
+#[test]
+fn bare_limited_operation_path_still_rejects_as_malformed() {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    state.card_phase = CardPhase::AwaitingSecondChoice {
+        first_faction: FactionId::Freeholders,
+        second_faction: FactionId::Charter,
+        first_choice: FirstChoice::Operation,
+    };
+
+    let diagnostic = validate_command(
+        &state,
+        &command("seat_0", ACTION_LIMITED_OPERATION, state.freshness_token),
+    )
+    .expect_err("bare limited operation stays malformed");
+
+    assert_eq!(diagnostic.code, "malformed_action");
 }
 
 #[test]
