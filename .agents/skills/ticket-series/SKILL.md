@@ -109,7 +109,11 @@ For each ticket:
    gates when the touched surface or ticket requires them. Prefer the narrowest
    truthful proof, but do not use unit tests as a substitute for replay,
    simulation, benchmark, browser, no-leak, or docs-link evidence when the ticket
-   requires those surfaces.
+   requires those surfaces. When touching web play-surface files, run the
+   repo's guard scripts when present and avoid introducing guard-trigger
+   vocabulary such as debug payload terms into helper names, visible-adjacent
+   strings, comments, or tests unless the checker is intentionally updated with
+   a documented reason.
 6. Update the ticket following `docs/archival-workflow.md`:
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
@@ -189,6 +193,11 @@ npm --prefix apps/web run smoke:effects
 npm --prefix apps/web run smoke:e2e
 ```
 
+When adding or renaming e2e smoke scripts, check whether each script represents
+a catalog game or a non-game/app-level proof. Non-game smokes may need explicit
+whitelisting in catalog/doc checker scripts and corresponding README smoke-list
+updates before `node scripts/check-catalog-docs.mjs` can truthfully pass.
+
 If a browser smoke fails before assertions because the environment cannot bind
 its local `127.0.0.1` server, for example `listen EPERM`, rerun through the
 approved escalation path for localhost binding and record both the sandbox
@@ -230,6 +239,10 @@ failures.
      `Outcome`;
    - confirm the original active reference path is gone;
    - confirm active references point to the archive path when they should.
+   This is a hard stop: execute the concrete completion-audit commands from the
+   next section against the live checkout before any final response or
+   `update_goal` call. A mental checklist is not enough for final reference
+   truthing.
 7. Run a final status/diff check and commit the reference archive/truthing work.
 8. If a `/goal` is active, mark it complete only after implementation,
    verification, ticket archives, reference archive, reference repair, and required
@@ -246,6 +259,15 @@ surface, for example:
   boundary checks.
 - Archive truthing: active glob empty, archived ticket count/status/outcome,
   archived reference status/outcome, stale live-path sweep.
+
+For long series, build the ledger from the archived ticket `Outcome` sections
+instead of memory. A compact checklist is enough:
+
+- List the archived ticket paths and count.
+- Group verification commands by proof surface.
+- Note any rerun or escalation evidence and where it was recorded.
+- Note intentionally skipped gates with reasons.
+- Confirm the archived reference status/outcome and stale-path sweep.
 
 ## Completion Audit
 

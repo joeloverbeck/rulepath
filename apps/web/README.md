@@ -65,6 +65,10 @@ The shell includes:
 - shared `ActionPathBuilder` staged construction for nested Rust action trees;
 - shared action-affordance rendering for Rust-emitted cost/consequence metadata
   and confirmation summaries;
+- shared effect-animation scheduler, burst grouping, registry, and dev settle
+  assertion for viewer-filtered semantic effects;
+- scheduler-owned turn orchestration for auto-advancing bot turns, automated
+  phases, skip/pause, replay-step interruption, and reduced-motion pacing;
 - `TurnReportPanel` narration of viewer-filtered bot turns and automated
   advances near the board;
 - typed setup variant selector driven by Rust/WASM catalog variant labels;
@@ -101,17 +105,45 @@ single-stage `ActionControls` surface is sufficient.
 | `poker_lite` | board-native | Poker action buttons map directly to Rust hold/press/lift/match/yield choices. |
 | `plain_tricks` | board-native | Hand-card buttons map to Rust play-card choices. |
 
+### Effect Animation Adoption Audit
+
+Every catalog game has an explicit effect-animation disposition. `adopt` means
+the game registers authored effect-to-animation mappings on the shared registry.
+`generic-only` means the game intentionally relies on the shared tone-keyed
+presentations for the current catalog surface.
+
+| Game | Disposition | Rationale |
+| --- | --- | --- |
+| `race_to_n` | generic-only | Tiny counter effects are covered by shared highlight/turn/terminal presentations. |
+| `three_marks` | generic-only | Board mark/drop effects remain legible through shared board highlighting and text. |
+| `column_four` | generic-only | Column drops and terminal effects use baseline shared motion without per-game mapping. |
+| `directional_flip` | generic-only | Directional flip effects are simple public board updates covered by generic highlighting. |
+| `draughts_lite` | generic-only | Move/capture effects are viewer-safe and covered by generic movement/highlight motion. |
+| `high_card_duel` | generic-only | Reveal/score/terminal effects stay readable through shared generic presentations. |
+| `masked_claims` | generic-only | Redacted and reveal effects use the shared viewer-safe redacted/reveal baseline. |
+| `flood_watch` | adopt | Flood phases, storm deck flow, and district automation use authored registry mappings. |
+| `frontier_control` | generic-only | Public graph/control effects use baseline highlighting without authored overrides. |
+| `event_frontier` | adopt | Event deck flow, resources, Reckoning, site changes, and terminal settlement use authored mappings. |
+| `token_bazaar` | generic-only | Market/resource/contract effects use baseline shared movement/highlight presentations. |
+| `secret_draft` | generic-only | Draft/reveal effects use shared redacted/reveal-safe presentations. |
+| `poker_lite` | generic-only | Public poker-lite score/reveal effects use baseline shared presentations. |
+| `plain_tricks` | generic-only | Deal/play/trick/score effects use baseline shared movement/highlight presentations. |
+
 ## Smoke Layers
 
 - `smoke:wasm`: raw ABI coverage for version/features, catalog, match, action,
   bot, effects, stale diagnostics, replay, and all registered games.
 - `smoke:ui`: fast Node/WASM shell-state smoke through `render_game_to_text`.
 - `smoke:effects`: Node/WASM effect-feedback projection guard for every catalog game.
+- `smoke:animation`: Node checks for burst segmentation, scheduler behavior,
+  presenter/registry behavior, and the catalog animation adoption sweep.
 - `smoke:preview`: built `dist` static-serving and WASM fetch smoke.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event Frontier.
+  The chain also runs `e2e/animation.smoke.mjs` for animate-and-settle, skip,
+  replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard
   over normal-mode visible text and accessibility labels, with induced-drift
   negative coverage in `e2e/a11y-noleak.smoke.mjs`.

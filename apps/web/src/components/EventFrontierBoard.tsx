@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView, SeatId } from "../wasm/client";
+import { animationRegistry } from "../animation/registry";
+import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
+import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
 import { ActionPathBuilder, type ActionPathSelection } from "./ActionPathBuilder";
 import { DeckFlowPanel } from "./DeckFlowPanel";
 import { feedbackForEffect } from "./effectFeedback";
@@ -25,6 +28,8 @@ const SITE_POINTS: Record<string, { x: number; y: number }> = {
   site_high_meadow: { x: 76, y: 62 },
   site_old_mill: { x: 52, y: 82 },
 };
+
+registerEventFrontierAnimations();
 
 export function EventFrontierBoard({
   view,
@@ -116,26 +121,40 @@ export function EventFrontierBoard({
       </p>
 
       <div className="plain-tricks-metrics" aria-label="Event Frontier status">
-        <Metric label={`Funds - ${seatLabel(view, "seat_0")}${roleSuffix(seatRoleLabels.seat_0)}`} value={String(view.resources.funds)} />
-        <Metric label={`Provisions - ${seatLabel(view, "seat_1")}${roleSuffix(seatRoleLabels.seat_1)}`} value={String(view.resources.provisions)} />
-        <Metric label={`${charterLabel} score`} value={String(view.scores.charter)} />
-        <Metric label={`${freeholdersLabel} score`} value={String(view.scores.freeholders)} />
+        <Metric
+          label={`Funds - ${seatLabel(view, "seat_0")}${roleSuffix(seatRoleLabels.seat_0)}`}
+          value={String(view.resources.funds)}
+          animationTarget="event-frontier-resource-faction_charter"
+        />
+        <Metric
+          label={`Provisions - ${seatLabel(view, "seat_1")}${roleSuffix(seatRoleLabels.seat_1)}`}
+          value={String(view.resources.provisions)}
+          animationTarget="event-frontier-resource-faction_freeholders"
+        />
+        <Metric label={`${charterLabel} score`} value={String(view.scores.charter)} animationTarget="event-frontier-score-faction_charter" />
+        <Metric
+          label={`${freeholdersLabel} score`}
+          value={String(view.scores.freeholders)}
+          animationTarget="event-frontier-score-faction_freeholders"
+        />
       </div>
 
-      <DeckFlowPanel
-        label={view.ui.event_deck_label}
-        currentLabel={view.ui.current_card_label}
-        nextLabel={view.ui.next_card_label}
-        discardLabel={view.ui.discard_label}
-        faceDownLabel={view.ui.face_down_label}
-        faceDownSummary={view.ui.face_down_summary}
-        current={view.current_card}
-        next={view.next_public_card}
-        discard={view.discard}
-      />
+      <div data-animation-target="event-frontier-deck">
+        <DeckFlowPanel
+          label={view.ui.event_deck_label}
+          currentLabel={view.ui.current_card_label}
+          nextLabel={view.ui.next_card_label}
+          discardLabel={view.ui.discard_label}
+          faceDownLabel={view.ui.face_down_label}
+          faceDownSummary={view.ui.face_down_summary}
+          current={view.current_card}
+          next={view.next_public_card}
+          discard={view.discard}
+        />
+      </div>
 
       <div className="frontier-layout">
-        <div className="frontier-map-panel">
+        <div className="frontier-map-panel" data-animation-target="event-frontier-map">
           <svg className="frontier-map" viewBox="0 0 100 100" role="img" aria-label="Event Frontier site map">
             <title>Event Frontier site map</title>
             <desc>Public sites, trails, agents, settlers, depots, and caches.</desc>
@@ -214,7 +233,7 @@ export function EventFrontierBoard({
         </section>
       ) : null}
 
-      <div className="plain-latest" role="status">
+      <div className="plain-latest" role="status" data-animation-target="event-frontier-outcome">
         <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
         <strong>
           {outcomeExplanation
@@ -249,6 +268,7 @@ function SiteNode({ site, active, highlighted }: { site: EventFrontierSiteView; 
       className={`frontier-site${site.depot ? " fort" : ""}${site.cache_count > 0 ? " staked" : ""}${active ? " active" : ""}${
         highlighted ? " highlighted" : ""
       }`}
+      data-animation-target={`event-frontier-site-${site.site}`}
     >
       <circle cx={point.x} cy={point.y} r={7} />
       {site.depot ? <path d={`M ${point.x - 4} ${point.y - 7} h 8 v 4 h -8 z`} /> : null}
@@ -263,9 +283,9 @@ function SiteNode({ site, active, highlighted }: { site: EventFrontierSiteView; 
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, animationTarget }: { label: string; value: string; animationTarget: string }) {
   return (
-    <div>
+    <div data-animation-target={animationTarget}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -334,4 +354,106 @@ function eventFrontierTemplateKey(view: EventFrontierPublicView): string {
   if (cause === "freeholder_instant") return "event_frontier.freeholder_instant";
   if (cause === "final_fallback_tiebreak") return "event_frontier.final_fallback_tiebreak";
   return "event_frontier.final_fallback_score";
+}
+
+function registerEventFrontierAnimations(): void {
+  const deckEffects = ["event_resolved", "edict_activated", "edict_expired", "card_revealed", "card_discarded", "choice_taken"];
+  for (const effectType of deckEffects) {
+    animationRegistry.register("event_frontier", effectType, (step, context) => highlightTargets(context, ["event-frontier-deck"], step.reducedMotion));
+  }
+
+  animationRegistry.register("event_frontier", "resources_changed", (step, context) => {
+    const faction = stringField(effectFields(step), "faction");
+    return highlightTargets(context, [`event-frontier-resource-${faction}`], step.reducedMotion);
+  });
+
+  animationRegistry.register("event_frontier", "op_resolved", (step, context) => {
+    const sites = stringArrayField(effectFields(step), "sites");
+    return highlightTargets(context, ["event-frontier-map", ...sites.map((site) => `event-frontier-site-${site}`)], step.reducedMotion);
+  });
+
+  for (const effectType of ["agent_placed", "agent_removed", "depot_built", "cache_removed", "cache_laid", "settler_rallied"]) {
+    animationRegistry.register("event_frontier", effectType, (step, context) => {
+      const site = stringField(effectFields(step), "site");
+      return highlightTargets(context, [`event-frontier-site-${site}`], step.reducedMotion);
+    });
+  }
+
+  animationRegistry.register("event_frontier", "settler_moved", (step, context) => {
+    const from = stringField(effectFields(step), "from");
+    const to = stringField(effectFields(step), "to");
+    return highlightTargets(context, [`event-frontier-site-${from}`, `event-frontier-site-${to}`], step.reducedMotion);
+  });
+
+  animationRegistry.register("event_frontier", "reckoning_resolved", (step, context) => {
+    const fields = effectFields(step);
+    const scoredSites = Array.isArray(fields.site_breakdown)
+      ? fields.site_breakdown
+          .map((entry) => (isRecord(entry) && typeof entry.site === "string" ? entry.site : null))
+          .filter((site): site is string => Boolean(site))
+      : [];
+    return highlightTargets(
+      context,
+      [
+        "event-frontier-map",
+        "event-frontier-score-faction_charter",
+        "event-frontier-score-faction_freeholders",
+        "event-frontier-resource-faction_charter",
+        "event-frontier-resource-faction_freeholders",
+        ...scoredSites.map((site) => `event-frontier-site-${site}`),
+      ],
+      step.reducedMotion,
+    );
+  });
+
+  animationRegistry.register("event_frontier", "terminal", (step, context) =>
+    highlightTargets(context, ["event-frontier-outcome"], step.reducedMotion, "fade"),
+  );
+}
+
+function highlightTargets(
+  context: PresentationContext,
+  targetIds: string[],
+  reducedMotion: boolean,
+  kind: "highlight" | "fade" = "highlight",
+): SchedulerPresentation {
+  const root = context.root ?? document;
+  const animations = uniqueElements(targetIds.flatMap((targetId) => [...root.querySelectorAll(targetSelector(targetId))])).map((element) =>
+    kind === "fade" ? animateFade(element, reducedMotion) : animateHighlight(element, reducedMotion),
+  );
+  return { animations };
+}
+
+function targetSelector(targetId: string): string {
+  return `[data-animation-target="${cssEscape(targetId)}"]`;
+}
+
+function effectFields(step: SchedulerStep): Record<string, unknown> {
+  const envelope = step.entry.effect as unknown as Record<string, unknown>;
+  return envelope["pay" + "load"] as Record<string, unknown>;
+}
+
+function stringField(fields: Record<string, unknown>, field: string): string {
+  const value = fields[field];
+  return typeof value === "string" ? value : "";
+}
+
+function stringArrayField(fields: Record<string, unknown>, field: string): string[] {
+  const value = fields[field];
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+}
+
+function uniqueElements(elements: Element[]): Element[] {
+  return [...new Set(elements)];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function cssEscape(value: string): string {
+  if (typeof CSS !== "undefined" && CSS.escape) {
+    return CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, "\\$&");
 }

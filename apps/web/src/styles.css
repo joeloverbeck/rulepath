@@ -1574,6 +1574,19 @@ h2 {
   gap: 10px;
 }
 
+.speed-field {
+  display: grid;
+  gap: 4px;
+  min-width: 88px;
+}
+
+.speed-field span {
+  color: #687973;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .replay-io,
 .replay-viewer {
   display: grid;
@@ -2692,6 +2705,35 @@ h2 {
   list-style: none;
 }
 
+.effects .effect-bursts {
+  min-height: 150px;
+}
+
+.effect-burst {
+  display: grid;
+  gap: 8px;
+}
+
+.effect-burst-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #4d5d57;
+  font-size: 0.82rem;
+}
+
+.effect-burst-heading span {
+  color: #73827c;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.effect-burst ol {
+  min-height: 0;
+}
+
 .effect-entry {
   display: grid;
   grid-template-columns: auto minmax(110px, 0.4fr) minmax(0, 1fr);
@@ -2722,6 +2764,36 @@ h2 {
 .effect-entry.reveal-batch {
   border-left-color: #2f6f9f;
   background: #f3f8fb;
+}
+
+.animation-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.animation-ghost {
+  position: absolute;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+[data-animation-surface],
+svg g[data-animation-surface],
+svg g[data-effect-kind] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animation-ghost,
+  [data-animation-surface],
+  svg g[data-animation-surface],
+  svg g[data-effect-kind] {
+    transition-duration: 80ms;
+  }
 }
 
 .effect-cursor {
@@ -3231,7 +3303,8 @@ h2 {
     flex-direction: column;
   }
 
-  .motion-field {
+  .motion-field,
+  .speed-field {
     width: 100%;
   }
 

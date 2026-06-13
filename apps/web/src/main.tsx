@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
@@ -26,6 +26,9 @@ import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { TurnReportPanel } from "./components/TurnReportPanel";
+import { animationRegistry } from "./animation/registry";
+import { EffectAnimationScheduler } from "./animation/scheduler";
+import { createDevSettleAssertion } from "./animation/settleAssertion";
 import { initialShellState, shellReducer, type RefreshPayload, type SetupPlayMode } from "./state/shellReducer";
 import {
   loadApi,
@@ -77,6 +80,26 @@ function App() {
   const selectedGame = state.catalog.find((game) => game.game_id === state.selectedGameId) ?? null;
   const latestEffect = effects.at(-1) ?? null;
   const humanActorSeat = view ? humanSeatForMode(state.setup.playMode, view) : null;
+  const schedulerRef = useRef<EffectAnimationScheduler | null>(null);
+  const lastAnimatedCursorRef = useRef(0);
+  const autoBotInFlightRef = useRef(false);
+  const autoplayInFlightRef = useRef(false);
+  const activeGameIdRef = useRef(state.selectedGameId);
+  const activeViewRef = useRef(view);
+  const orchestrationPausedRef = useRef(state.orchestration.paused);
+  const autoplayRunningRef = useRef(state.autoplay.running);
+
+  if (!schedulerRef.current) {
+    schedulerRef.current = new EffectAnimationScheduler({
+      reducedMotion: state.reducedMotion,
+      presenter: (step) =>
+        animationRegistry.resolve(activeGameIdRef.current ?? "", step, {
+          root: document,
+          reducedMotion: step.reducedMotion,
+        }),
+      settle: createDevSettleAssertion(() => activeViewRef.current),
+    });
+  }
 
   const refresh = useCallback(
     (loadedApi: NonNullable<typeof api>, loadedMatchId: string, sinceCursor: number, viewerOverride?: ViewerMode) => {
@@ -135,7 +158,39 @@ function App() {
 
   useEffect(() => {
     dispatch({ type: "reducedMotionChanged", reducedMotion: motion.reducedMotion });
+    schedulerRef.current?.setReducedMotion(motion.reducedMotion);
   }, [motion.reducedMotion]);
+
+  useEffect(() => {
+    activeGameIdRef.current = state.selectedGameId;
+  }, [state.selectedGameId]);
+
+  useEffect(() => {
+    activeViewRef.current = view;
+  }, [view]);
+
+  useEffect(() => {
+    schedulerRef.current?.setRate(state.orchestration.rate);
+  }, [state.orchestration.rate]);
+
+  useEffect(() => {
+    orchestrationPausedRef.current = state.orchestration.paused;
+  }, [state.orchestration.paused]);
+
+  useEffect(() => {
+    autoplayRunningRef.current = state.autoplay.running;
+  }, [state.autoplay.running]);
+
+  useEffect(() => {
+    lastAnimatedCursorRef.current = 0;
+    autoBotInFlightRef.current = false;
+    autoplayInFlightRef.current = false;
+    void schedulerRef.current?.flush();
+  }, [matchId]);
+
+  const flushScheduler = useCallback(async () => {
+    await schedulerRef.current?.flush();
+  }, []);
 
   const start = useCallback(() => {
     if (!api || !state.selectedGameId) {
@@ -148,10 +203,11 @@ function App() {
   }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seed, state.setup.variantId]);
 
   const playChoice = useCallback(
-    (choice: ActionChoice) => {
+    async (choice: ActionChoice) => {
       if (!api || !matchId || !view) {
         return;
       }
+      await flushScheduler();
       const actorSeat = humanSeatForMode(state.setup.playMode, view);
       if (!actorSeat) {
         return;
@@ -159,31 +215,22 @@ function App() {
       dispatch({ type: "diagnosticCleared" });
       const tokenBeforeAction = view.freshness_token;
       try {
-        const afterHuman = api.applyAction(matchId, actorSeat, choice.segment, tokenBeforeAction);
+        api.applyAction(matchId, actorSeat, choice.segment, tokenBeforeAction);
         dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
-        const afterHumanSeat = afterHuman.active_seat;
-        if (
-          state.setup.playMode === "human_vs_bot" &&
-          !isTerminalView(afterHuman) &&
-          afterHumanSeat &&
-          botSeatForMode(state.setup.playMode, afterHumanSeat)
-        ) {
-          const botResult = api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
-          dispatch({ type: "botTurnCompleted", result: botResult });
-        }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
         dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
       }
     },
-    [api, effectCursor, matchId, refresh, state.setup.playMode, view],
+    [api, effectCursor, flushScheduler, matchId, refresh, state.setup.playMode, view],
   );
 
   const playPath = useCallback(
-    (path: string[]) => {
+    async (path: string[]) => {
       if (!api || !matchId || !view) {
         return;
       }
+      await flushScheduler();
       const actorSeat = humanSeatForMode(state.setup.playMode, view);
       if (!actorSeat || path.length === 0) {
         return;
@@ -191,24 +238,14 @@ function App() {
       dispatch({ type: "diagnosticCleared" });
       const tokenBeforeAction = view.freshness_token;
       try {
-        const afterHuman = api.applyActionPath(matchId, actorSeat, path, tokenBeforeAction);
+        api.applyActionPath(matchId, actorSeat, path, tokenBeforeAction);
         dispatch({ type: "actionApplied", staleToken: tokenBeforeAction });
-        const afterHumanSeat = afterHuman.active_seat;
-        if (
-          state.setup.playMode === "human_vs_bot" &&
-          !isTerminalView(afterHuman) &&
-          afterHumanSeat &&
-          botSeatForMode(state.setup.playMode, afterHumanSeat)
-        ) {
-          const botResult = api.runBotTurn(matchId, afterHumanSeat, botSeed(afterHuman));
-          dispatch({ type: "botTurnCompleted", result: botResult });
-        }
         refresh(api, matchId, effectCursor);
       } catch (error: unknown) {
         dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
       }
     },
-    [api, effectCursor, matchId, refresh, state.setup.playMode, view],
+    [api, effectCursor, flushScheduler, matchId, refresh, state.setup.playMode, view],
   );
 
   const runBotStep = useCallback(() => {
@@ -231,6 +268,62 @@ function App() {
       dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
     }
   }, [api, effectCursor, matchId, refresh, state.setup.playMode, view]);
+
+  useEffect(() => {
+    if (
+      !api ||
+      !matchId ||
+      !view ||
+      state.setup.playMode !== "human_vs_bot" ||
+      state.orchestration.paused ||
+      state.pendingOperation !== null ||
+      isTerminalView(view) ||
+      !view.active_seat ||
+      !botSeatForMode(state.setup.playMode, view.active_seat) ||
+      autoBotInFlightRef.current
+    ) {
+      return;
+    }
+
+    const botSeat = view.active_seat;
+    autoBotInFlightRef.current = true;
+    const effectsToDrain = effects.filter((entry) => entry.cursor > lastAnimatedCursorRef.current);
+    const newestCursor = effectsToDrain.reduce((cursor, entry) => Math.max(cursor, entry.cursor), lastAnimatedCursorRef.current);
+
+    void (async () => {
+      try {
+        await schedulerRef.current?.enqueueEffects(effectsToDrain);
+        lastAnimatedCursorRef.current = newestCursor;
+        if (orchestrationPausedRef.current) {
+          return;
+        }
+        dispatch({ type: "botTurnStarted" });
+        const botResult = api.runBotTurn(matchId, botSeat, botSeed(view));
+        dispatch({ type: "botTurnCompleted", result: botResult });
+        refresh(api, matchId, effectCursor);
+      } catch (error: unknown) {
+        dispatch({ type: "staleDiagnostic", diagnostic: error as ApiError });
+      } finally {
+        autoBotInFlightRef.current = false;
+      }
+    })();
+  }, [api, effectCursor, effects, matchId, refresh, state.orchestration.paused, state.pendingOperation, state.setup.playMode, view]);
+
+  useEffect(() => {
+    if (state.setup.playMode !== "hotseat" || state.pendingOperation !== null || !view) {
+      return;
+    }
+    const effectsToDrain = effects.filter((entry) => entry.cursor > lastAnimatedCursorRef.current);
+    if (effectsToDrain.length === 0) {
+      return;
+    }
+    const newestCursor = effectsToDrain.reduce((cursor, entry) => Math.max(cursor, entry.cursor), lastAnimatedCursorRef.current);
+
+    void (async () => {
+      await schedulerRef.current?.enqueueEffects(effectsToDrain);
+      lastAnimatedCursorRef.current = newestCursor;
+    })();
+  }, [effects, state.pendingOperation, state.setup.playMode, view]);
 
   const changeViewerMode = useCallback(
     (viewerMode: ViewerMode) => {
@@ -268,23 +361,25 @@ function App() {
     [api],
   );
 
-  const stepReplay = useCallback(() => {
+  const stepReplay = useCallback(async () => {
     if (!api || !state.replay) {
       return;
     }
+    await flushScheduler();
     dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
     const step = api.replayStep(state.replay.replayId, state.replay.cursor + 1);
     dispatch({ type: "replayStepped", step });
-  }, [api, state.replay]);
+  }, [api, flushScheduler, state.replay]);
 
-  const resetReplay = useCallback(() => {
+  const resetReplay = useCallback(async () => {
     if (!api || !state.replay) {
       return;
     }
+    await flushScheduler();
     dispatch({ type: "pendingOperationChanged", pendingOperation: "stepReplay" });
     const step = api.replayReset(state.replay.replayId);
     dispatch({ type: "replayReset", step });
-  }, [api, state.replay]);
+  }, [api, flushScheduler, state.replay]);
 
   const openRules = useCallback((gameId: string) => {
     dispatch({ type: "rulesPanelOpened", gameId });
@@ -324,14 +419,27 @@ function App() {
       state.setup.playMode !== "bot_vs_bot" ||
       state.pendingOperation !== null ||
       !view ||
-      isTerminalView(view)
+      isTerminalView(view) ||
+      autoplayInFlightRef.current
     ) {
       return;
     }
-    const delay = state.reducedMotion ? 80 : 520;
-    const timer = window.setTimeout(runBotStep, delay);
-    return () => window.clearTimeout(timer);
-  }, [runBotStep, state.autoplay.running, state.pendingOperation, state.reducedMotion, state.setup.playMode, view]);
+    autoplayInFlightRef.current = true;
+    const effectsToDrain = effects.filter((entry) => entry.cursor > lastAnimatedCursorRef.current);
+    const newestCursor = effectsToDrain.reduce((cursor, entry) => Math.max(cursor, entry.cursor), lastAnimatedCursorRef.current);
+
+    void (async () => {
+      try {
+        await schedulerRef.current?.enqueueEffects(effectsToDrain);
+        lastAnimatedCursorRef.current = newestCursor;
+        if (autoplayRunningRef.current) {
+          runBotStep();
+        }
+      } finally {
+        autoplayInFlightRef.current = false;
+      }
+    })();
+  }, [effects, runBotStep, state.autoplay.running, state.pendingOperation, state.setup.playMode, view]);
 
   const textState = useMemo<AppTextState>(
     () => ({
@@ -560,10 +668,16 @@ function App() {
           gameId={state.selectedGameId}
           gameName={selectedGame?.display_name ?? "selected game"}
           autoplayRunning={state.autoplay.running}
+          orchestrationPaused={state.orchestration.paused}
+          orchestrationRate={state.orchestration.rate}
           lastBotDecision={state.lastBotDecision}
           pending={state.pendingOperation !== null}
           onRulesOpen={openRules}
           onBotStep={runBotStep}
+          onSkip={() => void flushScheduler()}
+          onOrchestrationPause={() => dispatch({ type: "orchestrationPaused" })}
+          onOrchestrationResume={() => dispatch({ type: "orchestrationResumed" })}
+          onOrchestrationRateChange={(rate) => dispatch({ type: "orchestrationRateChanged", rate })}
           onAutoplayStart={() => dispatch({ type: "autoplayStarted" })}
           onAutoplayPause={() => dispatch({ type: "autoplayPaused" })}
         />

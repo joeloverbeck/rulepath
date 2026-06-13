@@ -69,6 +69,10 @@ export type ShellState = {
   autoplay: {
     running: boolean;
   };
+  orchestration: {
+    paused: boolean;
+    rate: number;
+  };
   rulesPanelOpen: boolean;
   rulesPanelGameId: string | null;
   rulesPanelStatus: RulesPanelStatus;
@@ -109,6 +113,9 @@ export type ShellAction =
   | { type: "botTurnCompleted"; result: BotTurnResult }
   | { type: "autoplayStarted" }
   | { type: "autoplayPaused" }
+  | { type: "orchestrationPaused" }
+  | { type: "orchestrationResumed" }
+  | { type: "orchestrationRateChanged"; rate: number }
   | { type: "rulesPanelOpened"; gameId: string }
   | { type: "rulesPanelClosed" }
   | { type: "rulesPanelLoadStarted"; gameId: string }
@@ -145,6 +152,10 @@ export const initialShellState: ShellState = {
   replay: null,
   autoplay: {
     running: false,
+  },
+  orchestration: {
+    paused: false,
+    rate: 1,
   },
   rulesPanelOpen: false,
   rulesPanelGameId: null,
@@ -203,6 +214,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         staleToken: null,
         replay: null,
         autoplay: { running: false },
+        orchestration: { paused: false, rate: state.orchestration.rate },
       };
     }
     case "setupSeedChanged":
@@ -257,6 +269,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         staleToken: null,
         replay: null,
         autoplay: { running: false },
+        orchestration: { paused: false, rate: state.orchestration.rate },
         pendingOperation: null,
       };
     case "refreshed":
@@ -364,6 +377,21 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         ...state,
         autoplay: { running: false },
         pendingOperation: state.pendingOperation === "botTurn" ? null : state.pendingOperation,
+      };
+    case "orchestrationPaused":
+      return {
+        ...state,
+        orchestration: { ...state.orchestration, paused: true },
+      };
+    case "orchestrationResumed":
+      return {
+        ...state,
+        orchestration: { ...state.orchestration, paused: false },
+      };
+    case "orchestrationRateChanged":
+      return {
+        ...state,
+        orchestration: { ...state.orchestration, rate: action.rate },
       };
     case "rulesPanelOpened":
       return {

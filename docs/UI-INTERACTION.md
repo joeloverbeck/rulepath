@@ -184,6 +184,42 @@ The scheduler MUST handle:
 
 State diffs MAY diagnose missing effect coverage in dev mode. They MUST NOT become normal animation authority.
 
+The shared scheduler is the single owner of effect-presentation timing: all
+play-path animation and pacing flows through it, and ad-hoc timers outside it
+are defects. Skip, acting during animation, and replay stepping share one
+flush-and-settle path that finishes (never discards) in-flight animation and
+renders the latest viewer-safe public view. Reduced-motion mode replaces
+motion with instant transitions plus non-motion feedback while preserving
+every conveyed fact as text. Redacted effects receive generic viewer-safe
+presentation; animation introduces no new payload or leak surface.
+
+## 10A. Turn orchestration and pacing
+
+Non-interactive advances (bot turns, automated phases, autoplay, replay
+playback) play out on the shared animation timeline with authored per-effect
+dwell, not as instant state swaps and not behind manual advance triggers.
+
+- Bot turns auto-advance: after the human's effects settle, the bot's turn
+  runs and animates; bot-first starts and consecutive bot turns need no click.
+- Skip/fast-forward is always available and instantaneous.
+- Input never hard-blocks on animation: acting mid-animation flushes the
+  timeline to the settled view, then submits.
+- Auto-playing sequences expose pause/stop and speed control.
+- Reduced-motion mode preserves pacing comprehension through the fast path
+  and text narration; it never removes feedback or blocks play.
+- Orchestration is presentation policy in TypeScript. It changes when bot and
+  automation APIs are called and how results render - never what they decide.
+  Wall-clock time stays out of Rust; command logs, traces, replays, and
+  hashes are unaffected by pacing.
+
+Repeated presentation shapes across games (per-game `ui.rs` display-metadata
+modules, board adapters, effect-to-animation registrations, presentation-TOML
+layouts) are governed by this document and the official-game contract; they
+are not mechanic-atlas promotion pressure. Promotion of presentation helpers
+into `game-stdlib` is deferred until a third structural divergence between
+implementations of the same presentation shape, or an official-game count
+above 20, and routes through the atlas ledger at that time.
+
 ## 11. Settle-to-view rule
 
 After animations complete, the renderer MUST settle to the latest viewer-safe public view.
@@ -334,7 +370,17 @@ A web-exposed game is acceptable only when:
 - compound actions use progressive construction;
 - previews and diagnostics come from Rust;
 - semantic effects drive animation;
+- semantic effects animate through the shared scheduler (or a recorded
+  board-native/not-applicable adoption row), and the renderer settles to the
+  latest viewer-safe public view after every burst, skip, or interruption;
 - renderer settles to latest public view;
+- bot turns and automated phases auto-advance on the animation timeline with
+  always-available skip and pause; no manual advance trigger exists in normal
+  mode;
+- acting during animation is never blocked; it flushes to the settled view
+  and submits;
+- reduced-motion mode conveys every animated fact through non-motion
+  presentation and never blocks play;
 - replay can step through actions;
 - bot choices have public-safe explanations when non-random;
 - choices carrying reserved cost/consequence metadata display them before

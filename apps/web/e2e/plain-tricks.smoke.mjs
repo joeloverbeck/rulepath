@@ -238,8 +238,12 @@ async function playHumanVsBotToTerminal(page, baseUrl) {
       await hasHumanChoice.click();
       await page.waitForFunction(() => document.body.textContent?.includes("Card played"));
     } else {
-      await clickText(page, "button", "Run Bot Turn");
-      await page.waitForFunction(() => document.body.textContent?.includes("Bot chose action"));
+      await page.waitForFunction(
+        () =>
+          document.body.textContent?.includes("Bot chose action") &&
+          (document.querySelector('[data-testid^="choice-plain-tricks-trick-"]:not(:disabled)') ||
+            document.body.textContent?.includes("Trick totals")),
+      );
     }
     await delay(40);
   }

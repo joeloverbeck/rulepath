@@ -35,7 +35,7 @@ Derive from the source report's own numbering when present (`P1`, `R10`, `F-01`)
 
 ### Grouping & out-of-report findings
 
-Group items by verdict bucket so the user can scan by shape (all accept together, all reject together, etc.). In cross-references and the verdict field itself, use the canonical lowercase-hyphenated form (`accept-with-modification`).
+Group items by verdict bucket so the user can scan by shape (all accept together, all reject together, etc.). A user-mandated organization (e.g. priority order) overrides verdict-bucket grouping as the primary structure; keep the per-item verdict vocabulary and note the override in the triage lead. In cross-references and the verdict field itself, use the canonical lowercase-hyphenated form (`accept-with-modification`).
 
 Findings discovered during exploration that are NOT in the source report (adjacent pre-existing bugs, schema drift, kernel-boundary leaks) go in a separate **out-of-report findings** sub-section AFTER the verdict buckets, keyed `O<N>` — not a new verdict bucket. But a correction that refutes a *source-report item's* premise HAS presence in the report, so it's a `refuted-by-verification` (or `already-resolved`) verdict keyed `R<N>` in the buckets. Corrections that reframe the whole triage (tied to no single item) go in the triage lead or a verification headline before the buckets.
 

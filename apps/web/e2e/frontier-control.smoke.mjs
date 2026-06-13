@@ -94,8 +94,8 @@ try {
   await assertNoLeak(page, consoleMessages, "frontier replay viewer");
 
   await startFrontierControl(page, baseUrl, "Human vs bot", 41);
-  await clickText(page, "button", "Run Bot Turn");
   await waitForRenderedView(page, (view) => view?.game_id === "frontier_control" && view.freshness_token > 0);
+  await waitForText(page, "Turn ended");
   await assertNoLeak(page, consoleMessages, "human_vs_bot prospector bot turn");
 
   await startFrontierControl(page, baseUrl, "Bot vs bot", 7);

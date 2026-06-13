@@ -87,6 +87,12 @@ Animation is driven by semantic effects emitted by Rust. State diffs may diagnos
 |---|---|---|---|---|---|
 | `<effect>` | `<animation>` | `<timing>` | instant state change / fade / highlight / text summary / none | after animation, render latest viewer-safe public view | `<rule_ids>` |
 
+Scheduler adoption status: `adopt` (game-registered effect-to-animation
+mappings) / `board-native mapping` (recorded alternative) / `generic-only`
+(shared tone-keyed presentations suffice) / `not applicable` (rationale).
+Orchestration adoption: auto-advance and skip verified for this game's bot
+and automated phases.
+
 ## Settle-to-view checks
 
 | Scenario | Required check | Test |
