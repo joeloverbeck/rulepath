@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-008: WASM-CLIENT-BOUNDARY conceptual refresh for multi-seat view projection
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — `docs/WASM-CLIENT-BOUNDARY.md` edit only; no `crates/wasm-api` or `apps/web` code, no exported-API schema change.
@@ -71,3 +71,26 @@ Rewrite as the current catalog boundary, not Gate-3-only. Add multi-seat operati
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "get_view|active_seats|export_replay|displays but never computes" docs/WASM-CLIENT-BOUNDARY.md`
 3. `git diff --stat crates/wasm-api apps/web` (expect no changes from this ticket)
+
+## Outcome
+
+Completed: 2026-06-13
+
+Refreshed `docs/WASM-CLIENT-BOUNDARY.md` from a Gate-3/Race-to-N framing to the
+current public catalog boundary. The document now describes conceptual multi-seat
+operation shapes (`new_match`, `get_view`, `get_action_tree`, `submit_action`,
+`run_bot_turn`, `get_effects`, `export_replay`), viewer-scoped replay export,
+public/private view projection, `active_seats`/pending responders, and the rule
+that TypeScript displays but never computes turn order, legality, active seats,
+pending responders, outcome allocation, or hidden-info redaction.
+
+Deviations from plan: none. This was documentation-only; no `crates/wasm-api`,
+`apps/web`, exported JSON schema, raw ABI, engine code, or replay schema changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `grep -niE "get_view|active_seats|export_replay|displays but never computes" docs/WASM-CLIENT-BOUNDARY.md`
+  confirmed the requested multi-seat boundary language.
+- `git diff --stat crates/wasm-api apps/web` produced no output, confirming no
+  code changes in those surfaces.
