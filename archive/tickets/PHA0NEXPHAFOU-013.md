@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-013: Templates — UI/benchmark/release/pressure + AGENT-TASK + README N-seat fields
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — `templates/GAME-UI.md`, `GAME-BENCHMARKS.md`, `PUBLIC-RELEASE-CHECKLIST.md`, `PRIMITIVE-PRESSURE-LEDGER.md`, `AGENT-TASK.md`, `README.md` edits only.
@@ -98,3 +98,22 @@ Add an adoption note: every game with >2 seats fills seat-range, turn-order, vie
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "seat/surface scope|multiplayer mega-task|pairwise no-leak|seat count" templates/AGENT-TASK.md templates/PUBLIC-RELEASE-CHECKLIST.md templates/GAME-BENCHMARKS.md templates/README.md`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Summary:
+
+- Added N-seat layout, showdown rendering, render-budget, benchmark fixture, pairwise no-leak, per-seat outcome, primitive-pressure, and bounded agent-task prompts to the remaining template set.
+- Added the template README adoption note for games with more than two seats.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `grep -niE "seat/surface scope|multiplayer mega-task|pairwise no-leak|seat count" templates/AGENT-TASK.md templates/PUBLIC-RELEASE-CHECKLIST.md templates/GAME-BENCHMARKS.md templates/README.md`
+- `bash scripts/boundary-check.sh`

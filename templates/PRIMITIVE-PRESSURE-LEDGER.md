@@ -35,13 +35,19 @@ Describe the repeated mechanic shape in prose. Avoid game-specific brand names. 
 
 | Aspect | Game A | Game B | Game C | Same shape? | Notes |
 |---|---|---|---|---:|---|
+| seat count | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<min/max seats and role/team model>` |
+| topology size | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<graph/track/map/object-count pressure>` |
+| data size | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<decks/walls/hands/tables/fixture payload size>` |
 | state shape | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | action shape | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| action fanout | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<branching/candidate count pressure>` |
 | validation | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | transitions | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | diagnostics | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | semantic effects | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | visibility | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
+| view payload size | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<public/private projection pressure>` |
+| no-leak complexity | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<pairwise/private-datum-by-viewer-by-surface pressure>` |
 | UI pattern | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | bot use | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
 | replay/hash impact | `<notes>` | `<notes>` | `<notes>` | yes/no/unclear | `<notes>` |
@@ -176,12 +182,20 @@ Do not write implementation code here. Describe the narrow typed helper contract
 Good fits:
 
 - `<example>`
+- graph topology with bounded typed adjacency and path queries
+- private-hand/deck or wall projection with repeated no-leak evidence
+- trick-taking turn/lead/follow-suit pressure across official games
+- side-pot or split allocation with repeated typed accounting shape
 
 ## Anti-examples
 
 Not a fit:
 
 - `<anti_example>`
+- generic multiplayer framework work without a specific repeated typed shape
+- large static maps used as a behavior language
+- one-off UI layout similarity without shared Rust behavior pressure
+- broad hidden-information abstraction that cannot state pairwise no-leak tests
 
 ## ADR need
 

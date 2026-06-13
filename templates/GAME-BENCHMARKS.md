@@ -47,6 +47,14 @@ Do not optimize without benchmark evidence. Do not accept regressions without ra
 |---|---|---|---|
 | `<benchmark>` | `<command>` | native / wasm / browser | `<notes>` |
 
+## Seat count and surface fixture matrix
+
+Every official seat count and the largest official surface fixture MUST be represented. The largest official variant requires legal-action, preview, apply, project-view, serialize, replay-import, bot-turn, and WASM smoke coverage.
+
+| Seat count | Surface fixture | Legal-action benchmark | Preview benchmark | Apply benchmark | Project-view benchmark | Serialize benchmark | Replay-import benchmark | Bot-turn benchmark | WASM smoke benchmark | Status |
+|---:|---|---|---|---|---|---|---|---|---|---|
+| `<seat_count>` | `<min/typical/max-surface fixture>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | not started / partial / covered |
+
 ## Native benchmark section
 
 | Operation | Target | Baseline | Current | Regression threshold | Status | Notes |
@@ -64,6 +72,9 @@ Do not optimize without benchmark evidence. Do not accept regressions without ra
 | bot decision latency | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline | `<notes>` |
 | candidate extraction if Level 2 | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<notes>` |
 | hidden-info view filtering if applicable | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<notes>` |
+| largest official variant legal actions | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<seat count + max-surface fixture>` |
+| largest official variant project-view | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<seat count + max-surface fixture>` |
+| largest official variant replay import | `<target>` | `<baseline>` | `<current>` | `<threshold>` | pass/fail/no baseline/not applicable | `<seat count + max-surface fixture>` |
 
 ## WASM/browser smoke benchmark section
 
