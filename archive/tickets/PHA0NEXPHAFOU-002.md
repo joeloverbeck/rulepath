@@ -1,6 +1,6 @@
 # PHA0NEXPHAFOU-002: Add the multi-seat & larger-surface contract doc and index it in docs/README.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — new `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` + `docs/README.md` map edit; no crates/schemas/traces.
@@ -76,3 +76,29 @@ Add the doc to the document map under the foundation/area-doc layer, before `ROA
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. `grep -n "MULTI-SEAT-AND-SURFACE-CONTRACT" docs/README.md`
+
+## Outcome
+
+Completed: 2026-06-13
+
+Created `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` and indexed it in
+`docs/README.md` before `ROADMAP.md`. The new area doc codifies N-seat and
+larger-surface obligations for later Gate 15+ work: seat ranges, stable seat IDs,
+roles/teams, Rust-owned turn order, viewer matrices, pairwise no-leak matrices,
+public-observer rules, surface/action-fanout budgets, semantic-effect batching,
+per-seat outcome breakdowns, trace/view-hash expectations, and future simulator
+summary shape. It explicitly stays subordinate to the foundation docs, ADR 0004,
+and bot law, and it authorizes no kernel, schema, replay/hash, WASM, or DSL
+change.
+
+Deviations from plan: none.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `grep -n "MULTI-SEAT-AND-SURFACE-CONTRACT" docs/README.md` confirmed the
+  document map entry before `ROADMAP.md`.
+- `git diff --quiet -- crates/engine-core` confirmed `engine-core` unchanged.
+- `git diff --quiet -- docs/TRACE-SCHEMA-v1.md` confirmed trace schema
+  unchanged.
