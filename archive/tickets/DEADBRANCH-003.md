@@ -1,6 +1,6 @@
 # DEADBRANCH-003: Assert no dead-branch action trees across all games in simulation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/simulate` (`src/main.rs`): per-game step invariant. No `engine-core`/`game-stdlib`/`games/*` rule change.
@@ -147,3 +147,31 @@ plain_tricks. For race_to_n, fold the dead-branch check into the existing
 3. The simulate sweep is the correct boundary because the bug class is a property of
    the per-state legal action tree exercised across reachable states, which only the
    end-to-end simulation enumerates; unit tests cover the assertion helper itself.
+
+## Outcome
+
+Completed: 2026-06-13
+
+Added a shared `assert_tree_well_formed` helper in `tools/simulate/src/main.rs`
+that checks `ActionTree::dead_branch_paths()` and returns a deterministic simulation
+failure block naming the offending path(s) and replay command.
+
+Wired the helper into all 14 per-game simulation loops: `race_to_n`, `three_marks`,
+`column_four`, `directional_flip`, `draughts_lite`, `high_card_duel`,
+`masked_claims`, `flood_watch`, `frontier_control`, `event_frontier`,
+`token_bazaar`, `secret_draft`, `poker_lite`, and `plain_tricks`. For `race_to_n`,
+the check is folded into the existing `check_invariants` path.
+
+Added simulate-tool tests proving the assertion rejects a hand-built dead-branch
+tree and accepts a healthy nested tree.
+
+Deviations from plan: none. The change is enforcement-only in `tools/simulate`; it
+does not alter game rules, `engine-core`, `game-stdlib`, action-tree schema,
+replay-check, fixture-check, or the bot selection contract.
+
+Verification:
+
+- `cargo test -p simulate`
+- `for g in race_to_n three_marks column_four directional_flip draughts_lite high_card_duel masked_claims flood_watch frontier_control event_frontier token_bazaar secret_draft poker_lite plain_tricks; do cargo run -p simulate -- --game $g --games 1000 || break; done`
+- `cargo test --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`
