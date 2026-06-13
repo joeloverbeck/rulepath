@@ -24,6 +24,8 @@ The policy MUST be deterministic under seed, rules version, policy version, inpu
 
 ## Explicit public v1/v2 exclusions
 
+No MCTS/Monte Carlo/ML/RL assertion: `<confirm this public bot uses no MCTS, ISMCTS, Monte Carlo-style bot, ML, or RL path>`.
+
 The Level 2 public bot MUST NOT use:
 
 - omniscient state;
@@ -54,6 +56,10 @@ Future search, ML, or RL work requires an ADR under the foundation docs.
 
 ## Exact bot input view
 
+Supported seat range: `<min..max seats>`
+
+Opponent set: `<all non-own seats / opposing team seats / table competitors / not applicable>`
+
 | Input item | Included? | Source | Visible to acting seat? | Notes/no-leak test |
 |---|---:|---|---:|---|
 | legal action tree/action paths | yes | Rust legal action API | yes | `<test>` |
@@ -65,6 +71,19 @@ Future search, ML, or RL work requires an ADR under the foundation docs.
 | unrevealed deck/order/future random outcomes | no | forbidden | no | `<test>` |
 | dev/test full state | no | forbidden for public bot | no | `<test>` |
 
+## N-seat policy structure
+
+| Field | Decision/evidence | Tests |
+|---|---|---|
+| supported seat range | `<min..max seats>` | `<tests>` |
+| opponent set | `<opponent seats, opposing teams, neutral seats, eliminated seats>` | `<tests>` |
+| partnership/team roles | none / `<roles and teammate visibility limits>` | `<tests>` |
+| per-seat policy specialization | none / `<role, turn order, or seat-position differences>` | `<tests>` |
+| multi-opponent priority rules | `<how threats, leaders, blockers, shared pots, coalitions, or multiple winners are ranked>` | `<tests>` |
+| deterministic skip/advance order | `<passed/eliminated/waiting/non-acting seat order>` | `<tests>` |
+| multi-winner/split metrics | none / `<standings, team result, split allocation, side-pot, elimination order>` | `<tests>` |
+| own-private/public-only input list | `<public facts, own private facts, legal remembered observations>` | `<no-leak tests>` |
+
 ## Legal action API used
 
 | API/contract | Purpose | Determinism requirement | Tests |
@@ -75,9 +94,9 @@ Future search, ML, or RL work requires an ADR under the foundation docs.
 
 ## Candidate extraction plan
 
-| Candidate group | Extraction rule | Rule IDs | Visible facts used | Hidden-info risk | Tests |
-|---|---|---|---|---|---|
-| `<group>` | `<how legal action paths become candidates>` | `<rule_ids>` | `<visible_facts>` | none / low / medium / high | `<tests>` |
+| Candidate group | Extraction rule | Rule IDs | Visible facts used | Opponent set considered | Hidden-info risk | Tests |
+|---|---|---|---|---|---|---|
+| `<group>` | `<how legal action paths become candidates>` | `<rule_ids>` | `<visible_facts>` | `<one opponent / all opponents / team / table / none>` | none / low / medium / high | `<tests>` |
 
 Candidates are legal action paths plus policy annotations. They MUST NOT include actual hidden information unavailable to the bot seat.
 
@@ -101,6 +120,8 @@ Prefer a lexicographic priority vector over giant weighted sums. Earlier slots d
 | 6 | style profile hook | `<definition>` | `<evidence>` | `<rule_ids>` | `<tests>` | `<public_safe_text>` |
 | 7 | bounded scoring tie-break | `<definition>` | `<evidence>` | `<rule_ids>` | `<tests>` | `<public_safe_text>` |
 | 8 | deterministic seeded tie-break | stable order from seed and candidate identity | framework | not applicable | `<tests>` | `<public_safe_text>` |
+
+For N-seat games, every opponent-denial, leader-targeting, kingmaking, coalition, or team-protection priority MUST state whether it evaluates one opponent, all opponents, opposing teams, or table-wide standings.
 
 ## Bounded scoring tie-breakers
 
@@ -162,6 +183,14 @@ Fill this section for hidden-information games. For perfect-information games, m
 
 Sampled possibilities, if any, MUST be generated from the bot's legal information, not copied from actual hidden state.
 
+## Multi-opponent inference and coalition limits
+
+| Topic | Allowed input | Forbidden input | Policy use | Tests |
+|---|---|---|---|---|
+| public table inference allowed | public standings, legal public history, own private observations, revealed facts | actual hidden opponent state, future random outcomes | `<priority/candidate/explanation use>` | `<tests>` |
+| private inference forbidden | none beyond legal own-seat information | opponent hands, secret roles, hidden commitments, private logs | `<none>` | `<no-leak tests>` |
+| kingmaking/coalition risk | public table state and explicit rules only | private coordination, hidden intent, off-table assumptions | `<mitigation or not applicable>` | `<tests>` |
+
 ## Explanation contract
 
 Every non-random public bot decision SHOULD produce a viewer-safe explanation with:
@@ -171,6 +200,7 @@ Every non-random public bot decision SHOULD produce a viewer-safe explanation wi
 | policy name/version | yes | `<notes>` |
 | chosen priority reason | yes | must map to priority vector |
 | relevant visible fact | yes | must be visible to viewer or redacted |
+| explanation redaction per viewer | yes | state how owning seat, teammate, opponent, public observer, replay viewer, and dev-only harness differ |
 | tie-break note | if applicable | bounded score or seeded tie-break |
 | hidden-info disclaimer | if relevant | do not reveal hidden facts |
 | fallback/search note | if relevant | Level 2 should normally not search |
@@ -178,9 +208,9 @@ Every non-random public bot decision SHOULD produce a viewer-safe explanation wi
 
 ## Public explanation examples
 
-| Situation | Chosen action | Public explanation | Hidden-info safe? | Rule IDs |
-|---|---|---|---:|---|
-| `<situation>` | `<action>` | `<short viewer-safe explanation>` | yes/no | `<rule_ids>` |
+| Situation | Viewer class | Chosen action | Public explanation | Redaction applied | Hidden-info safe? | Rule IDs |
+|---|---|---|---|---|---:|---|
+| `<situation>` | `<owning seat / teammate / opponent / public observer / replay viewer>` | `<action>` | `<short viewer-safe explanation>` | none / `<redaction>` | yes/no | `<rule_ids>` |
 
 ## Dev-mode ranking examples
 

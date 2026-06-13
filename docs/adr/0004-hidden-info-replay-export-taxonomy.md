@@ -72,6 +72,13 @@ The WASM/API visibility contract is also viewer-aware:
 - TypeScript/React MUST NOT receive hidden state and rely on rendering logic,
   CSS, dev panels, or feature flags to hide it.
 
+Non-normative N-player note: the same viewer-scoped export decision applies per
+authorized viewer in games with more than two seats. A seat-private export for
+seat A must not include seats B/C/D private facts unless Rust has made those
+facts public or otherwise authorized for that viewer; public observer export
+remains the default browser-safe export. The pairwise proof matrix is codified in
+[`../MULTI-SEAT-AND-SURFACE-CONTRACT.md`](../MULTI-SEAT-AND-SURFACE-CONTRACT.md).
+
 ## Alternatives considered
 
 | Alternative | Why considered | Why accepted/rejected |

@@ -43,6 +43,16 @@ React + SVG is the default renderer unless profiling evidence or ADR says otherw
 | Canvas/PixiJS needed? | no by default / profiling required / ADR required | `<notes>` |
 | WASM boundary | batched Rust calls; no chatty rule hot loops | `<notes>` |
 
+## Object count and render budget
+
+| Surface/region | Expected object count | Maximum official fixture count | Render/update budget | Evidence |
+|---|---:|---:|---|---|
+| board/table/topology | `<count/range>` | `<max fixture>` | `<budget>` | `<benchmark/smoke>` |
+| seat rail/player panels | `<count/range>` | `<max seats>` | `<budget>` | `<benchmark/smoke>` |
+| hand/card/tile/component areas | `<count/range>` | `<max fixture>` | `<budget>` | `<benchmark/smoke>` |
+| action controls/previews | `<count/range>` | `<max legal choices>` | `<budget>` | `<benchmark/smoke>` |
+| logs/replay/outcome panels | `<count/range>` | `<max entries>` | `<budget>` | `<benchmark/smoke>` |
+
 ## Screen-size support
 
 | Size/context | Supported? | Layout notes | Smoke test |
@@ -53,6 +63,19 @@ React + SVG is the default renderer unless profiling evidence or ADR says otherw
 | desktop | yes/no | `<notes>` | `<test>` |
 | keyboard-only desktop | yes/no | `<notes>` | `<test>` |
 | reduced-motion user | yes/no | `<notes>` | `<test>` |
+
+## Multi-seat layout
+
+Required for every 3+ seat game. For two-seat games, either fill the table or add an explicit `not applicable` row with rationale.
+
+| UI element | Required behavior | Hidden-info safeguard | Small-screen behavior | Tests |
+|---|---|---|---|---|
+| seat rail / card positions | `<stable seat labels, order, color/shape identity, standing state>` | `<no private data in labels/classes/test IDs>` | `<collapse/scroll/stack behavior>` | `<smoke/a11y>` |
+| active/pending seats | `<active seat, pending responders, skipped/eliminated seats>` | `<viewer-safe reasons only>` | `<compact indicator>` | `<smoke>` |
+| local seat selector | `<human/bot/observer seat choice or not applicable>` | `<only authorized private view loads>` | `<menu/tabs/selector behavior>` | `<no-leak smoke>` |
+| observer mode | `<public observer/replay viewer behavior>` | `<public projection only>` | `<layout>` | `<smoke>` |
+| team grouping | `<team/partnership/coalition grouping or not applicable>` | `<teammate visibility rules respected>` | `<group labels/collapse>` | `<smoke>` |
+| small-screen seat rail accessibility | `<keyboard/focus/screen-reader label plan>` | `<viewer-safe summaries>` | `<minimum usable state>` | `<a11y smoke>` |
 
 ## Legal action mapping
 
@@ -156,6 +179,14 @@ List every value shown for every player at terminal.
 | Breakdown value | Source | Visible to public observer? | Visible to seat viewer? | Hidden-info notes |
 |---|---|---:|---:|---|
 | `<score/line/strength/piece count/allocation/etc.>` | `<Rust field/effect>` | `<yes/no>` | `<yes/no>` | `<redaction/reveal rule>` |
+
+### Showdown and final-standing render
+
+Required when a game has showdown, evaluator, ranking, comparison vectors, folded/non-revealed seats, team standings, split allocation, or side-pot behavior. Otherwise add one explicit `not applicable` row.
+
+| Contender/seat | Evaluated combo | Used components | Rank vector | Decisive comparison | Folded/non-revealed handling | Visible to viewer? |
+|---|---|---|---|---|---|---:|
+| `<seat/team/contender>` | `<Rust-projected combo or not applicable>` | `<public/revealed components only>` | `<Rust-projected rank vector>` | `<why this standing won/lost/split>` | `<folded/non-revealed/redacted rule>` | yes/no |
 
 ### No-leak rules
 

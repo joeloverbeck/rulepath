@@ -64,6 +64,7 @@ Rule IDs MUST remain stable after implementation unless intentionally migrated w
 | Check | Status | Evidence/notes |
 |---|---|---|
 | coverage matrix has one row per rule ID | ready / blocked / constrained | `<notes>` |
+| terminal result coverage is complete for every viewer class | ready / blocked / constrained | `<notes>` |
 | deferred/unsupported/not applicable rows are explicit | ready / blocked / constrained | `<notes>` |
 | primary Rust test strategy is identified | ready / blocked / constrained | `<notes>` |
 | golden trace needs are identified | ready / blocked / constrained | `<notes>` |
@@ -78,11 +79,15 @@ Rule IDs MUST remain stable after implementation unless intentionally migrated w
 | Check | Status | Evidence/notes |
 |---|---|---|
 | all mechanic atlas categories are inventoried | ready / blocked / constrained | `<notes>` |
+| min/max seats and stable seat labels are recorded | ready / blocked / constrained | `<notes>` |
+| wrong-seat-count diagnostics are viewer-safe and identified | ready / blocked / constrained | `<notes>` |
+| topology/object-count inventory is complete | ready / blocked / constrained / not applicable | `<notes>` |
 | local mechanics are named and scoped | ready / blocked / constrained | `<notes>` |
 | reused primitives are justified | ready / blocked / constrained / not applicable | `<notes>` |
 | repeated-shape comparison is complete | ready / blocked / constrained / not applicable | `<notes>` |
 | second-use review is recorded when applicable | ready / blocked / constrained / not applicable | `<notes>` |
 | third-use hard gate is cleared when applicable | ready / blocked / constrained / not applicable | `<notes>` |
+| atlas interlock status is recorded for next-phase scaling pressure | ready / blocked / constrained / not applicable | `<notes>` |
 | repo atlas update required? | yes/no | `<notes>` |
 
 A third official game with the same mechanic shape is blocked until the primitive-pressure ledger records reuse, promotion, explicit defer/reject, or ADR-required.
@@ -122,6 +127,18 @@ A third official game with the same mechanic shape is blocked until the primitiv
 | DOM/test IDs/local storage/replay export | none/low/medium/high | `<test>` | ready/blocked/not applicable |
 | bot explanations/candidate rankings | none/low/medium/high | `<test>` | ready/blocked/not applicable |
 | dev inspector | none/low/medium/high | `<test>` | ready/blocked/not applicable |
+
+## Seat, projection, and topology admission
+
+| Check | Status | Evidence/notes |
+|---|---|---|
+| min/max seats accepted by setup are explicit | ready / blocked / constrained | `<notes>` |
+| unsupported seat counts reject with viewer-safe diagnostics | ready / blocked / constrained | `<notes>` |
+| official seat IDs and stable seat labels are defined | ready / blocked / constrained | `<notes>` |
+| per-viewer projection proof plan exists | ready / blocked / constrained | `<notes>` |
+| pairwise no-leak proof plan exists for every source seat private datum and viewer surface | ready / blocked / constrained / not applicable | `<notes>` |
+| topology/object-count inventory covers all public and private objects | ready / blocked / constrained / not applicable | `<notes>` |
+| mechanic-atlas interlock status is ready for N-seat/topology/evaluator/shared-accounting pressure | ready / blocked / constrained / not applicable | `<notes>` |
 
 ## Bot level required for this stage
 

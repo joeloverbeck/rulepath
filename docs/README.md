@@ -16,12 +16,13 @@ Read these documents in this order.
 | 6 | [AI-BOTS.md](AI-BOTS.md) | Bot law, levels, hidden-information safety, Level 2 strategy evidence workflow, explanations, personalities. |
 | 7 | [UI-INTERACTION.md](UI-INTERACTION.md) | Public visual target, legal-only interaction, previews, effect-driven animation, replay UI, accessibility. |
 | 8 | [TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md) | Test taxonomy, golden traces, deterministic replay/hash discipline, no-leak tests, benchmarks, CI. |
-| 9 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
-| 10 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
-| 11 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
-| 12 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
-| 13 | [WASM-CLIENT-BOUNDARY.md](WASM-CLIENT-BOUNDARY.md) | Gate 3 Rust/WASM-to-browser client contract, operation groups, replay safety, and dev-panel data whitelist. |
-| 14 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
+| 9 | [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md) | N-seat and larger-surface obligations; subordinate to the constitution, architecture, data boundary, hidden-info ADRs, and bot law. |
+| 10 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
+| 11 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
+| 12 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
+| 13 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
+| 14 | [WASM-CLIENT-BOUNDARY.md](WASM-CLIENT-BOUNDARY.md) | Gate 3 Rust/WASM-to-browser client contract, operation groups, replay safety, and dev-panel data whitelist. |
+| 15 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
 
 ## What belongs in this set
 

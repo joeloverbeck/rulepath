@@ -103,6 +103,12 @@ emits reserved keys, shared action surfaces MUST render them at choice and
 confirmation time. Reserved keys are documented here, not typed into
 engine-core; the kernel treats metadata as opaque.
 
+For N-seat games, browser payloads must already identify the public observer,
+authorized seat viewer, active seat or active set, pending responders, and any
+viewer-safe role/team labels needed for presentation. TypeScript may visualize
+these facts; it must not infer turn order, pending response rights, or legal
+seat counts.
+
 ## 6. Action lifecycle
 
 ```text
@@ -236,6 +242,46 @@ prose, casino terms, or raw IDs. It is omitted entirely when absent (never
 `null`), never synthesized in TypeScript, and never parsed for behavior.
 Repeated per-game catalog-theme and variant-description shapes are governed
 here and are not mechanic-atlas promotion pressure.
+
+## 10B. Multi-seat layout
+
+Multi-seat layouts must avoid fixed two-column or left/right assumptions.
+
+For games with 3+ seats, the UI SHOULD provide a seat rail or equivalent
+orientation surface that can handle the game's declared range, starting with
+3-7 seats unless a game spec documents a narrower range. The layout must show
+viewer-safe seat labels, active seats, pending responders, and turn-order or
+phase cues from Rust/WASM view data.
+
+Local hotseat and replay views need an explicit viewer/observer selector when
+multiple viewer projections are supported. Seat indices are dev-panel
+vocabulary; normal public UI uses display names, roles, or team labels supplied
+by Rust/static typed metadata.
+
+Small-screen layouts may collapse the seat rail, but must preserve active seat,
+pending responder, local viewer, and outcome information without relying on
+color alone.
+
+## 10C. Showdown and comparison explanations
+
+Showdown, allocation, ranking, and comparison surfaces are presentation of
+Rust-owned facts.
+
+When a game exposes a showdown or equivalent terminal comparison, the UI must be
+able to render:
+
+- every revealed contender;
+- the evaluated combination or equivalent result;
+- used components when public or viewer-authorized;
+- comparison vector or ranking facts;
+- split/tie reason;
+- decisive comparison reason; and
+- redaction for folded, non-revealed, or unauthorized private data.
+
+The existing shared outcome explanation surface is the preferred rendering
+target. TypeScript may format, group, collapse, and label Rust-supplied safe
+facts. It must not compute hand strength, score comparisons, allocation,
+tiebreakers, winners, or redaction rules.
 
 ## 11. Settle-to-view rule
 

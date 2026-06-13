@@ -178,6 +178,30 @@ MUST NOT:
 - smuggle TypeScript legality through UI metadata;
 - smuggle bot cheating through shared evaluator helpers.
 
+## 9A. Next-phase armed interlocks
+
+The public scaling phase intentionally creates larger N-seat and larger-surface
+pressure. This section arms future ledger checks; it does not pre-decide reuse,
+promote helpers, or relax the third-use hard gate.
+
+Before each third official use of a repeated shape, write or update a primitive
+pressure ledger entry. The entry must decide reuse, narrow promotion,
+defer/reject, or ADR before the game proceeds.
+
+| Upcoming pressure | Expected comparison point | Required posture |
+|---|---|---|
+| River Ledger / Texas Hold'Em base | deterministic shuffle, private hands, community cards, showdown evaluation, public contribution accounting | Compare against `high_card_duel`, `poker_lite`, `plain_tricks`, `masked_claims`, and existing accounting entries before any card/deck/hand/evaluator/accounting helper is reused or promoted. |
+| River Ledger side pots / all-in extension | side-pot eligibility, partial allocation, split-pot rationale | Treat as public accounting/allocation pressure. Keep local unless the ledger proves a narrow behavior-free helper. |
+| Hearts, Oh Hell, and Spades | follow-suit, trick resolution, trick-winner turn order, hidden-hand no-leak, partnerships | Reopen trick-taking and private-hand ledger entries before the third close use. Partnership/team scoring needs its own comparison rather than folding into seat IDs. |
+| Five Hundred Rummy / Rummy 500 family | meld validation, public meld tableau, draw/discard zones, multi-round score target | Start local. Hard-gate before a third meld/tableau/zone helper. Do not encode meld conditions or scoring formulas in data. |
+| Star Halma and Pachisi-family race | graph/track topology, route networks, jump/path validation, capture/safety semantics | Compare against prior board-space and graph-map decisions. Topology may be typed content; path legality and capture/safety behavior remain Rust. |
+| Four Winds Melds | wall draw/discard rhythm, concealed/exposed sets, discard-claim priority, multi-opponent reaction windows | Treat reaction-window and hidden-zone pressure as hard-gate candidates. Priority/cancellation policy is game-local unless a later ADR says otherwise. |
+| Commonwealth Frontier capstone | graph/site/faction/asymmetric-victory/event-resource pressure at larger scale | Resolve graph topology, site control, faction asymmetry, public resource accounting, event timing, and outcome-rationale interlocks before implementation. |
+
+Large surfaces increase benchmark, no-leak, and UI pressure, but scale alone is
+not a primitive. A helper earns promotion by repeated implemented public games,
+not by anticipated size.
+
 ## 10. Initial atlas table
 
 | Mechanic shape | Games exerting pressure | Status | Current decision | Next gate |

@@ -41,6 +41,10 @@ Public release includes any linked route, hosted artifact, downloadable build, e
 | `GAME-UI.md` complete | pass/fail | `<path/notes>` |
 | `GAME-BENCHMARKS.md` complete | pass/fail | `<path/notes>` |
 | primitive-pressure ledger complete if needed | pass/fail/not applicable | `<path/notes>` |
+| supported player-count smoke complete | pass/fail/not applicable | `<seat counts and evidence>` |
+| all seat labels/roles are safe and stable | pass/fail/not applicable | `<evidence>` |
+| pairwise no-leak matrix complete | pass/fail/not applicable | `<path/notes>` |
+| per-seat outcome explanation complete | pass/fail/not applicable | `<path/notes>` |
 
 ## Rule, source, and IP status
 
@@ -114,6 +118,17 @@ Fill every row. Perfect-information games may mark `not applicable` with rationa
 | candidate rankings | pass/fail/not applicable | `<test>` | `<notes>` |
 | dev inspector/public build boundary | pass/fail/not applicable | `<test>` | `<notes>` |
 
+## Pairwise no-leak and per-seat outcome gate
+
+Required for hidden-information, asymmetric-view, team, partnership, or 3+ seat games. Perfect-information two-seat games may use explicit `not applicable` rows.
+
+| Check | Status | Evidence/test | Notes |
+|---|---|---|---|
+| pairwise no-leak matrix covers source seat private datum by viewer by surface | pass/fail/not applicable | `<GAME-RULE-COVERAGE.md path/test>` | `<notes>` |
+| per-seat outcome explanation complete for every terminal result | pass/fail/not applicable | `<GAME-UI.md path/test>` | `<notes>` |
+| per-team/partnership/coalition outcome explanation complete | pass/fail/not applicable | `<path/test>` | `<notes>` |
+| no-reveal terminal outcomes verified | pass/fail/not applicable | `<test>` | `<notes>` |
+
 ## Replay/export safety
 
 | Check | Status | Evidence/notes |
@@ -121,6 +136,7 @@ Fill every row. Perfect-information games may mark `not applicable` with rationa
 | replay reproduces deterministic hashes | pass/fail | `<notes>` |
 | exported replay contains only intended public or authorized data | pass/fail | `<notes>` |
 | hidden-info redaction verified for exports | pass/fail/not applicable | `<notes>` |
+| multi-seat replay export/import verified for every supported player count | pass/fail/not applicable | `<notes>` |
 | replay import validates versions and schema | pass/fail | `<notes>` |
 | replay UI is viewer-safe | pass/fail | `<notes>` |
 | golden traces are not silently updated | pass/fail | `<notes>` |
@@ -162,6 +178,7 @@ Fill every row. Perfect-information games may mark `not applicable` with rationa
 | color is not sole information channel | pass/fail | `<notes>` |
 | reduced-motion behavior implemented | pass/fail | `<notes>` |
 | responsive layout smoke-tested | pass/fail | `<notes>` |
+| small-screen seat-rail accessibility smoke-tested | pass/fail/not applicable | `<notes>` |
 | accessibility scan where practical | pass/fail/not applicable | `<notes>` |
 
 ## Bot explanation safety
@@ -205,6 +222,7 @@ Fill every row. Perfect-information games may mark `not applicable` with rationa
 | accessibility/reduced-motion/responsive smoke | pass/fail | `<notes>` |
 | native benchmarks | pass/fail | `<notes>` |
 | WASM/browser smoke benchmarks | pass/fail/not applicable | `<notes>` |
+| large-surface performance benchmarks | pass/fail/not applicable | `<seat count / max-surface fixture / notes>` |
 
 ## Public release decision
 

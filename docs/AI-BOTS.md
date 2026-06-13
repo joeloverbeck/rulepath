@@ -63,6 +63,36 @@ They may infer. They may not peek.
 
 No-leak tests are mandatory for hidden-information bots.
 
+## 4A. N-player imperfect-information bots
+
+N-player hidden-information games add multi-opponent pressure, but they do not
+change public bot law. A bot for a 3+ seat imperfect-information game MAY use:
+
+- its own authorized private view;
+- public state and public history;
+- history that was visible to that bot when it happened;
+- rules and variant metadata;
+- legal inference from public facts and that bot's own observations;
+- broad rule-of-thumb belief categories, such as visible pressure, public pot
+  odds, known card counts, or opponent posture inferred from public actions.
+
+It MUST NOT use:
+
+- actual hidden cards, commitments, roles, hands, melds, walls, or deck tails
+  belonging to other seats;
+- an unredacted replay or internal full trace as public bot input;
+- DOM, storage, dev-panel, test fixture, or full-state peeking;
+- candidate rankings derived from unauthorized hidden state;
+- sampled hidden worlds copied from actual hidden state; or
+- MCTS, ISMCTS, Monte Carlo playout/search, ML, RL, or runtime LLM move
+  selection unless a later accepted ADR changes public bot law.
+
+Multi-opponent policy notes are required for Level 1+ N-player hidden-info bots.
+They must name the target opponent set, risk model, visible facts used for
+inference, deterministic tie-breaks, and explanation redaction per viewer.
+Belief is allowed as documented human-plausible inference over legal public
+information; it is not a license to sample or inspect the real hidden world.
+
 ## 5. Game-specific strategy modules
 
 Do not build “one bot plays every game.” The action-tree API is generic; strategy is game-specific.

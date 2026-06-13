@@ -36,6 +36,15 @@ In original Rulepath prose, summarize what competent play means for this game an
 
 - `<summary_point>`
 
+## Seat and opponent model
+
+| Field | Analysis | Rule IDs | Notes |
+|---|---|---|---|
+| supported seat range | `<min..max seats>` | `<rule_ids>` | `<notes>` |
+| number of opponents | `<one opponent / multiple opponents / opposing teams / table competitors>` | `<rule_ids>` | `<notes>` |
+| partnership/team roles | none / `<team, partnership, coalition, asymmetric role>` | `<rule_ids>` | `<notes>` |
+| seat/turn-order pressure | `<first/last/leader/dealer/reaction/simultaneous implications>` | `<rule_ids>` | `<notes>` |
+
 ## Phases and situations
 
 | Phase/situation | What competent players notice | Important rule IDs | Notes |
@@ -86,6 +95,12 @@ Fill only relevant rows. Use explicit `not applicable` where needed.
 |---|---|---|---:|---|
 | `<signal>` | all / acting seat / owning seat / public observer | `<meaning>` | yes/no | `<notes>` |
 
+## Public table inference allowed
+
+| Public signal | Inference a competent player may make | Opponent set affected | Bot feature candidate? | Rule IDs |
+|---|---|---|---:|---|
+| `<signal>` | `<inference from public information only>` | `<one opponent / all opponents / team / table>` | yes/no | `<rule_ids>` |
+
 ## Hidden/private information boundary
 
 | Information | Human seat sees? | Competent inference allowed? | Bot may use? | Forbidden peeking risk | Notes |
@@ -94,11 +109,25 @@ Fill only relevant rows. Use explicit `not applicable` where needed.
 
 Competent inference is allowed only from legal information: public information, the player's own private information, remembered observations from legal views, and rule/variant knowledge. Actual hidden state, future random outcomes, unrevealed deck order, secret roles, opponent private hands, hidden commitments, and private logs are forbidden.
 
+## Private inference forbidden
+
+| Tempting shortcut | Why forbidden | Required bot guard/test | Notes |
+|---|---|---|---|
+| `<shortcut such as reading opponent hand, hidden role, deck order, private log, hidden commitment>` | unavailable to the acting seat | `<test>` | `<notes>` |
+
 ## Inference allowed vs forbidden peeking
 
 | Scenario | Allowed inference | Forbidden shortcut | Test implied |
 |---|---|---|---|
 | `<scenario>` | `<allowed>` | `<forbidden>` | `<test>` |
+
+## Kingmaking and coalition risk
+
+Required for 3+ seat, team, partnership, or coalition-sensitive games. For games where this cannot occur, add one explicit `not applicable` row.
+
+| Risk | Visible trigger | Competent response principle | Bot feature candidate? | Rule IDs | Notes |
+|---|---|---|---:|---|---|
+| `<kingmaking/coalition/table-leader/rival-selection risk or not applicable>` | `<public signal>` | `<principle based only on legal information>` | yes/no | `<rule_ids>` | `<notes>` |
 
 ## Strategy examples
 

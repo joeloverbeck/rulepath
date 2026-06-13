@@ -90,6 +90,14 @@ Verbose local game code is acceptable. A contaminated kernel is not.
 
 Game rules should be readable as game rules. Do not hide core rule behavior behind generic factories unless the mechanic atlas has explicitly promoted a helper.
 
+N-seat and larger-surface pressure starts game-local too. Seat-range validators,
+graph topology, route networks, community-card evaluators, wall/deck shuffles,
+partnerships, side-pot allocators, tile-meld validators, and similar surfaces
+belong in `games/*` first. After repeated official use, `game-stdlib` may accept
+narrow typed helpers only through the [MECHANIC-ATLAS.md](MECHANIC-ATLAS.md)
+primitive-pressure process. None of these examples justify an `engine-core`
+noun.
+
 ## 5. Allowed static data
 
 Static data MAY include:
@@ -122,6 +130,12 @@ conditions, triggers, action schemas, validation rules, scoring logic,
 visibility filters, YAML front matter, or any DSL-like structure that could
 become behavior authority. Runtime legality, effects, visibility, scoring, and
 replay semantics remain Rust-owned.
+
+Large map is not a DSL license. Topology data, route lists, seat labels,
+component lists, and surface-size budgets may be typed content when they remain
+inert inputs to Rust behavior. Conditions, triggers, formulas, selectors,
+procedural mutation, legality, scoring, visibility, bot tactics, and exception
+logic remain Rust-owned.
 
 ## 6. Forbidden static data
 

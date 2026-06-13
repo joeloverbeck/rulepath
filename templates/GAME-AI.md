@@ -20,12 +20,12 @@ A Level 2 authored-policy bot requires completed `COMPETENT-PLAYER.md` and `BOT-
 
 ## Bot summary
 
-| Bot | Level | Policy/version | Public default? | Information access | Status | Evidence |
-|---|---:|---|---:|---|---|---|
-| random legal | 0 | `<policy_version>` | no/yes | legal action tree only | required / implemented / tested | `<tests/benchmarks>` |
-| baseline | 1 | `<policy_version>` | no/yes | allowed seat view | not planned / planned / implemented / tested | `<tests/benchmarks>` |
-| authored policy | 2 | `<policy_version>` | no/yes | allowed seat view | blocked by evidence pack / planned / implemented / tested | `<pack_path>` |
-| shallow deterministic search | 3 | `<policy_version>` | no/yes | allowed seat view | not allowed / ADR-needed / planned / implemented | `<evidence>` |
+| Bot | Level | Policy/version | Supported seat range | Public default? | Information access | Status | Evidence |
+|---|---:|---|---|---:|---|---|---|
+| random legal | 0 | `<policy_version>` | `<min..max seats>` | no/yes | legal action tree only | required / implemented / tested | `<tests/benchmarks>` |
+| baseline | 1 | `<policy_version>` | `<min..max seats>` | no/yes | allowed seat view | not planned / planned / implemented / tested | `<tests/benchmarks>` |
+| authored policy | 2 | `<policy_version>` | `<min..max seats>` | no/yes | allowed seat view | blocked by evidence pack / planned / implemented / tested | `<pack_path>` |
+| shallow deterministic search | 3 | `<policy_version>` | `<min..max seats>` | no/yes | allowed seat view | not allowed / ADR-needed / planned / implemented | `<evidence>` |
 
 Public v1/v2 bots MUST NOT use MCTS, ISMCTS, Monte Carlo-style bots, ML, or RL.
 
@@ -44,6 +44,7 @@ Required for every official game.
 | known limitations | random; not competent |
 | public explanation text | `random legal choice` / `<text>` |
 | benchmark evidence | `<benchmarks>` |
+| N-seat orchestration | `<bot-vs-bot seat fill, skipped/eliminated seat handling, deterministic advance order>` |
 
 ## Level 1: rule-informed baseline bot
 
@@ -57,6 +58,8 @@ Required for serious public demos unless explicitly deferred by roadmap gate.
 | mandatory rule handling | `<handling>` |
 | tie-break method | deterministic seeded tie-break / bounded tie-break |
 | information access | allowed seat view only |
+| per-seat policy specialization | none / `<seat/role/team-specific differences>` |
+| opponent set handling | `<all opponents independently / nearest threat / table leader / team opponent logic>` |
 | explanation examples | `<examples>` |
 | tests | `<tests>` |
 | benchmarks | `<benchmarks>` |
@@ -76,9 +79,12 @@ Competent-player analysis: `<path/to/COMPETENT-PLAYER.md>`
 | evidence pack status | missing / incomplete / complete / reviewed |
 | phase model | `<summary>` |
 | candidate extraction | `<summary>` |
+| per-seat policy specialization | none / `<seat/role/team-specific differences>` |
+| bot-vs-bot orchestration for N seats | `<seat assignment, deterministic skip/advance order, mirror-match handling>` |
 | lexicographic priority vector | `<summary>` |
 | bounded scoring tie-breakers | none / `<summary>` |
 | deterministic seeded tie-break | `<summary>` |
+| multi-winner/split metrics | none / `<standing, team result, split, side-pot, coalition, elimination metrics>` |
 | style profiles | none / `<summary>` |
 | explanation contract | `<summary>` |
 | known weaknesses | `<summary>` |
@@ -103,16 +109,16 @@ Allowed only for small perfect-information games where the foundation docs and b
 
 ## Exact information access table
 
-| Information | Human acting seat sees? | Bot sees? | Public observer sees? | Tests/notes |
-|---|---:|---:|---:|---|
-| legal action tree | yes/no | yes/no | yes/no | `<tests>` |
-| public board/state | yes/no | yes/no | yes/no | `<tests>` |
-| own private hand/role/zone | yes/no/not applicable | yes/no/not applicable | no/not applicable | `<tests>` |
-| opponent private hand/role/zone | no/not applicable | no/not applicable | no/not applicable | `<tests>` |
-| unrevealed deck/order/future random outcome | no/not applicable | no | no | `<tests>` |
-| private logs | yes/no/not applicable | yes/no/not applicable | no/not applicable | `<tests>` |
-| dev/test full state | no for public bot | no for public bot | no | `<tests>` |
-| `<information>` | yes/no | yes/no | yes/no | `<tests>` |
+| Information | Acting seat sees? | Teammate sees? | Opponent set sees? | Bot sees? | Public observer sees? | Tests/notes |
+|---|---:|---:|---:|---:|---:|---|
+| legal action tree | yes/no | yes/no/not applicable | yes/no | yes/no | yes/no | `<tests>` |
+| public board/state | yes/no | yes/no/not applicable | yes/no | yes/no | yes/no | `<tests>` |
+| own private hand/role/zone | yes/no/not applicable | yes/no/not applicable | no/not applicable | yes/no/not applicable | no/not applicable | `<tests>` |
+| opponent private hand/role/zone | no/not applicable | no/not applicable | no/not applicable | no/not applicable | no/not applicable | `<tests>` |
+| unrevealed deck/order/future random outcome | no/not applicable | no/not applicable | no | no | no | `<tests>` |
+| private logs | yes/no/not applicable | yes/no/not applicable | no/not applicable | yes/no/not applicable | no/not applicable | `<tests>` |
+| dev/test full state | no for public bot | no for public bot | no | no for public bot | no | `<tests>` |
+| `<information>` | yes/no | yes/no | yes/no | yes/no | yes/no | `<tests>` |
 
 Bots MUST NOT receive actual hidden information unavailable to the acting seat.
 
@@ -137,11 +143,11 @@ One strong default bot comes first. Optional profiles MAY be added later.
 
 ## Explanation examples
 
-| Bot | Situation | Example explanation | Hidden-info safe? | Test |
-|---|---|---|---:|---|
-| random legal | `<situation>` | `<example>` | yes/no | `<test>` |
-| baseline | `<situation>` | `<example>` | yes/no | `<test>` |
-| authored policy | `<situation>` | `<example>` | yes/no | `<test>` |
+| Bot | Situation | Viewer class | Example explanation | Redaction needed? | Hidden-info safe? | Test |
+|---|---|---|---|---:|---:|---|
+| random legal | `<situation>` | `<viewer class>` | `<example>` | yes/no | yes/no | `<test>` |
+| baseline | `<situation>` | `<viewer class>` | `<example>` | yes/no | yes/no | `<test>` |
+| authored policy | `<situation>` | `<viewer class>` | `<example>` | yes/no | yes/no | `<test>` |
 
 Public mode MAY show a small “why?” affordance or recent-bot-action explanation. Full candidate ranking is dev-mode only and MUST be viewer-safe.
 
@@ -161,6 +167,8 @@ Do not hide weaknesses behind magic weights.
 | determinism | fixed seed/view/rules/policy/limits produce fixed decision | non-random | not started / partial / covered | `<notes>` |
 | no-leak input view | hidden-info games only | all public bots | not applicable / not started / covered | `<notes>` |
 | no-leak explanation/ranking | hidden-info games only | non-random | not applicable / not started / covered | `<notes>` |
+| explanation redaction per viewer | hidden-info or asymmetric-view games only | non-random | not applicable / not started / covered | `<notes>` |
+| N-seat orchestration determinism | bot-vs-bot or 3+ seat games only | all | not applicable / not started / covered | `<notes>` |
 | replay/hash | bot decisions reproduce in replay | all | not started / partial / covered | `<notes>` |
 | explanation smoke | non-random bots explain decisions | baseline/Level 2/Level 3 | not started / partial / covered | `<notes>` |
 | decision examples | policy examples choose expected actions | Level 2 | not applicable / not started / covered | `<notes>` |
@@ -180,7 +188,7 @@ Do not hide weaknesses behind magic weights.
 
 | Run | Bots | Seeds/games | Metrics recorded | Failures | Notes |
 |---|---|---:|---|---|---|
-| `<run>` | `<bots>` | `<count>` | completed games, terminal outcomes, turn/action caps, illegal attempts, invariant failures, average length, playout throughput, bot latency, failing seed command streams | `<failures>` | `<notes>` |
+| `<run>` | `<bots and seat assignments>` | `<count>` | completed games, terminal outcomes, per-seat standings, multi-winner/split outcomes, turn/action caps, illegal attempts, invariant failures, average length, playout throughput, bot latency, failing seed command streams | `<failures>` | `<notes>` |
 
 ## Public default suitability
 

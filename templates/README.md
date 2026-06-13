@@ -28,6 +28,12 @@ Every official game MUST complete the relevant templates in full. Tiny games, in
 
 A filled template may be stored under the game directory using the repository's per-game naming convention. Keep the template intent intact even if the filled file is named `RULES.md`, `SOURCES.md`, or similar.
 
+## N-seat adoption note
+
+Every game with more than two seats MUST fill the seat-range, turn-order, view matrix, pairwise no-leak matrix, outcome matrix, and surface-scale fields across the relevant templates. This includes `GAME-RULES.md`, `GAME-RULE-COVERAGE.md`, `GAME-MECHANICS.md`, `GAME-IMPLEMENTATION-ADMISSION.md`, `GAME-UI.md`, `GAME-BENCHMARKS.md`, `GAME-AI.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, `COMPETENT-PLAYER.md`, `PUBLIC-RELEASE-CHECKLIST.md`, `PRIMITIVE-PRESSURE-LEDGER.md`, and `AGENT-TASK.md`.
+
+Two-seat games SHOULD still state their seat model explicitly and may use clear `not applicable` rows for N-seat-only obligations.
+
 ## Recommended lifecycle order
 
 1. `GAME-SOURCES.md`

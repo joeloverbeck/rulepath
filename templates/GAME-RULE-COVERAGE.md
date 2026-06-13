@@ -100,6 +100,22 @@ Use this section for hidden-information games. For perfect-information games, fi
 | bot explanations/candidate rankings | `<rule_ids>` | `<trace/test>` | `<hidden_info>` | not started / covered / not applicable |
 | dev inspector/public build boundary | `<rule_ids>` | `<trace/test>` | `<hidden_info>` | not started / covered / not applicable |
 
+## Terminal result and viewer-class coverage
+
+Every terminal result and every viewer class in `GAME-RULES.md#seat-model` MUST have explicit coverage. This proves that standings, per-seat explanations, team/partnership results, no-reveal endings, and replay/export views are projected by Rust for each viewer class.
+
+| Terminal result | Rule IDs | Viewer class | Expected projection | Trace/test evidence | Status |
+|---|---|---|---|---|---|
+| `<win/loss/draw/split/shared outcome/elimination/no-reveal terminal>` | `<rule_ids>` | `<viewer class>` | `<per-seat or per-team facts visible to this viewer>` | `<trace/test>` | not started / partial / covered |
+
+## Pairwise N-seat hidden-information coverage
+
+Required for hidden-information N-seat games. For perfect-information games, fill one explicit `not applicable` row. Each private datum owned by a source seat MUST be checked against each viewer class and every public/browser/replay/bot surface that could leak it.
+
+| Source seat private datum | Viewer | Surface | Expected visibility | Trace/test evidence | Status |
+|---|---|---|---|---|---|
+| `<seat/private datum or not applicable>` | `<owning seat / teammate / opponent / public observer / replay viewer / dev-only harness>` | public view / action tree / preview / diagnostics / effect log / DOM / logs / storage / replay export / bot explanation / candidate ranking / dev inspector | visible / redacted / aggregate only / not applicable | `<trace/test>` | not started / partial / covered / not applicable |
+
 ## Test mapping summary
 
 | Test suite/file | Type | Rule IDs covered | What it proves | What it does not prove |

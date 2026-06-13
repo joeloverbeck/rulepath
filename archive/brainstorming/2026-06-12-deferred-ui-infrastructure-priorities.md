@@ -12,9 +12,14 @@
   private/optional), `docs/AI-BOTS.md`, `docs/IP-POLICY.md`,
   `docs/TESTING-REPLAY-BENCHMARKING.md`, `specs/README.md` workflow rules,
   `docs/adr/` (0001–0006), `templates/**` (15 templates).
-- **Status of this document:** brainstorm / prioritization input. It commits to
-  nothing; each recommendation names its delivery vehicle (spec, ADR, atlas row,
-  or rejection rationale).
+- **Status of this document:** **DISCHARGED 2026-06-13.** All recommendations
+  are resolved — P1/P2 shipped, P3's actionable scope and P4's register
+  amendment were absorbed into P1's closeout, and the P5 (C3) / P6 (C4) ADR
+  triggers are recorded dormant in
+  `archive/specs/effect-animation-and-turn-orchestration.md` §13. Nothing in
+  this pool remains actionable; see the reconciled §8. Archived to
+  `archive/brainstorming/`. (Originally: brainstorm / prioritization input
+  committing to nothing, each recommendation naming its delivery vehicle.)
 
 ---
 
@@ -289,9 +294,20 @@ with evidence.
    the two archived specs (8–12 tickets each), not measured; `/reassess-spec`
    will re-ground them.
 
-## 8. Next steps
+## 8. Next steps — all resolved (reconciled 2026-06-13)
 
-1. Done: P1 shipped as `archive/specs/effect-animation-and-turn-orchestration.md`.
-2. Done: P2 shipped as `archive/specs/catalog-setup-visual-redesign.md`.
-3. Land the P4 one-paragraph register with P1's closeout amendments.
-4. Record the C3/C5 triggers in P1's sequencing section.
+1. **Done:** P1 shipped as `archive/specs/effect-animation-and-turn-orchestration.md`.
+2. **Done:** P2 shipped as `archive/specs/catalog-setup-visual-redesign.md`.
+3. **Done:** the P4 presentation-shape register landed in
+   `docs/UI-INTERACTION.md` §10A as part of P1's closeout amendments.
+4. **Done:** the C3 (staged multi-target encoding) and C4 (EF undrawn-count
+   visibility) dormant ADR triggers are recorded in
+   `archive/specs/effect-animation-and-turn-orchestration.md` §13. (The
+   original wording "C3/C5" was a typo — C5 was the catalog redesign, shipped
+   as P2.)
+5. **Done:** P3's actionable scope (re-base `EffectLog` on shared
+   burst-grouping) shipped inside P1 (EFFANITUR D9/WB1). The remaining P3
+   residue — full history-browsing / time-travel UX — stays deferred by design
+   until the replay viewer gets product attention.
+
+Nothing in this pool remains actionable. This document is discharged.

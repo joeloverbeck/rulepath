@@ -91,6 +91,15 @@ Examples:
 
 Blackjack, poker, pontoon, casino, betting, chip, table, payout, insurance, and similar public-facing terms are source-research descriptors, not default Rulepath product presentation. A draw/stand threshold game SHOULD use an original non-casino name, original prose, and neutral visual language unless an accepted ADR and human/legal review justify a narrower exception.
 
+Public-domain or common card systems, including Texas Hold'Em rules facts, may
+be researched and implemented only with original Rulepath prose, neutral display
+names where useful, original card art/icons, and presentation that avoids casino
+product framing. `poker_lite` / Crest Ledger is an existing scoped Rulepath
+microgame and is not the same public product commitment as a proper Hold'Em
+family implementation. A future Hold'Em-family gate must document its naming,
+variant, source notes, asset posture, and trade-dress review before public
+exposure.
+
 ## 6. Original prose and assets
 
 Public rules text MUST be written for Rulepath.

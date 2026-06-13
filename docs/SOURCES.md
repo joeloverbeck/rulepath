@@ -277,6 +277,30 @@ These sources support [ADR 0006](adr/0006-blackjack-lite-roadmap-placement.md). 
 - Evidence used: Postcard is a compact Serde format with a documented stable wire format as of 1.0.
 - Rulepath lesson: Postcard may be useful for compact internal snapshots, caches, or benchmark artifacts. It is not the default public replay interchange and must not be hand-authored rules.
 
+## Next-phase scaling sources
+
+Date consulted: 2026-06-13.
+
+These sources support public scaling-phase planning. They support rule facts,
+multi-seat concepts, and implementation comparisons only. Rulepath prose,
+assets, names, UI, tests, traces, and bot explanations remain original and
+project-owned or compatibly licensed.
+
+| Source | URL | Evidence used | Rulepath lesson |
+|---|---|---|---|
+| Pagat Texas Hold'em | https://www.pagat.com/poker/variants/texasholdem.html | Public rules reference for shared community cards, betting rounds, showdown, and player counts. | Useful facts for a future Hold'Em-family spec; do not copy prose or casino presentation. |
+| Pagat poker hand ranking | https://www.pagat.com/poker/rules/ranking.html | Hand-ranking order and comparison concepts. | Evaluation facts belong in Rust, with original explanation copy and no copied tables. |
+| Pagat Hearts | https://www.pagat.com/reverse/hearts.html | Four-seat trick-taking, passing, scoring, and shoot-the-moon family facts. | Useful for Gate 16 variant research; source facts do not replace Rulepath rules prose. |
+| Pagat Oh Hell | https://www.pagat.com/exact/ohhell.html | Variable-player trick-taking with bidding and changing hand sizes. | Useful for variable-N trick/bid pressure; final variant must be scoped in a game source note. |
+| Pagat Spades | https://www.pagat.com/auctionwhist/spades.html | Partnership trick-taking and contract scoring family facts. | Useful for team/partnership pressure; Rulepath must choose and document a public-safe variant. |
+| Pagat 500 Rum | https://www.pagat.com/rummy/500rum.html | Rummy 500 family draw/discard/meld/scoring facts. | Candidate source for a future rummy-family gate; final source selection remains TBD by that spec. |
+| Chinese Checkers / Star Halma reference | https://www.pagat.com/race/chinese_checkers.html | Star board, jump movement, and multi-seat race-game facts. | Useful for large-surface topology pressure; Rulepath presentation and rules prose remain original. |
+| OpenSpiel concepts | https://openspiel.readthedocs.io/en/latest/concepts.html | Multi-player game modeling, observations, imperfect information, and chance concepts. | Architecture comparison only; Rulepath does not adopt RL/search as public bot policy. |
+| OpenSpiel paper | https://arxiv.org/abs/1908.09453 | Research framework for many game classes and algorithms. | Confirms the breadth of N-player/imperfect-information research without changing Rulepath's public bot law. |
+| boardgame.io | https://boardgame.io/ | Web game framework with turns, phases, logs, and multiplayer concepts. | Useful comparison for presentation/tooling concepts; Rulepath keeps Rust as behavior authority. |
+| Pachisi-family source | TBD by future Gate 21 spec | Candidate public-domain race-game source still needs final selection. | Do not write the game spec until the source note chooses stable public rules facts. |
+| Mahjong-family source | TBD by future Gate 22 spec | Candidate scoped meld/reaction family source still needs final selection. | Future spec should avoid a sprawling clone and document an original scoped variant. |
+
 ## Replay, deterministic logs, and future multiplayer
 
 ### Gaffer on Games: Deterministic Lockstep

@@ -48,6 +48,12 @@ TypeScript/React MUST own presentation only:
 
 TypeScript MUST NOT decide legality. Static files MUST NOT define rule behavior. Browser payloads MUST already be safe for the receiving viewer.
 
+These authority rules apply to every supported seat count. A game may declare
+one seat, two seats, or many seats, but Rust still owns setup validation, turn
+order, active or pending actors, public/private projections, terminal
+breakdowns, and replay evidence for that declared range. The N-seat details are
+codified in [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md).
+
 ## 3. `engine-core` is a contract kernel
 
 `engine-core` exists for generic infrastructure contracts. It MAY know these nouns:
@@ -61,6 +67,12 @@ TypeScript MUST NOT decide legality. Static files MUST NOT define rule behavior.
 Decision rule: `engine-core` may know that an opaque game-defined payload exists; it MUST NOT know what that payload means mechanically. Typed mechanic nouns belong in `games/*` first and only in `game-stdlib` after earned pressure.
 
 A game-specific type inside a game module is correct. A game-specific type inside `engine-core` is a boundary failure.
+
+N-seat pressure does not relax this boundary. Turn-order policies, tables,
+teams, pots, graphs, decks, walls, factions, partnerships, hand evaluators, and
+seat-role semantics are game-local first, and may enter `game-stdlib` only after
+the mechanic atlas process earns a narrow helper. They do not belong in
+`engine-core`.
 
 ## 4. `game-stdlib` is earned, not speculative
 
@@ -161,6 +173,12 @@ Private licensed/commercial-game stress tests are late, isolated, optional, non-
 
 Every substantial change, official game, and ADR MUST satisfy these invariants unless an accepted ADR explicitly changes them and updates this section:
 
+These invariants apply to any positive seat count declared by a game. For
+multi-seat and hidden-information games, viewer safety includes pairwise
+seat-private redaction: facts private to seat A must not reach seat B, the public
+observer, DOM/storage/logs, bot explanations, replay exports, traces, or tests
+unless Rust has made those facts public or otherwise authorized for that viewer.
+
 - Rust remains behavior authority.
 - TypeScript does not decide legality.
 - `engine-core` contains generic contracts only and remains free of mechanic nouns.
@@ -201,6 +219,7 @@ Stop and reassess before continuing when any of these happens:
 - a third repeated mechanic proceeds without ledger decision;
 - a promoted primitive leaves matching prior official games un-migrated without an explicit exception or recorded promotion-debt closure gate;
 - a new mechanic-ladder gate proceeds while promotion debt is still open;
+- a 3+ seat game cannot prove viewer-safe public and per-seat projections;
 - official games lack docs, traces, simulations, benchmarks, rule coverage, replay, or serialization tests;
 - public UI becomes debug-first;
 - private licensed content enters public files, public CI, public docs, public traces, public bundles, or public WASM/JS;

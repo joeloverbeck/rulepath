@@ -77,6 +77,7 @@ When complete, the following observable result MUST be true:
 | UI smoke/accessibility | yes/no | `<smoke tests>` |
 | bot evidence/explanations | yes/no | `<docs/tests>` |
 | IP review | yes/no | `<source/IP evidence>` |
+| seat/surface scope | yes/no | `<supported seat counts, viewer pairs, surfaces, max topology/object count, outcome matrix>` |
 
 ## Non-goals
 
@@ -98,6 +99,7 @@ Do not do these things:
 - Do not implement public MCTS, ISMCTS, Monte Carlo-style bots, ML, or RL in v1/v2.
 - Do not weaken, delete, or rewrite tests merely to get green output.
 - Do not use copied rulebook prose, card text, screenshots, scans, fonts, icons, board art, or trade dress.
+- Do not turn a bounded task into a generic multiplayer mega-task; name exact seat counts, surfaces, viewer pairs, and files in scope.
 - `<task_specific_forbidden_change>`
 
 ## Implementation boundaries
@@ -110,6 +112,7 @@ Do not do these things:
 | `engine-core` | Generic contracts only; no game nouns or mechanics. | `<boundary review>` |
 | `game-stdlib` | Only earned typed helpers after primitive-pressure evidence. | `<ledger/atlas>` |
 | private content | Private licensed stress tests are isolated, optional, non-public, and non-architectural. | `<IP review>` |
+| seat/surface scope | This task covers only the named supported seat counts, viewer pairs, surfaces, topology/object counts, and outcome rows. | `<docs/tests>` |
 
 ## Tests required
 
@@ -170,6 +173,8 @@ Native Rust benchmark evidence is primary. WASM/browser smoke benchmark evidence
 ## Hidden-information review
 
 For hidden-information games or systems, review every surface. Mark `not applicable` only with rationale.
+
+Hidden-info tasks MUST name exact viewer pairs and surfaces tested. Use entries such as `source seat private datum -> owning seat/public observer/opponent/replay viewer -> public view/action tree/DOM/replay export`.
 
 | Surface | Risk | Safeguard/test |
 |---|---|---|
