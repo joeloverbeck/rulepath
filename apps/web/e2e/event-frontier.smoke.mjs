@@ -563,6 +563,36 @@ async function assertActionConfirmSummary(page) {
 
 async function assertEventFrontierBotWhy(page) {
   await page.waitForSelector('[data-testid="bot-explanation"]');
+  const layout = await page.evaluate(() => {
+    const controls = document.querySelector(".mode-controls");
+    const header = document.querySelector(".mode-controls-header");
+    const botWhy = document.querySelector('[data-testid="bot-explanation"]');
+    const buttonWidths = Array.from(document.querySelectorAll(".mode-actions button")).map((button) => ({
+      text: button.textContent?.trim() ?? "",
+      width: button.getBoundingClientRect().width,
+      flexBasis: window.getComputedStyle(button).flexBasis,
+      flexGrow: window.getComputedStyle(button).flexGrow,
+    }));
+    const controlsRect = controls?.getBoundingClientRect();
+    const headerRect = header?.getBoundingClientRect();
+    const botWhyRect = botWhy?.getBoundingClientRect();
+    return {
+      childClasses: Array.from(controls?.children ?? []).map((child) => child.className),
+      headerContainsBotWhy: Boolean(header?.contains(botWhy)),
+      botWhyBelowHeader: Boolean(headerRect && botWhyRect && botWhyRect.top >= headerRect.bottom),
+      botWhyWidth: botWhyRect?.width ?? 0,
+      controlsWidth: controlsRect?.width ?? 0,
+      buttonWidths,
+    };
+  });
+  assert(layout.childClasses[0] === "mode-controls-header", "Mode controls render a header row first");
+  assert(!layout.headerContainsBotWhy, "Bot why is outside the mode controls header row");
+  assert(layout.botWhyBelowHeader, "Bot why sits beneath the mode controls header row");
+  assert(layout.botWhyWidth >= layout.controlsWidth * 0.9, "Bot why spans the mode controls stack");
+  assert(
+    layout.buttonWidths.every((entry) => entry.flexBasis !== "140px" && entry.flexGrow === "0"),
+    `Mode action buttons do not use the old stretch rule: ${JSON.stringify(layout.buttonWidths)}`,
+  );
   const open = await page.$eval('[data-testid="bot-explanation"]', (element) => element.hasAttribute("open"));
   if (!open) {
     await page.click('[data-testid="bot-explanation"] summary');

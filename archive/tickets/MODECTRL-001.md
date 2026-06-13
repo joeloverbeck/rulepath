@@ -1,6 +1,6 @@
 # MODECTRL-001: Fix shared Mode panel layout (Bot why placement + over-stretched control buttons)
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — presentation only. Touches `apps/web/src/components/ModeControls.tsx` and `apps/web/src/styles.css`. No Rust crates, schemas, traces, or behavior.
@@ -89,3 +89,21 @@ npm --prefix apps/web run build
 npm --prefix apps/web run smoke:ui
 npm --prefix apps/web run smoke:e2e
 ```
+
+## Outcome
+
+Completed: 2026-06-13
+
+What changed:
+- `ModeControls` now renders a `mode-controls-header` row for the mode label and actions, with Event Frontier's "Bot why" disclosure beneath the header instead of as a third flex child.
+- The old `.bot-why { flex: 1 0 100% }` workaround was removed. `.mode-controls` is now a vertical stack and `.mode-controls-header` owns the row layout.
+- Narrow breakpoint button sizing no longer uses `flex: 1 1 140px`; mode action buttons use content-sized growth with a minimum touch width.
+- `apps/web/e2e/event-frontier.smoke.mjs` now asserts the header structure, verifies "Bot why" is outside and below the header row, and guards against the old 140px stretch rule.
+
+Deviations from original plan:
+- No separate screenshot artifact was committed. The Event Frontier browser smoke now performs the structural and computed-style checks directly in the exercised production build.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:e2e` passed, including the updated Event Frontier layout assertions.

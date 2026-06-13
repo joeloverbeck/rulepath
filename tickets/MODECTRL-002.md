@@ -4,7 +4,7 @@
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — presentation/orchestration policy only. Touches `apps/web/src/components/ModeControls.tsx`, `apps/web/src/main.tsx`, and `apps/web/src/animation/scheduler.ts`. No Rust crates, schemas, traces, command/effect/view contracts, or determinism surfaces.
-**Deps**: MODECTRL-001 (recommended landing order — both edit `ModeControls.tsx`; land the layout fix first to keep diffs clean)
+**Deps**: [`MODECTRL-001`](../archive/tickets/MODECTRL-001.md) (completed; layout fix landed first to keep diffs clean)
 
 ## Problem
 
@@ -24,7 +24,7 @@ Decision (from brainstorm, 2026-06-13): **disable both Skip and Pause when idle*
 3. Shared-boundary under audit: `ModeControls` is the single shared in-play control surface for all 13 games (`main.tsx:665-683`). The gating change is additive (a new prop + `disabled` predicate) and must not alter the already-correct bot-vs-bot or hotseat branches.
 4. FOUNDATIONS principle under audit: `docs/UI-INTERACTION.md §10A` — "Orchestration is presentation policy in TypeScript… Wall-clock time stays out of Rust; command logs, traces, replays, and hashes are unaffected by pacing." This change is pure presentation policy: it gates control enablement on TS-side orchestration state and touches no Rust, command log, trace, replay, or hash. §10A also requires skip to remain available during non-interactive advances and pause/stop to be exposed for auto-playing sequences — the disable-when-idle model satisfies both (controls stay present; they enable exactly when an advance is live).
 5. Load-bearing premise verified: the "is a non-interactive advance active/pending" signal is **not currently available as React render state**. The scheduler (`apps/web/src/animation/scheduler.ts`) tracks activity only privately (`running`, `flushing`, `inFlightAnimations`, `queue`) and exposes `pendingSteps` but no observable busy flag; the auto-bot effect tracks in-flight state via `autoBotInFlightRef` (a ref, not render state, `main.tsx:283/289/307`). Therefore this ticket must surface an observable signal — it cannot simply read an existing boolean. This is the core of the change.
-6. Adjacent contradiction classification: the bot-vs-bot branch is correct and out of scope; the `gameId === "event_frontier"` bot-why hardcode is unrelated future cleanup (see MODECTRL-001 Out of Scope). Neither is changed here.
+6. Adjacent contradiction classification: the bot-vs-bot branch is correct and out of scope; the `gameId === "event_frontier"` bot-why hardcode is unrelated future cleanup (see [`MODECTRL-001`](../archive/tickets/MODECTRL-001.md) Out of Scope). Neither is changed here.
 
 ## Architecture Check
 
@@ -61,7 +61,7 @@ Add an `orchestrationActive: boolean` prop to `ModeControls` and pass it from `m
 ## Out of Scope
 
 - The bot-vs-bot branch (already correctly gated) and the hotseat branch.
-- The Mode panel layout/CSS (MODECTRL-001).
+- The Mode panel layout/CSS (completed in [`MODECTRL-001`](../archive/tickets/MODECTRL-001.md)).
 - Hiding the controls when idle, or a pre-emptive pause latch with a status badge — the chosen behavior is **disable when idle**, both controls stay visible.
 - Adding a manual "Step Bot" control to human-vs-bot mode.
 - Any Rust, WASM, command-log, effect, view, replay, or hash change. Pacing stays out of Rust.
