@@ -10638,6 +10638,124 @@ fn write_output(output: String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
+
+    #[derive(Clone, Debug)]
+    struct NoLeakSurface {
+        viewer: Option<String>,
+        name: &'static str,
+        payload: String,
+    }
+
+    #[derive(Clone, Debug)]
+    struct PairwiseNoLeakCase {
+        seats: Vec<String>,
+        private_terms_by_seat: BTreeMap<String, Vec<String>>,
+        surfaces: Vec<NoLeakSurface>,
+    }
+
+    impl PairwiseNoLeakCase {
+        fn deterministic_summary(&self) -> String {
+            let mut output = String::new();
+            output.push_str(&self.seats.join("|"));
+            for (seat, terms) in &self.private_terms_by_seat {
+                output.push_str(seat);
+                output.push(':');
+                output.push_str(&terms.join(","));
+                output.push(';');
+            }
+            for surface in &self.surfaces {
+                output.push_str(surface.name);
+                output.push('@');
+                output.push_str(surface.viewer.as_deref().unwrap_or("observer"));
+                output.push('=');
+                output.push_str(&surface.payload);
+                output.push(';');
+            }
+            output
+        }
+    }
+
+    fn assert_pairwise_no_leak(case: &PairwiseNoLeakCase) {
+        if let Err(message) = pairwise_no_leak_result(case) {
+            panic!("{message}");
+        }
+    }
+
+    fn pairwise_no_leak_result(case: &PairwiseNoLeakCase) -> Result<(), String> {
+        for source_seat in &case.seats {
+            let Some(private_terms) = case.private_terms_by_seat.get(source_seat) else {
+                return Err(format!("missing private terms for {source_seat}"));
+            };
+            if private_terms.is_empty() {
+                return Err(format!("no private terms registered for {source_seat}"));
+            }
+            for surface in &case.surfaces {
+                if surface.viewer.as_deref() == Some(source_seat.as_str()) {
+                    continue;
+                }
+                for term in private_terms {
+                    if surface.payload.contains(term) {
+                        return Err(format!(
+                            "private term {term} for {source_seat} leaked to {} via {}",
+                            surface.viewer.as_deref().unwrap_or("observer"),
+                            surface.name
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn synthetic_n_seat_no_leak_case(seat_count: usize) -> PairwiseNoLeakCase {
+        let seats = (0..seat_count)
+            .map(|index| format!("seat_{index}"))
+            .collect::<Vec<_>>();
+        let mut private_terms_by_seat = BTreeMap::new();
+        for seat in &seats {
+            private_terms_by_seat.insert(seat.clone(), vec![format!("private::{seat}::seed-1701")]);
+        }
+
+        let mut surfaces = vec![NoLeakSurface {
+            viewer: None,
+            name: "replay_export",
+            payload: format!(
+                "viewer=observer;seat_count={seat_count};redacted=true;dom_test_id=seat-frame"
+            ),
+        }];
+        for viewer in &seats {
+            let own = private_terms_by_seat
+                .get(viewer)
+                .and_then(|terms| terms.first())
+                .expect("synthetic private term");
+            for name in [
+                "payload",
+                "action_tree",
+                "preview",
+                "effect_log",
+                "bot_explanation",
+                "candidate_ranking",
+                "dom_test_id",
+                "storage",
+                "log",
+            ] {
+                surfaces.push(NoLeakSurface {
+                    viewer: Some(viewer.clone()),
+                    name,
+                    payload: format!(
+                        "viewer={viewer};seat_count={seat_count};own_private={own};other_private=redacted"
+                    ),
+                });
+            }
+        }
+
+        PairwiseNoLeakCase {
+            seats,
+            private_terms_by_seat,
+            surfaces,
+        }
+    }
 
     #[test]
     fn placeholder_version_is_stable() {
@@ -11155,6 +11273,40 @@ mod tests {
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
         assert!(bot.contains("\"ok\":true"));
         assert!(bot.contains("\"type\":\"cards_revealed\""));
+    }
+
+    #[test]
+    fn pairwise_no_leak_harness_covers_high_card_and_synthetic_n_seats() {
+        let high_card = high_card_pairwise_no_leak_case();
+        assert_pairwise_no_leak(&high_card);
+
+        let synthetic = synthetic_n_seat_no_leak_case(4);
+        assert_pairwise_no_leak(&synthetic);
+        assert_eq!(
+            synthetic.deterministic_summary(),
+            synthetic_n_seat_no_leak_case(4).deterministic_summary()
+        );
+    }
+
+    #[test]
+    fn pairwise_no_leak_harness_negative_fixture_fails() {
+        let mut synthetic = synthetic_n_seat_no_leak_case(4);
+        let leaked = synthetic
+            .private_terms_by_seat
+            .get("seat_0")
+            .and_then(|terms| terms.first())
+            .expect("seat_0 private term")
+            .clone();
+        synthetic.surfaces.push(NoLeakSurface {
+            viewer: Some("seat_2".to_owned()),
+            name: "negative_induced_leak",
+            payload: format!("viewer=seat_2;leaked={leaked}"),
+        });
+
+        let message = pairwise_no_leak_result(&synthetic).expect_err("induced leak is caught");
+        assert!(message.contains("seat_0"));
+        assert!(message.contains("seat_2"));
+        assert!(message.contains("negative_induced_leak"));
     }
 
     #[test]
@@ -11973,6 +12125,114 @@ mod tests {
             .nth(1)
             .and_then(|rest| rest.split('"').next())
             .expect("match id is present")
+            .to_owned()
+    }
+
+    fn high_card_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seats = vec!["seat_0".to_owned(), "seat_1".to_owned()];
+        let created = new_match("high_card_duel", 707).expect("match created");
+        let match_id = extract_match_id(&created);
+        let mut private_terms_by_seat = BTreeMap::new();
+        let mut surfaces = Vec::new();
+
+        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "payload",
+                payload: get_view(&match_id, viewer).expect("viewer payload returned"),
+            });
+        }
+
+        for seat in &seats {
+            let view = get_view(&match_id, Some(seat)).expect("seat payload returned");
+            let terms = collect_prefixed_terms(&view, "hcd:r");
+            assert!(
+                !terms.is_empty(),
+                "expected private high-card token for {seat}"
+            );
+            private_terms_by_seat.insert(seat.clone(), terms);
+        }
+
+        for actor in &seats {
+            for viewer in [None, Some("seat_0"), Some("seat_1")] {
+                surfaces.push(NoLeakSurface {
+                    viewer: viewer.map(ToOwned::to_owned),
+                    name: "action_tree",
+                    payload: get_action_tree_for_viewer(&match_id, actor, viewer)
+                        .expect("viewer action tree returned"),
+                });
+            }
+        }
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized action tree");
+        let action_segment = first_segment(&authorized);
+        let applied =
+            apply_action(&match_id, "seat_0", &action_segment, 0).expect("commit applies");
+        surfaces.push(NoLeakSurface {
+            viewer: Some("seat_0".to_owned()),
+            name: "payload",
+            payload: applied,
+        });
+
+        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "effect_log",
+                payload: get_effects(&match_id, 0, viewer).expect("viewer effects returned"),
+            });
+        }
+
+        surfaces.push(NoLeakSurface {
+            viewer: None,
+            name: "replay_export",
+            payload: export_replay(&match_id).expect("public replay exported"),
+        });
+        for name in [
+            "preview",
+            "bot_explanation",
+            "candidate_ranking",
+            "dom_test_id",
+            "storage",
+            "log",
+        ] {
+            surfaces.push(NoLeakSurface {
+                viewer: None,
+                name,
+                payload: format!("high_card_duel {name} not_applicable_or_redacted"),
+            });
+        }
+
+        PairwiseNoLeakCase {
+            seats,
+            private_terms_by_seat,
+            surfaces,
+        }
+    }
+
+    fn collect_prefixed_terms(input: &str, prefix: &str) -> Vec<String> {
+        let mut terms = Vec::new();
+        for (index, _) in input.match_indices(prefix) {
+            let token = input[index..]
+                .chars()
+                .take_while(|character| {
+                    character.is_ascii_alphanumeric() || matches!(character, ':' | '_' | '-' | '/')
+                })
+                .collect::<String>();
+            if !token.is_empty() {
+                terms.push(token);
+            }
+        }
+        terms.sort();
+        terms.dedup();
+        terms
+    }
+
+    fn first_segment(tree: &str) -> String {
+        tree.split("\"segment\":\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("segment present")
             .to_owned()
     }
 

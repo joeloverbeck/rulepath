@@ -1,6 +1,6 @@
 # INFADNSEA-007: Infra D — N-player pairwise no-leak test harness
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api` (a reusable pairwise no-leak harness, inline `#[cfg(test)]` or a new test module); no `engine-core`/`games/*` behavior change
@@ -74,3 +74,24 @@ A synthetic >2-seat fixture so the harness proves N-player behavior before any o
 
 1. `cargo test -p wasm-api`
 2. `cargo test --workspace`
+
+## Outcome
+
+Completed on 2026-06-14.
+
+Added a reusable pairwise no-leak harness under `crates/wasm-api` test scope. The harness enumerates source-seat private terms against every non-own viewer surface and fails with the source seat, viewer, and surface name if a private token appears where it is not authorized.
+
+Coverage added:
+
+- Existing hidden-info bridge case: High Card Duel at two seats, covering viewer payloads, viewer-scoped action trees, effect logs after a private commit, observer replay export, and not-applicable/redacted placeholders for preview, bot explanation, candidate ranking, DOM/test-id, storage, and log surfaces.
+- Synthetic N-seat case: deterministic four-seat fixture covering payload, action tree, preview, effect log, bot explanation, candidate ranking, replay export, DOM/test-id, storage, and log surfaces before an official >2-seat hidden-info game exists.
+- Negative fixture: deliberately injects `seat_0` private data into a `seat_2` surface and asserts the harness fails, proving the harness is not vacuously green.
+
+The harness is assertion-only; no view projection, replay/hash semantics, `engine-core`, or game behavior changed.
+
+Verification:
+
+- `cargo test -p wasm-api pairwise_no_leak_harness -- --nocapture`
+- `cargo fmt --all`
+- `cargo test -p wasm-api`
+- `cargo test --workspace`
