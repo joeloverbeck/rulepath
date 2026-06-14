@@ -3,6 +3,7 @@
 pub mod actions;
 pub mod betting;
 pub mod cards;
+pub mod effects;
 pub mod evaluator;
 pub mod ids;
 pub mod pot;
@@ -12,6 +13,7 @@ pub mod showdown;
 pub mod state;
 pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     actor_seat, legal_action_tree, parse_action_segment, validate_command, RiverLedgerAction,
@@ -19,6 +21,7 @@ pub use actions::{
 };
 pub use betting::{call_price, first_live_after, live_seats, next_live_after};
 pub use cards::{canonical_deck, Card, Deck, Rank, Suit, STANDARD_CARD_COUNT};
+pub use effects::{filter_effects_for_viewer, public_effect, setup_effects, RiverLedgerEffect};
 pub use evaluator::{
     best_five_from_seven, compare_evaluations, evaluate_five, HandCategory, HandEvaluation,
 };
@@ -38,6 +41,7 @@ pub use state::{
 };
 pub use ui::{ui_metadata, UiMetadata};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{project_view, view_hash, CardView, PrivateView, PublicView, SeatPrivateView};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

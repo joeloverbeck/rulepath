@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-008: Semantic effects, visibility projection, view hashes, and UI metadata
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger/src/effects.rs`, `src/visibility.rs`, `src/ui.rs` (filled), `src/lib.rs`
@@ -82,3 +82,27 @@ Labels, seat metadata, viewer modes, action presentation hints, and outcome-expl
 1. `cargo test -p river_ledger`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. A crate-scoped test is the correct boundary; the cross-seat pairwise sweep and export no-leak are exercised in 009/010.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented River Ledger semantic effects, viewer-safe visibility projection, stable view hashes, and expanded Rust-authored UI metadata. Added `effects.rs` with public/private scoped effect envelopes, setup deal effects, and viewer filtering. Added `visibility.rs` with observer and seat-private projections, public board/ledger/status fields, terminal allocation summaries, stable serialization, and deterministic `view_hash`. Expanded `ui.rs` with viewer modes, seat metadata labels, action hint metadata, and outcome explanation metadata.
+
+Added crate tests proving observer projections expose only counts/public board facts, seat projections expose only the viewer's own hole cards, view hashes are stable and viewer-distinct, and private deal effects are scoped to the owning seat. Confirmed the trace schema was not migrated.
+
+Deviations: full pairwise N-seat no-leak sweep remains deferred to GAT15RIVLEDTEX-009, and replay export/import redaction remains deferred to GAT15RIVLEDTEX-010. `apply_action` remains a state-transition API; semantic effects are provided as scoped constructors/filtering helpers for the later replay/WASM integration tickets.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+- `rg -n "SchemaVersion\\(2\\)|schema_version.*2|trace schema" games/river_ledger/src crates/engine-core/src tools specs/gate-15-river-ledger-texas-holdem-base.md`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`
