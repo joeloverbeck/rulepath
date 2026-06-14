@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-011: Property test suite
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/river_ledger/tests/property.rs`
@@ -67,3 +67,25 @@ Property tests over random legal action sequences for: deterministic setup; cont
 1. `cargo test -p river_ledger --test property`
 2. `cargo test -p river_ledger`
 3. A property-test-scoped command is the correct boundary; fixed-path behavior is covered by the rule/golden tests in 004–010.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Added `games/river_ledger/tests/property.rs` with deterministic pseudo-random legal-action property coverage. The property lane drives only Rust-generated legal actions and asserts contribution conservation, no street contribution exceeding total contribution, matched live seats when a betting round has no pending responses, and showdown allocation sums. It also sweeps setup/view serialization determinism across random seeds and checks evaluator comparison antisymmetry/transitivity across a category sweep.
+
+Deviations: no production logic changed; this ticket is test-only as planned.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test property`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`
