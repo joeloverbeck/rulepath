@@ -12,3 +12,8 @@ engine-core = { path = "../../crates/engine-core" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "river_ledger"
+path = "benches/river_ledger.rs"
+harness = false

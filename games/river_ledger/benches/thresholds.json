@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "setup_deal_6p",
+      "unit": "setups_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "legal_actions_initial_6p",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "apply_call_6p",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "project_all_viewers_6p",
+      "unit": "viewer_sets_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "public_export_import_6p",
+      "unit": "exports_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "evaluator_showdown_batch_6p",
+      "unit": "batches_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "level2_full_playout_6p",
+      "unit": "hands_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor until repeated runner measurements calibrate a tighter gate."
+    }
+  ]
+}

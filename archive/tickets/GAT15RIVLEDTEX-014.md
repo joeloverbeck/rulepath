@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-014: Native simulation (`--seat-count`) and benchmarks by seat count
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/simulate` (`src/main.rs`, `Cargo.toml`), `games/river_ledger/benches/river_ledger.rs`, `benches/thresholds.json`, `docs/BENCHMARKS.md`
@@ -79,3 +79,31 @@ Author `games/river_ledger/benches/river_ledger.rs` + `benches/thresholds.json` 
 1. `for n in 3 4 5 6; do cargo run -p simulate -- --game river_ledger --seat-count $n --games 1000 --start-seed 150$n; done`
 2. `cargo bench -p river_ledger && cargo check --workspace`
 3. The simulate + bench commands are the correct boundary; rule-coverage consumption of `BENCHMARKS.md` is validated in GAT15RIVLEDTEX-015.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Summary:
+
+- Added River Ledger to `tools/simulate` with a `--seat-count` flag, 3-6 seat validation, and a seat-keyed `wins_by_seat` summary built through the generic `Summary::new` / `increment_seat_count` helpers.
+- Added seeded River Ledger simulator playouts using the Rust legal-action tree, Level 2 bot decisions, command validation, and Rust-owned action application.
+- Added native River Ledger benchmark registration plus benchmark lanes for setup/deal, legal actions, apply, all-viewer projection, public replay export/import, evaluator batches, and Level 2 full playouts.
+- Added provisional benchmark thresholds and `games/river_ledger/docs/BENCHMARKS.md`.
+
+Deviations:
+
+- Benchmark thresholds are smoke floors pending repeated CI hardware baselines, as recorded in `thresholds.json` and `BENCHMARKS.md`.
+- Replay/fixture/rule-coverage registration remains out of scope for GAT15RIVLEDTEX-015.
+- Pre-existing unrelated `.claude/skills/spec-to-tickets/*` worktree edits were left untouched and unstaged.
+
+Verification:
+
+- `cargo run -p simulate -- --game river_ledger --seat-count 3 --games 1 --start-seed 1503`
+- `for n in 3 4 5 6; do cargo run -p simulate -- --game river_ledger --seat-count $n --games 1000 --start-seed 150$n; done`
+- `cargo bench -p river_ledger`
+- `cargo check --workspace`
+- `cargo fmt --all --check`
+- `node scripts/check-doc-links.mjs`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
