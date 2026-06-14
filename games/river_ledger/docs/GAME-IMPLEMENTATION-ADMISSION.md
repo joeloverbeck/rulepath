@@ -50,7 +50,7 @@ scope.
 
 | Prerequisite | Path | Complete? | Notes |
 |---|---|---:|---|
-| Gate 15 spec and active ticket sequence | `specs/gate-15-river-ledger-texas-holdem-base.md`, `tickets/GAT15RIVLEDTEX-*` | yes | Gate 15 is the active public-scaling unit. |
+| Gate 15 spec and ticket sequence | `archive/specs/gate-15-river-ledger-texas-holdem-base.md`, `archive/tickets/GAT15RIVLEDTEX-*` | yes | Gate 15 is complete and archived. |
 | source/IP notes | [SOURCES.md](SOURCES.md) | yes | Sources verify common rules facts only; no copied prose or assets. |
 | original rules with stable rule IDs | [RULES.md](RULES.md) | yes | `RL-*` families cover setup, deal, betting, street, evaluator, showdown, pot, visibility, bots, UI, replay, variants, and out-of-scope boundaries. |
 | rule coverage matrix | [RULE-COVERAGE.md](RULE-COVERAGE.md) | yes | Rows name implementation, traces, tests, and later web evidence. |

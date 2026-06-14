@@ -35,7 +35,7 @@ architecture-comparison sources only. No source prose or assets are copied.
 
 | Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
 |---|---|---|---|---|---|---|
-| Rulepath Gate 15 River Ledger spec | `../../../specs/gate-15-river-ledger-texas-holdem-base.md` | 2026-06-14 | project authority | product scope, seat range, fixed-limit cap, no-leak matrix, docs, tests, replay, bots, tools, WASM, web, and benchmark obligations | none | Governs the Gate 15 tickets and acceptance evidence. |
+| Rulepath Gate 15 River Ledger spec | `../../../archive/specs/gate-15-river-ledger-texas-holdem-base.md` | 2026-06-14 | project authority | product scope, seat range, fixed-limit cap, no-leak matrix, docs, tests, replay, bots, tools, WASM, web, and benchmark obligations | none | Governs the Gate 15 tickets and acceptance evidence. |
 | Rulepath Official Game Contract | `../../../docs/OFFICIAL-GAME-CONTRACT.md` | 2026-06-14 | project authority | official-game documentation and evidence workflow | none | Requires original rules prose, source notes, coverage, mechanics, no-leak tests, bot evidence, benchmarks, and web proof. |
 | Rulepath IP Policy | `../../../docs/IP-POLICY.md` | 2026-06-14 | project authority | public naming, original prose, and trade-dress safety | none | Requires neutral/original presentation and forbids copied protected expression. |
 | Rulepath Mechanic Atlas | `../../../docs/MECHANIC-ATLAS.md` | 2026-06-14 | project authority | card/deck/private-hand/evaluator/accounting primitive-pressure posture | none | River Ledger records pressure but no `game-stdlib` promotion is authorized by Gate 15. |

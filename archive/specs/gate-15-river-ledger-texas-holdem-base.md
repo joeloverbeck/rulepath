@@ -8,7 +8,7 @@
 | File | `specs/gate-15-river-ledger-texas-holdem-base.md` |
 | Roadmap stage | Stage 15 / Public scaling phase |
 | Roadmap build gate | Gate 15 |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-14 |
 | Owner | Rulepath maintainers |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area contracts → accepted ADRs where they explicitly supersede prior sections → roadmap/specs/tickets. |
@@ -753,3 +753,75 @@ Gate 15 must not prebuild this machinery. It may leave clear extension seams and
 [^fournier-holdem]: Naipes Heraclio Fournier S.A., “How to play Texas Hold'em,” https://www.nhfournier.es/en/como-jugar/texas-holdem/, consulted 2026-06-14.
 [^openspiel]: Marc Lanctot et al., “OpenSpiel: A Framework for Reinforcement Learning in Games,” arXiv:1908.09453, https://arxiv.org/abs/1908.09453, consulted 2026-06-14.
 [^boardgameio]: boardgame.io, “Open Source Game Engine for Turn-Based Games,” https://boardgame.io/, consulted 2026-06-14.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Gate 15 shipped River Ledger as Rulepath's first official 3-6-seat
+hidden-information betting game. The gate delivered the `games/river_ledger`
+crate, game-local typed Rust rules, deterministic shuffle/deal, fixed-limit
+street betting, contribution ledger, seven-card evaluator, showdown and foldout
+rationales, split/remainder allocation, pairwise no-leak proof, replay/fixture
+support, simulations, benchmarks, L0/L1/L2 bots, WASM registration, web renderer,
+browser no-leak/e2e smoke, public rules, catalog registration, CI manifest
+registration, the full official-game document set, and the final
+mechanic-atlas `game-local / no promotion` decision.
+
+Status reconciliation:
+
+- `specs/README.md` Order 5 / Gate 15 row now points to this archived spec and
+  reads `Done`.
+- `docs/MECHANIC-ATLAS.md` §10A still reads `Current debt: _None_.`
+- Gate 15.1 remains the side-pot/all-in successor and may start only after this
+  archived closeout.
+
+Verification:
+
+- `cargo check -p river_ledger` — passed.
+- `cargo test -p river_ledger` — passed.
+- `cargo test -p river_ledger --test rules` — passed.
+- `cargo test -p river_ledger --test property` — passed.
+- `cargo test -p river_ledger --test replay` — passed.
+- `cargo test -p river_ledger --test serialization` — passed.
+- `cargo test -p river_ledger --test visibility` — passed.
+- `cargo test -p river_ledger --test bots` — passed.
+- `cargo test --workspace` — passed.
+- `cargo run -p fixture-check -- --game river_ledger` — passed
+  (`fixture-check: all fixtures passed`).
+- `cargo run -p rule-coverage -- --game river_ledger` — passed
+  (`rule-coverage: river_ledger coverage matrix passed`).
+- `cargo run -p replay-check -- --game river_ledger` — passed
+  (`replay-check: all traces passed`).
+- `cargo run -p replay-check -- --game river_ledger --all` — passed
+  (`replay-check: all traces passed`).
+- `cargo run -p simulate -- --game river_ledger --seat-count 3 --games 1000 --start-seed 1503`
+  — passed: 1000 games, average length 12.00, throughput 4015.98 games/sec.
+- `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1000 --start-seed 1504`
+  — passed: 1000 games, average length 16.00, throughput 3118.22 games/sec.
+- `cargo run -p simulate -- --game river_ledger --seat-count 5 --games 1000 --start-seed 1505`
+  — passed: 1000 games, average length 20.00, throughput 2442.38 games/sec.
+- `cargo run -p simulate -- --game river_ledger --seat-count 6 --games 1000 --start-seed 1506`
+  — passed: 1000 games, average length 24.00, throughput 2009.32 games/sec.
+- `cargo bench -p river_ledger` — passed and emitted the
+  `BEGIN_RIVER_LEDGER_BENCHMARK_JSON` / `END_RIVER_LEDGER_BENCHMARK_JSON`
+  block.
+- `npm --prefix apps/web run build` — passed; Vite built 68 modules.
+- `npm --prefix apps/web run smoke:e2e` — passed, including
+  `{"browser":"puppeteer","smoke":"river_ledger noleak legal controls terminal responsive"}`.
+- `bash scripts/boundary-check.sh` — passed
+  (`engine-core boundary check passed`).
+- `node scripts/check-doc-links.mjs` — passed (`Checked 27 markdown files`).
+- `node scripts/check-catalog-docs.mjs` — passed
+  (`catalog-docs check passed — 15 games reflected in intro, root, and smoke surfaces`).
+- `node scripts/check-presentation-copy.mjs` — passed
+  (`presentation-copy check passed - 18 play-surface files scanned`).
+- `node scripts/check-player-rules.mjs` — passed
+  (`player-rules check passed — 15 catalog games validated`).
+- `node scripts/check-ci-games.mjs` — passed
+  (`ci/games.json OK — 15 games in sync with games/.`).
+
+Deviations:
+
+- None. Gate 15 remained fixed-limit and did not prebuild all-in or side-pot
+  behavior; that scope remains for Gate 15.1.

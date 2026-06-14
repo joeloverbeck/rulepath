@@ -119,3 +119,6 @@ Verification:
   primitive-pressure review, so the River Ledger admission and public-release
   checklist now mark primitive-pressure closeout complete and leave only
   GAT15RIVLEDTEX-021 as the remaining final gate closeout dependency.
+- Final closeout refinement: after GAT15RIVLEDTEX-021 archived the Gate 15 spec
+  and ticket series, the River Ledger admission and source notes now reference
+  the archived spec/ticket paths instead of live `specs/` or `tickets/` paths.

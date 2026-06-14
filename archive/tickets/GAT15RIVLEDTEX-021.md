@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-021: Verification sweep and Gate 15 close-out
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (status/docs — `specs/README.md`, `specs/gate-15-river-ledger-texas-holdem-base.md` Status)
@@ -76,3 +76,54 @@ Update the `specs/README.md` Order 5 / Gate 15 row (`_(seed; unwritten)_` → th
 1. `cargo test --workspace`
 2. `cargo run -p fixture-check -- --game river_ledger && cargo run -p rule-coverage -- --game river_ledger && cargo run -p replay-check -- --game river_ledger --all && for n in 3 4 5 6; do cargo run -p simulate -- --game river_ledger --seat-count $n --games 1000 --start-seed 150$n; done`
 3. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e && bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-presentation-copy.mjs && node scripts/check-player-rules.mjs && node scripts/check-ci-games.mjs`
+
+## Outcome
+
+Completed: 2026-06-14
+
+What changed:
+
+- Ran the Gate 15 acceptance suite end-to-end and recorded the evidence in
+  `specs/gate-15-river-ledger-texas-holdem-base.md`.
+- Flipped the Gate 15 spec status to `Done`.
+- Updated `specs/README.md` Order 5 / Gate 15 row to point at the archived
+  River Ledger spec and read `Done`.
+- Archived the Gate 15 spec after adding its `Outcome` section.
+
+Deviations from plan:
+
+- The exact spec command list also included `cargo check -p river_ledger` and
+  individual River Ledger test targets; those were run explicitly in addition
+  to `cargo test --workspace`.
+- `cargo run -p replay-check -- --game river_ledger --all` was run for the
+  ticket acceptance lane, and the exact spec command
+  `cargo run -p replay-check -- --game river_ledger` was also run.
+
+Verification:
+
+- `cargo check -p river_ledger` — passed.
+- `cargo test -p river_ledger` — passed.
+- `cargo test -p river_ledger --test rules` — passed.
+- `cargo test -p river_ledger --test property` — passed.
+- `cargo test -p river_ledger --test replay` — passed.
+- `cargo test -p river_ledger --test serialization` — passed.
+- `cargo test -p river_ledger --test visibility` — passed.
+- `cargo test -p river_ledger --test bots` — passed.
+- `cargo test --workspace` — passed.
+- `cargo run -p fixture-check -- --game river_ledger` — passed.
+- `cargo run -p rule-coverage -- --game river_ledger` — passed.
+- `cargo run -p replay-check -- --game river_ledger` — passed.
+- `cargo run -p replay-check -- --game river_ledger --all` — passed.
+- `cargo run -p simulate -- --game river_ledger --seat-count 3 --games 1000 --start-seed 1503` — passed.
+- `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1000 --start-seed 1504` — passed.
+- `cargo run -p simulate -- --game river_ledger --seat-count 5 --games 1000 --start-seed 1505` — passed.
+- `cargo run -p simulate -- --game river_ledger --seat-count 6 --games 1000 --start-seed 1506` — passed.
+- `cargo bench -p river_ledger` — passed.
+- `npm --prefix apps/web run build` — passed.
+- `npm --prefix apps/web run smoke:e2e` — passed.
+- `bash scripts/boundary-check.sh` — passed.
+- `node scripts/check-doc-links.mjs` — passed.
+- `node scripts/check-catalog-docs.mjs` — passed.
+- `node scripts/check-presentation-copy.mjs` — passed.
+- `node scripts/check-player-rules.mjs` — passed.
+- `node scripts/check-ci-games.mjs` — passed.
