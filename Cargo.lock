@@ -159,6 +159,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "river_ledger"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
+
+[[package]]
 name = "rule-coverage"
 version = "0.1.0"
 

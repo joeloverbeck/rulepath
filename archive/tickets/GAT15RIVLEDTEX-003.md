@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-003: Crate scaffold, workspace wiring, and typed static-data boundary
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/river_ledger` (`ids.rs`, `cards.rs`, `state.rs`, `variants.rs`, `ui.rs` stubs, `lib.rs`), `data/manifest.toml`, `data/variants.toml`; root `Cargo.toml` workspace member
@@ -83,3 +83,31 @@ Create `games/river_ledger/Cargo.toml` and `src/lib.rs` with the module spine; a
 1. `cargo check -p river_ledger`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. `cargo fmt --all --check`
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented the River Ledger crate scaffold and typed static-data boundary:
+
+- Added `games/river_ledger` as a workspace member with a compiling
+  `river_ledger` crate.
+- Added the module spine and typed stubs for IDs, cards, state, UI metadata, and
+  variants/static-data loading.
+- Added `data/manifest.toml`, `data/variants.toml`, and a tracked
+  `data/fixtures/.gitkeep` placeholder.
+- Added fail-closed flat TOML parsing that rejects unknown keys and
+  behavior-looking keys such as `selector`, `trigger`, `valid_if`, and
+  `showdown_formula`.
+- Let Cargo update `Cargo.lock` with the new workspace package entry.
+
+Deviations: none. The ticket intentionally did not implement setup/deal,
+betting, evaluator, showdown, visibility/effects/replay, tools, WASM, or web
+registration.
+
+Verification:
+
+- `cargo check -p river_ledger` passed.
+- `cargo test -p river_ledger` passed (6 tests).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `cargo fmt --all --check` passed after formatting the new Rust files.

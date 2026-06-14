@@ -19,6 +19,7 @@ members = [
     "games/flood_watch",
     "games/frontier_control",
     "games/event_frontier",
+    "games/river_ledger",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",
