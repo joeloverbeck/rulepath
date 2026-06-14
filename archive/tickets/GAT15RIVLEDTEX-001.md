@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-001: River Ledger rules summary and IP source notes
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/river_ledger/docs/RULES.md`, `games/river_ledger/docs/SOURCES.md`, `docs/SOURCES.md`)
@@ -79,3 +79,31 @@ Add the global Texas Hold'Em rules-family / River Ledger source note per spec §
 1. `grep -nE 'RL-[A-Z]+-' games/river_ledger/docs/RULES.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command is correct here because the deliverable is prose + IDs; rule-coverage enforcement is exercised once code and the prefix validator exist (GAT15RIVLEDTEX-015).
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented the River Ledger pre-coding rules/source-note start:
+
+- Added `games/river_ledger/docs/RULES.md` with original Rulepath prose, stable
+  `RL-*` rule IDs, and the planned 3-6-seat fixed-limit Hold'Em-family scope.
+- Added `games/river_ledger/docs/SOURCES.md` with consulted source notes,
+  original-prose/IP posture, variant decisions, ambiguity log, asset/font status,
+  and rule-source cross-reference.
+- Extended `docs/SOURCES.md` with a global Texas Hold'Em rules family / River
+  Ledger note for Gate 15 source use.
+
+Deviations: none. This ticket stayed docs-only; no Rust crate, workspace member,
+rule-coverage prefix, or implementation scaffold was added.
+
+Verification:
+
+- `grep -nE 'RL-(SETUP|DEAL|BET|STREET|EVAL|SHOW|POT|VIS|BOT|UI|REPLAY)-' games/river_ledger/docs/RULES.md` passed and showed every planned family.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `rg -n "\\[[^\\]]+\\]\\(" games/river_ledger/docs/RULES.md games/river_ledger/docs/SOURCES.md` found no markdown links in the new game docs.
+- `rg -n "cash|chip" games/river_ledger/docs/RULES.md games/river_ledger/docs/SOURCES.md docs/SOURCES.md` found no matches after the prose cleanup.
+- Manual IP review: the new prose is original source-summary text, uses River
+  Ledger as the product identity, cites external sources only for rules-family
+  facts, and introduces no copied prose, assets, ranking tables, or product
+  presentation.
