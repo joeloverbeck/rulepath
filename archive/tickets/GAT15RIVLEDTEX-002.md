@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-002: Pre-coding admission spine — admission, mechanics, coverage plan, pressure ledger
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/river_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md`, `MECHANICS.md`, `RULE-COVERAGE.md`, `PRIMITIVE-PRESSURE-LEDGER.md`)
@@ -85,3 +85,33 @@ Pre-coding admission receipt listing prerequisites and explicit blockers per spe
 1. `grep -nE 'RL-[A-Z]+-' games/river_ledger/docs/RULE-COVERAGE.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: `tools/rule-coverage` cannot pass until code + the prefix validator exist, so this ticket's coverage is the planned matrix only.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented the pre-coding admission spine:
+
+- Added `games/river_ledger/docs/MECHANICS.md` with the River Ledger mechanic
+  inventory and repeated-shape comparison.
+- Added `games/river_ledger/docs/RULE-COVERAGE.md` with an honest planned
+  coverage matrix for the `RL-*` rule families from `RULES.md`.
+- Added `games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the
+  `game-local / no promotion` decision and no promotion debt.
+- Added `games/river_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md` with the
+  pre-coding admission receipt, explicit blockers, and foundation alignment.
+
+Deviations: none. The ticket stayed documentation-only; no Rust crate,
+workspace member, rule-coverage prefix, tool registration, or implementation
+code was added.
+
+Verification:
+
+- `grep -nE 'RL-[A-Z]+-' games/river_ledger/docs/RULE-COVERAGE.md` passed and
+  showed planned rows for setup, deal, betting, street, evaluator, showdown,
+  pot, visibility, replay, bot, UI, ambiguity, variant, and out-of-scope IDs.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `rg -n "\\[[^\\]]+\\]\\(" games/river_ledger/docs/MECHANICS.md games/river_ledger/docs/RULE-COVERAGE.md games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md games/river_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md` found no markdown links in the new docs.
+- `rg -n "game-local / no promotion|Current debt|_None_|no promotion|promotion" games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md games/river_ledger/docs/MECHANICS.md games/river_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md docs/MECHANIC-ATLAS.md` confirmed the local/no-promotion decision and `docs/MECHANIC-ATLAS.md` open debt `_None_`.
+- Manual review confirmed the admission receipt names explicit blockers and the
+  planned coverage matrix stays honest with `open` rows until code lands.
