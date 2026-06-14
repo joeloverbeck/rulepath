@@ -257,6 +257,7 @@ dependencies = [
  "plain_tricks",
  "poker_lite",
  "race_to_n",
+ "river_ledger",
  "secret_draft",
  "three_marks",
  "token_bazaar",

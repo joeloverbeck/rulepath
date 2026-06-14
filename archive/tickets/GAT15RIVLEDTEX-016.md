@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-016: WASM registration, player-rules docs, and catalog smoke harnesses
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api` (`src/lib.rs`, `Cargo.toml`); `games/river_ledger/docs/HOW-TO-PLAY.md`; generated `apps/web/public/rules/river_ledger.md`; `scripts/check-player-rules.mjs`; `apps/web/scripts/{smoke-load-wasm,smoke-ui}.mjs`
@@ -82,3 +82,24 @@ Author `games/river_ledger/docs/HOW-TO-PLAY.md` (incl. hidden-information sectio
 1. `cargo test -p wasm-api && cargo check --workspace`
 2. `npm --prefix apps/web run smoke:wasm && node scripts/check-player-rules.mjs`
 3. These cover the bridge + player-rules boundary; full e2e/catalog-docs reconciliation is in GAT15RIVLEDTEX-018.
+
+## Outcome
+
+Completed 2026-06-14.
+
+- Added River Ledger to `crates/wasm-api` dependencies, catalog registration, match records, setup/view/action/effects/bot/replay dispatch, trace rules versioning, and the hidden-info pairwise no-leak harness.
+- Added a 3-6 seat River Ledger catalog entry with seat labels, viewer modes, hidden-info metadata, and smoke harness assertions.
+- Authored `games/river_ledger/docs/HOW-TO-PLAY.md`, generated `apps/web/public/rules/river_ledger.md`, updated the public-rules manifest, and added River Ledger to hidden-info player-rules validation.
+- Replay dispatch covers River Ledger command-trace import/step/reset and public replay export. Viewer-scoped public-export import remains on the existing game-local timeline API boundary and is not part of this ticket's smoke path.
+
+Verification passed:
+
+1. `cargo test -p wasm-api`
+2. `cargo check --workspace`
+3. `npm --prefix apps/web run smoke:wasm`
+4. `node scripts/check-player-rules.mjs`
+5. `npm --prefix apps/web run smoke:ui`
+6. `cargo fmt --all --check`
+7. `node scripts/check-doc-links.mjs`
+8. `bash scripts/boundary-check.sh`
+9. `git diff --check`

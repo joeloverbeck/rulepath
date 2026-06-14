@@ -172,8 +172,9 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+const twoSeatGames = catalog.filter((game) => game.game_id !== "river_ledger");
 assert(
-  catalog.every(
+  twoSeatGames.every(
     (game) =>
       game.min_seats === 2 &&
       game.max_seats === 2 &&
@@ -184,11 +185,24 @@ assert(
       Array.isArray(game.seat_labels) &&
       game.seat_labels.length === 2,
   ),
-  "Rust catalog exposes two-seat setup metadata for every current game",
+  "Rust catalog exposes two-seat setup metadata for current two-seat games",
 );
 const tokenBazaarCatalog = catalog.find((game) => game.game_id === "token_bazaar");
 assert(tokenBazaarCatalog, "Rust catalog includes token_bazaar");
 assertVariantDescription(tokenBazaarCatalog, "token_bazaar_standard", undefined);
+const riverLedgerCatalog = catalog.find((game) => game.game_id === "river_ledger");
+assert(riverLedgerCatalog, "Rust catalog includes river_ledger");
+assertVariantDescription(riverLedgerCatalog, "river_ledger_standard", undefined);
+assert(
+  riverLedgerCatalog.hidden_information === true &&
+    riverLedgerCatalog.min_seats === 3 &&
+    riverLedgerCatalog.max_seats === 6 &&
+    riverLedgerCatalog.default_seats === 6 &&
+    JSON.stringify(riverLedgerCatalog.supported_seats) === JSON.stringify([3, 4, 5, 6]) &&
+    riverLedgerCatalog.viewer_modes.includes("seat_5") &&
+    riverLedgerCatalog.seat_labels.length === 6,
+  "Rust catalog exposes river_ledger 3-6 seat metadata",
+);
 const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
 assert(floodWatchCatalog, "Rust catalog includes flood_watch");
 assertVariantDescription(
@@ -242,6 +256,16 @@ assert(
       game.tags.includes("event_deck"),
   ),
   "Rust catalog includes event_frontier standard hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "river_ledger" &&
+      hasVariant(game, "river_ledger_standard", "River Ledger") &&
+      game.hidden_information === true &&
+      game.tags.includes("public_accounting"),
+  ),
+  "Rust catalog includes river_ledger standard hidden-information variant",
 );
 
 const threeMarks = invoke(

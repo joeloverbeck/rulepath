@@ -126,6 +126,20 @@ assert(
   ),
   "list_games includes event_frontier hidden-information variants",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "river_ledger" &&
+      hasVariant(game, "river_ledger_standard", "River Ledger") &&
+      game.hidden_information === true &&
+      game.min_seats === 3 &&
+      game.max_seats === 6 &&
+      game.default_seats === 6 &&
+      JSON.stringify(game.supported_seats) === JSON.stringify([3, 4, 5, 6]) &&
+      game.viewer_modes.includes("seat_5"),
+  ),
+  "list_games includes river_ledger 3-6 seat hidden-information variant",
+);
 
 const eventFrontierHardWinter = invoke(
   (args) => wasm.rulepath_new_match_with_variant(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 23n),
