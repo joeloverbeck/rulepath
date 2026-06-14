@@ -55,7 +55,7 @@ export type ShellState = {
   };
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
-  viewerSeat: "seat_0" | "seat_1" | null;
+  viewerSeat: string | null;
   viewerMode: ViewerMode;
   view: PublicView | null;
   actionTree: ActionTree | null;
@@ -139,7 +139,7 @@ export const initialShellState: ShellState = {
   },
   matchId: null,
   actorSeat: "seat_0",
-  viewerSeat: null,
+  viewerSeat: "seat_0",
   viewerMode: { kind: "seat", seat: "seat_0" },
   view: null,
   actionTree: null,
@@ -209,6 +209,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effects: [],
         effectCursor: 0,
         viewerMode: viewerModeForPlayMode(state.setup.playMode),
+        viewerSeat: viewerSeatForMode(viewerModeForPlayMode(state.setup.playMode)),
         diagnostic: null,
         lastBotDecision: null,
         staleToken: null,
@@ -233,6 +234,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           playMode: action.playMode,
         },
         viewerMode: viewerModeForPlayMode(action.playMode),
+        viewerSeat: viewerSeatForMode(viewerModeForPlayMode(action.playMode)),
       };
     case "setupVariantChanged":
       return {
@@ -246,6 +248,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
       return {
         ...state,
         viewerMode: action.viewerMode,
+        viewerSeat: viewerSeatForMode(action.viewerMode),
       };
     case "matchStarting":
       return {
@@ -264,6 +267,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effects: [],
         effectCursor: 0,
         viewerMode: viewerModeForPlayMode(state.setup.playMode),
+        viewerSeat: viewerSeatForMode(viewerModeForPlayMode(state.setup.playMode)),
         diagnostic: null,
         lastBotDecision: null,
         staleToken: null,
@@ -282,6 +286,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         effects: [...state.effects, ...action.payload.effects].slice(-12),
         effectCursor: action.payload.effectCursor,
         viewerMode: action.payload.viewerMode,
+        viewerSeat: viewerSeatForMode(action.payload.viewerMode),
         pendingOperation: null,
       };
     case "actionApplied":
@@ -467,4 +472,8 @@ function botDecisionSummary(result: BotTurnResult): BotDecisionSummary | null {
 
 function viewerModeForPlayMode(playMode: SetupPlayMode): ViewerMode {
   return playMode === "bot_vs_bot" ? { kind: "observer" } : { kind: "seat", seat: "seat_0" };
+}
+
+function viewerSeatForMode(viewerMode: ViewerMode): string | null {
+  return viewerMode.kind === "seat" ? viewerMode.seat : null;
 }

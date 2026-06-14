@@ -1,6 +1,6 @@
 # INFADNSEA-005: Infra C — shared multi-seat shell frame component
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/SeatFrame.tsx` (new), `apps/web/src/state/shellReducer.ts`
@@ -72,3 +72,13 @@ The web shell has no shared frame for presenting N-seat structure: each board ha
 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-14
+
+- Added `apps/web/src/components/SeatFrame.tsx`, a presentation-only seat rail/viewer selector component that reads catalog seat labels plus Rust-projected active/pending fields.
+- Kept `SeatFrame` viewer state string-based so the component can render future N-seat catalog labels without widening existing game-specific `SeatId` view types in this ticket.
+- Updated `shellReducer` so the existing `viewerSeat` presentation field stays synchronized with `viewerMode` and supports observer mode as `null`.
+- Deviations: `SeatFrame` is not mounted into the shell or replay viewer here; that is explicitly owned by INFADNSEA-006. Verification therefore covered type/build integration and existing UI smoke rather than rendered frame adoption.
+- Verification: `npm --prefix apps/web run build`; `npm --prefix apps/web run smoke:ui`.
