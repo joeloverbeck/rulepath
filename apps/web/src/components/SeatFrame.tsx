@@ -21,6 +21,7 @@ export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFr
   const activeSeats = projectedSeatSet(view, "active");
   const pendingSeats = projectedSeatSet(view, "pending");
   const selectedSeat = viewerMode.kind === "seat" ? viewerMode.seat : null;
+  const viewerDisabled = !onViewerModeChange;
 
   return (
     <section className="seat-frame" aria-label="Seats">
@@ -29,6 +30,7 @@ export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFr
           type="button"
           className={viewerMode.kind === "observer" ? "selected" : ""}
           aria-pressed={viewerMode.kind === "observer"}
+          disabled={viewerDisabled}
           onClick={() => onViewerModeChange?.({ kind: "observer" })}
         >
           Observer
@@ -39,6 +41,7 @@ export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFr
             key={seat.seat}
             className={selectedSeat === seat.seat ? "selected" : ""}
             aria-pressed={selectedSeat === seat.seat}
+            disabled={viewerDisabled}
             onClick={() => onViewerModeChange?.({ kind: "seat", seat: seat.seat })}
           >
             {seat.label}

@@ -8,6 +8,7 @@ import type {
   EventFrontierPublicView,
   FloodWatchPublicView,
   FrontierControlPublicView,
+  GameCatalogEntry,
   MaskedClaimsPublicView,
   PublicView,
   SecretDraftPublicView,
@@ -19,16 +20,18 @@ import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
 import { DraughtsLiteBoard } from "./DraughtsLiteBoard";
 import { EventFrontierBoard } from "./EventFrontierBoard";
 import { FrontierControlBoard } from "./FrontierControlBoard";
+import { SeatFrame } from "./SeatFrame";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 
 type ReplayViewerProps = {
+  game: GameCatalogEntry | null;
   replay: ReplaySessionState | null;
   reducedMotion: boolean;
   onStep: () => void;
   onReset: () => void;
 };
 
-export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayViewerProps) {
+export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: ReplayViewerProps) {
   const step = replay?.step ?? null;
   const effects = step?.effects ?? [];
   const publicEffects = step?.public_effects ?? [];
@@ -73,6 +76,8 @@ export function ReplayViewer({ replay, reducedMotion, onStep, onReset }: ReplayV
               </div>
             ))}
           </div>
+
+          <SeatFrame game={game} view={step.view} viewerMode={{ kind: "observer" }} />
 
           {threeMarksView ? (
             <div className="replay-board">

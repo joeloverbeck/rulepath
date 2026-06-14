@@ -399,8 +399,12 @@ fn variants_json(variants: &[(&str, &str, Option<&str>)]) -> String {
     )
 }
 
-fn with_catalog_seat_metadata(mut catalog_json: String, seat_count: usize) -> String {
-    let seat_fields = catalog_seat_metadata_fields(seat_count);
+fn with_catalog_seat_metadata(
+    mut catalog_json: String,
+    seat_count: usize,
+    seat_labels_json: Option<&str>,
+) -> String {
+    let seat_fields = catalog_seat_metadata_fields(seat_count, seat_labels_json);
     if catalog_json.ends_with('}') {
         catalog_json.pop();
         catalog_json.push_str(&seat_fields);
@@ -409,10 +413,13 @@ fn with_catalog_seat_metadata(mut catalog_json: String, seat_count: usize) -> St
     catalog_json
 }
 
-fn catalog_seat_metadata_fields(seat_count: usize) -> String {
+fn catalog_seat_metadata_fields(seat_count: usize, seat_labels_json: Option<&str>) -> String {
+    let seat_labels = seat_labels_json
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| catalog_seat_labels_json(seat_count));
     format!(
         ",\"min_seats\":{seat_count},\"max_seats\":{seat_count},\"default_seats\":{seat_count},\"supported_seats\":[{seat_count}],\"seat_labels\":{},\"viewer_modes\":{}",
-        catalog_seat_labels_json(seat_count),
+        seat_labels,
         catalog_viewer_modes_json(seat_count)
     )
 }
@@ -579,7 +586,11 @@ pub fn list_games() -> Result<String, String> {
                 variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME, None)])
             ),
         };
-            with_catalog_seat_metadata(catalog_json, DEFAULT_SEAT_COUNT)
+            let seat_labels_json = match game {
+                RegisteredGame::EventFrontier => Some(event_frontier_catalog_seat_labels_json()),
+                _ => None,
+            };
+            with_catalog_seat_metadata(catalog_json, DEFAULT_SEAT_COUNT, seat_labels_json.as_deref())
         })
         .collect::<Vec<_>>()
         .join(",");
@@ -7515,6 +7526,18 @@ fn event_frontier_catalog_ui_json() -> String {
     )
 }
 
+fn event_frontier_catalog_seat_labels_json() -> String {
+    let ui = event_frontier::ui_metadata();
+    format!(
+        "[{}]",
+        ui.seat_labels
+            .iter()
+            .map(event_frontier_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
 fn event_frontier_seat_display_label_json(label: &event_frontier::ui::SeatDisplayLabel) -> String {
     format!(
         "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
@@ -10641,6 +10664,9 @@ mod tests {
         assert!(games.contains("\"supported_seats\":[2]"));
         assert!(games.contains(
             "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\"}]"
+        ));
+        assert!(games.contains(
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Charter\"},{\"seat\":\"seat_1\",\"label\":\"Freeholders\"}]"
         ));
         assert!(games.contains("\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"]"));
         assert!(games.contains(

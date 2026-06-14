@@ -1,6 +1,6 @@
 # INFADNSEA-006: Infra C — adopt the seat frame across boards + replay/observer
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/AppShell.tsx`, `apps/web/src/components/ReplayViewer.tsx`, per-game `apps/web/src/components/*Board.tsx` (as surfaced)
@@ -74,3 +74,39 @@ For each of the 14 `*Board.tsx`, adopt the frame or record a board-native except
 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed on 2026-06-14.
+
+The shared `SeatFrame` is mounted by the live shell for all current board render paths and by `ReplayViewer` for replay snapshots. Live play adapts the frame's string seat selection back into the current two-seat `ViewerMode` union without adding legality or turn-order logic. Replay renders the frame read-only in observer mode, so replay state is presented without introducing a replay mutation path.
+
+The Rust catalog now preserves Event Frontier's authored faction seat labels (`Charter`, `Freeholders`) as top-level `seat_labels`, while other current games continue to receive deterministic `Seat 0`/`Seat 1` catalog labels. This keeps the new top-level seat metadata authoritative without regressing existing asymmetric-faction setup copy.
+
+Adoption audit:
+
+| Board | Result | Reason |
+| --- | --- | --- |
+| `ColumnFourBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `DirectionalFlipBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `DraughtsLiteBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `EventFrontierBoard` | Adopted through shell frame | Board keeps authored faction/game map presentation; frame owns shared seat rail/viewer presentation. |
+| `FloodWatchBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `FrontierControlBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `HighCardDuelBoard` | Adopted through shell frame, board-native viewer controls retained | Existing hidden-info viewer controls remain for local hotseat no-leak coverage; shared frame also drives viewer mode. |
+| `MaskedClaimsBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `PlainTricksBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `PokerLiteBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `RaceBoard` | Adopted through shell frame | Generic race board remains presentation-only; frame owns seat rail/viewer presentation. |
+| `SecretDraftBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `ThreeMarksBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+| `TokenBazaarBoard` | Adopted through shell frame | Board view unchanged; frame owns seat rail/viewer presentation. |
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `node apps/web/e2e/event-frontier.smoke.mjs`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
