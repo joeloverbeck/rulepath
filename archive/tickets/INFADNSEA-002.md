@@ -1,6 +1,6 @@
 # INFADNSEA-002: Infra A — per-game seat-range catalog metadata + client.ts types
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` (catalog payload seat metadata) + `apps/web/src/wasm/client.ts` (presentation types); no `engine-core` or `games/*` behavior change
@@ -76,3 +76,14 @@ Add the seat-range fields to the catalog entry type in `apps/web/src/wasm/client
 
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:wasm && node scripts/check-catalog-docs.mjs`
+
+## Outcome
+
+Completed: 2026-06-14
+
+- Added uniform, additive catalog seat metadata for every registered game: `min_seats`, `max_seats`, `default_seats`, `supported_seats`, `seat_labels`, and derived `viewer_modes`.
+- Removed the prior per-game hardcoded `viewer_modes` fragments from catalog JSON assembly so viewer modes now come from the shared seat metadata helper.
+- Mirrored the new catalog fields in `apps/web/src/wasm/client.ts`.
+- Added a `wasm-api` catalog regression assertion for the new seat metadata fields; current official games project `[2,2]` / two labels as expected.
+- Deviations: no setup/catalog rendering was changed; that remains owned by INFADNSEA-003.
+- Verification: `cargo test -p wasm-api`; `node scripts/check-catalog-docs.mjs`; `npm --prefix apps/web run build`; `npm --prefix apps/web run smoke:wasm`.

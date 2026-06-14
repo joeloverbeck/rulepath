@@ -399,6 +399,40 @@ fn variants_json(variants: &[(&str, &str, Option<&str>)]) -> String {
     )
 }
 
+fn with_catalog_seat_metadata(mut catalog_json: String, seat_count: usize) -> String {
+    let seat_fields = catalog_seat_metadata_fields(seat_count);
+    if catalog_json.ends_with('}') {
+        catalog_json.pop();
+        catalog_json.push_str(&seat_fields);
+        catalog_json.push('}');
+    }
+    catalog_json
+}
+
+fn catalog_seat_metadata_fields(seat_count: usize) -> String {
+    format!(
+        ",\"min_seats\":{seat_count},\"max_seats\":{seat_count},\"default_seats\":{seat_count},\"supported_seats\":[{seat_count}],\"seat_labels\":{},\"viewer_modes\":{}",
+        catalog_seat_labels_json(seat_count),
+        catalog_viewer_modes_json(seat_count)
+    )
+}
+
+fn catalog_seat_labels_json(seat_count: usize) -> String {
+    format!(
+        "[{}]",
+        (0..seat_count)
+            .map(|index| { format!("{{\"seat\":\"seat_{index}\",\"label\":\"Seat {index}\"}}") })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn catalog_viewer_modes_json(seat_count: usize) -> String {
+    let mut modes = vec!["\"observer\"".to_owned()];
+    modes.extend((0..seat_count).map(|index| format!("\"seat_{index}\"")));
+    format!("[{}]", modes.join(","))
+}
+
 pub fn list_games() -> Result<String, String> {
     let flood_variants = flood_watch::load_variants()?;
     let frontier_variants = frontier_control::load_variants()?;
@@ -420,7 +454,8 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::PlainTricks,
     ]
         .iter()
-        .map(|game| match game {
+        .map(|game| {
+            let catalog_json = match game {
             RegisteredGame::RaceToN => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{}}}",
                 escape_json(GAME_RACE_TO_N),
@@ -543,6 +578,8 @@ pub fn list_games() -> Result<String, String> {
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME, None)])
             ),
+        };
+            with_catalog_seat_metadata(catalog_json, DEFAULT_SEAT_COUNT)
         })
         .collect::<Vec<_>>()
         .join(",");
@@ -10598,6 +10635,14 @@ mod tests {
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"game_id\":\"poker_lite\""));
         assert!(games.contains("\"game_id\":\"plain_tricks\""));
+        assert!(games.contains("\"min_seats\":2"));
+        assert!(games.contains("\"max_seats\":2"));
+        assert!(games.contains("\"default_seats\":2"));
+        assert!(games.contains("\"supported_seats\":[2]"));
+        assert!(games.contains(
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\"}]"
+        ));
+        assert!(games.contains("\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"]"));
         assert!(games.contains(
             "\"variants\":[{\"id\":\"three_marks_standard\",\"label\":\"Three Marks\"}]"
         ));

@@ -88,6 +88,11 @@ export type GameCatalogEntry = {
   display_name: string;
   rules_version: number;
   schema_version: number;
+  min_seats?: number;
+  max_seats?: number;
+  default_seats?: number;
+  supported_seats?: number[];
+  seat_labels?: SeatDisplayLabel[];
   variants?: GameVariantCatalogEntry[];
   viewer_modes?: ViewerModeId[];
   hidden_information?: boolean;
