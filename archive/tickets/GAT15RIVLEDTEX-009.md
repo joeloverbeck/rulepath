@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-009: Pairwise N-seat no-leak harness and visibility tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/tests/visibility.rs`; no-leak golden traces
@@ -80,3 +80,27 @@ Add `deal-private-no-leak`, `public-observer-no-leak`, `seat-private-view`, `wro
 1. `cargo test -p river_ledger --test visibility`
 2. `cargo test -p river_ledger`
 3. The crate-level visibility test is the correct boundary; export and browser no-leak are exercised in 010/018.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Added `games/river_ledger/tests/visibility.rs` with a pairwise N-seat no-leak harness. The harness sweeps every ordered distinct seat pair for 3-, 4-, 5-, and 6-seat setup states, proving that seat projections and filtered effect logs do not expose another seat's hole cards. It also proves observer projections/effects/action trees hide all hole cards, future community cards, and deck-tail cards; seat-private projections expose only the viewer's own hole cards; and wrong-seat/stale diagnostics carry public-only reasons.
+
+Added no-leak placeholder traces for `deal-private-no-leak`, `public-observer-no-leak`, and `seat-private-view`. The required `wrong-seat-diagnostic.trace.json` already existed from GAT15RIVLEDTEX-005 and remains the shared diagnostic trace placeholder for this requirement.
+
+Deviations: public replay export/import no-leak remains deferred to GAT15RIVLEDTEX-010, browser DOM/storage/log no-leak remains deferred to GAT15RIVLEDTEX-018, and bot explanation no-leak remains deferred to GAT15RIVLEDTEX-013.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test visibility`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`
