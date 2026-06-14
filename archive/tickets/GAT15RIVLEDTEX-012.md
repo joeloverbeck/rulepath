@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-012: Bot-strategy docs — competent player and Level 2 evidence pack
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/river_ledger/docs/COMPETENT-PLAYER.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`)
@@ -73,3 +73,24 @@ Formal L2 evidence pack: enumerated inputs, forbidden hidden facts, priority vec
 1. `node scripts/check-doc-links.mjs`
 2. `grep -n 'priority' games/river_ledger/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
 3. A doc-link + manual review is the correct boundary; the bot's authorized-view-only behavior is enforced by tests in GAT15RIVLEDTEX-013.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Added `games/river_ledger/docs/COMPETENT-PLAYER.md` and `games/river_ledger/docs/BOT-STRATEGY-EVIDENCE-PACK.md`. The docs define competent fixed-limit River Ledger play, authorized information boundaries, forbidden hidden facts, Level 2 candidate inputs, opponent-count adjustments, explanation constraints, and the lexicographic priority vector for GAT15RIVLEDTEX-013.
+
+Manual review: every documented Level 2 input maps to Rust-owned legal actions or authorized `PublicView`/`PrivateView::Seat` fields from `visibility.rs`. The docs explicitly exclude opponent hole cards, future community cards, deck-tail/burn/order facts, hidden-state sampling, solvers, MCTS/ISMCTS, Monte Carlo, ML, RL, runtime LLM policy, and TypeScript legality.
+
+Deviations: no production code changed; bot implementation, `AI.md`, and bot tests remain deferred to GAT15RIVLEDTEX-013.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `grep -n priority games/river_ledger/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`
