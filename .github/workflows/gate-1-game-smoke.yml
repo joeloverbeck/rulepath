@@ -1,5 +1,14 @@
 name: Gate 1 game smoke
 
+# Build-once + per-game matrix (see docs/plans/2026-06-14-gate-1-ci-split-design.md):
+# - `build` compiles the four check tools and the web app once and uploads them
+#   as artifacts.
+# - `game` fans out one parallel lane per game (driven by ci/games.json) for the
+#   simulation / replay / fixture / coverage / per-game e2e checks, so wall-clock
+#   stays flat as games are added instead of growing serially.
+# - `repo-checks` runs the game-independent checks (boundary, docs, cross-cutting
+#   smokes and e2e) exactly once.
+
 on:
   pull_request:
   push:
@@ -7,15 +16,21 @@ on:
       - main
 
 jobs:
-  game-smoke:
-    name: Simulation, replay, fixtures, boundary, web, docs
+  build:
+    name: Build tools + web (once)
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Validate ci/games.json and emit matrix
+        id: matrix
+        run: node scripts/check-ci-games.mjs --emit
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -24,182 +39,135 @@ jobs:
       - name: Install Rust WASM target
         run: rustup target add wasm32-unknown-unknown
 
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build check tools
+        run: cargo build -p simulate -p replay-check -p fixture-check -p rule-coverage
+
       - name: Install web dependencies
         run: npm --prefix apps/web ci
 
-      - name: race_to_n quick simulation
-        run: cargo run -p simulate -- --game race_to_n --games 1000
+      - name: Build web artifacts
+        run: npm --prefix apps/web run build
 
-      - name: three_marks quick simulation
-        run: cargo run -p simulate -- --game three_marks --games 1000
+      - name: Upload tool binaries
+        uses: actions/upload-artifact@v5
+        with:
+          name: tool-binaries
+          path: |
+            target/debug/simulate
+            target/debug/replay-check
+            target/debug/fixture-check
+            target/debug/rule-coverage
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: column_four quick simulation
-        run: cargo run -p simulate -- --game column_four --games 1000
+      - name: Upload web build
+        uses: actions/upload-artifact@v5
+        with:
+          name: web-build
+          path: |
+            apps/web/dist
+            apps/web/public/wasm_api.wasm
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: directional_flip quick simulation
-        run: cargo run -p simulate -- --game directional_flip --games 1000
+  game:
+    name: ${{ matrix.id }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.build.outputs.matrix) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
 
-      - name: draughts_lite quick simulation
-        run: cargo run -p simulate -- --game draughts_lite --games 1000
+      - name: Download tool binaries
+        uses: actions/download-artifact@v5
+        with:
+          name: tool-binaries
+          path: ci-bin
 
-      - name: high_card_duel quick simulation
-        run: cargo run -p simulate -- --game high_card_duel --games 1000
+      - name: Make tools executable
+        run: chmod +x ci-bin/*
 
-      - name: masked_claims quick simulation
-        run: cargo run -p simulate -- --game masked_claims --games 1000 --action-cap 24
-
-      - name: flood_watch quick simulation
-        run: cargo run -p simulate -- --game flood_watch --games 1000
-
-      - name: frontier_control quick simulation
-        run: cargo run -p simulate -- --game frontier_control --games 1000
-
-      - name: event_frontier quick simulation
-        run: cargo run -p simulate -- --game event_frontier --games 1000
-
-      - name: token_bazaar quick simulation
-        run: cargo run -p simulate -- --game token_bazaar --games 1000
-
-      - name: secret_draft quick simulation
-        run: cargo run -p simulate -- --game secret_draft --games 1000
-
-      - name: poker_lite quick simulation
-        run: cargo run -p simulate -- --game poker_lite --games 1000 --action-cap 16
-
-      - name: plain_tricks quick simulation
-        run: cargo run -p simulate -- --game plain_tricks --games 1000 --action-cap 32
+      - name: Quick simulation
+        run: ./ci-bin/simulate --game ${{ matrix.id }} --games 1000 ${{ matrix.sim_flags }}
 
       - name: Replay drift check
-        run: cargo run -p replay-check -- --game race_to_n --all
-
-      - name: Three Marks replay drift check
-        run: cargo run -p replay-check -- --game three_marks --all
-
-      - name: Column Four replay drift check
-        run: cargo run -p replay-check -- --game column_four --all
-
-      - name: Directional Flip replay drift check
-        run: cargo run -p replay-check -- --game directional_flip --all
-
-      - name: Draughts Lite replay drift check
-        run: cargo run -p replay-check -- --game draughts_lite --all
-
-      - name: High Card Duel replay drift check
-        run: cargo run -p replay-check -- --game high_card_duel --all
-
-      - name: Masked Claims replay drift check
-        run: cargo run -p replay-check -- --game masked_claims --all
-
-      - name: Flood Watch replay drift check
-        run: cargo run -p replay-check -- --game flood_watch --all
-
-      - name: Frontier Control replay drift check
-        run: cargo run -p replay-check -- --game frontier_control --all
-
-      - name: Event Frontier replay drift check
-        run: cargo run -p replay-check -- --game event_frontier --all
-
-      - name: Token Bazaar replay drift check
-        run: cargo run -p replay-check -- --game token_bazaar --all
-
-      - name: Secret Draft replay drift check
-        run: cargo run -p replay-check -- --game secret_draft --all
-
-      - name: Poker Lite replay drift check
-        run: cargo run -p replay-check -- --game poker_lite --all
-
-      - name: Plain Tricks replay drift check
-        run: cargo run -p replay-check -- --game plain_tricks --all
+        run: ./ci-bin/replay-check --game ${{ matrix.id }} --all
 
       - name: Fixture validation
-        run: cargo run -p fixture-check -- --game race_to_n
-
-      - name: Three Marks fixture validation
-        run: cargo run -p fixture-check -- --game three_marks
-
-      - name: Column Four fixture validation
-        run: cargo run -p fixture-check -- --game column_four
-
-      - name: Directional Flip fixture validation
-        run: cargo run -p fixture-check -- --game directional_flip
-
-      - name: Draughts Lite fixture validation
-        run: cargo run -p fixture-check -- --game draughts_lite
-
-      - name: High Card Duel fixture validation
-        run: cargo run -p fixture-check -- --game high_card_duel
-
-      - name: Masked Claims fixture validation
-        run: cargo run -p fixture-check -- --game masked_claims
-
-      - name: Flood Watch fixture validation
-        run: cargo run -p fixture-check -- --game flood_watch
-
-      - name: Frontier Control fixture validation
-        run: cargo run -p fixture-check -- --game frontier_control
-
-      - name: Event Frontier fixture validation
-        run: cargo run -p fixture-check -- --game event_frontier
-
-      - name: Token Bazaar fixture validation
-        run: cargo run -p fixture-check -- --game token_bazaar
-
-      - name: Secret Draft fixture validation
-        run: cargo run -p fixture-check -- --game secret_draft
-
-      - name: Poker Lite fixture validation
-        run: cargo run -p fixture-check -- --game poker_lite
-
-      - name: Plain Tricks fixture validation
-        run: cargo run -p fixture-check -- --game plain_tricks
+        run: ./ci-bin/fixture-check --game ${{ matrix.id }}
 
       - name: Rule coverage drift check
-        run: cargo run -p rule-coverage -- --game race_to_n
+        run: ./ci-bin/rule-coverage --game ${{ matrix.id }}
 
-      - name: Three Marks rule coverage drift check
-        run: cargo run -p rule-coverage -- --game three_marks
+      - name: Set up Node
+        if: matrix.e2e != ''
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
 
-      - name: Column Four rule coverage drift check
-        run: cargo run -p rule-coverage -- --game column_four
+      - name: Cache Puppeteer browser
+        if: matrix.e2e != ''
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}
 
-      - name: Directional Flip rule coverage drift check
-        run: cargo run -p rule-coverage -- --game directional_flip
+      - name: Install web dependencies
+        if: matrix.e2e != ''
+        run: npm --prefix apps/web ci
 
-      - name: Draughts Lite rule coverage drift check
-        run: cargo run -p rule-coverage -- --game draughts_lite
+      - name: Download web build
+        if: matrix.e2e != ''
+        uses: actions/download-artifact@v5
+        with:
+          name: web-build
+          path: apps/web
 
-      - name: High Card Duel rule coverage drift check
-        run: cargo run -p rule-coverage -- --game high_card_duel
+      - name: Browser e2e (a11y / no-leak)
+        if: matrix.e2e != ''
+        run: node apps/web/e2e/${{ matrix.e2e }}
 
-      - name: Masked Claims rule coverage drift check
-        run: cargo run -p rule-coverage -- --game masked_claims
+  repo-checks:
+    name: Boundary, docs, cross-cutting smokes
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
 
-      - name: Flood Watch rule coverage drift check
-        run: cargo run -p rule-coverage -- --game flood_watch
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
 
-      - name: Frontier Control rule coverage drift check
-        run: cargo run -p rule-coverage -- --game frontier_control
+      - name: Cache Puppeteer browser
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}
 
-      - name: Event Frontier rule coverage drift check
-        run: cargo run -p rule-coverage -- --game event_frontier
+      - name: Install web dependencies
+        run: npm --prefix apps/web ci
 
-      - name: Token Bazaar rule coverage drift check
-        run: cargo run -p rule-coverage -- --game token_bazaar
-
-      - name: Secret Draft rule coverage drift check
-        run: cargo run -p rule-coverage -- --game secret_draft
-
-      - name: Poker Lite rule coverage drift check
-        run: cargo run -p rule-coverage -- --game poker_lite
-
-      - name: Plain Tricks rule coverage drift check
-        run: cargo run -p rule-coverage -- --game plain_tricks
+      - name: Download web build
+        uses: actions/download-artifact@v5
+        with:
+          name: web-build
+          path: apps/web
 
       - name: Engine boundary
         run: bash scripts/boundary-check.sh
-
-      - name: Build web artifacts
-        run: npm --prefix apps/web run build
 
       - name: WASM smoke
         run: node apps/web/scripts/smoke-load-wasm.mjs
@@ -210,25 +178,12 @@ jobs:
       - name: Static preview smoke
         run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Browser shell + a11y/no-leak E2E including column_four, directional_flip, draughts_lite, high_card_duel, token_bazaar, secret_draft, poker_lite, plain_tricks, masked_claims, flood_watch, frontier_control, and event_frontier
+      - name: Cross-cutting browser shell + a11y/no-leak e2e
         run: |
           node apps/web/e2e/shell.smoke.mjs
           node apps/web/e2e/a11y-noleak.smoke.mjs
           node apps/web/e2e/rules-display.smoke.mjs
           node apps/web/e2e/outcome-explanation.smoke.mjs
-          node apps/web/e2e/three-marks.smoke.mjs
-          node apps/web/e2e/column-four.smoke.mjs
-          node apps/web/e2e/directional-flip.smoke.mjs
-          node apps/web/e2e/draughts-lite.smoke.mjs
-          node apps/web/e2e/high-card-duel.smoke.mjs
-          node apps/web/e2e/token-bazaar.smoke.mjs
-          node apps/web/e2e/secret-draft.smoke.mjs
-          node apps/web/e2e/poker-lite.smoke.mjs
-          node apps/web/e2e/plain-tricks.smoke.mjs
-          node apps/web/e2e/masked-claims.smoke.mjs
-          node apps/web/e2e/flood-watch.smoke.mjs
-          node apps/web/e2e/frontier-control.smoke.mjs
-          node apps/web/e2e/event-frontier.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
