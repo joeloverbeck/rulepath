@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-019: Trailing game docs — UI, admission receipt, public-release checklist
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/river_ledger/docs/UI.md`, `GAME-IMPLEMENTATION-ADMISSION.md`, `PUBLIC-RELEASE-CHECKLIST.md`)
@@ -75,3 +75,41 @@ Reconcile the admission receipt to post-implementation status; author the public
 1. `node scripts/check-doc-links.mjs`
 2. `ls games/river_ledger/docs/` — confirms the full 13-doc OGC set.
 3. A doc-link + manual review is the correct boundary; the acceptance command suite is run in GAT15RIVLEDTEX-021.
+
+## Outcome
+
+Completed: 2026-06-14
+
+What changed:
+
+- Added `games/river_ledger/docs/UI.md` with the product UI plan, N-seat viewer
+  matrix, pairwise no-leak matrix, observer/seat-private projection rules,
+  legal-action mapping, surface budget, safe outcome explanation, smoke
+  coverage, and neutral no-casino visual direction.
+- Reconciled `games/river_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md` from a
+  pre-coding receipt into a final post-implementation admission receipt naming
+  implemented Rust, replay, simulation, bot, benchmark, WASM, web, catalog,
+  public rules, and no-leak evidence.
+- Added `games/river_ledger/docs/PUBLIC-RELEASE-CHECKLIST.md` with IP/no-leak,
+  catalog, e2e, presentation-copy, smoke, replay export/import, and
+  bot-boundary release checks.
+
+Deviations from plan:
+
+- The release checklist records GAT15RIVLEDTEX-020 and GAT15RIVLEDTEX-021 as
+  pending final gate closeout dependencies rather than pretending this trailing
+  docs ticket completes the atlas/spec archive.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` — passed (`Checked 27 markdown files`).
+- `ls games/river_ledger/docs/` — confirmed all 13 official-game docs:
+  `AI.md`, `BENCHMARKS.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`,
+  `COMPETENT-PLAYER.md`, `GAME-IMPLEMENTATION-ADMISSION.md`,
+  `HOW-TO-PLAY.md`, `MECHANICS.md`, `PRIMITIVE-PRESSURE-LEDGER.md`,
+  `PUBLIC-RELEASE-CHECKLIST.md`, `RULE-COVERAGE.md`, `RULES.md`,
+  `SOURCES.md`, and `UI.md`.
+- `find games/river_ledger/docs -maxdepth 1 -type f | wc -l` — returned `13`.
+- Manual checklist review confirmed IP/no-leak/catalog/e2e/replay
+  export-import/bot-boundary checks are named in
+  `PUBLIC-RELEASE-CHECKLIST.md`.
