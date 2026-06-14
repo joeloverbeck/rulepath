@@ -35,7 +35,7 @@ scope.
 | rules and validation | [RULES.md](RULES.md), [RULE-COVERAGE.md](RULE-COVERAGE.md), `cargo test -p river_ledger` |
 | source/IP review | [SOURCES.md](SOURCES.md) |
 | mechanic inventory | [MECHANICS.md](MECHANICS.md) |
-| primitive-pressure ledger | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), final GAT15RIVLEDTEX-020 review |
+| primitive-pressure ledger | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), `docs/MECHANIC-ATLAS.md` Gate 15 row |
 | static data and fixtures | `games/river_ledger/data/*`, `cargo run -p fixture-check -- --game river_ledger` |
 | replay/golden traces | `games/river_ledger/tests/golden_traces/*`, `cargo run -p replay-check -- --game river_ledger --all` |
 | simulation | `cargo run -p simulate -- --game river_ledger --seat-count 6 --games 1000 --start-seed 1506 --action-cap 48` |
@@ -55,7 +55,7 @@ scope.
 | original rules with stable rule IDs | [RULES.md](RULES.md) | yes | `RL-*` families cover setup, deal, betting, street, evaluator, showdown, pot, visibility, bots, UI, replay, variants, and out-of-scope boundaries. |
 | rule coverage matrix | [RULE-COVERAGE.md](RULE-COVERAGE.md) | yes | Rows name implementation, traces, tests, and later web evidence. |
 | mechanic inventory | [MECHANICS.md](MECHANICS.md) | yes | Records game-local card/deck/evaluator/accounting/showdown shapes. |
-| primitive-pressure ledger | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md) | pending final review | GAT15RIVLEDTEX-020 owns the final atlas-pressure closeout. |
+| primitive-pressure ledger | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md) | yes | GAT15RIVLEDTEX-020 completed the final atlas-pressure closeout. |
 | competent-player analysis | [COMPETENT-PLAYER.md](COMPETENT-PLAYER.md) | yes | Feeds the Level 2 authored policy. |
 | bot evidence pack | [BOT-STRATEGY-EVIDENCE-PACK.md](BOT-STRATEGY-EVIDENCE-PACK.md) | yes | Documents allowed inputs and forbidden hidden facts. |
 | UI notes | [UI.md](UI.md) | yes | Documents the implemented N-seat browser renderer and outcome surface. |
@@ -113,8 +113,8 @@ scope.
 | public contribution ledger/single pot | repeated accounting shape | Ledger and pot allocation stay game-local until the atlas admits a shared primitive. | no |
 | N-seat hidden-information visibility | public scaling pressure | Pairwise tests and browser no-leak smoke prove the game-specific projection. | no |
 
-GAT15RIVLEDTEX-020 owns the final mechanic-atlas pressure review. Admission is
-conditioned on that capstone confirming no promotion debt remains.
+GAT15RIVLEDTEX-020 completed the final mechanic-atlas pressure review and
+confirmed no promotion debt remains.
 
 ## Engine-Core Contamination Review
 
@@ -197,15 +197,13 @@ Decision rationale:
   new AI class.
 - Public presentation uses original River Ledger terminology, abstract
   contribution units, and neutral board-game visual language.
-- GAT15RIVLEDTEX-020 and GAT15RIVLEDTEX-021 remain responsible for the final
-  atlas-pressure review and spec/index closeout before the Gate 15 family is
-  completely archived.
+- GAT15RIVLEDTEX-021 remains responsible for the final acceptance sweep and
+  spec/index closeout before the Gate 15 family is completely archived.
 
 ## Release Blockers
 
 | Issue | Required fix | Owner | Blocks current admission? |
 |---|---|---|---:|
-| Final primitive-pressure review is pending. | Complete GAT15RIVLEDTEX-020 and update atlas/spec evidence if needed. | Rulepath | no; blocks final gate closeout |
 | Final acceptance sweep and spec/index archive are pending. | Complete GAT15RIVLEDTEX-021 after 020. | Rulepath | no; blocks final gate closeout |
 
 No additional implementation, WASM, UI, public-copy, no-leak, or bot blocker is

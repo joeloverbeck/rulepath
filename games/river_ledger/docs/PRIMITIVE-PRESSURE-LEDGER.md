@@ -31,6 +31,18 @@ Review owner/date: Codex, 2026-06-14.
 | terminal comparison explanation | `high_card_duel`, `poker_lite` | Poker-category evaluator, rank-vector tie breaks, best-five used cards. |
 | N-seat surface | Infra A-D shared seat/public infrastructure | Official 3, 4, 5, and 6 seat support with ordered pair no-leak proof. |
 
+## Implementation evidence
+
+| Pressured shape | Implemented files | Tests/traces |
+|---|---|---|
+| standard deck and deterministic shuffle | `games/river_ledger/src/cards.rs`, `games/river_ledger/src/setup.rs`, `games/river_ledger/src/replay_support.rs` | `games/river_ledger/tests/serialization.rs`, `games/river_ledger/tests/replay.rs`, `games/river_ledger/tests/golden_traces/setup-3p.trace.json`, `games/river_ledger/tests/golden_traces/setup-4p.trace.json`, `games/river_ledger/tests/golden_traces/setup-5p.trace.json`, `games/river_ledger/tests/golden_traces/setup-6p.trace.json` |
+| hidden hole cards and owner-private views | `games/river_ledger/src/setup.rs`, `games/river_ledger/src/visibility.rs`, `games/river_ledger/src/effects.rs` | `games/river_ledger/tests/visibility.rs`, `games/river_ledger/tests/golden_traces/deal-private-no-leak.trace.json`, `games/river_ledger/tests/golden_traces/public-observer-no-leak.trace.json`, `games/river_ledger/tests/golden_traces/seat-private-view.trace.json`, `games/river_ledger/tests/golden_traces/wrong-seat-diagnostic.trace.json` |
+| N-seat projections and pairwise no-leak | `games/river_ledger/src/ids.rs`, `games/river_ledger/src/visibility.rs`, `games/river_ledger/src/replay_support.rs` | `games/river_ledger/tests/visibility.rs`, `crates/wasm-api` no-leak dispatch, `apps/web/e2e/river-ledger.smoke.mjs` |
+| fixed-limit contribution ledger and cap | `games/river_ledger/src/betting.rs`, `games/river_ledger/src/actions.rs`, `games/river_ledger/src/rules.rs`, `games/river_ledger/src/state.rs` | `games/river_ledger/tests/rules.rs`, `games/river_ledger/tests/property.rs`, `games/river_ledger/tests/golden_traces/preflop-blinds-call-check-advance.trace.json`, `games/river_ledger/tests/golden_traces/flop-small-bet-cap.trace.json`, `games/river_ledger/tests/golden_traces/turn-river-big-bet.trace.json`, `games/river_ledger/tests/golden_traces/raise-cap-diagnostic.trace.json` |
+| seven-card evaluator and showdown rationale | `games/river_ledger/src/evaluator.rs`, `games/river_ledger/src/showdown.rs`, `games/river_ledger/src/rules.rs` | `games/river_ledger/tests/rules.rs`, `games/river_ledger/tests/golden_traces/high-card-showdown.trace.json`, `games/river_ledger/tests/golden_traces/pair-beats-high-card.trace.json`, `games/river_ledger/tests/golden_traces/straight-ace-low.trace.json`, `games/river_ledger/tests/golden_traces/flush-kicker-order.trace.json`, `games/river_ledger/tests/golden_traces/full-house-tiebreak.trace.json` |
+| split allocation and deterministic remainder | `games/river_ledger/src/pot.rs`, `games/river_ledger/src/showdown.rs`, `games/river_ledger/src/state.rs` | `games/river_ledger/tests/rules.rs`, `games/river_ledger/tests/property.rs`, `games/river_ledger/tests/golden_traces/split-pot-even.trace.json`, `games/river_ledger/tests/golden_traces/split-pot-remainder-button-order.trace.json` |
+| bots and viewer-safe explanations | `games/river_ledger/src/bots.rs`, `games/river_ledger/src/visibility.rs` | `games/river_ledger/tests/bots.rs`, `games/river_ledger/tests/golden_traces/bot-vs-bot-full-game-6p.trace.json` |
+
 ## What is repeated
 
 - deterministic shuffled card-like components;
@@ -76,25 +88,34 @@ and reports only. Betting, evaluation, visibility, and bot behavior remain
 typed Rust.
 
 Replay/hash impact: no shared helper changes existing replay or hash semantics.
-River Ledger will add its own traces and hashes.
+River Ledger has game-local traces and hashes under
+`games/river_ledger/tests/golden_traces/`.
 
-Visibility impact: visibility is the main risk and stays local until tests prove
-whether any helper is safe.
+Visibility impact: visibility is the main risk and stays local. Rust visibility
+tests, WASM projection dispatch, public replay export/import traces, and browser
+no-leak smoke prove the implemented game-specific boundary without promoting a
+visibility helper.
 
 Bot impact: bot policy remains game-local and authorized-view-only.
 
 UI/effect impact: UI metadata and effects may share presentation shells, but
 River Ledger behavior facts remain Rust-owned in the game crate.
 
-## Required evidence before final gate close
+## Final evidence reviewed
 
-- `games/river_ledger/docs/MECHANICS.md` complete and consistent with this
+- `games/river_ledger/docs/MECHANICS.md` is complete and consistent with this
   ledger.
-- Pairwise no-leak matrix for 3, 4, 5, and 6 seats.
-- Contribution-ledger property tests and simulator evidence.
-- Evaluator and split/remainder traces.
-- Bot legality and bot-explanation no-leak tests.
-- Final atlas review in the later `GAT15RIVLEDTEX-020` ticket.
+- Pairwise no-leak coverage exists for 3, 4, 5, and 6 seats through Rust
+  visibility tests, WASM redaction, public replay export/import traces, and the
+  River Ledger browser smoke.
+- Contribution-ledger behavior is covered by rule/property tests, street/cap
+  golden traces, simulator evidence, and benchmark notes.
+- Evaluator, showdown, split, and remainder behavior are covered by evaluator
+  tests and named golden traces.
+- Bot legality and bot-explanation no-leak boundaries are covered by
+  `games/river_ledger/tests/bots.rs` and the Level 2 evidence pack.
+- `docs/MECHANIC-ATLAS.md` records the Gate 15 decision as
+  `game-local / no promotion` while §10A remains `Current debt: _None_.`
 
 ## Back-port or conformance plan
 

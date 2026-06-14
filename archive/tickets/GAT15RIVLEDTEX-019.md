@@ -80,6 +80,8 @@ Reconcile the admission receipt to post-implementation status; author the public
 
 Completed: 2026-06-14
 
+Outcome amended: 2026-06-14
+
 What changed:
 
 - Added `games/river_ledger/docs/UI.md` with the product UI plan, N-seat viewer
@@ -113,3 +115,7 @@ Verification:
 - Manual checklist review confirmed IP/no-leak/catalog/e2e/replay
   export-import/bot-boundary checks are named in
   `PUBLIC-RELEASE-CHECKLIST.md`.
+- Post-completion refinement: GAT15RIVLEDTEX-020 completed the final
+  primitive-pressure review, so the River Ledger admission and public-release
+  checklist now mark primitive-pressure closeout complete and leave only
+  GAT15RIVLEDTEX-021 as the remaining final gate closeout dependency.

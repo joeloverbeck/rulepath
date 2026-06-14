@@ -32,7 +32,7 @@ Last updated: 2026-06-14
 | Public display is neutral | complete | River Ledger uses abstract contribution units, neutral cards/ledger language, and no real-money framing |
 | Boundary checks pass | complete | `bash scripts/boundary-check.sh` |
 | Catalog docs reconciled | complete | `README.md`, `apps/web/README.md`, `node scripts/check-catalog-docs.mjs` |
-| Primitive-pressure closeout complete | pending | GAT15RIVLEDTEX-020 final review |
+| Primitive-pressure closeout complete | complete | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md), GAT15RIVLEDTEX-020 archive |
 | Final acceptance/spec closeout complete | pending | GAT15RIVLEDTEX-021 final sweep and spec/index archive |
 
 ## IP And Trade-Dress Review
@@ -98,16 +98,14 @@ pending.
 
 River Ledger has the required official-game docs, Rust implementation evidence,
 tool registration, WASM registration, public rules copy, browser renderer, e2e
-no-leak smoke, catalog docs, bot-boundary proof, replay evidence, and neutral
-original presentation for public preview. The final primitive-pressure review
-and acceptance/spec closeout remain in GAT15RIVLEDTEX-020 and
-GAT15RIVLEDTEX-021.
+no-leak smoke, catalog docs, bot-boundary proof, primitive-pressure closeout,
+replay evidence, and neutral original presentation for public preview. The
+final acceptance/spec closeout remains in GAT15RIVLEDTEX-021.
 
 ## Release Blockers
 
 | Blocker | Owner | Blocks public preview? |
 |---|---|---:|
-| Final mechanic-atlas pressure review. | GAT15RIVLEDTEX-020 | no; blocks complete Gate 15 archival |
 | Final acceptance sweep and spec/index closeout. | GAT15RIVLEDTEX-021 | no; blocks complete Gate 15 archival |
 
 No known IP, no-leak, catalog, e2e, presentation-copy, smoke, replay

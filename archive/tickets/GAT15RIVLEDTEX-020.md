@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-020: Mechanic-atlas final pressure review
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None (docs — `games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `docs/MECHANIC-ATLAS.md`)
@@ -74,3 +74,30 @@ Add the River Ledger / Gate 15 pressure row (comparison set + `game-local / no p
 1. `node scripts/check-doc-links.mjs`
 2. `grep -F 'Current debt: _None_.' docs/MECHANIC-ATLAS.md`
 3. A doc-link + grep is the correct boundary; this ticket records a decision, it changes no behavior.
+
+## Outcome
+
+Completed: 2026-06-14
+
+What changed:
+
+- Finalized `games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md` with
+  implementation evidence for standard deck/shuffle, hidden hole cards, N-seat
+  projections, fixed-limit contribution ledger, seven-card evaluator, showdown
+  rationale, split/remainder allocation, bots, and viewer-safe explanations.
+- Added the Gate 15 River Ledger pressure row to `docs/MECHANIC-ATLAS.md` with
+  the comparison set and the explicit `game-local / no promotion` decision.
+- Left `docs/MECHANIC-ATLAS.md` §10A open promotion-debt register unchanged at
+  `Current debt: _None_.`
+
+Deviations from plan:
+
+- None. This was documentation-only; no `game-stdlib`, `engine-core`, replay,
+  trace, or behavior change was made.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` — passed (`Checked 27 markdown files`).
+- `grep -F 'Current debt: _None_.' docs/MECHANIC-ATLAS.md` — passed.
+- `rg -o '\`(games|apps|crates|docs|ci|scripts)/[^\`]+\`' games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md | tr -d '\`' | sort -u | while read -r p; do test -e "$p" || { echo "missing $p"; exit 1; }; done; echo "ledger repo paths OK"` — passed.
+- `git diff --check` — passed.
