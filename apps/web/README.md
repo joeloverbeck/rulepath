@@ -62,6 +62,8 @@ The shell includes:
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event
   Frontier;
 - shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
+- shared `SeatFrame` for catalog-projected seat labels, active/pending seat
+  rail, observer mode, and viewer selection;
 - shared `ActionPathBuilder` staged construction for nested Rust action trees;
 - shared action-affordance rendering for Rust-emitted cost/consequence metadata
   and confirmation summaries;
@@ -146,6 +148,8 @@ presentations for the current catalog surface.
   replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard
   over normal-mode visible text and accessibility labels, with induced-drift
-  negative coverage in `e2e/a11y-noleak.smoke.mjs`.
+  negative coverage in `e2e/a11y-noleak.smoke.mjs`; it also exercises the
+  shared `SeatFrame` viewer selector on High Card Duel and checks DOM,
+  attributes, test IDs, storage, and console output for private-token leaks.
   A standalone Directional Flip E2E smoke file also exists under
   `e2e/`, but is not chained by `smoke:e2e`.

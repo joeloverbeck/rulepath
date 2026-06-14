@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf, process, time::Instant};
+use std::{collections::BTreeMap, env, fs, path::PathBuf, process, time::Instant};
 
 use column_four::{ColumnFourRandomBot, ColumnFourSeat};
 use directional_flip::{DirectionalFlipRandomBot, DirectionalFlipSeat};
@@ -47,6 +47,7 @@ const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DEFAULT_GAMES: u64 = 1_000;
 const DEFAULT_ACTION_CAP: usize = 64;
 const BOT_POLICY_VERSION: &str = "race_to_n-random-legal-v1";
+const TWO_SEAT_IDS: [&str; 2] = ["seat_0", "seat_1"];
 
 fn main() {
     match parse_config(env::args().skip(1)).and_then(run_simulation) {
@@ -84,9 +85,18 @@ impl Default for Config {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct Summary {
     games_run: u64,
-    seat_0_wins: u64,
-    seat_1_wins: u64,
+    wins_by_seat: BTreeMap<String, u64>,
     total_actions: u64,
+}
+
+impl Summary {
+    fn new(seats: &[&str]) -> Self {
+        Self {
+            games_run: 0,
+            wins_by_seat: zero_counts_by_seat(seats),
+            total_actions: 0,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -213,6 +223,31 @@ fn help_text() -> String {
         .to_owned()
 }
 
+fn zero_counts_by_seat(seats: &[&str]) -> BTreeMap<String, u64> {
+    seats.iter().map(|seat| ((*seat).to_owned(), 0)).collect()
+}
+
+fn two_seat_counts(seat_0: u64, seat_1: u64) -> BTreeMap<String, u64> {
+    BTreeMap::from([("seat_0".to_owned(), seat_0), ("seat_1".to_owned(), seat_1)])
+}
+
+fn increment_seat_count(counts: &mut BTreeMap<String, u64>, seat: &str) {
+    *counts.entry(seat.to_owned()).or_insert(0) += 1;
+}
+
+fn render_seat_order(seats: &[&str]) -> String {
+    format!("seat_order=[{}]", seats.join(","))
+}
+
+fn render_seat_counts(label: &str, counts: &BTreeMap<String, u64>) -> String {
+    let entries = counts
+        .iter()
+        .map(|(seat, count)| format!("{seat}:{count}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{label}={{{entries}}}")
+}
+
 fn run_simulation(config: Config) -> Result<String, String> {
     if config.game == GAME_THREE_MARKS {
         return run_three_marks_simulation(config);
@@ -255,7 +290,7 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
 
     let started = Instant::now();
-    let mut summary = Summary::default();
+    let mut summary = Summary::new(&TWO_SEAT_IDS);
 
     for offset in 0..config.games {
         let seed = config.start_seed.wrapping_add(offset);
@@ -264,8 +299,8 @@ fn run_simulation(config: Config) -> Result<String, String> {
                 summary.games_run += 1;
                 summary.total_actions += outcome.actions as u64;
                 match outcome.winner {
-                    RaceSeat::Seat0 => summary.seat_0_wins += 1,
-                    RaceSeat::Seat1 => summary.seat_1_wins += 1,
+                    RaceSeat::Seat0 => increment_seat_count(&mut summary.wins_by_seat, "seat_0"),
+                    RaceSeat::Seat1 => increment_seat_count(&mut summary.wins_by_seat, "seat_1"),
                 }
             }
             Err(failure) => {
@@ -323,12 +358,15 @@ fn run_token_bazaar_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws))
     ))
 }
 
@@ -356,11 +394,14 @@ fn run_secret_draft_simulation(config: Config) -> Result<String, String> {
         "simulation_summary\n\
          game_id=secret_draft\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          total_actions={total_actions}\n\
          elapsed_seconds={:.6}\n",
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws)),
         started.elapsed().as_secs_f64()
     ))
 }
@@ -399,12 +440,15 @@ fn run_poker_lite_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         splits={splits}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("splits_by_seat", &two_seat_counts(splits, splits))
     ))
 }
 
@@ -442,12 +486,15 @@ fn run_plain_tricks_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         splits={splits}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("splits_by_seat", &two_seat_counts(splits, splits))
     ))
 }
 
@@ -485,12 +532,15 @@ fn run_masked_claims_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws))
     ))
 }
 
@@ -718,12 +768,15 @@ fn run_high_card_duel_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws))
     ))
 }
 
@@ -761,12 +814,18 @@ fn run_draughts_lite_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         bounded_nonterminal_at_cap={bounded_nonterminal_at_cap}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts(
+            "bounded_nonterminal_at_cap_by_seat",
+            &two_seat_counts(bounded_nonterminal_at_cap, bounded_nonterminal_at_cap)
+        )
     ))
 }
 
@@ -804,12 +863,15 @@ fn run_column_four_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws))
     ))
 }
 
@@ -847,12 +909,15 @@ fn run_directional_flip_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws))
     ))
 }
 
@@ -890,12 +955,15 @@ fn run_three_marks_simulation(config: Config) -> Result<String, String> {
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={games_run}\n\
-         seat_0_wins={seat_0_wins}\n\
-         seat_1_wins={seat_1_wins}\n\
-         draws={draws}\n\
+         {}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
+        render_seat_counts("draws_by_seat", &two_seat_counts(draws, draws))
     ))
 }
 
@@ -2032,11 +2100,15 @@ fn format_summary(config: &Config, summary: &Summary, elapsed_secs: f64) -> Stri
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
          games_run={}\n\
-         seat_0_wins={}\n\
-         seat_1_wins={}\n\
+         {}\n\
+         {}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.game, config.start_seed, summary.games_run, summary.seat_0_wins, summary.seat_1_wins
+        config.game,
+        config.start_seed,
+        summary.games_run,
+        render_seat_order(&TWO_SEAT_IDS),
+        render_seat_counts("wins_by_seat", &summary.wins_by_seat)
     )
 }
 
@@ -2156,8 +2228,28 @@ mod tests {
         .expect("simulation succeeds");
 
         assert!(output.contains("games_run=1000"));
+        assert!(output.contains("seat_order=[seat_0,seat_1]"));
+        assert!(output.contains("wins_by_seat={seat_0:"));
+        assert!(!output.contains("seat_0_wins="));
         assert!(output.contains("average_length="));
         assert!(output.contains("throughput_games_per_sec="));
+    }
+
+    #[test]
+    fn seat_count_maps_render_in_deterministic_key_order() {
+        let mut counts = zero_counts_by_seat(&["seat_2", "seat_0", "seat_1"]);
+        increment_seat_count(&mut counts, "seat_2");
+        increment_seat_count(&mut counts, "seat_0");
+        increment_seat_count(&mut counts, "seat_2");
+
+        assert_eq!(
+            render_seat_order(&["seat_2", "seat_0", "seat_1"]),
+            "seat_order=[seat_2,seat_0,seat_1]"
+        );
+        assert_eq!(
+            render_seat_counts("wins_by_seat", &counts),
+            "wins_by_seat={seat_0:1,seat_1:0,seat_2:2}"
+        );
     }
 
     #[test]

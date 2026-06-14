@@ -258,6 +258,13 @@ multiple viewer projections are supported. Seat indices are dev-panel
 vocabulary; normal public UI uses display names, roles, or team labels supplied
 by Rust/static typed metadata.
 
+The shared web shell seat frame is the default acceptance surface for this
+orientation: it presents catalog-projected seat labels, Rust/WASM-projected
+active and pending seats, observer mode, and viewer selection. Boards may keep
+board-native seat presentation only when the ticket/spec records the exception;
+they must still rely on Rust/WASM view data and may not infer legality or turn
+order from the frame.
+
 Small-screen layouts may collapse the seat rail, but must preserve active seat,
 pending responder, local viewer, and outcome information without relying on
 color alone.

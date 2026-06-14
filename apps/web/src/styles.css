@@ -224,6 +224,87 @@ h2 {
   padding: 18px;
 }
 
+.seat-frame {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  border: 1px solid var(--rp-border-subtle);
+  border-radius: 6px;
+  padding: 12px;
+  background: #f7faf8;
+}
+
+.seat-frame-viewers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: start;
+}
+
+.seat-frame-viewers button {
+  border: 1px solid #b7c4bd;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  color: #1c322a;
+  font-weight: 800;
+}
+
+.seat-frame-viewers button.selected {
+  border-color: #2b8068;
+  background: #dcefe8;
+}
+
+.seat-frame-viewers button:disabled {
+  cursor: default;
+  opacity: 0.74;
+}
+
+.seat-frame-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat-frame-rail li {
+  display: grid;
+  gap: 4px;
+  min-block-size: 58px;
+  border: 1px solid #cbd6d0;
+  border-radius: 6px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.seat-frame-rail li.active {
+  border-color: #2b8068;
+}
+
+.seat-frame-rail li.pending {
+  border-color: #9c6a26;
+  background: #fff8ea;
+}
+
+.seat-frame-rail li.viewing {
+  box-shadow: inset 0 0 0 2px #d0ebe2;
+}
+
+.seat-frame-rail span {
+  color: #1f342d;
+  font-weight: 900;
+}
+
+.seat-frame-rail small {
+  color: #60736b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .race-board {
   display: grid;
   gap: 16px;

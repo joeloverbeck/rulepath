@@ -86,11 +86,8 @@ edited to record progress; this table is.
 | Order | Unit | Spec | Status | Interlock |
 |---:|---|---|---|---|
 | 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](../archive/specs/phase-0-next-phase-foundation-realignment.md) | Done | ADR 0007 accepted; multi-seat contract, foundation docs, templates, ROADMAP, and this index reconciled. Evidence below. |
-| 1 | Infra A — N-seat setup/catalog metadata | _(seed; unwritten)_ | Not started | Next admissible unit. Roadmap phase is recorded; no kernel change; no TS legality. |
-| 2 | Infra B — N-seat simulator summaries | _(seed; unwritten)_ | Not started | Pending Infra A. Replaces `seat_0_wins`/`seat_1_wins` with indexed maps; deterministic order. |
-| 3 | Infra C — Multi-seat shell frame | _(seed; unwritten)_ | Not started | Pending Infra B. Presentation-only; Rust owns turn order / active-pending seats. |
-| 4 | Infra D — N-player no-leak test harness | _(seed; unwritten)_ | Not started | Pending Infra C and Phase 0 no-leak taxonomy; conforms to ADR 0004. |
-| 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending Infra A-D. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
+| 1 (15A) | Infra A–D — N-seat setup/catalog, simulator summaries, multi-seat shell, N-player no-leak harness | [`infra-a-d-n-seat-public-infrastructure.md`](../archive/specs/infra-a-d-n-seat-public-infrastructure.md) | Done | Completed 2026-06-14. Seat metadata/setup bridge, seat-keyed simulator summaries, shared seat frame, and pairwise no-leak harness landed; exit checks recorded in the spec Outcome. |
+| 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending Infra A–D. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
 | 6 | Gate 15.1 — River Ledger all-in / side pots | _(seed; unwritten)_ | Not started | Pending Gate 15. Public-resource/allocation accounting; kept separate from base Hold'Em. |
 | 7 | Gate 16 — Hearts | _(seed; unwritten)_ | Not started | Pending Gate 15. Fixed 4-seat trick-taking; trick-taking promotion evaluation. |
 | 8 | Gate 17 — Oh Hell | _(seed; unwritten)_ | Not started | Pending Gate 16. Variable-N (3–7) bidding/trick-taking; trick-taking helper promotion likely. |
@@ -153,7 +150,7 @@ omissions.
 
 1. Pick the lowest non-`Done` unit from the active-epoch tracker. The public
    scaling phase is admitted by accepted ADR 0007 and recorded in ROADMAP; the
-   next unit after Phase 0 is Infra A.
+   next unit after Phase 0 is the combined Infra A–D unit (`15A`), now `Planned`.
 2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for
    open promotion debt and close it first unless an accepted exception or ADR says
    otherwise.

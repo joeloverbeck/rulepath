@@ -237,7 +237,7 @@ or migration policy requires its own accepted ADR.
 
 Simulator output for N-seat games must not assume exactly two players.
 
-Future simulator summaries should represent:
+Simulator summaries represent:
 
 - games completed and failed;
 - ordered seat IDs;
@@ -248,8 +248,10 @@ Future simulator summaries should represent:
 - sample seeds and command evidence for failures;
 - deterministic key ordering for machine-readable output.
 
-The current two-seat simulator surfaces are out of scope for this document to
-change; their generalization belongs to the later Infra B spec.
+Existing two-seat simulator runs use the same seat-keyed shape (`seat_order`,
+`wins_by_seat`, and related `*_by_seat` maps) as future N-seat games. New
+simulator summaries must extend that shape rather than reintroducing fixed
+`seat_0`/`seat_1` scalar counters.
 
 ## 14. Spec and Ticket Minimums
 

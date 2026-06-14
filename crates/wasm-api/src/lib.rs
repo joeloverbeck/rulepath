@@ -126,6 +126,7 @@ use token_bazaar::{
 };
 
 const API_VERSION: &str = "rulepath-wasm-api/0.1.0";
+const DEFAULT_SEAT_COUNT: usize = 2;
 const GAME_RACE_TO_N: &str = "race_to_n";
 const GAME_RACE_TO_N_DISPLAY_NAME: &str = "Race to 21";
 const GAME_THREE_MARKS: &str = "three_marks";
@@ -160,7 +161,9 @@ const SUPPORTED_OPERATIONS: &[&str] = &[
     "feature_report",
     "list_games",
     "new_match",
+    "new_match_with_seat_count",
     "new_match_with_variant",
+    "new_match_with_variant_and_seat_count",
     "get_view",
     "get_view_for_viewer",
     "get_action_tree",
@@ -396,6 +399,47 @@ fn variants_json(variants: &[(&str, &str, Option<&str>)]) -> String {
     )
 }
 
+fn with_catalog_seat_metadata(
+    mut catalog_json: String,
+    seat_count: usize,
+    seat_labels_json: Option<&str>,
+) -> String {
+    let seat_fields = catalog_seat_metadata_fields(seat_count, seat_labels_json);
+    if catalog_json.ends_with('}') {
+        catalog_json.pop();
+        catalog_json.push_str(&seat_fields);
+        catalog_json.push('}');
+    }
+    catalog_json
+}
+
+fn catalog_seat_metadata_fields(seat_count: usize, seat_labels_json: Option<&str>) -> String {
+    let seat_labels = seat_labels_json
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| catalog_seat_labels_json(seat_count));
+    format!(
+        ",\"min_seats\":{seat_count},\"max_seats\":{seat_count},\"default_seats\":{seat_count},\"supported_seats\":[{seat_count}],\"seat_labels\":{},\"viewer_modes\":{}",
+        seat_labels,
+        catalog_viewer_modes_json(seat_count)
+    )
+}
+
+fn catalog_seat_labels_json(seat_count: usize) -> String {
+    format!(
+        "[{}]",
+        (0..seat_count)
+            .map(|index| { format!("{{\"seat\":\"seat_{index}\",\"label\":\"Seat {index}\"}}") })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn catalog_viewer_modes_json(seat_count: usize) -> String {
+    let mut modes = vec!["\"observer\"".to_owned()];
+    modes.extend((0..seat_count).map(|index| format!("\"seat_{index}\"")));
+    format!("[{}]", modes.join(","))
+}
+
 pub fn list_games() -> Result<String, String> {
     let flood_variants = flood_watch::load_variants()?;
     let frontier_variants = frontier_control::load_variants()?;
@@ -417,7 +461,8 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::PlainTricks,
     ]
         .iter()
-        .map(|game| match game {
+        .map(|game| {
+            let catalog_json = match game {
             RegisteredGame::RaceToN => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{}}}",
                 escape_json(GAME_RACE_TO_N),
@@ -540,6 +585,12 @@ pub fn list_games() -> Result<String, String> {
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME, None)])
             ),
+        };
+            let seat_labels_json = match game {
+                RegisteredGame::EventFrontier => Some(event_frontier_catalog_seat_labels_json()),
+                _ => None,
+            };
+            with_catalog_seat_metadata(catalog_json, DEFAULT_SEAT_COUNT, seat_labels_json.as_deref())
         })
         .collect::<Vec<_>>()
         .join(",");
@@ -556,7 +607,15 @@ pub fn feature_report() -> Result<String, String> {
 }
 
 pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
-    new_match_for_variant(game_id, None, seed)
+    new_match_with_seat_count(game_id, seed, DEFAULT_SEAT_COUNT)
+}
+
+pub fn new_match_with_seat_count(
+    game_id: &str,
+    seed: u64,
+    seat_count: usize,
+) -> Result<String, String> {
+    new_match_for_variant_with_seat_count(game_id, None, seed, seat_count)
 }
 
 pub fn new_match_for_variant(
@@ -564,9 +623,18 @@ pub fn new_match_for_variant(
     variant_id: Option<&str>,
     seed: u64,
 ) -> Result<String, String> {
+    new_match_for_variant_with_seat_count(game_id, variant_id, seed, DEFAULT_SEAT_COUNT)
+}
+
+pub fn new_match_for_variant_with_seat_count(
+    game_id: &str,
+    variant_id: Option<&str>,
+    seed: u64,
+    seat_count: usize,
+) -> Result<String, String> {
     match resolve_game(game_id)? {
         RegisteredGame::RaceToN => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = race_setup_match(Seed(seed), &seats, &RaceSetupOptions::default())
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -589,7 +657,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::ThreeMarks => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 three_setup_match(Seed(seed), &seats, &three_marks::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -614,7 +682,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::ColumnFour => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 column_setup_match(Seed(seed), &seats, &column_four::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -639,7 +707,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::DirectionalFlip => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = directional_setup_match(
                 Seed(seed),
                 &seats,
@@ -667,7 +735,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::DraughtsLite => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 draughts_setup_match(Seed(seed), &seats, &draughts_lite::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -692,7 +760,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::HighCardDuel => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 high_card_setup_match(Seed(seed), &seats, &high_card_duel::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -717,7 +785,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::MaskedClaims => {
-            let seats = masked_seats();
+            let seats = masked_seats_for_count(seat_count);
             let state =
                 masked_setup_match(Seed(seed), &seats, &masked_claims::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -741,7 +809,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::FloodWatch => {
-            let seats = flood_seats();
+            let seats = flood_seats_for_count(seat_count);
             let selected_variant = variant_id.unwrap_or(VARIANT_FLOOD_WATCH_STANDARD);
             let variant = flood_watch::ScenarioVariant::resolve(selected_variant)
                 .map_err(|message| unsupported_variant_json(game_id, &message))?;
@@ -768,7 +836,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::FrontierControl => {
-            let seats = frontier_seats();
+            let seats = frontier_seats_for_count(seat_count);
             let selected_variant = variant_id.unwrap_or(VARIANT_FRONTIER_CONTROL_STANDARD);
             let variant = frontier_control::VariantMap::resolve(selected_variant)
                 .map_err(|message| unsupported_variant_json(game_id, &message))?;
@@ -794,7 +862,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::EventFrontier => {
-            let seats = event_frontier_seats();
+            let seats = event_frontier_seats_for_count(seat_count);
             let selected_variant = variant_id.unwrap_or(VARIANT_EVENT_FRONTIER_STANDARD);
             let variant = event_frontier::ScenarioVariant::resolve(selected_variant)
                 .map_err(|message| unsupported_variant_json(game_id, &message))?;
@@ -824,7 +892,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::TokenBazaar => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 token_setup_match(Seed(seed), &seats, &token_bazaar::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -849,7 +917,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::SecretDraft => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = secret_setup_match(&seats, &secret_draft::SetupOptions::default())
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -873,7 +941,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::PokerLite => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = poker_setup_match(Seed(seed), &seats, &poker_lite::SetupOptions::default())
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -897,7 +965,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::PlainTricks => {
-            let seats = plain_seats();
+            let seats = plain_seats_for_count(seat_count);
             let state =
                 plain_setup_match(Seed(seed), &seats, &plain_tricks::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -4093,27 +4161,59 @@ fn missing_replay_json(replay_id: &str) -> String {
 }
 
 fn seats() -> Vec<SeatId> {
-    vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())]
+    seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId(format!("seat-{index}")))
+        .collect()
 }
 
 fn plain_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    plain_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn plain_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
 }
 
 fn masked_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    masked_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn masked_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
 }
 
 fn flood_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    flood_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn flood_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
 }
 
 fn frontier_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    frontier_seats_for_count(DEFAULT_SEAT_COUNT)
 }
 
-fn event_frontier_seats() -> [SeatId; 2] {
-    [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+fn frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+fn event_frontier_seats() -> Vec<SeatId> {
+    event_frontier_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn event_frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+fn underscore_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect()
 }
 
 fn trace_rules_version(game: RegisteredGame) -> &'static str {
@@ -7426,6 +7526,18 @@ fn event_frontier_catalog_ui_json() -> String {
     )
 }
 
+fn event_frontier_catalog_seat_labels_json() -> String {
+    let ui = event_frontier::ui_metadata();
+    format!(
+        "[{}]",
+        ui.seat_labels
+            .iter()
+            .map(event_frontier_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
 fn event_frontier_seat_display_label_json(label: &event_frontier::ui::SeatDisplayLabel) -> String {
     format!(
         "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
@@ -10244,6 +10356,21 @@ pub unsafe extern "C" fn rulepath_new_match(
 #[no_mangle]
 /// # Safety
 ///
+/// `game_ptr..game_ptr + game_len` must be a valid UTF-8 buffer for the duration
+/// of the call.
+pub unsafe extern "C" fn rulepath_new_match_with_seat_count(
+    game_ptr: *const u8,
+    game_len: usize,
+    seed: u64,
+    seat_count: usize,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    write_result(game_id.and_then(|game_id| new_match_with_seat_count(&game_id, seed, seat_count)))
+}
+
+#[no_mangle]
+/// # Safety
+///
 /// `game_ptr..game_ptr + game_len` and
 /// `variant_ptr..variant_ptr + variant_len` must be valid UTF-8 buffers for
 /// the duration of the call.
@@ -10258,6 +10385,29 @@ pub unsafe extern "C" fn rulepath_new_match_with_variant(
     let variant_id = unsafe { read_string(variant_ptr, variant_len) };
     write_result(game_id.and_then(|game_id| {
         variant_id.and_then(|variant_id| new_match_for_variant(&game_id, Some(&variant_id), seed))
+    }))
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `game_ptr..game_ptr + game_len` and
+/// `variant_ptr..variant_ptr + variant_len` must be valid UTF-8 buffers for
+/// the duration of the call.
+pub unsafe extern "C" fn rulepath_new_match_with_variant_and_seat_count(
+    game_ptr: *const u8,
+    game_len: usize,
+    variant_ptr: *const u8,
+    variant_len: usize,
+    seed: u64,
+    seat_count: usize,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    let variant_id = unsafe { read_string(variant_ptr, variant_len) };
+    write_result(game_id.and_then(|game_id| {
+        variant_id.and_then(|variant_id| {
+            new_match_for_variant_with_seat_count(&game_id, Some(&variant_id), seed, seat_count)
+        })
     }))
 }
 
@@ -10488,6 +10638,124 @@ fn write_output(output: String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
+
+    #[derive(Clone, Debug)]
+    struct NoLeakSurface {
+        viewer: Option<String>,
+        name: &'static str,
+        payload: String,
+    }
+
+    #[derive(Clone, Debug)]
+    struct PairwiseNoLeakCase {
+        seats: Vec<String>,
+        private_terms_by_seat: BTreeMap<String, Vec<String>>,
+        surfaces: Vec<NoLeakSurface>,
+    }
+
+    impl PairwiseNoLeakCase {
+        fn deterministic_summary(&self) -> String {
+            let mut output = String::new();
+            output.push_str(&self.seats.join("|"));
+            for (seat, terms) in &self.private_terms_by_seat {
+                output.push_str(seat);
+                output.push(':');
+                output.push_str(&terms.join(","));
+                output.push(';');
+            }
+            for surface in &self.surfaces {
+                output.push_str(surface.name);
+                output.push('@');
+                output.push_str(surface.viewer.as_deref().unwrap_or("observer"));
+                output.push('=');
+                output.push_str(&surface.payload);
+                output.push(';');
+            }
+            output
+        }
+    }
+
+    fn assert_pairwise_no_leak(case: &PairwiseNoLeakCase) {
+        if let Err(message) = pairwise_no_leak_result(case) {
+            panic!("{message}");
+        }
+    }
+
+    fn pairwise_no_leak_result(case: &PairwiseNoLeakCase) -> Result<(), String> {
+        for source_seat in &case.seats {
+            let Some(private_terms) = case.private_terms_by_seat.get(source_seat) else {
+                return Err(format!("missing private terms for {source_seat}"));
+            };
+            if private_terms.is_empty() {
+                return Err(format!("no private terms registered for {source_seat}"));
+            }
+            for surface in &case.surfaces {
+                if surface.viewer.as_deref() == Some(source_seat.as_str()) {
+                    continue;
+                }
+                for term in private_terms {
+                    if surface.payload.contains(term) {
+                        return Err(format!(
+                            "private term {term} for {source_seat} leaked to {} via {}",
+                            surface.viewer.as_deref().unwrap_or("observer"),
+                            surface.name
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn synthetic_n_seat_no_leak_case(seat_count: usize) -> PairwiseNoLeakCase {
+        let seats = (0..seat_count)
+            .map(|index| format!("seat_{index}"))
+            .collect::<Vec<_>>();
+        let mut private_terms_by_seat = BTreeMap::new();
+        for seat in &seats {
+            private_terms_by_seat.insert(seat.clone(), vec![format!("private::{seat}::seed-1701")]);
+        }
+
+        let mut surfaces = vec![NoLeakSurface {
+            viewer: None,
+            name: "replay_export",
+            payload: format!(
+                "viewer=observer;seat_count={seat_count};redacted=true;dom_test_id=seat-frame"
+            ),
+        }];
+        for viewer in &seats {
+            let own = private_terms_by_seat
+                .get(viewer)
+                .and_then(|terms| terms.first())
+                .expect("synthetic private term");
+            for name in [
+                "payload",
+                "action_tree",
+                "preview",
+                "effect_log",
+                "bot_explanation",
+                "candidate_ranking",
+                "dom_test_id",
+                "storage",
+                "log",
+            ] {
+                surfaces.push(NoLeakSurface {
+                    viewer: Some(viewer.clone()),
+                    name,
+                    payload: format!(
+                        "viewer={viewer};seat_count={seat_count};own_private={own};other_private=redacted"
+                    ),
+                });
+            }
+        }
+
+        PairwiseNoLeakCase {
+            seats,
+            private_terms_by_seat,
+            surfaces,
+        }
+    }
 
     #[test]
     fn placeholder_version_is_stable() {
@@ -10508,6 +10776,17 @@ mod tests {
         assert!(games.contains("\"game_id\":\"token_bazaar\""));
         assert!(games.contains("\"game_id\":\"poker_lite\""));
         assert!(games.contains("\"game_id\":\"plain_tricks\""));
+        assert!(games.contains("\"min_seats\":2"));
+        assert!(games.contains("\"max_seats\":2"));
+        assert!(games.contains("\"default_seats\":2"));
+        assert!(games.contains("\"supported_seats\":[2]"));
+        assert!(games.contains(
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\"}]"
+        ));
+        assert!(games.contains(
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Charter\"},{\"seat\":\"seat_1\",\"label\":\"Freeholders\"}]"
+        ));
+        assert!(games.contains("\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"]"));
         assert!(games.contains(
             "\"variants\":[{\"id\":\"three_marks_standard\",\"label\":\"Three Marks\"}]"
         ));
@@ -10591,6 +10870,41 @@ mod tests {
             new_match_for_variant(GAME_FRONTIER_CONTROL, Some("frontier_control_highlands"), 7)
                 .expect("frontier control variant match created");
         assert!(frontier_created.contains("\"variant_id\":\"frontier_control_highlands\""));
+    }
+
+    #[test]
+    fn bridge_seat_builder_uses_deterministic_labels() {
+        let seats = seats_for_count(3);
+        assert_eq!(
+            seats,
+            vec![
+                SeatId("seat-0".to_owned()),
+                SeatId("seat-1".to_owned()),
+                SeatId("seat-2".to_owned())
+            ]
+        );
+
+        let underscore = masked_seats_for_count(3);
+        assert_eq!(
+            underscore,
+            vec![
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+                SeatId("seat_2".to_owned())
+            ]
+        );
+    }
+
+    #[test]
+    fn new_match_with_seat_count_surfaces_game_setup_diagnostic() {
+        let created =
+            new_match_with_seat_count(GAME_RACE_TO_N, 11, 2).expect("two-seat setup succeeds");
+        assert!(created.contains("\"game_id\":\"race_to_n\""));
+
+        let diagnostic = new_match_with_seat_count(GAME_RACE_TO_N, 11, 3)
+            .expect_err("three-seat setup is rejected by the game");
+        assert!(diagnostic.contains("\"code\":\"invalid_seat_count\""));
+        assert!(diagnostic.contains("race_to_n requires exactly two seats"));
     }
 
     #[test]
@@ -10959,6 +11273,57 @@ mod tests {
         let bot = run_bot_turn(&match_id, "seat_1", 99).expect("bot turn applies");
         assert!(bot.contains("\"ok\":true"));
         assert!(bot.contains("\"type\":\"cards_revealed\""));
+    }
+
+    #[test]
+    fn pairwise_no_leak_harness_covers_high_card_and_synthetic_n_seats() {
+        let high_card = high_card_pairwise_no_leak_case();
+        assert_pairwise_no_leak(&high_card);
+
+        let synthetic = synthetic_n_seat_no_leak_case(4);
+        assert_pairwise_no_leak(&synthetic);
+        assert_eq!(
+            synthetic.deterministic_summary(),
+            synthetic_n_seat_no_leak_case(4).deterministic_summary()
+        );
+    }
+
+    #[test]
+    fn hidden_info_bridge_games_invoke_pairwise_no_leak_harness_at_two_seats() {
+        for case in [
+            high_card_pairwise_no_leak_case(),
+            poker_lite_pairwise_no_leak_case(),
+            plain_tricks_pairwise_no_leak_case(),
+            masked_claims_pairwise_no_leak_case(),
+        ] {
+            assert_pairwise_no_leak(&case);
+            assert_eq!(
+                case.seats,
+                vec!["seat_0".to_owned(), "seat_1".to_owned()],
+                "current hidden-info bridge harness adoption is two-seat"
+            );
+        }
+    }
+
+    #[test]
+    fn pairwise_no_leak_harness_negative_fixture_fails() {
+        let mut synthetic = synthetic_n_seat_no_leak_case(4);
+        let leaked = synthetic
+            .private_terms_by_seat
+            .get("seat_0")
+            .and_then(|terms| terms.first())
+            .expect("seat_0 private term")
+            .clone();
+        synthetic.surfaces.push(NoLeakSurface {
+            viewer: Some("seat_2".to_owned()),
+            name: "negative_induced_leak",
+            payload: format!("viewer=seat_2;leaked={leaked}"),
+        });
+
+        let message = pairwise_no_leak_result(&synthetic).expect_err("induced leak is caught");
+        assert!(message.contains("seat_0"));
+        assert!(message.contains("seat_2"));
+        assert!(message.contains("negative_induced_leak"));
     }
 
     #[test]
@@ -11777,6 +12142,247 @@ mod tests {
             .nth(1)
             .and_then(|rest| rest.split('"').next())
             .expect("match id is present")
+            .to_owned()
+    }
+
+    fn high_card_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seats = vec!["seat_0".to_owned(), "seat_1".to_owned()];
+        let created = new_match("high_card_duel", 707).expect("match created");
+        let match_id = extract_match_id(&created);
+        let mut private_terms_by_seat = BTreeMap::new();
+        let mut surfaces = Vec::new();
+
+        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "payload",
+                payload: get_view(&match_id, viewer).expect("viewer payload returned"),
+            });
+        }
+
+        for seat in &seats {
+            let view = get_view(&match_id, Some(seat)).expect("seat payload returned");
+            let terms = collect_prefixed_terms(&view, "hcd:r");
+            assert!(
+                !terms.is_empty(),
+                "expected private high-card token for {seat}"
+            );
+            private_terms_by_seat.insert(seat.clone(), terms);
+        }
+
+        for actor in &seats {
+            for viewer in [None, Some("seat_0"), Some("seat_1")] {
+                surfaces.push(NoLeakSurface {
+                    viewer: viewer.map(ToOwned::to_owned),
+                    name: "action_tree",
+                    payload: get_action_tree_for_viewer(&match_id, actor, viewer)
+                        .expect("viewer action tree returned"),
+                });
+            }
+        }
+
+        let authorized = get_action_tree_for_viewer(&match_id, "seat_0", Some("seat_0"))
+            .expect("authorized action tree");
+        let action_segment = first_segment(&authorized);
+        let applied =
+            apply_action(&match_id, "seat_0", &action_segment, 0).expect("commit applies");
+        surfaces.push(NoLeakSurface {
+            viewer: Some("seat_0".to_owned()),
+            name: "payload",
+            payload: applied,
+        });
+
+        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "effect_log",
+                payload: get_effects(&match_id, 0, viewer).expect("viewer effects returned"),
+            });
+        }
+
+        surfaces.push(NoLeakSurface {
+            viewer: None,
+            name: "replay_export",
+            payload: export_replay(&match_id).expect("public replay exported"),
+        });
+        for name in [
+            "preview",
+            "bot_explanation",
+            "candidate_ranking",
+            "dom_test_id",
+            "storage",
+            "log",
+        ] {
+            surfaces.push(NoLeakSurface {
+                viewer: None,
+                name,
+                payload: format!("high_card_duel {name} not_applicable_or_redacted"),
+            });
+        }
+
+        PairwiseNoLeakCase {
+            seats,
+            private_terms_by_seat,
+            surfaces,
+        }
+    }
+
+    fn poker_lite_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seed = 727;
+        let created = new_match("poker_lite", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+        let internal =
+            poker_setup_match(Seed(seed), &seats(), &poker_lite::SetupOptions::default())
+                .expect("setup succeeds");
+        let mut private_terms_by_seat = BTreeMap::new();
+        private_terms_by_seat.insert(
+            "seat_0".to_owned(),
+            vec![internal
+                .private_card_for_internal(PokerLiteSeat::Seat0)
+                .as_str()
+                .to_owned()],
+        );
+        private_terms_by_seat.insert(
+            "seat_1".to_owned(),
+            vec![internal
+                .private_card_for_internal(PokerLiteSeat::Seat1)
+                .as_str()
+                .to_owned()],
+        );
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
+    fn plain_tricks_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seed = 737;
+        let created = new_match("plain_tricks", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+        let internal = plain_setup_match(
+            Seed(seed),
+            &plain_seats(),
+            &plain_tricks::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let seat_0_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned())),
+            },
+        );
+        let seat_1_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned())),
+            },
+        );
+        let mut private_terms_by_seat = BTreeMap::new();
+        private_terms_by_seat.insert(
+            "seat_0".to_owned(),
+            plain_private_cards(&seat_0_view)
+                .iter()
+                .map(|card| card.as_str().to_owned())
+                .collect(),
+        );
+        private_terms_by_seat.insert(
+            "seat_1".to_owned(),
+            plain_private_cards(&seat_1_view)
+                .iter()
+                .map(|card| card.as_str().to_owned())
+                .collect(),
+        );
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
+    fn masked_claims_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let created = new_match("masked_claims", 747).expect("match created");
+        let match_id = extract_match_id(&created);
+        let mut private_terms_by_seat = BTreeMap::new();
+        for seat in ["seat_0", "seat_1"] {
+            let view = get_view(&match_id, Some(seat)).expect("seat view returned");
+            let terms = collect_prefixed_terms(&view, "mask_g");
+            assert!(!terms.is_empty(), "expected private mask ids for {seat}");
+            private_terms_by_seat.insert(seat.to_owned(), terms);
+        }
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
+    fn bridge_pairwise_no_leak_case(
+        match_id: &str,
+        private_terms_by_seat: BTreeMap<String, Vec<String>>,
+    ) -> PairwiseNoLeakCase {
+        let seats = vec!["seat_0".to_owned(), "seat_1".to_owned()];
+        let mut surfaces = Vec::new();
+        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "payload",
+                payload: get_view(match_id, viewer).expect("viewer payload returned"),
+            });
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "effect_log",
+                payload: get_effects(match_id, 0, viewer).expect("viewer effects returned"),
+            });
+        }
+        for actor in &seats {
+            for viewer in [None, Some("seat_0"), Some("seat_1")] {
+                surfaces.push(NoLeakSurface {
+                    viewer: viewer.map(ToOwned::to_owned),
+                    name: "action_tree",
+                    payload: get_action_tree_for_viewer(match_id, actor, viewer)
+                        .expect("viewer action tree returned"),
+                });
+            }
+        }
+        surfaces.push(NoLeakSurface {
+            viewer: None,
+            name: "replay_export",
+            payload: export_replay(match_id).expect("public replay exported"),
+        });
+        for name in [
+            "preview",
+            "bot_explanation",
+            "candidate_ranking",
+            "dom_test_id",
+            "storage",
+            "log",
+        ] {
+            surfaces.push(NoLeakSurface {
+                viewer: None,
+                name,
+                payload: format!("bridge {name} not_applicable_or_redacted"),
+            });
+        }
+
+        PairwiseNoLeakCase {
+            seats,
+            private_terms_by_seat,
+            surfaces,
+        }
+    }
+
+    fn collect_prefixed_terms(input: &str, prefix: &str) -> Vec<String> {
+        let mut terms = Vec::new();
+        for (index, _) in input.match_indices(prefix) {
+            let token = input[index..]
+                .chars()
+                .take_while(|character| {
+                    character.is_ascii_alphanumeric() || matches!(character, ':' | '_' | '-' | '/')
+                })
+                .collect::<String>();
+            if !token.is_empty() {
+                terms.push(token);
+            }
+        }
+        terms.sort();
+        terms.dedup();
+        terms
+    }
+
+    fn first_segment(tree: &str) -> String {
+        tree.split("\"segment\":\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("segment present")
             .to_owned()
     }
 

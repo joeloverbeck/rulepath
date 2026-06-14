@@ -23,6 +23,7 @@ import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
 import { SecretDraftBoard } from "./components/SecretDraftBoard";
+import { SeatFrame, type SeatFrameViewerMode } from "./components/SeatFrame";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { TurnReportPanel } from "./components/TurnReportPanel";
@@ -342,6 +343,19 @@ function App() {
     [api, effectCursor, matchId, refresh],
   );
 
+  const changeSeatFrameViewerMode = useCallback(
+    (viewerMode: SeatFrameViewerMode) => {
+      if (viewerMode.kind === "observer") {
+        changeViewerMode(viewerMode);
+        return;
+      }
+      if (viewerMode.seat === "seat_0" || viewerMode.seat === "seat_1") {
+        changeViewerMode({ kind: "seat", seat: viewerMode.seat });
+      }
+    },
+    [changeViewerMode],
+  );
+
   const exportCurrentReplay = useCallback(() => {
     if (!api || !matchId) {
       throw { code: "no_match", message: "Start a match before exporting a replay." } satisfies ApiError;
@@ -513,6 +527,13 @@ function App() {
         <>
 
       <section className="play-surface" aria-label={`${selectedGame?.display_name ?? "Selected game"} play surface`}>
+        <SeatFrame
+          game={selectedGame}
+          view={view}
+          viewerMode={state.viewerMode}
+          onViewerModeChange={changeSeatFrameViewerMode}
+        />
+
         {state.selectedGameId === "race_to_n" ? (
           <RaceBoard view={isRaceView(view) ? view : null} latestEffect={latestEffect} />
         ) : isColumnFourView(view) ? (
@@ -712,6 +733,7 @@ function App() {
       />
       <ReplayImportExport canExport={Boolean(matchId)} onExport={exportCurrentReplay} onImport={importReplay} />
       <ReplayViewer
+        game={selectedGame}
         replay={state.replay}
         reducedMotion={state.reducedMotion}
         onStep={stepReplay}
