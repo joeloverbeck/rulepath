@@ -1,0 +1,16 @@
+[
+  { "id": "race_to_n",        "sim_flags": "",                "e2e": "" },
+  { "id": "three_marks",      "sim_flags": "",                "e2e": "three-marks.smoke.mjs" },
+  { "id": "column_four",      "sim_flags": "",                "e2e": "column-four.smoke.mjs" },
+  { "id": "directional_flip", "sim_flags": "",                "e2e": "directional-flip.smoke.mjs" },
+  { "id": "draughts_lite",    "sim_flags": "",                "e2e": "draughts-lite.smoke.mjs" },
+  { "id": "high_card_duel",   "sim_flags": "",                "e2e": "high-card-duel.smoke.mjs" },
+  { "id": "masked_claims",    "sim_flags": "--action-cap 24", "e2e": "masked-claims.smoke.mjs" },
+  { "id": "flood_watch",      "sim_flags": "",                "e2e": "flood-watch.smoke.mjs" },
+  { "id": "frontier_control", "sim_flags": "",                "e2e": "frontier-control.smoke.mjs" },
+  { "id": "event_frontier",   "sim_flags": "",                "e2e": "event-frontier.smoke.mjs" },
+  { "id": "token_bazaar",     "sim_flags": "",                "e2e": "token-bazaar.smoke.mjs" },
+  { "id": "secret_draft",     "sim_flags": "",                "e2e": "secret-draft.smoke.mjs" },
+  { "id": "poker_lite",       "sim_flags": "--action-cap 16", "e2e": "poker-lite.smoke.mjs" },
+  { "id": "plain_tricks",     "sim_flags": "--action-cap 32", "e2e": "plain-tricks.smoke.mjs" }
+]
