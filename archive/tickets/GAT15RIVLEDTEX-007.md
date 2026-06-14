@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-007: Showdown, single-pot split allocation, remainder, and outcome explanation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger/src/showdown.rs`, `src/pot.rs`, `src/rules.rs` (terminal wiring), `tests/rules.rs`, `src/lib.rs`; split golden traces
@@ -86,3 +86,27 @@ Wire showdown/fold-out terminal into `apply`; extend `tests/rules.rs`; add golde
 1. `cargo test -p river_ledger --test rules`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. Golden-trace replay validation runs via `cargo run -p replay-check -- --game river_ledger` after GAT15RIVLEDTEX-015; allocation is proven here by the rule tests.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented River Ledger showdown and single-pot allocation. Added `showdown.rs` for showdown-eligible seat discovery, evaluator-backed winner comparison, showdown reveals, and per-seat Rust-authored explanations. Added `pot.rs` for single-pot allocation, even split handling, and deterministic one-unit remainder assignment by stable button order among tied winners. River closure now resolves directly into a terminal showdown outcome with structured allocations.
+
+Extended rule tests for river checkdown terminal resolution, single-winner showdown allocation, tied split allocation, folded-seat non-reveal, and deterministic remainder order. Added the two required split-pot golden-trace placeholder JSON files pending replay-check registration.
+
+Deviations: side pots and all-in remain out of scope for Gate 15 and were not modeled. Visibility projection and pairwise no-leak proof remain deferred to GAT15RIVLEDTEX-008/009. Golden-trace replay validation remains deferred until the River Ledger replay lane is registered in GAT15RIVLEDTEX-015.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test rules`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`

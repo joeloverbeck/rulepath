@@ -5,8 +5,10 @@ pub mod betting;
 pub mod cards;
 pub mod evaluator;
 pub mod ids;
+pub mod pot;
 pub mod rules;
 pub mod setup;
+pub mod showdown;
 pub mod state;
 pub mod ui;
 pub mod variants;
@@ -29,9 +31,10 @@ pub use ids::{
 };
 pub use rules::apply_action;
 pub use setup::{setup_match, shuffle_deck, SetupOptions};
+pub use showdown::{resolve_showdown, showdown_eligible_seats};
 pub use state::{
-    BettingRoundState, ContributionLedger, Phase, RiverLedgerState, SeatLedger, SeatStatus,
-    ShowdownReveal, ShowdownSeatExplanation, Street, TerminalOutcome,
+    BettingRoundState, ContributionLedger, Phase, PotShare, RiverLedgerState, SeatLedger,
+    SeatStatus, ShowdownReveal, ShowdownSeatExplanation, Street, TerminalOutcome,
 };
 pub use ui::{ui_metadata, UiMetadata};
 pub use variants::{Manifest, Variant, VariantCatalog};

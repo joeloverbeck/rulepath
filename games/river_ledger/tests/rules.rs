@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use river_ledger::{
-    apply_action, canonical_deck, legal_action_tree, setup_match, validate_command,
-    RiverLedgerSeat, SetupOptions, Street, TerminalOutcome, STANDARD_BIG_BLIND,
+    apply_action, canonical_deck, legal_action_tree, setup_match, validate_command, Card, PotShare,
+    Rank, RiverLedgerSeat, SetupOptions, Street, Suit, TerminalOutcome, STANDARD_BIG_BLIND,
     STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND,
 };
 
@@ -48,6 +48,10 @@ fn standard_state(count: usize) -> river_ledger::RiverLedgerState {
     setup_match(Seed(21), &seats(count), &SetupOptions::default()).expect("setup")
 }
 
+fn seeded_state(seed: u64, count: usize) -> river_ledger::RiverLedgerState {
+    setup_match(Seed(seed), &seats(count), &SetupOptions::default()).expect("setup")
+}
+
 fn advance_four_player_hand_to_flop() -> river_ledger::RiverLedgerState {
     let mut state = standard_state(4);
     apply_segment(&mut state, "seat_3", "call");
@@ -55,6 +59,28 @@ fn advance_four_player_hand_to_flop() -> river_ledger::RiverLedgerState {
     apply_segment(&mut state, "seat_1", "call");
     apply_segment(&mut state, "seat_2", "check");
     state
+}
+
+fn check_down_from_flop_to_terminal(state: &mut river_ledger::RiverLedgerState) {
+    for seat in ["seat_1", "seat_2", "seat_3", "seat_0"] {
+        apply_segment(state, seat, "check");
+    }
+    for seat in ["seat_1", "seat_2", "seat_3", "seat_0"] {
+        apply_segment(state, seat, "check");
+    }
+    for seat in ["seat_1", "seat_2", "seat_3", "seat_0"] {
+        apply_segment(state, seat, "check");
+    }
+}
+
+fn royal_board() -> Vec<Card> {
+    vec![
+        Card::new(Rank::Ace, Suit::Clubs),
+        Card::new(Rank::King, Suit::Clubs),
+        Card::new(Rank::Queen, Suit::Clubs),
+        Card::new(Rank::Jack, Suit::Clubs),
+        Card::new(Rank::Ten, Suit::Clubs),
+    ]
 }
 
 #[test]
@@ -288,6 +314,164 @@ fn turn_and_river_use_big_bet_unit() {
     let before = state.ledger.pot_total;
     apply_segment(&mut state, "seat_1", "bet");
     assert_eq!(state.ledger.pot_total, before + 4);
+}
+
+#[test]
+fn river_checkdown_resolves_showdown_terminal_and_conserves_pot() {
+    let mut state = advance_four_player_hand_to_flop();
+
+    check_down_from_flop_to_terminal(&mut state);
+
+    assert_eq!(state.phase, river_ledger::Phase::Terminal);
+    assert_eq!(state.active_seat, None);
+    let Some(TerminalOutcome::Showdown {
+        winners,
+        pot_total,
+        allocations,
+        explanations,
+    }) = &state.terminal_outcome
+    else {
+        panic!("showdown terminal expected");
+    };
+
+    assert!(!winners.is_empty());
+    assert_eq!(*pot_total, state.ledger.pot_total);
+    assert_eq!(
+        allocations.iter().map(|share| share.amount).sum::<u16>(),
+        *pot_total
+    );
+    assert_eq!(explanations.len(), 4);
+    assert!(explanations
+        .iter()
+        .filter(|explanation| explanation.revealed.is_some())
+        .all(|explanation| explanation.status == river_ledger::SeatStatus::ShowdownEligible));
+}
+
+#[test]
+fn checkdown_can_produce_single_winner_showdown_from_seeded_state() {
+    let mut single_winner = None;
+    for seed in 0..200 {
+        let mut state = seeded_state(seed, 4);
+        apply_segment(&mut state, "seat_3", "call");
+        apply_segment(&mut state, "seat_0", "call");
+        apply_segment(&mut state, "seat_1", "call");
+        apply_segment(&mut state, "seat_2", "check");
+        check_down_from_flop_to_terminal(&mut state);
+        if let Some(TerminalOutcome::Showdown {
+            winners,
+            allocations,
+            ..
+        }) = &state.terminal_outcome
+        {
+            if winners.len() == 1 {
+                single_winner = Some((winners[0], allocations.clone(), state.ledger.pot_total));
+                break;
+            }
+        }
+    }
+
+    let Some((winner, allocations, pot_total)) = single_winner else {
+        panic!("expected a deterministic seed with one showdown winner");
+    };
+    assert_eq!(
+        allocations,
+        vec![PotShare {
+            seat: winner,
+            amount: pot_total,
+        }]
+    );
+}
+
+#[test]
+fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
+    let mut state = standard_state(4);
+    state.board = royal_board();
+    state.ledger.pot_total = 12;
+    for entry in &mut state.ledger.seats {
+        entry.status = river_ledger::SeatStatus::ShowdownEligible;
+    }
+    state.ledger.seats[0].status = river_ledger::SeatStatus::Folded;
+
+    let outcome = river_ledger::resolve_showdown(&state);
+    let TerminalOutcome::Showdown {
+        winners,
+        allocations,
+        explanations,
+        ..
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+
+    assert_eq!(
+        winners,
+        vec![
+            RiverLedgerSeat::from_index(1).unwrap(),
+            RiverLedgerSeat::from_index(2).unwrap(),
+            RiverLedgerSeat::from_index(3).unwrap(),
+        ]
+    );
+    assert_eq!(
+        allocations,
+        vec![
+            PotShare {
+                seat: RiverLedgerSeat::from_index(1).unwrap(),
+                amount: 4,
+            },
+            PotShare {
+                seat: RiverLedgerSeat::from_index(2).unwrap(),
+                amount: 4,
+            },
+            PotShare {
+                seat: RiverLedgerSeat::from_index(3).unwrap(),
+                amount: 4,
+            },
+        ]
+    );
+    assert!(explanations
+        .iter()
+        .find(|explanation| explanation.seat == RiverLedgerSeat::from_index(0).unwrap())
+        .expect("folded seat explanation")
+        .revealed
+        .is_none());
+    assert!(explanations
+        .iter()
+        .filter(|explanation| explanation.seat != RiverLedgerSeat::from_index(0).unwrap())
+        .all(|explanation| explanation.revealed.is_some()));
+}
+
+#[test]
+fn single_pot_remainder_uses_stable_button_order() {
+    let seat = |index| RiverLedgerSeat::from_index(index).unwrap();
+    let allocation =
+        river_ledger::pot::allocate_single_pot(11, &[seat(0), seat(2), seat(3)], seat(2), 4);
+
+    assert_eq!(allocation.remainder, 2);
+    assert_eq!(
+        allocation.shares,
+        vec![
+            PotShare {
+                seat: seat(2),
+                amount: 4,
+            },
+            PotShare {
+                seat: seat(3),
+                amount: 4,
+            },
+            PotShare {
+                seat: seat(0),
+                amount: 3,
+            },
+        ]
+    );
+    assert_eq!(
+        allocation
+            .shares
+            .iter()
+            .map(|share| share.amount)
+            .sum::<u16>(),
+        allocation.pot_total
+    );
 }
 
 #[test]

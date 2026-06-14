@@ -4,6 +4,7 @@ use crate::{
     actions::{self, RiverLedgerAction, ValidatedAction},
     betting,
     ids::RiverLedgerSeat,
+    showdown,
     state::{BettingRoundState, Phase, RiverLedgerState, SeatStatus, Street, TerminalOutcome},
 };
 
@@ -124,7 +125,8 @@ fn close_current_street(state: &mut RiverLedgerState) {
                     seat.status = SeatStatus::ShowdownEligible;
                 }
             }
-            state.phase = Phase::Showdown;
+            state.terminal_outcome = Some(showdown::resolve_showdown(state));
+            state.phase = Phase::Terminal;
             state.active_seat = None;
             state.betting.actors_to_respond.clear();
         }

@@ -106,6 +106,12 @@ pub struct ShowdownSeatExplanation {
     pub summary: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PotShare {
+    pub seat: RiverLedgerSeat,
+    pub amount: u16,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalOutcome {
     LastLiveHand {
@@ -115,6 +121,7 @@ pub enum TerminalOutcome {
     Showdown {
         winners: Vec<RiverLedgerSeat>,
         pot_total: u16,
+        allocations: Vec<PotShare>,
         explanations: Vec<ShowdownSeatExplanation>,
     },
 }
