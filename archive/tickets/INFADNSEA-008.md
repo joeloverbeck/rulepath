@@ -1,6 +1,6 @@
 # INFADNSEA-008: Infra D — adopt the no-leak harness + wire web no-leak smoke
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` / `games/*/tests` (route existing hidden-info no-leak proofs through the harness) + `apps/web/e2e/a11y-noleak.smoke.mjs` (presentation-layer smoke wiring)
@@ -76,3 +76,33 @@ Extend `apps/web/e2e/a11y-noleak.smoke.mjs` to exercise the `SeatFrame` viewer s
 
 1. `cargo test -p wasm-api && cargo test --workspace`
 2. `npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed on 2026-06-14.
+
+Adopted the shared pairwise no-leak harness across the current two-seat hidden-information bridge games with source-seat private tokens:
+
+- High Card Duel: `seat_0`/`seat_1` private card ids across payload, action tree, effect log, observer replay export, and redacted/not-applicable max surfaces.
+- Crest Ledger: `seat_0`/`seat_1` private crest cards across payload, action tree, effect log, observer replay export, and redacted/not-applicable max surfaces.
+- Plain Tricks: `seat_0`/`seat_1` private hand cards across payload, action tree, effect log, observer replay export, and redacted/not-applicable max surfaces.
+- Masked Claims: `seat_0`/`seat_1` private mask ids across payload, action tree, effect log, observer replay export, and redacted/not-applicable max surfaces.
+
+The explicit Veiled Draft, Flood Watch, and Event Frontier no-leak assertions remain in place because their relevant hidden surfaces are shared choice commitments or hidden deck/order surfaces rather than source-seat private hand tokens. No prior per-game assertion was removed or weakened.
+
+Extended `apps/web/e2e/a11y-noleak.smoke.mjs` to exercise the shared `SeatFrame` on High Card Duel. The smoke now switches through Seat 0, Seat 1, and Observer via `.seat-frame-viewers` and checks DOM text, attributes, `data-testid`s, local/session storage, and console output for private high-card ids (`hcd:r`) and existing forbidden leak terms.
+
+Evidence:
+
+- Supported current catalog seat count covered by adopted bridge harness: 2 seats (`seat_0`, `seat_1`).
+- Synthetic max seat-count fixture inherited from INFADNSEA-007: 4 seats across payload, action tree, preview, effect log, bot explanation, candidate ranking, replay export, DOM/test-id, storage, and log surfaces.
+- Web max-surface smoke coverage: High Card Duel two-seat `SeatFrame` viewer selector across DOM, attributes, `data-testid`, storage, and console surfaces.
+
+Verification:
+
+- `cargo test -p wasm-api hidden_info_bridge_games_invoke_pairwise_no_leak_harness_at_two_seats -- --nocapture`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `cargo test --workspace`
+- `npm --prefix apps/web run smoke:e2e`

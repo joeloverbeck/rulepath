@@ -16,6 +16,7 @@ const forbiddenLeakTerms = [
   "hole_card",
   "candidate_ranking",
   "bot_explanation",
+  "hcd:r",
 ];
 const rawIdentifierRe = /\b[a-z0-9]+_[a-z0-9_]+\b/;
 
@@ -113,6 +114,10 @@ try {
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startHighCardDuel(page);
+  await assertSeatFrameViewerNoLeak(page, consoleMessages);
+
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startDirectionalFlip(page, "Hotseat");
   await assertDirectionalBoardA11y(page);
   await page.select(".motion-field select", "reduce");
@@ -140,7 +145,7 @@ try {
   assert(eventAnimationName === "none", "event_frontier reduced-motion suppresses site animation");
   await assertNoLeak(page, consoleMessages, "event_frontier DOM");
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced directional_flip flood_watch event_frontier" }));
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier" }));
 } finally {
   if (browser) {
     await browser.close();
@@ -169,6 +174,58 @@ async function startFloodWatch(page) {
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="flood-watch-board"]');
+}
+
+async function startHighCardDuel(page) {
+  await clickText(page, "button", "High Card Duel");
+  await clickLabel(page, "Hotseat");
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="high-card-duel-board"]');
+}
+
+async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
+  const summary = await page.evaluate(() => ({
+    labels: Array.from(document.querySelectorAll(".seat-frame-viewers button")).map((button) => button.textContent?.trim()),
+    selected: document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.trim() ?? "",
+    rail: document.querySelector(".seat-frame-rail")?.textContent ?? "",
+  }));
+  assert(summary.labels.includes("Observer"), "seat frame exposes observer viewer");
+  assert(summary.labels.includes("Seat 0"), "seat frame exposes Seat 0 viewer");
+  assert(summary.labels.includes("Seat 1"), "seat frame exposes Seat 1 viewer");
+  assert(summary.selected === "Seat 0", `seat frame starts on Seat 0, got ${summary.selected}`);
+  assert(summary.rail.includes("Active"), "seat frame rail reflects Rust-projected active seat");
+  await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_0 DOM");
+
+  await clickSeatFrameButton(page, "Seat 1");
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.includes("Seat 1"));
+  await waitForText(page, "Waiting for active seat");
+  await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_1 DOM");
+
+  await clickSeatFrameButton(page, "Observer");
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.includes("Observer"));
+  await waitForText(page, "Observer only");
+  await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame observer DOM");
+  await assertStorageClean(page);
+}
+
+async function assertNoPrivateSeatFrameLeak(page, consoleMessages, label) {
+  const surface = await page.evaluate(() =>
+    [
+      document.body.textContent ?? "",
+      Array.from(document.querySelectorAll("*"))
+        .flatMap((element) => Array.from(element.attributes).map((attribute) => `${attribute.name}=${attribute.value}`))
+        .join("\n"),
+      Array.from(document.querySelectorAll("[data-testid]"))
+        .map((element) => element.getAttribute("data-testid"))
+        .join("\n"),
+      Object.keys(localStorage).join("\n"),
+      Object.values(localStorage).join("\n"),
+      Object.keys(sessionStorage).join("\n"),
+      Object.values(sessionStorage).join("\n"),
+    ].join("\n"),
+  );
+  assertNoForbiddenTerms(surface, label);
+  assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`);
 }
 
 async function assertFloodWatchDeckA11y(page) {
@@ -479,6 +536,20 @@ async function clickLabel(page, text) {
     }
     label.click();
   }, text);
+}
+
+async function clickSeatFrameButton(page, text) {
+  const clicked = await page.evaluate((expected) => {
+    const button = Array.from(document.querySelectorAll(".seat-frame-viewers button")).find(
+      (candidate) => candidate.textContent?.trim() === expected,
+    );
+    if (!button) {
+      return false;
+    }
+    button.click();
+    return true;
+  }, text);
+  assert(clicked, `seat frame button exists: ${text}`);
 }
 
 async function clickText(page, selector, text) {

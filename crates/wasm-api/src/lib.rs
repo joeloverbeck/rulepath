@@ -11289,6 +11289,23 @@ mod tests {
     }
 
     #[test]
+    fn hidden_info_bridge_games_invoke_pairwise_no_leak_harness_at_two_seats() {
+        for case in [
+            high_card_pairwise_no_leak_case(),
+            poker_lite_pairwise_no_leak_case(),
+            plain_tricks_pairwise_no_leak_case(),
+            masked_claims_pairwise_no_leak_case(),
+        ] {
+            assert_pairwise_no_leak(&case);
+            assert_eq!(
+                case.seats,
+                vec!["seat_0".to_owned(), "seat_1".to_owned()],
+                "current hidden-info bridge harness adoption is two-seat"
+            );
+        }
+    }
+
+    #[test]
     fn pairwise_no_leak_harness_negative_fixture_fails() {
         let mut synthetic = synthetic_n_seat_no_leak_case(4);
         let leaked = synthetic
@@ -12200,6 +12217,139 @@ mod tests {
                 viewer: None,
                 name,
                 payload: format!("high_card_duel {name} not_applicable_or_redacted"),
+            });
+        }
+
+        PairwiseNoLeakCase {
+            seats,
+            private_terms_by_seat,
+            surfaces,
+        }
+    }
+
+    fn poker_lite_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seed = 727;
+        let created = new_match("poker_lite", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+        let internal =
+            poker_setup_match(Seed(seed), &seats(), &poker_lite::SetupOptions::default())
+                .expect("setup succeeds");
+        let mut private_terms_by_seat = BTreeMap::new();
+        private_terms_by_seat.insert(
+            "seat_0".to_owned(),
+            vec![internal
+                .private_card_for_internal(PokerLiteSeat::Seat0)
+                .as_str()
+                .to_owned()],
+        );
+        private_terms_by_seat.insert(
+            "seat_1".to_owned(),
+            vec![internal
+                .private_card_for_internal(PokerLiteSeat::Seat1)
+                .as_str()
+                .to_owned()],
+        );
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
+    fn plain_tricks_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seed = 737;
+        let created = new_match("plain_tricks", seed).expect("match created");
+        let match_id = extract_match_id(&created);
+        let internal = plain_setup_match(
+            Seed(seed),
+            &plain_seats(),
+            &plain_tricks::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let seat_0_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned())),
+            },
+        );
+        let seat_1_view = plain_project_view(
+            &internal,
+            &Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned())),
+            },
+        );
+        let mut private_terms_by_seat = BTreeMap::new();
+        private_terms_by_seat.insert(
+            "seat_0".to_owned(),
+            plain_private_cards(&seat_0_view)
+                .iter()
+                .map(|card| card.as_str().to_owned())
+                .collect(),
+        );
+        private_terms_by_seat.insert(
+            "seat_1".to_owned(),
+            plain_private_cards(&seat_1_view)
+                .iter()
+                .map(|card| card.as_str().to_owned())
+                .collect(),
+        );
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
+    fn masked_claims_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let created = new_match("masked_claims", 747).expect("match created");
+        let match_id = extract_match_id(&created);
+        let mut private_terms_by_seat = BTreeMap::new();
+        for seat in ["seat_0", "seat_1"] {
+            let view = get_view(&match_id, Some(seat)).expect("seat view returned");
+            let terms = collect_prefixed_terms(&view, "mask_g");
+            assert!(!terms.is_empty(), "expected private mask ids for {seat}");
+            private_terms_by_seat.insert(seat.to_owned(), terms);
+        }
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
+    fn bridge_pairwise_no_leak_case(
+        match_id: &str,
+        private_terms_by_seat: BTreeMap<String, Vec<String>>,
+    ) -> PairwiseNoLeakCase {
+        let seats = vec!["seat_0".to_owned(), "seat_1".to_owned()];
+        let mut surfaces = Vec::new();
+        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "payload",
+                payload: get_view(match_id, viewer).expect("viewer payload returned"),
+            });
+            surfaces.push(NoLeakSurface {
+                viewer: viewer.map(ToOwned::to_owned),
+                name: "effect_log",
+                payload: get_effects(match_id, 0, viewer).expect("viewer effects returned"),
+            });
+        }
+        for actor in &seats {
+            for viewer in [None, Some("seat_0"), Some("seat_1")] {
+                surfaces.push(NoLeakSurface {
+                    viewer: viewer.map(ToOwned::to_owned),
+                    name: "action_tree",
+                    payload: get_action_tree_for_viewer(match_id, actor, viewer)
+                        .expect("viewer action tree returned"),
+                });
+            }
+        }
+        surfaces.push(NoLeakSurface {
+            viewer: None,
+            name: "replay_export",
+            payload: export_replay(match_id).expect("public replay exported"),
+        });
+        for name in [
+            "preview",
+            "bot_explanation",
+            "candidate_ranking",
+            "dom_test_id",
+            "storage",
+            "log",
+        ] {
+            surfaces.push(NoLeakSurface {
+                viewer: None,
+                name,
+                payload: format!("bridge {name} not_applicable_or_redacted"),
             });
         }
 
