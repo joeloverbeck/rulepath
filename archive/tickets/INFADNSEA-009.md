@@ -1,6 +1,6 @@
 # INFADNSEA-009: Closeout — doc amendments + spec/index Done-flip (capstone)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None
@@ -77,3 +77,26 @@ After the §6 exit commands pass with recorded evidence, set the spec Header Sta
 
 1. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && bash scripts/boundary-check.sh`
 2. `cargo test --workspace && npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed on 2026-06-14.
+
+Lifted the deferred WB9 acceptance-clause amendments:
+
+- `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` now treats seat-keyed simulator summaries as delivered infrastructure and forbids fixed two-seat scalar summary regression.
+- `docs/TESTING-REPLAY-BENCHMARKING.md` names the reusable `wasm-api` pairwise no-leak harness as an accepted verification surface.
+- `docs/UI-INTERACTION.md` records the shared web shell seat frame as the default multi-seat orientation acceptance surface.
+- `apps/web/README.md` documents `SeatFrame` in the shell surface and the High Card Duel seat-frame no-leak E2E coverage.
+- `specs/README.md` and the spec header were flipped to `Done`; the completed spec carries final Outcome evidence.
+
+Verification:
+
+- `cargo test -p wasm-api`
+- `cargo test --workspace`
+- `npm --prefix apps/web run smoke:e2e`
+- `cargo run -p simulate -- --game race_to_n --games 1000`
+- `npm --prefix apps/web run smoke:ui`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `bash scripts/boundary-check.sh`

@@ -86,7 +86,7 @@ edited to record progress; this table is.
 | Order | Unit | Spec | Status | Interlock |
 |---:|---|---|---|---|
 | 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](../archive/specs/phase-0-next-phase-foundation-realignment.md) | Done | ADR 0007 accepted; multi-seat contract, foundation docs, templates, ROADMAP, and this index reconciled. Evidence below. |
-| 1 (15A) | Infra A–D — N-seat setup/catalog, simulator summaries, multi-seat shell, N-player no-leak harness | [`infra-a-d-n-seat-public-infrastructure.md`](infra-a-d-n-seat-public-infrastructure.md) | Planned | One combined spec for ROADMAP §15 `15A`; per-unit work breakdown (A→B→C→D). No kernel change; no TS legality; no trace/hash migration; Infra D conforms to ADR 0004. Flip to `Done` when its §6 exit criteria pass with evidence. |
+| 1 (15A) | Infra A–D — N-seat setup/catalog, simulator summaries, multi-seat shell, N-player no-leak harness | [`infra-a-d-n-seat-public-infrastructure.md`](../archive/specs/infra-a-d-n-seat-public-infrastructure.md) | Done | Completed 2026-06-14. Seat metadata/setup bridge, seat-keyed simulator summaries, shared seat frame, and pairwise no-leak harness landed; exit checks recorded in the spec Outcome. |
 | 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending Infra A–D. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
 | 6 | Gate 15.1 — River Ledger all-in / side pots | _(seed; unwritten)_ | Not started | Pending Gate 15. Public-resource/allocation accounting; kept separate from base Hold'Em. |
 | 7 | Gate 16 — Hearts | _(seed; unwritten)_ | Not started | Pending Gate 15. Fixed 4-seat trick-taking; trick-taking promotion evaluation. |

@@ -4,7 +4,7 @@
 - **Spec ID:** `infra-a-d-n-seat-public-infrastructure`
 - **Roadmap stage:** Public scaling phase — Infra A–D (non-gate infrastructure interlocks)
 - **Roadmap build gate:** `docs/ROADMAP.md` §15 "Infra A–D: N-seat public infrastructure interlocks" (summary-table row `15A`). Not a mechanic-ladder game gate.
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-14
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs (`docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/MECHANIC-ATLAS.md`, `docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`) → `docs/ROADMAP.md` → `docs/IP-POLICY.md` → `docs/AGENT-DISCIPLINE.md` → `docs/WASM-CLIENT-BOUNDARY.md` → accepted ADRs (esp. ADR 0004) → this spec.
@@ -300,3 +300,48 @@ Mapped row-for-row to `docs/ROADMAP.md` §15 "Infra A–D" Exit list, then per-u
    ADR 0004 fully ground the infrastructure. Commission `research-brief` only if
    multi-seat UX patterns are wanted for Infra C presentation (deferred to Gate
    15's game-specific UI otherwise).
+
+---
+
+## Outcome
+
+Completed on 2026-06-14.
+
+Infra A-D shipped as one combined 15A infrastructure unit:
+
+- Infra A: Rust/WASM seat-count bridge operations, deterministic seat builders,
+  catalog-projected `min_seats`, `max_seats`, `default_seats`,
+  `supported_seats`, `seat_labels`, and `viewer_modes`, plus setup/catalog UI
+  presentation.
+- Infra B: `tools/simulate` now reports deterministic `seat_order` and
+  seat-keyed `*_by_seat` maps instead of fixed `seat_0`/`seat_1` scalar summary
+  counters.
+- Infra C: shared web `SeatFrame` presents catalog seat labels, active/pending
+  seat state, observer mode, and viewer selection across live play and replay.
+- Infra D: reusable pairwise no-leak harness covers source-seat private tokens
+  across bridge surfaces, with synthetic 4-seat max-surface coverage and web
+  `SeatFrame` no-leak smoke coverage.
+
+Closeout amendments landed in `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`,
+`docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/UI-INTERACTION.md`, and
+`apps/web/README.md`. They are acceptance-clause updates only; no FOUNDATIONS
+principle, replay/hash semantics, visibility contract, or ADR policy changed.
+
+Exit evidence:
+
+- `cargo test -p wasm-api`
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game race_to_n --games 1000`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `bash scripts/boundary-check.sh`
+
+Deviations:
+
+- The reusable pairwise no-leak harness applies to current hidden-information
+  bridge games with source-seat private tokens. Veiled Draft, Flood Watch, and
+  Event Frontier retain explicit no-leak assertions for shared commitments or
+  hidden deck/order surfaces, where source-seat private-token pairing is not the
+  right proof shape.

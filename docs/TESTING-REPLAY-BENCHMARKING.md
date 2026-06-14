@@ -234,6 +234,12 @@ search every viewer-scoped artifact that claims to be public or seat-private.
 Internal full traces may remain omniscient test evidence under ADR 0004; public
 and browser exports must stay viewer-scoped.
 
+The reusable bridge-level pairwise no-leak harness in `crates/wasm-api` is an
+accepted verification surface for this matrix. Hidden-information games with
+source-seat private tokens should route their bridge no-leak proof through that
+harness in addition to any game-specific trace, serialization, or visibility
+tests needed for hidden deck/order, commitment, or reveal semantics.
+
 ## 9. Serialization tests
 
 Serialization tests MUST cover:
