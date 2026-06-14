@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-013: Bots L0/L1/L2 and bot registry doc
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger/src/bots.rs`, `tests/bots.rs`, `src/lib.rs`, `docs/AI.md`; bot golden trace
@@ -80,3 +80,28 @@ Create `tests/bots.rs` (legality, no-leak, input-source, seeded determinism at 3
 1. `cargo test -p river_ledger --test bots`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. The bots test is the correct boundary; seeded full-game simulation throughput is exercised in GAT15RIVLEDTEX-014.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented River Ledger L0/L1/L2 bots in `games/river_ledger/src/bots.rs`, all routed through the Rust legal-action tree and command validation. L0 is seeded random legal, L1 is conservative public-price play, and L2 encodes the authored priority vector from GAT15RIVLEDTEX-012 using only authorized public projection fields plus the acting seat's private view. Added `docs/AI.md` as the bot registry and information/explanation boundary, and added the `bot-vs-bot-full-game-6p` trace placeholder.
+
+Added `games/river_ledger/tests/bots.rs` covering legal/non-mutating decisions, deterministic seeded decisions across 3-6 seats, input whitelist no-leak, authored-priority rationale, explanation no-leak, and repeated seeded Level 2 playouts reaching terminal under the action cap.
+
+Deviations: native simulation registration and throughput evidence remain deferred to GAT15RIVLEDTEX-014. WASM/web bot dispatch remains deferred to later WASM/web tickets. No search/learning class was added.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test bots`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`
