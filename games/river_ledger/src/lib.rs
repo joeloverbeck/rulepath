@@ -7,6 +7,7 @@ pub mod effects;
 pub mod evaluator;
 pub mod ids;
 pub mod pot;
+pub mod replay_support;
 pub mod rules;
 pub mod setup;
 pub mod showdown;

@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-010: Replay export/import redaction, golden-trace replay, and serialization determinism
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/replay_support.rs`, `tests/replay.rs`, `tests/serialization.rs`, `src/lib.rs`; replay golden trace
@@ -81,3 +81,28 @@ Create `tests/replay.rs` (replay/checkpoint/hash equality, export no-leak, impor
 1. `cargo test -p river_ledger --test replay && cargo test -p river_ledger --test serialization`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. Crate-scoped replay/serialization tests are the correct boundary; cross-tool replay validation is wired in GAT15RIVLEDTEX-015.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented River Ledger replay support in `games/river_ledger/src/replay_support.rs`. The module provides deterministic internal trace records, command replay from seed and seat count, state/effect/action/view hashes, viewer-scoped public replay exports, stable JSON byte ordering, and a public-export import timeline boundary. Public exports are generated from viewer-safe projections and filtered effects, not internal state.
+
+Added `tests/replay.rs` for replay/hash equality, observer and seat public export/import round-trip, and public export no-leak assertions against hole cards, future community cards, deck-tail cards, and seed evidence. Added `tests/serialization.rs` for stable JSON field ordering and stable bytes. Added the `public-replay-export-import` golden-trace placeholder.
+
+Deviations: replay-check tool registration and golden-trace cross-tool validation remain deferred to GAT15RIVLEDTEX-015. Browser/WASM export consumption remains deferred to later WASM/web tickets. The public import boundary currently imports the in-memory export representation; file/parser integration belongs with tool registration.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test replay`
+- `cargo test -p river_ledger --test serialization`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`

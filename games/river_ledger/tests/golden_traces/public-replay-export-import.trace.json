@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-public-replay-export-import",
+  "fixture_kind": "replay-placeholder",
+  "purpose": "Viewer-scoped public replay export/import placeholder until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 21,
+  "seat_count": 4,
+  "commands": [
+    { "seat": "seat_3", "action": "call" },
+    { "seat": "seat_0", "action": "call" }
+  ],
+  "public_export": {
+    "schema_version": 1,
+    "export_class": "viewer_scoped_public_replay",
+    "forbidden_facts": ["hole_card_id", "future_community_card_id", "deck_tail_id", "seed_evidence"]
+  }
+}
