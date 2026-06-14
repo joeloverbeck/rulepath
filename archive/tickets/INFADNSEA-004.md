@@ -1,6 +1,6 @@
 # INFADNSEA-004: Infra B — seat-keyed deterministic simulator summaries
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/simulate` (summary aggregation); no `engine-core`, `game-stdlib`, or `games/*` behavior change
@@ -73,3 +73,13 @@ Render the summary with deterministic key ordering; add a parity regression so t
 
 1. `cargo test -p simulate`
 2. `cargo run -p simulate -- --game race_to_n --games 1000`
+
+## Outcome
+
+Completed: 2026-06-14
+
+- Replaced the default `race_to_n` summary's fixed `seat_0_wins` / `seat_1_wins` output with deterministic `seat_order` and `wins_by_seat` map rendering.
+- Updated existing two-seat game summary renderers to emit deterministic seat-keyed win maps, with draw/split/nonterminal maps where those outcomes apply.
+- Added helper coverage for stable `BTreeMap` rendering and a synthetic three-seat count map to prove deterministic N-seat key ordering before an official N-seat game exists.
+- Deviations: simulator failure handling remains fail-fast and still uses the existing detailed failure block/report; this ticket changed the successful summary result surface without changing replay, hashes, game rules, or failure-report schema.
+- Verification: `cargo fmt --all --check`; `cargo test -p simulate`; `cargo run -p simulate -- --game race_to_n --games 1000`.
