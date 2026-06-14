@@ -268,6 +268,42 @@ assert(
   "Rust catalog includes river_ledger standard hidden-information variant",
 );
 
+const riverLedger = invoke(
+  (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, 61n, 6),
+  ["river_ledger"],
+);
+assert(riverLedger.match_id, "river_ledger 6-seat start match returns a match id");
+assert(riverLedger.variant_id === "river_ledger_standard", "river_ledger standard variant starts");
+const riverObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [riverLedger.match_id],
+);
+assert(riverObserver.game_id === "river_ledger", "river_ledger Rust view is returned");
+assert(riverObserver.seats.length === 6, "river_ledger Rust view exposes six seat ledger rows");
+assert(riverObserver.board.length === 0, "river_ledger setup exposes no public board cards");
+assert(!("view_summary" in riverObserver), "river_ledger view uses structured browser payload");
+assert(!("deck_tail_count" in riverObserver), "river_ledger view omits deck-tail internals");
+const riverSeat3 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [riverLedger.match_id, "seat_3"],
+);
+assert(riverSeat3.private_view.status === "seat", "river_ledger seat viewer receives own private view");
+assert(riverSeat3.private_view.hole_cards.length === 2, "river_ledger seat viewer receives two own private cards");
+const riverTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [riverLedger.match_id, riverObserver.active_seat, riverObserver.active_seat],
+);
+assert(riverTree.choices.length > 0, "river_ledger active seat exposes legal actions");
+
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),
   ["three_marks"],

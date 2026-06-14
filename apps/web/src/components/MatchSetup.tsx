@@ -181,10 +181,19 @@ function modeDetail(playMode: SetupPlayMode, game: GameCatalogEntry | null): str
   if (labels.length >= 2) {
     switch (playMode) {
       case "human_vs_bot":
+        if (labels.length > 2) {
+          return `${labels[0].label} is you; all other seats are automated.`;
+        }
         return `${labels[0].label} is you; ${labels[1].label} is an automated opponent.`;
       case "hotseat":
+        if (labels.length > 2) {
+          return `${labels.map((label) => label.label).join(", ")} are local on this device.`;
+        }
         return `${labels[0].label} and ${labels[1].label} are local on this device.`;
       case "bot_vs_bot":
+        if (labels.length > 2) {
+          return `All ${labels.length} seats are automated locally.`;
+        }
         return `${labels[0].label} and ${labels[1].label} are automated locally.`;
     }
   }

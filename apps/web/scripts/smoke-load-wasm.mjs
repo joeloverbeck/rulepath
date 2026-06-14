@@ -21,6 +21,7 @@ const requiredExports = [
   "rulepath_feature_report",
   "rulepath_list_games",
   "rulepath_new_match",
+  "rulepath_new_match_with_seat_count",
   "rulepath_new_match_with_variant",
   "rulepath_get_view",
   "rulepath_get_view_for_viewer",

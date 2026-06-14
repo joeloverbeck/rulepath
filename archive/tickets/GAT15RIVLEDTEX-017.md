@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-017: Web renderer — RiverLedgerBoard and app-shell registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerBoard.tsx`, `apps/web/src/main.tsx`, `apps/web/src/wasm/client.ts`
@@ -75,3 +75,30 @@ Add the River Ledger view/outcome-rationale types and `isRiverLedgerView` guard 
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui && node scripts/check-presentation-copy.mjs`
 3. `smoke:ui` is the correct boundary for renderer presentation; DOM no-leak and e2e are exercised in GAT15RIVLEDTEX-018.
+
+## Outcome
+
+Completed 2026-06-14.
+
+- Added `RiverLedgerBoard.tsx` and registered it in the app shell with a River Ledger type guard.
+- Added River Ledger view types to the web client, including six-seat viewer IDs, seat ledger rows, public board cards, private-view cards, terminal allocations, and UI metadata.
+- Replaced the River Ledger WASM bridge's summary-only view payload with structured viewer-safe JSON and omitted internal reserved/deck-tail fields from browser views.
+- Wired the existing WASM seat-count constructor through the web client and used catalog `default_seats` when starting matches, so River Ledger starts as a six-seat game from the app.
+- Updated N-seat shell presentation details: human-vs-bot treats Seat 0 as the human and all other seats as automated, setup mode copy reflects that, and shared viewer/replay helpers tolerate River Ledger seat IDs without widening old two-seat game models.
+- Extended smoke harnesses to assert the structured River Ledger setup/view/action-tree payload.
+
+Verification passed:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`
+3. `npm --prefix apps/web run smoke:wasm`
+4. `node scripts/check-presentation-copy.mjs`
+5. `cargo test -p wasm-api`
+6. `cargo check --workspace`
+7. `cargo fmt --all --check`
+8. `node scripts/check-player-rules.mjs`
+9. `node scripts/check-doc-links.mjs`
+10. `bash scripts/boundary-check.sh`
+11. `git diff --check`
+
+Browser smoke passed with Vite preview at `http://127.0.0.1:5174/`: selected River Ledger, confirmed setup shows 3/4/5/6 seats with default 6, started a match, observed bot advancement through non-human seats, and verified the River Ledger board renders six seat ledgers, private Seat 0 cards, hidden public board slots, contribution ledger, and legal actions.

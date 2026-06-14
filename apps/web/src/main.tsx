@@ -22,6 +22,7 @@ import { PokerLiteBoard } from "./components/PokerLiteBoard";
 import { RaceBoard } from "./components/RaceBoard";
 import { ReplayImportExport } from "./components/ReplayImportExport";
 import { ReplayViewer } from "./components/ReplayViewer";
+import { RiverLedgerBoard } from "./components/RiverLedgerBoard";
 import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { SeatFrame, type SeatFrameViewerMode } from "./components/SeatFrame";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
@@ -48,11 +49,13 @@ import {
   type PublicView,
   type RacePublicView,
   type ReplayExportDocument,
+  type RiverLedgerPublicView,
   type RulepathApi,
   type SeatId,
   type SecretDraftPublicView,
   type ThreeMarksPublicView,
   type TokenBazaarPublicView,
+  type ViewerSeatId,
   type ViewerMode,
 } from "./wasm/client";
 
@@ -64,7 +67,7 @@ type AppTextState = {
     | {
         game_id: string;
         variant_id?: string;
-        active_seat: SeatId;
+        active_seat: ViewerSeatId;
         freshness_token: number;
         status: string;
       }
@@ -203,7 +206,12 @@ function App() {
       return;
     }
     dispatch({ type: "matchStarting" });
-    const created = api.newMatch(state.selectedGameId, state.setup.seed, selectedVariantForStart(selectedGame, state.setup.variantId));
+    const created = api.newMatch(
+      state.selectedGameId,
+      state.setup.seed,
+      selectedVariantForStart(selectedGame, state.setup.variantId),
+      selectedGame?.default_seats,
+    );
     dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
   }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seed, state.setup.variantId]);
@@ -609,6 +617,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
           />
+        ) : isRiverLedgerView(view) ? (
+          <RiverLedgerBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onChoice={playChoice}
+          />
         ) : isPlainTricksView(view) ? (
           <PlainTricksBoard
             view={view}
@@ -679,6 +697,7 @@ function App() {
         isTokenBazaarView(view) ||
         isSecretDraftView(view) ||
         isPokerLiteView(view) ||
+        isRiverLedgerView(view) ||
         isPlainTricksView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
@@ -687,7 +706,7 @@ function App() {
           <ActionControls
             actionTree={actionTree}
             view={view}
-            actorSeat={humanActorSeat}
+            actorSeat={twoSeatActorSeat(humanActorSeat)}
             pending={state.pendingOperation !== null}
             onChoice={playChoice}
             onRestart={start}
@@ -783,7 +802,7 @@ createRoot(rootElement).render(
   </React.StrictMode>,
 );
 
-function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): SeatId | null {
+function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): ViewerSeatId | null {
   if (isTerminalView(view)) {
     return null;
   }
@@ -796,11 +815,11 @@ function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): SeatId | n
   return null;
 }
 
-function botSeatForMode(playMode: SetupPlayMode, seat: SeatId): boolean {
+function botSeatForMode(playMode: SetupPlayMode, seat: ViewerSeatId): boolean {
   if (playMode === "bot_vs_bot") {
     return true;
   }
-  return playMode === "human_vs_bot" && seat === "seat_1";
+  return playMode === "human_vs_bot" && seat !== "seat_0";
 }
 
 function botSeed(view: PublicView): number {
@@ -815,6 +834,10 @@ function seatRoleLabelsForMode(playMode: SetupPlayMode): Partial<Record<SeatId, 
     return { seat_0: "you", seat_1: "local" };
   }
   return { seat_0: "bot", seat_1: "bot" };
+}
+
+function twoSeatActorSeat(seat: ViewerSeatId | null): SeatId | null {
+  return seat === "seat_0" || seat === "seat_1" ? seat : null;
 }
 
 function selectedVariantForStart(selectedGame: { variants?: Array<{ id: string }> } | null, variantId: string | null): string | undefined {
@@ -868,6 +891,10 @@ function isPokerLiteView(view: PublicView | null): view is PokerLitePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "poker_lite");
 }
 
+function isRiverLedgerView(view: PublicView | null): view is RiverLedgerPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "river_ledger");
+}
+
 function isPlainTricksView(view: PublicView | null): view is PlainTricksPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "plain_tricks");
 }
@@ -899,6 +926,9 @@ function isTerminalView(view: PublicView): boolean {
     return view.terminal.terminal;
   }
   if (isPokerLiteView(view)) {
+    return view.terminal.terminal;
+  }
+  if (isRiverLedgerView(view)) {
     return view.terminal.terminal;
   }
   if (isPlainTricksView(view)) {
@@ -970,6 +1000,18 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
           ? "split"
           : `${view.terminal.winner} won`
         : `${view.phase}, pool ${view.shared_pool}`,
+    };
+  }
+  if (view.game_id === "river_ledger") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: view.terminal.terminal
+        ? view.terminal.winners.length > 1
+          ? "split"
+          : `${view.terminal.winners[0] ?? "seat_0"} won`
+        : `${view.phase}, pot ${view.pot_total}`,
     };
   }
   if (view.game_id === "plain_tricks") {

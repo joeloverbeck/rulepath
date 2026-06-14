@@ -7520,13 +7520,162 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
 
 fn river_view_json(view: &river_ledger::PublicView) -> String {
     format!(
-        "{{\"game_id\":\"{}\",\"view_summary\":\"{}\",\"terminal\":{}}}",
-        escape_json(GAME_RIVER_LEDGER),
-        escape_json(&view.stable_summary()),
-        !matches!(
-            view.terminal,
-            river_ledger::visibility::TerminalView::NonTerminal
-        )
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        river_phase_label(view.phase),
+        option_river_seat_json(view.active_seat),
+        escape_json(&view.button.as_str()),
+        escape_json(&view.small_blind.as_str()),
+        escape_json(&view.big_blind.as_str()),
+        view.pot_total,
+        view.seats
+            .iter()
+            .map(river_seat_view_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.board
+            .iter()
+            .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        river_terminal_json(&view.terminal),
+        view.freshness_token.0,
+        river_private_view_json(&view.private_view),
+        river_ui_json(&view.ui)
+    )
+}
+
+fn river_phase_label(phase: river_ledger::Phase) -> &'static str {
+    match phase {
+        river_ledger::Phase::Setup => "setup",
+        river_ledger::Phase::Betting { street } => street.as_str(),
+        river_ledger::Phase::Showdown => "showdown",
+        river_ledger::Phase::Terminal => "terminal",
+    }
+}
+
+fn option_river_seat_json(seat: Option<RiverLedgerSeat>) -> String {
+    seat.map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn river_seat_view_json(seat: &river_ledger::visibility::SeatView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{}}}",
+        escape_json(&seat.seat.as_str()),
+        river_seat_status_label(seat.status),
+        seat.street_contribution,
+        seat.total_contribution,
+        seat.hidden_hole_count
+    )
+}
+
+fn river_seat_status_label(status: river_ledger::SeatStatus) -> &'static str {
+    match status {
+        river_ledger::SeatStatus::Live => "live",
+        river_ledger::SeatStatus::Folded => "folded",
+        river_ledger::SeatStatus::ShowdownEligible => "showdown_eligible",
+    }
+}
+
+fn river_card_json(card: &river_ledger::CardView) -> String {
+    format!(
+        "{{\"card_id\":\"{}\",\"rank\":\"{}\",\"rank_value\":{},\"suit\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.card_id),
+        escape_json(&card.rank),
+        card.rank_value,
+        escape_json(&card.suit),
+        escape_json(&card.label),
+        escape_json(&format!("{} of {}", card.rank, card.suit))
+    )
+}
+
+fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> String {
+    match terminal {
+        river_ledger::visibility::TerminalView::NonTerminal => {
+            "{\"kind\":\"non_terminal\",\"terminal\":false,\"winners\":[],\"pot_total\":0,\"allocations\":[],\"explanations\":[]}".to_owned()
+        }
+        river_ledger::visibility::TerminalView::LastLiveHand { winner, pot_total } => format!(
+            "{{\"kind\":\"last_live_hand\",\"terminal\":true,\"winners\":[\"{}\"],\"pot_total\":{},\"allocations\":[{{\"seat\":\"{}\",\"amount\":{}}}],\"explanations\":[]}}",
+            escape_json(&winner.as_str()),
+            pot_total,
+            escape_json(&winner.as_str()),
+            pot_total
+        ),
+        river_ledger::visibility::TerminalView::Showdown {
+            winners,
+            pot_total,
+            allocations,
+            explanations,
+        } => format!(
+            "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}]}}",
+            winners
+                .iter()
+                .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+                .collect::<Vec<_>>()
+                .join(","),
+            pot_total,
+            allocations
+                .iter()
+                .map(|(seat, amount)| format!(
+                    "{{\"seat\":\"{}\",\"amount\":{}}}",
+                    escape_json(&seat.as_str()),
+                    amount
+                ))
+                .collect::<Vec<_>>()
+                .join(","),
+            explanations
+                .iter()
+                .map(|explanation| format!("\"{}\"", escape_json(explanation)))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
+    match private_view {
+        river_ledger::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"seat\":null,\"hole_cards\":[]}".to_owned()
+        }
+        river_ledger::PrivateView::Seat(view) => format!(
+            "{{\"status\":\"seat\",\"seat\":\"{}\",\"hole_cards\":[{}]}}",
+            escape_json(&view.seat.as_str()),
+            view.hole_cards
+                .iter()
+                .map(river_card_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
+    format!(
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\"}}",
+        escape_json(&ui.game_id),
+        escape_json(&ui.display_name),
+        escape_json(&ui.surface_label),
+        ui.viewer_modes
+            .iter()
+            .map(|mode| format!("\"{}\"", escape_json(mode)))
+            .collect::<Vec<_>>()
+            .join(","),
+        ui.min_seats,
+        ui.default_seats,
+        ui.max_seats,
+        escape_json(&ui.seat_metadata_label),
+        escape_json(&ui.action_hint_label),
+        escape_json(&ui.outcome_explanation_label),
+        escape_json(&ui.contribution_label),
+        escape_json(&ui.board_label),
+        escape_json(&ui.hidden_hole_label),
+        escape_json(&ui.reduced_motion_note)
     )
 }
 

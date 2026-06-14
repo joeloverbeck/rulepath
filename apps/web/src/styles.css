@@ -3313,7 +3313,9 @@ svg g[data-effect-kind] {
   .reduced-motion .secret-item,
   .reduced-motion .secret-drafted-item,
   .reduced-motion .poker-lite-card,
-  .reduced-motion .poker-lite-action {
+  .reduced-motion .poker-lite-action,
+  .reduced-motion .river-ledger-card,
+  .reduced-motion .river-ledger-action {
   transition: none;
   animation: none;
 }
@@ -3708,6 +3710,239 @@ svg g[data-effect-kind] {
   animation: poker-lite-reveal 420ms ease-out;
 }
 
+.river-ledger-board {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #cfdad6;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.river-ledger-banner,
+.river-ledger-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.river-ledger-section-heading span {
+  color: #687577;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.river-ledger-section-heading strong {
+  color: #25383b;
+}
+
+.river-ledger-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.river-ledger-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.35fr);
+  gap: 12px;
+}
+
+.river-ledger-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.river-ledger-metric,
+.river-ledger-seat,
+.river-ledger-center,
+.river-ledger-private,
+.river-ledger-actions,
+.river-ledger-outcome,
+.river-ledger-latest {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d8e1df;
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.river-ledger-metric {
+  gap: 4px;
+  border-radius: 6px;
+  background: #f7f9f8;
+}
+
+.river-ledger-metric span,
+.river-ledger-track span,
+.river-ledger-hidden span,
+.river-ledger-card span,
+.river-ledger-action small,
+.river-ledger-allocations span {
+  color: #687577;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.river-ledger-metric strong,
+.river-ledger-track strong,
+.river-ledger-hidden strong,
+.river-ledger-card strong,
+.river-ledger-allocations strong {
+  color: #25383b;
+}
+
+.river-ledger-seat.active {
+  border-color: #2f6f9f;
+  box-shadow: inset 0 0 0 2px rgba(47, 111, 159, 0.12);
+}
+
+.river-ledger-markers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.river-ledger-markers b {
+  border: 1px solid #c4d4d1;
+  border-radius: 999px;
+  background: #f4f8f6;
+  color: #315d58;
+  padding: 3px 7px;
+  font-size: 0.72rem;
+}
+
+.river-ledger-board-cards,
+.river-ledger-private-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(54px, 1fr));
+  gap: 8px;
+}
+
+.river-ledger-private-cards {
+  grid-template-columns: repeat(2, minmax(72px, 120px));
+}
+
+.river-ledger-hidden,
+.river-ledger-card {
+  min-height: 104px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid #d7e0e2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  text-align: center;
+}
+
+.river-ledger-hidden,
+.river-ledger-card.hidden {
+  background: #f2f5f4;
+  color: #687577;
+}
+
+.river-ledger-card.private {
+  border-color: #2b8068;
+}
+
+.river-ledger-card.board {
+  border-color: #607987;
+}
+
+.river-ledger-card small {
+  color: #687577;
+}
+
+.river-ledger-track {
+  display: grid;
+  gap: 8px;
+}
+
+.river-ledger-track > div {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.river-ledger-track-bar {
+  block-size: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7eceb;
+}
+
+.river-ledger-track-bar span {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: #3e7d8e;
+}
+
+.river-ledger-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.river-ledger-action {
+  min-height: 72px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #cad8d2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #25383b;
+  text-align: left;
+}
+
+.river-ledger-action:not(:disabled):hover {
+  border-color: #2b8068;
+  transform: translateY(-1px);
+}
+
+.river-ledger-action:disabled {
+  opacity: 0.58;
+}
+
+.river-ledger-allocations {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.river-ledger-allocations > div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d8e1df;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.river-ledger-explanations {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-inline-start: 18px;
+  color: #425254;
+}
+
+.river-ledger-latest {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.river-ledger-board.reveal:not(.reduced) .river-ledger-card.board {
+  animation: poker-lite-reveal 420ms ease-out;
+}
+
 @keyframes poker-lite-reveal {
   from {
     transform: translateY(5px);
@@ -3888,8 +4123,16 @@ svg g[data-effect-kind] {
   .poker-lite-action-grid,
   .poker-lite-showdown-grid,
   .poker-lite-terminal,
-  .poker-lite-latest {
+  .poker-lite-latest,
+  .river-ledger-metrics,
+  .river-ledger-layout,
+  .river-ledger-action-grid,
+  .river-ledger-latest {
     grid-template-columns: 1fr;
+  }
+
+  .river-ledger-board-cards {
+    grid-template-columns: repeat(5, minmax(42px, 1fr));
   }
 
   .secret-pool-grid {
