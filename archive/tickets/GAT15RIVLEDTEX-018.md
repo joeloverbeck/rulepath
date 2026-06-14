@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-018: Web e2e no-leak smoke, CI registration, and catalog-docs reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only / test infra) — `apps/web/e2e/river-ledger.smoke.mjs`, `apps/web/package.json`, `ci/games.json`, `apps/web/README.md`, `README.md`, `apps/web/public/rules/manifest.json`
@@ -81,3 +81,27 @@ Add River Ledger to the `apps/web/README.md` intro catalog list, Shell Surface r
 1. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-ci-games.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-presentation-copy.mjs`
 3. These cover the browser + catalog-doc boundary; full Rust acceptance is swept in GAT15RIVLEDTEX-021.
+
+## Outcome
+
+Completed 2026-06-14.
+
+- Added `apps/web/e2e/river-ledger.smoke.mjs`, covering six-seat setup, observer and wrong-seat no-leak surfaces, storage/log checks, legal-only action buttons, terminal outcome rendering, and responsive layout.
+- Chained `river-ledger.smoke.mjs` into `apps/web` `smoke:e2e`.
+- Added `river_ledger` to `ci/games.json` with the River Ledger e2e file and seat-count simulator flags.
+- Updated root and web README catalog surfaces, web renderer/action/animation audit rows, smoke list, and the no-leak/a11y checklist.
+- Regenerated `apps/web/public/rules/manifest.json` through `scripts/copy-player-rules.mjs`; no source rules Markdown changed.
+- Updated `rules-display.smoke.mjs` expected game list for the 15-game catalog.
+
+Verification passed:
+
+1. `npm --prefix apps/web run build`
+2. `node apps/web/e2e/river-ledger.smoke.mjs` (rerun with localhost/Chrome escalation after sandbox `listen EPERM`)
+3. `node apps/web/e2e/rules-display.smoke.mjs`
+4. `npm --prefix apps/web run smoke:e2e`
+5. `node scripts/check-ci-games.mjs`
+6. `node scripts/check-catalog-docs.mjs`
+7. `node scripts/check-player-rules.mjs`
+8. `node scripts/check-presentation-copy.mjs`
+9. `node scripts/check-doc-links.mjs`
+10. `git diff --check`

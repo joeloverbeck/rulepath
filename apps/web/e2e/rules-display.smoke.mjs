@@ -24,6 +24,7 @@ const expectedGames = [
   "Flood Watch",
   "Frontier Control",
   "Event Frontier",
+  "River Ledger",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

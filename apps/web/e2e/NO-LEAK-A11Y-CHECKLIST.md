@@ -2,7 +2,7 @@
 
 Review date: 2026-06-07
 
-Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks` / Three Marks, `column_four` / Column Four, `directional_flip` / Directional Flip, and `draughts_lite` / Draughts Lite.
+Scope: `apps/web` served `dist` shell for all browser-catalog games through River Ledger.
 
 ## Accessibility Baseline
 
@@ -36,6 +36,7 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Veiled Draft reduced motion: the smoke verifies reduced-motion mode suppresses item/reveal animation while preserving pending/reveal order.
 - Veiled Draft replay accessibility: replay import/reset/step renders the public observer timeline with redacted command summaries rather than raw command paths.
 - Flood Watch cooperative path: the Flood Watch smoke covers forecast reveal, role labels, multi-action budget spending, environment-phase effects, human-vs-bot teammate automation, bot-vs-bot stepping, shared win/loss terminals, replay import/export, reduced motion, and responsive layout.
+- River Ledger N-seat path: the River Ledger smoke covers six catalog seats, observer/seat viewer modes, Seat 0 private cards, legal-only action buttons, terminal outcome rendering, and responsive layout.
 
 ## No-Leak Surfaces
 
@@ -65,6 +66,7 @@ Scope: `apps/web` served `dist` shell for `race_to_n` / Race to 21, `three_marks
 - Flood Watch DOM/test IDs/storage/logs: checked by `flood-watch.smoke.mjs`; district test IDs use public district IDs only, storage remains UI-only, and forbidden deck-order/internal-state terms are absent before and after terminal states.
 - Flood Watch replay export/import: public export is observer scoped, includes redacted command summaries, omits raw commands and seed evidence, and never exposes full event-deck order.
 - Flood Watch bot/effect text: browser smoke verifies the public cooperative bot policy id and Rust semantic storm effects without candidate rankings, private state, internal state, or deck-order payloads.
+- River Ledger observer/wrong-seat DOM/test IDs/storage/logs: checked by `river-ledger.smoke.mjs`; observer and wrong-seat views omit unauthorized hole-card IDs, deck-tail/reserved-community internals, burn/internal-state terms, storage remains UI-only, and active legal controls come only from Rust choices.
 
 ## Later Hidden-Information Games
 
