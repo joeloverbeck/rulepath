@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-015: Tool registration — replay-check, fixture-check, rule-coverage, and RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/replay-check`, `tools/fixture-check`, `tools/rule-coverage` (`src/main.rs` + `Cargo.toml` each); `games/river_ledger/docs/RULE-COVERAGE.md`
@@ -80,3 +80,32 @@ Reconcile the planned matrix (002) to the final implemented module/test/trace/be
 1. `cargo run -p replay-check -- --game river_ledger --all && cargo run -p fixture-check -- --game river_ledger`
 2. `cargo run -p rule-coverage -- --game river_ledger && cargo test -p rule-coverage`
 3. These per-tool runs are the correct boundary; CI wiring of these commands is in GAT15RIVLEDTEX-018.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Summary:
+
+- Registered River Ledger in `replay-check`, `fixture-check`, and `rule-coverage`, including Cargo dependencies, resolver/help entries, and `Cargo.lock`.
+- Added River Ledger-specific structural validation paths for the current placeholder golden-trace shape used by earlier Gate 15 tickets, covering game/rules identity, seat bounds, public command actions, expected evidence sections, duplicate IDs, and fixture/static-data checks.
+- Added `RL-*` rule-ID support for multi-segment River Ledger rule IDs and unit coverage in `rule-coverage`.
+- Reconciled `games/river_ledger/docs/RULE-COVERAGE.md` from planned wildcard rows to one exact row per stable `RL-*` ID in `RULES.md`, with later WASM/web proof rows explicitly marked `intentionally-deferred`.
+
+Deviations:
+
+- River Ledger traces are still placeholder fixtures from earlier tickets rather than the older hash-rich replay-check schema, so the new replay/fixture validators are structural for this game until a later trace migration changes the artifact format.
+- CI game manifest/workflow wiring remains out of scope for GAT15RIVLEDTEX-018.
+- Pre-existing unrelated `.claude/skills/spec-to-tickets/*` worktree edits were left untouched and unstaged.
+
+Verification:
+
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `cargo run -p rule-coverage -- --game river_ledger`
+- `cargo test -p rule-coverage`
+- `cargo check --workspace`
+- `cargo fmt --all --check`
+- `node scripts/check-doc-links.mjs`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`

@@ -17,6 +17,7 @@ masked_claims = { path = "../../games/masked_claims" }
 poker_lite = { path = "../../games/poker_lite" }
 plain_tricks = { path = "../../games/plain_tricks" }
 race_to_n = { path = "../../games/race_to_n" }
+river_ledger = { path = "../../games/river_ledger" }
 secret_draft = { path = "../../games/secret_draft" }
 three_marks = { path = "../../games/three_marks" }
 token_bazaar = { path = "../../games/token_bazaar" }

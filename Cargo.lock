@@ -68,6 +68,7 @@ dependencies = [
  "plain_tricks",
  "poker_lite",
  "race_to_n",
+ "river_ledger",
  "secret_draft",
  "three_marks",
  "token_bazaar",
@@ -153,6 +154,7 @@ dependencies = [
  "plain_tricks",
  "poker_lite",
  "race_to_n",
+ "river_ledger",
  "secret_draft",
  "three_marks",
  "token_bazaar",
@@ -169,6 +171,9 @@ dependencies = [
 [[package]]
 name = "rule-coverage"
 version = "0.1.0"
+dependencies = [
+ "river_ledger",
+]
 
 [[package]]
 name = "secret_draft"
