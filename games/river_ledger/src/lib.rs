@@ -2,6 +2,7 @@
 
 pub mod cards;
 pub mod ids;
+pub mod setup;
 pub mod state;
 pub mod ui;
 pub mod variants;
@@ -14,9 +15,10 @@ pub use ids::{
     STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS, STANDARD_SMALL_BET_UNIT,
     STANDARD_SMALL_BLIND, STANDARD_STREET_COUNT, VARIANT_ID,
 };
+pub use setup::{setup_match, shuffle_deck, SetupOptions};
 pub use state::{
-    BettingRoundState, ContributionLedger, Phase, SeatLedger, SeatStatus, ShowdownReveal,
-    ShowdownSeatExplanation, Street, TerminalOutcome,
+    BettingRoundState, ContributionLedger, Phase, RiverLedgerState, SeatLedger, SeatStatus,
+    ShowdownReveal, ShowdownSeatExplanation, Street, TerminalOutcome,
 };
 pub use ui::{ui_metadata, UiMetadata};
 pub use variants::{Manifest, Variant, VariantCatalog};

@@ -2,7 +2,10 @@ use engine_core::{FreshnessToken, SeatId};
 
 use crate::{
     cards::Card,
-    ids::{RiverLedgerSeat, MAX_RAISES_PER_STREET, STANDARD_BIG_BET_UNIT, STANDARD_SMALL_BET_UNIT},
+    ids::{
+        RiverLedgerSeat, MAX_RAISES_PER_STREET, STANDARD_BIG_BET_UNIT, STANDARD_BIG_BLIND,
+        STANDARD_SMALL_BET_UNIT, STANDARD_SMALL_BLIND,
+    },
     variants::Variant,
 };
 
@@ -124,8 +127,178 @@ pub struct RiverLedgerState {
     pub big_blind: RiverLedgerSeat,
     pub active_seat: Option<RiverLedgerSeat>,
     pub board: Vec<Card>,
+    private_hands: Vec<[Card; 2]>,
+    community_deck: [Card; 5],
+    deck_tail: Vec<Card>,
     pub ledger: ContributionLedger,
     pub betting: BettingRoundState,
     pub terminal_outcome: Option<TerminalOutcome>,
     pub freshness_token: FreshnessToken,
+}
+
+impl RiverLedgerState {
+    pub fn new_after_setup(
+        variant: Variant,
+        seats: Vec<SeatId>,
+        button: RiverLedgerSeat,
+        small_blind: RiverLedgerSeat,
+        big_blind: RiverLedgerSeat,
+        active_seat: RiverLedgerSeat,
+        private_hands: Vec<[Card; 2]>,
+        community_deck: [Card; 5],
+        deck_tail: Vec<Card>,
+    ) -> Self {
+        let mut ledgers = Vec::with_capacity(seats.len());
+        for index in 0..seats.len() {
+            let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
+            let total_contribution = if seat == small_blind {
+                u16::from(STANDARD_SMALL_BLIND)
+            } else if seat == big_blind {
+                u16::from(STANDARD_BIG_BLIND)
+            } else {
+                0
+            };
+            ledgers.push(SeatLedger {
+                seat,
+                status: SeatStatus::Live,
+                street_contribution: total_contribution,
+                total_contribution,
+            });
+        }
+
+        let pot_total = u16::from(STANDARD_SMALL_BLIND + STANDARD_BIG_BLIND);
+
+        Self {
+            variant,
+            seats,
+            phase: Phase::Betting {
+                street: Street::Preflop,
+            },
+            button,
+            small_blind,
+            big_blind,
+            active_seat: Some(active_seat),
+            board: Vec::new(),
+            private_hands,
+            community_deck,
+            deck_tail,
+            ledger: ContributionLedger {
+                seats: ledgers,
+                pot_total,
+            },
+            betting: BettingRoundState {
+                street: Street::Preflop,
+                current_to_call: u16::from(STANDARD_BIG_BLIND),
+                raises_this_street: 0,
+                last_aggressor: Some(big_blind),
+            },
+            terminal_outcome: None,
+            freshness_token: FreshnessToken(0),
+        }
+    }
+
+    pub fn private_hand_for_internal(&self, seat: RiverLedgerSeat) -> Option<[Card; 2]> {
+        self.private_hands.get(seat.index()).copied()
+    }
+
+    pub fn private_hands_internal(&self) -> &[[Card; 2]] {
+        &self.private_hands
+    }
+
+    pub fn community_deck_internal(&self) -> &[Card; 5] {
+        &self.community_deck
+    }
+
+    pub fn deck_tail_internal(&self) -> &[Card] {
+        &self.deck_tail
+    }
+
+    pub fn stable_internal_summary(&self) -> String {
+        format!(
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};contributions={};freshness={}",
+            self.variant.id,
+            self.seats.len(),
+            stable_phase(self.phase),
+            self.button.as_str(),
+            self.small_blind.as_str(),
+            self.big_blind.as_str(),
+            self.active_seat
+                .map(RiverLedgerSeat::as_str)
+                .unwrap_or_else(|| "none".to_owned()),
+            stable_private_hands(&self.private_hands),
+            stable_cards(&self.community_deck),
+            stable_cards(&self.deck_tail),
+            self.ledger.pot_total,
+            stable_contributions(&self.ledger.seats),
+            self.freshness_token.0,
+        )
+    }
+
+    pub fn setup_public_summary(&self) -> String {
+        let hidden_counts = self
+            .private_hands
+            .iter()
+            .enumerate()
+            .map(|(index, hand)| format!("seat_{index}:{} hidden", hand.len()))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};contributions={}",
+            self.variant.id,
+            self.seats.len(),
+            stable_phase(self.phase),
+            self.button.as_str(),
+            self.small_blind.as_str(),
+            self.big_blind.as_str(),
+            self.active_seat
+                .map(RiverLedgerSeat::as_str)
+                .unwrap_or_else(|| "none".to_owned()),
+            self.board.len(),
+            hidden_counts,
+            self.community_deck.len(),
+            self.deck_tail.len(),
+            self.ledger.pot_total,
+            stable_contributions(&self.ledger.seats),
+        )
+    }
+}
+
+fn stable_phase(phase: Phase) -> &'static str {
+    match phase {
+        Phase::Setup => "setup",
+        Phase::Betting { street } => street.as_str(),
+        Phase::Showdown => "showdown",
+        Phase::Terminal => "terminal",
+    }
+}
+
+fn stable_private_hands(hands: &[[Card; 2]]) -> String {
+    hands
+        .iter()
+        .map(|hand| stable_cards(hand))
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
+fn stable_cards(cards: &[Card]) -> String {
+    cards
+        .iter()
+        .map(|card| card.id())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn stable_contributions(seats: &[SeatLedger]) -> String {
+    seats
+        .iter()
+        .map(|seat| {
+            format!(
+                "{}:{}:{}",
+                seat.seat.as_str(),
+                seat.street_contribution,
+                seat.total_contribution
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }

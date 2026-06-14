@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-004: Setup — 3–6-seat validation, deterministic shuffle/deal, blinds and button
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/setup.rs`, `tests/rules.rs`, `src/lib.rs`; setup fixtures + setup golden traces
@@ -87,3 +87,38 @@ Create `tests/rules.rs` with seat-validation, deterministic-deal, and different-
 1. `cargo test -p river_ledger --test rules`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. Golden-trace replay validation runs via `cargo run -p replay-check -- --game river_ledger` once the tool is registered (GAT15RIVLEDTEX-015); behavior here is proven by the rule tests.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented deterministic River Ledger setup:
+
+- Added `games/river_ledger/src/setup.rs` with 3-6 seat validation, deterministic
+  seeded shuffle, two-card private deal, reserved five-card community deck,
+  deck-tail retention, button/SB/BB assignment, forced blind contributions, and
+  initial preflop active seat.
+- Extended `RiverLedgerState` with internal private-hand/community/deck-tail
+  storage, stable internal serialization text for determinism checks, and a
+  public setup summary that exposes counts but no hidden card identities.
+- Added `games/river_ledger/tests/rules.rs` covering seat-count acceptance and
+  rejection, same-seed determinism, different-seed shuffle variance, initial
+  ledger/roles/active seat, unique 52-card deal accounting, and setup public
+  no-leak summary.
+- Added setup fixtures for 3, 4, 5, and 6 seats plus setup/invalid-seat-count
+  golden trace placeholders for later replay-check registration.
+
+Deviations: replay-check validation for the new golden traces is intentionally
+deferred until `river_ledger` is registered with replay-check in
+GAT15RIVLEDTEX-015, matching the ticket note. No betting/street resolution past
+initial blind state, visibility module, effects, replay export, WASM, or web
+registration was implemented.
+
+Verification:
+
+- `cargo test -p river_ledger --test rules` passed (6 tests).
+- `cargo test -p river_ledger` passed (7 unit tests, 6 integration tests).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `cargo fmt --all --check` passed.
+
+Unrelated worktree changes left untouched: `.claude/skills/spec-to-tickets/SKILL.md`.
