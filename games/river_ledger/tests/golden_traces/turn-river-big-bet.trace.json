@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-turn-river-big-bet",
+  "fixture_kind": "betting-placeholder",
+  "purpose": "Turn and river big-bet unit placeholder until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 21,
+  "variant": "river_ledger_standard",
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "commands": [
+    { "seat": "seat_3", "action": "call" },
+    { "seat": "seat_0", "action": "call" },
+    { "seat": "seat_1", "action": "call" },
+    { "seat": "seat_2", "action": "check" },
+    { "seat": "seat_1", "action": "check" },
+    { "seat": "seat_2", "action": "check" },
+    { "seat": "seat_3", "action": "check" },
+    { "seat": "seat_0", "action": "check" },
+    { "seat": "seat_1", "action": "bet" }
+  ],
+  "expected_public_result": {
+    "street": "turn",
+    "street_unit": 4,
+    "public_board_count": 4,
+    "last_action_adds_to_pot": 4
+  }
+}

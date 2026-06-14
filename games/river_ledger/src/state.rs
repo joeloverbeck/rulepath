@@ -64,25 +64,27 @@ pub struct ContributionLedger {
     pub pot_total: u16,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct BettingRoundState {
     pub street: Street,
     pub current_to_call: u16,
     pub raises_this_street: u8,
     pub last_aggressor: Option<RiverLedgerSeat>,
+    pub actors_to_respond: Vec<RiverLedgerSeat>,
 }
 
 impl BettingRoundState {
-    pub const fn for_street(street: Street) -> Self {
+    pub fn for_street(street: Street, actors_to_respond: Vec<RiverLedgerSeat>) -> Self {
         Self {
             street,
             current_to_call: 0,
             raises_this_street: 0,
             last_aggressor: None,
+            actors_to_respond,
         }
     }
 
-    pub const fn raise_cap_reached(self) -> bool {
+    pub const fn raise_cap_reached(&self) -> bool {
         self.raises_this_street >= MAX_RAISES_PER_STREET
     }
 }
@@ -148,6 +150,7 @@ impl RiverLedgerState {
         community_deck: [Card; 5],
         deck_tail: Vec<Card>,
     ) -> Self {
+        let seat_count = seats.len() as u8;
         let mut ledgers = Vec::with_capacity(seats.len());
         for index in 0..seats.len() {
             let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
@@ -191,6 +194,7 @@ impl RiverLedgerState {
                 current_to_call: u16::from(STANDARD_BIG_BLIND),
                 raises_this_street: 0,
                 last_aggressor: Some(big_blind),
+                actors_to_respond: response_order_after(big_blind, seat_count),
             },
             terminal_outcome: None,
             freshness_token: FreshnessToken(0),
@@ -207,6 +211,13 @@ impl RiverLedgerState {
 
     pub fn community_deck_internal(&self) -> &[Card; 5] {
         &self.community_deck
+    }
+
+    pub(crate) fn reveal_next_board_cards(&mut self, count: usize) {
+        let start = self.board.len();
+        let end = start.saturating_add(count).min(self.community_deck.len());
+        self.board
+            .extend_from_slice(&self.community_deck[start..end]);
     }
 
     pub fn deck_tail_internal(&self) -> &[Card] {
@@ -261,6 +272,18 @@ impl RiverLedgerState {
             stable_contributions(&self.ledger.seats),
         )
     }
+}
+
+pub(crate) fn response_order_after(start: RiverLedgerSeat, count: u8) -> Vec<RiverLedgerSeat> {
+    let mut order = Vec::with_capacity(count as usize);
+    let mut current = start;
+    for _ in 0..count {
+        current = current
+            .next_in_count(count)
+            .expect("response order uses valid count");
+        order.push(current);
+    }
+    order
 }
 
 fn stable_phase(phase: Phase) -> &'static str {

@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-005: Fixed-limit betting engine and street advancement
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger/src/actions.rs`, `src/betting.rs`, `src/rules.rs`, `tests/rules.rs`, `src/lib.rs`; betting golden traces
@@ -90,3 +90,26 @@ Fixed-limit unit selection (small/big by street), cap tracking (one bet + three 
 1. `cargo test -p river_ledger --test rules`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. Golden-trace replay validation runs via `cargo run -p replay-check -- --game river_ledger` after GAT15RIVLEDTEX-015; behavior is proven here by the rule tests.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented the Rust-owned River Ledger betting core with legal action generation and command validation for `fold`/`check`/`call`/`bet`/`raise`, fixed-limit small and big street units, one-opening-bet plus three-raise cap enforcement, deterministic response order, contribution-ledger accounting, street closure through flop/turn/river board reveals, and foldout terminal resolution. Added the crate-local `actions`, `betting`, and `rules` modules, exported the betting API from `lib.rs`, and extended state with public pending-response tracking for deterministic round closure.
+
+Added rule tests for active-seat legality, call price metadata, preflop blind call/check advancement, flop raise cap diagnostics, turn/river big-bet units, 6-seat wraparound order, foldout terminal no-reveal behavior, public-only diagnostics, public legal-action metadata, and identical command-stream determinism. Added the six required betting golden-trace placeholder JSON files pending replay-check registration.
+
+Deviations: full showdown resolution remains deferred to GAT15RIVLEDTEX-006/007, semantic effects remain deferred to GAT15RIVLEDTEX-008, and golden-trace replay validation remains deferred until the River Ledger replay lane is registered in GAT15RIVLEDTEX-015.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test rules`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`
