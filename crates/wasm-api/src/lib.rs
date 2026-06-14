@@ -126,6 +126,7 @@ use token_bazaar::{
 };
 
 const API_VERSION: &str = "rulepath-wasm-api/0.1.0";
+const DEFAULT_SEAT_COUNT: usize = 2;
 const GAME_RACE_TO_N: &str = "race_to_n";
 const GAME_RACE_TO_N_DISPLAY_NAME: &str = "Race to 21";
 const GAME_THREE_MARKS: &str = "three_marks";
@@ -160,7 +161,9 @@ const SUPPORTED_OPERATIONS: &[&str] = &[
     "feature_report",
     "list_games",
     "new_match",
+    "new_match_with_seat_count",
     "new_match_with_variant",
+    "new_match_with_variant_and_seat_count",
     "get_view",
     "get_view_for_viewer",
     "get_action_tree",
@@ -556,7 +559,15 @@ pub fn feature_report() -> Result<String, String> {
 }
 
 pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
-    new_match_for_variant(game_id, None, seed)
+    new_match_with_seat_count(game_id, seed, DEFAULT_SEAT_COUNT)
+}
+
+pub fn new_match_with_seat_count(
+    game_id: &str,
+    seed: u64,
+    seat_count: usize,
+) -> Result<String, String> {
+    new_match_for_variant_with_seat_count(game_id, None, seed, seat_count)
 }
 
 pub fn new_match_for_variant(
@@ -564,9 +575,18 @@ pub fn new_match_for_variant(
     variant_id: Option<&str>,
     seed: u64,
 ) -> Result<String, String> {
+    new_match_for_variant_with_seat_count(game_id, variant_id, seed, DEFAULT_SEAT_COUNT)
+}
+
+pub fn new_match_for_variant_with_seat_count(
+    game_id: &str,
+    variant_id: Option<&str>,
+    seed: u64,
+    seat_count: usize,
+) -> Result<String, String> {
     match resolve_game(game_id)? {
         RegisteredGame::RaceToN => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = race_setup_match(Seed(seed), &seats, &RaceSetupOptions::default())
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -589,7 +609,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::ThreeMarks => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 three_setup_match(Seed(seed), &seats, &three_marks::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -614,7 +634,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::ColumnFour => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 column_setup_match(Seed(seed), &seats, &column_four::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -639,7 +659,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::DirectionalFlip => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = directional_setup_match(
                 Seed(seed),
                 &seats,
@@ -667,7 +687,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::DraughtsLite => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 draughts_setup_match(Seed(seed), &seats, &draughts_lite::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -692,7 +712,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::HighCardDuel => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 high_card_setup_match(Seed(seed), &seats, &high_card_duel::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -717,7 +737,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::MaskedClaims => {
-            let seats = masked_seats();
+            let seats = masked_seats_for_count(seat_count);
             let state =
                 masked_setup_match(Seed(seed), &seats, &masked_claims::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -741,7 +761,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::FloodWatch => {
-            let seats = flood_seats();
+            let seats = flood_seats_for_count(seat_count);
             let selected_variant = variant_id.unwrap_or(VARIANT_FLOOD_WATCH_STANDARD);
             let variant = flood_watch::ScenarioVariant::resolve(selected_variant)
                 .map_err(|message| unsupported_variant_json(game_id, &message))?;
@@ -768,7 +788,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::FrontierControl => {
-            let seats = frontier_seats();
+            let seats = frontier_seats_for_count(seat_count);
             let selected_variant = variant_id.unwrap_or(VARIANT_FRONTIER_CONTROL_STANDARD);
             let variant = frontier_control::VariantMap::resolve(selected_variant)
                 .map_err(|message| unsupported_variant_json(game_id, &message))?;
@@ -794,7 +814,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::EventFrontier => {
-            let seats = event_frontier_seats();
+            let seats = event_frontier_seats_for_count(seat_count);
             let selected_variant = variant_id.unwrap_or(VARIANT_EVENT_FRONTIER_STANDARD);
             let variant = event_frontier::ScenarioVariant::resolve(selected_variant)
                 .map_err(|message| unsupported_variant_json(game_id, &message))?;
@@ -824,7 +844,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::TokenBazaar => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state =
                 token_setup_match(Seed(seed), &seats, &token_bazaar::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -849,7 +869,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::SecretDraft => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = secret_setup_match(&seats, &secret_draft::SetupOptions::default())
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -873,7 +893,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::PokerLite => {
-            let seats = seats();
+            let seats = seats_for_count(seat_count);
             let state = poker_setup_match(Seed(seed), &seats, &poker_lite::SetupOptions::default())
                 .map_err(diagnostic_json)?;
             let match_id = next_match_id(game_id);
@@ -897,7 +917,7 @@ pub fn new_match_for_variant(
             ))
         }
         RegisteredGame::PlainTricks => {
-            let seats = plain_seats();
+            let seats = plain_seats_for_count(seat_count);
             let state =
                 plain_setup_match(Seed(seed), &seats, &plain_tricks::SetupOptions::default())
                     .map_err(diagnostic_json)?;
@@ -4093,27 +4113,59 @@ fn missing_replay_json(replay_id: &str) -> String {
 }
 
 fn seats() -> Vec<SeatId> {
-    vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())]
+    seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId(format!("seat-{index}")))
+        .collect()
 }
 
 fn plain_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    plain_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn plain_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
 }
 
 fn masked_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    masked_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn masked_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
 }
 
 fn flood_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    flood_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn flood_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
 }
 
 fn frontier_seats() -> Vec<SeatId> {
-    vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    frontier_seats_for_count(DEFAULT_SEAT_COUNT)
 }
 
-fn event_frontier_seats() -> [SeatId; 2] {
-    [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+fn frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+fn event_frontier_seats() -> Vec<SeatId> {
+    event_frontier_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+fn event_frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+fn underscore_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect()
 }
 
 fn trace_rules_version(game: RegisteredGame) -> &'static str {
@@ -10244,6 +10296,21 @@ pub unsafe extern "C" fn rulepath_new_match(
 #[no_mangle]
 /// # Safety
 ///
+/// `game_ptr..game_ptr + game_len` must be a valid UTF-8 buffer for the duration
+/// of the call.
+pub unsafe extern "C" fn rulepath_new_match_with_seat_count(
+    game_ptr: *const u8,
+    game_len: usize,
+    seed: u64,
+    seat_count: usize,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    write_result(game_id.and_then(|game_id| new_match_with_seat_count(&game_id, seed, seat_count)))
+}
+
+#[no_mangle]
+/// # Safety
+///
 /// `game_ptr..game_ptr + game_len` and
 /// `variant_ptr..variant_ptr + variant_len` must be valid UTF-8 buffers for
 /// the duration of the call.
@@ -10258,6 +10325,29 @@ pub unsafe extern "C" fn rulepath_new_match_with_variant(
     let variant_id = unsafe { read_string(variant_ptr, variant_len) };
     write_result(game_id.and_then(|game_id| {
         variant_id.and_then(|variant_id| new_match_for_variant(&game_id, Some(&variant_id), seed))
+    }))
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `game_ptr..game_ptr + game_len` and
+/// `variant_ptr..variant_ptr + variant_len` must be valid UTF-8 buffers for
+/// the duration of the call.
+pub unsafe extern "C" fn rulepath_new_match_with_variant_and_seat_count(
+    game_ptr: *const u8,
+    game_len: usize,
+    variant_ptr: *const u8,
+    variant_len: usize,
+    seed: u64,
+    seat_count: usize,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    let variant_id = unsafe { read_string(variant_ptr, variant_len) };
+    write_result(game_id.and_then(|game_id| {
+        variant_id.and_then(|variant_id| {
+            new_match_for_variant_with_seat_count(&game_id, Some(&variant_id), seed, seat_count)
+        })
     }))
 }
 
@@ -10591,6 +10681,41 @@ mod tests {
             new_match_for_variant(GAME_FRONTIER_CONTROL, Some("frontier_control_highlands"), 7)
                 .expect("frontier control variant match created");
         assert!(frontier_created.contains("\"variant_id\":\"frontier_control_highlands\""));
+    }
+
+    #[test]
+    fn bridge_seat_builder_uses_deterministic_labels() {
+        let seats = seats_for_count(3);
+        assert_eq!(
+            seats,
+            vec![
+                SeatId("seat-0".to_owned()),
+                SeatId("seat-1".to_owned()),
+                SeatId("seat-2".to_owned())
+            ]
+        );
+
+        let underscore = masked_seats_for_count(3);
+        assert_eq!(
+            underscore,
+            vec![
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+                SeatId("seat_2".to_owned())
+            ]
+        );
+    }
+
+    #[test]
+    fn new_match_with_seat_count_surfaces_game_setup_diagnostic() {
+        let created =
+            new_match_with_seat_count(GAME_RACE_TO_N, 11, 2).expect("two-seat setup succeeds");
+        assert!(created.contains("\"game_id\":\"race_to_n\""));
+
+        let diagnostic = new_match_with_seat_count(GAME_RACE_TO_N, 11, 3)
+            .expect_err("three-seat setup is rejected by the game");
+        assert!(diagnostic.contains("\"code\":\"invalid_seat_count\""));
+        assert!(diagnostic.contains("race_to_n requires exactly two seats"));
     }
 
     #[test]

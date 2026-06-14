@@ -1,6 +1,6 @@
 # INFADNSEA-001: Infra A — N-seat-aware bridge seat acceptance + setup diagnostics
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` (generalize the bridge seat factory + setup path); no `engine-core`, `game-stdlib`, or `games/*` behavior change
@@ -74,3 +74,13 @@ The setup entry point passes the N-element slice to `*_setup_match`; when a game
 
 1. `cargo test -p wasm-api`
 2. `cargo test --workspace && bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-14
+
+- Added count-aware Rust bridge match creation functions and additive raw WASM exports: `new_match_with_seat_count` and `new_match_with_variant_and_seat_count`.
+- Routed bridge setup through count-parameterized seat builders while preserving existing two-seat defaults and the existing per-game seat label conventions.
+- Added bridge tests for deterministic seat labels and for surfacing the current game's `invalid_seat_count` diagnostic when a requested count is unsupported.
+- Deviations: existing default `new_match` / `new_match_for_variant` behavior remains two-seat for compatibility; per-game seat-range catalog metadata and web presentation remain owned by INFADNSEA-002/003.
+- Verification: `cargo test -p wasm-api`; `cargo fmt --all --check`; `bash scripts/boundary-check.sh`; `cargo test --workspace`.
