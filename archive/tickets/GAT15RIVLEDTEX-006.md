@@ -1,6 +1,6 @@
 # GAT15RIVLEDTEX-006: Hand evaluator — five-card ranking and seven-card 21-subset search
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/evaluator.rs`, `src/lib.rs`; evaluator golden traces
@@ -82,3 +82,26 @@ Unit tests for every category, ace-low straight, kicker ordering, full-house tie
 1. `cargo test -p river_ledger`
 2. `cargo test -p river_ledger && bash scripts/boundary-check.sh`
 3. Golden-trace replay validation runs via `cargo run -p replay-check -- --game river_ledger` after GAT15RIVLEDTEX-015; ranking is proven here by unit tests.
+
+## Outcome
+
+Completed: 2026-06-14
+
+Implemented the game-local River Ledger evaluator in `games/river_ledger/src/evaluator.rs`. The evaluator ranks five-card hands across all nine categories, handles ace-low straights, compares category plus ordered tie-break vectors without suit tie-breaks, and searches all 21 five-card subsets from seven cards while returning the exact deterministic best-five card set for showdown/explanation consumers.
+
+Added evaluator unit tests for category ordering, ace-low straight ranking, kicker-order comparisons, full-house tie-breaks, exact used-card selection from seven cards, suit-neutral ties, and comparator antisymmetry/transitivity across a category sweep. Added the five required evaluator golden-trace placeholder JSON files pending replay-check registration.
+
+Deviations: showdown comparison/pot allocation/outcome explanation remains deferred to GAT15RIVLEDTEX-007. Golden-trace replay validation remains deferred until the River Ledger replay lane is registered in GAT15RIVLEDTEX-015.
+
+Verification:
+
+- `cargo fmt --all`
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+
+Unrelated pre-existing worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`

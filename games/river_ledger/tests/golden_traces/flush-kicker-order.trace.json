@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-flush-kicker-order",
+  "fixture_kind": "evaluator-placeholder",
+  "purpose": "Flush kicker-order evaluator placeholder until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "category": "flush",
+  "winning_tie_break_vector": [14, 13, 11, 9, 3],
+  "losing_tie_break_vector": [14, 13, 10, 9, 3]
+}

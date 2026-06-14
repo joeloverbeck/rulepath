@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-high-card-showdown",
+  "fixture_kind": "evaluator-placeholder",
+  "purpose": "High-card evaluator placeholder until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "category": "high_card",
+  "tie_break_vector": [14, 13, 9, 6, 3]
+}

@@ -3,6 +3,7 @@
 pub mod actions;
 pub mod betting;
 pub mod cards;
+pub mod evaluator;
 pub mod ids;
 pub mod rules;
 pub mod setup;
@@ -16,6 +17,9 @@ pub use actions::{
 };
 pub use betting::{call_price, first_live_after, live_seats, next_live_after};
 pub use cards::{canonical_deck, Card, Deck, Rank, Suit, STANDARD_CARD_COUNT};
+pub use evaluator::{
+    best_five_from_seven, compare_evaluations, evaluate_five, HandCategory, HandEvaluation,
+};
 pub use ids::{
     actor_for_seat, seat_id_for_index, seat_viewer_for_index, RiverLedgerSeat, ACTION_BET,
     ACTION_CALL, ACTION_CHECK, ACTION_FOLD, ACTION_RAISE, GAME_ID, MAX_RAISES_PER_STREET,
