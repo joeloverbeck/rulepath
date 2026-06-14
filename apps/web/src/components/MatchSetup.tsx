@@ -45,6 +45,8 @@ export function MatchSetup({
   const variants = selectedGame?.variants ?? [];
   const selectedVariant = variants.find((variant) => variant.id === variantId) ?? variants[0] ?? null;
   const variantDescription = selectVariantDescription(selectedVariant);
+  const seatCounts = supportedSeatCounts(selectedGame);
+  const defaultSeatCount = selectedGame?.default_seats ?? seatCounts[0] ?? "";
   return (
     <section className="region setup-region" aria-labelledby="setup-heading">
       <div className="region-heading">
@@ -108,6 +110,22 @@ export function MatchSetup({
             {variantDescription ? <small className="variant-description">{variantDescription}</small> : null}
           </label>
         ) : null}
+
+        <label className="field">
+          <span>Seats</span>
+          <select value={defaultSeatCount} disabled aria-label="Supported seats from Rust catalog">
+            {seatCounts.length ? (
+              seatCounts.map((count) => (
+                <option value={count} key={count}>
+                  {count}
+                </option>
+              ))
+            ) : (
+              <option value="">Catalog pending</option>
+            )}
+          </select>
+          <small>{seatCountDetail(selectedGame)}</small>
+        </label>
       </div>
 
       <fieldset className="mode-picker">
@@ -130,7 +148,7 @@ export function MatchSetup({
       <section className="players-roles" aria-label="Players and roles">
         <div className="players-roles-heading">
           <span>Players & roles</span>
-          <small>{selectedGame?.ui?.seat_labels?.length ? "From the Rust catalog" : "Fallback labels"}</small>
+          <small>{selectedGame?.seat_labels?.length ? "From the Rust catalog" : "Fallback labels"}</small>
         </div>
         <div className="seat-roles">
           {setupSeatRoles(selectedGame, playMode).map((role) => (
@@ -150,10 +168,12 @@ export function MatchSetup({
 }
 
 function gameMetadata(game: GameCatalogEntry, selectedVariantLabel: string | null): string {
+  const seatCopy = seatCountSummary(game);
   if (game.variants && game.variants.length > 1) {
-    return selectedVariantLabel ? `Variant: ${selectedVariantLabel}` : `${game.variants.length} variants available`;
+    const variantCopy = selectedVariantLabel ? `Variant: ${selectedVariantLabel}` : `${game.variants.length} variants available`;
+    return `${variantCopy}; ${seatCopy}`;
   }
-  return "Standard setup";
+  return `Standard setup; ${seatCopy}`;
 }
 
 function modeDetail(playMode: SetupPlayMode, game: GameCatalogEntry | null): string {
@@ -187,13 +207,40 @@ function setupSeatRoles(game: GameCatalogEntry | null, playMode: SetupPlayMode):
 }
 
 function setupLabels(game: GameCatalogEntry | null): SeatDisplayLabel[] {
-  const labels = game?.ui?.seat_labels ?? [];
+  const labels = game?.seat_labels ?? game?.ui?.seat_labels ?? [];
   return labels.length
     ? labels
     : [
         { seat: "player_1", label: "Player 1" },
         { seat: "player_2", label: "Player 2" },
       ];
+}
+
+function supportedSeatCounts(game: GameCatalogEntry | null): number[] {
+  return game?.supported_seats ?? [];
+}
+
+function seatCountSummary(game: GameCatalogEntry): string {
+  const counts = supportedSeatCounts(game);
+  if (counts.length === 1) {
+    return `${counts[0]} seats`;
+  }
+  if (counts.length > 1) {
+    return `${counts.join(", ")} seats`;
+  }
+  return "seat count from Rust catalog";
+}
+
+function seatCountDetail(game: GameCatalogEntry | null): string {
+  if (!game) {
+    return "Loaded from the Rust catalog.";
+  }
+  const counts = supportedSeatCounts(game);
+  if (counts.length) {
+    const defaultCopy = typeof game.default_seats === "number" ? `; default ${game.default_seats}` : "";
+    return `Supported count${counts.length === 1 ? "" : "s"}: ${counts.join(", ")}${defaultCopy}.`;
+  }
+  return "Supported counts unavailable from the catalog.";
 }
 
 function actorLabel(playMode: SetupPlayMode, index: number): string {

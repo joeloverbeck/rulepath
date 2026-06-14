@@ -172,6 +172,20 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+assert(
+  catalog.every(
+    (game) =>
+      game.min_seats === 2 &&
+      game.max_seats === 2 &&
+      game.default_seats === 2 &&
+      Array.isArray(game.supported_seats) &&
+      game.supported_seats.length === 1 &&
+      game.supported_seats[0] === 2 &&
+      Array.isArray(game.seat_labels) &&
+      game.seat_labels.length === 2,
+  ),
+  "Rust catalog exposes two-seat setup metadata for every current game",
+);
 const tokenBazaarCatalog = catalog.find((game) => game.game_id === "token_bazaar");
 assert(tokenBazaarCatalog, "Rust catalog includes token_bazaar");
 assertVariantDescription(tokenBazaarCatalog, "token_bazaar_standard", undefined);

@@ -48,6 +48,7 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
                 </span>
                 {game.hidden_information || game.viewer_modes?.length ? (
                   <span className="game-flags">
+                    <span>{seatCountSummary(game)}</span>
                     {game.hidden_information ? <span>Hidden info</span> : null}
                     {game.viewer_modes?.length ? <span>{game.viewer_modes.length} views</span> : null}
                   </span>
@@ -82,8 +83,16 @@ function gameEyebrow(game: GameCatalogEntry): string {
 }
 
 function gameSummary(game: GameCatalogEntry): string {
+  const seatCopy = seatCountSummary(game);
   if (!game.variants?.length || game.variants.length === 1) {
-    return game.variants?.[0]?.label ?? "Standard setup";
+    return `${game.variants?.[0]?.label ?? "Standard setup"}; ${seatCopy}`;
   }
-  return `${game.variants.length} variants`;
+  return `${game.variants.length} variants; ${seatCopy}`;
+}
+
+function seatCountSummary(game: GameCatalogEntry): string {
+  const counts = game.supported_seats ?? [];
+  if (counts.length === 1) return `${counts[0]} seats`;
+  if (counts.length > 1) return `${counts.join(", ")} seats`;
+  return "catalog seats";
 }

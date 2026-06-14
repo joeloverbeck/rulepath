@@ -1,6 +1,6 @@
 # INFADNSEA-003: Infra A — web setup/catalog seat-range presentation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/MatchSetup.tsx`, `apps/web/src/components/GamePicker.tsx`
@@ -72,3 +72,13 @@ Once Rust projects per-game seat-range metadata into the catalog payload (INFADN
 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-14
+
+- Updated `MatchSetup` to present supported/default seat counts from the Rust catalog metadata and to use top-level catalog `seat_labels` for setup roles before fallback labels.
+- Updated `GamePicker` summaries/flags to show supported seat counts from the catalog metadata.
+- Extended `apps/web/scripts/smoke-ui.mjs` to assert every current catalog game exposes the two-seat setup metadata projected by Rust.
+- Deviations: the seat count selector is read-only for current games because every active catalog entry exposes only the supported count `2`; no TypeScript-side rejection branch or legality list was added.
+- Verification: `npm --prefix apps/web run build`; `npm --prefix apps/web run smoke:ui`; `node apps/web/e2e/shell.smoke.mjs`.
