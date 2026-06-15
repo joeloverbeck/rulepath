@@ -1,6 +1,6 @@
 # RIVLEDSHO-002: Reveal-scoped projection of explanation fields + no-leak tests
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/visibility.rs`, `games/river_ledger/tests/visibility.rs`, no-leak golden traces
@@ -78,3 +78,23 @@ Extend the pairwise no-leak harness to assert the explanation fields are present
 1. `cargo test -p river_ledger --test visibility`
 2. `cargo test -p river_ledger`
 3. The crate-level visibility test is the correct boundary; browser no-leak is exercised in RIVLEDSHO-005.
+
+## Outcome
+
+Completed: 2026-06-15
+
+What changed:
+
+- Projected the RIVLEDSHO-001 Rust-authored showdown explanation fields through the existing viewer-safe `OutcomeRationaleView` and `ShowdownStrengthView`: match headline, decisive comparison, comparison basis, result label, hand name, rank explanation, comparison note, and best-five accessibility label.
+- Kept foldout outcomes and folded showdown seats redacted: folded seats still carry no showdown strength/explanation fields.
+- Extended the visibility no-leak suite with a 3-6 seat terminal showdown fixture containing one folded private hand; observer and other-seat projections must not contain that folded hand, while revealed contenders carry the new explanation fields.
+
+Deviations from plan:
+
+- No golden trace files changed. The projected stable summary is updated by code, and replay-check confirmed existing trace fixtures remain valid.
+
+Verification:
+
+- `cargo test -p river_ledger --test visibility` passed.
+- `cargo test -p river_ledger` passed.
+- `cargo run -p replay-check -- --game river_ledger` passed.
