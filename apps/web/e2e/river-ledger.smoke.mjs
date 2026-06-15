@@ -105,6 +105,7 @@ try {
   await waitForText(page, "Outcome");
   const outcomeText = await page.$eval(".outcome-explanation-panel", (element) => element.textContent ?? "");
   assert(outcomeText.includes("Seat"), "river_ledger terminal outcome names seats");
+  await assertFoldedSeatNoStrength(page);
   assertNoForbiddenTerms(await fullBrowserSurface(page), "terminal surface", internalTerms);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);
 
@@ -112,6 +113,13 @@ try {
   await page.waitForSelector(".river-ledger-layout");
   const columns = await page.$eval(".river-ledger-layout", (element) => window.getComputedStyle(element).gridTemplateColumns);
   assert(!columns.includes(" 0px "), "responsive river_ledger layout remains measurable");
+
+  await page.setViewport({ width: 1180, height: 920 });
+  await playWorkedExampleShowdown(page, baseUrl);
+  await assertWorkedExampleShowdown(page);
+  assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
+  assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
+  await assertStorageClean(page);
 
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "river_ledger noleak legal controls terminal responsive" }));
 } finally {
@@ -121,14 +129,117 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startRiverLedger(page, baseUrl, modeLabel, seatCount) {
+async function startRiverLedger(page, baseUrl, modeLabel, seatCount, seed = null) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "River Ledger");
   await assertFixedSeatSetup(page);
   await clickText(page, "button", "River Ledger");
   await assertVariableSeatSetup(page, seatCount);
+  if (seed !== null) {
+    await setSetupSeed(page, seed);
+  }
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
+}
+
+async function playWorkedExampleShowdown(page, baseUrl) {
+  await startRiverLedger(page, baseUrl, "Hotseat", 4, 79);
+  await waitForText(page, "Available choices");
+  for (const action of [
+    "Call",
+    "Call",
+    "Call",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+  ]) {
+    await clickText(page, "button", action);
+    if (action !== "Check" || !(await hasRiverLedgerOutcome(page))) {
+      await waitForText(page, "Available choices").catch(async () => {
+        if (!(await hasRiverLedgerOutcome(page))) {
+          throw new Error(`River Ledger did not advance after ${action}`);
+        }
+      });
+    }
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
+async function assertWorkedExampleShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    const showdown = panel?.querySelector(".river-ledger-showdown-panel");
+    return {
+      text: panel?.textContent ?? "",
+      showdownText: showdown?.textContent ?? "",
+      handCount: showdown?.querySelectorAll(".river-ledger-showdown-hand").length ?? 0,
+      cardCount: showdown?.querySelectorAll(".river-ledger-showdown-card").length ?? 0,
+      foldedStrengthRows: Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? [])
+        .filter((row) => row.textContent?.includes("Folded"))
+        .filter((row) => /Pair|High Card|tie break/i.test(row.textContent ?? "")).length,
+    };
+  });
+  assert(summary.text.includes("wins with Pair of Queens."), `worked example headline is rendered: ${summary.text}`);
+  assert(
+    summary.text.includes("Pair of Queens beats Pair of Eights."),
+    `worked example decisive comparison is rendered: ${summary.text}`,
+  );
+  assert(
+    summary.text.includes("Both hands are one pair, so the pair rank decides first: Queens > Eights."),
+    `worked example comparison basis is rendered: ${summary.text}`,
+  );
+  assert(summary.handCount === 4, `worked example renders four revealed hands: ${summary.handCount}`);
+  assert(summary.cardCount === 20, `worked example renders each best-five hand: ${summary.cardCount}`);
+  assert(summary.foldedStrengthRows === 0, "worked example renders no folded-seat hand strength");
+}
+
+async function assertFoldedSeatNoStrength(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    const foldedRows = Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? []).filter((row) =>
+      /folded/i.test(row.textContent ?? ""),
+    );
+    return {
+      text: panel?.textContent ?? "",
+      foldedRows: foldedRows.length,
+      foldedStrengthRows: foldedRows.filter((row) => /Pair|High Card|tie break/i.test(row.textContent ?? "")).length,
+    };
+  });
+  assert(summary.foldedRows >= 1, `terminal path includes a folded seat row: ${summary.text}`);
+  assert(summary.foldedStrengthRows === 0, `folded terminal rows contain no hand strength: ${summary.text}`);
+}
+
+async function setSetupSeed(page, seed) {
+  const selector = '.setup-grid input[type="number"]';
+  await page.$eval(
+    selector,
+    (input, value) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(input, String(value));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    seed,
+  );
+  await page.waitForFunction(
+    (query, expected) => document.querySelector(query)?.value === String(expected),
+    {},
+    selector,
+    seed,
+  );
+}
+
+async function hasRiverLedgerOutcome(page) {
+  return page.evaluate(() => Boolean(document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')));
 }
 
 async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {

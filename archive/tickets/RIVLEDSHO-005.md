@@ -1,6 +1,6 @@
 # RIVLEDSHO-005: e2e worked-example assertion + browser no-leak sweep
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/e2e/river-ledger.smoke.mjs`
@@ -70,3 +70,22 @@ Add a deterministic worked-example showdown path and assert the rendered decisiv
 1. `node apps/web/e2e/river-ledger.smoke.mjs`
 2. `npm --prefix apps/web run smoke:e2e`
 3. The browser e2e lane is the correct boundary for DOM/storage/log no-leak; crate-level reveal-scope is RIVLEDSHO-002.
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Extended `apps/web/e2e/river-ledger.smoke.mjs` with a deterministic four-seat hotseat checkdown using seed `79`, which renders the Rust-authored worked example text `Pair of Queens beats Pair of Eights.`
+- Added assertions for the worked-example headline phrase, decisive comparison, comparison basis, four revealed showdown hands, and 20 best-five card labels.
+- Extended the browser no-leak sweep over the new explanation surface, including DOM text, attributes, `data-testid`s, storage, and console logs.
+- Added an assertion that folded terminal standing rows do not receive hand-strength text.
+
+Verification:
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- No production code changed; this ticket is e2e assertion coverage only.
