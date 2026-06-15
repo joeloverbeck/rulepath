@@ -1,6 +1,6 @@
 # RIVLEDSHO-011: Public-copy casino-vocabulary audit
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerBoard.tsx`, `apps/web/src/components/outcomeExplanationTemplates.ts`
@@ -73,3 +73,23 @@ Audit the `river_ledger` template copy for residual casino framing; keep "pot" o
 1. `npm --prefix apps/web run smoke:ui`
 2. `node apps/web/e2e/river-ledger.smoke.mjs`
 3. The UI/e2e smokes plus a banned-vocabulary grep are the correct boundary; this is a copy-only pass with no Rust surface.
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Replaced normal-mode River Ledger public `Pot` copy with neutral `Ledger` / `Ledger total` wording in metrics, screen-reader status text, and outcome breakdown rows.
+- Confirmed River Ledger template copy remains ledger/revealed-hand focused after prior tickets.
+
+Verification:
+- `rg -n "\\b(Pot|pot|casino|chip|chips|cash|money|wager|rake|pool)\\b" apps/web/src/components/RiverLedgerBoard.tsx apps/web/src/components/outcomeExplanationTemplates.ts`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- The banned-vocabulary grep returned only Poker Lite `pool` template copy in `outcomeExplanationTemplates.ts`; it returned no River Ledger normal-mode public-copy hits.
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because this was a copy-only browser surface audit. The rendered River Ledger board stayed covered by `river-ledger.smoke.mjs`.

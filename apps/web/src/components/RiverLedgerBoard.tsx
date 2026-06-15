@@ -53,7 +53,7 @@ export function RiverLedgerBoard({
             heading: "Public ledger",
             rows: [
               { label: "Terminal kind", value: view.terminal.kind },
-              { label: "Pot", value: view.terminal.pot_total },
+              { label: "Ledger total", value: view.terminal.pot_total },
               { label: "Winner count", value: view.terminal.winners.length },
             ],
           },
@@ -81,11 +81,11 @@ export function RiverLedgerBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, {phaseLabel(view.phase)}, pot {view.pot_total}, {view.board.length} public cards.
+        {view.display_name}, {phaseLabel(view.phase)}, ledger total {view.pot_total}, {view.board.length} public cards.
       </p>
 
       <div className="river-ledger-metrics" aria-label="River Ledger status">
-        <Metric label="Pot" value={String(view.pot_total)} />
+        <Metric label="Ledger" value={String(view.pot_total)} />
         <Metric label="Street" value={phaseLabel(view.phase)} />
         <Metric label="Button" value={seatLabel(view.button)} />
         <Metric label="Blinds" value={`${seatLabel(view.small_blind)} / ${seatLabel(view.big_blind)}`} />
