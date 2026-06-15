@@ -5,7 +5,7 @@
 - **Target type:** New spec
 - **Roadmap stage:** Non-gate public-polish spec for the shipped Gate 15 game `river_ledger` — not a mechanic-ladder gate.
 - **Roadmap build gate:** None. This is a non-gate post-Gate-15 presentation spec, the same admission class as the archived `victory-explanation-shared-surface` / `card-and-action-presentation-shared-surfaces` UI-infra specs, motivated by the `reports/river-ledger-correctness-and-presentation-report.md` audit + UX overhaul.
-- **Status:** Done
+**Status**: COMPLETED
 - **Date:** 2026-06-15
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs (`docs/OFFICIAL-GAME-CONTRACT.md`, `docs/MECHANIC-ATLAS.md`, `docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`, `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`) → `docs/ROADMAP.md` → `docs/IP-POLICY.md` → `docs/AGENT-DISCIPLINE.md` → `docs/WASM-CLIENT-BOUNDARY.md` → accepted ADRs → this spec.
@@ -287,7 +287,7 @@ Source: `reports/river-ledger-correctness-and-presentation-report.md` Part C (R1
 
 ---
 
-## Closeout
+## Outcome
 
 Completed: 2026-06-15
 
