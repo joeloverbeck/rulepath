@@ -9,6 +9,7 @@ import type {
   RiverLedgerSeatView,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type RiverLedgerBoardProps = {
   view: RiverLedgerPublicView;
@@ -35,6 +36,29 @@ export function RiverLedgerBoard({
   const canAct = Boolean(interactive && !pending && !view.terminal.terminal && view.active_seat && choices.length > 0);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const boardChanged = effects.some((entry) => String(entry.effect.payload.type).includes("board"));
+  const outcomeExplanation = view.terminal.terminal
+    ? outcomeSurfaceData({
+        gameId: "river_ledger",
+        heading: terminalLabel(view),
+        rationale: view.terminal_rationale ?? null,
+        resultKind: view.terminal.kind,
+        decisiveCause: view.terminal.kind,
+        templateKey: riverTemplateKey(view),
+        finalStanding: view.seats.map((seat) => riverStanding(view, seat)),
+        breakdownSections: [
+          {
+            id: "ledger",
+            heading: "Public ledger",
+            rows: [
+              { label: "Terminal kind", value: view.terminal.kind },
+              { label: "Pot", value: view.terminal.pot_total },
+              { label: "Winner count", value: view.terminal.winners.length },
+            ],
+          },
+        ],
+        ruleIds: view.terminal.kind === "last_live_hand" ? ["RL-END-LAST-LIVE", "RL-SCORE-POT-AWARD"] : ["RL-SCORE-SHOWDOWN", "RL-END-SHOWDOWN"],
+      })
+    : null;
 
   return (
     <section
@@ -138,11 +162,15 @@ export function RiverLedgerBoard({
         </div>
       </section>
 
-      {view.terminal.terminal ? <OutcomePanel view={view} /> : null}
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
 
       <div className="river-ledger-latest" role="status">
-        <span>{view.terminal.terminal ? "Outcome" : feedback?.title ?? "Waiting"}</span>
-        <strong>{view.terminal.terminal ? terminalLabel(view) : feedback?.detail ?? "Visible state changes will update here."}</strong>
+        <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+        <strong>
+          {outcomeExplanation
+            ? outcomeAnnouncementText(outcomeExplanation)
+            : feedback?.detail ?? "Visible state changes will update here."}
+        </strong>
       </div>
     </section>
   );
@@ -184,32 +212,6 @@ function ContributionTrack({ seats }: { seats: RiverLedgerSeatView[] }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function OutcomePanel({ view }: { view: RiverLedgerPublicView }) {
-  return (
-    <section className="river-ledger-outcome" aria-label={view.ui.outcome_explanation_label}>
-      <div className="river-ledger-section-heading">
-        <span>Outcome</span>
-        <strong>{terminalLabel(view)}</strong>
-      </div>
-      <div className="river-ledger-allocations">
-        {view.terminal.allocations.map((allocation) => (
-          <div key={allocation.seat}>
-            <span>{seatLabel(allocation.seat)}</span>
-            <strong>{allocation.amount}</strong>
-          </div>
-        ))}
-      </div>
-      {view.terminal.explanations.length ? (
-        <ul className="river-ledger-explanations">
-          {view.terminal.explanations.map((explanation) => (
-            <li key={explanation}>{explanation}</li>
-          ))}
-        </ul>
-      ) : null}
-    </section>
   );
 }
 
@@ -262,6 +264,28 @@ function terminalLabel(view: RiverLedgerPublicView): string {
   if (view.terminal.winners.length === 0) return "Complete";
   if (view.terminal.winners.length === 1) return `${seatLabel(view.terminal.winners[0])} wins`;
   return `${view.terminal.winners.length} seats split`;
+}
+
+function riverTemplateKey(view: RiverLedgerPublicView): string {
+  if (view.terminal.kind === "last_live_hand") {
+    return "river_ledger.last_live_fold_win";
+  }
+  return view.terminal.winners.length > 1 ? "river_ledger.showdown_split_pot" : "river_ledger.showdown_best_hand_win";
+}
+
+function riverStanding(view: RiverLedgerPublicView, seat: RiverLedgerSeatView) {
+  const allocation = view.terminal.allocations.find((share) => share.seat === seat.seat)?.amount ?? 0;
+  const winner = view.terminal.winners.some((winnerSeat) => winnerSeat === seat.seat);
+  return {
+    id: seat.seat,
+    label: seatLabel(seat.seat),
+    result: winner ? (view.terminal.winners.length > 1 ? "split" : "win") : seatStatusLabel(seat.status),
+    emphasized: winner,
+    values: [
+      { label: "Contribution", value: seat.total_contribution },
+      { label: "Allocation", value: allocation },
+    ],
+  };
 }
 
 function privateHeading(view: RiverLedgerPublicView): string {

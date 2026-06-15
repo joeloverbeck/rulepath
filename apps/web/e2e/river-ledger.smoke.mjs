@@ -103,9 +103,11 @@ try {
   assert(choices.every((choice) => !choice.disabled), "river_ledger renders legal enabled choices only for active human seat");
 
   await clickText(page, "button", "Fold");
-  await page.waitForFunction(() => document.querySelector(".river-ledger-outcome"), { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]'), {
+    timeout: 15000,
+  });
   await waitForText(page, "Outcome");
-  const outcomeText = await page.$eval(".river-ledger-outcome", (element) => element.textContent ?? "");
+  const outcomeText = await page.$eval(".outcome-explanation-panel", (element) => element.textContent ?? "");
   assert(outcomeText.includes("Seat"), "river_ledger terminal outcome names seats");
   assertNoForbiddenTerms(await fullBrowserSurface(page), "terminal surface", internalTerms);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);

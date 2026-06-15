@@ -163,6 +163,7 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
+export type RiverLedgerOutcomeRationale = OutcomeRationalePayload;
 export type PlainTricksOutcomeRationale = {
   result_kind: string;
   decisive_cause: string;
@@ -777,6 +778,7 @@ export type RiverLedgerPublicView = {
   seats: RiverLedgerSeatView[];
   board: RiverLedgerCardView[];
   terminal: RiverLedgerTerminalView;
+  terminal_rationale?: RiverLedgerOutcomeRationale | null;
   freshness_token: number;
   private_view: RiverLedgerPrivateView;
   ui: RiverLedgerUiMetadata;

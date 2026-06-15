@@ -182,6 +182,27 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["poker_lite"],
     ruleRefLabel: "Split rule",
   },
+  "river_ledger.last_live_fold_win": {
+    summary: "The last live seat receives the ledger after the other live seats fold.",
+    expandedHeading: "Last live hand",
+    requiredParams: [],
+    allowedGameIds: ["river_ledger"],
+    ruleRefLabel: "Terminal rule",
+  },
+  "river_ledger.showdown_best_hand_win": {
+    summary: "One showdown hand has the strongest Rust-evaluated five-card result.",
+    expandedHeading: "Showdown result",
+    requiredParams: [],
+    allowedGameIds: ["river_ledger"],
+    ruleRefLabel: "Showdown rule",
+  },
+  "river_ledger.showdown_split_pot": {
+    summary: "Tied best showdown hands share the ledger allocation.",
+    expandedHeading: "Split ledger",
+    requiredParams: [],
+    allowedGameIds: ["river_ledger"],
+    ruleRefLabel: "Split rule",
+  },
   "plain_tricks.trick_win": {
     summary: "{winner} won more tricks.",
     expandedHeading: "Trick total",

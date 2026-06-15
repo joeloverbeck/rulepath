@@ -91,6 +91,13 @@ try {
   await assertStorageClean(page);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
 
+  await playRiverLedgerFoldout(page, baseUrl);
+  await assertOutcomePanel(page, "River Ledger");
+  await assertOutcomeStyled(page, "River Ledger");
+  await assertHumanizedOutcomeCopy(page, "River Ledger");
+  await assertRiverLedgerOutcome(page);
+  await assertNoLeak(page, consoleMessages, "river_ledger outcome");
+
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "outcome explanation panel a11y noleak reduced" }));
 } finally {
   if (browser) {
@@ -139,6 +146,22 @@ async function playThreeMarksDraw(page, baseUrl) {
   await markPreTerminalStatusRegion(page);
   await clickCell(page, "r3c2");
   await page.waitForSelector(".outcome-explanation-panel");
+}
+
+async function playRiverLedgerFoldout(page, baseUrl) {
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await waitForText(page, "River Ledger");
+  await clickText(page, "button", "River Ledger");
+  await page.waitForSelector('select[aria-label="Supported seats from Rust catalog"]');
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "3");
+  await clickLabel(page, "Hotseat");
+  await clickText(page, "button", "Start Match");
+  await waitForText(page, "Available choices");
+  await markPreTerminalStatusRegion(page);
+  await clickText(page, "button", "Fold");
+  await waitForText(page, "Available choices");
+  await clickText(page, "button", "Fold");
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
 }
 
 async function assertOutcomePanel(page, label) {
@@ -262,6 +285,24 @@ async function assertDrawStandingParity(page, label) {
   assert(summary.rowCount >= 2, `${label} has multiple standing rows`);
   assert(summary.emphasized === 0, `${label} draw has no emphasized standing row`);
   assert(new Set(summary.classes).size === 1, `${label} draw rows use matching treatment`);
+}
+
+async function assertRiverLedgerOutcome(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    return {
+      text: panel?.textContent ?? "",
+      standingRows: panel?.querySelectorAll(".outcome-standing-row").length ?? 0,
+      rules: Array.from(panel?.querySelectorAll(".outcome-rule-refs code") ?? []).map((code) => code.textContent ?? ""),
+    };
+  });
+  assert(
+    summary.text.includes("last live seat receives the ledger"),
+    `river_ledger uses foldout template: ${summary.text}`,
+  );
+  assert(summary.standingRows === 3, `river_ledger renders one standing row per seat: ${summary.standingRows}`);
+  assert(summary.rules.includes("RL-END-LAST-LIVE"), `river_ledger exposes terminal rule id: ${summary.rules.join(", ")}`);
+  assert(summary.rules.includes("RL-SCORE-POT-AWARD"), `river_ledger exposes scoring rule id: ${summary.rules.join(", ")}`);
 }
 
 async function catalogNames(page) {

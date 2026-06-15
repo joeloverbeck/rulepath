@@ -129,12 +129,20 @@ At showdown, Rust may reveal only the private cards and evaluated hands that the
 terminal rules authorize. On foldout, folded seats' private cards remain hidden
 from public and opposing-seat viewers.
 
-## Outcome / Victory Explanation
+## Outcome / victory explanation
 
 The terminal surface explains River Ledger results from Rust-owned terminal
 view data. TypeScript renders the supplied fields only; it must not compare
 cards, choose winners, allocate the pot, decide split remainders, or infer why
-a hand ended.
+a hand ended. Rust emits one of these inert template keys:
+
+- `river_ledger.last_live_fold_win`
+- `river_ledger.showdown_best_hand_win`
+- `river_ledger.showdown_split_pot`
+
+The decisive cause variants are `last_live_after_folds`,
+`best_showdown_hand`, and `equal_best_hand_split`; they are rendered as
+Rust-authored explanation data, not interpreted by the browser.
 
 ### Terminal Result Variants
 

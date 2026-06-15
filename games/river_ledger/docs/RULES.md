@@ -144,6 +144,18 @@ street closure, hand strength, winner, split, or hidden-card visibility.
 | `RL-POT-SINGLE-002` | All contributions feed one terminal pot in Gate 15. | whole hand | No side-pot model is created. |
 | `RL-POT-ALLIN-001` | All-in handling is not available and states requiring it must not be generated. | whole hand | Contribution capacity is high enough for legal play. |
 
+## Scoring and accounting
+
+The terminal rationale uses these stable scoring IDs when explaining how the
+single public ledger is awarded. Rust computes the result and TypeScript only
+renders the supplied fields.
+
+| Rule ID | Scoring/accounting rule | Applies to | Notes |
+|---|---|---|---|
+| `RL-SCORE-POT-AWARD` | Award the full single pot to the last live seat when a foldout ends the hand. | foldout terminal | Does not reveal folded seats' hole cards. |
+| `RL-SCORE-SHOWDOWN` | Compare showdown-eligible seats by evaluated five-card category and ordered tie-break vector. | showdown terminal | Uses `RL-EVAL-*` evaluator rules. |
+| `RL-SCORE-SPLIT` | Divide the single pot among seats tied for the best showdown hand. | split showdown terminal | Remainder assignment follows `RL-POT-REMAINDER-001`. |
+
 ## Hand evaluation and showdown
 
 | Rule ID | Evaluation/showdown rule | Timing | Notes |
@@ -158,6 +170,17 @@ street closure, hand strength, winner, split, or hidden-card visibility.
 | `RL-SHOW-SPLIT-001` | Seats tied for best hand split the pot. | terminal | Equal shares are assigned first. |
 | `RL-POT-REMAINDER-001` | Integer remainders from a split are assigned one unit at a time by stable button-order among tied winners. | terminal | Remainder allocation is public and explained. |
 | `RL-SHOW-FOLDOUT-001` | A last-live-hand terminal awards the pot without revealing folded seats' private hole cards. | terminal | Foldout explanation is distinct from showdown. |
+
+## Terminal conditions
+
+River Ledger has exactly three terminal result families in the base variant.
+Each terminal result may emit a Rust-owned `terminal_rationale` with one of the
+template keys documented in `UI.md`.
+
+| Rule ID | Terminal result | Rationale template key | Decisive cause |
+|---|---|---|---|
+| `RL-END-LAST-LIVE` | One seat remains live after all other live seats fold. | `river_ledger.last_live_fold_win` | `last_live_after_folds` |
+| `RL-END-SHOWDOWN` | The river betting round closes with two or more showdown-eligible seats, then Rust resolves a single winner or split. | `river_ledger.showdown_best_hand_win` / `river_ledger.showdown_split_pot` | `best_showdown_hand` / `equal_best_hand_split` |
 
 ## Visibility and private information
 
