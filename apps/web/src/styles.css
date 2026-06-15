@@ -2257,7 +2257,10 @@ h2 {
 }
 
 .game-selected-mark {
-  justify-self: start;
+  position: absolute;
+  inset-block-start: var(--rp-space-4);
+  inset-inline-end: var(--rp-space-4);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: var(--rp-space-2);

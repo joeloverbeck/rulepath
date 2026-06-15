@@ -54,6 +54,9 @@ try {
   await assertPlayFirst(page);
   await waitForText(page, "Choose a game");
   await waitForText(page, "Race to 21");
+  await clickText(page, "button", "River Ledger");
+  await assertSelectedGameCardFlags(page, "river_ledger");
+  await clickText(page, "button", "Race to 21");
   await waitForText(page, "Match setup");
 
   await keyboardStart(page);
@@ -127,6 +130,42 @@ async function assertPlayFirst(page) {
   assert(!pageShape.bodyText.startsWith("{"), "normal page is not raw JSON");
   assert(pageShape.preCount === 0, "normal page is not debug-pre dominated");
   assert(pageShape.textareaCount === 0, "initial page is play-first, before replay tools");
+}
+
+async function assertSelectedGameCardFlags(page, gameId) {
+  const result = await page.evaluate((gameId) => {
+    const card = document.querySelector(`.game-card[data-game-id="${gameId}"]`);
+    if (!card) return { ok: false, reason: `missing card ${gameId}` };
+    const option = card.querySelector(".game-option");
+    const mark = card.querySelector(".game-selected-mark");
+    const flags = Array.from(card.querySelectorAll(".game-flags > span"));
+    if (!option || !mark) return { ok: false, reason: "missing selected card elements" };
+    if (flags.length === 0) return { ok: false, reason: "selected card has no flag pills" };
+
+    const optionRect = option.getBoundingClientRect();
+    const markRect = mark.getBoundingClientRect();
+    for (const [index, flag] of flags.entries()) {
+      const flagRect = flag.getBoundingClientRect();
+      const intersects =
+        markRect.left < flagRect.right &&
+        markRect.right > flagRect.left &&
+        markRect.top < flagRect.bottom &&
+        markRect.bottom > flagRect.top;
+      if (intersects) {
+        return { ok: false, reason: `selected badge overlaps flag ${index}` };
+      }
+      const contained =
+        flagRect.left >= optionRect.left &&
+        flagRect.right <= optionRect.right &&
+        flagRect.top >= optionRect.top &&
+        flagRect.bottom <= optionRect.bottom;
+      if (!contained) {
+        return { ok: false, reason: `flag ${index} is clipped outside card` };
+      }
+    }
+    return { ok: true, reason: "" };
+  }, gameId);
+  assert(result.ok, result.reason);
 }
 
 async function clickTestId(page, testId) {
