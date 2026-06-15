@@ -218,6 +218,7 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
             pot_total,
             allocations,
             explanations,
+            ..
         }) => TerminalView::Showdown {
             winners: winners.clone(),
             pot_total: *pot_total,

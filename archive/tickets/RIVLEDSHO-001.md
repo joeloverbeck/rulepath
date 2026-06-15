@@ -1,6 +1,6 @@
 # RIVLEDSHO-001: Rust-authored showdown explanation builder + additive terminal view fields
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger/src/showdown.rs` (+ optional `games/river_ledger/src/display.rs`), `games/river_ledger/src/state.rs`, golden traces, serialization tests
@@ -86,3 +86,25 @@ Unit tests for the worked example, split, foldout, and per-category hand names; 
 1. `cargo test -p river_ledger --test rules`
 2. `cargo test -p river_ledger`
 3. `cargo run -p replay-check -- --game river_ledger` — confirms the additive serialization change does not break deterministic replay.
+
+## Outcome
+
+Completed: 2026-06-15
+
+What changed:
+
+- Added additive Rust-authored showdown explanation fields to the terminal showdown outcome and revealed hand data: match headline, decisive comparison, comparison basis, result label, hand name, rank explanation, comparison note, and best-five accessibility label.
+- Implemented deterministic River Ledger-local wording in `games/river_ledger/src/showdown.rs` for the worked Queens-over-Eights example, split pots, folded seats, category labels, tie-break basis, and best-five card labels.
+- Retained raw `category`, `tie_break_vector`, and `best_five` fields for the later details/debug tier; no `engine-core`, `game-stdlib`, evaluator, betting, or pot behavior changed.
+- Added focused rule tests for "Pair of Queens beats Pair of Eights" plus split/folded explanation paths.
+
+Deviations from plan:
+
+- No golden trace fixture files changed. The new fields are on internal terminal state/revealed showdown data for ticket 001; viewer-scoped projection and bridge JSON are intentionally owned by RIVLEDSHO-002/003.
+
+Verification:
+
+- `cargo test -p river_ledger --test rules` passed.
+- `cargo test -p river_ledger` passed.
+- `cargo run -p replay-check -- --game river_ledger` passed.
+- `cargo run -p fixture-check -- --game river_ledger` passed.
