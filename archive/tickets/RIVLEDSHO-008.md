@@ -1,6 +1,6 @@
 # RIVLEDSHO-008: Action-panel copy from Rust legal-action metadata
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/actions.rs`, `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -76,3 +76,28 @@ Render call price (`required_to_call`), adds-to-ledger (`adds_to_pot`), and cap-
 1. `cargo test -p river_ledger --test rules`
 2. `npm --prefix apps/web run smoke:ui`
 3. The crate action-tree test plus the UI smoke is the correct boundary; legality is unchanged (presentation + additive projection only).
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Added additive Rust legal-action metadata key `cap_remaining`, derived from the existing River Ledger raise-cap state and emitted alongside existing `required_to_call`, `adds_to_pot`, `pot_after`, and `raises_remaining`.
+- Extended rules tests to assert cap metadata at the initial decision and after the street cap is reached.
+- Updated the River Ledger action panel to render call price, adds-to-ledger, and cap-left values directly from action metadata, with no TypeScript amount or cap arithmetic.
+- Updated River Ledger browser smoke assertions for action-panel cost copy.
+- Updated River Ledger action clicking in e2e smokes to match the enabled action label exactly, because the new detail copy includes `Call price` inside every action button.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test rules`
+- `cargo test -p river_ledger`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `node apps/web/e2e/outcome-explanation.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because it does not mount DOM action buttons. The action-panel DOM assertions live in `river-ledger.smoke.mjs`, and the required `smoke:ui` command still passed.

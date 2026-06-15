@@ -99,8 +99,9 @@ try {
   assert(choices.length > 0, "river_ledger exposes Rust-provided legal action buttons");
   assert(choices.every((choice) => choice.aria.length > 0), "river_ledger choices have accessible names");
   assert(choices.every((choice) => !choice.disabled), "river_ledger renders legal enabled choices only for active human seat");
+  await assertActionPanelCostCopy(page);
 
-  await clickText(page, "button", "Fold");
+  await clickRiverAction(page, "Fold");
   await page.waitForFunction(() => document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]'), {
     timeout: 15000,
   });
@@ -167,7 +168,7 @@ async function playWorkedExampleShowdown(page, baseUrl) {
     "Check",
     "Check",
   ]) {
-    await clickText(page, "button", action);
+    await clickRiverAction(page, action);
     if (action !== "Check" || !(await hasRiverLedgerOutcome(page))) {
       await waitForText(page, "Available choices").catch(async () => {
         if (!(await hasRiverLedgerOutcome(page))) {
@@ -289,6 +290,21 @@ async function assertHandRankingReferenceAfterShowdown(page) {
   assert(summary.rows === 9, `post-showdown hand ranking reference has nine rows: ${summary.rows}`);
   assert(summary.currentText.includes("One pair"), `winning category is marked from showdown category: ${summary.currentText}`);
   assert(summary.currentAria === "true", `winning category exposes aria-current: ${summary.currentAria}`);
+}
+
+async function assertActionPanelCostCopy(page) {
+  const summary = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]'));
+    return buttons.map((button) => button.textContent ?? "");
+  });
+  assert(
+    summary.some((text) => text.includes("Call") && text.includes("Call price 2") && text.includes("Adds 2")),
+    `action panel renders call price and adds-to-ledger: ${summary.join(" | ")}`,
+  );
+  assert(
+    summary.every((text) => text.includes("Cap left 3")),
+    `action panel renders Rust cap remaining for each choice: ${summary.join(" | ")}`,
+  );
 }
 
 async function assertFoldedSeatNoStrength(page) {
@@ -431,6 +447,29 @@ async function assertStorageClean(page) {
 async function clickSeatFrameButton(page, text) {
   const handle = await waitForTextHandle(page, ".seat-frame-viewers button", text);
   await handle.click();
+}
+
+async function clickRiverAction(page, label) {
+  await page.waitForFunction(
+    (expected) =>
+      Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).some(
+        (button) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      ),
+    {},
+    label,
+  );
+  const handles = await page.$$('[data-testid^="choice-river-ledger-"]');
+  for (const handle of handles) {
+    const match = await handle.evaluate(
+      (button, expected) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      label,
+    );
+    if (match) {
+      await handle.click();
+      return;
+    }
+  }
+  throw new Error(`No River Ledger action labeled ${label}`);
 }
 
 async function clickText(page, selector, text) {

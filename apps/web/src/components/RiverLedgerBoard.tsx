@@ -160,7 +160,7 @@ export function RiverLedgerBoard({
                 onClick={() => onChoice?.(choice)}
               >
                 <strong>{choice.label}</strong>
-                <small>{actionDetail(choice)}</small>
+                <ActionChoiceDetails choice={choice} />
               </button>
             ))
           )}
@@ -268,18 +268,23 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function actionDetail(choice: ActionChoice): string {
+function ActionChoiceDetails({ choice }: { choice: ActionChoice }) {
   const metadata = choice.metadata ?? [];
-  const adds = metadata.find((entry) => entry.key === "adds_to_pot")?.value;
-  const required = metadata.find((entry) => entry.key === "required_to_call")?.value;
-  const potAfter = metadata.find((entry) => entry.key === "pot_after")?.value;
-  if (adds && adds !== "0") {
-    return potAfter ? `Adds ${adds}, pot ${potAfter}` : `Adds ${adds}`;
-  }
-  if (required && required !== "0") {
-    return `Matches ${required}`;
-  }
-  return "No units added";
+  const required = metadataValue(metadata, "required_to_call");
+  const adds = metadataValue(metadata, "adds_to_pot");
+  const cap = metadataValue(metadata, "cap_remaining");
+
+  return (
+    <small className="river-ledger-action-detail">
+      <span>Call price {required ?? "0"}</span>
+      <span>Adds {adds ?? "0"}</span>
+      <span>Cap left {cap ?? "0"}</span>
+    </small>
+  );
+}
+
+function metadataValue(metadata: NonNullable<ActionChoice["metadata"]>, key: string): string | undefined {
+  return metadata.find((entry) => entry.key === key)?.value;
 }
 
 function actionStatus(view: RiverLedgerPublicView, pending: boolean): string {

@@ -176,12 +176,12 @@ async function playRiverLedgerShowdown(page, baseUrl) {
     "Check",
     "Check",
   ]) {
-    await clickText(page, "button", action);
+    await clickRiverAction(page, action);
     await waitForText(page, "Available choices");
   }
 
   await markPreTerminalStatusRegion(page);
-  await clickText(page, "button", "Check");
+  await clickRiverAction(page, "Check");
   await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
 }
 
@@ -400,6 +400,29 @@ async function clickLabel(page, text) {
     }
     label.click();
   }, text);
+}
+
+async function clickRiverAction(page, label) {
+  await page.waitForFunction(
+    (expected) =>
+      Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).some(
+        (button) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      ),
+    {},
+    label,
+  );
+  const handles = await page.$$('[data-testid^="choice-river-ledger-"]');
+  for (const handle of handles) {
+    const match = await handle.evaluate(
+      (button, expected) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      label,
+    );
+    if (match) {
+      await handle.click();
+      return;
+    }
+  }
+  throw new Error(`No River Ledger action labeled ${label}`);
 }
 
 async function clickText(page, selector, text) {

@@ -212,6 +212,9 @@ fn action_choice(
         RiverLedgerAction::Raise => required_to_call + u16::from(state.betting.street.unit()),
     };
     let accessibility_copy = accessibility_copy(action, adds_to_pot, required_to_call);
+    let cap_remaining = crate::ids::MAX_RAISES_PER_STREET
+        .saturating_sub(state.betting.raises_this_street)
+        .to_string();
     let mut choice = ActionChoice::leaf(action.segment(), action.label(), &accessibility_copy);
     choice.metadata = vec![
         metadata("action_family", action.segment()),
@@ -228,12 +231,8 @@ fn action_choice(
                 .saturating_add(adds_to_pot)
                 .to_string(),
         ),
-        metadata(
-            "raises_remaining",
-            crate::ids::MAX_RAISES_PER_STREET
-                .saturating_sub(state.betting.raises_this_street)
-                .to_string(),
-        ),
+        metadata("raises_remaining", cap_remaining.clone()),
+        metadata("cap_remaining", cap_remaining),
         metadata("accessibility_copy", accessibility_copy),
     ];
     choice.tags = vec!["betting".to_owned(), action.segment().to_owned()];

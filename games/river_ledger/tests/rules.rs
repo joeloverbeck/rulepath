@@ -259,6 +259,21 @@ fn legal_action_generation_uses_active_seat_call_price_and_cap_state() {
         .metadata
         .iter()
         .any(|entry| entry.key == "adds_to_pot" && entry.value == "2"));
+    assert!(call
+        .metadata
+        .iter()
+        .any(|entry| entry.key == "cap_remaining" && entry.value == "3"));
+
+    let mut capped = advance_four_player_hand_to_flop();
+    apply_segment(&mut capped, "seat_1", "bet");
+    apply_segment(&mut capped, "seat_2", "raise");
+    apply_segment(&mut capped, "seat_3", "raise");
+    apply_segment(&mut capped, "seat_0", "raise");
+    let capped_tree = legal_action_tree(&capped, &actor("seat_1"));
+    assert!(capped_tree.root.choices.iter().all(|choice| choice
+        .metadata
+        .iter()
+        .any(|entry| entry.key == "cap_remaining" && entry.value == "0")));
 }
 
 #[test]
@@ -800,6 +815,7 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
         "adds_to_pot",
         "pot_after",
         "raises_remaining",
+        "cap_remaining",
         "accessibility_copy",
     ];
 

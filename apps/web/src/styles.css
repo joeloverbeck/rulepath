@@ -4121,6 +4121,11 @@ svg g[data-effect-kind] {
   opacity: 0.58;
 }
 
+.river-ledger-action-detail {
+  display: grid;
+  gap: 2px;
+}
+
 .river-ledger-allocations {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
