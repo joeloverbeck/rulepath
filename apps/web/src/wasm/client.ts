@@ -726,11 +726,18 @@ export type RiverLedgerShowdownStrength = {
   category: string;
   tie_break_vector: number[];
   best_five: RiverLedgerCardView[];
+  category_ladder_position: RiverLedgerCategoryLadderPosition;
   result_label: string;
   hand_name: string;
   rank_explanation: string;
   comparison_note: string;
   best_five_accessibility_label: string;
+};
+
+export type RiverLedgerCategoryLadderPosition = {
+  position: number;
+  total: number;
+  description: string;
 };
 
 export type RiverLedgerOutcomeStanding = OutcomeRationaleStanding & {

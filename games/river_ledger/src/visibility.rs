@@ -3,7 +3,7 @@ use engine_core::{FreshnessToken, HashValue, StableSerialize, Viewer};
 use crate::{
     cards::Card,
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
-    state::{Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
+    state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
     ui::{ui_metadata, UiMetadata},
 };
 
@@ -103,6 +103,7 @@ pub struct ShowdownStrengthView {
     pub category: String,
     pub tie_break_vector: Vec<u8>,
     pub best_five: Vec<CardView>,
+    pub category_ladder_position: CategoryLadderPosition,
     pub result_label: String,
     pub hand_name: String,
     pub rank_explanation: String,
@@ -345,6 +346,7 @@ fn outcome_rationale(state: &RiverLedgerState) -> Option<OutcomeRationaleView> {
                                     .copied()
                                     .map(card_view)
                                     .collect(),
+                                category_ladder_position: reveal.category_ladder_position.clone(),
                                 result_label: reveal.result_label.clone(),
                                 hand_name: reveal.hand_name.clone(),
                                 rank_explanation: reveal.rank_explanation.clone(),
@@ -480,7 +482,7 @@ fn encode_rationale_seat(seat: &SeatOutcomeBreakdownView) -> String {
 
 fn encode_strength(strength: &ShowdownStrengthView) -> String {
     format!(
-        "{}:{}:{}:{}:{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}",
         strength.category,
         strength
             .tie_break_vector
@@ -489,6 +491,7 @@ fn encode_strength(strength: &ShowdownStrengthView) -> String {
             .collect::<Vec<_>>()
             .join(","),
         encode_cards(&strength.best_five),
+        strength.category_ladder_position.description,
         strength.result_label,
         strength.hand_name,
         strength.rank_explanation,

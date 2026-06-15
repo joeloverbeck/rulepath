@@ -286,6 +286,12 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 let strength = revealed.strength.as_ref().expect("revealed strength");
                 assert_eq!(strength.result_label, "Split win");
                 assert_eq!(strength.hand_name, "Ace-high straight flush");
+                assert_eq!(strength.category_ladder_position.position, 1);
+                assert_eq!(strength.category_ladder_position.total, 9);
+                assert_eq!(
+                    strength.category_ladder_position.description,
+                    "Straight flush is category 1 of 9 from strongest to weakest."
+                );
                 assert_eq!(
                     strength.best_five_accessibility_label,
                     "Best five cards: ace of hearts, king of hearts, queen of hearts, jack of hearts, ten of hearts."

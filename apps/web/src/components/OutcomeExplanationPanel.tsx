@@ -56,6 +56,11 @@ type RiverLedgerShowdownStrength = {
   category: string;
   tie_break_vector: readonly number[];
   best_five: readonly RiverLedgerCardLike[];
+  category_ladder_position?: {
+    position: number;
+    total: number;
+    description: string;
+  };
   result_label: string;
   hand_name: string;
   rank_explanation: string;
@@ -274,6 +279,7 @@ function RiverLedgerShowdown({ explanation }: { explanation: OutcomeExplanationS
   if (!standings) {
     return null;
   }
+  const teachingAid = riverLedgerTeachingAid(standings);
 
   return (
     <section className="river-ledger-showdown-panel" aria-label="Showdown explanation">
@@ -282,6 +288,13 @@ function RiverLedgerShowdown({ explanation }: { explanation: OutcomeExplanationS
         {explanation.decisiveComparison ? <p>{explanation.decisiveComparison}</p> : null}
         {explanation.comparisonBasis ? <p>{explanation.comparisonBasis}</p> : null}
       </div>
+
+      {teachingAid ? (
+        <aside className="river-ledger-teaching-aid" aria-label="Teaching aid, not a game value">
+          <span>Teaching aid, not a game value</span>
+          <p>{teachingAid.description}</p>
+        </aside>
+      ) : null}
 
       <div className="river-ledger-showdown-hands">
         {standings.map((standing) => {
@@ -425,4 +438,9 @@ function riverLedgerShowdownData(
   }
   const standings = explanation.finalStanding.filter((standing) => Boolean(standing.showdownStrength));
   return standings.length ? standings : null;
+}
+
+function riverLedgerTeachingAid(standings: readonly OutcomeExplanationStanding[]) {
+  return standings.find((standing) => standing.emphasized && standing.showdownStrength?.category_ladder_position)
+    ?.showdownStrength?.category_ladder_position;
 }

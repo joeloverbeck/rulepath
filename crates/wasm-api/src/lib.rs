@@ -7744,7 +7744,7 @@ fn river_showdown_strength_json(
     strength: &river_ledger::visibility::ShowdownStrengthView,
 ) -> String {
     format!(
-        "{{\"category\":\"{}\",\"tie_break_vector\":[{}],\"best_five\":[{}],\"result_label\":\"{}\",\"hand_name\":\"{}\",\"rank_explanation\":\"{}\",\"comparison_note\":\"{}\",\"best_five_accessibility_label\":\"{}\"}}",
+        "{{\"category\":\"{}\",\"tie_break_vector\":[{}],\"best_five\":[{}],\"category_ladder_position\":{},\"result_label\":\"{}\",\"hand_name\":\"{}\",\"rank_explanation\":\"{}\",\"comparison_note\":\"{}\",\"best_five_accessibility_label\":\"{}\"}}",
         escape_json(&strength.category),
         strength
             .tie_break_vector
@@ -7758,11 +7758,23 @@ fn river_showdown_strength_json(
             .map(river_card_json)
             .collect::<Vec<_>>()
             .join(","),
+        river_category_ladder_position_json(&strength.category_ladder_position),
         escape_json(&strength.result_label),
         escape_json(&strength.hand_name),
         escape_json(&strength.rank_explanation),
         escape_json(&strength.comparison_note),
         escape_json(&strength.best_five_accessibility_label)
+    )
+}
+
+fn river_category_ladder_position_json(
+    position: &river_ledger::state::CategoryLadderPosition,
+) -> String {
+    format!(
+        "{{\"position\":{},\"total\":{},\"description\":\"{}\"}}",
+        position.position,
+        position.total,
+        escape_json(&position.description)
     )
 }
 
@@ -12492,6 +12504,8 @@ mod tests {
         assert!(showdown.contains("\"hand_name\":\""));
         assert!(showdown.contains("\"rank_explanation\":\""));
         assert!(showdown.contains("\"comparison_note\":\""));
+        assert!(showdown.contains("\"category_ladder_position\":{\"position\":"));
+        assert!(showdown.contains("\"description\":\""));
         assert!(showdown.contains("\"best_five_accessibility_label\":\""));
     }
 

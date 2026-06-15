@@ -1,6 +1,6 @@
 # RIVLEDSHO-010: Terminal-only teaching-strength aid (category-ladder position)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes — `games/river_ledger/src/showdown.rs` (or `visibility.rs`), `apps/web/src/wasm/client.ts`, `apps/web/src/components/OutcomeExplanationPanel.tsx`
@@ -77,3 +77,28 @@ Add the `client.ts` type; render the aid in the terminal panel, visibly labeled 
 1. `cargo test -p river_ledger --test visibility`
 2. `npm --prefix apps/web run smoke:ui`
 3. The crate no-leak test plus the UI smoke is the correct boundary; the aid carries no behavior to replay-check.
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Added additive `CategoryLadderPosition` data to revealed River Ledger showdown strength, computed in Rust from the already-evaluated/revealed hand category.
+- Projected the field only through existing revealed `strength`; folded/non-revealed seats still carry `strength: None`.
+- Exposed the field through the WASM bridge and TypeScript client type.
+- Rendered the terminal-only aid in the River Ledger showdown panel with the visible label `Teaching aid, not a game value`.
+- Added visibility, bridge, and browser assertions for no-leak reveal scope and the worked-example `One pair is category 8 of 9 from strongest to weakest.` text.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger --test visibility`
+- `cargo test -p river_ledger`
+- `cargo test -p wasm-api`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because it does not mount the DOM teaching aid. The DOM assertion lives in `river-ledger.smoke.mjs`, and the required `smoke:ui` command still passed.

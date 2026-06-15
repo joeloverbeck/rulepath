@@ -6,7 +6,8 @@ use crate::{
     ids::RiverLedgerSeat,
     pot::{allocate_single_pot, PotAllocation},
     state::{
-        RiverLedgerState, SeatStatus, ShowdownReveal, ShowdownSeatExplanation, TerminalOutcome,
+        CategoryLadderPosition, RiverLedgerState, SeatStatus, ShowdownReveal,
+        ShowdownSeatExplanation, TerminalOutcome,
     },
 };
 
@@ -169,6 +170,7 @@ fn reveal_for(
         best_five: entry.evaluation.used_cards,
         category: entry.evaluation.category.as_str().to_owned(),
         tie_break_vector: entry.evaluation.tie_break_vector.clone(),
+        category_ladder_position: category_ladder_position(entry.evaluation.category),
         result_label: result_label(entry.seat, winners).to_owned(),
         rank_explanation: rank_explanation(&entry.evaluation),
         comparison_note: comparison_note(entry, winners, primary_winner, closest_challenger),
@@ -343,6 +345,29 @@ fn hand_name(evaluation: &HandEvaluation) -> String {
         HandCategory::StraightFlush => {
             format!("{}-high straight flush", rank_singular(ranks[0]))
         }
+    }
+}
+
+fn category_ladder_position(category: HandCategory) -> CategoryLadderPosition {
+    const TOTAL: u8 = 9;
+    let position = match category {
+        HandCategory::StraightFlush => 1,
+        HandCategory::FourOfAKind => 2,
+        HandCategory::FullHouse => 3,
+        HandCategory::Flush => 4,
+        HandCategory::Straight => 5,
+        HandCategory::ThreeOfAKind => 6,
+        HandCategory::TwoPair => 7,
+        HandCategory::OnePair => 8,
+        HandCategory::HighCard => 9,
+    };
+    CategoryLadderPosition {
+        position,
+        total: TOTAL,
+        description: format!(
+            "{} is category {position} of {TOTAL} from strongest to weakest.",
+            category_label(category)
+        ),
     }
 }
 

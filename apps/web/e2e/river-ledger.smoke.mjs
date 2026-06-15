@@ -123,6 +123,7 @@ try {
   await assertWorkedExampleShowdown(page);
   await assertShowdownCardComponents(page);
   await assertHandRankingReferenceAfterShowdown(page);
+  await assertTeachingAidAfterShowdown(page);
   await assertStreetStripAfterShowdown(page);
   assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
@@ -292,6 +293,23 @@ async function assertHandRankingReferenceAfterShowdown(page) {
   assert(summary.rows === 9, `post-showdown hand ranking reference has nine rows: ${summary.rows}`);
   assert(summary.currentText.includes("One pair"), `winning category is marked from showdown category: ${summary.currentText}`);
   assert(summary.currentAria === "true", `winning category exposes aria-current: ${summary.currentAria}`);
+}
+
+async function assertTeachingAidAfterShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const aid = document.querySelector(".river-ledger-teaching-aid");
+    return {
+      exists: Boolean(aid),
+      label: aid?.querySelector("span")?.textContent ?? "",
+      text: aid?.textContent ?? "",
+    };
+  });
+  assert(summary.exists, "terminal teaching aid renders after showdown");
+  assert(summary.label === "Teaching aid, not a game value", `teaching aid has non-canonical label: ${summary.label}`);
+  assert(
+    summary.text.includes("One pair is category 8 of 9 from strongest to weakest."),
+    `teaching aid renders Rust ladder position: ${summary.text}`,
+  );
 }
 
 async function assertActionPanelCostCopy(page) {
