@@ -120,7 +120,10 @@ For each ticket:
    repo's guard scripts when present and avoid introducing guard-trigger
    vocabulary such as debug payload terms into helper names, visible-adjacent
    strings, comments, or tests unless the checker is intentionally updated with
-   a documented reason.
+   a documented reason. When a ticket names a browser or e2e smoke as proof for
+   a game-specific or UI-specific path, inspect the smoke enough to confirm it
+   actually exercises that game/path. If it does not, extend the smoke or record
+   why another proof surface is sufficient before claiming acceptance.
    If a browser smoke fails before assertions because the environment cannot
    bind its local `127.0.0.1` server, for example `listen EPERM`, rerun through
    the approved escalation path for localhost binding and record both the
@@ -168,6 +171,11 @@ rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes" archive/
     inspect the staged index with `git diff --cached --name-status` or an
     equivalent path-scoped staged diff, and also check `git status --short`.
     Unstage or exclude unrelated user changes before committing.
+    After build, copy, codegen, fixture-regeneration, or WASM/web bundling
+    commands, run `git status --short` and classify generated changes before
+    staging. Commit generated artifacts only when the ticket explicitly owns
+    them, and otherwise leave or discard only your own unintended generated
+    outputs without touching unrelated user changes.
 11. Commit the completed ticket work before moving on. Use a concise message
     that names the ticket.
 
@@ -390,6 +398,7 @@ index points at the archived spec.
 Final responses must include:
 
 - Tickets completed and archived.
+- Per-ticket commit IDs when commits were made as part of the series.
 - Reference artifact archived, or reason no spec/reference artifact was closed.
 - Verification commands actually run.
 - Any checks not run and why.
