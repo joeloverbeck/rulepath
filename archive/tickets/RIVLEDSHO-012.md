@@ -1,6 +1,6 @@
 # RIVLEDSHO-012: Closeout — RULE-COVERAGE / UI.md reconciliation + index flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: None
@@ -78,3 +78,28 @@ Flip this spec's index row to `Done` with evidence; touch `apps/web/README.md` o
 1. `cargo run -p rule-coverage -- --game river_ledger`
 2. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs`
 3. `npm --prefix apps/web run smoke:e2e` — full lane is the correct closeout boundary; the gate is exercised by running existing scripts plus the doc checkers.
+
+## Outcome
+
+Completed 2026-06-15. Reconciled River Ledger's docs/status surfaces after the
+RIVLEDSHO implementation tickets:
+
+- Refreshed `games/river_ledger/docs/RULE-COVERAGE.md` UI rows for the shipped
+  presentation, action metadata, ledger copy, showdown explanation, no-casino,
+  and browser no-leak surfaces. `RL-UI-PREVIEW-001` remains
+  `intentionally-deferred` because this series did not ship a separate River
+  Ledger preview surface.
+- Updated `games/river_ledger/docs/UI.md` for Rust-authored showdown fields,
+  best-five labels, terminal-only category-ladder teaching aid, hand-ranking
+  reference, action metadata copy, seat/street affordances, and ledger wording.
+- Flipped the active spec index row in `specs/README.md` to `Done` with
+  closeout evidence. No `apps/web/README.md` edit was needed because no catalog
+  or shell surface name changed.
+
+Verification:
+
+- `cargo run -p rule-coverage -- --game river_ledger`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
