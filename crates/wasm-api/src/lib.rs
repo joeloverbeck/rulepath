@@ -7520,7 +7520,7 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
 
 fn river_view_json(view: &river_ledger::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"terminal\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7544,6 +7544,9 @@ fn river_view_json(view: &river_ledger::PublicView) -> String {
             .collect::<Vec<_>>()
             .join(","),
         river_terminal_json(&view.terminal),
+        view.terminal_rationale
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), river_rationale_json),
         view.freshness_token.0,
         river_private_view_json(&view.private_view),
         river_ui_json(&view.ui)
@@ -7636,6 +7639,82 @@ fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> Str
                 .join(",")
         ),
     }
+}
+
+fn river_rationale_json(rationale: &river_ledger::visibility::OutcomeRationaleView) -> String {
+    let decisive_rule_ids = rationale
+        .decisive_rule_ids
+        .iter()
+        .map(|rule_id| format!("\"{}\"", escape_json(rule_id)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let final_standing = rationale
+        .per_seat
+        .iter()
+        .map(river_rationale_standing_json)
+        .collect::<Vec<_>>()
+        .join(",");
+
+    format!(
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
+        escape_json(&rationale.result_kind),
+        escape_json(&rationale.decisive_cause),
+        escape_json(&rationale.template_key),
+        decisive_rule_ids,
+        final_standing
+    )
+}
+
+fn river_rationale_standing_json(
+    breakdown: &river_ledger::visibility::SeatOutcomeBreakdownView,
+) -> String {
+    let mut values = vec![
+        format!(
+            "{{\"label\":\"Contribution\",\"value\":{}}}",
+            breakdown.contribution
+        ),
+        format!(
+            "{{\"label\":\"Allocation\",\"value\":{}}}",
+            breakdown.allocation
+        ),
+    ];
+    if let Some(strength) = &breakdown.strength {
+        values.push(format!(
+            "{{\"label\":\"Category\",\"value\":\"{}\"}}",
+            escape_json(&strength.category)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Tie break\",\"value\":\"{}\"}}",
+            escape_json(
+                &strength
+                    .tie_break_vector
+                    .iter()
+                    .map(u8::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        ));
+        values.push(format!(
+            "{{\"label\":\"Best five\",\"value\":\"{}\"}}",
+            escape_json(
+                &strength
+                    .best_five
+                    .iter()
+                    .map(|card| card.label.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )
+        ));
+    }
+
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{}]}}",
+        breakdown.seat.as_str(),
+        breakdown.seat.as_str(),
+        escape_json(&breakdown.result),
+        matches!(breakdown.result.as_str(), "win" | "split"),
+        values.join(",")
+    )
 }
 
 fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
@@ -12277,6 +12356,70 @@ mod tests {
     }
 
     #[test]
+    fn river_ledger_view_projects_terminal_rationale_template_keys() {
+        let non_terminal = get_terminal_river_view(21, 4, &[]);
+        assert!(non_terminal.contains("\"terminal_rationale\":null"));
+
+        let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
+        assert!(foldout.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"last_live_hand\",\"decisive_cause\":\"last_live_after_folds\",\"template_key\":\"river_ledger.last_live_fold_win\""
+        ));
+        assert!(
+            foldout.contains("\"decisive_rule_ids\":[\"RL-END-LAST-LIVE\",\"RL-SCORE-POT-AWARD\"]")
+        );
+        assert!(!foldout.contains("\"label\":\"Category\""));
+        assert!(!foldout.contains("\"label\":\"Tie break\""));
+
+        let internal = river_setup_match(
+            Seed(21),
+            &river_seats_for_count(3),
+            &river_ledger::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let hidden_cards = (0..3)
+            .flat_map(|seat_index| {
+                internal
+                    .private_hand_for_internal(
+                        RiverLedgerSeat::from_index(seat_index).expect("valid seat"),
+                    )
+                    .expect("private hand")
+            })
+            .collect::<Vec<_>>();
+        assert_no_river_cards(&foldout, &hidden_cards);
+
+        let showdown = get_terminal_river_view(
+            0,
+            4,
+            &[
+                ("seat_3", "call"),
+                ("seat_0", "call"),
+                ("seat_1", "call"),
+                ("seat_2", "check"),
+                ("seat_1", "check"),
+                ("seat_2", "check"),
+                ("seat_3", "check"),
+                ("seat_0", "check"),
+                ("seat_1", "check"),
+                ("seat_2", "check"),
+                ("seat_3", "check"),
+                ("seat_0", "check"),
+                ("seat_1", "check"),
+                ("seat_2", "check"),
+                ("seat_3", "check"),
+                ("seat_0", "check"),
+            ],
+        );
+        assert!(showdown.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"showdown_win\",\"decisive_cause\":\"best_showdown_hand\",\"template_key\":\"river_ledger.showdown_best_hand_win\""
+        ));
+        assert!(
+            showdown.contains("\"decisive_rule_ids\":[\"RL-SCORE-SHOWDOWN\",\"RL-END-SHOWDOWN\"]")
+        );
+        assert!(showdown.contains("\"label\":\"Category\""));
+        assert!(showdown.contains("\"label\":\"Best five\""));
+    }
+
+    #[test]
     fn plain_tricks_view_projects_terminal_rationale_template_keys() {
         let non_terminal = get_terminal_plain_view(0, &[]);
         assert!(non_terminal.contains("\"terminal_rationale\":null"));
@@ -12955,6 +13098,19 @@ mod tests {
         get_view(&match_id, None).expect("observer view returned")
     }
 
+    fn get_terminal_river_view(seed: u64, seat_count: u8, actions: &[(&str, &str)]) -> String {
+        let created = new_match_with_seat_count("river_ledger", seed, usize::from(seat_count))
+            .expect("match created");
+        let match_id = extract_match_id(&created);
+
+        for (freshness_token, (actor, action_path)) in actions.iter().enumerate() {
+            apply_action(&match_id, actor, action_path, freshness_token as u64)
+                .expect("river action applies");
+        }
+
+        get_view(&match_id, None).expect("observer view returned")
+    }
+
     const PLAIN_TRICKS_WIN_ACTIONS: [(&str, &str); 24] = [
         ("seat_0", "play>gale_1"),
         ("seat_1", "play>gale_2"),
@@ -13077,6 +13233,16 @@ mod tests {
                 !input.contains(card.as_str()),
                 "hidden poker_lite card {} leaked in {input}",
                 card.as_str()
+            );
+        }
+    }
+
+    fn assert_no_river_cards(input: &str, cards: &[river_ledger::Card]) {
+        for card in cards {
+            assert!(
+                !input.contains(&card.id()),
+                "hidden river_ledger card {} leaked in {input}",
+                card.id()
             );
         }
     }

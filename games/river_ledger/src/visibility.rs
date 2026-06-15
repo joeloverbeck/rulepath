@@ -26,6 +26,7 @@ pub struct PublicView {
     pub reserved_community_count: u8,
     pub deck_tail_count: u8,
     pub terminal: TerminalView,
+    pub terminal_rationale: Option<OutcomeRationaleView>,
     pub freshness_token: FreshnessToken,
     pub private_view: PrivateView,
     pub ui: UiMetadata,
@@ -76,6 +77,31 @@ pub enum TerminalView {
     },
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeRationaleView {
+    pub result_kind: String,
+    pub decisive_cause: String,
+    pub template_key: String,
+    pub decisive_rule_ids: Vec<String>,
+    pub per_seat: Vec<SeatOutcomeBreakdownView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatOutcomeBreakdownView {
+    pub seat: RiverLedgerSeat,
+    pub result: String,
+    pub allocation: u16,
+    pub contribution: u16,
+    pub strength: Option<ShowdownStrengthView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownStrengthView {
+    pub category: String,
+    pub tie_break_vector: Vec<u8>,
+    pub best_five: Vec<CardView>,
+}
+
 pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
     let viewer_seat = viewer_seat(state, viewer);
     PublicView {
@@ -107,6 +133,7 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
         reserved_community_count: state.community_deck_internal().len() as u8,
         deck_tail_count: state.deck_tail_internal().len() as u8,
         terminal: terminal_view(state.terminal_outcome.as_ref()),
+        terminal_rationale: outcome_rationale(state),
         freshness_token: state.freshness_token,
         private_view: private_view(state, viewer_seat),
         ui: ui_metadata(),
@@ -120,7 +147,7 @@ pub fn view_hash(view: &PublicView) -> HashValue {
 impl PublicView {
     pub fn stable_summary(&self) -> String {
         format!(
-            "schema={};rules={};game={};variant={};label={};phase={};active={};button={};sb={};bb={};pot={};seats={};board={};reserved={};tail={};terminal={};freshness={};private={};ui={}",
+            "schema={};rules={};game={};variant={};label={};phase={};active={};button={};sb={};bb={};pot={};seats={};board={};reserved={};tail={};terminal={};rationale={};freshness={};private={};ui={}",
             self.schema_version,
             self.rules_version,
             self.game_id,
@@ -137,6 +164,7 @@ impl PublicView {
             self.reserved_community_count,
             self.deck_tail_count,
             encode_terminal(&self.terminal),
+            encode_rationale(self.terminal_rationale.as_ref()),
             self.freshness_token.0,
             encode_private(&self.private_view),
             self.ui.display_name,
@@ -203,6 +231,113 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
                 .collect(),
         },
     }
+}
+
+fn outcome_rationale(state: &RiverLedgerState) -> Option<OutcomeRationaleView> {
+    match state.terminal_outcome.as_ref()? {
+        TerminalOutcome::LastLiveHand { winner, pot_total } => Some(OutcomeRationaleView {
+            result_kind: "last_live_hand".to_owned(),
+            decisive_cause: "last_live_after_folds".to_owned(),
+            template_key: "river_ledger.last_live_fold_win".to_owned(),
+            decisive_rule_ids: rule_ids(&["RL-END-LAST-LIVE", "RL-SCORE-POT-AWARD"]),
+            per_seat: state
+                .ledger
+                .seats
+                .iter()
+                .map(|ledger| SeatOutcomeBreakdownView {
+                    seat: ledger.seat,
+                    result: if ledger.seat == *winner {
+                        "win".to_owned()
+                    } else {
+                        "fold_loss".to_owned()
+                    },
+                    allocation: if ledger.seat == *winner {
+                        *pot_total
+                    } else {
+                        0
+                    },
+                    contribution: ledger.total_contribution,
+                    strength: None,
+                })
+                .collect(),
+        }),
+        TerminalOutcome::Showdown {
+            winners,
+            allocations,
+            explanations,
+            ..
+        } => {
+            let split = winners.len() > 1;
+            Some(OutcomeRationaleView {
+                result_kind: if split {
+                    "showdown_split".to_owned()
+                } else {
+                    "showdown_win".to_owned()
+                },
+                decisive_cause: if split {
+                    "equal_best_hand_split".to_owned()
+                } else {
+                    "best_showdown_hand".to_owned()
+                },
+                template_key: if split {
+                    "river_ledger.showdown_split_pot".to_owned()
+                } else {
+                    "river_ledger.showdown_best_hand_win".to_owned()
+                },
+                decisive_rule_ids: if split {
+                    rule_ids(&["RL-SCORE-SHOWDOWN", "RL-SCORE-SPLIT", "RL-END-SHOWDOWN"])
+                } else {
+                    rule_ids(&["RL-SCORE-SHOWDOWN", "RL-END-SHOWDOWN"])
+                },
+                per_seat: state
+                    .ledger
+                    .seats
+                    .iter()
+                    .map(|ledger| {
+                        let allocation = allocations
+                            .iter()
+                            .find(|share| share.seat == ledger.seat)
+                            .map(|share| share.amount)
+                            .unwrap_or(0);
+                        let revealed = explanations
+                            .iter()
+                            .find(|explanation| explanation.seat == ledger.seat)
+                            .and_then(|explanation| explanation.revealed.as_ref());
+                        SeatOutcomeBreakdownView {
+                            seat: ledger.seat,
+                            result: if winners.contains(&ledger.seat) {
+                                if split {
+                                    "split".to_owned()
+                                } else {
+                                    "win".to_owned()
+                                }
+                            } else if revealed.is_some() {
+                                "showdown_loss".to_owned()
+                            } else {
+                                "folded".to_owned()
+                            },
+                            allocation,
+                            contribution: ledger.total_contribution,
+                            strength: revealed.map(|reveal| ShowdownStrengthView {
+                                category: reveal.category.clone(),
+                                tie_break_vector: reveal.tie_break_vector.clone(),
+                                best_five: reveal
+                                    .best_five
+                                    .iter()
+                                    .copied()
+                                    .map(card_view)
+                                    .collect(),
+                            }),
+                        }
+                    })
+                    .collect(),
+            })
+        }
+    }
+}
+
+fn rule_ids(ids: &[&str]) -> Vec<String> {
+    ids.iter().map(|id| (*id).to_owned()).collect()
 }
 
 fn card_view(card: Card) -> CardView {
@@ -283,6 +418,52 @@ fn encode_terminal(terminal: &TerminalView) -> String {
     }
 }
 
+fn encode_rationale(rationale: Option<&OutcomeRationaleView>) -> String {
+    let Some(rationale) = rationale else {
+        return "none".to_owned();
+    };
+    format!(
+        "{}:{}:{}:{}:{}",
+        rationale.result_kind,
+        rationale.decisive_cause,
+        rationale.template_key,
+        rationale.decisive_rule_ids.join(","),
+        rationale
+            .per_seat
+            .iter()
+            .map(encode_rationale_seat)
+            .collect::<Vec<_>>()
+            .join("|")
+    )
+}
+
+fn encode_rationale_seat(seat: &SeatOutcomeBreakdownView) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        seat.seat.as_str(),
+        seat.result,
+        seat.allocation,
+        seat.contribution,
+        seat.strength
+            .as_ref()
+            .map_or_else(|| "none".to_owned(), encode_strength)
+    )
+}
+
+fn encode_strength(strength: &ShowdownStrengthView) -> String {
+    format!(
+        "{}:{}:{}",
+        strength.category,
+        strength
+            .tie_break_vector
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(","),
+        encode_cards(&strength.best_five)
+    )
+}
+
 fn seat_option(seat: Option<RiverLedgerSeat>) -> String {
     seat.map(RiverLedgerSeat::as_str)
         .unwrap_or_else(|| "none".to_owned())
@@ -299,15 +480,76 @@ fn phase(phase: Phase) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use engine_core::{SeatId, Seed, Viewer};
+    use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, Viewer};
 
     use super::*;
-    use crate::{canonical_deck, setup_match, SetupOptions};
+    use crate::{
+        apply_action, canonical_deck, setup_match, validate_command, Rank, SetupOptions, Suit,
+    };
 
     fn seats(count: usize) -> Vec<SeatId> {
         (0..count)
             .map(|index| SeatId(format!("seat_{index}")))
             .collect()
+    }
+
+    fn actor(seat: &str) -> Actor {
+        Actor {
+            seat_id: SeatId(seat.to_owned()),
+        }
+    }
+
+    fn command(state: &RiverLedgerState, seat: &str, segment: &str) -> CommandEnvelope {
+        CommandEnvelope {
+            actor: actor(seat),
+            action_path: ActionPath {
+                segments: vec![segment.to_owned()],
+            },
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(1),
+        }
+    }
+
+    fn apply_segment(state: &mut RiverLedgerState, seat: &str, segment: &str) {
+        let action =
+            validate_command(state, &command(state, seat, segment)).expect("valid command");
+        apply_action(state, action).expect("apply succeeds");
+    }
+
+    fn check_down_four_player_hand(seed: u64) -> RiverLedgerState {
+        let mut state =
+            setup_match(Seed(seed), &seats(4), &SetupOptions::default()).expect("setup");
+        for (seat, segment) in [
+            ("seat_3", "call"),
+            ("seat_0", "call"),
+            ("seat_1", "call"),
+            ("seat_2", "check"),
+            ("seat_1", "check"),
+            ("seat_2", "check"),
+            ("seat_3", "check"),
+            ("seat_0", "check"),
+            ("seat_1", "check"),
+            ("seat_2", "check"),
+            ("seat_3", "check"),
+            ("seat_0", "check"),
+            ("seat_1", "check"),
+            ("seat_2", "check"),
+            ("seat_3", "check"),
+            ("seat_0", "check"),
+        ] {
+            apply_segment(&mut state, seat, segment);
+        }
+        state
+    }
+
+    fn royal_board() -> Vec<Card> {
+        vec![
+            Card::new(Rank::Ten, Suit::Hearts),
+            Card::new(Rank::Jack, Suit::Hearts),
+            Card::new(Rank::Queen, Suit::Hearts),
+            Card::new(Rank::King, Suit::Hearts),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]
     }
 
     #[test]
@@ -379,5 +621,89 @@ mod tests {
         assert_eq!(view_hash(&observer), view_hash(&observer_again));
         assert_ne!(view_hash(&observer), view_hash(&seat_0));
         assert_ne!(view_hash(&seat_0), view_hash(&seat_1));
+    }
+
+    #[test]
+    fn foldout_terminal_rationale_reveals_no_private_strength() {
+        let mut state = setup_match(Seed(21), &seats(3), &SetupOptions::default()).expect("setup");
+        apply_segment(&mut state, "seat_0", "fold");
+        apply_segment(&mut state, "seat_1", "fold");
+
+        let view = project_view(&state, &Viewer { seat_id: None });
+        let rationale = view
+            .terminal_rationale
+            .as_ref()
+            .expect("terminal rationale");
+
+        assert_eq!(rationale.result_kind, "last_live_hand");
+        assert_eq!(rationale.decisive_cause, "last_live_after_folds");
+        assert_eq!(rationale.template_key, "river_ledger.last_live_fold_win");
+        assert!(rationale
+            .per_seat
+            .iter()
+            .all(|seat| seat.strength.is_none()));
+
+        let summary = view.stable_summary();
+        for card in state.private_hands_internal().iter().flatten() {
+            assert!(
+                !summary.contains(&card.id()),
+                "foldout rationale leaked {}",
+                card.id()
+            );
+        }
+    }
+
+    #[test]
+    fn showdown_win_terminal_rationale_carries_rust_revealed_strength() {
+        let state = (0..200)
+            .map(check_down_four_player_hand)
+            .find(|state| {
+                matches!(
+                    state.terminal_outcome.as_ref(),
+                    Some(TerminalOutcome::Showdown { winners, .. }) if winners.len() == 1
+                )
+            })
+            .expect("seed with one showdown winner");
+
+        let view = project_view(&state, &Viewer { seat_id: None });
+        let rationale = view
+            .terminal_rationale
+            .as_ref()
+            .expect("terminal rationale");
+
+        assert_eq!(rationale.result_kind, "showdown_win");
+        assert_eq!(rationale.decisive_cause, "best_showdown_hand");
+        assert_eq!(
+            rationale.template_key,
+            "river_ledger.showdown_best_hand_win"
+        );
+        assert!(rationale.per_seat.iter().any(|seat| seat.result == "win"));
+        assert!(rationale
+            .per_seat
+            .iter()
+            .filter(|seat| seat.result != "folded")
+            .all(|seat| seat.strength.is_some()));
+    }
+
+    #[test]
+    fn showdown_split_terminal_rationale_marks_split_allocations() {
+        let mut state = setup_match(Seed(21), &seats(4), &SetupOptions::default()).expect("setup");
+        state.board = royal_board();
+        state.ledger.pot_total = 12;
+        for entry in &mut state.ledger.seats {
+            entry.status = SeatStatus::ShowdownEligible;
+        }
+        state.terminal_outcome = Some(crate::showdown::resolve_showdown(&state));
+
+        let view = project_view(&state, &Viewer { seat_id: None });
+        let rationale = view
+            .terminal_rationale
+            .as_ref()
+            .expect("terminal rationale");
+
+        assert_eq!(rationale.result_kind, "showdown_split");
+        assert_eq!(rationale.decisive_cause, "equal_best_hand_split");
+        assert_eq!(rationale.template_key, "river_ledger.showdown_split_pot");
+        assert!(rationale.per_seat.iter().any(|seat| seat.result == "split"));
     }
 }
