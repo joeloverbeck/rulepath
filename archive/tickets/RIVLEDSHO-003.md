@@ -1,6 +1,6 @@
 # RIVLEDSHO-003: WASM bridge JSON + TypeScript view types for explanation fields
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`
@@ -76,3 +76,25 @@ Add TypeScript view types mirroring the new Rust JSON fields (`RiverLedgerTermin
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run build`
 3. The bridge test plus the web type-check are the correct boundary; visual rendering is exercised in RIVLEDSHO-004/005.
+
+## Outcome
+
+Completed: 2026-06-15
+
+What changed:
+
+- Extended River Ledger's WASM JSON terminal-rationale serializer with the RIVLEDSHO-002 viewer-scoped explanation fields: `headline`, `decisive_comparison`, `comparison_basis`, and per-seat structured `strength`.
+- Added `strength` JSON for revealed showdown seats containing category, tie-break vector, best-five cards, result label, hand name, rank explanation, comparison note, and best-five accessibility label; folded seats serialize `strength: null`.
+- Preserved the existing generic `values` rows for current shared outcome rendering.
+- Added a bridge-level folded-seat no-leak assertion and terminal-showdown field assertions.
+- Updated `apps/web/src/wasm/client.ts` with River Ledger-specific rationale/strength types only; no TypeScript evaluation logic was added.
+
+Deviations from plan:
+
+- None.
+
+Verification:
+
+- `cargo test -p wasm-api` passed.
+- `npm --prefix apps/web run build` passed.
+- `cargo test --workspace` passed.

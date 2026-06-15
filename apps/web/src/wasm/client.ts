@@ -163,7 +163,6 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
-export type RiverLedgerOutcomeRationale = OutcomeRationalePayload;
 export type PlainTricksOutcomeRationale = {
   result_kind: string;
   decisive_cause: string;
@@ -721,6 +720,29 @@ export type RiverLedgerSeatView = {
   street_contribution: number;
   total_contribution: number;
   hidden_hole_count: number;
+};
+
+export type RiverLedgerShowdownStrength = {
+  category: string;
+  tie_break_vector: number[];
+  best_five: RiverLedgerCardView[];
+  result_label: string;
+  hand_name: string;
+  rank_explanation: string;
+  comparison_note: string;
+  best_five_accessibility_label: string;
+};
+
+export type RiverLedgerOutcomeStanding = OutcomeRationaleStanding & {
+  seat: RiverLedgerSeatId;
+  strength?: RiverLedgerShowdownStrength | null;
+};
+
+export type RiverLedgerOutcomeRationale = OutcomeRationalePayload & {
+  headline?: string | null;
+  decisive_comparison?: string | null;
+  comparison_basis?: string | null;
+  final_standing?: RiverLedgerOutcomeStanding[];
 };
 
 export type RiverLedgerTerminalView =

@@ -7656,10 +7656,13 @@ fn river_rationale_json(rationale: &river_ledger::visibility::OutcomeRationaleVi
         .join(",");
 
     format!(
-        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"headline\":{},\"decisive_comparison\":{},\"comparison_basis\":{},\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
         escape_json(&rationale.result_kind),
         escape_json(&rationale.decisive_cause),
         escape_json(&rationale.template_key),
+        option_string_json(rationale.headline.as_deref()),
+        option_string_json(rationale.decisive_comparison.as_deref()),
+        option_string_json(rationale.comparison_basis.as_deref()),
         decisive_rule_ids,
         final_standing
     )
@@ -7679,6 +7682,22 @@ fn river_rationale_standing_json(
         ),
     ];
     if let Some(strength) = &breakdown.strength {
+        values.push(format!(
+            "{{\"label\":\"Result label\",\"value\":\"{}\"}}",
+            escape_json(&strength.result_label)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Hand\",\"value\":\"{}\"}}",
+            escape_json(&strength.hand_name)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Rank explanation\",\"value\":\"{}\"}}",
+            escape_json(&strength.rank_explanation)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Comparison\",\"value\":\"{}\"}}",
+            escape_json(&strength.comparison_note)
+        ));
         values.push(format!(
             "{{\"label\":\"Category\",\"value\":\"{}\"}}",
             escape_json(&strength.category)
@@ -7708,12 +7727,42 @@ fn river_rationale_standing_json(
     }
 
     format!(
-        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{}]}}",
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"strength\":{},\"values\":[{}]}}",
         breakdown.seat.as_str(),
         breakdown.seat.as_str(),
         escape_json(&breakdown.result),
         matches!(breakdown.result.as_str(), "win" | "split"),
+        breakdown
+            .strength
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), river_showdown_strength_json),
         values.join(",")
+    )
+}
+
+fn river_showdown_strength_json(
+    strength: &river_ledger::visibility::ShowdownStrengthView,
+) -> String {
+    format!(
+        "{{\"category\":\"{}\",\"tie_break_vector\":[{}],\"best_five\":[{}],\"result_label\":\"{}\",\"hand_name\":\"{}\",\"rank_explanation\":\"{}\",\"comparison_note\":\"{}\",\"best_five_accessibility_label\":\"{}\"}}",
+        escape_json(&strength.category),
+        strength
+            .tie_break_vector
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(","),
+        strength
+            .best_five
+            .iter()
+            .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&strength.result_label),
+        escape_json(&strength.hand_name),
+        escape_json(&strength.rank_explanation),
+        escape_json(&strength.comparison_note),
+        escape_json(&strength.best_five_accessibility_label)
     )
 }
 
@@ -12417,6 +12466,79 @@ mod tests {
         );
         assert!(showdown.contains("\"label\":\"Category\""));
         assert!(showdown.contains("\"label\":\"Best five\""));
+        assert!(showdown.contains("\"headline\":\""));
+        assert!(showdown.contains("\"decisive_comparison\":\""));
+        assert!(showdown.contains("\"comparison_basis\":\""));
+        assert!(showdown.contains("\"strength\":{\"category\":\""));
+        assert!(showdown.contains("\"result_label\":\""));
+        assert!(showdown.contains("\"hand_name\":\""));
+        assert!(showdown.contains("\"rank_explanation\":\""));
+        assert!(showdown.contains("\"comparison_note\":\""));
+        assert!(showdown.contains("\"best_five_accessibility_label\":\""));
+    }
+
+    #[test]
+    fn river_ledger_bridge_redacts_folded_showdown_explanation_fields() {
+        let seat = |index| RiverLedgerSeat::from_index(index).expect("valid seat");
+        let board = [
+            river_ledger::Card::new(river_ledger::Rank::Ten, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::Jack, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::Queen, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::King, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::Ace, river_ledger::Suit::Hearts),
+        ];
+        let mut state = river_ledger::RiverLedgerState::new_after_setup(
+            river_ledger::Variant::river_ledger_standard(),
+            river_seats_for_count(3),
+            river_ledger::state::SeatRoles {
+                button: seat(0),
+                small_blind: seat(1),
+                big_blind: seat(2),
+                active_seat: seat(0),
+            },
+            vec![
+                [
+                    river_ledger::Card::new(river_ledger::Rank::Two, river_ledger::Suit::Diamonds),
+                    river_ledger::Card::new(
+                        river_ledger::Rank::Three,
+                        river_ledger::Suit::Diamonds,
+                    ),
+                ],
+                [
+                    river_ledger::Card::new(river_ledger::Rank::Two, river_ledger::Suit::Clubs),
+                    river_ledger::Card::new(river_ledger::Rank::Three, river_ledger::Suit::Clubs),
+                ],
+                [
+                    river_ledger::Card::new(river_ledger::Rank::Four, river_ledger::Suit::Clubs),
+                    river_ledger::Card::new(river_ledger::Rank::Five, river_ledger::Suit::Clubs),
+                ],
+            ],
+            board,
+            Vec::new(),
+        );
+        state.board = board.to_vec();
+        state.ledger.seats = (0..3)
+            .map(|index| river_ledger::SeatLedger {
+                seat: seat(index),
+                status: if index == 0 {
+                    river_ledger::SeatStatus::Folded
+                } else {
+                    river_ledger::SeatStatus::ShowdownEligible
+                },
+                street_contribution: 0,
+                total_contribution: 3,
+            })
+            .collect();
+        state.ledger.pot_total = 9;
+        state.terminal_outcome = Some(river_ledger::resolve_showdown(&state));
+
+        let json = river_view_json(&river_project_view(&state, &Viewer { seat_id: None }));
+        assert!(json.contains("\"headline\":\""));
+        assert!(json.contains("\"id\":\"seat_0\",\"label\":\"seat_0\",\"result\":\"folded\",\"emphasized\":false,\"strength\":null"));
+        assert!(json.contains("\"id\":\"seat_1\""));
+        assert!(json.contains("\"strength\":{\"category\":\"straight_flush\""));
+        assert!(!json.contains("two_diamonds"));
+        assert!(!json.contains("three_diamonds"));
     }
 
     #[test]
