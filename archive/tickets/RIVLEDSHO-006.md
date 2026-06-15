@@ -1,6 +1,6 @@
 # RIVLEDSHO-006: Neutral River Ledger card component (glyph + suit word + accessible label)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerCard.tsx` (new), `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -75,3 +75,25 @@ Adopt the component for the public board, the viewer's hole cards, and (via the 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
 3. `smoke:ui` plus manual IP/accessibility review is the correct boundary; behavioral correctness is unaffected (presentation-only).
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Added `apps/web/src/components/RiverLedgerCard.tsx`, a River-Ledger-local card component that consumes Rust-projected `CardView` fields for label, rank, suit word, and accessibility label.
+- Adopted the component for public board cards, private hole cards, and showdown best-five cards.
+- Added group-level accessible labels for public board cards, private cards, and best-five groups.
+- Updated neutral card styling with rank, suit glyph, suit word, high-contrast surfaces, and red/black as secondary suit support only.
+- Extended `river-ledger.smoke.mjs` to assert glyphs, suit words, rank text, group labels, and no-leak behavior across private, board, and best-five render sites.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because it does not mount DOM card markup. The DOM assertions live in `river-ledger.smoke.mjs`, and the required `smoke:ui` command still passed.
+- Manual IP/accessibility review: the component uses original neutral CSS, no copied card art, no felt/chip/currency motifs, and suit color is secondary to visible glyph plus suit word.

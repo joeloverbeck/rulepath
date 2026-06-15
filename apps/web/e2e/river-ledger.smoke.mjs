@@ -72,6 +72,7 @@ try {
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
   const seat0Cards = await ownPrivateCardLabels(page);
   assert(seat0Cards.length === 2, "seat 0 private view exposes two own cards");
+  await assertPrivateCardComponent(page);
   await assertNoLeak(page, consoleMessages, "seat 0 view", cardIds.filter((id) => !seat0Cards.map(labelToId).includes(id)));
 
   await clickSeatFrameButton(page, "Observer");
@@ -117,6 +118,7 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await playWorkedExampleShowdown(page, baseUrl);
   await assertWorkedExampleShowdown(page);
+  await assertShowdownCardComponents(page);
   assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
   await assertStorageClean(page);
@@ -201,6 +203,53 @@ async function assertWorkedExampleShowdown(page) {
   assert(summary.handCount === 4, `worked example renders four revealed hands: ${summary.handCount}`);
   assert(summary.cardCount === 20, `worked example renders each best-five hand: ${summary.cardCount}`);
   assert(summary.foldedStrengthRows === 0, "worked example renders no folded-seat hand strength");
+}
+
+async function assertPrivateCardComponent(page) {
+  const summary = await page.evaluate(() => {
+    const privateCards = Array.from(document.querySelectorAll(".river-ledger-private .river-ledger-card.private"));
+    const group = document.querySelector(".river-ledger-private-cards");
+    return {
+      cards: privateCards.length,
+      glyphs: privateCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
+      suitWords: privateCards.filter((card) => card.querySelector(".river-ledger-card-suit small")?.textContent?.trim()).length,
+      ranks: privateCards.filter((card) => card.querySelector(".river-ledger-card-rank")?.textContent?.trim()).length,
+      groupLabel: group?.getAttribute("aria-label") ?? "",
+    };
+  });
+  assert(summary.cards === 2, `private card component renders two cards: ${summary.cards}`);
+  assert(summary.glyphs === 2, `private cards render suit glyphs: ${summary.glyphs}`);
+  assert(summary.suitWords === 2, `private cards render suit words: ${summary.suitWords}`);
+  assert(summary.ranks === 2, `private cards render rank words: ${summary.ranks}`);
+  assert(summary.groupLabel.includes("private cards"), `private card group has accessible label: ${summary.groupLabel}`);
+}
+
+async function assertShowdownCardComponents(page) {
+  const summary = await page.evaluate(() => {
+    const boardCards = Array.from(document.querySelectorAll(".river-ledger-board-cards .river-ledger-card.board"));
+    const showdownCards = Array.from(document.querySelectorAll(".river-ledger-showdown-card.river-ledger-card.showdown"));
+    const boardGroup = document.querySelector(".river-ledger-board-cards");
+    const showdownGroups = Array.from(document.querySelectorAll(".river-ledger-showdown-cards"));
+    return {
+      boardCards: boardCards.length,
+      boardGlyphs: boardCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
+      showdownCards: showdownCards.length,
+      showdownGlyphs: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
+      showdownSuitWords: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit small")?.textContent?.trim()).length,
+      boardGroupLabel: boardGroup?.getAttribute("aria-label") ?? "",
+      showdownGroupLabels: showdownGroups.map((group) => group.getAttribute("aria-label") ?? ""),
+    };
+  });
+  assert(summary.boardCards === 5, `terminal board uses card component: ${summary.boardCards}`);
+  assert(summary.boardGlyphs === 5, `terminal board renders suit glyphs: ${summary.boardGlyphs}`);
+  assert(summary.showdownCards === 20, `showdown best-five uses card component: ${summary.showdownCards}`);
+  assert(summary.showdownGlyphs === 20, `showdown best-five renders suit glyphs: ${summary.showdownGlyphs}`);
+  assert(summary.showdownSuitWords === 20, `showdown best-five renders suit words: ${summary.showdownSuitWords}`);
+  assert(summary.boardGroupLabel.includes("Public board cards"), `board group has accessible label: ${summary.boardGroupLabel}`);
+  assert(
+    summary.showdownGroupLabels.length === 4 && summary.showdownGroupLabels.every((label) => label.includes("Best five")),
+    `showdown groups have accessible labels: ${summary.showdownGroupLabels.join(" | ")}`,
+  );
 }
 
 async function assertFoldedSeatNoStrength(page) {

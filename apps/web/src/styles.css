@@ -2693,6 +2693,12 @@ h2 {
   font-weight: 900;
 }
 
+.river-ledger-card.showdown.river-ledger-showdown-card {
+  min-height: 78px;
+  padding: 8px;
+  background: #fbfcf9;
+}
+
 .river-ledger-showdown-details {
   color: #40514a;
 }
@@ -3974,8 +3980,44 @@ svg g[data-effect-kind] {
   border-color: #607987;
 }
 
+.river-ledger-card.showdown {
+  border-color: #c8d3ce;
+}
+
+.river-ledger-card strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.river-ledger-card-suit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.river-ledger-card-suit b {
+  color: #25383b;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.river-ledger-card.suit-hearts .river-ledger-card-suit b,
+.river-ledger-card.suit-diamonds .river-ledger-card-suit b {
+  color: #9b2f2f;
+}
+
+.river-ledger-card.suit-clubs .river-ledger-card-suit b,
+.river-ledger-card.suit-spades .river-ledger-card-suit b {
+  color: #25383b;
+}
+
 .river-ledger-card small {
   color: #687577;
+}
+
+.river-ledger-card-rank {
+  letter-spacing: 0;
 }
 
 .river-ledger-track {

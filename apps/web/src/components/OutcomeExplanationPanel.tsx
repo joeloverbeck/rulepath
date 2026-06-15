@@ -7,6 +7,7 @@ import {
   seatDisplayLabel,
   type OutcomeExplanationTemplate,
 } from "./outcomeExplanationTemplates";
+import { RiverLedgerCard, riverLedgerCardGroupLabel, type RiverLedgerCardLike } from "./RiverLedgerCard";
 
 type OutcomeValue = string | number | boolean | null;
 
@@ -51,19 +52,10 @@ export type OutcomeExplanationSurfaceData = {
   ruleIds?: readonly string[];
 };
 
-type RiverLedgerShowdownCard = {
-  card_id: string;
-  rank: string;
-  rank_value: number;
-  suit: string;
-  label: string;
-  accessibility_label: string;
-};
-
 type RiverLedgerShowdownStrength = {
   category: string;
   tie_break_vector: readonly number[];
-  best_five: readonly RiverLedgerShowdownCard[];
+  best_five: readonly RiverLedgerCardLike[];
   result_label: string;
   hand_name: string;
   rank_explanation: string;
@@ -309,11 +301,17 @@ function RiverLedgerShowdown({ explanation }: { explanation: OutcomeExplanationS
               </header>
               <p>{strength.rank_explanation}</p>
               <p>{strength.comparison_note}</p>
-              <div className="river-ledger-showdown-cards" aria-label={strength.best_five_accessibility_label}>
+              <div
+                className="river-ledger-showdown-cards"
+                aria-label={riverLedgerCardGroupLabel(strength.best_five, strength.best_five_accessibility_label)}
+              >
                 {strength.best_five.map((card) => (
-                  <span className="river-ledger-showdown-card" key={card.card_id}>
-                    {card.label}
-                  </span>
+                  <RiverLedgerCard
+                    card={card}
+                    className="river-ledger-showdown-card"
+                    key={card.card_id}
+                    tone="showdown"
+                  />
                 ))}
               </div>
             </article>

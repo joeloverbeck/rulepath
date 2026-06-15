@@ -3,13 +3,13 @@ import type {
   ActionChoice,
   ActionTree,
   EffectEntry,
-  RiverLedgerCardView,
   RiverLedgerPublicView,
   RiverLedgerSeatId,
   RiverLedgerSeatView,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import { RiverLedgerCard, riverLedgerCardGroupLabel } from "./RiverLedgerCard";
 
 type RiverLedgerBoardProps = {
   view: RiverLedgerPublicView;
@@ -101,9 +101,9 @@ export function RiverLedgerBoard({
             <span>Board</span>
             <strong>{view.board.length ? `${view.board.length} public` : "No public cards"}</strong>
           </div>
-          <div className="river-ledger-board-cards">
+          <div className="river-ledger-board-cards" aria-label={riverLedgerCardGroupLabel(view.board, "Public board cards")}>
             {view.board.map((card) => (
-              <RiverCard key={card.card_id} card={card} tone="board" />
+              <RiverLedgerCard key={card.card_id} card={card} tone="board" />
             ))}
             {Array.from({ length: Math.max(0, 5 - view.board.length) }, (_, index) => (
               <div className="river-ledger-card hidden" key={`hidden-board-${index}`}>
@@ -122,9 +122,12 @@ export function RiverLedgerBoard({
           <strong>{privateHeading(view)}</strong>
         </div>
         {view.private_view.status === "seat" ? (
-          <div className="river-ledger-private-cards">
+          <div
+            className="river-ledger-private-cards"
+            aria-label={riverLedgerCardGroupLabel(view.private_view.hole_cards, `${seatLabel(view.private_view.seat)} private cards`)}
+          >
             {view.private_view.hole_cards.map((card) => (
-              <RiverCard key={card.card_id} card={card} tone="private" />
+              <RiverLedgerCard key={card.card_id} card={card} tone="private" />
             ))}
           </div>
         ) : (
@@ -211,16 +214,6 @@ function ContributionTrack({ seats }: { seats: RiverLedgerSeatView[] }) {
           <strong>{seat.total_contribution}</strong>
         </div>
       ))}
-    </div>
-  );
-}
-
-function RiverCard({ card, tone }: { card: RiverLedgerCardView; tone: "board" | "private" }) {
-  return (
-    <div className={`river-ledger-card ${tone}`} aria-label={card.accessibility_label}>
-      <span>{card.suit}</span>
-      <strong>{card.label}</strong>
-      <small>{card.rank}</small>
     </div>
   );
 }
