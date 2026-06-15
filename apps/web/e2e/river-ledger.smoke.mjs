@@ -69,10 +69,11 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
 
-  await startRiverLedger(page, baseUrl, "Human vs bot");
+  const selectedSeatCount = 4;
+  await startRiverLedger(page, baseUrl, "Human vs bot", selectedSeatCount);
   await page.waitForSelector('[data-testid="river-ledger-board"]');
   await waitForText(page, "Seat 0 to choose");
-  await assertRiverLedgerA11y(page, true);
+  await assertRiverLedgerA11y(page, true, selectedSeatCount);
   const seat0Cards = await ownPrivateCardLabels(page);
   assert(seat0Cards.length === 2, "seat 0 private view exposes two own cards");
   await assertNoLeak(page, consoleMessages, "seat 0 view", cardIds.filter((id) => !seat0Cards.map(labelToId).includes(id)));
@@ -122,15 +123,17 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startRiverLedger(page, baseUrl, modeLabel) {
+async function startRiverLedger(page, baseUrl, modeLabel, seatCount) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "River Ledger");
+  await assertFixedSeatSetup(page);
   await clickText(page, "button", "River Ledger");
+  await assertVariableSeatSetup(page, seatCount);
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
 }
 
-async function assertRiverLedgerA11y(page, expectChoices) {
+async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {
   const summary = await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll("button"));
     return {
@@ -144,12 +147,48 @@ async function assertRiverLedgerA11y(page, expectChoices) {
     };
   });
   assert(summary.board, "river_ledger board renders");
-  assert(summary.seats === 6, `river_ledger renders six seat rows, got ${summary.seats}`);
+  assert(
+    summary.seats === expectedSeatCount,
+    `river_ledger renders ${expectedSeatCount} selected seat rows, got ${summary.seats}`,
+  );
   if (expectChoices) {
     assert(summary.choices > 0, "river_ledger exposes Rust-provided action buttons");
   }
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);
   assert(summary.liveText.length > 0, "river_ledger latest-effect region has text");
+}
+
+async function assertFixedSeatSetup(page) {
+  const summary = await page.evaluate(() => {
+    const setup = document.querySelector(".setup-region");
+    const seatSelect = setup?.querySelector('select[aria-label="Supported seats from Rust catalog"]');
+    const seatOutput = setup?.querySelector('.seat-count-static[aria-label="Supported seats from Rust catalog"]');
+    return {
+      hasSeatSelect: Boolean(seatSelect),
+      outputText: seatOutput?.textContent?.trim() ?? "",
+      caption: seatOutput?.closest(".field")?.querySelector("small")?.textContent ?? "",
+    };
+  });
+  assert(!summary.hasSeatSelect, "fixed-seat setup renders no seat select");
+  assert(summary.outputText === "2 seats", `fixed-seat setup shows static two-seat value: ${summary.outputText}`);
+  assert(summary.caption.includes("Fixed at 2 seats."), `fixed-seat caption is read-only: ${summary.caption}`);
+}
+
+async function assertVariableSeatSetup(page, seatCount) {
+  await page.waitForSelector('select[aria-label="Supported seats from Rust catalog"]');
+  const summary = await page.evaluate(() => {
+    const select = document.querySelector('select[aria-label="Supported seats from Rust catalog"]');
+    return {
+      disabled: select?.disabled ?? true,
+      options: Array.from(select?.querySelectorAll("option") ?? []).map((option) => option.value),
+    };
+  });
+  assert(!summary.disabled, "variable-seat setup select is enabled");
+  assert(
+    ["3", "4", "5", "6"].every((value) => summary.options.includes(value)),
+    `river_ledger setup exposes supported seat counts: ${summary.options.join(", ")}`,
+  );
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', String(seatCount));
 }
 
 async function ownPrivateCardLabels(page) {

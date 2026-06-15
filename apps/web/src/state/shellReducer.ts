@@ -52,6 +52,7 @@ export type ShellState = {
     seed: number;
     playMode: SetupPlayMode;
     variantId: string | null;
+    seatCount: number | null;
   };
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
@@ -97,6 +98,7 @@ export type ShellAction =
   | { type: "setupSeedChanged"; seed: number }
   | { type: "setupPlayModeChanged"; playMode: SetupPlayMode }
   | { type: "setupVariantChanged"; variantId: string }
+  | { type: "setupSeatCountChanged"; seatCount: number }
   | { type: "viewerModeChanged"; viewerMode: ViewerMode }
   | { type: "matchStarting" }
   | { type: "matchStarted"; matchId: string }
@@ -136,6 +138,7 @@ export const initialShellState: ShellState = {
     seed: 1,
     playMode: "human_vs_bot",
     variantId: null,
+    seatCount: null,
   },
   matchId: null,
   actorSeat: "seat_0",
@@ -168,8 +171,10 @@ export const initialShellState: ShellState = {
 
 export function shellReducer(state: ShellState, action: ShellAction): ShellState {
   switch (action.type) {
-    case "wasmLoaded":
+    case "wasmLoaded": {
       const catalog = action.catalog ?? state.catalog;
+      const selectedGameId = state.selectedGameId || catalog[0]?.game_id || "";
+      const selectedGame = catalog.find((game) => game.game_id === selectedGameId) ?? null;
       return {
         ...state,
         mode: catalog.length > 0 ? "setup" : "ready",
@@ -177,13 +182,15 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         version: action.version,
         catalog,
         featureReport: action.featureReport ?? state.featureReport,
-        selectedGameId: state.selectedGameId || catalog[0]?.game_id || "",
+        selectedGameId,
         setup: {
           ...state.setup,
-          variantId: state.setup.variantId ?? catalog[0]?.variants?.[0]?.id ?? null,
+          variantId: state.setup.variantId ?? selectedGame?.variants?.[0]?.id ?? null,
+          seatCount: resolveSeatCount(selectedGame, state.setup.seatCount),
         },
         pendingOperation: null,
       };
+    }
     case "wasmLoadFailed":
       return {
         ...state,
@@ -201,6 +208,7 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         setup: {
           ...state.setup,
           variantId: selectedGame?.variants?.[0]?.id ?? null,
+          seatCount: resolveSeatCount(selectedGame, null),
         },
         matchId: null,
         view: null,
@@ -242,6 +250,14 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         setup: {
           ...state.setup,
           variantId: action.variantId,
+        },
+      };
+    case "setupSeatCountChanged":
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          seatCount: action.seatCount,
         },
       };
     case "viewerModeChanged":
@@ -457,6 +473,17 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
     default:
       return state;
   }
+}
+
+function resolveSeatCount(game: GameCatalogEntry | null, current: number | null): number | null {
+  const supportedSeats = game?.supported_seats ?? [];
+  if (current !== null && supportedSeats.includes(current)) {
+    return current;
+  }
+  if (typeof game?.default_seats === "number" && supportedSeats.includes(game.default_seats)) {
+    return game.default_seats;
+  }
+  return supportedSeats[0] ?? null;
 }
 
 function botDecisionSummary(result: BotTurnResult): BotDecisionSummary | null {

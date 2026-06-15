@@ -210,11 +210,11 @@ function App() {
       state.selectedGameId,
       state.setup.seed,
       selectedVariantForStart(selectedGame, state.setup.variantId),
-      selectedGame?.default_seats,
+      state.setup.seatCount ?? selectedGame?.default_seats,
     );
     dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
-  }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seed, state.setup.variantId]);
+  }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seatCount, state.setup.seed, state.setup.variantId]);
 
   const playChoice = useCallback(
     async (choice: ActionChoice) => {
@@ -523,10 +523,12 @@ function App() {
             seed={state.setup.seed}
             playMode={state.setup.playMode}
             variantId={state.setup.variantId}
+            seatCount={state.setup.seatCount}
             canStart={Boolean(api && state.selectedGameId)}
             onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
             onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
             onVariantChange={(variantId) => dispatch({ type: "setupVariantChanged", variantId })}
+            onSeatCountChange={(seatCount) => dispatch({ type: "setupSeatCountChanged", seatCount })}
             onRulesOpen={openRules}
             onStart={start}
           />

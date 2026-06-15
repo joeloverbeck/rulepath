@@ -7,10 +7,12 @@ type MatchSetupProps = {
   seed: number;
   playMode: SetupPlayMode;
   variantId: string | null;
+  seatCount: number | null;
   canStart: boolean;
   onSeedChange: (seed: number) => void;
   onPlayModeChange: (mode: SetupPlayMode) => void;
   onVariantChange: (variantId: string) => void;
+  onSeatCountChange: (seatCount: number) => void;
   onRulesOpen: (gameId: string) => void;
   onStart: () => void;
 };
@@ -35,10 +37,12 @@ export function MatchSetup({
   seed,
   playMode,
   variantId,
+  seatCount,
   canStart,
   onSeedChange,
   onPlayModeChange,
   onVariantChange,
+  onSeatCountChange,
   onRulesOpen,
   onStart,
 }: MatchSetupProps) {
@@ -47,6 +51,7 @@ export function MatchSetup({
   const variantDescription = selectVariantDescription(selectedVariant);
   const seatCounts = supportedSeatCounts(selectedGame);
   const defaultSeatCount = selectedGame?.default_seats ?? seatCounts[0] ?? "";
+  const selectedSeatCount = seatCount ?? (typeof defaultSeatCount === "number" ? defaultSeatCount : null);
   return (
     <section className="region setup-region" aria-labelledby="setup-heading">
       <div className="region-heading">
@@ -111,21 +116,27 @@ export function MatchSetup({
           </label>
         ) : null}
 
-        <label className="field">
+        <div className="field">
           <span>Seats</span>
-          <select value={defaultSeatCount} disabled aria-label="Supported seats from Rust catalog">
-            {seatCounts.length ? (
-              seatCounts.map((count) => (
+          {seatCounts.length > 1 ? (
+            <select
+              value={selectedSeatCount ?? ""}
+              onChange={(event) => onSeatCountChange(Number(event.currentTarget.value))}
+              aria-label="Supported seats from Rust catalog"
+            >
+              {seatCounts.map((count) => (
                 <option value={count} key={count}>
                   {count}
                 </option>
-              ))
-            ) : (
-              <option value="">Catalog pending</option>
-            )}
-          </select>
+              ))}
+            </select>
+          ) : (
+            <output className="seat-count-static" aria-label="Supported seats from Rust catalog">
+              {seatCounts[0] ? `${seatCounts[0]} seats` : "Catalog pending"}
+            </output>
+          )}
           <small>{seatCountDetail(selectedGame)}</small>
-        </label>
+        </div>
       </div>
 
       <fieldset className="mode-picker">
@@ -246,6 +257,9 @@ function seatCountDetail(game: GameCatalogEntry | null): string {
   }
   const counts = supportedSeatCounts(game);
   if (counts.length) {
+    if (counts.length === 1) {
+      return `Fixed at ${counts[0]} seats.`;
+    }
     const defaultCopy = typeof game.default_seats === "number" ? `; default ${game.default_seats}` : "";
     return `Supported count${counts.length === 1 ? "" : "s"}: ${counts.join(", ")}${defaultCopy}.`;
   }

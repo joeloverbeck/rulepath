@@ -150,7 +150,8 @@ button.secondary:focus {
 }
 
 input,
-select {
+select,
+.seat-count-static {
   min-height: 42px;
   width: 100%;
   border: 1px solid var(--rp-color-border-cool);
@@ -159,6 +160,12 @@ select {
   background: var(--rp-surface-panel);
   color: var(--rp-text-primary);
   font: inherit;
+}
+
+.seat-count-static {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 800;
 }
 
 .shell {
