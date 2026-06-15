@@ -52,7 +52,7 @@ pub struct CardView {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PrivateView {
     Observer,
-    Seat(SeatPrivateView),
+    Seat(Box<SeatPrivateView>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -169,10 +169,10 @@ fn private_view(state: &RiverLedgerState, viewer_seat: Option<RiverLedgerSeat>) 
             let hand = state
                 .private_hand_for_internal(seat)
                 .expect("viewer seat has a private hand");
-            PrivateView::Seat(SeatPrivateView {
+            PrivateView::Seat(Box::new(SeatPrivateView {
                 seat,
                 hole_cards: [card_view(hand[0]), card_view(hand[1])],
-            })
+            }))
         }
         None => PrivateView::Observer,
     }

@@ -145,18 +145,31 @@ pub struct RiverLedgerState {
     pub freshness_token: FreshnessToken,
 }
 
+/// Seat role assignments fixed at setup time (button and the seats derived from
+/// it). Grouped so the setup constructor stays within a readable arity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SeatRoles {
+    pub button: RiverLedgerSeat,
+    pub small_blind: RiverLedgerSeat,
+    pub big_blind: RiverLedgerSeat,
+    pub active_seat: RiverLedgerSeat,
+}
+
 impl RiverLedgerState {
     pub fn new_after_setup(
         variant: Variant,
         seats: Vec<SeatId>,
-        button: RiverLedgerSeat,
-        small_blind: RiverLedgerSeat,
-        big_blind: RiverLedgerSeat,
-        active_seat: RiverLedgerSeat,
+        roles: SeatRoles,
         private_hands: Vec<[Card; 2]>,
         community_deck: [Card; 5],
         deck_tail: Vec<Card>,
     ) -> Self {
+        let SeatRoles {
+            button,
+            small_blind,
+            big_blind,
+            active_seat,
+        } = roles;
         let seat_count = seats.len() as u8;
         let mut ledgers = Vec::with_capacity(seats.len());
         for index in 0..seats.len() {

@@ -3,7 +3,7 @@ use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
 use crate::{
     cards::{canonical_deck, Card},
     ids::{RiverLedgerSeat, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS},
-    state::RiverLedgerState,
+    state::{RiverLedgerState, SeatRoles},
     variants::Variant,
 };
 
@@ -65,10 +65,12 @@ pub fn setup_match(
     Ok(RiverLedgerState::new_after_setup(
         options.variant.clone(),
         seats.to_vec(),
-        button,
-        small_blind,
-        big_blind,
-        active_seat,
+        SeatRoles {
+            button,
+            small_blind,
+            big_blind,
+            active_seat,
+        },
         private_hands,
         community_deck,
         deck_tail,

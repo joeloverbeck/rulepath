@@ -24,9 +24,9 @@ annotated record of Gates 0–14) is frozen at
 
 The scaling phase is seeded from two advisory research reports:
 
-- [`../reports/foundation-doc-realignment.md`](../reports/foundation-doc-realignment.md)
+- [`../archive/reports/foundation-doc-realignment.md`](../archive/reports/foundation-doc-realignment.md)
   — the doc/template realignment the phase needs before execution.
-- [`../reports/public-game-ladder-and-implementation-order.md`](../reports/public-game-ladder-and-implementation-order.md)
+- [`../archive/reports/public-game-ladder-and-implementation-order.md`](../archive/reports/public-game-ladder-and-implementation-order.md)
   — the public game ladder (Gate 15+) and phased implementation order.
 
 **Roadmap admission.** ADR 0007 is accepted, and `docs/ROADMAP.md` now records
