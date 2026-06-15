@@ -1,6 +1,6 @@
 # RIVLEDSHO-004: River-Ledger showdown rendering path in the shared outcome panel
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/OutcomeExplanationPanel.tsx`, `apps/web/src/components/outcomeExplanationTemplates.ts`
@@ -75,3 +75,23 @@ Replace the `river_ledger` jargon copy ("strongest Rust-evaluated five-card resu
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:e2e`
 3. The shared-panel non-regression smoke is the correct boundary for the 15-board surface; the worked-example DOM/no-leak assertion is RIVLEDSHO-005.
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Added a River-Ledger-specific showdown rendering path in `OutcomeExplanationPanel.tsx` that consumes the Rust-authored headline, decisive comparison, basis, hand explanation, comparison note, and best-five labels from the bridged rationale.
+- Kept raw showdown category, tie-break vectors, and showdown rule IDs in a collapsed details tier; the generic standing rows no longer promote raw category/tie-break/best-five fields for River Ledger showdown hands.
+- Replaced River Ledger showdown template copy to remove `Rust-evaluated` jargon while leaving other catalog templates unchanged.
+- Extended `outcome-explanation.smoke.mjs` to drive a four-seat River Ledger checkdown showdown through the real browser/WASM path and assert the new panel, hidden raw details, rule IDs, and cross-game shared-panel behavior.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/outcome-explanation.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because it is a WASM/API smoke and does not mount the DOM presentation surface. The browser-backed `outcome-explanation.smoke.mjs` now carries the RIVLEDSHO-004 rendering assertion, while `smoke:ui` still passed as required.

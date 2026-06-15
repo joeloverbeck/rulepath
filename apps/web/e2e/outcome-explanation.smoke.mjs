@@ -87,11 +87,11 @@ try {
   await assertStorageClean(page);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs");
 
-  await playRiverLedgerFoldout(page, baseUrl);
+  await playRiverLedgerShowdown(page, baseUrl);
   await assertOutcomePanel(page, "River Ledger");
   await assertOutcomeStyled(page, "River Ledger");
   await assertHumanizedOutcomeCopy(page, "River Ledger");
-  await assertRiverLedgerOutcome(page);
+  await assertRiverLedgerShowdownOutcome(page);
   await assertNoLeak(page, consoleMessages, "river_ledger outcome");
 
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "outcome explanation panel a11y noleak reduced" }));
@@ -144,19 +144,44 @@ async function playThreeMarksDraw(page, baseUrl) {
   await page.waitForSelector(".outcome-explanation-panel");
 }
 
-async function playRiverLedgerFoldout(page, baseUrl) {
+async function playRiverLedgerShowdown(page, baseUrl) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "River Ledger");
   await clickText(page, "button", "River Ledger");
   await page.waitForSelector('select[aria-label="Supported seats from Rust catalog"]');
-  await page.select('select[aria-label="Supported seats from Rust catalog"]', "3");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "4");
+  await page.$eval('.setup-grid input[type="number"]', (input) => {
+    input.value = "21";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
   await waitForText(page, "Available choices");
+
+  for (const action of [
+    "Call",
+    "Call",
+    "Call",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+  ]) {
+    await clickText(page, "button", action);
+    await waitForText(page, "Available choices");
+  }
+
   await markPreTerminalStatusRegion(page);
-  await clickText(page, "button", "Fold");
-  await waitForText(page, "Available choices");
-  await clickText(page, "button", "Fold");
+  await clickText(page, "button", "Check");
   await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
 }
 
@@ -283,22 +308,40 @@ async function assertDrawStandingParity(page, label) {
   assert(new Set(summary.classes).size === 1, `${label} draw rows use matching treatment`);
 }
 
-async function assertRiverLedgerOutcome(page) {
+async function assertRiverLedgerShowdownOutcome(page) {
   const summary = await page.evaluate(() => {
     const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    const showdown = panel?.querySelector(".river-ledger-showdown-panel");
+    const ruleFooter = panel?.querySelector(".outcome-rule-refs");
+    const details = showdown?.querySelector("details");
     return {
       text: panel?.textContent ?? "",
+      showdownText: showdown?.textContent ?? "",
+      visibleStandingText: Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? [])
+        .map((row) => row.textContent ?? "")
+        .join("\n"),
       standingRows: panel?.querySelectorAll(".outcome-standing-row").length ?? 0,
-      rules: Array.from(panel?.querySelectorAll(".outcome-rule-refs code") ?? []).map((code) => code.textContent ?? ""),
+      showdownCards: showdown?.querySelectorAll(".river-ledger-showdown-card").length ?? 0,
+      showdownHands: showdown?.querySelectorAll(".river-ledger-showdown-hand").length ?? 0,
+      hasRuleFooter: Boolean(ruleFooter),
+      detailsOpen: details?.hasAttribute("open") ?? false,
+      detailsText: details?.textContent ?? "",
     };
   });
   assert(
-    summary.text.includes("last live seat receives the ledger"),
-    `river_ledger uses foldout template: ${summary.text}`,
+    summary.text.includes("strongest revealed") || summary.text.includes("Equal strongest revealed"),
+    `river_ledger uses showdown template: ${summary.text}`,
   );
-  assert(summary.standingRows === 3, `river_ledger renders one standing row per seat: ${summary.standingRows}`);
-  assert(summary.rules.includes("RL-END-LAST-LIVE"), `river_ledger exposes terminal rule id: ${summary.rules.join(", ")}`);
-  assert(summary.rules.includes("RL-SCORE-POT-AWARD"), `river_ledger exposes scoring rule id: ${summary.rules.join(", ")}`);
+  assert(summary.showdownHands >= 4, `river_ledger renders revealed showdown hands: ${summary.showdownHands}`);
+  assert(summary.showdownCards >= 20, `river_ledger renders best-five card labels: ${summary.showdownCards}`);
+  assert(summary.showdownText.includes("Pair") || summary.showdownText.includes("High Card"), `river_ledger explains hand ranks: ${summary.showdownText}`);
+  assert(summary.standingRows === 4, `river_ledger renders one standing row per seat: ${summary.standingRows}`);
+  assert(!summary.visibleStandingText.includes("Tie break"), `river_ledger hides raw tie break rows: ${summary.visibleStandingText}`);
+  assert(!summary.hasRuleFooter, "river_ledger showdown rule ids stay out of the prominent footer");
+  assert(!summary.detailsOpen, "river_ledger raw showdown details start collapsed");
+  assert(summary.detailsText.includes("RL-SCORE-SHOWDOWN"), `river_ledger details include scoring rule id: ${summary.detailsText}`);
+  assert(summary.detailsText.includes("RL-END-SHOWDOWN"), `river_ledger details include terminal rule id: ${summary.detailsText}`);
+  assert(!summary.text.includes("Rust-evaluated"), `river_ledger copy avoids engine jargon: ${summary.text}`);
 }
 
 async function catalogNames(page) {

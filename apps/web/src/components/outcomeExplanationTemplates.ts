@@ -190,14 +190,14 @@ export const outcomeExplanationTemplates = {
     ruleRefLabel: "Terminal rule",
   },
   "river_ledger.showdown_best_hand_win": {
-    summary: "One showdown hand has the strongest Rust-evaluated five-card result.",
+    summary: "The strongest revealed five-card hand receives the ledger.",
     expandedHeading: "Showdown result",
     requiredParams: [],
     allowedGameIds: ["river_ledger"],
     ruleRefLabel: "Showdown rule",
   },
   "river_ledger.showdown_split_pot": {
-    summary: "Tied best showdown hands share the ledger allocation.",
+    summary: "Equal strongest revealed hands share the ledger allocation.",
     expandedHeading: "Split ledger",
     requiredParams: [],
     allowedGameIds: ["river_ledger"],
