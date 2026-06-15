@@ -11,6 +11,7 @@ import type {
   GameCatalogEntry,
   MaskedClaimsPublicView,
   PublicView,
+  RiverLedgerPublicView,
   SecretDraftPublicView,
   ThreeMarksPublicView,
   TokenBazaarPublicView,
@@ -316,6 +317,10 @@ function isEventFrontierView(view: PublicView | null): view is EventFrontierPubl
   return Boolean(view && "game_id" in view && view.game_id === "event_frontier");
 }
 
+function isRiverLedgerView(view: PublicView | null): view is RiverLedgerPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "river_ledger");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -458,6 +463,17 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
         value: view.terminal.kind === "non_terminal" ? view.active_seat ?? "resolving" : `${view.terminal.winner} won`,
       },
       { label: "Score", value: `${view.scores.charter}-${view.scores.freeholders}` },
+    ];
+  }
+
+  if (isRiverLedgerView(view)) {
+    return [
+      { label: "Street", value: view.phase },
+      {
+        label: "Turn",
+        value: view.terminal.terminal ? view.terminal.winners.join(", ") || "complete" : view.active_seat ?? "resolving",
+      },
+      { label: "Pot", value: String(view.pot_total) },
     ];
   }
 

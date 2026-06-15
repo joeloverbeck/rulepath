@@ -12,5 +12,6 @@
   { "id": "token_bazaar",     "sim_flags": "",                "e2e": "token-bazaar.smoke.mjs" },
   { "id": "secret_draft",     "sim_flags": "",                "e2e": "secret-draft.smoke.mjs" },
   { "id": "poker_lite",       "sim_flags": "--action-cap 16", "e2e": "poker-lite.smoke.mjs" },
-  { "id": "plain_tricks",     "sim_flags": "--action-cap 32", "e2e": "plain-tricks.smoke.mjs" }
+  { "id": "plain_tricks",     "sim_flags": "--action-cap 32", "e2e": "plain-tricks.smoke.mjs" },
+  { "id": "river_ledger",     "sim_flags": "--seat-count 6 --action-cap 48", "e2e": "river-ledger.smoke.mjs" }
 ]

@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[dependencies]
+river_ledger = { path = "../../games/river_ledger" }
+
 [[bin]]
 name = "rule-coverage"
 path = "src/main.rs"

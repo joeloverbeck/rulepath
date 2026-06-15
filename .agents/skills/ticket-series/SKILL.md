@@ -27,6 +27,13 @@ If an input glob is ambiguous, inspect matching paths and choose only when the
 repo context makes the intended family clear. Ask before proceeding if multiple
 families plausibly match.
 
+If an input glob resolves to zero paths, make one bounded correction pass before
+asking: search nearby ticket/spec prefixes in the live checkout, prefer exact
+same-family stems and obvious one-character suffix/prefix differences, and
+proceed only when there is a single plausible family. Report the correction in
+the next update or final response. If there are zero or multiple plausible
+families after that pass, stop and ask for the intended selector.
+
 ## Startup
 
 1. Read the live checkout first. Do not rely on memory or prior runs for current
@@ -113,7 +120,16 @@ For each ticket:
    repo's guard scripts when present and avoid introducing guard-trigger
    vocabulary such as debug payload terms into helper names, visible-adjacent
    strings, comments, or tests unless the checker is intentionally updated with
-   a documented reason.
+   a documented reason. When a ticket names a browser or e2e smoke as proof for
+   a game-specific or UI-specific path, inspect the smoke enough to confirm it
+   actually exercises that game/path. If it does not, extend the smoke or record
+   why another proof surface is sufficient before claiming acceptance.
+   If a browser smoke fails before assertions because the environment cannot
+   bind its local `127.0.0.1` server, for example `listen EPERM`, rerun through
+   the approved escalation path for localhost binding and record both the
+   sandbox failure and successful rerun in the ticket `Outcome`, reference
+   `Outcome`, or final report, whichever owns the evidence. Treat assertion
+   failures as real test failures.
 6. Update the ticket following `docs/archival-workflow.md`:
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
@@ -155,6 +171,11 @@ rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes" archive/
     inspect the staged index with `git diff --cached --name-status` or an
     equivalent path-scoped staged diff, and also check `git status --short`.
     Unstage or exclude unrelated user changes before committing.
+    After build, copy, codegen, fixture-regeneration, or WASM/web bundling
+    commands, run `git status --short` and classify generated changes before
+    staging. Commit generated artifacts only when the ticket explicitly owns
+    them, and otherwise leave or discard only your own unintended generated
+    outputs without touching unrelated user changes.
 11. Commit the completed ticket work before moving on. Use a concise message
     that names the ticket.
 
@@ -226,11 +247,17 @@ evidence.
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
      `**Status**: DEFERRED`, or `**Status**: NOT IMPLEMENTED`
      (emoji variants allowed by the workflow);
-   - for implemented references, use `COMPLETED`; `Done`, `ACCEPTED`, or other
-     informal statuses are not archival final statuses;
+   - for implemented non-spec references, use `COMPLETED`; `Done`, `ACCEPTED`,
+     or other informal statuses are not archival final statuses;
    - add a bottom `Outcome` section for completed specs or reference docs;
    - include completion date, what changed, deviations from the plan, and
      verification results.
+   For specs that already use the repository's spec-table header convention
+   (`| Status | Done |` or ``| Status | `Done` |``) and prior archived specs use
+   that convention, preserve the spec-table convention instead of forcing a
+   `**Status**: COMPLETED` line. The archived spec still must have a truthful
+   final status and a bottom `## Outcome`. Tickets continue to use the
+   `**Status**: COMPLETED` archival workflow vocabulary.
 4. Archive the reference artifact, using `git mv` when tracked:
    - specs to `archive/specs/`;
    - triage notes from `docs/triage/` to `archive/triage/`;
@@ -248,8 +275,8 @@ evidence.
    catalog/smoke lists, or scripts that referenced the live reference path.
    For specs, distinguish the progress index from the archived artifact:
    `specs/README.md` may keep its progress status as `Done`, while the archived
-   spec document itself must use archival status `**Status**: COMPLETED` plus
-   `## Outcome`.
+   spec document itself must use the repo's current archived-spec status
+   convention plus `## Outcome`.
 6. Assert the archived reference is truthy before goal completion:
    - read or grep the archived artifact and confirm archival final status and
      `Outcome`;
@@ -291,6 +318,14 @@ instead of memory. A compact checklist is enough:
 - Note intentionally skipped gates with reasons.
 - Confirm the archived reference status/outcome and stale-path sweep.
 
+For long-running or resumed series that may span context compaction, keep an
+optional resume ledger in the conversation or a repo-approved run-state file
+when one already exists for the workflow. The ledger should be compact and
+current: active ticket, archived tickets and commits, commands already run,
+known unrelated dirty paths, current blockers, and the next exact action. Do
+not create a new persistent run-state file unless the repo or user already
+expects one.
+
 For a final reference `Outcome`, this compact structure is usually enough:
 
 - Completed tickets: archived paths and count.
@@ -316,9 +351,13 @@ the live checkout:
   non-completed disposition. Reject `ACCEPTED` or other review-state statuses
   for archived implemented tickets.
 - The appropriate archive directory contains the reference artifact when the
-  series closes one; the archived artifact has archival final status and an
-  `Outcome`. Reject `Done`, `ACCEPTED`, or other informal statuses before
-  reporting done or calling `update_goal`.
+  series closes one; the archived artifact has a repo-valid final status and an
+  `Outcome`. For ticket files and non-spec references governed by
+  `docs/archival-workflow.md`, reject `Done`, `ACCEPTED`, or other informal
+  statuses before reporting done or calling `update_goal`. For archived specs
+  that use the repo's table-style spec header, `Done` in the status table is
+  acceptable when prior archived specs use the same convention and `## Outcome`
+  is present.
 - `specs/README.md`, progress surfaces, README/catalog surfaces, docs, scripts,
   and active tickets/reference artifacts no longer point at stale live paths.
   Distinguish live paths from archive paths during this sweep; references to
@@ -338,23 +377,28 @@ find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
 rg -n "^\*\*Status\*\*:|^## Outcome" archive/tickets/TICKET_PREFIX*.md
 test ! -e ACTIVE_REFERENCE_PATH
-rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^## Outcome" archive/specs/ARCHIVED_REFERENCE.md
+rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^\| Status \| `?Done`? \||^## Outcome" archive/specs/ARCHIVED_REFERENCE.md
 rg -n "^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*" archive/specs/ARCHIVED_REFERENCE.md && exit 1 || true
-rg -n "ACTIVE_REFERENCE_PATH|tickets/TICKET_PREFIX" specs tickets docs apps scripts || true
+rg -n -P "(?<!archive/)ACTIVE_REFERENCE_PATH|(?<!archive/)tickets/TICKET_PREFIX" specs tickets docs apps scripts || true
+rg -n -P "archive/(specs/ARCHIVED_REFERENCE|tickets/TICKET_PREFIX)" specs docs apps scripts || true
 git status --short
 git diff --cached --name-status
 ```
 
 Compare the archived ticket name list and count against the concrete ticket
 paths resolved at startup. If the reference status grep finds no valid archival
-status line, or the informal-status guard finds `Done`, `ACCEPTED`, or a
-bullet-style status field, the reference is not truthy enough for completion.
+status line, or the informal-status guard finds `ACCEPTED`, a bullet-style
+status field, or `Done` in a non-spec archival status line, the reference is not
+truthy enough for completion. For archived specs using the table-style status
+header, accept `Done` only when `## Outcome` is present and the active progress
+index points at the archived spec.
 
 ## Reporting
 
 Final responses must include:
 
 - Tickets completed and archived.
+- Per-ticket commit IDs when commits were made as part of the series.
 - Reference artifact archived, or reason no spec/reference artifact was closed.
 - Verification commands actually run.
 - Any checks not run and why.

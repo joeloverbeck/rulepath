@@ -1,5 +1,5 @@
 import type { BotDecisionSummary, SetupPlayMode } from "../state/shellReducer";
-import type { PublicView, SeatId } from "../wasm/client";
+import type { PublicView, ViewerSeatId } from "../wasm/client";
 
 type ModeControlsProps = {
   playMode: SetupPlayMode;
@@ -156,12 +156,12 @@ function policyLabel(decision: BotDecisionSummary): string {
   return `${level} bot policy${version}`;
 }
 
-function isBotSeat(playMode: SetupPlayMode, seat: SeatId): boolean {
+function isBotSeat(playMode: SetupPlayMode, seat: ViewerSeatId): boolean {
   if (playMode === "bot_vs_bot") {
     return true;
   }
   if (playMode === "human_vs_bot") {
-    return seat === "seat_1";
+    return seat !== "seat_0";
   }
   return false;
 }
@@ -177,7 +177,7 @@ function modeLabel(playMode: SetupPlayMode): string {
   }
 }
 
-function activeActorLabel(view: PublicView | null, seat: SeatId, playMode: SetupPlayMode): string {
+function activeActorLabel(view: PublicView | null, seat: ViewerSeatId, playMode: SetupPlayMode): string {
   if (view && "game_id" in view && view.game_id === "event_frontier") {
     const label = view.ui.seat_labels.find((entry) => entry.seat === seat)?.label;
     return `${label ?? playerLabel(seat)}${roleSuffix(playMode, seat)}`;
@@ -185,11 +185,11 @@ function activeActorLabel(view: PublicView | null, seat: SeatId, playMode: Setup
   return playerLabel(seat);
 }
 
-function playerLabel(seat: SeatId): string {
-  return seat === "seat_0" ? "Player 1" : "Player 2";
+function playerLabel(seat: ViewerSeatId): string {
+  return `Player ${Number(seat.replace("seat_", "")) + 1}`;
 }
 
-function roleSuffix(playMode: SetupPlayMode, seat: SeatId): string {
+function roleSuffix(playMode: SetupPlayMode, seat: ViewerSeatId): string {
   if (playMode === "bot_vs_bot") {
     return " (bot)";
   }

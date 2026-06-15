@@ -96,5 +96,12 @@
     "rules_asset_path": "/rules/plain_tricks.md",
     "source_rules_version_checked": "plain-tricks-rules-v1",
     "sha256": "8fd7d161a45bc51caa1d6b798446a9450b8fd988c0b43bbad3aef09c619fb9cb"
+  },
+  {
+    "game_id": "river_ledger",
+    "display_name": "River Ledger",
+    "rules_asset_path": "/rules/river_ledger.md",
+    "source_rules_version_checked": "river-ledger-rules-v1",
+    "sha256": "4cab9c8e106c924646254c088e3689a2666dc34d13eb06be9b8e775e8800976d"
   }
 ]

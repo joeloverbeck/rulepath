@@ -301,6 +301,32 @@ project-owned or compatibly licensed.
 | Pachisi-family source | TBD by future Gate 21 spec | Candidate public-domain race-game source still needs final selection. | Do not write the game spec until the source note chooses stable public rules facts. |
 | Mahjong-family source | TBD by future Gate 22 spec | Candidate scoped meld/reaction family source still needs final selection. | Future spec should avoid a sprawling clone and document an original scoped variant. |
 
+### Texas Hold'Em rules family / River Ledger
+
+Date consulted: 2026-06-14.
+
+These sources support Gate 15 River Ledger planning and implementation. They
+verify public rules-family facts only: private hole cards, community board
+structure, street order, betting-round vocabulary, showdown, split/tie concepts,
+and standard poker hand-ranking categories. They do not authorize copied rules
+prose, hand-ranking tables, examples, card art, screenshots, scans, fonts,
+icons, casino layout, tournament branding, product names, or trade dress.
+
+Rulepath's public product identity is **River Ledger** (`river_ledger`). Its
+rules prose, player help, UI copy, asset posture, bot explanations, tests, and
+trace fixtures must remain original and project-owned or compatibly licensed.
+Public presentation uses abstract contribution units and must avoid real-money,
+rake, payout, tournament, and casino-product framing.
+
+| Source | URL | Evidence used | Rulepath lesson |
+|---|---|---|---|
+| Pagat Texas Hold'em | https://www.pagat.com/poker/variants/texasholdem.html | Rules-family reference for hole cards, community cards, streets, betting rounds, showdown, and table-size context. | River Ledger may implement the neutral rules-family mechanics, but must write original prose and avoid casino presentation. |
+| Pagat poker hand ranking | https://www.pagat.com/poker/rules/ranking.html | Hand category order and comparison concepts, including straight/flush/full-house style ranking. | Evaluator and showdown explanation belong in Rust; copied ranking tables or examples do not belong in docs or UI. |
+| Fournier Texas Hold'em explainer | https://www.nhfournier.es/en/como-jugar/texas-holdem-poker/ | Secondary check on shared board, street, and showdown family shape. | Use only as corroborating context, not as wording, visual, or product-presentation source. |
+| OpenSpiel concepts | https://openspiel.readthedocs.io/en/latest/concepts.html | Prior-art vocabulary for imperfect information, observations, players, and game trajectories. | Useful comparison for N-seat hidden-information modeling; Rulepath does not adopt OpenSpiel's architecture or public search/RL bots. |
+| OpenSpiel paper | https://arxiv.org/abs/1908.09453 | Research context for imperfect-information and multi-player games. | Confirms the complexity of this problem space without changing Rulepath's public bot law. |
+| boardgame.io | https://boardgame.io/ | Web-game framework comparison for phases, turns, logs, and player views. | Presentation/tooling precedent only; Rulepath keeps Rust as behavior authority. |
+
 ## Replay, deterministic logs, and future multiplayer
 
 ### Gaffer on Games: Deterministic Lockstep

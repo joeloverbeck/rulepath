@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-public-observer-no-leak",
+  "fixture_kind": "visibility-placeholder",
+  "purpose": "Public observer sees counts and public board only until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "viewer_scope": "observer",
+  "seat_counts": [3, 4, 5, 6],
+  "forbidden_public_facts": ["hole_card_id", "deck_tail_id", "future_community_card_id"]
+}

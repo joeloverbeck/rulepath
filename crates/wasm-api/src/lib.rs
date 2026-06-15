@@ -100,6 +100,16 @@ use race_to_n::{
     replay_support::replay_commands as race_replay_commands, setup_match as race_setup_match,
     RaceEffect, RaceRandomBot, RaceSeat, RaceState, SetupOptions as RaceSetupOptions,
 };
+use river_ledger::{
+    apply_action as river_apply_action, legal_action_tree as river_legal_action_tree,
+    project_view as river_project_view,
+    replay_support::{
+        export_public_replay as river_export_public_replay, ReplayCommand as RiverReplayCommand,
+        RiverLedgerInternalTrace,
+    },
+    setup_match as river_setup_match, RiverLedgerEffect, RiverLedgerLevel2Bot, RiverLedgerSeat,
+    RiverLedgerState,
+};
 use secret_draft::{
     apply_action as secret_apply_action, legal_action_tree as secret_legal_action_tree,
     project_view as secret_project_view,
@@ -155,6 +165,8 @@ const GAME_POKER_LITE: &str = "poker_lite";
 const GAME_POKER_LITE_DISPLAY_NAME: &str = "Crest Ledger";
 const GAME_PLAIN_TRICKS: &str = "plain_tricks";
 const GAME_PLAIN_TRICKS_DISPLAY_NAME: &str = "Plain Tricks";
+const GAME_RIVER_LEDGER: &str = "river_ledger";
+const GAME_RIVER_LEDGER_DISPLAY_NAME: &str = "River Ledger";
 const RULES_VERSION: u32 = 1;
 const SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_OPERATIONS: &[&str] = &[
@@ -191,6 +203,7 @@ const TOKEN_BAZAAR_TRACE_RULES_VERSION: &str = "token-bazaar-rules-v1";
 const SECRET_DRAFT_TRACE_RULES_VERSION: &str = "secret-draft-rules-v1";
 const POKER_LITE_TRACE_RULES_VERSION: &str = "poker-lite-rules-v1";
 const PLAIN_TRICKS_TRACE_RULES_VERSION: &str = "plain-tricks-rules-v1";
+const RIVER_LEDGER_TRACE_RULES_VERSION: &str = "river-ledger-rules-v1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const DATA_VERSION: &str = "1";
 const VARIANT_RACE_TO_21: &str = "race_to_21";
@@ -207,6 +220,7 @@ const VARIANT_TOKEN_BAZAAR_STANDARD: &str = "token_bazaar_standard";
 const VARIANT_SECRET_DRAFT_STANDARD: &str = "secret_draft_standard";
 const VARIANT_POKER_LITE_STANDARD: &str = "poker_lite_standard";
 const VARIANT_PLAIN_TRICKS_STANDARD: &str = "plain_tricks_standard";
+const VARIANT_RIVER_LEDGER_STANDARD: &str = "river_ledger_standard";
 const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
 
 thread_local! {
@@ -313,6 +327,13 @@ enum MatchRecord {
         effects: EffectLog<PlainTricksEffect>,
         commands: Vec<AppliedCommand>,
     },
+    RiverLedger {
+        game_id: String,
+        seed: u64,
+        state: RiverLedgerState,
+        effects: EffectLog<RiverLedgerEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -370,6 +391,7 @@ enum RegisteredGame {
     SecretDraft,
     PokerLite,
     PlainTricks,
+    RiverLedger,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -459,6 +481,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::SecretDraft,
         RegisteredGame::PokerLite,
         RegisteredGame::PlainTricks,
+        RegisteredGame::RiverLedger,
     ]
         .iter()
         .map(|game| {
@@ -585,7 +608,20 @@ pub fn list_games() -> Result<String, String> {
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_PLAIN_TRICKS_STANDARD, GAME_PLAIN_TRICKS_DISPLAY_NAME, None)])
             ),
+            RegisteredGame::RiverLedger => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"public_accounting\",\"fixed_limit\",\"multi_seat\"],\"min_seats\":3,\"max_seats\":6,\"default_seats\":6,\"supported_seats\":[3,4,5,6],\"seat_labels\":{},\"viewer_modes\":{}}}",
+                escape_json(GAME_RIVER_LEDGER),
+                escape_json(GAME_RIVER_LEDGER_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                variants_json(&[(VARIANT_RIVER_LEDGER_STANDARD, GAME_RIVER_LEDGER_DISPLAY_NAME, None)]),
+                catalog_seat_labels_json(6),
+                catalog_viewer_modes_json(6)
+            ),
         };
+            if matches!(game, RegisteredGame::RiverLedger) {
+                return catalog_json;
+            }
             let seat_labels_json = match game {
                 RegisteredGame::EventFrontier => Some(event_frontier_catalog_seat_labels_json()),
                 _ => None,
@@ -989,6 +1025,31 @@ pub fn new_match_for_variant_with_seat_count(
                 escape_json(VARIANT_PLAIN_TRICKS_STANDARD)
             ))
         }
+        RegisteredGame::RiverLedger => {
+            let seats = river_seats_for_count(seat_count);
+            let state =
+                river_setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
+                    .map_err(diagnostic_json)?;
+            let match_id = next_match_id(game_id);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::RiverLedger {
+                        game_id: GAME_RIVER_LEDGER.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(game_id),
+                escape_json(VARIANT_RIVER_LEDGER_STANDARD)
+            ))
+        }
     }
 }
 
@@ -1067,6 +1128,11 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = plain_viewer_for_seat(state, viewer_seat)?;
             Ok(plain_view_json(&plain_project_view(state, &viewer)))
+        }
+        MatchRecord::RiverLedger { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = river_viewer_for_seat(state, viewer_seat)?;
+            Ok(river_view_json(&river_project_view(state, &viewer)))
         }
     })
 }
@@ -1212,6 +1278,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = plain_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&plain_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::RiverLedger { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_river_seat(actor_seat)?;
+            if !river_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            let actor = river_actor_for_seat(state, seat)?;
+            Ok(action_tree_json(&river_legal_action_tree(state, &actor)))
         }
     })
 }
@@ -1687,6 +1762,41 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 plain_view_json(&plain_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::RiverLedger {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_river_seat(actor_seat)?;
+            let command = CommandEnvelope {
+                actor: river_actor_for_seat(state, seat)?,
+                action_path: parse_action_path(action_path),
+                freshness_token: engine_core::FreshnessToken(freshness_token),
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                river_ledger::validate_command(state, &command).map_err(diagnostic_json)?;
+            river_apply_action(state, action).map_err(diagnostic_json)?;
+            let effects: Vec<EffectEnvelope<RiverLedgerEffect>> = Vec::new();
+            let viewer = river_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = river_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_river_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                river_view_json(&river_project_view(state, &viewer))
             ))
         }
     })
@@ -2240,6 +2350,47 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 plain_view_json(&plain_project_view(state, &viewer))
             ))
         }
+        MatchRecord::RiverLedger {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_river_seat(actor_seat)?;
+            let decision = RiverLedgerLevel2Bot::new(Seed(bot_seed))
+                .select_decision(state, seat)
+                .map_err(diagnostic_json)?;
+            let command = CommandEnvelope {
+                actor: river_actor_for_seat(state, seat)?,
+                action_path: decision.action_path,
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(RULES_VERSION),
+            };
+            let action =
+                river_ledger::validate_command(state, &command).map_err(diagnostic_json)?;
+            river_apply_action(state, action).map_err(diagnostic_json)?;
+            let effects: Vec<EffectEnvelope<RiverLedgerEffect>> = Vec::new();
+            let viewer = river_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = river_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_river_seat(seat).to_owned(),
+                action_path: command.action_path.segments,
+                freshness_token: command.freshness_token.0,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                "river-ledger-level2-v1",
+                1,
+                escape_json(&decision.rationale),
+                effect_json,
+                river_view_json(&river_project_view(state, &viewer))
+            ))
+        }
     })
 }
 
@@ -2557,6 +2708,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::RiverLedger {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = river_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        river_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -2811,6 +2984,31 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             };
             Ok(plain_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
         }
+        MatchRecord::RiverLedger {
+            game_id,
+            seed,
+            state,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let trace = RiverLedgerInternalTrace {
+                schema_version: SCHEMA_VERSION,
+                game_id: river_ledger::GAME_ID.to_owned(),
+                rules_version: river_ledger::RULES_VERSION_LABEL.to_owned(),
+                variant: river_ledger::VARIANT_ID.to_owned(),
+                seed_evidence: *seed,
+                seat_count: state.seats.len(),
+                commands: commands
+                    .iter()
+                    .map(|command| RiverReplayCommand {
+                        actor: command.actor_seat.clone(),
+                        path: command.action_path.clone(),
+                    })
+                    .collect(),
+            };
+            Ok(river_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
+        }
     })
 }
 
@@ -2871,6 +3069,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_SECRET_DRAFT
         && parsed.game_id != GAME_POKER_LITE
         && parsed.game_id != GAME_PLAIN_TRICKS
+        && parsed.game_id != GAME_RIVER_LEDGER
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -3044,6 +3243,14 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 plain_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 plain_view_json(&plain_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::RiverLedger => {
+            let (state, effects) =
+                river_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                river_view_json(&river_project_view(&state, &Viewer { seat_id: None })),
                 effects.len(),
             )
         }
@@ -3245,6 +3452,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                 let (state, effects) =
                     plain_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
                 Ok(plain_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
+            RegisteredGame::RiverLedger => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    river_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(river_replay_step_json(
                     replay_id,
                     bounded_cursor,
                     record.commands.len(),
@@ -4087,6 +4306,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_SECRET_DRAFT => Ok(RegisteredGame::SecretDraft),
         GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
         GAME_PLAIN_TRICKS => Ok(RegisteredGame::PlainTricks),
+        GAME_RIVER_LEDGER => Ok(RegisteredGame::RiverLedger),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -4178,6 +4398,10 @@ fn plain_seats_for_count(seat_count: usize) -> Vec<SeatId> {
     underscore_seats_for_count(seat_count)
 }
 
+fn river_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
 fn masked_seats() -> Vec<SeatId> {
     masked_seats_for_count(DEFAULT_SEAT_COUNT)
 }
@@ -4232,6 +4456,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::SecretDraft => SECRET_DRAFT_TRACE_RULES_VERSION,
         RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
         RegisteredGame::PlainTricks => PLAIN_TRICKS_TRACE_RULES_VERSION,
+        RegisteredGame::RiverLedger => RIVER_LEDGER_TRACE_RULES_VERSION,
     }
 }
 
@@ -4480,6 +4705,19 @@ fn trace_plain_seat(seat: PlainTricksSeat) -> &'static str {
     seat.as_str()
 }
 
+fn parse_river_seat(value: &str) -> Result<RiverLedgerSeat, String> {
+    RiverLedgerSeat::parse(value).ok_or_else(|| {
+        format!(
+            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+            escape_json(value)
+        )
+    })
+}
+
+fn trace_river_seat(seat: RiverLedgerSeat) -> String {
+    seat.as_str()
+}
+
 fn race_actor_for_seat(state: &RaceState, seat: RaceSeat) -> Result<Actor, String> {
     state
         .seats
@@ -4688,6 +4926,20 @@ fn plain_actor_for_seat(state: &PlainTricksState, seat: PlainTricksSeat) -> Resu
         })
 }
 
+fn river_actor_for_seat(state: &RiverLedgerState, seat: RiverLedgerSeat) -> Result<Actor, String> {
+    state
+        .seats
+        .get(seat.index())
+        .cloned()
+        .map(|seat_id| Actor { seat_id })
+        .ok_or_else(|| {
+            format!(
+                "{{\"code\":\"unknown_seat\",\"message\":\"seat not present: {}\"}}",
+                seat.as_str()
+            )
+        })
+}
+
 fn race_viewer_for_seat(state: &RaceState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_race_seat)
@@ -4810,6 +5062,14 @@ fn poker_viewer_for_seat(state: &PokerLiteState, seat: Option<&str>) -> Result<V
 fn plain_viewer_for_seat(state: &PlainTricksState, seat: Option<&str>) -> Result<Viewer, String> {
     let seat_id = seat
         .map(parse_plain_seat)
+        .transpose()?
+        .map(|seat| state.seats[seat.index()].clone());
+    Ok(Viewer { seat_id })
+}
+
+fn river_viewer_for_seat(state: &RiverLedgerState, seat: Option<&str>) -> Result<Viewer, String> {
+    let seat_id = seat
+        .map(parse_river_seat)
         .transpose()?
         .map(|seat| state.seats[seat.index()].clone());
     Ok(Viewer { seat_id })
@@ -4941,6 +5201,16 @@ fn poker_viewer_authorizes_actor(
 ) -> Result<bool, String> {
     viewer_seat
         .map(parse_poker_seat)
+        .transpose()
+        .map(|viewer| viewer == Some(actor))
+}
+
+fn river_viewer_authorizes_actor(
+    viewer_seat: Option<&str>,
+    actor: RiverLedgerSeat,
+) -> Result<bool, String> {
+    viewer_seat
+        .map(parse_river_seat)
         .transpose()
         .map(|viewer| viewer == Some(actor))
 }
@@ -5254,6 +5524,31 @@ fn plain_replay_to_cursor(
         };
         let action = plain_tricks::validate_command(&state, &envelope).map_err(diagnostic_json)?;
         all_effects.extend(plain_apply_action(&mut state, action).map_err(diagnostic_json)?);
+    }
+    Ok((state, all_effects))
+}
+
+fn river_replay_to_cursor(
+    seed: u64,
+    commands: &[AppliedCommand],
+    cursor: usize,
+) -> Result<(RiverLedgerState, Vec<EffectEnvelope<RiverLedgerEffect>>), String> {
+    let seats = river_seats_for_count(6);
+    let mut state = river_setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
+        .map_err(diagnostic_json)?;
+    let all_effects = Vec::new();
+    for command in commands.iter().take(cursor) {
+        let seat = parse_river_seat(&command.actor_seat)?;
+        let envelope = CommandEnvelope {
+            actor: river_actor_for_seat(&state, seat)?,
+            action_path: ActionPath {
+                segments: command.action_path.clone(),
+            },
+            freshness_token: engine_core::FreshnessToken(command.freshness_token),
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let action = river_ledger::validate_command(&state, &envelope).map_err(diagnostic_json)?;
+        river_apply_action(&mut state, action).map_err(diagnostic_json)?;
     }
     Ok((state, all_effects))
 }
@@ -6084,6 +6379,24 @@ fn plain_replay_step_json(
         total_commands,
         plain_view_json(&plain_project_view(state, &viewer)),
         plain_effects_json(effects, &viewer)
+    )
+}
+
+fn river_replay_step_json(
+    replay_id: &str,
+    cursor: usize,
+    total_commands: usize,
+    state: &RiverLedgerState,
+    effects: &[EffectEnvelope<RiverLedgerEffect>],
+) -> String {
+    let viewer = Viewer { seat_id: None };
+    format!(
+        "{{\"replay_id\":\"{}\",\"cursor\":{},\"total_commands\":{},\"view\":{},\"effects\":{}}}",
+        escape_json(replay_id),
+        cursor,
+        total_commands,
+        river_view_json(&river_project_view(state, &viewer)),
+        river_effects_json(effects, &viewer)
     )
 }
 
@@ -7202,6 +7515,246 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
         view.freshness_token.0,
         poker_private_view_json(&view.private_view),
         poker_ui_json(&view.ui)
+    )
+}
+
+fn river_view_json(view: &river_ledger::PublicView) -> String {
+    format!(
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        view.schema_version,
+        view.rules_version,
+        escape_json(&view.game_id),
+        escape_json(&view.display_name),
+        escape_json(&view.variant_id),
+        escape_json(&view.rules_version_label),
+        river_phase_label(view.phase),
+        option_river_seat_json(view.active_seat),
+        escape_json(&view.button.as_str()),
+        escape_json(&view.small_blind.as_str()),
+        escape_json(&view.big_blind.as_str()),
+        view.pot_total,
+        view.seats
+            .iter()
+            .map(river_seat_view_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.board
+            .iter()
+            .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        river_terminal_json(&view.terminal),
+        view.terminal_rationale
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), river_rationale_json),
+        view.freshness_token.0,
+        river_private_view_json(&view.private_view),
+        river_ui_json(&view.ui)
+    )
+}
+
+fn river_phase_label(phase: river_ledger::Phase) -> &'static str {
+    match phase {
+        river_ledger::Phase::Setup => "setup",
+        river_ledger::Phase::Betting { street } => street.as_str(),
+        river_ledger::Phase::Showdown => "showdown",
+        river_ledger::Phase::Terminal => "terminal",
+    }
+}
+
+fn option_river_seat_json(seat: Option<RiverLedgerSeat>) -> String {
+    seat.map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn river_seat_view_json(seat: &river_ledger::visibility::SeatView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{}}}",
+        escape_json(&seat.seat.as_str()),
+        river_seat_status_label(seat.status),
+        seat.street_contribution,
+        seat.total_contribution,
+        seat.hidden_hole_count
+    )
+}
+
+fn river_seat_status_label(status: river_ledger::SeatStatus) -> &'static str {
+    match status {
+        river_ledger::SeatStatus::Live => "live",
+        river_ledger::SeatStatus::Folded => "folded",
+        river_ledger::SeatStatus::ShowdownEligible => "showdown_eligible",
+    }
+}
+
+fn river_card_json(card: &river_ledger::CardView) -> String {
+    format!(
+        "{{\"card_id\":\"{}\",\"rank\":\"{}\",\"rank_value\":{},\"suit\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&card.card_id),
+        escape_json(&card.rank),
+        card.rank_value,
+        escape_json(&card.suit),
+        escape_json(&card.label),
+        escape_json(&format!("{} of {}", card.rank, card.suit))
+    )
+}
+
+fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> String {
+    match terminal {
+        river_ledger::visibility::TerminalView::NonTerminal => {
+            "{\"kind\":\"non_terminal\",\"terminal\":false,\"winners\":[],\"pot_total\":0,\"allocations\":[],\"explanations\":[]}".to_owned()
+        }
+        river_ledger::visibility::TerminalView::LastLiveHand { winner, pot_total } => format!(
+            "{{\"kind\":\"last_live_hand\",\"terminal\":true,\"winners\":[\"{}\"],\"pot_total\":{},\"allocations\":[{{\"seat\":\"{}\",\"amount\":{}}}],\"explanations\":[]}}",
+            escape_json(&winner.as_str()),
+            pot_total,
+            escape_json(&winner.as_str()),
+            pot_total
+        ),
+        river_ledger::visibility::TerminalView::Showdown {
+            winners,
+            pot_total,
+            allocations,
+            explanations,
+        } => format!(
+            "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}]}}",
+            winners
+                .iter()
+                .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+                .collect::<Vec<_>>()
+                .join(","),
+            pot_total,
+            allocations
+                .iter()
+                .map(|(seat, amount)| format!(
+                    "{{\"seat\":\"{}\",\"amount\":{}}}",
+                    escape_json(&seat.as_str()),
+                    amount
+                ))
+                .collect::<Vec<_>>()
+                .join(","),
+            explanations
+                .iter()
+                .map(|explanation| format!("\"{}\"", escape_json(explanation)))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn river_rationale_json(rationale: &river_ledger::visibility::OutcomeRationaleView) -> String {
+    let decisive_rule_ids = rationale
+        .decisive_rule_ids
+        .iter()
+        .map(|rule_id| format!("\"{}\"", escape_json(rule_id)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let final_standing = rationale
+        .per_seat
+        .iter()
+        .map(river_rationale_standing_json)
+        .collect::<Vec<_>>()
+        .join(",");
+
+    format!(
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
+        escape_json(&rationale.result_kind),
+        escape_json(&rationale.decisive_cause),
+        escape_json(&rationale.template_key),
+        decisive_rule_ids,
+        final_standing
+    )
+}
+
+fn river_rationale_standing_json(
+    breakdown: &river_ledger::visibility::SeatOutcomeBreakdownView,
+) -> String {
+    let mut values = vec![
+        format!(
+            "{{\"label\":\"Contribution\",\"value\":{}}}",
+            breakdown.contribution
+        ),
+        format!(
+            "{{\"label\":\"Allocation\",\"value\":{}}}",
+            breakdown.allocation
+        ),
+    ];
+    if let Some(strength) = &breakdown.strength {
+        values.push(format!(
+            "{{\"label\":\"Category\",\"value\":\"{}\"}}",
+            escape_json(&strength.category)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Tie break\",\"value\":\"{}\"}}",
+            escape_json(
+                &strength
+                    .tie_break_vector
+                    .iter()
+                    .map(u8::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        ));
+        values.push(format!(
+            "{{\"label\":\"Best five\",\"value\":\"{}\"}}",
+            escape_json(
+                &strength
+                    .best_five
+                    .iter()
+                    .map(|card| card.label.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )
+        ));
+    }
+
+    format!(
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{}]}}",
+        breakdown.seat.as_str(),
+        breakdown.seat.as_str(),
+        escape_json(&breakdown.result),
+        matches!(breakdown.result.as_str(), "win" | "split"),
+        values.join(",")
+    )
+}
+
+fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
+    match private_view {
+        river_ledger::PrivateView::Observer => {
+            "{\"status\":\"observer\",\"seat\":null,\"hole_cards\":[]}".to_owned()
+        }
+        river_ledger::PrivateView::Seat(view) => format!(
+            "{{\"status\":\"seat\",\"seat\":\"{}\",\"hole_cards\":[{}]}}",
+            escape_json(&view.seat.as_str()),
+            view.hole_cards
+                .iter()
+                .map(river_card_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
+    format!(
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\"}}",
+        escape_json(&ui.game_id),
+        escape_json(&ui.display_name),
+        escape_json(&ui.surface_label),
+        ui.viewer_modes
+            .iter()
+            .map(|mode| format!("\"{}\"", escape_json(mode)))
+            .collect::<Vec<_>>()
+            .join(","),
+        ui.min_seats,
+        ui.default_seats,
+        ui.max_seats,
+        escape_json(&ui.seat_metadata_label),
+        escape_json(&ui.action_hint_label),
+        escape_json(&ui.outcome_explanation_label),
+        escape_json(&ui.contribution_label),
+        escape_json(&ui.board_label),
+        escape_json(&ui.hidden_hole_label),
+        escape_json(&ui.reduced_motion_note)
     )
 }
 
@@ -8725,6 +9278,30 @@ fn poker_effects_json(effects: &[EffectEnvelope<PokerLiteEffect>], viewer: &View
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
+}
+
+fn river_effects_json(effects: &[EffectEnvelope<RiverLedgerEffect>], viewer: &Viewer) -> String {
+    let body = river_ledger::filter_effects_for_viewer(effects, viewer)
+        .iter()
+        .map(river_effect_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{body}]")
+}
+
+fn river_effect_json(effect: &EffectEnvelope<RiverLedgerEffect>) -> String {
+    format!(
+        "{{\"scope\":\"{}\",\"summary\":\"{}\"}}",
+        visibility_scope_label(&effect.visibility),
+        escape_json(&format!("{:?}", effect.payload))
+    )
+}
+
+fn visibility_scope_label(scope: &VisibilityScope) -> String {
+    match scope {
+        VisibilityScope::Public => "public".to_owned(),
+        VisibilityScope::PrivateToSeat(seat) => seat.0.clone(),
+    }
 }
 
 fn plain_effects_json(effects: &[EffectEnvelope<PlainTricksEffect>], viewer: &Viewer) -> String {
@@ -11289,19 +11866,15 @@ mod tests {
     }
 
     #[test]
-    fn hidden_info_bridge_games_invoke_pairwise_no_leak_harness_at_two_seats() {
+    fn hidden_info_bridge_games_invoke_pairwise_no_leak_harness() {
         for case in [
             high_card_pairwise_no_leak_case(),
             poker_lite_pairwise_no_leak_case(),
             plain_tricks_pairwise_no_leak_case(),
             masked_claims_pairwise_no_leak_case(),
+            river_ledger_pairwise_no_leak_case(),
         ] {
             assert_pairwise_no_leak(&case);
-            assert_eq!(
-                case.seats,
-                vec!["seat_0".to_owned(), "seat_1".to_owned()],
-                "current hidden-info bridge harness adoption is two-seat"
-            );
         }
     }
 
@@ -11780,6 +12353,70 @@ mod tests {
         assert!(yield_win.contains(
             "\"terminal_rationale\":{\"result_kind\":\"yield_win\",\"decisive_cause\":\"opponent_yielded\",\"template_key\":\"poker_lite.yield_win_no_reveal\""
         ));
+    }
+
+    #[test]
+    fn river_ledger_view_projects_terminal_rationale_template_keys() {
+        let non_terminal = get_terminal_river_view(21, 4, &[]);
+        assert!(non_terminal.contains("\"terminal_rationale\":null"));
+
+        let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
+        assert!(foldout.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"last_live_hand\",\"decisive_cause\":\"last_live_after_folds\",\"template_key\":\"river_ledger.last_live_fold_win\""
+        ));
+        assert!(
+            foldout.contains("\"decisive_rule_ids\":[\"RL-END-LAST-LIVE\",\"RL-SCORE-POT-AWARD\"]")
+        );
+        assert!(!foldout.contains("\"label\":\"Category\""));
+        assert!(!foldout.contains("\"label\":\"Tie break\""));
+
+        let internal = river_setup_match(
+            Seed(21),
+            &river_seats_for_count(3),
+            &river_ledger::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let hidden_cards = (0..3)
+            .flat_map(|seat_index| {
+                internal
+                    .private_hand_for_internal(
+                        RiverLedgerSeat::from_index(seat_index).expect("valid seat"),
+                    )
+                    .expect("private hand")
+            })
+            .collect::<Vec<_>>();
+        assert_no_river_cards(&foldout, &hidden_cards);
+
+        let showdown = get_terminal_river_view(
+            0,
+            4,
+            &[
+                ("seat_3", "call"),
+                ("seat_0", "call"),
+                ("seat_1", "call"),
+                ("seat_2", "check"),
+                ("seat_1", "check"),
+                ("seat_2", "check"),
+                ("seat_3", "check"),
+                ("seat_0", "check"),
+                ("seat_1", "check"),
+                ("seat_2", "check"),
+                ("seat_3", "check"),
+                ("seat_0", "check"),
+                ("seat_1", "check"),
+                ("seat_2", "check"),
+                ("seat_3", "check"),
+                ("seat_0", "check"),
+            ],
+        );
+        assert!(showdown.contains(
+            "\"terminal_rationale\":{\"result_kind\":\"showdown_win\",\"decisive_cause\":\"best_showdown_hand\",\"template_key\":\"river_ledger.showdown_best_hand_win\""
+        ));
+        assert!(
+            showdown.contains("\"decisive_rule_ids\":[\"RL-SCORE-SHOWDOWN\",\"RL-END-SHOWDOWN\"]")
+        );
+        assert!(showdown.contains("\"label\":\"Category\""));
+        assert!(showdown.contains("\"label\":\"Best five\""));
     }
 
     #[test]
@@ -12305,30 +12942,57 @@ mod tests {
         bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
     }
 
+    fn river_ledger_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+        let seed = 757;
+        let created = new_match_with_seat_count("river_ledger", seed, 6).expect("match created");
+        let match_id = extract_match_id(&created);
+        let internal = river_setup_match(
+            Seed(seed),
+            &river_seats_for_count(6),
+            &river_ledger::SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        let mut private_terms_by_seat = BTreeMap::new();
+        for seat_index in 0..6 {
+            let seat = RiverLedgerSeat::from_index(seat_index).expect("valid seat");
+            let cards = internal
+                .private_hand_for_internal(seat)
+                .expect("seat has private hand")
+                .iter()
+                .map(|card| card.id().to_owned())
+                .collect::<Vec<_>>();
+            private_terms_by_seat.insert(seat.as_str(), cards);
+        }
+        bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+    }
+
     fn bridge_pairwise_no_leak_case(
         match_id: &str,
         private_terms_by_seat: BTreeMap<String, Vec<String>>,
     ) -> PairwiseNoLeakCase {
-        let seats = vec!["seat_0".to_owned(), "seat_1".to_owned()];
+        let seats = private_terms_by_seat.keys().cloned().collect::<Vec<_>>();
+        let viewer_options = std::iter::once(None)
+            .chain(seats.iter().map(|seat| Some(seat.as_str())))
+            .collect::<Vec<_>>();
         let mut surfaces = Vec::new();
-        for viewer in [None, Some("seat_0"), Some("seat_1")] {
+        for viewer in &viewer_options {
             surfaces.push(NoLeakSurface {
                 viewer: viewer.map(ToOwned::to_owned),
                 name: "payload",
-                payload: get_view(match_id, viewer).expect("viewer payload returned"),
+                payload: get_view(match_id, *viewer).expect("viewer payload returned"),
             });
             surfaces.push(NoLeakSurface {
                 viewer: viewer.map(ToOwned::to_owned),
                 name: "effect_log",
-                payload: get_effects(match_id, 0, viewer).expect("viewer effects returned"),
+                payload: get_effects(match_id, 0, *viewer).expect("viewer effects returned"),
             });
         }
         for actor in &seats {
-            for viewer in [None, Some("seat_0"), Some("seat_1")] {
+            for viewer in &viewer_options {
                 surfaces.push(NoLeakSurface {
                     viewer: viewer.map(ToOwned::to_owned),
                     name: "action_tree",
-                    payload: get_action_tree_for_viewer(match_id, actor, viewer)
+                    payload: get_action_tree_for_viewer(match_id, actor, *viewer)
                         .expect("viewer action tree returned"),
                 });
             }
@@ -12429,6 +13093,19 @@ mod tests {
             };
             apply_action(&match_id, actor, action_path, freshness_token as u64)
                 .expect("poker action applies");
+        }
+
+        get_view(&match_id, None).expect("observer view returned")
+    }
+
+    fn get_terminal_river_view(seed: u64, seat_count: u8, actions: &[(&str, &str)]) -> String {
+        let created = new_match_with_seat_count("river_ledger", seed, usize::from(seat_count))
+            .expect("match created");
+        let match_id = extract_match_id(&created);
+
+        for (freshness_token, (actor, action_path)) in actions.iter().enumerate() {
+            apply_action(&match_id, actor, action_path, freshness_token as u64)
+                .expect("river action applies");
         }
 
         get_view(&match_id, None).expect("observer view returned")
@@ -12556,6 +13233,16 @@ mod tests {
                 !input.contains(card.as_str()),
                 "hidden poker_lite card {} leaked in {input}",
                 card.as_str()
+            );
+        }
+    }
+
+    fn assert_no_river_cards(input: &str, cards: &[river_ledger::Card]) {
+        for card in cards {
+            assert!(
+                !input.contains(&card.id()),
+                "hidden river_ledger card {} leaked in {input}",
+                card.id()
             );
         }
     }

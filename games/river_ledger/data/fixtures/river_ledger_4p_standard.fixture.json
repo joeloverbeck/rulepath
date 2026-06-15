@@ -1,0 +1,17 @@
+{
+  "fixture_id": "river_ledger_4p_standard",
+  "game_id": "river_ledger",
+  "variant": "river_ledger_standard",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 15,
+  "seat_count": 4,
+  "button": "seat_0",
+  "small_blind": "seat_1",
+  "big_blind": "seat_2",
+  "initial_active": "seat_3",
+  "public_board_count": 0,
+  "private_hole_cards_per_seat": 2,
+  "reserved_community_count": 5,
+  "deck_tail_count": 39,
+  "purpose": "4-seat deterministic setup fixture; hidden card identities are intentionally omitted."
+}

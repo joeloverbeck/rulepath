@@ -23,6 +23,7 @@ use race_to_n::{
     apply_action, legal_action_tree, project_view, setup_match, validate_command, RaceEffect,
     RaceRandomBot, RaceSeat, RaceSnapshot, RaceState, SetupOptions,
 };
+use river_ledger::RiverLedgerLevel2Bot;
 use secret_draft::{SecretDraftRandomBot, SecretDraftSeat};
 use three_marks::{ThreeMarksRandomBot, ThreeMarksSeat};
 use token_bazaar::{TokenBazaarRandomBot, TokenBazaarSeat};
@@ -41,6 +42,7 @@ const GAME_TOKEN_BAZAAR: &str = "token_bazaar";
 const GAME_SECRET_DRAFT: &str = "secret_draft";
 const GAME_POKER_LITE: &str = "poker_lite";
 const GAME_PLAIN_TRICKS: &str = "plain_tricks";
+const GAME_RIVER_LEDGER: &str = "river_ledger";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -65,6 +67,7 @@ struct Config {
     games: u64,
     start_seed: u64,
     action_cap: usize,
+    seat_count: Option<usize>,
     inject_failure_seed: Option<u64>,
     failure_report_out: Option<PathBuf>,
 }
@@ -76,6 +79,7 @@ impl Default for Config {
             games: DEFAULT_GAMES,
             start_seed: 0,
             action_cap: DEFAULT_ACTION_CAP,
+            seat_count: None,
             inject_failure_seed: None,
             failure_report_out: None,
         }
@@ -156,6 +160,7 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
             "--games" => config.games = parse_u64(&mut args, "--games")?,
             "--start-seed" => config.start_seed = parse_u64(&mut args, "--start-seed")?,
             "--action-cap" => config.action_cap = parse_usize(&mut args, "--action-cap")?,
+            "--seat-count" => config.seat_count = Some(parse_usize(&mut args, "--seat-count")?),
             "--inject-failure-seed" => {
                 config.inject_failure_seed = Some(parse_u64(&mut args, "--inject-failure-seed")?)
             }
@@ -183,11 +188,18 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_SECRET_DRAFT
         && config.game != GAME_POKER_LITE
         && config.game != GAME_PLAIN_TRICKS
+        && config.game != GAME_RIVER_LEDGER
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}\n",
             config.game
         ));
+    }
+    if config.game == GAME_RIVER_LEDGER {
+        let seat_count = config.seat_count.unwrap_or(6);
+        if !(3..=6).contains(&seat_count) {
+            return Err("--seat-count for river_ledger must be 3, 4, 5, or 6\n".to_owned());
+        }
     }
     if config.games == 0 {
         return Err("--games must be greater than 0\n".to_owned());
@@ -218,7 +230,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -236,6 +248,10 @@ fn increment_seat_count(counts: &mut BTreeMap<String, u64>, seat: &str) {
 }
 
 fn render_seat_order(seats: &[&str]) -> String {
+    format!("seat_order=[{}]", seats.join(","))
+}
+
+fn render_seat_order_strings(seats: &[String]) -> String {
     format!("seat_order=[{}]", seats.join(","))
 }
 
@@ -287,6 +303,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_PLAIN_TRICKS {
         return run_plain_tricks_simulation(config);
+    }
+    if config.game == GAME_RIVER_LEDGER {
+        return run_river_ledger_simulation(config);
     }
 
     let started = Instant::now();
@@ -449,6 +468,56 @@ fn run_poker_lite_simulation(config: Config) -> Result<String, String> {
         render_seat_order(&TWO_SEAT_IDS),
         render_seat_counts("wins_by_seat", &two_seat_counts(seat_0_wins, seat_1_wins)),
         render_seat_counts("splits_by_seat", &two_seat_counts(splits, splits))
+    ))
+}
+
+fn run_river_ledger_simulation(config: Config) -> Result<String, String> {
+    let seat_count = config.seat_count.unwrap_or(6);
+    let seat_labels = (0..seat_count)
+        .map(|index| format!("seat_{index}"))
+        .collect::<Vec<_>>();
+    let seat_refs = seat_labels.iter().map(String::as_str).collect::<Vec<_>>();
+    let started = Instant::now();
+    let mut summary = Summary::new(&seat_refs);
+    let mut splits = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let (winners, actions) = run_one_river_ledger_game(&config, seed, seat_count)?;
+        summary.games_run += 1;
+        summary.total_actions += actions as u64;
+        if winners.len() > 1 {
+            splits += 1;
+        }
+        for winner in winners {
+            increment_seat_count(&mut summary.wins_by_seat, &winner);
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = summary.total_actions as f64 / summary.games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        summary.games_run as f64 / elapsed_secs
+    } else {
+        summary.games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=river_ledger\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         seat_count={seat_count}\n\
+         games_run={}\n\
+         {}\n\
+         {}\n\
+         split_games={splits}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed,
+        summary.games_run,
+        render_seat_order_strings(&seat_labels),
+        render_seat_counts("wins_by_seat", &summary.wins_by_seat)
     ))
 }
 
@@ -1423,6 +1492,67 @@ fn run_one_poker_lite_game(
     ))
 }
 
+fn run_one_river_ledger_game(
+    config: &Config,
+    seed: u64,
+    seat_count: usize,
+) -> Result<(Vec<String>, usize), String> {
+    let seats = (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect::<Vec<_>>();
+    let mut state =
+        river_ledger::setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+
+    for action_index in 0..config.action_cap {
+        if let Some(outcome) = &state.terminal_outcome {
+            return Ok((river_ledger_winners(outcome), action_index));
+        }
+
+        let actor_seat = state
+            .active_seat
+            .ok_or_else(|| "non-terminal River Ledger state has no active seat".to_owned())?;
+        let actor = Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        };
+        let tree = river_ledger::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(
+            GAME_RIVER_LEDGER,
+            seed,
+            action_index,
+            config.action_cap,
+            &tree,
+        )?;
+        let bot = RiverLedgerLevel2Bot::new(Seed(bot_seed(seed, action_index)));
+        let action_path = bot
+            .select_action(&state, actor_seat)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let command = CommandEnvelope {
+            actor,
+            action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        let validated = river_ledger::validate_command(&state, &command)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        river_ledger::apply_action(&mut state, validated)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+    }
+
+    Err(format!(
+        "SIMULATION FAILURE\n\
+         game_id=river_ledger\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         seat_count={seat_count}\n\
+         action_cap={}\n\
+         failure_reason=action cap reached before terminal outcome\n\
+         replay_command=cargo run -p simulate -- --game river_ledger --seat-count {seat_count} --games 1 --start-seed {seed} --action-cap {}\n",
+        config.action_cap, config.action_cap
+    ))
+}
+
 fn run_one_plain_tricks_game(
     config: &Config,
     seed: u64,
@@ -1799,6 +1929,15 @@ fn poker_lite_winner(outcome: poker_lite::TerminalOutcome) -> Option<poker_lite:
         poker_lite::TerminalOutcome::YieldWin { winner, .. }
         | poker_lite::TerminalOutcome::ShowdownWin { winner, .. } => Some(winner),
         poker_lite::TerminalOutcome::Split { .. } => None,
+    }
+}
+
+fn river_ledger_winners(outcome: &river_ledger::TerminalOutcome) -> Vec<String> {
+    match outcome {
+        river_ledger::TerminalOutcome::LastLiveHand { winner, .. } => vec![winner.as_str()],
+        river_ledger::TerminalOutcome::Showdown { winners, .. } => {
+            winners.iter().map(|winner| winner.as_str()).collect()
+        }
     }
 }
 

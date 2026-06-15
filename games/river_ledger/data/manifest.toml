@@ -1,0 +1,14 @@
+game_id = "river_ledger"
+display_name = "River Ledger"
+readiness = "planned-official-game"
+rules_version = 1
+rules_version_label = "river-ledger-rules-v1"
+data_version = 1
+schema_version = 1
+theme_name = "river_ledger"
+min_seats = 3
+default_seats = 6
+max_seats = 6
+street_count = 4
+card_count = 52
+deck_order = "standard_52_rank_suit_v1"

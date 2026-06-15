@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-deal-private-no-leak",
+  "fixture_kind": "visibility-placeholder",
+  "purpose": "Private deal effects remain scoped to owning seats until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "viewer_scope": "pairwise-seat-private",
+  "seat_counts": [3, 4, 5, 6],
+  "forbidden_public_facts": ["hole_card_id", "deck_tail_id", "future_community_card_id"]
+}

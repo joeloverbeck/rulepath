@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-pair-beats-high-card",
+  "fixture_kind": "evaluator-placeholder",
+  "purpose": "Pair-over-high-card evaluator placeholder until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "left_category": "one_pair",
+  "right_category": "high_card",
+  "expected_comparison": "left_wins"
+}

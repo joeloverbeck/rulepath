@@ -24,9 +24,9 @@ annotated record of Gates 0–14) is frozen at
 
 The scaling phase is seeded from two advisory research reports:
 
-- [`../reports/foundation-doc-realignment.md`](../reports/foundation-doc-realignment.md)
+- [`../archive/reports/foundation-doc-realignment.md`](../archive/reports/foundation-doc-realignment.md)
   — the doc/template realignment the phase needs before execution.
-- [`../reports/public-game-ladder-and-implementation-order.md`](../reports/public-game-ladder-and-implementation-order.md)
+- [`../archive/reports/public-game-ladder-and-implementation-order.md`](../archive/reports/public-game-ladder-and-implementation-order.md)
   — the public game ladder (Gate 15+) and phased implementation order.
 
 **Roadmap admission.** ADR 0007 is accepted, and `docs/ROADMAP.md` now records
@@ -87,7 +87,7 @@ edited to record progress; this table is.
 |---:|---|---|---|---|
 | 0 | Phase 0 — Foundation realignment & next-phase admission | [`phase-0-next-phase-foundation-realignment.md`](../archive/specs/phase-0-next-phase-foundation-realignment.md) | Done | ADR 0007 accepted; multi-seat contract, foundation docs, templates, ROADMAP, and this index reconciled. Evidence below. |
 | 1 (15A) | Infra A–D — N-seat setup/catalog, simulator summaries, multi-seat shell, N-player no-leak harness | [`infra-a-d-n-seat-public-infrastructure.md`](../archive/specs/infra-a-d-n-seat-public-infrastructure.md) | Done | Completed 2026-06-14. Seat metadata/setup bridge, seat-keyed simulator summaries, shared seat frame, and pairwise no-leak harness landed; exit checks recorded in the spec Outcome. |
-| 5 | Gate 15 — River Ledger / Texas Hold'Em base | _(seed; unwritten)_ | Not started | Pending Infra A–D. Deterministic shuffle/private-hand + N-player no-leak + showdown rationale. |
+| 5 | Gate 15 — River Ledger / Texas Hold'Em base | [`gate-15-river-ledger-texas-holdem-base.md`](../archive/specs/gate-15-river-ledger-texas-holdem-base.md) | Done | Completed 2026-06-14. First official 3-6-seat hidden-information betting game; fixed-limit capped-raise; split pots; Rust-authored showdown; N-player no-leak. |
 | 6 | Gate 15.1 — River Ledger all-in / side pots | _(seed; unwritten)_ | Not started | Pending Gate 15. Public-resource/allocation accounting; kept separate from base Hold'Em. |
 | 7 | Gate 16 — Hearts | _(seed; unwritten)_ | Not started | Pending Gate 15. Fixed 4-seat trick-taking; trick-taking promotion evaluation. |
 | 8 | Gate 17 — Oh Hell | _(seed; unwritten)_ | Not started | Pending Gate 16. Variable-N (3–7) bidding/trick-taking; trick-taking helper promotion likely. |

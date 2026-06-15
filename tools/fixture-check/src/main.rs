@@ -325,6 +325,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/plain_tricks/data/variants.toml",
             variant_id: "plain_tricks_standard",
         }),
+        "river_ledger" => Ok(RegisteredGame {
+            game_id: "river_ledger",
+            rules_version: "river-ledger-rules-v1",
+            trace_dir: "games/river_ledger/tests/golden_traces",
+            fixture_dir: "games/river_ledger/data/fixtures",
+            manifest_path: "games/river_ledger/data/manifest.toml",
+            variants_path: "games/river_ledger/data/variants.toml",
+            variant_id: "river_ledger_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -378,9 +387,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -622,6 +631,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "river_ledger" => {
+            let manifest = river_ledger::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = river_ledger::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -705,6 +729,9 @@ fn validate_trace(
     seen_ids: &mut HashSet<String>,
 ) -> Result<(), String> {
     validate_json_object(path, input)?;
+    if game.game_id == "river_ledger" {
+        return validate_river_ledger_trace(game, path, input, seen_ids);
+    }
     if input.contains("\"export_class\":") {
         return validate_public_export_fixture(game, path, input);
     }
@@ -872,6 +899,134 @@ fn validate_trace(
     Ok(())
 }
 
+fn validate_river_ledger_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+    }
+    let trace_id = required_string(path, input, "trace_id")?;
+    if !seen_ids.insert(trace_id.clone()) {
+        return Err(format!(
+            "{}: duplicate trace_id `{trace_id}`",
+            path.display()
+        ));
+    }
+    if !trace_id.starts_with("river-ledger-") {
+        return Err(format!(
+            "{}: river_ledger trace_id must start with river-ledger-",
+            path.display()
+        ));
+    }
+    if required_number(path, input, "schema_version")? != 1 {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if required_string(path, input, "game_id")? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if required_string(path, input, "rules_version")? != game.rules_version {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
+    if required_string(path, input, "purpose")?.trim().is_empty() {
+        return Err(format!("{}: purpose must be non-empty", path.display()));
+    }
+    if let Some(seats) = optional_string_array_field(input, "seats") {
+        let fixture_kind = required_string(path, input, "fixture_kind")?;
+        if fixture_kind != "setup-diagnostic" && !(3..=6).contains(&seats.len()) {
+            return Err(format!(
+                "{}: river_ledger seats must contain 3, 4, 5, or 6 seats",
+                path.display()
+            ));
+        }
+        for (index, seat) in seats.iter().enumerate() {
+            if seat != &format!("seat_{index}") {
+                return Err(format!(
+                    "{}: river_ledger seat order must be stable seat_N order",
+                    path.display()
+                ));
+            }
+        }
+    }
+    for action in command_string_fields(input, "action") {
+        if river_ledger::parse_action_segment(&action).is_none() {
+            return Err(format!(
+                "{}: river_ledger command has invalid action `{action}`",
+                path.display()
+            ));
+        }
+    }
+    for seat in command_string_fields(input, "seat") {
+        if river_ledger::RiverLedgerSeat::parse(&seat).is_none() {
+            return Err(format!(
+                "{}: river_ledger command has invalid seat `{seat}`",
+                path.display()
+            ));
+        }
+    }
+    let fixture_kind = required_string(path, input, "fixture_kind")?;
+    match fixture_kind.as_str() {
+        "setup" => require_key(path, input, "expected_public_setup")?,
+        "setup-diagnostic" | "diagnostic-placeholder" => {
+            require_key(path, input, "expected_diagnostics")?
+        }
+        "betting-placeholder" | "showdown-placeholder" => {
+            if !input.contains("\"expected_public_result\"") && !input.contains("\"allocations\"") {
+                return Err(format!(
+                    "{}: missing river_ledger public result/allocation evidence",
+                    path.display()
+                ));
+            }
+        }
+        "visibility-placeholder" => {
+            if !input.contains("\"forbidden_public_facts\"")
+                && !input.contains("\"forbidden_cross_seat_facts\"")
+            {
+                return Err(format!(
+                    "{}: river_ledger visibility trace must name forbidden facts",
+                    path.display()
+                ));
+            }
+        }
+        "replay-placeholder" => require_key(path, input, "public_export")?,
+        "bot-placeholder" => require_key(path, input, "expected")?,
+        "evaluator-placeholder" => {
+            if !input.contains("\"category\"")
+                && !input.contains("\"expected_comparison\"")
+                && !input.contains("\"expected_remainder_order\"")
+            {
+                return Err(format!(
+                    "{}: river_ledger evaluator trace must name expected evaluator evidence",
+                    path.display()
+                ));
+            }
+        }
+        other => {
+            return Err(format!(
+                "{}: unsupported river_ledger fixture_kind `{other}`",
+                path.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn validate_public_export_fixture(
     game: RegisteredGame,
     path: &Path,
@@ -961,6 +1116,43 @@ fn required_number(path: &Path, input: &str, key: &str) -> Result<u64, String> {
         + needle.len();
     parse_number_at(input, start)
         .ok_or_else(|| format!("{}: field `{key}` must be a number", path.display()))
+}
+
+fn optional_string_array_field(input: &str, key: &str) -> Option<Vec<String>> {
+    let needle = format!("\"{key}\":");
+    let start = input.find(&needle)? + needle.len();
+    let tail = &input[start..];
+    let open = tail.find('[')?;
+    let close = tail[open..].find(']')? + open;
+    Some(parse_array_strings(&tail[open + 1..close]))
+}
+
+fn command_string_fields(input: &str, key: &str) -> Vec<String> {
+    let command_end = input.find("\"checkpoints\":").unwrap_or(input.len());
+    let mut values = Vec::new();
+    let mut remaining = &input[..command_end];
+    let needle = format!("\"{key}\":");
+    while let Some(offset) = remaining.find(&needle) {
+        remaining = &remaining[offset + needle.len()..];
+        if let Some(value) = parse_string_at(remaining, 0) {
+            values.push(value);
+        }
+    }
+    values
+}
+
+fn parse_array_strings(input: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut remaining = input;
+    while let Some(start) = remaining.find('"') {
+        remaining = &remaining[start + 1..];
+        let Some(end) = remaining.find('"') else {
+            break;
+        };
+        values.push(remaining[..end].to_owned());
+        remaining = &remaining[end + 1..];
+    }
+    values
 }
 
 fn validate_json_object(path: &Path, input: &str) -> Result<(), String> {

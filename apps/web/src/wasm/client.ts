@@ -9,6 +9,7 @@ type WasmExports = {
   rulepath_feature_report: () => number;
   rulepath_list_games: () => number;
   rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
+  rulepath_new_match_with_seat_count: (gamePtr: number, gameLen: number, seed: bigint, seatCount: number) => number;
   rulepath_new_match_with_variant: (
     gamePtr: number,
     gameLen: number,
@@ -101,7 +102,7 @@ export type GameCatalogEntry = {
   ui?: GameCatalogUiMetadata;
 };
 
-export type SeatDisplayLabel = { seat: SeatId | string; label: string };
+export type SeatDisplayLabel = { seat: ViewerSeatId | string; label: string };
 export type FactionDisplayLabel = { faction: string; label: string };
 
 export type GameCatalogUiMetadata = {
@@ -116,8 +117,10 @@ export type FeatureReport = {
 };
 
 export type SeatId = "seat_0" | "seat_1";
-export type ViewerModeId = "observer" | SeatId;
-export type ViewerMode = { kind: "observer" } | { kind: "seat"; seat: SeatId };
+export type RiverLedgerSeatId = SeatId | "seat_2" | "seat_3" | "seat_4" | "seat_5";
+export type ViewerSeatId = RiverLedgerSeatId;
+export type ViewerModeId = "observer" | ViewerSeatId;
+export type ViewerMode = { kind: "observer" } | { kind: "seat"; seat: ViewerSeatId };
 
 export type OutcomeRationaleField = {
   label: string;
@@ -160,6 +163,7 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
+export type RiverLedgerOutcomeRationale = OutcomeRationalePayload;
 export type PlainTricksOutcomeRationale = {
   result_kind: string;
   decisive_cause: string;
@@ -702,6 +706,84 @@ export type PokerLitePublicView = {
   ui: PokerLiteUiMetadata;
 };
 
+export type RiverLedgerCardView = {
+  card_id: string;
+  rank: string;
+  rank_value: number;
+  suit: string;
+  label: string;
+  accessibility_label: string;
+};
+
+export type RiverLedgerSeatView = {
+  seat: RiverLedgerSeatId;
+  status: "live" | "folded" | "showdown_eligible" | string;
+  street_contribution: number;
+  total_contribution: number;
+  hidden_hole_count: number;
+};
+
+export type RiverLedgerTerminalView =
+  | {
+      kind: "non_terminal";
+      terminal: false;
+      winners: [];
+      pot_total: 0;
+      allocations: [];
+      explanations: [];
+    }
+  | {
+      kind: "last_live_hand" | "showdown" | string;
+      terminal: true;
+      winners: RiverLedgerSeatId[];
+      pot_total: number;
+      allocations: Array<{ seat: RiverLedgerSeatId; amount: number }>;
+      explanations: string[];
+    };
+
+export type RiverLedgerPrivateView =
+  | { status: "observer"; seat: null; hole_cards: [] }
+  | { status: "seat"; seat: RiverLedgerSeatId; hole_cards: RiverLedgerCardView[] };
+
+export type RiverLedgerUiMetadata = {
+  game_id: "river_ledger";
+  display_name: "River Ledger";
+  surface_label: string;
+  viewer_modes: string[];
+  min_seats: number;
+  default_seats: number;
+  max_seats: number;
+  seat_metadata_label: string;
+  action_hint_label: string;
+  outcome_explanation_label: string;
+  contribution_label: string;
+  board_label: string;
+  hidden_hole_label: string;
+  reduced_motion_note: string;
+};
+
+export type RiverLedgerPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "river_ledger";
+  display_name: string;
+  variant_id: "river_ledger_standard";
+  rules_version_label: string;
+  phase: "setup" | "preflop" | "flop" | "turn" | "river" | "showdown" | "terminal" | string;
+  active_seat: RiverLedgerSeatId | null;
+  button: RiverLedgerSeatId;
+  small_blind: RiverLedgerSeatId;
+  big_blind: RiverLedgerSeatId;
+  pot_total: number;
+  seats: RiverLedgerSeatView[];
+  board: RiverLedgerCardView[];
+  terminal: RiverLedgerTerminalView;
+  terminal_rationale?: RiverLedgerOutcomeRationale | null;
+  freshness_token: number;
+  private_view: RiverLedgerPrivateView;
+  ui: RiverLedgerUiMetadata;
+};
+
 export type PlainTricksCardView = {
   card_id: string;
   suit: string;
@@ -1048,6 +1130,7 @@ export type PublicView =
   | TokenBazaarPublicView
   | SecretDraftPublicView
   | PokerLitePublicView
+  | RiverLedgerPublicView
   | PlainTricksPublicView
   | MaskedClaimsPublicView
   | FloodWatchPublicView
@@ -1238,7 +1321,13 @@ export class RulepathApi {
     return this.invokeJson<FeatureReport>(() => this.exports.rulepath_feature_report(), []);
   }
 
-  newMatch(gameId: string, seed: number, variantId?: string): MatchCreated {
+  newMatch(gameId: string, seed: number, variantId?: string, seatCount?: number): MatchCreated {
+    if (seatCount !== undefined && !variantId) {
+      return this.invokeJson<MatchCreated>(
+        (args) => this.exports.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(seed), seatCount),
+        [gameId],
+      );
+    }
     if (variantId) {
       return this.invokeJson<MatchCreated>(
         (args) =>
@@ -1270,7 +1359,7 @@ export class RulepathApi {
     [matchId, viewer]);
   }
 
-  getActionTree(matchId: string, seat: SeatId, viewerMode: ViewerMode = { kind: "seat", seat }): ActionTree {
+  getActionTree(matchId: string, seat: ViewerSeatId, viewerMode: ViewerMode = { kind: "seat", seat }): ActionTree {
     const viewer = viewerModeArg(viewerMode);
     if (viewer === null) {
       return this.invokeJson<ActionTree>((args) =>
@@ -1389,7 +1478,7 @@ function encodeActionPath(path: string[]): string {
   return path.map((segment) => encodeURIComponent(segment)).join(">");
 }
 
-function viewerModeArg(viewerMode: ViewerMode): SeatId | null {
+function viewerModeArg(viewerMode: ViewerMode): ViewerSeatId | null {
   return viewerMode.kind === "observer" ? null : viewerMode.seat;
 }
 

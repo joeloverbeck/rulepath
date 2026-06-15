@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-full-house-tiebreak",
+  "fixture_kind": "evaluator-placeholder",
+  "purpose": "Full-house trip-rank-first tie-break placeholder until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "category": "full_house",
+  "winning_tie_break_vector": [14, 13],
+  "losing_tie_break_vector": [13, 14]
+}

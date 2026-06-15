@@ -130,6 +130,13 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             benchmarks_path: "games/plain_tricks/docs/BENCHMARKS.md",
             benchmarks_required: false,
         }),
+        "river_ledger" => Ok(RegisteredGame {
+            game_id: "river_ledger",
+            rules_path: "games/river_ledger/docs/RULES.md",
+            coverage_path: "games/river_ledger/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/river_ledger/docs/BENCHMARKS.md",
+            benchmarks_required: true,
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -158,7 +165,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger>"
                     );
                     process::exit(0);
                 }
@@ -276,6 +283,18 @@ fn is_rule_id(value: &str) -> bool {
                         .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit())
             });
     }
+    if parts.first() == Some(&"RL") {
+        return parts.len() >= 3
+            && parts
+                .last()
+                .is_some_and(|part| part.len() == 3 && part.chars().all(|ch| ch.is_ascii_digit()))
+            && parts[1..parts.len() - 1].iter().all(|part| {
+                !part.is_empty()
+                    && part
+                        .chars()
+                        .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit())
+            });
+    }
     parts.len() == 3
         && matches!(
             parts[0],
@@ -371,6 +390,9 @@ mod tests {
         assert!(is_rule_id("CL-SETUP-001"));
         assert!(is_rule_id("FC-ACT-001"));
         assert!(is_rule_id("FC-SCORE-GARRISON-FORT"));
+        assert!(is_rule_id("RL-SETUP-SEATS-001"));
+        assert!(is_rule_id("RL-EVAL-001"));
+        assert!(!is_rule_id("RL-SETUP-SEATS-ABC"));
         assert!(!is_rule_id("XX-SCOPE-001"));
     }
 

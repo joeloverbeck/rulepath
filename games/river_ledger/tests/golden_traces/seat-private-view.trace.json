@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-seat-private-view",
+  "fixture_kind": "visibility-placeholder",
+  "purpose": "Seat-private projection contains own hole cards and excludes every other seat's hole cards until replay-check registration",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "viewer_scope": "seat-private",
+  "seat_counts": [3, 4, 5, 6],
+  "forbidden_cross_seat_facts": ["other_seat_hole_card_id"]
+}

@@ -6,8 +6,8 @@ Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `high_card_duel` / High Card Duel, `token_bazaar` / Token Bazaar, and
 `secret_draft` / Veiled Draft, `poker_lite` / Crest Ledger, and
 `plain_tricks` / Plain Tricks, `masked_claims` / Masked Claims, and
-`flood_watch` / Flood Watch, `frontier_control` / Frontier Control, and
-`event_frontier` / Event Frontier.
+`flood_watch` / Flood Watch, `frontier_control` / Frontier Control,
+`event_frontier` / Event Frontier, and `river_ledger` / River Ledger.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -59,8 +59,8 @@ The shell includes:
 - Race to 21 public board and status;
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
-  Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event
-  Frontier;
+  Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
+  and River Ledger;
 - shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
 - shared `SeatFrame` for catalog-projected seat labels, active/pending seat
   rail, observer mode, and viewer selection;
@@ -106,6 +106,7 @@ single-stage `ActionControls` surface is sufficient.
 | `secret_draft` | board-native | Pool-item controls map to Rust draft/reveal choices. |
 | `poker_lite` | board-native | Poker action buttons map directly to Rust hold/press/lift/match/yield choices. |
 | `plain_tricks` | board-native | Hand-card buttons map to Rust play-card choices. |
+| `river_ledger` | board-native | Seat, board, ledger, and action controls render Rust legal choices and viewer-safe fields. |
 
 ### Effect Animation Adoption Audit
 
@@ -130,6 +131,7 @@ presentations for the current catalog surface.
 | `secret_draft` | generic-only | Draft/reveal effects use shared redacted/reveal-safe presentations. |
 | `poker_lite` | generic-only | Public poker-lite score/reveal effects use baseline shared presentations. |
 | `plain_tricks` | generic-only | Deal/play/trick/score effects use baseline shared movement/highlight presentations. |
+| `river_ledger` | generic-only | River Ledger contribution and board updates use baseline shared movement/highlight presentations until authored mappings land. |
 
 ## Smoke Layers
 
@@ -143,7 +145,8 @@ presentations for the current catalog surface.
 - `smoke:e2e`: Puppeteer rendered-browser smoke plus accessibility/no-leak smoke
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
-  Plain Tricks, Masked Claims, Flood Watch, Frontier Control, and Event Frontier.
+  Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
+  and River Ledger.
   The chain also runs `e2e/animation.smoke.mjs` for animate-and-settle, skip,
   replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard

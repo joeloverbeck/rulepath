@@ -172,8 +172,9 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+const twoSeatGames = catalog.filter((game) => game.game_id !== "river_ledger");
 assert(
-  catalog.every(
+  twoSeatGames.every(
     (game) =>
       game.min_seats === 2 &&
       game.max_seats === 2 &&
@@ -184,11 +185,24 @@ assert(
       Array.isArray(game.seat_labels) &&
       game.seat_labels.length === 2,
   ),
-  "Rust catalog exposes two-seat setup metadata for every current game",
+  "Rust catalog exposes two-seat setup metadata for current two-seat games",
 );
 const tokenBazaarCatalog = catalog.find((game) => game.game_id === "token_bazaar");
 assert(tokenBazaarCatalog, "Rust catalog includes token_bazaar");
 assertVariantDescription(tokenBazaarCatalog, "token_bazaar_standard", undefined);
+const riverLedgerCatalog = catalog.find((game) => game.game_id === "river_ledger");
+assert(riverLedgerCatalog, "Rust catalog includes river_ledger");
+assertVariantDescription(riverLedgerCatalog, "river_ledger_standard", undefined);
+assert(
+  riverLedgerCatalog.hidden_information === true &&
+    riverLedgerCatalog.min_seats === 3 &&
+    riverLedgerCatalog.max_seats === 6 &&
+    riverLedgerCatalog.default_seats === 6 &&
+    JSON.stringify(riverLedgerCatalog.supported_seats) === JSON.stringify([3, 4, 5, 6]) &&
+    riverLedgerCatalog.viewer_modes.includes("seat_5") &&
+    riverLedgerCatalog.seat_labels.length === 6,
+  "Rust catalog exposes river_ledger 3-6 seat metadata",
+);
 const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
 assert(floodWatchCatalog, "Rust catalog includes flood_watch");
 assertVariantDescription(
@@ -243,6 +257,52 @@ assert(
   ),
   "Rust catalog includes event_frontier standard hidden-information variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "river_ledger" &&
+      hasVariant(game, "river_ledger_standard", "River Ledger") &&
+      game.hidden_information === true &&
+      game.tags.includes("public_accounting"),
+  ),
+  "Rust catalog includes river_ledger standard hidden-information variant",
+);
+
+const riverLedger = invoke(
+  (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, 61n, 6),
+  ["river_ledger"],
+);
+assert(riverLedger.match_id, "river_ledger 6-seat start match returns a match id");
+assert(riverLedger.variant_id === "river_ledger_standard", "river_ledger standard variant starts");
+const riverObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [riverLedger.match_id],
+);
+assert(riverObserver.game_id === "river_ledger", "river_ledger Rust view is returned");
+assert(riverObserver.seats.length === 6, "river_ledger Rust view exposes six seat ledger rows");
+assert(riverObserver.board.length === 0, "river_ledger setup exposes no public board cards");
+assert(!("view_summary" in riverObserver), "river_ledger view uses structured browser payload");
+assert(!("deck_tail_count" in riverObserver), "river_ledger view omits deck-tail internals");
+const riverSeat3 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [riverLedger.match_id, "seat_3"],
+);
+assert(riverSeat3.private_view.status === "seat", "river_ledger seat viewer receives own private view");
+assert(riverSeat3.private_view.hole_cards.length === 2, "river_ledger seat viewer receives two own private cards");
+const riverTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [riverLedger.match_id, riverObserver.active_seat, riverObserver.active_seat],
+);
+assert(riverTree.choices.length > 0, "river_ledger active seat exposes legal actions");
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),

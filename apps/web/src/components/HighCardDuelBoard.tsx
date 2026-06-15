@@ -43,14 +43,14 @@ export function HighCardDuelBoard({
   onViewerModeChange,
 }: HighCardDuelBoardProps) {
   const terminal = view.terminal_kind !== "non_terminal";
-  const viewerSeat = viewerMode.kind === "seat" ? viewerMode.seat : null;
+  const viewerSeat = highCardViewerSeat(viewerMode);
   const canAct = Boolean(interactive && !pending && !terminal && viewerSeat && viewerSeat === view.active_seat);
   const choices = canAct ? actionTree?.choices ?? [] : [];
   const commitChoices = useMemo(() => choices.map(commitChoiceSummary), [choices]);
   const revealEffect = latestEffectOfType(effects, "cards_revealed");
   const commitEffect = latestEffectOfType(effects, "commit_face_down");
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
-  const viewerLabel = viewerMode.kind === "observer" ? "Observer" : seatLabel(viewerMode.seat);
+  const viewerLabel = viewerSeat ? seatLabel(viewerSeat) : "Observer";
   const outcomeExplanation = terminal
     ? outcomeSurfaceData({
         gameId: "high_card_duel",
@@ -354,4 +354,11 @@ function scoreStanding(seat: SeatId, winner: SeatId | null, score: number) {
     emphasized: winner === seat,
     values: [{ label: "Score", value: score }],
   };
+}
+
+function highCardViewerSeat(viewerMode: ViewerMode): SeatId | null {
+  if (viewerMode.kind !== "seat") {
+    return null;
+  }
+  return viewerMode.seat === "seat_0" || viewerMode.seat === "seat_1" ? viewerMode.seat : null;
 }
