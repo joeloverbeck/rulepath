@@ -3,7 +3,7 @@ import { access, readFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./launch.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "..", "dist");
@@ -56,11 +56,7 @@ let browser;
 try {
   const { port } = server.address();
   const baseUrl = `http://127.0.0.1:${port}${mountPath}`;
-  browser = await puppeteer.launch({
-    executablePath,
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  browser = await launchBrowser(executablePath);
 
   const page = await browser.newPage();
   const consoleMessages = [];
