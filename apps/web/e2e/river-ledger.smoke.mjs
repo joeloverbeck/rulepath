@@ -70,6 +70,7 @@ try {
   await page.waitForSelector('[data-testid="river-ledger-board"]');
   await waitForText(page, "Seat 0 to choose");
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
+  await assertHandRankingReferenceDuringPlay(page);
   const seat0Cards = await ownPrivateCardLabels(page);
   assert(seat0Cards.length === 2, "seat 0 private view exposes two own cards");
   await assertPrivateCardComponent(page);
@@ -119,6 +120,7 @@ try {
   await playWorkedExampleShowdown(page, baseUrl);
   await assertWorkedExampleShowdown(page);
   await assertShowdownCardComponents(page);
+  await assertHandRankingReferenceAfterShowdown(page);
   assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
   await assertStorageClean(page);
@@ -250,6 +252,43 @@ async function assertShowdownCardComponents(page) {
     summary.showdownGroupLabels.length === 4 && summary.showdownGroupLabels.every((label) => label.includes("Best five")),
     `showdown groups have accessible labels: ${summary.showdownGroupLabels.join(" | ")}`,
   );
+}
+
+async function assertHandRankingReferenceDuringPlay(page) {
+  const summary = await page.evaluate(() => {
+    const details = document.querySelector(".river-ledger-hand-rankings details");
+    return {
+      exists: Boolean(details),
+      open: details?.hasAttribute("open") ?? false,
+      rows: details?.querySelectorAll("li").length ?? 0,
+      firstLabel: details?.querySelector("li strong")?.textContent ?? "",
+      text: details?.textContent ?? "",
+    };
+  });
+  assert(summary.exists, "hand ranking reference is reachable during play");
+  assert(!summary.open, "hand ranking reference starts collapsed during play");
+  assert(summary.rows === 9, `hand ranking reference has nine rows: ${summary.rows}`);
+  assert(summary.firstLabel === "Straight flush", `hand ranking reference uses Rust order: ${summary.firstLabel}`);
+  assert(summary.text.includes("High card"), `hand ranking reference includes low category: ${summary.text}`);
+}
+
+async function assertHandRankingReferenceAfterShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const details = document.querySelector(".river-ledger-hand-rankings details");
+    const current = details?.querySelector("li.current");
+    return {
+      exists: Boolean(details),
+      open: details?.hasAttribute("open") ?? false,
+      rows: details?.querySelectorAll("li").length ?? 0,
+      currentText: current?.textContent ?? "",
+      currentAria: current?.getAttribute("aria-current") ?? "",
+    };
+  });
+  assert(summary.exists, "hand ranking reference remains reachable after showdown");
+  assert(summary.open, "hand ranking reference is default-visible after showdown");
+  assert(summary.rows === 9, `post-showdown hand ranking reference has nine rows: ${summary.rows}`);
+  assert(summary.currentText.includes("One pair"), `winning category is marked from showdown category: ${summary.currentText}`);
+  assert(summary.currentAria === "true", `winning category exposes aria-current: ${summary.currentAria}`);
 }
 
 async function assertFoldedSeatNoStrength(page) {

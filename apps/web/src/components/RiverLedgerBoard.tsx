@@ -3,6 +3,8 @@ import type {
   ActionChoice,
   ActionTree,
   EffectEntry,
+  RiverLedgerHandRankingMetadata,
+  RiverLedgerOutcomeStanding,
   RiverLedgerPublicView,
   RiverLedgerSeatId,
   RiverLedgerSeatView,
@@ -165,6 +167,12 @@ export function RiverLedgerBoard({
         </div>
       </section>
 
+      <HandRankingReference
+        currentCategory={currentShowdownCategory(view)}
+        rankings={view.ui.hand_rankings}
+        terminal={view.terminal.terminal}
+      />
+
       {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
 
       <div className="river-ledger-latest" role="status">
@@ -215,6 +223,39 @@ function ContributionTrack({ seats }: { seats: RiverLedgerSeatView[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function HandRankingReference({
+  currentCategory,
+  rankings,
+  terminal,
+}: {
+  currentCategory: string | null;
+  rankings: RiverLedgerHandRankingMetadata[];
+  terminal: boolean;
+}) {
+  if (rankings.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="river-ledger-hand-rankings" aria-label="Hand ranking reference">
+      <details key={terminal ? "terminal-rankings" : "play-rankings"} open={terminal ? true : undefined}>
+        <summary>Hand ranking reference</summary>
+        <ol>
+          {rankings.map((ranking) => {
+            const current = ranking.category === currentCategory;
+            return (
+              <li className={current ? "current" : ""} key={ranking.category} aria-current={current ? "true" : undefined}>
+                <strong>{ranking.label}</strong>
+                <span>{ranking.definition}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </details>
+    </section>
   );
 }
 
@@ -279,6 +320,11 @@ function riverStanding(view: RiverLedgerPublicView, seat: RiverLedgerSeatView) {
       { label: "Allocation", value: allocation },
     ],
   };
+}
+
+function currentShowdownCategory(view: RiverLedgerPublicView): string | null {
+  const standings = view.terminal_rationale?.final_standing as RiverLedgerOutcomeStanding[] | undefined;
+  return standings?.find((standing) => standing.emphasized && standing.strength)?.strength?.category ?? null;
 }
 
 function privateHeading(view: RiverLedgerPublicView): string {

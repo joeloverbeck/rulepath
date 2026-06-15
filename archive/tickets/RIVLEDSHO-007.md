@@ -1,6 +1,6 @@
 # RIVLEDSHO-007: Always-available hand-ranking reference
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/ui.rs`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -80,3 +80,26 @@ Render the ladder: collapsible during play, default-visible after showdown, curr
 1. `cargo test -p river_ledger`
 2. `npm --prefix apps/web run smoke:ui`
 3. `smoke:ui` plus the crate metadata test is the correct boundary; the ladder carries no behavior to replay-check.
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Added Rust-authored `hand_rankings` metadata to `games/river_ledger/src/ui.rs`, ordered strongest-to-weakest with inert labels and definitions.
+- Serialized the ladder through the River Ledger WASM UI metadata and added matching TypeScript client types.
+- Rendered an always-available hand-ranking reference in `RiverLedgerBoard.tsx`: collapsed during play, default-visible after terminal showdown, and marking the current winning category from the projected showdown `strength.category`.
+- Added browser assertions for during-play reachability/collapse and post-showdown default-open/current-category behavior.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo test -p wasm-api`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Notes:
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because it does not mount the DOM ladder. The DOM behavior is asserted in `river-ledger.smoke.mjs`, and the required `smoke:ui` command still passed.

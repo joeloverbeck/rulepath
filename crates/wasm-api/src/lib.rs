@@ -7785,7 +7785,7 @@ fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
 
 fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
     format!(
-        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\"}}",
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\",\"hand_rankings\":[{}]}}",
         escape_json(&ui.game_id),
         escape_json(&ui.display_name),
         escape_json(&ui.surface_label),
@@ -7803,7 +7803,21 @@ fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
         escape_json(&ui.contribution_label),
         escape_json(&ui.board_label),
         escape_json(&ui.hidden_hole_label),
-        escape_json(&ui.reduced_motion_note)
+        escape_json(&ui.reduced_motion_note),
+        ui.hand_rankings
+            .iter()
+            .map(river_hand_ranking_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_hand_ranking_json(row: &river_ledger::ui::HandRankingMetadata) -> String {
+    format!(
+        "{{\"category\":\"{}\",\"label\":\"{}\",\"definition\":\"{}\"}}",
+        escape_json(&row.category),
+        escape_json(&row.label),
+        escape_json(&row.definition)
     )
 }
 
@@ -12408,6 +12422,10 @@ mod tests {
     fn river_ledger_view_projects_terminal_rationale_template_keys() {
         let non_terminal = get_terminal_river_view(21, 4, &[]);
         assert!(non_terminal.contains("\"terminal_rationale\":null"));
+        assert!(non_terminal.contains(
+            "\"hand_rankings\":[{\"category\":\"straight_flush\",\"label\":\"Straight flush\""
+        ));
+        assert!(non_terminal.contains("\"category\":\"high_card\",\"label\":\"High card\""));
 
         let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
         assert!(foldout.contains(

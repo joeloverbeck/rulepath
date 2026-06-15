@@ -3886,6 +3886,7 @@ svg g[data-effect-kind] {
 .river-ledger-center,
 .river-ledger-private,
 .river-ledger-actions,
+.river-ledger-hand-rankings,
 .river-ledger-outcome,
 .river-ledger-latest {
   display: grid;
@@ -4018,6 +4019,54 @@ svg g[data-effect-kind] {
 
 .river-ledger-card-rank {
   letter-spacing: 0;
+}
+
+.river-ledger-hand-rankings details {
+  display: grid;
+  gap: 10px;
+}
+
+.river-ledger-hand-rankings summary {
+  cursor: pointer;
+  color: #25383b;
+  font-weight: 900;
+}
+
+.river-ledger-hand-rankings summary:focus-visible {
+  outline: 3px solid #b45f06;
+  outline-offset: 3px;
+}
+
+.river-ledger-hand-rankings ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.river-ledger-hand-rankings li {
+  display: grid;
+  grid-template-columns: minmax(118px, 0.38fr) minmax(0, 0.62fr);
+  gap: 6px 12px;
+  align-items: start;
+  border: 1px solid #d8e1df;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.river-ledger-hand-rankings li.current {
+  border-left: 3px solid #b45f06;
+  background: #fffdf8;
+}
+
+.river-ledger-hand-rankings li strong {
+  color: #25383b;
+}
+
+.river-ledger-hand-rankings li span {
+  color: #536568;
 }
 
 .river-ledger-track {

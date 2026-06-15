@@ -782,6 +782,13 @@ export type RiverLedgerUiMetadata = {
   board_label: string;
   hidden_hole_label: string;
   reduced_motion_note: string;
+  hand_rankings: RiverLedgerHandRankingMetadata[];
+};
+
+export type RiverLedgerHandRankingMetadata = {
+  category: string;
+  label: string;
+  definition: string;
 };
 
 export type RiverLedgerPublicView = {
