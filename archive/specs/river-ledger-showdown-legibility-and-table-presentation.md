@@ -5,7 +5,7 @@
 - **Target type:** New spec
 - **Roadmap stage:** Non-gate public-polish spec for the shipped Gate 15 game `river_ledger` — not a mechanic-ladder gate.
 - **Roadmap build gate:** None. This is a non-gate post-Gate-15 presentation spec, the same admission class as the archived `victory-explanation-shared-surface` / `card-and-action-presentation-shared-surfaces` UI-infra specs, motivated by the `reports/river-ledger-correctness-and-presentation-report.md` audit + UX overhaul.
-- **Status:** Planned
+- **Status:** Done
 - **Date:** 2026-06-15
 - **Owner:** joeloverbeck
 - **Authority order:** `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs (`docs/OFFICIAL-GAME-CONTRACT.md`, `docs/MECHANIC-ATLAS.md`, `docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`, `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`) → `docs/ROADMAP.md` → `docs/IP-POLICY.md` → `docs/AGENT-DISCIPLINE.md` → `docs/WASM-CLIENT-BOUNDARY.md` → accepted ADRs → this spec.
@@ -284,3 +284,53 @@ Source: `reports/river-ledger-correctness-and-presentation-report.md` Part C (R1
 | R10 — seat/turn-flow affordances | accept | WS-B — WB9 (D7) |
 | R11 — public copy casino-vocabulary audit | accept | WS-B — WB11 (D7) |
 | R12 — e2e worked-showdown scenario | accept | WS-A — WB5 |
+
+---
+
+## Closeout
+
+Completed: 2026-06-15
+
+Implementation summary:
+
+- Added Rust-authored, reveal-scoped River Ledger showdown explanation fields
+  for headline, decisive comparison, comparison basis, per-seat result label,
+  hand name, rank explanation, comparison note, best-five cards, best-five
+  accessibility label, and terminal-only category-ladder position.
+- Projected the explanation fields through visibility and the WASM bridge,
+  preserving folded-seat redaction and keeping TypeScript as presentation only.
+- Reworked the River Ledger showdown panel around the decisive player-facing
+  sentence, best-five card groups, hand-ranking reference, and details-only raw
+  category/vector/rule data.
+- Added the local neutral River Ledger card component, hand-ranking reference,
+  action metadata copy, seat/turn affordances, street strip, no-casino public
+  copy audit, and e2e worked-example assertion for Pair of Queens beating Pair
+  of Eights.
+- Reconciled `games/river_ledger/docs/RULE-COVERAGE.md`,
+  `games/river_ledger/docs/UI.md`, and the active `specs/README.md` row. The
+  `RL-UI-PREVIEW-001` row remains `intentionally-deferred` because this series
+  did not ship a separate River Ledger preview surface.
+
+Acceptance evidence:
+
+- `cargo test -p river_ledger`
+- `cargo test -p wasm-api`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p rule-coverage -- --game river_ledger`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `node apps/web/e2e/outcome-explanation.smoke.mjs`
+
+Screenshot note:
+
+- No standalone before/after screenshot artifacts were added during this ticket
+  series. The shipped browser behavior was verified through the dedicated
+  River Ledger and full-catalog e2e smoke lanes instead.
