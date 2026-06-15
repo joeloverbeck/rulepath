@@ -91,6 +91,8 @@ export function RiverLedgerBoard({
         <Metric label="Blinds" value={`${seatLabel(view.small_blind)} / ${seatLabel(view.big_blind)}`} />
       </div>
 
+      <StreetStrip view={view} />
+
       <div className="river-ledger-layout" aria-label={view.ui.surface_label}>
         <section className="river-ledger-seats" aria-label={view.ui.seat_metadata_label}>
           {view.seats.map((seat) => (
@@ -190,10 +192,11 @@ export function RiverLedgerBoard({
 function SeatLedger({ view, seat }: { view: RiverLedgerPublicView; seat: RiverLedgerSeatView }) {
   const active = view.active_seat === seat.seat;
   const markers = [
-    view.button === seat.seat ? "Button" : null,
-    view.small_blind === seat.seat ? "SB" : null,
-    view.big_blind === seat.seat ? "BB" : null,
-  ].filter(Boolean);
+    active ? { icon: ">", label: "Active" } : null,
+    view.button === seat.seat ? { icon: "B", label: "Button" } : null,
+    view.small_blind === seat.seat ? { icon: "S", label: "Small blind" } : null,
+    view.big_blind === seat.seat ? { icon: "G", label: "Big blind" } : null,
+  ].filter(isSeatMarker);
 
   return (
     <section className={`river-ledger-seat ${active ? "active" : ""}`} aria-label={`${seatLabel(seat.seat)} ledger`}>
@@ -201,11 +204,50 @@ function SeatLedger({ view, seat }: { view: RiverLedgerPublicView; seat: RiverLe
         <span>{seatLabel(seat.seat)}</span>
         <strong>{active ? "Active" : seatStatusLabel(seat.status)}</strong>
       </div>
-      {markers.length ? <div className="river-ledger-markers">{markers.map((marker) => <b key={marker}>{marker}</b>)}</div> : null}
+      {markers.length ? (
+        <div className="river-ledger-markers">
+          {markers.map((marker) => (
+            <b key={marker.label}>
+              <span aria-hidden="true">{marker.icon}</span>
+              {marker.label}
+            </b>
+          ))}
+        </div>
+      ) : null}
       <Metric label="Street" value={String(seat.street_contribution)} />
       <Metric label="Total" value={String(seat.total_contribution)} />
       <Metric label="Private" value={String(seat.hidden_hole_count)} />
     </section>
+  );
+}
+
+function isSeatMarker(marker: SeatMarker | null): marker is SeatMarker {
+  return marker !== null;
+}
+
+type SeatMarker = {
+  icon: string;
+  label: string;
+};
+
+function StreetStrip({ view }: { view: RiverLedgerPublicView }) {
+  const current = streetStripPhase(view);
+  const currentIndex = streetSteps.findIndex((step) => step.id === current);
+
+  return (
+    <nav className="river-ledger-street-strip" aria-label="Street progression">
+      <ol>
+        {streetSteps.map((step, index) => {
+          const state = index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming";
+          return (
+            <li className={state} key={step.id} aria-current={state === "current" ? "step" : undefined}>
+              <span aria-hidden="true">{state === "complete" ? "✓" : state === "current" ? ">" : "·"}</span>
+              <strong>{step.label}</strong>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 
@@ -347,4 +389,19 @@ function seatStatusLabel(status: string): string {
 
 function seatLabel(seat: RiverLedgerSeatId): string {
   return `Seat ${seat.replace("seat_", "")}`;
+}
+
+const streetSteps = [
+  { id: "preflop", label: "Preflop" },
+  { id: "flop", label: "Flop" },
+  { id: "turn", label: "Turn" },
+  { id: "river", label: "River" },
+  { id: "showdown", label: "Showdown" },
+] as const;
+
+function streetStripPhase(view: RiverLedgerPublicView): (typeof streetSteps)[number]["id"] {
+  if (view.terminal.terminal) {
+    return "showdown";
+  }
+  return streetSteps.some((step) => step.id === view.phase) ? (view.phase as (typeof streetSteps)[number]["id"]) : "preflop";
 }

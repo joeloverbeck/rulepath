@@ -71,6 +71,7 @@ try {
   await waitForText(page, "Seat 0 to choose");
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
   await assertHandRankingReferenceDuringPlay(page);
+  await assertSeatAndStreetAffordancesDuringPlay(page);
   const seat0Cards = await ownPrivateCardLabels(page);
   assert(seat0Cards.length === 2, "seat 0 private view exposes two own cards");
   await assertPrivateCardComponent(page);
@@ -122,6 +123,7 @@ try {
   await assertWorkedExampleShowdown(page);
   await assertShowdownCardComponents(page);
   await assertHandRankingReferenceAfterShowdown(page);
+  await assertStreetStripAfterShowdown(page);
   assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
   await assertStorageClean(page);
@@ -305,6 +307,45 @@ async function assertActionPanelCostCopy(page) {
     summary.every((text) => text.includes("Cap left 3")),
     `action panel renders Rust cap remaining for each choice: ${summary.join(" | ")}`,
   );
+}
+
+async function assertSeatAndStreetAffordancesDuringPlay(page) {
+  const summary = await page.evaluate(() => {
+    const seats = Array.from(document.querySelectorAll(".river-ledger-seat"));
+    const currentStreet = document.querySelector(".river-ledger-street-strip li.current");
+    return {
+      activeMarker: seats.some((seat) => seat.textContent?.includes("Active")),
+      buttonMarker: seats.some((seat) => seat.textContent?.includes("Button")),
+      smallBlindMarker: seats.some((seat) => seat.textContent?.includes("Small blind")),
+      bigBlindMarker: seats.some((seat) => seat.textContent?.includes("Big blind")),
+      markerIcons: Array.from(document.querySelectorAll(".river-ledger-markers b span")).map((icon) => icon.textContent ?? ""),
+      currentStreetText: currentStreet?.textContent ?? "",
+      currentStreetAria: currentStreet?.getAttribute("aria-current") ?? "",
+      streetRows: document.querySelectorAll(".river-ledger-street-strip li").length,
+    };
+  });
+  assert(summary.activeMarker, "seat affordances include active text");
+  assert(summary.buttonMarker, "seat affordances include button text");
+  assert(summary.smallBlindMarker, "seat affordances include small blind text");
+  assert(summary.bigBlindMarker, "seat affordances include big blind text");
+  assert(summary.markerIcons.length >= 4, `seat affordances include icons: ${summary.markerIcons.join(", ")}`);
+  assert(summary.streetRows === 5, `street strip renders five steps: ${summary.streetRows}`);
+  assert(summary.currentStreetText.includes("Preflop"), `street strip marks preflop from public state: ${summary.currentStreetText}`);
+  assert(summary.currentStreetAria === "step", `current street exposes aria-current step: ${summary.currentStreetAria}`);
+}
+
+async function assertStreetStripAfterShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const currentStreet = document.querySelector(".river-ledger-street-strip li.current");
+    return {
+      currentStreetText: currentStreet?.textContent ?? "",
+      currentStreetAria: currentStreet?.getAttribute("aria-current") ?? "",
+      completeRows: document.querySelectorAll(".river-ledger-street-strip li.complete").length,
+    };
+  });
+  assert(summary.currentStreetText.includes("Showdown"), `street strip marks showdown after terminal: ${summary.currentStreetText}`);
+  assert(summary.currentStreetAria === "step", `terminal street exposes aria-current step: ${summary.currentStreetAria}`);
+  assert(summary.completeRows === 4, `street strip marks prior streets complete: ${summary.completeRows}`);
 }
 
 async function assertFoldedSeatNoStrength(page) {

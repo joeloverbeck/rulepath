@@ -3875,6 +3875,50 @@ svg g[data-effect-kind] {
   gap: 12px;
 }
 
+.river-ledger-street-strip {
+  border: 1px solid #d8e1df;
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 10px;
+}
+
+.river-ledger-street-strip ol {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.river-ledger-street-strip li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #d8e1df;
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #ffffff;
+  color: #536568;
+  font-size: 0.82rem;
+}
+
+.river-ledger-street-strip li.current {
+  border-color: #b45f06;
+  background: #fffdf8;
+  color: #25383b;
+}
+
+.river-ledger-street-strip li.complete {
+  background: #eef5f1;
+  color: #315d58;
+}
+
+.river-ledger-street-strip li span {
+  font-weight: 900;
+}
+
 .river-ledger-seats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
@@ -3935,12 +3979,20 @@ svg g[data-effect-kind] {
 }
 
 .river-ledger-markers b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid #c4d4d1;
   border-radius: 999px;
   background: #f4f8f6;
   color: #315d58;
   padding: 3px 7px;
   font-size: 0.72rem;
+}
+
+.river-ledger-markers b span {
+  color: #25383b;
+  font-weight: 900;
 }
 
 .river-ledger-board-cards,
@@ -4348,6 +4400,10 @@ svg g[data-effect-kind] {
 
   .river-ledger-board-cards {
     grid-template-columns: repeat(5, minmax(42px, 1fr));
+  }
+
+  .river-ledger-street-strip ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .secret-pool-grid {

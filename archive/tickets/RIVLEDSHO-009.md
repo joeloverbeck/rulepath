@@ -1,6 +1,6 @@
 # RIVLEDSHO-009: Seat and turn-flow affordances
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -71,3 +71,26 @@ Add seat role/active affordances (text + icon + focus state), a public-state-dri
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:effects`
 3. The UI + effects smokes plus the e2e reveal no-leak sweep are the correct boundary; no Rust behavior changes.
+
+## Outcome
+
+Completed: 2026-06-15
+
+Changes:
+- Added a public-state street strip for `Preflop -> Flop -> Turn -> River -> Showdown`, with `aria-current="step"` on the current street and text/symbol state for completed/current/upcoming steps.
+- Expanded seat affordances to include text plus visible symbols for active seat, button, small blind, and big blind.
+- Kept board reveal on the existing semantic-effect-driven `.reveal` path with reduced-motion gating already present in the board class/CSS.
+- Extended River Ledger e2e assertions for seat markers, street strip during play, terminal showdown strip state, and no-leak browser surface.
+- Updated `smoke-effect-feedback.mjs` to start River Ledger through the existing WASM seat-count entrypoint so `smoke:effects` can include the game without setup failure.
+
+Verification:
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+- `cargo fmt --all --check`
+- `git diff --check`
+
+Notes:
+- `apps/web/scripts/smoke-ui.mjs` remained unchanged because it does not mount DOM seat/street affordances. The DOM assertions live in `river-ledger.smoke.mjs`, and the required `smoke:ui` command still passed.
