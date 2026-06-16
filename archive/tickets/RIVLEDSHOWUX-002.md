@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-002: Fail `seat_N` in runtime visible/a11y River Ledger copy
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (audit tooling + e2e, no Rust/engine) — `scripts/check-outcome-explanations.mjs`, `scripts/check-presentation-copy.mjs`, `apps/web/e2e/river-ledger.smoke.mjs`, `apps/web/e2e/a11y-noleak.smoke.mjs`
@@ -77,3 +77,34 @@ Extend the DOM/no-leak sweep to assert no `seat_\d+` in rendered text content or
 1. `node scripts/check-outcome-explanations.mjs`
 2. `node apps/web/e2e/river-ledger.smoke.mjs`
 3. The runtime e2e sweep is the correct boundary — the static scan in `check-presentation-copy.mjs` cannot see Rust-born strings.
+
+## Outcome
+
+Completed: 2026-06-16
+
+Changed:
+
+- Added a raw `seat_N` outcome-copy rule to
+  `scripts/check-outcome-explanations.mjs` so static outcome templates cannot
+  reintroduce raw seat ids in terminal copy.
+- Extended `apps/web/e2e/river-ledger.smoke.mjs` with a River-Ledger-scoped
+  runtime sweep over visible text, accessibility labels, and `data-testid`
+  values, plus an induced `seat_5` probe proving the guard is non-vacuous.
+- Extended `apps/web/e2e/a11y-noleak.smoke.mjs` with the same raw-seat runtime
+  guard for visible text and accessibility labels.
+
+Deviations:
+
+- `scripts/check-presentation-copy.mjs` was left unchanged because it already
+  scans static source literals for `seat_[0-9]+`; this ticket's missing coverage
+  was runtime Rust-born copy and outcome-template copy.
+
+Verification:
+
+- `node scripts/check-outcome-explanations.mjs`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/river-ledger.smoke.mjs`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+- Negative guard proof: both browser scripts now inject a visible/a11y
+  `seat_5` probe and assert the raw-seat collector catches it before removing
+  the probe.

@@ -26,6 +26,7 @@ const internalTerms = [
   "candidate_ranking",
   "bot_candidate",
 ];
+const rawSeatIdRe = /\bseat_\d+\b/;
 
 await access(executablePath);
 
@@ -64,6 +65,7 @@ try {
   page.on("pageerror", (error) => consoleMessages.push(error.message));
   await page.setViewport({ width: 1180, height: 920 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+  await assertRawSeatIdGuardTrips(page, baseUrl);
 
   const selectedSeatCount = 4;
   await startRiverLedger(page, baseUrl, "Human vs bot", selectedSeatCount);
@@ -110,6 +112,7 @@ try {
   const outcomeText = await page.$eval(".outcome-explanation-panel", (element) => element.textContent ?? "");
   assert(outcomeText.includes("Seat"), "river_ledger terminal outcome names seats");
   await assertFoldedSeatNoStrength(page);
+  await assertNoRawSeatIds(page, "terminal surface");
   assertNoForbiddenTerms(await fullBrowserSurface(page), "terminal surface", internalTerms);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);
 
@@ -121,6 +124,7 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await playWorkedExampleShowdown(page, baseUrl);
   await assertWorkedExampleShowdown(page);
+  await assertNoRawSeatIds(page, "worked-example showdown surface");
   await assertShowdownCardComponents(page);
   await assertHandRankingReferenceAfterShowdown(page);
   await assertTeachingAidAfterShowdown(page);
@@ -470,9 +474,74 @@ async function ownPrivateCardLabels(page) {
 }
 
 async function assertNoLeak(page, consoleMessages, label, forbiddenCardIds) {
+  await assertNoRawSeatIds(page, label);
   const surface = await fullBrowserSurface(page);
   assertNoForbiddenTerms(surface, label, [...forbiddenCardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertRawSeatIdGuardTrips(page, baseUrl) {
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await page.evaluate(() => {
+    const probe = document.createElement("button");
+    probe.type = "button";
+    probe.dataset.testid = "river-ledger-raw-seat-probe";
+    probe.setAttribute("aria-label", "seat_5 should fail the River Ledger copy guard");
+    probe.textContent = "seat_5 should fail the River Ledger copy guard";
+    document.querySelector("main")?.append(probe);
+  });
+  const hits = await collectRawSeatIdHits(page);
+  await page.evaluate(() => document.querySelector("[data-testid='river-ledger-raw-seat-probe']")?.remove());
+  assert(
+    hits.some((hit) => hit.token === "seat_5"),
+    `River Ledger raw-seat guard did not catch induced drift: ${JSON.stringify(hits)}`,
+  );
+}
+
+async function assertNoRawSeatIds(page, label) {
+  const hits = await collectRawSeatIdHits(page);
+  assert(hits.length === 0, `${label} contains raw seat ids in visible/a11y/test-id surface: ${JSON.stringify(hits)}`);
+}
+
+async function collectRawSeatIdHits(page) {
+  const samples = await page.evaluate(() => {
+    const excludedSelector = ".dev-panel, .replay-io, .replay-viewer, script, style";
+    const textSamples = [];
+    const attributeSamples = [];
+
+    const isExcluded = (element) => Boolean(element.closest(excludedSelector));
+    const isVisible = (element) => {
+      if (isExcluded(element) || element.getAttribute("aria-hidden") === "true") return false;
+      const style = window.getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden";
+    };
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const parent = node.parentElement;
+      const text = node.textContent?.trim() ?? "";
+      if (parent && text && isVisible(parent)) {
+        textSamples.push({ source: "text", value: text });
+      }
+    }
+
+    for (const element of Array.from(document.querySelectorAll("*"))) {
+      if (isExcluded(element) || !isVisible(element)) continue;
+      for (const name of ["aria-label", "title", "alt", "aria-valuetext", "data-testid"]) {
+        const value = element.getAttribute(name);
+        if (value?.trim()) {
+          attributeSamples.push({ source: name, value });
+        }
+      }
+    }
+
+    return [...textSamples, ...attributeSamples];
+  });
+  return samples.flatMap((sample) => {
+    const tokens = sample.value.match(new RegExp(rawSeatIdRe.source, "gi")) ?? [];
+    return tokens.map((token) => ({ ...sample, token }));
+  });
 }
 
 async function fullBrowserSurface(page) {
