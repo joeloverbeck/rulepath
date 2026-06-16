@@ -89,7 +89,78 @@ pub enum TerminalView {
         pot_total: u16,
         allocations: Vec<(RiverLedgerSeat, u16)>,
         explanations: Vec<String>,
+        presentation_v2: ShowdownPresentationV2View,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownPresentationV2View {
+    pub result_banner: ShowdownResultBannerView,
+    pub decisive_reason: ShowdownDecisiveReasonView,
+    pub board_cards: Vec<ShowdownBoardCardPresentationView>,
+    pub standings: Vec<ShowdownStandingPresentationView>,
+    pub folded_rows: Vec<ShowdownFoldedRowPresentationView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownResultBannerView {
+    pub headline: String,
+    pub subheadline: String,
+    pub accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownDecisiveReasonView {
+    pub short_text: String,
+    pub contrast_seat: Option<RiverLedgerSeat>,
+    pub contrast_seat_label: Option<String>,
+    pub rule_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownBoardCardPresentationView {
+    pub slot: String,
+    pub card: CardView,
+    pub public_label: String,
+    pub used_by_selected: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownStandingPresentationView {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub rank: u8,
+    pub result_label: String,
+    pub allocation_label: String,
+    pub hand_name: String,
+    pub short_comparison_note: String,
+    pub rank_ladder_label: String,
+    pub hole_cards: Vec<ShowdownCardUsageMarkView>,
+    pub board_cards: Vec<ShowdownCardUsageMarkView>,
+    pub best_five: Vec<CardView>,
+    pub best_five_accessibility_label: String,
+    pub detail_rows: Vec<ShowdownDetailRowView>,
+    pub default_expanded: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownCardUsageMarkView {
+    pub card: CardView,
+    pub public_label: String,
+    pub used_in_best_five: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownDetailRowView {
+    pub label: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownFoldedRowPresentationView {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub redaction_label: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -276,6 +347,7 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
             pot_total,
             allocations,
             explanations,
+            presentation_v2,
             ..
         }) => TerminalView::Showdown {
             winners: winners.clone(),
@@ -288,7 +360,80 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
                 .iter()
                 .map(|explanation| explanation.summary.clone())
                 .collect(),
+            presentation_v2: showdown_presentation_v2_view(presentation_v2),
         },
+    }
+}
+
+fn showdown_presentation_v2_view(
+    presentation: &crate::state::RiverLedgerShowdownPresentationV2,
+) -> ShowdownPresentationV2View {
+    ShowdownPresentationV2View {
+        result_banner: ShowdownResultBannerView {
+            headline: presentation.result_banner.headline.clone(),
+            subheadline: presentation.result_banner.subheadline.clone(),
+            accessibility_label: presentation.result_banner.accessibility_label.clone(),
+        },
+        decisive_reason: ShowdownDecisiveReasonView {
+            short_text: presentation.decisive_reason.short_text.clone(),
+            contrast_seat: presentation.decisive_reason.contrast_seat,
+            contrast_seat_label: presentation.decisive_reason.contrast_seat_label.clone(),
+            rule_refs: presentation.decisive_reason.rule_refs.clone(),
+        },
+        board_cards: presentation
+            .board_cards
+            .iter()
+            .map(|entry| ShowdownBoardCardPresentationView {
+                slot: entry.slot.clone(),
+                card: card_view(entry.card),
+                public_label: entry.public_label.clone(),
+                used_by_selected: entry.used_by_selected.clone(),
+            })
+            .collect(),
+        standings: presentation
+            .standings
+            .iter()
+            .map(|entry| ShowdownStandingPresentationView {
+                seat: entry.seat,
+                seat_label: entry.seat_label.clone(),
+                rank: entry.rank,
+                result_label: entry.result_label.clone(),
+                allocation_label: entry.allocation_label.clone(),
+                hand_name: entry.hand_name.clone(),
+                short_comparison_note: entry.short_comparison_note.clone(),
+                rank_ladder_label: entry.rank_ladder_label.clone(),
+                hole_cards: entry.hole_cards.iter().map(card_usage_mark_view).collect(),
+                board_cards: entry.board_cards.iter().map(card_usage_mark_view).collect(),
+                best_five: entry.best_five.iter().copied().map(card_view).collect(),
+                best_five_accessibility_label: entry.best_five_accessibility_label.clone(),
+                detail_rows: entry
+                    .detail_rows
+                    .iter()
+                    .map(|row| ShowdownDetailRowView {
+                        label: row.label.clone(),
+                        value: row.value.clone(),
+                    })
+                    .collect(),
+                default_expanded: entry.default_expanded,
+            })
+            .collect(),
+        folded_rows: presentation
+            .folded_rows
+            .iter()
+            .map(|entry| ShowdownFoldedRowPresentationView {
+                seat: entry.seat,
+                seat_label: entry.seat_label.clone(),
+                redaction_label: entry.redaction_label.clone(),
+            })
+            .collect(),
+    }
+}
+
+fn card_usage_mark_view(mark: &crate::state::ShowdownCardUsageMark) -> ShowdownCardUsageMarkView {
+    ShowdownCardUsageMarkView {
+        card: card_view(mark.card),
+        public_label: mark.public_label.clone(),
+        used_in_best_five: mark.used_in_best_five,
     }
 }
 
@@ -540,8 +685,9 @@ fn encode_terminal(terminal: &TerminalView) -> String {
             pot_total,
             allocations,
             explanations,
+            presentation_v2,
         } => format!(
-            "showdown:{}:{}:{}:{}",
+            "showdown:{}:{}:{}:{}:{}:{}:{}",
             winners
                 .iter()
                 .map(|seat| seat.as_str())
@@ -553,7 +699,10 @@ fn encode_terminal(terminal: &TerminalView) -> String {
                 .map(|(seat, amount)| format!("{}={amount}", seat.as_str()))
                 .collect::<Vec<_>>()
                 .join(","),
-            explanations.join("|")
+            explanations.join("|"),
+            presentation_v2.result_banner.headline,
+            presentation_v2.standings.len(),
+            presentation_v2.folded_rows.len(),
         ),
     }
 }

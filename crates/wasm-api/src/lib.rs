@@ -7705,6 +7705,7 @@ fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> Str
             pot_total,
             allocations,
             explanations,
+            ..
         } => format!(
             "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}]}}",
             winners

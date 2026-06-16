@@ -1,6 +1,8 @@
 use engine_core::StableSerialize;
-use river_ledger::replay_support::{export_public_replay, trace_from_commands};
-use river_ledger::{setup_match, RiverLedgerSeat, SetupOptions};
+use river_ledger::replay_support::{
+    export_public_replay, replay_internal_full_trace, trace_from_commands,
+};
+use river_ledger::{project_view, setup_match, RiverLedgerSeat, SetupOptions};
 
 #[test]
 fn public_replay_export_json_order_is_stable() {
@@ -41,4 +43,38 @@ fn public_display_labels_do_not_replace_canonical_seat_ids() {
 
     assert_eq!(RiverLedgerSeat::from_index(1).unwrap().as_str(), "seat_1");
     assert!(state.stable_internal_summary().contains("seat_1"));
+}
+
+#[test]
+fn terminal_view_summary_includes_v2_showdown_presentation_deterministically() {
+    let trace = trace_from_commands(
+        79,
+        4,
+        &[
+            (3, "call"),
+            (0, "call"),
+            (1, "call"),
+            (2, "check"),
+            (1, "check"),
+            (2, "check"),
+            (3, "check"),
+            (0, "check"),
+            (1, "check"),
+            (2, "check"),
+            (3, "check"),
+            (0, "check"),
+            (1, "check"),
+            (2, "check"),
+            (3, "check"),
+            (0, "check"),
+        ],
+    );
+    let result = replay_internal_full_trace(&trace);
+    let view = project_view(&result.final_state, &engine_core::Viewer { seat_id: None });
+    let first = view.stable_summary();
+    let second = view.stable_summary();
+
+    assert_eq!(first, second);
+    assert!(first.contains("showdown:"));
+    assert!(first.contains("wins with"));
 }

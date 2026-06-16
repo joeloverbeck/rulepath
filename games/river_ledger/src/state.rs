@@ -119,6 +119,76 @@ pub struct ShowdownSeatExplanation {
     pub summary: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RiverLedgerShowdownPresentationV2 {
+    pub result_banner: ShowdownResultBanner,
+    pub decisive_reason: ShowdownDecisiveReason,
+    pub board_cards: Vec<ShowdownBoardCardPresentation>,
+    pub standings: Vec<ShowdownStandingPresentation>,
+    pub folded_rows: Vec<ShowdownFoldedRowPresentation>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownResultBanner {
+    pub headline: String,
+    pub subheadline: String,
+    pub accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownDecisiveReason {
+    pub short_text: String,
+    pub contrast_seat: Option<RiverLedgerSeat>,
+    pub contrast_seat_label: Option<String>,
+    pub rule_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownBoardCardPresentation {
+    pub slot: String,
+    pub card: Card,
+    pub public_label: String,
+    pub used_by_selected: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownStandingPresentation {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub rank: u8,
+    pub result_label: String,
+    pub allocation_label: String,
+    pub hand_name: String,
+    pub short_comparison_note: String,
+    pub rank_ladder_label: String,
+    pub hole_cards: Vec<ShowdownCardUsageMark>,
+    pub board_cards: Vec<ShowdownCardUsageMark>,
+    pub best_five: Vec<Card>,
+    pub best_five_accessibility_label: String,
+    pub detail_rows: Vec<ShowdownDetailRow>,
+    pub default_expanded: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownCardUsageMark {
+    pub card: Card,
+    pub public_label: String,
+    pub used_in_best_five: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownDetailRow {
+    pub label: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownFoldedRowPresentation {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub redaction_label: String,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PotShare {
     pub seat: RiverLedgerSeat,
@@ -139,6 +209,7 @@ pub enum TerminalOutcome {
         decisive_comparison: String,
         comparison_basis: String,
         explanations: Vec<ShowdownSeatExplanation>,
+        presentation_v2: RiverLedgerShowdownPresentationV2,
     },
 }
 

@@ -6,8 +6,10 @@ use crate::{
     ids::RiverLedgerSeat,
     pot::{allocate_single_pot, PotAllocation},
     state::{
-        CategoryLadderPosition, RiverLedgerState, SeatStatus, ShowdownReveal,
-        ShowdownSeatExplanation, TerminalOutcome,
+        CategoryLadderPosition, RiverLedgerShowdownPresentationV2, RiverLedgerState, SeatStatus,
+        ShowdownBoardCardPresentation, ShowdownCardUsageMark, ShowdownDecisiveReason,
+        ShowdownDetailRow, ShowdownFoldedRowPresentation, ShowdownResultBanner, ShowdownReveal,
+        ShowdownSeatExplanation, ShowdownStandingPresentation, TerminalOutcome,
     },
     ui::seat_public_label,
 };
@@ -43,15 +45,27 @@ pub fn resolve_showdown(state: &RiverLedgerState) -> TerminalOutcome {
         state.seats.len() as u8,
     );
     let explanations = explain_showdown(state, &evaluations, &allocation);
+    let headline = showdown_headline(&evaluations, &winners);
+    let decisive_comparison = decisive_comparison(&evaluations, &winners);
+    let comparison_basis = comparison_basis(&evaluations, &winners);
+    let presentation_v2 = showdown_presentation_v2(
+        state,
+        &evaluations,
+        &allocation,
+        &headline,
+        &decisive_comparison,
+        &comparison_basis,
+    );
 
     TerminalOutcome::Showdown {
         winners: allocation.winners,
         pot_total: allocation.pot_total,
         allocations: allocation.shares,
-        headline: showdown_headline(&evaluations, &winners),
-        decisive_comparison: decisive_comparison(&evaluations, &winners),
-        comparison_basis: comparison_basis(&evaluations, &winners),
+        headline,
+        decisive_comparison,
+        comparison_basis,
         explanations,
+        presentation_v2,
     }
 }
 
@@ -177,6 +191,180 @@ fn reveal_for(
         comparison_note: comparison_note(entry, winners, primary_winner, closest_challenger),
         best_five_accessibility_label: best_five_accessibility_label(&entry.evaluation.used_cards),
         hand_name,
+    }
+}
+
+fn showdown_presentation_v2(
+    state: &RiverLedgerState,
+    evaluations: &[SeatEvaluation],
+    allocation: &PotAllocation,
+    headline: &str,
+    decisive_comparison: &str,
+    comparison_basis: &str,
+) -> RiverLedgerShowdownPresentationV2 {
+    let winners = &allocation.winners;
+    let closest = closest_challenger(evaluations, winners);
+    let ranked = ranked_evaluations(evaluations);
+    let folded_rows = folded_rows(state, evaluations);
+    let standings = ranked
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| standing_presentation(state, entry, index + 1, allocation, winners))
+        .collect::<Vec<_>>();
+
+    RiverLedgerShowdownPresentationV2 {
+        result_banner: ShowdownResultBanner {
+            headline: headline.to_owned(),
+            subheadline: decisive_comparison.to_owned(),
+            accessibility_label: format!("{headline} {comparison_basis}"),
+        },
+        decisive_reason: ShowdownDecisiveReason {
+            short_text: comparison_basis.to_owned(),
+            contrast_seat: closest.map(|entry| entry.seat),
+            contrast_seat_label: closest.map(|entry| seat_public_label(entry.seat)),
+            rule_refs: rule_refs(winners),
+        },
+        board_cards: board_card_presentations(state, evaluations),
+        standings,
+        folded_rows,
+    }
+}
+
+fn ranked_evaluations(evaluations: &[SeatEvaluation]) -> Vec<&SeatEvaluation> {
+    let mut ranked = evaluations.iter().collect::<Vec<_>>();
+    ranked.sort_by(|left, right| {
+        compare_evaluations(&right.evaluation, &left.evaluation)
+            .then_with(|| left.seat.index().cmp(&right.seat.index()))
+    });
+    ranked
+}
+
+fn standing_presentation(
+    state: &RiverLedgerState,
+    entry: &SeatEvaluation,
+    rank: usize,
+    allocation: &PotAllocation,
+    winners: &[RiverLedgerSeat],
+) -> ShowdownStandingPresentation {
+    let share = allocation
+        .shares
+        .iter()
+        .find(|share| share.seat == entry.seat)
+        .map(|share| share.amount)
+        .unwrap_or(0);
+    let hand = state
+        .private_hand_for_internal(entry.seat)
+        .expect("showdown standing has a private hand");
+    let best_five = entry.evaluation.used_cards;
+
+    ShowdownStandingPresentation {
+        seat: entry.seat,
+        seat_label: seat_public_label(entry.seat),
+        rank: rank as u8,
+        result_label: result_label(entry.seat, winners).to_owned(),
+        allocation_label: format!("{share} from the ledger"),
+        hand_name: hand_name(&entry.evaluation),
+        short_comparison_note: rank_explanation(&entry.evaluation),
+        rank_ladder_label: entry.evaluation.category.as_str().replace('_', " "),
+        hole_cards: hand
+            .iter()
+            .copied()
+            .map(|card| card_usage_mark(card, &best_five))
+            .collect(),
+        board_cards: state
+            .board
+            .iter()
+            .copied()
+            .map(|card| card_usage_mark(card, &best_five))
+            .collect(),
+        best_five: best_five.to_vec(),
+        best_five_accessibility_label: best_five_accessibility_label(&best_five),
+        detail_rows: vec![
+            ShowdownDetailRow {
+                label: "Category".to_owned(),
+                value: category_label(entry.evaluation.category).to_owned(),
+            },
+            ShowdownDetailRow {
+                label: "Tie break".to_owned(),
+                value: entry
+                    .evaluation
+                    .tie_break_vector
+                    .iter()
+                    .map(|rank| rank_plural(*rank))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            },
+        ],
+        default_expanded: winners.contains(&entry.seat),
+    }
+}
+
+fn card_usage_mark(card: Card, best_five: &[Card; 5]) -> ShowdownCardUsageMark {
+    ShowdownCardUsageMark {
+        card,
+        public_label: card.public_label(),
+        used_in_best_five: best_five.contains(&card),
+    }
+}
+
+fn board_card_presentations(
+    state: &RiverLedgerState,
+    evaluations: &[SeatEvaluation],
+) -> Vec<ShowdownBoardCardPresentation> {
+    state
+        .board
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, card)| ShowdownBoardCardPresentation {
+            slot: board_slot(index).to_owned(),
+            card,
+            public_label: card.public_label(),
+            used_by_selected: evaluations
+                .iter()
+                .filter(|entry| entry.evaluation.used_cards.contains(&card))
+                .map(|entry| seat_public_label(entry.seat))
+                .collect(),
+        })
+        .collect()
+}
+
+fn folded_rows(
+    state: &RiverLedgerState,
+    evaluations: &[SeatEvaluation],
+) -> Vec<ShowdownFoldedRowPresentation> {
+    state
+        .ledger
+        .seats
+        .iter()
+        .filter(|ledger| !evaluations.iter().any(|entry| entry.seat == ledger.seat))
+        .map(|ledger| ShowdownFoldedRowPresentation {
+            seat: ledger.seat,
+            seat_label: seat_public_label(ledger.seat),
+            redaction_label: "Folded before showdown; hand remains hidden.".to_owned(),
+        })
+        .collect()
+}
+
+fn board_slot(index: usize) -> &'static str {
+    match index {
+        0 => "flop_1",
+        1 => "flop_2",
+        2 => "flop_3",
+        3 => "turn",
+        _ => "river",
+    }
+}
+
+fn rule_refs(winners: &[RiverLedgerSeat]) -> Vec<String> {
+    if winners.len() > 1 {
+        vec![
+            "RL-SCORE-SHOWDOWN".to_owned(),
+            "RL-SCORE-SPLIT".to_owned(),
+            "RL-END-SHOWDOWN".to_owned(),
+        ]
+    } else {
+        vec!["RL-SCORE-SHOWDOWN".to_owned(), "RL-END-SHOWDOWN".to_owned()]
     }
 }
 

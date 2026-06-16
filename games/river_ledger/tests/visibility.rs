@@ -263,6 +263,21 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 &folded_private,
                 &format!("{count}-seat showdown explanation projection"),
             );
+            let river_ledger::visibility::TerminalView::Showdown {
+                presentation_v2, ..
+            } = &projection.terminal
+            else {
+                panic!("showdown terminal projection expected");
+            };
+            assert!(presentation_v2
+                .standings
+                .iter()
+                .all(|standing| standing.seat != seat(0)));
+            assert_eq!(presentation_v2.folded_rows.len(), 1);
+            assert_eq!(presentation_v2.folded_rows[0].seat, seat(0));
+            assert!(presentation_v2.folded_rows[0]
+                .redaction_label
+                .contains("hand remains hidden"));
 
             let rationale = projection
                 .terminal_rationale

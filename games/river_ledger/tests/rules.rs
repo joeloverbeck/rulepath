@@ -391,6 +391,7 @@ fn river_checkdown_resolves_showdown_terminal_and_conserves_pot() {
         pot_total,
         allocations,
         explanations,
+        presentation_v2,
         ..
     }) = &state.terminal_outcome
     else {
@@ -408,6 +409,17 @@ fn river_checkdown_resolves_showdown_terminal_and_conserves_pot() {
         .iter()
         .filter(|explanation| explanation.revealed.is_some())
         .all(|explanation| explanation.status == river_ledger::SeatStatus::ShowdownEligible));
+    assert_eq!(presentation_v2.board_cards.len(), 5);
+    assert_eq!(presentation_v2.standings.len(), 4);
+    assert!(presentation_v2.folded_rows.is_empty());
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .any(|standing| standing.default_expanded));
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .all(|standing| standing.best_five.len() == 5 && standing.board_cards.len() == 5));
 }
 
 #[test]
@@ -460,6 +472,7 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
         winners,
         allocations,
         explanations,
+        presentation_v2,
         ..
     } = outcome
     else {
@@ -501,6 +514,20 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
         .iter()
         .filter(|explanation| explanation.seat != RiverLedgerSeat::from_index(0).unwrap())
         .all(|explanation| explanation.revealed.is_some()));
+    assert_eq!(presentation_v2.standings.len(), 3);
+    assert_eq!(presentation_v2.folded_rows.len(), 1);
+    assert_eq!(presentation_v2.folded_rows[0].seat, seat(0));
+    assert!(presentation_v2.folded_rows[0]
+        .redaction_label
+        .contains("hand remains hidden"));
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .all(|standing| standing.seat != seat(0)));
+    assert!(presentation_v2
+        .decisive_reason
+        .rule_refs
+        .contains(&"RL-SCORE-SPLIT".to_owned()));
 }
 
 #[test]
@@ -540,6 +567,7 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
         decisive_comparison,
         comparison_basis,
         explanations,
+        presentation_v2,
         ..
     } = outcome
     else {
@@ -588,6 +616,31 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
         closest_loser.comparison_note,
         "Pair of Eights loses to Pair of Queens."
     );
+    assert_eq!(presentation_v2.result_banner.headline, headline);
+    assert_eq!(
+        presentation_v2.result_banner.subheadline,
+        decisive_comparison
+    );
+    assert_eq!(presentation_v2.decisive_reason.short_text, comparison_basis);
+    assert_eq!(presentation_v2.decisive_reason.contrast_seat, Some(seat(0)));
+    assert_eq!(
+        presentation_v2
+            .decisive_reason
+            .contrast_seat_label
+            .as_deref(),
+        Some("Seat 1")
+    );
+    assert_eq!(presentation_v2.standings[0].seat, seat(1));
+    assert_eq!(presentation_v2.standings[0].rank, 1);
+    assert_eq!(presentation_v2.standings[0].hand_name, "Pair of Queens");
+    assert_eq!(presentation_v2.standings[1].seat, seat(0));
+    assert!(presentation_v2.standings[0]
+        .hole_cards
+        .iter()
+        .any(|card| card.used_in_best_five));
+    assert!(presentation_v2.board_cards.iter().any(|card| {
+        card.slot == "flop_3" && card.used_by_selected.contains(&"Seat 2".to_owned())
+    }));
 }
 
 #[test]
@@ -624,6 +677,7 @@ fn showdown_explanation_marks_split_and_folded_paths() {
         decisive_comparison,
         comparison_basis,
         explanations,
+        presentation_v2,
         ..
     } = outcome
     else {
@@ -664,6 +718,17 @@ fn showdown_explanation_marks_split_and_folded_paths() {
         .expect("folded explanation")
         .revealed
         .is_none());
+    assert_eq!(presentation_v2.standings.len(), 2);
+    assert_eq!(presentation_v2.folded_rows.len(), 1);
+    assert_eq!(presentation_v2.folded_rows[0].seat, seat(2));
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .all(|standing| standing.default_expanded));
+    assert!(presentation_v2
+        .decisive_reason
+        .rule_refs
+        .contains(&"RL-SCORE-SPLIT".to_owned()));
 }
 
 #[test]

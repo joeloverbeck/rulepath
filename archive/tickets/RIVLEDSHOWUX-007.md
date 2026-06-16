@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-007: `RiverLedgerShowdownPresentationV2` Rust payload
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger/src/showdown.rs`, `games/river_ledger/src/state.rs`, `games/river_ledger/src/visibility.rs`, `games/river_ledger/tests/{rules,serialization}.rs`, `games/river_ledger/tests/golden_traces/*.trace.json`
@@ -84,3 +84,14 @@ Update affected golden traces where the terminal view JSON now carries V2 fields
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. `cargo run -p fixture-check -- --game river_ledger`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Added additive `RiverLedgerShowdownPresentationV2` Rust state payload with result banner, decisive reason, board card usage, ranked standings, folded redaction rows, detail rows, and accessibility text.
+- Built V2 from the existing evaluator/allocation facts in `showdown.rs`; V1 headline/comparison/explanation fields remain intact.
+- Projected V2 additively through `visibility::TerminalView::Showdown` using `CardView` and included it in stable terminal summaries.
+- Kept folded seats out of standings/card-usage and represented them only through folded redaction rows.
+- Added rules, visibility, and serialization assertions for V2 ranking/order, folded redaction, card usage, and deterministic terminal summaries.
+- Verified with `cargo fmt --all --check`, `cargo test -p river_ledger`, `cargo test -p wasm-api`, `cargo run -p replay-check -- --game river_ledger --all`, `cargo run -p fixture-check -- --game river_ledger`, and `cargo run -p rule-coverage -- --game river_ledger`.
