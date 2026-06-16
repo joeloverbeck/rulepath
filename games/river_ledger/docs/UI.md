@@ -6,7 +6,7 @@ Implemented variant: `river_ledger_standard`
 
 Rules version: `river-ledger-rules-v1`
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Contract
 
@@ -23,15 +23,16 @@ effects from the WASM bridge.
 
 | Surface | Rust/WASM payload source | UI behavior |
 |---|---|---|
-| match phase and active seat | `phase`, `street`, `active_seat`, `pending_seats`, `terminal` | Status text, active marker, and terminal panel. |
-| seat rail | `seats[]`, roles, statuses, contributions, acted flags | Six-seat-capable ledger with button, small blind, big blind, active, pending, folded, and terminal states. |
-| public board | `community_cards`, `street` | Public community-card slots with hidden placeholders for unrevealed slots. |
-| contribution ledger | ledger total (`pot` JSON field), `current_bet`, `street_bet`, per-seat contribution fields | Abstract ledger/unit counters only; no money/chip/pot/rake public copy. |
+| match phase and active seat | `phase`, `street`, `active_seat`, `pending_seats`, `terminal`, `ui.seat_labels` | Status text, active marker, and terminal panel use public `Seat N` labels from Rust/WASM. |
+| seat rail | `seats[]`, roles, statuses, contributions, acted flags, `ledger_display` | Compact 3-6 seat ledger with Rust-authored role/status badges, `This round`, `Hand total`, and hole-card summary fields. |
+| public board | `board_slots[]`, `community_cards`, `street` | Central board well renders Rust-authored street placeholders until a card is authorized for reveal. |
+| contribution ledger | ledger total (`pot` JSON field), `current_bet`, `street_bet`, per-seat contribution fields | Abstract ledger/unit counters only; no money/chip/pot/rake public copy and no duplicate unlabeled contribution bar. |
 | private view | `private_view` for the requested viewer | Authorized seat viewer sees only that seat's hole cards; observer and other seats see hidden placeholders. |
-| legal actions | `actionTree.choices` and Rust action metadata | Native buttons for Rust-legal choices only, with call price, added ledger units, and cap-left copy from Rust metadata. |
-| diagnostics and effects | Rust diagnostics and `latestEffect` | Safe status text and effect log entries. |
+| legal actions | `actionTree.choices` and Rust `presentation.display_rows` | Native buttons for Rust-legal choices only; each action renders only Rust-supplied relevant helper rows. |
+| diagnostics and effects | Rust diagnostics, semantic River effects, and `latestEffect` | Safe status text, effect log entries, and scheduler-owned board/showdown pacing. |
+| bot why | transient `BotDecisionPublicExplanation` on bot-turn output | Compact non-debug `Why?` disclosure renders Rust-authored public reason/facts only when present; it is not written to effects or replay. |
 | hand ranking reference | Rust/WASM catalog metadata | Collapsible category ladder, default-visible after showdown, with current category markers from Rust-projected showdown data. |
-| outcome rationale | terminal public view and terminal effects | Decisive Rust-authored result sentence, foldout rationale, showdown hand summaries, best-five visual cards, split/remainder explanation, teaching aid, and final ledger totals. |
+| outcome rationale | terminal public view, terminal effects, and `presentation_v2` | V2 showdown panel renders Rust-authored banner, decisive contrast, board-once usage marks, ranked standings, folded rows, teaching aid, and final ledger totals. |
 | replay | viewer-scoped public replay export/import projection | Replay viewer steps Rust-projected public states and never reconstructs hidden state in TypeScript. |
 
 ## N-Seat Viewer Matrix
@@ -63,7 +64,7 @@ For every supported seat count, the no-leak expectation is pairwise:
 | action diagnostics | wrong-seat and stale-action diagnostics cite public facts only. |
 | semantic effects | private deal and terminal effects are filtered before reaching unauthorized viewers. |
 | replay export/import | public exports omit seed-reconstructable hidden state and unauthorized private cards. |
-| bots | explanations use own authorized cards, public board texture, call price, live-opponent count, street, and cap pressure only. |
+| bots | public explanations use only public/authorized bot input facts such as action label, street, call price, live-opponent count, raises remaining, and ledger total. |
 | browser DOM/storage/logs | observer and wrong-seat browser contexts contain no unauthorized card labels, hidden setup identifiers, candidate rankings, or private debug facts. |
 
 `node apps/web/e2e/river-ledger.smoke.mjs` covers observer/wrong-seat browser
@@ -85,6 +86,7 @@ Rust `ui.rs` and the WASM catalog provide stable presentation metadata:
 | `viewer_modes` | public observer and seat viewers |
 | `primary_resource` | abstract contribution units |
 | `hand_rankings` | strongest-to-weakest River Ledger hand-category labels |
+| catalog icon | original abstract card/ledger SVG rendered from the shared catalog icon map |
 
 The metadata is inert presentation support. It must not encode legality,
 selectors, hidden card identities, rule branches, or behavior by naming.
@@ -93,8 +95,8 @@ selectors, hidden card identities, rule branches, or behavior by naming.
 
 | Rust action | Rule IDs | UI control | Accessibility label source | Notes |
 |---|---|---|---|---|
-| `fold` | `RL-BET-ACTION-001`, `RL-STREET-FOLDOUT-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | May end the hand by foldout. |
-| `check` | `RL-BET-ACTION-002`, `RL-BET-CHECK-001` | Native action button when no amount is owed | `choice.accessibility_label` from Rust | TypeScript does not inspect contribution equality. |
+| `fold` | `RL-BET-ACTION-001`, `RL-STREET-FOLDOUT-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | May end the hand by foldout; shows only Rust-supplied fold-relevant rows. |
+| `check` | `RL-BET-ACTION-002`, `RL-BET-CHECK-001` | Native action button when no amount is owed | `choice.accessibility_label` from Rust | TypeScript does not inspect contribution equality; no call-price/cap rows are invented. |
 | `call` | `RL-BET-ACTION-003`, `RL-BET-CALL-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | Required amount and call-price copy are Rust metadata/payload. |
 | `bet` | `RL-BET-ACTION-002`, `RL-BET-LIMIT-001`, `RL-BET-LIMIT-002` | Native action button when opening a street bet is legal | `choice.accessibility_label` from Rust | Unit size and added-ledger copy come from Rust street rules. |
 | `raise` | `RL-BET-ACTION-003`, `RL-BET-RAISE-001`, `RL-BET-CAP-001` | Native action button until the cap is reached | `choice.accessibility_label` from Rust | Cap availability and cap-left copy are Rust-owned. |
@@ -106,11 +108,13 @@ ids, hand strength, hidden setup facts, or private rationale.
 
 - Core choices are native buttons, keyboard reachable, and activatable with
   Enter/Space.
-- Status and terminal result text are available as screen-reader-readable text,
-  not only color or animation.
+- Status, bot why, and terminal result text are available as screen-reader-readable
+  text, not only color or animation.
 - Seat roles, active/pending states, street strip, public board slots,
   contributions, private card placeholders, action controls, hand-ranking
-  reference, teaching aid, and outcome panels use visible labels.
+  reference, teaching aid, bot why, and outcome panels use visible labels.
+- The terminal showdown banner uses a live status region, and board/card usage
+  marks include text/shape cues rather than color alone.
 - Card labels are shown only after Rust authorizes that viewer projection.
 - Color is not the only information channel; role labels, counts, headings, and
   card text carry the state.
@@ -147,12 +151,13 @@ The decisive cause variants are `last_live_after_folds`,
 `best_showdown_hand`, and `equal_best_hand_split`; they are rendered as
 Rust-authored explanation data, not interpreted by the browser.
 
-For showdown, Rust also projects the human-readable explanation fields the
-browser may display: `headline`, `decisive_comparison`, `comparison_basis`,
-per-seat `result_label`, `hand_name`, `rank_explanation`, `comparison_note`,
-`best_five`, `best_five_accessibility_label`, and terminal-only
-`category_ladder_position`. Raw category keys, tie-break vectors, and rule IDs
-remain available only in the details tier.
+For showdown, Rust also projects the human-readable V2 presentation fields the
+browser may display: `result_banner`, `decisive_reason`, board-once
+`board_cards`, Rust-ranked `standings`, `folded_rows`, per-seat
+`result_label`, `allocation_label`, `hand_name`, `comparison_note_short`,
+hole/board card-usage marks, `best_five`, `best_five_accessibility_label`, and
+terminal-only ladder/detail rows. Raw category keys, tie-break vectors, and
+rule IDs remain available only in the details tier.
 
 ### Terminal Result Variants
 
@@ -171,7 +176,7 @@ remain available only in the details tier.
 | final allocation | terminal allocation | yes | yes | Ledger allocation is public at terminal. |
 | folded status | public seat status | yes | yes | Does not reveal folded private cards. |
 | showdown hand name and rank explanation | terminal showdown explanation | showdown only | showdown only | Present only for authorized showdown reveals. |
-| used cards and best-five group label | terminal showdown explanation | showdown only | showdown only | Redacted when cards are not authorized for that viewer. |
+| used cards, board usage marks, hole usage marks, and best-five group label | terminal showdown explanation | showdown only | showdown only | Redacted when cards are not authorized for that viewer; usage is shown with text/shape cues. |
 | decisive comparison and comparison basis | terminal showdown explanation | showdown only | showdown only | Rust-authored; TypeScript only renders it. |
 | category ladder position | terminal showdown explanation | showdown only | showdown only | Teaching aid only, labeled as not a game value. |
 | raw category key / tie-break vector / rule IDs | terminal showdown explanation | details tier only | details tier only | Retained for inspectability; not the primary player explanation. |
@@ -197,8 +202,12 @@ remain available only in the details tier.
 | worked-example showdown | browser drives the audit seed-79 checkdown path to showdown | terminal states that Pair of Queens beats Pair of Eights and keeps unauthorized cards out of DOM, storage, and logs. |
 | legal-only controls | browser action buttons come from `actionTree.choices` | TypeScript presents only Rust-supplied legal choices. |
 | action metadata copy | browser renders call/raise choices from Rust metadata | call price, added ledger units, and cap-left text match Rust-projected action metadata. |
+| action relevance copy | browser renders fold/check choices from Rust metadata | irrelevant call-price/cap rows are absent because TS renders only Rust display rows. |
 | N-seat setup | match setup uses catalog seat counts | 3, 4, 5, and 6 are selectable and the default is 6. |
+| board-slot and seat-ledger presentation | browser renders Rust board slots and ledger display fields | pending board slots carry street-specific labels and seat rows show `This round`, `Hand total`, and hole-card summaries. |
 | card and ranking presentation | public board, private cards, best-five groups, and hand-ranking reference render | card labels include rank, suit glyph, suit word, and group labels; hand ladder is available and marks showdown categories. |
+| bot why disclosure | browser auto-runs a non-random bot | compact `Why?` disclosure renders public facts and does not appear in the effect log. |
+| catalog identity | browser game picker renders River Ledger | dedicated original SVG icon with catalog-derived accessible title replaces the generic fallback. |
 | responsive layout | browser smoke checks desktop and mobile viewport widths | seat ledger, board, controls, and terminal text remain visible. |
 
 ## Evidence
@@ -206,6 +215,7 @@ remain available only in the details tier.
 - `npm --prefix apps/web run build`
 - `npm --prefix apps/web run smoke:ui`
 - `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:effects`
 - `node apps/web/e2e/river-ledger.smoke.mjs`
 - `node apps/web/e2e/rules-display.smoke.mjs`
 - `npm --prefix apps/web run smoke:e2e`

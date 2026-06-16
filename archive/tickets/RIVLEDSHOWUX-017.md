@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-017: Closeout — docs reconciliation + spec/index `Done`-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None
@@ -78,3 +78,36 @@ Flip this spec's non-gate row `Planned → Done` with the acceptance-evidence po
 1. `cargo test --workspace`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `node scripts/check-doc-links.mjs` (the doc-link + catalog checks are the correct boundary for the docs/status closeout)
+
+## Outcome
+
+Completed the series capstone docs/status reconciliation for the River Ledger showcase UX workstream.
+
+Updated `games/river_ledger/docs/UI.md` for the shipped V2 surfaces: Rust-authored Seat labels, action display rows, board-slot placeholders, seat-ledger display fields, V2 showdown panel, card-usage marks, live-region status, scheduler-routed River effects, compact bot `Why?`, and catalog identity. Updated `games/river_ledger/docs/RULE-COVERAGE.md` UI/bot rows to point at the new proof surfaces. Reconciled `apps/web/README.md` for the dedicated River catalog icon and River's authored animation adoption. Flipped `specs/README.md` to `Done` for `river-ledger-showcase-ux` with archived-ticket evidence.
+
+Verification:
+
+Rust and per-game:
+
+1. `cargo test --workspace`
+2. `cargo run -p fixture-check -- --game river_ledger`
+3. `cargo run -p replay-check -- --game river_ledger --all`
+4. `cargo run -p rule-coverage -- --game river_ledger`
+5. `bash scripts/boundary-check.sh`
+
+Docs:
+
+1. `node scripts/check-doc-links.mjs`
+2. `node scripts/check-catalog-docs.mjs`
+
+Web:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:wasm`
+3. `npm --prefix apps/web run smoke:ui`
+4. `npm --prefix apps/web run smoke:effects`
+5. `npm --prefix apps/web run smoke:e2e`
+
+`npm --prefix apps/web run smoke:effects` first passed its Node effect-feedback portion, then the browser animation segment failed to bind `127.0.0.1` with `listen EPERM` under the sandbox. The exact command was rerun with localhost/browser escalation and passed.
+
+Reference closeout note: the series-level `ticket-series` workflow still requires archiving `specs/river-ledger-showcase-ux.md` after this capstone ticket commit.
