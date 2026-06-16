@@ -171,6 +171,9 @@ rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes" archive/
     inspect the staged index with `git diff --cached --name-status` or an
     equivalent path-scoped staged diff, and also check `git status --short`.
     Unstage or exclude unrelated user changes before committing.
+    Run all git index-mutating commands serially, including `git add`,
+    `git mv`, `git commit`, and `git restore --staged`; never run them through
+    parallel tool calls.
     After build, copy, codegen, fixture-regeneration, or WASM/web bundling
     commands, run `git status --short` and classify generated changes before
     staging. Commit generated artifacts only when the ticket explicitly owns
@@ -287,6 +290,9 @@ evidence.
    `update_goal` call. A mental checklist is not enough for final reference
    truthing.
 7. Run a final status/diff check and commit the reference archive/truthing work.
+   Run all git index-mutating commands serially during this closeout, including
+   `git add`, `git mv`, `git commit`, and `git restore --staged`; never run
+   them through parallel tool calls.
 8. If a `/goal` is active, mark it complete only after implementation,
    verification, ticket archives, reference archive/repair when applicable, and
    required commits are done.
@@ -371,27 +377,34 @@ the live checkout:
 Run a concrete version of this checklist before reporting done or calling
 `update_goal`; adapt placeholders to the ticket prefix and reference path:
 
+If this skill includes `scripts/audit-series-closeout.mjs`, you may use it to
+collect the same audit surfaces, but still inspect its output and run any
+repo-specific checks that the helper cannot infer.
+
 ```sh
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
-rg -n "^\*\*Status\*\*:|^## Outcome" archive/tickets/TICKET_PREFIX*.md
+rg -n '^\*\*Status\*\*:|^## Outcome' archive/tickets/TICKET_PREFIX*.md
 test ! -e ACTIVE_REFERENCE_PATH
-rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^\| Status \| `?Done`? \||^## Outcome" archive/specs/ARCHIVED_REFERENCE.md
-rg -n "^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*" archive/specs/ARCHIVED_REFERENCE.md && exit 1 || true
-rg -n -P "(?<!archive/)ACTIVE_REFERENCE_PATH|(?<!archive/)tickets/TICKET_PREFIX" specs tickets docs apps scripts || true
-rg -n -P "archive/(specs/ARCHIVED_REFERENCE|tickets/TICKET_PREFIX)" specs docs apps scripts || true
+rg -n '^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^\| Status \| `?Done`? \||^## Outcome' archive/specs/ARCHIVED_REFERENCE.md
+rg -n '^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*' archive/specs/ARCHIVED_REFERENCE.md && exit 1 || true
+rg -n -P '(?<!archive/)ACTIVE_REFERENCE_PATH|(?<!archive/)tickets/TICKET_PREFIX' specs tickets docs apps scripts || true
+rg -n -P 'archive/(specs/ARCHIVED_REFERENCE|tickets/TICKET_PREFIX)' specs docs apps scripts || true
+git log --oneline --grep='TICKET_PREFIX' --all
 git status --short
 git diff --cached --name-status
 ```
 
 Compare the archived ticket name list and count against the concrete ticket
-paths resolved at startup. If the reference status grep finds no valid archival
-status line, or the informal-status guard finds `ACCEPTED`, a bullet-style
-status field, or `Done` in a non-spec archival status line, the reference is not
-truthy enough for completion. For archived specs using the table-style status
-header, accept `Done` only when `## Outcome` is present and the active progress
-index points at the archived spec.
+paths resolved at startup. Compare the commit ledger output against the archived
+ticket list before the final response, and include every per-ticket commit ID
+when commits were made as part of the series. If the reference status grep finds
+no valid archival status line, or the informal-status guard finds `ACCEPTED`, a
+bullet-style status field, or `Done` in a non-spec archival status line, the
+reference is not truthy enough for completion. For archived specs using the
+table-style status header, accept `Done` only when `## Outcome` is present and
+the active progress index points at the archived spec.
 
 ## Reporting
 
