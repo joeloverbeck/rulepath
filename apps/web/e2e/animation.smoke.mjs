@@ -236,6 +236,7 @@ async function clickText(page, selector, text) {
 }
 
 async function clickRiverAction(page, label) {
+  const before = await currentFreshness(page);
   await page.waitForFunction(
     (expected) =>
       Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).some(
@@ -252,6 +253,20 @@ async function clickRiverAction(page, label) {
     );
     if (match) {
       await handle.click();
+      await page.waitForFunction(
+        (freshnessToken) => {
+          if (document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')) {
+            return true;
+          }
+          if (!window.render_game_to_text) {
+            return false;
+          }
+          const state = JSON.parse(window.render_game_to_text());
+          return (state?.view?.freshness_token ?? 0) > freshnessToken;
+        },
+        {},
+        before,
+      );
       return;
     }
   }

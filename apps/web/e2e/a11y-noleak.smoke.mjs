@@ -144,6 +144,11 @@ try {
   await assertNoLeak(page, consoleMessages, "event_frontier DOM");
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startRiverLedgerBotWhy(page);
+  await assertRiverLedgerBotWhy(page);
+  await assertNoLeak(page, consoleMessages, "river_ledger bot why DOM");
+
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startRiverLedgerShowdown(page);
   await assertRiverLedgerStatusAnnouncement(page);
   await assertNoLeak(page, consoleMessages, "river_ledger status announcement DOM");
@@ -218,6 +223,35 @@ async function startRiverLedgerShowdown(page) {
     await clickRiverAction(page, action);
   }
   await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
+async function startRiverLedgerBotWhy(page) {
+  await clickText(page, "button", "River Ledger");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "4");
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="river-ledger-board"]');
+  await page.waitForSelector('[data-testid="river-ledger-bot-explanation"]');
+}
+
+async function assertRiverLedgerBotWhy(page) {
+  const summary = await page.evaluate(() => {
+    const why = document.querySelector('[data-testid="river-ledger-bot-explanation"]');
+    const effectLog = document.querySelector('[data-testid="effects"]')?.textContent ?? "";
+    return {
+      exists: Boolean(why),
+      label: why?.getAttribute("aria-label") ?? "",
+      text: why?.textContent ?? "",
+      effectLog,
+    };
+  });
+  assert(summary.exists, "river_ledger bot why disclosure renders for a non-random bot");
+  assert(summary.label.includes("Why Seat "), `river_ledger bot why aria label uses public seat label: ${summary.label}`);
+  assert(summary.text.includes("Why?"), "river_ledger bot why exposes compact summary text");
+  assert(summary.text.includes("Call price"), "river_ledger bot why renders Rust public facts");
+  assert(summary.text.includes("This public explanation omits private hole cards"), "river_ledger bot why renders Rust no-hidden-info notice");
+  assert(!summary.text.toLowerCase().includes("candidate"), "river_ledger bot why omits candidate data");
+  assert(!rawSeatIdRe.test(summary.text), `river_ledger bot why avoids raw seat ids: ${summary.text}`);
+  assert(!summary.effectLog.includes("This public explanation"), "river_ledger bot why is not dumped into effect log");
 }
 
 async function assertRiverLedgerStatusAnnouncement(page) {

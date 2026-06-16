@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
 import { animationRegistry } from "../animation/registry";
 import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
+import type { BotDecisionSummary } from "../state/shellReducer";
 import type {
   ActionChoice,
   ActionTree,
@@ -25,6 +26,7 @@ type RiverLedgerBoardProps = {
   effects?: EffectEntry[];
   reducedMotion: boolean;
   pending: boolean;
+  lastBotDecision?: BotDecisionSummary | null;
   interactive?: boolean;
   onChoice?: (choice: ActionChoice) => void;
 };
@@ -36,12 +38,14 @@ export function RiverLedgerBoard({
   effects = latestEffect ? [latestEffect] : [],
   reducedMotion,
   pending,
+  lastBotDecision = null,
   interactive = true,
   onChoice,
 }: RiverLedgerBoardProps) {
   const choices = useMemo(() => actionTree?.choices ?? [], [actionTree]);
   const canAct = Boolean(interactive && !pending && !view.terminal.terminal && view.active_seat && choices.length > 0);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  const botExplanation = lastBotDecision?.publicExplanation ?? null;
   const boardChanged = effects.some((entry) => String(entry.effect.payload.type).includes("board"));
   const outcomeExplanation = view.terminal.terminal
     ? outcomeSurfaceData({
@@ -189,6 +193,8 @@ export function RiverLedgerBoard({
                 : feedback?.detail ?? "Visible state changes will update here."}
             </strong>
           </div>
+
+          {botExplanation ? <RiverLedgerBotWhy explanation={botExplanation} /> : null}
         </div>
       </div>
 
@@ -201,6 +207,28 @@ export function RiverLedgerBoard({
       {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
 
     </section>
+  );
+}
+
+function RiverLedgerBotWhy({ explanation }: { explanation: NonNullable<BotDecisionSummary["publicExplanation"]> }) {
+  return (
+    <details
+      className="river-ledger-bot-why bot-note bot-why"
+      data-testid="river-ledger-bot-explanation"
+      aria-label={`Why ${explanation.seat_label} chose ${explanation.action_label}`}
+    >
+      <summary>Why?</summary>
+      <strong>{explanation.short_reason}</strong>
+      <dl>
+        {explanation.public_facts.map((fact) => (
+          <div key={`${fact.label}:${fact.value}`}>
+            <dt>{fact.label}</dt>
+            <dd>{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p>{explanation.hidden_information_notice}</p>
+    </details>
   );
 }
 

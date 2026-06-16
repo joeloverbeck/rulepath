@@ -139,7 +139,7 @@ export function ModeControls({
         </div>
       </div>
 
-      {gameId === "event_frontier" && lastBotDecision ? (
+      {gameId === "event_frontier" && lastBotDecision && !lastBotDecision.publicExplanation ? (
         <details className="bot-note bot-why" data-testid="bot-explanation">
           <summary>Bot why</summary>
           <strong>{lastBotDecision.rationale}</strong>

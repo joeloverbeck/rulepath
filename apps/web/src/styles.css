@@ -4308,6 +4308,52 @@ svg g[data-effect-kind] {
   overflow-wrap: anywhere;
 }
 
+.river-ledger-bot-why {
+  grid-column: 1 / -1;
+  border-color: var(--rl-accent);
+  background: var(--rl-accent-soft);
+}
+
+.river-ledger-bot-why summary {
+  color: var(--rl-ink);
+}
+
+.river-ledger-bot-why strong,
+.river-ledger-bot-why p {
+  margin: 0;
+  color: var(--rl-ink);
+  overflow-wrap: anywhere;
+}
+
+.river-ledger-bot-why dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.river-ledger-bot-why dl div {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--rl-card-border);
+  border-radius: 6px;
+  background: var(--rl-panel);
+  padding: 8px 10px;
+}
+
+.river-ledger-bot-why dt {
+  color: var(--rl-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.river-ledger-bot-why dd {
+  margin: 0;
+  color: var(--rl-ink);
+  font-weight: 800;
+}
+
 .river-ledger-board.reveal:not(.reduced) .river-ledger-card.board {
   animation: poker-lite-reveal 420ms ease-out;
 }
@@ -4498,7 +4544,8 @@ svg g[data-effect-kind] {
   .river-ledger-seat-rail,
   .river-ledger-action-band,
   .river-ledger-action-grid,
-  .river-ledger-latest {
+  .river-ledger-latest,
+  .river-ledger-bot-why dl {
     grid-template-columns: 1fr;
   }
 

@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-015: Compact bot "Why?" disclosure
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerBoard.tsx`, `apps/web/src/components/ModeControls.tsx`
@@ -75,3 +75,21 @@ Optionally surface the latest bot explanation in the shared status area only whe
 1. `npm --prefix apps/web run smoke:ui`
 2. `node apps/web/e2e/a11y-noleak.smoke.mjs`
 3. `npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Added a compact River Ledger `Why?` disclosure beside the in-play latest status band when the Rust `BotDecisionPublicExplanation` payload is present. The disclosure renders only Rust-authored copy and public fact rows from the WASM payload, computes no TypeScript rationale, uses public seat/action labels, and is absent when no structured explanation exists.
+
+Threaded the optional structured explanation through the shell's latest bot decision summary and into `RiverLedgerBoard`. `ModeControls` now avoids falling back to the older raw-rationale bot disclosure when a structured public explanation is available, preventing duplicate/debug-like presentation. No explanation content is routed through effects or the effect log.
+
+Expanded smoke coverage for the River bot explanation payload and browser disclosure/no-leak behavior. Also hardened the River section of `animation.smoke.mjs` to wait for Rust view freshness between scripted River actions; this kept the required aggregate `smoke:e2e` gate stable without weakening animation target assertions.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `npm --prefix apps/web run build`
+3. `npm --prefix apps/web run smoke:ui`
+4. `node apps/web/e2e/a11y-noleak.smoke.mjs`
+5. `node apps/web/e2e/river-ledger.smoke.mjs`
+6. `node apps/web/e2e/animation.smoke.mjs`
+7. `npm --prefix apps/web run smoke:e2e`

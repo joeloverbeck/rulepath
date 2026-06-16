@@ -312,6 +312,21 @@ const riverTree = invoke(
   [riverLedger.match_id, riverObserver.active_seat, riverObserver.active_seat],
 );
 assert(riverTree.choices.length > 0, "river_ledger active seat exposes legal actions");
+const riverBot = invoke(
+  (args) => wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 88n),
+  [riverLedger.match_id, riverObserver.active_seat],
+);
+assert(riverBot.bot_explanation, "river_ledger bot turn returns Rust-authored public explanation");
+assert(riverBot.bot_explanation.seat_label.startsWith("Seat "), "river_ledger bot explanation uses public seat label");
+assert(riverBot.bot_explanation.short_reason.endsWith("."), "river_ledger bot explanation carries one-sentence reason");
+assert(
+  riverBot.bot_explanation.public_facts.some((fact) => fact.label === "Call price"),
+  "river_ledger bot explanation carries public fact rows",
+);
+assert(
+  !JSON.stringify(riverBot.effects).includes("bot_explanation"),
+  "river_ledger bot explanation is not routed through effect payloads",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),

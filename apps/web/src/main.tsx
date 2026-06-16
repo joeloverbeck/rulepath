@@ -627,6 +627,7 @@ function App() {
             effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            lastBotDecision={state.lastBotDecision}
             onChoice={playChoice}
           />
         ) : isPlainTricksView(view) ? (

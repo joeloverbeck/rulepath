@@ -1,6 +1,7 @@
 import type {
   ActionTree,
   ApiError,
+  BotDecisionPublicExplanation,
   BotTurnResult,
   EffectEntry,
   FeatureReport,
@@ -37,6 +38,7 @@ export type BotDecisionSummary = {
   policyId: string;
   policyVersion: number | null;
   rationale: string;
+  publicExplanation: BotDecisionPublicExplanation | null;
 };
 
 export type RulesPanelStatus = "idle" | "loading" | "loaded" | "error";
@@ -494,6 +496,7 @@ function botDecisionSummary(result: BotTurnResult): BotDecisionSummary | null {
     policyId: result.policy_id,
     policyVersion: result.policy_version ?? null,
     rationale: result.rationale,
+    publicExplanation: result.bot_explanation ?? null,
   };
 }
 
