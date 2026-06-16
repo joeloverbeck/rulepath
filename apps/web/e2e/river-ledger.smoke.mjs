@@ -344,7 +344,8 @@ async function assertSeatAndStreetAffordancesDuringPlay(page) {
       buttonMarker: seats.some((seat) => seat.textContent?.includes("Button")),
       smallBlindMarker: seats.some((seat) => seat.textContent?.includes("Small blind")),
       bigBlindMarker: seats.some((seat) => seat.textContent?.includes("Big blind")),
-      markerIcons: Array.from(document.querySelectorAll(".river-ledger-markers b span")).map((icon) => icon.textContent ?? ""),
+      ledgerLabels: seats.map((seat) => seat.textContent ?? ""),
+      trackBars: document.querySelectorAll(".river-ledger-track-bar").length,
       currentStreetText: currentStreet?.textContent ?? "",
       currentStreetAria: currentStreet?.getAttribute("aria-current") ?? "",
       streetRows: document.querySelectorAll(".river-ledger-street-strip li").length,
@@ -354,7 +355,13 @@ async function assertSeatAndStreetAffordancesDuringPlay(page) {
   assert(summary.buttonMarker, "seat affordances include button text");
   assert(summary.smallBlindMarker, "seat affordances include small blind text");
   assert(summary.bigBlindMarker, "seat affordances include big blind text");
-  assert(summary.markerIcons.length >= 4, `seat affordances include icons: ${summary.markerIcons.join(", ")}`);
+  assert(
+    summary.ledgerLabels.every(
+      (text) => text.includes("This round") && text.includes("Hand total") && text.includes("Hole cards") && text.includes("2 hidden"),
+    ),
+    `seat ledgers render Rust-authored labels: ${summary.ledgerLabels.join(" | ")}`,
+  );
+  assert(summary.trackBars === 0, "seat ledger removes duplicate contribution track bar");
   assert(summary.streetRows === 5, `street strip renders five steps: ${summary.streetRows}`);
   assert(summary.currentStreetText.includes("Preflop"), `street strip marks preflop from public state: ${summary.currentStreetText}`);
   assert(summary.currentStreetAria === "step", `current street exposes aria-current step: ${summary.currentStreetAria}`);

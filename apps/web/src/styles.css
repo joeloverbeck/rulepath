@@ -3970,7 +3970,6 @@ svg g[data-effect-kind] {
 }
 
 .river-ledger-metric span,
-.river-ledger-track span,
 .river-ledger-hidden span,
 .river-ledger-card span,
 .river-ledger-action small,
@@ -3982,7 +3981,6 @@ svg g[data-effect-kind] {
 }
 
 .river-ledger-metric strong,
-.river-ledger-track strong,
 .river-ledger-hidden strong,
 .river-ledger-card strong,
 .river-ledger-allocations strong {
@@ -4141,32 +4139,6 @@ svg g[data-effect-kind] {
 
 .river-ledger-hand-rankings li span {
   color: #536568;
-}
-
-.river-ledger-track {
-  display: grid;
-  gap: 8px;
-}
-
-.river-ledger-track > div {
-  display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 40px;
-  align-items: center;
-  gap: 8px;
-}
-
-.river-ledger-track-bar {
-  block-size: 10px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e7eceb;
-}
-
-.river-ledger-track-bar span {
-  display: block;
-  block-size: 100%;
-  border-radius: inherit;
-  background: #3e7d8e;
 }
 
 .river-ledger-action-grid {

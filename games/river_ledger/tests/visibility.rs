@@ -285,6 +285,15 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 .expect("folded seat breakdown");
             assert_eq!(folded.result, "folded");
             assert!(folded.strength.is_none());
+            let folded_seat = projection
+                .seats
+                .iter()
+                .find(|entry| entry.seat == seat(0))
+                .expect("folded public seat");
+            assert_eq!(
+                folded_seat.ledger_display.hole_card_summary.value,
+                "2 hidden"
+            );
 
             for revealed in rationale
                 .per_seat
@@ -303,6 +312,15 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 assert_eq!(
                     strength.best_five_accessibility_label,
                     "Best five cards: ace of hearts, king of hearts, queen of hearts, jack of hearts, ten of hearts."
+                );
+                let revealed_seat = projection
+                    .seats
+                    .iter()
+                    .find(|entry| entry.seat == revealed.seat)
+                    .expect("revealed public seat");
+                assert_eq!(
+                    revealed_seat.ledger_display.hole_card_summary.value,
+                    "2 revealed"
                 );
             }
 

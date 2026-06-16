@@ -117,7 +117,6 @@ export function RiverLedgerBoard({
               ),
             )}
           </div>
-          <ContributionTrack seats={view.seats} />
         </section>
       </div>
 
@@ -192,44 +191,28 @@ export function RiverLedgerBoard({
 
 function SeatLedger({ view, seat }: { view: RiverLedgerPublicView; seat: RiverLedgerSeatView }) {
   const active = view.active_seat === seat.seat;
-  const markers = [
-    active ? { icon: ">", label: "Active" } : null,
-    view.button === seat.seat ? { icon: "B", label: "Button" } : null,
-    view.small_blind === seat.seat ? { icon: "S", label: "Small blind" } : null,
-    view.big_blind === seat.seat ? { icon: "G", label: "Big blind" } : null,
-  ].filter(isSeatMarker);
+  const display = seat.ledger_display;
+  const metrics = [display.round_contribution, display.hand_contribution, display.hole_card_summary];
 
   return (
     <section className={`river-ledger-seat ${active ? "active" : ""}`} aria-label={`${seatLabel(seat.seat)} ledger`}>
       <div className="river-ledger-section-heading">
         <span>{seatLabel(seat.seat)}</span>
-        <strong>{active ? "Active" : seatStatusLabel(seat.status)}</strong>
+        <strong>{display.status_label}</strong>
       </div>
-      {markers.length ? (
+      {display.role_badges.length ? (
         <div className="river-ledger-markers">
-          {markers.map((marker) => (
-            <b key={marker.label}>
-              <span aria-hidden="true">{marker.icon}</span>
-              {marker.label}
-            </b>
+          {display.role_badges.map((badge) => (
+            <b key={badge}>{badge}</b>
           ))}
         </div>
       ) : null}
-      <Metric label="Street" value={String(seat.street_contribution)} />
-      <Metric label="Total" value={String(seat.total_contribution)} />
-      <Metric label="Private" value={String(seat.hidden_hole_count)} />
+      {metrics.map((metric) => (
+        <Metric key={metric.label} label={metric.label} value={metric.value} ariaLabel={metric.accessibility_label} />
+      ))}
     </section>
   );
 }
-
-function isSeatMarker(marker: SeatMarker | null): marker is SeatMarker {
-  return marker !== null;
-}
-
-type SeatMarker = {
-  icon: string;
-  label: string;
-};
 
 function StreetStrip({ view }: { view: RiverLedgerPublicView }) {
   const current = streetStripPhase(view);
@@ -249,23 +232,6 @@ function StreetStrip({ view }: { view: RiverLedgerPublicView }) {
         })}
       </ol>
     </nav>
-  );
-}
-
-function ContributionTrack({ seats }: { seats: RiverLedgerSeatView[] }) {
-  const maxContribution = Math.max(1, ...seats.map((seat) => seat.total_contribution));
-  return (
-    <div className="river-ledger-track" aria-label="Contribution ledger">
-      {seats.map((seat) => (
-        <div key={seat.seat}>
-          <span>{seatLabel(seat.seat)}</span>
-          <div className="river-ledger-track-bar">
-            <span style={{ inlineSize: `${Math.max(8, (seat.total_contribution / maxContribution) * 100)}%` }} />
-          </div>
-          <strong>{seat.total_contribution}</strong>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -302,9 +268,9 @@ function HandRankingReference({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, ariaLabel }: { label: string; value: string; ariaLabel?: string }) {
   return (
-    <div className="river-ledger-metric">
+    <div className="river-ledger-metric" aria-label={ariaLabel}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>

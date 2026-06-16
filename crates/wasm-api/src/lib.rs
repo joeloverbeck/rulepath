@@ -7617,12 +7617,40 @@ fn option_river_seat_json(seat: Option<RiverLedgerSeat>) -> String {
 
 fn river_seat_view_json(seat: &river_ledger::visibility::SeatView) -> String {
     format!(
-        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{}}}",
+        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{},\"ledger_display\":{}}}",
         escape_json(&seat.seat.as_str()),
         river_seat_status_label(seat.status),
         seat.street_contribution,
         seat.total_contribution,
-        seat.hidden_hole_count
+        seat.hidden_hole_count,
+        river_seat_ledger_display_json(&seat.ledger_display)
+    )
+}
+
+fn river_seat_ledger_display_json(
+    display: &river_ledger::ui::RiverLedgerSeatLedgerDisplay,
+) -> String {
+    format!(
+        "{{\"round_contribution\":{},\"hand_contribution\":{},\"hole_card_summary\":{},\"role_badges\":[{}],\"status_label\":\"{}\"}}",
+        river_seat_ledger_field_json(&display.round_contribution),
+        river_seat_ledger_field_json(&display.hand_contribution),
+        river_seat_ledger_field_json(&display.hole_card_summary),
+        display
+            .role_badges
+            .iter()
+            .map(|badge| format!("\"{}\"", escape_json(badge)))
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&display.status_label)
+    )
+}
+
+fn river_seat_ledger_field_json(field: &river_ledger::ui::RiverLedgerSeatLedgerField) -> String {
+    format!(
+        "{{\"label\":\"{}\",\"value\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&field.label),
+        escape_json(&field.value),
+        escape_json(&field.accessibility_label)
     )
 }
 

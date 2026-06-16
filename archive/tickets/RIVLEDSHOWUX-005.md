@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-005: Player-facing seat-ledger display fields; remove redundant bar
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/ui.rs`, `games/river_ledger/src/state.rs`, `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -81,3 +81,13 @@ Render the player-facing labels; remove the unlabeled track-bar (`:255-264`) or 
 1. `cargo test -p river_ledger`
 2. `npm --prefix apps/web run smoke:ui`
 3. `node scripts/check-presentation-copy.mjs`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Added Rust-authored `RiverLedgerSeatLedgerDisplay` fields for seat-panel labels, values, status, and role badges, including reveal-safe `2 hidden` / `2 revealed` hole-card summaries.
+- Projected the additive seat-ledger display through WASM/TypeScript and updated `RiverLedgerBoard.tsx` to render `This round`, `Hand total`, and `Hole cards` from Rust-authored fields.
+- Removed the duplicate River Ledger contribution track/bar and stale styles.
+- Added Rust/browser coverage for seat-ledger labels, no duplicate track bar, and showdown reveal-scoped hole-card summary counts.
+- Verified with `cargo fmt --all --check`, `cargo test -p river_ledger`, `cargo run -p fixture-check -- --game river_ledger`, `npm --prefix apps/web run smoke:ui` (includes `npm --prefix apps/web run build`), `node scripts/check-presentation-copy.mjs`, and `node apps/web/e2e/river-ledger.smoke.mjs`.

@@ -4,7 +4,10 @@ use crate::{
     cards::Card,
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
-    ui::{ui_metadata, UiMetadata},
+    ui::{
+        seat_ledger_display, ui_metadata, HoleCardSummary, RiverLedgerSeatLedgerDisplay,
+        SeatLedgerRoles, UiMetadata,
+    },
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,6 +43,7 @@ pub struct SeatView {
     pub street_contribution: u16,
     pub total_contribution: u16,
     pub hidden_hole_count: u8,
+    pub ledger_display: RiverLedgerSeatLedgerDisplay,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -141,12 +145,28 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
             .ledger
             .seats
             .iter()
-            .map(|entry| SeatView {
-                seat: entry.seat,
-                status: entry.status,
-                street_contribution: entry.street_contribution,
-                total_contribution: entry.total_contribution,
-                hidden_hole_count: 2,
+            .map(|entry| {
+                let hidden_hole_count = 2;
+                SeatView {
+                    seat: entry.seat,
+                    status: entry.status,
+                    street_contribution: entry.street_contribution,
+                    total_contribution: entry.total_contribution,
+                    hidden_hole_count,
+                    ledger_display: seat_ledger_display(
+                        entry.seat,
+                        entry.status,
+                        entry.street_contribution,
+                        entry.total_contribution,
+                        hole_card_summary(state, entry.seat, hidden_hole_count),
+                        SeatLedgerRoles {
+                            active: state.active_seat == Some(entry.seat),
+                            button: state.button == entry.seat,
+                            small_blind: state.small_blind == entry.seat,
+                            big_blind: state.big_blind == entry.seat,
+                        },
+                    ),
+                }
             })
             .collect(),
         board: state.board.iter().copied().map(card_view).collect(),
@@ -225,6 +245,23 @@ fn private_view(state: &RiverLedgerState, viewer_seat: Option<RiverLedgerSeat>) 
         }
         None => PrivateView::Observer,
     }
+}
+
+fn hole_card_summary(
+    state: &RiverLedgerState,
+    seat: RiverLedgerSeat,
+    hidden_hole_count: u8,
+) -> HoleCardSummary {
+    if let Some(TerminalOutcome::Showdown { explanations, .. }) = state.terminal_outcome.as_ref() {
+        if explanations
+            .iter()
+            .any(|explanation| explanation.seat == seat && explanation.revealed.is_some())
+        {
+            return HoleCardSummary::Revealed(2);
+        }
+    }
+
+    HoleCardSummary::Hidden(hidden_hole_count)
 }
 
 fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
@@ -434,12 +471,17 @@ fn encode_seats(seats: &[SeatView]) -> String {
         .iter()
         .map(|seat| {
             format!(
-                "{}:{:?}:{}:{}:{}",
+                "{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}",
                 seat.seat.as_str(),
                 seat.status,
                 seat.street_contribution,
                 seat.total_contribution,
-                seat.hidden_hole_count
+                seat.hidden_hole_count,
+                seat.ledger_display.round_contribution.label,
+                seat.ledger_display.hand_contribution.label,
+                seat.ledger_display.hole_card_summary.value,
+                seat.ledger_display.role_badges.join("+"),
+                seat.ledger_display.status_label
             )
         })
         .collect::<Vec<_>>()
@@ -682,6 +724,31 @@ mod tests {
         assert_eq!(view.board_slots[4].street_label, "River");
         assert_eq!(view.reserved_community_count, 5);
         assert!(view.seats.iter().all(|seat| seat.hidden_hole_count == 2));
+        assert!(view.seats.iter().all(|seat| {
+            seat.ledger_display.round_contribution.label == "This round"
+                && seat.ledger_display.hand_contribution.label == "Hand total"
+                && seat.ledger_display.hole_card_summary.label == "Hole cards"
+                && seat.ledger_display.hole_card_summary.value == "2 hidden"
+                && seat
+                    .ledger_display
+                    .hole_card_summary
+                    .accessibility_label
+                    .contains("2 hidden")
+        }));
+        assert!(view.seats.iter().any(|seat| {
+            seat.seat == view.button
+                && seat
+                    .ledger_display
+                    .role_badges
+                    .contains(&"Button".to_owned())
+        }));
+        assert!(view.seats.iter().any(|seat| {
+            Some(seat.seat) == view.active_seat
+                && seat
+                    .ledger_display
+                    .role_badges
+                    .contains(&"Active".to_owned())
+        }));
 
         let summary = view.stable_summary();
         for card in state.private_hands_internal().iter().flatten() {

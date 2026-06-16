@@ -729,6 +729,21 @@ export type RiverLedgerSeatView = {
   street_contribution: number;
   total_contribution: number;
   hidden_hole_count: number;
+  ledger_display: RiverLedgerSeatLedgerDisplay;
+};
+
+export type RiverLedgerSeatLedgerDisplay = {
+  round_contribution: RiverLedgerSeatLedgerField;
+  hand_contribution: RiverLedgerSeatLedgerField;
+  hole_card_summary: RiverLedgerSeatLedgerField;
+  role_badges: string[];
+  status_label: string;
+};
+
+export type RiverLedgerSeatLedgerField = {
+  label: string;
+  value: string;
+  accessibility_label: string;
 };
 
 export type RiverLedgerShowdownStrength = {

@@ -3,6 +3,7 @@ use crate::{
     ids::{
         RiverLedgerSeat, GAME_ID, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
     },
+    state::SeatStatus,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -47,6 +48,22 @@ pub struct RiverLedgerActionDisplayRow {
     pub tone: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RiverLedgerSeatLedgerDisplay {
+    pub round_contribution: RiverLedgerSeatLedgerField,
+    pub hand_contribution: RiverLedgerSeatLedgerField,
+    pub hole_card_summary: RiverLedgerSeatLedgerField,
+    pub role_badges: Vec<String>,
+    pub status_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RiverLedgerSeatLedgerField {
+    pub label: String,
+    pub value: String,
+    pub accessibility_label: String,
+}
+
 pub fn ui_metadata() -> UiMetadata {
     UiMetadata {
         game_id: GAME_ID.to_owned(),
@@ -71,6 +88,68 @@ pub fn ui_metadata() -> UiMetadata {
 
 pub fn seat_public_label(seat: RiverLedgerSeat) -> String {
     format!("Seat {}", seat.index() + 1)
+}
+
+pub fn seat_ledger_display(
+    seat: RiverLedgerSeat,
+    status: SeatStatus,
+    street_contribution: u16,
+    total_contribution: u16,
+    hole_card_summary: HoleCardSummary,
+    roles: SeatLedgerRoles,
+) -> RiverLedgerSeatLedgerDisplay {
+    let seat_label = seat_public_label(seat);
+    let hole_summary = hole_card_summary.label();
+    RiverLedgerSeatLedgerDisplay {
+        round_contribution: RiverLedgerSeatLedgerField {
+            label: "This round".to_owned(),
+            value: street_contribution.to_string(),
+            accessibility_label: format!(
+                "{seat_label} contribution this round: {street_contribution}."
+            ),
+        },
+        hand_contribution: RiverLedgerSeatLedgerField {
+            label: "Hand total".to_owned(),
+            value: total_contribution.to_string(),
+            accessibility_label: format!(
+                "{seat_label} total hand contribution: {total_contribution}."
+            ),
+        },
+        hole_card_summary: RiverLedgerSeatLedgerField {
+            label: "Hole cards".to_owned(),
+            value: hole_summary.clone(),
+            accessibility_label: format!("{seat_label} hole cards: {hole_summary}."),
+        },
+        role_badges: role_badges(roles),
+        status_label: seat_status_label(status).to_owned(),
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HoleCardSummary {
+    Hidden(u8),
+    Revealed(u8),
+}
+
+impl HoleCardSummary {
+    fn label(self) -> String {
+        match self {
+            HoleCardSummary::Hidden(0) => "0 hidden".to_owned(),
+            HoleCardSummary::Hidden(1) => "1 hidden".to_owned(),
+            HoleCardSummary::Hidden(count) => format!("{count} hidden"),
+            HoleCardSummary::Revealed(0) => "0 revealed".to_owned(),
+            HoleCardSummary::Revealed(1) => "1 revealed".to_owned(),
+            HoleCardSummary::Revealed(count) => format!("{count} revealed"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SeatLedgerRoles {
+    pub active: bool,
+    pub button: bool,
+    pub small_blind: bool,
+    pub big_blind: bool,
 }
 
 pub fn action_presentation(
@@ -138,6 +217,26 @@ fn display_row(
         label: label.into(),
         value: value.into(),
         tone: tone.into(),
+    }
+}
+
+fn role_badges(roles: SeatLedgerRoles) -> Vec<String> {
+    [
+        (roles.active, "Active"),
+        (roles.button, "Button"),
+        (roles.small_blind, "Small blind"),
+        (roles.big_blind, "Big blind"),
+    ]
+    .into_iter()
+    .filter_map(|(enabled, label)| enabled.then(|| label.to_owned()))
+    .collect()
+}
+
+fn seat_status_label(status: SeatStatus) -> &'static str {
+    match status {
+        SeatStatus::Live => "Live",
+        SeatStatus::Folded => "Folded",
+        SeatStatus::ShowdownEligible => "Showdown eligible",
     }
 }
 
