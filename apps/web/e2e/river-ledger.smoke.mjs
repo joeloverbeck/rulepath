@@ -419,6 +419,10 @@ async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {
     return {
       board: Boolean(document.querySelector('[data-testid="river-ledger-board"]')),
       seats: document.querySelectorAll(".river-ledger-seat").length,
+      pendingSlots: Array.from(document.querySelectorAll(".river-ledger-board-cards .river-ledger-card.hidden")).map((slot) => ({
+        text: slot.textContent ?? "",
+        aria: slot.getAttribute("aria-label") ?? "",
+      })),
       choices: document.querySelectorAll('[data-testid^="choice-river-ledger-"]').length,
       unnamed: buttons
         .filter((button) => !((button.getAttribute("aria-label") || button.textContent || "").trim()))
@@ -430,6 +434,15 @@ async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {
   assert(
     summary.seats === expectedSeatCount,
     `river_ledger renders ${expectedSeatCount} selected seat rows, got ${summary.seats}`,
+  );
+  assert(summary.pendingSlots.length === 5, `river_ledger renders five pending board slots: ${summary.pendingSlots.length}`);
+  assert(
+    summary.pendingSlots.some((slot) => slot.text.includes("Flop 1 pending") && slot.aria.includes("Unrevealed Flop 1 card")),
+    `river_ledger pending slots use Rust-authored street labels: ${JSON.stringify(summary.pendingSlots)}`,
+  );
+  assert(
+    summary.pendingSlots.every((slot) => !cardIds.some((cardId) => slot.text.includes(cardId) || slot.aria.includes(cardId))),
+    "river_ledger pending slots omit future card ids",
   );
   if (expectChoices) {
     assert(summary.choices > 0, "river_ledger exposes Rust-provided action buttons");

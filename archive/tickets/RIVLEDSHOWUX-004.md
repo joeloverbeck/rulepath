@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-004: Rust-authored board-slot placeholder view
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/river_ledger/src/state.rs`, `games/river_ledger/src/visibility.rs`, `games/river_ledger/src/ui.rs`, `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -83,3 +83,34 @@ Render the Rust placeholder label + accessibility text in a CSS-safe single-labe
 1. `cargo test -p river_ledger`
 2. `npm --prefix apps/web run smoke:ui`
 3. `cargo run -p fixture-check -- --game river_ledger`
+
+## Outcome
+
+Completed: 2026-06-16
+
+Changed:
+
+- Added additive `board_slots` to the River Ledger public view, preserving the
+  existing revealed `board` array while exposing five Rust-authored slot records.
+- Each pending slot now carries `reveal_state: "pending"`, street-specific
+  labels such as `Flop 1 pending`, an accessibility label, and `card: null`.
+- Projected `board_slots` through `wasm-api`, mirrored the type in
+  `apps/web/src/wasm/client.ts`, and updated `RiverLedgerBoard` to render the
+  Rust placeholder labels instead of hardcoded `Pending`.
+- Added Rust visibility assertions and River Ledger browser smoke coverage for
+  pending-slot labels and future-card no-leak.
+
+Deviations:
+
+- `state.rs` did not need a production change; the additive board-slot view is
+  derived in `visibility.rs` from existing public board state and never reads
+  future community-card identities.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `npm --prefix apps/web run smoke:ui`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+- `node apps/web/e2e/river-ledger.smoke.mjs`

@@ -7563,7 +7563,7 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
 
 fn river_view_json(view: &river_ledger::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"board_slots\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7584,6 +7584,11 @@ fn river_view_json(view: &river_ledger::PublicView) -> String {
         view.board
             .iter()
             .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.board_slots
+            .iter()
+            .map(river_board_slot_json)
             .collect::<Vec<_>>()
             .join(","),
         river_terminal_json(&view.terminal),
@@ -7638,6 +7643,20 @@ fn river_card_json(card: &river_ledger::CardView) -> String {
         escape_json(&card.suit),
         escape_json(&card.label),
         escape_json(&format!("{} of {}", card.rank, card.suit))
+    )
+}
+
+fn river_board_slot_json(slot: &river_ledger::visibility::BoardSlotView) -> String {
+    format!(
+        "{{\"slot\":\"{}\",\"reveal_state\":\"{}\",\"street_label\":\"{}\",\"visual_placeholder_label\":\"{}\",\"accessibility_label\":\"{}\",\"card\":{}}}",
+        escape_json(&slot.slot),
+        escape_json(&slot.reveal_state),
+        escape_json(&slot.street_label),
+        escape_json(&slot.visual_placeholder_label),
+        escape_json(&slot.accessibility_label),
+        slot.card
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), river_card_json)
     )
 }
 

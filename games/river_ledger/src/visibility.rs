@@ -23,6 +23,7 @@ pub struct PublicView {
     pub pot_total: u16,
     pub seats: Vec<SeatView>,
     pub board: Vec<CardView>,
+    pub board_slots: Vec<BoardSlotView>,
     pub reserved_community_count: u8,
     pub deck_tail_count: u8,
     pub terminal: TerminalView,
@@ -48,6 +49,16 @@ pub struct CardView {
     pub rank_value: u8,
     pub suit: String,
     pub label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoardSlotView {
+    pub slot: String,
+    pub reveal_state: String,
+    pub street_label: String,
+    pub visual_placeholder_label: String,
+    pub accessibility_label: String,
+    pub card: Option<CardView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -139,6 +150,7 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
             })
             .collect(),
         board: state.board.iter().copied().map(card_view).collect(),
+        board_slots: board_slots(state),
         reserved_community_count: state.community_deck_internal().len() as u8,
         deck_tail_count: state.deck_tail_internal().len() as u8,
         terminal: terminal_view(state.terminal_outcome.as_ref()),
@@ -169,7 +181,7 @@ impl PublicView {
             self.big_blind.as_str(),
             self.pot_total,
             encode_seats(&self.seats),
-            encode_cards(&self.board),
+            encode_board_slots(&self.board_slots),
             self.reserved_community_count,
             self.deck_tail_count,
             encode_terminal(&self.terminal),
@@ -377,6 +389,46 @@ fn card_view(card: Card) -> CardView {
     }
 }
 
+fn board_slots(state: &RiverLedgerState) -> Vec<BoardSlotView> {
+    board_slot_labels()
+        .into_iter()
+        .enumerate()
+        .map(|(index, (slot, street_label))| {
+            let card = state.board.get(index).copied().map(card_view);
+            match card {
+                Some(card) => BoardSlotView {
+                    slot: slot.to_owned(),
+                    reveal_state: "revealed".to_owned(),
+                    street_label: street_label.to_owned(),
+                    visual_placeholder_label: card.label.clone(),
+                    accessibility_label: format!("{street_label} revealed: {}.", card.label),
+                    card: Some(card),
+                },
+                None => BoardSlotView {
+                    slot: slot.to_owned(),
+                    reveal_state: "pending".to_owned(),
+                    street_label: street_label.to_owned(),
+                    visual_placeholder_label: format!("{street_label} pending"),
+                    accessibility_label: format!(
+                        "Unrevealed {street_label} card. It is not available yet."
+                    ),
+                    card: None,
+                },
+            }
+        })
+        .collect()
+}
+
+fn board_slot_labels() -> [(&'static str, &'static str); 5] {
+    [
+        ("flop_1", "Flop 1"),
+        ("flop_2", "Flop 2"),
+        ("flop_3", "Flop 3"),
+        ("turn", "Turn"),
+        ("river", "River"),
+    ]
+}
+
 fn encode_seats(seats: &[SeatView]) -> String {
     seats
         .iter()
@@ -401,6 +453,25 @@ fn encode_cards(cards: &[CardView]) -> String {
             format!(
                 "{}:{}:{}:{}",
                 card.card_id, card.rank, card.suit, card.label
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn encode_board_slots(slots: &[BoardSlotView]) -> String {
+    slots
+        .iter()
+        .map(|slot| {
+            format!(
+                "{}:{}:{}:{}:{}",
+                slot.slot,
+                slot.reveal_state,
+                slot.street_label,
+                slot.visual_placeholder_label,
+                slot.card
+                    .as_ref()
+                    .map_or_else(|| "none".to_owned(), |card| card.card_id.clone())
             )
         })
         .collect::<Vec<_>>()
@@ -599,6 +670,16 @@ mod tests {
 
         assert!(matches!(view.private_view, PrivateView::Observer));
         assert_eq!(view.board.len(), 0);
+        assert_eq!(view.board_slots.len(), 5);
+        assert!(view.board_slots.iter().all(|slot| {
+            slot.reveal_state == "pending"
+                && slot.card.is_none()
+                && slot.visual_placeholder_label.contains("pending")
+                && slot.accessibility_label.contains("not available yet")
+        }));
+        assert_eq!(view.board_slots[0].street_label, "Flop 1");
+        assert_eq!(view.board_slots[3].street_label, "Turn");
+        assert_eq!(view.board_slots[4].street_label, "River");
         assert_eq!(view.reserved_community_count, 5);
         assert!(view.seats.iter().all(|seat| seat.hidden_hole_count == 2));
 

@@ -714,6 +714,15 @@ export type RiverLedgerCardView = {
   accessibility_label: string;
 };
 
+export type RiverLedgerBoardSlotView = {
+  slot: string;
+  reveal_state: "pending" | "revealed" | string;
+  street_label: string;
+  visual_placeholder_label: string;
+  accessibility_label: string;
+  card: RiverLedgerCardView | null;
+};
+
 export type RiverLedgerSeatView = {
   seat: RiverLedgerSeatId;
   status: "live" | "folded" | "showdown_eligible" | string;
@@ -813,6 +822,7 @@ export type RiverLedgerPublicView = {
   pot_total: number;
   seats: RiverLedgerSeatView[];
   board: RiverLedgerCardView[];
+  board_slots: RiverLedgerBoardSlotView[];
   terminal: RiverLedgerTerminalView;
   terminal_rationale?: RiverLedgerOutcomeRationale | null;
   freshness_token: number;

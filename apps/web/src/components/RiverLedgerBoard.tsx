@@ -106,15 +106,16 @@ export function RiverLedgerBoard({
             <strong>{view.board.length ? `${view.board.length} public` : "No public cards"}</strong>
           </div>
           <div className="river-ledger-board-cards" aria-label={riverLedgerCardGroupLabel(view.board, "Public board cards")}>
-            {view.board.map((card) => (
-              <RiverLedgerCard key={card.card_id} card={card} tone="board" />
-            ))}
-            {Array.from({ length: Math.max(0, 5 - view.board.length) }, (_, index) => (
-              <div className="river-ledger-card hidden" key={`hidden-board-${index}`}>
-                <span>Hidden</span>
-                <strong>Pending</strong>
-              </div>
-            ))}
+            {view.board_slots.map((slot) =>
+              slot.card ? (
+                <RiverLedgerCard key={slot.slot} card={slot.card} tone="board" />
+              ) : (
+                <div className="river-ledger-card hidden" key={slot.slot} aria-label={slot.accessibility_label}>
+                  <span>{slot.street_label}</span>
+                  <strong>{slot.visual_placeholder_label}</strong>
+                </div>
+              ),
+            )}
           </div>
           <ContributionTrack seats={view.seats} />
         </section>
