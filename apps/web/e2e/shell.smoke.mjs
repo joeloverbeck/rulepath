@@ -51,6 +51,7 @@ try {
   await waitForText(page, "Choose a game");
   await waitForText(page, "Race to 21");
   await clickText(page, "button", "River Ledger");
+  await assertRiverLedgerCatalogIcon(page);
   await assertSelectedGameCardFlags(page, "river_ledger");
   await clickText(page, "button", "Race to 21");
   await waitForText(page, "Match setup");
@@ -162,6 +163,26 @@ async function assertSelectedGameCardFlags(page, gameId) {
     return { ok: true, reason: "" };
   }, gameId);
   assert(result.ok, result.reason);
+}
+
+async function assertRiverLedgerCatalogIcon(page) {
+  const summary = await page.evaluate(() => {
+    const card = document.querySelector('[data-game-id="river_ledger"]');
+    const icon = card?.querySelector('svg[data-icon-game="river_ledger"]');
+    const paths = Array.from(icon?.querySelectorAll("path") ?? []).map((path) => path.getAttribute("d") ?? "");
+    return {
+      exists: Boolean(icon),
+      role: icon?.getAttribute("role") ?? "",
+      title: icon?.querySelector("title")?.textContent ?? "",
+      pathCount: paths.length,
+      hasFallbackSquare: paths.includes("M6 6h12v12H6z"),
+    };
+  });
+  assert(summary.exists, "river_ledger catalog card renders a dedicated icon");
+  assert(summary.role === "img", `river_ledger catalog icon is accessible: ${summary.role}`);
+  assert(summary.title === "River Ledger icon", `river_ledger icon title comes from catalog display name: ${summary.title}`);
+  assert(summary.pathCount >= 5, `river_ledger icon renders detailed original geometry: ${summary.pathCount}`);
+  assert(!summary.hasFallbackSquare, "river_ledger icon does not use the generic fallback square");
 }
 
 async function clickTestId(page, testId) {

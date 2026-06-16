@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-016: Original River Ledger catalog SVG icon
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/GameCatalogIcon.tsx`
@@ -68,3 +68,18 @@ Add `RiverLedgerIcon` (original SVG: abstract cards / river bend / brass ledger 
 1. `npm --prefix apps/web run smoke:ui`
 2. `node scripts/check-catalog-docs.mjs`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Added an original River Ledger catalog icon to `GameCatalogIcon`: an abstract fan of card shapes with a river/ledger line and tally marks, using existing icon color variables and avoiding chips, cash, felt, casino ovals, branded card backs, or poker-room imagery.
+
+Registered `"river_ledger"` in the icon map and kept the asset local to the shared catalog icon seam. River's picker/setup icon now exposes the caller-provided catalog title (`River Ledger icon`) when rendered, while other game icons remain decorative as before.
+
+Added shell browser coverage that verifies River Ledger renders the dedicated icon geometry, carries the accessible title from the catalog display name, and does not use the generic fallback square.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:ui`
+3. `node scripts/check-catalog-docs.mjs`
+4. `node apps/web/e2e/shell.smoke.mjs`
