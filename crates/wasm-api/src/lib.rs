@@ -7705,9 +7705,9 @@ fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> Str
             pot_total,
             allocations,
             explanations,
-            ..
+            presentation_v2,
         } => format!(
-            "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}]}}",
+            "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}],\"presentation_v2\":{}}}",
             winners
                 .iter()
                 .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
@@ -7727,9 +7727,161 @@ fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> Str
                 .iter()
                 .map(|explanation| format!("\"{}\"", escape_json(explanation)))
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(","),
+            river_showdown_presentation_v2_json(presentation_v2)
         ),
     }
+}
+
+fn river_showdown_presentation_v2_json(
+    presentation: &river_ledger::visibility::ShowdownPresentationV2View,
+) -> String {
+    format!(
+        "{{\"result_banner\":{},\"decisive_reason\":{},\"board_cards\":[{}],\"standings\":[{}],\"folded_rows\":[{}]}}",
+        river_showdown_result_banner_json(&presentation.result_banner),
+        river_showdown_decisive_reason_json(&presentation.decisive_reason),
+        presentation
+            .board_cards
+            .iter()
+            .map(river_showdown_board_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        presentation
+            .standings
+            .iter()
+            .map(river_showdown_standing_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        presentation
+            .folded_rows
+            .iter()
+            .map(river_showdown_folded_row_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_showdown_result_banner_json(
+    banner: &river_ledger::visibility::ShowdownResultBannerView,
+) -> String {
+    format!(
+        "{{\"headline\":\"{}\",\"subheadline\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&banner.headline),
+        escape_json(&banner.subheadline),
+        escape_json(&banner.accessibility_label)
+    )
+}
+
+fn river_showdown_decisive_reason_json(
+    reason: &river_ledger::visibility::ShowdownDecisiveReasonView,
+) -> String {
+    format!(
+        "{{\"short_text\":\"{}\",\"contrast_seat\":{},\"contrast_seat_label\":{},\"rule_refs\":[{}]}}",
+        escape_json(&reason.short_text),
+        reason
+            .contrast_seat
+            .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+            .unwrap_or_else(|| "null".to_owned()),
+        reason
+            .contrast_seat_label
+            .as_ref()
+            .map(|label| format!("\"{}\"", escape_json(label)))
+            .unwrap_or_else(|| "null".to_owned()),
+        reason
+            .rule_refs
+            .iter()
+            .map(|rule| format!("\"{}\"", escape_json(rule)))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_showdown_board_card_json(
+    card: &river_ledger::visibility::ShowdownBoardCardPresentationView,
+) -> String {
+    format!(
+        "{{\"slot\":\"{}\",\"card\":{},\"public_label\":\"{}\",\"used_by_selected\":[{}]}}",
+        escape_json(&card.slot),
+        river_card_json(&card.card),
+        escape_json(&card.public_label),
+        card.used_by_selected
+            .iter()
+            .map(|seat| format!("\"{}\"", escape_json(seat)))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_showdown_standing_json(
+    standing: &river_ledger::visibility::ShowdownStandingPresentationView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_label\":\"{}\",\"rank\":{},\"result_label\":\"{}\",\"allocation_label\":\"{}\",\"hand_name\":\"{}\",\"short_comparison_note\":\"{}\",\"rank_ladder_label\":\"{}\",\"hole_cards\":[{}],\"board_cards\":[{}],\"best_five\":[{}],\"best_five_accessibility_label\":\"{}\",\"detail_rows\":[{}],\"default_expanded\":{}}}",
+        escape_json(&standing.seat.as_str()),
+        escape_json(&standing.seat_label),
+        standing.rank,
+        escape_json(&standing.result_label),
+        escape_json(&standing.allocation_label),
+        escape_json(&standing.hand_name),
+        escape_json(&standing.short_comparison_note),
+        escape_json(&standing.rank_ladder_label),
+        standing
+            .hole_cards
+            .iter()
+            .map(river_showdown_card_usage_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        standing
+            .board_cards
+            .iter()
+            .map(river_showdown_card_usage_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        standing
+            .best_five
+            .iter()
+            .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&standing.best_five_accessibility_label),
+        standing
+            .detail_rows
+            .iter()
+            .map(river_showdown_detail_row_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        standing.default_expanded
+    )
+}
+
+fn river_showdown_card_usage_json(
+    mark: &river_ledger::visibility::ShowdownCardUsageMarkView,
+) -> String {
+    format!(
+        "{{\"card\":{},\"public_label\":\"{}\",\"used_in_best_five\":{}}}",
+        river_card_json(&mark.card),
+        escape_json(&mark.public_label),
+        mark.used_in_best_five
+    )
+}
+
+fn river_showdown_detail_row_json(row: &river_ledger::visibility::ShowdownDetailRowView) -> String {
+    format!(
+        "{{\"label\":\"{}\",\"value\":\"{}\"}}",
+        escape_json(&row.label),
+        escape_json(&row.value)
+    )
+}
+
+fn river_showdown_folded_row_json(
+    row: &river_ledger::visibility::ShowdownFoldedRowPresentationView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_label\":\"{}\",\"redaction_label\":\"{}\"}}",
+        escape_json(&row.seat.as_str()),
+        escape_json(&row.seat_label),
+        escape_json(&row.redaction_label)
+    )
 }
 
 fn river_rationale_json(rationale: &river_ledger::visibility::OutcomeRationaleView) -> String {
@@ -12615,6 +12767,12 @@ mod tests {
         assert!(showdown.contains("\"category_ladder_position\":{\"position\":"));
         assert!(showdown.contains("\"description\":\""));
         assert!(showdown.contains("\"best_five_accessibility_label\":\""));
+        assert!(showdown.contains("\"presentation_v2\":{\"result_banner\":{\"headline\":\""));
+        assert!(showdown.contains("\"decisive_reason\":{\"short_text\":\""));
+        assert!(showdown.contains("\"standings\":[{\"seat\":\""));
+        assert!(showdown.contains("\"hole_cards\":[{\"card\":"));
+        assert!(showdown.contains("\"used_in_best_five\":"));
+        assert!(showdown.contains("\"folded_rows\":["));
     }
 
     #[test]

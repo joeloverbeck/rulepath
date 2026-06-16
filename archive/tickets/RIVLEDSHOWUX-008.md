@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-008: V2 reveal-scoped projection + bridge + TS types
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/visibility.rs`, `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`, `games/river_ledger/tests/{visibility,replay}.rs`
@@ -79,3 +79,13 @@ Expose the V2 terminal JSON; add the matching `RiverLedgerPublicView` V2 fields 
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. `npm --prefix apps/web run smoke:wasm`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Exposed the additive V2 showdown presentation through River Ledger showdown terminal JSON in `wasm-api`.
+- Added matching River Ledger TypeScript types for banner, decisive reason, board card usage, ranked standings, folded rows, and detail rows.
+- Added bridge coverage proving `presentation_v2` reaches showdown terminal JSON and replay coverage for deterministic/public terminal export summaries.
+- Preserved folded-seat redaction from the Rust visibility projection; folded seats remain in `folded_rows`, not standings/card usage.
+- Verified with `cargo fmt --all --check`, `cargo test -p river_ledger`, `cargo test -p wasm-api`, `cargo run -p replay-check -- --game river_ledger --all`, `npm --prefix apps/web run smoke:wasm`, and `npm --prefix apps/web run build`.

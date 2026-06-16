@@ -784,15 +784,79 @@ export type RiverLedgerTerminalView =
       pot_total: 0;
       allocations: [];
       explanations: [];
+      presentation_v2?: null;
     }
   | {
-      kind: "last_live_hand" | "showdown" | string;
+      kind: "last_live_hand" | string;
       terminal: true;
       winners: RiverLedgerSeatId[];
       pot_total: number;
       allocations: Array<{ seat: RiverLedgerSeatId; amount: number }>;
       explanations: string[];
+      presentation_v2?: RiverLedgerShowdownPresentationV2 | null;
     };
+
+export type RiverLedgerShowdownPresentationV2 = {
+  result_banner: RiverLedgerShowdownResultBanner;
+  decisive_reason: RiverLedgerShowdownDecisiveReason;
+  board_cards: RiverLedgerShowdownBoardCardPresentation[];
+  standings: RiverLedgerShowdownStandingPresentation[];
+  folded_rows: RiverLedgerShowdownFoldedRowPresentation[];
+};
+
+export type RiverLedgerShowdownResultBanner = {
+  headline: string;
+  subheadline: string;
+  accessibility_label: string;
+};
+
+export type RiverLedgerShowdownDecisiveReason = {
+  short_text: string;
+  contrast_seat: RiverLedgerSeatId | null;
+  contrast_seat_label: string | null;
+  rule_refs: string[];
+};
+
+export type RiverLedgerShowdownBoardCardPresentation = {
+  slot: string;
+  card: RiverLedgerCardView;
+  public_label: string;
+  used_by_selected: string[];
+};
+
+export type RiverLedgerShowdownStandingPresentation = {
+  seat: RiverLedgerSeatId;
+  seat_label: string;
+  rank: number;
+  result_label: string;
+  allocation_label: string;
+  hand_name: string;
+  short_comparison_note: string;
+  rank_ladder_label: string;
+  hole_cards: RiverLedgerShowdownCardUsageMark[];
+  board_cards: RiverLedgerShowdownCardUsageMark[];
+  best_five: RiverLedgerCardView[];
+  best_five_accessibility_label: string;
+  detail_rows: RiverLedgerShowdownDetailRow[];
+  default_expanded: boolean;
+};
+
+export type RiverLedgerShowdownCardUsageMark = {
+  card: RiverLedgerCardView;
+  public_label: string;
+  used_in_best_five: boolean;
+};
+
+export type RiverLedgerShowdownDetailRow = {
+  label: string;
+  value: string;
+};
+
+export type RiverLedgerShowdownFoldedRowPresentation = {
+  seat: RiverLedgerSeatId;
+  seat_label: string;
+  redaction_label: string;
+};
 
 export type RiverLedgerPrivateView =
   | { status: "observer"; seat: null; hole_cards: [] }
