@@ -143,7 +143,12 @@ try {
   assert(eventAnimationName === "none", "event_frontier reduced-motion suppresses site animation");
   await assertNoLeak(page, consoleMessages, "event_frontier DOM");
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier" }));
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startRiverLedgerShowdown(page);
+  await assertRiverLedgerStatusAnnouncement(page);
+  await assertNoLeak(page, consoleMessages, "river_ledger status announcement DOM");
+
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier river_ledger" }));
 } finally {
   if (browser) {
     await browser.close();
@@ -179,6 +184,58 @@ async function startHighCardDuel(page) {
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="high-card-duel-board"]');
+}
+
+async function startRiverLedgerShowdown(page) {
+  await clickText(page, "button", "River Ledger");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "4");
+  await page.$eval('.setup-grid input[type="number"]', (input) => {
+    input.value = "79";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await clickLabel(page, "Hotseat");
+  await clickText(page, "button", "Start Match");
+  await waitForText(page, "Available choices");
+  for (const action of [
+    "Call",
+    "Call",
+    "Call",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+  ]) {
+    await clickRiverAction(page, action);
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
+async function assertRiverLedgerStatusAnnouncement(page) {
+  const summary = await page.evaluate(() => {
+    const status = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"] .river-ledger-showdown-lead[role="status"]');
+    return {
+      exists: Boolean(status),
+      atomic: status?.getAttribute("aria-atomic") ?? "",
+      label: status?.getAttribute("aria-label") ?? "",
+      text: status?.textContent ?? "",
+      panelText: document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')?.textContent ?? "",
+    };
+  });
+  assert(summary.exists, "river_ledger terminal banner exposes a status region");
+  assert(summary.atomic === "true", `river_ledger status region is atomic: ${summary.atomic}`);
+  assert(summary.label.includes("wins with") || summary.label.includes("split the ledger"), `river_ledger status uses Rust-authored result label: ${summary.label}`);
+  assert(!rawSeatIdRe.test(summary.label), `river_ledger status avoids raw seat ids: ${summary.label}`);
+  assert(summary.panelText.includes("Board usage"), "river_ledger reduced-motion terminal keeps reveal facts visible");
 }
 
 async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
@@ -612,6 +669,25 @@ async function clickSeatFrameButton(page, text) {
     return true;
   }, text);
   assert(clicked, `seat frame button exists: ${text}`);
+}
+
+async function clickRiverAction(page, label) {
+  const clicked = await page.evaluate((expected) => {
+    const button = Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).find((candidate) =>
+      candidate.textContent?.includes(expected),
+    );
+    if (!button) {
+      return false;
+    }
+    button.click();
+    return true;
+  }, label);
+  assert(clicked, `river_ledger action exists: ${label}`);
+  await page.waitForFunction(
+    () =>
+      document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]') ||
+      document.body.textContent?.includes("Available choices"),
+  );
 }
 
 async function clickText(page, selector, text) {

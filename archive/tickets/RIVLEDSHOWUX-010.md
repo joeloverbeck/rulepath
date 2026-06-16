@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-010: Terminal result live-region for the showdown banner
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/OutcomeExplanationPanel.tsx`
@@ -68,3 +68,12 @@ Wrap the V2 River result banner in a `role="status"` / `aria-atomic="true"` (or 
 1. `node apps/web/e2e/a11y-noleak.smoke.mjs`
 2. `npm --prefix apps/web run smoke:ui`
 3. `npm --prefix apps/web run smoke:effects`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Added a River Ledger V2 showdown banner live region with `role="status"` and `aria-atomic="true"`, using the Rust-authored `result_banner.accessibility_label`.
+- Added a focused River Ledger terminal flow to `a11y-noleak.smoke.mjs` asserting the atomic status region, human-facing announcement text, no raw seat ids, and reduced-motion-visible reveal facts.
+- Updated outcome smoke expectations so the River Ledger V2 branch is the only outcome panel allowed to mount a scoped live/status region.
+- Verified with `cargo fmt --all --check`, `npm --prefix apps/web run build`, `node apps/web/e2e/a11y-noleak.smoke.mjs`, `npm --prefix apps/web run smoke:ui`, `npm --prefix apps/web run smoke:effects`, and `node apps/web/e2e/outcome-explanation.smoke.mjs`.

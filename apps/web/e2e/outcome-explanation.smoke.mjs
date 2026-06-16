@@ -207,7 +207,11 @@ async function assertOutcomePanel(page, label) {
   assert(summary.heading.length > 0, `${label} panel has associated heading`);
   assert(summary.statusText.includes(summary.heading), `${label} pre-existing status node announces heading`);
   assert(summary.statusText.includes(summary.summaryText), `${label} pre-existing status node announces decisive cause`);
-  assert(summary.panelStatusCount === 0, `${label} panel does not mount its own live/status region`);
+  if (label === "River Ledger") {
+    assert(summary.panelStatusCount === 1, `${label} panel mounts one scoped live/status region`);
+  } else {
+    assert(summary.panelStatusCount === 0, `${label} panel does not mount its own live/status region`);
+  }
   assert(summary.standingRows >= 1, `${label} panel renders final standing`);
   assert(summary.disclosureButtons >= 1, `${label} panel renders disclosure control`);
   assert(summary.text.includes("Outcome"), `${label} panel includes outcome label`);

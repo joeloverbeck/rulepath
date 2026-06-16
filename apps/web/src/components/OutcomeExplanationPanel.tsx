@@ -378,7 +378,12 @@ function RiverLedgerShowdownV2({ presentation }: { presentation: RiverLedgerShow
 
   return (
     <section className="river-ledger-showdown-panel v2" aria-label={presentation.result_banner.accessibility_label}>
-      <div className="river-ledger-showdown-lead">
+      <div
+        className="river-ledger-showdown-lead"
+        role="status"
+        aria-atomic="true"
+        aria-label={presentation.result_banner.accessibility_label}
+      >
         <strong>{presentation.result_banner.headline}</strong>
         <p>{presentation.result_banner.subheadline}</p>
         <p>
