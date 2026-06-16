@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-003: Rust-authored per-action presentation rows
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/betting.rs`, `games/river_ledger/src/actions.rs`, `games/river_ledger/src/ui.rs`, `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -82,3 +82,38 @@ Render only `choice.presentation.display_rows`; remove the unconditional `Call p
 1. `cargo test -p river_ledger`
 2. `npm --prefix apps/web run smoke:ui`
 3. `cargo run -p fixture-check -- --game river_ledger`
+
+## Outcome
+
+Completed: 2026-06-16
+
+Changed:
+
+- Added River-Ledger-local action presentation rows and helper text for
+  `fold`, `check`, `call`, `bet`, and `raise`; Fold/Check carry only the relevant
+  `Adds 0` row, while Call/Raise carry call-price/adds rows and Raise/Bet carry
+  `Raises left` where relevant.
+- Kept the existing raw action metadata intact and added namespaced
+  `presentation_*` metadata fields that `crates/wasm-api` projects into an
+  additive browser-facing `choice.presentation` object.
+- Updated the TypeScript action-choice type and River Ledger action renderer so
+  the board renders only Rust-supplied `presentation.display_rows`, with no
+  per-action relevance logic in React.
+- Added Rust tests for segment-relevant rows and updated the River Ledger smoke
+  to prove Fold omits `Call price` / `Raises left` while Raise renders
+  `Raises left`.
+
+Deviations:
+
+- The ticket's draft mentioned an additive action-choice schema extension while
+  also requiring `engine-core` to remain untouched. The implementation keeps
+  `engine-core` unchanged and performs the additive `presentation` projection in
+  `wasm-api` from River-Ledger-authored metadata.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `npm --prefix apps/web run smoke:ui`
+- `node apps/web/e2e/river-ledger.smoke.mjs`

@@ -263,6 +263,18 @@ fn legal_action_generation_uses_active_seat_call_price_and_cap_state() {
         .metadata
         .iter()
         .any(|entry| entry.key == "cap_remaining" && entry.value == "3"));
+    assert_eq!(
+        presentation_rows(call),
+        vec![("Call price", "2"), ("Adds", "2")]
+    );
+
+    let fold = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "fold")
+        .expect("fold action");
+    assert_eq!(presentation_rows(fold), vec![("Adds", "0")]);
 
     let mut capped = advance_four_player_hand_to_flop();
     apply_segment(&mut capped, "seat_1", "bet");
@@ -820,6 +832,19 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
         "raises_remaining",
         "cap_remaining",
         "accessibility_copy",
+        "presentation_segment",
+        "presentation_label",
+        "presentation_helper_text",
+        "presentation_accessibility_label",
+        "presentation_row_0_label",
+        "presentation_row_0_value",
+        "presentation_row_0_tone",
+        "presentation_row_1_label",
+        "presentation_row_1_value",
+        "presentation_row_1_tone",
+        "presentation_row_2_label",
+        "presentation_row_2_value",
+        "presentation_row_2_tone",
     ];
 
     for choice in legal_action_tree(&state, &actor("seat_3")).root.choices {
@@ -827,9 +852,31 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
             .metadata
             .iter()
             .all(|entry| allowed.contains(&entry.key.as_str())));
+        assert!(choice
+            .metadata
+            .iter()
+            .any(|entry| entry.key == "presentation_label"));
         let serialized = format!("{choice:?}");
         for forbidden in ["hidden", "private", "deck", "hole", "rank", "suit"] {
             assert!(!serialized.contains(forbidden), "{serialized}");
         }
     }
+}
+
+fn presentation_rows(choice: &engine_core::ActionChoice) -> Vec<(&str, &str)> {
+    (0..)
+        .map_while(|index| {
+            let label = metadata_value(choice, &format!("presentation_row_{index}_label"))?;
+            let value = metadata_value(choice, &format!("presentation_row_{index}_value"))?;
+            Some((label, value))
+        })
+        .collect()
+}
+
+fn metadata_value<'a>(choice: &'a engine_core::ActionChoice, key: &str) -> Option<&'a str> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .map(|entry| entry.value.as_str())
 }

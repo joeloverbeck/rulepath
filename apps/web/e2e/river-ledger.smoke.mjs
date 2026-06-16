@@ -326,8 +326,12 @@ async function assertActionPanelCostCopy(page) {
     `action panel renders call price and adds-to-ledger: ${summary.join(" | ")}`,
   );
   assert(
-    summary.every((text) => text.includes("Cap left 3")),
-    `action panel renders Rust cap remaining for each choice: ${summary.join(" | ")}`,
+    summary.some((text) => text.includes("Fold") && !text.includes("Call price") && !text.includes("Raises left")),
+    `fold action omits irrelevant call/cap rows: ${summary.join(" | ")}`,
+  );
+  assert(
+    summary.some((text) => text.includes("Raise") && text.includes("Raises left 3")),
+    `action panel renders Rust raises remaining for raise choices: ${summary.join(" | ")}`,
   );
 }
 

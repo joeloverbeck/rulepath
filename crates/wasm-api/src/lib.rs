@@ -5602,15 +5602,58 @@ fn action_choice_json(choice: &ActionChoice) -> String {
             format!("{{\"choices\":[{choices}]}}")
         },
     );
+    let presentation = action_choice_presentation_json(choice).unwrap_or_else(|| "null".to_owned());
     format!(
-        "{{\"segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"tags\":[{}],\"next\":{}}}",
+        "{{\"segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"presentation\":{},\"tags\":[{}],\"next\":{}}}",
         escape_json(&choice.segment),
         escape_json(&choice.label),
         escape_json(&choice.accessibility_label),
         metadata,
+        presentation,
         tags,
         next
     )
+}
+
+fn action_choice_presentation_json(choice: &ActionChoice) -> Option<String> {
+    let segment = action_metadata_value(choice, "presentation_segment")?;
+    let label = action_metadata_value(choice, "presentation_label")?;
+    let helper_text = action_metadata_value(choice, "presentation_helper_text")?;
+    let accessibility_label = action_metadata_value(choice, "presentation_accessibility_label")?;
+    let rows = action_choice_presentation_rows_json(choice);
+    Some(format!(
+        "{{\"segment\":\"{}\",\"label\":\"{}\",\"helper_text\":\"{}\",\"accessibility_label\":\"{}\",\"display_rows\":[{}]}}",
+        escape_json(segment),
+        escape_json(label),
+        escape_json(helper_text),
+        escape_json(accessibility_label),
+        rows
+    ))
+}
+
+fn action_choice_presentation_rows_json(choice: &ActionChoice) -> String {
+    (0..)
+        .map_while(|index| {
+            let label = action_metadata_value(choice, &format!("presentation_row_{index}_label"))?;
+            let value = action_metadata_value(choice, &format!("presentation_row_{index}_value"))?;
+            let tone = action_metadata_value(choice, &format!("presentation_row_{index}_tone"))?;
+            Some(format!(
+                "{{\"label\":\"{}\",\"value\":\"{}\",\"tone\":\"{}\"}}",
+                escape_json(label),
+                escape_json(value),
+                escape_json(tone)
+            ))
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn action_metadata_value<'a>(choice: &'a ActionChoice, key: &str) -> Option<&'a str> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .map(|entry| entry.value.as_str())
 }
 
 fn race_effects_json(effects: &[EffectEnvelope<RaceEffect>]) -> String {

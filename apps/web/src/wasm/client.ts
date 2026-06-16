@@ -1178,6 +1178,13 @@ export type ActionChoice = {
   label: string;
   accessibility_label: string;
   metadata?: Array<{ key: string; value: string }>;
+  presentation?: {
+    segment: string;
+    label: string;
+    helper_text: string;
+    accessibility_label: string;
+    display_rows: Array<{ label: string; value: string; tone: string }>;
+  } | null;
   tags?: string[];
   next?: { choices: ActionChoice[] } | null;
 };

@@ -6,6 +6,7 @@ use crate::{
     betting::{call_price, live_seats},
     ids::{RiverLedgerSeat, ACTION_BET, ACTION_CALL, ACTION_CHECK, ACTION_FOLD, ACTION_RAISE},
     state::{Phase, RiverLedgerState},
+    ui::action_presentation,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -212,10 +213,17 @@ fn action_choice(
         RiverLedgerAction::Raise => required_to_call + u16::from(state.betting.street.unit()),
     };
     let accessibility_copy = accessibility_copy(action, adds_to_pot, required_to_call);
-    let cap_remaining = crate::ids::MAX_RAISES_PER_STREET
-        .saturating_sub(state.betting.raises_this_street)
-        .to_string();
+    let raises_remaining =
+        crate::ids::MAX_RAISES_PER_STREET.saturating_sub(state.betting.raises_this_street);
+    let cap_remaining = raises_remaining.to_string();
     let mut choice = ActionChoice::leaf(action.segment(), action.label(), &accessibility_copy);
+    let presentation = action_presentation(
+        action,
+        required_to_call,
+        adds_to_pot,
+        raises_remaining,
+        accessibility_copy.clone(),
+    );
     choice.metadata = vec![
         metadata("action_family", action.segment()),
         metadata("street", state.betting.street.as_str()),
@@ -234,7 +242,27 @@ fn action_choice(
         metadata("raises_remaining", cap_remaining.clone()),
         metadata("cap_remaining", cap_remaining),
         metadata("accessibility_copy", accessibility_copy),
+        metadata("presentation_segment", presentation.segment),
+        metadata("presentation_label", presentation.label),
+        metadata("presentation_helper_text", presentation.helper_text),
+        metadata(
+            "presentation_accessibility_label",
+            presentation.accessibility_label,
+        ),
     ];
+    for (index, row) in presentation.display_rows.into_iter().enumerate() {
+        choice.metadata.push(metadata(
+            format!("presentation_row_{index}_label"),
+            row.label,
+        ));
+        choice.metadata.push(metadata(
+            format!("presentation_row_{index}_value"),
+            row.value,
+        ));
+        choice
+            .metadata
+            .push(metadata(format!("presentation_row_{index}_tone"), row.tone));
+    }
     choice.tags = vec!["betting".to_owned(), action.segment().to_owned()];
     choice.preview = ActionPreview::Available;
     choice

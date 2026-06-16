@@ -311,22 +311,18 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function ActionChoiceDetails({ choice }: { choice: ActionChoice }) {
-  const metadata = choice.metadata ?? [];
-  const required = metadataValue(metadata, "required_to_call");
-  const adds = metadataValue(metadata, "adds_to_pot");
-  const cap = metadataValue(metadata, "cap_remaining");
+  const presentation = choice.presentation;
 
   return (
     <small className="river-ledger-action-detail">
-      <span>Call price {required ?? "0"}</span>
-      <span>Adds {adds ?? "0"}</span>
-      <span>Cap left {cap ?? "0"}</span>
+      {presentation?.helper_text ? <span>{presentation.helper_text}</span> : null}
+      {presentation?.display_rows.map((row) => (
+        <span className={`river-ledger-choice-row ${row.tone}`} key={`${choice.segment}-${row.label}`}>
+          {row.label} {row.value}
+        </span>
+      ))}
     </small>
   );
-}
-
-function metadataValue(metadata: NonNullable<ActionChoice["metadata"]>, key: string): string | undefined {
-  return metadata.find((entry) => entry.key === key)?.value;
 }
 
 function actionStatus(view: RiverLedgerPublicView, pending: boolean): string {

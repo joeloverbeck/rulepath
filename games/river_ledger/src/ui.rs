@@ -1,5 +1,8 @@
-use crate::ids::{
-    RiverLedgerSeat, GAME_ID, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
+use crate::{
+    actions::RiverLedgerAction,
+    ids::{
+        RiverLedgerSeat, GAME_ID, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
+    },
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -28,6 +31,22 @@ pub struct HandRankingMetadata {
     pub definition: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RiverLedgerActionPresentation {
+    pub segment: String,
+    pub label: String,
+    pub helper_text: String,
+    pub accessibility_label: String,
+    pub display_rows: Vec<RiverLedgerActionDisplayRow>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RiverLedgerActionDisplayRow {
+    pub label: String,
+    pub value: String,
+    pub tone: String,
+}
+
 pub fn ui_metadata() -> UiMetadata {
     UiMetadata {
         game_id: GAME_ID.to_owned(),
@@ -52,6 +71,74 @@ pub fn ui_metadata() -> UiMetadata {
 
 pub fn seat_public_label(seat: RiverLedgerSeat) -> String {
     format!("Seat {}", seat.index() + 1)
+}
+
+pub fn action_presentation(
+    action: RiverLedgerAction,
+    required_to_call: u16,
+    adds_to_pot: u16,
+    raises_remaining: u8,
+    accessibility_label: String,
+) -> RiverLedgerActionPresentation {
+    let display_rows = match action {
+        RiverLedgerAction::Fold | RiverLedgerAction::Check => {
+            vec![display_row("Adds", "0", "neutral")]
+        }
+        RiverLedgerAction::Call => vec![
+            display_row("Call price", required_to_call.to_string(), "cost"),
+            display_row("Adds", adds_to_pot.to_string(), "cost"),
+        ],
+        RiverLedgerAction::Bet => vec![
+            display_row("Adds", adds_to_pot.to_string(), "cost"),
+            display_row("Raises left", raises_remaining.to_string(), "limit"),
+        ],
+        RiverLedgerAction::Raise => vec![
+            display_row("Call price", required_to_call.to_string(), "cost"),
+            display_row("Adds", adds_to_pot.to_string(), "cost"),
+            display_row("Raises left", raises_remaining.to_string(), "limit"),
+        ],
+    };
+
+    RiverLedgerActionPresentation {
+        segment: action.segment().to_owned(),
+        label: action.label().to_owned(),
+        helper_text: action_helper_text(action, required_to_call, adds_to_pot, raises_remaining),
+        accessibility_label,
+        display_rows,
+    }
+}
+
+fn action_helper_text(
+    action: RiverLedgerAction,
+    required_to_call: u16,
+    adds_to_pot: u16,
+    raises_remaining: u8,
+) -> String {
+    match action {
+        RiverLedgerAction::Fold => "Leave this hand; add no more to the ledger.".to_owned(),
+        RiverLedgerAction::Check => "Stay in without adding to the ledger.".to_owned(),
+        RiverLedgerAction::Call => {
+            format!("Match the current price by adding {required_to_call}.")
+        }
+        RiverLedgerAction::Bet => {
+            format!("Open this street by adding {adds_to_pot}; {raises_remaining} raises remain.")
+        }
+        RiverLedgerAction::Raise => format!(
+            "Call {required_to_call} and add the street unit; {raises_remaining} raises remain after this choice."
+        ),
+    }
+}
+
+fn display_row(
+    label: impl Into<String>,
+    value: impl Into<String>,
+    tone: impl Into<String>,
+) -> RiverLedgerActionDisplayRow {
+    RiverLedgerActionDisplayRow {
+        label: label.into(),
+        value: value.into(),
+        tone: tone.into(),
+    }
 }
 
 fn hand_rankings() -> Vec<HandRankingMetadata> {
@@ -115,9 +202,38 @@ fn hand_rankings() -> Vec<HandRankingMetadata> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use crate::ids::RiverLedgerSeat;
+    use crate::{actions::RiverLedgerAction, ids::RiverLedgerSeat};
 
-    use super::{seat_public_label, ui_metadata};
+    use super::{action_presentation, seat_public_label, ui_metadata};
+
+    #[test]
+    fn action_presentation_rows_are_segment_relevant() {
+        let fold = action_presentation(RiverLedgerAction::Fold, 2, 0, 3, "Fold".to_owned());
+        assert_eq!(row_labels(&fold), vec!["Adds"]);
+
+        let check = action_presentation(RiverLedgerAction::Check, 0, 0, 3, "Check".to_owned());
+        assert_eq!(row_labels(&check), vec!["Adds"]);
+
+        let call = action_presentation(RiverLedgerAction::Call, 2, 2, 3, "Call".to_owned());
+        assert_eq!(row_labels(&call), vec!["Call price", "Adds"]);
+
+        let bet = action_presentation(RiverLedgerAction::Bet, 0, 2, 3, "Bet".to_owned());
+        assert_eq!(row_labels(&bet), vec!["Adds", "Raises left"]);
+
+        let raise = action_presentation(RiverLedgerAction::Raise, 2, 4, 2, "Raise".to_owned());
+        assert_eq!(
+            row_labels(&raise),
+            vec!["Call price", "Adds", "Raises left"]
+        );
+    }
+
+    fn row_labels(presentation: &super::RiverLedgerActionPresentation) -> Vec<&str> {
+        presentation
+            .display_rows
+            .iter()
+            .map(|row| row.label.as_str())
+            .collect()
+    }
 
     #[test]
     fn seat_public_labels_match_catalog_display_form() {
