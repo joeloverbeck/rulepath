@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-012: River-scoped `--rl-*` design tokens and classes
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/styles.css`
@@ -68,3 +68,13 @@ Add a River-scoped `--rl-*` token family (table surface/rim/glow/board well; led
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
 3. `node scripts/check-presentation-copy.mjs`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Added a River-scoped `--rl-*` token family on `.river-ledger-board` for table surface, rim, panels, board well, text, accents, card states, suits, usage rings, and showdown surfaces.
+- Updated River Ledger table and River-specific showdown styles to consume the scoped tokens without editing global `:root` tokens or other game selectors.
+- Tuned the surface away from casino-green/felt framing and away from a beige-dominant palette after visual review; the final pass uses cooler table/rim surfaces with warm card wells and copper/river accents.
+- Manual contrast review: primary/muted/accent/river/red text token pairs are at or above 4.5:1; table rim and card border boundary pairs are above 3:1.
+- Verified with `node scripts/check-presentation-copy.mjs`, `npm --prefix apps/web run build`, `npm --prefix apps/web run smoke:ui`, and a Playwright preview visual review of a 6-seat River Ledger table. No screenshot artifact was committed.
