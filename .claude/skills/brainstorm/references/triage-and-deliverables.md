@@ -54,7 +54,7 @@ When the request is a diagnostic question or exploration prompt rather than a fo
 
 Close every triage recommendation with:
 
-1. **Deliverable-shape recommendation** — one ADR / N agent tasks / mixed batch / in-place edits, per §Deliverable classification.
+1. **Deliverable-shape recommendation** — one ADR / N agent tasks / a spec / mixed batch / in-place edits, per §Deliverable classification. A report→spec triage (a finding-set whose actionable items collapse into one implementation plan) is a valid shape: route its granularity choice through the §Deliverable classification *Spec* row's spec-granularity-as-approaches rule.
 2. **Named assumptions** — remaining gaps in the format `(N) X — assuming Y`.
 
 For a multi-deliverable triage (≥2 ADRs or ≥3 agent tasks), make the finding→deliverable mapping explicit in the recommendation (either inline `R3 — <summary> → 0002`, or a `deliverable → findings` map) so the user can see which accepted finding lands where at approval time.
@@ -89,7 +89,7 @@ For a multi-deliverable triage (≥2 ADRs or ≥3 agent tasks), make the finding
 - **O<N>** — <description>. <Resolution: landed in <site> | flagged for follow-up>.
 
 ## Deliverable-shape recommendation
-<one ADR / N agent tasks / mixed batch — per §Deliverable classification; finding→deliverable map for ≥2 deliverables>
+<one ADR / N agent tasks / a spec / mixed batch — per §Deliverable classification; finding→deliverable map for ≥2 deliverables>
 
 ## Named assumptions
 (1) <unknown> — assuming <assumption>; (2) ...

@@ -2616,6 +2616,143 @@ h2 {
   gap: 12px;
 }
 
+.river-ledger-showdown-panel {
+  display: grid;
+  gap: 14px;
+  border-block: 1px solid #d7ded9;
+  padding-block: 14px;
+}
+
+.river-ledger-showdown-lead {
+  display: grid;
+  gap: 6px;
+}
+
+.river-ledger-showdown-lead strong {
+  color: #21352e;
+  font-size: 1rem;
+}
+
+.river-ledger-showdown-lead p,
+.river-ledger-showdown-hand p {
+  margin: 0;
+  color: #40514a;
+}
+
+.river-ledger-showdown-hands {
+  display: grid;
+  gap: 10px;
+}
+
+.river-ledger-teaching-aid {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #d8e1df;
+  border-radius: 6px;
+  background: #fbfcf9;
+  padding: 10px 12px;
+}
+
+.river-ledger-teaching-aid span {
+  color: #63756f;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.river-ledger-teaching-aid p {
+  margin: 0;
+  color: #25383b;
+  font-weight: 800;
+}
+
+.river-ledger-showdown-hand {
+  display: grid;
+  gap: 9px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcf9;
+}
+
+.river-ledger-showdown-hand.emphasized {
+  border-left: 3px solid #b45f06;
+  background: #ffffff;
+}
+
+.river-ledger-showdown-hand header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.river-ledger-showdown-hand header span {
+  color: #5a6d66;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.river-ledger-showdown-hand header strong {
+  color: #21352e;
+  overflow-wrap: anywhere;
+}
+
+.river-ledger-showdown-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.river-ledger-showdown-card {
+  border: 1px solid #c8d3ce;
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: #eef5f1;
+  color: #21352e;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.river-ledger-card.showdown.river-ledger-showdown-card {
+  min-height: 78px;
+  padding: 8px;
+  background: #fbfcf9;
+}
+
+.river-ledger-showdown-details {
+  color: #40514a;
+}
+
+.river-ledger-showdown-details summary {
+  cursor: pointer;
+  color: #21352e;
+  font-weight: 900;
+}
+
+.river-ledger-showdown-details dl {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.river-ledger-showdown-details dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.34fr) minmax(0, 0.66fr);
+  gap: 4px 12px;
+}
+
+.river-ledger-showdown-details dt {
+  color: #5a6d66;
+  font-weight: 800;
+}
+
+.river-ledger-showdown-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .outcome-standing-row {
   display: grid;
   gap: 10px;
@@ -3760,6 +3897,50 @@ svg g[data-effect-kind] {
   gap: 12px;
 }
 
+.river-ledger-street-strip {
+  border: 1px solid #d8e1df;
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 10px;
+}
+
+.river-ledger-street-strip ol {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.river-ledger-street-strip li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #d8e1df;
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #ffffff;
+  color: #536568;
+  font-size: 0.82rem;
+}
+
+.river-ledger-street-strip li.current {
+  border-color: #b45f06;
+  background: #fffdf8;
+  color: #25383b;
+}
+
+.river-ledger-street-strip li.complete {
+  background: #eef5f1;
+  color: #315d58;
+}
+
+.river-ledger-street-strip li span {
+  font-weight: 900;
+}
+
 .river-ledger-seats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
@@ -3771,6 +3952,7 @@ svg g[data-effect-kind] {
 .river-ledger-center,
 .river-ledger-private,
 .river-ledger-actions,
+.river-ledger-hand-rankings,
 .river-ledger-outcome,
 .river-ledger-latest {
   display: grid;
@@ -3819,12 +4001,20 @@ svg g[data-effect-kind] {
 }
 
 .river-ledger-markers b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid #c4d4d1;
   border-radius: 999px;
   background: #f4f8f6;
   color: #315d58;
   padding: 3px 7px;
   font-size: 0.72rem;
+}
+
+.river-ledger-markers b span {
+  color: #25383b;
+  font-weight: 900;
 }
 
 .river-ledger-board-cards,
@@ -3865,8 +4055,92 @@ svg g[data-effect-kind] {
   border-color: #607987;
 }
 
+.river-ledger-card.showdown {
+  border-color: #c8d3ce;
+}
+
+.river-ledger-card strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.river-ledger-card-suit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.river-ledger-card-suit b {
+  color: #25383b;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.river-ledger-card.suit-hearts .river-ledger-card-suit b,
+.river-ledger-card.suit-diamonds .river-ledger-card-suit b {
+  color: #9b2f2f;
+}
+
+.river-ledger-card.suit-clubs .river-ledger-card-suit b,
+.river-ledger-card.suit-spades .river-ledger-card-suit b {
+  color: #25383b;
+}
+
 .river-ledger-card small {
   color: #687577;
+}
+
+.river-ledger-card-rank {
+  letter-spacing: 0;
+}
+
+.river-ledger-hand-rankings details {
+  display: grid;
+  gap: 10px;
+}
+
+.river-ledger-hand-rankings summary {
+  cursor: pointer;
+  color: #25383b;
+  font-weight: 900;
+}
+
+.river-ledger-hand-rankings summary:focus-visible {
+  outline: 3px solid #b45f06;
+  outline-offset: 3px;
+}
+
+.river-ledger-hand-rankings ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.river-ledger-hand-rankings li {
+  display: grid;
+  grid-template-columns: minmax(118px, 0.38fr) minmax(0, 0.62fr);
+  gap: 6px 12px;
+  align-items: start;
+  border: 1px solid #d8e1df;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.river-ledger-hand-rankings li.current {
+  border-left: 3px solid #b45f06;
+  background: #fffdf8;
+}
+
+.river-ledger-hand-rankings li strong {
+  color: #25383b;
+}
+
+.river-ledger-hand-rankings li span {
+  color: #536568;
 }
 
 .river-ledger-track {
@@ -3919,6 +4193,11 @@ svg g[data-effect-kind] {
 
 .river-ledger-action:disabled {
   opacity: 0.58;
+}
+
+.river-ledger-action-detail {
+  display: grid;
+  gap: 2px;
 }
 
 .river-ledger-allocations {
@@ -4143,6 +4422,10 @@ svg g[data-effect-kind] {
 
   .river-ledger-board-cards {
     grid-template-columns: repeat(5, minmax(42px, 1fr));
+  }
+
+  .river-ledger-street-strip ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .secret-pool-grid {

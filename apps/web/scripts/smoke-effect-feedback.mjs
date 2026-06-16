@@ -71,6 +71,12 @@ try {
   }
 
   function newMatch(gameId, seed) {
+    if (gameId === "river_ledger") {
+      return invoke(
+        (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(seed), 4),
+        [gameId],
+      );
+    }
     return invoke(
       (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, BigInt(seed)),
       [gameId],

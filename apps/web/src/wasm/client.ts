@@ -163,7 +163,6 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
-export type RiverLedgerOutcomeRationale = OutcomeRationalePayload;
 export type PlainTricksOutcomeRationale = {
   result_kind: string;
   decisive_cause: string;
@@ -723,6 +722,36 @@ export type RiverLedgerSeatView = {
   hidden_hole_count: number;
 };
 
+export type RiverLedgerShowdownStrength = {
+  category: string;
+  tie_break_vector: number[];
+  best_five: RiverLedgerCardView[];
+  category_ladder_position: RiverLedgerCategoryLadderPosition;
+  result_label: string;
+  hand_name: string;
+  rank_explanation: string;
+  comparison_note: string;
+  best_five_accessibility_label: string;
+};
+
+export type RiverLedgerCategoryLadderPosition = {
+  position: number;
+  total: number;
+  description: string;
+};
+
+export type RiverLedgerOutcomeStanding = OutcomeRationaleStanding & {
+  seat: RiverLedgerSeatId;
+  strength?: RiverLedgerShowdownStrength | null;
+};
+
+export type RiverLedgerOutcomeRationale = OutcomeRationalePayload & {
+  headline?: string | null;
+  decisive_comparison?: string | null;
+  comparison_basis?: string | null;
+  final_standing?: RiverLedgerOutcomeStanding[];
+};
+
 export type RiverLedgerTerminalView =
   | {
       kind: "non_terminal";
@@ -760,6 +789,13 @@ export type RiverLedgerUiMetadata = {
   board_label: string;
   hidden_hole_label: string;
   reduced_motion_note: string;
+  hand_rankings: RiverLedgerHandRankingMetadata[];
+};
+
+export type RiverLedgerHandRankingMetadata = {
+  category: string;
+  label: string;
+  definition: string;
 };
 
 export type RiverLedgerPublicView = {

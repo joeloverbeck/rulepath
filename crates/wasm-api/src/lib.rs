@@ -7656,10 +7656,13 @@ fn river_rationale_json(rationale: &river_ledger::visibility::OutcomeRationaleVi
         .join(",");
 
     format!(
-        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"headline\":{},\"decisive_comparison\":{},\"comparison_basis\":{},\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
         escape_json(&rationale.result_kind),
         escape_json(&rationale.decisive_cause),
         escape_json(&rationale.template_key),
+        option_string_json(rationale.headline.as_deref()),
+        option_string_json(rationale.decisive_comparison.as_deref()),
+        option_string_json(rationale.comparison_basis.as_deref()),
         decisive_rule_ids,
         final_standing
     )
@@ -7679,6 +7682,22 @@ fn river_rationale_standing_json(
         ),
     ];
     if let Some(strength) = &breakdown.strength {
+        values.push(format!(
+            "{{\"label\":\"Result label\",\"value\":\"{}\"}}",
+            escape_json(&strength.result_label)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Hand\",\"value\":\"{}\"}}",
+            escape_json(&strength.hand_name)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Rank explanation\",\"value\":\"{}\"}}",
+            escape_json(&strength.rank_explanation)
+        ));
+        values.push(format!(
+            "{{\"label\":\"Comparison\",\"value\":\"{}\"}}",
+            escape_json(&strength.comparison_note)
+        ));
         values.push(format!(
             "{{\"label\":\"Category\",\"value\":\"{}\"}}",
             escape_json(&strength.category)
@@ -7708,12 +7727,54 @@ fn river_rationale_standing_json(
     }
 
     format!(
-        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"values\":[{}]}}",
+        "{{\"id\":\"{}\",\"label\":\"{}\",\"result\":\"{}\",\"emphasized\":{},\"strength\":{},\"values\":[{}]}}",
         breakdown.seat.as_str(),
         breakdown.seat.as_str(),
         escape_json(&breakdown.result),
         matches!(breakdown.result.as_str(), "win" | "split"),
+        breakdown
+            .strength
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), river_showdown_strength_json),
         values.join(",")
+    )
+}
+
+fn river_showdown_strength_json(
+    strength: &river_ledger::visibility::ShowdownStrengthView,
+) -> String {
+    format!(
+        "{{\"category\":\"{}\",\"tie_break_vector\":[{}],\"best_five\":[{}],\"category_ladder_position\":{},\"result_label\":\"{}\",\"hand_name\":\"{}\",\"rank_explanation\":\"{}\",\"comparison_note\":\"{}\",\"best_five_accessibility_label\":\"{}\"}}",
+        escape_json(&strength.category),
+        strength
+            .tie_break_vector
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(","),
+        strength
+            .best_five
+            .iter()
+            .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        river_category_ladder_position_json(&strength.category_ladder_position),
+        escape_json(&strength.result_label),
+        escape_json(&strength.hand_name),
+        escape_json(&strength.rank_explanation),
+        escape_json(&strength.comparison_note),
+        escape_json(&strength.best_five_accessibility_label)
+    )
+}
+
+fn river_category_ladder_position_json(
+    position: &river_ledger::state::CategoryLadderPosition,
+) -> String {
+    format!(
+        "{{\"position\":{},\"total\":{},\"description\":\"{}\"}}",
+        position.position,
+        position.total,
+        escape_json(&position.description)
     )
 }
 
@@ -7736,7 +7797,7 @@ fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
 
 fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
     format!(
-        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\"}}",
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\",\"hand_rankings\":[{}]}}",
         escape_json(&ui.game_id),
         escape_json(&ui.display_name),
         escape_json(&ui.surface_label),
@@ -7754,7 +7815,21 @@ fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
         escape_json(&ui.contribution_label),
         escape_json(&ui.board_label),
         escape_json(&ui.hidden_hole_label),
-        escape_json(&ui.reduced_motion_note)
+        escape_json(&ui.reduced_motion_note),
+        ui.hand_rankings
+            .iter()
+            .map(river_hand_ranking_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_hand_ranking_json(row: &river_ledger::ui::HandRankingMetadata) -> String {
+    format!(
+        "{{\"category\":\"{}\",\"label\":\"{}\",\"definition\":\"{}\"}}",
+        escape_json(&row.category),
+        escape_json(&row.label),
+        escape_json(&row.definition)
     )
 }
 
@@ -12359,6 +12434,10 @@ mod tests {
     fn river_ledger_view_projects_terminal_rationale_template_keys() {
         let non_terminal = get_terminal_river_view(21, 4, &[]);
         assert!(non_terminal.contains("\"terminal_rationale\":null"));
+        assert!(non_terminal.contains(
+            "\"hand_rankings\":[{\"category\":\"straight_flush\",\"label\":\"Straight flush\""
+        ));
+        assert!(non_terminal.contains("\"category\":\"high_card\",\"label\":\"High card\""));
 
         let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
         assert!(foldout.contains(
@@ -12417,6 +12496,81 @@ mod tests {
         );
         assert!(showdown.contains("\"label\":\"Category\""));
         assert!(showdown.contains("\"label\":\"Best five\""));
+        assert!(showdown.contains("\"headline\":\""));
+        assert!(showdown.contains("\"decisive_comparison\":\""));
+        assert!(showdown.contains("\"comparison_basis\":\""));
+        assert!(showdown.contains("\"strength\":{\"category\":\""));
+        assert!(showdown.contains("\"result_label\":\""));
+        assert!(showdown.contains("\"hand_name\":\""));
+        assert!(showdown.contains("\"rank_explanation\":\""));
+        assert!(showdown.contains("\"comparison_note\":\""));
+        assert!(showdown.contains("\"category_ladder_position\":{\"position\":"));
+        assert!(showdown.contains("\"description\":\""));
+        assert!(showdown.contains("\"best_five_accessibility_label\":\""));
+    }
+
+    #[test]
+    fn river_ledger_bridge_redacts_folded_showdown_explanation_fields() {
+        let seat = |index| RiverLedgerSeat::from_index(index).expect("valid seat");
+        let board = [
+            river_ledger::Card::new(river_ledger::Rank::Ten, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::Jack, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::Queen, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::King, river_ledger::Suit::Hearts),
+            river_ledger::Card::new(river_ledger::Rank::Ace, river_ledger::Suit::Hearts),
+        ];
+        let mut state = river_ledger::RiverLedgerState::new_after_setup(
+            river_ledger::Variant::river_ledger_standard(),
+            river_seats_for_count(3),
+            river_ledger::state::SeatRoles {
+                button: seat(0),
+                small_blind: seat(1),
+                big_blind: seat(2),
+                active_seat: seat(0),
+            },
+            vec![
+                [
+                    river_ledger::Card::new(river_ledger::Rank::Two, river_ledger::Suit::Diamonds),
+                    river_ledger::Card::new(
+                        river_ledger::Rank::Three,
+                        river_ledger::Suit::Diamonds,
+                    ),
+                ],
+                [
+                    river_ledger::Card::new(river_ledger::Rank::Two, river_ledger::Suit::Clubs),
+                    river_ledger::Card::new(river_ledger::Rank::Three, river_ledger::Suit::Clubs),
+                ],
+                [
+                    river_ledger::Card::new(river_ledger::Rank::Four, river_ledger::Suit::Clubs),
+                    river_ledger::Card::new(river_ledger::Rank::Five, river_ledger::Suit::Clubs),
+                ],
+            ],
+            board,
+            Vec::new(),
+        );
+        state.board = board.to_vec();
+        state.ledger.seats = (0..3)
+            .map(|index| river_ledger::SeatLedger {
+                seat: seat(index),
+                status: if index == 0 {
+                    river_ledger::SeatStatus::Folded
+                } else {
+                    river_ledger::SeatStatus::ShowdownEligible
+                },
+                street_contribution: 0,
+                total_contribution: 3,
+            })
+            .collect();
+        state.ledger.pot_total = 9;
+        state.terminal_outcome = Some(river_ledger::resolve_showdown(&state));
+
+        let json = river_view_json(&river_project_view(&state, &Viewer { seat_id: None }));
+        assert!(json.contains("\"headline\":\""));
+        assert!(json.contains("\"id\":\"seat_0\",\"label\":\"seat_0\",\"result\":\"folded\",\"emphasized\":false,\"strength\":null"));
+        assert!(json.contains("\"id\":\"seat_1\""));
+        assert!(json.contains("\"strength\":{\"category\":\"straight_flush\""));
+        assert!(!json.contains("two_diamonds"));
+        assert!(!json.contains("three_diamonds"));
     }
 
     #[test]

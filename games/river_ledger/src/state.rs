@@ -96,6 +96,19 @@ pub struct ShowdownReveal {
     pub best_five: [Card; 5],
     pub category: String,
     pub tie_break_vector: Vec<u8>,
+    pub category_ladder_position: CategoryLadderPosition,
+    pub result_label: String,
+    pub hand_name: String,
+    pub rank_explanation: String,
+    pub comparison_note: String,
+    pub best_five_accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CategoryLadderPosition {
+    pub position: u8,
+    pub total: u8,
+    pub description: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -122,6 +135,9 @@ pub enum TerminalOutcome {
         winners: Vec<RiverLedgerSeat>,
         pot_total: u16,
         allocations: Vec<PotShare>,
+        headline: String,
+        decisive_comparison: String,
+        comparison_basis: String,
         explanations: Vec<ShowdownSeatExplanation>,
     },
 }

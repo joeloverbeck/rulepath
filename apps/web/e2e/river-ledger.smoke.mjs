@@ -70,8 +70,11 @@ try {
   await page.waitForSelector('[data-testid="river-ledger-board"]');
   await waitForText(page, "Seat 0 to choose");
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
+  await assertHandRankingReferenceDuringPlay(page);
+  await assertSeatAndStreetAffordancesDuringPlay(page);
   const seat0Cards = await ownPrivateCardLabels(page);
   assert(seat0Cards.length === 2, "seat 0 private view exposes two own cards");
+  await assertPrivateCardComponent(page);
   await assertNoLeak(page, consoleMessages, "seat 0 view", cardIds.filter((id) => !seat0Cards.map(labelToId).includes(id)));
 
   await clickSeatFrameButton(page, "Observer");
@@ -97,14 +100,16 @@ try {
   assert(choices.length > 0, "river_ledger exposes Rust-provided legal action buttons");
   assert(choices.every((choice) => choice.aria.length > 0), "river_ledger choices have accessible names");
   assert(choices.every((choice) => !choice.disabled), "river_ledger renders legal enabled choices only for active human seat");
+  await assertActionPanelCostCopy(page);
 
-  await clickText(page, "button", "Fold");
+  await clickRiverAction(page, "Fold");
   await page.waitForFunction(() => document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]'), {
     timeout: 15000,
   });
   await waitForText(page, "Outcome");
   const outcomeText = await page.$eval(".outcome-explanation-panel", (element) => element.textContent ?? "");
   assert(outcomeText.includes("Seat"), "river_ledger terminal outcome names seats");
+  await assertFoldedSeatNoStrength(page);
   assertNoForbiddenTerms(await fullBrowserSurface(page), "terminal surface", internalTerms);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);
 
@@ -112,6 +117,17 @@ try {
   await page.waitForSelector(".river-ledger-layout");
   const columns = await page.$eval(".river-ledger-layout", (element) => window.getComputedStyle(element).gridTemplateColumns);
   assert(!columns.includes(" 0px "), "responsive river_ledger layout remains measurable");
+
+  await page.setViewport({ width: 1180, height: 920 });
+  await playWorkedExampleShowdown(page, baseUrl);
+  await assertWorkedExampleShowdown(page);
+  await assertShowdownCardComponents(page);
+  await assertHandRankingReferenceAfterShowdown(page);
+  await assertTeachingAidAfterShowdown(page);
+  await assertStreetStripAfterShowdown(page);
+  assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
+  assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
+  await assertStorageClean(page);
 
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "river_ledger noleak legal controls terminal responsive" }));
 } finally {
@@ -121,14 +137,272 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startRiverLedger(page, baseUrl, modeLabel, seatCount) {
+async function startRiverLedger(page, baseUrl, modeLabel, seatCount, seed = null) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "River Ledger");
   await assertFixedSeatSetup(page);
   await clickText(page, "button", "River Ledger");
   await assertVariableSeatSetup(page, seatCount);
+  if (seed !== null) {
+    await setSetupSeed(page, seed);
+  }
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
+}
+
+async function playWorkedExampleShowdown(page, baseUrl) {
+  await startRiverLedger(page, baseUrl, "Hotseat", 4, 79);
+  await waitForText(page, "Available choices");
+  for (const action of [
+    "Call",
+    "Call",
+    "Call",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+  ]) {
+    await clickRiverAction(page, action);
+    if (action !== "Check" || !(await hasRiverLedgerOutcome(page))) {
+      await waitForText(page, "Available choices").catch(async () => {
+        if (!(await hasRiverLedgerOutcome(page))) {
+          throw new Error(`River Ledger did not advance after ${action}`);
+        }
+      });
+    }
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
+async function assertWorkedExampleShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    const showdown = panel?.querySelector(".river-ledger-showdown-panel");
+    return {
+      text: panel?.textContent ?? "",
+      showdownText: showdown?.textContent ?? "",
+      handCount: showdown?.querySelectorAll(".river-ledger-showdown-hand").length ?? 0,
+      cardCount: showdown?.querySelectorAll(".river-ledger-showdown-card").length ?? 0,
+      foldedStrengthRows: Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? [])
+        .filter((row) => row.textContent?.includes("Folded"))
+        .filter((row) => /Pair|High Card|tie break/i.test(row.textContent ?? "")).length,
+    };
+  });
+  assert(summary.text.includes("wins with Pair of Queens."), `worked example headline is rendered: ${summary.text}`);
+  assert(
+    summary.text.includes("Pair of Queens beats Pair of Eights."),
+    `worked example decisive comparison is rendered: ${summary.text}`,
+  );
+  assert(
+    summary.text.includes("Both hands are one pair, so the pair rank decides first: Queens > Eights."),
+    `worked example comparison basis is rendered: ${summary.text}`,
+  );
+  assert(summary.handCount === 4, `worked example renders four revealed hands: ${summary.handCount}`);
+  assert(summary.cardCount === 20, `worked example renders each best-five hand: ${summary.cardCount}`);
+  assert(summary.foldedStrengthRows === 0, "worked example renders no folded-seat hand strength");
+}
+
+async function assertPrivateCardComponent(page) {
+  const summary = await page.evaluate(() => {
+    const privateCards = Array.from(document.querySelectorAll(".river-ledger-private .river-ledger-card.private"));
+    const group = document.querySelector(".river-ledger-private-cards");
+    return {
+      cards: privateCards.length,
+      glyphs: privateCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
+      suitWords: privateCards.filter((card) => card.querySelector(".river-ledger-card-suit small")?.textContent?.trim()).length,
+      ranks: privateCards.filter((card) => card.querySelector(".river-ledger-card-rank")?.textContent?.trim()).length,
+      groupLabel: group?.getAttribute("aria-label") ?? "",
+    };
+  });
+  assert(summary.cards === 2, `private card component renders two cards: ${summary.cards}`);
+  assert(summary.glyphs === 2, `private cards render suit glyphs: ${summary.glyphs}`);
+  assert(summary.suitWords === 2, `private cards render suit words: ${summary.suitWords}`);
+  assert(summary.ranks === 2, `private cards render rank words: ${summary.ranks}`);
+  assert(summary.groupLabel.includes("private cards"), `private card group has accessible label: ${summary.groupLabel}`);
+}
+
+async function assertShowdownCardComponents(page) {
+  const summary = await page.evaluate(() => {
+    const boardCards = Array.from(document.querySelectorAll(".river-ledger-board-cards .river-ledger-card.board"));
+    const showdownCards = Array.from(document.querySelectorAll(".river-ledger-showdown-card.river-ledger-card.showdown"));
+    const boardGroup = document.querySelector(".river-ledger-board-cards");
+    const showdownGroups = Array.from(document.querySelectorAll(".river-ledger-showdown-cards"));
+    return {
+      boardCards: boardCards.length,
+      boardGlyphs: boardCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
+      showdownCards: showdownCards.length,
+      showdownGlyphs: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
+      showdownSuitWords: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit small")?.textContent?.trim()).length,
+      boardGroupLabel: boardGroup?.getAttribute("aria-label") ?? "",
+      showdownGroupLabels: showdownGroups.map((group) => group.getAttribute("aria-label") ?? ""),
+    };
+  });
+  assert(summary.boardCards === 5, `terminal board uses card component: ${summary.boardCards}`);
+  assert(summary.boardGlyphs === 5, `terminal board renders suit glyphs: ${summary.boardGlyphs}`);
+  assert(summary.showdownCards === 20, `showdown best-five uses card component: ${summary.showdownCards}`);
+  assert(summary.showdownGlyphs === 20, `showdown best-five renders suit glyphs: ${summary.showdownGlyphs}`);
+  assert(summary.showdownSuitWords === 20, `showdown best-five renders suit words: ${summary.showdownSuitWords}`);
+  assert(summary.boardGroupLabel.includes("Public board cards"), `board group has accessible label: ${summary.boardGroupLabel}`);
+  assert(
+    summary.showdownGroupLabels.length === 4 && summary.showdownGroupLabels.every((label) => label.includes("Best five")),
+    `showdown groups have accessible labels: ${summary.showdownGroupLabels.join(" | ")}`,
+  );
+}
+
+async function assertHandRankingReferenceDuringPlay(page) {
+  const summary = await page.evaluate(() => {
+    const details = document.querySelector(".river-ledger-hand-rankings details");
+    return {
+      exists: Boolean(details),
+      open: details?.hasAttribute("open") ?? false,
+      rows: details?.querySelectorAll("li").length ?? 0,
+      firstLabel: details?.querySelector("li strong")?.textContent ?? "",
+      text: details?.textContent ?? "",
+    };
+  });
+  assert(summary.exists, "hand ranking reference is reachable during play");
+  assert(!summary.open, "hand ranking reference starts collapsed during play");
+  assert(summary.rows === 9, `hand ranking reference has nine rows: ${summary.rows}`);
+  assert(summary.firstLabel === "Straight flush", `hand ranking reference uses Rust order: ${summary.firstLabel}`);
+  assert(summary.text.includes("High card"), `hand ranking reference includes low category: ${summary.text}`);
+}
+
+async function assertHandRankingReferenceAfterShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const details = document.querySelector(".river-ledger-hand-rankings details");
+    const current = details?.querySelector("li.current");
+    return {
+      exists: Boolean(details),
+      open: details?.hasAttribute("open") ?? false,
+      rows: details?.querySelectorAll("li").length ?? 0,
+      currentText: current?.textContent ?? "",
+      currentAria: current?.getAttribute("aria-current") ?? "",
+    };
+  });
+  assert(summary.exists, "hand ranking reference remains reachable after showdown");
+  assert(summary.open, "hand ranking reference is default-visible after showdown");
+  assert(summary.rows === 9, `post-showdown hand ranking reference has nine rows: ${summary.rows}`);
+  assert(summary.currentText.includes("One pair"), `winning category is marked from showdown category: ${summary.currentText}`);
+  assert(summary.currentAria === "true", `winning category exposes aria-current: ${summary.currentAria}`);
+}
+
+async function assertTeachingAidAfterShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const aid = document.querySelector(".river-ledger-teaching-aid");
+    return {
+      exists: Boolean(aid),
+      label: aid?.querySelector("span")?.textContent ?? "",
+      text: aid?.textContent ?? "",
+    };
+  });
+  assert(summary.exists, "terminal teaching aid renders after showdown");
+  assert(summary.label === "Teaching aid, not a game value", `teaching aid has non-canonical label: ${summary.label}`);
+  assert(
+    summary.text.includes("One pair is category 8 of 9 from strongest to weakest."),
+    `teaching aid renders Rust ladder position: ${summary.text}`,
+  );
+}
+
+async function assertActionPanelCostCopy(page) {
+  const summary = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]'));
+    return buttons.map((button) => button.textContent ?? "");
+  });
+  assert(
+    summary.some((text) => text.includes("Call") && text.includes("Call price 2") && text.includes("Adds 2")),
+    `action panel renders call price and adds-to-ledger: ${summary.join(" | ")}`,
+  );
+  assert(
+    summary.every((text) => text.includes("Cap left 3")),
+    `action panel renders Rust cap remaining for each choice: ${summary.join(" | ")}`,
+  );
+}
+
+async function assertSeatAndStreetAffordancesDuringPlay(page) {
+  const summary = await page.evaluate(() => {
+    const seats = Array.from(document.querySelectorAll(".river-ledger-seat"));
+    const currentStreet = document.querySelector(".river-ledger-street-strip li.current");
+    return {
+      activeMarker: seats.some((seat) => seat.textContent?.includes("Active")),
+      buttonMarker: seats.some((seat) => seat.textContent?.includes("Button")),
+      smallBlindMarker: seats.some((seat) => seat.textContent?.includes("Small blind")),
+      bigBlindMarker: seats.some((seat) => seat.textContent?.includes("Big blind")),
+      markerIcons: Array.from(document.querySelectorAll(".river-ledger-markers b span")).map((icon) => icon.textContent ?? ""),
+      currentStreetText: currentStreet?.textContent ?? "",
+      currentStreetAria: currentStreet?.getAttribute("aria-current") ?? "",
+      streetRows: document.querySelectorAll(".river-ledger-street-strip li").length,
+    };
+  });
+  assert(summary.activeMarker, "seat affordances include active text");
+  assert(summary.buttonMarker, "seat affordances include button text");
+  assert(summary.smallBlindMarker, "seat affordances include small blind text");
+  assert(summary.bigBlindMarker, "seat affordances include big blind text");
+  assert(summary.markerIcons.length >= 4, `seat affordances include icons: ${summary.markerIcons.join(", ")}`);
+  assert(summary.streetRows === 5, `street strip renders five steps: ${summary.streetRows}`);
+  assert(summary.currentStreetText.includes("Preflop"), `street strip marks preflop from public state: ${summary.currentStreetText}`);
+  assert(summary.currentStreetAria === "step", `current street exposes aria-current step: ${summary.currentStreetAria}`);
+}
+
+async function assertStreetStripAfterShowdown(page) {
+  const summary = await page.evaluate(() => {
+    const currentStreet = document.querySelector(".river-ledger-street-strip li.current");
+    return {
+      currentStreetText: currentStreet?.textContent ?? "",
+      currentStreetAria: currentStreet?.getAttribute("aria-current") ?? "",
+      completeRows: document.querySelectorAll(".river-ledger-street-strip li.complete").length,
+    };
+  });
+  assert(summary.currentStreetText.includes("Showdown"), `street strip marks showdown after terminal: ${summary.currentStreetText}`);
+  assert(summary.currentStreetAria === "step", `terminal street exposes aria-current step: ${summary.currentStreetAria}`);
+  assert(summary.completeRows === 4, `street strip marks prior streets complete: ${summary.completeRows}`);
+}
+
+async function assertFoldedSeatNoStrength(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    const foldedRows = Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? []).filter((row) =>
+      /folded/i.test(row.textContent ?? ""),
+    );
+    return {
+      text: panel?.textContent ?? "",
+      foldedRows: foldedRows.length,
+      foldedStrengthRows: foldedRows.filter((row) => /Pair|High Card|tie break/i.test(row.textContent ?? "")).length,
+    };
+  });
+  assert(summary.foldedRows >= 1, `terminal path includes a folded seat row: ${summary.text}`);
+  assert(summary.foldedStrengthRows === 0, `folded terminal rows contain no hand strength: ${summary.text}`);
+}
+
+async function setSetupSeed(page, seed) {
+  const selector = '.setup-grid input[type="number"]';
+  await page.$eval(
+    selector,
+    (input, value) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(input, String(value));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    seed,
+  );
+  await page.waitForFunction(
+    (query, expected) => document.querySelector(query)?.value === String(expected),
+    {},
+    selector,
+    seed,
+  );
+}
+
+async function hasRiverLedgerOutcome(page) {
+  return page.evaluate(() => Boolean(document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')));
 }
 
 async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {
@@ -232,6 +506,29 @@ async function assertStorageClean(page) {
 async function clickSeatFrameButton(page, text) {
   const handle = await waitForTextHandle(page, ".seat-frame-viewers button", text);
   await handle.click();
+}
+
+async function clickRiverAction(page, label) {
+  await page.waitForFunction(
+    (expected) =>
+      Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).some(
+        (button) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      ),
+    {},
+    label,
+  );
+  const handles = await page.$$('[data-testid^="choice-river-ledger-"]');
+  for (const handle of handles) {
+    const match = await handle.evaluate(
+      (button, expected) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      label,
+    );
+    if (match) {
+      await handle.click();
+      return;
+    }
+  }
+  throw new Error(`No River Ledger action labeled ${label}`);
 }
 
 async function clickText(page, selector, text) {

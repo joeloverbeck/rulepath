@@ -4,7 +4,7 @@ Game ID: `river_ledger`
 
 Variant: `river_ledger_standard`
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 ## Coverage status
 
@@ -89,14 +89,14 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-BOT-L1-001` | Level 1 heuristics. | `bots.rs`, `AI.md` | bot tests; evidence docs | covered | Authorized inputs only. |
 | `RL-BOT-L2-001` | Level 2 authored policy. | `bots.rs`, evidence pack | bot tests; simulator; benchmark full playout | covered | No MCTS/ML/RL/sampling. |
 | `RL-BOT-EXPLAIN-001` | Viewer-safe bot explanations. | `bots.rs`, `visibility.rs`, `AI.md` | bot no-leak tests; evidence pack | covered | No opponent secrets. |
-| `RL-UI-PRESENT-001` | UI presents Rust/WASM output. | `ui.rs`, later WASM/web files | web ticket proof | intentionally-deferred | GAT15RIVLEDTEX-016/017 own WASM/web registration. |
-| `RL-UI-SEATS-001` | UI seat metadata from Rust. | `ui.rs`, later web renderer | web ticket proof | intentionally-deferred | GAT15RIVLEDTEX-017 owns renderer. |
-| `RL-UI-ACTIONS-001` | UI legal controls from Rust. | `ui.rs`, WASM legal tree | web smoke proof | intentionally-deferred | TypeScript legality remains deferred to web ticket. |
-| `RL-UI-PREVIEW-001` | Viewer-safe previews. | `ui.rs`, WASM/web | web smoke proof | intentionally-deferred | Preview surface not wired until web tickets. |
-| `RL-UI-LEDGER-001` | Abstract ledger display. | `ui.rs`, web renderer | web smoke proof | intentionally-deferred | Renderer ticket owns DOM proof. |
-| `RL-UI-SHOWDOWN-001` | Rust-authored outcome. | `showdown.rs`, `ui.rs`, web renderer | web smoke proof | intentionally-deferred | Browser presentation pending. |
-| `RL-UI-NOCASINO-001` | No casino presentation. | docs, web renderer | player rules and e2e proof | intentionally-deferred | Public copy/renderer tickets own final proof. |
-| `RL-UI-NOLEAK-001` | Browser no-leak. | WASM/web/e2e | e2e no-leak proof | intentionally-deferred | GAT15RIVLEDTEX-018 owns browser no-leak CI. |
+| `RL-UI-PRESENT-001` | UI presents Rust/WASM output. | `ui.rs`, WASM bridge, web renderer | wasm-api tests; `smoke:wasm`; `smoke:e2e` | covered | Browser renders Rust-projected fields and Rust-authored copy; TypeScript adds layout only. |
+| `RL-UI-SEATS-001` | UI seat metadata from Rust. | `ui.rs`, web renderer | River Ledger e2e seat/street assertions; `smoke:ui` | covered | Seat count, roles, active/pending markers, and street strip consume Rust/WASM metadata. |
+| `RL-UI-ACTIONS-001` | UI legal controls from Rust. | `ui.rs`, WASM legal tree, web action panel | legal-action tests; River Ledger e2e action metadata assertions | covered | Call price, added ledger units, and cap-left copy come from Rust legal-action metadata. |
+| `RL-UI-PREVIEW-001` | Viewer-safe previews. | `ui.rs`, WASM/web | not applicable to shipped River Ledger surface | intentionally-deferred | River Ledger has no separate browser preview surface yet; future preview work must remain Rust-authored and viewer-safe. |
+| `RL-UI-LEDGER-001` | Abstract ledger display. | `ui.rs`, web renderer | River Ledger e2e; public-copy audit | covered | Browser copy uses ledger/abstract units, not pot/chip/money/rake language. |
+| `RL-UI-SHOWDOWN-001` | Rust-authored outcome. | `showdown.rs`, `visibility.rs`, `ui.rs`, WASM bridge, web renderer | showdown and visibility tests; wasm-api bridge tests; River Ledger worked-example e2e | covered | Decisive comparison, hand names, rank explanations, best-five labels, and teaching aid are Rust-authored and reveal-scoped. |
+| `RL-UI-NOCASINO-001` | No casino presentation. | docs, web renderer | player rules; public-copy audit; `smoke:e2e` | covered | Public River Ledger UI avoids casino trade dress and money/chip/payout/rake vocabulary. |
+| `RL-UI-NOLEAK-001` | Browser no-leak. | visibility projection, WASM/web/e2e | visibility tests; River Ledger DOM/storage/console no-leak e2e | covered | Observer and wrong-seat browser contexts contain no unauthorized private cards or hidden hand-strength facts. |
 | `RL-SETUP-AMB-001` | No heads-up official mode. | `setup.rs`, `ids.rs` | invalid-seat-count trace; setup tests | covered-by-trace | Official seats are 3-6. |
 | `RL-DEAL-AMB-001` | Burn cards hidden. | `setup.rs`, `visibility.rs` | no-leak traces; visibility tests | covered | Burn advancement is internal only. |
 | `RL-EVAL-AMB-001` | Suits do not break ties. | `evaluator.rs` | evaluator tests; split traces | covered | Tiebreak vector ignores suit. |

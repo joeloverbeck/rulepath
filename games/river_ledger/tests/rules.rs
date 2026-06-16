@@ -1,10 +1,11 @@
 use std::collections::BTreeSet;
 
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
+use river_ledger::state::SeatRoles;
 use river_ledger::{
     apply_action, canonical_deck, legal_action_tree, setup_match, validate_command, Card, PotShare,
-    Rank, RiverLedgerSeat, SetupOptions, Street, Suit, TerminalOutcome, STANDARD_BIG_BLIND,
-    STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND,
+    Rank, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Street, Suit, TerminalOutcome,
+    Variant, STANDARD_BIG_BLIND, STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -81,6 +82,40 @@ fn royal_board() -> Vec<Card> {
         Card::new(Rank::Jack, Suit::Clubs),
         Card::new(Rank::Ten, Suit::Clubs),
     ]
+}
+
+fn seat(index: usize) -> RiverLedgerSeat {
+    RiverLedgerSeat::from_index(index).unwrap()
+}
+
+fn custom_showdown_state(
+    private_hands: Vec<[Card; 2]>,
+    board: [Card; 5],
+) -> river_ledger::RiverLedgerState {
+    let mut state = river_ledger::RiverLedgerState::new_after_setup(
+        Variant::river_ledger_standard(),
+        seats(private_hands.len()),
+        SeatRoles {
+            button: seat(0),
+            small_blind: seat(1),
+            big_blind: seat(2),
+            active_seat: seat(0),
+        },
+        private_hands,
+        board,
+        Vec::new(),
+    );
+    state.board = board.to_vec();
+    state.ledger.seats = (0..state.seats.len())
+        .map(|index| SeatLedger {
+            seat: seat(index),
+            status: SeatStatus::ShowdownEligible,
+            street_contribution: 0,
+            total_contribution: 3,
+        })
+        .collect();
+    state.ledger.pot_total = 12;
+    state
 }
 
 #[test]
@@ -224,6 +259,21 @@ fn legal_action_generation_uses_active_seat_call_price_and_cap_state() {
         .metadata
         .iter()
         .any(|entry| entry.key == "adds_to_pot" && entry.value == "2"));
+    assert!(call
+        .metadata
+        .iter()
+        .any(|entry| entry.key == "cap_remaining" && entry.value == "3"));
+
+    let mut capped = advance_four_player_hand_to_flop();
+    apply_segment(&mut capped, "seat_1", "bet");
+    apply_segment(&mut capped, "seat_2", "raise");
+    apply_segment(&mut capped, "seat_3", "raise");
+    apply_segment(&mut capped, "seat_0", "raise");
+    let capped_tree = legal_action_tree(&capped, &actor("seat_1"));
+    assert!(capped_tree.root.choices.iter().all(|choice| choice
+        .metadata
+        .iter()
+        .any(|entry| entry.key == "cap_remaining" && entry.value == "0")));
 }
 
 #[test]
@@ -329,6 +379,7 @@ fn river_checkdown_resolves_showdown_terminal_and_conserves_pot() {
         pot_total,
         allocations,
         explanations,
+        ..
     }) = &state.terminal_outcome
     else {
         panic!("showdown terminal expected");
@@ -438,6 +489,166 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
         .iter()
         .filter(|explanation| explanation.seat != RiverLedgerSeat::from_index(0).unwrap())
         .all(|explanation| explanation.revealed.is_some()));
+}
+
+#[test]
+fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
+    let state = custom_showdown_state(
+        vec![
+            [
+                Card::new(Rank::Eight, Suit::Diamonds),
+                Card::new(Rank::Ten, Suit::Clubs),
+            ],
+            [
+                Card::new(Rank::Queen, Suit::Clubs),
+                Card::new(Rank::Ten, Suit::Spades),
+            ],
+            [
+                Card::new(Rank::Ace, Suit::Spades),
+                Card::new(Rank::Two, Suit::Clubs),
+            ],
+            [
+                Card::new(Rank::King, Suit::Spades),
+                Card::new(Rank::Two, Suit::Spades),
+            ],
+        ],
+        [
+            Card::new(Rank::Four, Suit::Clubs),
+            Card::new(Rank::Three, Suit::Diamonds),
+            Card::new(Rank::Queen, Suit::Hearts),
+            Card::new(Rank::Six, Suit::Hearts),
+            Card::new(Rank::Eight, Suit::Hearts),
+        ],
+    );
+
+    let outcome = river_ledger::resolve_showdown(&state);
+    let TerminalOutcome::Showdown {
+        winners,
+        headline,
+        decisive_comparison,
+        comparison_basis,
+        explanations,
+        ..
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+
+    assert_eq!(winners, vec![seat(1)]);
+    assert_eq!(headline, "seat_1 wins with Pair of Queens.");
+    assert_eq!(decisive_comparison, "Pair of Queens beats Pair of Eights.");
+    assert_eq!(
+        comparison_basis,
+        "Both hands are one pair, so the pair rank decides first: Queens > Eights."
+    );
+
+    let winner = explanations
+        .iter()
+        .find(|explanation| explanation.seat == seat(1))
+        .and_then(|explanation| explanation.revealed.as_ref())
+        .expect("winner reveal");
+    assert_eq!(winner.category, "one_pair");
+    assert_eq!(winner.tie_break_vector, vec![12, 10, 8, 6]);
+    assert_eq!(winner.result_label, "Win");
+    assert_eq!(winner.hand_name, "Pair of Queens");
+    assert_eq!(
+        winner.rank_explanation,
+        "pair rank Queen; kickers Ten, Eight, Six"
+    );
+    assert_eq!(
+        winner.comparison_note,
+        "Pair of Queens beats Pair of Eights."
+    );
+    assert_eq!(
+        winner.best_five_accessibility_label,
+        "Best five cards: queen of clubs, queen of hearts, ten of spades, eight of hearts, six of hearts."
+    );
+
+    let closest_loser = explanations
+        .iter()
+        .find(|explanation| explanation.seat == seat(0))
+        .and_then(|explanation| explanation.revealed.as_ref())
+        .expect("closest loser reveal");
+    assert_eq!(closest_loser.result_label, "Showdown loss");
+    assert_eq!(closest_loser.hand_name, "Pair of Eights");
+    assert_eq!(
+        closest_loser.comparison_note,
+        "Pair of Eights loses to Pair of Queens."
+    );
+}
+
+#[test]
+fn showdown_explanation_marks_split_and_folded_paths() {
+    let mut state = custom_showdown_state(
+        vec![
+            [
+                Card::new(Rank::Two, Suit::Clubs),
+                Card::new(Rank::Three, Suit::Clubs),
+            ],
+            [
+                Card::new(Rank::Two, Suit::Diamonds),
+                Card::new(Rank::Three, Suit::Diamonds),
+            ],
+            [
+                Card::new(Rank::Two, Suit::Hearts),
+                Card::new(Rank::Three, Suit::Hearts),
+            ],
+        ],
+        [
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::King, Suit::Clubs),
+            Card::new(Rank::Queen, Suit::Clubs),
+            Card::new(Rank::Jack, Suit::Clubs),
+            Card::new(Rank::Ten, Suit::Clubs),
+        ],
+    );
+    state.ledger.seats[2].status = SeatStatus::Folded;
+
+    let outcome = river_ledger::resolve_showdown(&state);
+    let TerminalOutcome::Showdown {
+        winners,
+        headline,
+        decisive_comparison,
+        comparison_basis,
+        explanations,
+        ..
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+
+    assert_eq!(winners, vec![seat(0), seat(1)]);
+    assert_eq!(
+        headline,
+        "seat_0 and seat_1 split the ledger with Ace-high straight flush."
+    );
+    assert_eq!(
+        decisive_comparison,
+        "seat_0 and seat_1 all hold Ace-high straight flush, so the ledger is split."
+    );
+    assert_eq!(
+        comparison_basis,
+        "The best revealed hands have equal category and tie-break ranks."
+    );
+
+    for index in [0, 1] {
+        let reveal = explanations
+            .iter()
+            .find(|explanation| explanation.seat == seat(index))
+            .and_then(|explanation| explanation.revealed.as_ref())
+            .expect("split reveal");
+        assert_eq!(reveal.result_label, "Split win");
+        assert_eq!(
+            reveal.comparison_note,
+            "Ties for the best hand and shares the ledger."
+        );
+    }
+    assert!(explanations
+        .iter()
+        .find(|explanation| explanation.seat == seat(2))
+        .expect("folded explanation")
+        .revealed
+        .is_none());
 }
 
 #[test]
@@ -604,6 +815,7 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
         "adds_to_pot",
         "pot_after",
         "raises_remaining",
+        "cap_remaining",
         "accessibility_copy",
     ];
 

@@ -3,7 +3,7 @@ use engine_core::{FreshnessToken, HashValue, StableSerialize, Viewer};
 use crate::{
     cards::Card,
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
-    state::{Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
+    state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
     ui::{ui_metadata, UiMetadata},
 };
 
@@ -82,6 +82,9 @@ pub struct OutcomeRationaleView {
     pub result_kind: String,
     pub decisive_cause: String,
     pub template_key: String,
+    pub headline: Option<String>,
+    pub decisive_comparison: Option<String>,
+    pub comparison_basis: Option<String>,
     pub decisive_rule_ids: Vec<String>,
     pub per_seat: Vec<SeatOutcomeBreakdownView>,
 }
@@ -100,6 +103,12 @@ pub struct ShowdownStrengthView {
     pub category: String,
     pub tie_break_vector: Vec<u8>,
     pub best_five: Vec<CardView>,
+    pub category_ladder_position: CategoryLadderPosition,
+    pub result_label: String,
+    pub hand_name: String,
+    pub rank_explanation: String,
+    pub comparison_note: String,
+    pub best_five_accessibility_label: String,
 }
 
 pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
@@ -218,6 +227,7 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
             pot_total,
             allocations,
             explanations,
+            ..
         }) => TerminalView::Showdown {
             winners: winners.clone(),
             pot_total: *pot_total,
@@ -239,6 +249,9 @@ fn outcome_rationale(state: &RiverLedgerState) -> Option<OutcomeRationaleView> {
             result_kind: "last_live_hand".to_owned(),
             decisive_cause: "last_live_after_folds".to_owned(),
             template_key: "river_ledger.last_live_fold_win".to_owned(),
+            headline: None,
+            decisive_comparison: None,
+            comparison_basis: None,
             decisive_rule_ids: rule_ids(&["RL-END-LAST-LIVE", "RL-SCORE-POT-AWARD"]),
             per_seat: state
                 .ledger
@@ -265,6 +278,9 @@ fn outcome_rationale(state: &RiverLedgerState) -> Option<OutcomeRationaleView> {
             winners,
             allocations,
             explanations,
+            headline,
+            decisive_comparison,
+            comparison_basis,
             ..
         } => {
             let split = winners.len() > 1;
@@ -284,6 +300,9 @@ fn outcome_rationale(state: &RiverLedgerState) -> Option<OutcomeRationaleView> {
                 } else {
                     "river_ledger.showdown_best_hand_win".to_owned()
                 },
+                headline: Some(headline.clone()),
+                decisive_comparison: Some(decisive_comparison.clone()),
+                comparison_basis: Some(comparison_basis.clone()),
                 decisive_rule_ids: if split {
                     rule_ids(&["RL-SCORE-SHOWDOWN", "RL-SCORE-SPLIT", "RL-END-SHOWDOWN"])
                 } else {
@@ -327,6 +346,14 @@ fn outcome_rationale(state: &RiverLedgerState) -> Option<OutcomeRationaleView> {
                                     .copied()
                                     .map(card_view)
                                     .collect(),
+                                category_ladder_position: reveal.category_ladder_position.clone(),
+                                result_label: reveal.result_label.clone(),
+                                hand_name: reveal.hand_name.clone(),
+                                rank_explanation: reveal.rank_explanation.clone(),
+                                comparison_note: reveal.comparison_note.clone(),
+                                best_five_accessibility_label: reveal
+                                    .best_five_accessibility_label
+                                    .clone(),
                             }),
                         }
                     })
@@ -423,10 +450,13 @@ fn encode_rationale(rationale: Option<&OutcomeRationaleView>) -> String {
         return "none".to_owned();
     };
     format!(
-        "{}:{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}:{}:{}:{}",
         rationale.result_kind,
         rationale.decisive_cause,
         rationale.template_key,
+        encode_optional(rationale.headline.as_deref()),
+        encode_optional(rationale.decisive_comparison.as_deref()),
+        encode_optional(rationale.comparison_basis.as_deref()),
         rationale.decisive_rule_ids.join(","),
         rationale
             .per_seat
@@ -452,7 +482,7 @@ fn encode_rationale_seat(seat: &SeatOutcomeBreakdownView) -> String {
 
 fn encode_strength(strength: &ShowdownStrengthView) -> String {
     format!(
-        "{}:{}:{}",
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}",
         strength.category,
         strength
             .tie_break_vector
@@ -460,8 +490,18 @@ fn encode_strength(strength: &ShowdownStrengthView) -> String {
             .map(u8::to_string)
             .collect::<Vec<_>>()
             .join(","),
-        encode_cards(&strength.best_five)
+        encode_cards(&strength.best_five),
+        strength.category_ladder_position.description,
+        strength.result_label,
+        strength.hand_name,
+        strength.rank_explanation,
+        strength.comparison_note,
+        strength.best_five_accessibility_label
     )
+}
+
+fn encode_optional(value: Option<&str>) -> &str {
+    value.unwrap_or("none")
 }
 
 fn seat_option(seat: Option<RiverLedgerSeat>) -> String {

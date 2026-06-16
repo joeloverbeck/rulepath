@@ -6,7 +6,7 @@ Implemented variant: `river_ledger_standard`
 
 Rules version: `river-ledger-rules-v1`
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 ## Contract
 
@@ -26,11 +26,12 @@ effects from the WASM bridge.
 | match phase and active seat | `phase`, `street`, `active_seat`, `pending_seats`, `terminal` | Status text, active marker, and terminal panel. |
 | seat rail | `seats[]`, roles, statuses, contributions, acted flags | Six-seat-capable ledger with button, small blind, big blind, active, pending, folded, and terminal states. |
 | public board | `community_cards`, `street` | Public community-card slots with hidden placeholders for unrevealed slots. |
-| contribution ledger | `pot`, `current_bet`, `street_bet`, per-seat contribution fields | Abstract unit counters only; no money/chip/rake language. |
+| contribution ledger | ledger total (`pot` JSON field), `current_bet`, `street_bet`, per-seat contribution fields | Abstract ledger/unit counters only; no money/chip/pot/rake public copy. |
 | private view | `private_view` for the requested viewer | Authorized seat viewer sees only that seat's hole cards; observer and other seats see hidden placeholders. |
-| legal actions | `actionTree.choices` | Native buttons for Rust-legal choices only. |
+| legal actions | `actionTree.choices` and Rust action metadata | Native buttons for Rust-legal choices only, with call price, added ledger units, and cap-left copy from Rust metadata. |
 | diagnostics and effects | Rust diagnostics and `latestEffect` | Safe status text and effect log entries. |
-| outcome rationale | terminal public view and terminal effects | Per-seat terminal breakdown, foldout rationale, showdown hand summaries, split/remainder explanation, and final ledger totals. |
+| hand ranking reference | Rust/WASM catalog metadata | Collapsible category ladder, default-visible after showdown, with current category markers from Rust-projected showdown data. |
+| outcome rationale | terminal public view and terminal effects | Decisive Rust-authored result sentence, foldout rationale, showdown hand summaries, best-five visual cards, split/remainder explanation, teaching aid, and final ledger totals. |
 | replay | viewer-scoped public replay export/import projection | Replay viewer steps Rust-projected public states and never reconstructs hidden state in TypeScript. |
 
 ## N-Seat Viewer Matrix
@@ -83,6 +84,7 @@ Rust `ui.rs` and the WASM catalog provide stable presentation metadata:
 | `max_seats` | 6 |
 | `viewer_modes` | public observer and seat viewers |
 | `primary_resource` | abstract contribution units |
+| `hand_rankings` | strongest-to-weakest River Ledger hand-category labels |
 
 The metadata is inert presentation support. It must not encode legality,
 selectors, hidden card identities, rule branches, or behavior by naming.
@@ -93,9 +95,9 @@ selectors, hidden card identities, rule branches, or behavior by naming.
 |---|---|---|---|---|
 | `fold` | `RL-BET-ACTION-001`, `RL-STREET-FOLDOUT-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | May end the hand by foldout. |
 | `check` | `RL-BET-ACTION-002`, `RL-BET-CHECK-001` | Native action button when no amount is owed | `choice.accessibility_label` from Rust | TypeScript does not inspect contribution equality. |
-| `call` | `RL-BET-ACTION-003`, `RL-BET-CALL-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | Required amount is Rust metadata/payload. |
-| `bet` | `RL-BET-ACTION-002`, `RL-BET-LIMIT-001`, `RL-BET-LIMIT-002` | Native action button when opening a street bet is legal | `choice.accessibility_label` from Rust | Unit size comes from Rust street rules. |
-| `raise` | `RL-BET-ACTION-003`, `RL-BET-RAISE-001`, `RL-BET-CAP-001` | Native action button until the cap is reached | `choice.accessibility_label` from Rust | Cap availability is Rust-owned. |
+| `call` | `RL-BET-ACTION-003`, `RL-BET-CALL-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | Required amount and call-price copy are Rust metadata/payload. |
+| `bet` | `RL-BET-ACTION-002`, `RL-BET-LIMIT-001`, `RL-BET-LIMIT-002` | Native action button when opening a street bet is legal | `choice.accessibility_label` from Rust | Unit size and added-ledger copy come from Rust street rules. |
+| `raise` | `RL-BET-ACTION-003`, `RL-BET-RAISE-001`, `RL-BET-CAP-001` | Native action button until the cap is reached | `choice.accessibility_label` from Rust | Cap availability and cap-left copy are Rust-owned. |
 
 Action `data-testid` values are stable UI selectors and must not include card
 ids, hand strength, hidden setup facts, or private rationale.
@@ -106,8 +108,9 @@ ids, hand strength, hidden setup facts, or private rationale.
   Enter/Space.
 - Status and terminal result text are available as screen-reader-readable text,
   not only color or animation.
-- Seat roles, active/pending states, public board slots, contributions, private
-  card placeholders, action controls, and outcome panels use visible labels.
+- Seat roles, active/pending states, street strip, public board slots,
+  contributions, private card placeholders, action controls, hand-ranking
+  reference, teaching aid, and outcome panels use visible labels.
 - Card labels are shown only after Rust authorizes that viewer projection.
 - Color is not the only information channel; role labels, counts, headings, and
   card text carry the state.
@@ -133,8 +136,8 @@ from public and opposing-seat viewers.
 
 The terminal surface explains River Ledger results from Rust-owned terminal
 view data. TypeScript renders the supplied fields only; it must not compare
-cards, choose winners, allocate the pot, decide split remainders, or infer why
-a hand ended. Rust emits one of these inert template keys:
+cards, choose winners, allocate the ledger, decide split remainders, rank hands,
+or infer why a hand ended. Rust emits one of these inert template keys:
 
 - `river_ledger.last_live_fold_win`
 - `river_ledger.showdown_best_hand_win`
@@ -144,13 +147,20 @@ The decisive cause variants are `last_live_after_folds`,
 `best_showdown_hand`, and `equal_best_hand_split`; they are rendered as
 Rust-authored explanation data, not interpreted by the browser.
 
+For showdown, Rust also projects the human-readable explanation fields the
+browser may display: `headline`, `decisive_comparison`, `comparison_basis`,
+per-seat `result_label`, `hand_name`, `rank_explanation`, `comparison_note`,
+`best_five`, `best_five_accessibility_label`, and terminal-only
+`category_ladder_position`. Raw category keys, tie-break vectors, and rule IDs
+remain available only in the details tier.
+
 ### Terminal Result Variants
 
 | Result variant | Rust source of truth | Player-facing summary | Rule IDs |
 |---|---|---|---|
-| `foldout` | terminal outcome rationale and per-seat allocation | The last live hand receives the pot after all other live seats folded; unrevealed folded private cards stay hidden. | `RL-STREET-FOLDOUT-001`, `RL-SHOW-FOLDOUT-001`, `RL-VIS-FOLDOUT-001` |
-| `showdown_win` | showdown rationale, evaluated hand summary, comparison vector, allocation | One showdown-eligible seat has the strongest evaluated five-card hand and receives the pot. | `RL-STREET-SHOWDOWN-001`, `RL-EVAL-SEVEN-001`, `RL-SHOW-WINNER-001` |
-| `split` | showdown rationale, tied hand summaries, allocation and remainder rule | Tied best hands split the pot; any remainder follows deterministic button order among tied winners. | `RL-SHOW-SPLIT-001`, `RL-POT-REMAINDER-001` |
+| `foldout` | terminal outcome rationale and per-seat allocation | The last live hand receives the ledger allocation after all other live seats folded; unrevealed folded private cards stay hidden. | `RL-STREET-FOLDOUT-001`, `RL-SHOW-FOLDOUT-001`, `RL-VIS-FOLDOUT-001` |
+| `showdown_win` | showdown rationale, evaluated hand summary, decisive comparison, allocation | One showdown-eligible seat has the strongest evaluated five-card hand and receives the ledger allocation. | `RL-STREET-SHOWDOWN-001`, `RL-EVAL-SEVEN-001`, `RL-SHOW-WINNER-001` |
+| `split` | showdown rationale, tied hand summaries, allocation and remainder rule | Tied best hands split the ledger; any remainder follows deterministic button order among tied winners. | `RL-SHOW-SPLIT-001`, `RL-POT-REMAINDER-001` |
 
 ### Per-Seat Final Breakdown
 
@@ -158,11 +168,13 @@ Rust-authored explanation data, not interpreted by the browser.
 |---|---|---:|---:|---|
 | seat result | terminal per-seat result | yes | yes | Winner, loser, folded, or split share. |
 | final contribution | public ledger | yes | yes | Abstract public accounting. |
-| final allocation | terminal allocation | yes | yes | Pot allocation is public at terminal. |
+| final allocation | terminal allocation | yes | yes | Ledger allocation is public at terminal. |
 | folded status | public seat status | yes | yes | Does not reveal folded private cards. |
-| showdown hand category | terminal showdown explanation | showdown only | showdown only | Present only for authorized showdown reveals. |
-| used cards | terminal showdown explanation | showdown only | showdown only | Redacted when cards are not authorized for that viewer. |
-| comparison vector/reason | terminal showdown explanation | showdown only | showdown only | Rust-authored; TypeScript only renders it. |
+| showdown hand name and rank explanation | terminal showdown explanation | showdown only | showdown only | Present only for authorized showdown reveals. |
+| used cards and best-five group label | terminal showdown explanation | showdown only | showdown only | Redacted when cards are not authorized for that viewer. |
+| decisive comparison and comparison basis | terminal showdown explanation | showdown only | showdown only | Rust-authored; TypeScript only renders it. |
+| category ladder position | terminal showdown explanation | showdown only | showdown only | Teaching aid only, labeled as not a game value. |
+| raw category key / tie-break vector / rule IDs | terminal showdown explanation | details tier only | details tier only | Retained for inspectability; not the primary player explanation. |
 
 ### No-Leak Rules
 
@@ -182,8 +194,11 @@ Rust-authored explanation data, not interpreted by the browser.
 | Test case | Terminal path | Required assertion |
 |---|---|---|
 | foldout no reveal | browser starts a 6-seat human-vs-bot match and folds through legal Rust controls | terminal renders a final outcome and no unauthorized private card appears in observer/wrong-seat DOM, storage, or logs. |
+| worked-example showdown | browser drives the audit seed-79 checkdown path to showdown | terminal states that Pair of Queens beats Pair of Eights and keeps unauthorized cards out of DOM, storage, and logs. |
 | legal-only controls | browser action buttons come from `actionTree.choices` | TypeScript presents only Rust-supplied legal choices. |
+| action metadata copy | browser renders call/raise choices from Rust metadata | call price, added ledger units, and cap-left text match Rust-projected action metadata. |
 | N-seat setup | match setup uses catalog seat counts | 3, 4, 5, and 6 are selectable and the default is 6. |
+| card and ranking presentation | public board, private cards, best-five groups, and hand-ranking reference render | card labels include rank, suit glyph, suit word, and group labels; hand ladder is available and marks showdown categories. |
 | responsive layout | browser smoke checks desktop and mobile viewport widths | seat ledger, board, controls, and terminal text remain visible. |
 
 ## Evidence
