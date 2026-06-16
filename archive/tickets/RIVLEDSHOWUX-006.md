@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-006: `Seat N` status line via the event_frontier label path
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api/src/lib.rs` (river_ledger per-match `ui.seat_labels` view projection), `apps/web/src/components/ModeControls.tsx`, `apps/web/src/components/SeatFrame.tsx`, `apps/web/src/wasm/client.ts`
@@ -81,3 +81,13 @@ Verify `SeatFrame` multi-seat coverage already consumes `game.seat_labels` (like
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
 3. `cargo run -p fixture-check -- --game river_ledger`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Added Rust-authored River Ledger per-match `ui.seat_labels` metadata using the existing `{seat,label}` shape.
+- Projected those labels through the WASM UI JSON and extended the River Ledger TypeScript metadata type.
+- Generalized `ModeControls` to consume `ui.seat_labels` from any public view that carries them, preserving the `Player N` fallback for games without labels.
+- Added Rust/WASM/browser assertions for public seat-label metadata and the River Ledger mode status line (`Seat 0 (you) to act`, not `Player 1 to act`).
+- Verified with `cargo fmt --all --check`, `cargo test -p wasm-api`, `cargo test -p river_ledger`, `cargo run -p fixture-check -- --game river_ledger`, `npm --prefix apps/web run smoke:ui` (includes `npm --prefix apps/web run build`), and `node apps/web/e2e/river-ledger.smoke.mjs`.

@@ -15,6 +15,7 @@ pub struct UiMetadata {
     pub min_seats: u8,
     pub default_seats: u8,
     pub max_seats: u8,
+    pub seat_labels: Vec<SeatDisplayLabel>,
     pub seat_metadata_label: String,
     pub action_hint_label: String,
     pub outcome_explanation_label: String,
@@ -30,6 +31,12 @@ pub struct HandRankingMetadata {
     pub category: String,
     pub label: String,
     pub definition: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatDisplayLabel {
+    pub seat: String,
+    pub label: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -73,6 +80,7 @@ pub fn ui_metadata() -> UiMetadata {
         min_seats: STANDARD_MIN_SEATS,
         default_seats: STANDARD_DEFAULT_SEATS,
         max_seats: STANDARD_MAX_SEATS,
+        seat_labels: seat_labels(STANDARD_MAX_SEATS),
         seat_metadata_label: "Seat order, button, blinds, active, and pending response".to_owned(),
         action_hint_label: "Legal betting actions and contribution obligations".to_owned(),
         outcome_explanation_label: "Showdown category, tie-break, allocation, and rationale"
@@ -238,6 +246,15 @@ fn seat_status_label(status: SeatStatus) -> &'static str {
         SeatStatus::Folded => "Folded",
         SeatStatus::ShowdownEligible => "Showdown eligible",
     }
+}
+
+fn seat_labels(count: u8) -> Vec<SeatDisplayLabel> {
+    (0..count)
+        .map(|index| SeatDisplayLabel {
+            seat: format!("seat_{index}"),
+            label: format!("Seat {index}"),
+        })
+        .collect()
 }
 
 fn hand_rankings() -> Vec<HandRankingMetadata> {

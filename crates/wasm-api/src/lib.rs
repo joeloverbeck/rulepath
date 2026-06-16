@@ -7887,7 +7887,7 @@ fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
 
 fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
     format!(
-        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\",\"hand_rankings\":[{}]}}",
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_labels\":[{}],\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\",\"hand_rankings\":[{}]}}",
         escape_json(&ui.game_id),
         escape_json(&ui.display_name),
         escape_json(&ui.surface_label),
@@ -7899,6 +7899,11 @@ fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
         ui.min_seats,
         ui.default_seats,
         ui.max_seats,
+        ui.seat_labels
+            .iter()
+            .map(river_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(","),
         escape_json(&ui.seat_metadata_label),
         escape_json(&ui.action_hint_label),
         escape_json(&ui.outcome_explanation_label),
@@ -7911,6 +7916,14 @@ fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
             .map(river_hand_ranking_json)
             .collect::<Vec<_>>()
             .join(",")
+    )
+}
+
+fn river_seat_display_label_json(label: &river_ledger::ui::SeatDisplayLabel) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(&label.seat),
+        escape_json(&label.label)
     )
 }
 
@@ -12528,6 +12541,10 @@ mod tests {
             "\"hand_rankings\":[{\"category\":\"straight_flush\",\"label\":\"Straight flush\""
         ));
         assert!(non_terminal.contains("\"category\":\"high_card\",\"label\":\"High card\""));
+        assert!(non_terminal.contains(
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\""
+        ));
+        assert!(non_terminal.contains("{\"seat\":\"seat_5\",\"label\":\"Seat 5\"}"));
 
         let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
         assert!(foldout.contains(

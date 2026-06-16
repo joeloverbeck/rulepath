@@ -722,6 +722,11 @@ mod tests {
         assert_eq!(view.board_slots[0].street_label, "Flop 1");
         assert_eq!(view.board_slots[3].street_label, "Turn");
         assert_eq!(view.board_slots[4].street_label, "River");
+        assert_eq!(view.ui.seat_labels.len(), 6);
+        assert_eq!(view.ui.seat_labels[0].seat, "seat_0");
+        assert_eq!(view.ui.seat_labels[0].label, "Seat 0");
+        assert_eq!(view.ui.seat_labels[5].seat, "seat_5");
+        assert_eq!(view.ui.seat_labels[5].label, "Seat 5");
         assert_eq!(view.reserved_community_count, 5);
         assert!(view.seats.iter().all(|seat| seat.hidden_hole_count == 2));
         assert!(view.seats.iter().all(|seat| {

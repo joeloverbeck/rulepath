@@ -71,6 +71,7 @@ try {
   await startRiverLedger(page, baseUrl, "Human vs bot", selectedSeatCount);
   await page.waitForSelector('[data-testid="river-ledger-board"]');
   await waitForText(page, "Seat 0 to choose");
+  await assertModeStatusUsesSeatLabel(page);
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
   await assertHandRankingReferenceDuringPlay(page);
   await assertSeatAndStreetAffordancesDuringPlay(page);
@@ -365,6 +366,12 @@ async function assertSeatAndStreetAffordancesDuringPlay(page) {
   assert(summary.streetRows === 5, `street strip renders five steps: ${summary.streetRows}`);
   assert(summary.currentStreetText.includes("Preflop"), `street strip marks preflop from public state: ${summary.currentStreetText}`);
   assert(summary.currentStreetAria === "step", `current street exposes aria-current step: ${summary.currentStreetAria}`);
+}
+
+async function assertModeStatusUsesSeatLabel(page) {
+  const modeText = await page.$eval(".mode-controls", (element) => element.textContent ?? "");
+  assert(modeText.includes("Seat 0 (you) to act"), `mode status uses Rust seat labels: ${modeText}`);
+  assert(!modeText.includes("Player 1 to act"), `mode status avoids Player fallback: ${modeText}`);
 }
 
 async function assertStreetStripAfterShowdown(page) {

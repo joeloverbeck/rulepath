@@ -806,6 +806,7 @@ export type RiverLedgerUiMetadata = {
   min_seats: number;
   default_seats: number;
   max_seats: number;
+  seat_labels: SeatDisplayLabel[];
   seat_metadata_label: string;
   action_hint_label: string;
   outcome_explanation_label: string;
