@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-011: Recompose the table into a central board well + compact rails
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerBoard.tsx`, `apps/web/src/styles.css`
@@ -73,3 +73,12 @@ Add the layout structure (grid/flex) for the board well and rails (River-scoped 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Replaced the River Ledger diagnostic-style table stack with a Rust-view-driven table shell containing a central board well, compact seat rail, and action/status band.
+- Kept seat ordering, active seat, roles, contributions, action rows, and terminal copy sourced from Rust view fields; TypeScript only recomposes presentation markup.
+- Added River Ledger multi-seat smoke coverage for 3, 4, 5, and 6 seat views to assert compact rails and central board slots.
+- Verified with `npm --prefix apps/web run build`, `npm --prefix apps/web run smoke:ui`, `node apps/web/e2e/a11y-noleak.smoke.mjs`, and `npm --prefix apps/web run smoke:e2e`.

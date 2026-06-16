@@ -92,83 +92,96 @@ export function RiverLedgerBoard({
         <Metric label="Blinds" value={`${seatLabel(view.small_blind)} / ${seatLabel(view.big_blind)}`} />
       </div>
 
-      <StreetStrip view={view} />
+      <div className="river-ledger-table-shell" aria-label={view.ui.surface_label}>
+        <StreetStrip view={view} />
 
-      <div className="river-ledger-layout" aria-label={view.ui.surface_label}>
-        <section className="river-ledger-seats" aria-label={view.ui.seat_metadata_label}>
-          {view.seats.map((seat) => (
-            <SeatLedger key={seat.seat} view={view} seat={seat} />
-          ))}
-        </section>
+        <div className="river-ledger-layout">
+          <section className="river-ledger-board-well" aria-label={view.ui.board_label}>
+            <div className="river-ledger-section-heading">
+              <span>Board</span>
+              <strong>{view.board.length ? `${view.board.length} public` : "No public cards"}</strong>
+            </div>
+            <div className="river-ledger-board-cards" aria-label={riverLedgerCardGroupLabel(view.board, "Public board cards")}>
+              {view.board_slots.map((slot) =>
+                slot.card ? (
+                  <RiverLedgerCard key={slot.slot} card={slot.card} tone="board" />
+                ) : (
+                  <div className="river-ledger-card hidden" key={slot.slot} aria-label={slot.accessibility_label}>
+                    <span>{slot.street_label}</span>
+                    <strong>{slot.visual_placeholder_label}</strong>
+                  </div>
+                ),
+              )}
+            </div>
+          </section>
 
-        <section className="river-ledger-center" aria-label={view.ui.board_label}>
-          <div className="river-ledger-section-heading">
-            <span>Board</span>
-            <strong>{view.board.length ? `${view.board.length} public` : "No public cards"}</strong>
-          </div>
-          <div className="river-ledger-board-cards" aria-label={riverLedgerCardGroupLabel(view.board, "Public board cards")}>
-            {view.board_slots.map((slot) =>
-              slot.card ? (
-                <RiverLedgerCard key={slot.slot} card={slot.card} tone="board" />
-              ) : (
-                <div className="river-ledger-card hidden" key={slot.slot} aria-label={slot.accessibility_label}>
-                  <span>{slot.street_label}</span>
-                  <strong>{slot.visual_placeholder_label}</strong>
-                </div>
-              ),
-            )}
-          </div>
-        </section>
-      </div>
-
-      <section className="river-ledger-private" aria-label="Private view">
-        <div className="river-ledger-section-heading">
-          <span>Private view</span>
-          <strong>{privateHeading(view)}</strong>
-        </div>
-        {view.private_view.status === "seat" ? (
-          <div
-            className="river-ledger-private-cards"
-            aria-label={riverLedgerCardGroupLabel(view.private_view.hole_cards, `${seatLabel(view.private_view.seat)} private cards`)}
-          >
-            {view.private_view.hole_cards.map((card) => (
-              <RiverLedgerCard key={card.card_id} card={card} tone="private" />
+          <section className="river-ledger-seat-rail" aria-label={view.ui.seat_metadata_label}>
+            {view.seats.map((seat) => (
+              <SeatLedger key={seat.seat} view={view} seat={seat} />
             ))}
-          </div>
-        ) : (
-          <div className="river-ledger-hidden" data-testid="river-ledger-private-hidden">
-            <span>Hidden</span>
-            <strong>{view.ui.hidden_hole_label}</strong>
-          </div>
-        )}
-      </section>
+          </section>
+        </div>
 
-      <section className="river-ledger-actions" aria-label={view.ui.action_hint_label}>
-        <div className="river-ledger-section-heading">
-          <span>Actions</span>
-          <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
-        </div>
-        <div className="river-ledger-action-grid">
-          {choices.length === 0 ? (
-            <p className="muted">No actions available.</p>
-          ) : (
-            choices.map((choice, index) => (
-              <button
-                type="button"
-                key={choice.segment}
-                className="river-ledger-action"
-                disabled={!canAct}
-                aria-label={choice.accessibility_label}
-                data-testid={`choice-river-ledger-${index}`}
-                onClick={() => onChoice?.(choice)}
+        <div className="river-ledger-action-band">
+          <section className="river-ledger-private" aria-label="Private view">
+            <div className="river-ledger-section-heading">
+              <span>Private view</span>
+              <strong>{privateHeading(view)}</strong>
+            </div>
+            {view.private_view.status === "seat" ? (
+              <div
+                className="river-ledger-private-cards"
+                aria-label={riverLedgerCardGroupLabel(view.private_view.hole_cards, `${seatLabel(view.private_view.seat)} private cards`)}
               >
-                <strong>{choice.label}</strong>
-                <ActionChoiceDetails choice={choice} />
-              </button>
-            ))
-          )}
+                {view.private_view.hole_cards.map((card) => (
+                  <RiverLedgerCard key={card.card_id} card={card} tone="private" />
+                ))}
+              </div>
+            ) : (
+              <div className="river-ledger-hidden" data-testid="river-ledger-private-hidden">
+                <span>Hidden</span>
+                <strong>{view.ui.hidden_hole_label}</strong>
+              </div>
+            )}
+          </section>
+
+          <section className="river-ledger-actions" aria-label={view.ui.action_hint_label}>
+            <div className="river-ledger-section-heading">
+              <span>Actions</span>
+              <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
+            </div>
+            <div className="river-ledger-action-grid">
+              {choices.length === 0 ? (
+                <p className="muted">No actions available.</p>
+              ) : (
+                choices.map((choice, index) => (
+                  <button
+                    type="button"
+                    key={choice.segment}
+                    className="river-ledger-action"
+                    disabled={!canAct}
+                    aria-label={choice.accessibility_label}
+                    data-testid={`choice-river-ledger-${index}`}
+                    onClick={() => onChoice?.(choice)}
+                  >
+                    <strong>{choice.label}</strong>
+                    <ActionChoiceDetails choice={choice} />
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+
+          <div className="river-ledger-latest" role="status">
+            <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+            <strong>
+              {outcomeExplanation
+                ? outcomeAnnouncementText(outcomeExplanation)
+                : feedback?.detail ?? "Visible state changes will update here."}
+            </strong>
+          </div>
         </div>
-      </section>
+      </div>
 
       <HandRankingReference
         currentCategory={currentShowdownCategory(view)}
@@ -178,14 +191,6 @@ export function RiverLedgerBoard({
 
       {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
 
-      <div className="river-ledger-latest" role="status">
-        <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
-        <strong>
-          {outcomeExplanation
-            ? outcomeAnnouncementText(outcomeExplanation)
-            : feedback?.detail ?? "Visible state changes will update here."}
-        </strong>
-      </div>
     </section>
   );
 }
