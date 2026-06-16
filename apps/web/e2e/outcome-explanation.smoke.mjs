@@ -313,7 +313,7 @@ async function assertRiverLedgerShowdownOutcome(page) {
     const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
     const showdown = panel?.querySelector(".river-ledger-showdown-panel");
     const ruleFooter = panel?.querySelector(".outcome-rule-refs");
-    const details = showdown?.querySelector("details");
+    const details = showdown?.querySelector(":scope > .river-ledger-showdown-details");
     return {
       text: panel?.textContent ?? "",
       showdownText: showdown?.textContent ?? "",
@@ -323,6 +323,8 @@ async function assertRiverLedgerShowdownOutcome(page) {
       standingRows: panel?.querySelectorAll(".outcome-standing-row").length ?? 0,
       showdownCards: showdown?.querySelectorAll(".river-ledger-showdown-card").length ?? 0,
       showdownHands: showdown?.querySelectorAll(".river-ledger-showdown-hand").length ?? 0,
+      boardUsageCards: showdown?.querySelectorAll(".river-ledger-showdown-board .river-ledger-showdown-usage-card").length ?? 0,
+      usedMarks: showdown?.querySelectorAll(".river-ledger-card-usage.used").length ?? 0,
       hasRuleFooter: Boolean(ruleFooter),
       detailsOpen: details?.hasAttribute("open") ?? false,
       detailsText: details?.textContent ?? "",
@@ -335,8 +337,12 @@ async function assertRiverLedgerShowdownOutcome(page) {
   assert(summary.showdownHands >= 4, `river_ledger renders revealed showdown hands: ${summary.showdownHands}`);
   assert(summary.showdownCards >= 20, `river_ledger renders best-five card labels: ${summary.showdownCards}`);
   assert(summary.showdownText.includes("Pair") || summary.showdownText.includes("High Card"), `river_ledger explains hand ranks: ${summary.showdownText}`);
+  assert(summary.showdownText.includes("Board usage"), `river_ledger renders board-once V2 usage: ${summary.showdownText}`);
+  assert(summary.boardUsageCards === 5, `river_ledger renders one board usage card per board slot: ${summary.boardUsageCards}`);
+  assert(summary.usedMarks > 0, `river_ledger marks used cards with non-color text/shape indicators: ${summary.usedMarks}`);
+  assert(summary.showdownText.includes("Used in best five"), `river_ledger usage marks include text: ${summary.showdownText}`);
   assert(summary.standingRows === 4, `river_ledger renders one standing row per seat: ${summary.standingRows}`);
-  assert(!summary.visibleStandingText.includes("Tie break"), `river_ledger hides raw tie break rows: ${summary.visibleStandingText}`);
+  assert(summary.visibleStandingText.includes("1. Seat"), `river_ledger renders Rust-ranked standings: ${summary.visibleStandingText}`);
   assert(!summary.hasRuleFooter, "river_ledger showdown rule ids stay out of the prominent footer");
   assert(!summary.detailsOpen, "river_ledger raw showdown details start collapsed");
   assert(summary.detailsText.includes("RL-SCORE-SHOWDOWN"), `river_ledger details include scoring rule id: ${summary.detailsText}`);

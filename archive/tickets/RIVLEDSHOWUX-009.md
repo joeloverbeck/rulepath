@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-009: V2 showdown renderer + card-usage visualization
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/OutcomeExplanationPanel.tsx`, `apps/web/src/components/RiverLedgerBoard.tsx`
@@ -75,3 +75,14 @@ Render hole/board card-usage marks via `RiverLedgerCard` using shape/ring/text i
 1. `npm --prefix apps/web run smoke:ui`
 2. `node apps/web/e2e/outcome-explanation.smoke.mjs`
 3. `npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Added a River Ledger V2 showdown branch in `OutcomeExplanationPanel` keyed to `riverLedgerShowdownV2` payload presence.
+- Rendered the Rust-authored banner, decisive reason, closest challenger label, board-once usage section, ranked standings, folded redaction rows, detail rows, and rule references.
+- Passed the V2 payload from `RiverLedgerBoard` into `outcomeSurfaceData`.
+- Added text/shape card-usage marks (`Used in best five`, `Not used`, outlined used cards) so usage is not color-only.
+- Updated outcome and River Ledger smokes for V2 board usage, card counts, folded redaction, and cross-game outcome regression.
+- Verified with `cargo fmt --all --check`, `cargo test -p river_ledger`, `npm --prefix apps/web run build`, `npm --prefix apps/web run smoke:ui`, `node apps/web/e2e/outcome-explanation.smoke.mjs`, `node apps/web/e2e/river-ledger.smoke.mjs`, and `npm --prefix apps/web run smoke:e2e`.

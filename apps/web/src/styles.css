@@ -2699,6 +2699,62 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.river-ledger-showdown-hand summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: #21352e;
+  font-weight: 900;
+}
+
+.river-ledger-showdown-board,
+.river-ledger-showdown-folded,
+.river-ledger-showdown-usage-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.river-ledger-showdown-board h3,
+.river-ledger-card-usage-group h4 {
+  margin: 0;
+  color: #21352e;
+  font-size: 0.9rem;
+}
+
+.river-ledger-showdown-usage-card,
+.river-ledger-card-usage {
+  display: grid;
+  gap: 5px;
+}
+
+.river-ledger-showdown-usage-card small,
+.river-ledger-card-usage small {
+  color: #40514a;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.river-ledger-card-usage.used .river-ledger-card {
+  outline: 2px solid #21352e;
+  outline-offset: 2px;
+}
+
+.river-ledger-card-usage-group > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.river-ledger-showdown-folded p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  color: #40514a;
+}
+
 .river-ledger-showdown-cards {
   display: flex;
   flex-wrap: wrap;

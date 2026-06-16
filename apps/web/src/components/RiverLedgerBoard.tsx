@@ -59,6 +59,7 @@ export function RiverLedgerBoard({
           },
         ],
         ruleIds: view.terminal.kind === "last_live_hand" ? ["RL-END-LAST-LIVE", "RL-SCORE-POT-AWARD"] : ["RL-SCORE-SHOWDOWN", "RL-END-SHOWDOWN"],
+        riverLedgerShowdownV2: view.terminal.kind === "showdown" ? view.terminal.presentation_v2 ?? null : null,
       })
     : null;
 

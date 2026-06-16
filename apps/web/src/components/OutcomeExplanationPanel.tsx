@@ -8,6 +8,10 @@ import {
   type OutcomeExplanationTemplate,
 } from "./outcomeExplanationTemplates";
 import { RiverLedgerCard, riverLedgerCardGroupLabel, type RiverLedgerCardLike } from "./RiverLedgerCard";
+import type {
+  RiverLedgerShowdownCardUsageMark,
+  RiverLedgerShowdownPresentationV2,
+} from "../wasm/client";
 
 type OutcomeValue = string | number | boolean | null;
 
@@ -50,6 +54,7 @@ export type OutcomeExplanationSurfaceData = {
   finalStanding: readonly OutcomeExplanationStanding[];
   breakdownSections?: readonly OutcomeExplanationBreakdownSection[];
   ruleIds?: readonly string[];
+  riverLedgerShowdownV2?: RiverLedgerShowdownPresentationV2 | null;
 };
 
 type RiverLedgerShowdownStrength = {
@@ -99,6 +104,7 @@ export type OutcomeExplanationAdapterInput = {
   finalStanding: readonly OutcomeExplanationStanding[];
   breakdownSections?: readonly OutcomeExplanationBreakdownSection[];
   ruleIds?: readonly string[];
+  riverLedgerShowdownV2?: RiverLedgerShowdownPresentationV2 | null;
 };
 
 type OutcomeExplanationPanelProps = {
@@ -125,8 +131,9 @@ export function OutcomeExplanationPanel({
   const summary = outcomeSummaryText(explanation);
   const sections = explanation.breakdownSections ?? [];
   const riverShowdown = riverLedgerShowdownData(explanation);
+  const riverShowdownV2 = explanation.gameId === "river_ledger" ? explanation.riverLedgerShowdownV2 ?? null : null;
   const ruleIds = explanation.ruleIds ?? [];
-  const showRuleFooter = ruleIds.length > 0 && !riverShowdown;
+  const showRuleFooter = ruleIds.length > 0 && !riverShowdown && !riverShowdownV2;
 
   return (
     <section
@@ -140,9 +147,13 @@ export function OutcomeExplanationPanel({
         <p>{summary}</p>
       </div>
 
-      {riverShowdown ? <RiverLedgerShowdown explanation={explanation} /> : null}
+      {riverShowdownV2 ? (
+        <RiverLedgerShowdownV2 presentation={riverShowdownV2} />
+      ) : riverShowdown ? (
+        <RiverLedgerShowdown explanation={explanation} />
+      ) : null}
 
-      <div className="outcome-standing" aria-label="Final standing">
+      {!riverShowdownV2 ? <div className="outcome-standing" aria-label="Final standing">
         {explanation.finalStanding.map((standing) => (
           <article
             className={`outcome-standing-row${standing.emphasized ? " emphasized" : ""}`}
@@ -162,7 +173,7 @@ export function OutcomeExplanationPanel({
             </dl>
           </article>
         ))}
-      </div>
+      </div> : null}
 
       {sections.length > 0 ? (
         <div className="outcome-breakdown" id={detailsId}>
@@ -248,6 +259,7 @@ export function outcomeSurfaceData(input: OutcomeExplanationAdapterInput): Outco
     finalStanding: orderStandings(rationaleStanding ?? input.finalStanding.map(normalizeStanding)),
     breakdownSections: breakdownSections?.map((section) => normalizeBreakdownSection(section, input.rationale?.decisive_cause ?? input.decisiveCause)),
     ruleIds: input.rationale?.decisive_rule_ids ?? input.ruleIds,
+    riverLedgerShowdownV2: input.riverLedgerShowdownV2 ?? null,
   };
 }
 
@@ -357,6 +369,130 @@ function RiverLedgerShowdown({ explanation }: { explanation: OutcomeExplanationS
           ) : null}
         </dl>
       </details>
+    </section>
+  );
+}
+
+function RiverLedgerShowdownV2({ presentation }: { presentation: RiverLedgerShowdownPresentationV2 }) {
+  const contrast = presentation.decisive_reason.contrast_seat_label;
+
+  return (
+    <section className="river-ledger-showdown-panel v2" aria-label={presentation.result_banner.accessibility_label}>
+      <div className="river-ledger-showdown-lead">
+        <strong>{presentation.result_banner.headline}</strong>
+        <p>{presentation.result_banner.subheadline}</p>
+        <p>
+          {presentation.decisive_reason.short_text}
+          {contrast ? ` Closest challenger: ${contrast}.` : ""}
+        </p>
+      </div>
+
+      <div className="river-ledger-showdown-board" aria-label="Showdown board card usage">
+        <h3>Board usage</h3>
+        <div className="river-ledger-showdown-cards">
+          {presentation.board_cards.map((entry) => (
+            <div className="river-ledger-showdown-usage-card" key={entry.slot}>
+              <RiverLedgerCard card={entry.card} className="river-ledger-showdown-card" tone="showdown" />
+              <small>{entry.used_by_selected.length ? `Used by ${entry.used_by_selected.join(", ")}` : "Not in any best five"}</small>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {presentation.standings[0]?.rank_ladder_label ? (
+        <aside className="river-ledger-teaching-aid" aria-label="Teaching aid, not a game value">
+          <span>Teaching aid, not a game value</span>
+          <p>{presentation.standings[0].rank_ladder_label}</p>
+        </aside>
+      ) : null}
+
+      <div className="river-ledger-showdown-hands" aria-label="Ranked showdown standings">
+        {presentation.standings.map((standing, index) => {
+          const open = standing.default_expanded || index < 2;
+          return (
+            <details
+              className={`river-ledger-showdown-hand outcome-standing-row${standing.default_expanded ? " emphasized" : ""}`}
+              key={standing.seat}
+              open={open}
+            >
+              <summary>
+                <span>
+                  {standing.rank}. {standing.seat_label}
+                </span>
+                <strong>{standing.result_label}</strong>
+              </summary>
+              <p>{standing.hand_name}</p>
+              <p>{standing.short_comparison_note}</p>
+              <div className="river-ledger-showdown-usage-grid">
+                <CardUsageGroup heading="Hole cards" marks={standing.hole_cards} />
+                <CardUsageGroup heading="Board cards" marks={standing.board_cards} />
+              </div>
+              <div
+                className="river-ledger-showdown-cards"
+                aria-label={riverLedgerCardGroupLabel(standing.best_five, standing.best_five_accessibility_label)}
+              >
+                {standing.best_five.map((card) => (
+                  <RiverLedgerCard
+                    card={card}
+                    className="river-ledger-showdown-card"
+                    key={card.card_id}
+                    tone="showdown"
+                  />
+                ))}
+              </div>
+              <dl>
+                {standing.detail_rows.map((row) => (
+                  <div key={row.label}>
+                    <dt>{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+                <div>
+                  <dt>Allocation</dt>
+                  <dd>{standing.allocation_label}</dd>
+                </div>
+              </dl>
+            </details>
+          );
+        })}
+      </div>
+
+      {presentation.folded_rows.length ? (
+        <div className="river-ledger-showdown-folded" aria-label="Folded seats">
+          {presentation.folded_rows.map((row) => (
+            <p key={row.seat}>
+              <strong>{row.seat_label}</strong>
+              <span>{row.redaction_label}</span>
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      <details className="river-ledger-showdown-details">
+        <summary>Showdown details</summary>
+        <dl>
+          <div>
+            <dt>Rule references</dt>
+            <dd>{presentation.decisive_reason.rule_refs.join(", ")}</dd>
+          </div>
+        </dl>
+      </details>
+    </section>
+  );
+}
+
+function CardUsageGroup({ heading, marks }: { heading: string; marks: readonly RiverLedgerShowdownCardUsageMark[] }) {
+  return (
+    <section className="river-ledger-card-usage-group" aria-label={heading}>
+      <h4>{heading}</h4>
+      <div>
+        {marks.map((mark) => (
+          <div className={`river-ledger-card-usage${mark.used_in_best_five ? " used" : ""}`} key={mark.card.card_id}>
+            <RiverLedgerCard card={mark.card} tone="showdown" />
+            <small>{mark.used_in_best_five ? "Used in best five" : "Not used"}</small>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

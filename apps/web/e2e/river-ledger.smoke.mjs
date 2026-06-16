@@ -197,7 +197,8 @@ async function assertWorkedExampleShowdown(page) {
       showdownText: showdown?.textContent ?? "",
       handCount: showdown?.querySelectorAll(".river-ledger-showdown-hand").length ?? 0,
       cardCount: showdown?.querySelectorAll(".river-ledger-showdown-card").length ?? 0,
-      foldedStrengthRows: Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? [])
+      boardUsageCards: showdown?.querySelectorAll(".river-ledger-showdown-board .river-ledger-showdown-usage-card").length ?? 0,
+      foldedStrengthRows: Array.from(panel?.querySelectorAll(".river-ledger-showdown-folded p, .outcome-standing-row") ?? [])
         .filter((row) => row.textContent?.includes("Folded"))
         .filter((row) => /Pair|High Card|tie break/i.test(row.textContent ?? "")).length,
     };
@@ -212,7 +213,8 @@ async function assertWorkedExampleShowdown(page) {
     `worked example comparison basis is rendered: ${summary.text}`,
   );
   assert(summary.handCount === 4, `worked example renders four revealed hands: ${summary.handCount}`);
-  assert(summary.cardCount === 20, `worked example renders each best-five hand: ${summary.cardCount}`);
+  assert(summary.boardUsageCards === 5, `worked example renders board usage once: ${summary.boardUsageCards}`);
+  assert(summary.cardCount >= 25, `worked example renders board usage plus each best-five hand: ${summary.cardCount}`);
   assert(summary.foldedStrengthRows === 0, "worked example renders no folded-seat hand strength");
 }
 
@@ -239,12 +241,16 @@ async function assertShowdownCardComponents(page) {
   const summary = await page.evaluate(() => {
     const boardCards = Array.from(document.querySelectorAll(".river-ledger-board-cards .river-ledger-card.board"));
     const showdownCards = Array.from(document.querySelectorAll(".river-ledger-showdown-card.river-ledger-card.showdown"));
+    const bestFiveCards = Array.from(document.querySelectorAll(".river-ledger-showdown-hand > .river-ledger-showdown-cards .river-ledger-showdown-card.river-ledger-card.showdown"));
+    const usageCards = Array.from(document.querySelectorAll(".river-ledger-showdown-board .river-ledger-showdown-usage-card"));
     const boardGroup = document.querySelector(".river-ledger-board-cards");
-    const showdownGroups = Array.from(document.querySelectorAll(".river-ledger-showdown-cards"));
+    const showdownGroups = Array.from(document.querySelectorAll(".river-ledger-showdown-hand > .river-ledger-showdown-cards"));
     return {
       boardCards: boardCards.length,
       boardGlyphs: boardCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
       showdownCards: showdownCards.length,
+      bestFiveCards: bestFiveCards.length,
+      usageCards: usageCards.length,
       showdownGlyphs: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
       showdownSuitWords: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit small")?.textContent?.trim()).length,
       boardGroupLabel: boardGroup?.getAttribute("aria-label") ?? "",
@@ -253,9 +259,11 @@ async function assertShowdownCardComponents(page) {
   });
   assert(summary.boardCards === 5, `terminal board uses card component: ${summary.boardCards}`);
   assert(summary.boardGlyphs === 5, `terminal board renders suit glyphs: ${summary.boardGlyphs}`);
-  assert(summary.showdownCards === 20, `showdown best-five uses card component: ${summary.showdownCards}`);
-  assert(summary.showdownGlyphs === 20, `showdown best-five renders suit glyphs: ${summary.showdownGlyphs}`);
-  assert(summary.showdownSuitWords === 20, `showdown best-five renders suit words: ${summary.showdownSuitWords}`);
+  assert(summary.bestFiveCards === 20, `showdown best-five uses card component: ${summary.bestFiveCards}`);
+  assert(summary.usageCards === 5, `showdown board usage renders once: ${summary.usageCards}`);
+  assert(summary.showdownCards >= 25, `showdown uses card component for best-five plus usage: ${summary.showdownCards}`);
+  assert(summary.showdownGlyphs >= 25, `showdown renders suit glyphs: ${summary.showdownGlyphs}`);
+  assert(summary.showdownSuitWords >= 25, `showdown renders suit words: ${summary.showdownSuitWords}`);
   assert(summary.boardGroupLabel.includes("Public board cards"), `board group has accessible label: ${summary.boardGroupLabel}`);
   assert(
     summary.showdownGroupLabels.length === 4 && summary.showdownGroupLabels.every((label) => label.includes("Best five")),
@@ -391,8 +399,8 @@ async function assertStreetStripAfterShowdown(page) {
 async function assertFoldedSeatNoStrength(page) {
   const summary = await page.evaluate(() => {
     const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
-    const foldedRows = Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? []).filter((row) =>
-      /folded/i.test(row.textContent ?? ""),
+    const foldedRows = Array.from(panel?.querySelectorAll(".river-ledger-showdown-folded p, .outcome-standing-row") ?? []).filter(
+      (row) => /folded/i.test(row.textContent ?? ""),
     );
     return {
       text: panel?.textContent ?? "",

@@ -265,7 +265,7 @@ fn standing_presentation(
         allocation_label: format!("{share} from the ledger"),
         hand_name: hand_name(&entry.evaluation),
         short_comparison_note: rank_explanation(&entry.evaluation),
-        rank_ladder_label: entry.evaluation.category.as_str().replace('_', " "),
+        rank_ladder_label: category_ladder_position(entry.evaluation.category).description,
         hole_cards: hand
             .iter()
             .copied()
