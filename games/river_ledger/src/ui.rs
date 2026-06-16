@@ -236,7 +236,8 @@ fn role_badges(roles: SeatLedgerRoles) -> Vec<String> {
         (roles.big_blind, "Big blind"),
     ]
     .into_iter()
-    .filter_map(|(enabled, label)| enabled.then(|| label.to_owned()))
+    .filter(|&(enabled, _)| enabled)
+    .map(|(_, label)| label.to_owned())
     .collect()
 }
 

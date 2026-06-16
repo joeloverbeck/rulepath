@@ -90,7 +90,7 @@ pub enum TerminalView {
         pot_total: u16,
         allocations: Vec<(RiverLedgerSeat, u16)>,
         explanations: Vec<String>,
-        presentation_v2: ShowdownPresentationV2View,
+        presentation_v2: Box<ShowdownPresentationV2View>,
     },
 }
 
@@ -401,7 +401,7 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
                 .iter()
                 .map(|explanation| explanation.summary.clone())
                 .collect(),
-            presentation_v2: showdown_presentation_v2_view(presentation_v2),
+            presentation_v2: Box::new(showdown_presentation_v2_view(presentation_v2)),
         },
     }
 }

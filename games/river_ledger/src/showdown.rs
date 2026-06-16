@@ -48,14 +48,14 @@ pub fn resolve_showdown(state: &RiverLedgerState) -> TerminalOutcome {
     let headline = showdown_headline(&evaluations, &winners);
     let decisive_comparison = decisive_comparison(&evaluations, &winners);
     let comparison_basis = comparison_basis(&evaluations, &winners);
-    let presentation_v2 = showdown_presentation_v2(
+    let presentation_v2 = Box::new(showdown_presentation_v2(
         state,
         &evaluations,
         &allocation,
         &headline,
         &decisive_comparison,
         &comparison_basis,
-    );
+    ));
 
     TerminalOutcome::Showdown {
         winners: allocation.winners,

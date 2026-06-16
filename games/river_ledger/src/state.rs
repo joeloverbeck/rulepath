@@ -209,7 +209,7 @@ pub enum TerminalOutcome {
         decisive_comparison: String,
         comparison_basis: String,
         explanations: Vec<ShowdownSeatExplanation>,
-        presentation_v2: RiverLedgerShowdownPresentationV2,
+        presentation_v2: Box<RiverLedgerShowdownPresentationV2>,
     },
 }
 
