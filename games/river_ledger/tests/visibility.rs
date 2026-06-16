@@ -186,6 +186,11 @@ fn observer_projection_effects_and_action_tree_hide_all_private_and_future_cards
 
         let observer = viewer(None);
         let projection = project_view(&state, &observer);
+        assert_eq!(projection.ui.seat_labels.len(), 6);
+        assert_eq!(projection.ui.seat_labels[0].seat, "seat_0");
+        assert_eq!(projection.ui.seat_labels[0].label, "Seat 0");
+        assert_eq!(projection.ui.seat_labels[5].seat, "seat_5");
+        assert_eq!(projection.ui.seat_labels[5].label, "Seat 5");
         assert_absent(
             &format!("{projection:?}"),
             &hidden,
@@ -258,6 +263,21 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 &folded_private,
                 &format!("{count}-seat showdown explanation projection"),
             );
+            let river_ledger::visibility::TerminalView::Showdown {
+                presentation_v2, ..
+            } = &projection.terminal
+            else {
+                panic!("showdown terminal projection expected");
+            };
+            assert!(presentation_v2
+                .standings
+                .iter()
+                .all(|standing| standing.seat != seat(0)));
+            assert_eq!(presentation_v2.folded_rows.len(), 1);
+            assert_eq!(presentation_v2.folded_rows[0].seat, seat(0));
+            assert!(presentation_v2.folded_rows[0]
+                .redaction_label
+                .contains("hand remains hidden"));
 
             let rationale = projection
                 .terminal_rationale
@@ -267,7 +287,15 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 .headline
                 .as_deref()
                 .is_some_and(|headline| headline.contains("split the ledger")));
+            assert!(rationale
+                .headline
+                .as_deref()
+                .is_some_and(|headline| !headline.contains("seat_")));
             assert!(rationale.decisive_comparison.is_some());
+            assert!(rationale
+                .decisive_comparison
+                .as_deref()
+                .is_some_and(|comparison| !comparison.contains("seat_")));
             assert!(rationale.comparison_basis.is_some());
 
             let folded = rationale
@@ -277,6 +305,15 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 .expect("folded seat breakdown");
             assert_eq!(folded.result, "folded");
             assert!(folded.strength.is_none());
+            let folded_seat = projection
+                .seats
+                .iter()
+                .find(|entry| entry.seat == seat(0))
+                .expect("folded public seat");
+            assert_eq!(
+                folded_seat.ledger_display.hole_card_summary.value,
+                "2 hidden"
+            );
 
             for revealed in rationale
                 .per_seat
@@ -295,6 +332,15 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 assert_eq!(
                     strength.best_five_accessibility_label,
                     "Best five cards: ace of hearts, king of hearts, queen of hearts, jack of hearts, ten of hearts."
+                );
+                let revealed_seat = projection
+                    .seats
+                    .iter()
+                    .find(|entry| entry.seat == revealed.seat)
+                    .expect("revealed public seat");
+                assert_eq!(
+                    revealed_seat.ledger_display.hole_card_summary.value,
+                    "2 revealed"
                 );
             }
 

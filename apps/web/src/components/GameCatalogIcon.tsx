@@ -21,6 +21,7 @@ const ICONS: Record<string, IconComponent> = {
   "token_bazaar": TokenBazaarIcon,
   "secret_draft": SecretDraftIcon,
   "poker_lite": PokerLiteIcon,
+  "river_ledger": RiverLedgerIcon,
   "plain_tricks": PlainTricksIcon,
   "masked_claims": MaskedClaimsIcon,
   "flood_watch": FloodWatchIcon,
@@ -34,6 +35,7 @@ export function GameCatalogIcon({ gameId, title, decorative = true, className }:
   return (
     <svg
       className={className}
+      data-icon-game={gameId}
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden={decorative ? "true" : undefined}
@@ -146,6 +148,19 @@ function PokerLiteIcon() {
       <rect x="13.2" y="8" width="5.8" height="8.5" rx="1.2" stroke="var(--game-card-art-line)" strokeWidth="1.6" />
       <path d="M8 5h8M7 19h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
       <AccentCircle cx={12} cy={12.2} r={2.1} />
+    </>
+  );
+}
+
+function RiverLedgerIcon() {
+  return (
+    <>
+      <path d="M5.4 8.7l4.4-2.2 2.8 8.4-4.4 2.2z" stroke="currentColor" strokeWidth="1.45" strokeLinejoin="round" />
+      <path d="M10.1 6.5h5.2v9.2h-5.2z" stroke="var(--game-card-art-line)" strokeWidth="1.45" strokeLinejoin="round" />
+      <path d="M14.2 7l4.4 2.2-2.8 8.2-4.4-2.1z" stroke="currentColor" strokeWidth="1.45" strokeLinejoin="round" />
+      <path d="M5.2 18.7c3.4-1.3 5.8-1.2 8.2.1 1.7.9 3.3.9 5.4-.1" stroke="var(--game-card-art-line)" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7.2 19.4v-2.1M10.1 19.7v-2.4M13 20v-2.5M15.9 20v-2.2" stroke="currentColor" strokeWidth="1.05" strokeLinecap="round" opacity="0.82" />
+      <AccentCircle cx={12.4} cy={11.2} r={1.45} />
     </>
   );
 }

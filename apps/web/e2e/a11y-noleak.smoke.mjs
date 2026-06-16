@@ -19,6 +19,7 @@ const forbiddenLeakTerms = [
   "hcd:r",
 ];
 const rawIdentifierRe = /\b[a-z0-9]+_[a-z0-9_]+\b/;
+const rawSeatIdRe = /\bseat_\d+\b/;
 
 await access(executablePath);
 
@@ -62,6 +63,7 @@ try {
   await waitForText(page, "Race to 21");
   await assertNamedControls(page);
   await assertRawIdentifierGuardTrips(page);
+  await assertRawSeatIdGuardTrips(page);
   await assertNoLeak(page, consoleMessages, "initial DOM");
 
   await focusByText(page, "Start Match");
@@ -141,7 +143,17 @@ try {
   assert(eventAnimationName === "none", "event_frontier reduced-motion suppresses site animation");
   await assertNoLeak(page, consoleMessages, "event_frontier DOM");
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier" }));
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startRiverLedgerBotWhy(page);
+  await assertRiverLedgerBotWhy(page);
+  await assertNoLeak(page, consoleMessages, "river_ledger bot why DOM");
+
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startRiverLedgerShowdown(page);
+  await assertRiverLedgerStatusAnnouncement(page);
+  await assertNoLeak(page, consoleMessages, "river_ledger status announcement DOM");
+
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier river_ledger" }));
 } finally {
   if (browser) {
     await browser.close();
@@ -177,6 +189,87 @@ async function startHighCardDuel(page) {
   await clickLabel(page, "Hotseat");
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="high-card-duel-board"]');
+}
+
+async function startRiverLedgerShowdown(page) {
+  await clickText(page, "button", "River Ledger");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "4");
+  await page.$eval('.setup-grid input[type="number"]', (input) => {
+    input.value = "79";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await clickLabel(page, "Hotseat");
+  await clickText(page, "button", "Start Match");
+  await waitForText(page, "Available choices");
+  for (const action of [
+    "Call",
+    "Call",
+    "Call",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+  ]) {
+    await clickRiverAction(page, action);
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
+async function startRiverLedgerBotWhy(page) {
+  await clickText(page, "button", "River Ledger");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "4");
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="river-ledger-board"]');
+  await page.waitForSelector('[data-testid="river-ledger-bot-explanation"]');
+}
+
+async function assertRiverLedgerBotWhy(page) {
+  const summary = await page.evaluate(() => {
+    const why = document.querySelector('[data-testid="river-ledger-bot-explanation"]');
+    const effectLog = document.querySelector('[data-testid="effects"]')?.textContent ?? "";
+    return {
+      exists: Boolean(why),
+      label: why?.getAttribute("aria-label") ?? "",
+      text: why?.textContent ?? "",
+      effectLog,
+    };
+  });
+  assert(summary.exists, "river_ledger bot why disclosure renders for a non-random bot");
+  assert(summary.label.includes("Why Seat "), `river_ledger bot why aria label uses public seat label: ${summary.label}`);
+  assert(summary.text.includes("Why?"), "river_ledger bot why exposes compact summary text");
+  assert(summary.text.includes("Call price"), "river_ledger bot why renders Rust public facts");
+  assert(summary.text.includes("This public explanation omits private hole cards"), "river_ledger bot why renders Rust no-hidden-info notice");
+  assert(!summary.text.toLowerCase().includes("candidate"), "river_ledger bot why omits candidate data");
+  assert(!rawSeatIdRe.test(summary.text), `river_ledger bot why avoids raw seat ids: ${summary.text}`);
+  assert(!summary.effectLog.includes("This public explanation"), "river_ledger bot why is not dumped into effect log");
+}
+
+async function assertRiverLedgerStatusAnnouncement(page) {
+  const summary = await page.evaluate(() => {
+    const status = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"] .river-ledger-showdown-lead[role="status"]');
+    return {
+      exists: Boolean(status),
+      atomic: status?.getAttribute("aria-atomic") ?? "",
+      label: status?.getAttribute("aria-label") ?? "",
+      text: status?.textContent ?? "",
+      panelText: document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')?.textContent ?? "",
+    };
+  });
+  assert(summary.exists, "river_ledger terminal banner exposes a status region");
+  assert(summary.atomic === "true", `river_ledger status region is atomic: ${summary.atomic}`);
+  assert(summary.label.includes("wins with") || summary.label.includes("split the ledger"), `river_ledger status uses Rust-authored result label: ${summary.label}`);
+  assert(!rawSeatIdRe.test(summary.label), `river_ledger status avoids raw seat ids: ${summary.label}`);
+  assert(summary.panelText.includes("Board usage"), "river_ledger reduced-motion terminal keeps reveal facts visible");
 }
 
 async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
@@ -407,6 +500,7 @@ async function assertStorageClean(page) {
 
 async function assertNoLeak(page, consoleMessages, label) {
   await assertNoRawIdentifiers(page, label);
+  await assertNoRawSeatIds(page, label);
   const surface = await page.evaluate(() => {
     const attributes = Array.from(document.querySelectorAll("*")).flatMap((element) =>
       Array.from(element.attributes).map((attribute) => `${attribute.name}=${attribute.value}`),
@@ -439,6 +533,28 @@ async function assertRawIdentifierGuardTrips(page) {
 async function assertNoRawIdentifiers(page, label) {
   const hits = await collectRawIdentifierHits(page);
   assert(hits.length === 0, `${label} contains raw internal identifiers: ${JSON.stringify(hits)}`);
+}
+
+async function assertRawSeatIdGuardTrips(page) {
+  await page.evaluate(() => {
+    const probe = document.createElement("button");
+    probe.type = "button";
+    probe.dataset.rawSeatProbe = "true";
+    probe.setAttribute("aria-label", "seat_5 should fail the raw seat guard");
+    probe.textContent = "seat_5 should fail the raw seat guard";
+    document.querySelector("main")?.append(probe);
+  });
+  const hits = await collectRawSeatIdHits(page);
+  await page.evaluate(() => document.querySelector("[data-raw-seat-probe]")?.remove());
+  assert(
+    hits.some((hit) => hit.token === "seat_5"),
+    `runtime raw-seat guard did not catch induced drift: ${JSON.stringify(hits)}`,
+  );
+}
+
+async function assertNoRawSeatIds(page, label) {
+  const hits = await collectRawSeatIdHits(page);
+  assert(hits.length === 0, `${label} contains raw seat ids: ${JSON.stringify(hits)}`);
 }
 
 async function collectRawIdentifierHits(page) {
@@ -478,6 +594,47 @@ async function collectRawIdentifierHits(page) {
   });
   return samples.flatMap((sample) => {
     const tokens = sample.value.match(new RegExp(rawIdentifierRe.source, "g")) ?? [];
+    return tokens.map((token) => ({ ...sample, token }));
+  });
+}
+
+async function collectRawSeatIdHits(page) {
+  const samples = await page.evaluate(() => {
+    const excludedSelector = '.dev-panel, .replay-io, .replay-viewer, .diagnostic, [data-testid="effects"], script, style';
+    const textSamples = [];
+    const attributeSamples = [];
+
+    const isExcluded = (element) => Boolean(element.closest(excludedSelector));
+    const isVisible = (element) => {
+      if (isExcluded(element) || element.getAttribute("aria-hidden") === "true") return false;
+      const style = window.getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden";
+    };
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const parent = node.parentElement;
+      const text = node.textContent?.trim() ?? "";
+      if (parent && text && isVisible(parent)) {
+        textSamples.push({ source: "text", value: text });
+      }
+    }
+
+    for (const element of Array.from(document.querySelectorAll("*"))) {
+      if (isExcluded(element) || !isVisible(element)) continue;
+      for (const name of ["aria-label", "title", "alt", "aria-valuetext"]) {
+        const value = element.getAttribute(name);
+        if (value?.trim()) {
+          attributeSamples.push({ source: name, value });
+        }
+      }
+    }
+
+    return [...textSamples, ...attributeSamples];
+  });
+  return samples.flatMap((sample) => {
+    const tokens = sample.value.match(new RegExp(rawSeatIdRe.source, "gi")) ?? [];
     return tokens.map((token) => ({ ...sample, token }));
   });
 }
@@ -546,6 +703,25 @@ async function clickSeatFrameButton(page, text) {
     return true;
   }, text);
   assert(clicked, `seat frame button exists: ${text}`);
+}
+
+async function clickRiverAction(page, label) {
+  const clicked = await page.evaluate((expected) => {
+    const button = Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).find((candidate) =>
+      candidate.textContent?.includes(expected),
+    );
+    if (!button) {
+      return false;
+    }
+    button.click();
+    return true;
+  }, label);
+  assert(clicked, `river_ledger action exists: ${label}`);
+  await page.waitForFunction(
+    () =>
+      document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]') ||
+      document.body.textContent?.includes("Available choices"),
+  );
 }
 
 async function clickText(page, selector, text) {

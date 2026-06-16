@@ -263,6 +263,18 @@ fn legal_action_generation_uses_active_seat_call_price_and_cap_state() {
         .metadata
         .iter()
         .any(|entry| entry.key == "cap_remaining" && entry.value == "3"));
+    assert_eq!(
+        presentation_rows(call),
+        vec![("Call price", "2"), ("Adds", "2")]
+    );
+
+    let fold = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "fold")
+        .expect("fold action");
+    assert_eq!(presentation_rows(fold), vec![("Adds", "0")]);
 
     let mut capped = advance_four_player_hand_to_flop();
     apply_segment(&mut capped, "seat_1", "bet");
@@ -379,6 +391,7 @@ fn river_checkdown_resolves_showdown_terminal_and_conserves_pot() {
         pot_total,
         allocations,
         explanations,
+        presentation_v2,
         ..
     }) = &state.terminal_outcome
     else {
@@ -396,6 +409,17 @@ fn river_checkdown_resolves_showdown_terminal_and_conserves_pot() {
         .iter()
         .filter(|explanation| explanation.revealed.is_some())
         .all(|explanation| explanation.status == river_ledger::SeatStatus::ShowdownEligible));
+    assert_eq!(presentation_v2.board_cards.len(), 5);
+    assert_eq!(presentation_v2.standings.len(), 4);
+    assert!(presentation_v2.folded_rows.is_empty());
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .any(|standing| standing.default_expanded));
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .all(|standing| standing.best_five.len() == 5 && standing.board_cards.len() == 5));
 }
 
 #[test]
@@ -448,6 +472,7 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
         winners,
         allocations,
         explanations,
+        presentation_v2,
         ..
     } = outcome
     else {
@@ -489,6 +514,20 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
         .iter()
         .filter(|explanation| explanation.seat != RiverLedgerSeat::from_index(0).unwrap())
         .all(|explanation| explanation.revealed.is_some()));
+    assert_eq!(presentation_v2.standings.len(), 3);
+    assert_eq!(presentation_v2.folded_rows.len(), 1);
+    assert_eq!(presentation_v2.folded_rows[0].seat, seat(0));
+    assert!(presentation_v2.folded_rows[0]
+        .redaction_label
+        .contains("hand remains hidden"));
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .all(|standing| standing.seat != seat(0)));
+    assert!(presentation_v2
+        .decisive_reason
+        .rule_refs
+        .contains(&"RL-SCORE-SPLIT".to_owned()));
 }
 
 #[test]
@@ -528,6 +567,7 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
         decisive_comparison,
         comparison_basis,
         explanations,
+        presentation_v2,
         ..
     } = outcome
     else {
@@ -535,7 +575,8 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
     };
 
     assert_eq!(winners, vec![seat(1)]);
-    assert_eq!(headline, "seat_1 wins with Pair of Queens.");
+    assert_eq!(headline, "Seat 2 wins with Pair of Queens.");
+    assert!(!headline.contains("seat_"));
     assert_eq!(decisive_comparison, "Pair of Queens beats Pair of Eights.");
     assert_eq!(
         comparison_basis,
@@ -575,6 +616,31 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
         closest_loser.comparison_note,
         "Pair of Eights loses to Pair of Queens."
     );
+    assert_eq!(presentation_v2.result_banner.headline, headline);
+    assert_eq!(
+        presentation_v2.result_banner.subheadline,
+        decisive_comparison
+    );
+    assert_eq!(presentation_v2.decisive_reason.short_text, comparison_basis);
+    assert_eq!(presentation_v2.decisive_reason.contrast_seat, Some(seat(0)));
+    assert_eq!(
+        presentation_v2
+            .decisive_reason
+            .contrast_seat_label
+            .as_deref(),
+        Some("Seat 1")
+    );
+    assert_eq!(presentation_v2.standings[0].seat, seat(1));
+    assert_eq!(presentation_v2.standings[0].rank, 1);
+    assert_eq!(presentation_v2.standings[0].hand_name, "Pair of Queens");
+    assert_eq!(presentation_v2.standings[1].seat, seat(0));
+    assert!(presentation_v2.standings[0]
+        .hole_cards
+        .iter()
+        .any(|card| card.used_in_best_five));
+    assert!(presentation_v2.board_cards.iter().any(|card| {
+        card.slot == "flop_3" && card.used_by_selected.contains(&"Seat 2".to_owned())
+    }));
 }
 
 #[test]
@@ -611,6 +677,7 @@ fn showdown_explanation_marks_split_and_folded_paths() {
         decisive_comparison,
         comparison_basis,
         explanations,
+        presentation_v2,
         ..
     } = outcome
     else {
@@ -620,12 +687,14 @@ fn showdown_explanation_marks_split_and_folded_paths() {
     assert_eq!(winners, vec![seat(0), seat(1)]);
     assert_eq!(
         headline,
-        "seat_0 and seat_1 split the ledger with Ace-high straight flush."
+        "Seat 1 and Seat 2 split the ledger with Ace-high straight flush."
     );
+    assert!(!headline.contains("seat_"));
     assert_eq!(
         decisive_comparison,
-        "seat_0 and seat_1 all hold Ace-high straight flush, so the ledger is split."
+        "Seat 1 and Seat 2 all hold Ace-high straight flush, so the ledger is split."
     );
+    assert!(!decisive_comparison.contains("seat_"));
     assert_eq!(
         comparison_basis,
         "The best revealed hands have equal category and tie-break ranks."
@@ -649,6 +718,17 @@ fn showdown_explanation_marks_split_and_folded_paths() {
         .expect("folded explanation")
         .revealed
         .is_none());
+    assert_eq!(presentation_v2.standings.len(), 2);
+    assert_eq!(presentation_v2.folded_rows.len(), 1);
+    assert_eq!(presentation_v2.folded_rows[0].seat, seat(2));
+    assert!(presentation_v2
+        .standings
+        .iter()
+        .all(|standing| standing.default_expanded));
+    assert!(presentation_v2
+        .decisive_reason
+        .rule_refs
+        .contains(&"RL-SCORE-SPLIT".to_owned()));
 }
 
 #[test]
@@ -817,6 +897,19 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
         "raises_remaining",
         "cap_remaining",
         "accessibility_copy",
+        "presentation_segment",
+        "presentation_label",
+        "presentation_helper_text",
+        "presentation_accessibility_label",
+        "presentation_row_0_label",
+        "presentation_row_0_value",
+        "presentation_row_0_tone",
+        "presentation_row_1_label",
+        "presentation_row_1_value",
+        "presentation_row_1_tone",
+        "presentation_row_2_label",
+        "presentation_row_2_value",
+        "presentation_row_2_tone",
     ];
 
     for choice in legal_action_tree(&state, &actor("seat_3")).root.choices {
@@ -824,9 +917,31 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
             .metadata
             .iter()
             .all(|entry| allowed.contains(&entry.key.as_str())));
+        assert!(choice
+            .metadata
+            .iter()
+            .any(|entry| entry.key == "presentation_label"));
         let serialized = format!("{choice:?}");
         for forbidden in ["hidden", "private", "deck", "hole", "rank", "suit"] {
             assert!(!serialized.contains(forbidden), "{serialized}");
         }
     }
+}
+
+fn presentation_rows(choice: &engine_core::ActionChoice) -> Vec<(&str, &str)> {
+    (0..)
+        .map_while(|index| {
+            let label = metadata_value(choice, &format!("presentation_row_{index}_label"))?;
+            let value = metadata_value(choice, &format!("presentation_row_{index}_value"))?;
+            Some((label, value))
+        })
+        .collect()
+}
+
+fn metadata_value<'a>(choice: &'a engine_core::ActionChoice, key: &str) -> Option<&'a str> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .map(|entry| entry.value.as_str())
 }

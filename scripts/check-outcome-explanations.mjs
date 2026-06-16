@@ -44,6 +44,7 @@ const FORBIDDEN_TEMPLATE_PATTERNS = [
   { label: "tiebreak/order behavior", re: /\b(?:tiebreak_order|rank_order|compare(?:Score|Cards|Ranks|Strength)|resolveTiebreak)\b/i },
   { label: "TypeScript outcome decision helper", re: /\b(?:determineWinner|findWinningLine|scoreOutcome)\b/i },
   { label: "hidden-info leak marker", re: /\b(?:deck_tail|opponent_private|unrevealed_private|secret_commitment)\b/i },
+  { label: "raw seat id in outcome copy", re: /\bseat_\d+\b/i },
 ];
 
 const failures = [];

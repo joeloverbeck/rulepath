@@ -60,9 +60,13 @@ export function MatchSetup({
       </div>
 
       <div className="setup-hero" data-game-id={selectedGame?.game_id}>
-        <div className="setup-hero-art" aria-hidden="true">
+        <div className="setup-hero-art" aria-hidden={selectedGame?.game_id === "river_ledger" ? undefined : "true"}>
           {selectedGame ? (
-            <GameCatalogIcon gameId={selectedGame.game_id} title={`${selectedGame.display_name} icon`} />
+            <GameCatalogIcon
+              gameId={selectedGame.game_id}
+              title={`${selectedGame.display_name} icon`}
+              decorative={selectedGame.game_id !== "river_ledger"}
+            />
           ) : null}
         </div>
         <div className="setup-hero-copy">

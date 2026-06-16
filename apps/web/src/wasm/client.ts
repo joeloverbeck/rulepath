@@ -714,12 +714,36 @@ export type RiverLedgerCardView = {
   accessibility_label: string;
 };
 
+export type RiverLedgerBoardSlotView = {
+  slot: string;
+  reveal_state: "pending" | "revealed" | string;
+  street_label: string;
+  visual_placeholder_label: string;
+  accessibility_label: string;
+  card: RiverLedgerCardView | null;
+};
+
 export type RiverLedgerSeatView = {
   seat: RiverLedgerSeatId;
   status: "live" | "folded" | "showdown_eligible" | string;
   street_contribution: number;
   total_contribution: number;
   hidden_hole_count: number;
+  ledger_display: RiverLedgerSeatLedgerDisplay;
+};
+
+export type RiverLedgerSeatLedgerDisplay = {
+  round_contribution: RiverLedgerSeatLedgerField;
+  hand_contribution: RiverLedgerSeatLedgerField;
+  hole_card_summary: RiverLedgerSeatLedgerField;
+  role_badges: string[];
+  status_label: string;
+};
+
+export type RiverLedgerSeatLedgerField = {
+  label: string;
+  value: string;
+  accessibility_label: string;
 };
 
 export type RiverLedgerShowdownStrength = {
@@ -760,15 +784,79 @@ export type RiverLedgerTerminalView =
       pot_total: 0;
       allocations: [];
       explanations: [];
+      presentation_v2?: null;
     }
   | {
-      kind: "last_live_hand" | "showdown" | string;
+      kind: "last_live_hand" | string;
       terminal: true;
       winners: RiverLedgerSeatId[];
       pot_total: number;
       allocations: Array<{ seat: RiverLedgerSeatId; amount: number }>;
       explanations: string[];
+      presentation_v2?: RiverLedgerShowdownPresentationV2 | null;
     };
+
+export type RiverLedgerShowdownPresentationV2 = {
+  result_banner: RiverLedgerShowdownResultBanner;
+  decisive_reason: RiverLedgerShowdownDecisiveReason;
+  board_cards: RiverLedgerShowdownBoardCardPresentation[];
+  standings: RiverLedgerShowdownStandingPresentation[];
+  folded_rows: RiverLedgerShowdownFoldedRowPresentation[];
+};
+
+export type RiverLedgerShowdownResultBanner = {
+  headline: string;
+  subheadline: string;
+  accessibility_label: string;
+};
+
+export type RiverLedgerShowdownDecisiveReason = {
+  short_text: string;
+  contrast_seat: RiverLedgerSeatId | null;
+  contrast_seat_label: string | null;
+  rule_refs: string[];
+};
+
+export type RiverLedgerShowdownBoardCardPresentation = {
+  slot: string;
+  card: RiverLedgerCardView;
+  public_label: string;
+  used_by_selected: string[];
+};
+
+export type RiverLedgerShowdownStandingPresentation = {
+  seat: RiverLedgerSeatId;
+  seat_label: string;
+  rank: number;
+  result_label: string;
+  allocation_label: string;
+  hand_name: string;
+  short_comparison_note: string;
+  rank_ladder_label: string;
+  hole_cards: RiverLedgerShowdownCardUsageMark[];
+  board_cards: RiverLedgerShowdownCardUsageMark[];
+  best_five: RiverLedgerCardView[];
+  best_five_accessibility_label: string;
+  detail_rows: RiverLedgerShowdownDetailRow[];
+  default_expanded: boolean;
+};
+
+export type RiverLedgerShowdownCardUsageMark = {
+  card: RiverLedgerCardView;
+  public_label: string;
+  used_in_best_five: boolean;
+};
+
+export type RiverLedgerShowdownDetailRow = {
+  label: string;
+  value: string;
+};
+
+export type RiverLedgerShowdownFoldedRowPresentation = {
+  seat: RiverLedgerSeatId;
+  seat_label: string;
+  redaction_label: string;
+};
 
 export type RiverLedgerPrivateView =
   | { status: "observer"; seat: null; hole_cards: [] }
@@ -782,6 +870,7 @@ export type RiverLedgerUiMetadata = {
   min_seats: number;
   default_seats: number;
   max_seats: number;
+  seat_labels: SeatDisplayLabel[];
   seat_metadata_label: string;
   action_hint_label: string;
   outcome_explanation_label: string;
@@ -813,6 +902,7 @@ export type RiverLedgerPublicView = {
   pot_total: number;
   seats: RiverLedgerSeatView[];
   board: RiverLedgerCardView[];
+  board_slots: RiverLedgerBoardSlotView[];
   terminal: RiverLedgerTerminalView;
   terminal_rationale?: RiverLedgerOutcomeRationale | null;
   freshness_token: number;
@@ -1178,6 +1268,13 @@ export type ActionChoice = {
   label: string;
   accessibility_label: string;
   metadata?: Array<{ key: string; value: string }>;
+  presentation?: {
+    segment: string;
+    label: string;
+    helper_text: string;
+    accessibility_label: string;
+    display_rows: Array<{ label: string; value: string; tone: string }>;
+  } | null;
   tags?: string[];
   next?: { choices: ActionChoice[] } | null;
 };
@@ -1208,6 +1305,21 @@ export type BotTurnResult = {
   policy_id?: string;
   policy_version?: number;
   rationale?: string;
+  bot_explanation?: BotDecisionPublicExplanation | null;
+};
+
+export type BotDecisionPublicExplanation = {
+  seat: SeatId;
+  seat_label: string;
+  action_label: string;
+  short_reason: string;
+  public_facts: BotDecisionPublicFact[];
+  hidden_information_notice: string;
+};
+
+export type BotDecisionPublicFact = {
+  label: string;
+  value: string;
 };
 
 export type ApiError = {

@@ -283,6 +283,15 @@ assert(riverObserver.seats.length === 6, "river_ledger Rust view exposes six sea
 assert(riverObserver.board.length === 0, "river_ledger setup exposes no public board cards");
 assert(!("view_summary" in riverObserver), "river_ledger view uses structured browser payload");
 assert(!("deck_tail_count" in riverObserver), "river_ledger view omits deck-tail internals");
+for (const seatCount of [3, 4, 5, 6]) {
+  const match = invoke(
+    (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(70 + seatCount), seatCount),
+    ["river_ledger"],
+  );
+  const view = invoke((args) => wasm.rulepath_get_view(args[0].ptr, args[0].len), [match.match_id]);
+  assert(view.seats.length === seatCount, `river_ledger ${seatCount}-seat view exposes compact rail seats`);
+  assert(view.board_slots.length === 5, `river_ledger ${seatCount}-seat view exposes central board well slots`);
+}
 const riverSeat3 = invoke(
   (args) =>
     wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
@@ -303,6 +312,21 @@ const riverTree = invoke(
   [riverLedger.match_id, riverObserver.active_seat, riverObserver.active_seat],
 );
 assert(riverTree.choices.length > 0, "river_ledger active seat exposes legal actions");
+const riverBot = invoke(
+  (args) => wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 88n),
+  [riverLedger.match_id, riverObserver.active_seat],
+);
+assert(riverBot.bot_explanation, "river_ledger bot turn returns Rust-authored public explanation");
+assert(riverBot.bot_explanation.seat_label.startsWith("Seat "), "river_ledger bot explanation uses public seat label");
+assert(riverBot.bot_explanation.short_reason.endsWith("."), "river_ledger bot explanation carries one-sentence reason");
+assert(
+  riverBot.bot_explanation.public_facts.some((fact) => fact.label === "Call price"),
+  "river_ledger bot explanation carries public fact rows",
+);
+assert(
+  !JSON.stringify(riverBot.effects).includes("bot_explanation"),
+  "river_ledger bot explanation is not routed through effect payloads",
+);
 
 const threeMarks = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 4n),

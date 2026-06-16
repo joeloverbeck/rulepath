@@ -26,6 +26,7 @@ const internalTerms = [
   "candidate_ranking",
   "bot_candidate",
 ];
+const rawSeatIdRe = /\bseat_\d+\b/;
 
 await access(executablePath);
 
@@ -64,11 +65,13 @@ try {
   page.on("pageerror", (error) => consoleMessages.push(error.message));
   await page.setViewport({ width: 1180, height: 920 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+  await assertRawSeatIdGuardTrips(page, baseUrl);
 
   const selectedSeatCount = 4;
   await startRiverLedger(page, baseUrl, "Human vs bot", selectedSeatCount);
   await page.waitForSelector('[data-testid="river-ledger-board"]');
   await waitForText(page, "Seat 0 to choose");
+  await assertModeStatusUsesSeatLabel(page);
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
   await assertHandRankingReferenceDuringPlay(page);
   await assertSeatAndStreetAffordancesDuringPlay(page);
@@ -110,6 +113,7 @@ try {
   const outcomeText = await page.$eval(".outcome-explanation-panel", (element) => element.textContent ?? "");
   assert(outcomeText.includes("Seat"), "river_ledger terminal outcome names seats");
   await assertFoldedSeatNoStrength(page);
+  await assertNoRawSeatIds(page, "terminal surface");
   assertNoForbiddenTerms(await fullBrowserSurface(page), "terminal surface", internalTerms);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);
 
@@ -121,6 +125,7 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await playWorkedExampleShowdown(page, baseUrl);
   await assertWorkedExampleShowdown(page);
+  await assertNoRawSeatIds(page, "worked-example showdown surface");
   await assertShowdownCardComponents(page);
   await assertHandRankingReferenceAfterShowdown(page);
   await assertTeachingAidAfterShowdown(page);
@@ -192,7 +197,8 @@ async function assertWorkedExampleShowdown(page) {
       showdownText: showdown?.textContent ?? "",
       handCount: showdown?.querySelectorAll(".river-ledger-showdown-hand").length ?? 0,
       cardCount: showdown?.querySelectorAll(".river-ledger-showdown-card").length ?? 0,
-      foldedStrengthRows: Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? [])
+      boardUsageCards: showdown?.querySelectorAll(".river-ledger-showdown-board .river-ledger-showdown-usage-card").length ?? 0,
+      foldedStrengthRows: Array.from(panel?.querySelectorAll(".river-ledger-showdown-folded p, .outcome-standing-row") ?? [])
         .filter((row) => row.textContent?.includes("Folded"))
         .filter((row) => /Pair|High Card|tie break/i.test(row.textContent ?? "")).length,
     };
@@ -207,7 +213,8 @@ async function assertWorkedExampleShowdown(page) {
     `worked example comparison basis is rendered: ${summary.text}`,
   );
   assert(summary.handCount === 4, `worked example renders four revealed hands: ${summary.handCount}`);
-  assert(summary.cardCount === 20, `worked example renders each best-five hand: ${summary.cardCount}`);
+  assert(summary.boardUsageCards === 5, `worked example renders board usage once: ${summary.boardUsageCards}`);
+  assert(summary.cardCount >= 25, `worked example renders board usage plus each best-five hand: ${summary.cardCount}`);
   assert(summary.foldedStrengthRows === 0, "worked example renders no folded-seat hand strength");
 }
 
@@ -234,12 +241,16 @@ async function assertShowdownCardComponents(page) {
   const summary = await page.evaluate(() => {
     const boardCards = Array.from(document.querySelectorAll(".river-ledger-board-cards .river-ledger-card.board"));
     const showdownCards = Array.from(document.querySelectorAll(".river-ledger-showdown-card.river-ledger-card.showdown"));
+    const bestFiveCards = Array.from(document.querySelectorAll(".river-ledger-showdown-hand > .river-ledger-showdown-cards .river-ledger-showdown-card.river-ledger-card.showdown"));
+    const usageCards = Array.from(document.querySelectorAll(".river-ledger-showdown-board .river-ledger-showdown-usage-card"));
     const boardGroup = document.querySelector(".river-ledger-board-cards");
-    const showdownGroups = Array.from(document.querySelectorAll(".river-ledger-showdown-cards"));
+    const showdownGroups = Array.from(document.querySelectorAll(".river-ledger-showdown-hand > .river-ledger-showdown-cards"));
     return {
       boardCards: boardCards.length,
       boardGlyphs: boardCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
       showdownCards: showdownCards.length,
+      bestFiveCards: bestFiveCards.length,
+      usageCards: usageCards.length,
       showdownGlyphs: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit b")?.textContent?.trim()).length,
       showdownSuitWords: showdownCards.filter((card) => card.querySelector(".river-ledger-card-suit small")?.textContent?.trim()).length,
       boardGroupLabel: boardGroup?.getAttribute("aria-label") ?? "",
@@ -248,9 +259,11 @@ async function assertShowdownCardComponents(page) {
   });
   assert(summary.boardCards === 5, `terminal board uses card component: ${summary.boardCards}`);
   assert(summary.boardGlyphs === 5, `terminal board renders suit glyphs: ${summary.boardGlyphs}`);
-  assert(summary.showdownCards === 20, `showdown best-five uses card component: ${summary.showdownCards}`);
-  assert(summary.showdownGlyphs === 20, `showdown best-five renders suit glyphs: ${summary.showdownGlyphs}`);
-  assert(summary.showdownSuitWords === 20, `showdown best-five renders suit words: ${summary.showdownSuitWords}`);
+  assert(summary.bestFiveCards === 20, `showdown best-five uses card component: ${summary.bestFiveCards}`);
+  assert(summary.usageCards === 5, `showdown board usage renders once: ${summary.usageCards}`);
+  assert(summary.showdownCards >= 25, `showdown uses card component for best-five plus usage: ${summary.showdownCards}`);
+  assert(summary.showdownGlyphs >= 25, `showdown renders suit glyphs: ${summary.showdownGlyphs}`);
+  assert(summary.showdownSuitWords >= 25, `showdown renders suit words: ${summary.showdownSuitWords}`);
   assert(summary.boardGroupLabel.includes("Public board cards"), `board group has accessible label: ${summary.boardGroupLabel}`);
   assert(
     summary.showdownGroupLabels.length === 4 && summary.showdownGroupLabels.every((label) => label.includes("Best five")),
@@ -322,8 +335,12 @@ async function assertActionPanelCostCopy(page) {
     `action panel renders call price and adds-to-ledger: ${summary.join(" | ")}`,
   );
   assert(
-    summary.every((text) => text.includes("Cap left 3")),
-    `action panel renders Rust cap remaining for each choice: ${summary.join(" | ")}`,
+    summary.some((text) => text.includes("Fold") && !text.includes("Call price") && !text.includes("Raises left")),
+    `fold action omits irrelevant call/cap rows: ${summary.join(" | ")}`,
+  );
+  assert(
+    summary.some((text) => text.includes("Raise") && text.includes("Raises left 3")),
+    `action panel renders Rust raises remaining for raise choices: ${summary.join(" | ")}`,
   );
 }
 
@@ -336,7 +353,8 @@ async function assertSeatAndStreetAffordancesDuringPlay(page) {
       buttonMarker: seats.some((seat) => seat.textContent?.includes("Button")),
       smallBlindMarker: seats.some((seat) => seat.textContent?.includes("Small blind")),
       bigBlindMarker: seats.some((seat) => seat.textContent?.includes("Big blind")),
-      markerIcons: Array.from(document.querySelectorAll(".river-ledger-markers b span")).map((icon) => icon.textContent ?? ""),
+      ledgerLabels: seats.map((seat) => seat.textContent ?? ""),
+      trackBars: document.querySelectorAll(".river-ledger-track-bar").length,
       currentStreetText: currentStreet?.textContent ?? "",
       currentStreetAria: currentStreet?.getAttribute("aria-current") ?? "",
       streetRows: document.querySelectorAll(".river-ledger-street-strip li").length,
@@ -346,10 +364,22 @@ async function assertSeatAndStreetAffordancesDuringPlay(page) {
   assert(summary.buttonMarker, "seat affordances include button text");
   assert(summary.smallBlindMarker, "seat affordances include small blind text");
   assert(summary.bigBlindMarker, "seat affordances include big blind text");
-  assert(summary.markerIcons.length >= 4, `seat affordances include icons: ${summary.markerIcons.join(", ")}`);
+  assert(
+    summary.ledgerLabels.every(
+      (text) => text.includes("This round") && text.includes("Hand total") && text.includes("Hole cards") && text.includes("2 hidden"),
+    ),
+    `seat ledgers render Rust-authored labels: ${summary.ledgerLabels.join(" | ")}`,
+  );
+  assert(summary.trackBars === 0, "seat ledger removes duplicate contribution track bar");
   assert(summary.streetRows === 5, `street strip renders five steps: ${summary.streetRows}`);
   assert(summary.currentStreetText.includes("Preflop"), `street strip marks preflop from public state: ${summary.currentStreetText}`);
   assert(summary.currentStreetAria === "step", `current street exposes aria-current step: ${summary.currentStreetAria}`);
+}
+
+async function assertModeStatusUsesSeatLabel(page) {
+  const modeText = await page.$eval(".mode-controls", (element) => element.textContent ?? "");
+  assert(modeText.includes("Seat 0 (you) to act"), `mode status uses Rust seat labels: ${modeText}`);
+  assert(!modeText.includes("Player 1 to act"), `mode status avoids Player fallback: ${modeText}`);
 }
 
 async function assertStreetStripAfterShowdown(page) {
@@ -369,8 +399,8 @@ async function assertStreetStripAfterShowdown(page) {
 async function assertFoldedSeatNoStrength(page) {
   const summary = await page.evaluate(() => {
     const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
-    const foldedRows = Array.from(panel?.querySelectorAll(".outcome-standing-row") ?? []).filter((row) =>
-      /folded/i.test(row.textContent ?? ""),
+    const foldedRows = Array.from(panel?.querySelectorAll(".river-ledger-showdown-folded p, .outcome-standing-row") ?? []).filter(
+      (row) => /folded/i.test(row.textContent ?? ""),
     );
     return {
       text: panel?.textContent ?? "",
@@ -411,6 +441,10 @@ async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {
     return {
       board: Boolean(document.querySelector('[data-testid="river-ledger-board"]')),
       seats: document.querySelectorAll(".river-ledger-seat").length,
+      pendingSlots: Array.from(document.querySelectorAll(".river-ledger-board-cards .river-ledger-card.hidden")).map((slot) => ({
+        text: slot.textContent ?? "",
+        aria: slot.getAttribute("aria-label") ?? "",
+      })),
       choices: document.querySelectorAll('[data-testid^="choice-river-ledger-"]').length,
       unnamed: buttons
         .filter((button) => !((button.getAttribute("aria-label") || button.textContent || "").trim()))
@@ -422,6 +456,15 @@ async function assertRiverLedgerA11y(page, expectChoices, expectedSeatCount) {
   assert(
     summary.seats === expectedSeatCount,
     `river_ledger renders ${expectedSeatCount} selected seat rows, got ${summary.seats}`,
+  );
+  assert(summary.pendingSlots.length === 5, `river_ledger renders five pending board slots: ${summary.pendingSlots.length}`);
+  assert(
+    summary.pendingSlots.some((slot) => slot.text.includes("Flop 1 pending") && slot.aria.includes("Unrevealed Flop 1 card")),
+    `river_ledger pending slots use Rust-authored street labels: ${JSON.stringify(summary.pendingSlots)}`,
+  );
+  assert(
+    summary.pendingSlots.every((slot) => !cardIds.some((cardId) => slot.text.includes(cardId) || slot.aria.includes(cardId))),
+    "river_ledger pending slots omit future card ids",
   );
   if (expectChoices) {
     assert(summary.choices > 0, "river_ledger exposes Rust-provided action buttons");
@@ -470,9 +513,74 @@ async function ownPrivateCardLabels(page) {
 }
 
 async function assertNoLeak(page, consoleMessages, label, forbiddenCardIds) {
+  await assertNoRawSeatIds(page, label);
   const surface = await fullBrowserSurface(page);
   assertNoForbiddenTerms(surface, label, [...forbiddenCardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertRawSeatIdGuardTrips(page, baseUrl) {
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await page.evaluate(() => {
+    const probe = document.createElement("button");
+    probe.type = "button";
+    probe.dataset.testid = "river-ledger-raw-seat-probe";
+    probe.setAttribute("aria-label", "seat_5 should fail the River Ledger copy guard");
+    probe.textContent = "seat_5 should fail the River Ledger copy guard";
+    document.querySelector("main")?.append(probe);
+  });
+  const hits = await collectRawSeatIdHits(page);
+  await page.evaluate(() => document.querySelector("[data-testid='river-ledger-raw-seat-probe']")?.remove());
+  assert(
+    hits.some((hit) => hit.token === "seat_5"),
+    `River Ledger raw-seat guard did not catch induced drift: ${JSON.stringify(hits)}`,
+  );
+}
+
+async function assertNoRawSeatIds(page, label) {
+  const hits = await collectRawSeatIdHits(page);
+  assert(hits.length === 0, `${label} contains raw seat ids in visible/a11y/test-id surface: ${JSON.stringify(hits)}`);
+}
+
+async function collectRawSeatIdHits(page) {
+  const samples = await page.evaluate(() => {
+    const excludedSelector = ".dev-panel, .replay-io, .replay-viewer, script, style";
+    const textSamples = [];
+    const attributeSamples = [];
+
+    const isExcluded = (element) => Boolean(element.closest(excludedSelector));
+    const isVisible = (element) => {
+      if (isExcluded(element) || element.getAttribute("aria-hidden") === "true") return false;
+      const style = window.getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden";
+    };
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const parent = node.parentElement;
+      const text = node.textContent?.trim() ?? "";
+      if (parent && text && isVisible(parent)) {
+        textSamples.push({ source: "text", value: text });
+      }
+    }
+
+    for (const element of Array.from(document.querySelectorAll("*"))) {
+      if (isExcluded(element) || !isVisible(element)) continue;
+      for (const name of ["aria-label", "title", "alt", "aria-valuetext", "data-testid"]) {
+        const value = element.getAttribute(name);
+        if (value?.trim()) {
+          attributeSamples.push({ source: name, value });
+        }
+      }
+    }
+
+    return [...textSamples, ...attributeSamples];
+  });
+  return samples.flatMap((sample) => {
+    const tokens = sample.value.match(new RegExp(rawSeatIdRe.source, "gi")) ?? [];
+    return tokens.map((token) => ({ ...sample, token }));
+  });
 }
 
 async function fullBrowserSurface(page) {

@@ -1,7 +1,7 @@
 import type { PublicView } from "../wasm/client";
 
 export type SettleIssue = {
-  code: "missing_board" | "lingering_ghost" | "running_animation";
+  code: "missing_board" | "missing_showdown_stage" | "lingering_ghost" | "running_animation";
   detail: string;
 };
 
@@ -42,6 +42,18 @@ export function assertSettledView(root: SettleRoot, view: PublicView | null): Se
     });
   }
 
+  if (gameId === "river_ledger" && isRiverShowdownView(view)) {
+    for (const targetId of ["river-ledger-showdown-banner", "river-ledger-showdown-board", "river-ledger-showdown-standings"]) {
+      const selector = `[data-animation-target="${targetId}"]`;
+      if (!root.querySelector(selector)) {
+        issues.push({
+          code: "missing_showdown_stage",
+          detail: `settled River Ledger showdown is missing ${selector}`,
+        });
+      }
+    }
+  }
+
   if (root.querySelector(".animation-ghost")) {
     issues.push({
       code: "lingering_ghost",
@@ -74,4 +86,12 @@ function boardTestId(gameId: string): string {
 
 function gameIdForView(view: PublicView): string {
   return "game_id" in view ? view.game_id : "race_to_n";
+}
+
+function isRiverShowdownView(view: PublicView): boolean {
+  if (!("game_id" in view) || view.game_id !== "river_ledger") {
+    return false;
+  }
+  const terminal = (view as { terminal?: { terminal?: boolean; kind?: string } }).terminal;
+  return terminal?.terminal === true && terminal.kind === "showdown";
 }

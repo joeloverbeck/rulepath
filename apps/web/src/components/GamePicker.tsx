@@ -38,8 +38,8 @@ export function GamePicker({ games, selectedGameId, onSelect, onRulesOpen }: Gam
                 aria-pressed={game.game_id === selectedGameId}
               >
                 <span className="game-card-accent" aria-hidden="true" />
-                <span className="game-art" aria-hidden="true">
-                  <GameCatalogIcon gameId={game.game_id} title={`${game.display_name} icon`} />
+                <span className="game-art" aria-hidden={game.game_id === "river_ledger" ? undefined : "true"}>
+                  <GameCatalogIcon gameId={game.game_id} title={`${game.display_name} icon`} decorative={game.game_id !== "river_ledger"} />
                 </span>
                 <span className="game-card-copy">
                   <span className="game-card-eyebrow">{gameEyebrow(game)}</span>

@@ -54,6 +54,7 @@ authoritative match state lives inside the Rust/WASM in-memory store.
 The shell includes:
 
 - Rust catalog-driven game picker;
+- catalog game icons, including a dedicated original River Ledger icon;
 - seeded match setup;
 - human-vs-bot, hotseat, and bot-vs-bot modes;
 - Race to 21 public board and status;
@@ -131,7 +132,7 @@ presentations for the current catalog surface.
 | `secret_draft` | generic-only | Draft/reveal effects use shared redacted/reveal-safe presentations. |
 | `poker_lite` | generic-only | Public poker-lite score/reveal effects use baseline shared presentations. |
 | `plain_tricks` | generic-only | Deal/play/trick/score effects use baseline shared movement/highlight presentations. |
-| `river_ledger` | generic-only | River Ledger contribution and board updates use baseline shared movement/highlight presentations until authored mappings land. |
+| `river_ledger` | adopt | River Ledger contribution, street-advance, board reveal, and showdown-settle feedback use authored registry mappings with reduced-motion coverage. |
 
 ## Smoke Layers
 

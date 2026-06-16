@@ -1,10 +1,14 @@
 use engine_core::{FreshnessToken, HashValue, StableSerialize, Viewer};
 
 use crate::{
+    bots::{BotDecisionPublicExplanation, BotDecisionPublicFact},
     cards::Card,
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
-    ui::{ui_metadata, UiMetadata},
+    ui::{
+        seat_ledger_display, ui_metadata, HoleCardSummary, RiverLedgerSeatLedgerDisplay,
+        SeatLedgerRoles, UiMetadata,
+    },
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,6 +27,7 @@ pub struct PublicView {
     pub pot_total: u16,
     pub seats: Vec<SeatView>,
     pub board: Vec<CardView>,
+    pub board_slots: Vec<BoardSlotView>,
     pub reserved_community_count: u8,
     pub deck_tail_count: u8,
     pub terminal: TerminalView,
@@ -39,6 +44,7 @@ pub struct SeatView {
     pub street_contribution: u16,
     pub total_contribution: u16,
     pub hidden_hole_count: u8,
+    pub ledger_display: RiverLedgerSeatLedgerDisplay,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -48,6 +54,16 @@ pub struct CardView {
     pub rank_value: u8,
     pub suit: String,
     pub label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoardSlotView {
+    pub slot: String,
+    pub reveal_state: String,
+    pub street_label: String,
+    pub visual_placeholder_label: String,
+    pub accessibility_label: String,
+    pub card: Option<CardView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -74,7 +90,78 @@ pub enum TerminalView {
         pot_total: u16,
         allocations: Vec<(RiverLedgerSeat, u16)>,
         explanations: Vec<String>,
+        presentation_v2: Box<ShowdownPresentationV2View>,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownPresentationV2View {
+    pub result_banner: ShowdownResultBannerView,
+    pub decisive_reason: ShowdownDecisiveReasonView,
+    pub board_cards: Vec<ShowdownBoardCardPresentationView>,
+    pub standings: Vec<ShowdownStandingPresentationView>,
+    pub folded_rows: Vec<ShowdownFoldedRowPresentationView>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownResultBannerView {
+    pub headline: String,
+    pub subheadline: String,
+    pub accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownDecisiveReasonView {
+    pub short_text: String,
+    pub contrast_seat: Option<RiverLedgerSeat>,
+    pub contrast_seat_label: Option<String>,
+    pub rule_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownBoardCardPresentationView {
+    pub slot: String,
+    pub card: CardView,
+    pub public_label: String,
+    pub used_by_selected: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownStandingPresentationView {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub rank: u8,
+    pub result_label: String,
+    pub allocation_label: String,
+    pub hand_name: String,
+    pub short_comparison_note: String,
+    pub rank_ladder_label: String,
+    pub hole_cards: Vec<ShowdownCardUsageMarkView>,
+    pub board_cards: Vec<ShowdownCardUsageMarkView>,
+    pub best_five: Vec<CardView>,
+    pub best_five_accessibility_label: String,
+    pub detail_rows: Vec<ShowdownDetailRowView>,
+    pub default_expanded: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownCardUsageMarkView {
+    pub card: CardView,
+    pub public_label: String,
+    pub used_in_best_five: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownDetailRowView {
+    pub label: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShowdownFoldedRowPresentationView {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub redaction_label: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -111,6 +198,46 @@ pub struct ShowdownStrengthView {
     pub best_five_accessibility_label: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotDecisionPublicExplanationView {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub action_label: String,
+    pub short_reason: String,
+    pub public_facts: Vec<BotDecisionPublicFactView>,
+    pub hidden_information_notice: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotDecisionPublicFactView {
+    pub label: String,
+    pub value: String,
+}
+
+pub fn project_bot_decision_public_explanation(
+    explanation: &BotDecisionPublicExplanation,
+) -> BotDecisionPublicExplanationView {
+    BotDecisionPublicExplanationView {
+        seat: explanation.seat,
+        seat_label: explanation.seat_label.clone(),
+        action_label: explanation.action_label.clone(),
+        short_reason: explanation.short_reason.clone(),
+        public_facts: explanation
+            .public_facts
+            .iter()
+            .map(project_public_fact)
+            .collect(),
+        hidden_information_notice: explanation.hidden_information_notice.clone(),
+    }
+}
+
+fn project_public_fact(fact: &BotDecisionPublicFact) -> BotDecisionPublicFactView {
+    BotDecisionPublicFactView {
+        label: fact.label.clone(),
+        value: fact.value.clone(),
+    }
+}
+
 pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
     let viewer_seat = viewer_seat(state, viewer);
     PublicView {
@@ -130,15 +257,32 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
             .ledger
             .seats
             .iter()
-            .map(|entry| SeatView {
-                seat: entry.seat,
-                status: entry.status,
-                street_contribution: entry.street_contribution,
-                total_contribution: entry.total_contribution,
-                hidden_hole_count: 2,
+            .map(|entry| {
+                let hidden_hole_count = 2;
+                SeatView {
+                    seat: entry.seat,
+                    status: entry.status,
+                    street_contribution: entry.street_contribution,
+                    total_contribution: entry.total_contribution,
+                    hidden_hole_count,
+                    ledger_display: seat_ledger_display(
+                        entry.seat,
+                        entry.status,
+                        entry.street_contribution,
+                        entry.total_contribution,
+                        hole_card_summary(state, entry.seat, hidden_hole_count),
+                        SeatLedgerRoles {
+                            active: state.active_seat == Some(entry.seat),
+                            button: state.button == entry.seat,
+                            small_blind: state.small_blind == entry.seat,
+                            big_blind: state.big_blind == entry.seat,
+                        },
+                    ),
+                }
             })
             .collect(),
         board: state.board.iter().copied().map(card_view).collect(),
+        board_slots: board_slots(state),
         reserved_community_count: state.community_deck_internal().len() as u8,
         deck_tail_count: state.deck_tail_internal().len() as u8,
         terminal: terminal_view(state.terminal_outcome.as_ref()),
@@ -169,7 +313,7 @@ impl PublicView {
             self.big_blind.as_str(),
             self.pot_total,
             encode_seats(&self.seats),
-            encode_cards(&self.board),
+            encode_board_slots(&self.board_slots),
             self.reserved_community_count,
             self.deck_tail_count,
             encode_terminal(&self.terminal),
@@ -215,6 +359,23 @@ fn private_view(state: &RiverLedgerState, viewer_seat: Option<RiverLedgerSeat>) 
     }
 }
 
+fn hole_card_summary(
+    state: &RiverLedgerState,
+    seat: RiverLedgerSeat,
+    hidden_hole_count: u8,
+) -> HoleCardSummary {
+    if let Some(TerminalOutcome::Showdown { explanations, .. }) = state.terminal_outcome.as_ref() {
+        if explanations
+            .iter()
+            .any(|explanation| explanation.seat == seat && explanation.revealed.is_some())
+        {
+            return HoleCardSummary::Revealed(2);
+        }
+    }
+
+    HoleCardSummary::Hidden(hidden_hole_count)
+}
+
 fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
     match outcome {
         None => TerminalView::NonTerminal,
@@ -227,6 +388,7 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
             pot_total,
             allocations,
             explanations,
+            presentation_v2,
             ..
         }) => TerminalView::Showdown {
             winners: winners.clone(),
@@ -239,7 +401,80 @@ fn terminal_view(outcome: Option<&TerminalOutcome>) -> TerminalView {
                 .iter()
                 .map(|explanation| explanation.summary.clone())
                 .collect(),
+            presentation_v2: Box::new(showdown_presentation_v2_view(presentation_v2)),
         },
+    }
+}
+
+fn showdown_presentation_v2_view(
+    presentation: &crate::state::RiverLedgerShowdownPresentationV2,
+) -> ShowdownPresentationV2View {
+    ShowdownPresentationV2View {
+        result_banner: ShowdownResultBannerView {
+            headline: presentation.result_banner.headline.clone(),
+            subheadline: presentation.result_banner.subheadline.clone(),
+            accessibility_label: presentation.result_banner.accessibility_label.clone(),
+        },
+        decisive_reason: ShowdownDecisiveReasonView {
+            short_text: presentation.decisive_reason.short_text.clone(),
+            contrast_seat: presentation.decisive_reason.contrast_seat,
+            contrast_seat_label: presentation.decisive_reason.contrast_seat_label.clone(),
+            rule_refs: presentation.decisive_reason.rule_refs.clone(),
+        },
+        board_cards: presentation
+            .board_cards
+            .iter()
+            .map(|entry| ShowdownBoardCardPresentationView {
+                slot: entry.slot.clone(),
+                card: card_view(entry.card),
+                public_label: entry.public_label.clone(),
+                used_by_selected: entry.used_by_selected.clone(),
+            })
+            .collect(),
+        standings: presentation
+            .standings
+            .iter()
+            .map(|entry| ShowdownStandingPresentationView {
+                seat: entry.seat,
+                seat_label: entry.seat_label.clone(),
+                rank: entry.rank,
+                result_label: entry.result_label.clone(),
+                allocation_label: entry.allocation_label.clone(),
+                hand_name: entry.hand_name.clone(),
+                short_comparison_note: entry.short_comparison_note.clone(),
+                rank_ladder_label: entry.rank_ladder_label.clone(),
+                hole_cards: entry.hole_cards.iter().map(card_usage_mark_view).collect(),
+                board_cards: entry.board_cards.iter().map(card_usage_mark_view).collect(),
+                best_five: entry.best_five.iter().copied().map(card_view).collect(),
+                best_five_accessibility_label: entry.best_five_accessibility_label.clone(),
+                detail_rows: entry
+                    .detail_rows
+                    .iter()
+                    .map(|row| ShowdownDetailRowView {
+                        label: row.label.clone(),
+                        value: row.value.clone(),
+                    })
+                    .collect(),
+                default_expanded: entry.default_expanded,
+            })
+            .collect(),
+        folded_rows: presentation
+            .folded_rows
+            .iter()
+            .map(|entry| ShowdownFoldedRowPresentationView {
+                seat: entry.seat,
+                seat_label: entry.seat_label.clone(),
+                redaction_label: entry.redaction_label.clone(),
+            })
+            .collect(),
+    }
+}
+
+fn card_usage_mark_view(mark: &crate::state::ShowdownCardUsageMark) -> ShowdownCardUsageMarkView {
+    ShowdownCardUsageMarkView {
+        card: card_view(mark.card),
+        public_label: mark.public_label.clone(),
+        used_in_best_five: mark.used_in_best_five,
     }
 }
 
@@ -377,17 +612,62 @@ fn card_view(card: Card) -> CardView {
     }
 }
 
+fn board_slots(state: &RiverLedgerState) -> Vec<BoardSlotView> {
+    board_slot_labels()
+        .into_iter()
+        .enumerate()
+        .map(|(index, (slot, street_label))| {
+            let card = state.board.get(index).copied().map(card_view);
+            match card {
+                Some(card) => BoardSlotView {
+                    slot: slot.to_owned(),
+                    reveal_state: "revealed".to_owned(),
+                    street_label: street_label.to_owned(),
+                    visual_placeholder_label: card.label.clone(),
+                    accessibility_label: format!("{street_label} revealed: {}.", card.label),
+                    card: Some(card),
+                },
+                None => BoardSlotView {
+                    slot: slot.to_owned(),
+                    reveal_state: "pending".to_owned(),
+                    street_label: street_label.to_owned(),
+                    visual_placeholder_label: format!("{street_label} pending"),
+                    accessibility_label: format!(
+                        "Unrevealed {street_label} card. It is not available yet."
+                    ),
+                    card: None,
+                },
+            }
+        })
+        .collect()
+}
+
+fn board_slot_labels() -> [(&'static str, &'static str); 5] {
+    [
+        ("flop_1", "Flop 1"),
+        ("flop_2", "Flop 2"),
+        ("flop_3", "Flop 3"),
+        ("turn", "Turn"),
+        ("river", "River"),
+    ]
+}
+
 fn encode_seats(seats: &[SeatView]) -> String {
     seats
         .iter()
         .map(|seat| {
             format!(
-                "{}:{:?}:{}:{}:{}",
+                "{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}",
                 seat.seat.as_str(),
                 seat.status,
                 seat.street_contribution,
                 seat.total_contribution,
-                seat.hidden_hole_count
+                seat.hidden_hole_count,
+                seat.ledger_display.round_contribution.label,
+                seat.ledger_display.hand_contribution.label,
+                seat.ledger_display.hole_card_summary.value,
+                seat.ledger_display.role_badges.join("+"),
+                seat.ledger_display.status_label
             )
         })
         .collect::<Vec<_>>()
@@ -401,6 +681,25 @@ fn encode_cards(cards: &[CardView]) -> String {
             format!(
                 "{}:{}:{}:{}",
                 card.card_id, card.rank, card.suit, card.label
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn encode_board_slots(slots: &[BoardSlotView]) -> String {
+    slots
+        .iter()
+        .map(|slot| {
+            format!(
+                "{}:{}:{}:{}:{}",
+                slot.slot,
+                slot.reveal_state,
+                slot.street_label,
+                slot.visual_placeholder_label,
+                slot.card
+                    .as_ref()
+                    .map_or_else(|| "none".to_owned(), |card| card.card_id.clone())
             )
         })
         .collect::<Vec<_>>()
@@ -427,8 +726,9 @@ fn encode_terminal(terminal: &TerminalView) -> String {
             pot_total,
             allocations,
             explanations,
+            presentation_v2,
         } => format!(
-            "showdown:{}:{}:{}:{}",
+            "showdown:{}:{}:{}:{}:{}:{}:{}",
             winners
                 .iter()
                 .map(|seat| seat.as_str())
@@ -440,7 +740,10 @@ fn encode_terminal(terminal: &TerminalView) -> String {
                 .map(|(seat, amount)| format!("{}={amount}", seat.as_str()))
                 .collect::<Vec<_>>()
                 .join(","),
-            explanations.join("|")
+            explanations.join("|"),
+            presentation_v2.result_banner.headline,
+            presentation_v2.standings.len(),
+            presentation_v2.folded_rows.len(),
         ),
     }
 }
@@ -599,8 +902,48 @@ mod tests {
 
         assert!(matches!(view.private_view, PrivateView::Observer));
         assert_eq!(view.board.len(), 0);
+        assert_eq!(view.board_slots.len(), 5);
+        assert!(view.board_slots.iter().all(|slot| {
+            slot.reveal_state == "pending"
+                && slot.card.is_none()
+                && slot.visual_placeholder_label.contains("pending")
+                && slot.accessibility_label.contains("not available yet")
+        }));
+        assert_eq!(view.board_slots[0].street_label, "Flop 1");
+        assert_eq!(view.board_slots[3].street_label, "Turn");
+        assert_eq!(view.board_slots[4].street_label, "River");
+        assert_eq!(view.ui.seat_labels.len(), 6);
+        assert_eq!(view.ui.seat_labels[0].seat, "seat_0");
+        assert_eq!(view.ui.seat_labels[0].label, "Seat 0");
+        assert_eq!(view.ui.seat_labels[5].seat, "seat_5");
+        assert_eq!(view.ui.seat_labels[5].label, "Seat 5");
         assert_eq!(view.reserved_community_count, 5);
         assert!(view.seats.iter().all(|seat| seat.hidden_hole_count == 2));
+        assert!(view.seats.iter().all(|seat| {
+            seat.ledger_display.round_contribution.label == "This round"
+                && seat.ledger_display.hand_contribution.label == "Hand total"
+                && seat.ledger_display.hole_card_summary.label == "Hole cards"
+                && seat.ledger_display.hole_card_summary.value == "2 hidden"
+                && seat
+                    .ledger_display
+                    .hole_card_summary
+                    .accessibility_label
+                    .contains("2 hidden")
+        }));
+        assert!(view.seats.iter().any(|seat| {
+            seat.seat == view.button
+                && seat
+                    .ledger_display
+                    .role_badges
+                    .contains(&"Button".to_owned())
+        }));
+        assert!(view.seats.iter().any(|seat| {
+            Some(seat.seat) == view.active_seat
+                && seat
+                    .ledger_display
+                    .role_badges
+                    .contains(&"Active".to_owned())
+        }));
 
         let summary = view.stable_summary();
         for card in state.private_hands_internal().iter().flatten() {

@@ -76,3 +76,39 @@ fn observer_public_export_omits_hidden_facts_and_seed() {
     assert!(!json.contains("seed_evidence"));
     assert!(!json.contains("\"seed\""));
 }
+
+#[test]
+fn terminal_public_export_keeps_v2_showdown_surface_public_and_deterministic() {
+    let trace = trace_from_commands(
+        79,
+        4,
+        &[
+            (3, "call"),
+            (0, "call"),
+            (1, "call"),
+            (2, "check"),
+            (1, "check"),
+            (2, "check"),
+            (3, "check"),
+            (0, "check"),
+            (1, "check"),
+            (2, "check"),
+            (3, "check"),
+            (0, "check"),
+            (1, "check"),
+            (2, "check"),
+            (3, "check"),
+            (0, "check"),
+        ],
+    );
+    let first = export_public_replay(&trace, &Viewer { seat_id: None });
+    let second = export_public_replay(&trace, &Viewer { seat_id: None });
+    let json = first.to_json();
+
+    assert_eq!(first.steps, second.steps);
+    assert!(json.contains("wins with"));
+    assert!(json.contains("showdown:"));
+    assert!(!json.contains("private_hands"));
+    assert!(!json.contains("seed_evidence"));
+    assert!(!json.contains("\"seed\""));
+}

@@ -55,6 +55,23 @@ pub struct BotDecision {
     pub level: u8,
     pub action_path: ActionPath,
     pub rationale: String,
+    pub public_explanation: Option<BotDecisionPublicExplanation>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotDecisionPublicExplanation {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub action_label: String,
+    pub short_reason: String,
+    pub public_facts: Vec<BotDecisionPublicFact>,
+    pub hidden_information_notice: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotDecisionPublicFact {
+    pub label: String,
+    pub value: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -91,6 +108,7 @@ impl RiverLedgerRandomBot {
             RANDOM_POLICY_ID,
             action_path,
             "Selected a seeded random legal River Ledger action.".to_owned(),
+            None,
         ))
     }
 }
@@ -127,6 +145,7 @@ impl RiverLedgerLevel1Bot {
                 "Conservative public price posture; chose {} from legal River Ledger actions.",
                 action.segment()
             ),
+            Some(public_explanation(&input, action)),
         ))
     }
 }
@@ -176,6 +195,7 @@ impl RiverLedgerLevel2Bot {
                 segments: vec![action.segment().to_owned()],
             },
             level2_rationale(&input, action),
+            Some(public_explanation(&input, action)),
         ))
     }
 }
@@ -357,14 +377,99 @@ fn seeded_tie(seed: Seed, action: RiverLedgerAction) -> u64 {
     value
 }
 
-fn decision(level: u8, policy_id: &str, action_path: ActionPath, rationale: String) -> BotDecision {
+fn decision(
+    level: u8,
+    policy_id: &str,
+    action_path: ActionPath,
+    rationale: String,
+    public_explanation: Option<BotDecisionPublicExplanation>,
+) -> BotDecision {
     BotDecision {
         policy_id: policy_id.to_owned(),
         policy_version: 1,
         level,
         action_path,
         rationale,
+        public_explanation,
     }
+}
+
+fn public_explanation(
+    input: &RiverLedgerBotInput,
+    action: RiverLedgerAction,
+) -> BotDecisionPublicExplanation {
+    BotDecisionPublicExplanation {
+        seat: input.bot_seat,
+        seat_label: seat_public_label(input.bot_seat),
+        action_label: action_label(action),
+        short_reason: public_reason(input, action),
+        public_facts: vec![
+            fact("Street", street_label(input.street)),
+            fact("Call price", input.call_price.to_string()),
+            fact("Raises left", input.raises_remaining.to_string()),
+            fact("Live opponents", input.live_opponent_count.to_string()),
+            fact("Ledger total", input.pot_total.to_string()),
+        ],
+        hidden_information_notice:
+            "This public explanation omits private hole cards and any cards not already public."
+                .to_owned(),
+    }
+}
+
+fn public_reason(input: &RiverLedgerBotInput, action: RiverLedgerAction) -> String {
+    match action {
+        RiverLedgerAction::Fold => {
+            "The public call price and street pressure made folding the public-safe choice."
+                .to_owned()
+        }
+        RiverLedgerAction::Check => {
+            "No contribution is required, so the bot keeps the ledger unchanged.".to_owned()
+        }
+        RiverLedgerAction::Call => {
+            format!(
+                "The bot matches the public price of {} to stay live.",
+                input.call_price
+            )
+        }
+        RiverLedgerAction::Bet => {
+            "No call is owed and raises remain, so the bot opens public pressure.".to_owned()
+        }
+        RiverLedgerAction::Raise => {
+            "Raises remain, so the bot adds public pressure after matching the price.".to_owned()
+        }
+    }
+}
+
+fn fact(label: &str, value: String) -> BotDecisionPublicFact {
+    BotDecisionPublicFact {
+        label: label.to_owned(),
+        value,
+    }
+}
+
+fn action_label(action: RiverLedgerAction) -> String {
+    match action {
+        RiverLedgerAction::Fold => "Fold",
+        RiverLedgerAction::Check => "Check",
+        RiverLedgerAction::Call => "Call",
+        RiverLedgerAction::Bet => "Bet",
+        RiverLedgerAction::Raise => "Raise",
+    }
+    .to_owned()
+}
+
+fn street_label(street: Street) -> String {
+    match street {
+        Street::Preflop => "Preflop",
+        Street::Flop => "Flop",
+        Street::Turn => "Turn",
+        Street::River => "River",
+    }
+    .to_owned()
+}
+
+fn seat_public_label(seat: RiverLedgerSeat) -> String {
+    format!("Seat {}", seat.index())
 }
 
 fn no_legal_actions() -> Diagnostic {

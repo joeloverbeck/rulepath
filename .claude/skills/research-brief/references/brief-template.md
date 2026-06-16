@@ -63,6 +63,11 @@ Session 2 might otherwise ask. Carry any early-exit gaps — or a minor residual
 surfaced at the Step 5 approval gate — here as `assumption: <X>` lines so they read as
 defaults the user can override, not as open questions.
 
+When a prior brief/report cycle on the same subject has already been **implemented**, state
+the implemented baseline here and lock a decision that Session 2 must **not re-recommend
+already-shipped work as if missing** — build on it, improve where it falls short, do not
+rebuild. This is the sharp-delta sub-case of framing the task as a delta (SKILL Step 2).
+
 ### 4. The task
 
 A precise statement of what Session 2 must achieve — the goal behind the deliverable. One

@@ -314,6 +314,27 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `Shared pool ${payload.shared_pool ?? 0} resolved by Rust.`,
         tone: "terminal",
       };
+    case "river_ledger_contribution_changed":
+      return {
+        title: "Ledger updated",
+        detail: `${payload.actor} added ${payload.amount_added ?? 0}; ledger total ${payload.pot_total ?? 0}.`,
+        tone: "turn",
+      };
+    case "river_ledger_street_advanced":
+      return {
+        title: "Board revealed",
+        detail: `${riverStreetLabel(payload.street)} is active with ${payload.public_board_count ?? 0} public cards.`,
+        tone: "movement",
+      };
+    case "river_ledger_showdown_resolved":
+      return {
+        title: "Showdown resolved",
+        detail:
+          payload.kind === "last_live_hand"
+            ? `Last live hand receives ledger total ${payload.pot_total ?? 0}.`
+            : `Showdown settled ${payload.winner_count ?? 0} winner(s) from ledger total ${payload.pot_total ?? 0}.`,
+        tone: "terminal",
+      };
     case "deal_started":
       return {
         title: "Deal started",
@@ -803,6 +824,21 @@ function terminalOutcome(value: unknown, noun: string): string {
   }
   const outcome = value as { kind?: unknown; winner?: unknown };
   return outcome.kind === "draw" ? `The ${noun} ended in a draw.` : `${String(outcome.winner ?? "A seat")} won the ${noun}.`;
+}
+
+function riverStreetLabel(value: unknown): string {
+  switch (value) {
+    case "preflop":
+      return "Preflop";
+    case "flop":
+      return "Flop";
+    case "turn":
+      return "Turn";
+    case "river":
+      return "River";
+    default:
+      return "Street";
+  }
 }
 
 function isPokerLiteOutcome(value: unknown): boolean {

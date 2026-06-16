@@ -23,9 +23,9 @@ pub use actions::{
 };
 pub use betting::{call_price, first_live_after, live_seats, next_live_after};
 pub use bots::{
-    action_from_decision, actor_for_bot_seat, BotDecision, RiverLedgerBotInput,
-    RiverLedgerLevel1Bot, RiverLedgerLevel2Bot, RiverLedgerRandomBot, LEVEL1_POLICY_ID,
-    LEVEL2_POLICY_ID, RANDOM_POLICY_ID,
+    action_from_decision, actor_for_bot_seat, BotDecision, BotDecisionPublicExplanation,
+    BotDecisionPublicFact, RiverLedgerBotInput, RiverLedgerLevel1Bot, RiverLedgerLevel2Bot,
+    RiverLedgerRandomBot, LEVEL1_POLICY_ID, LEVEL2_POLICY_ID, RANDOM_POLICY_ID,
 };
 pub use cards::{canonical_deck, Card, Deck, Rank, Suit, STANDARD_CARD_COUNT};
 pub use effects::{filter_effects_for_viewer, public_effect, setup_effects, RiverLedgerEffect};

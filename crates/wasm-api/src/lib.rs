@@ -1781,8 +1781,7 @@ pub fn apply_action(
             };
             let action =
                 river_ledger::validate_command(state, &command).map_err(diagnostic_json)?;
-            river_apply_action(state, action).map_err(diagnostic_json)?;
-            let effects: Vec<EffectEnvelope<RiverLedgerEffect>> = Vec::new();
+            let effects = river_apply_action(state, action).map_err(diagnostic_json)?;
             let viewer = river_viewer_for_seat(state, Some(actor_seat))?;
             let effect_json = river_effects_json(&effects, &viewer);
             for effect in effects {
@@ -2370,8 +2369,7 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
             };
             let action =
                 river_ledger::validate_command(state, &command).map_err(diagnostic_json)?;
-            river_apply_action(state, action).map_err(diagnostic_json)?;
-            let effects: Vec<EffectEnvelope<RiverLedgerEffect>> = Vec::new();
+            let effects = river_apply_action(state, action).map_err(diagnostic_json)?;
             let viewer = river_viewer_for_seat(state, Some(actor_seat))?;
             let effect_json = river_effects_json(&effects, &viewer);
             for effect in effects {
@@ -2382,11 +2380,22 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 action_path: command.action_path.segments,
                 freshness_token: command.freshness_token.0,
             });
+            let bot_explanation = decision.public_explanation.as_ref().map_or_else(
+                || "null".to_owned(),
+                |explanation| {
+                    river_bot_decision_public_explanation_json(
+                        &river_ledger::visibility::project_bot_decision_public_explanation(
+                            explanation,
+                        ),
+                    )
+                },
+            );
             Ok(format!(
-                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
-                "river-ledger-level2-v1",
-                1,
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"bot_explanation\":{},\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
                 escape_json(&decision.rationale),
+                bot_explanation,
                 effect_json,
                 river_view_json(&river_project_view(state, &viewer))
             ))
@@ -5536,7 +5545,7 @@ fn river_replay_to_cursor(
     let seats = river_seats_for_count(6);
     let mut state = river_setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
         .map_err(diagnostic_json)?;
-    let all_effects = Vec::new();
+    let mut all_effects = Vec::new();
     for command in commands.iter().take(cursor) {
         let seat = parse_river_seat(&command.actor_seat)?;
         let envelope = CommandEnvelope {
@@ -5548,7 +5557,7 @@ fn river_replay_to_cursor(
             rules_version: RulesVersion(RULES_VERSION),
         };
         let action = river_ledger::validate_command(&state, &envelope).map_err(diagnostic_json)?;
-        river_apply_action(&mut state, action).map_err(diagnostic_json)?;
+        all_effects.extend(river_apply_action(&mut state, action).map_err(diagnostic_json)?);
     }
     Ok((state, all_effects))
 }
@@ -5602,15 +5611,58 @@ fn action_choice_json(choice: &ActionChoice) -> String {
             format!("{{\"choices\":[{choices}]}}")
         },
     );
+    let presentation = action_choice_presentation_json(choice).unwrap_or_else(|| "null".to_owned());
     format!(
-        "{{\"segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"tags\":[{}],\"next\":{}}}",
+        "{{\"segment\":\"{}\",\"label\":\"{}\",\"accessibility_label\":\"{}\",\"metadata\":[{}],\"presentation\":{},\"tags\":[{}],\"next\":{}}}",
         escape_json(&choice.segment),
         escape_json(&choice.label),
         escape_json(&choice.accessibility_label),
         metadata,
+        presentation,
         tags,
         next
     )
+}
+
+fn action_choice_presentation_json(choice: &ActionChoice) -> Option<String> {
+    let segment = action_metadata_value(choice, "presentation_segment")?;
+    let label = action_metadata_value(choice, "presentation_label")?;
+    let helper_text = action_metadata_value(choice, "presentation_helper_text")?;
+    let accessibility_label = action_metadata_value(choice, "presentation_accessibility_label")?;
+    let rows = action_choice_presentation_rows_json(choice);
+    Some(format!(
+        "{{\"segment\":\"{}\",\"label\":\"{}\",\"helper_text\":\"{}\",\"accessibility_label\":\"{}\",\"display_rows\":[{}]}}",
+        escape_json(segment),
+        escape_json(label),
+        escape_json(helper_text),
+        escape_json(accessibility_label),
+        rows
+    ))
+}
+
+fn action_choice_presentation_rows_json(choice: &ActionChoice) -> String {
+    (0..)
+        .map_while(|index| {
+            let label = action_metadata_value(choice, &format!("presentation_row_{index}_label"))?;
+            let value = action_metadata_value(choice, &format!("presentation_row_{index}_value"))?;
+            let tone = action_metadata_value(choice, &format!("presentation_row_{index}_tone"))?;
+            Some(format!(
+                "{{\"label\":\"{}\",\"value\":\"{}\",\"tone\":\"{}\"}}",
+                escape_json(label),
+                escape_json(value),
+                escape_json(tone)
+            ))
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn action_metadata_value<'a>(choice: &'a ActionChoice, key: &str) -> Option<&'a str> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .map(|entry| entry.value.as_str())
 }
 
 fn race_effects_json(effects: &[EffectEnvelope<RaceEffect>]) -> String {
@@ -7520,7 +7572,7 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
 
 fn river_view_json(view: &river_ledger::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"board_slots\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7541,6 +7593,11 @@ fn river_view_json(view: &river_ledger::PublicView) -> String {
         view.board
             .iter()
             .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.board_slots
+            .iter()
+            .map(river_board_slot_json)
             .collect::<Vec<_>>()
             .join(","),
         river_terminal_json(&view.terminal),
@@ -7569,12 +7626,40 @@ fn option_river_seat_json(seat: Option<RiverLedgerSeat>) -> String {
 
 fn river_seat_view_json(seat: &river_ledger::visibility::SeatView) -> String {
     format!(
-        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{}}}",
+        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{},\"ledger_display\":{}}}",
         escape_json(&seat.seat.as_str()),
         river_seat_status_label(seat.status),
         seat.street_contribution,
         seat.total_contribution,
-        seat.hidden_hole_count
+        seat.hidden_hole_count,
+        river_seat_ledger_display_json(&seat.ledger_display)
+    )
+}
+
+fn river_seat_ledger_display_json(
+    display: &river_ledger::ui::RiverLedgerSeatLedgerDisplay,
+) -> String {
+    format!(
+        "{{\"round_contribution\":{},\"hand_contribution\":{},\"hole_card_summary\":{},\"role_badges\":[{}],\"status_label\":\"{}\"}}",
+        river_seat_ledger_field_json(&display.round_contribution),
+        river_seat_ledger_field_json(&display.hand_contribution),
+        river_seat_ledger_field_json(&display.hole_card_summary),
+        display
+            .role_badges
+            .iter()
+            .map(|badge| format!("\"{}\"", escape_json(badge)))
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&display.status_label)
+    )
+}
+
+fn river_seat_ledger_field_json(field: &river_ledger::ui::RiverLedgerSeatLedgerField) -> String {
+    format!(
+        "{{\"label\":\"{}\",\"value\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&field.label),
+        escape_json(&field.value),
+        escape_json(&field.accessibility_label)
     )
 }
 
@@ -7598,6 +7683,20 @@ fn river_card_json(card: &river_ledger::CardView) -> String {
     )
 }
 
+fn river_board_slot_json(slot: &river_ledger::visibility::BoardSlotView) -> String {
+    format!(
+        "{{\"slot\":\"{}\",\"reveal_state\":\"{}\",\"street_label\":\"{}\",\"visual_placeholder_label\":\"{}\",\"accessibility_label\":\"{}\",\"card\":{}}}",
+        escape_json(&slot.slot),
+        escape_json(&slot.reveal_state),
+        escape_json(&slot.street_label),
+        escape_json(&slot.visual_placeholder_label),
+        escape_json(&slot.accessibility_label),
+        slot.card
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), river_card_json)
+    )
+}
+
 fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> String {
     match terminal {
         river_ledger::visibility::TerminalView::NonTerminal => {
@@ -7615,8 +7714,9 @@ fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> Str
             pot_total,
             allocations,
             explanations,
+            presentation_v2,
         } => format!(
-            "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}]}}",
+            "{{\"kind\":\"showdown\",\"terminal\":true,\"winners\":[{}],\"pot_total\":{},\"allocations\":[{}],\"explanations\":[{}],\"presentation_v2\":{}}}",
             winners
                 .iter()
                 .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
@@ -7636,9 +7736,161 @@ fn river_terminal_json(terminal: &river_ledger::visibility::TerminalView) -> Str
                 .iter()
                 .map(|explanation| format!("\"{}\"", escape_json(explanation)))
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(","),
+            river_showdown_presentation_v2_json(presentation_v2)
         ),
     }
+}
+
+fn river_showdown_presentation_v2_json(
+    presentation: &river_ledger::visibility::ShowdownPresentationV2View,
+) -> String {
+    format!(
+        "{{\"result_banner\":{},\"decisive_reason\":{},\"board_cards\":[{}],\"standings\":[{}],\"folded_rows\":[{}]}}",
+        river_showdown_result_banner_json(&presentation.result_banner),
+        river_showdown_decisive_reason_json(&presentation.decisive_reason),
+        presentation
+            .board_cards
+            .iter()
+            .map(river_showdown_board_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        presentation
+            .standings
+            .iter()
+            .map(river_showdown_standing_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        presentation
+            .folded_rows
+            .iter()
+            .map(river_showdown_folded_row_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_showdown_result_banner_json(
+    banner: &river_ledger::visibility::ShowdownResultBannerView,
+) -> String {
+    format!(
+        "{{\"headline\":\"{}\",\"subheadline\":\"{}\",\"accessibility_label\":\"{}\"}}",
+        escape_json(&banner.headline),
+        escape_json(&banner.subheadline),
+        escape_json(&banner.accessibility_label)
+    )
+}
+
+fn river_showdown_decisive_reason_json(
+    reason: &river_ledger::visibility::ShowdownDecisiveReasonView,
+) -> String {
+    format!(
+        "{{\"short_text\":\"{}\",\"contrast_seat\":{},\"contrast_seat_label\":{},\"rule_refs\":[{}]}}",
+        escape_json(&reason.short_text),
+        reason
+            .contrast_seat
+            .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+            .unwrap_or_else(|| "null".to_owned()),
+        reason
+            .contrast_seat_label
+            .as_ref()
+            .map(|label| format!("\"{}\"", escape_json(label)))
+            .unwrap_or_else(|| "null".to_owned()),
+        reason
+            .rule_refs
+            .iter()
+            .map(|rule| format!("\"{}\"", escape_json(rule)))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_showdown_board_card_json(
+    card: &river_ledger::visibility::ShowdownBoardCardPresentationView,
+) -> String {
+    format!(
+        "{{\"slot\":\"{}\",\"card\":{},\"public_label\":\"{}\",\"used_by_selected\":[{}]}}",
+        escape_json(&card.slot),
+        river_card_json(&card.card),
+        escape_json(&card.public_label),
+        card.used_by_selected
+            .iter()
+            .map(|seat| format!("\"{}\"", escape_json(seat)))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn river_showdown_standing_json(
+    standing: &river_ledger::visibility::ShowdownStandingPresentationView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_label\":\"{}\",\"rank\":{},\"result_label\":\"{}\",\"allocation_label\":\"{}\",\"hand_name\":\"{}\",\"short_comparison_note\":\"{}\",\"rank_ladder_label\":\"{}\",\"hole_cards\":[{}],\"board_cards\":[{}],\"best_five\":[{}],\"best_five_accessibility_label\":\"{}\",\"detail_rows\":[{}],\"default_expanded\":{}}}",
+        escape_json(&standing.seat.as_str()),
+        escape_json(&standing.seat_label),
+        standing.rank,
+        escape_json(&standing.result_label),
+        escape_json(&standing.allocation_label),
+        escape_json(&standing.hand_name),
+        escape_json(&standing.short_comparison_note),
+        escape_json(&standing.rank_ladder_label),
+        standing
+            .hole_cards
+            .iter()
+            .map(river_showdown_card_usage_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        standing
+            .board_cards
+            .iter()
+            .map(river_showdown_card_usage_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        standing
+            .best_five
+            .iter()
+            .map(river_card_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&standing.best_five_accessibility_label),
+        standing
+            .detail_rows
+            .iter()
+            .map(river_showdown_detail_row_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        standing.default_expanded
+    )
+}
+
+fn river_showdown_card_usage_json(
+    mark: &river_ledger::visibility::ShowdownCardUsageMarkView,
+) -> String {
+    format!(
+        "{{\"card\":{},\"public_label\":\"{}\",\"used_in_best_five\":{}}}",
+        river_card_json(&mark.card),
+        escape_json(&mark.public_label),
+        mark.used_in_best_five
+    )
+}
+
+fn river_showdown_detail_row_json(row: &river_ledger::visibility::ShowdownDetailRowView) -> String {
+    format!(
+        "{{\"label\":\"{}\",\"value\":\"{}\"}}",
+        escape_json(&row.label),
+        escape_json(&row.value)
+    )
+}
+
+fn river_showdown_folded_row_json(
+    row: &river_ledger::visibility::ShowdownFoldedRowPresentationView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_label\":\"{}\",\"redaction_label\":\"{}\"}}",
+        escape_json(&row.seat.as_str()),
+        escape_json(&row.seat_label),
+        escape_json(&row.redaction_label)
+    )
 }
 
 fn river_rationale_json(rationale: &river_ledger::visibility::OutcomeRationaleView) -> String {
@@ -7797,7 +8049,7 @@ fn river_private_view_json(private_view: &river_ledger::PrivateView) -> String {
 
 fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
     format!(
-        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\",\"hand_rankings\":[{}]}}",
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"surface_label\":\"{}\",\"viewer_modes\":[{}],\"min_seats\":{},\"default_seats\":{},\"max_seats\":{},\"seat_labels\":[{}],\"seat_metadata_label\":\"{}\",\"action_hint_label\":\"{}\",\"outcome_explanation_label\":\"{}\",\"contribution_label\":\"{}\",\"board_label\":\"{}\",\"hidden_hole_label\":\"{}\",\"reduced_motion_note\":\"{}\",\"hand_rankings\":[{}]}}",
         escape_json(&ui.game_id),
         escape_json(&ui.display_name),
         escape_json(&ui.surface_label),
@@ -7809,6 +8061,11 @@ fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
         ui.min_seats,
         ui.default_seats,
         ui.max_seats,
+        ui.seat_labels
+            .iter()
+            .map(river_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(","),
         escape_json(&ui.seat_metadata_label),
         escape_json(&ui.action_hint_label),
         escape_json(&ui.outcome_explanation_label),
@@ -7824,12 +8081,49 @@ fn river_ui_json(ui: &river_ledger::ui::UiMetadata) -> String {
     )
 }
 
+fn river_seat_display_label_json(label: &river_ledger::ui::SeatDisplayLabel) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
+        escape_json(&label.seat),
+        escape_json(&label.label)
+    )
+}
+
 fn river_hand_ranking_json(row: &river_ledger::ui::HandRankingMetadata) -> String {
     format!(
         "{{\"category\":\"{}\",\"label\":\"{}\",\"definition\":\"{}\"}}",
         escape_json(&row.category),
         escape_json(&row.label),
         escape_json(&row.definition)
+    )
+}
+
+fn river_bot_decision_public_explanation_json(
+    explanation: &river_ledger::visibility::BotDecisionPublicExplanationView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_label\":\"{}\",\"action_label\":\"{}\",\"short_reason\":\"{}\",\"public_facts\":[{}],\"hidden_information_notice\":\"{}\"}}",
+        escape_json(&explanation.seat.as_str()),
+        escape_json(&explanation.seat_label),
+        escape_json(&explanation.action_label),
+        escape_json(&explanation.short_reason),
+        explanation
+            .public_facts
+            .iter()
+            .map(river_bot_decision_public_fact_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&explanation.hidden_information_notice)
+    )
+}
+
+fn river_bot_decision_public_fact_json(
+    fact: &river_ledger::visibility::BotDecisionPublicFactView,
+) -> String {
+    format!(
+        "{{\"label\":\"{}\",\"value\":\"{}\"}}",
+        escape_json(&fact.label),
+        escape_json(&fact.value)
     )
 }
 
@@ -9365,18 +9659,69 @@ fn river_effects_json(effects: &[EffectEnvelope<RiverLedgerEffect>], viewer: &Vi
 }
 
 fn river_effect_json(effect: &EffectEnvelope<RiverLedgerEffect>) -> String {
-    format!(
-        "{{\"scope\":\"{}\",\"summary\":\"{}\"}}",
-        visibility_scope_label(&effect.visibility),
-        escape_json(&format!("{:?}", effect.payload))
-    )
+    let payload = match &effect.payload {
+        RiverLedgerEffect::PrivateCardsDealt { owner, cards } => format!(
+            "{{\"type\":\"river_ledger_private_cards_dealt\",\"owner\":\"{}\",\"cards\":[{}]}}",
+            escape_json(&river_effect_seat_label(*owner)),
+            cards
+                .iter()
+                .map(|card| format!("\"{}\"", escape_json(&card.id())))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        RiverLedgerEffect::DealStarted {
+            private_count_per_seat,
+            reserved_community_count,
+            deck_tail_count,
+        } => format!(
+            "{{\"type\":\"river_ledger_deal_started\",\"private_count_per_seat\":{},\"reserved_community_count\":{},\"deck_tail_count\":{}}}",
+            private_count_per_seat, reserved_community_count, deck_tail_count
+        ),
+        RiverLedgerEffect::ContributionChanged {
+            seat,
+            amount_added,
+            pot_total,
+        } => format!(
+            "{{\"type\":\"river_ledger_contribution_changed\",\"actor\":\"{}\",\"amount_added\":{},\"pot_total\":{}}}",
+            escape_json(&river_effect_seat_label(*seat)),
+            amount_added,
+            pot_total
+        ),
+        RiverLedgerEffect::StreetAdvanced {
+            street,
+            public_board,
+        } => format!(
+            "{{\"type\":\"river_ledger_street_advanced\",\"street\":\"{}\",\"public_board_count\":{},\"public_board\":[{}]}}",
+            street.as_str(),
+            public_board.len(),
+            public_board
+                .iter()
+                .map(|card| format!("\"{}\"", escape_json(&card.id())))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        RiverLedgerEffect::ShowdownResolved { outcome } => {
+            let (kind, winner_count, pot_total) = match outcome {
+                river_ledger::TerminalOutcome::LastLiveHand { pot_total, .. } => {
+                    ("last_live_hand", 1usize, *pot_total)
+                }
+                river_ledger::TerminalOutcome::Showdown {
+                    winners,
+                    pot_total,
+                    ..
+                } => ("showdown", winners.len(), *pot_total),
+            };
+            format!(
+                "{{\"type\":\"river_ledger_showdown_resolved\",\"kind\":\"{}\",\"winner_count\":{},\"pot_total\":{}}}",
+                kind, winner_count, pot_total
+            )
+        }
+    };
+    format!("{{\"payload\":{payload}}}")
 }
 
-fn visibility_scope_label(scope: &VisibilityScope) -> String {
-    match scope {
-        VisibilityScope::Public => "public".to_owned(),
-        VisibilityScope::PrivateToSeat(seat) => seat.0.clone(),
-    }
+fn river_effect_seat_label(seat: RiverLedgerSeat) -> String {
+    format!("Seat {}", seat.index())
 }
 
 fn plain_effects_json(effects: &[EffectEnvelope<PlainTricksEffect>], viewer: &Viewer) -> String {
@@ -12438,6 +12783,10 @@ mod tests {
             "\"hand_rankings\":[{\"category\":\"straight_flush\",\"label\":\"Straight flush\""
         ));
         assert!(non_terminal.contains("\"category\":\"high_card\",\"label\":\"High card\""));
+        assert!(non_terminal.contains(
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\""
+        ));
+        assert!(non_terminal.contains("{\"seat\":\"seat_5\",\"label\":\"Seat 5\"}"));
 
         let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
         assert!(foldout.contains(
@@ -12507,6 +12856,12 @@ mod tests {
         assert!(showdown.contains("\"category_ladder_position\":{\"position\":"));
         assert!(showdown.contains("\"description\":\""));
         assert!(showdown.contains("\"best_five_accessibility_label\":\""));
+        assert!(showdown.contains("\"presentation_v2\":{\"result_banner\":{\"headline\":\""));
+        assert!(showdown.contains("\"decisive_reason\":{\"short_text\":\""));
+        assert!(showdown.contains("\"standings\":[{\"seat\":\""));
+        assert!(showdown.contains("\"hole_cards\":[{\"card\":"));
+        assert!(showdown.contains("\"used_in_best_five\":"));
+        assert!(showdown.contains("\"folded_rows\":["));
     }
 
     #[test]

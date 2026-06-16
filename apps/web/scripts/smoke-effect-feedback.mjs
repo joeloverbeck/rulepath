@@ -209,6 +209,34 @@ try {
     }
   }
 
+  function playRiverLedgerShowdown(matchId) {
+    let view = getView(matchId);
+    for (const segment of [
+      "call",
+      "call",
+      "call",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+    ]) {
+      if (!activeSeat(view, null) || view.terminal?.terminal) {
+        break;
+      }
+      view = playRequiredSegment(matchId, "river_ledger", view, segment);
+    }
+    assert(view.terminal?.terminal === true, "river_ledger reaches terminal showdown in effect feedback smoke");
+  }
+
   function playGame(gameId, seed, turns) {
     const created = newMatch(gameId, seed);
     let view = getView(created.match_id);
@@ -227,6 +255,10 @@ try {
     }
     if (gameId === "event_frontier") {
       playEventFrontier(created.match_id);
+      return;
+    }
+    if (gameId === "river_ledger") {
+      playRiverLedgerShowdown(created.match_id);
       return;
     }
     for (let turn = 0; turn < turns && activeSeat(view, null); turn += 1) {
@@ -277,6 +309,9 @@ try {
     ["frontier_control", "terminal"],
     ["event_frontier", "choice_taken"],
     ["event_frontier", "event_resolved"],
+    ["river_ledger", "river_ledger_contribution_changed"],
+    ["river_ledger", "river_ledger_street_advanced"],
+    ["river_ledger", "river_ledger_showdown_resolved"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {
