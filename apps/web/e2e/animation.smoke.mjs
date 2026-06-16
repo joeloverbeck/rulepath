@@ -68,6 +68,46 @@ try {
   await clickText(page, "button", "Step");
   await waitForText(page, "Cursor 0 /");
 
+  await startGame(page, baseUrl, "River Ledger", "Hotseat", 79, 4);
+  await installAnimationProbe(page, "__animationSmokeRiverTargets");
+  for (const action of [
+    "Call",
+    "Call",
+    "Call",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+    "Check",
+  ]) {
+    await clickRiverAction(page, action);
+    if (!(await hasRiverLedgerOutcome(page))) {
+      await waitForText(page, "Available choices");
+    }
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+  await assertAnimationTargets(
+    page,
+    "__animationSmokeRiverTargets",
+    [
+      "river-ledger-board-reveal",
+      "river-ledger-showdown-banner",
+      "river-ledger-showdown-board",
+      "river-ledger-showdown-standings",
+      "river-ledger-status",
+    ],
+    "river ledger staged showdown",
+  );
+  await assertNoRunningAnimations(page);
+
   await startGame(page, baseUrl, "Flood Watch", "Human vs bot", 41);
   const before = await currentFreshness(page);
   await clickText(page, "button", "End turn");
@@ -96,10 +136,13 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startGame(page, baseUrl, gameLabel, modeLabel, seed) {
+async function startGame(page, baseUrl, gameLabel, modeLabel, seed, seatCount = null) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, gameLabel);
   await clickText(page, "button", gameLabel);
+  if (seatCount !== null) {
+    await page.select(".field select", String(seatCount));
+  }
   await page.$eval(
     ".field input[type='number']",
     (input, value) => {
@@ -122,7 +165,7 @@ async function installAnimationProbe(page, key) {
     window.__animationSmokeProbeInstalled = true;
     const originalAnimate = Element.prototype.animate;
     Element.prototype.animate = function patchedAnimate(...args) {
-      for (const probeKey of ["__animationSmokeTargets", "__animationSmokeReducedTargets"]) {
+      for (const probeKey of ["__animationSmokeTargets", "__animationSmokeRiverTargets", "__animationSmokeReducedTargets"]) {
         if (Array.isArray(window[probeKey])) {
           const target = this.closest("[data-animation-target]")?.getAttribute("data-animation-target");
           if (target) {
@@ -190,6 +233,33 @@ async function waitForFreshnessGreaterThan(page, freshnessToken) {
 async function clickText(page, selector, text) {
   const handle = await waitForTextHandle(page, selector, text);
   await handle.click();
+}
+
+async function clickRiverAction(page, label) {
+  await page.waitForFunction(
+    (expected) =>
+      Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).some(
+        (button) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      ),
+    {},
+    label,
+  );
+  const handles = await page.$$('[data-testid^="choice-river-ledger-"]');
+  for (const handle of handles) {
+    const match = await handle.evaluate(
+      (button, expected) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+      label,
+    );
+    if (match) {
+      await handle.click();
+      return;
+    }
+  }
+  throw new Error(`No River Ledger action labeled ${label}`);
+}
+
+async function hasRiverLedgerOutcome(page) {
+  return page.evaluate(() => Boolean(document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')));
 }
 
 async function clickLabel(page, text) {

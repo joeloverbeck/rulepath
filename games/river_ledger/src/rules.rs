@@ -1,8 +1,9 @@
-use engine_core::Diagnostic;
+use engine_core::{Diagnostic, EffectEnvelope};
 
 use crate::{
     actions::{self, RiverLedgerAction, ValidatedAction},
     betting,
+    effects::{public_effect, RiverLedgerEffect},
     ids::RiverLedgerSeat,
     showdown,
     state::{BettingRoundState, Phase, RiverLedgerState, SeatStatus, Street, TerminalOutcome},
@@ -11,8 +12,14 @@ use crate::{
 pub fn apply_action(
     state: &mut RiverLedgerState,
     action: ValidatedAction,
-) -> Result<(), Diagnostic> {
+) -> Result<Vec<EffectEnvelope<RiverLedgerEffect>>, Diagnostic> {
     ensure_action_still_legal(state, action)?;
+
+    let before_pot_total = state.ledger.pot_total;
+    let before_street = state.betting.street;
+    let before_board_len = state.board.len();
+    let before_terminal = state.terminal_outcome.clone();
+    let actor = action.actor;
 
     match action.action {
         RiverLedgerAction::Fold => apply_fold(state, action.actor),
@@ -24,7 +31,14 @@ pub fn apply_action(
 
     debug_assert_ledger(state);
     state.freshness_token = state.freshness_token.next();
-    Ok(())
+    Ok(effects_for_transition(
+        state,
+        actor,
+        before_pot_total,
+        before_street,
+        before_board_len,
+        before_terminal.as_ref(),
+    ))
 }
 
 fn ensure_action_still_legal(
@@ -181,4 +195,41 @@ fn debug_assert_ledger(state: &RiverLedgerState) {
         .map(|seat| seat.total_contribution)
         .sum::<u16>();
     debug_assert_eq!(total, state.ledger.pot_total);
+}
+
+fn effects_for_transition(
+    state: &RiverLedgerState,
+    actor: RiverLedgerSeat,
+    before_pot_total: u16,
+    before_street: Street,
+    before_board_len: usize,
+    before_terminal: Option<&TerminalOutcome>,
+) -> Vec<EffectEnvelope<RiverLedgerEffect>> {
+    let mut effects = Vec::new();
+
+    let amount_added = state.ledger.pot_total.saturating_sub(before_pot_total);
+    if amount_added > 0 {
+        effects.push(public_effect(RiverLedgerEffect::ContributionChanged {
+            seat: actor,
+            amount_added,
+            pot_total: state.ledger.pot_total,
+        }));
+    }
+
+    if state.board.len() > before_board_len || state.betting.street != before_street {
+        effects.push(public_effect(RiverLedgerEffect::StreetAdvanced {
+            street: state.betting.street,
+            public_board: state.board.clone(),
+        }));
+    }
+
+    if before_terminal.is_none() {
+        if let Some(outcome) = &state.terminal_outcome {
+            effects.push(public_effect(RiverLedgerEffect::ShowdownResolved {
+                outcome: outcome.clone(),
+            }));
+        }
+    }
+
+    effects
 }

@@ -1781,8 +1781,7 @@ pub fn apply_action(
             };
             let action =
                 river_ledger::validate_command(state, &command).map_err(diagnostic_json)?;
-            river_apply_action(state, action).map_err(diagnostic_json)?;
-            let effects: Vec<EffectEnvelope<RiverLedgerEffect>> = Vec::new();
+            let effects = river_apply_action(state, action).map_err(diagnostic_json)?;
             let viewer = river_viewer_for_seat(state, Some(actor_seat))?;
             let effect_json = river_effects_json(&effects, &viewer);
             for effect in effects {
@@ -2370,8 +2369,7 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
             };
             let action =
                 river_ledger::validate_command(state, &command).map_err(diagnostic_json)?;
-            river_apply_action(state, action).map_err(diagnostic_json)?;
-            let effects: Vec<EffectEnvelope<RiverLedgerEffect>> = Vec::new();
+            let effects = river_apply_action(state, action).map_err(diagnostic_json)?;
             let viewer = river_viewer_for_seat(state, Some(actor_seat))?;
             let effect_json = river_effects_json(&effects, &viewer);
             for effect in effects {
@@ -5536,7 +5534,7 @@ fn river_replay_to_cursor(
     let seats = river_seats_for_count(6);
     let mut state = river_setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
         .map_err(diagnostic_json)?;
-    let all_effects = Vec::new();
+    let mut all_effects = Vec::new();
     for command in commands.iter().take(cursor) {
         let seat = parse_river_seat(&command.actor_seat)?;
         let envelope = CommandEnvelope {
@@ -5548,7 +5546,7 @@ fn river_replay_to_cursor(
             rules_version: RulesVersion(RULES_VERSION),
         };
         let action = river_ledger::validate_command(&state, &envelope).map_err(diagnostic_json)?;
-        river_apply_action(&mut state, action).map_err(diagnostic_json)?;
+        all_effects.extend(river_apply_action(&mut state, action).map_err(diagnostic_json)?);
     }
     Ok((state, all_effects))
 }
@@ -9621,18 +9619,69 @@ fn river_effects_json(effects: &[EffectEnvelope<RiverLedgerEffect>], viewer: &Vi
 }
 
 fn river_effect_json(effect: &EffectEnvelope<RiverLedgerEffect>) -> String {
-    format!(
-        "{{\"scope\":\"{}\",\"summary\":\"{}\"}}",
-        visibility_scope_label(&effect.visibility),
-        escape_json(&format!("{:?}", effect.payload))
-    )
+    let payload = match &effect.payload {
+        RiverLedgerEffect::PrivateCardsDealt { owner, cards } => format!(
+            "{{\"type\":\"river_ledger_private_cards_dealt\",\"owner\":\"{}\",\"cards\":[{}]}}",
+            escape_json(&river_effect_seat_label(*owner)),
+            cards
+                .iter()
+                .map(|card| format!("\"{}\"", escape_json(&card.id())))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        RiverLedgerEffect::DealStarted {
+            private_count_per_seat,
+            reserved_community_count,
+            deck_tail_count,
+        } => format!(
+            "{{\"type\":\"river_ledger_deal_started\",\"private_count_per_seat\":{},\"reserved_community_count\":{},\"deck_tail_count\":{}}}",
+            private_count_per_seat, reserved_community_count, deck_tail_count
+        ),
+        RiverLedgerEffect::ContributionChanged {
+            seat,
+            amount_added,
+            pot_total,
+        } => format!(
+            "{{\"type\":\"river_ledger_contribution_changed\",\"actor\":\"{}\",\"amount_added\":{},\"pot_total\":{}}}",
+            escape_json(&river_effect_seat_label(*seat)),
+            amount_added,
+            pot_total
+        ),
+        RiverLedgerEffect::StreetAdvanced {
+            street,
+            public_board,
+        } => format!(
+            "{{\"type\":\"river_ledger_street_advanced\",\"street\":\"{}\",\"public_board_count\":{},\"public_board\":[{}]}}",
+            street.as_str(),
+            public_board.len(),
+            public_board
+                .iter()
+                .map(|card| format!("\"{}\"", escape_json(&card.id())))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        RiverLedgerEffect::ShowdownResolved { outcome } => {
+            let (kind, winner_count, pot_total) = match outcome {
+                river_ledger::TerminalOutcome::LastLiveHand { pot_total, .. } => {
+                    ("last_live_hand", 1usize, *pot_total)
+                }
+                river_ledger::TerminalOutcome::Showdown {
+                    winners,
+                    pot_total,
+                    ..
+                } => ("showdown", winners.len(), *pot_total),
+            };
+            format!(
+                "{{\"type\":\"river_ledger_showdown_resolved\",\"kind\":\"{}\",\"winner_count\":{},\"pot_total\":{}}}",
+                kind, winner_count, pot_total
+            )
+        }
+    };
+    format!("{{\"payload\":{payload}}}")
 }
 
-fn visibility_scope_label(scope: &VisibilityScope) -> String {
-    match scope {
-        VisibilityScope::Public => "public".to_owned(),
-        VisibilityScope::PrivateToSeat(seat) => seat.0.clone(),
-    }
+fn river_effect_seat_label(seat: RiverLedgerSeat) -> String {
+    format!("Seat {}", seat.index())
 }
 
 fn plain_effects_json(effects: &[EffectEnvelope<PlainTricksEffect>], viewer: &Viewer) -> String {

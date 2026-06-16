@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-013: Route board reveal + staged showdown pacing through the shared scheduler
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/RiverLedgerBoard.tsx`, `apps/web/src/animation/scheduler.ts`, `apps/web/src/animation/registry.ts`, `apps/web/src/animation/bursts.ts`, `apps/web/src/animation/presenters.ts`, `apps/web/src/animation/settleAssertion.ts`
@@ -72,3 +72,15 @@ Register a River Ledger staged-showdown burst (banner → board usage highlights
 1. `npm --prefix apps/web run smoke:effects`
 2. `node apps/web/e2e/a11y-noleak.smoke.mjs`
 3. `npm --prefix apps/web run smoke:ui`
+
+## Outcome
+
+Completed on 2026-06-16.
+
+- Restored River Ledger semantic action effects from Rust-owned state transitions: contribution changes, street/board reveals, and terminal showdown/foldout resolution now flow through the WASM effect log.
+- Serialized River effects with structured `payload.type` fields and public seat labels so the shared web scheduler and feedback renderer can consume them without raw-seat public copy.
+- Registered River Ledger scheduler presenters for board reveal and staged showdown surfaces using the shared animation registry/presenters, with no component-local timers.
+- Added public animation targets for the board reveal, status, V2 showdown banner, board usage, and ranked standings; extended settle assertions for River showdown staged surfaces.
+- Expanded `smoke:effects` to include the browser animation/settle smoke and added River Ledger staged-showdown target assertions.
+- Verified with `npm --prefix apps/web run smoke:effects`, `node apps/web/e2e/a11y-noleak.smoke.mjs`, `npm --prefix apps/web run smoke:ui`, `cargo test -p river_ledger`, and `cargo test -p wasm-api`.
+- Additional check: `cargo clippy -p river_ledger -p wasm-api --all-targets -- -D warnings` was attempted but is blocked by existing River Ledger lint debt (`large_enum_variant` in terminal/showdown enums and `filter_map_bool_then` in `ui.rs`), unrelated to the scheduler wiring.

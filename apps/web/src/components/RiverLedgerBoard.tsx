@@ -1,4 +1,7 @@
 import { useMemo } from "react";
+import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
+import { animationRegistry } from "../animation/registry";
+import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
 import type {
   ActionChoice,
   ActionTree,
@@ -12,6 +15,8 @@ import type {
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 import { RiverLedgerCard, riverLedgerCardGroupLabel } from "./RiverLedgerCard";
+
+registerRiverLedgerAnimations();
 
 type RiverLedgerBoardProps = {
   view: RiverLedgerPublicView;
@@ -101,7 +106,11 @@ export function RiverLedgerBoard({
               <span>Board</span>
               <strong>{view.board.length ? `${view.board.length} public` : "No public cards"}</strong>
             </div>
-            <div className="river-ledger-board-cards" aria-label={riverLedgerCardGroupLabel(view.board, "Public board cards")}>
+            <div
+              className="river-ledger-board-cards"
+              aria-label={riverLedgerCardGroupLabel(view.board, "Public board cards")}
+              data-animation-target="river-ledger-board-reveal"
+            >
               {view.board_slots.map((slot) =>
                 slot.card ? (
                   <RiverLedgerCard key={slot.slot} card={slot.card} tone="board" />
@@ -172,7 +181,7 @@ export function RiverLedgerBoard({
             </div>
           </section>
 
-          <div className="river-ledger-latest" role="status">
+          <div className="river-ledger-latest" role="status" data-animation-target="river-ledger-status">
             <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
             <strong>
               {outcomeExplanation
@@ -302,6 +311,57 @@ function actionStatus(view: RiverLedgerPublicView, pending: boolean): string {
   if (pending) return "Applying";
   if (view.terminal.terminal) return "Complete";
   return view.active_seat ? `${seatLabel(view.active_seat)} to choose` : "Waiting";
+}
+
+function registerRiverLedgerAnimations(): void {
+  animationRegistry.register("river_ledger", "river_ledger_street_advanced", (step, context) =>
+    highlightRiverTargets(context, ["river-ledger-board-reveal", "river-ledger-status"], step.reducedMotion),
+  );
+  animationRegistry.register("river_ledger", "river_ledger_showdown_resolved", (step, context) =>
+    stagedRiverShowdown(step, context),
+  );
+}
+
+function stagedRiverShowdown(step: SchedulerStep, context: PresentationContext): SchedulerPresentation {
+  const reducedMotion = context.reducedMotion ?? step.reducedMotion;
+  return highlightRiverTargets(
+    context,
+    ["river-ledger-showdown-banner", "river-ledger-showdown-board", "river-ledger-showdown-standings", "river-ledger-status"],
+    reducedMotion,
+    "staged",
+  );
+}
+
+function highlightRiverTargets(
+  context: PresentationContext,
+  targetIds: string[],
+  reducedMotion: boolean,
+  kind: "highlight" | "staged" = "highlight",
+): SchedulerPresentation {
+  const root = context.root ?? document;
+  const targets = uniqueElements(targetIds.flatMap((targetId) => [...root.querySelectorAll(targetSelector(targetId))]));
+  const animations = targets.map((element, index) => {
+    if (kind === "staged" && index === 0) {
+      return animateFade(element, reducedMotion);
+    }
+    return animateHighlight(element, reducedMotion);
+  });
+  return { animations };
+}
+
+function targetSelector(targetId: string): string {
+  return `[data-animation-target="${cssEscape(targetId)}"]`;
+}
+
+function uniqueElements(elements: Element[]): Element[] {
+  return [...new Set(elements)];
+}
+
+function cssEscape(value: string): string {
+  if (typeof CSS !== "undefined" && CSS.escape) {
+    return CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, "\\$&");
 }
 
 function statusLabel(view: RiverLedgerPublicView): string {

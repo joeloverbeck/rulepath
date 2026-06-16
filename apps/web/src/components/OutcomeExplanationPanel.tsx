@@ -383,6 +383,7 @@ function RiverLedgerShowdownV2({ presentation }: { presentation: RiverLedgerShow
         role="status"
         aria-atomic="true"
         aria-label={presentation.result_banner.accessibility_label}
+        data-animation-target="river-ledger-showdown-banner"
       >
         <strong>{presentation.result_banner.headline}</strong>
         <p>{presentation.result_banner.subheadline}</p>
@@ -392,7 +393,7 @@ function RiverLedgerShowdownV2({ presentation }: { presentation: RiverLedgerShow
         </p>
       </div>
 
-      <div className="river-ledger-showdown-board" aria-label="Showdown board card usage">
+      <div className="river-ledger-showdown-board" aria-label="Showdown board card usage" data-animation-target="river-ledger-showdown-board">
         <h3>Board usage</h3>
         <div className="river-ledger-showdown-cards">
           {presentation.board_cards.map((entry) => (
@@ -411,7 +412,11 @@ function RiverLedgerShowdownV2({ presentation }: { presentation: RiverLedgerShow
         </aside>
       ) : null}
 
-      <div className="river-ledger-showdown-hands" aria-label="Ranked showdown standings">
+      <div
+        className="river-ledger-showdown-hands"
+        aria-label="Ranked showdown standings"
+        data-animation-target="river-ledger-showdown-standings"
+      >
         {presentation.standings.map((standing, index) => {
           const open = standing.default_expanded || index < 2;
           return (
