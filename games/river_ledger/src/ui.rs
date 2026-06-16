@@ -1,4 +1,6 @@
-use crate::ids::{GAME_ID, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS};
+use crate::ids::{
+    RiverLedgerSeat, GAME_ID, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMetadata {
@@ -46,6 +48,10 @@ pub fn ui_metadata() -> UiMetadata {
             .to_owned(),
         hand_rankings: hand_rankings(),
     }
+}
+
+pub fn seat_public_label(seat: RiverLedgerSeat) -> String {
+    format!("Seat {}", seat.index() + 1)
 }
 
 fn hand_rankings() -> Vec<HandRankingMetadata> {
@@ -109,7 +115,21 @@ fn hand_rankings() -> Vec<HandRankingMetadata> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::ui_metadata;
+    use crate::ids::RiverLedgerSeat;
+
+    use super::{seat_public_label, ui_metadata};
+
+    #[test]
+    fn seat_public_labels_match_catalog_display_form() {
+        assert_eq!(
+            seat_public_label(RiverLedgerSeat::from_index(0).expect("seat 0")),
+            "Seat 1"
+        );
+        assert_eq!(
+            seat_public_label(RiverLedgerSeat::from_index(5).expect("seat 5")),
+            "Seat 6"
+        );
+    }
 
     #[test]
     fn hand_rankings_are_ordered_unique_and_inert() {

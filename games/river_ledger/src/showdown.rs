@@ -9,6 +9,7 @@ use crate::{
         CategoryLadderPosition, RiverLedgerState, SeatStatus, ShowdownReveal,
         ShowdownSeatExplanation, TerminalOutcome,
     },
+    ui::seat_public_label,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -131,7 +132,7 @@ fn explain_showdown(
                     )),
                     summary: format!(
                         "{} reached showdown with {}; tie_break={:?}; allocated={}; total_contribution={}",
-                        ledger.seat.as_str(),
+                        seat_public_label(ledger.seat),
                         entry.evaluation.category.as_str(),
                         entry.evaluation.tie_break_vector,
                         share,
@@ -145,7 +146,7 @@ fn explain_showdown(
                     revealed: None,
                     summary: format!(
                         "{} folded before showdown; allocated=0; total_contribution={}",
-                        ledger.seat.as_str(),
+                        seat_public_label(ledger.seat),
                         ledger.total_contribution
                     ),
                 }
@@ -212,7 +213,7 @@ fn showdown_headline(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSeat]
     let hand = primary_winner(evaluations, winners)
         .map(|entry| hand_name(&entry.evaluation))
         .unwrap_or_else(|| "the best hand".to_owned());
-    format!("{} wins with {hand}.", winner.as_str())
+    format!("{} wins with {hand}.", seat_public_label(*winner))
 }
 
 fn decisive_comparison(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSeat]) -> String {
@@ -518,10 +519,18 @@ fn rank_from_value(value: u8) -> Option<Rank> {
 fn seat_list(seats: &[RiverLedgerSeat]) -> String {
     match seats {
         [] => "No seats".to_owned(),
-        [seat] => seat.as_str(),
-        [first, second] => format!("{} and {}", first.as_str(), second.as_str()),
+        [seat] => seat_public_label(*seat),
+        [first, second] => format!(
+            "{} and {}",
+            seat_public_label(*first),
+            seat_public_label(*second)
+        ),
         _ => {
-            let mut parts = seats.iter().map(|seat| seat.as_str()).collect::<Vec<_>>();
+            let mut parts = seats
+                .iter()
+                .copied()
+                .map(seat_public_label)
+                .collect::<Vec<_>>();
             let last = parts.pop().expect("non-empty list has a last seat");
             format!("{}, and {last}", parts.join(", "))
         }

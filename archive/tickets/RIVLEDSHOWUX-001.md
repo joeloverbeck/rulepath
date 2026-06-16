@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-001: "Seat N" label helper for clean showdown/visibility strings
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/ids.rs`, `games/river_ledger/src/ui.rs`, `games/river_ledger/src/showdown.rs`, `games/river_ledger/src/visibility.rs`, `games/river_ledger/tests/{rules,visibility,serialization}.rs`
@@ -82,3 +82,31 @@ Route the headline (`:215`), `seat_list` (`:518-524`), split/folded summaries (`
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. `cargo run -p fixture-check -- --game river_ledger` (the serialization/replay boundary is where a display-vs-canonical regression would surface)
+
+## Outcome
+
+Completed: 2026-06-16
+
+Changed:
+
+- Added the River-Ledger-local `seat_public_label` helper matching the existing
+  catalog "Seat N" display form while leaving `RiverLedgerSeat::as_str()` as the
+  canonical `seat_N` serialization/internal id.
+- Routed River Ledger showdown headline, split/seat-list copy, and showdown
+  explanation summary strings through the Rust display label so player-facing
+  terminal rationale copy is born as "Seat N" instead of raw `seat_N`.
+- Updated rule, visibility, and serialization tests to prove clean display copy,
+  unchanged canonical internal ids, and folded-seat projection safety.
+
+Deviations:
+
+- `visibility.rs` did not need a separate production change because its terminal
+  rationale fields already project the Rust-authored showdown strings. The ticket
+  acceptance is covered by projection tests in `games/river_ledger/tests/visibility.rs`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p fixture-check -- --game river_ledger`

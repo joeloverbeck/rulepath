@@ -535,7 +535,8 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
     };
 
     assert_eq!(winners, vec![seat(1)]);
-    assert_eq!(headline, "seat_1 wins with Pair of Queens.");
+    assert_eq!(headline, "Seat 2 wins with Pair of Queens.");
+    assert!(!headline.contains("seat_"));
     assert_eq!(decisive_comparison, "Pair of Queens beats Pair of Eights.");
     assert_eq!(
         comparison_basis,
@@ -620,12 +621,14 @@ fn showdown_explanation_marks_split_and_folded_paths() {
     assert_eq!(winners, vec![seat(0), seat(1)]);
     assert_eq!(
         headline,
-        "seat_0 and seat_1 split the ledger with Ace-high straight flush."
+        "Seat 1 and Seat 2 split the ledger with Ace-high straight flush."
     );
+    assert!(!headline.contains("seat_"));
     assert_eq!(
         decisive_comparison,
-        "seat_0 and seat_1 all hold Ace-high straight flush, so the ledger is split."
+        "Seat 1 and Seat 2 all hold Ace-high straight flush, so the ledger is split."
     );
+    assert!(!decisive_comparison.contains("seat_"));
     assert_eq!(
         comparison_basis,
         "The best revealed hands have equal category and tie-break ranks."

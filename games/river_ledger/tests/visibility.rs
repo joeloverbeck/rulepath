@@ -267,7 +267,15 @@ fn showdown_explanation_projection_hides_folded_private_cards_for_all_viewers() 
                 .headline
                 .as_deref()
                 .is_some_and(|headline| headline.contains("split the ledger")));
+            assert!(rationale
+                .headline
+                .as_deref()
+                .is_some_and(|headline| !headline.contains("seat_")));
             assert!(rationale.decisive_comparison.is_some());
+            assert!(rationale
+                .decisive_comparison
+                .as_deref()
+                .is_some_and(|comparison| !comparison.contains("seat_")));
             assert!(rationale.comparison_basis.is_some());
 
             let folded = rationale

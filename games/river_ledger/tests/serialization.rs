@@ -1,5 +1,6 @@
 use engine_core::StableSerialize;
 use river_ledger::replay_support::{export_public_replay, trace_from_commands};
+use river_ledger::{setup_match, RiverLedgerSeat, SetupOptions};
 
 #[test]
 fn public_replay_export_json_order_is_stable() {
@@ -25,4 +26,19 @@ fn internal_trace_json_order_is_stable() {
         "{\"schema_version\":1,\"game_id\":\"river_ledger\",\"rules_version\":\"river-ledger-rules-v1\""
     ));
     assert!(json.contains("\"commands\":[{\"actor\":\"seat_3\",\"path\":[\"call\"]},{\"actor\":\"seat_0\",\"path\":[\"call\"]}]"));
+}
+
+#[test]
+fn public_display_labels_do_not_replace_canonical_seat_ids() {
+    let state = setup_match(
+        engine_core::Seed(21),
+        &(0..4)
+            .map(|index| engine_core::SeatId(format!("seat_{index}")))
+            .collect::<Vec<_>>(),
+        &SetupOptions::default(),
+    )
+    .expect("setup");
+
+    assert_eq!(RiverLedgerSeat::from_index(1).unwrap().as_str(), "seat_1");
+    assert!(state.stable_internal_summary().contains("seat_1"));
 }
