@@ -1305,6 +1305,21 @@ export type BotTurnResult = {
   policy_id?: string;
   policy_version?: number;
   rationale?: string;
+  bot_explanation?: BotDecisionPublicExplanation | null;
+};
+
+export type BotDecisionPublicExplanation = {
+  seat: SeatId;
+  seat_label: string;
+  action_label: string;
+  short_reason: string;
+  public_facts: BotDecisionPublicFact[];
+  hidden_information_notice: string;
+};
+
+export type BotDecisionPublicFact = {
+  label: string;
+  value: string;
 };
 
 export type ApiError = {

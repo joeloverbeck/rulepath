@@ -2380,11 +2380,22 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 action_path: command.action_path.segments,
                 freshness_token: command.freshness_token.0,
             });
+            let bot_explanation = decision.public_explanation.as_ref().map_or_else(
+                || "null".to_owned(),
+                |explanation| {
+                    river_bot_decision_public_explanation_json(
+                        &river_ledger::visibility::project_bot_decision_public_explanation(
+                            explanation,
+                        ),
+                    )
+                },
+            );
             Ok(format!(
-                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
-                "river-ledger-level2-v1",
-                1,
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"bot_explanation\":{},\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
                 escape_json(&decision.rationale),
+                bot_explanation,
                 effect_json,
                 river_view_json(&river_project_view(state, &viewer))
             ))
@@ -8084,6 +8095,35 @@ fn river_hand_ranking_json(row: &river_ledger::ui::HandRankingMetadata) -> Strin
         escape_json(&row.category),
         escape_json(&row.label),
         escape_json(&row.definition)
+    )
+}
+
+fn river_bot_decision_public_explanation_json(
+    explanation: &river_ledger::visibility::BotDecisionPublicExplanationView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_label\":\"{}\",\"action_label\":\"{}\",\"short_reason\":\"{}\",\"public_facts\":[{}],\"hidden_information_notice\":\"{}\"}}",
+        escape_json(&explanation.seat.as_str()),
+        escape_json(&explanation.seat_label),
+        escape_json(&explanation.action_label),
+        escape_json(&explanation.short_reason),
+        explanation
+            .public_facts
+            .iter()
+            .map(river_bot_decision_public_fact_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        escape_json(&explanation.hidden_information_notice)
+    )
+}
+
+fn river_bot_decision_public_fact_json(
+    fact: &river_ledger::visibility::BotDecisionPublicFactView,
+) -> String {
+    format!(
+        "{{\"label\":\"{}\",\"value\":\"{}\"}}",
+        escape_json(&fact.label),
+        escape_json(&fact.value)
     )
 }
 

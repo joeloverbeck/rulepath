@@ -1,8 +1,9 @@
 use engine_core::{ActionPath, ActionTree, CommandEnvelope, RulesVersion, SeatId, Seed};
 use river_ledger::{
     action_from_decision, actor_for_bot_seat, apply_action, legal_action_tree, setup_match,
-    validate_command, BotDecision, Phase, RiverLedgerAction, RiverLedgerLevel1Bot,
-    RiverLedgerLevel2Bot, RiverLedgerRandomBot, RiverLedgerSeat, SetupOptions, LEVEL2_POLICY_ID,
+    validate_command, BotDecision, BotDecisionPublicExplanation, Phase, RiverLedgerAction,
+    RiverLedgerLevel1Bot, RiverLedgerLevel2Bot, RiverLedgerRandomBot, RiverLedgerSeat,
+    SetupOptions, LEVEL2_POLICY_ID,
 };
 
 const ACTION_CAP: usize = 96;
@@ -81,6 +82,21 @@ fn random_l1_and_l2_decisions_are_legal_and_do_not_mutate_state() {
     assert_legal_decision(&state, seat, &random.action_path);
     assert_legal_decision(&state, seat, &level1.action_path);
     assert_legal_decision(&state, seat, &level2.action_path);
+    assert!(random.public_explanation.is_none());
+    assert_public_explanation(
+        level1
+            .public_explanation
+            .as_ref()
+            .expect("level1 public explanation"),
+        &state,
+    );
+    assert_public_explanation(
+        level2
+            .public_explanation
+            .as_ref()
+            .expect("level2 public explanation"),
+        &state,
+    );
     assert_eq!(state, before);
 }
 
@@ -144,6 +160,13 @@ fn bot_explanations_do_not_leak_hidden_cards_or_sampling_claims() {
         .expect("level2 decision");
 
     assert_eq!(decision.policy_id, LEVEL2_POLICY_ID);
+    assert_public_explanation(
+        decision
+            .public_explanation
+            .as_ref()
+            .expect("level2 public explanation"),
+        &state,
+    );
     assert_no_forbidden_bot_text(&decision, &state);
 }
 
@@ -199,8 +222,60 @@ fn assert_no_forbidden_bot_text(decision: &BotDecision, state: &river_ledger::Ri
     for forbidden in [
         "opponent card",
         "opponent hole",
+        "future board",
         "deck tail",
         "future community",
+        "sample",
+        "mcts",
+        "monte carlo",
+        "machine learning",
+        "reinforcement",
+        "rollout",
+        "solver",
+    ] {
+        assert!(!text.contains(forbidden), "{text}");
+    }
+    for card in hidden_card_ids(state) {
+        assert!(!text.contains(&card), "{text}");
+    }
+}
+
+fn assert_public_explanation(
+    explanation: &BotDecisionPublicExplanation,
+    state: &river_ledger::RiverLedgerState,
+) {
+    assert_eq!(
+        explanation.seat_label,
+        format!("Seat {}", explanation.seat.index())
+    );
+    assert!(!explanation.action_label.is_empty());
+    assert!(explanation.short_reason.ends_with('.'));
+    assert!(explanation
+        .hidden_information_notice
+        .contains("omits private hole cards"));
+
+    let labels = explanation
+        .public_facts
+        .iter()
+        .map(|fact| fact.label.as_str())
+        .collect::<Vec<_>>();
+    for required in [
+        "Street",
+        "Call price",
+        "Raises left",
+        "Live opponents",
+        "Ledger total",
+    ] {
+        assert!(labels.contains(&required), "{labels:?}");
+    }
+
+    let text = format!("{explanation:?}").to_lowercase();
+    for forbidden in [
+        "candidate",
+        "ranking",
+        "opponent card",
+        "opponent hole",
+        "deck tail",
         "sample",
         "mcts",
         "monte carlo",

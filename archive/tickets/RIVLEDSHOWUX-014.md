@@ -1,6 +1,6 @@
 # RIVLEDSHOWUX-014: `BotDecisionPublicExplanation` Rust payload
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/bots.rs`, `games/river_ledger/src/visibility.rs`, `crates/wasm-api/src/lib.rs`, `apps/web/src/wasm/client.ts`, `games/river_ledger/tests/bots.rs`
@@ -79,3 +79,18 @@ Project the explanation viewer-safe; expose it through the bridge; add the TS ty
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. `npm --prefix apps/web run smoke:wasm`
+
+## Outcome
+
+Added Rust-authored `BotDecisionPublicExplanation` payloads for River Ledger Level 1 and Level 2 bots, with random bots continuing to emit no public explanation. The explanation is built from the bot input's public/authorized fields only and includes the acting seat, public seat label, action label, one-sentence public reason, public fact rows, and a hidden-information notice that avoids private cards, unrevealed cards, candidate rankings, solver/search claims, and hidden-strength language.
+
+Projected the explanation through `games/river_ledger/src/visibility.rs` and exposed it as additive `bot_explanation` JSON on the River Ledger `run_bot_turn` WASM result, with matching TypeScript types in `apps/web/src/wasm/client.ts`. The explanation remains transient bot-turn output and is not written to River effects, traces, replay exports, or state.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p river_ledger`
+3. `cargo test -p wasm-api`
+4. `cargo run -p replay-check -- --game river_ledger --all`
+5. `npm --prefix apps/web run build`
+6. `npm --prefix apps/web run smoke:wasm`

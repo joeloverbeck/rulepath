@@ -1,6 +1,7 @@
 use engine_core::{FreshnessToken, HashValue, StableSerialize, Viewer};
 
 use crate::{
+    bots::{BotDecisionPublicExplanation, BotDecisionPublicFact},
     cards::Card,
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
@@ -195,6 +196,46 @@ pub struct ShowdownStrengthView {
     pub rank_explanation: String,
     pub comparison_note: String,
     pub best_five_accessibility_label: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotDecisionPublicExplanationView {
+    pub seat: RiverLedgerSeat,
+    pub seat_label: String,
+    pub action_label: String,
+    pub short_reason: String,
+    pub public_facts: Vec<BotDecisionPublicFactView>,
+    pub hidden_information_notice: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotDecisionPublicFactView {
+    pub label: String,
+    pub value: String,
+}
+
+pub fn project_bot_decision_public_explanation(
+    explanation: &BotDecisionPublicExplanation,
+) -> BotDecisionPublicExplanationView {
+    BotDecisionPublicExplanationView {
+        seat: explanation.seat,
+        seat_label: explanation.seat_label.clone(),
+        action_label: explanation.action_label.clone(),
+        short_reason: explanation.short_reason.clone(),
+        public_facts: explanation
+            .public_facts
+            .iter()
+            .map(project_public_fact)
+            .collect(),
+        hidden_information_notice: explanation.hidden_information_notice.clone(),
+    }
+}
+
+fn project_public_fact(fact: &BotDecisionPublicFact) -> BotDecisionPublicFactView {
+    BotDecisionPublicFactView {
+        label: fact.label.clone(),
+        value: fact.value.clone(),
+    }
 }
 
 pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
