@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-001: Preserve canonical winner order; make button order remainder-only
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`src/pot.rs`, `src/showdown.rs`, `tests/property.rs`, `tests/rules.rs`)
@@ -87,3 +87,23 @@ Add the seed-`31`/button-`seat_2` regression and the allocation property describ
 1. `cargo test -p river_ledger pot` and `cargo test -p river_ledger -- split` (targeted unit/property/regression).
 2. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo build --workspace`
 3. Full `cargo run -p replay-check -- --game river_ledger --all` is intentionally deferred to RIVLEDSHOSEA-004 (it reconciles the traces this change reorders), so it is not a gate for this ticket.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- `games/river_ledger/src/pot.rs` now preserves canonical winner order in `PotAllocation.winners` and serialized `shares`; button order is retained only as `remainder_order` and used to assign indivisible remainder units.
+- `games/river_ledger/src/showdown.rs` names the evaluated winner set as `canonical_winners` and routes that canonical vector into allocation, headline, decisive comparison, and comparison basis assembly.
+- Added native coverage for canonical-vs-remainder ordering, including the seed-31 split regression with canonical winners `[seat_1, seat_2, seat_3]` and button-order remainder sequence `[seat_2, seat_3, seat_1]`.
+
+Deviations:
+- None. Golden-trace/replay reconciliation remains intentionally deferred to RIVLEDSHOSEA-004 as planned.
+
+Verification:
+- `cargo test -p river_ledger pot` passed.
+- `cargo test -p river_ledger -- split` passed.
+- `cargo fmt --all --check` passed after formatting.
+- `cargo test -p river_ledger` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.

@@ -37,17 +37,17 @@ pub fn showdown_eligible_seats(state: &RiverLedgerState) -> Vec<RiverLedgerSeat>
 
 pub fn resolve_showdown(state: &RiverLedgerState) -> TerminalOutcome {
     let evaluations = evaluate_showdown_seats(state);
-    let winners = winning_seats(&evaluations);
+    let canonical_winners = winning_seats(&evaluations);
     let allocation = allocate_single_pot(
         state.ledger.pot_total,
-        &winners,
+        &canonical_winners,
         state.button,
         state.seats.len() as u8,
     );
     let explanations = explain_showdown(state, &evaluations, &allocation);
-    let headline = showdown_headline(&evaluations, &winners);
-    let decisive_comparison = decisive_comparison(&evaluations, &winners);
-    let comparison_basis = comparison_basis(&evaluations, &winners);
+    let headline = showdown_headline(&evaluations, &canonical_winners);
+    let decisive_comparison = decisive_comparison(&evaluations, &canonical_winners);
+    let comparison_basis = comparison_basis(&evaluations, &canonical_winners);
     let presentation_v2 = Box::new(showdown_presentation_v2(
         state,
         &evaluations,

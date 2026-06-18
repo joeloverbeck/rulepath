@@ -737,10 +737,16 @@ fn single_pot_remainder_uses_stable_button_order() {
     let allocation =
         river_ledger::pot::allocate_single_pot(11, &[seat(0), seat(2), seat(3)], seat(2), 4);
 
+    assert_eq!(allocation.winners, vec![seat(0), seat(2), seat(3)]);
     assert_eq!(allocation.remainder, 2);
+    assert_eq!(allocation.remainder_order, vec![seat(2), seat(3), seat(0)]);
     assert_eq!(
         allocation.shares,
         vec![
+            PotShare {
+                seat: seat(0),
+                amount: 3,
+            },
             PotShare {
                 seat: seat(2),
                 amount: 4,
@@ -748,10 +754,6 @@ fn single_pot_remainder_uses_stable_button_order() {
             PotShare {
                 seat: seat(3),
                 amount: 4,
-            },
-            PotShare {
-                seat: seat(0),
-                amount: 3,
             },
         ]
     );
@@ -762,6 +764,81 @@ fn single_pot_remainder_uses_stable_button_order() {
             .map(|share| share.amount)
             .sum::<u16>(),
         allocation.pot_total
+    );
+}
+
+#[test]
+fn seed_31_split_keeps_winners_canonical_and_remainder_button_ordered() {
+    let mut state = custom_showdown_state(
+        vec![
+            [
+                Card::new(Rank::Three, Suit::Hearts),
+                Card::new(Rank::Six, Suit::Diamonds),
+            ],
+            [
+                Card::new(Rank::Three, Suit::Spades),
+                Card::new(Rank::King, Suit::Diamonds),
+            ],
+            [
+                Card::new(Rank::King, Suit::Clubs),
+                Card::new(Rank::Seven, Suit::Hearts),
+            ],
+            [
+                Card::new(Rank::King, Suit::Hearts),
+                Card::new(Rank::Seven, Suit::Clubs),
+            ],
+        ],
+        [
+            Card::new(Rank::Jack, Suit::Clubs),
+            Card::new(Rank::Ten, Suit::Spades),
+            Card::new(Rank::Five, Suit::Spades),
+            Card::new(Rank::Ace, Suit::Diamonds),
+            Card::new(Rank::Nine, Suit::Spades),
+        ],
+    );
+    state.button = seat(2);
+    state.ledger.pot_total = 11;
+
+    let outcome = river_ledger::resolve_showdown(&state);
+    let TerminalOutcome::Showdown {
+        winners,
+        allocations,
+        presentation_v2,
+        ..
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+    let expected_winners = vec![seat(1), seat(2), seat(3)];
+    let allocation = river_ledger::pot::allocate_single_pot(11, &expected_winners, state.button, 4);
+
+    assert_eq!(winners, expected_winners);
+    assert_eq!(allocation.remainder_order, vec![seat(2), seat(3), seat(1)]);
+    assert_eq!(
+        allocations,
+        vec![
+            PotShare {
+                seat: seat(1),
+                amount: 3,
+            },
+            PotShare {
+                seat: seat(2),
+                amount: 4,
+            },
+            PotShare {
+                seat: seat(3),
+                amount: 4,
+            },
+        ]
+    );
+    assert_eq!(
+        presentation_v2
+            .standings
+            .iter()
+            .filter(|standing| standing.result_label == "Split win")
+            .map(|standing| standing.seat)
+            .collect::<Vec<_>>(),
+        vec![seat(1), seat(2), seat(3)]
     );
 }
 
