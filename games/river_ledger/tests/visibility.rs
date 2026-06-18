@@ -187,6 +187,20 @@ fn observer_projection_effects_and_action_tree_hide_all_private_and_future_cards
         let observer = viewer(None);
         let projection = project_view(&state, &observer);
         assert_eq!(projection.ui.seat_labels.len(), 6);
+        assert_eq!(projection.active_seat_labels.len(), count);
+        assert_eq!(
+            projection
+                .active_seat_labels
+                .iter()
+                .map(|label| label.seat.as_str())
+                .collect::<Vec<_>>(),
+            (0..count)
+                .map(|index| format!("seat_{index}"))
+                .collect::<Vec<_>>()
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        );
         assert_eq!(projection.ui.seat_labels[0].seat, "seat_0");
         assert_eq!(projection.ui.seat_labels[0].label, "Seat 1");
         assert_eq!(projection.ui.seat_labels[5].seat, "seat_5");
@@ -211,6 +225,44 @@ fn observer_projection_effects_and_action_tree_hide_all_private_and_future_cards
             &hidden,
             &format!("{count}-seat action tree"),
         );
+    }
+}
+
+#[test]
+fn active_seat_labels_are_viewer_safe_and_identical_for_all_viewers() {
+    for count in 3..=6 {
+        let state = setup_match(
+            Seed(700 + count as u64),
+            &seats(count),
+            &SetupOptions::default(),
+        )
+        .expect("setup");
+        let observer = project_view(&state, &viewer(None));
+        let observer_labels = observer.active_seat_labels.clone();
+        let expected = (0..count)
+            .map(|index| (format!("seat_{index}"), format!("Seat {}", index + 1)))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            observer_labels
+                .iter()
+                .map(|label| (label.seat.clone(), label.label.clone()))
+                .collect::<Vec<_>>(),
+            expected
+        );
+
+        for viewer_index in 0..count {
+            let seat_view = project_view(&state, &viewer(Some(viewer_index)));
+            assert_eq!(seat_view.active_seat_labels, observer_labels);
+
+            let labels_debug = format!("{:?}", seat_view.active_seat_labels);
+            for private_id in private_ids_for(&state, viewer_index) {
+                assert!(!labels_debug.contains(&private_id));
+            }
+            for future_id in unrevealed_public_ids(&state) {
+                assert!(!labels_debug.contains(&future_id));
+            }
+        }
     }
 }
 

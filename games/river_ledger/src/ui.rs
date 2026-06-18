@@ -1,3 +1,5 @@
+use engine_core::SeatId;
+
 use crate::{
     actions::RiverLedgerAction,
     ids::{
@@ -96,6 +98,25 @@ pub fn ui_metadata() -> UiMetadata {
 
 pub fn seat_public_label(seat: RiverLedgerSeat) -> String {
     format!("Seat {}", seat.index() + 1)
+}
+
+pub fn active_seat_labels(seats: &[SeatId]) -> Vec<SeatDisplayLabel> {
+    assert!(
+        (usize::from(STANDARD_MIN_SEATS)..=usize::from(STANDARD_MAX_SEATS)).contains(&seats.len()),
+        "active River Ledger seat labels require a supported seat count"
+    );
+
+    seats
+        .iter()
+        .enumerate()
+        .map(|(index, seat_id)| {
+            let seat = RiverLedgerSeat::from_index(index).expect("supported seat index");
+            SeatDisplayLabel {
+                seat: seat_id.0.clone(),
+                label: seat_public_label(seat),
+            }
+        })
+        .collect()
 }
 
 pub fn seat_ledger_display(
@@ -324,7 +345,7 @@ mod tests {
 
     use crate::{actions::RiverLedgerAction, ids::RiverLedgerSeat};
 
-    use super::{action_presentation, seat_public_label, ui_metadata};
+    use super::{action_presentation, active_seat_labels, seat_public_label, ui_metadata};
 
     #[test]
     fn action_presentation_rows_are_segment_relevant() {
@@ -375,6 +396,22 @@ mod tests {
                 .find(|label| label.seat == format!("seat_{index}"))
                 .expect("catalog seat label");
             assert_eq!(label.label, seat_public_label(seat));
+        }
+    }
+
+    #[test]
+    fn active_seat_labels_follow_match_order_and_count() {
+        for count in 3..=6 {
+            let seats = (0..count)
+                .map(|index| engine_core::SeatId(format!("seat_{index}")))
+                .collect::<Vec<_>>();
+            let labels = active_seat_labels(&seats);
+
+            assert_eq!(labels.len(), count);
+            for (index, label) in labels.iter().enumerate() {
+                assert_eq!(label.seat, format!("seat_{index}"));
+                assert_eq!(label.label, format!("Seat {}", index + 1));
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-005: Project active-match seat labels through Rust/WASM
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/ui.rs`, `src/visibility.rs`; `crates/wasm-api/src/lib.rs`; `apps/web/src/wasm/client.ts`
@@ -83,3 +83,28 @@ Add the smallest typed `active_seat_labels` field to the WASM view envelope in `
 1. `cargo test -p river_ledger`
 2. `npm --prefix apps/web ci && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run build`
 3. `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1 --start-seed 1` to confirm a 4-seat match projects exactly four active rows.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- Added Rust-owned `active_seat_labels(&state.seats)` projection that validates supported counts and emits exactly the active match seats in authoritative order with one-based public labels.
+- Added `PublicView.active_seat_labels`, included it in stable serialization, and serialized it through the WASM River Ledger view envelope.
+- Mirrored the additive `active_seat_labels` field in `apps/web/src/wasm/client.ts`.
+- Added serialization and visibility coverage for counts `3..=6`, including observer/seat-private equality and private-data absence in the active-label rows.
+
+Deviations:
+- None. Catalog `ui.seat_labels` remains capability metadata for six seats; the new field is a distinct match-scoped projection.
+
+Verification:
+- `cargo test -p river_ledger active_seat_labels` passed.
+- `cargo test -p wasm-api river_ledger_view_projects_terminal_rationale_template_keys` passed.
+- `cargo test -p river_ledger` passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run build` passed.
+- `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1 --start-seed 1` passed and reported `seat_order=[seat_0,seat_1,seat_2,seat_3]`.
+- `npm --prefix apps/web ci` passed; npm reported the existing single low-severity vulnerability.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.

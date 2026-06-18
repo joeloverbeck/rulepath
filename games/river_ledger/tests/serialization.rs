@@ -65,6 +65,49 @@ fn public_display_labels_do_not_replace_canonical_seat_ids() {
 }
 
 #[test]
+fn active_seat_labels_serialize_exact_match_seats() {
+    for count in 3..=6 {
+        let state = setup_match(
+            engine_core::Seed(500 + count as u64),
+            &(0..count)
+                .map(|index| engine_core::SeatId(format!("seat_{index}")))
+                .collect::<Vec<_>>(),
+            &SetupOptions::default(),
+        )
+        .expect("setup");
+        let view = project_view(&state, &engine_core::Viewer { seat_id: None });
+
+        assert_eq!(view.active_seat_labels.len(), count);
+        assert_eq!(
+            view.active_seat_labels
+                .iter()
+                .map(|label| (label.seat.as_str(), label.label.as_str()))
+                .collect::<Vec<_>>(),
+            (0..count)
+                .map(|index| {
+                    let seat = format!("seat_{index}");
+                    let label = format!("Seat {}", index + 1);
+                    (seat, label)
+                })
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|(seat, label)| (seat.as_str(), label.as_str()))
+                .collect::<Vec<_>>()
+        );
+
+        let summary = view.stable_summary();
+        assert!(summary.contains(&format!(
+            "active_labels={}",
+            (0..count)
+                .map(|index| format!("seat_{index}=Seat {}", index + 1))
+                .collect::<Vec<_>>()
+                .join(",")
+        )));
+        assert!(!summary.contains(&format!("seat_{count}=Seat {}", count + 1)));
+    }
+}
+
+#[test]
 fn terminal_view_summary_includes_v2_showdown_presentation_deterministically() {
     let trace = trace_from_commands(79, 4, FOUR_PLAYER_CHECKDOWN);
     let result = replay_internal_full_trace(&trace);
