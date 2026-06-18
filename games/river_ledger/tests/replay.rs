@@ -3,8 +3,27 @@ use river_ledger::{
     replay_support::{
         export_public_replay, import_public_export, replay_internal_full_trace, trace_from_commands,
     },
-    setup_match, SetupOptions,
+    setup_match, PotShare, RiverLedgerSeat, SetupOptions, TerminalOutcome,
 };
+
+const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
+    (3, "call"),
+    (0, "call"),
+    (1, "call"),
+    (2, "check"),
+    (1, "check"),
+    (2, "check"),
+    (3, "check"),
+    (0, "check"),
+    (1, "check"),
+    (2, "check"),
+    (3, "check"),
+    (0, "check"),
+    (1, "check"),
+    (2, "check"),
+    (3, "check"),
+    (0, "check"),
+];
 
 fn hidden_ids(seed: u64, seat_count: usize) -> Vec<String> {
     let seats = (0..seat_count)
@@ -79,28 +98,7 @@ fn observer_public_export_omits_hidden_facts_and_seed() {
 
 #[test]
 fn terminal_public_export_keeps_v2_showdown_surface_public_and_deterministic() {
-    let trace = trace_from_commands(
-        79,
-        4,
-        &[
-            (3, "call"),
-            (0, "call"),
-            (1, "call"),
-            (2, "check"),
-            (1, "check"),
-            (2, "check"),
-            (3, "check"),
-            (0, "check"),
-            (1, "check"),
-            (2, "check"),
-            (3, "check"),
-            (0, "check"),
-            (1, "check"),
-            (2, "check"),
-            (3, "check"),
-            (0, "check"),
-        ],
-    );
+    let trace = trace_from_commands(79, 4, FOUR_PLAYER_CHECKDOWN);
     let first = export_public_replay(&trace, &Viewer { seat_id: None });
     let second = export_public_replay(&trace, &Viewer { seat_id: None });
     let json = first.to_json();
@@ -111,4 +109,87 @@ fn terminal_public_export_keeps_v2_showdown_surface_public_and_deterministic() {
     assert!(!json.contains("private_hands"));
     assert!(!json.contains("seed_evidence"));
     assert!(!json.contains("\"seed\""));
+}
+
+#[test]
+fn seed_10018_public_replay_uses_one_based_unique_winner_label() {
+    let trace = trace_from_commands(10018, 4, FOUR_PLAYER_CHECKDOWN);
+    let result = replay_internal_full_trace(&trace);
+    let TerminalOutcome::Showdown {
+        winners,
+        allocations,
+        headline,
+        presentation_v2,
+        ..
+    } = result
+        .final_state
+        .terminal_outcome
+        .as_ref()
+        .expect("terminal outcome")
+    else {
+        panic!("showdown terminal expected");
+    };
+
+    assert_eq!(winners, &vec![RiverLedgerSeat::from_index(0).unwrap()]);
+    assert_eq!(
+        allocations,
+        &vec![PotShare {
+            seat: RiverLedgerSeat::from_index(0).unwrap(),
+            amount: result.final_state.ledger.pot_total,
+        }]
+    );
+    assert_eq!(headline, "Seat 1 wins with Two pair, Queens and Fives.");
+    assert_eq!(presentation_v2.standings[0].seat_label, "Seat 1");
+
+    let export = export_public_replay(&trace, &Viewer { seat_id: None });
+    let json = export.to_json();
+    assert!(json.contains("Seat 1 wins with Two pair, Queens and Fives."));
+    assert!(!json.contains("Seat 0 wins"));
+    assert!(!json.contains("seat_0 wins"));
+}
+
+#[test]
+fn seed_31_public_replay_keeps_split_winners_in_canonical_order() {
+    let trace = trace_from_commands(31, 4, FOUR_PLAYER_CHECKDOWN);
+    let result = replay_internal_full_trace(&trace);
+    let TerminalOutcome::Showdown {
+        winners,
+        allocations,
+        headline,
+        presentation_v2,
+        ..
+    } = result
+        .final_state
+        .terminal_outcome
+        .as_ref()
+        .expect("terminal outcome")
+    else {
+        panic!("showdown terminal expected");
+    };
+
+    assert_eq!(
+        winners,
+        &vec![
+            RiverLedgerSeat::from_index(1).unwrap(),
+            RiverLedgerSeat::from_index(2).unwrap(),
+            RiverLedgerSeat::from_index(3).unwrap(),
+        ]
+    );
+    assert_eq!(
+        allocations
+            .iter()
+            .map(|share| share.seat)
+            .collect::<Vec<_>>(),
+        *winners
+    );
+    assert!(headline.starts_with("Seat 2, Seat 3, and Seat 4 split the ledger"));
+    assert_eq!(
+        presentation_v2
+            .standings
+            .iter()
+            .filter(|standing| standing.result_label == "Split win")
+            .map(|standing| standing.seat)
+            .collect::<Vec<_>>(),
+        *winners
+    );
 }

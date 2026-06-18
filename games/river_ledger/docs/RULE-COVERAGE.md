@@ -67,23 +67,23 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-EVAL-TIEBREAK-001` | Category then rank vector. | `evaluator.rs`, `showdown.rs` | pair/high-card and flush/full-house traces | covered-by-trace | Suits do not break ties. |
 | `RL-EVAL-USED-001` | Used-card explanation. | `evaluator.rs`, `showdown.rs`, `visibility.rs` | showdown traces; visibility tests | covered | Redacted by viewer authorization. |
 | `RL-SHOW-ELIGIBLE-001` | Only live seats evaluated. | `showdown.rs` | foldout and showdown traces | covered-by-trace | Folded seats excluded. |
-| `RL-SHOW-WINNER-001` | Strongest hand wins. | `showdown.rs`, `pot.rs` | high-card/pair/showdown traces | covered-by-trace | Rust computes outcome. |
-| `RL-SHOW-SPLIT-001` | Tied best hands split. | `showdown.rs`, `pot.rs` | split-pot-even trace; pot tests | covered-by-trace | Equal shares first. |
-| `RL-POT-REMAINDER-001` | Remainder by button order. | `pot.rs` | split-pot-remainder trace; pot tests | covered-by-trace | Public deterministic order. |
+| `RL-SHOW-WINNER-001` | Strongest hand wins. | `showdown.rs`, `pot.rs` | high-card/pair/showdown traces; `showdown-seat-label-consistency.trace.json`; seed-10018 replay test | covered-by-trace | Rust computes outcome and public winner labels. |
+| `RL-SHOW-SPLIT-001` | Tied best hands split. | `showdown.rs`, `pot.rs` | `split-pot-even.trace.json`; `split-winner-order-vs-remainder.trace.json`; split rules/replay tests | covered-by-trace | Canonical co-winner order is distinct from remainder order. |
+| `RL-POT-REMAINDER-001` | Remainder by button order. | `pot.rs` | `split-pot-remainder-button-order.trace.json`; `split-winner-order-vs-remainder.trace.json`; pot tests | covered-by-trace | Public deterministic order only assigns odd units. |
 | `RL-SHOW-FOLDOUT-001` | Foldout explanation. | `showdown.rs`, `visibility.rs` | foldout trace; no-leak tests | covered-by-trace | Folded private cards stay hidden. |
 | `RL-VIS-PUBLIC-001` | Public facts only. | `visibility.rs`, `effects.rs` | public-observer-no-leak trace; visibility tests | covered | Public payload excludes hidden cards. |
 | `RL-VIS-PRIVATE-HOLE-001` | Own hole cards only. | `visibility.rs` | seat-private-view trace; visibility tests | covered-by-trace | Owner authorization only. |
 | `RL-VIS-OPPONENT-HOLE-001` | Opponent holes hidden. | `visibility.rs`, `effects.rs` | pairwise no-leak tests; no-leak traces | covered | Cross-seat leakage rejected. |
 | `RL-VIS-DECKTAIL-001` | Deck tail/future board hidden. | `setup.rs`, `visibility.rs`, `replay_support.rs` | no-leak traces; replay export tests | covered | Public exports cannot reconstruct deck tail. |
 | `RL-VIS-DIAGNOSTIC-001` | Safe diagnostics. | `actions.rs`, `rules.rs` | wrong-seat and cap diagnostic traces | covered-by-trace | Public facts only. |
-| `RL-VIS-SHOWDOWN-001` | Authorized showdown reveal. | `showdown.rs`, `visibility.rs` | showdown traces; visibility tests | covered | Folded data remains redacted. |
+| `RL-VIS-SHOWDOWN-001` | Authorized showdown reveal. | `showdown.rs`, `visibility.rs` | showdown traces; seed-10018/31 replay tests; visibility tests | covered | Folded data remains redacted. |
 | `RL-VIS-FOLDOUT-001` | Foldout redaction. | `showdown.rs`, `visibility.rs` | foldout no-leak trace | covered-by-trace | No folded-card reveal. |
 | `RL-VIS-VIEWHASH-001` | Viewer-scoped hashes. | `visibility.rs`, `replay_support.rs` | view-hash tests; replay-check | covered | Hashes cover authorized projection only. |
 | `RL-REPLAY-RNG-001` | Seeded replay determinism. | `replay_support.rs`, `setup.rs` | replay tests; replay-check; simulator seeds | covered | No wall-clock/browser RNG. |
-| `RL-REPLAY-HASH-001` | Stable hashes. | `replay_support.rs`, `state.rs` | golden traces; replay-check | covered-by-trace | Hash drift caught by fixtures. |
+| `RL-REPLAY-HASH-001` | Stable hashes. | `replay_support.rs`, `state.rs` | golden traces; seed-10018/31 replay tests; replay-check | covered-by-trace | Hash drift caught by fixtures and locked regression summaries. |
 | `RL-REPLAY-EXPORT-001` | Redacted public export. | `replay_support.rs`, `visibility.rs` | public-replay-export-import trace; no-leak tests | covered-by-trace | Viewer scoped. |
 | `RL-REPLAY-IMPORT-001` | Import through Rust rules. | `replay_support.rs`, `rules.rs` | replay tests; replay-check | covered | Commands validate normally. |
-| `RL-REPLAY-SERIAL-001` | Deterministic serialization order. | `state.rs`, `replay_support.rs` | serialization tests; golden traces | covered | Ordering is stable. |
+| `RL-REPLAY-SERIAL-001` | Deterministic serialization order. | `state.rs`, `replay_support.rs` | serialization tests; `split-winner-order-vs-remainder.trace.json`; golden traces | covered | Canonical winners/allocations serialize in stable order. |
 | `RL-BOT-LEGAL-001` | Legal-action-only bots. | `bots.rs`, `actions.rs` | bot tests; simulator; bot trace | covered | Bots submit normal commands. |
 | `RL-BOT-L0-001` | Level 0 random legal. | `bots.rs` | bot tests; AI docs | covered | Deterministic seed tie handling. |
 | `RL-BOT-L1-001` | Level 1 heuristics. | `bots.rs`, `AI.md` | bot tests; evidence docs | covered | Authorized inputs only. |
@@ -94,7 +94,7 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-UI-ACTIONS-001` | UI legal controls from Rust. | `ui.rs`, WASM legal tree, web action panel | legal-action tests; River Ledger e2e action metadata assertions; `smoke:ui` | covered | Relevant action helper rows, call price, added ledger units, and cap-left copy come from Rust legal-action metadata. |
 | `RL-UI-PREVIEW-001` | Viewer-safe previews. | `ui.rs`, WASM/web | not applicable to shipped River Ledger surface | intentionally-deferred | River Ledger has no separate browser preview surface yet; future preview work must remain Rust-authored and viewer-safe. |
 | `RL-UI-LEDGER-001` | Abstract ledger display. | `ui.rs`, web renderer | River Ledger e2e; public-copy audit | covered | Browser copy uses ledger/abstract units, not pot/chip/money/rake language, with labeled `This round` and `Hand total` fields. |
-| `RL-UI-SHOWDOWN-001` | Rust-authored outcome. | `showdown.rs`, `visibility.rs`, `ui.rs`, WASM bridge, web renderer | showdown and visibility tests; wasm-api bridge tests; outcome and River Ledger e2e | covered | V2 banner, decisive contrast, ranked standings, folded rows, card-usage marks, hand names, and teaching aid are Rust-authored and reveal-scoped. |
+| `RL-UI-SHOWDOWN-001` | Rust-authored outcome. | `showdown.rs`, `visibility.rs`, `ui.rs`, WASM bridge, web renderer | showdown and visibility tests; `showdown-seat-label-consistency.trace.json`; wasm-api bridge tests; outcome and River Ledger e2e | covered | V2 banner, decisive contrast, ranked standings, folded rows, card-usage marks, hand names, and teaching aid are Rust-authored and reveal-scoped. |
 | `RL-UI-NOCASINO-001` | No casino presentation. | docs, web renderer, catalog icon | player rules; public-copy audit; `smoke:e2e`; shell smoke | covered | Public River Ledger UI and catalog icon avoid casino trade dress and money/chip/payout/rake vocabulary. |
 | `RL-UI-NOLEAK-001` | Browser no-leak. | visibility projection, WASM/web/e2e | visibility tests; River Ledger DOM/storage/console no-leak e2e; bot why no-leak smoke | covered | Observer and wrong-seat browser contexts contain no unauthorized private cards, hidden hand-strength facts, bot-private reasons, or raw seat IDs. |
 | `RL-SETUP-AMB-001` | No heads-up official mode. | `setup.rs`, `ids.rs` | invalid-seat-count trace; setup tests | covered-by-trace | Official seats are 3-6. |

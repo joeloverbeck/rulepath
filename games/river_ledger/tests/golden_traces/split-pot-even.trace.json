@@ -2,11 +2,13 @@
   "schema_version": 1,
   "trace_id": "river-ledger-split-pot-even",
   "fixture_kind": "showdown-placeholder",
-  "purpose": "Even split-pot showdown allocation placeholder until replay-check registration",
+  "purpose": "Even split-pot showdown allocation placeholder with canonical public winner labels",
   "game_id": "river_ledger",
   "rules_version": "river-ledger-rules-v1",
+  "migration_review": "RIVLEDSHOSEA-004: schema_version unchanged; winner and allocation order remain canonical for an even split.",
   "pot_total": 12,
   "winners": ["seat_1", "seat_3"],
+  "winner_labels": ["Seat 2", "Seat 4"],
   "allocations": [
     { "seat": "seat_1", "amount": 6 },
     { "seat": "seat_3", "amount": 6 }

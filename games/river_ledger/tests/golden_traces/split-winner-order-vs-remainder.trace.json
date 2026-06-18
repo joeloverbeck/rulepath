@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-split-winner-order-vs-remainder",
+  "fixture_kind": "showdown-placeholder",
+  "purpose": "Seed-31/button-seat_2 regression keeps canonical split winners separate from button-order remainder recipients",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed_evidence": 31,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "button": "seat_2",
+  "pot_total": 11,
+  "winners": ["seat_1", "seat_2", "seat_3"],
+  "winner_labels": ["Seat 2", "Seat 3", "Seat 4"],
+  "expected_remainder_order": ["seat_2", "seat_3", "seat_1"],
+  "expected_public_result": {
+    "headline": "Seat 2, Seat 3, and Seat 4 split the ledger",
+    "result_label": "Split win",
+    "forbidden_strings": ["Seat 3 wins", "Seat 4 wins", "seat_2 wins"]
+  },
+  "allocations": [
+    { "seat": "seat_1", "amount": 3 },
+    { "seat": "seat_2", "amount": 4 },
+    { "seat": "seat_3", "amount": 4 }
+  ]
+}

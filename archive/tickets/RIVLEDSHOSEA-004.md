@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-004: Reconcile golden traces, replay, serialization, and rule coverage
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence + docs) — `games/river_ledger/tests/golden_traces/`, `games/river_ledger/tests/replay.rs`, `games/river_ledger/tests/serialization.rs`, `games/river_ledger/docs/RULE-COVERAGE.md`
@@ -91,3 +91,28 @@ Update `RULE-COVERAGE.md` rows mapping the new tests/traces to `RL-SCORE-SHOWDOW
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all && cargo run -p fixture-check -- --game river_ledger && cargo run -p rule-coverage -- --game river_ledger`
 3. `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1 --start-seed 10018` and `--start-seed 31 --seat-count 4` to reproduce the locked regression states directly.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- Added `showdown-seat-label-consistency.trace.json` for seed `10018` and `split-winner-order-vs-remainder.trace.json` for the seed-`31`/button-`seat_2` canonical-vs-remainder regression.
+- Migrated the split remainder golden fixture to canonical winner/allocation order while keeping `expected_remainder_order` button-relative; reviewed high-card, pair, and even-split fixtures with unchanged schema/rules versions.
+- Added replay and serialization regressions for seed `10018` public label coherence and seed `31` canonical split ordering.
+- Updated `RULE-COVERAGE.md` rows for showdown winner/split, remainder, replay/hash/serialization, visibility, and Rust-authored showdown UI evidence.
+
+Deviations:
+- Existing River Ledger golden traces are structural fixtures rather than full replay logs. This ticket extended that fixture contract and added native replay/serialization assertions for semantic lock-in instead of changing trace schema.
+
+Verification:
+- `cargo run -p replay-check -- --game river_ledger --all` passed.
+- `cargo run -p fixture-check -- --game river_ledger` passed.
+- `cargo run -p rule-coverage -- --game river_ledger` passed.
+- `cargo test -p river_ledger` passed.
+- `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1 --start-seed 10018` passed and reported `seat_0` as the unique winner.
+- `cargo run -p simulate -- --game river_ledger --seat-count 4 --games 1 --start-seed 31` passed and reported a three-way split for `seat_1`, `seat_2`, and `seat_3`.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
+- `rg -n --pcre2 '"schema_version": (?!1\b)|"rules_version": "(?!river-ledger-rules-v1")' games/river_ledger/tests/golden_traces` returned no matches.

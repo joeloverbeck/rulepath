@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-showdown-seat-label-consistency",
+  "fixture_kind": "showdown-placeholder",
+  "purpose": "Seed-10018 unique-winner showdown keeps public seat labels coherent across terminal, replay, and V2 banner surfaces",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed_evidence": 10018,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "commands": [
+    { "seat": "seat_3", "action": "call" },
+    { "seat": "seat_0", "action": "call" },
+    { "seat": "seat_1", "action": "call" },
+    { "seat": "seat_2", "action": "check" },
+    { "seat": "seat_1", "action": "check" },
+    { "seat": "seat_2", "action": "check" },
+    { "seat": "seat_3", "action": "check" },
+    { "seat": "seat_0", "action": "check" },
+    { "seat": "seat_1", "action": "check" },
+    { "seat": "seat_2", "action": "check" },
+    { "seat": "seat_3", "action": "check" },
+    { "seat": "seat_0", "action": "check" },
+    { "seat": "seat_1", "action": "check" },
+    { "seat": "seat_2", "action": "check" },
+    { "seat": "seat_3", "action": "check" },
+    { "seat": "seat_0", "action": "check" }
+  ],
+  "expected_public_result": {
+    "winners": ["seat_0"],
+    "winner_labels": ["Seat 1"],
+    "headline": "Seat 1 wins with Two pair, Queens and Fives.",
+    "decisive_comparison": "Two pair, Queens and Fives beats Pair of Fives.",
+    "comparison_basis": "Two pair outranks One pair.",
+    "contrast_seat_label": "Seat 3",
+    "forbidden_strings": ["Seat 0 wins", "seat_0 wins"]
+  },
+  "allocations": [
+    { "seat": "seat_0", "amount": 8 }
+  ]
+}
