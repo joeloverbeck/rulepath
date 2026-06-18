@@ -594,6 +594,20 @@ async function assertVariableSeatSetup(page, seatCount) {
     `river_ledger setup exposes supported seat counts: ${summary.options.join(", ")}`,
   );
   await page.select('select[aria-label="Supported seats from Rust catalog"]', String(seatCount));
+  await page.waitForFunction(
+    (expected) => document.querySelector('select[aria-label="Supported seats from Rust catalog"]')?.value === String(expected),
+    {},
+    seatCount,
+  );
+  const rows = await page.$$eval(".seat-roles > div", (items) => items.map((row) => row.textContent ?? ""));
+  assert(rows.length === seatCount, `setup role rows match selected seat count ${seatCount}: ${rows.join(" | ")}`);
+  assert(
+    rows.every((row, index) => row.includes(`Seat ${index + 1}`)),
+    `setup role rows use selected active labels: ${rows.join(" | ")}`,
+  );
+  const setupCopy = await page.$eval(".setup-region", (region) => region.textContent ?? "");
+  assert(setupCopy.includes(`Seat ${seatCount}`), `setup copy names selected final seat: ${setupCopy}`);
+  assert(!setupCopy.includes(`Seat ${seatCount + 1}`), `setup copy omits phantom next seat: ${setupCopy}`);
 }
 
 async function ownPrivateCardLabels(page) {

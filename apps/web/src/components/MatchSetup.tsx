@@ -52,6 +52,7 @@ export function MatchSetup({
   const seatCounts = supportedSeatCounts(selectedGame);
   const defaultSeatCount = selectedGame?.default_seats ?? seatCounts[0] ?? "";
   const selectedSeatCount = seatCount ?? (typeof defaultSeatCount === "number" ? defaultSeatCount : null);
+  const selectedSetupLabels = setupLabelsForCount(selectedGame, selectedSeatCount);
   return (
     <section className="region setup-region" aria-labelledby="setup-heading">
       <div className="region-heading">
@@ -155,7 +156,7 @@ export function MatchSetup({
               onChange={() => onPlayModeChange(mode.value)}
             />
             <span>{mode.label}</span>
-            <small>{modeDetail(mode.value, selectedGame)}</small>
+            <small>{modeDetail(mode.value, selectedSetupLabels)}</small>
           </label>
         ))}
       </fieldset>
@@ -166,7 +167,7 @@ export function MatchSetup({
           <small>{selectedGame?.seat_labels?.length ? "From the Rust catalog" : "Fallback labels"}</small>
         </div>
         <div className="seat-roles">
-          {setupSeatRoles(selectedGame, playMode).map((role) => (
+          {setupSeatRoles(selectedSetupLabels.labels, playMode).map((role) => (
             <div key={role.seat}>
               <span>{role.label}</span>
               <strong>{role.actor}</strong>
@@ -191,8 +192,24 @@ function gameMetadata(game: GameCatalogEntry, selectedVariantLabel: string | nul
   return `Standard setup; ${seatCopy}`;
 }
 
-function modeDetail(playMode: SetupPlayMode, game: GameCatalogEntry | null): string {
-  const labels = setupLabels(game);
+type SetupLabelResolution = {
+  labels: SeatDisplayLabel[];
+  count: number | null;
+  exact: boolean;
+};
+
+function modeDetail(playMode: SetupPlayMode, setup: SetupLabelResolution): string {
+  const { labels } = setup;
+  if (!setup.exact && setup.count) {
+    switch (playMode) {
+      case "human_vs_bot":
+        return `One seat is local; ${setup.count - 1} seats are automated.`;
+      case "hotseat":
+        return `All ${setup.count} selected seats are local on this device.`;
+      case "bot_vs_bot":
+        return `All ${setup.count} selected seats are automated locally.`;
+    }
+  }
   if (labels.length >= 2) {
     switch (playMode) {
       case "human_vs_bot":
@@ -222,12 +239,34 @@ function modeDetail(playMode: SetupPlayMode, game: GameCatalogEntry | null): str
   }
 }
 
-function setupSeatRoles(game: GameCatalogEntry | null, playMode: SetupPlayMode): Array<{ seat: string; label: string; actor: string }> {
-  return setupLabels(game).map((entry, index) => ({
+function setupSeatRoles(labels: SeatDisplayLabel[], playMode: SetupPlayMode): Array<{ seat: string; label: string; actor: string }> {
+  return labels.map((entry, index) => ({
     seat: entry.seat,
     label: entry.label,
     actor: actorLabel(playMode, index),
   }));
+}
+
+function setupLabelsForCount(game: GameCatalogEntry | null, selectedSeatCount: number | null): SetupLabelResolution {
+  const labels = setupLabels(game);
+  if (!selectedSeatCount) {
+    return { labels, count: null, exact: true };
+  }
+  if (labels.length >= selectedSeatCount) {
+    return { labels: labels.slice(0, selectedSeatCount), count: selectedSeatCount, exact: true };
+  }
+  console.assert(
+    false,
+    `Setup label count mismatch: selected ${selectedSeatCount}, catalog supplied ${labels.length}.`,
+  );
+  return {
+    labels: Array.from({ length: selectedSeatCount }, (_, index) => ({
+      seat: `seat_${index}`,
+      label: `Seat ${index + 1}`,
+    })),
+    count: selectedSeatCount,
+    exact: false,
+  };
 }
 
 function setupLabels(game: GameCatalogEntry | null): SeatDisplayLabel[] {

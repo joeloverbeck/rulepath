@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-007: Make setup prose and role rows use the selected supported seat count
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/MatchSetup.tsx`
@@ -74,3 +74,23 @@ If the selected count and catalog labels disagree, render count-only generic cop
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web ci && npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 3. Narrower `smoke:ui` is the correct boundary because setup copy renders before any match/WASM viewer request.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- Threaded the selected supported seat count into setup label resolution for mode prose and role rows.
+- `modeDetail()` and `setupSeatRoles()` now consume resolved selected-count labels instead of the full catalog capability list.
+- Added a fail-closed path for count/label mismatch that asserts in development and renders generic count-scoped copy instead of phantom seats.
+- Extended the River Ledger smoke to verify selected setup rows name exactly the chosen count and omit the next phantom seat.
+
+Deviations:
+- None. Two unrelated `.claude/skills/spec-to-tickets` worktree modifications were left unstaged and untouched.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node apps/web/e2e/river-ledger.smoke.mjs` passed after setup-copy assertions were added.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `npm --prefix apps/web ci` passed; npm reported the existing single low-severity vulnerability.
