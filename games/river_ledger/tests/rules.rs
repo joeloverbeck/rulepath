@@ -458,6 +458,55 @@ fn checkdown_can_produce_single_winner_showdown_from_seeded_state() {
 }
 
 #[test]
+fn seed_10018_showdown_labels_unique_winner_consistently() {
+    let mut state = seeded_state(10018, 4);
+    apply_segment(&mut state, "seat_3", "call");
+    apply_segment(&mut state, "seat_0", "call");
+    apply_segment(&mut state, "seat_1", "call");
+    apply_segment(&mut state, "seat_2", "check");
+    check_down_from_flop_to_terminal(&mut state);
+
+    let Some(TerminalOutcome::Showdown {
+        winners,
+        pot_total,
+        allocations,
+        headline,
+        decisive_comparison,
+        comparison_basis,
+        presentation_v2,
+        ..
+    }) = &state.terminal_outcome
+    else {
+        panic!("showdown terminal expected");
+    };
+
+    assert_eq!(winners, &vec![seat(0)]);
+    assert_eq!(
+        allocations,
+        &vec![PotShare {
+            seat: seat(0),
+            amount: *pot_total,
+        }]
+    );
+    assert_eq!(headline, "Seat 1 wins with Two pair, Queens and Fives.");
+    assert_eq!(
+        decisive_comparison,
+        "Two pair, Queens and Fives beats Pair of Fives."
+    );
+    assert_eq!(comparison_basis, "Two pair outranks One pair.");
+    assert_eq!(
+        presentation_v2
+            .decisive_reason
+            .contrast_seat_label
+            .as_deref(),
+        Some("Seat 3")
+    );
+    assert_eq!(presentation_v2.standings[0].seat, seat(0));
+    assert_eq!(presentation_v2.standings[0].seat_label, "Seat 1");
+    assert_eq!(presentation_v2.standings[0].result_label, "Win");
+}
+
+#[test]
 fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
     let mut state = standard_state(4);
     state.board = royal_board();

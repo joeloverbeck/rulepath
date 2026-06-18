@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-002: Unify Rust public seat labels and close the seed-10018 contradiction
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Engine Changes**: Yes — `games/river_ledger/src/ui.rs`; `apps/web/src/components/RiverLedgerBoard.tsx` (presentation); `apps/web/e2e/river-ledger.smoke.mjs`
 **Effort**: Medium
@@ -84,3 +84,29 @@ Extend `river-ledger.smoke.mjs` with the seed-`10018` assertion that one consist
 1. `cargo test -p river_ledger`
 2. `npm --prefix apps/web ci && npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 3. `node scripts/check-presentation-copy.mjs` (narrower presentation-copy guard for the React label change).
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- `games/river_ledger/src/ui.rs` now derives every `seat_labels` row from the same one-based `seat_public_label()` authority used by showdown narration.
+- `crates/wasm-api/src/lib.rs` now serializes River Ledger catalog seat labels from `river_ledger::ui_metadata()` instead of the generic zero-based catalog helper, so the shared seat frame and live view receive the same labels.
+- `apps/web/src/components/RiverLedgerBoard.tsx` now builds a label lookup from Rust-projected `ui.seat_labels` and no longer parses `seat_N` IDs into display labels. Missing labels fall back to neutral `Seat` text with a dev-only assertion and no raw ID exposure.
+- Added the seed-10018 native regression and extended `apps/web/e2e/river-ledger.smoke.mjs` so the generic heading, live outcome text, V2 showdown banner, decisive reason, and standings use the same one-based winner label and never say `Seat 0 wins`.
+- Updated native visibility and wasm-api assertions to the one-based River Ledger public-label contract.
+
+Deviations:
+- The ticket named `games/river_ledger/src/ui.rs`, `RiverLedgerBoard.tsx`, `river-ledger.smoke.mjs`, and `tests/rules.rs`; satisfying the catalog/view metadata contract also required the narrow `wasm-api` River Ledger catalog serializer and existing visibility tests that locked the old catalog labels.
+
+Verification:
+- `cargo fmt --all --check` passed.
+- `cargo test -p river_ledger` passed.
+- `cargo test -p wasm-api` passed.
+- `npm --prefix apps/web ci` passed; npm reported one existing low-severity audit item.
+- `npm --prefix apps/web run build` passed.
+- `node scripts/check-presentation-copy.mjs` passed.
+- `node apps/web/e2e/river-ledger.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.

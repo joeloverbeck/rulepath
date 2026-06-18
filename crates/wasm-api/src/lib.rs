@@ -615,7 +615,7 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_RIVER_LEDGER_STANDARD, GAME_RIVER_LEDGER_DISPLAY_NAME, None)]),
-                catalog_seat_labels_json(6),
+                river_catalog_seat_labels_json(),
                 catalog_viewer_modes_json(6)
             ),
         };
@@ -8089,6 +8089,16 @@ fn river_seat_display_label_json(label: &river_ledger::ui::SeatDisplayLabel) -> 
     )
 }
 
+fn river_catalog_seat_labels_json() -> String {
+    let labels = river_ledger::ui_metadata()
+        .seat_labels
+        .iter()
+        .map(river_seat_display_label_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{labels}]")
+}
+
 fn river_hand_ranking_json(row: &river_ledger::ui::HandRankingMetadata) -> String {
     format!(
         "{{\"category\":\"{}\",\"label\":\"{}\",\"definition\":\"{}\"}}",
@@ -12784,9 +12794,9 @@ mod tests {
         ));
         assert!(non_terminal.contains("\"category\":\"high_card\",\"label\":\"High card\""));
         assert!(non_terminal.contains(
-            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\""
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\""
         ));
-        assert!(non_terminal.contains("{\"seat\":\"seat_5\",\"label\":\"Seat 5\"}"));
+        assert!(non_terminal.contains("{\"seat\":\"seat_5\",\"label\":\"Seat 6\"}"));
 
         let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
         assert!(foldout.contains(

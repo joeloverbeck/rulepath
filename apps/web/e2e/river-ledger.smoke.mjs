@@ -70,7 +70,7 @@ try {
   const selectedSeatCount = 4;
   await startRiverLedger(page, baseUrl, "Human vs bot", selectedSeatCount);
   await page.waitForSelector('[data-testid="river-ledger-board"]');
-  await waitForText(page, "Seat 0 to choose");
+  await waitForText(page, "Seat 1 to choose");
   await assertModeStatusUsesSeatLabel(page);
   await assertRiverLedgerA11y(page, true, selectedSeatCount);
   await assertHandRankingReferenceDuringPlay(page);
@@ -85,13 +85,13 @@ try {
   await assertNoLeak(page, consoleMessages, "observer view", cardIds);
   await assertStorageClean(page);
 
-  await clickSeatFrameButton(page, "Seat 1");
-  await waitForText(page, "Seat 1 view");
+  await clickSeatFrameButton(page, "Seat 2");
+  await waitForText(page, "Seat 2 view");
   const seat1Cards = await ownPrivateCardLabels(page);
   assert(seat1Cards.length === 2, "seat 1 private view exposes two own cards");
   await assertNoLeak(page, consoleMessages, "wrong-seat view", seat0Cards.map(labelToId));
 
-  await clickSeatFrameButton(page, "Seat 0");
+  await clickSeatFrameButton(page, "Seat 1");
   await waitForText(page, "Available choices");
   const choices = await page.$$eval('[data-testid^="choice-river-ledger-"]', (buttons) =>
     buttons.map((button) => ({
@@ -133,6 +133,11 @@ try {
   assertNoForbiddenTerms(await fullBrowserSurface(page), "worked-example showdown surface", [...cardIds, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "worked-example console logs", internalTerms);
   await assertStorageClean(page);
+
+  await playSeed10018Showdown(page, baseUrl);
+  await assertSeed10018ShowdownLabels(page);
+  await assertNoRawSeatIds(page, "seed-10018 showdown surface");
+  assertNoForbiddenTerms(await fullBrowserSurface(page), "seed-10018 showdown surface", internalTerms);
 
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "river_ledger noleak legal controls terminal responsive" }));
 } finally {
@@ -188,6 +193,22 @@ async function playWorkedExampleShowdown(page, baseUrl) {
   await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
 }
 
+async function playSeed10018Showdown(page, baseUrl) {
+  await startRiverLedger(page, baseUrl, "Hotseat", 4, 10018);
+  await waitForText(page, "Available choices");
+  for (const action of ["Call", "Call", "Call", "Check", "Check", "Check", "Check", "Check", "Check", "Check", "Check", "Check", "Check", "Check", "Check", "Check"]) {
+    await clickRiverAction(page, action);
+    if (action !== "Check" || !(await hasRiverLedgerOutcome(page))) {
+      await waitForText(page, "Available choices").catch(async () => {
+        if (!(await hasRiverLedgerOutcome(page))) {
+          throw new Error(`River Ledger seed 10018 did not advance after ${action}`);
+        }
+      });
+    }
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
 async function assertWorkedExampleShowdown(page) {
   const summary = await page.evaluate(() => {
     const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
@@ -216,6 +237,39 @@ async function assertWorkedExampleShowdown(page) {
   assert(summary.boardUsageCards === 5, `worked example renders board usage once: ${summary.boardUsageCards}`);
   assert(summary.cardCount >= 25, `worked example renders board usage plus each best-five hand: ${summary.cardCount}`);
   assert(summary.foldedStrengthRows === 0, "worked example renders no folded-seat hand strength");
+}
+
+async function assertSeed10018ShowdownLabels(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    const latest = document.querySelector(".river-ledger-latest");
+    const heading = document.querySelector("#river-ledger-heading");
+    const banner = panel?.querySelector('[data-animation-target="river-ledger-showdown-banner"]');
+    const standings = Array.from(panel?.querySelectorAll(".outcome-standing-row, .river-ledger-showdown-standing") ?? []).map(
+      (row) => row.textContent ?? "",
+    );
+    return {
+      panelText: panel?.textContent ?? "",
+      latestText: latest?.textContent ?? "",
+      headingText: heading?.textContent ?? "",
+      bannerText: banner?.textContent ?? "",
+      standings,
+    };
+  });
+
+  const combined = [summary.panelText, summary.latestText, summary.headingText, summary.bannerText, ...summary.standings].join("\n");
+  assert(summary.headingText.includes("Seat 1 wins"), `generic outcome heading uses Rust label: ${summary.headingText}`);
+  assert(summary.latestText.includes("Seat 1 wins"), `live outcome announcement uses Rust label: ${summary.latestText}`);
+  assert(
+    summary.bannerText.includes("Seat 1 wins with Two pair, Queens and Fives."),
+    `showdown banner uses same winner label: ${summary.bannerText}`,
+  );
+  assert(
+    summary.panelText.includes("Two pair outranks One pair."),
+    `decisive reason is rendered for seed 10018: ${summary.panelText}`,
+  );
+  assert(summary.panelText.includes("Seat 3"), `closest challenger label is one-based: ${summary.panelText}`);
+  assert(!combined.includes("Seat 0 wins"), `seed 10018 surface must not use zero-based winner label: ${combined}`);
 }
 
 async function assertPrivateCardComponent(page) {
@@ -378,7 +432,7 @@ async function assertSeatAndStreetAffordancesDuringPlay(page) {
 
 async function assertModeStatusUsesSeatLabel(page) {
   const modeText = await page.$eval(".mode-controls", (element) => element.textContent ?? "");
-  assert(modeText.includes("Seat 0 (you) to act"), `mode status uses Rust seat labels: ${modeText}`);
+  assert(modeText.includes("Seat 1 (you) to act"), `mode status uses Rust seat labels: ${modeText}`);
   assert(!modeText.includes("Player 1 to act"), `mode status avoids Player fallback: ${modeText}`);
 }
 

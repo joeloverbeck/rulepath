@@ -188,9 +188,9 @@ fn observer_projection_effects_and_action_tree_hide_all_private_and_future_cards
         let projection = project_view(&state, &observer);
         assert_eq!(projection.ui.seat_labels.len(), 6);
         assert_eq!(projection.ui.seat_labels[0].seat, "seat_0");
-        assert_eq!(projection.ui.seat_labels[0].label, "Seat 0");
+        assert_eq!(projection.ui.seat_labels[0].label, "Seat 1");
         assert_eq!(projection.ui.seat_labels[5].seat, "seat_5");
-        assert_eq!(projection.ui.seat_labels[5].label, "Seat 5");
+        assert_eq!(projection.ui.seat_labels[5].label, "Seat 6");
         assert_absent(
             &format!("{projection:?}"),
             &hidden,

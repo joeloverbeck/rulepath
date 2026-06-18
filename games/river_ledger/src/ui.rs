@@ -251,9 +251,12 @@ fn seat_status_label(status: SeatStatus) -> &'static str {
 
 fn seat_labels(count: u8) -> Vec<SeatDisplayLabel> {
     (0..count)
-        .map(|index| SeatDisplayLabel {
-            seat: format!("seat_{index}"),
-            label: format!("Seat {index}"),
+        .filter_map(|index| {
+            let seat = RiverLedgerSeat::from_index(index as usize)?;
+            Some(SeatDisplayLabel {
+                seat: format!("seat_{index}"),
+                label: seat_public_label(seat),
+            })
         })
         .collect()
 }
@@ -362,6 +365,17 @@ mod tests {
             seat_public_label(RiverLedgerSeat::from_index(5).expect("seat 5")),
             "Seat 6"
         );
+
+        let ui = ui_metadata();
+        for index in 0..super::STANDARD_MAX_SEATS {
+            let seat = RiverLedgerSeat::from_index(index as usize).expect("seat");
+            let label = ui
+                .seat_labels
+                .iter()
+                .find(|label| label.seat == format!("seat_{index}"))
+                .expect("catalog seat label");
+            assert_eq!(label.label, seat_public_label(seat));
+        }
     }
 
     #[test]
