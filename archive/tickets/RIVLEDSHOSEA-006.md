@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-006: Scope SeatFrame to active seats and make the viewer callback generic
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/main.tsx`, `apps/web/src/components/SeatFrame.tsx`, `apps/web/src/styles.css`
@@ -81,3 +81,26 @@ Consume the RIVLEDSHOSEA-005 active-seat-label field for both the viewpoint row 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web ci && npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 3. `npm --prefix apps/web run smoke:effects` (selector reflow + focus regressions in the shared shell).
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- `SeatFrame` now consumes the Rust/WASM `active_seat_labels` projection when present and uses that same active list for the viewer control and seat rail.
+- Replaced the button group with native radio inputs inside a fieldset for one-of-many semantics, keyboard selection, visible focus, and stable target sizing.
+- Replaced the hardcoded `seat_0 || seat_1` callback guard with active-seat validation. River Ledger uses Rust-projected active labels; older catalog surfaces fall back to catalog seat labels or `viewer_modes`.
+- Added stale viewer normalization to observer when the selected seat disappears from the current active set.
+- Updated River Ledger and a11y/no-leak browser smokes for radio selectors, including a six-seat River Ledger selector pass over Observer and Seats 1-6 plus keyboard movement.
+
+Deviations:
+- None. Two unrelated `.claude/skills/spec-to-tickets` worktree modifications were left unstaged and untouched.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/river-ledger.smoke.mjs` passed.
+- `node apps/web/e2e/a11y-noleak.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web ci` passed; npm reported the existing single low-severity vulnerability.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `npm --prefix apps/web run smoke:effects` passed on the final rerun. Earlier attempts failed once due `npm ci` running concurrently with TypeScript and twice due an animation-smoke target timeout; the isolated `node apps/web/scripts/smoke-effect-feedback.mjs && node apps/web/e2e/animation.smoke.mjs` and the final package command both passed.

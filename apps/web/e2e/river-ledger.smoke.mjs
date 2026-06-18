@@ -139,6 +139,8 @@ try {
   await assertNoRawSeatIds(page, "seed-10018 showdown surface");
   assertNoForbiddenTerms(await fullBrowserSurface(page), "seed-10018 showdown surface", internalTerms);
 
+  await assertSixSeatFrameSelector(page, baseUrl);
+
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "river_ledger noleak legal controls terminal responsive" }));
 } finally {
   if (browser) {
@@ -270,6 +272,40 @@ async function assertSeed10018ShowdownLabels(page) {
   );
   assert(summary.panelText.includes("Seat 3"), `closest challenger label is one-based: ${summary.panelText}`);
   assert(!combined.includes("Seat 0 wins"), `seed 10018 surface must not use zero-based winner label: ${combined}`);
+}
+
+async function assertSixSeatFrameSelector(page, baseUrl) {
+  await startRiverLedger(page, baseUrl, "Hotseat", 6, 7);
+  await waitForText(page, "Available choices");
+  const summary = await page.evaluate(() => ({
+    labels: Array.from(document.querySelectorAll(".seat-frame-viewers label")).map((label) => label.textContent?.trim()),
+    checked: document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.trim() ?? "",
+    radioCount: document.querySelectorAll(".seat-frame-viewers input[type='radio']").length,
+    rail: Array.from(document.querySelectorAll(".seat-frame-rail li")).map((item) => item.textContent?.trim() ?? ""),
+  }));
+  assert(
+    JSON.stringify(summary.labels) === JSON.stringify(["Observer", "Seat 1", "Seat 2", "Seat 3", "Seat 4", "Seat 5", "Seat 6"]),
+    `six-seat selector uses active labels only: ${JSON.stringify(summary.labels)}`,
+  );
+  assert(summary.radioCount === 7, `six-seat selector exposes one observer plus six seats: ${summary.radioCount}`);
+  assert(summary.checked === "Seat 4", `hotseat starts on active six-seat viewer: ${summary.checked}`);
+  assert(summary.rail.length === 6 && summary.rail.every((row, index) => row.includes(`Seat ${index + 1}`)), `six-seat rail is active-scoped: ${summary.rail.join(" | ")}`);
+
+  for (const label of ["Observer", "Seat 1", "Seat 2", "Seat 3", "Seat 4", "Seat 5", "Seat 6"]) {
+    await clickSeatFrameButton(page, label);
+    await page.waitForFunction(
+      (expected) => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes(expected),
+      {},
+      label,
+    );
+    await waitForText(page, label === "Observer" ? "Observer view" : `${label} view`);
+  }
+
+  await page.focus('.seat-frame-viewers input[value="observer"]');
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Space");
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Seat 1"));
+  await waitForText(page, "Seat 1 view");
 }
 
 async function assertPrivateCardComponent(page) {
@@ -666,7 +702,7 @@ async function assertStorageClean(page) {
 }
 
 async function clickSeatFrameButton(page, text) {
-  const handle = await waitForTextHandle(page, ".seat-frame-viewers button", text);
+  const handle = await waitForTextHandle(page, ".seat-frame-viewers label", text);
   await handle.click();
 }
 

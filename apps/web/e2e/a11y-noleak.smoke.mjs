@@ -274,8 +274,8 @@ async function assertRiverLedgerStatusAnnouncement(page) {
 
 async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
   const summary = await page.evaluate(() => ({
-    labels: Array.from(document.querySelectorAll(".seat-frame-viewers button")).map((button) => button.textContent?.trim()),
-    selected: document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.trim() ?? "",
+    labels: Array.from(document.querySelectorAll(".seat-frame-viewers label")).map((label) => label.textContent?.trim()),
+    selected: document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.trim() ?? "",
     rail: document.querySelector(".seat-frame-rail")?.textContent ?? "",
   }));
   assert(summary.labels.includes("Observer"), "seat frame exposes observer viewer");
@@ -286,12 +286,12 @@ async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_0 DOM");
 
   await clickSeatFrameButton(page, "Seat 1");
-  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.includes("Seat 1"));
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Seat 1"));
   await waitForText(page, "Waiting for active seat");
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_1 DOM");
 
   await clickSeatFrameButton(page, "Observer");
-  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.includes("Observer"));
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Observer"));
   await waitForText(page, "Observer only");
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame observer DOM");
   await assertStorageClean(page);
@@ -693,16 +693,16 @@ async function clickLabel(page, text) {
 
 async function clickSeatFrameButton(page, text) {
   const clicked = await page.evaluate((expected) => {
-    const button = Array.from(document.querySelectorAll(".seat-frame-viewers button")).find(
+    const label = Array.from(document.querySelectorAll(".seat-frame-viewers label")).find(
       (candidate) => candidate.textContent?.trim() === expected,
     );
-    if (!button) {
+    if (!label) {
       return false;
     }
-    button.click();
+    label.click();
     return true;
   }, text);
-  assert(clicked, `seat frame button exists: ${text}`);
+  assert(clicked, `seat frame viewer option exists: ${text}`);
 }
 
 async function clickRiverAction(page, label) {

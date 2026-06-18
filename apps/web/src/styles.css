@@ -247,23 +247,53 @@ h2 {
   flex-wrap: wrap;
   gap: 8px;
   align-content: start;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-.seat-frame-viewers button {
+.seat-frame-viewers legend {
+  inline-size: 100%;
+  margin-block-end: 2px;
+  color: #52665e;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.seat-frame-viewers label {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-block-size: 34px;
+  min-inline-size: 34px;
   border: 1px solid #b7c4bd;
   border-radius: 6px;
   padding: 8px 10px;
   background: #ffffff;
   color: #1c322a;
   font-weight: 800;
+  cursor: pointer;
 }
 
-.seat-frame-viewers button.selected {
+.seat-frame-viewers label.selected {
   border-color: #2b8068;
   background: #dcefe8;
 }
 
-.seat-frame-viewers button:disabled {
+.seat-frame-viewers label:focus-within {
+  outline: 2px solid #2b8068;
+  outline-offset: 2px;
+}
+
+.seat-frame-viewers input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seat-frame-viewers label:has(input:disabled) {
   cursor: default;
   opacity: 0.74;
 }
