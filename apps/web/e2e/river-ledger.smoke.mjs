@@ -91,6 +91,8 @@ try {
   assert(seat1Cards.length === 2, "seat 1 private view exposes two own cards");
   await assertNoLeak(page, consoleMessages, "wrong-seat view", seat0Cards.map(labelToId));
 
+  await assertPreShowdownPairwiseNoLeak(page, consoleMessages, selectedSeatCount);
+
   await clickSeatFrameButton(page, "Seat 1");
   await waitForText(page, "Available choices");
   const choices = await page.$$eval('[data-testid^="choice-river-ledger-"]', (buttons) =>
@@ -306,6 +308,35 @@ async function assertSixSeatFrameSelector(page, baseUrl) {
   await page.keyboard.press("Space");
   await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Seat 1"));
   await waitForText(page, "Seat 1 view");
+}
+
+async function assertPreShowdownPairwiseNoLeak(page, consoleMessages, seatCount) {
+  const seatLabels = Array.from({ length: seatCount }, (_, index) => `Seat ${index + 1}`);
+  const cardsBySeat = new Map();
+
+  for (const seatLabel of seatLabels) {
+    await clickSeatFrameButton(page, seatLabel);
+    await waitForText(page, `${seatLabel} view`);
+    const ownCards = await ownPrivateCardLabels(page);
+    assert(ownCards.length === 2, `${seatLabel} private view exposes two own cards`);
+    cardsBySeat.set(seatLabel, ownCards.map(labelToId));
+  }
+
+  await clickSeatFrameButton(page, "Observer");
+  await waitForText(page, "Observer view");
+  await assertNoLeak(page, consoleMessages, "observer all-seat private-card surface", Array.from(cardsBySeat.values()).flat());
+
+  for (const sourceSeat of seatLabels) {
+    const sourceCards = cardsBySeat.get(sourceSeat) ?? [];
+    for (const viewerSeat of seatLabels) {
+      if (viewerSeat === sourceSeat) {
+        continue;
+      }
+      await clickSeatFrameButton(page, viewerSeat);
+      await waitForText(page, `${viewerSeat} view`);
+      await assertNoLeak(page, consoleMessages, `${viewerSeat} view excludes ${sourceSeat} private cards`, sourceCards);
+    }
+  }
 }
 
 async function assertPrivateCardComponent(page) {

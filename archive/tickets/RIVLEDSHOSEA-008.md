@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-008: Cross-catalog viewer and no-leak regression matrix
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (audit + e2e) — `apps/web/e2e/shell.smoke.mjs`, `apps/web/e2e/a11y-noleak.smoke.mjs`, and the fixed-two-seat game smoke scripts under `apps/web/e2e/`
@@ -85,3 +85,27 @@ Extend `a11y-noleak.smoke.mjs` (and the named hidden-information games' smoke su
 1. `npm --prefix apps/web ci && npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e`
 2. `npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects`
 3. Full `smoke:e2e` (not a narrower filter) is the correct boundary because the viewer callback is shared across the entire catalog.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- Added a shared-shell fixed two-seat viewer matrix in `apps/web/e2e/shell.smoke.mjs` covering Race to 21 plus every fixed two-seat catalog game. The matrix starts each game in Hotseat mode, asserts the generic seat frame exposes observer plus exactly two active seat ids (`seat_0`, `seat_1`), verifies matching rail rows, and switches through observer and both rendered seat labels.
+- Extended `apps/web/e2e/a11y-noleak.smoke.mjs` with aggregate hidden-information selector switching for Flood Watch and Event Frontier, including rendered-label support for catalog-authored labels such as Charter/Freeholders.
+- Added a River Ledger pre-showdown all-pairs private-card loop in `apps/web/e2e/river-ledger.smoke.mjs`: every active seat can see its own two cards, observer sees none, and every distinct viewer/source pair rejects the source seat's private card ids across the existing DOM/attribute/storage/test-id/console leak surface.
+
+Deviations from original plan:
+- The fixed two-seat matrix lives in the shared shell smoke rather than duplicating selector assertions into every per-game smoke script. This keeps the generic viewer callback acceptance in one platform-level test while full `smoke:e2e` still exercises each game-specific script.
+- The selector assertions validate active seat ids and rendered labels separately. Some fixed two-seat games intentionally use authored labels (`Charter`, `Freeholders`) instead of the generic `Seat 0`/`Seat 1` copy.
+
+Verification:
+- `npm --prefix apps/web run build` — passed.
+- `node scripts/check-presentation-copy.mjs` — passed.
+- `node apps/web/e2e/shell.smoke.mjs` — passed.
+- `node apps/web/e2e/a11y-noleak.smoke.mjs` — passed.
+- `node apps/web/e2e/river-ledger.smoke.mjs` — passed.
+- `npm --prefix apps/web run smoke:e2e` — passed.
+- `npm --prefix apps/web ci` — passed; npm reported one low-severity audit item.
+- `npm --prefix apps/web run smoke:ui` — passed.
+- `npm --prefix apps/web run smoke:effects` — passed.
