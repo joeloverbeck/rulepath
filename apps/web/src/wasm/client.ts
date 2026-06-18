@@ -896,6 +896,7 @@ export type RiverLedgerPublicView = {
   rules_version_label: string;
   phase: "setup" | "preflop" | "flop" | "turn" | "river" | "showdown" | "terminal" | string;
   active_seat: RiverLedgerSeatId | null;
+  active_seat_labels: SeatDisplayLabel[];
   button: RiverLedgerSeatId;
   small_blind: RiverLedgerSeatId;
   big_blind: RiverLedgerSeatId;

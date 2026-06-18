@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::BTreeSet};
 
 use crate::{
     cards::{Card, Rank},
@@ -20,6 +20,150 @@ struct SeatEvaluation {
     evaluation: HandEvaluation,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ResolvedShowdown {
+    evaluations: Vec<SeatEvaluation>,
+    canonical_winners: Vec<RiverLedgerSeat>,
+    allocation: PotAllocation,
+    headline: String,
+    decisive_comparison: String,
+    comparison_basis: String,
+    explanations: Vec<ShowdownSeatExplanation>,
+    presentation_v2: RiverLedgerShowdownPresentationV2,
+}
+
+impl ResolvedShowdown {
+    fn into_terminal(self) -> TerminalOutcome {
+        self.assert_invariants();
+        TerminalOutcome::Showdown {
+            winners: self.canonical_winners,
+            pot_total: self.allocation.pot_total,
+            allocations: self.allocation.shares,
+            headline: self.headline,
+            decisive_comparison: self.decisive_comparison,
+            comparison_basis: self.comparison_basis,
+            explanations: self.explanations,
+            presentation_v2: Box::new(self.presentation_v2),
+        }
+    }
+
+    fn assert_invariants(&self) {
+        assert!(
+            !self.canonical_winners.is_empty(),
+            "resolved showdown requires at least one canonical winner"
+        );
+        let winner_set = self
+            .canonical_winners
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            winner_set.len(),
+            self.canonical_winners.len(),
+            "resolved showdown winners must be unique"
+        );
+        assert_eq!(
+            self.allocation.winners, self.canonical_winners,
+            "allocation winner order must match canonical showdown winner order"
+        );
+        assert_eq!(
+            self.allocation
+                .remainder_order
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>(),
+            winner_set,
+            "remainder order must contain exactly the canonical winner set"
+        );
+        assert_eq!(
+            self.allocation.remainder_order.len(),
+            self.canonical_winners.len(),
+            "remainder order must not duplicate winners"
+        );
+        assert_eq!(
+            self.allocation
+                .shares
+                .iter()
+                .map(|share| share.seat)
+                .collect::<Vec<_>>(),
+            self.canonical_winners,
+            "allocation shares must serialize in canonical winner order"
+        );
+        assert_eq!(
+            self.allocation
+                .shares
+                .iter()
+                .map(|share| share.amount)
+                .sum::<u16>(),
+            self.allocation.pot_total,
+            "showdown allocations must conserve the ledger"
+        );
+        assert!(
+            self.allocation
+                .shares
+                .iter()
+                .all(|share| winner_set.contains(&share.seat) && share.amount > 0),
+            "only winners may receive positive showdown allocations"
+        );
+        assert!(
+            self.evaluations
+                .iter()
+                .filter(|entry| winner_set.contains(&entry.seat))
+                .count()
+                == self.canonical_winners.len(),
+            "each canonical winner must have one evaluation"
+        );
+        assert!(
+            self.presentation_v2.standings.iter().all(|standing| {
+                let winner = winner_set.contains(&standing.seat);
+                standing.default_expanded == winner
+                    && standing.result_label == result_label(standing.seat, &self.canonical_winners)
+            }),
+            "V2 standings winner flags must match canonical winners"
+        );
+
+        if self.canonical_winners.len() == 1 {
+            let winner = self.canonical_winners[0];
+            assert!(
+                self.headline.contains(&seat_public_label(winner))
+                    && self
+                        .presentation_v2
+                        .result_banner
+                        .headline
+                        .contains(&seat_public_label(winner)),
+                "single-winner banner identity must match canonical winner"
+            );
+        } else {
+            assert!(
+                self.headline.contains("split the ledger")
+                    && self
+                        .presentation_v2
+                        .result_banner
+                        .headline
+                        .contains("split the ledger"),
+                "split showdown banner must not imply a sole winner"
+            );
+            for winner in &self.canonical_winners {
+                assert!(
+                    self.headline.contains(&seat_public_label(*winner)),
+                    "split showdown headline must name every canonical winner"
+                );
+            }
+            for loser in self
+                .evaluations
+                .iter()
+                .map(|entry| entry.seat)
+                .filter(|seat| !winner_set.contains(seat))
+            {
+                assert!(
+                    !self.headline.contains(&seat_public_label(loser)),
+                    "split showdown headline must not name a loser as a winner"
+                );
+            }
+        }
+    }
+}
+
 pub fn showdown_eligible_seats(state: &RiverLedgerState) -> Vec<RiverLedgerSeat> {
     state
         .ledger
@@ -36,31 +180,36 @@ pub fn showdown_eligible_seats(state: &RiverLedgerState) -> Vec<RiverLedgerSeat>
 }
 
 pub fn resolve_showdown(state: &RiverLedgerState) -> TerminalOutcome {
+    resolve_showdown_internal(state).into_terminal()
+}
+
+fn resolve_showdown_internal(state: &RiverLedgerState) -> ResolvedShowdown {
     let evaluations = evaluate_showdown_seats(state);
-    let winners = winning_seats(&evaluations);
+    let canonical_winners = winning_seats(&evaluations);
     let allocation = allocate_single_pot(
         state.ledger.pot_total,
-        &winners,
+        &canonical_winners,
         state.button,
         state.seats.len() as u8,
     );
-    let explanations = explain_showdown(state, &evaluations, &allocation);
-    let headline = showdown_headline(&evaluations, &winners);
-    let decisive_comparison = decisive_comparison(&evaluations, &winners);
-    let comparison_basis = comparison_basis(&evaluations, &winners);
-    let presentation_v2 = Box::new(showdown_presentation_v2(
+    let headline = showdown_headline(&evaluations, &canonical_winners);
+    let decisive_comparison = decisive_comparison(&evaluations, &canonical_winners);
+    let comparison_basis = comparison_basis(&evaluations, &canonical_winners);
+    let explanations = explain_showdown(state, &evaluations, &canonical_winners, &allocation);
+    let presentation_v2 = showdown_presentation_v2(
         state,
         &evaluations,
+        &canonical_winners,
         &allocation,
         &headline,
         &decisive_comparison,
         &comparison_basis,
-    ));
+    );
 
-    TerminalOutcome::Showdown {
-        winners: allocation.winners,
-        pot_total: allocation.pot_total,
-        allocations: allocation.shares,
+    ResolvedShowdown {
+        evaluations,
+        canonical_winners,
+        allocation,
         headline,
         decisive_comparison,
         comparison_basis,
@@ -116,11 +265,11 @@ fn winning_seats(evaluations: &[SeatEvaluation]) -> Vec<RiverLedgerSeat> {
 fn explain_showdown(
     state: &RiverLedgerState,
     evaluations: &[SeatEvaluation],
+    winners: &[RiverLedgerSeat],
     allocation: &PotAllocation,
 ) -> Vec<ShowdownSeatExplanation> {
-    let winners = &allocation.winners;
     let closest_challenger = closest_challenger(evaluations, winners);
-    let primary_winner = primary_winner(evaluations, winners);
+    let single_winner = single_winner_evaluation(evaluations, winners);
 
     state
         .ledger
@@ -141,7 +290,7 @@ fn explain_showdown(
                         state,
                         entry,
                         winners,
-                        primary_winner,
+                        single_winner,
                         closest_challenger,
                     )),
                     summary: format!(
@@ -173,7 +322,7 @@ fn reveal_for(
     state: &RiverLedgerState,
     entry: &SeatEvaluation,
     winners: &[RiverLedgerSeat],
-    primary_winner: Option<&SeatEvaluation>,
+    single_winner: Option<&SeatEvaluation>,
     closest_challenger: Option<&SeatEvaluation>,
 ) -> ShowdownReveal {
     let hand_name = hand_name(&entry.evaluation);
@@ -188,7 +337,7 @@ fn reveal_for(
         category_ladder_position: category_ladder_position(entry.evaluation.category),
         result_label: result_label(entry.seat, winners).to_owned(),
         rank_explanation: rank_explanation(&entry.evaluation),
-        comparison_note: comparison_note(entry, winners, primary_winner, closest_challenger),
+        comparison_note: comparison_note(entry, winners, single_winner, closest_challenger),
         best_five_accessibility_label: best_five_accessibility_label(&entry.evaluation.used_cards),
         hand_name,
     }
@@ -197,12 +346,12 @@ fn reveal_for(
 fn showdown_presentation_v2(
     state: &RiverLedgerState,
     evaluations: &[SeatEvaluation],
+    winners: &[RiverLedgerSeat],
     allocation: &PotAllocation,
     headline: &str,
     decisive_comparison: &str,
     comparison_basis: &str,
 ) -> RiverLedgerShowdownPresentationV2 {
-    let winners = &allocation.winners;
     let closest = closest_challenger(evaluations, winners);
     let ranked = ranked_evaluations(evaluations);
     let folded_rows = folded_rows(state, evaluations);
@@ -368,7 +517,17 @@ fn rule_refs(winners: &[RiverLedgerSeat]) -> Vec<String> {
     }
 }
 
-fn primary_winner<'a>(
+fn single_winner_evaluation<'a>(
+    evaluations: &'a [SeatEvaluation],
+    winners: &[RiverLedgerSeat],
+) -> Option<&'a SeatEvaluation> {
+    match winners {
+        [winner] => evaluations.iter().find(|entry| entry.seat == *winner),
+        _ => None,
+    }
+}
+
+fn representative_winning_evaluation<'a>(
     evaluations: &'a [SeatEvaluation],
     winners: &[RiverLedgerSeat],
 ) -> Option<&'a SeatEvaluation> {
@@ -389,7 +548,7 @@ fn closest_challenger<'a>(
 
 fn showdown_headline(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSeat]) -> String {
     if winners.len() > 1 {
-        let hand = primary_winner(evaluations, winners)
+        let hand = representative_winning_evaluation(evaluations, winners)
             .map(|entry| hand_name(&entry.evaluation))
             .unwrap_or_else(|| "the best hand".to_owned());
         return format!("{} split the ledger with {hand}.", seat_list(winners));
@@ -398,14 +557,19 @@ fn showdown_headline(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSeat]
     let winner = winners
         .first()
         .expect("showdown headline requires at least one winner");
-    let hand = primary_winner(evaluations, winners)
+    let hand = single_winner_evaluation(evaluations, winners)
         .map(|entry| hand_name(&entry.evaluation))
         .unwrap_or_else(|| "the best hand".to_owned());
     format!("{} wins with {hand}.", seat_public_label(*winner))
 }
 
 fn decisive_comparison(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSeat]) -> String {
-    let Some(winner) = primary_winner(evaluations, winners) else {
+    let winner = if winners.len() > 1 {
+        representative_winning_evaluation(evaluations, winners)
+    } else {
+        single_winner_evaluation(evaluations, winners)
+    };
+    let Some(winner) = winner else {
         return "No showdown comparison is available.".to_owned();
     };
     if winners.len() > 1 {
@@ -430,12 +594,12 @@ fn decisive_comparison(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSea
 }
 
 fn comparison_basis(evaluations: &[SeatEvaluation], winners: &[RiverLedgerSeat]) -> String {
-    let Some(winner) = primary_winner(evaluations, winners) else {
+    let Some(winner) = single_winner_evaluation(evaluations, winners) else {
+        if winners.len() > 1 {
+            return "The best revealed hands have equal category and tie-break ranks.".to_owned();
+        }
         return "Showdown requires at least one evaluated hand.".to_owned();
     };
-    if winners.len() > 1 {
-        return "The best revealed hands have equal category and tie-break ranks.".to_owned();
-    }
     let Some(challenger) = closest_challenger(evaluations, winners) else {
         return "Only one seat reached showdown, so no tie-break comparison is needed.".to_owned();
     };
@@ -481,7 +645,7 @@ fn result_label(seat: RiverLedgerSeat, winners: &[RiverLedgerSeat]) -> &'static 
 fn comparison_note(
     entry: &SeatEvaluation,
     winners: &[RiverLedgerSeat],
-    primary_winner: Option<&SeatEvaluation>,
+    single_winner: Option<&SeatEvaluation>,
     closest_challenger: Option<&SeatEvaluation>,
 ) -> String {
     if winners.contains(&entry.seat) {
@@ -500,7 +664,11 @@ fn comparison_note(
         );
     }
 
-    primary_winner.map_or_else(
+    if winners.len() > 1 {
+        return "Does not tie the best showdown hand.".to_owned();
+    }
+
+    single_winner.map_or_else(
         || "Does not hold the best showdown hand.".to_owned(),
         |winner| {
             format!(

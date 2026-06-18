@@ -11,13 +11,14 @@ type SeatFrameProps = {
 
 type SeatProjection = {
   active_seat?: string | null;
+  active_seat_labels?: SeatDisplayLabel[];
   active_seats?: string[];
   pending_seats?: string[];
   pending_responders?: string[];
 };
 
 export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFrameProps) {
-  const seats = catalogSeatLabels(game);
+  const seats = activeSeatLabels(view, game);
   const activeSeats = projectedSeatSet(view, "active");
   const pendingSeats = projectedSeatSet(view, "pending");
   const selectedSeat = viewerMode.kind === "seat" ? viewerMode.seat : null;
@@ -25,29 +26,36 @@ export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFr
 
   return (
     <section className="seat-frame" aria-label="Seats">
-      <div className="seat-frame-viewers" role="group" aria-label="Viewer">
-        <button
-          type="button"
-          className={viewerMode.kind === "observer" ? "selected" : ""}
-          aria-pressed={viewerMode.kind === "observer"}
-          disabled={viewerDisabled}
-          onClick={() => onViewerModeChange?.({ kind: "observer" })}
-        >
-          Observer
-        </button>
+      <fieldset className="seat-frame-viewers" aria-label="Viewer">
+        <legend>Viewer</legend>
+        <label className={viewerMode.kind === "observer" ? "selected" : ""}>
+          <input
+            type="radio"
+            name="seat-frame-viewer"
+            value="observer"
+            checked={viewerMode.kind === "observer"}
+            disabled={viewerDisabled}
+            onChange={() => onViewerModeChange?.({ kind: "observer" })}
+          />
+          <span>Observer</span>
+        </label>
         {seats.map((seat) => (
-          <button
-            type="button"
+          <label
             key={seat.seat}
             className={selectedSeat === seat.seat ? "selected" : ""}
-            aria-pressed={selectedSeat === seat.seat}
-            disabled={viewerDisabled}
-            onClick={() => onViewerModeChange?.({ kind: "seat", seat: seat.seat })}
           >
-            {seat.label}
-          </button>
+            <input
+              type="radio"
+              name="seat-frame-viewer"
+              value={seat.seat}
+              checked={selectedSeat === seat.seat}
+              disabled={viewerDisabled}
+              onChange={() => onViewerModeChange?.({ kind: "seat", seat: seat.seat })}
+            />
+            <span>{seat.label}</span>
+          </label>
         ))}
-      </div>
+      </fieldset>
 
       <ol className="seat-frame-rail">
         {seats.map((seat) => {
@@ -69,6 +77,16 @@ export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFr
       </ol>
     </section>
   );
+}
+
+function activeSeatLabels(view: PublicView | null, game: GameCatalogEntry | null): SeatDisplayLabel[] {
+  if (view) {
+    const projection = view as SeatProjection;
+    if (Array.isArray(projection.active_seat_labels) && projection.active_seat_labels.length > 0) {
+      return projection.active_seat_labels;
+    }
+  }
+  return catalogSeatLabels(game);
 }
 
 function catalogSeatLabels(game: GameCatalogEntry | null): SeatDisplayLabel[] {

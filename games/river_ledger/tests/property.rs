@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
 use river_ledger::{
     apply_action, compare_evaluations, evaluate_five, legal_action_tree, setup_match,
-    validate_command, Card, Phase, Rank, SetupOptions, Suit, TerminalOutcome,
+    validate_command, Card, Phase, Rank, RiverLedgerSeat, SetupOptions, Suit, TerminalOutcome,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -16,6 +16,10 @@ fn actor(seat_index: usize) -> Actor {
     Actor {
         seat_id: SeatId(format!("seat_{seat_index}")),
     }
+}
+
+fn seat(index: usize) -> RiverLedgerSeat {
+    RiverLedgerSeat::from_index(index).unwrap()
 }
 
 fn command(
@@ -186,6 +190,69 @@ fn evaluator_comparison_is_antisymmetric_and_transitive_for_sweep() {
                     && compare_evaluations(&hands[b], &hands[c]) != Ordering::Greater
                 {
                     assert_ne!(compare_evaluations(&hands[a], &hands[c]), Ordering::Greater);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn single_pot_allocation_preserves_canonical_winners_and_button_remainders() {
+    for seat_count in 3..=6 {
+        let all_seats = (0..seat_count).map(seat).collect::<Vec<_>>();
+        for mask in 1usize..(1usize << seat_count) {
+            let winners = all_seats
+                .iter()
+                .enumerate()
+                .filter_map(|(index, seat)| ((mask & (1usize << index)) != 0).then_some(*seat))
+                .collect::<Vec<_>>();
+            for button_index in 0..seat_count {
+                for pot_total in 1..=31 {
+                    let button = seat(button_index);
+                    let allocation = river_ledger::pot::allocate_single_pot(
+                        pot_total,
+                        &winners,
+                        button,
+                        seat_count as u8,
+                    );
+                    let button_order = river_ledger::pot::winners_in_button_order(
+                        &winners,
+                        button,
+                        seat_count as u8,
+                    );
+                    let remainder_recipients = button_order
+                        .iter()
+                        .take(allocation.remainder as usize)
+                        .copied()
+                        .collect::<Vec<_>>();
+
+                    assert_eq!(allocation.winners, winners);
+                    assert_eq!(allocation.remainder_order, button_order);
+                    assert_eq!(allocation.shares.len(), winners.len());
+                    assert_eq!(
+                        allocation
+                            .shares
+                            .iter()
+                            .map(|share| share.seat)
+                            .collect::<Vec<_>>(),
+                        winners
+                    );
+                    assert_eq!(
+                        allocation
+                            .shares
+                            .iter()
+                            .map(|share| share.amount)
+                            .sum::<u16>(),
+                        pot_total
+                    );
+                    for share in &allocation.shares {
+                        assert!(winners.contains(&share.seat));
+                        assert_eq!(
+                            share.amount,
+                            pot_total / winners.len() as u16
+                                + u16::from(remainder_recipients.contains(&share.seat))
+                        );
+                    }
                 }
             }
         }

@@ -6,8 +6,8 @@ use crate::{
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
     state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
     ui::{
-        seat_ledger_display, ui_metadata, HoleCardSummary, RiverLedgerSeatLedgerDisplay,
-        SeatLedgerRoles, UiMetadata,
+        active_seat_labels, seat_ledger_display, ui_metadata, HoleCardSummary,
+        RiverLedgerSeatLedgerDisplay, SeatDisplayLabel, SeatLedgerRoles, UiMetadata,
     },
 };
 
@@ -21,6 +21,7 @@ pub struct PublicView {
     pub rules_version_label: String,
     pub phase: Phase,
     pub active_seat: Option<RiverLedgerSeat>,
+    pub active_seat_labels: Vec<SeatDisplayLabel>,
     pub button: RiverLedgerSeat,
     pub small_blind: RiverLedgerSeat,
     pub big_blind: RiverLedgerSeat,
@@ -249,6 +250,7 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
         rules_version_label: RULES_VERSION_LABEL.to_owned(),
         phase: state.phase,
         active_seat: state.active_seat,
+        active_seat_labels: active_seat_labels(&state.seats),
         button: state.button,
         small_blind: state.small_blind,
         big_blind: state.big_blind,
@@ -300,7 +302,7 @@ pub fn view_hash(view: &PublicView) -> HashValue {
 impl PublicView {
     pub fn stable_summary(&self) -> String {
         format!(
-            "schema={};rules={};game={};variant={};label={};phase={};active={};button={};sb={};bb={};pot={};seats={};board={};reserved={};tail={};terminal={};rationale={};freshness={};private={};ui={}",
+            "schema={};rules={};game={};variant={};label={};phase={};active={};active_labels={};button={};sb={};bb={};pot={};seats={};board={};reserved={};tail={};terminal={};rationale={};freshness={};private={};ui={}",
             self.schema_version,
             self.rules_version,
             self.game_id,
@@ -308,6 +310,7 @@ impl PublicView {
             self.rules_version_label,
             phase(self.phase),
             seat_option(self.active_seat),
+            encode_seat_labels(&self.active_seat_labels),
             self.button.as_str(),
             self.small_blind.as_str(),
             self.big_blind.as_str(),
@@ -715,6 +718,14 @@ fn encode_private(private: &PrivateView) -> String {
     }
 }
 
+fn encode_seat_labels(labels: &[SeatDisplayLabel]) -> String {
+    labels
+        .iter()
+        .map(|label| format!("{}={}", label.seat, label.label))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 fn encode_terminal(terminal: &TerminalView) -> String {
     match terminal {
         TerminalView::NonTerminal => "non_terminal".to_owned(),
@@ -914,9 +925,9 @@ mod tests {
         assert_eq!(view.board_slots[4].street_label, "River");
         assert_eq!(view.ui.seat_labels.len(), 6);
         assert_eq!(view.ui.seat_labels[0].seat, "seat_0");
-        assert_eq!(view.ui.seat_labels[0].label, "Seat 0");
+        assert_eq!(view.ui.seat_labels[0].label, "Seat 1");
         assert_eq!(view.ui.seat_labels[5].seat, "seat_5");
-        assert_eq!(view.ui.seat_labels[5].label, "Seat 5");
+        assert_eq!(view.ui.seat_labels[5].label, "Seat 6");
         assert_eq!(view.reserved_community_count, 5);
         assert!(view.seats.iter().all(|seat| seat.hidden_hole_count == 2));
         assert!(view.seats.iter().all(|seat| {

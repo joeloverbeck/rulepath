@@ -12,6 +12,7 @@ import type {
   RiverLedgerPublicView,
   RiverLedgerSeatId,
   RiverLedgerSeatView,
+  SeatDisplayLabel,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
@@ -47,15 +48,16 @@ export function RiverLedgerBoard({
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const botExplanation = lastBotDecision?.publicExplanation ?? null;
   const boardChanged = effects.some((entry) => String(entry.effect.payload.type).includes("board"));
+  const labelForSeat = useMemo(() => seatLabeler(view.ui.seat_labels), [view.ui.seat_labels]);
   const outcomeExplanation = view.terminal.terminal
     ? outcomeSurfaceData({
         gameId: "river_ledger",
-        heading: terminalLabel(view),
+        heading: terminalLabel(view, labelForSeat),
         rationale: view.terminal_rationale ?? null,
         resultKind: view.terminal.kind,
         decisiveCause: view.terminal.kind,
         templateKey: riverTemplateKey(view),
-        finalStanding: view.seats.map((seat) => riverStanding(view, seat)),
+        finalStanding: view.seats.map((seat) => riverStanding(view, seat, labelForSeat)),
         breakdownSections: [
           {
             id: "ledger",
@@ -86,7 +88,7 @@ export function RiverLedgerBoard({
           <h2 id="river-ledger-heading">{statusLabel(view)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
-          {view.active_seat ? seatLabel(view.active_seat) : terminalLabel(view)}
+          {view.active_seat ? labelForSeat(view.active_seat) : terminalLabel(view, labelForSeat)}
         </span>
       </div>
 
@@ -97,8 +99,8 @@ export function RiverLedgerBoard({
       <div className="river-ledger-metrics" aria-label="River Ledger status">
         <Metric label="Ledger" value={String(view.pot_total)} />
         <Metric label="Street" value={phaseLabel(view.phase)} />
-        <Metric label="Button" value={seatLabel(view.button)} />
-        <Metric label="Blinds" value={`${seatLabel(view.small_blind)} / ${seatLabel(view.big_blind)}`} />
+        <Metric label="Button" value={labelForSeat(view.button)} />
+        <Metric label="Blinds" value={`${labelForSeat(view.small_blind)} / ${labelForSeat(view.big_blind)}`} />
       </div>
 
       <div className="river-ledger-table-shell" aria-label={view.ui.surface_label}>
@@ -130,7 +132,7 @@ export function RiverLedgerBoard({
 
           <section className="river-ledger-seat-rail" aria-label={view.ui.seat_metadata_label}>
             {view.seats.map((seat) => (
-              <SeatLedger key={seat.seat} view={view} seat={seat} />
+              <SeatLedger key={seat.seat} view={view} seat={seat} labelForSeat={labelForSeat} />
             ))}
           </section>
         </div>
@@ -144,7 +146,7 @@ export function RiverLedgerBoard({
             {view.private_view.status === "seat" ? (
               <div
                 className="river-ledger-private-cards"
-                aria-label={riverLedgerCardGroupLabel(view.private_view.hole_cards, `${seatLabel(view.private_view.seat)} private cards`)}
+                aria-label={riverLedgerCardGroupLabel(view.private_view.hole_cards, `${labelForSeat(view.private_view.seat)} private cards`)}
               >
                 {view.private_view.hole_cards.map((card) => (
                   <RiverLedgerCard key={card.card_id} card={card} tone="private" />
@@ -161,7 +163,7 @@ export function RiverLedgerBoard({
           <section className="river-ledger-actions" aria-label={view.ui.action_hint_label}>
             <div className="river-ledger-section-heading">
               <span>Actions</span>
-              <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
+              <strong>{canAct ? "Available choices" : actionStatus(view, pending, labelForSeat)}</strong>
             </div>
             <div className="river-ledger-action-grid">
               {choices.length === 0 ? (
@@ -232,15 +234,23 @@ function RiverLedgerBotWhy({ explanation }: { explanation: NonNullable<BotDecisi
   );
 }
 
-function SeatLedger({ view, seat }: { view: RiverLedgerPublicView; seat: RiverLedgerSeatView }) {
+function SeatLedger({
+  view,
+  seat,
+  labelForSeat,
+}: {
+  view: RiverLedgerPublicView;
+  seat: RiverLedgerSeatView;
+  labelForSeat: (seat: RiverLedgerSeatId) => string;
+}) {
   const active = view.active_seat === seat.seat;
   const display = seat.ledger_display;
   const metrics = [display.round_contribution, display.hand_contribution, display.hole_card_summary];
 
   return (
-    <section className={`river-ledger-seat ${active ? "active" : ""}`} aria-label={`${seatLabel(seat.seat)} ledger`}>
+    <section className={`river-ledger-seat ${active ? "active" : ""}`} aria-label={`${labelForSeat(seat.seat)} ledger`}>
       <div className="river-ledger-section-heading">
-        <span>{seatLabel(seat.seat)}</span>
+        <span>{labelForSeat(seat.seat)}</span>
         <strong>{display.status_label}</strong>
       </div>
       {display.role_badges.length ? (
@@ -335,10 +345,10 @@ function ActionChoiceDetails({ choice }: { choice: ActionChoice }) {
   );
 }
 
-function actionStatus(view: RiverLedgerPublicView, pending: boolean): string {
+function actionStatus(view: RiverLedgerPublicView, pending: boolean, labelForSeat: (seat: RiverLedgerSeatId) => string): string {
   if (pending) return "Applying";
   if (view.terminal.terminal) return "Complete";
-  return view.active_seat ? `${seatLabel(view.active_seat)} to choose` : "Waiting";
+  return view.active_seat ? `${labelForSeat(view.active_seat)} to choose` : "Waiting";
 }
 
 function registerRiverLedgerAnimations(): void {
@@ -393,14 +403,15 @@ function cssEscape(value: string): string {
 }
 
 function statusLabel(view: RiverLedgerPublicView): string {
-  if (view.terminal.terminal) return terminalLabel(view);
-  return view.active_seat ? `${seatLabel(view.active_seat)} to choose` : "Resolving";
+  const labelForSeat = seatLabeler(view.ui.seat_labels);
+  if (view.terminal.terminal) return terminalLabel(view, labelForSeat);
+  return view.active_seat ? `${labelForSeat(view.active_seat)} to choose` : "Resolving";
 }
 
-function terminalLabel(view: RiverLedgerPublicView): string {
+function terminalLabel(view: RiverLedgerPublicView, labelForSeat: (seat: RiverLedgerSeatId) => string): string {
   if (!view.terminal.terminal) return "In progress";
   if (view.terminal.winners.length === 0) return "Complete";
-  if (view.terminal.winners.length === 1) return `${seatLabel(view.terminal.winners[0])} wins`;
+  if (view.terminal.winners.length === 1) return `${labelForSeat(view.terminal.winners[0])} wins`;
   return `${view.terminal.winners.length} seats split`;
 }
 
@@ -411,12 +422,16 @@ function riverTemplateKey(view: RiverLedgerPublicView): string {
   return view.terminal.winners.length > 1 ? "river_ledger.showdown_split_pot" : "river_ledger.showdown_best_hand_win";
 }
 
-function riverStanding(view: RiverLedgerPublicView, seat: RiverLedgerSeatView) {
+function riverStanding(
+  view: RiverLedgerPublicView,
+  seat: RiverLedgerSeatView,
+  labelForSeat: (seat: RiverLedgerSeatId) => string,
+) {
   const allocation = view.terminal.allocations.find((share) => share.seat === seat.seat)?.amount ?? 0;
   const winner = view.terminal.winners.some((winnerSeat) => winnerSeat === seat.seat);
   return {
     id: seat.seat,
-    label: seatLabel(seat.seat),
+    label: labelForSeat(seat.seat),
     result: winner ? (view.terminal.winners.length > 1 ? "split" : "win") : seatStatusLabel(seat.status),
     emphasized: winner,
     values: [
@@ -432,7 +447,8 @@ function currentShowdownCategory(view: RiverLedgerPublicView): string | null {
 }
 
 function privateHeading(view: RiverLedgerPublicView): string {
-  if (view.private_view.status === "seat") return `${seatLabel(view.private_view.seat)} view`;
+  const labelForSeat = seatLabeler(view.ui.seat_labels);
+  if (view.private_view.status === "seat") return `${labelForSeat(view.private_view.seat)} view`;
   return "Observer view";
 }
 
@@ -444,8 +460,16 @@ function seatStatusLabel(status: string): string {
   return phaseLabel(status);
 }
 
-function seatLabel(seat: RiverLedgerSeatId): string {
-  return `Seat ${seat.replace("seat_", "")}`;
+function seatLabeler(labels: SeatDisplayLabel[]): (seat: RiverLedgerSeatId) => string {
+  const lookup = new Map(labels.map((label) => [label.seat, label.label]));
+  return (seat) => {
+    const label = lookup.get(seat);
+    if (label) return label;
+    if (import.meta.env.DEV) {
+      console.assert(false, "Missing River Ledger public seat label.");
+    }
+    return "Seat";
+  };
 }
 
 const streetSteps = [

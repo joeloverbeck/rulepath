@@ -615,7 +615,7 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_RIVER_LEDGER_STANDARD, GAME_RIVER_LEDGER_DISPLAY_NAME, None)]),
-                catalog_seat_labels_json(6),
+                river_catalog_seat_labels_json(),
                 catalog_viewer_modes_json(6)
             ),
         };
@@ -7572,7 +7572,7 @@ fn poker_view_json(view: &poker_lite::PublicView) -> String {
 
 fn river_view_json(view: &river_ledger::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"board_slots\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"active_seat_labels\":[{}],\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"board_slots\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -7581,6 +7581,11 @@ fn river_view_json(view: &river_ledger::PublicView) -> String {
         escape_json(&view.rules_version_label),
         river_phase_label(view.phase),
         option_river_seat_json(view.active_seat),
+        view.active_seat_labels
+            .iter()
+            .map(river_seat_display_label_json)
+            .collect::<Vec<_>>()
+            .join(","),
         escape_json(&view.button.as_str()),
         escape_json(&view.small_blind.as_str()),
         escape_json(&view.big_blind.as_str()),
@@ -8087,6 +8092,16 @@ fn river_seat_display_label_json(label: &river_ledger::ui::SeatDisplayLabel) -> 
         escape_json(&label.seat),
         escape_json(&label.label)
     )
+}
+
+fn river_catalog_seat_labels_json() -> String {
+    let labels = river_ledger::ui_metadata()
+        .seat_labels
+        .iter()
+        .map(river_seat_display_label_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("[{labels}]")
 }
 
 fn river_hand_ranking_json(row: &river_ledger::ui::HandRankingMetadata) -> String {
@@ -12784,11 +12799,18 @@ mod tests {
         ));
         assert!(non_terminal.contains("\"category\":\"high_card\",\"label\":\"High card\""));
         assert!(non_terminal.contains(
-            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\""
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\""
         ));
-        assert!(non_terminal.contains("{\"seat\":\"seat_5\",\"label\":\"Seat 5\"}"));
+        assert!(non_terminal.contains("{\"seat\":\"seat_5\",\"label\":\"Seat 6\"}"));
+        assert!(non_terminal.contains(
+            "\"active_seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\"},{\"seat\":\"seat_2\",\"label\":\"Seat 3\"},{\"seat\":\"seat_3\",\"label\":\"Seat 4\"}]"
+        ));
+        assert!(!non_terminal.contains("\"active_seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\"},{\"seat\":\"seat_2\",\"label\":\"Seat 3\"},{\"seat\":\"seat_3\",\"label\":\"Seat 4\"},{\"seat\":\"seat_4\""));
 
         let foldout = get_terminal_river_view(21, 3, &[("seat_0", "fold"), ("seat_1", "fold")]);
+        assert!(foldout.contains(
+            "\"active_seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\"},{\"seat\":\"seat_2\",\"label\":\"Seat 3\"}]"
+        ));
         assert!(foldout.contains(
             "\"terminal_rationale\":{\"result_kind\":\"last_live_hand\",\"decisive_cause\":\"last_live_after_folds\",\"template_key\":\"river_ledger.last_live_fold_win\""
         ));

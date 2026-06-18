@@ -118,6 +118,88 @@ fn custom_showdown_state(
     state
 }
 
+fn public_label(seat: RiverLedgerSeat) -> String {
+    format!("Seat {}", seat.index() + 1)
+}
+
+fn assert_showdown_surface_agreement(outcome: &TerminalOutcome) {
+    let TerminalOutcome::Showdown {
+        winners,
+        pot_total,
+        allocations,
+        headline,
+        decisive_comparison: _,
+        comparison_basis,
+        explanations,
+        presentation_v2,
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+
+    assert!(!winners.is_empty(), "showdown winner set is nonempty");
+    assert_eq!(
+        allocations
+            .iter()
+            .map(|share| share.seat)
+            .collect::<Vec<_>>(),
+        *winners,
+        "allocations serialize in canonical winner order"
+    );
+    assert_eq!(
+        allocations.iter().map(|share| share.amount).sum::<u16>(),
+        *pot_total,
+        "allocations conserve the ledger"
+    );
+    assert!(allocations.iter().all(|share| share.amount > 0));
+    assert_eq!(presentation_v2.result_banner.headline, *headline);
+    assert_eq!(
+        presentation_v2.decisive_reason.short_text,
+        *comparison_basis
+    );
+
+    for standing in &presentation_v2.standings {
+        let winner = winners.contains(&standing.seat);
+        assert_eq!(standing.default_expanded, winner);
+        assert_eq!(
+            standing.result_label,
+            if winner {
+                if winners.len() > 1 {
+                    "Split win"
+                } else {
+                    "Win"
+                }
+            } else {
+                "Showdown loss"
+            }
+        );
+        assert_eq!(standing.seat_label, public_label(standing.seat));
+    }
+
+    if winners.len() == 1 {
+        let winner_label = public_label(winners[0]);
+        assert!(headline.contains(&winner_label));
+        assert!(presentation_v2
+            .result_banner
+            .accessibility_label
+            .contains(&winner_label));
+    } else {
+        assert!(headline.contains("split the ledger"));
+        assert!(presentation_v2
+            .result_banner
+            .accessibility_label
+            .contains("split the ledger"));
+        for winner in winners {
+            assert!(headline.contains(&public_label(*winner)));
+        }
+        for explanation in explanations {
+            if !winners.contains(&explanation.seat) {
+                assert!(!headline.contains(&public_label(explanation.seat)));
+            }
+        }
+    }
+}
+
 #[test]
 fn setup_accepts_three_to_six_seats_and_rejects_other_counts() {
     let options = SetupOptions::default();
@@ -458,6 +540,56 @@ fn checkdown_can_produce_single_winner_showdown_from_seeded_state() {
 }
 
 #[test]
+fn seed_10018_showdown_labels_unique_winner_consistently() {
+    let mut state = seeded_state(10018, 4);
+    apply_segment(&mut state, "seat_3", "call");
+    apply_segment(&mut state, "seat_0", "call");
+    apply_segment(&mut state, "seat_1", "call");
+    apply_segment(&mut state, "seat_2", "check");
+    check_down_from_flop_to_terminal(&mut state);
+
+    let Some(TerminalOutcome::Showdown {
+        winners,
+        pot_total,
+        allocations,
+        headline,
+        decisive_comparison,
+        comparison_basis,
+        presentation_v2,
+        ..
+    }) = &state.terminal_outcome
+    else {
+        panic!("showdown terminal expected");
+    };
+    assert_showdown_surface_agreement(state.terminal_outcome.as_ref().expect("terminal outcome"));
+
+    assert_eq!(winners, &vec![seat(0)]);
+    assert_eq!(
+        allocations,
+        &vec![PotShare {
+            seat: seat(0),
+            amount: *pot_total,
+        }]
+    );
+    assert_eq!(headline, "Seat 1 wins with Two pair, Queens and Fives.");
+    assert_eq!(
+        decisive_comparison,
+        "Two pair, Queens and Fives beats Pair of Fives."
+    );
+    assert_eq!(comparison_basis, "Two pair outranks One pair.");
+    assert_eq!(
+        presentation_v2
+            .decisive_reason
+            .contrast_seat_label
+            .as_deref(),
+        Some("Seat 3")
+    );
+    assert_eq!(presentation_v2.standings[0].seat, seat(0));
+    assert_eq!(presentation_v2.standings[0].seat_label, "Seat 1");
+    assert_eq!(presentation_v2.standings[0].result_label, "Win");
+}
+
+#[test]
 fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
     let mut state = standard_state(4);
     state.board = royal_board();
@@ -468,6 +600,7 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
     state.ledger.seats[0].status = river_ledger::SeatStatus::Folded;
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         allocations,
@@ -561,6 +694,7 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
     );
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         headline,
@@ -671,6 +805,7 @@ fn showdown_explanation_marks_split_and_folded_paths() {
     state.ledger.seats[2].status = SeatStatus::Folded;
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         headline,
@@ -737,10 +872,16 @@ fn single_pot_remainder_uses_stable_button_order() {
     let allocation =
         river_ledger::pot::allocate_single_pot(11, &[seat(0), seat(2), seat(3)], seat(2), 4);
 
+    assert_eq!(allocation.winners, vec![seat(0), seat(2), seat(3)]);
     assert_eq!(allocation.remainder, 2);
+    assert_eq!(allocation.remainder_order, vec![seat(2), seat(3), seat(0)]);
     assert_eq!(
         allocation.shares,
         vec![
+            PotShare {
+                seat: seat(0),
+                amount: 3,
+            },
             PotShare {
                 seat: seat(2),
                 amount: 4,
@@ -748,10 +889,6 @@ fn single_pot_remainder_uses_stable_button_order() {
             PotShare {
                 seat: seat(3),
                 amount: 4,
-            },
-            PotShare {
-                seat: seat(0),
-                amount: 3,
             },
         ]
     );
@@ -762,6 +899,82 @@ fn single_pot_remainder_uses_stable_button_order() {
             .map(|share| share.amount)
             .sum::<u16>(),
         allocation.pot_total
+    );
+}
+
+#[test]
+fn seed_31_split_keeps_winners_canonical_and_remainder_button_ordered() {
+    let mut state = custom_showdown_state(
+        vec![
+            [
+                Card::new(Rank::Three, Suit::Hearts),
+                Card::new(Rank::Six, Suit::Diamonds),
+            ],
+            [
+                Card::new(Rank::Three, Suit::Spades),
+                Card::new(Rank::King, Suit::Diamonds),
+            ],
+            [
+                Card::new(Rank::King, Suit::Clubs),
+                Card::new(Rank::Seven, Suit::Hearts),
+            ],
+            [
+                Card::new(Rank::King, Suit::Hearts),
+                Card::new(Rank::Seven, Suit::Clubs),
+            ],
+        ],
+        [
+            Card::new(Rank::Jack, Suit::Clubs),
+            Card::new(Rank::Ten, Suit::Spades),
+            Card::new(Rank::Five, Suit::Spades),
+            Card::new(Rank::Ace, Suit::Diamonds),
+            Card::new(Rank::Nine, Suit::Spades),
+        ],
+    );
+    state.button = seat(2);
+    state.ledger.pot_total = 11;
+
+    let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
+    let TerminalOutcome::Showdown {
+        winners,
+        allocations,
+        presentation_v2,
+        ..
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+    let expected_winners = vec![seat(1), seat(2), seat(3)];
+    let allocation = river_ledger::pot::allocate_single_pot(11, &expected_winners, state.button, 4);
+
+    assert_eq!(winners, expected_winners);
+    assert_eq!(allocation.remainder_order, vec![seat(2), seat(3), seat(1)]);
+    assert_eq!(
+        allocations,
+        vec![
+            PotShare {
+                seat: seat(1),
+                amount: 3,
+            },
+            PotShare {
+                seat: seat(2),
+                amount: 4,
+            },
+            PotShare {
+                seat: seat(3),
+                amount: 4,
+            },
+        ]
+    );
+    assert_eq!(
+        presentation_v2
+            .standings
+            .iter()
+            .filter(|standing| standing.result_label == "Split win")
+            .map(|standing| standing.seat)
+            .collect::<Vec<_>>(),
+        vec![seat(1), seat(2), seat(3)]
     );
 }
 

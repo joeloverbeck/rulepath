@@ -12,7 +12,7 @@ Prepared by: `Codex`
 
 Created: 2026-06-14
 
-Last updated: 2026-06-14
+Last updated: 2026-06-18
 
 ## Rule authority
 
@@ -154,7 +154,7 @@ renders the supplied fields.
 |---|---|---|---|
 | `RL-SCORE-POT-AWARD` | Award the full single pot to the last live seat when a foldout ends the hand. | foldout terminal | Does not reveal folded seats' hole cards. |
 | `RL-SCORE-SHOWDOWN` | Compare showdown-eligible seats by evaluated five-card category and ordered tie-break vector. | showdown terminal | Uses `RL-EVAL-*` evaluator rules. |
-| `RL-SCORE-SPLIT` | Divide the single pot among seats tied for the best showdown hand. | split showdown terminal | Remainder assignment follows `RL-POT-REMAINDER-001`. |
+| `RL-SCORE-SPLIT` | Divide the single pot among seats tied for the best showdown hand. | split showdown terminal | Canonical tied winners remain in stable seat/evaluation order. Remainder assignment follows `RL-POT-REMAINDER-001`. |
 
 ## Hand evaluation and showdown
 
@@ -167,8 +167,8 @@ renders the supplied fields.
 | `RL-EVAL-USED-001` | The exact five used cards are recorded for explanation where viewer-authorized. | showdown | Redaction rules still apply. |
 | `RL-SHOW-ELIGIBLE-001` | Only live seats that have not folded before showdown are evaluated. | showdown | Folded seats are not evaluated for public result. |
 | `RL-SHOW-WINNER-001` | The best evaluated hand wins the single pot when exactly one seat is strongest. | terminal | Rust computes and explains the decisive comparison. |
-| `RL-SHOW-SPLIT-001` | Seats tied for best hand split the pot. | terminal | Equal shares are assigned first. |
-| `RL-POT-REMAINDER-001` | Integer remainders from a split are assigned one unit at a time by stable button-order among tied winners. | terminal | Remainder allocation is public and explained. |
+| `RL-SHOW-SPLIT-001` | Seats tied for best hand split the pot. | terminal | Equal shares are assigned first; tied winners are not re-ranked by payout order. |
+| `RL-POT-REMAINDER-001` | Integer remainders from a split are assigned one unit at a time by stable button-order among tied winners. | terminal | Remainder allocation is public and explained. Button order selects odd-unit recipients only; it does not redefine the semantic winner order. |
 | `RL-SHOW-FOLDOUT-001` | A last-live-hand terminal awards the pot without revealing folded seats' private hole cards. | terminal | Foldout explanation is distinct from showdown. |
 
 ## Terminal conditions
@@ -243,7 +243,7 @@ Bot notes are not rule authority; they constrain later bot documents and code.
 | `RL-DEAL-AMB-001` | Whether burn cards are visible. | No; burn advancement is internal if modeled. | no-leak visibility tests |
 | `RL-BET-AMB-001` | Whether the base model can enter all-in states. | No; contribution capacity avoids those states and all-in is Gate 15.1 scope. | rule/property tests |
 | `RL-EVAL-AMB-001` | Whether royal flush is a separate category. | No; it is the highest straight flush unless docs intentionally add an alias later. | evaluator category tests |
-| `RL-POT-AMB-001` | Whether split remainder uses suit or seat ID priority. | No; stable button-order among tied winners assigns remainders. | split remainder trace |
+| `RL-POT-AMB-001` | Whether split remainder uses suit, seat ID priority, or winner ranking. | No; stable button-order among tied winners assigns remainders only, while canonical tied winners remain in stable seat/evaluation order. | split remainder trace |
 | `RL-VIS-AMB-001` | Whether folded hands reveal at foldout terminal. | No; last-live-hand terminal reveals no unauthorized folded hole cards. | foldout no-leak tests |
 
 ## Rulepath deviations from broad Hold'Em family variants

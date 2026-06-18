@@ -129,11 +129,13 @@ try {
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startFloodWatch(page);
+  await assertFixedTwoSeatSeatFrameNoLeak(page, consoleMessages, "flood_watch");
   await assertFloodWatchDeckA11y(page);
   await assertNoLeak(page, consoleMessages, "flood_watch DOM");
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startEventFrontier(page);
+  await assertFixedTwoSeatSeatFrameNoLeak(page, consoleMessages, "event_frontier");
   await assertEventFrontierBoardA11y(page);
   await page.select(".motion-field select", "reduce");
   await page.waitForSelector(".event-frontier-board.reduced");
@@ -274,8 +276,8 @@ async function assertRiverLedgerStatusAnnouncement(page) {
 
 async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
   const summary = await page.evaluate(() => ({
-    labels: Array.from(document.querySelectorAll(".seat-frame-viewers button")).map((button) => button.textContent?.trim()),
-    selected: document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.trim() ?? "",
+    labels: Array.from(document.querySelectorAll(".seat-frame-viewers label")).map((label) => label.textContent?.trim()),
+    selected: document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.trim() ?? "",
     rail: document.querySelector(".seat-frame-rail")?.textContent ?? "",
   }));
   assert(summary.labels.includes("Observer"), "seat frame exposes observer viewer");
@@ -286,15 +288,42 @@ async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_0 DOM");
 
   await clickSeatFrameButton(page, "Seat 1");
-  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.includes("Seat 1"));
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Seat 1"));
   await waitForText(page, "Waiting for active seat");
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_1 DOM");
 
   await clickSeatFrameButton(page, "Observer");
-  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers button[aria-pressed='true']")?.textContent?.includes("Observer"));
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Observer"));
   await waitForText(page, "Observer only");
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame observer DOM");
   await assertStorageClean(page);
+}
+
+async function assertFixedTwoSeatSeatFrameNoLeak(page, consoleMessages, gameId) {
+  const summary = await page.evaluate(() => ({
+    labels: Array.from(document.querySelectorAll(".seat-frame-viewers label")).map((label) => label.textContent?.trim()),
+    values: Array.from(document.querySelectorAll(".seat-frame-viewers input")).map((input) => input.value),
+    rail: Array.from(document.querySelectorAll(".seat-frame-rail li")).map((item) => item.textContent?.trim() ?? ""),
+  }));
+  assert(
+    summary.labels.length === 3 && summary.labels[0] === "Observer",
+    `${gameId} generic viewer selector exposes observer plus two active seats: ${JSON.stringify(summary.labels)}`,
+  );
+  assert(
+    JSON.stringify(summary.values) === JSON.stringify(["observer", "seat_0", "seat_1"]),
+    `${gameId} generic viewer selector uses active seat ids: ${JSON.stringify(summary.values)}`,
+  );
+  assert(summary.rail.length === 2, `${gameId} rail has exactly two active seats: ${summary.rail.join(" | ")}`);
+
+  for (const label of ["Observer", summary.labels[2], summary.labels[1]]) {
+    await clickSeatFrameButton(page, label);
+    await page.waitForFunction(
+      (expected) => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.trim() === expected,
+      {},
+      label,
+    );
+    await assertNoPrivateSeatFrameLeak(page, consoleMessages, `${gameId} ${label} selector surface`);
+  }
 }
 
 async function assertNoPrivateSeatFrameLeak(page, consoleMessages, label) {
@@ -693,16 +722,16 @@ async function clickLabel(page, text) {
 
 async function clickSeatFrameButton(page, text) {
   const clicked = await page.evaluate((expected) => {
-    const button = Array.from(document.querySelectorAll(".seat-frame-viewers button")).find(
+    const label = Array.from(document.querySelectorAll(".seat-frame-viewers label")).find(
       (candidate) => candidate.textContent?.trim() === expected,
     );
-    if (!button) {
+    if (!label) {
       return false;
     }
-    button.click();
+    label.click();
     return true;
   }, text);
-  assert(clicked, `seat frame button exists: ${text}`);
+  assert(clicked, `seat frame viewer option exists: ${text}`);
 }
 
 async function clickRiverAction(page, label) {

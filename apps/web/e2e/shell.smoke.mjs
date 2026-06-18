@@ -96,12 +96,105 @@ try {
   await page.select(".motion-field select", "reduce");
   await page.waitForFunction(() => document.querySelector(".effect-entry.reduced"));
 
-  console.log(JSON.stringify({ base: mountPath, browser: "puppeteer", flow: "picker setup choice bot replay reduced" }));
+  await assertFixedTwoSeatViewerMatrix(page, baseUrl);
+
+  console.log(JSON.stringify({ base: mountPath, browser: "puppeteer", flow: "picker setup choice bot replay reduced viewer_matrix" }));
 } finally {
   if (browser) {
     await browser.close();
   }
   await new Promise((resolve) => server.close(resolve));
+}
+
+async function assertFixedTwoSeatViewerMatrix(page, baseUrl) {
+  const fixedTwoSeatGames = [
+    "Race to 21",
+    "High Card Duel",
+    "Three Marks",
+    "Column Four",
+    "Directional Flip",
+    "Draughts Lite",
+    "Frontier Control",
+    "Token Bazaar",
+    "Crest Ledger",
+    "Veiled Draft",
+    "Plain Tricks",
+    "Masked Claims",
+    "Flood Watch",
+    "Event Frontier",
+  ];
+
+  for (const gameLabel of fixedTwoSeatGames) {
+    await page.goto(baseUrl, { waitUntil: "networkidle0" });
+    await waitForText(page, gameLabel);
+    await clickText(page, "button", gameLabel);
+    await clickLabel(page, "Hotseat");
+    await clickText(page, "button", "Start Match");
+    await waitForSeatFrame(page);
+    const viewerLabels = await assertTwoSeatViewerSelector(page, gameLabel);
+
+    for (const viewerLabel of ["Observer", viewerLabels[2], viewerLabels[1]]) {
+      await clickSeatFrameLabel(page, viewerLabel);
+      await page.waitForFunction(
+        (expected) => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.trim() === expected,
+        {},
+        viewerLabel,
+      );
+      await assertTwoSeatViewerSelector(page, `${gameLabel} after ${viewerLabel}`);
+    }
+  }
+}
+
+async function waitForSeatFrame(page) {
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll(".seat-frame-viewers label")).map((label) =>
+      label.textContent?.trim(),
+    );
+    return labels.includes("Observer") && labels.length >= 3;
+  });
+}
+
+async function assertTwoSeatViewerSelector(page, label) {
+  const summary = await page.evaluate(() => ({
+    labels: Array.from(document.querySelectorAll(".seat-frame-viewers label")).map((item) => item.textContent?.trim()),
+    values: Array.from(document.querySelectorAll(".seat-frame-viewers input")).map((input) => input.value),
+    checked: document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.trim() ?? "",
+    railRows: Array.from(document.querySelectorAll(".seat-frame-rail li")).map((item) => ({
+      label: item.querySelector("span")?.textContent?.trim() ?? "",
+      seat: item.getAttribute("data-seat") ?? "",
+      status: item.querySelector("small")?.textContent?.trim() ?? "",
+    })),
+  }));
+  assert(summary.labels.length === 3 && summary.labels[0] === "Observer", `${label} exposes Observer + exactly two seats: ${JSON.stringify(summary.labels)}`);
+  assert(
+    JSON.stringify(summary.values) === JSON.stringify(["observer", "seat_0", "seat_1"]),
+    `${label} viewer values route through active seat ids: ${JSON.stringify(summary.values)}`,
+  );
+  assert(summary.labels.includes(summary.checked), `${label} has a valid checked viewer: ${summary.checked}`);
+  assert(summary.railRows.length === 2, `${label} renders exactly two rail rows: ${JSON.stringify(summary.railRows)}`);
+  assert(
+    JSON.stringify(summary.railRows.map((row) => row.label)) === JSON.stringify(summary.labels.slice(1)),
+    `${label} rail labels match fixed two-seat catalog: ${JSON.stringify(summary.railRows)}`,
+  );
+  assert(
+    JSON.stringify(summary.railRows.map((row) => row.seat)) === JSON.stringify(["seat_0", "seat_1"]),
+    `${label} rail ids match fixed two-seat catalog: ${JSON.stringify(summary.railRows)}`,
+  );
+  return summary.labels;
+}
+
+async function clickSeatFrameLabel(page, text) {
+  const clicked = await page.evaluate((labelText) => {
+    const label = Array.from(document.querySelectorAll(".seat-frame-viewers label")).find(
+      (candidate) => candidate.textContent?.trim() === labelText,
+    );
+    if (!label) {
+      return false;
+    }
+    label.click();
+    return true;
+  }, text);
+  assert(clicked, `Missing viewer label: ${text}`);
 }
 
 async function keyboardStart(page) {

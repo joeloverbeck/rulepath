@@ -42,6 +42,7 @@ import {
   type EventFrontierPublicView,
   type FloodWatchPublicView,
   type FrontierControlPublicView,
+  type GameCatalogEntry,
   type HighCardDuelPublicView,
   type MaskedClaimsPublicView,
   type PlainTricksPublicView,
@@ -357,12 +358,21 @@ function App() {
         changeViewerMode(viewerMode);
         return;
       }
-      if (viewerMode.seat === "seat_0" || viewerMode.seat === "seat_1") {
+      const activeSeats = activeViewerSeatIds(view, selectedGame);
+      if (activeSeats.has(viewerMode.seat) && isViewerSeatId(viewerMode.seat)) {
         changeViewerMode({ kind: "seat", seat: viewerMode.seat });
+        return;
       }
+      changeViewerMode({ kind: "observer" });
     },
-    [changeViewerMode],
+    [changeViewerMode, selectedGame, view],
   );
+
+  useEffect(() => {
+    if (state.viewerMode.kind === "seat" && !activeViewerSeatIds(view, selectedGame).has(state.viewerMode.seat)) {
+      changeViewerMode({ kind: "observer" });
+    }
+  }, [changeViewerMode, selectedGame, state.viewerMode, view]);
 
   const exportCurrentReplay = useCallback(() => {
     if (!api || !matchId) {
@@ -1101,6 +1111,29 @@ function effectiveViewerMode(
     return observerView.active_seat ? { kind: "seat", seat: observerView.active_seat } : currentViewerMode;
   }
   return { kind: "seat", seat: "seat_0" };
+}
+
+function activeViewerSeatIds(view: PublicView | null, game: GameCatalogEntry | null): Set<string> {
+  if (view && "active_seat_labels" in view && Array.isArray(view.active_seat_labels)) {
+    return new Set(view.active_seat_labels.map((label) => label.seat));
+  }
+  const catalogLabels = game?.seat_labels ?? game?.ui?.seat_labels ?? [];
+  if (catalogLabels.length > 0) {
+    return new Set(catalogLabels.map((label) => label.seat));
+  }
+  const viewerModes = game?.viewer_modes?.filter((mode) => mode !== "observer") ?? [];
+  if (viewerModes.length > 0) {
+    return new Set(viewerModes);
+  }
+  if (!view) return new Set();
+  if ("active_seats" in view && Array.isArray(view.active_seats)) {
+    return new Set(view.active_seats);
+  }
+  return view.active_seat ? new Set([view.active_seat]) : new Set();
+}
+
+function isViewerSeatId(value: string): value is ViewerSeatId {
+  return ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"].includes(value);
 }
 
 function GenericGameSurface({

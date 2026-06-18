@@ -20,24 +20,28 @@ pub fn allocate_single_pot(
         "single-pot allocation requires at least one winner"
     );
 
-    let ordered_winners = winners_in_button_order(winners, button, seat_count);
-    let base_share = pot_total / ordered_winners.len() as u16;
-    let remainder = pot_total % ordered_winners.len() as u16;
-    let shares = ordered_winners
+    let remainder_order = winners_in_button_order(winners, button, seat_count);
+    let base_share = pot_total / winners.len() as u16;
+    let remainder = pot_total % winners.len() as u16;
+    let remainder_recipients = remainder_order
         .iter()
-        .enumerate()
-        .map(|(index, seat)| PotShare {
+        .take(remainder as usize)
+        .copied()
+        .collect::<Vec<_>>();
+    let shares = winners
+        .iter()
+        .map(|seat| PotShare {
             seat: *seat,
-            amount: base_share + u16::from(index < remainder as usize),
+            amount: base_share + u16::from(remainder_recipients.contains(seat)),
         })
         .collect::<Vec<_>>();
 
     PotAllocation {
         pot_total,
-        winners: ordered_winners.clone(),
+        winners: winners.to_vec(),
         shares,
         remainder,
-        remainder_order: ordered_winners,
+        remainder_order,
     }
 }
 
@@ -71,6 +75,7 @@ mod tests {
     fn single_pot_even_split_conserves_total() {
         let allocation = allocate_single_pot(12, &[seat(1), seat(3)], seat(0), 4);
 
+        assert_eq!(allocation.winners, vec![seat(1), seat(3)]);
         assert_eq!(
             allocation.shares,
             vec![
@@ -98,11 +103,16 @@ mod tests {
     fn remainder_is_assigned_by_button_order() {
         let allocation = allocate_single_pot(11, &[seat(0), seat(2), seat(3)], seat(2), 4);
 
+        assert_eq!(allocation.winners, vec![seat(0), seat(2), seat(3)]);
         assert_eq!(allocation.remainder, 2);
         assert_eq!(allocation.remainder_order, vec![seat(2), seat(3), seat(0)]);
         assert_eq!(
             allocation.shares,
             vec![
+                PotShare {
+                    seat: seat(0),
+                    amount: 3,
+                },
                 PotShare {
                     seat: seat(2),
                     amount: 4,
@@ -111,11 +121,41 @@ mod tests {
                     seat: seat(3),
                     amount: 4,
                 },
+            ]
+        );
+    }
+
+    #[test]
+    fn canonical_winner_order_survives_nontrivial_button_order() {
+        let canonical_winners = vec![seat(1), seat(2), seat(3)];
+        let allocation = allocate_single_pot(11, &canonical_winners, seat(2), 4);
+
+        assert_eq!(allocation.winners, canonical_winners);
+        assert_eq!(allocation.remainder_order, vec![seat(2), seat(3), seat(1)]);
+        assert_eq!(
+            allocation.shares,
+            vec![
                 PotShare {
-                    seat: seat(0),
+                    seat: seat(1),
                     amount: 3,
                 },
+                PotShare {
+                    seat: seat(2),
+                    amount: 4,
+                },
+                PotShare {
+                    seat: seat(3),
+                    amount: 4,
+                },
             ]
+        );
+        assert_eq!(
+            allocation
+                .shares
+                .iter()
+                .map(|share| share.amount)
+                .sum::<u16>(),
+            allocation.pot_total
         );
     }
 }

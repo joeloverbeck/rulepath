@@ -4,6 +4,25 @@ use river_ledger::replay_support::{
 };
 use river_ledger::{project_view, setup_match, RiverLedgerSeat, SetupOptions};
 
+const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
+    (3, "call"),
+    (0, "call"),
+    (1, "call"),
+    (2, "check"),
+    (1, "check"),
+    (2, "check"),
+    (3, "check"),
+    (0, "check"),
+    (1, "check"),
+    (2, "check"),
+    (3, "check"),
+    (0, "check"),
+    (1, "check"),
+    (2, "check"),
+    (3, "check"),
+    (0, "check"),
+];
+
 #[test]
 fn public_replay_export_json_order_is_stable() {
     let trace = trace_from_commands(21, 4, &[(3, "call"), (0, "call")]);
@@ -46,29 +65,51 @@ fn public_display_labels_do_not_replace_canonical_seat_ids() {
 }
 
 #[test]
+fn active_seat_labels_serialize_exact_match_seats() {
+    for count in 3..=6 {
+        let state = setup_match(
+            engine_core::Seed(500 + count as u64),
+            &(0..count)
+                .map(|index| engine_core::SeatId(format!("seat_{index}")))
+                .collect::<Vec<_>>(),
+            &SetupOptions::default(),
+        )
+        .expect("setup");
+        let view = project_view(&state, &engine_core::Viewer { seat_id: None });
+
+        assert_eq!(view.active_seat_labels.len(), count);
+        assert_eq!(
+            view.active_seat_labels
+                .iter()
+                .map(|label| (label.seat.as_str(), label.label.as_str()))
+                .collect::<Vec<_>>(),
+            (0..count)
+                .map(|index| {
+                    let seat = format!("seat_{index}");
+                    let label = format!("Seat {}", index + 1);
+                    (seat, label)
+                })
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|(seat, label)| (seat.as_str(), label.as_str()))
+                .collect::<Vec<_>>()
+        );
+
+        let summary = view.stable_summary();
+        assert!(summary.contains(&format!(
+            "active_labels={}",
+            (0..count)
+                .map(|index| format!("seat_{index}=Seat {}", index + 1))
+                .collect::<Vec<_>>()
+                .join(",")
+        )));
+        assert!(!summary.contains(&format!("seat_{count}=Seat {}", count + 1)));
+    }
+}
+
+#[test]
 fn terminal_view_summary_includes_v2_showdown_presentation_deterministically() {
-    let trace = trace_from_commands(
-        79,
-        4,
-        &[
-            (3, "call"),
-            (0, "call"),
-            (1, "call"),
-            (2, "check"),
-            (1, "check"),
-            (2, "check"),
-            (3, "check"),
-            (0, "check"),
-            (1, "check"),
-            (2, "check"),
-            (3, "check"),
-            (0, "check"),
-            (1, "check"),
-            (2, "check"),
-            (3, "check"),
-            (0, "check"),
-        ],
-    );
+    let trace = trace_from_commands(79, 4, FOUR_PLAYER_CHECKDOWN);
     let result = replay_internal_full_trace(&trace);
     let view = project_view(&result.final_state, &engine_core::Viewer { seat_id: None });
     let first = view.stable_summary();
@@ -77,4 +118,28 @@ fn terminal_view_summary_includes_v2_showdown_presentation_deterministically() {
     assert_eq!(first, second);
     assert!(first.contains("showdown:"));
     assert!(first.contains("wins with"));
+}
+
+#[test]
+fn seed_10018_terminal_serialization_uses_public_winner_label() {
+    let trace = trace_from_commands(10018, 4, FOUR_PLAYER_CHECKDOWN);
+    let result = replay_internal_full_trace(&trace);
+    let view = project_view(&result.final_state, &engine_core::Viewer { seat_id: None });
+    let summary = view.stable_summary();
+
+    assert!(summary.contains("showdown:seat_0:"));
+    assert!(summary.contains("Seat 1 wins with Two pair, Queens and Fives."));
+    assert!(!summary.contains("Seat 0 wins"));
+}
+
+#[test]
+fn seed_31_terminal_serialization_keeps_canonical_split_order() {
+    let trace = trace_from_commands(31, 4, FOUR_PLAYER_CHECKDOWN);
+    let result = replay_internal_full_trace(&trace);
+    let view = project_view(&result.final_state, &engine_core::Viewer { seat_id: None });
+    let summary = view.stable_summary();
+
+    assert!(summary.contains("showdown:seat_1,seat_2,seat_3:"));
+    assert!(summary.contains("seat_1=3,seat_2=3,seat_3=2"));
+    assert!(summary.contains("Seat 2, Seat 3, and Seat 4 split the ledger"));
 }
