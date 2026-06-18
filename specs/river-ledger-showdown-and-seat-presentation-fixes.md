@@ -7,7 +7,7 @@
 - **Target type:** New implementation spec
 - **Roadmap stage:** Non-gate correctness fix and public-presentation hardening for the shipped Gate 15 game `river_ledger`, plus a shared-shell multi-seat repair
 - **Roadmap build gate:** None; this work blocks further River Ledger presentation expansion until closed
-- **Status:** PLANNED
+- **Status:** Done
 - **Date:** 2026-06-18
 - **Owner:** joeloverbeck
 - **Provenance:** Authored against `main` @ `c4910a2` (`joeloverbeck/rulepath`), which was the current `HEAD` at reassessment on 2026-06-18. Evidence references below are repo-relative; re-verify them if `main` advances before decomposition.
@@ -933,17 +933,92 @@ Each assumption is one-line-correctable during ticket reassessment. Any correcti
 
 ## 20. Outcome
 
-**Status:** Pending implementation.
+**Status:** Done.
 
-Complete this section only after all tickets close. Record:
+Completed: 2026-06-18
 
-- merged ticket range;
-- final commit SHA;
-- exact seed-`10018` and seed-`31` test names and output;
-- changed golden traces and reviewed hash rationale;
-- 3/4/5/6 seat e2e evidence;
-- cross-catalog selector/no-leak evidence;
-- card bounding-box/resize evidence;
-- Gate 0, Gate 1, and Gate 2 command results;
-- documentation/status updates;
-- any accepted deviation from this spec and its upstream authority.
+Merged ticket range:
+
+- `RIVLEDSHOSEA-001` through `RIVLEDSHOSEA-010`
+- Ticket commits:
+  - `8fe727a` — `RIVLEDSHOSEA-001`
+  - `898b3f9` — `RIVLEDSHOSEA-002`
+  - `5455fe5` — `RIVLEDSHOSEA-003`
+  - `4bea70d` — `RIVLEDSHOSEA-004`
+  - `6f440ad` — `RIVLEDSHOSEA-005`
+  - `31a525f` — `RIVLEDSHOSEA-006`
+  - `c11e230` — `RIVLEDSHOSEA-007`
+  - `fcb238b` — `RIVLEDSHOSEA-008`
+  - `576dcb4` — `RIVLEDSHOSEA-009`
+  - Closeout commit: this commit (`Complete RIVLEDSHOSEA-010 docs closeout`)
+
+Locked regression evidence:
+
+- Seed `10018` unique-winner contradiction is covered by native/browser evidence in `RIVLEDSHOSEA-002` and reconciled golden trace evidence in `RIVLEDSHOSEA-004`. The final public surfaces agree that internal `seat_0` is displayed as `Seat 1`, and the River Ledger e2e smoke asserts the generic heading, V2 banner, live announcement, standings, and accessibility surface use the Rust-authored label consistently.
+- Seed `31` split-order defect is covered by the native split/remainder tests and `split-winner-order-vs-remainder.trace.json`. The canonical semantic winner order is `["seat_1", "seat_2", "seat_3"]`; the remainder-recipient order remains `["seat_2", "seat_3", "seat_1"]`.
+
+Golden trace and serialization reconciliation:
+
+- Added `games/river_ledger/tests/golden_traces/showdown-seat-label-consistency.trace.json`.
+- Added `games/river_ledger/tests/golden_traces/split-winner-order-vs-remainder.trace.json`.
+- Migrated split/remainder trace output intentionally where the serialized `winners` and `allocations` now use canonical semantic order while `remainder_order` preserves button order.
+- No trace schema/version migration was required. Final `cargo run -p replay-check -- --game river_ledger --all` accepted every River Ledger golden trace.
+
+Active-seat and viewer evidence:
+
+- Rust/WASM now projects `active_seat_labels` for River Ledger views.
+- `SeatFrame` consumes active-match labels for the viewer radio group and seat rail; setup role copy consumes the selected supported seat count.
+- River Ledger e2e covers 3/4/5/6 setup/live seat surfaces, six-seat pointer and keyboard selection, stale viewer normalization, and observer plus every active seat.
+- Cross-catalog shell e2e covers every fixed two-seat catalog game through the generic active-ID selector path.
+
+No-leak evidence:
+
+- River Ledger pairwise pre-showdown browser switching verifies each seat sees only its own private cards, observer sees none, and every distinct source/viewer pair rejects source private card IDs across DOM text, attributes, `data-testid`, storage, and console.
+- `a11y-noleak.smoke.mjs` and the full per-game hidden-information smoke suite cover the cross-catalog selector/no-leak matrix for `high_card_duel`, `secret_draft`, `poker_lite`, `plain_tricks`, `masked_claims`, `flood_watch`, and `event_frontier`.
+
+Card containment evidence:
+
+- River Ledger CSS now bounds rank, glyph, and full suit word inside the card grid for private, board, and showdown tones.
+- `node apps/web/e2e/river-ledger.smoke.mjs` checks visible real cards plus an injected all-suit fixture (`clubs`, `diamonds`, `hearts`, `spades`) at normal size and 200% text / 320px viewport.
+- `RiverLedgerCard.tsx` markup and card data shape did not change.
+
+Documentation/status updates:
+
+- `games/river_ledger/docs/UI.md` now documents Rust-authored public labels, active-match seat-label projection, canonical semantic winner order versus remainder order, pairwise viewer no-leak, and suit-word containment.
+- `games/river_ledger/docs/RULE-COVERAGE.md` maps the final seed, trace, selector, no-leak, and card evidence to the relevant `RL-*` rows.
+- `games/river_ledger/docs/RULES.md` clarifies that `RL-POT-REMAINDER-001` assigns odd units only and does not redefine or rank tied winners.
+- `specs/README.md` records this non-gate fix series as `Done`.
+
+Command evidence:
+
+- Gate 0 capstone passed:
+  - `cargo fmt --all --check`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo build --workspace`
+  - `cargo test --workspace`
+  - `bash scripts/boundary-check.sh`
+- River Ledger Gate 1 capstone passed:
+  - `cargo test -p river_ledger`
+  - `cargo run -p simulate -- --game river_ledger --games 1000 --seat-count 6 --action-cap 48` (`games_run=1000`, six-seat order, `split_games=72`)
+  - `cargo run -p replay-check -- --game river_ledger --all` (`replay-check: all traces passed`)
+  - `cargo run -p fixture-check -- --game river_ledger`
+  - `cargo run -p rule-coverage -- --game river_ledger`
+- Web/doc capstone passed:
+  - `npm --prefix apps/web ci` (install passed; npm reported one low-severity audit item)
+  - `npm --prefix apps/web run smoke:wasm`
+  - `npm --prefix apps/web run build`
+  - `npm --prefix apps/web run smoke:ui`
+  - `npm --prefix apps/web run smoke:effects`
+  - `npm --prefix apps/web run smoke:e2e`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
+  - `node scripts/check-player-rules.mjs`
+  - `node scripts/check-presentation-copy.mjs`
+  - `node scripts/check-outcome-explanations.mjs`
+- Gate 2 capstone passed:
+  - `cargo bench -p river_ledger`; benchmark JSON emitted for setup, legal actions, apply call, all-viewer projection, public export/import, evaluator showdown batch, and level2 full playout.
+
+Accepted deviations:
+
+- `RIVLEDSHOSEA-008` centralized the fixed two-seat selector regression in `shell.smoke.mjs` rather than duplicating the same selector assertion in every per-game script. Full `smoke:e2e` still runs every per-game smoke.
+- `RIVLEDSHOSEA-009` kept the card containment repair CSS-only; no wrapper was needed in `RiverLedgerCard.tsx`.

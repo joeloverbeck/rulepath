@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-010: Documentation reconciliation and spec closeout
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (docs/status-only)
@@ -78,3 +78,40 @@ Add the `specs/README.md` row for this spec after the two archived River Ledger 
 1. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-player-rules.mjs && node scripts/check-presentation-copy.mjs && node scripts/check-outcome-explanations.mjs`
 2. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo build --workspace && cargo test --workspace && bash scripts/boundary-check.sh`
 3. `cargo run -p replay-check -- --game river_ledger --all && cargo run -p fixture-check -- --game river_ledger && cargo run -p rule-coverage -- --game river_ledger && npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- Reconciled `games/river_ledger/docs/UI.md` with the shipped Rust-authored public label contract, active-match seat-label projection, canonical winner versus remainder order, pairwise viewer no-leak evidence, and full suit-word card containment.
+- Clarified `games/river_ledger/docs/RULES.md` without changing any stable `RL-*` ID: button order assigns split remainders only and does not redefine tied winner order.
+- Updated `games/river_ledger/docs/RULE-COVERAGE.md` evidence notes for remainder order, active-seat UI metadata, showdown presentation, and browser no-leak coverage.
+- Added the completed spec row to `specs/README.md` and flipped `specs/river-ledger-showdown-and-seat-presentation-fixes.md` to `Done` with a filled Outcome section.
+
+Deviations from original plan:
+- None for the docs/status scope. The spec Outcome records earlier implementation deviations from RIVLEDSHOSEA-008 and RIVLEDSHOSEA-009.
+
+Verification:
+- `node scripts/check-doc-links.mjs` — passed.
+- `node scripts/check-catalog-docs.mjs` — passed.
+- `node scripts/check-player-rules.mjs` — passed.
+- `node scripts/check-presentation-copy.mjs` — passed.
+- `node scripts/check-outcome-explanations.mjs` — passed.
+- `cargo fmt --all --check` — passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` — passed.
+- `cargo build --workspace` — passed.
+- `cargo test --workspace` — passed.
+- `bash scripts/boundary-check.sh` — passed.
+- `cargo test -p river_ledger` — passed.
+- `cargo run -p simulate -- --game river_ledger --games 1000 --seat-count 6 --action-cap 48` — passed.
+- `cargo run -p replay-check -- --game river_ledger --all` — passed.
+- `cargo run -p fixture-check -- --game river_ledger` — passed.
+- `cargo run -p rule-coverage -- --game river_ledger` — passed.
+- `npm --prefix apps/web ci` — passed; npm reported one low-severity audit item.
+- `npm --prefix apps/web run smoke:wasm` — passed.
+- `npm --prefix apps/web run build` — passed.
+- `npm --prefix apps/web run smoke:ui` — passed.
+- `npm --prefix apps/web run smoke:effects` — passed.
+- `npm --prefix apps/web run smoke:e2e` — passed.
+- `cargo bench -p river_ledger` — passed.

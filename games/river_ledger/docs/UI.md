@@ -6,7 +6,7 @@ Implemented variant: `river_ledger_standard`
 
 Rules version: `river-ledger-rules-v1`
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
 ## Contract
 
@@ -23,8 +23,8 @@ effects from the WASM bridge.
 
 | Surface | Rust/WASM payload source | UI behavior |
 |---|---|---|
-| match phase and active seat | `phase`, `street`, `active_seat`, `pending_seats`, `terminal`, `ui.seat_labels` | Status text, active marker, and terminal panel use public `Seat N` labels from Rust/WASM. |
-| seat rail | `seats[]`, roles, statuses, contributions, acted flags, `ledger_display` | Compact 3-6 seat ledger with Rust-authored role/status badges, `This round`, `Hand total`, and hole-card summary fields. |
+| match phase and active seat | `phase`, `street`, `active_seat`, `pending_seats`, `terminal`, `ui.seat_labels`, `active_seat_labels` | Status text, active marker, and terminal panel use public labels from Rust/WASM. Internal IDs such as `seat_0` are never parsed into visible labels by React. |
+| seat rail | `active_seat_labels`, `seats[]`, roles, statuses, contributions, acted flags, `ledger_display` | Compact 3-6 seat ledger with Rust-authored role/status badges, `This round`, `Hand total`, and hole-card summary fields. Match-scoped surfaces show only the active match's seats, not the six-seat catalog capability list. |
 | public board | `board_slots[]`, `community_cards`, `street` | Central board well renders Rust-authored street placeholders until a card is authorized for reveal. |
 | contribution ledger | ledger total (`pot` JSON field), `current_bet`, `street_bet`, per-seat contribution fields | Abstract ledger/unit counters only; no money/chip/pot/rake public copy and no duplicate unlabeled contribution bar. |
 | private view | `private_view` for the requested viewer | Authorized seat viewer sees only that seat's hole cards; observer and other seats see hidden placeholders. |
@@ -35,11 +35,18 @@ effects from the WASM bridge.
 | outcome rationale | terminal public view, terminal effects, and `presentation_v2` | V2 showdown panel renders Rust-authored banner, decisive contrast, board-once usage marks, ranked standings, folded rows, teaching aid, and final ledger totals. |
 | replay | viewer-scoped public replay export/import projection | Replay viewer steps Rust-projected public states and never reconstructs hidden state in TypeScript. |
 
-## N-Seat Viewer Matrix
+## Seat Identity And N-Seat Viewer Matrix
 
 River Ledger supports 3, 4, 5, and 6 seats. The browser shell uses the catalog
 `supportedSeatCounts` and `defaultSeats` fields; it does not hard-code River
 Ledger seat legality.
+
+Internal seat IDs remain zero-based and stable for replay (`seat_0` through
+`seat_5`). Public labels are Rust-authored display data (`Seat 1` through
+`Seat 6`) and travel with their seat IDs through catalog and active-match view
+payloads. A setup, rail, status, terminal, or viewer selector may render the
+label paired with an ID, but it must not derive a label by stripping or
+incrementing an ID in TypeScript.
 
 | Viewer | Authorized private data | Public facts | Must remain hidden |
 |---|---|---|---|
@@ -53,6 +60,9 @@ Ledger seat legality.
 
 The seat labels are presentation labels only. Rust/WASM remains the authority for
 which seats exist, who may act, and which private projection a viewer receives.
+The shared seat-frame selector accepts observer plus the Rust-projected active
+seat IDs for the current match. Stale or inactive seat selections normalize
+fail-closed rather than reusing a private payload.
 
 ## Pairwise No-Leak Matrix
 
@@ -70,6 +80,11 @@ For every supported seat count, the no-leak expectation is pairwise:
 `node apps/web/e2e/river-ledger.smoke.mjs` covers observer/wrong-seat browser
 no-leak checks, storage and console checks, Rust-only legal controls, terminal
 outcome rendering, and responsive layout.
+
+The same smoke now exercises pairwise pre-showdown viewpoint switching: each
+active seat can see its own two private cards, observer sees none, and every
+distinct viewer/source pair rejects the source seat's private card IDs across
+the DOM, attributes, `data-testid` values, storage, and console surface.
 
 ## UI Metadata
 
@@ -90,6 +105,9 @@ Rust `ui.rs` and the WASM catalog provide stable presentation metadata:
 
 The metadata is inert presentation support. It must not encode legality,
 selectors, hidden card identities, rule branches, or behavior by naming.
+Catalog capability labels can describe the maximum supported inventory, but live
+match selectors and role rows must consume the selected count or
+`active_seat_labels`.
 
 ## Legal Action Mapping
 
@@ -151,13 +169,20 @@ The decisive cause variants are `last_live_after_folds`,
 `best_showdown_hand`, and `equal_best_hand_split`; they are rendered as
 Rust-authored explanation data, not interpreted by the browser.
 
-For showdown, Rust also projects the human-readable V2 presentation fields the
-browser may display: `result_banner`, `decisive_reason`, board-once
+For showdown, Rust assembles one resolved showdown source and projects the
+human-readable V2 presentation fields the browser may display: `result_banner`,
+`decisive_reason`, board-once
 `board_cards`, Rust-ranked `standings`, `folded_rows`, per-seat
 `result_label`, `allocation_label`, `hand_name`, `comparison_note_short`,
 hole/board card-usage marks, `best_five`, `best_five_accessibility_label`, and
 terminal-only ladder/detail rows. Raw category keys, tie-break vectors, and
 rule IDs remain available only in the details tier.
+
+Canonical semantic winner order follows stable active-seat/evaluation order.
+Button order is used only to assign indivisible split remainders and does not
+re-rank tied winners or choose a primary winner. The browser renders the
+Rust-projected canonical winners, allocations, remainder labels, and standings
+without recomputing them.
 
 ### Terminal Result Variants
 
@@ -206,6 +231,7 @@ rule IDs remain available only in the details tier.
 | N-seat setup | match setup uses catalog seat counts | 3, 4, 5, and 6 are selectable and the default is 6. |
 | board-slot and seat-ledger presentation | browser renders Rust board slots and ledger display fields | pending board slots carry street-specific labels and seat rows show `This round`, `Hand total`, and hole-card summaries. |
 | card and ranking presentation | public board, private cards, best-five groups, and hand-ranking reference render | card labels include rank, suit glyph, suit word, and group labels; hand ladder is available and marks showdown categories. |
+| card containment | browser renders private, board, and showdown cards at normal size plus 200% text / 320px fixture | rank, glyph, and full suit words (`clubs`, `diamonds`, `hearts`, `spades`) remain visible and inside the card border box. |
 | bot why disclosure | browser auto-runs a non-random bot | compact `Why?` disclosure renders public facts and does not appear in the effect log. |
 | catalog identity | browser game picker renders River Ledger | dedicated original SVG icon with catalog-derived accessible title replaces the generic fallback. |
 | responsive layout | browser smoke checks desktop and mobile viewport widths | seat ledger, board, controls, and terminal text remain visible. |
