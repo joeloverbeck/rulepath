@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-009: Contain and center River Ledger card suit text
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/styles.css`; `apps/web/src/components/RiverLedgerCard.tsx` (only if a minimal wrapper is required)
@@ -75,3 +75,24 @@ Touch the component only if a minimal wrapper element is needed for alignment; o
 1. `npm --prefix apps/web run smoke:e2e` (River Ledger card bounding-box + resize assertions).
 2. `npm --prefix apps/web ci && npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 3. `cargo run -p replay-check -- --game river_ledger --all` as a negative check — it must stay green/unchanged, proving the CSS repair caused no data churn.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- Updated `.river-ledger-card` CSS to use a centered bounded grid, constrain direct children to the card inline track, and keep rank/glyph/suit-word content within the card box.
+- Changed the suit row to a bounded flex row with a non-shrinking glyph and wrapping full suit word, preserving visible suit words and accessibility labels.
+- Added River Ledger smoke coverage for visible real cards plus an injected all-suit fixture across `board`, `private`, and `showdown` tones at normal size and 200% text / 320px viewport.
+
+Deviations from original plan:
+- `RiverLedgerCard.tsx` did not need a markup wrapper; the repair stayed CSS-only.
+- The smoke skips card boxes with zero rendered dimensions when scanning real showdown cards, because collapsed `<details>` content is not a visible overflow surface. The injected fixture still checks all tones/suits explicitly.
+
+Verification:
+- `npm --prefix apps/web run build` — passed.
+- `node apps/web/e2e/river-ledger.smoke.mjs` — passed.
+- `npm --prefix apps/web run smoke:e2e` — passed.
+- `npm --prefix apps/web ci` — passed; npm reported one low-severity audit item.
+- `npm --prefix apps/web run smoke:ui` — passed.
+- `cargo run -p replay-check -- --game river_ledger --all` — passed; all River Ledger golden traces accepted.

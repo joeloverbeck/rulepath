@@ -78,6 +78,7 @@ try {
   const seat0Cards = await ownPrivateCardLabels(page);
   assert(seat0Cards.length === 2, "seat 0 private view exposes two own cards");
   await assertPrivateCardComponent(page);
+  await assertRiverLedgerCardContainment(page, "private card render");
   await assertNoLeak(page, consoleMessages, "seat 0 view", cardIds.filter((id) => !seat0Cards.map(labelToId).includes(id)));
 
   await clickSeatFrameButton(page, "Observer");
@@ -129,6 +130,7 @@ try {
   await assertWorkedExampleShowdown(page);
   await assertNoRawSeatIds(page, "worked-example showdown surface");
   await assertShowdownCardComponents(page);
+  await assertRiverLedgerCardContainment(page, "showdown card render");
   await assertHandRankingReferenceAfterShowdown(page);
   await assertTeachingAidAfterShowdown(page);
   await assertStreetStripAfterShowdown(page);
@@ -390,6 +392,106 @@ async function assertShowdownCardComponents(page) {
     summary.showdownGroupLabels.length === 4 && summary.showdownGroupLabels.every((label) => label.includes("Best five")),
     `showdown groups have accessible labels: ${summary.showdownGroupLabels.join(" | ")}`,
   );
+}
+
+async function assertRiverLedgerCardContainment(page, label) {
+  const realFailures = await riverLedgerCardOverflowFailures(page, ".river-ledger-card:not(.hidden)");
+  assert(realFailures.length === 0, `${label} real cards stay contained: ${JSON.stringify(realFailures)}`);
+
+  await page.evaluate(() => {
+    document.querySelector("[data-testid='river-ledger-card-containment-fixture']")?.remove();
+    const fixture = document.createElement("section");
+    fixture.dataset.testid = "river-ledger-card-containment-fixture";
+    fixture.style.display = "grid";
+    fixture.style.gridTemplateColumns = "repeat(3, minmax(58px, 1fr))";
+    fixture.style.gap = "6px";
+    fixture.style.width = "320px";
+    fixture.style.maxWidth = "100%";
+    fixture.style.padding = "4px";
+    const suits = [
+      ["clubs", "\u2663"],
+      ["diamonds", "\u2666"],
+      ["hearts", "\u2665"],
+      ["spades", "\u2660"],
+    ];
+    for (const tone of ["board", "private", "showdown"]) {
+      for (const [suit, glyph] of suits) {
+        const card = document.createElement("div");
+        card.className = `river-ledger-card ${tone} suit-${suit}`;
+        card.setAttribute("aria-label", `Ace of ${suit}`);
+        card.innerHTML = `<strong>AD</strong><span class="river-ledger-card-suit"><b aria-hidden="true">${glyph}</b><small>${suit}</small></span><span class="river-ledger-card-rank">ace</span>`;
+        fixture.append(card);
+      }
+    }
+    document.body.append(fixture);
+  });
+
+  const fixtureFailures = await riverLedgerCardOverflowFailures(
+    page,
+    "[data-testid='river-ledger-card-containment-fixture'] .river-ledger-card",
+  );
+  assert(fixtureFailures.length === 0, `${label} all-suit fixture stays contained: ${JSON.stringify(fixtureFailures)}`);
+
+  const originalViewport = page.viewport();
+  await page.setViewport({ width: 320, height: 820 });
+  await page.evaluate(() => {
+    document.documentElement.dataset.riverLedgerOriginalFontSize = document.documentElement.style.fontSize;
+    document.documentElement.style.fontSize = "200%";
+  });
+  const zoomFailures = await riverLedgerCardOverflowFailures(
+    page,
+    "[data-testid='river-ledger-card-containment-fixture'] .river-ledger-card",
+  );
+  assert(
+    zoomFailures.length === 0,
+    `${label} all-suit fixture stays contained at 200% text / 320px: ${JSON.stringify(zoomFailures)}`,
+  );
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = document.documentElement.dataset.riverLedgerOriginalFontSize ?? "";
+    delete document.documentElement.dataset.riverLedgerOriginalFontSize;
+    document.querySelector("[data-testid='river-ledger-card-containment-fixture']")?.remove();
+  });
+  if (originalViewport) {
+    await page.setViewport(originalViewport);
+  }
+}
+
+async function riverLedgerCardOverflowFailures(page, selector) {
+  return page.$$eval(selector, (cards) => {
+    const tolerance = 0.75;
+    const failures = [];
+    for (const card of cards) {
+      const cardRect = card.getBoundingClientRect();
+      if (cardRect.width <= 0 || cardRect.height <= 0) {
+        continue;
+      }
+      const children = Array.from(
+        card.querySelectorAll(
+          "strong, .river-ledger-card-suit, .river-ledger-card-suit b, .river-ledger-card-suit small, .river-ledger-card-rank",
+        ),
+      );
+      for (const child of children) {
+        const rect = child.getBoundingClientRect();
+        const text = child.textContent?.trim() ?? child.className;
+        if (rect.width <= 0 || rect.height <= 0) {
+          failures.push({ card: card.getAttribute("aria-label") ?? card.textContent, child: text, reason: "not visible" });
+          continue;
+        }
+        if (rect.left < cardRect.left - tolerance || rect.right > cardRect.right + tolerance) {
+          failures.push({
+            card: card.getAttribute("aria-label") ?? card.textContent,
+            child: text,
+            reason: "inline overflow",
+            cardLeft: cardRect.left,
+            cardRight: cardRect.right,
+            childLeft: rect.left,
+            childRight: rect.right,
+          });
+        }
+      }
+    }
+    return failures;
+  });
 }
 
 async function assertHandRankingReferenceDuringPlay(page) {

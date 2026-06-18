@@ -4163,12 +4163,15 @@ svg g[data-effect-kind] {
 .river-ledger-card {
   min-height: 104px;
   display: grid;
+  grid-template-rows: auto auto auto;
+  place-items: center;
   align-content: center;
   gap: 8px;
   border: 1px solid var(--rl-card-border);
   border-radius: 8px;
   background: var(--rl-card-face);
   padding: 12px;
+  overflow: hidden;
   text-align: center;
 }
 
@@ -4190,19 +4193,31 @@ svg g[data-effect-kind] {
   border-color: var(--rl-card-border);
 }
 
+.river-ledger-card > * {
+  min-inline-size: 0;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  justify-self: stretch;
+}
+
 .river-ledger-card strong {
+  overflow-wrap: anywhere;
   font-size: 1.35rem;
   line-height: 1;
 }
 
 .river-ledger-card-suit {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
+  min-width: 0;
+  inline-size: 100%;
+  max-inline-size: 100%;
 }
 
 .river-ledger-card-suit b {
+  flex: 0 0 auto;
   color: var(--rl-black-suit);
   font-size: 1.05rem;
   line-height: 1;
@@ -4219,10 +4234,18 @@ svg g[data-effect-kind] {
 }
 
 .river-ledger-card small {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
   color: var(--rl-muted);
+  font-size: 0.66rem;
+  line-height: 1.05;
+  text-align: center;
 }
 
 .river-ledger-card-rank {
+  overflow-wrap: anywhere;
   letter-spacing: 0;
 }
 
