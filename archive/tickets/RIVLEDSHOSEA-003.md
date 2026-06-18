@@ -1,6 +1,6 @@
 # RIVLEDSHOSEA-003: Single canonical resolved-showdown assembly with invariant checks
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/showdown.rs` (and `src/state.rs` only if an internal carrier must change)
@@ -80,3 +80,23 @@ Remove or narrow `primary_winner()` so a tied result never presents one seat as 
 1. `cargo test -p river_ledger`
 2. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo build --workspace`
 3. Golden-trace/replay verification is RIVLEDSHOSEA-004's boundary (it regenerates the traces these outcomes feed), so it is not gated here.
+
+## Outcome
+
+Completed: 2026-06-18
+
+What changed:
+- `games/river_ledger/src/showdown.rs` now builds a private `ResolvedShowdown` carrier and converts that single assembled value into the existing `TerminalOutcome::Showdown` shape.
+- The resolved value owns canonical winners, allocation, headline, decisive comparison, comparison basis, explanations, and V2 presentation. Construction assertions verify nonempty/unique winners, canonical allocation ordering, conservation, remainder-order set equality, V2 winner flags, and split/single winner banner identity.
+- `primary_winner()` was replaced with `single_winner_evaluation()` and `representative_winning_evaluation()`. Split outcomes still use one representative hand for equal-hand wording, but loser notes no longer describe one split winner as the primary winner.
+- `games/river_ledger/tests/rules.rs` now has an agreement helper applied to the seed-10018 unique winner, even-split, pair-of-queens unique winner, and seed-31 remainder-split outcomes.
+
+Deviations:
+- No public state shape or serialized field was added. `games/river_ledger/src/state.rs` did not need changes because the new carrier is private to `showdown.rs`.
+- Golden traces and replay reconciliation remain intentionally deferred to RIVLEDSHOSEA-004.
+
+Verification:
+- `cargo fmt --all --check` passed.
+- `cargo test -p river_ledger` passed, including `tests/visibility.rs` folded/private-card no-leak coverage.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.

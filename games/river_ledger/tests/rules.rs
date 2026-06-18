@@ -118,6 +118,88 @@ fn custom_showdown_state(
     state
 }
 
+fn public_label(seat: RiverLedgerSeat) -> String {
+    format!("Seat {}", seat.index() + 1)
+}
+
+fn assert_showdown_surface_agreement(outcome: &TerminalOutcome) {
+    let TerminalOutcome::Showdown {
+        winners,
+        pot_total,
+        allocations,
+        headline,
+        decisive_comparison: _,
+        comparison_basis,
+        explanations,
+        presentation_v2,
+    } = outcome
+    else {
+        panic!("showdown expected");
+    };
+
+    assert!(!winners.is_empty(), "showdown winner set is nonempty");
+    assert_eq!(
+        allocations
+            .iter()
+            .map(|share| share.seat)
+            .collect::<Vec<_>>(),
+        *winners,
+        "allocations serialize in canonical winner order"
+    );
+    assert_eq!(
+        allocations.iter().map(|share| share.amount).sum::<u16>(),
+        *pot_total,
+        "allocations conserve the ledger"
+    );
+    assert!(allocations.iter().all(|share| share.amount > 0));
+    assert_eq!(presentation_v2.result_banner.headline, *headline);
+    assert_eq!(
+        presentation_v2.decisive_reason.short_text,
+        *comparison_basis
+    );
+
+    for standing in &presentation_v2.standings {
+        let winner = winners.contains(&standing.seat);
+        assert_eq!(standing.default_expanded, winner);
+        assert_eq!(
+            standing.result_label,
+            if winner {
+                if winners.len() > 1 {
+                    "Split win"
+                } else {
+                    "Win"
+                }
+            } else {
+                "Showdown loss"
+            }
+        );
+        assert_eq!(standing.seat_label, public_label(standing.seat));
+    }
+
+    if winners.len() == 1 {
+        let winner_label = public_label(winners[0]);
+        assert!(headline.contains(&winner_label));
+        assert!(presentation_v2
+            .result_banner
+            .accessibility_label
+            .contains(&winner_label));
+    } else {
+        assert!(headline.contains("split the ledger"));
+        assert!(presentation_v2
+            .result_banner
+            .accessibility_label
+            .contains("split the ledger"));
+        for winner in winners {
+            assert!(headline.contains(&public_label(*winner)));
+        }
+        for explanation in explanations {
+            if !winners.contains(&explanation.seat) {
+                assert!(!headline.contains(&public_label(explanation.seat)));
+            }
+        }
+    }
+}
+
 #[test]
 fn setup_accepts_three_to_six_seats_and_rejects_other_counts() {
     let options = SetupOptions::default();
@@ -479,6 +561,7 @@ fn seed_10018_showdown_labels_unique_winner_consistently() {
     else {
         panic!("showdown terminal expected");
     };
+    assert_showdown_surface_agreement(state.terminal_outcome.as_ref().expect("terminal outcome"));
 
     assert_eq!(winners, &vec![seat(0)]);
     assert_eq!(
@@ -517,6 +600,7 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
     state.ledger.seats[0].status = river_ledger::SeatStatus::Folded;
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         allocations,
@@ -610,6 +694,7 @@ fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
     );
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         headline,
@@ -720,6 +805,7 @@ fn showdown_explanation_marks_split_and_folded_paths() {
     state.ledger.seats[2].status = SeatStatus::Folded;
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         headline,
@@ -849,6 +935,7 @@ fn seed_31_split_keeps_winners_canonical_and_remainder_button_ordered() {
     state.ledger.pot_total = 11;
 
     let outcome = river_ledger::resolve_showdown(&state);
+    assert_showdown_surface_agreement(&outcome);
     let TerminalOutcome::Showdown {
         winners,
         allocations,
