@@ -133,6 +133,7 @@ mod action_path;
 mod action_tree;
 mod actors;
 mod catalog;
+mod commands;
 mod constants;
 mod json;
 mod json_parse;
@@ -142,6 +143,7 @@ mod store;
 use action_path::*;
 use action_tree::*;
 use actors::*;
+use commands::*;
 use constants::*;
 use json::*;
 use json_parse::*;
@@ -284,10 +286,10 @@ struct PublicTimelineStep {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct AppliedCommand {
-    actor_seat: String,
-    action_path: Vec<String>,
-    freshness_token: u64,
+pub(crate) struct AppliedCommand {
+    pub(crate) actor_seat: String,
+    pub(crate) action_path: Vec<String>,
+    pub(crate) freshness_token: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -4886,37 +4888,6 @@ fn plain_action_tree_hash(state: &PlainTricksState) -> HashValue {
         .collect::<Vec<_>>()
         .join("|");
     HashValue::from_stable_bytes(parts.as_bytes())
-}
-
-fn single_segment_commands(commands: &[AppliedCommand]) -> Result<Vec<String>, String> {
-    commands
-        .iter()
-        .map(|command| {
-            if command.action_path.len() != 1 {
-                return Err(diagnostic_string(
-                    "unsupported_replay_action_path",
-                    "this game exports one-segment action paths only",
-                ));
-            }
-            Ok(command.action_path[0].clone())
-        })
-        .collect()
-}
-
-fn command_record_json(index: usize, command: &AppliedCommand) -> String {
-    let action_path = command
-        .action_path
-        .iter()
-        .map(|segment| format!("\"{}\"", escape_json(segment)))
-        .collect::<Vec<_>>()
-        .join(",");
-    format!(
-        "{{\"index\":{},\"actor_seat\":\"{}\",\"action_path\":[{}],\"freshness_token\":\"{}\",\"expect\":\"applied\"}}",
-        index,
-        escape_json(&command.actor_seat),
-        action_path,
-        command.freshness_token
-    )
 }
 
 fn race_replay_step_json(
