@@ -5,5 +5,6 @@
 //! concern modules at the crate root (json, seats, actors, commands, ...) and on
 //! their own game crate, imported un-aliased since only one game lives here.
 
+pub(crate) mod column;
 pub(crate) mod race;
 pub(crate) mod three;
