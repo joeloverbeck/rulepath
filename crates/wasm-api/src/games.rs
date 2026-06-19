@@ -6,3 +6,4 @@
 //! their own game crate, imported un-aliased since only one game lives here.
 
 pub(crate) mod race;
+pub(crate) mod three;
