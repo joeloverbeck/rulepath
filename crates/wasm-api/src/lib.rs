@@ -136,8 +136,10 @@ use token_bazaar::{
 };
 
 mod constants;
+mod json;
 
 use constants::*;
+use json::*;
 
 thread_local! {
     static MATCHES: RefCell<BTreeMap<String, MatchRecord>> = const { RefCell::new(BTreeMap::new()) };
@@ -10711,39 +10713,6 @@ fn rejection_reason_json(reason: three_marks::RejectionReason) -> &'static str {
         three_marks::RejectionReason::InvalidPath => "invalid_path",
         three_marks::RejectionReason::InvalidAction => "invalid_action",
     }
-}
-
-fn diagnostic_json(diagnostic: engine_core::Diagnostic) -> String {
-    format!(
-        "{{\"code\":\"{}\",\"message\":\"{}\"}}",
-        escape_json(&diagnostic.code),
-        escape_json(&diagnostic.message)
-    )
-}
-
-fn diagnostic_string(code: &str, message: &str) -> String {
-    format!(
-        "{{\"code\":\"{}\",\"message\":\"{}\"}}",
-        escape_json(code),
-        escape_json(message)
-    )
-}
-
-fn unsupported_variant_json(game_id: &str, message: &str) -> String {
-    diagnostic_string("unsupported_variant", &format!("{game_id}: {message}"))
-}
-
-fn escape_json(input: &str) -> String {
-    input.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
-fn string_array_json(values: &[&str]) -> String {
-    let body = values
-        .iter()
-        .map(|value| format!("\"{}\"", escape_json(value)))
-        .collect::<Vec<_>>()
-        .join(",");
-    format!("[{body}]")
 }
 
 fn parse_replay_document(input: &str) -> Result<ParsedReplayDocument, String> {
