@@ -1,10 +1,6 @@
 //! Browser-facing Rulepath API surface.
 
-use std::{
-    cell::{Cell, RefCell},
-    collections::BTreeMap,
-    slice, str,
-};
+use std::{cell::RefCell, slice, str};
 
 use column_four::{
     apply_action as column_apply_action, legal_action_tree as column_legal_action_tree,
@@ -138,21 +134,20 @@ use token_bazaar::{
 mod action_tree;
 mod constants;
 mod json;
+mod store;
 
 use action_tree::*;
 use constants::*;
 use json::*;
+use store::*;
 
 thread_local! {
-    static MATCHES: RefCell<BTreeMap<String, MatchRecord>> = const { RefCell::new(BTreeMap::new()) };
-    static REPLAYS: RefCell<BTreeMap<String, ReplayRecord>> = const { RefCell::new(BTreeMap::new()) };
-    static NEXT_MATCH_ID: Cell<u64> = const { Cell::new(1) };
-    static NEXT_REPLAY_ID: Cell<u64> = const { Cell::new(1) };
+    /// Scratch buffer backing the WASM pointer/length output ABI.
     static LAST_OUTPUT: RefCell<String> = const { RefCell::new(String::new()) };
 }
 
 #[derive(Clone, Debug)]
-enum MatchRecord {
+pub(crate) enum MatchRecord {
     RaceToN {
         game_id: String,
         seed: u64,
@@ -257,7 +252,7 @@ enum MatchRecord {
 }
 
 #[derive(Clone, Debug)]
-struct ReplayRecord {
+pub(crate) struct ReplayRecord {
     game_id: String,
     seed: u64,
     commands: Vec<AppliedCommand>,
@@ -4241,72 +4236,6 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
             escape_json(game_id)
         )),
     }
-}
-
-fn next_replay_id(game_id: &str) -> String {
-    NEXT_REPLAY_ID.with(|next| {
-        let id = next.get();
-        next.set(id.saturating_add(1));
-        format!("{game_id}-replay-{id}")
-    })
-}
-
-fn next_match_id(game_id: &str) -> String {
-    NEXT_MATCH_ID.with(|next| {
-        let id = next.get();
-        next.set(id.saturating_add(1));
-        format!("{game_id}-{id}")
-    })
-}
-
-fn with_match<T>(
-    match_id: &str,
-    read: impl FnOnce(&MatchRecord) -> Result<T, String>,
-) -> Result<T, String> {
-    MATCHES.with(|matches| {
-        let matches = matches.borrow();
-        let record = matches
-            .get(match_id)
-            .ok_or_else(|| missing_match_json(match_id))?;
-        read(record)
-    })
-}
-
-fn with_match_mut<T>(
-    match_id: &str,
-    update: impl FnOnce(&mut MatchRecord) -> Result<T, String>,
-) -> Result<T, String> {
-    MATCHES.with(|matches| {
-        let mut matches = matches.borrow_mut();
-        let record = matches
-            .get_mut(match_id)
-            .ok_or_else(|| missing_match_json(match_id))?;
-        update(record)
-    })
-}
-
-fn with_replay<T>(
-    replay_id: &str,
-    read: impl FnOnce(&ReplayRecord) -> Result<T, String>,
-) -> Result<T, String> {
-    REPLAYS.with(|replays| {
-        let replays = replays.borrow();
-        let record = replays
-            .get(replay_id)
-            .ok_or_else(|| missing_replay_json(replay_id))?;
-        read(record)
-    })
-}
-
-fn missing_match_json(match_id: &str) -> String {
-    format!(
-        "{{\"code\":\"unknown_match\",\"message\":\"unknown match id: {}\"}}",
-        escape_json(match_id)
-    )
-}
-
-fn missing_replay_json(replay_id: &str) -> String {
-    diagnostic_string("unknown_replay", &format!("unknown replay id: {replay_id}"))
 }
 
 fn seats() -> Vec<SeatId> {
