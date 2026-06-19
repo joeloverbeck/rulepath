@@ -8,6 +8,7 @@
 pub(crate) mod column;
 pub(crate) mod directional;
 pub(crate) mod draughts;
+pub(crate) mod event;
 pub(crate) mod flood;
 pub(crate) mod frontier;
 pub(crate) mod high_card;
