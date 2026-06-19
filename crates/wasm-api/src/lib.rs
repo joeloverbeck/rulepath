@@ -23,11 +23,11 @@ use draughts_lite::{
     DraughtsLiteSeat, DraughtsLiteState,
 };
 use engine_core::{
-    ActionPath, CommandEnvelope, EffectCursor, EffectEnvelope, EffectLog, RulesVersion, SeatId,
-    Seed, Viewer, VisibilityScope,
+    ActionPath, CommandEnvelope, EffectCursor, EffectEnvelope, EffectLog, RulesVersion, Seed,
+    Viewer, VisibilityScope,
 };
 #[cfg(test)]
-use engine_core::{Actor, HashValue, StableSerialize};
+use engine_core::{Actor, HashValue, SeatId, StableSerialize};
 use event_frontier::visibility::{
     public_effect_text as event_frontier_public_effect_text,
     reason_label as event_frontier_reason_label,
@@ -4001,66 +4001,6 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
             escape_json(game_id)
         )),
     }
-}
-
-fn seats() -> Vec<SeatId> {
-    seats_for_count(DEFAULT_SEAT_COUNT)
-}
-
-fn seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    (0..seat_count)
-        .map(|index| SeatId(format!("seat-{index}")))
-        .collect()
-}
-
-fn plain_seats() -> Vec<SeatId> {
-    plain_seats_for_count(DEFAULT_SEAT_COUNT)
-}
-
-fn plain_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    underscore_seats_for_count(seat_count)
-}
-
-fn river_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    underscore_seats_for_count(seat_count)
-}
-
-fn masked_seats() -> Vec<SeatId> {
-    masked_seats_for_count(DEFAULT_SEAT_COUNT)
-}
-
-fn masked_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    underscore_seats_for_count(seat_count)
-}
-
-fn flood_seats() -> Vec<SeatId> {
-    flood_seats_for_count(DEFAULT_SEAT_COUNT)
-}
-
-fn flood_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    underscore_seats_for_count(seat_count)
-}
-
-fn frontier_seats() -> Vec<SeatId> {
-    frontier_seats_for_count(DEFAULT_SEAT_COUNT)
-}
-
-fn frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    underscore_seats_for_count(seat_count)
-}
-
-fn event_frontier_seats() -> Vec<SeatId> {
-    event_frontier_seats_for_count(DEFAULT_SEAT_COUNT)
-}
-
-fn event_frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    underscore_seats_for_count(seat_count)
-}
-
-fn underscore_seats_for_count(seat_count: usize) -> Vec<SeatId> {
-    (0..seat_count)
-        .map(|index| SeatId(format!("seat_{index}")))
-        .collect()
 }
 
 fn trace_rules_version(game: RegisteredGame) -> &'static str {

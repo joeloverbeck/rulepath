@@ -6,6 +6,7 @@
 
 use engine_core::SeatId;
 
+use crate::constants::DEFAULT_SEAT_COUNT;
 use crate::json::escape_json;
 
 use column_four::ColumnFourSeat;
@@ -277,4 +278,66 @@ pub(crate) fn parse_river_seat(value: &str) -> Result<RiverLedgerSeat, String> {
 
 pub(crate) fn trace_river_seat(seat: RiverLedgerSeat) -> String {
     seat.as_str()
+}
+
+// Seat-roster builders: construct the ordered SeatId list for a match of a
+// given size. Hyphen vs. underscore seat-id spelling is per game.
+pub(crate) fn seats() -> Vec<SeatId> {
+    seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+pub(crate) fn seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId(format!("seat-{index}")))
+        .collect()
+}
+
+pub(crate) fn plain_seats() -> Vec<SeatId> {
+    plain_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+pub(crate) fn plain_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+pub(crate) fn river_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+pub(crate) fn masked_seats() -> Vec<SeatId> {
+    masked_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+pub(crate) fn masked_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+pub(crate) fn flood_seats() -> Vec<SeatId> {
+    flood_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+pub(crate) fn flood_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+pub(crate) fn frontier_seats() -> Vec<SeatId> {
+    frontier_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+pub(crate) fn frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+pub(crate) fn event_frontier_seats() -> Vec<SeatId> {
+    event_frontier_seats_for_count(DEFAULT_SEAT_COUNT)
+}
+
+pub(crate) fn event_frontier_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    underscore_seats_for_count(seat_count)
+}
+
+fn underscore_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect()
 }
