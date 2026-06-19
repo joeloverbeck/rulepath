@@ -16,6 +16,7 @@ pub(crate) mod masked;
 pub(crate) mod plain;
 pub(crate) mod poker;
 pub(crate) mod race;
+pub(crate) mod river;
 pub(crate) mod secret;
 pub(crate) mod three;
 pub(crate) mod token;
