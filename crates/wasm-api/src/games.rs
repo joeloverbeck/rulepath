@@ -13,6 +13,7 @@ pub(crate) mod flood;
 pub(crate) mod frontier;
 pub(crate) mod high_card;
 pub(crate) mod masked;
+pub(crate) mod poker;
 pub(crate) mod race;
 pub(crate) mod secret;
 pub(crate) mod three;
