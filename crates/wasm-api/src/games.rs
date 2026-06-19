@@ -9,5 +9,6 @@ pub(crate) mod column;
 pub(crate) mod directional;
 pub(crate) mod draughts;
 pub(crate) mod high_card;
+pub(crate) mod masked;
 pub(crate) mod race;
 pub(crate) mod three;
