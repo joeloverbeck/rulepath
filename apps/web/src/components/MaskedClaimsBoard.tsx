@@ -110,6 +110,14 @@ export function MaskedClaimsBoard({
           </div>
           {view.private_view.status === "seat" ? (
             <div className="plain-hand" data-testid="masked-claims-own-hand">
+              {canAct && claimChoices.length > 0 ? (
+                <p className="masked-claim-legend" data-testid="masked-claims-legend">
+                  Each declaration is tagged against this mask&apos;s true grade:{" "}
+                  <span className="masked-claim-cue true">true</span> exact,{" "}
+                  <span className="masked-claim-cue under">under</span> safe underclaim,{" "}
+                  <span className="masked-claim-cue bluff">bluff</span> overclaim (loses if challenged).
+                </p>
+              ) : null}
               {view.private_view.own_hand.map((mask, index) => {
                 const choice = legalClaims.get(mask.tile_id) ?? null;
                 return (
@@ -119,6 +127,7 @@ export function MaskedClaimsBoard({
                     index={index}
                     turnIndex={view.turn_index}
                     choice={choice}
+                    gradeLabels={view.ui.grade_labels}
                     disabled={!canAct || !choice}
                     onPathSubmit={onPathSubmit}
                   />
@@ -261,6 +270,7 @@ function MaskClaimCard({
   index,
   turnIndex,
   choice,
+  gradeLabels,
   disabled,
   onPathSubmit,
 }: {
@@ -268,33 +278,70 @@ function MaskClaimCard({
   index: number;
   turnIndex: number;
   choice: ActionChoice | null;
+  gradeLabels: string[];
   disabled: boolean;
   onPathSubmit?: (path: string[]) => void;
 }) {
   const declaredChoices = choice?.next?.choices ?? [];
+  const actualRank = gradeRank(mask.grade, gradeLabels);
+  const total = gradeLabels.length;
   return (
     <article className={`plain-card ${choice ? "legal" : ""}`}>
       <span>Held mask</span>
       <strong>{mask.label}</strong>
+      {actualRank ? (
+        <small className="masked-grade-badge" data-testid={`masked-claims-grade-${turnIndex}-${index}`}>
+          True grade {actualRank} of {total}
+        </small>
+      ) : null}
       <small>{choice ? "Choose declared grade" : "Held"}</small>
       {declaredChoices.length > 0 ? (
         <div className="action-list">
-          {declaredChoices.map((declared, declaredIndex) => (
-            <button
-              type="button"
-              key={declared.segment}
-              disabled={disabled}
-              aria-label={declared.accessibility_label}
-              data-testid={`masked-claims-claim-turn-${turnIndex}-${index}-${declaredIndex}`}
-              onClick={() => choice && onPathSubmit?.(["claim", choice.segment, declared.segment])}
-            >
-              {declared.label}
-            </button>
-          ))}
+          {declaredChoices.map((declared, declaredIndex) => {
+            const relation = claimRelation(declaredIndex + 1, actualRank);
+            return (
+              <button
+                type="button"
+                key={declared.segment}
+                className={relation ? `masked-declare ${relation}` : "masked-declare"}
+                disabled={disabled}
+                aria-label={declared.accessibility_label}
+                data-testid={`masked-claims-claim-turn-${turnIndex}-${index}-${declaredIndex}`}
+                onClick={() => choice && onPathSubmit?.(["claim", choice.segment, declared.segment])}
+              >
+                <span>{declared.label}</span>
+                {relation ? <span className={`masked-claim-cue ${relation}`}>{relation}</span> : null}
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </article>
   );
+}
+
+function gradeRank(grade: string, gradeLabels: string[]): number | null {
+  // Rust serializes a mask's own grade as a 1-based numeric string ("1".."5").
+  const numeric = Number(grade);
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= gradeLabels.length) {
+    return numeric;
+  }
+  // Fall back to matching a grade label (defensive; not expected in current views).
+  const idx = gradeLabels.findIndex((entry) => entry.toLowerCase().startsWith(grade.toLowerCase()));
+  return idx >= 0 ? idx + 1 : null;
+}
+
+function claimRelation(declaredRank: number | null, actualRank: number | null): "true" | "under" | "bluff" | null {
+  if (declaredRank === null || actualRank === null) {
+    return null;
+  }
+  if (declaredRank > actualRank) {
+    return "bluff";
+  }
+  if (declaredRank === actualRank) {
+    return "true";
+  }
+  return "under";
 }
 
 function claimMaskChoices(actionTree: ActionTree | null): ActionChoice[] {
