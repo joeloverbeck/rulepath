@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ActionChoice, ActionTree, EffectEntry, FloodWatchDistrictView, FloodWatchPublicView } from "../wasm/client";
+import type { ActionChoice, ActionTree, EffectEntry, FloodWatchPublicView } from "../wasm/client";
 import { animationRegistry } from "../animation/registry";
 import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
 import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
@@ -125,25 +125,34 @@ export function FloodWatchBoard({
         />
       </div>
 
+      <p className="flood-watch-loss-note" data-testid="flood-watch-loss-note">
+        Shared loss the moment any district reaches flood {MAX_FLOOD_LEVEL}. Survive the storm deck together to win.
+      </p>
+
       <div className="plain-tricks-table" aria-label="Flood Watch districts" data-animation-target="flood-watch-districts">
         {view.districts.map((district) => {
           const legal = districtChoices.get(district.district) ?? {};
+          const danger = floodDanger(district.flood_level);
           return (
             <section
-              className="plain-seat"
-              aria-label={`${district.label} district`}
+              className={`plain-seat flood-danger-${danger}`}
+              aria-label={`${district.label} district, ${dangerLabel(district.flood_level)}`}
               data-testid={`flood-watch-district-${district.district}`}
               data-animation-target={`flood-watch-district-${district.district}`}
+              data-danger={danger}
               key={district.district}
             >
               <div className="plain-section-heading">
                 <span>{district.label}</span>
-                <strong>{district.flood_level >= 5 ? "Inundation risk" : `${district.flood_level} flood`}</strong>
+                <strong>
+                  {district.flood_level}/{MAX_FLOOD_LEVEL} flood
+                </strong>
               </div>
               <div className="plain-tricks-metrics" aria-label={`${district.label} public counters`}>
-                <Metric label="Flood" value={String(district.flood_level)} animationTarget={`flood-watch-flood-${district.district}`} />
+                <Metric label="Flood" value={`${district.flood_level} / ${MAX_FLOOD_LEVEL}`} animationTarget={`flood-watch-flood-${district.district}`} />
                 <Metric label="Levees" value={String(district.levees)} animationTarget={`flood-watch-levees-${district.district}`} />
               </div>
+              <p className={`flood-watch-danger-cue ${danger}`}>{dangerLabel(district.flood_level)}</p>
               <div className="action-list">
                 <DistrictButton choice={legal.bail} disabled={!canAct || !legal.bail} onPathSubmit={onPathSubmit} fallback="Bail" />
                 <DistrictButton
@@ -168,7 +177,7 @@ export function FloodWatchBoard({
             <li key={role.seat}>
               <span>{seatLabel(role.seat)}</span>
               <strong>{role.label}</strong>
-              <small>Cooperative role</small>
+              <small>{rolePower(role.role)}</small>
             </li>
           ))}
         </ol>
@@ -246,6 +255,47 @@ function districtChoiceMap(choices: ActionChoice[]): Map<string, { bail?: Action
 
 function isStormEffect(type: string): boolean {
   return type === "event_drawn" || type === "flood_level_rose" || type === "district_inundated" || type === "terminal";
+}
+
+// Both shipped variants (standard and deluge) lose at flood level 3; the view
+// does not yet carry a per-variant threshold, so mirror the Rust constant here.
+const MAX_FLOOD_LEVEL = 3;
+
+type FloodDanger = "safe" | "rising" | "critical" | "inundated";
+
+function floodDanger(level: number): FloodDanger {
+  if (level >= MAX_FLOOD_LEVEL) {
+    return "inundated";
+  }
+  if (level === MAX_FLOOD_LEVEL - 1) {
+    return "critical";
+  }
+  if (level >= 1) {
+    return "rising";
+  }
+  return "safe";
+}
+
+function dangerLabel(level: number): string {
+  const stepsToLoss = MAX_FLOOD_LEVEL - level;
+  if (stepsToLoss <= 0) {
+    return "Inundated";
+  }
+  if (stepsToLoss === 1) {
+    return "1 flood from shared loss";
+  }
+  return `${stepsToLoss} floods from shared loss`;
+}
+
+function rolePower(role: string): string {
+  switch (role) {
+    case "pumpwright":
+      return "Bails 2 flood per action (others bail 1)";
+    case "levee_warden":
+      return "Adds 2 levees per action (others add 1)";
+    default:
+      return "Cooperative role";
+  }
 }
 
 function statusLabel(view: FloodWatchPublicView): string {
