@@ -145,6 +145,81 @@ fn assert_absent(text: &str, forbidden: &[String], context: &str) {
     }
 }
 
+fn asymmetric_stacks(count: usize) -> Vec<u16> {
+    let mut stacks = vec![24; count];
+    stacks[0] = 8;
+    stacks[1] = 3;
+    stacks[2] = 2;
+    stacks
+}
+
+fn assert_nonterminal_pairwise_matrix(state: &river_ledger::RiverLedgerState, label: &str) {
+    let count = state.seats.len();
+    let future = unrevealed_public_ids(state);
+
+    for recipient in None.into_iter().chain((0..count).map(Some)) {
+        let projection = project_view(state, &viewer(recipient));
+        let text = format!("{projection:?}");
+
+        assert_eq!(projection.seats.len(), count);
+        assert_eq!(projection.pot_total, state.ledger.pot_total);
+        assert!(!projection.pot_tiers.is_empty());
+        assert_absent(&text, &future, &format!("{label} future cards"));
+
+        for owner in 0..count {
+            let owner_private = private_ids_for(state, owner);
+            if recipient == Some(owner) {
+                for private_id in owner_private {
+                    assert!(
+                        text.contains(&private_id),
+                        "{label} self viewer should see own private card {private_id}"
+                    );
+                }
+            } else {
+                assert_absent(
+                    &text,
+                    &owner_private,
+                    &format!("{label} recipient {recipient:?} owner seat_{owner} private cards"),
+                );
+            }
+        }
+
+        let effects = filter_effects_for_viewer(&setup_effects(state), &viewer(recipient));
+        let effect_text = format!("{effects:?}");
+        assert_absent(
+            &effect_text,
+            &future,
+            &format!("{label} setup effects future cards"),
+        );
+        for owner in 0..count {
+            if recipient != Some(owner) {
+                assert_absent(
+                    &effect_text,
+                    &private_ids_for(state, owner),
+                    &format!("{label} setup effects recipient {recipient:?} owner seat_{owner}"),
+                );
+            }
+        }
+    }
+
+    if let Some(active) = state.active_seat {
+        let tree = legal_action_tree(state, &actor(active.index()));
+        let tree_text = format!("{tree:?}");
+        assert_absent(
+            &tree_text,
+            &future,
+            &format!("{label} legal action tree future cards"),
+        );
+        for owner in 0..count {
+            assert_absent(
+                &tree_text,
+                &private_ids_for(state, owner),
+                &format!("{label} legal action tree owner seat_{owner}"),
+            );
+        }
+    }
+}
+
 #[test]
 fn pairwise_seat_views_and_effects_hide_other_seats_private_cards_for_all_counts() {
     for count in 3..=6 {
@@ -178,6 +253,60 @@ fn pairwise_seat_views_and_effects_hide_other_seats_private_cards_for_all_counts
                     &format!("seat_{recipient} effects for {}", owner_seat.as_str()),
                 );
             }
+        }
+    }
+}
+
+#[test]
+fn visibility_stack_pot_pairwise_matrix_hides_private_data_across_lifecycle_states() {
+    for count in 3..=6 {
+        let mut waiting = setup_match(
+            Seed(900 + count as u64),
+            &seats(count),
+            &SetupOptions {
+                starting_stacks: Some(asymmetric_stacks(count)),
+                ..SetupOptions::default()
+            },
+        )
+        .expect("asymmetric setup");
+        assert_nonterminal_pairwise_matrix(&waiting, &format!("{count}-seat all-in waiting"));
+
+        let active = waiting.active_seat.expect("active seat").index();
+        let first_segment = legal_action_tree(&waiting, &actor(active))
+            .root
+            .choices
+            .into_iter()
+            .find(|choice| choice.segment == "call")
+            .map(|choice| choice.segment)
+            .unwrap_or_else(|| "fold".to_owned());
+        apply_segment(&mut waiting, active, &first_segment);
+        if !matches!(waiting.phase, river_ledger::Phase::Terminal) {
+            assert_nonterminal_pairwise_matrix(&waiting, &format!("{count}-seat post-action"));
+        }
+
+        let showdown = showdown_state_with_folded_seat(count);
+        let folded_private = private_ids_for(&showdown, 0);
+        let deck_tail = showdown
+            .deck_tail_internal()
+            .iter()
+            .map(|card| card.id())
+            .collect::<Vec<_>>();
+        for recipient in None.into_iter().chain((0..count).map(Some)) {
+            let projection = project_view(&showdown, &viewer(recipient));
+            let text = format!("{projection:?}");
+            assert_eq!(projection.pot_total, showdown.ledger.pot_total);
+            if recipient != Some(0) {
+                assert_absent(
+                    &text,
+                    &folded_private,
+                    &format!("{count}-seat folded showdown recipient {recipient:?}"),
+                );
+            }
+            assert_absent(
+                &text,
+                &deck_tail,
+                &format!("{count}-seat folded showdown future cards"),
+            );
         }
     }
 }

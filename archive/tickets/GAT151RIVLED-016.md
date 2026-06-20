@@ -1,6 +1,6 @@
 # GAT151RIVLED-016: Pairwise N-seat no-leak proof
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/river_ledger/tests/visibility.rs`, `apps/web/e2e/a11y-noleak.smoke.mjs`
@@ -75,3 +75,18 @@ Extend `a11y-noleak.smoke.mjs` to assert DOM/a11y/logs/storage/test-id surfaces 
 1. `cargo test -p river_ledger visibility`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `cargo run -p rule-coverage -- --game river_ledger` — the visibility suite plus browser smoke are the correct no-leak boundary across Rust and DOM lanes.
+
+## Outcome
+
+Completed 2026-06-20.
+
+- Added a River Ledger visibility-named N=3..6 pairwise lifecycle matrix for asymmetric stack/all-in setup, post-action state, and folded-showdown state. The matrix asserts public stack/pot fields remain present while other-seat private cards, future board/deck cards, action-tree surfaces, and effect surfaces stay redacted.
+- Extended the browser a11y/no-leak smoke with a custom `[8,3,2]` River Ledger multi-pot terminal hand, checking ordered public pots, eligibility/contributor copy, stack/all-in display, terminal allocation display, storage/log cleanliness, raw identifier guards, and absence of card-id/internal leak terms.
+- Preserved the self-view exception for a folded seat’s own private cards and treats revealed showdown board cards as intentionally public.
+
+Verification:
+
+1. `cargo test -p river_ledger visibility`
+2. `node e2e/a11y-noleak.smoke.mjs` from `apps/web`
+3. `npm --prefix apps/web run smoke:e2e`
+4. `cargo run -p rule-coverage -- --game river_ledger`

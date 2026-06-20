@@ -20,6 +20,9 @@ const forbiddenLeakTerms = [
 ];
 const rawIdentifierRe = /\b[a-z0-9]+_[a-z0-9_]+\b/;
 const rawSeatIdRe = /\bseat_\d+\b/;
+const ranks = ["two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "jack", "queen", "king", "ace"];
+const suits = ["clubs", "diamonds", "hearts", "spades"];
+const riverLedgerCardIds = ranks.flatMap((rank) => suits.map((suit) => `${rank}_${suit}`));
 
 await access(executablePath);
 
@@ -155,6 +158,10 @@ try {
   await assertRiverLedgerStatusAnnouncement(page);
   await assertNoLeak(page, consoleMessages, "river_ledger status announcement DOM");
 
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startRiverLedgerMultiPotNoLeak(page);
+  await assertRiverLedgerMultiPotNoLeak(page, consoleMessages);
+
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier river_ledger" }));
 } finally {
   if (browser) {
@@ -227,6 +234,35 @@ async function startRiverLedgerShowdown(page) {
   await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
 }
 
+async function startRiverLedgerMultiPotNoLeak(page) {
+  await clickText(page, "button", "River Ledger");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "3");
+  await page.$eval('.setup-grid input[type="number"]', (input) => {
+    input.value = "12";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await clickLabel(page, "Hotseat");
+  await clickText(page, ".river-stack-mode label", "Custom");
+  for (const [index, value] of [8, 3, 2].entries()) {
+    await page.$eval(
+      `.river-stack-field:nth-of-type(${index + 1}) input`,
+      (input, stack) => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+        setter?.call(input, String(stack));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      },
+      value,
+    );
+  }
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="river-ledger-pot-tiers"]');
+  await clickRiverAction(page, "Raise");
+  await clickRiverAction(page, "Call");
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
 async function startRiverLedgerBotWhy(page) {
   await clickText(page, "button", "River Ledger");
   await page.select('select[aria-label="Supported seats from Rust catalog"]', "4");
@@ -272,6 +308,36 @@ async function assertRiverLedgerStatusAnnouncement(page) {
   assert(summary.label.includes("wins with") || summary.label.includes("split the ledger"), `river_ledger status uses Rust-authored result label: ${summary.label}`);
   assert(!rawSeatIdRe.test(summary.label), `river_ledger status avoids raw seat ids: ${summary.label}`);
   assert(summary.panelText.includes("Board usage"), "river_ledger reduced-motion terminal keeps reveal facts visible");
+}
+
+async function assertRiverLedgerMultiPotNoLeak(page, consoleMessages) {
+  const summary = await page.evaluate(() => ({
+    potText: document.querySelector('[data-testid="river-ledger-pot-tiers"]')?.textContent ?? "",
+    seatText: Array.from(document.querySelectorAll(".river-ledger-seat")).map((seat) => seat.textContent ?? "").join("\n"),
+    panelText: document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')?.textContent ?? "",
+    surface: [
+      document.body.textContent ?? "",
+      Array.from(document.querySelectorAll("*"))
+        .flatMap((element) => Array.from(element.attributes).map((attribute) => `${attribute.name}=${attribute.value}`))
+        .join("\n"),
+      Array.from(document.querySelectorAll("[data-testid]"))
+        .map((element) => element.getAttribute("data-testid"))
+        .join("\n"),
+      Object.keys(localStorage).join("\n"),
+      Object.values(localStorage).join("\n"),
+      Object.keys(sessionStorage).join("\n"),
+      Object.values(sessionStorage).join("\n"),
+    ].join("\n"),
+  }));
+  assert(summary.potText.includes("Main pot") && summary.potText.includes("Side pot 1"), `river_ledger renders ordered public pots: ${summary.potText}`);
+  assert(summary.potText.includes("Eligible") && summary.potText.includes("Contributors"), `river_ledger renders public eligibility: ${summary.potText}`);
+  assert(summary.seatText.includes("Stack") && summary.seatText.includes("All-in"), `river_ledger renders public stack/all-in state: ${summary.seatText}`);
+  assert(summary.panelText.includes("Terminal allocations"), `river_ledger terminal allocation section renders: ${summary.panelText}`);
+  assertNoForbiddenTerms(summary.surface, "river_ledger multi-pot surface");
+  assertNoForbiddenTerms(consoleMessages.join("\n"), "river_ledger multi-pot console");
+  assertNoForbiddenTerms(summary.surface, "river_ledger multi-pot card ids", riverLedgerCardIds);
+  await assertNoLeak(page, consoleMessages, "river_ledger multi-pot DOM");
+  await assertStorageClean(page);
 }
 
 async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
@@ -668,9 +734,9 @@ async function collectRawSeatIdHits(page) {
   });
 }
 
-function assertNoForbiddenTerms(surface, label) {
+function assertNoForbiddenTerms(surface, label, terms = forbiddenLeakTerms) {
   const lower = surface.toLowerCase();
-  const hits = forbiddenLeakTerms.filter((term) => lower.includes(term));
+  const hits = terms.filter((term) => lower.includes(term));
   assert(hits.length === 0, `${label} contains forbidden leak terms: ${hits.join(", ")}`);
 }
 
