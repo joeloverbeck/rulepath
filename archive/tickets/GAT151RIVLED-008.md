@@ -1,6 +1,6 @@
 # GAT151RIVLED-008: Contribution-layer constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`pot.rs`), tests
@@ -74,3 +74,20 @@ Add the ordered resolved-pot and uncalled-return data structures (canonical seat
 1. `cargo test -p river_ledger`
 2. `cargo run -p rule-coverage -- --game river_ledger`
 3. `cargo test -p river_ledger pot::` — the pure constructor is the correct narrow verification boundary; no betting/showdown is exercised here.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Added pure contribution-layer structures for ordered pots and uncalled returns in `games/river_ledger/src/pot.rs`.
+- Implemented sorted-cap layer construction with canonical contributor/eligible lists, folded-money retention, folded-seat eligibility exclusion, singleton top-layer returns, identical-eligibility coalescing, stable pot ids, and checked conservation assertions.
+- Kept the existing single-pot allocator intact for downstream migration in GAT151RIVLED-009.
+- Added pure module tests for main/side-pot construction, folded-money eligibility, singleton returns, and coalescing.
+- Added generated-profile property coverage for conservation and canonical ordering.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p rule-coverage -- --game river_ledger`
+- `cargo test -p river_ledger pot::`
