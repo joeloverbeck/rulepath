@@ -74,16 +74,24 @@ pub struct BettingRoundState {
     pub raises_this_street: u8,
     pub last_aggressor: Option<RiverLedgerSeat>,
     pub actors_to_respond: Vec<RiverLedgerSeat>,
+    pub last_completed_action_to_call: Vec<Option<u16>>,
 }
 
 impl BettingRoundState {
     pub fn for_street(street: Street, actors_to_respond: Vec<RiverLedgerSeat>) -> Self {
+        let tracked_seats = actors_to_respond
+            .iter()
+            .map(|seat| seat.index())
+            .max()
+            .map(|index| index + 1)
+            .unwrap_or(0);
         Self {
             street,
             current_to_call: 0,
             raises_this_street: 0,
             last_aggressor: None,
             actors_to_respond,
+            last_completed_action_to_call: vec![None; tracked_seats],
         }
     }
 
@@ -262,13 +270,14 @@ impl RiverLedgerState {
             active_seat,
         } = roles;
         let seat_count = seats.len() as u8;
+        let seat_len = seats.len();
         assert_eq!(
             starting_stacks.len(),
-            seats.len(),
+            seat_len,
             "setup validates one starting stack per seat"
         );
-        let mut ledgers = Vec::with_capacity(seats.len());
-        for index in 0..seats.len() {
+        let mut ledgers = Vec::with_capacity(seat_len);
+        for index in 0..seat_len {
             let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
             let starting_stack = starting_stacks[index];
             let total_contribution = if seat == small_blind {
@@ -328,6 +337,7 @@ impl RiverLedgerState {
                 raises_this_street: 0,
                 last_aggressor: Some(big_blind),
                 actors_to_respond: response_order_after(big_blind, seat_count),
+                last_completed_action_to_call: vec![None; seat_len],
             },
             terminal_outcome: None,
             freshness_token: FreshnessToken(0),

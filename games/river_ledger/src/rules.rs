@@ -26,7 +26,12 @@ pub fn apply_action(
         RiverLedgerAction::Check => apply_check(state, action.actor),
         RiverLedgerAction::Call => apply_call(state, action.actor, action.adds_to_pot),
         RiverLedgerAction::Bet => apply_bet(state, action.actor, action.adds_to_pot),
-        RiverLedgerAction::Raise => apply_raise(state, action.actor, action.adds_to_pot),
+        RiverLedgerAction::Raise => apply_raise(
+            state,
+            action.actor,
+            action.adds_to_pot,
+            action.is_full_raise,
+        ),
     }
 
     debug_assert_ledger(state);
@@ -61,6 +66,7 @@ fn ensure_action_still_legal(
 }
 
 fn apply_fold(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
+    betting::record_completed_action(state, actor);
     state.ledger.seats[actor.index()].status = SeatStatus::Folded;
     betting::remove_pending_response(state, actor);
 
@@ -83,6 +89,7 @@ fn apply_fold(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
 }
 
 fn apply_check(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
+    betting::record_completed_action(state, actor);
     betting::remove_pending_response(state, actor);
     if betting::round_is_closed(state) {
         close_current_street(state);
@@ -93,6 +100,7 @@ fn apply_check(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
 
 fn apply_call(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
     add_contribution(state, actor, amount);
+    betting::record_completed_action(state, actor);
     betting::remove_pending_response(state, actor);
     if betting::round_is_closed(state) {
         close_current_street(state);
@@ -106,15 +114,24 @@ fn apply_bet(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) 
     state.betting.current_to_call = state.ledger.seats[actor.index()].street_contribution;
     state.betting.raises_this_street = 0;
     state.betting.last_aggressor = Some(actor);
+    betting::record_completed_action(state, actor);
     state.betting.actors_to_respond = betting::response_order_after(state, actor);
     state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
-fn apply_raise(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
+fn apply_raise(
+    state: &mut RiverLedgerState,
+    actor: RiverLedgerSeat,
+    amount: u16,
+    is_full_raise: bool,
+) {
     add_contribution(state, actor, amount);
     state.betting.current_to_call = state.ledger.seats[actor.index()].street_contribution;
-    state.betting.raises_this_street = state.betting.raises_this_street.saturating_add(1);
+    if is_full_raise {
+        state.betting.raises_this_street = state.betting.raises_this_street.saturating_add(1);
+    }
     state.betting.last_aggressor = Some(actor);
+    betting::record_completed_action(state, actor);
     state.betting.actors_to_respond = betting::response_order_after(state, actor);
     state.active_seat = state.betting.actors_to_respond.first().copied();
 }

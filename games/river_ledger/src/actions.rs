@@ -3,7 +3,7 @@ use engine_core::{
 };
 
 use crate::{
-    betting::{call_price, live_seats},
+    betting::{call_price, live_seats, raise_right_open},
     ids::{RiverLedgerSeat, ACTION_BET, ACTION_CALL, ACTION_CHECK, ACTION_FOLD, ACTION_RAISE},
     state::{Phase, RiverLedgerState},
     ui::action_presentation,
@@ -83,7 +83,7 @@ pub fn legal_actions(state: &RiverLedgerState, actor: RiverLedgerSeat) -> Vec<Ri
     if remaining_stack == 0 {
         return Vec::new();
     }
-    let raise_right_open = !state.betting.raise_cap_reached();
+    let raise_right_open = raise_right_open(state, actor);
 
     if price > 0 {
         let mut actions = vec![RiverLedgerAction::Fold, RiverLedgerAction::Call];
@@ -99,7 +99,7 @@ pub fn legal_actions(state: &RiverLedgerState, actor: RiverLedgerSeat) -> Vec<Ri
             actions.push(RiverLedgerAction::Bet);
         }
         actions
-    } else if state.betting.raise_cap_reached() {
+    } else if !raise_right_open {
         vec![RiverLedgerAction::Check]
     } else {
         let mut actions = vec![RiverLedgerAction::Check];
@@ -355,7 +355,7 @@ fn action_amounts(
         stack_after,
         is_all_in: adds_to_pot > 0 && stack_after == 0,
         is_full_raise: is_raise_action && raise_increment == street_unit,
-        raise_right_open: !state.betting.raise_cap_reached(),
+        raise_right_open: raise_right_open(state, actor),
     }
 }
 

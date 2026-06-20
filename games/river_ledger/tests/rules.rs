@@ -50,6 +50,27 @@ fn standard_state(count: usize) -> river_ledger::RiverLedgerState {
     setup_match(Seed(21), &seats(count), &SetupOptions::default()).expect("setup")
 }
 
+fn flop_state_with_remaining(remaining: [u16; 4]) -> river_ledger::RiverLedgerState {
+    let mut state = standard_state(4);
+    state.phase = river_ledger::Phase::Betting {
+        street: Street::Flop,
+    };
+    state.active_seat = RiverLedgerSeat::from_index(1);
+    for (index, seat_ledger) in state.ledger.seats.iter_mut().enumerate() {
+        seat_ledger.street_contribution = 0;
+        seat_ledger.remaining_stack = remaining[index];
+        seat_ledger.starting_stack = seat_ledger.total_contribution + remaining[index];
+        seat_ledger.status = if remaining[index] == 0 {
+            SeatStatus::AllIn
+        } else {
+            SeatStatus::Live
+        };
+    }
+    state.betting =
+        BettingRoundState::for_street(Street::Flop, vec![seat(1), seat(2), seat(3), seat(0)]);
+    state
+}
+
 fn state_with_stacks(stacks: Vec<u16>) -> river_ledger::RiverLedgerState {
     let count = stacks.len();
     setup_match(
@@ -713,6 +734,65 @@ fn short_stack_opening_bet_all_in_remains_a_bet_action() {
 }
 
 #[test]
+fn one_short_all_in_increase_does_not_reopen_already_acted_seat() {
+    let mut state = flop_state_with_remaining([STANDARD_STARTING_STACK, 20, 20, 3]);
+
+    apply_segment(&mut state, "seat_1", "bet");
+    apply_segment(&mut state, "seat_2", "call");
+    apply_segment(&mut state, "seat_3", "raise");
+    assert_eq!(state.ledger.seats[3].status, SeatStatus::AllIn);
+    assert_eq!(state.betting.current_to_call, 3);
+    assert_eq!(state.betting.raises_this_street, 0);
+
+    apply_segment(&mut state, "seat_0", "call");
+
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(1));
+    assert_eq!(legal_segments(&state, "seat_1"), vec!["fold", "call"]);
+    let tree = legal_action_tree(&state, &actor("seat_1"));
+    let call = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "call")
+        .expect("call action");
+    assert_eq!(metadata_value(call, "amount_owed"), Some("1"));
+    assert_eq!(metadata_value(call, "raise_right_open"), Some("false"));
+}
+
+#[test]
+fn cumulative_short_all_in_increases_reopen_after_full_unit_pressure() {
+    let mut state = flop_state_with_remaining([4, 20, 20, 3]);
+
+    apply_segment(&mut state, "seat_1", "bet");
+    apply_segment(&mut state, "seat_2", "call");
+    apply_segment(&mut state, "seat_3", "raise");
+    apply_segment(&mut state, "seat_0", "raise");
+    assert_eq!(state.ledger.seats[0].status, SeatStatus::AllIn);
+    assert_eq!(state.betting.current_to_call, 4);
+    assert_eq!(state.betting.raises_this_street, 0);
+
+    apply_segment(&mut state, "seat_1", "call");
+
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(2));
+    assert_eq!(
+        legal_segments(&state, "seat_2"),
+        vec!["fold", "call", "raise"]
+    );
+    let tree = legal_action_tree(&state, &actor("seat_2"));
+    let raise = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "raise")
+        .expect("raise action");
+    assert_eq!(metadata_value(raise, "amount_owed"), Some("2"));
+    assert_eq!(metadata_value(raise, "raise_right_open"), Some("true"));
+
+    apply_segment(&mut state, "seat_2", "raise");
+    assert_eq!(state.betting.raises_this_street, 1);
+}
+
+#[test]
 fn preflop_calls_and_big_blind_check_advance_to_flop() {
     let mut state = standard_state(4);
 
@@ -759,6 +839,8 @@ fn flop_fixed_limit_cap_blocks_fourth_raise() {
     assert_eq!(state.active_seat, RiverLedgerSeat::from_index(1));
     assert_eq!(state.betting.raises_this_street, 3);
     assert_eq!(state.betting.current_to_call, 8);
+    state.ledger.seats[1].remaining_stack = 7;
+    state.ledger.seats[1].starting_stack = state.ledger.seats[1].total_contribution + 7;
     assert_eq!(legal_segments(&state, "seat_1"), vec!["fold", "call"]);
 
     let diagnostic = validate_command(&state, &command(&state, "seat_1", "raise")).unwrap_err();

@@ -1,6 +1,6 @@
 # GAT151RIVLED-006: Reopen rights and cap state
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`betting.rs`, `rules.rs`), tests
@@ -75,3 +75,20 @@ Keep the existing raise cap; a full raise consumes a slot; once the cap is reach
 1. `cargo test -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p rule-coverage -- --game river_ledger` — coverage of the reopen family is the correct verification boundary.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Added explicit per-seat Rust reopen state in `BettingRoundState` via `last_completed_action_to_call`.
+- Routed legal raise availability and `raise_right_open` action metadata through game-local Rust reopen/cap logic.
+- Recorded completed actions in `rules.rs`; full raises consume raise-cap slots, while incomplete all-in raises do not.
+- Preserved the existing River Ledger cap model of one opening bet plus three raises per street; the extra `actions.rs` and `state.rs` touches were required to project and store the new reopen state.
+- Added focused tests proving one short all-in increase does not reopen an already-acted seat, cumulative short increases reopen at a full street unit, full raises consume cap, and cap blocks further short/full raises while response obligation remains.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p simulate -- --game river_ledger --games 1000`
+- `cargo run -p rule-coverage -- --game river_ledger`

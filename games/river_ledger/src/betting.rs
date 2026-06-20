@@ -26,6 +26,38 @@ pub fn call_price(state: &RiverLedgerState, seat: RiverLedgerSeat) -> Option<u16
     )
 }
 
+pub fn raise_right_open(state: &RiverLedgerState, seat: RiverLedgerSeat) -> bool {
+    if state.betting.raise_cap_reached() {
+        return false;
+    }
+    let Some(ledger) = state.ledger.seats.get(seat.index()) else {
+        return false;
+    };
+    if ledger.status != SeatStatus::Live {
+        return false;
+    }
+
+    match state
+        .betting
+        .last_completed_action_to_call
+        .get(seat.index())
+        .copied()
+        .flatten()
+    {
+        None => true,
+        Some(last_to_call) => {
+            state.betting.current_to_call.saturating_sub(last_to_call)
+                >= u16::from(state.betting.street.unit())
+        }
+    }
+}
+
+pub fn record_completed_action(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
+    ensure_reopen_tracking(state, actor);
+    state.betting.last_completed_action_to_call[actor.index()] =
+        Some(state.betting.current_to_call);
+}
+
 pub fn next_live_after(state: &RiverLedgerState, seat: RiverLedgerSeat) -> Option<RiverLedgerSeat> {
     let count = state.seats.len() as u8;
     let mut current = seat;
@@ -75,6 +107,15 @@ pub fn remove_pending_response(state: &mut RiverLedgerState, actor: RiverLedgerS
         .betting
         .actors_to_respond
         .retain(|seat| *seat != actor && live.contains(seat));
+}
+
+fn ensure_reopen_tracking(state: &mut RiverLedgerState, seat: RiverLedgerSeat) {
+    if state.betting.last_completed_action_to_call.len() <= seat.index() {
+        state
+            .betting
+            .last_completed_action_to_call
+            .resize(seat.index() + 1, None);
+    }
 }
 
 pub fn round_is_closed(state: &RiverLedgerState) -> bool {
