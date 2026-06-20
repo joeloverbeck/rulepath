@@ -22,7 +22,8 @@ official games: **Race to 21** (`race_to_n`), **Three Marks** (`three_marks`),
 (`secret_draft`), **Crest Ledger** (`poker_lite`), and **Plain Tricks**
 (`plain_tricks`), **Masked Claims** (`masked_claims`), and **Flood Watch**
 (`flood_watch`), **Frontier Control** (`frontier_control`), **Event Frontier**
-(`event_frontier`), and **River Ledger** (`river_ledger`). Gate 9 is complete with Token Bazaar as the accepted public
+(`event_frontier`), **River Ledger** (`river_ledger`), and **Briar Circuit**
+(`briar_circuit`). Gate 9 is complete with Token Bazaar as the accepted public
 resource/economy proof, Gate 9.1 adds the accepted simultaneous
 commitment/reveal proof, Gate 10 adds the accepted betting/showdown proof, and
 Gate 10.1 adds the accepted trick-taking proof, and Gate 11 adds the accepted
@@ -96,7 +97,7 @@ cargo test --workspace
 `race_to_n`, `three_marks`, `column_four`, `directional_flip`,
 `draughts_lite`, `high_card_duel`, `token_bazaar`, `secret_draft`,
 `poker_lite`, `plain_tricks`, `masked_claims`, `flood_watch`,
-`frontier_control`, `event_frontier`, and `river_ledger`)
+`frontier_control`, `event_frontier`, `river_ledger`, and `briar_circuit`)
 
 ```bash
 cargo run -p simulate      -- --game race_to_n --games 1000

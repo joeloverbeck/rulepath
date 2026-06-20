@@ -25,6 +25,7 @@ const expectedGames = [
   "Frontier Control",
   "Event Frontier",
   "River Ledger",
+  "Briar Circuit",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-015: E2E smoke, DOM/storage no-leak, and catalog-doc reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (audit + e2e) — `apps/web/e2e/briar-circuit.smoke.mjs`, `apps/web/package.json`, `apps/web/README.md`, root `README.md`
@@ -82,3 +82,32 @@ Add Briar Circuit to the `apps/web/README.md` intro catalog list + `BriarCircuit
 1. `node apps/web/e2e/briar-circuit.smoke.mjs`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `node scripts/check-catalog-docs.mjs`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Added `apps/web/e2e/briar-circuit.smoke.mjs` and wired it into
+`npm --prefix apps/web run smoke:e2e`. The new browser smoke starts Briar
+Circuit from the built app, checks observer redaction, seat-private hand
+rendering, keyboard pass selection, forbidden card/internal-term scans across
+DOM attributes/text/URL/storage/console, viewer-scoped replay export/import,
+and reduced-motion rendering. It caught and fixed the catalog-wide
+rules-display expected-game list after Briar increased the catalog to 16 games.
+
+Reconciled catalog documentation in the root README and `apps/web/README.md`,
+including the intro catalog list, shell renderer/audit rows, and `smoke:e2e`
+description. `scripts/check-catalog-docs.mjs` is green with Briar in the WASM
+catalog. The first direct e2e run failed under sandboxed localhost binding with
+`listen EPERM: operation not permitted 127.0.0.1`; rerunning the same command
+after approval passed. The smoke does not yet drive a full moon/terminal hand
+sequence through the browser; the terminal explanation documentation/check
+remains intentionally tied to GAT16BRICIRTRI-017 as described by this ticket's
+out-of-scope note.
+
+Verification:
+
+- `node apps/web/e2e/briar-circuit.smoke.mjs` passed after approved localhost
+  rerun.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `node scripts/check-catalog-docs.mjs` passed.

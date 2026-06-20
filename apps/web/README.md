@@ -7,7 +7,8 @@ Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `secret_draft` / Veiled Draft, `poker_lite` / Crest Ledger, and
 `plain_tricks` / Plain Tricks, `masked_claims` / Masked Claims, and
 `flood_watch` / Flood Watch, `frontier_control` / Frontier Control,
-`event_frontier` / Event Frontier, and `river_ledger` / River Ledger.
+`event_frontier` / Event Frontier, `river_ledger` / River Ledger, and
+`briar_circuit` / Briar Circuit.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -61,7 +62,7 @@ The shell includes:
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
-  and River Ledger;
+  River Ledger, and Briar Circuit;
 - shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
 - shared `SeatFrame` for catalog-projected seat labels, active/pending seat
   rail, observer mode, and viewer selection;
@@ -108,6 +109,7 @@ single-stage `ActionControls` surface is sufficient.
 | `poker_lite` | board-native | Poker action buttons map directly to Rust hold/press/lift/match/yield choices. |
 | `plain_tricks` | board-native | Hand-card buttons map to Rust play-card choices. |
 | `river_ledger` | board-native | Seat, board, stack, all-in, pot-tier, and action controls render Rust legal choices and viewer-safe fields. |
+| `briar_circuit` | board-native | Hand-card pass/play controls map to Rust legal paths while opponent hands and pass provenance remain hidden. |
 
 ### Effect Animation Adoption Audit
 
@@ -133,6 +135,7 @@ presentations for the current catalog surface.
 | `poker_lite` | generic-only | Public poker-lite score/reveal effects use baseline shared presentations. |
 | `plain_tricks` | generic-only | Deal/play/trick/score effects use baseline shared movement/highlight presentations. |
 | `river_ledger` | adopt | River Ledger stack, all-in contribution, uncalled-return, pot-award, street-advance, board reveal, and showdown-settle feedback use authored registry mappings with reduced-motion coverage. |
+| `briar_circuit` | generic-only | Pass, play, trick, and score feedback use the shared viewer-safe baseline pending authored motion. |
 
 ## Smoke Layers
 
@@ -147,7 +150,7 @@ presentations for the current catalog surface.
   for the shell, rules display, outcome explanation, Three Marks, Column Four,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
-  and River Ledger.
+  River Ledger, and Briar Circuit.
   The chain also runs `e2e/animation.smoke.mjs` for animate-and-settle, skip,
   replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard
