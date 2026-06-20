@@ -59,6 +59,11 @@ export function PlainTricksBoard({
               { label: "Resolved tricks", value: view.trick_history.length },
             ],
           },
+          {
+            id: "per-round",
+            heading: "Tricks by round",
+            rows: perRoundTrickRows(view),
+          },
         ],
       })
     : null;
@@ -232,6 +237,20 @@ function plainStanding(seat: SeatId, view: PlainTricksPublicView) {
     emphasized: winner === seat,
     values: [{ label: "Tricks", value: total }],
   };
+}
+
+// The match runs two rounds of six tricks; the totals alone hide how each
+// round split, so derive the per-round trick counts from public trick history.
+function perRoundTrickRows(view: PlainTricksPublicView) {
+  const rounds = [...new Set(view.trick_history.map((trick) => trick.round_index))].sort((left, right) => left - right);
+  return rounds.flatMap((round) => {
+    const wonBy = (seat: SeatId) =>
+      view.trick_history.filter((trick) => trick.round_index === round && trick.winner === seat).length;
+    return [
+      { label: `seat_0 round ${round + 1}`, value: wonBy("seat_0") },
+      { label: `seat_1 round ${round + 1}`, value: wonBy("seat_1") },
+    ];
+  });
 }
 
 function isTrickEffect(type: string): boolean {

@@ -144,6 +144,15 @@ try {
 
   await playHumanVsBotToTerminal(page, baseUrl);
   await waitForText(page, "Trick totals");
+  await waitForText(page, "Tricks by round");
+  const perRound = await page.evaluate(() => {
+    const panel = document.querySelector(".outcome-explanation-panel")?.textContent ?? "";
+    return {
+      hasRound1: /Seat 0 round 1/.test(panel) && /Seat 1 round 1/.test(panel),
+      hasRound2: /Seat 0 round 2/.test(panel) && /Seat 1 round 2/.test(panel),
+    };
+  });
+  assert(perRound.hasRound1 && perRound.hasRound2, "outcome breaks tricks down by both rounds");
   await assertStorageClean(page);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);
 
