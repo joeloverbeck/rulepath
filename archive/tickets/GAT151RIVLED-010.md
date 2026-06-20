@@ -1,6 +1,6 @@
 # GAT151RIVLED-010: Effects, views, and explanations
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger` (`effects.rs`, `visibility.rs`, `ui.rs`), tests
@@ -78,3 +78,20 @@ Author neutral live and terminal per-pot explanation rows, all-in indicators, un
 1. `cargo test -p river_ledger`
 2. `cargo run -p rule-coverage -- --game river_ledger`
 3. `cargo test -p river_ledger visibility` — projection/redaction is the correct narrow boundary; cross-surface no-leak is proven in GAT151RIVLED-016.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Added public accounting effects for stack changes, all-in transitions, uncalled returns, aggregate pot resolution, and aggregate pot awards.
+- Emitted stack/all-in/return effects from before/after ledger diffs, ordered before pot resolution and showdown resolution.
+- Added public stack fields, pot-tier projections, and uncalled-return projections to `PublicView`; stable summaries now include those public accounting fields.
+- Added Rust-authored uncalled-return explanation copy in `ui.rs`.
+- Added visibility coverage proving stack/pot projections and accounting effects expose public accounting facts without unrevealed deck/future-card leakage.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p rule-coverage -- --game river_ledger`
+- `cargo test -p river_ledger visibility`

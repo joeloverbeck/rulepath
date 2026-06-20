@@ -6,7 +6,9 @@ use crate::{
     effects::{public_effect, RiverLedgerEffect},
     ids::RiverLedgerSeat,
     showdown,
-    state::{BettingRoundState, Phase, RiverLedgerState, SeatStatus, Street, TerminalOutcome},
+    state::{
+        BettingRoundState, Phase, RiverLedgerState, SeatLedger, SeatStatus, Street, TerminalOutcome,
+    },
 };
 
 pub fn apply_action(
@@ -19,6 +21,7 @@ pub fn apply_action(
     let before_street = state.betting.street;
     let before_board_len = state.board.len();
     let before_terminal = state.terminal_outcome.clone();
+    let before_ledgers = state.ledger.seats.clone();
     let actor = action.actor;
 
     match action.action {
@@ -44,6 +47,7 @@ pub fn apply_action(
         before_street,
         before_board_len,
         before_terminal.as_ref(),
+        &before_ledgers,
     ))
 }
 
@@ -323,6 +327,7 @@ fn effects_for_transition(
     before_street: Street,
     before_board_len: usize,
     before_terminal: Option<&TerminalOutcome>,
+    before_ledgers: &[SeatLedger],
 ) -> Vec<EffectEnvelope<RiverLedgerEffect>> {
     let mut effects = Vec::new();
 
@@ -335,6 +340,37 @@ fn effects_for_transition(
         }));
     }
 
+    for before in before_ledgers {
+        let after = &state.ledger.seats[before.seat.index()];
+        if before.remaining_stack != after.remaining_stack
+            || before.total_contribution != after.total_contribution
+        {
+            effects.push(public_effect(RiverLedgerEffect::StackChanged {
+                seat: after.seat,
+                remaining_stack: after.remaining_stack,
+                total_contribution: after.total_contribution,
+            }));
+        }
+        if before.remaining_stack > 0 && after.remaining_stack == 0 {
+            effects.push(public_effect(RiverLedgerEffect::SeatBecameAllIn {
+                seat: after.seat,
+            }));
+        }
+    }
+
+    for before in before_ledgers {
+        let after = &state.ledger.seats[before.seat.index()];
+        if after.total_contribution < before.total_contribution {
+            effects.push(public_effect(
+                RiverLedgerEffect::UncalledContributionReturned {
+                    seat: after.seat,
+                    amount: before.total_contribution - after.total_contribution,
+                    pot_total: state.ledger.pot_total,
+                },
+            ));
+        }
+    }
+
     if state.board.len() > before_board_len || state.betting.street != before_street {
         effects.push(public_effect(RiverLedgerEffect::StreetAdvanced {
             street: state.betting.street,
@@ -344,6 +380,29 @@ fn effects_for_transition(
 
     if before_terminal.is_none() {
         if let Some(outcome) = &state.terminal_outcome {
+            if let TerminalOutcome::Showdown {
+                pot_total,
+                allocations,
+                ..
+            } = outcome
+            {
+                let eligible = allocations
+                    .iter()
+                    .map(|share| share.seat)
+                    .collect::<Vec<_>>();
+                effects.push(public_effect(RiverLedgerEffect::PotResolved {
+                    pot_id: "aggregate".to_owned(),
+                    amount: *pot_total,
+                    eligible,
+                }));
+                for share in allocations {
+                    effects.push(public_effect(RiverLedgerEffect::PotAwarded {
+                        pot_id: "aggregate".to_owned(),
+                        seat: share.seat,
+                        amount: share.amount,
+                    }));
+                }
+            }
             effects.push(public_effect(RiverLedgerEffect::ShowdownResolved {
                 outcome: outcome.clone(),
             }));

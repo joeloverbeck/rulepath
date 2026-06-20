@@ -100,6 +100,13 @@ pub fn seat_public_label(seat: RiverLedgerSeat) -> String {
     format!("Seat {}", seat.index() + 1)
 }
 
+pub fn uncalled_return_explanation(seat: RiverLedgerSeat, amount: u16) -> String {
+    format!(
+        "{} receives {amount} unmatched contribution units back.",
+        seat_public_label(seat)
+    )
+}
+
 pub fn active_seat_labels(seats: &[SeatId]) -> Vec<SeatDisplayLabel> {
     assert!(
         (usize::from(STANDARD_MIN_SEATS)..=usize::from(STANDARD_MAX_SEATS)).contains(&seats.len()),

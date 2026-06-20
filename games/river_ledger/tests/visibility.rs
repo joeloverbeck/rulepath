@@ -3,9 +3,9 @@ use engine_core::{
 };
 use river_ledger::state::SeatRoles;
 use river_ledger::{
-    filter_effects_for_viewer, legal_action_tree, project_view, setup_effects, setup_match,
-    validate_command, Card, Rank, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Suit,
-    TerminalOutcome, Variant,
+    apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
+    setup_match, validate_command, Card, Rank, RiverLedgerEffect, RiverLedgerSeat, SeatLedger,
+    SeatStatus, SetupOptions, Suit, TerminalOutcome, Variant,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -35,6 +35,15 @@ fn command(state: &river_ledger::RiverLedgerState, seat: usize, segment: &str) -
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn apply_segment(
+    state: &mut river_ledger::RiverLedgerState,
+    seat: usize,
+    segment: &str,
+) -> Vec<engine_core::EffectEnvelope<RiverLedgerEffect>> {
+    let action = validate_command(state, &command(state, seat, segment)).expect("valid action");
+    apply_action(state, action).expect("action applies")
 }
 
 fn private_ids_for(state: &river_ledger::RiverLedgerState, seat: usize) -> Vec<String> {
@@ -266,6 +275,88 @@ fn active_seat_labels_are_viewer_safe_and_identical_for_all_viewers() {
                 assert!(!labels_debug.contains(&future_id));
             }
         }
+    }
+}
+
+#[test]
+fn stack_pot_projection_and_effects_are_public_accounting_only() {
+    let mut state = setup_match(
+        Seed(91),
+        &seats(3),
+        &SetupOptions {
+            starting_stacks: Some(vec![8, 3, 2]),
+            ..SetupOptions::default()
+        },
+    )
+    .expect("setup");
+
+    let raise_effects = apply_segment(&mut state, 0, "raise");
+    assert!(raise_effects.iter().any(|effect| matches!(
+        effect.payload,
+        RiverLedgerEffect::StackChanged { seat: changed_seat, .. } if changed_seat == seat(0)
+    )));
+
+    let call_effects = apply_segment(&mut state, 1, "call");
+    let effect_names = call_effects
+        .iter()
+        .map(|effect| match &effect.payload {
+            RiverLedgerEffect::StackChanged { .. } => "stack",
+            RiverLedgerEffect::SeatBecameAllIn { .. } => "all_in",
+            RiverLedgerEffect::UncalledContributionReturned { .. } => "return",
+            RiverLedgerEffect::PotResolved { .. } => "pot_resolved",
+            RiverLedgerEffect::PotAwarded { .. } => "pot_awarded",
+            RiverLedgerEffect::ShowdownResolved { .. } => "showdown",
+            _ => "other",
+        })
+        .collect::<Vec<_>>();
+
+    let stack_index = effect_names
+        .iter()
+        .position(|name| *name == "stack")
+        .expect("stack effect");
+    let all_in_index = effect_names
+        .iter()
+        .position(|name| *name == "all_in")
+        .expect("all-in effect");
+    let return_index = effect_names
+        .iter()
+        .position(|name| *name == "return")
+        .expect("return effect");
+    let pot_index = effect_names
+        .iter()
+        .position(|name| *name == "pot_resolved")
+        .expect("pot resolved effect");
+    assert!(stack_index < all_in_index);
+    assert!(all_in_index < return_index);
+    assert!(return_index < pot_index);
+
+    let view = project_view(&state, &viewer(None));
+    assert_eq!(view.seats[0].starting_stack, 8);
+    assert_eq!(view.seats[0].remaining_stack, 5);
+    assert!(!view.seats[1].is_all_in);
+    assert_eq!(view.pot_tiers.len(), 2);
+    assert_eq!(
+        view.pot_tiers.iter().map(|tier| tier.amount).sum::<u16>(),
+        8
+    );
+    assert!(view.uncalled_returns.is_empty());
+
+    let accounting_effects = call_effects
+        .iter()
+        .filter(|effect| {
+            !matches!(
+                effect.payload,
+                RiverLedgerEffect::ShowdownResolved { .. }
+                    | RiverLedgerEffect::PrivateCardsDealt { .. }
+            )
+        })
+        .collect::<Vec<_>>();
+    let public_text = format!("{accounting_effects:?}");
+    for id in unrevealed_public_ids(&state) {
+        assert!(
+            !public_text.contains(&id),
+            "public accounting projection leaked {id}"
+        );
     }
 }
 
