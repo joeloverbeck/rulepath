@@ -490,6 +490,9 @@ fn setup_exact_blind_exhaustion_is_all_in_without_underflow() {
         );
     }
     assert_eq!(state.ledger.pot_total, 3);
+    assert_eq!(state.betting.actors_to_respond, vec![seat(0)]);
+    assert!(legal_segments(&state, "seat_1").is_empty());
+    assert!(legal_segments(&state, "seat_2").is_empty());
     assert_stack_conservation(&state);
 }
 
@@ -731,6 +734,56 @@ fn short_stack_opening_bet_all_in_remains_a_bet_action() {
     assert_eq!(state.ledger.seats[1].street_contribution, 1);
     assert_eq!(state.ledger.seats[1].status, SeatStatus::AllIn);
     assert_eq!(state.betting.current_to_call, 1);
+}
+
+#[test]
+fn all_all_in_action_sequence_runs_out_to_showdown_without_more_actors() {
+    let mut state = state_with_stacks(vec![4, 4, 2]);
+
+    apply_segment(&mut state, "seat_0", "raise");
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(1));
+    assert_eq!(state.betting.actors_to_respond, vec![seat(1)]);
+
+    apply_segment(&mut state, "seat_1", "call");
+
+    assert_eq!(state.phase, river_ledger::Phase::Terminal);
+    assert_eq!(state.active_seat, None);
+    assert!(state.betting.actors_to_respond.is_empty());
+    assert_eq!(state.board.len(), 5);
+    assert!(matches!(
+        state.terminal_outcome,
+        Some(TerminalOutcome::Showdown { .. })
+    ));
+    assert!(state
+        .ledger
+        .seats
+        .iter()
+        .all(|entry| entry.status == SeatStatus::ShowdownEligible));
+    assert_eq!(state.ledger.pot_total, 10);
+    assert_stack_conservation(&state);
+}
+
+#[test]
+fn one_live_seat_gets_unmatched_excess_back_before_runout() {
+    let mut state = state_with_stacks(vec![8, 3, 2]);
+
+    apply_segment(&mut state, "seat_0", "raise");
+    apply_segment(&mut state, "seat_1", "call");
+
+    assert_eq!(state.phase, river_ledger::Phase::Terminal);
+    assert_eq!(state.active_seat, None);
+    assert!(state.betting.actors_to_respond.is_empty());
+    assert_eq!(state.board.len(), 5);
+    assert!(matches!(
+        state.terminal_outcome,
+        Some(TerminalOutcome::Showdown { .. })
+    ));
+    assert_eq!(state.ledger.seats[0].total_contribution, 3);
+    assert_eq!(state.ledger.seats[0].remaining_stack, 5);
+    assert_eq!(state.ledger.seats[1].total_contribution, 3);
+    assert_eq!(state.ledger.seats[2].total_contribution, 2);
+    assert_eq!(state.ledger.pot_total, 8);
+    assert_stack_conservation(&state);
 }
 
 #[test]

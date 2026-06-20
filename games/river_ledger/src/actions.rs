@@ -3,7 +3,7 @@ use engine_core::{
 };
 
 use crate::{
-    betting::{call_price, live_seats, raise_right_open},
+    betting::{call_price, non_folded_seats, raise_right_open},
     ids::{RiverLedgerSeat, ACTION_BET, ACTION_CALL, ACTION_CHECK, ACTION_FOLD, ACTION_RAISE},
     state::{Phase, RiverLedgerState},
     ui::action_presentation,
@@ -71,7 +71,7 @@ pub fn legal_actions(state: &RiverLedgerState, actor: RiverLedgerSeat) -> Vec<Ri
     if !matches!(state.phase, Phase::Betting { .. })
         || state.terminal_outcome.is_some()
         || state.active_seat != Some(actor)
-        || live_seats(state).len() < 2
+        || non_folded_seats(state).len() < 2
     {
         return Vec::new();
     }

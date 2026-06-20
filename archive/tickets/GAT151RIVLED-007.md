@@ -1,6 +1,6 @@
 # GAT151RIVLED-007: All-in actor rotation and runout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`betting.rs`, `rules.rs`), tests
@@ -76,3 +76,21 @@ When ≥2 non-folded seats remain and none can act, deal the remaining board det
 1. `cargo test -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p replay-check -- --game river_ledger --all` — narrower than golden-trace authoring (GAT151RIVLED-017); it confirms existing replays are not broken by rotation changes.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Centralized automatic betting progress after action application so street closure, foldout, all-in runout, and one-live/all-in shapes are resolved consistently.
+- Excluded all-in seats from setup and post-aggression response queues, while preserving non-folded all-in seats as contenders for action legality and showdown.
+- Added deterministic runout to showdown when no action-capable seats remain, plus a bounded unmatched-excess return for the one-live-seat/no-owed-contribution case before runout.
+- Preserved sole-non-folded foldout as `LastLiveHand` without showdown reveal.
+- Touched `actions.rs` and `state.rs` in addition to the ticket's listed files because legality must count non-folded contenders and setup must filter all-in actors at initialization.
+- Added rule tests for all-in blind actor exclusion, all-all-in runout, and one-live unmatched-excess return before runout.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p simulate -- --game river_ledger --games 1000`
+- `cargo run -p replay-check -- --game river_ledger --all`

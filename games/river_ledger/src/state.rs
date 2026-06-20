@@ -312,6 +312,10 @@ impl RiverLedgerState {
             })
             .expect("setup forced posts fit u16");
         let current_to_call = ledgers[big_blind.index()].street_contribution;
+        let actors_to_respond = response_order_after(big_blind, seat_count)
+            .into_iter()
+            .filter(|seat| ledgers[seat.index()].status == SeatStatus::Live)
+            .collect::<Vec<_>>();
 
         Self {
             variant,
@@ -336,7 +340,7 @@ impl RiverLedgerState {
                 current_to_call,
                 raises_this_street: 0,
                 last_aggressor: Some(big_blind),
-                actors_to_respond: response_order_after(big_blind, seat_count),
+                actors_to_respond,
                 last_completed_action_to_call: vec![None; seat_len],
             },
             terminal_outcome: None,

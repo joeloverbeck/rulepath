@@ -34,6 +34,7 @@ pub fn apply_action(
         ),
     }
 
+    resolve_automatic_progress(state);
     debug_assert_ledger(state);
     state.freshness_token = state.freshness_token.next();
     Ok(effects_for_transition(
@@ -70,43 +71,20 @@ fn apply_fold(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
     state.ledger.seats[actor.index()].status = SeatStatus::Folded;
     betting::remove_pending_response(state, actor);
 
-    let live = betting::live_seats(state);
-    if live.len() == 1 {
-        state.phase = Phase::Terminal;
-        state.active_seat = None;
-        state.terminal_outcome = Some(TerminalOutcome::LastLiveHand {
-            winner: live[0],
-            pot_total: state.ledger.pot_total,
-        });
-        return;
-    }
-
-    if betting::round_is_closed(state) {
-        close_current_street(state);
-    } else {
-        state.active_seat = state.betting.actors_to_respond.first().copied();
-    }
+    state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
 fn apply_check(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
     betting::record_completed_action(state, actor);
     betting::remove_pending_response(state, actor);
-    if betting::round_is_closed(state) {
-        close_current_street(state);
-    } else {
-        state.active_seat = state.betting.actors_to_respond.first().copied();
-    }
+    state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
 fn apply_call(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
     add_contribution(state, actor, amount);
     betting::record_completed_action(state, actor);
     betting::remove_pending_response(state, actor);
-    if betting::round_is_closed(state) {
-        close_current_street(state);
-    } else {
-        state.active_seat = state.betting.actors_to_respond.first().copied();
-    }
+    state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
 fn apply_bet(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
@@ -116,6 +94,7 @@ fn apply_bet(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) 
     state.betting.last_aggressor = Some(actor);
     betting::record_completed_action(state, actor);
     state.betting.actors_to_respond = betting::response_order_after(state, actor);
+    betting::retain_actionable_responses(state);
     state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
@@ -133,6 +112,7 @@ fn apply_raise(
     state.betting.last_aggressor = Some(actor);
     betting::record_completed_action(state, actor);
     state.betting.actors_to_respond = betting::response_order_after(state, actor);
+    betting::retain_actionable_responses(state);
     state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
@@ -177,6 +157,107 @@ fn close_current_street(state: &mut RiverLedgerState) {
             state.betting.actors_to_respond.clear();
         }
     }
+}
+
+fn resolve_automatic_progress(state: &mut RiverLedgerState) {
+    loop {
+        if state.terminal_outcome.is_some() || !matches!(state.phase, Phase::Betting { .. }) {
+            return;
+        }
+
+        betting::retain_actionable_responses(state);
+        let non_folded = betting::non_folded_seats(state);
+        if non_folded.len() == 1 {
+            state.phase = Phase::Terminal;
+            state.active_seat = None;
+            state.betting.actors_to_respond.clear();
+            state.terminal_outcome = Some(TerminalOutcome::LastLiveHand {
+                winner: non_folded[0],
+                pot_total: state.ledger.pot_total,
+            });
+            return;
+        }
+
+        let live = betting::live_seats(state);
+        if live.is_empty() {
+            runout_to_showdown(state);
+            return;
+        }
+
+        if live.len() == 1
+            && state.betting.actors_to_respond.is_empty()
+            && betting::call_price(state, live[0]).unwrap_or(0) == 0
+        {
+            return_unmatched_excess(state, live[0]);
+            runout_to_showdown(state);
+            return;
+        }
+
+        if state.betting.actors_to_respond.is_empty() && betting::round_is_closed(state) {
+            close_current_street(state);
+            continue;
+        }
+
+        state.active_seat = state.betting.actors_to_respond.first().copied();
+        return;
+    }
+}
+
+fn runout_to_showdown(state: &mut RiverLedgerState) {
+    let missing_board_cards = 5usize.saturating_sub(state.board.len());
+    if missing_board_cards > 0 {
+        state.reveal_next_board_cards(missing_board_cards);
+    }
+    for seat in &mut state.ledger.seats {
+        if matches!(seat.status, SeatStatus::Live | SeatStatus::AllIn) {
+            seat.status = SeatStatus::ShowdownEligible;
+        }
+    }
+    state.terminal_outcome = Some(showdown::resolve_showdown(state));
+    state.phase = Phase::Terminal;
+    state.active_seat = None;
+    state.betting.actors_to_respond.clear();
+}
+
+fn return_unmatched_excess(state: &mut RiverLedgerState, live_seat: RiverLedgerSeat) {
+    let max_other_contribution = state
+        .ledger
+        .seats
+        .iter()
+        .filter(|seat| seat.seat != live_seat && seat.status != SeatStatus::Folded)
+        .map(|seat| seat.total_contribution)
+        .max()
+        .unwrap_or(0);
+    let live_index = live_seat.index();
+    let live_total = state.ledger.seats[live_index].total_contribution;
+    let return_amount = live_total.saturating_sub(max_other_contribution);
+    if return_amount == 0 {
+        return;
+    }
+
+    let ledger = &mut state.ledger.seats[live_index];
+    ledger.total_contribution = ledger
+        .total_contribution
+        .checked_sub(return_amount)
+        .expect("unmatched excess cannot exceed live contribution");
+    ledger.street_contribution = ledger.street_contribution.saturating_sub(return_amount);
+    ledger.remaining_stack = ledger
+        .remaining_stack
+        .checked_add(return_amount)
+        .expect("returned unmatched excess fits remaining stack");
+    state.ledger.pot_total = state
+        .ledger
+        .pot_total
+        .checked_sub(return_amount)
+        .expect("unmatched excess cannot exceed pot total");
+    state.betting.current_to_call = state
+        .ledger
+        .seats
+        .iter()
+        .filter(|seat| seat.status != SeatStatus::Folded)
+        .map(|seat| seat.street_contribution)
+        .max()
+        .unwrap_or(0);
 }
 
 fn advance_to_street(state: &mut RiverLedgerState, street: Street, reveal_count: usize) {

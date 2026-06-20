@@ -13,6 +13,16 @@ pub fn live_seats(state: &RiverLedgerState) -> Vec<RiverLedgerSeat> {
         .collect()
 }
 
+pub fn non_folded_seats(state: &RiverLedgerState) -> Vec<RiverLedgerSeat> {
+    state
+        .ledger
+        .seats
+        .iter()
+        .filter(|entry| entry.status != SeatStatus::Folded)
+        .map(|entry| entry.seat)
+        .collect()
+}
+
 pub fn call_price(state: &RiverLedgerState, seat: RiverLedgerSeat) -> Option<u16> {
     let ledger = state.ledger.seats.get(seat.index())?;
     if ledger.status != SeatStatus::Live {
@@ -96,6 +106,14 @@ pub fn response_order_after(
 }
 
 pub fn remove_pending_response(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
+    retain_actionable_responses(state);
+    state
+        .betting
+        .actors_to_respond
+        .retain(|seat| *seat != actor);
+}
+
+pub fn retain_actionable_responses(state: &mut RiverLedgerState) {
     let live = state
         .ledger
         .seats
@@ -106,7 +124,7 @@ pub fn remove_pending_response(state: &mut RiverLedgerState, actor: RiverLedgerS
     state
         .betting
         .actors_to_respond
-        .retain(|seat| *seat != actor && live.contains(seat));
+        .retain(|seat| live.contains(seat));
 }
 
 fn ensure_reopen_tracking(state: &mut RiverLedgerState, seat: RiverLedgerSeat) {
