@@ -39,7 +39,10 @@ pub use state::{
     SeatOutcomeBreakdown, TerminalOutcome, TrickPlay,
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
-pub use visibility::{project_pass_view, PassView};
+pub use visibility::{
+    effect_envelopes, filter_effects_for_viewer, project_action_previews, project_pass_view,
+    project_view, ActionPreview, BriarCircuitView, PassView,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

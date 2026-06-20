@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-009: Four-seat visibility and semantic-effect boundary
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/briar_circuit/src/visibility.rs`, `src/effects.rs` (+ private action-tree/preview filtering)
@@ -84,3 +84,25 @@ Deterministically-ordered public semantic effects (counts/status only for commit
 1. `cargo test -p briar_circuit --test visibility`
 2. `cargo test -p briar_circuit`
 3. The native pairwise matrix is the correct boundary here; WASM-payload and DOM/storage no-leak are proven in 013/015 against the same canaries.
+
+## Outcome
+
+Completed on 2026-06-21. Added Rust-side viewer projections, owner-only pass
+and hand views, active-owner action previews, public/private semantic-effect
+envelopes, and independent effect filtering. Visibility tests now cover the
+ordered seat-pair no-leak matrix plus observer checks for private hands, pass
+selections, action previews, diagnostics, and effects; public play effects
+remain the only card-identity publication path and carry no pass provenance.
+Added the requested native no-leak trace artifacts for later replay-check
+registration.
+
+Deferred verification:
+
+1. `cargo run -p replay-check -- --game briar_circuit` is deferred until
+   GAT16BRICIRTRI-012 registers Briar Circuit replay-check support.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p briar_circuit --test visibility`
+3. `cargo test -p briar_circuit`
