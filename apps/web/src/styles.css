@@ -962,6 +962,68 @@ h2 {
   background: #f9faf7;
 }
 
+.high-card-history {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #f9faf7;
+}
+
+.high-card-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.high-card-history-heading span {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.high-card-history ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.high-card-history li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e0e6e2;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 6px 10px;
+}
+
+.high-card-history li > span {
+  color: #687973;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.high-card-history li small {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.high-card-history li small.won {
+  color: #1f6b4f;
+}
+
+.high-card-history li small.tie {
+  color: #8a7a3c;
+}
+
 .high-card-score span,
 .token-bazaar-metrics span,
 .high-card-actions span {
