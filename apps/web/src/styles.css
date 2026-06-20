@@ -662,6 +662,52 @@ h2 {
   box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.14);
 }
 
+.flood-watch-loss-note {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #d7ded9;
+  border-left: 4px solid #2f7d5b;
+  border-radius: 6px;
+  background: #f6f8f5;
+  color: #33433d;
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.plain-seat.flood-danger-rising {
+  border-color: #d8c38b;
+  box-shadow: inset 4px 0 0 #d4a017;
+}
+
+.plain-seat.flood-danger-critical {
+  border-color: #e0a890;
+  background: #fdf3ee;
+  box-shadow: inset 4px 0 0 #c4471c;
+}
+
+.plain-seat.flood-danger-inundated {
+  border-color: #c4471c;
+  background: #fbe9e2;
+  box-shadow: inset 4px 0 0 #9a2f12;
+}
+
+.flood-watch-danger-cue {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #5a6b64;
+}
+
+.flood-watch-danger-cue.critical {
+  color: #b2401a;
+}
+
+.flood-watch-danger-cue.inundated {
+  color: #9a2f12;
+}
+
 .plain-section-heading {
   display: flex;
   align-items: center;

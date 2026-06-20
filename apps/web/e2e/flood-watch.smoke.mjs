@@ -62,6 +62,7 @@ try {
 
   await startFloodWatch(page, baseUrl, "Hotseat", 41);
   await assertFloodWatchA11y(page);
+  await assertFloodWatchDangerCues(page);
   await assertNoLeak(page, consoleMessages, "initial hotseat");
   await waitForText(page, "Pumpwright");
   await waitForText(page, "Levee Warden");
@@ -168,6 +169,32 @@ async function startFloodWatch(page, baseUrl, modeLabel, seed) {
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="flood-watch-board"]');
+}
+
+async function assertFloodWatchDangerCues(page) {
+  const summary = await page.evaluate(() => {
+    const districts = Array.from(document.querySelectorAll('[data-testid^="flood-watch-district-"]'));
+    return {
+      lossNote: document.querySelector('[data-testid="flood-watch-loss-note"]')?.textContent?.trim() ?? "",
+      dangers: districts.map((district) => district.getAttribute("data-danger")),
+      cues: districts.map((district) => district.querySelector(".flood-watch-danger-cue")?.textContent?.trim() ?? ""),
+      roleText: document.querySelector('[aria-label="Team roles"]')?.textContent ?? "",
+    };
+  });
+  assert(/reaches flood 3/i.test(summary.lossNote), `flood_watch states the shared-loss threshold, got "${summary.lossNote}"`);
+  const validDangers = new Set(["safe", "rising", "critical", "inundated"]);
+  assert(
+    summary.dangers.length === 5 && summary.dangers.every((danger) => validDangers.has(danger ?? "")),
+    `each district carries a danger tier, got ${JSON.stringify(summary.dangers)}`,
+  );
+  assert(
+    summary.cues.every((cue) => /shared loss|inundated/i.test(cue)),
+    `each district shows a steps-to-loss cue, got ${JSON.stringify(summary.cues)}`,
+  );
+  assert(
+    /bails 2 flood/i.test(summary.roleText) && /adds 2 levees/i.test(summary.roleText),
+    `role powers describe the concrete cooperative advantage, got "${summary.roleText}"`,
+  );
 }
 
 async function assertFloodWatchA11y(page) {
