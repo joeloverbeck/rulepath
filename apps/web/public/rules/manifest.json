@@ -101,7 +101,7 @@
     "game_id": "river_ledger",
     "display_name": "River Ledger",
     "rules_asset_path": "/rules/river_ledger.md",
-    "source_rules_version_checked": "river-ledger-rules-v1",
-    "sha256": "4cab9c8e106c924646254c088e3689a2666dc34d13eb06be9b8e775e8800976d"
+    "source_rules_version_checked": "river-ledger-rules-v2",
+    "sha256": "3c749c9da3c941f817e3193025bce8e6d660f9e738ea209df0e6215fa3590743"
   }
 ]

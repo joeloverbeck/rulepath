@@ -1,6 +1,6 @@
 # GAT151RIVLED-019: Per-game docs sync (v2 cutover)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (docs + generated player-rules) — `games/river_ledger/docs/*`, generated `apps/web/public/rules/river_ledger.md` (+ manifest), `docs/MECHANIC-ATLAS.md`
@@ -86,3 +86,15 @@ Sync `HOW-TO-PLAY.md` (neutral all-in/side-pot/return/odd-unit prose) and regene
 1. `cargo run -p rule-coverage -- --game river_ledger`
 2. `node scripts/check-player-rules.mjs`
 3. `node scripts/check-doc-links.mjs` — the doc-validator trio is the correct boundary; behavior is verified by earlier tickets.
+
+## Outcome
+
+Completed 2026-06-20. Reconciled River Ledger per-game docs for the v2 all-in/side-pot cutover: `RULES.md` now has concrete `RL-STACK-*`, `RL-ALLIN-*`, `RL-POT-*`, visibility, replay, bot, and UI rule IDs plus a legacy-rule migration table; `RULE-COVERAGE.md` maps every new and superseded ID to tests, traces, benchmarks, WASM/web proof, or documented migration evidence. Updated player, mechanics, UI, AI, competent-player, bot evidence, source, and atlas surfaces to describe finite stacks, all-in action metadata, side-pot eligibility, returns, and Rust-owned terminal allocation.
+
+Regenerated `apps/web/public/rules/river_ledger.md` and the manifest via `node scripts/copy-player-rules.mjs`; no hand edit was made to the generated public rules asset.
+
+Verification passed:
+
+1. `cargo run -p rule-coverage -- --game river_ledger`
+2. `node scripts/check-player-rules.mjs`
+3. `node scripts/check-doc-links.mjs`

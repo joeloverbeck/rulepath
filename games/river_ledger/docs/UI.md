@@ -4,9 +4,9 @@ Game ID: `river_ledger`
 
 Implemented variant: `river_ledger_standard`
 
-Rules version: `river-ledger-rules-v1`
+Rules version: `river-ledger-rules-v2`
 
-Last updated: 2026-06-18
+Last updated: 2026-06-20
 
 ## Contract
 
@@ -26,13 +26,13 @@ effects from the WASM bridge.
 | match phase and active seat | `phase`, `street`, `active_seat`, `pending_seats`, `terminal`, `ui.seat_labels`, `active_seat_labels` | Status text, active marker, and terminal panel use public labels from Rust/WASM. Internal IDs such as `seat_0` are never parsed into visible labels by React. |
 | seat rail | `active_seat_labels`, `seats[]`, roles, statuses, contributions, acted flags, `ledger_display` | Compact 3-6 seat ledger with Rust-authored role/status badges, `This round`, `Hand total`, and hole-card summary fields. Match-scoped surfaces show only the active match's seats, not the six-seat catalog capability list. |
 | public board | `board_slots[]`, `community_cards`, `street` | Central board well renders Rust-authored street placeholders until a card is authorized for reveal. |
-| contribution ledger | ledger total (`pot` JSON field), `current_bet`, `street_bet`, per-seat contribution fields | Abstract ledger/unit counters only; no money/chip/pot/rake public copy and no duplicate unlabeled contribution bar. |
+| contribution ledger and stacks | ledger total (`pot` JSON field), `current_bet`, `street_bet`, per-seat contribution fields, starting/remaining stack, all-in status, pot tiers, returns, terminal allocations | Abstract ledger/unit counters only; no money/chip/rake public copy and no duplicate unlabeled contribution bar. |
 | private view | `private_view` for the requested viewer | Authorized seat viewer sees only that seat's hole cards; observer and other seats see hidden placeholders. |
 | legal actions | `actionTree.choices` and Rust `presentation.display_rows` | Native buttons for Rust-legal choices only; each action renders only Rust-supplied relevant helper rows. |
 | diagnostics and effects | Rust diagnostics, semantic River effects, and `latestEffect` | Safe status text, effect log entries, and scheduler-owned board/showdown pacing. |
 | bot why | transient `BotDecisionPublicExplanation` on bot-turn output | Compact non-debug `Why?` disclosure renders Rust-authored public reason/facts only when present; it is not written to effects or replay. |
 | hand ranking reference | Rust/WASM catalog metadata | Collapsible category ladder, default-visible after showdown, with current category markers from Rust-projected showdown data. |
-| outcome rationale | terminal public view, terminal effects, and `presentation_v2` | V2 showdown panel renders Rust-authored banner, decisive contrast, board-once usage marks, ranked standings, folded rows, teaching aid, and final ledger totals. |
+| outcome rationale | terminal public view, terminal effects, pot tiers, returns, allocations, and `presentation_v2` | V2 showdown panel renders Rust-authored banner, decisive contrast, board-once usage marks, ranked standings, folded rows, teaching aid, pot/allocation rows, and final ledger totals. |
 | replay | viewer-scoped public replay export/import projection | Replay viewer steps Rust-projected public states and never reconstructs hidden state in TypeScript. |
 
 ## Seat Identity And N-Seat Viewer Matrix
@@ -94,7 +94,7 @@ Rust `ui.rs` and the WASM catalog provide stable presentation metadata:
 |---|---|
 | `display_name` | `River Ledger` |
 | `game_id` | `river_ledger` |
-| `rules_version` | `river-ledger-rules-v1` |
+| `rules_version` | `river-ledger-rules-v2` |
 | `min_seats` | 3 |
 | `default_seats` | 6 |
 | `max_seats` | 6 |
@@ -115,9 +115,9 @@ match selectors and role rows must consume the selected count or
 |---|---|---|---|---|
 | `fold` | `RL-BET-ACTION-001`, `RL-STREET-FOLDOUT-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | May end the hand by foldout; shows only Rust-supplied fold-relevant rows. |
 | `check` | `RL-BET-ACTION-002`, `RL-BET-CHECK-001` | Native action button when no amount is owed | `choice.accessibility_label` from Rust | TypeScript does not inspect contribution equality; no call-price/cap rows are invented. |
-| `call` | `RL-BET-ACTION-003`, `RL-BET-CALL-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | Required amount and call-price copy are Rust metadata/payload. |
-| `bet` | `RL-BET-ACTION-002`, `RL-BET-LIMIT-001`, `RL-BET-LIMIT-002` | Native action button when opening a street bet is legal | `choice.accessibility_label` from Rust | Unit size and added-ledger copy come from Rust street rules. |
-| `raise` | `RL-BET-ACTION-003`, `RL-BET-RAISE-001`, `RL-BET-CAP-001` | Native action button until the cap is reached | `choice.accessibility_label` from Rust | Cap availability and cap-left copy are Rust-owned. |
+| `call` | `RL-BET-ACTION-003`, `RL-BET-CALL-001`, `RL-ALLIN-CALL-001` | Native action button when Rust exposes it | `choice.accessibility_label` from Rust | Required amount, call-price copy, and call-all-in status are Rust metadata/payload. |
+| `bet` | `RL-BET-ACTION-002`, `RL-BET-LIMIT-001`, `RL-BET-LIMIT-002`, `RL-ALLIN-BET-001` | Native action button when opening a street bet is legal | `choice.accessibility_label` from Rust | Unit size, added-ledger copy, and bet-all-in status come from Rust street rules. |
+| `raise` | `RL-BET-ACTION-003`, `RL-BET-RAISE-001`, `RL-BET-CAP-001`, `RL-ALLIN-BET-001` | Native action button until the cap is reached | `choice.accessibility_label` from Rust | Cap availability, cap-left copy, short/full all-in status, and reopen metadata are Rust-owned. |
 
 Action `data-testid` values are stable UI selectors and must not include card
 ids, hand strength, hidden setup facts, or private rationale.

@@ -10,9 +10,9 @@ Prepared by: `Codex`
 
 Created: 2026-06-14
 
-Last updated: 2026-06-14
+Last updated: 2026-06-20
 
-Rules version connected to this source note: `river-ledger-rules-v1`
+Rules version connected to this source note: `river-ledger-rules-v2`
 
 ## Source-use statement
 
@@ -36,6 +36,7 @@ architecture-comparison sources only. No source prose or assets are copied.
 | Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
 |---|---|---|---|---|---|---|
 | Rulepath Gate 15 River Ledger spec | `../../../archive/specs/gate-15-river-ledger-texas-holdem-base.md` | 2026-06-14 | project authority | product scope, seat range, fixed-limit cap, no-leak matrix, docs, tests, replay, bots, tools, WASM, web, and benchmark obligations | none | Governs the Gate 15 tickets and acceptance evidence. |
+| Rulepath Gate 15.1 River Ledger all-in / side pots spec | `../../../specs/gate-15-1-river-ledger-all-in-side-pots.md` | 2026-06-20 | project authority | finite stacks, all-in actions, full-unit reopening, side-pot construction/allocation, returns, no-leak, replay, bots, WASM/web, and benchmark obligations | none | Governs the v2 all-in/side-pot cutover. |
 | Rulepath Official Game Contract | `../../../docs/OFFICIAL-GAME-CONTRACT.md` | 2026-06-14 | project authority | official-game documentation and evidence workflow | none | Requires original rules prose, source notes, coverage, mechanics, no-leak tests, bot evidence, benchmarks, and web proof. |
 | Rulepath IP Policy | `../../../docs/IP-POLICY.md` | 2026-06-14 | project authority | public naming, original prose, and trade-dress safety | none | Requires neutral/original presentation and forbids copied protected expression. |
 | Rulepath Mechanic Atlas | `../../../docs/MECHANIC-ATLAS.md` | 2026-06-14 | project authority | card/deck/private-hand/evaluator/accounting primitive-pressure posture | none | River Ledger records pressure but no `game-stdlib` promotion is authorized by Gate 15. |
@@ -59,7 +60,8 @@ Rulepath prose:
 | Five community cards | The board reveals three flop cards, then one turn card, then one river card. | Matches the chosen rules-family shape. |
 | Fixed-limit contribution rounds | Preflop/flop use a small unit; turn/river use a big unit. | Keeps action trees bounded and avoids no-limit scope. |
 | Raise cap | Each street permits one opening bet plus three raises. | Explicit cap supports diagnostics, bots, replay, and benchmarks. |
-| Single pot | Gate 15 allocates one pot at terminal. | Side-pot/all-in accounting is intentionally deferred to Gate 15.1. |
+| Finite stacks and all-in | Gate 15.1 adds bounded public stacks and stack-capped `Call`, `Bet`, and `Raise` actions. | Keeps fixed-limit action families while allowing all-in outcomes. |
+| Ordered side pots | Gate 15.1 builds ordered contribution layers, eligibility, returns, and per-pot allocation. | Makes allocation public and deterministic without TypeScript computation. |
 | Showdown evaluator | Best five of seven cards are chosen by enumerating all 21 five-card subsets. | Correctness and auditability beat optimized lookup tables in Gate 15. |
 | Split remainder | Tied winners split equal integer shares first; remainders follow stable button-order among tied winners. | Deterministic replay and Rust-authored outcome rationale. |
 | Neutral public presentation | Public UI/docs use River Ledger and abstract contribution language. | Avoids casino product framing and source confusion. |
@@ -71,7 +73,7 @@ Rulepath prose:
 | implemented variant | `river_ledger_standard` / River Ledger | Gate 15 scope and public-scaling objective. | yes |
 | player count | Exactly 3-6 seats. | N-seat proof surface; heads-up is out of scope. | yes |
 | contribution structure | Fixed-limit only, with an explicit street raise cap. | Bounded action trees and clearer tests. | yes |
-| all-in/side pots | Not implemented. | Gate 15.1 owns side-pot/all-in pressure. | yes |
+| all-in/side pots | Implemented in v2 as fixed-limit all-in and ordered side-pot accounting. | Gate 15.1 owns and closes this pressure. | yes |
 | hand ranking | Standard category order with deterministic rank-vector tie breaks and no suit tie-breaks. | Rules-family fact verified by sources; exact implementation is Rust-owned. | yes |
 | evaluator implementation | Exhaustive 21-subset search. | Auditability, explanation, and replay confidence. | no |
 | optional rule excluded | Tournament structure, real-money features, rake, payouts, no-limit/pot-limit play, hosted multiplayer, copied casino presentation. | Gate 15 out-of-scope and foundation law. | yes |
@@ -83,7 +85,8 @@ Rulepath prose:
 |---|---|---|---|---|---|---|
 | `RL-AMB-001` | Whether heads-up is supported. | Gate 15 spec and Hold'Em rules-family references. | Official Gate 15 supports 3-6 seats only. | `RL-SETUP-SEATS-*` | setup validation tests and traces | resolved |
 | `RL-AMB-002` | Whether burn cards are modeled publicly. | Gate 15 spec and source family context. | Burn advancement may be internal only; no viewer receives burn identities. | `RL-DEAL-BOARD-*`, `RL-VIS-DECKTAIL-*` | no-leak tests and replay export checks | resolved |
-| `RL-AMB-003` | Whether all-in/side pots are part of base scope. | Gate 15 vs Gate 15.1 split. | Base River Ledger cannot create states requiring all-in or side-pot handling. | `RL-POT-ALLIN-*`, `RL-OOS-ALLIN-*` | contribution/property tests | resolved |
+| `RL-AMB-003` | Whether all-in/side pots are part of standard River Ledger. | Gate 15 vs Gate 15.1 split. | v2 includes fixed-limit all-in and side pots inside `river_ledger_standard`; no no-limit/pot-limit variant is added. | `RL-ALLIN-*`, `RL-POT-*`, `RL-VIS-POT-*` | contribution/property tests, traces, web no-leak | resolved |
+| `RL-AMB-007` | What reopens raising after incomplete all-in pressure. | Gate 15.1 research reconciliation; public poker rules vary by venue/rule set. | River Ledger uses a deliberate full-unit reopening rule for this fixed-limit game. | `RL-ALLIN-REOPEN-001` | reopen tests and traces | resolved |
 | `RL-AMB-004` | Whether suits break equal evaluated hands. | Poker ranking references and Gate 15 spec. | Suits never break ties. | `RL-EVAL-TIEBREAK-*` | evaluator tests | resolved |
 | `RL-AMB-005` | Whether folded hands reveal when everyone else folds. | Gate 15 no-leak requirement. | Foldout terminal reveals no folded seats' private hole cards. | `RL-SHOW-FOLDOUT-*`, `RL-VIS-FOLDOUT-*` | foldout no-leak trace and tests | resolved |
 | `RL-AMB-006` | Whether static data can encode betting/evaluator formulas. | Rulepath static-data boundary. | No; static data is metadata/content only. | `RL-SETUP-VARIANT-*` | strict static-data tests | resolved |
@@ -174,7 +177,9 @@ facts and Rulepath documents for scoped variant decisions.
 | `RL-STREET-*` | Preflop, flop, turn, river, showdown, foldout advancement. | Rules-family references plus Gate 15 no-leak terminal choice. | yes | Foldout keeps folded hands redacted. |
 | `RL-EVAL-*` | Five-card category ranking and seven-card best-hand selection. | Pagat ranking reference and Gate 15 evaluator design. | no for category order; yes for implementation method | Exhaustive 21-subset search is Rulepath's chosen implementation. |
 | `RL-SHOW-*` | Showdown eligibility, winner comparison, split, foldout explanation. | Gate 15 spec and outcome-explanation contract. | yes | Rust authors decisive rationale. |
-| `RL-POT-*` | Single-pot allocation, split remainder, no all-in/side-pot state. | Gate 15 scope and Gate 15.1 deferral. | yes | Side pots are out of scope. |
+| `RL-STACK-*` | Ordered stack setup and capped blind posts. | Gate 15.1 spec and Rulepath deterministic accounting law. | yes | Public stacks are abstract units only. |
+| `RL-ALLIN-*` | Stack-capped call/bet/raise, actor exclusion, and full-unit reopening. | Gate 15.1 spec. | yes | The reopening rule is a River Ledger rule, not a universal poker authority claim. |
+| `RL-POT-*` | Ordered side-pot layers, folded contribution retention, returns, per-pot winners, split/remainder allocation. | Gate 15.1 spec and prior Gate 15 split/remainder design. | yes | Implemented game-locally. |
 | `RL-VIS-*` | Public/private projections, diagnostics, effect/replay/browser no-leak, view hashes. | Rulepath hidden-information law and Gate 15 pairwise no-leak matrix. | yes | Viewer-safe proof is first-class. |
 | `RL-REPLAY-*` | Deterministic replay, hashes, viewer-scoped export/import, stable serialization. | Rulepath replay law and Gate 15 command suite. | no | Trace schema v1 is reused. |
 | `RL-BOT-*` | Legal-action-only L0/L1/L2 bots and safe explanations. | Rulepath bot law and Gate 15 bot scope. | yes | No search/RL/hidden sampling. |
