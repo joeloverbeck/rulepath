@@ -1,6 +1,6 @@
 # GAT151RIVLED-002: Primitive-pressure ledger decision
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None (docs-only: records the primitive-pressure decision in `PRIMITIVE-PRESSURE-LEDGER.md` + `MECHANIC-ATLAS.md`)
@@ -73,3 +73,23 @@ Record the Gate 15.1 pressure decision in `docs/MECHANIC-ATLAS.md` and confirm ย
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-catalog-docs.mjs`
 3. Doc-gate commands are the correct boundary: no Rust changes, so `cargo` gates are not exercised by this ticket.
+
+## Outcome
+
+Completed: 2026-06-20
+
+What changed:
+
+- Added the Gate 15.1 side-pot/all-in primitive-pressure decision to `games/river_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md`.
+- Recorded the decision to reuse River Ledger's local button-order helper and implement contribution-layer construction/allocation locally, with no `game-stdlib` promotion, no `engine-core` vocabulary expansion, no ADR, and no promotion debt.
+- Updated `docs/MECHANIC-ATLAS.md` to reflect the Gate 15.1 reopen/close decision while preserving `Current debt: _None_.`
+
+Deviations:
+
+- None. The ticket remained documentation-only; no Rust crate, shared helper, or test file changed.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed -- 15 games reflected in intro, root, and smoke surfaces`).
+- Manual/codebase check confirmed `docs/MECHANIC-ATLAS.md` ยง10A still reads `Current debt: _None_.`

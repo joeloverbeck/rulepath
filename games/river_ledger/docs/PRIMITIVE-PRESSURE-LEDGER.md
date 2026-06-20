@@ -6,7 +6,7 @@ Variant: `river_ledger_standard`
 
 Created: 2026-06-14
 
-Last updated: 2026-06-14
+Last updated: 2026-06-20
 
 ## Decision summary
 
@@ -140,3 +140,156 @@ debt. Reopen this ledger for Gate 15.1 side-pot/all-in work.
   hidden facts.
 - Treating "Texas Hold'Em family" as permission to copy prose, tables, or
   presentation.
+
+## Gate 15.1 side-pot / all-in pressure decision
+
+Mechanic shape: deterministic layered contribution-cap construction,
+folded-money inclusion, per-pot eligibility, uncalled-return extraction,
+independent split/remainder allocation, and viewer-safe allocation explanation.
+
+Status: `rejected/deferred with rationale`.
+
+Decision: reuse River Ledger's local `winners_in_button_order` helper, implement
+the contribution-layer constructor and per-pot allocator locally in
+`games/river_ledger`, defer/reject `game-stdlib` promotion, authorize no
+`engine-core` vocabulary expansion, and require no ADR for the planned
+game-local delta.
+
+Review owner/date: Rulepath maintainers / Gate 15.1 acceptance and closeout.
+
+### Games exerting pressure
+
+| Shape | Prior / comparison games | Gate 15.1 pressure |
+|---|---|---|
+| single-pot integer split and remainder | `poker_lite`, River Ledger Gate 15 | Gate 15.1 adds nested eligibility layers, returned top excess, independent per-pot remainders, and final-stack aggregation. |
+| public accounting / allocation | `token_bazaar`, `poker_lite`, `event_frontier`, River Ledger Gate 15 | Gate 15.1 introduces public finite stacks and contribution caps, but allocation remains tied to River Ledger's betting history and showdown model. |
+| hidden-information terminal explanation | `high_card_duel`, `poker_lite`, River Ledger Gate 15 | Gate 15.1 explains every pot and return while preserving folded/no-showdown card redaction. |
+
+### Relevant files and docs
+
+- `games/river_ledger/src/state.rs`
+- `games/river_ledger/src/actions.rs`
+- `games/river_ledger/src/betting.rs`
+- `games/river_ledger/src/rules.rs`
+- `games/river_ledger/src/pot.rs`
+- `games/river_ledger/src/showdown.rs`
+- `games/river_ledger/src/effects.rs`
+- `games/river_ledger/src/visibility.rs`
+- `games/river_ledger/src/ui.rs`
+- `games/river_ledger/src/bots.rs`
+- `specs/gate-15-1-river-ledger-all-in-side-pots.md`
+- `docs/ROADMAP.md` Gate 15.1
+
+### What is repeated
+
+- Integer contribution accounting and split/remainder allocation already exist
+  locally in River Ledger and in earlier simpler games.
+- Public contribution totals and terminal awards are already viewer-safe public
+  facts in the shipped base game.
+- The button-ordered remainder concept already exists inside River Ledger.
+
+### What differs
+
+- Side-pot construction depends on River Ledger contribution caps, folded/all-in
+  statuses, fixed-limit action history, full-unit reopen state, button order,
+  seven-card showdown evaluation, and public explanation model.
+- Poker Lite and the Gate 15 base have single-pot split behavior, but not
+  ordered nested eligibility layers or returned top layers.
+- Token Bazaar and Event Frontier exert public-accounting pressure, but they do
+  not have hidden hands, all-in contribution caps, per-pot eligibility, or
+  showdown allocation.
+
+### Why local duplication is acceptable now
+
+The full layered-eligibility/allocation shape has one implementation pressure
+point: River Ledger Gate 15.1. Premature extraction would either encode poker
+nouns and policies into a shared helper or expose a generic API whose real
+boundary is still unproven. A local pure constructor and local allocator are
+acceptable because the repo has no third close official use and no narrow
+behavior-free cross-game contract.
+
+### Boundary impact
+
+Why not `engine-core`: the shape contains game nouns and policy: seat,
+contribution, fold, all-in, pot, eligibility, button, and showdown. Those are
+forbidden in the noun-free kernel.
+
+Why not `game-stdlib`: no promoted primitive is appropriate yet. The narrowest
+useful helper would still need eligibility, returned excess, per-pot split,
+remainder, visibility, and explanation policy. Those policies are not proven
+across official games.
+
+Data/Rust boundary impact: stack defaults and neutral presets may be typed
+setup data. Validation, cap handling, layer construction, eligibility, returns,
+allocation, and explanations remain typed Rust behavior.
+
+Replay/hash impact: Gate 15.1 intentionally creates River Ledger v2 state,
+hash, serialization, and trace drift. Ordered pots, returns, shares, awards,
+and final stacks must be stable and hashed game-locally. No global Trace Schema
+or hash algorithm change is authorized.
+
+Visibility impact: public stacks, contributions, pot amounts, and eligibility
+are public facts; private cards, deck order, folded hand contents, evaluator
+internals, bot rankings, and unauthorized replay data remain redacted by
+viewer. Pairwise N-seat no-leak proof is required.
+
+Bot impact: bots may read legal actions plus authorized public stack, pot,
+call-price, and eligibility facts. They may not inspect opponent hands, deck
+order, omniscient rankings, rollout data, or any forbidden search/learning
+method.
+
+UI/effect impact: Rust authors all all-in, stack, return, pot-tier, award,
+remainder, and explanation effects/projections. TypeScript renders those facts
+and computes no legality, eligibility, winner, or allocation.
+
+### Tests and benchmarks required
+
+Required tests: pure constructor unit/property tests, rule/state tests,
+replay/serialization checks, 3-6-seat pairwise no-leak, bot legality and
+determinism, WASM API snapshots, browser no-leak/e2e smoke, and the Gate 15.1
+golden trace set.
+
+Required benchmarks: six-seat maximum-layer construction, multi-pot split
+allocation, all-in showdown, projection, serialization/replay, bot policy, and
+full-game all-in-pressure paths.
+
+### Back-port or conformance plan
+
+No helper is promoted, so no prior official game requires back-porting.
+Preserve Poker Lite and River Ledger Gate 15 behavior except for the explicit
+River Ledger v2 migration.
+
+Affected prior games: none behaviorally. `poker_lite` is comparison evidence
+only.
+
+Exceptions: River Ledger's local `winners_in_button_order` remains local and may
+be reused by the Gate 15.1 per-pot allocator.
+
+Closure gate if debt is deferred: not applicable. This decision closes with no
+promotion debt and keeps the atlas §10A debt register empty.
+
+### Examples and anti-examples
+
+Examples:
+
+- A pure `games/river_ledger/src/pot.rs` function from ordered
+  contributions/statuses to ordered pots and returns.
+- A game-local per-pot allocator that uses River Ledger's existing button order.
+
+Anti-examples:
+
+- `engine_core::SidePot`.
+- A universal `game-stdlib` poker-pot helper.
+- TOML or JSON formulas for eligibility or allocation.
+- TypeScript constructing pots, winners, shares, or final stacks.
+
+### Agent misuse risks for Gate 15.1
+
+- Treating public eligibility as authority to reveal cards.
+- Using hash-map iteration for pot, contributor, eligible, share, or effect
+  ordering.
+- Creating a separate pot for every folded contribution boundary without
+  coalescing identical eligibility.
+- Using saturation to hide accounting overflow.
+- Reconstructing stack, pot, winner, or final-stack arithmetic in WASM or
+  TypeScript.
