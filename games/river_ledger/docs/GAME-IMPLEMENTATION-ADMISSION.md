@@ -272,14 +272,14 @@ Decision rationale:
   new AI class.
 - Public presentation uses original River Ledger terminology, abstract
   contribution units, and neutral board-game visual language.
-- GAT15RIVLEDTEX-021 remains responsible for the final acceptance sweep and
-  spec/index closeout before the Gate 15 family is completely archived.
+- The Gate 15 and Gate 15.1 final acceptance sweeps and spec/index closeouts
+  are complete.
 
 ## Release Blockers
 
 | Issue | Required fix | Owner | Blocks current admission? |
 |---|---|---|---:|
-| Final acceptance sweep and spec/index archive are pending. | Complete GAT15RIVLEDTEX-021 after 020. | Rulepath | no; blocks final gate closeout |
+| _None_ | _Not applicable._ | Rulepath | no |
 
 No additional implementation, WASM, UI, public-copy, no-leak, or bot blocker is
 known for the trailing-doc scope.

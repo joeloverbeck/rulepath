@@ -229,7 +229,8 @@ and [../games/river_ledger/docs/BENCHMARKS.md](../games/river_ledger/docs/BENCHM
 
 ## 10A. Open promotion-debt register
 
-Current debt: _None_.
+Current debt: _None_. Last reviewed during Gate 15.1 closeout on 2026-06-20;
+the River Ledger side-pot/all-in extension recorded no promotion debt.
 
 | Primitive | Scope | Already conforming | Must retrofit | Audit/no-op | Accepted exceptions | Closure gate |
 |---|---|---|---|---|---|---|

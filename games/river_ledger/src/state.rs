@@ -277,9 +277,8 @@ impl RiverLedgerState {
             "setup validates one starting stack per seat"
         );
         let mut ledgers = Vec::with_capacity(seat_len);
-        for index in 0..seat_len {
+        for (index, starting_stack) in starting_stacks.iter().copied().enumerate().take(seat_len) {
             let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
-            let starting_stack = starting_stacks[index];
             let total_contribution = if seat == small_blind {
                 starting_stack.min(u16::from(STANDARD_SMALL_BLIND))
             } else if seat == big_blind {

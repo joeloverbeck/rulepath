@@ -5,18 +5,18 @@
 | Field | Value |
 |---|---|
 | Spec ID | `GAT15-1-RIVLED-ALLIN-SIDEPOTS-001` |
-| File | `specs/gate-15-1-river-ledger-all-in-side-pots.md` |
+| File | `archive/specs/gate-15-1-river-ledger-all-in-side-pots.md` |
 | Roadmap stage | Stage 15.1 / Public scaling phase |
 | Roadmap build gate | Gate 15.1 |
 | Game | `river_ledger` |
-| Status | `Not started`; change to `Planned` only when this spec is accepted |
+| Status | `Done` |
 | Date | 2026-06-20 |
 | Owner | Rulepath maintainers |
 | Predecessor | Gate 15 — River Ledger / Texas Hold'Em base (`Done`) |
 | Successor | Gate 16 — Hearts |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → applicable area contracts and accepted ADRs → `docs/ROADMAP.md` → this spec → future `tickets/` packets |
 | Primary planning authorities | `specs/README.md`, `docs/ROADMAP.md`, `docs/MECHANIC-ATLAS.md`, `archive/specs/gate-15-river-ledger-texas-holdem-base.md` |
-| Delivery boundary | This document plans the delta. It does not write code, ticket files, or filled per-game documentation. |
+| Delivery boundary | Completed and archived. This document planned the delta; ticket outcomes carry the implementation slices and this Outcome records final gate closeout. |
 
 Normative terms such as **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are subordinate to the authority order above. Any conflict is resolved in favor of the earlier authority.
 
@@ -649,3 +649,79 @@ Each line is independently correctable without re-opening the locked gate determ
 - `assumption:` No ADR is needed for the planned game-local delta; any global replay/hash/visibility/data-policy/kernel/shared-primitive need triggers the stop route in §8.
 - `assumption:` External poker authorities are validation prior art, not repository law; where their fixed-limit reopening convention differs, the River Ledger rule is stated openly rather than misattributed.
 - `assumption:` No real-money, tournament, casino-room, or product-mimicry feature is implied by finite stacks or side pots.
+
+## Outcome
+
+Completed 2026-06-20. Gate 15.1 shipped the River Ledger v2 finite-stack,
+all-in, and side-pot delta in dependency order through archived tickets
+`GAT151RIVLED-001` through `GAT151RIVLED-020`.
+
+Delivered scope:
+
+- typed configurable starting stacks with equal defaults and asymmetric
+  acceptance profiles;
+- stack-capped fixed-limit calls, bets, raises, all-in qualification, full-unit
+  reopening state, all-in actor skipping, and cap interaction;
+- contribution-layer construction, folded-money retention, uncalled returns,
+  per-pot eligibility, independent split/remainder allocation, and one
+  authoritative terminal allocation assembly;
+- viewer-safe Rust projections, WASM bridge output, browser renderer, effect
+  feedback, public replay/export, no-leak proof, bots, rule coverage, golden
+  traces, simulation, benchmarks, public player rules, and release checklist
+  reconciliation;
+- mechanic-atlas decision: the side-pot/all-in shape remains local to
+  `games/river_ledger`; no `game-stdlib` helper, `engine-core` noun, global
+  replay/hash migration, or open promotion debt was introduced.
+
+Status reconciliation:
+
+- `specs/README.md` Order 6 / Gate 15.1 now points to this archived spec and
+  reads `Done`.
+- `docs/MECHANIC-ATLAS.md` §10A still reads `Current debt: _None_`.
+- Gate 16 Hearts is admitted as the next not-started public scaling unit.
+
+Verification:
+
+- `cargo fmt --all --check` — passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` — passed after the
+  mechanical iterator rewrite in River Ledger setup state construction.
+- `cargo build --workspace` — passed.
+- `cargo test --workspace` — passed.
+- `cargo test -p river_ledger` — passed.
+- `cargo test -p wasm-api` — passed.
+- `cargo run -p simulate -- --game river_ledger --games 1000` — passed:
+  1000 games, cycled 3-6 seats, cycled stack profiles, average length 15.96,
+  throughput 935.52 games/sec.
+- `cargo run -p replay-check -- --game river_ledger --all` — passed
+  (`replay-check: all traces passed`).
+- `cargo run -p fixture-check -- --game river_ledger` — passed
+  (`fixture-check: all fixtures passed`).
+- `cargo run -p rule-coverage -- --game river_ledger` — passed
+  (`rule-coverage: river_ledger coverage matrix passed`).
+- `bash scripts/boundary-check.sh` — passed
+  (`engine-core boundary check passed`).
+- `node scripts/check-doc-links.mjs` — passed (`Checked 27 markdown files`).
+- `node scripts/check-catalog-docs.mjs` — passed
+  (`catalog-docs check passed — 15 games reflected in intro, root, and smoke surfaces`).
+- `node scripts/check-player-rules.mjs` — passed
+  (`player-rules check passed — 15 catalog games validated`).
+- `node scripts/check-outcome-explanations.mjs` — passed
+  (`outcome-explanations check passed — 15 catalog games validated`).
+- `npm --prefix apps/web ci` — passed with the pre-existing npm audit notice of
+  one low-severity vulnerability.
+- `npm --prefix apps/web run smoke:wasm` — passed.
+- `npm --prefix apps/web run build` — passed.
+- `npm --prefix apps/web run smoke:ui` — passed.
+- `npm --prefix apps/web run smoke:effects` — passed.
+- `npm --prefix apps/web run smoke:e2e` — passed, including
+  `{"browser":"puppeteer","smoke":"river_ledger noleak legal controls terminal responsive"}`.
+- `cargo bench -p river_ledger` — passed and emitted the
+  `BEGIN_RIVER_LEDGER_BENCHMARK_JSON` / `END_RIVER_LEDGER_BENCHMARK_JSON`
+  block.
+
+Deviations:
+
+- None from Gate 15.1 acceptance. The required Clippy lane exposed a
+  `needless_range_loop` warning in `games/river_ledger/src/state.rs`; closeout
+  replaced it with an equivalent iterator/enumerate loop so the full
+  workspace hygiene command could pass.

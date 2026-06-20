@@ -177,7 +177,7 @@ Review owner/date: Rulepath maintainers / Gate 15.1 acceptance and closeout.
 - `games/river_ledger/src/visibility.rs`
 - `games/river_ledger/src/ui.rs`
 - `games/river_ledger/src/bots.rs`
-- `specs/gate-15-1-river-ledger-all-in-side-pots.md`
+- `archive/specs/gate-15-1-river-ledger-all-in-side-pots.md`
 - `docs/ROADMAP.md` Gate 15.1
 
 ### What is repeated

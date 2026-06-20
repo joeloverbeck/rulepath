@@ -1,6 +1,6 @@
 # GAT151RIVLED-020: Closeout capstone
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (docs/status-only: public-release checklist, catalog/index reconciliation, status flips, archival; exercises the prior tickets' acceptance suite without modifying their files)
@@ -77,3 +77,42 @@ Reconcile `apps/web/README.md` catalog/Smoke-Layers lists; flip `specs/README.md
 1. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo build --workspace && cargo test --workspace`
 2. `cargo run -p simulate -- --game river_ledger --games 1000 && cargo run -p replay-check -- --game river_ledger --all && cargo run -p fixture-check -- --game river_ledger && cargo run -p rule-coverage -- --game river_ledger`
 3. `node scripts/check-catalog-docs.mjs && node scripts/check-doc-links.mjs && node scripts/check-player-rules.mjs` — the closeout boundary is the full acceptance suite plus the doc/catalog gates, exercising every prior ticket without modifying it.
+
+## Outcome
+
+Completed 2026-06-20. Ran the full Gate 15.1 acceptance suite, reconciled the
+public release checklist, web README River Ledger audit rows, mechanic-atlas
+debt note, `specs/README.md` tracker row, and spec status/outcome, then archived
+the completed Gate 15.1 spec. Gate 16 is admitted as the next not-started public
+scaling unit.
+
+The only source change was a mechanical Clippy fix in
+`games/river_ledger/src/state.rs`: the setup ledger construction loop now uses
+`starting_stacks.iter().copied().enumerate()` instead of range-indexing the
+same vector. Behavior is unchanged; this was required for the mandated
+`cargo clippy --workspace --all-targets -- -D warnings` lane.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo clippy --workspace --all-targets -- -D warnings`
+3. `cargo build --workspace`
+4. `cargo test --workspace`
+5. `cargo test -p river_ledger`
+6. `cargo test -p wasm-api`
+7. `cargo run -p simulate -- --game river_ledger --games 1000`
+8. `cargo run -p replay-check -- --game river_ledger --all`
+9. `cargo run -p fixture-check -- --game river_ledger`
+10. `cargo run -p rule-coverage -- --game river_ledger`
+11. `bash scripts/boundary-check.sh`
+12. `node scripts/check-doc-links.mjs`
+13. `node scripts/check-catalog-docs.mjs`
+14. `node scripts/check-player-rules.mjs`
+15. `node scripts/check-outcome-explanations.mjs`
+16. `npm --prefix apps/web ci` (passed with the existing one low-severity npm audit notice)
+17. `npm --prefix apps/web run smoke:wasm`
+18. `npm --prefix apps/web run build`
+19. `npm --prefix apps/web run smoke:ui`
+20. `npm --prefix apps/web run smoke:effects`
+21. `npm --prefix apps/web run smoke:e2e`
+22. `cargo bench -p river_ledger`
