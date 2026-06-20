@@ -3862,6 +3862,41 @@ svg g[data-effect-kind] {
   border-color: #2b8068;
 }
 
+.poker-lite-strength {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border: 1px solid #d7ded9;
+  border-left: 4px solid #8a8f8b;
+  border-radius: 6px;
+  background: #f6f8f5;
+}
+
+.poker-lite-strength strong {
+  font-size: 0.95rem;
+  color: #25332e;
+}
+
+.poker-lite-strength span {
+  font-size: 0.82rem;
+  color: #53635c;
+}
+
+.poker-lite-strength.pair {
+  border-left-color: #2b8068;
+  background: #eef6f1;
+}
+
+.poker-lite-strength.pair strong {
+  color: #1f6b4f;
+}
+
+.poker-lite-strength.nopair {
+  border-left-color: #b98a3c;
+  background: #faf5ec;
+}
+
 .poker-lite-card.center {
   border-color: #7b6f40;
 }
