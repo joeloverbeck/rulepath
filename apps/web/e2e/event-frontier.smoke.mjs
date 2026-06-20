@@ -107,6 +107,7 @@ try {
     (view) => view?.game_id === "event_frontier" && view.variant_id === "event_frontier_hard_winter",
   );
   await assertNoLeak(page, consoleMessages, "hard winter variant start");
+  await assertSiteControlAndVictoryProgress(page);
 
   await startEventFrontier(page, baseUrl, "Human vs bot", 2);
   await assertHumanVsBotModeControlsIdle(page);
@@ -281,6 +282,36 @@ async function assertEventFrontierSetupCopy(page, modeLabel) {
   assert(!summary.setup.includes("Seat 1"), "Event Frontier setup omits Seat 1 copy");
 }
 
+async function assertSiteControlAndVictoryProgress(page) {
+  const summary = await page.evaluate(() => {
+    const sites = Array.from(document.querySelectorAll('[data-testid^="event-frontier-site-"]'));
+    return {
+      controlClasses: sites.map(
+        (site) => Array.from(site.classList).find((cls) => cls.startsWith("control-")) ?? "",
+      ),
+      siteText: sites.map((site) => site.textContent ?? ""),
+      eligibility: Array.from(document.querySelectorAll('[aria-label="Eligibility and victory distance"] li')).map(
+        (li) => li.textContent ?? "",
+      ),
+      legend: document.querySelector(".event-site-legend")?.textContent ?? "",
+    };
+  });
+  assert(
+    summary.controlClasses.length === 6 &&
+      summary.controlClasses.every((cls) => /^control-(charter|freeholders|contested)$/.test(cls)),
+    `each site exposes a control state, got ${JSON.stringify(summary.controlClasses)}`,
+  );
+  assert(
+    summary.siteText.some((text) => /leads|contested/i.test(text)),
+    "sites label who currently leads the presence count",
+  );
+  assert(
+    summary.eligibility.some((text) => /so far ·.*more for instant victory|threshold met/i.test(text)),
+    `eligibility shows current progress plus remaining distance, got ${JSON.stringify(summary.eligibility)}`,
+  );
+  assert(/agents/i.test(summary.legend), "sites panel explains the A/S presence notation");
+}
+
 async function assertEventFrontierBoardA11y(page) {
   const summary = await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll("button"));
@@ -347,8 +378,14 @@ async function assertEventFrontierDetailsAndStatusCopy(page) {
     summary.details.some((entry) => entry.detail.includes("until the next Reckoning") || entry.detail.includes("public scoring")),
     "event_frontier detail prose explains edict or Reckoning scope",
   );
-  assert(summary.eligibility.includes("controlled sites for instant victory"), "Charter threshold copy is framed");
-  assert(summary.eligibility.includes("caches for instant victory"), "Freeholders threshold copy is framed");
+  assert(
+    summary.eligibility.includes("controlled site") && summary.eligibility.includes("instant victory"),
+    "Charter victory-distance copy is framed",
+  );
+  assert(
+    summary.eligibility.includes("cache") && summary.eligibility.includes("instant victory"),
+    "Freeholders victory-distance copy is framed",
+  );
 }
 
 async function assertFactionFirstCopy(page) {

@@ -931,6 +931,27 @@ h2 {
   background: #ffffff;
 }
 
+.plain-history li.event-site.control-charter {
+  box-shadow: inset 3px 0 0 #2f6f9f;
+}
+
+.plain-history li.event-site.control-freeholders {
+  box-shadow: inset 3px 0 0 #b06a2c;
+}
+
+.plain-history li.event-site.control-contested {
+  box-shadow: inset 3px 0 0 #b6bdb8;
+}
+
+.event-site-legend {
+  margin: 8px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid #e0e6e2;
+  color: #5a6b64;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
 .plain-history small,
 .plain-latest strong {
   overflow-wrap: anywhere;

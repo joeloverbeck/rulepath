@@ -184,14 +184,22 @@ export function EventFrontierBoard({
             <strong>Public map</strong>
           </div>
           <ol>
-            {view.sites.map((site) => (
-              <li key={site.site}>
-                <span>{site.label}</span>
-                <strong>{siteSummary(site)}</strong>
-                <small>{site.depot ? "depot" : "open"} / {site.cache_count} cache</small>
-              </li>
-            ))}
+            {view.sites.map((site) => {
+              const controller = siteController(site);
+              return (
+                <li key={site.site} className={`event-site control-${controller}`} data-testid={`event-frontier-site-${site.site}`}>
+                  <span>{site.label}</span>
+                  <strong>{siteSummary(site)}</strong>
+                  <small>
+                    {site.depot ? "depot" : "open"} / {site.cache_count} cache · {controlLabel(view, controller)}
+                  </small>
+                </li>
+              );
+            })}
           </ol>
+          <p className="event-site-legend">
+            A = agents, S = settlers. A site scores for whoever has more presence (Charter counts agents + depots).
+          </p>
         </section>
       </div>
 
@@ -207,8 +215,8 @@ export function EventFrontierBoard({
               <strong>{entry.eligible}</strong>
               <small>
                 {entry.faction === "faction_charter"
-                  ? `${charterLabel} needs ${view.victory_distance.charter_sites_needed} controlled sites for instant victory`
-                  : `${freeholdersLabel} needs ${view.victory_distance.freeholder_caches_needed} caches for instant victory`}
+                  ? victoryProgress(controlledSiteCount(view), view.victory_distance.charter_sites_needed, "controlled site")
+                  : victoryProgress(totalCacheCount(view), view.victory_distance.freeholder_caches_needed, "cache")}
               </small>
             </li>
           ))}
@@ -334,6 +342,48 @@ function activeFaction(view: EventFrontierPublicView): string | null {
 
 function siteSummary(site: EventFrontierSiteView): string {
   return `A${site.agents} S${site.settlers}`;
+}
+
+type SiteControl = "charter" | "freeholders" | "contested";
+
+// Mirrors the Rust scoring rule exactly (a site scores for strictly greater
+// presence; Charter presence is agents + depots, Freeholders' is settlers).
+// This is a pure public comparison, so displaying it cannot diverge from Rust.
+function siteController(site: EventFrontierSiteView): SiteControl {
+  const charterPresence = site.agents + (site.depot ? 1 : 0);
+  if (charterPresence > site.settlers) {
+    return "charter";
+  }
+  if (site.settlers > charterPresence) {
+    return "freeholders";
+  }
+  return "contested";
+}
+
+function controlLabel(view: EventFrontierPublicView, control: SiteControl): string {
+  if (control === "charter") {
+    return `${factionLabel(view, "faction_charter")} leads`;
+  }
+  if (control === "freeholders") {
+    return `${factionLabel(view, "faction_freeholders")} leads`;
+  }
+  return "contested";
+}
+
+function controlledSiteCount(view: EventFrontierPublicView): number {
+  return view.sites.filter((site) => siteController(site) === "charter").length;
+}
+
+function totalCacheCount(view: EventFrontierPublicView): number {
+  return view.sites.reduce((sum, site) => sum + site.cache_count, 0);
+}
+
+function victoryProgress(current: number, needed: number, unit: string): string {
+  const plural = current === 1 ? "" : "s";
+  if (needed <= 0) {
+    return `${current} ${unit}${plural} — instant-victory threshold met`;
+  }
+  return `${current} ${unit}${plural} so far · ${needed} more for instant victory`;
 }
 
 function terminalLabel(view: EventFrontierPublicView): string {
