@@ -1,7 +1,7 @@
 // Fail-closed catalog-to-outcome-explanation validation.
 //
 // The check spans inert contract surfaces only:
-//   1. `crates/wasm-api/src/lib.rs` catalog consts,
+//   1. `crates/wasm-api/src/constants.rs` catalog consts,
 //   2. `games/<game_id>/docs/UI.md` outcome explanation sections,
 //   3. `games/<game_id>/docs/RULES.md` stable scoring/end rule IDs,
 //   4. `apps/web/src/wasm/client.ts` viewer-safe rationale mirrors,
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const ROOT = process.env.RULEPATH_ROOT ?? DEFAULT_ROOT;
-const WASM_API = process.env.RULEPATH_WASM_API ?? path.join(ROOT, "crates/wasm-api/src/lib.rs");
+const WASM_API = process.env.RULEPATH_WASM_API ?? path.join(ROOT, "crates/wasm-api/src/constants.rs");
 const GAMES_DIR = process.env.RULEPATH_GAMES_DIR ?? path.join(ROOT, "games");
 const CLIENT_TS = process.env.RULEPATH_WEB_CLIENT_TS ?? path.join(ROOT, "apps/web/src/wasm/client.ts");
 const TEMPLATES_TS =
