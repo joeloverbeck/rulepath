@@ -22,6 +22,7 @@ const requiredExports = [
   "rulepath_list_games",
   "rulepath_new_match",
   "rulepath_new_match_with_seat_count",
+  "rulepath_new_match_with_options",
   "rulepath_new_match_with_variant",
   "rulepath_get_view",
   "rulepath_get_view_for_viewer",
@@ -48,7 +49,15 @@ assert(version === "rulepath-wasm-api/0.1.0", "wasm artifact loads");
 
 const featureReport = invoke(() => wasm.rulepath_feature_report(), []);
 assert(featureReport.api_version === version, "feature_report returns the API version");
-for (const op of ["new_match", "new_match_with_variant", "get_view", "apply_action", "export_replay", "import_replay"]) {
+for (const op of [
+  "new_match",
+  "new_match_with_options",
+  "new_match_with_variant",
+  "get_view",
+  "apply_action",
+  "export_replay",
+  "import_replay",
+]) {
   assert(featureReport.operations.includes(op), `feature_report includes ${op}`);
 }
 
@@ -141,6 +150,47 @@ assert(
   ),
   "list_games includes river_ledger 3-6 seat hidden-information variant",
 );
+
+const riverOptionsCreated = invoke(
+  (args) =>
+    wasm.rulepath_new_match_with_options(
+      args[0].ptr,
+      args[0].len,
+      7n,
+      3,
+      args[1].ptr,
+      args[1].len,
+    ),
+  ["river_ledger", JSON.stringify({ starting_stacks: [8, 3, 2] })],
+);
+const riverOptionsView = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [riverOptionsCreated.match_id],
+);
+assert(riverOptionsView.seats[0].starting_stack === 8, "river_ledger options carry starting stack");
+assert(riverOptionsView.seats[2].is_all_in === true, "river_ledger options carry all-in stack state");
+assert(Array.isArray(riverOptionsView.pot_tiers), "river_ledger view carries pot tiers");
+assert(Array.isArray(riverOptionsView.uncalled_returns), "river_ledger view carries uncalled returns");
+try {
+  invoke(
+    (args) =>
+      wasm.rulepath_new_match_with_options(
+        args[0].ptr,
+        args[0].len,
+        7n,
+        3,
+        args[1].ptr,
+        args[1].len,
+      ),
+    ["river_ledger", JSON.stringify({ starting_stacks: [8, 0, 24] })],
+  );
+  throw new Error("river_ledger malformed starting_stacks unexpectedly succeeded");
+} catch (error) {
+  assert(
+    error.diagnostic?.code === "invalid_starting_stack",
+    "river_ledger malformed starting_stacks returns Rust diagnostic",
+  );
+}
 
 const eventFrontierHardWinter = invoke(
   (args) => wasm.rulepath_new_match_with_variant(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 23n),

@@ -10,6 +10,14 @@ type WasmExports = {
   rulepath_list_games: () => number;
   rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
   rulepath_new_match_with_seat_count: (gamePtr: number, gameLen: number, seed: bigint, seatCount: number) => number;
+  rulepath_new_match_with_options: (
+    gamePtr: number,
+    gameLen: number,
+    seed: bigint,
+    seatCount: number,
+    optionsPtr: number,
+    optionsLen: number,
+  ) => number;
   rulepath_new_match_with_variant: (
     gamePtr: number,
     gameLen: number,
@@ -1493,6 +1501,21 @@ export class RulepathApi {
     return this.invokeJson<MatchCreated>(
       (args) => this.exports.rulepath_new_match(args[0].ptr, args[0].len, BigInt(seed)),
       [gameId],
+    );
+  }
+
+  newMatchWithOptions(gameId: string, seed: number, seatCount: number, options: unknown): MatchCreated {
+    return this.invokeJson<MatchCreated>(
+      (args) =>
+        this.exports.rulepath_new_match_with_options(
+          args[0].ptr,
+          args[0].len,
+          BigInt(seed),
+          seatCount,
+          args[1].ptr,
+          args[1].len,
+        ),
+      [gameId, JSON.stringify(options)],
     );
   }
 

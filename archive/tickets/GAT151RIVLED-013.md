@@ -1,6 +1,6 @@
 # GAT151RIVLED-013: WASM bridge marshalling
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` (`src/games/river.rs`, `src/json.rs`, `tests/api_surface.rs`)
@@ -76,3 +76,20 @@ Extend `tests/api_surface.rs` with deterministic snapshots of the new setup and 
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm`
 3. `cargo test --workspace` — confirms the shared bridge change is cross-game safe; the targeted `wasm-api` test is the primary boundary.
+
+## Outcome
+
+Completed: 2026-06-20
+
+Added a River Ledger typed setup-options path to the WASM bridge via `new_match_with_options` / `rulepath_new_match_with_options`. The bridge parses only the `starting_stacks` vector, passes it to `river_ledger::setup_match`, and surfaces malformed vectors through the existing Rust diagnostic JSON. Non-River games reject non-empty setup options.
+
+Extended River Ledger JSON marshalling to carry Rust-projected stack state, all-in status, pot tiers, uncalled returns, and the new stack/pot semantic effects. The bridge only formats projected fields from `river_ledger`; it does not compute caps, eligibility, winners, remainders, side pots, or legality.
+
+Updated API-surface snapshots to lock the new operation, stack-aware action metadata, default River views, asymmetric-stack setup view, and malformed-stack diagnostic. Updated the WASM load smoke and TypeScript client boundary to expose and exercise the new options-bearing raw ABI; renderer use remains owned by GAT151RIVLED-014.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p wasm-api` — passed.
+3. `cargo test --workspace` — passed.
+4. `npm --prefix apps/web run smoke:wasm` — passed.

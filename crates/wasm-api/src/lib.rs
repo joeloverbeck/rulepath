@@ -320,6 +320,23 @@ pub fn new_match_for_variant(
     new_match_for_variant_with_seat_count(game_id, variant_id, seed, DEFAULT_SEAT_COUNT)
 }
 
+pub fn new_match_with_options(
+    game_id: &str,
+    seed: u64,
+    seat_count: usize,
+    options_json: &str,
+) -> Result<String, String> {
+    match resolve_game(game_id)? {
+        RegisteredGame::RiverLedger => {
+            create_river_ledger_match(seed, seat_count, Some(options_json))
+        }
+        _ => {
+            validate_empty_setup_options(options_json)?;
+            new_match_for_variant_with_seat_count(game_id, None, seed, seat_count)
+        }
+    }
+}
+
 pub fn new_match_for_variant_with_seat_count(
     game_id: &str,
     variant_id: Option<&str>,
@@ -683,31 +700,48 @@ pub fn new_match_for_variant_with_seat_count(
                 escape_json(VARIANT_PLAIN_TRICKS_STANDARD)
             ))
         }
-        RegisteredGame::RiverLedger => {
-            let seats = river_seats_for_count(seat_count);
-            let state =
-                river_setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
-                    .map_err(diagnostic_json)?;
-            let match_id = next_match_id(game_id);
-            MATCHES.with(|matches| {
-                matches.borrow_mut().insert(
-                    match_id.clone(),
-                    MatchRecord::RiverLedger {
-                        game_id: GAME_RIVER_LEDGER.to_owned(),
-                        seed,
-                        state,
-                        effects: EffectLog::new(),
-                        commands: Vec::new(),
-                    },
-                );
-            });
-            Ok(format!(
-                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
-                escape_json(&match_id),
-                escape_json(game_id),
-                escape_json(VARIANT_RIVER_LEDGER_STANDARD)
-            ))
-        }
+        RegisteredGame::RiverLedger => create_river_ledger_match(seed, seat_count, None),
+    }
+}
+
+fn create_river_ledger_match(
+    seed: u64,
+    seat_count: usize,
+    options_json: Option<&str>,
+) -> Result<String, String> {
+    let seats = river_seats_for_count(seat_count);
+    let options = river_setup_options_from_json(options_json)?;
+    let state = river_setup_match(Seed(seed), &seats, &options).map_err(diagnostic_json)?;
+    let match_id = next_match_id(GAME_RIVER_LEDGER);
+    MATCHES.with(|matches| {
+        matches.borrow_mut().insert(
+            match_id.clone(),
+            MatchRecord::RiverLedger {
+                game_id: GAME_RIVER_LEDGER.to_owned(),
+                seed,
+                state,
+                effects: EffectLog::new(),
+                commands: Vec::new(),
+            },
+        );
+    });
+    Ok(format!(
+        "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+        escape_json(&match_id),
+        escape_json(GAME_RIVER_LEDGER),
+        escape_json(VARIANT_RIVER_LEDGER_STANDARD)
+    ))
+}
+
+fn validate_empty_setup_options(options_json: &str) -> Result<(), String> {
+    let trimmed = options_json.trim();
+    if trimmed.is_empty() || trimmed == "{}" {
+        Ok(())
+    } else {
+        Err(diagnostic_string(
+            "unsupported_setup_options",
+            "typed setup options are not supported for this game",
+        ))
     }
 }
 

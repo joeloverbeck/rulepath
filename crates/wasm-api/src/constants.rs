@@ -44,6 +44,7 @@ pub(crate) const SUPPORTED_OPERATIONS: &[&str] = &[
     "list_games",
     "new_match",
     "new_match_with_seat_count",
+    "new_match_with_options",
     "new_match_with_variant",
     "new_match_with_variant_and_seat_count",
     "get_view",

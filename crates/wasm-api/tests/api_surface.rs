@@ -157,6 +157,31 @@ fn capture() -> Vec<(String, String)> {
                 push(key("replay_reset"), enc(wasm_api::replay_reset(&replay_id)));
             }
         }
+
+        if *game == "river_ledger" {
+            let custom =
+                wasm_api::new_match_with_options(game, SEED, 3, "{\"starting_stacks\":[8,3,2]}");
+            let custom_match_id = custom
+                .as_ref()
+                .ok()
+                .and_then(|json| extract_field(json, "match_id"));
+            push(key("new_match/options/asymmetric_stacks"), enc(custom));
+            if let Some(match_id) = custom_match_id {
+                push(
+                    key("view/options/asymmetric_stacks/observer"),
+                    enc(wasm_api::get_view(&match_id, None)),
+                );
+            }
+            push(
+                key("new_match/options/malformed_stacks"),
+                enc(wasm_api::new_match_with_options(
+                    game,
+                    SEED,
+                    3,
+                    "{\"starting_stacks\":[8,0,24]}",
+                )),
+            );
+        }
     }
 
     out
