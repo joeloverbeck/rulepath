@@ -1,6 +1,6 @@
 # GAT151RIVLED-005: Stack-capped legal actions
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger` (`actions.rs`, `rules.rs`), tests
@@ -77,3 +77,19 @@ Emit `amount_owed`, `adds_to_pot`, `stack_before`, `stack_after`, `is_all_in`, `
 1. `cargo test -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p rule-coverage -- --game river_ledger` — coverage rows are the correct boundary for new rule families, even while `RULE-COVERAGE.md` reconciliation is deferred to GAT151RIVLED-019.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Preserved the five River Ledger action families while making `Call`/`Bet`/`Raise` amounts stack-capped from the Rust action validator.
+- Added authoritative public action metadata for owed amount, contribution amount, stack before/after, all-in state, full-raise state, raise-right openness, and existing cap counters.
+- Applied validated capped amounts in `rules.rs`, decrementing remaining stack, marking contributing zero-stack live seats all-in, and debug-checking stack/pot conservation.
+- Added rule tests for short all-in calls, exact all-in calls, short all-in raises, full all-in raises, and short opening all-in bets.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p simulate -- --game river_ledger --games 1000`
+- `cargo run -p rule-coverage -- --game river_ledger`

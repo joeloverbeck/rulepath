@@ -47,6 +47,11 @@ pub struct ValidatedAction {
     pub required_to_call: u16,
     pub adds_to_pot: u16,
     pub street_unit: u8,
+    pub stack_before: u16,
+    pub stack_after: u16,
+    pub is_all_in: bool,
+    pub is_full_raise: bool,
+    pub raise_right_open: bool,
 }
 
 pub fn legal_action_tree(state: &RiverLedgerState, actor: &Actor) -> ActionTree {
@@ -74,21 +79,34 @@ pub fn legal_actions(state: &RiverLedgerState, actor: RiverLedgerSeat) -> Vec<Ri
     let Some(price) = call_price(state, actor) else {
         return Vec::new();
     };
+    let remaining_stack = state.ledger.seats[actor.index()].remaining_stack;
+    if remaining_stack == 0 {
+        return Vec::new();
+    }
+    let raise_right_open = !state.betting.raise_cap_reached();
 
     if price > 0 {
         let mut actions = vec![RiverLedgerAction::Fold, RiverLedgerAction::Call];
-        if !state.betting.raise_cap_reached() {
+        if raise_right_open && remaining_stack > price {
             actions.push(RiverLedgerAction::Raise);
         }
         return actions;
     }
 
     if state.betting.current_to_call == 0 {
-        vec![RiverLedgerAction::Check, RiverLedgerAction::Bet]
+        let mut actions = vec![RiverLedgerAction::Check];
+        if remaining_stack > 0 {
+            actions.push(RiverLedgerAction::Bet);
+        }
+        actions
     } else if state.betting.raise_cap_reached() {
         vec![RiverLedgerAction::Check]
     } else {
-        vec![RiverLedgerAction::Check, RiverLedgerAction::Raise]
+        let mut actions = vec![RiverLedgerAction::Check];
+        if remaining_stack > 0 {
+            actions.push(RiverLedgerAction::Raise);
+        }
+        actions
     }
 }
 
@@ -140,20 +158,19 @@ pub fn validate_command(
         return Err(unavailable_action_diagnostic());
     }
 
-    let required_to_call = call_price(state, actor).unwrap_or(0);
-    let adds_to_pot = match action {
-        RiverLedgerAction::Fold | RiverLedgerAction::Check => 0,
-        RiverLedgerAction::Call => required_to_call,
-        RiverLedgerAction::Bet => u16::from(state.betting.street.unit()),
-        RiverLedgerAction::Raise => required_to_call + u16::from(state.betting.street.unit()),
-    };
+    let amounts = action_amounts(state, actor, action);
 
     Ok(ValidatedAction {
         actor,
         action,
-        required_to_call,
-        adds_to_pot,
+        required_to_call: amounts.required_to_call,
+        adds_to_pot: amounts.adds_to_pot,
         street_unit: state.betting.street.unit(),
+        stack_before: amounts.stack_before,
+        stack_after: amounts.stack_after,
+        is_all_in: amounts.is_all_in,
+        is_full_raise: amounts.is_full_raise,
+        raise_right_open: amounts.raise_right_open,
     })
 }
 
@@ -205,22 +222,22 @@ fn action_choice(
     actor: RiverLedgerSeat,
     action: RiverLedgerAction,
 ) -> ActionChoice {
-    let required_to_call = call_price(state, actor).unwrap_or(0);
-    let adds_to_pot = match action {
-        RiverLedgerAction::Fold | RiverLedgerAction::Check => 0,
-        RiverLedgerAction::Call => required_to_call,
-        RiverLedgerAction::Bet => u16::from(state.betting.street.unit()),
-        RiverLedgerAction::Raise => required_to_call + u16::from(state.betting.street.unit()),
-    };
-    let accessibility_copy = accessibility_copy(action, adds_to_pot, required_to_call);
+    let amounts = action_amounts(state, actor, action);
+    let accessibility_copy = accessibility_copy(
+        action,
+        amounts.adds_to_pot,
+        amounts.required_to_call,
+        amounts.is_all_in,
+        amounts.is_full_raise,
+    );
     let raises_remaining =
         crate::ids::MAX_RAISES_PER_STREET.saturating_sub(state.betting.raises_this_street);
     let cap_remaining = raises_remaining.to_string();
     let mut choice = ActionChoice::leaf(action.segment(), action.label(), &accessibility_copy);
     let presentation = action_presentation(
         action,
-        required_to_call,
-        adds_to_pot,
+        amounts.required_to_call,
+        amounts.adds_to_pot,
         raises_remaining,
         accessibility_copy.clone(),
     );
@@ -229,14 +246,20 @@ fn action_choice(
         metadata("street", state.betting.street.as_str()),
         metadata("street_unit", state.betting.street.unit().to_string()),
         metadata("actor_seat", actor.as_str()),
-        metadata("required_to_call", required_to_call.to_string()),
-        metadata("adds_to_pot", adds_to_pot.to_string()),
+        metadata("amount_owed", amounts.required_to_call.to_string()),
+        metadata("required_to_call", amounts.required_to_call.to_string()),
+        metadata("adds_to_pot", amounts.adds_to_pot.to_string()),
+        metadata("stack_before", amounts.stack_before.to_string()),
+        metadata("stack_after", amounts.stack_after.to_string()),
+        metadata("is_all_in", amounts.is_all_in.to_string()),
+        metadata("is_full_raise", amounts.is_full_raise.to_string()),
+        metadata("raise_right_open", amounts.raise_right_open.to_string()),
         metadata(
             "pot_after",
             state
                 .ledger
                 .pot_total
-                .saturating_add(adds_to_pot)
+                .saturating_add(amounts.adds_to_pot)
                 .to_string(),
         ),
         metadata("raises_remaining", cap_remaining.clone()),
@@ -272,8 +295,10 @@ fn accessibility_copy(
     action: RiverLedgerAction,
     adds_to_pot: u16,
     required_to_call: u16,
+    is_all_in: bool,
+    is_full_raise: bool,
 ) -> String {
-    match action {
+    let base = match action {
         RiverLedgerAction::Fold => "Fold this seat out of the hand".to_owned(),
         RiverLedgerAction::Check => "Check without adding contribution units".to_owned(),
         RiverLedgerAction::Call => format!("Call by adding {required_to_call} contribution units"),
@@ -282,6 +307,55 @@ fn accessibility_copy(
             "Raise by calling {required_to_call} and adding {} contribution units",
             adds_to_pot.saturating_sub(required_to_call)
         ),
+    };
+    if is_all_in && matches!(action, RiverLedgerAction::Call | RiverLedgerAction::Bet) {
+        format!("{base}; this uses the seat's remaining stack")
+    } else if is_all_in && matches!(action, RiverLedgerAction::Raise) && is_full_raise {
+        format!("{base}; this is a full all-in raise")
+    } else if is_all_in && matches!(action, RiverLedgerAction::Raise) {
+        format!("{base}; this is a short all-in raise")
+    } else {
+        base
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ActionAmounts {
+    required_to_call: u16,
+    adds_to_pot: u16,
+    stack_before: u16,
+    stack_after: u16,
+    is_all_in: bool,
+    is_full_raise: bool,
+    raise_right_open: bool,
+}
+
+fn action_amounts(
+    state: &RiverLedgerState,
+    actor: RiverLedgerSeat,
+    action: RiverLedgerAction,
+) -> ActionAmounts {
+    let required_to_call = call_price(state, actor).unwrap_or(0);
+    let stack_before = state.ledger.seats[actor.index()].remaining_stack;
+    let street_unit = u16::from(state.betting.street.unit());
+    let uncapped = match action {
+        RiverLedgerAction::Fold | RiverLedgerAction::Check => 0,
+        RiverLedgerAction::Call => required_to_call,
+        RiverLedgerAction::Bet => street_unit,
+        RiverLedgerAction::Raise => required_to_call.saturating_add(street_unit),
+    };
+    let adds_to_pot = uncapped.min(stack_before);
+    let stack_after = stack_before.saturating_sub(adds_to_pot);
+    let raise_increment = adds_to_pot.saturating_sub(required_to_call);
+    let is_raise_action = matches!(action, RiverLedgerAction::Bet | RiverLedgerAction::Raise);
+    ActionAmounts {
+        required_to_call,
+        adds_to_pot,
+        stack_before,
+        stack_after,
+        is_all_in: adds_to_pot > 0 && stack_after == 0,
+        is_full_raise: is_raise_action && raise_increment == street_unit,
+        raise_right_open: !state.betting.raise_cap_reached(),
     }
 }
 

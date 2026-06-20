@@ -24,9 +24,9 @@ pub fn apply_action(
     match action.action {
         RiverLedgerAction::Fold => apply_fold(state, action.actor),
         RiverLedgerAction::Check => apply_check(state, action.actor),
-        RiverLedgerAction::Call => apply_call(state, action.actor, action.required_to_call),
-        RiverLedgerAction::Bet => apply_bet(state, action.actor),
-        RiverLedgerAction::Raise => apply_raise(state, action.actor, action.required_to_call),
+        RiverLedgerAction::Call => apply_call(state, action.actor, action.adds_to_pot),
+        RiverLedgerAction::Bet => apply_bet(state, action.actor, action.adds_to_pot),
+        RiverLedgerAction::Raise => apply_raise(state, action.actor, action.adds_to_pot),
     }
 
     debug_assert_ledger(state);
@@ -101,8 +101,7 @@ fn apply_call(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16)
     }
 }
 
-fn apply_bet(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
-    let amount = u16::from(state.betting.street.unit());
+fn apply_bet(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
     add_contribution(state, actor, amount);
     state.betting.current_to_call = state.ledger.seats[actor.index()].street_contribution;
     state.betting.raises_this_street = 0;
@@ -111,8 +110,7 @@ fn apply_bet(state: &mut RiverLedgerState, actor: RiverLedgerSeat) {
     state.active_seat = state.betting.actors_to_respond.first().copied();
 }
 
-fn apply_raise(state: &mut RiverLedgerState, actor: RiverLedgerSeat, required_to_call: u16) {
-    let amount = required_to_call + u16::from(state.betting.street.unit());
+fn apply_raise(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
     add_contribution(state, actor, amount);
     state.betting.current_to_call = state.ledger.seats[actor.index()].street_contribution;
     state.betting.raises_this_street = state.betting.raises_this_street.saturating_add(1);
@@ -123,9 +121,26 @@ fn apply_raise(state: &mut RiverLedgerState, actor: RiverLedgerSeat, required_to
 
 fn add_contribution(state: &mut RiverLedgerState, actor: RiverLedgerSeat, amount: u16) {
     let ledger = &mut state.ledger.seats[actor.index()];
-    ledger.street_contribution = ledger.street_contribution.saturating_add(amount);
-    ledger.total_contribution = ledger.total_contribution.saturating_add(amount);
-    state.ledger.pot_total = state.ledger.pot_total.saturating_add(amount);
+    ledger.remaining_stack = ledger
+        .remaining_stack
+        .checked_sub(amount)
+        .expect("validated River Ledger action cannot exceed remaining stack");
+    ledger.street_contribution = ledger
+        .street_contribution
+        .checked_add(amount)
+        .expect("validated River Ledger street contribution fits u16");
+    ledger.total_contribution = ledger
+        .total_contribution
+        .checked_add(amount)
+        .expect("validated River Ledger total contribution fits u16");
+    if ledger.remaining_stack == 0 && ledger.status == SeatStatus::Live {
+        ledger.status = SeatStatus::AllIn;
+    }
+    state.ledger.pot_total = state
+        .ledger
+        .pot_total
+        .checked_add(amount)
+        .expect("validated River Ledger pot total fits u16");
 }
 
 fn close_current_street(state: &mut RiverLedgerState) {
@@ -195,6 +210,12 @@ fn debug_assert_ledger(state: &RiverLedgerState) {
         .map(|seat| seat.total_contribution)
         .sum::<u16>();
     debug_assert_eq!(total, state.ledger.pot_total);
+    let conserved = state
+        .ledger
+        .seats
+        .iter()
+        .all(|seat| seat.remaining_stack + seat.total_contribution == seat.starting_stack);
+    debug_assert!(conserved);
 }
 
 fn effects_for_transition(

@@ -3,10 +3,10 @@ use std::collections::BTreeSet;
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use river_ledger::state::SeatRoles;
 use river_ledger::{
-    apply_action, canonical_deck, legal_action_tree, setup_match, validate_command, Card, PotShare,
-    Rank, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Street, Suit, TerminalOutcome,
-    Variant, MAX_STARTING_STACK, STANDARD_BIG_BLIND, STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND,
-    STANDARD_STARTING_STACK,
+    apply_action, canonical_deck, legal_action_tree, setup_match, validate_command,
+    BettingRoundState, Card, PotShare, Rank, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions,
+    Street, Suit, TerminalOutcome, Variant, MAX_STARTING_STACK, STANDARD_BIG_BLIND,
+    STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND, STANDARD_STARTING_STACK,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -48,6 +48,19 @@ fn legal_segments(state: &river_ledger::RiverLedgerState, seat: &str) -> Vec<Str
 
 fn standard_state(count: usize) -> river_ledger::RiverLedgerState {
     setup_match(Seed(21), &seats(count), &SetupOptions::default()).expect("setup")
+}
+
+fn state_with_stacks(stacks: Vec<u16>) -> river_ledger::RiverLedgerState {
+    let count = stacks.len();
+    setup_match(
+        Seed(21),
+        &seats(count),
+        &SetupOptions {
+            starting_stacks: Some(stacks),
+            ..SetupOptions::default()
+        },
+    )
+    .expect("setup")
 }
 
 fn seeded_state(seed: u64, count: usize) -> river_ledger::RiverLedgerState {
@@ -557,6 +570,146 @@ fn legal_action_generation_uses_active_seat_call_price_and_cap_state() {
         .metadata
         .iter()
         .any(|entry| entry.key == "cap_remaining" && entry.value == "0")));
+}
+
+#[test]
+fn short_stack_facing_call_can_fold_or_call_all_in_for_remaining_stack() {
+    let mut state = state_with_stacks(vec![1, 16, STANDARD_STARTING_STACK]);
+
+    assert_eq!(legal_segments(&state, "seat_0"), vec!["fold", "call"]);
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let call = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "call")
+        .expect("call action");
+    assert_eq!(metadata_value(call, "amount_owed"), Some("2"));
+    assert_eq!(metadata_value(call, "adds_to_pot"), Some("1"));
+    assert_eq!(metadata_value(call, "stack_before"), Some("1"));
+    assert_eq!(metadata_value(call, "stack_after"), Some("0"));
+    assert_eq!(metadata_value(call, "is_all_in"), Some("true"));
+    assert_eq!(metadata_value(call, "is_full_raise"), Some("false"));
+
+    apply_segment(&mut state, "seat_0", "call");
+
+    assert_eq!(state.ledger.seats[0].remaining_stack, 0);
+    assert_eq!(state.ledger.seats[0].total_contribution, 1);
+    assert_eq!(state.ledger.seats[0].status, SeatStatus::AllIn);
+    assert_eq!(state.ledger.pot_total, 4);
+}
+
+#[test]
+fn exact_stack_call_is_a_full_call_all_in() {
+    let mut state = state_with_stacks(vec![2, 16, STANDARD_STARTING_STACK]);
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let call = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "call")
+        .expect("call action");
+
+    assert_eq!(metadata_value(call, "amount_owed"), Some("2"));
+    assert_eq!(metadata_value(call, "adds_to_pot"), Some("2"));
+    assert_eq!(metadata_value(call, "stack_after"), Some("0"));
+    assert_eq!(metadata_value(call, "is_all_in"), Some("true"));
+
+    apply_segment(&mut state, "seat_0", "call");
+
+    assert_eq!(state.ledger.seats[0].remaining_stack, 0);
+    assert_eq!(state.ledger.seats[0].total_contribution, 2);
+    assert_eq!(state.ledger.seats[0].status, SeatStatus::AllIn);
+}
+
+#[test]
+fn stack_short_of_call_plus_unit_keeps_call_and_short_raise_all_in() {
+    let mut state = state_with_stacks(vec![3, 16, STANDARD_STARTING_STACK]);
+
+    assert_eq!(
+        legal_segments(&state, "seat_0"),
+        vec!["fold", "call", "raise"]
+    );
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let raise = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "raise")
+        .expect("raise action");
+    assert_eq!(metadata_value(raise, "amount_owed"), Some("2"));
+    assert_eq!(metadata_value(raise, "adds_to_pot"), Some("3"));
+    assert_eq!(metadata_value(raise, "stack_before"), Some("3"));
+    assert_eq!(metadata_value(raise, "stack_after"), Some("0"));
+    assert_eq!(metadata_value(raise, "is_all_in"), Some("true"));
+    assert_eq!(metadata_value(raise, "is_full_raise"), Some("false"));
+    assert_eq!(metadata_value(raise, "raise_right_open"), Some("true"));
+
+    apply_segment(&mut state, "seat_0", "raise");
+
+    assert_eq!(state.ledger.seats[0].remaining_stack, 0);
+    assert_eq!(state.ledger.seats[0].street_contribution, 3);
+    assert_eq!(state.ledger.seats[0].status, SeatStatus::AllIn);
+    assert_eq!(state.betting.current_to_call, 3);
+}
+
+#[test]
+fn exact_stack_raise_is_full_raise_all_in() {
+    let mut state = state_with_stacks(vec![4, 16, STANDARD_STARTING_STACK]);
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let raise = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "raise")
+        .expect("raise action");
+
+    assert_eq!(metadata_value(raise, "adds_to_pot"), Some("4"));
+    assert_eq!(metadata_value(raise, "stack_after"), Some("0"));
+    assert_eq!(metadata_value(raise, "is_all_in"), Some("true"));
+    assert_eq!(metadata_value(raise, "is_full_raise"), Some("true"));
+
+    apply_segment(&mut state, "seat_0", "raise");
+
+    assert_eq!(state.ledger.seats[0].remaining_stack, 0);
+    assert_eq!(state.ledger.seats[0].street_contribution, 4);
+    assert_eq!(state.betting.current_to_call, 4);
+}
+
+#[test]
+fn short_stack_opening_bet_all_in_remains_a_bet_action() {
+    let mut state = state_with_stacks(vec![STANDARD_STARTING_STACK, 2, STANDARD_STARTING_STACK]);
+    state.phase = river_ledger::Phase::Betting {
+        street: Street::Flop,
+    };
+    state.active_seat = RiverLedgerSeat::from_index(1);
+    for seat in &mut state.ledger.seats {
+        seat.street_contribution = 0;
+    }
+    state.betting = BettingRoundState::for_street(Street::Flop, vec![seat(1), seat(2), seat(0)]);
+
+    assert_eq!(state.ledger.seats[1].remaining_stack, 1);
+    assert_eq!(legal_segments(&state, "seat_1"), vec!["check", "bet"]);
+    let tree = legal_action_tree(&state, &actor("seat_1"));
+    let bet = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "bet")
+        .expect("bet action");
+    assert_eq!(metadata_value(bet, "amount_owed"), Some("0"));
+    assert_eq!(metadata_value(bet, "adds_to_pot"), Some("1"));
+    assert_eq!(metadata_value(bet, "stack_before"), Some("1"));
+    assert_eq!(metadata_value(bet, "stack_after"), Some("0"));
+    assert_eq!(metadata_value(bet, "is_all_in"), Some("true"));
+    assert_eq!(metadata_value(bet, "is_full_raise"), Some("false"));
+
+    apply_segment(&mut state, "seat_1", "bet");
+
+    assert_eq!(state.ledger.seats[1].remaining_stack, 0);
+    assert_eq!(state.ledger.seats[1].street_contribution, 1);
+    assert_eq!(state.ledger.seats[1].status, SeatStatus::AllIn);
+    assert_eq!(state.betting.current_to_call, 1);
 }
 
 #[test]
@@ -1293,8 +1446,14 @@ fn legal_action_tree_metadata_remains_public_and_stable() {
         "street",
         "street_unit",
         "actor_seat",
+        "amount_owed",
         "required_to_call",
         "adds_to_pot",
+        "stack_before",
+        "stack_after",
+        "is_all_in",
+        "is_full_raise",
+        "raise_right_open",
         "pot_after",
         "raises_remaining",
         "cap_remaining",
