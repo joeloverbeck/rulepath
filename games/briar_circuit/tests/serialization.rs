@@ -1,6 +1,7 @@
 use briar_circuit::{
-    canonical_deck, canonical_seat_ids, load_manifest, load_variants, setup_match, CardId,
-    Manifest, SetupOptions, VariantCatalog, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID,
+    canonical_deck, canonical_seat_ids, load_manifest, load_variants, parse_export_header,
+    setup_match, CardId, Manifest, SetupOptions, VariantCatalog, GAME_ID, RULES_VERSION_LABEL,
+    TRACE_SCHEMA_VERSION, VARIANT_ID, VIEWER_EXPORT_VERSION,
 };
 use engine_core::{SeatId, Seed};
 
@@ -57,4 +58,26 @@ fn setup_state_summary_is_deterministic_for_same_inputs() {
         first.stable_internal_summary(),
         second.stable_internal_summary()
     );
+}
+
+#[test]
+fn replay_export_header_has_version_anchors_and_rejects_unknown_fields() {
+    let parsed = parse_export_header(
+        "game_id=briar_circuit\nrules_version=briar-circuit-rules-v1\nexport_version=1\nviewer=public\nclass=public\n",
+    )
+    .expect("header parses");
+
+    assert_eq!(parsed.game_id, GAME_ID);
+    assert_eq!(parsed.rules_version, RULES_VERSION_LABEL);
+    assert_eq!(parsed.export_version, VIEWER_EXPORT_VERSION);
+    assert_eq!(TRACE_SCHEMA_VERSION, 1);
+
+    assert!(parse_export_header(
+        "game_id=briar_circuit\nrules_version=briar-circuit-rules-v1\nexport_version=1\nviewer=public\nclass=public\ndebug=bad\n",
+    )
+    .is_err());
+    assert!(parse_export_header(
+        "game_id=briar_circuit\nrules_version=briar-circuit-rules-v1\nexport_version=2\nviewer=public\nclass=public\n",
+    )
+    .is_err());
 }

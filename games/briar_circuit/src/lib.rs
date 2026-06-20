@@ -27,6 +27,11 @@ pub use ids::{
     STANDARD_PASS_SIZE, STANDARD_RANK_COUNT, STANDARD_SEAT_COUNT, STANDARD_SUIT_COUNT,
     STANDARD_TRICKS_PER_HAND, VARIANT_ID,
 };
+pub use replay_support::{
+    action_hash, effect_hash, export_viewer_timeline, import_viewer_timeline, parse_export_header,
+    replay_hash_snapshot, view_hash, ReplayHashSnapshot, ViewerExportClass, ViewerReplayExport,
+    TRACE_SCHEMA_VERSION, VIEWER_EXPORT_VERSION,
+};
 pub use rules::{
     apply_play_card, is_point_card, legal_cards_for_playing_state, legal_play_cards,
     play_legality_reason, trick_winner, validate_play_card, PlayActionResult, PlayLegalityReason,

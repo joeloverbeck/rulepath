@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-010: Replay support, serialization, and golden-trace pack
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (deterministic evidence) — `games/briar_circuit/src/replay_support.rs`, `tests/serialization.rs`, `tests/replay.rs`, `tests/golden_traces/*`
@@ -84,3 +84,23 @@ The §7.6 behavioral minimum set (setup/deal, pass directions, play rules, scori
 1. `cargo test -p briar_circuit --test replay --test serialization`
 2. `cargo test -p briar_circuit`
 3. `replay-check --game briar_circuit --all` is the cross-cutting validator but is exercised once the tool arm lands (GAT16BRICIRTRI-012); native replay/serialization tests are the correct boundary here.
+
+## Outcome
+
+Completed on 2026-06-21. Added game-local replay hash snapshots for state,
+view, action-preview, and effect surfaces; viewer-scoped replay exports/imports
+with ADR-style public and seat-private classes; strict export header parsing
+with version anchors; and the full §7.6 37-file golden trace inventory. The
+no-leak traces from GAT16BRICIRTRI-009 were normalized to include schema,
+rules-version, and migration-note anchors.
+
+Deferred verification:
+
+1. `cargo run -p replay-check -- --game briar_circuit --all` is deferred until
+   GAT16BRICIRTRI-012 registers Briar Circuit with replay-check.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p briar_circuit --test replay --test serialization`
+3. `cargo test -p briar_circuit`
