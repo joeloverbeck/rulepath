@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-011: Bots (L0 + bounded L1), simulator dispatch, and seeded simulation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/briar_circuit/src/bots.rs`, `tools/simulate/src/main.rs` (dispatch arm)
@@ -79,3 +79,18 @@ Add the `briar_circuit` dispatch branch requiring `--seat-count 4`, preserving s
 1. `cargo test -p briar_circuit --test bots`
 2. `cargo run -p simulate -- --game briar_circuit --seat-count 4 --games 1000 --start-seed 1600 --action-cap 4096`
 3. The seeded simulation is the correct end-to-end boundary for bot legality at scale; a cap hit must emit a reproducible failure seed, not a silent draw.
+
+## Outcome
+
+Completed on 2026-06-21. Added L0 seeded random-legal and bounded L1
+rule-priority bots over the Rust legal action API for pass and play phases,
+with viewer-safe explanations and no hidden opponent-hand dependency. Added a
+`briar_circuit` simulator branch requiring four seats and reporting moon and
+threshold-tie counters in the seeded smoke summary.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p briar_circuit --test bots`
+3. `cargo run -p simulate -- --game briar_circuit --seat-count 4 --games 1000 --start-seed 1600 --action-cap 4096`
+4. `cargo test -p briar_circuit`

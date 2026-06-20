@@ -18,6 +18,10 @@ pub use actions::{
     apply_pass_action, apply_play_action, parse_pass_action_path, parse_play_action_path,
     validate_pass_command, validate_play_command, PassAction, PassActionResult, PlayAction,
 };
+pub use bots::{
+    legal_bot_actions, BriarCircuitBotAction, BriarCircuitBotDecision, BriarCircuitL0Bot,
+    BriarCircuitL1Bot,
+};
 pub use cards::{canonical_deck, Card, CardId, Deck, Rank, Suit};
 pub use effects::{BriarCircuitEffect, PassCommitmentStatus};
 pub use ids::{
