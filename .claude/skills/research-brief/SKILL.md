@@ -49,7 +49,7 @@ Announce the classification on its own line as your **first user-facing output**
 
 ## Step 2: Explore the repo to ground the brief
 
-The point of authoring here is that Claude can read the repo directly — so the *user never types out what the researcher should read*. Build, from exploration:
+The point of authoring here is that Claude can read the repo directly — so the *user never types out what the researcher should read*. When the user nonetheless **volunteers a read set** in `research_target` (e.g. "have it read `docs/**`, `templates/**`, and `specs/README.md`"), treat that list as a mandatory floor, not the whole job: verify each named path resolves at the baseline commit, carry every one into the brief's §2 with its own one-line load-bearing reason, and then **enrich** (never replace or silently prune) it with the authority-ordered artifacts and code seams the user did not name. Build, from exploration:
 
 - the **authority-ordered read list** following `docs/README.md`'s ordered index (`FOUNDATIONS.md` → `ARCHITECTURE.md` → `ENGINE-GAME-DATA-BOUNDARY.md` → the relevant area docs → `ROADMAP.md`), then relevant `specs/`, `tickets/`, `templates/`, `docs/adr/`, `docs/plans/`, `reports/`, `archive/`, each with a one-line reason it is load-bearing for *this* target;
 - the **relevant code seams** Session 2 should inspect (name files/modules in `crates/`, `games/`, `tools/`, `apps/web/` — don't paste them; Session 2 reads them itself);
