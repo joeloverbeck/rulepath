@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "game_id": "briar_circuit",
+  "rules_version": "briar-circuit-rules-v1",
+  "data_version": "1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    {
+      "operation_name": "setup_shuffle_deal_serialize",
+      "unit": "setups_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for setup, shuffle, deal, canonical summary, and replay hash snapshot until repeated CI-runner measurements calibrate a tighter gate."
+    },
+    {
+      "operation_name": "pass_legal_actions",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for pass-phase legal action generation across a 13-card private hand."
+    },
+    {
+      "operation_name": "pass_select_apply",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for validating and applying one pass selection through the command boundary."
+    },
+    {
+      "operation_name": "pass_commit_exchange",
+      "unit": "exchanges_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for fourth pass confirmation plus atomic exchange and private/public effects."
+    },
+    {
+      "operation_name": "play_legal_actions_max_hand",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for play legal-action generation from a maximum 13-card owner hand."
+    },
+    {
+      "operation_name": "play_legal_actions_follow",
+      "unit": "trees_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for constrained follow-suit legal-action generation."
+    },
+    {
+      "operation_name": "validate_apply_play",
+      "unit": "actions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for command validation plus applying one legal play."
+    },
+    {
+      "operation_name": "trick_resolution",
+      "unit": "tricks_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for applying the fourth card of a trick and resolving the winner."
+    },
+    {
+      "operation_name": "normal_hand_scoring",
+      "unit": "scores_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for non-moon hand scoring over a full 52-card captured-trick fixture."
+    },
+    {
+      "operation_name": "moon_hand_scoring",
+      "unit": "scores_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for moon scoring over a full 52-card captured-trick fixture."
+    },
+    {
+      "operation_name": "threshold_outcome",
+      "unit": "outcomes_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for match-threshold and unique-low outcome construction."
+    },
+    {
+      "operation_name": "project_observer_view",
+      "unit": "views_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for observer-safe public projection without private hands."
+    },
+    {
+      "operation_name": "project_four_seat_views",
+      "unit": "viewer_sets_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for all four seat-private projections over the same playing fixture."
+    },
+    {
+      "operation_name": "effect_filter_all_viewers",
+      "unit": "viewer_sets_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for public and seat-private effect filtering after pass exchange."
+    },
+    {
+      "operation_name": "full_internal_trace_replay",
+      "unit": "hands_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for driving a full hand through legal commands while recording replay hash snapshots."
+    },
+    {
+      "operation_name": "viewer_scoped_export_import_public",
+      "unit": "exports_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for viewer-scoped public export/import; internal hands and seed data remain out of the export."
+    },
+    {
+      "operation_name": "viewer_scoped_export_import_seat",
+      "unit": "exports_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for viewer-scoped seat-private export/import with only the authorized seat view."
+    },
+    {
+      "operation_name": "l0_action_selection",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for Level 0 random legal action selection through legal action APIs."
+    },
+    {
+      "operation_name": "l1_action_selection",
+      "unit": "decisions_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for Level 1 bounded policy action selection through legal action APIs."
+    },
+    {
+      "operation_name": "full_seeded_hand",
+      "unit": "hands_per_second",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for one complete seeded 13-trick hand driven through legal pass/play actions."
+    },
+    {
+      "operation_name": "full_seeded_match_terminal",
+      "unit": "matches_per_second",
+      "threshold": 100,
+      "rationale_class": "provisional_native_gate_floor",
+      "rationale": "Provisional Gate 16 native floor from the spec target; recalibrate only from repeated CI-runner evidence without removing visibility filtering, outcome detail, or legal-action validation."
+    }
+  ]
+}

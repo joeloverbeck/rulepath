@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-016: Benchmarking and calibrated CI floors
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/briar_circuit/benches/briar_circuit.rs`, `benches/thresholds.json`, `games/briar_circuit/docs/BENCHMARKS.md`, `.github/workflows/gate-2-benchmarks.yml`
@@ -81,3 +81,30 @@ Operations, fixtures, environment, provisional floors, calibration method, nativ
 1. `cargo bench -p briar_circuit`
 2. `cargo run -p rule-coverage -- --game briar_circuit`
 3. `cargo bench` is the correct boundary; the bench lane and floors are gated in gate-2 CI per ADR 0002/0003/0005.
+
+## Outcome
+
+Completed: 2026-06-21
+
+Implemented Briar Circuit native benchmarking and CI benchmark wiring:
+
+- Added `games/briar_circuit/benches/briar_circuit.rs` and registered it in `games/briar_circuit/Cargo.toml` with `harness = false`.
+- Added 21 benchmark-report operations covering setup/deal/serialization, pass generation/apply/exchange, play generation/apply, trick resolution, normal/moon/threshold scoring, observer and four-seat projection, effect filtering, replay hash timeline, viewer-scoped export/import, L0/L1 decisions, full seeded hand, and near-threshold terminal match.
+- Added `games/briar_circuit/benches/thresholds.json` with provisional smoke floors for every operation and the spec's provisional `100 matches_per_second` floor for `full_seeded_match_terminal`.
+- Added `games/briar_circuit/docs/BENCHMARKS.md`, which records the native scope, fixtures, provisional floor posture, accepted ADR 0002/0003 CI strategy, and the live-doc fact that ADR 0005 remains Proposed rather than accepted doctrine.
+- Wired `.github/workflows/gate-2-benchmarks.yml` so pull requests run `cargo bench -p briar_circuit -- legal_actions` and the scheduled/manual/main benchmark gate runs `cargo bench -p briar_circuit` plus `bench-report` against the Briar threshold file.
+
+Deviations:
+
+- The ticket text named ADR 0005 as accepted variance-aware law, but the live foundation docs mark it Proposed. The implemented documentation therefore treats variance-aware calibration as provisional posture and uses accepted ADR 0002/0003 as the binding CI benchmark doctrine.
+- The full-match benchmark uses a near-threshold fixture (`[100, 100, 100, 0]`) and then drives the remaining hand through validated legal pass/play commands to reach Rust-owned terminal outcome construction. No rule behavior was changed to create a benchmark-only terminal path.
+
+Verification:
+
+- `cargo bench -p briar_circuit -- legal_actions` passed and emitted benchmark-report JSON for the PR smoke filter.
+- `cargo bench -p briar_circuit` passed all 21 operations. Local report included `full_internal_trace_replay` at 609.40 hands/sec and `full_seeded_match_terminal` at 47729.96 matches/sec against the provisional 100 matches/sec floor.
+- `cargo run -p bench-report -- --input /tmp/briar_circuit-benchmark-report.txt --thresholds games/briar_circuit/benches/thresholds.json` passed: `bench-report: 21 operations passed thresholds for briar_circuit`.
+- `cargo fmt --all --check` passed after formatting.
+- `cargo run -p rule-coverage -- --game briar_circuit` passed: `rule-coverage: briar_circuit coverage matrix passed`.
+- `cargo test -p briar_circuit` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).

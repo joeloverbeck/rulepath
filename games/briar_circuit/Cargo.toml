@@ -12,3 +12,8 @@ engine-core = { path = "../../crates/engine-core" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "briar_circuit"
+path = "benches/briar_circuit.rs"
+harness = false
