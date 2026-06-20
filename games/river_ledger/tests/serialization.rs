@@ -2,7 +2,9 @@ use engine_core::StableSerialize;
 use river_ledger::replay_support::{
     export_public_replay, replay_internal_full_trace, trace_from_commands,
 };
-use river_ledger::{project_view, setup_match, RiverLedgerSeat, SetupOptions};
+use river_ledger::{
+    apply_action, project_view, setup_match, validate_command, RiverLedgerSeat, SetupOptions,
+};
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
     (3, "call"),
@@ -144,4 +146,59 @@ fn seed_31_terminal_serialization_keeps_canonical_split_order() {
     assert!(summary.contains("showdown:seat_1,seat_2,seat_3:"));
     assert!(summary.contains("seat_1=3,seat_2=3,seat_3=2"));
     assert!(summary.contains("Seat 2, Seat 3, and Seat 4 split the ledger"));
+}
+
+#[test]
+fn all_in_side_pot_state_and_view_hashes_are_deterministic_for_same_canonical_input() {
+    fn run() -> river_ledger::RiverLedgerState {
+        let mut state = setup_match(
+            engine_core::Seed(12),
+            &(0..3)
+                .map(|index| engine_core::SeatId(format!("seat_{index}")))
+                .collect::<Vec<_>>(),
+            &SetupOptions {
+                starting_stacks: Some(vec![8, 3, 2]),
+                ..SetupOptions::default()
+            },
+        )
+        .expect("setup");
+
+        for (seat, segment) in [("seat_0", "raise"), ("seat_1", "call")] {
+            let command = river_ledger::replay_support::command_for_state(
+                &state,
+                seat,
+                vec![segment.to_owned()],
+            );
+            let action = validate_command(&state, &command).expect("valid command");
+            apply_action(&mut state, action).expect("action applies");
+        }
+
+        state
+    }
+
+    let first = run();
+    let second = run();
+    let first_view = project_view(&first, &engine_core::Viewer { seat_id: None });
+    let second_view = project_view(&second, &engine_core::Viewer { seat_id: None });
+
+    assert_eq!(
+        first.stable_internal_summary(),
+        second.stable_internal_summary()
+    );
+    assert_eq!(first_view.stable_summary(), second_view.stable_summary());
+    assert_eq!(
+        engine_core::HashValue::from_stable_bytes(first.stable_internal_summary().as_bytes()),
+        engine_core::HashValue::from_stable_bytes(second.stable_internal_summary().as_bytes())
+    );
+    assert_eq!(first_view.stable_hash(), second_view.stable_hash());
+
+    let summary = first_view.stable_summary();
+    assert!(summary.contains(
+        "tiers=main_pot:6:0-2:contributorsseat_0,seat_1,seat_2:eligibleseat_0,seat_1,seat_2"
+    ));
+    assert!(summary.contains("side_pot_1:2:2-3:contributorsseat_0,seat_1:eligibleseat_0,seat_1"));
+    assert_eq!(first.ledger.seats[0].starting_stack, 8);
+    assert_eq!(first.ledger.seats[0].remaining_stack, 5);
+    assert_eq!(first.ledger.seats[0].total_contribution, 3);
+    assert!(summary.contains("terminal=showdown"));
 }

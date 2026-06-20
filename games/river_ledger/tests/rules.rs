@@ -764,6 +764,38 @@ fn all_all_in_action_sequence_runs_out_to_showdown_without_more_actors() {
 }
 
 #[test]
+fn actor_rotation_skips_folded_and_all_in_seats_in_mixed_short_stack_hand() {
+    let mut state = state_with_stacks(vec![4, 3, 2, 5]);
+
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(3));
+    assert!(legal_segments(&state, "seat_2").is_empty());
+    assert_eq!(state.ledger.seats[2].status, SeatStatus::AllIn);
+
+    apply_segment(&mut state, "seat_3", "call");
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(0));
+
+    apply_segment(&mut state, "seat_0", "fold");
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(1));
+    assert_eq!(state.ledger.seats[0].status, SeatStatus::Folded);
+    assert!(legal_segments(&state, "seat_2").is_empty());
+
+    apply_segment(&mut state, "seat_1", "call");
+
+    assert_eq!(
+        state.phase,
+        river_ledger::Phase::Betting {
+            street: Street::Flop
+        }
+    );
+    assert_eq!(state.active_seat, RiverLedgerSeat::from_index(1));
+    assert_eq!(state.betting.actors_to_respond, vec![seat(1), seat(3)]);
+    assert!(legal_segments(&state, "seat_0").is_empty());
+    assert!(legal_segments(&state, "seat_2").is_empty());
+    assert_eq!(legal_segments(&state, "seat_1"), vec!["check", "bet"]);
+    assert_stack_conservation(&state);
+}
+
+#[test]
 fn one_live_seat_gets_unmatched_excess_back_before_runout() {
     let mut state = state_with_stacks(vec![8, 3, 2]);
 

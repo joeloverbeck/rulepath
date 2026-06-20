@@ -101,6 +101,66 @@ fn assert_setup_stack_conservation(state: &river_ledger::RiverLedgerState) {
         .all(|seat| seat.remaining_stack == 0));
 }
 
+fn assert_layer_properties(ledgers: &[SeatLedger]) {
+    for ledger in ledgers {
+        assert!(ledger.total_contribution <= ledger.starting_stack);
+        assert_eq!(
+            ledger.remaining_stack + ledger.total_contribution,
+            ledger.starting_stack
+        );
+    }
+
+    let layers = river_ledger::pot::construct_contribution_layers(ledgers);
+    let input_total = ledgers
+        .iter()
+        .map(|ledger| ledger.total_contribution)
+        .sum::<u16>();
+    let output_total = layers.pots.iter().map(|pot| pot.amount).sum::<u16>()
+        + layers
+            .returns
+            .iter()
+            .map(|returned| returned.amount)
+            .sum::<u16>();
+
+    assert_eq!(input_total, output_total);
+    assert!(layers
+        .pots
+        .windows(2)
+        .all(|pair| pair[0].upper_cap < pair[1].upper_cap));
+    assert!(layers
+        .pots
+        .windows(2)
+        .all(|pair| pair[0].eligible != pair[1].eligible));
+
+    for (index, pot) in layers.pots.iter().enumerate() {
+        assert_eq!(
+            pot.id,
+            if index == 0 {
+                "main_pot".to_owned()
+            } else {
+                format!("side_pot_{index}")
+            }
+        );
+        assert!(pot.lower_cap < pot.upper_cap);
+        assert!(pot.contributors.len() > 1);
+        assert!(!pot.eligible.is_empty());
+        assert!(pot.contributors.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(pot.eligible.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(pot.eligible.iter().all(|eligible| {
+            let ledger = &ledgers[eligible.index()];
+            ledger.total_contribution > pot.lower_cap && ledger.status != SeatStatus::Folded
+        }));
+        assert!(pot.contributors.iter().all(|contributor| {
+            ledgers[contributor.index()].total_contribution > pot.lower_cap
+        }));
+    }
+
+    for returned in &layers.returns {
+        assert!(ledgers[returned.seat.index()].total_contribution > 0);
+        assert!(returned.amount > 0);
+    }
+}
+
 #[test]
 fn random_legal_action_sequences_preserve_accounting_invariants() {
     for count in 3..=6 {
@@ -306,37 +366,39 @@ fn contribution_layer_constructor_conserves_and_orders_generated_profiles() {
                 })
                 .collect::<Vec<_>>();
 
-            let layers = river_ledger::pot::construct_contribution_layers(&ledgers);
-            let input_total = ledgers
-                .iter()
-                .map(|ledger| ledger.total_contribution)
-                .sum::<u16>();
-            let output_total = layers.pots.iter().map(|pot| pot.amount).sum::<u16>()
-                + layers
-                    .returns
-                    .iter()
-                    .map(|returned| returned.amount)
-                    .sum::<u16>();
+            assert_layer_properties(&ledgers);
+        }
+    }
+}
 
-            assert_eq!(input_total, output_total);
-            for (index, pot) in layers.pots.iter().enumerate() {
-                assert_eq!(
-                    pot.id,
-                    if index == 0 {
-                        "main_pot".to_owned()
+#[test]
+fn contribution_layer_properties_cover_bounded_validity_classes() {
+    for seat_count in 3..=6 {
+        for profile in 0..96u16 {
+            let ledgers = (0..seat_count)
+                .map(|index| {
+                    let starting_stack = 6 + ((profile + index as u16) % 19);
+                    let total_contribution =
+                        1 + ((profile * 3 + index as u16 * 5) % starting_stack);
+                    let status = if index == seat_count - 1 && profile % 4 == 0 {
+                        SeatStatus::Folded
+                    } else if total_contribution == starting_stack {
+                        SeatStatus::AllIn
                     } else {
-                        format!("side_pot_{index}")
+                        SeatStatus::ShowdownEligible
+                    };
+                    SeatLedger {
+                        seat: seat(index),
+                        status,
+                        starting_stack,
+                        remaining_stack: starting_stack - total_contribution,
+                        street_contribution: 0,
+                        total_contribution,
                     }
-                );
-                assert!(pot.contributors.len() > 1);
-                assert!(!pot.eligible.is_empty());
-                assert!(pot.contributors.windows(2).all(|pair| pair[0] < pair[1]));
-                assert!(pot.eligible.windows(2).all(|pair| pair[0] < pair[1]));
-                assert!(pot
-                    .eligible
-                    .iter()
-                    .all(|eligible| ledgers[eligible.index()].status != SeatStatus::Folded));
-            }
+                })
+                .collect::<Vec<_>>();
+
+            assert_layer_properties(&ledgers);
         }
     }
 }

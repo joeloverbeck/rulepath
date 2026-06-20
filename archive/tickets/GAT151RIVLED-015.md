@@ -1,6 +1,6 @@
 # GAT151RIVLED-015: Integrated rule/property/serialization suite
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/river_ledger/tests/{rules,property,serialization}.rs`
@@ -76,3 +76,19 @@ Extend `tests/rules.rs` and `tests/serialization.rs` to cover actor rotation, se
 1. `cargo test --workspace`
 2. `cargo run -p rule-coverage -- --game river_ledger`
 3. `cargo run -p simulate -- --game river_ledger --games 1000` — the workspace suite is the correct integrated boundary; no-leak and traces are separate tickets.
+
+## Outcome
+
+Completed 2026-06-20.
+
+- Extended the River Ledger property matrix with generated 3–6 seat contribution profiles that assert stack bounds, contribution conservation, ordered/coalesced pot layers, non-empty eligibility, folded-seat exclusion, canonical contributor/eligible ordering, and singleton top-layer returns.
+- Added a mixed short-stack rule case proving folded and all-in seats stay non-actionable while live seats rotate deterministically across street advance.
+- Added an all-in side-pot serialization determinism case comparing repeated canonical input state summaries, view summaries, state-summary hashes, view hashes, ordered tier tokens, and final returned stack/contribution state.
+- Retained all existing Gate 15 tests; no tests were deleted or weakened.
+
+Verification:
+
+1. `cargo test -p river_ledger`
+2. `cargo test --workspace`
+3. `cargo run -p rule-coverage -- --game river_ledger`
+4. `cargo run -p simulate -- --game river_ledger --games 1000`
