@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-setup-equal-default-stacks-3p",
+  "fixture_kind": "setup",
+  "purpose": "G15.1 v2 setup fixture: default equal 24-unit stacks for the minimum 3-seat game.",
+  "migration_review": "GAT151RIVLED-017: v2 stack setup evidence recorded under the current replay-check placeholder contract.",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 1510,
+  "variant": "river_ledger_standard",
+  "seats": ["seat_0", "seat_1", "seat_2"],
+  "commands": [],
+  "expected_public_setup": {
+    "starting_stacks": [24, 24, 24],
+    "remaining_stacks": [24, 23, 22],
+    "button": "seat_0",
+    "small_blind": "seat_1",
+    "big_blind": "seat_2",
+    "initial_active": "seat_0",
+    "public_board_count": 0
+  }
+}

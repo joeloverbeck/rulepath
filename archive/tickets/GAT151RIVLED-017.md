@@ -1,6 +1,6 @@
 # GAT151RIVLED-017: Golden traces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (deterministic evidence) — new `games/river_ledger/tests/golden_traces/*.trace.json`, `tests/replay.rs`
@@ -75,3 +75,13 @@ For each v1 trace whose state changed under v2, record an explicit migration not
 1. `cargo run -p replay-check -- --game river_ledger --all`
 2. `cargo test -p river_ledger`
 3. `cargo run -p rule-coverage -- --game river_ledger` — `replay-check --all` is the authoritative trace boundary; coverage finalizes with GAT151RIVLED-019 docs.
+
+## Outcome
+
+Completed 2026-06-20. Added the 22 Gate 15.1 River Ledger golden-trace fixtures under the existing replay-check placeholder schema and added `gate_15_1_golden_trace_set_is_present_and_reviewed` so the required set, migration notes, public expectations, and coverage-spread markers are asserted in Rust. Current `replay-check` still registers River Ledger trace fixtures under `river-ledger-rules-v1`; the new v2 side-pot/all-in/no-leak evidence therefore carries explicit `migration_review` notes instead of silently changing the checker contract.
+
+Verification passed:
+
+1. `cargo run -p replay-check -- --game river_ledger --all`
+2. `cargo test -p river_ledger`
+3. `cargo run -p rule-coverage -- --game river_ledger`

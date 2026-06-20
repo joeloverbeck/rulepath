@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-wasm-exported-side-pot-terminal",
+  "fixture_kind": "replay-placeholder",
+  "purpose": "G15.1 v2 WASM/export fixture: public replay export carries terminal side-pot accounting without hidden state.",
+  "migration_review": "GAT151RIVLED-017: WASM terminal side-pot projection evidence added intentionally.",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 1531,
+  "variant": "river_ledger_standard",
+  "seats": ["seat_0", "seat_1", "seat_2"],
+  "commands": [
+    { "seat": "seat_0", "action": "raise" },
+    { "seat": "seat_1", "action": "call" }
+  ],
+  "public_export": {
+    "viewer": "observer",
+    "contains": ["pot_tiers", "terminal", "allocations"],
+    "omits": ["private_hands", "deck_tail", "seed_evidence"]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-short-raise-all-in",
+  "fixture_kind": "betting-placeholder",
+  "purpose": "G15.1 v2 betting fixture: short all-in raise increases current pressure without counting as a full raise.",
+  "migration_review": "GAT151RIVLED-017: records short raise reopening evidence.",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 1517,
+  "variant": "river_ledger_standard",
+  "seats": ["seat_0", "seat_1", "seat_2"],
+  "setup_options": { "starting_stacks": [3, 16, 24] },
+  "commands": [{ "seat": "seat_0", "action": "raise" }],
+  "expected_public_result": {
+    "action_metadata": { "adds_to_pot": 3, "is_all_in": true, "is_full_raise": false, "raise_right_open": true },
+    "current_to_call": 3,
+    "raises_this_street": 0
+  }
+}
