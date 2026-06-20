@@ -3,9 +3,9 @@ use engine_core::{
 };
 use river_ledger::state::SeatRoles;
 use river_ledger::{
-    filter_effects_for_viewer, legal_action_tree, project_view, setup_effects, setup_match,
-    validate_command, Card, Rank, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Suit,
-    TerminalOutcome, Variant,
+    apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
+    setup_match, validate_command, Card, Rank, RiverLedgerEffect, RiverLedgerSeat, SeatLedger,
+    SeatStatus, SetupOptions, Suit, TerminalOutcome, Variant,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -35,6 +35,15 @@ fn command(state: &river_ledger::RiverLedgerState, seat: usize, segment: &str) -
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn apply_segment(
+    state: &mut river_ledger::RiverLedgerState,
+    seat: usize,
+    segment: &str,
+) -> Vec<engine_core::EffectEnvelope<RiverLedgerEffect>> {
+    let action = validate_command(state, &command(state, seat, segment)).expect("valid action");
+    apply_action(state, action).expect("action applies")
 }
 
 fn private_ids_for(state: &river_ledger::RiverLedgerState, seat: usize) -> Vec<String> {
@@ -102,6 +111,7 @@ fn showdown_state_with_folded_seat(count: usize) -> river_ledger::RiverLedgerSta
             big_blind: seat(2),
             active_seat: seat(0),
         },
+        vec![river_ledger::STANDARD_STARTING_STACK; count],
         hands[..count].to_vec(),
         board,
         Vec::new(),
@@ -115,6 +125,8 @@ fn showdown_state_with_folded_seat(count: usize) -> river_ledger::RiverLedgerSta
             } else {
                 SeatStatus::ShowdownEligible
             },
+            starting_stack: river_ledger::STANDARD_STARTING_STACK,
+            remaining_stack: river_ledger::STANDARD_STARTING_STACK - 3,
             street_contribution: 0,
             total_contribution: 3,
         })
@@ -130,6 +142,81 @@ fn assert_absent(text: &str, forbidden: &[String], context: &str) {
             !text.contains(value),
             "{context} leaked hidden value {value}"
         );
+    }
+}
+
+fn asymmetric_stacks(count: usize) -> Vec<u16> {
+    let mut stacks = vec![24; count];
+    stacks[0] = 8;
+    stacks[1] = 3;
+    stacks[2] = 2;
+    stacks
+}
+
+fn assert_nonterminal_pairwise_matrix(state: &river_ledger::RiverLedgerState, label: &str) {
+    let count = state.seats.len();
+    let future = unrevealed_public_ids(state);
+
+    for recipient in None.into_iter().chain((0..count).map(Some)) {
+        let projection = project_view(state, &viewer(recipient));
+        let text = format!("{projection:?}");
+
+        assert_eq!(projection.seats.len(), count);
+        assert_eq!(projection.pot_total, state.ledger.pot_total);
+        assert!(!projection.pot_tiers.is_empty());
+        assert_absent(&text, &future, &format!("{label} future cards"));
+
+        for owner in 0..count {
+            let owner_private = private_ids_for(state, owner);
+            if recipient == Some(owner) {
+                for private_id in owner_private {
+                    assert!(
+                        text.contains(&private_id),
+                        "{label} self viewer should see own private card {private_id}"
+                    );
+                }
+            } else {
+                assert_absent(
+                    &text,
+                    &owner_private,
+                    &format!("{label} recipient {recipient:?} owner seat_{owner} private cards"),
+                );
+            }
+        }
+
+        let effects = filter_effects_for_viewer(&setup_effects(state), &viewer(recipient));
+        let effect_text = format!("{effects:?}");
+        assert_absent(
+            &effect_text,
+            &future,
+            &format!("{label} setup effects future cards"),
+        );
+        for owner in 0..count {
+            if recipient != Some(owner) {
+                assert_absent(
+                    &effect_text,
+                    &private_ids_for(state, owner),
+                    &format!("{label} setup effects recipient {recipient:?} owner seat_{owner}"),
+                );
+            }
+        }
+    }
+
+    if let Some(active) = state.active_seat {
+        let tree = legal_action_tree(state, &actor(active.index()));
+        let tree_text = format!("{tree:?}");
+        assert_absent(
+            &tree_text,
+            &future,
+            &format!("{label} legal action tree future cards"),
+        );
+        for owner in 0..count {
+            assert_absent(
+                &tree_text,
+                &private_ids_for(state, owner),
+                &format!("{label} legal action tree owner seat_{owner}"),
+            );
+        }
     }
 }
 
@@ -166,6 +253,60 @@ fn pairwise_seat_views_and_effects_hide_other_seats_private_cards_for_all_counts
                     &format!("seat_{recipient} effects for {}", owner_seat.as_str()),
                 );
             }
+        }
+    }
+}
+
+#[test]
+fn visibility_stack_pot_pairwise_matrix_hides_private_data_across_lifecycle_states() {
+    for count in 3..=6 {
+        let mut waiting = setup_match(
+            Seed(900 + count as u64),
+            &seats(count),
+            &SetupOptions {
+                starting_stacks: Some(asymmetric_stacks(count)),
+                ..SetupOptions::default()
+            },
+        )
+        .expect("asymmetric setup");
+        assert_nonterminal_pairwise_matrix(&waiting, &format!("{count}-seat all-in waiting"));
+
+        let active = waiting.active_seat.expect("active seat").index();
+        let first_segment = legal_action_tree(&waiting, &actor(active))
+            .root
+            .choices
+            .into_iter()
+            .find(|choice| choice.segment == "call")
+            .map(|choice| choice.segment)
+            .unwrap_or_else(|| "fold".to_owned());
+        apply_segment(&mut waiting, active, &first_segment);
+        if !matches!(waiting.phase, river_ledger::Phase::Terminal) {
+            assert_nonterminal_pairwise_matrix(&waiting, &format!("{count}-seat post-action"));
+        }
+
+        let showdown = showdown_state_with_folded_seat(count);
+        let folded_private = private_ids_for(&showdown, 0);
+        let deck_tail = showdown
+            .deck_tail_internal()
+            .iter()
+            .map(|card| card.id())
+            .collect::<Vec<_>>();
+        for recipient in None.into_iter().chain((0..count).map(Some)) {
+            let projection = project_view(&showdown, &viewer(recipient));
+            let text = format!("{projection:?}");
+            assert_eq!(projection.pot_total, showdown.ledger.pot_total);
+            if recipient != Some(0) {
+                assert_absent(
+                    &text,
+                    &folded_private,
+                    &format!("{count}-seat folded showdown recipient {recipient:?}"),
+                );
+            }
+            assert_absent(
+                &text,
+                &deck_tail,
+                &format!("{count}-seat folded showdown future cards"),
+            );
         }
     }
 }
@@ -263,6 +404,88 @@ fn active_seat_labels_are_viewer_safe_and_identical_for_all_viewers() {
                 assert!(!labels_debug.contains(&future_id));
             }
         }
+    }
+}
+
+#[test]
+fn stack_pot_projection_and_effects_are_public_accounting_only() {
+    let mut state = setup_match(
+        Seed(91),
+        &seats(3),
+        &SetupOptions {
+            starting_stacks: Some(vec![8, 3, 2]),
+            ..SetupOptions::default()
+        },
+    )
+    .expect("setup");
+
+    let raise_effects = apply_segment(&mut state, 0, "raise");
+    assert!(raise_effects.iter().any(|effect| matches!(
+        effect.payload,
+        RiverLedgerEffect::StackChanged { seat: changed_seat, .. } if changed_seat == seat(0)
+    )));
+
+    let call_effects = apply_segment(&mut state, 1, "call");
+    let effect_names = call_effects
+        .iter()
+        .map(|effect| match &effect.payload {
+            RiverLedgerEffect::StackChanged { .. } => "stack",
+            RiverLedgerEffect::SeatBecameAllIn { .. } => "all_in",
+            RiverLedgerEffect::UncalledContributionReturned { .. } => "return",
+            RiverLedgerEffect::PotResolved { .. } => "pot_resolved",
+            RiverLedgerEffect::PotAwarded { .. } => "pot_awarded",
+            RiverLedgerEffect::ShowdownResolved { .. } => "showdown",
+            _ => "other",
+        })
+        .collect::<Vec<_>>();
+
+    let stack_index = effect_names
+        .iter()
+        .position(|name| *name == "stack")
+        .expect("stack effect");
+    let all_in_index = effect_names
+        .iter()
+        .position(|name| *name == "all_in")
+        .expect("all-in effect");
+    let return_index = effect_names
+        .iter()
+        .position(|name| *name == "return")
+        .expect("return effect");
+    let pot_index = effect_names
+        .iter()
+        .position(|name| *name == "pot_resolved")
+        .expect("pot resolved effect");
+    assert!(stack_index < all_in_index);
+    assert!(all_in_index < return_index);
+    assert!(return_index < pot_index);
+
+    let view = project_view(&state, &viewer(None));
+    assert_eq!(view.seats[0].starting_stack, 8);
+    assert_eq!(view.seats[0].remaining_stack, 5);
+    assert!(!view.seats[1].is_all_in);
+    assert_eq!(view.pot_tiers.len(), 2);
+    assert_eq!(
+        view.pot_tiers.iter().map(|tier| tier.amount).sum::<u16>(),
+        8
+    );
+    assert!(view.uncalled_returns.is_empty());
+
+    let accounting_effects = call_effects
+        .iter()
+        .filter(|effect| {
+            !matches!(
+                effect.payload,
+                RiverLedgerEffect::ShowdownResolved { .. }
+                    | RiverLedgerEffect::PrivateCardsDealt { .. }
+            )
+        })
+        .collect::<Vec<_>>();
+    let public_text = format!("{accounting_effects:?}");
+    for id in unrevealed_public_ids(&state) {
+        assert!(
+            !public_text.contains(&id),
+            "public accounting projection leaked {id}"
+        );
     }
 }
 

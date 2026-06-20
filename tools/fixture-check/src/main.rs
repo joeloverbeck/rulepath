@@ -327,7 +327,7 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
         }),
         "river_ledger" => Ok(RegisteredGame {
             game_id: "river_ledger",
-            rules_version: "river-ledger-rules-v1",
+            rules_version: "river-ledger-rules-v2",
             trace_dir: "games/river_ledger/tests/golden_traces",
             fixture_dir: "games/river_ledger/data/fixtures",
             manifest_path: "games/river_ledger/data/manifest.toml",
@@ -655,16 +655,18 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
             game.manifest_path, game.game_id, manifest_game_id
         ));
     }
-    if manifest_rules_version != 1 {
+    let expected_rules_version = if game.game_id == "river_ledger" { 2 } else { 1 };
+    if manifest_rules_version != expected_rules_version {
         return Err(format!(
             "{}: rules_version `{}` does not map to {}",
             game.manifest_path, manifest_rules_version, game.rules_version
         ));
     }
-    if manifest_data_version != 1 || manifest_schema_version != 1 {
+    let expected_data_version = if game.game_id == "river_ledger" { 2 } else { 1 };
+    if manifest_data_version != expected_data_version || manifest_schema_version != 1 {
         return Err(format!(
-            "{}: data_version and schema_version must be 1",
-            game.manifest_path
+            "{}: data_version must be {} and schema_version must be 1",
+            game.manifest_path, expected_data_version
         ));
     }
     if selected_variant != game.variant_id {
@@ -861,7 +863,10 @@ fn validate_trace(
             game.game_id
         ));
     }
-    if required_string(path, input, "rules_version")? != game.rules_version {
+    let trace_rules_version = required_string(path, input, "rules_version")?;
+    let river_ledger_placeholder_v1 =
+        game.game_id == "river_ledger" && trace_rules_version == "river-ledger-rules-v1";
+    if trace_rules_version != game.rules_version && !river_ledger_placeholder_v1 {
         return Err(format!(
             "{}: rules_version must be {}",
             path.display(),
@@ -937,7 +942,10 @@ fn validate_river_ledger_trace(
             game.game_id
         ));
     }
-    if required_string(path, input, "rules_version")? != game.rules_version {
+    let trace_rules_version = required_string(path, input, "rules_version")?;
+    let river_ledger_placeholder_v1 =
+        game.game_id == "river_ledger" && trace_rules_version == "river-ledger-rules-v1";
+    if trace_rules_version != game.rules_version && !river_ledger_placeholder_v1 {
         return Err(format!(
             "{}: rules_version must be {}",
             path.display(),

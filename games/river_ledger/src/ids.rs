@@ -2,7 +2,7 @@ use engine_core::{Actor, SeatId, Viewer};
 
 pub const GAME_ID: &str = "river_ledger";
 pub const VARIANT_ID: &str = "river_ledger_standard";
-pub const RULES_VERSION_LABEL: &str = "river-ledger-rules-v1";
+pub const RULES_VERSION_LABEL: &str = "river-ledger-rules-v2";
 pub const RULE_ID_PREFIX: &str = "RL-";
 
 pub const STANDARD_MIN_SEATS: u8 = 3;
@@ -13,6 +13,8 @@ pub const STANDARD_SMALL_BLIND: u8 = 1;
 pub const STANDARD_BIG_BLIND: u8 = 2;
 pub const STANDARD_SMALL_BET_UNIT: u8 = 2;
 pub const STANDARD_BIG_BET_UNIT: u8 = 4;
+pub const STANDARD_STARTING_STACK: u16 = 24;
+pub const MAX_STARTING_STACK: u16 = 10_000;
 pub const MAX_RAISES_PER_STREET: u8 = 3;
 
 pub const ACTION_FOLD: &str = "fold";

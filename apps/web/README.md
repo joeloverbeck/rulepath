@@ -107,7 +107,7 @@ single-stage `ActionControls` surface is sufficient.
 | `secret_draft` | board-native | Pool-item controls map to Rust draft/reveal choices. |
 | `poker_lite` | board-native | Poker action buttons map directly to Rust hold/press/lift/match/yield choices. |
 | `plain_tricks` | board-native | Hand-card buttons map to Rust play-card choices. |
-| `river_ledger` | board-native | Seat, board, ledger, and action controls render Rust legal choices and viewer-safe fields. |
+| `river_ledger` | board-native | Seat, board, stack, all-in, pot-tier, and action controls render Rust legal choices and viewer-safe fields. |
 
 ### Effect Animation Adoption Audit
 
@@ -132,7 +132,7 @@ presentations for the current catalog surface.
 | `secret_draft` | generic-only | Draft/reveal effects use shared redacted/reveal-safe presentations. |
 | `poker_lite` | generic-only | Public poker-lite score/reveal effects use baseline shared presentations. |
 | `plain_tricks` | generic-only | Deal/play/trick/score effects use baseline shared movement/highlight presentations. |
-| `river_ledger` | adopt | River Ledger contribution, street-advance, board reveal, and showdown-settle feedback use authored registry mappings with reduced-motion coverage. |
+| `river_ledger` | adopt | River Ledger stack, all-in contribution, uncalled-return, pot-award, street-advance, board reveal, and showdown-settle feedback use authored registry mappings with reduced-motion coverage. |
 
 ## Smoke Layers
 

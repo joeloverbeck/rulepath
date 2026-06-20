@@ -28,6 +28,81 @@ no-limit or pot-limit play, tournament systems, real-money framing, networked
 multiplayer, lookup-table evaluators, and advanced public bots remain out of
 scope.
 
+## Gate 15.1 Admission Delta
+
+Gate 15.1 supersedes the base admission's all-in and side-pot exclusion for one
+bounded v2 delta: finite public contribution stacks, fixed-limit all-in
+qualification on existing `Call`, `Bet`, and `Raise` actions, full-unit
+reopening, ordered contribution-layer side pots, uncalled returns, per-pot
+allocation, and Rust-authored public explanations.
+
+The delta remains a pure extension over the shipped single-hand River Ledger
+surface. It does not rebuild the dealer/button model, fixed-limit streets,
+raise cap, evaluator, base split/remainder order, N-seat viewer model, bots,
+WASM bridge, or web renderer except where those surfaces must consume the new
+stack and pot facts.
+
+The stack model is configurable per seat through typed setup metadata, with an
+equal default of 24 contribution units for each seat. Stack values are ordered
+by canonical seat order, validated by Rust, positive, bounded, non-monetary, and
+hand-local. They are public accounting facts, not currency, bankroll,
+tournament, or casino product state.
+
+River Ledger uses a documented full-unit reopening rule for this game: an
+incomplete all-in increase smaller than one street unit does not by itself
+reopen raising for a seat that already acted; cumulative incomplete increases
+reopen only after the seat faces at least one full street unit since its last
+completed action. Contemporary poker authorities differ on some fixed-limit
+reopening thresholds, so this is recorded as a deliberate River Ledger rule,
+not a universal poker claim.
+
+The planned rules/data cutover is `river-ledger-rules-v2` with manifest
+`rules_version = 2` and `data_version = 2`. GAT151RIVLED-011 owns the actual
+version bump and hash/serialization migration. Existing v1 replay imports will
+be rejected with a stable deterministic version-mismatch diagnostic unless a
+later accepted ticket supplies a bounded explicit converter with historical
+semantics. Silent interpretation of v1 replays under v2 stack rules is
+forbidden.
+
+## Gate 15.1 Rule-Family Plan
+
+The v2 rule set extends the existing `RL-<DOMAIN>-<CONCEPT>-NNN` scheme with the
+following stable families:
+
+| Rule family | Planned coverage |
+|---|---|
+| `RL-STACK-SETUP-*` | Ordered public starting-stack setup, equal 24-unit default, validation, and setup diagnostics. |
+| `RL-STACK-CONSERVE-*` | Checked conservation across starting stacks, remaining stacks, contributions, returns, awards, and final stacks. |
+| `RL-ALLIN-CAP-*` | Stack-capped blinds and actions; no contribution above remaining stack. |
+| `RL-ALLIN-CALL-*` | Short and exact all-in call behavior while preserving `Call` as the action family. |
+| `RL-ALLIN-BET-*` | Short/full all-in bet and raise qualification on fixed-limit `Bet` and `Raise` actions. |
+| `RL-ALLIN-ACT-*` | Folded/all-in actor exclusion, response obligation, no-action all-in states, and deterministic rotation. |
+| `RL-ALLIN-REOPEN-*` | Full-unit reopening, cumulative incomplete-increase accounting, and raise-cap interaction. |
+| `RL-ALLIN-RUNOUT-*` | Automatic deterministic runout when no betting decision remains and at least two non-folded seats remain. |
+| `RL-POT-LAYER-*` | Ascending contribution caps, coalesced ordered pot tiers, and deterministic pot identities. |
+| `RL-POT-ELIG-*` | Folded contributions count in amounts while folded seats remain ineligible. |
+| `RL-POT-RETURN-*` | Singleton unmatched top layers return as uncalled contribution, not as pot wins. |
+| `RL-POT-ALLOC-*` | Independent per-pot evaluation, split, award, and final-stack aggregation. |
+| `RL-POT-REMAINDER-*` | Independent odd-unit remainder assignment per pot using the existing button order. |
+| `RL-OUTCOME-POT-*` | Rust-authored public explanations for every pot award and return. |
+| `RL-VIS-POT-*` | Viewer-safe stacks, eligibility, pot tiers, returns, awards, and hidden-card redaction. |
+| `RL-BOT-ALLIN-*` | Bot legality, determinism, authorized views, and stack-aware explanations. |
+| `RL-REPLAY-STACK-*` | v2 stack/reopen/pot state hashing, serialization, replay, export, and v1 import handling. |
+
+Supersession map for existing Gate 15 all-in and single-pot rows:
+
+| Legacy rule ID | v2 treatment |
+|---|---|
+| `RL-POT-SINGLE-001` | Superseded by `RL-POT-LAYER-*`, `RL-POT-ALLOC-*`, and `RL-POT-REMAINDER-*`; the one-pot case remains the single-layer case. |
+| `RL-POT-SINGLE-002` | Superseded by `RL-POT-LAYER-*`; terminal accounting may now contain ordered main and side pots. |
+| `RL-POT-ALLIN-001` | Superseded by `RL-ALLIN-CAP-*`, `RL-ALLIN-CALL-*`, `RL-ALLIN-BET-*`, `RL-ALLIN-ACT-*`, and `RL-ALLIN-RUNOUT-*`. |
+| `RL-VAR-ALLIN-001` | Superseded by `RL-STACK-SETUP-*`, `RL-ALLIN-*`, and `RL-POT-*`; all-in is part of the standard v2 River Ledger variant, not a separate no-limit variant. |
+| `RL-OOS-ALLIN-001` | Superseded by the Gate 15.1 v2 families; no-limit, pot-limit, tournament, bankroll, real-money, and multi-hand carryover remain out of scope. |
+
+GAT151RIVLED-019 owns the final `RULES.md` and `RULE-COVERAGE.md`
+reconciliation after behavior, traces, no-leak evidence, benchmarks, and
+versioned replay migration land.
+
 ## Required Evidence
 
 | Area | Evidence |
@@ -197,14 +272,14 @@ Decision rationale:
   new AI class.
 - Public presentation uses original River Ledger terminology, abstract
   contribution units, and neutral board-game visual language.
-- GAT15RIVLEDTEX-021 remains responsible for the final acceptance sweep and
-  spec/index closeout before the Gate 15 family is completely archived.
+- The Gate 15 and Gate 15.1 final acceptance sweeps and spec/index closeouts
+  are complete.
 
 ## Release Blockers
 
 | Issue | Required fix | Owner | Blocks current admission? |
 |---|---|---|---:|
-| Final acceptance sweep and spec/index archive are pending. | Complete GAT15RIVLEDTEX-021 after 020. | Rulepath | no; blocks final gate closeout |
+| _None_ | _Not applicable._ | Rulepath | no |
 
 No additional implementation, WASM, UI, public-copy, no-leak, or bot blocker is
 known for the trailing-doc scope.

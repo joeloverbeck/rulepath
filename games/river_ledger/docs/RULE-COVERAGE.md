@@ -4,7 +4,7 @@ Game ID: `river_ledger`
 
 Variant: `river_ledger_standard`
 
-Last updated: 2026-06-18
+Last updated: 2026-06-20
 
 ## Coverage status
 
@@ -30,7 +30,7 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-BET-BUTTON-001` | Button marker. | `setup.rs`, `pot.rs`, `state.rs` | setup fixtures; split-remainder trace | covered-by-trace | Also defines remainder order. |
 | `RL-BET-BLIND-001` | Blind roles. | `setup.rs`, `betting.rs` | setup fixtures; preflop trace; simulator | covered | Public forced contributions only. |
 | `RL-STREET-PHASE-001` | Street phase. | `state.rs`, `rules.rs`, `visibility.rs` | street traces; replay hashes; rule tests | covered-by-trace | Public phase names are stable. |
-| `RL-POT-SINGLE-001` | Single pot term. | `pot.rs`, `state.rs` | pot tests; showdown traces | covered | Side pots excluded. |
+| `RL-POT-SINGLE-001` | Base pot term superseded as exclusive v2 accounting. | `pot.rs`, `state.rs`, `showdown.rs` | migration row in `RULES.md`; side-pot tests/traces | covered | One-layer pots remain possible; ordered side pots now exist. |
 | `RL-SETUP-SEATS-002` | Seat-count validation. | `setup.rs`, `ids.rs` | invalid-seat-count trace; setup tests; fixture-check | covered-by-trace | Accepts exactly 3-6 seats. |
 | `RL-SETUP-VARIANT-001` | Typed standard variant. | `variants.rs`, `ui.rs` | variant loader tests; boundary-check; fixture-check | covered | Static data remains metadata. |
 | `RL-DEAL-DECK-002` | Stable deck construction. | `cards.rs`, `setup.rs` | deterministic setup tests; serialization tests | covered | Stable order supports replay. |
@@ -58,9 +58,23 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-BET-CALL-001` | Exact call amount. | `betting.rs`, `rules.rs` | rule tests; preflop trace | covered | Invalid calls mutate nothing. |
 | `RL-BET-RAISE-001` | Exact raise amount. | `betting.rs`, `rules.rs` | cap tests; property tests | covered | Cap enforcement in validation. |
 | `RL-BET-CHECK-001` | Check only when even. | `actions.rs`, `rules.rs` | legal-action tests; preflop trace | covered | Browser controls consume Rust tree later. |
-| `RL-BET-AMB-001` | Base play never requires all-in handling. | `betting.rs`, `pot.rs`, `variants.rs` | property tests; out-of-scope docs; fixture-check | covered | Contribution capacity avoids all-in-required states. |
-| `RL-POT-SINGLE-002` | Single terminal pot. | `pot.rs`, `betting.rs` | pot tests; showdown traces | covered | No side-pot model. |
-| `RL-POT-ALLIN-001` | All-in absent. | `pot.rs`, `betting.rs` | property tests; out-of-scope docs | covered | Capacity avoids all-in-required states. |
+| `RL-BET-AMB-001` | All-in ambiguity resolved for v2. | `actions.rs`, `betting.rs`, `rules.rs` | all-in action tests; migration table | covered | All-in is stack-capped metadata on fixed-limit actions. |
+| `RL-POT-SINGLE-002` | Single terminal pot superseded. | `pot.rs`, `showdown.rs` | side-pot construction/allocation tests; golden traces | covered | Equal-stack play remains a one-layer degenerate case. |
+| `RL-POT-ALLIN-001` | All-in-absent rule superseded. | `actions.rs`, `rules.rs`, `pot.rs` | all-in rule tests; golden traces; migration table | covered | Gate 15.1 implements all-in accounting. |
+| `RL-STACK-SETUP-001` | Ordered starting-stack setup. | `setup.rs`, `state.rs`, WASM setup bridge | setup tests; `setup-equal-default-stacks-3p.trace.json`; `setup-asymmetric-stacks-6p.trace.json`; web smoke | covered-by-trace | Default and custom stack vectors are deterministic. |
+| `RL-STACK-SETUP-002` | Stack-capped blind posts. | `setup.rs`, `state.rs` | short blind all-in tests; `short-small-blind-all-in.trace.json`; `short-big-blind-all-in.trace.json` | covered-by-trace | Short blinds become all-in without underflow. |
+| `RL-ALLIN-CAP-001` | Actions cannot exceed remaining stack. | `actions.rs`, `rules.rs`, `state.rs` | stack conservation/property tests; rule tests | covered | Metadata records stack before/after and all-in status. |
+| `RL-ALLIN-CALL-001` | Short/exact call all-in. | `actions.rs`, `rules.rs` | `call-all-in-below-price.trace.json`; `exact-call-exhausts-stack.trace.json`; bot explanation tests | covered-by-trace | `Call` remains the action family. |
+| `RL-ALLIN-BET-001` | Short/full bet or raise all-in. | `actions.rs`, `rules.rs`, `betting.rs` | `short-open-bet-all-in.trace.json`; `short-raise-all-in.trace.json`; `full-all-in-raise.trace.json` | covered-by-trace | Full vs short pressure is Rust metadata. |
+| `RL-ALLIN-REOPEN-001` | Full-unit reopening rule. | `betting.rs`, `actions.rs` | `cumulative-reopen.trace.json`; reopen rule tests | covered-by-trace | Incomplete increases accumulate per previously acted seat. |
+| `RL-ALLIN-ACT-001` | Folded/all-in actor exclusion and runout. | `betting.rs`, `rules.rs` | actor-rotation tests; `all-all-in-runout.trace.json`; simulator | covered-by-trace | All-in seats receive no further actions. |
+| `RL-POT-LAYER-001` | Ordered contribution-layer pots. | `pot.rs`, `showdown.rs`, `visibility.rs` | `three-way-main-two-side-pots.trace.json`; property tests; benchmark max-layer lane | covered-by-trace | Pot ids are deterministic. |
+| `RL-POT-LAYER-002` | Folded money retained, folded eligibility removed. | `pot.rs`, `showdown.rs` | `folded-contribution-retained.trace.json`; property tests | covered-by-trace | Folded private cards remain redacted. |
+| `RL-POT-LAYER-003` | Identical eligibility layer coalescing. | `pot.rs` | pot unit tests; property tests; benchmark max-layer lane | covered | Conservation and ordering remain stable. |
+| `RL-POT-RETURN-001` | Singleton top layer returned. | `pot.rs`, `rules.rs`, `visibility.rs` | `uncalled-return.trace.json`; rule tests; e2e smoke | covered-by-trace | Returned excess is not awarded as a pot. |
+| `RL-POT-ALLOC-001` | Independent per-pot winner selection. | `showdown.rs`, `pot.rs` | `different-winners-across-pots.trace.json`; side-pot showdown tests | covered-by-trace | Winners may differ by pot. |
+| `RL-POT-ALLOC-002` | Per-pot split and remainder ordering. | `pot.rs`, `showdown.rs` | `tied-winners-in-pot.trace.json`; `per-pot-remainder-button-order.trace.json`; property tests | covered-by-trace | Odd units are button-order per pot. |
+| `RL-OUTCOME-POTPRESENT-001` | Public pot/return/allocation explanation. | `showdown.rs`, `visibility.rs`, `ui.rs`, WASM/web | outcome tests; wasm bridge tests; River Ledger e2e | covered | TypeScript renders but does not compute allocation. |
 | `RL-EVAL-FIVE-001` | Five-card category. | `evaluator.rs` | evaluator unit tests; high-card trace | covered | Includes all standard categories. |
 | `RL-EVAL-ACELOW-001` | Ace-low straight. | `evaluator.rs` | straight-ace-low trace; evaluator tests | covered-by-trace | Ace-high remains highest straight. |
 | `RL-EVAL-SEVEN-001` | Seven-card best of 21. | `evaluator.rs`, `showdown.rs` | evaluator tests; benchmark lane | covered | No lookup table. |
@@ -72,6 +86,8 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-POT-REMAINDER-001` | Remainder by button order. | `pot.rs` | `split-pot-remainder-button-order.trace.json`; `split-winner-order-vs-remainder.trace.json`; pot tests; seed-31 replay test | covered-by-trace | Public deterministic order only assigns odd units and does not redefine canonical tied-winner order. |
 | `RL-SHOW-FOLDOUT-001` | Foldout explanation. | `showdown.rs`, `visibility.rs` | foldout trace; no-leak tests | covered-by-trace | Folded private cards stay hidden. |
 | `RL-VIS-PUBLIC-001` | Public facts only. | `visibility.rs`, `effects.rs` | public-observer-no-leak trace; visibility tests | covered | Public payload excludes hidden cards. |
+| `RL-VIS-POT-001` | Public stack/pot/return facts. | `visibility.rs`, `effects.rs`, WASM bridge, web renderer | stack/pot visibility tests; no-leak matrix; River Ledger e2e | covered | Public accounting does not reveal hidden cards. |
+| `RL-VIS-POT-002` | Terminal per-pot awards and final allocations. | `visibility.rs`, `showdown.rs`, WASM bridge, web renderer | terminal side-pot tests; `wasm-exported-side-pot-terminal.trace.json`; a11y no-leak smoke | covered-by-trace | Folded/non-showdown private cards remain redacted. |
 | `RL-VIS-PRIVATE-HOLE-001` | Own hole cards only. | `visibility.rs` | seat-private-view trace; visibility tests | covered-by-trace | Owner authorization only. |
 | `RL-VIS-OPPONENT-HOLE-001` | Opponent holes hidden. | `visibility.rs`, `effects.rs` | pairwise no-leak tests; no-leak traces | covered | Cross-seat leakage rejected. |
 | `RL-VIS-DECKTAIL-001` | Deck tail/future board hidden. | `setup.rs`, `visibility.rs`, `replay_support.rs` | no-leak traces; replay export tests | covered | Public exports cannot reconstruct deck tail. |
@@ -84,16 +100,19 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-REPLAY-EXPORT-001` | Redacted public export. | `replay_support.rs`, `visibility.rs` | public-replay-export-import trace; no-leak tests | covered-by-trace | Viewer scoped. |
 | `RL-REPLAY-IMPORT-001` | Import through Rust rules. | `replay_support.rs`, `rules.rs` | replay tests; replay-check | covered | Commands validate normally. |
 | `RL-REPLAY-SERIAL-001` | Deterministic serialization order. | `state.rs`, `replay_support.rs` | serialization tests; `split-winner-order-vs-remainder.trace.json`; golden traces | covered | Canonical winners/allocations serialize in stable order. |
+| `RL-REPLAY-STACK-001` | v2 stack/pot/reopen serialization and replay boundary. | `replay_support.rs`, `state.rs`, `serialization.rs` | v1 rejection test; side-pot hash tests; Gate 15.1 golden traces; replay-check | covered-by-trace | Current golden-trace checker still accepts placeholder v1 fixtures with migration notes. |
 | `RL-BOT-LEGAL-001` | Legal-action-only bots. | `bots.rs`, `actions.rs` | bot tests; simulator; bot trace | covered | Bots submit normal commands. |
 | `RL-BOT-L0-001` | Level 0 random legal. | `bots.rs` | bot tests; AI docs | covered | Deterministic seed tie handling. |
 | `RL-BOT-L1-001` | Level 1 heuristics. | `bots.rs`, `AI.md` | bot tests; evidence docs | covered | Authorized inputs only. |
 | `RL-BOT-L2-001` | Level 2 authored policy. | `bots.rs`, evidence pack | bot tests; simulator; benchmark full playout | covered | No MCTS/ML/RL/sampling. |
+| `RL-BOT-ALLIN-001` | Stack-aware bot actions. | `bots.rs`, `actions.rs` | `games/river_ledger/tests/bots.rs`; simulator | covered | Bots consume legal action metadata for call all-in, short/full raise all-in, and no-action all-in/terminal states. |
 | `RL-BOT-EXPLAIN-001` | Viewer-safe bot explanations. | `bots.rs`, `visibility.rs`, WASM bridge, web renderer | bot no-leak tests; `smoke:ui`; a11y no-leak smoke | covered | Non-random bot why uses public facts only and is not routed through effects or replay. |
 | `RL-UI-PRESENT-001` | UI presents Rust/WASM output. | `ui.rs`, WASM bridge, web renderer | wasm-api tests; `smoke:wasm`; `smoke:effects`; `smoke:e2e` | covered | Browser renders Rust-projected fields and Rust-authored copy; TypeScript adds layout only. |
 | `RL-UI-SEATS-001` | UI seat metadata from Rust. | `ui.rs`, web renderer | River Ledger e2e 3/4/5/6 setup/live assertions; six-seat selector smoke; cross-catalog selector matrix; `smoke:ui` | covered | Seat count, labels, active-match seat labels, roles, active/pending markers, street strip, and seat-ledger display consume Rust/WASM metadata. |
 | `RL-UI-ACTIONS-001` | UI legal controls from Rust. | `ui.rs`, WASM legal tree, web action panel | legal-action tests; River Ledger e2e action metadata assertions; `smoke:ui` | covered | Relevant action helper rows, call price, added ledger units, and cap-left copy come from Rust legal-action metadata. |
 | `RL-UI-PREVIEW-001` | Viewer-safe previews. | `ui.rs`, WASM/web | not applicable to shipped River Ledger surface | intentionally-deferred | River Ledger has no separate browser preview surface yet; future preview work must remain Rust-authored and viewer-safe. |
 | `RL-UI-LEDGER-001` | Abstract ledger display. | `ui.rs`, web renderer | River Ledger e2e; public-copy audit | covered | Browser copy uses ledger/abstract units, not pot/chip/money/rake language, with labeled `This round` and `Hand total` fields. |
+| `RL-UI-POT-001` | Stack setup, all-in labels, pot tiers, returns, terminal allocations. | `ui.rs`, WASM bridge, web renderer | wasm-api tests; River Ledger custom-stack e2e; a11y no-leak smoke | covered | Browser renders Rust-projected values only. |
 | `RL-UI-SHOWDOWN-001` | Rust-authored outcome. | `showdown.rs`, `visibility.rs`, `ui.rs`, WASM bridge, web renderer | showdown and visibility tests; `showdown-seat-label-consistency.trace.json`; seed-10018 browser assertion; card containment e2e; wasm-api bridge tests; outcome and River Ledger e2e | covered | V2 banner, decisive contrast, ranked standings, folded rows, card-usage marks, hand names, teaching aid, and contained neutral card text are Rust-authored/rendered reveal-scoped facts. |
 | `RL-UI-NOCASINO-001` | No casino presentation. | docs, web renderer, catalog icon | player rules; public-copy audit; `smoke:e2e`; shell smoke | covered | Public River Ledger UI and catalog icon avoid casino trade dress and money/chip/payout/rake vocabulary. |
 | `RL-UI-NOLEAK-001` | Browser no-leak. | visibility projection, WASM/web/e2e | visibility tests; River Ledger all-pairs DOM/storage/console no-leak e2e; cross-catalog a11y no-leak smoke; bot why no-leak smoke | covered | Observer and wrong-seat browser contexts contain no unauthorized private cards, hidden hand-strength facts, bot-private reasons, stale viewer payloads, or raw seat IDs. |
@@ -106,10 +125,10 @@ Status values follow `docs/OFFICIAL-GAME-CONTRACT.md`: `covered`,
 | `RL-VAR-LIMIT-001` | Fixed-limit variant. | `variants.rs`, `betting.rs` | variant tests; rule tests | covered | No no-limit behavior. |
 | `RL-VAR-CAP-001` | Raise cap variant metadata. | `variants.rs`, `betting.rs` | variant tests; cap trace | covered-by-trace | Metadata mirrors Rust constants. |
 | `RL-VAR-PRESENT-001` | Neutral presentation metadata. | `variants.rs`, `ui.rs`, docs | source docs; player docs | covered | Original Rulepath identity. |
-| `RL-VAR-ALLIN-001` | No all-in variant. | `variants.rs`, `pot.rs` | variant tests; out-of-scope docs | covered | Side pots absent. |
-| `RL-OOS-ALLIN-001` | All-in/side pots out of scope. | `pot.rs`, docs | pot tests; sources/admission docs | covered | Explicitly absent from model. |
+| `RL-VAR-ALLIN-001` | All-in/side pots now standard v2 behavior. | `variants.rs`, `actions.rs`, `pot.rs` | migration table; variant/static-data tests; all-in traces | covered | No separate no-limit/pot-limit variant was added. |
+| `RL-OOS-ALLIN-001` | Legacy out-of-scope row superseded. | docs, `actions.rs`, `pot.rs`, `showdown.rs` | migration table; Gate 15.1 tests/traces/benchmarks | covered | Kept only as migration reference; all-in/side pots are in scope for v2. |
 | `RL-OOS-NOLIMIT-001` | No no-limit/pot-limit. | `betting.rs`, variants | rule tests; docs | covered | Fixed-limit only. |
 | `RL-OOS-TOURNAMENT-001` | No tournament features. | docs, data | source/admission docs; boundary-check | covered | No lobby/payout/rake features. |
 | `RL-OOS-BOT-001` | No advanced public bots. | `bots.rs`, AI docs | bot tests; evidence pack | covered | No MCTS/ISMCTS/Monte Carlo/ML/RL. |
-| `RL-OOS-BROWSER-001` | No browser authority. | architecture docs, later WASM/web | WASM/web tickets | intentionally-deferred | Final browser enforcement lands in GAT15RIVLEDTEX-016/017/018. |
+| `RL-OOS-BROWSER-001` | No browser authority. | architecture docs, WASM/web | wasm-api tests; smoke:wasm; smoke:e2e; smoke:effects | covered | Browser renders Rust/WASM output only. |
 | `RL-OOS-ENGINE-001` | No engine-core game nouns. | crate boundaries | `bash scripts/boundary-check.sh`; workspace checks | covered | Game nouns remain in `games/river_ledger`. |

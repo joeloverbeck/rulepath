@@ -14,7 +14,7 @@ import { FloodWatchBoard } from "./components/FloodWatchBoard";
 import { FrontierControlBoard } from "./components/FrontierControlBoard";
 import { GamePicker } from "./components/GamePicker";
 import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
-import { MatchSetup } from "./components/MatchSetup";
+import { MatchSetup, riverLedgerShortStackPreset } from "./components/MatchSetup";
 import { MaskedClaimsBoard } from "./components/MaskedClaimsBoard";
 import { ModeControls } from "./components/ModeControls";
 import { PlainTricksBoard } from "./components/PlainTricksBoard";
@@ -207,15 +207,25 @@ function App() {
       return;
     }
     dispatch({ type: "matchStarting" });
-    const created = api.newMatch(
-      state.selectedGameId,
-      state.setup.seed,
-      selectedVariantForStart(selectedGame, state.setup.variantId),
-      state.setup.seatCount ?? selectedGame?.default_seats,
-    );
+    const seatCount = state.setup.seatCount ?? selectedGame?.default_seats;
+    const riverLedgerOptions = riverLedgerSetupOptions(state.selectedGameId, state.setup.riverLedgerStackMode, state.setup.riverLedgerStacks, seatCount);
+    const created =
+      riverLedgerOptions && typeof seatCount === "number"
+        ? api.newMatchWithOptions(state.selectedGameId, state.setup.seed, seatCount, riverLedgerOptions)
+        : api.newMatch(state.selectedGameId, state.setup.seed, selectedVariantForStart(selectedGame, state.setup.variantId), seatCount);
     dispatch({ type: "matchStarted", matchId: created.match_id });
     refresh(api, created.match_id, 0);
-  }, [api, refresh, selectedGame, state.selectedGameId, state.setup.seatCount, state.setup.seed, state.setup.variantId]);
+  }, [
+    api,
+    refresh,
+    selectedGame,
+    state.selectedGameId,
+    state.setup.riverLedgerStackMode,
+    state.setup.riverLedgerStacks,
+    state.setup.seatCount,
+    state.setup.seed,
+    state.setup.variantId,
+  ]);
 
   const playChoice = useCallback(
     async (choice: ActionChoice) => {
@@ -534,11 +544,15 @@ function App() {
             playMode={state.setup.playMode}
             variantId={state.setup.variantId}
             seatCount={state.setup.seatCount}
+            riverLedgerStackMode={state.setup.riverLedgerStackMode}
+            riverLedgerStacks={state.setup.riverLedgerStacks}
             canStart={Boolean(api && state.selectedGameId)}
             onSeedChange={(seed) => dispatch({ type: "setupSeedChanged", seed })}
             onPlayModeChange={(playMode) => dispatch({ type: "setupPlayModeChanged", playMode })}
             onVariantChange={(variantId) => dispatch({ type: "setupVariantChanged", variantId })}
             onSeatCountChange={(seatCount) => dispatch({ type: "setupSeatCountChanged", seatCount })}
+            onRiverLedgerStackModeChange={(mode) => dispatch({ type: "setupRiverLedgerStackModeChanged", mode })}
+            onRiverLedgerStackChange={(index, value) => dispatch({ type: "setupRiverLedgerStackChanged", index, value })}
             onRulesOpen={openRules}
             onStart={start}
           />
@@ -860,6 +874,22 @@ function selectedVariantForStart(selectedGame: { variants?: Array<{ id: string }
     return undefined;
   }
   return selectedGame.variants.some((variant) => variant.id === variantId) ? variantId ?? undefined : selectedGame.variants[0]?.id;
+}
+
+function riverLedgerSetupOptions(
+  gameId: string,
+  stackMode: "standard" | "short_stack" | "custom",
+  customStacks: number[],
+  seatCount: number | null | undefined,
+): { starting_stacks: number[] } | null {
+  if (gameId !== "river_ledger" || stackMode === "standard" || typeof seatCount !== "number") {
+    return null;
+  }
+  const startingStacks =
+    stackMode === "short_stack"
+      ? riverLedgerShortStackPreset(seatCount)
+      : Array.from({ length: seatCount }, (_, index) => Math.max(1, Math.trunc(customStacks[index] ?? 24)));
+  return { starting_stacks: startingStacks };
 }
 
 function parseReplayDocument(documentText: string): ReplayExportDocument | null {

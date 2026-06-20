@@ -46,6 +46,7 @@ pub enum Phase {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum SeatStatus {
     Live,
+    AllIn,
     Folded,
     ShowdownEligible,
 }
@@ -54,6 +55,8 @@ pub enum SeatStatus {
 pub struct SeatLedger {
     pub seat: RiverLedgerSeat,
     pub status: SeatStatus,
+    pub starting_stack: u16,
+    pub remaining_stack: u16,
     pub street_contribution: u16,
     pub total_contribution: u16,
 }
@@ -71,16 +74,24 @@ pub struct BettingRoundState {
     pub raises_this_street: u8,
     pub last_aggressor: Option<RiverLedgerSeat>,
     pub actors_to_respond: Vec<RiverLedgerSeat>,
+    pub last_completed_action_to_call: Vec<Option<u16>>,
 }
 
 impl BettingRoundState {
     pub fn for_street(street: Street, actors_to_respond: Vec<RiverLedgerSeat>) -> Self {
+        let tracked_seats = actors_to_respond
+            .iter()
+            .map(|seat| seat.index())
+            .max()
+            .map(|index| index + 1)
+            .unwrap_or(0);
         Self {
             street,
             current_to_call: 0,
             raises_this_street: 0,
             last_aggressor: None,
             actors_to_respond,
+            last_completed_action_to_call: vec![None; tracked_seats],
         }
     }
 
@@ -247,6 +258,7 @@ impl RiverLedgerState {
         variant: Variant,
         seats: Vec<SeatId>,
         roles: SeatRoles,
+        starting_stacks: Vec<u16>,
         private_hands: Vec<[Card; 2]>,
         community_deck: [Card; 5],
         deck_tail: Vec<Card>,
@@ -258,25 +270,51 @@ impl RiverLedgerState {
             active_seat,
         } = roles;
         let seat_count = seats.len() as u8;
-        let mut ledgers = Vec::with_capacity(seats.len());
-        for index in 0..seats.len() {
+        let seat_len = seats.len();
+        assert_eq!(
+            starting_stacks.len(),
+            seat_len,
+            "setup validates one starting stack per seat"
+        );
+        let mut ledgers = Vec::with_capacity(seat_len);
+        for (index, starting_stack) in starting_stacks.iter().copied().enumerate().take(seat_len) {
             let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
             let total_contribution = if seat == small_blind {
-                u16::from(STANDARD_SMALL_BLIND)
+                starting_stack.min(u16::from(STANDARD_SMALL_BLIND))
             } else if seat == big_blind {
-                u16::from(STANDARD_BIG_BLIND)
+                starting_stack.min(u16::from(STANDARD_BIG_BLIND))
             } else {
                 0
             };
+            let remaining_stack = starting_stack
+                .checked_sub(total_contribution)
+                .expect("forced posts are capped by starting stack");
+            let status = if remaining_stack == 0 {
+                SeatStatus::AllIn
+            } else {
+                SeatStatus::Live
+            };
             ledgers.push(SeatLedger {
                 seat,
-                status: SeatStatus::Live,
+                status,
+                starting_stack,
+                remaining_stack,
                 street_contribution: total_contribution,
                 total_contribution,
             });
         }
 
-        let pot_total = u16::from(STANDARD_SMALL_BLIND + STANDARD_BIG_BLIND);
+        let pot_total = ledgers
+            .iter()
+            .try_fold(0u16, |total, seat| {
+                total.checked_add(seat.total_contribution)
+            })
+            .expect("setup forced posts fit u16");
+        let current_to_call = ledgers[big_blind.index()].street_contribution;
+        let actors_to_respond = response_order_after(big_blind, seat_count)
+            .into_iter()
+            .filter(|seat| ledgers[seat.index()].status == SeatStatus::Live)
+            .collect::<Vec<_>>();
 
         Self {
             variant,
@@ -298,10 +336,11 @@ impl RiverLedgerState {
             },
             betting: BettingRoundState {
                 street: Street::Preflop,
-                current_to_call: u16::from(STANDARD_BIG_BLIND),
+                current_to_call,
                 raises_this_street: 0,
                 last_aggressor: Some(big_blind),
-                actors_to_respond: response_order_after(big_blind, seat_count),
+                actors_to_respond,
+                last_completed_action_to_call: vec![None; seat_len],
             },
             terminal_outcome: None,
             freshness_token: FreshnessToken(0),
@@ -333,7 +372,7 @@ impl RiverLedgerState {
 
     pub fn stable_internal_summary(&self) -> String {
         format!(
-            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};contributions={};freshness={}",
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};stacks={};contributions={};betting={};freshness={}",
             self.variant.id,
             self.seats.len(),
             stable_phase(self.phase),
@@ -347,7 +386,9 @@ impl RiverLedgerState {
             stable_cards(&self.community_deck),
             stable_cards(&self.deck_tail),
             self.ledger.pot_total,
+            stable_stacks(&self.ledger.seats),
             stable_contributions(&self.ledger.seats),
+            stable_betting(&self.betting),
             self.freshness_token.0,
         )
     }
@@ -361,7 +402,7 @@ impl RiverLedgerState {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};contributions={}",
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};stacks={};contributions={};betting={}",
             self.variant.id,
             self.seats.len(),
             stable_phase(self.phase),
@@ -376,9 +417,45 @@ impl RiverLedgerState {
             self.community_deck.len(),
             self.deck_tail.len(),
             self.ledger.pot_total,
+            stable_stacks(&self.ledger.seats),
             stable_contributions(&self.ledger.seats),
+            stable_betting(&self.betting),
         )
     }
+}
+
+fn stable_betting(betting: &BettingRoundState) -> String {
+    let last_completed = betting
+        .last_completed_action_to_call
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            format!(
+                "seat_{index}:{}",
+                value
+                    .map(|amount| amount.to_string())
+                    .unwrap_or_else(|| "none".to_owned())
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "street={};current={};raises={};last_aggressor={};respond={};completed={}",
+        betting.street.as_str(),
+        betting.current_to_call,
+        betting.raises_this_street,
+        betting
+            .last_aggressor
+            .map(RiverLedgerSeat::as_str)
+            .unwrap_or_else(|| "none".to_owned()),
+        betting
+            .actors_to_respond
+            .iter()
+            .map(|seat| seat.as_str())
+            .collect::<Vec<_>>()
+            .join(","),
+        last_completed
+    )
 }
 
 pub(crate) fn response_order_after(start: RiverLedgerSeat, count: u8) -> Vec<RiverLedgerSeat> {
@@ -427,6 +504,21 @@ fn stable_contributions(seats: &[SeatLedger]) -> String {
                 seat.seat.as_str(),
                 seat.street_contribution,
                 seat.total_contribution
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn stable_stacks(seats: &[SeatLedger]) -> String {
+    seats
+        .iter()
+        .map(|seat| {
+            format!(
+                "{}:{}:{}",
+                seat.seat.as_str(),
+                seat.starting_stack,
+                seat.remaining_stack
             )
         })
         .collect::<Vec<_>>()

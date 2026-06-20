@@ -1,6 +1,6 @@
 variant_id = "river_ledger_standard"
 display_name = "River Ledger"
-rules_version_label = "river-ledger-rules-v1"
+rules_version_label = "river-ledger-rules-v2"
 supported_seat_counts = "3,4,5,6"
 default_seats = 6
 street_sequence = "preflop,flop,turn,river,showdown"
@@ -8,6 +8,8 @@ small_blind = 1
 big_blind = 2
 small_bet_unit = 2
 big_bet_unit = 4
+default_starting_stack = 24
+stack_presets = "equal_24;three_seat_8_16_24;six_seat_4_8_12_16_20_24"
 raise_cap_per_street = 3
 deck_order = "standard_52_rank_suit_v1"
 terminal_outcomes = "last_live_hand_showdown_win_showdown_split"

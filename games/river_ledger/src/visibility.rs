@@ -4,10 +4,12 @@ use crate::{
     bots::{BotDecisionPublicExplanation, BotDecisionPublicFact},
     cards::Card,
     ids::{RiverLedgerSeat, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
+    pot::construct_contribution_layers,
     state::{CategoryLadderPosition, Phase, RiverLedgerState, SeatStatus, TerminalOutcome},
     ui::{
-        active_seat_labels, seat_ledger_display, ui_metadata, HoleCardSummary,
-        RiverLedgerSeatLedgerDisplay, SeatDisplayLabel, SeatLedgerRoles, UiMetadata,
+        active_seat_labels, seat_ledger_display, ui_metadata, uncalled_return_explanation,
+        HoleCardSummary, RiverLedgerSeatLedgerDisplay, SeatDisplayLabel, SeatLedgerRoles,
+        UiMetadata,
     },
 };
 
@@ -26,6 +28,8 @@ pub struct PublicView {
     pub small_blind: RiverLedgerSeat,
     pub big_blind: RiverLedgerSeat,
     pub pot_total: u16,
+    pub pot_tiers: Vec<PotTierView>,
+    pub uncalled_returns: Vec<UncalledReturnView>,
     pub seats: Vec<SeatView>,
     pub board: Vec<CardView>,
     pub board_slots: Vec<BoardSlotView>,
@@ -42,10 +46,30 @@ pub struct PublicView {
 pub struct SeatView {
     pub seat: RiverLedgerSeat,
     pub status: SeatStatus,
+    pub starting_stack: u16,
+    pub remaining_stack: u16,
+    pub is_all_in: bool,
     pub street_contribution: u16,
     pub total_contribution: u16,
     pub hidden_hole_count: u8,
     pub ledger_display: RiverLedgerSeatLedgerDisplay,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PotTierView {
+    pub pot_id: String,
+    pub amount: u16,
+    pub lower_cap: u16,
+    pub upper_cap: u16,
+    pub contributors: Vec<RiverLedgerSeat>,
+    pub eligible: Vec<RiverLedgerSeat>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UncalledReturnView {
+    pub seat: RiverLedgerSeat,
+    pub amount: u16,
+    pub explanation: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -255,6 +279,8 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
         small_blind: state.small_blind,
         big_blind: state.big_blind,
         pot_total: state.ledger.pot_total,
+        pot_tiers: pot_tier_views(state),
+        uncalled_returns: uncalled_return_views(state),
         seats: state
             .ledger
             .seats
@@ -264,6 +290,9 @@ pub fn project_view(state: &RiverLedgerState, viewer: &Viewer) -> PublicView {
                 SeatView {
                     seat: entry.seat,
                     status: entry.status,
+                    starting_stack: entry.starting_stack,
+                    remaining_stack: entry.remaining_stack,
+                    is_all_in: entry.status == SeatStatus::AllIn,
                     street_contribution: entry.street_contribution,
                     total_contribution: entry.total_contribution,
                     hidden_hole_count,
@@ -299,10 +328,55 @@ pub fn view_hash(view: &PublicView) -> HashValue {
     view.stable_hash()
 }
 
+fn pot_tier_views(state: &RiverLedgerState) -> Vec<PotTierView> {
+    let contribution_total = state
+        .ledger
+        .seats
+        .iter()
+        .map(|seat| seat.total_contribution)
+        .sum::<u16>();
+    if contribution_total != state.ledger.pot_total {
+        return Vec::new();
+    }
+    construct_contribution_layers(&state.ledger.seats)
+        .pots
+        .into_iter()
+        .map(|pot| PotTierView {
+            pot_id: pot.id,
+            amount: pot.amount,
+            lower_cap: pot.lower_cap,
+            upper_cap: pot.upper_cap,
+            contributors: pot.contributors,
+            eligible: pot.eligible,
+        })
+        .collect()
+}
+
+fn uncalled_return_views(state: &RiverLedgerState) -> Vec<UncalledReturnView> {
+    let contribution_total = state
+        .ledger
+        .seats
+        .iter()
+        .map(|seat| seat.total_contribution)
+        .sum::<u16>();
+    if contribution_total != state.ledger.pot_total {
+        return Vec::new();
+    }
+    construct_contribution_layers(&state.ledger.seats)
+        .returns
+        .into_iter()
+        .map(|returned| UncalledReturnView {
+            seat: returned.seat,
+            amount: returned.amount,
+            explanation: uncalled_return_explanation(returned.seat, returned.amount),
+        })
+        .collect()
+}
+
 impl PublicView {
     pub fn stable_summary(&self) -> String {
         format!(
-            "schema={};rules={};game={};variant={};label={};phase={};active={};active_labels={};button={};sb={};bb={};pot={};seats={};board={};reserved={};tail={};terminal={};rationale={};freshness={};private={};ui={}",
+            "schema={};rules={};game={};variant={};label={};phase={};active={};active_labels={};button={};sb={};bb={};pot={};tiers={};returns={};seats={};board={};reserved={};tail={};terminal={};rationale={};freshness={};private={};ui={}",
             self.schema_version,
             self.rules_version,
             self.game_id,
@@ -315,6 +389,8 @@ impl PublicView {
             self.small_blind.as_str(),
             self.big_blind.as_str(),
             self.pot_total,
+            encode_pot_tiers(&self.pot_tiers),
+            encode_uncalled_returns(&self.uncalled_returns),
             encode_seats(&self.seats),
             encode_board_slots(&self.board_slots),
             self.reserved_community_count,
@@ -660,9 +736,12 @@ fn encode_seats(seats: &[SeatView]) -> String {
         .iter()
         .map(|seat| {
             format!(
-                "{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}",
+                "{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
                 seat.seat.as_str(),
                 seat.status,
+                seat.starting_stack,
+                seat.remaining_stack,
+                seat.is_all_in,
                 seat.street_contribution,
                 seat.total_contribution,
                 seat.hidden_hole_count,
@@ -675,6 +754,47 @@ fn encode_seats(seats: &[SeatView]) -> String {
         })
         .collect::<Vec<_>>()
         .join("|")
+}
+
+fn encode_pot_tiers(tiers: &[PotTierView]) -> String {
+    tiers
+        .iter()
+        .map(|tier| {
+            format!(
+                "{}:{}:{}-{}:contributors{}:eligible{}",
+                tier.pot_id,
+                tier.amount,
+                tier.lower_cap,
+                tier.upper_cap,
+                encode_seat_list(&tier.contributors),
+                encode_seat_list(&tier.eligible)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
+fn encode_uncalled_returns(returns: &[UncalledReturnView]) -> String {
+    returns
+        .iter()
+        .map(|returned| {
+            format!(
+                "{}:{}:{}",
+                returned.seat.as_str(),
+                returned.amount,
+                returned.explanation
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
+fn encode_seat_list(seats: &[RiverLedgerSeat]) -> String {
+    seats
+        .iter()
+        .map(|seat| seat.as_str())
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn encode_cards(cards: &[CardView]) -> String {

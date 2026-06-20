@@ -18,6 +18,8 @@ pub struct RiverLedgerBotInput {
     pub active_seat: Option<RiverLedgerSeat>,
     pub street: Street,
     pub pot_total: u16,
+    pub own_remaining_stack: u16,
+    pub own_is_all_in: bool,
     pub own_contribution: u16,
     pub call_price: u16,
     pub raises_remaining: u8,
@@ -29,7 +31,7 @@ pub struct RiverLedgerBotInput {
 impl RiverLedgerBotInput {
     pub fn stable_summary(&self) -> String {
         format!(
-            "seat={};choices={};phase={};active={};street={};pot={};own_contribution={};call_price={};raises_remaining={};live_opponents={};board_count={};own_bucket={}",
+            "seat={};choices={};phase={};active={};street={};pot={};own_stack={};own_all_in={};own_contribution={};call_price={};raises_remaining={};live_opponents={};board_count={};own_bucket={}",
             self.bot_seat.as_str(),
             self.legal_action_tree.root.choices.len(),
             self.phase,
@@ -38,6 +40,8 @@ impl RiverLedgerBotInput {
                 .unwrap_or_else(|| "none".to_owned()),
             self.street.as_str(),
             self.pot_total,
+            self.own_remaining_stack,
+            self.own_is_all_in,
             self.own_contribution,
             self.call_price,
             self.raises_remaining,
@@ -72,6 +76,19 @@ pub struct BotDecisionPublicExplanation {
 pub struct BotDecisionPublicFact {
     pub label: String,
     pub value: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct BotActionCandidate {
+    action: RiverLedgerAction,
+    path: ActionPath,
+    amount_owed: u16,
+    adds_to_pot: u16,
+    stack_before: u16,
+    stack_after: u16,
+    is_all_in: bool,
+    is_full_raise: bool,
+    raise_right_open: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -133,17 +150,15 @@ impl RiverLedgerLevel1Bot {
         bot_seat: RiverLedgerSeat,
     ) -> Result<BotDecision, Diagnostic> {
         let input = Self::input_for(state, bot_seat);
-        let legal = legal_actions_from_input(&input);
+        let legal = legal_action_candidates_from_input(&input);
         let action = choose_level1_action(&input, &legal)?;
         Ok(decision(
             1,
             LEVEL1_POLICY_ID,
-            ActionPath {
-                segments: vec![action.segment().to_owned()],
-            },
+            action.path.clone(),
             format!(
                 "Conservative public price posture; chose {} from legal River Ledger actions.",
-                action.segment()
+                action_choice_label(action)
             ),
             Some(public_explanation(&input, action)),
         ))
@@ -179,21 +194,18 @@ impl RiverLedgerLevel2Bot {
         bot_seat: RiverLedgerSeat,
     ) -> Result<BotDecision, Diagnostic> {
         let input = Self::input_for(state, bot_seat);
-        let legal = legal_actions_from_input(&input);
+        let legal = legal_action_candidates_from_input(&input);
         if legal.is_empty() {
             return Err(no_legal_actions());
         }
         let action = legal
             .iter()
-            .copied()
-            .max_by_key(|action| level2_rank(&input, *action, self.seed))
+            .max_by_key(|action| level2_rank(&input, action, self.seed))
             .expect("non-empty legal action list");
         Ok(decision(
             2,
             LEVEL2_POLICY_ID,
-            ActionPath {
-                segments: vec![action.segment().to_owned()],
-            },
+            action.path.clone(),
             level2_rationale(&input, action),
             Some(public_explanation(&input, action)),
         ))
@@ -245,6 +257,8 @@ fn bot_input_for(state: &RiverLedgerState, bot_seat: RiverLedgerSeat) -> RiverLe
         active_seat: view.active_seat,
         street: state.betting.street,
         pot_total: view.pot_total,
+        own_remaining_stack: own.remaining_stack,
+        own_is_all_in: own.is_all_in,
         own_contribution: own.total_contribution,
         call_price: call_price(state, bot_seat).unwrap_or(0),
         raises_remaining: crate::MAX_RAISES_PER_STREET
@@ -271,20 +285,51 @@ fn own_hole_bucket(cards: &[crate::CardView; 2]) -> String {
     }
 }
 
-fn legal_actions_from_input(input: &RiverLedgerBotInput) -> Vec<RiverLedgerAction> {
+fn legal_action_candidates_from_input(input: &RiverLedgerBotInput) -> Vec<BotActionCandidate> {
     input
         .legal_action_tree
         .root
         .choices
         .iter()
-        .filter_map(|choice| parse_action_segment(&choice.segment))
+        .filter_map(|choice| {
+            let action = parse_action_segment(&choice.segment)?;
+            Some(BotActionCandidate {
+                action,
+                path: choice.path(),
+                amount_owed: metadata_u16(choice, "amount_owed").unwrap_or(input.call_price),
+                adds_to_pot: metadata_u16(choice, "adds_to_pot").unwrap_or(0),
+                stack_before: metadata_u16(choice, "stack_before")
+                    .unwrap_or(input.own_remaining_stack),
+                stack_after: metadata_u16(choice, "stack_after")
+                    .unwrap_or(input.own_remaining_stack),
+                is_all_in: metadata_bool(choice, "is_all_in").unwrap_or(false),
+                is_full_raise: metadata_bool(choice, "is_full_raise").unwrap_or(false),
+                raise_right_open: metadata_bool(choice, "raise_right_open").unwrap_or(false),
+            })
+        })
         .collect()
 }
 
-fn choose_level1_action(
+fn metadata_u16(choice: &engine_core::ActionChoice, key: &str) -> Option<u16> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .and_then(|entry| entry.value.parse().ok())
+}
+
+fn metadata_bool(choice: &engine_core::ActionChoice, key: &str) -> Option<bool> {
+    choice
+        .metadata
+        .iter()
+        .find(|entry| entry.key == key)
+        .and_then(|entry| entry.value.parse().ok())
+}
+
+fn choose_level1_action<'a>(
     input: &RiverLedgerBotInput,
-    legal: &[RiverLedgerAction],
-) -> Result<RiverLedgerAction, Diagnostic> {
+    legal: &'a [BotActionCandidate],
+) -> Result<&'a BotActionCandidate, Diagnostic> {
     if legal.is_empty() {
         return Err(no_legal_actions());
     }
@@ -295,20 +340,22 @@ fn choose_level1_action(
         RiverLedgerAction::Bet,
         RiverLedgerAction::Raise,
     ] {
-        if legal.contains(&preferred)
-            && (preferred != RiverLedgerAction::Call || input.call_price <= 2)
-        {
-            return Ok(preferred);
+        if let Some(candidate) = legal.iter().find(|candidate| candidate.action == preferred) {
+            if preferred != RiverLedgerAction::Call || input.call_price <= 2 || candidate.is_all_in
+            {
+                return Ok(candidate);
+            }
         }
     }
-    Ok(legal[0])
+    Ok(&legal[0])
 }
 
 fn level2_rank(
     input: &RiverLedgerBotInput,
-    action: RiverLedgerAction,
+    candidate: &BotActionCandidate,
     seed: Seed,
 ) -> (
+    u8,
     u8,
     u8,
     u8,
@@ -319,6 +366,7 @@ fn level2_rank(
     std::cmp::Reverse<&'static str>,
     u64,
 ) {
+    let action = candidate.action;
     let strong = matches!(
         input.own_hole_bucket.as_str(),
         "pair" | "high_connected" | "high"
@@ -328,12 +376,15 @@ fn level2_rank(
     let expensive = input.call_price >= input.street.unit() as u16 && input.street.unit() >= 4;
     let few_opponents = input.live_opponent_count <= 2;
     let can_pressure = strong && few_opponents && input.raises_remaining > 0;
+    let short_all_in_raise =
+        action == RiverLedgerAction::Raise && candidate.is_all_in && !candidate.is_full_raise;
 
     (
         u8::from(action != RiverLedgerAction::Fold || (!free && (expensive || weak))),
         u8::from(
             (free && action == RiverLedgerAction::Check)
                 || (!free && action == RiverLedgerAction::Call)
+                || (!free && can_pressure && action == RiverLedgerAction::Raise)
                 || (!free && expensive && weak && action == RiverLedgerAction::Fold),
         ),
         u8::from(
@@ -343,6 +394,7 @@ fn level2_rank(
                     RiverLedgerAction::Bet | RiverLedgerAction::Raise | RiverLedgerAction::Call
                 ),
         ),
+        u8::from(candidate.is_all_in && action != RiverLedgerAction::Fold && !weak),
         u8::from(input.board_count > 0 && strong && action != RiverLedgerAction::Fold),
         u8::from(
             (few_opponents && action != RiverLedgerAction::Fold)
@@ -350,30 +402,36 @@ fn level2_rank(
         ),
         u8::from(!expensive || strong || action == RiverLedgerAction::Fold),
         u8::from(
-            can_pressure && matches!(action, RiverLedgerAction::Bet | RiverLedgerAction::Raise),
+            can_pressure
+                && matches!(action, RiverLedgerAction::Bet | RiverLedgerAction::Raise)
+                && (candidate.is_full_raise || short_all_in_raise || candidate.raise_right_open),
         ),
         std::cmp::Reverse(action.segment()),
-        seeded_tie(seed, action),
+        seeded_tie(seed, candidate),
     )
 }
 
-fn level2_rationale(input: &RiverLedgerBotInput, action: RiverLedgerAction) -> String {
+fn level2_rationale(input: &RiverLedgerBotInput, action: &BotActionCandidate) -> String {
     format!(
-        "own authorized {} bucket; public price {}; live opponent count {}; street/cap pressure {}; chose {}.",
+        "own authorized {} bucket; public price {}; own public stack {}; live opponent count {}; street/cap pressure {}; chose {}.",
         input.own_hole_bucket,
         input.call_price,
+        input.own_remaining_stack,
         input.live_opponent_count,
         input.raises_remaining,
-        action.segment()
+        action_choice_label(action)
     )
 }
 
-fn seeded_tie(seed: Seed, action: RiverLedgerAction) -> u64 {
+fn seeded_tie(seed: Seed, action: &BotActionCandidate) -> u64 {
     let mut value = seed.0;
-    for byte in action.segment().bytes() {
+    for byte in action.action.segment().bytes() {
         value ^= u64::from(byte);
         value = value.wrapping_mul(0x100_0000_01b3);
     }
+    value ^= u64::from(action.adds_to_pot);
+    value = value.wrapping_mul(0x100_0000_01b3);
+    value ^= u64::from(action.stack_after);
     value
 }
 
@@ -396,7 +454,7 @@ fn decision(
 
 fn public_explanation(
     input: &RiverLedgerBotInput,
-    action: RiverLedgerAction,
+    action: &BotActionCandidate,
 ) -> BotDecisionPublicExplanation {
     BotDecisionPublicExplanation {
         seat: input.bot_seat,
@@ -406,6 +464,9 @@ fn public_explanation(
         public_facts: vec![
             fact("Street", street_label(input.street)),
             fact("Call price", input.call_price.to_string()),
+            fact("Own public stack", input.own_remaining_stack.to_string()),
+            fact("Amount owed", action.amount_owed.to_string()),
+            fact("Adds to ledger", action.adds_to_pot.to_string()),
             fact("Raises left", input.raises_remaining.to_string()),
             fact("Live opponents", input.live_opponent_count.to_string()),
             fact("Ledger total", input.pot_total.to_string()),
@@ -416,8 +477,8 @@ fn public_explanation(
     }
 }
 
-fn public_reason(input: &RiverLedgerBotInput, action: RiverLedgerAction) -> String {
-    match action {
+fn public_reason(input: &RiverLedgerBotInput, action: &BotActionCandidate) -> String {
+    match action.action {
         RiverLedgerAction::Fold => {
             "The public call price and street pressure made folding the public-safe choice."
                 .to_owned()
@@ -426,15 +487,39 @@ fn public_reason(input: &RiverLedgerBotInput, action: RiverLedgerAction) -> Stri
             "No contribution is required, so the bot keeps the ledger unchanged.".to_owned()
         }
         RiverLedgerAction::Call => {
+            if action.is_all_in {
+                return format!(
+                    "The bot makes a call all-in by adding its remaining public stack of {} against the public price of {}.",
+                    action.adds_to_pot, input.call_price
+                );
+            }
             format!(
                 "The bot matches the public price of {} to stay live.",
                 input.call_price
             )
         }
         RiverLedgerAction::Bet => {
+            if action.is_all_in {
+                return format!(
+                    "No call is owed, so the bot makes a bet all-in with its remaining public stack of {}.",
+                    action.adds_to_pot
+                );
+            }
             "No call is owed and raises remain, so the bot opens public pressure.".to_owned()
         }
         RiverLedgerAction::Raise => {
+            if action.is_all_in && action.is_full_raise {
+                return format!(
+                    "The bot makes a full raise all-in after covering the public price of {}.",
+                    action.amount_owed
+                );
+            }
+            if action.is_all_in {
+                return format!(
+                    "The bot makes a short raise all-in by adding its remaining public stack of {}.",
+                    action.adds_to_pot
+                );
+            }
             "Raises remain, so the bot adds public pressure after matching the price.".to_owned()
         }
     }
@@ -447,12 +532,31 @@ fn fact(label: &str, value: String) -> BotDecisionPublicFact {
     }
 }
 
-fn action_label(action: RiverLedgerAction) -> String {
-    match action {
+fn action_choice_label(action: &BotActionCandidate) -> String {
+    if action.is_all_in {
+        match action.action {
+            RiverLedgerAction::Call => return "call all-in".to_owned(),
+            RiverLedgerAction::Bet => return "bet all-in".to_owned(),
+            RiverLedgerAction::Raise if action.is_full_raise => {
+                return "full raise all-in".to_owned()
+            }
+            RiverLedgerAction::Raise => return "short raise all-in".to_owned(),
+            RiverLedgerAction::Fold | RiverLedgerAction::Check => {}
+        }
+    }
+    action.action.segment().to_owned()
+}
+
+fn action_label(action: &BotActionCandidate) -> String {
+    match action.action {
         RiverLedgerAction::Fold => "Fold",
         RiverLedgerAction::Check => "Check",
+        RiverLedgerAction::Call if action.is_all_in => "Call all-in",
         RiverLedgerAction::Call => "Call",
+        RiverLedgerAction::Bet if action.is_all_in => "Bet all-in",
         RiverLedgerAction::Bet => "Bet",
+        RiverLedgerAction::Raise if action.is_all_in && action.is_full_raise => "Full raise all-in",
+        RiverLedgerAction::Raise if action.is_all_in => "Short raise all-in",
         RiverLedgerAction::Raise => "Raise",
     }
     .to_owned()

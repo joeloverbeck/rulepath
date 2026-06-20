@@ -1,58 +1,135 @@
 {
   "schema_version": 1,
   "game_id": "river_ledger",
-  "rules_version": "river-ledger-rules-v1",
+  "rules_version": "river-ledger-rules-v2",
   "data_version": "1",
   "engine_version": "engine-core-0.1.0",
   "thresholds": [
     {
+      "operation_name": "setup_3p_equal_stacks",
+      "unit": "setups",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for Gate 15.1 3-seat equal-stack setup until repeated CI hardware baselines calibrate a tighter gate."
+    },
+    {
+      "operation_name": "setup_6p_asymmetric_stacks",
+      "unit": "setups",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for Gate 15.1 6-seat asymmetric-stack setup under ADR 0002/0003 calibration policy."
+    },
+    {
       "operation_name": "setup_deal_6p",
-      "unit": "setups_per_second",
+      "unit": "setups",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until stable CI hardware baselines exist."
     },
     {
       "operation_name": "legal_actions_initial_6p",
-      "unit": "trees_per_second",
+      "unit": "trees",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "legal_actions_short_stack",
+      "unit": "trees",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for short-stack call/raise-all-in action-tree pressure."
     },
     {
       "operation_name": "apply_call_6p",
-      "unit": "actions_per_second",
+      "unit": "actions",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "apply_short_all_in_raise",
+      "unit": "actions",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for validating and applying a stack-capped short raise all-in."
+    },
+    {
+      "operation_name": "construct_side_pots_6p_max_layers",
+      "unit": "layers",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for six distinct contribution caps, folded money, coalesced side pots, and returned top layer."
+    },
+    {
+      "operation_name": "allocate_side_pots_6p_split_winners",
+      "unit": "allocations",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for multi-pot allocation with split winners and button-order remainders."
+    },
+    {
+      "operation_name": "resolve_all_in_showdown_6p",
+      "unit": "showdowns",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for resolving a six-seat all-in max-layer showdown fixture."
     },
     {
       "operation_name": "project_all_viewers_6p",
-      "unit": "viewer_sets_per_second",
+      "unit": "viewer_sets",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "project_view_6p_multi_pot",
+      "unit": "viewer_sets",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for observer plus all seat projections over terminal multi-pot accounting."
     },
     {
       "operation_name": "public_export_import_6p",
-      "unit": "exports_per_second",
+      "unit": "exports",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until stable CI hardware baselines exist."
+    },
+    {
+      "operation_name": "serialize_replay_6p_multi_pot",
+      "unit": "serializations",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for public replay serialization over six-seat multi-pot action pressure."
     },
     {
       "operation_name": "evaluator_showdown_batch_6p",
-      "unit": "batches_per_second",
+      "unit": "batches",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until stable CI hardware baselines exist."
     },
     {
+      "operation_name": "bot_policy_6p_short_stack",
+      "unit": "decisions",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for Level 2 policy selection with public short-stack pressure."
+    },
+    {
       "operation_name": "level2_full_playout_6p",
-      "unit": "hands_per_second",
+      "unit": "hands",
       "threshold": 1,
       "rationale_class": "baseline_pending_non_blocking",
       "rationale": "Smoke floor until repeated runner measurements calibrate a tighter gate."
+    },
+    {
+      "operation_name": "full_game_6p_all_in_pressure",
+      "unit": "hands",
+      "threshold": 1,
+      "rationale_class": "baseline_pending_non_blocking",
+      "rationale": "Smoke floor for deterministic six-seat full-game playouts from asymmetric all-in pressure stacks."
     }
   ]
 }

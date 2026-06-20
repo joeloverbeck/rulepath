@@ -8,7 +8,7 @@ Variant: `river_ledger_standard`
 
 Created: 2026-06-14
 
-Last updated: 2026-06-14
+Last updated: 2026-06-20
 
 ## Mechanic inventory
 
@@ -24,12 +24,12 @@ atlas. All mechanics are game-local unless the atlas later authorizes a narrow
 | turn/phase model | Preflop, flop, turn, river, showdown; action rotates through live seats; foldout can end early. | game-local |
 | randomness/chance | Deterministic seeded shuffle at setup only; no browser randomness and no later random draw outside reserved deck order. | repeated-shape pressure; local |
 | visibility/hidden information | Public observer plus each seat viewer; owner-only hole cards; redacted opponents, deck tail, burn, and future board; pairwise no-leak proof required for 3-6 seats. | repeated-shape pressure; local |
-| resource/accounting | Abstract public contribution ledger, blinds, street contributions, one single pot, split allocation, deterministic remainder order. | repeated-shape pressure; local |
+| resource/accounting | Abstract public contribution ledger, finite stacks, blinds, street contributions, ordered side pots, uncalled returns, split allocation, deterministic per-pot remainder order. | repeated-shape pressure; local |
 | movement/capture/placement | Not applicable. | not applicable |
 | pattern/line/directional scanning | Not applicable. | not applicable |
 | commitment/reveal | No simultaneous commitments. Staged reveal of public community cards and authorized showdown cards. | related hidden-info pressure; local |
 | reaction/window/pending response | No interrupt or reaction window. Active actor advances by betting-state rules only. | not applicable |
-| scoring/outcome | Last-live-hand foldout, single best-hand showdown winner, or tied showdown split with remainder explanation. | game-local |
+| scoring/outcome | Last-live-hand foldout, per-pot showdown winners, ties, returns, final allocation, and remainder explanation. | game-local |
 | semantic effect shape | Public contribution/street/board/showdown/foldout effects plus viewer-filtered private setup/reveal effects. | game-local |
 | UI interaction pattern | N-seat seat frame, public board, contribution ledger, legal-only controls, safe previews, Rust-authored outcome explanation. | game-local presentation |
 | bot policy pattern | L0 legal-random; L1 conservative authorized-view heuristic; L2 authored opponent-count-aware heuristic; no search/RL/sampling. | game-local |
@@ -44,7 +44,7 @@ games, but the planned implementation remains local.
 |---|---|---|---|
 | deterministic shuffle with hidden holdings | `high_card_duel`, `poker_lite`, `plain_tricks`, `masked_claims` | Seeded card order and viewer-redacted private components. | River Ledger has 3-6 seats, two hole cards, five public board cards, street reveals, and showdown-specific authorization. A helper would either be trivial shuffle code or behavior-bearing visibility policy. |
 | private-hand/public-reveal no-leak | `high_card_duel`, `poker_lite`, `plain_tricks`, `masked_claims` | Owner-private facts and redacted observer/opponent views. | River Ledger must prove every ordered seat pair in 3, 4, 5, and 6 seat matches plus public observer, replay, bot explanation, and browser surfaces. |
-| public contribution accounting | `token_bazaar`, `poker_lite`, `event_frontier` | Public counters, payments/contributions, terminal allocation. | River Ledger has street-sized fixed-limit contributions, blinds, raise caps, live/folded eligibility, and split-remainder order. Gate 15.1 side pots are explicitly separate. |
+| public contribution accounting | `token_bazaar`, `poker_lite`, `event_frontier` | Public counters, payments/contributions, terminal allocation. | River Ledger v2 has street-sized fixed-limit contributions, finite stacks, blinds, raise caps, all-in action states, live/folded eligibility, returned excess, and per-pot split-remainder order. |
 | showdown/ranking explanation | `poker_lite`, `high_card_duel` | Rust computes terminal comparison and explains decisive facts. | River Ledger evaluates best five of seven cards with category/rank-vector comparison and split allocation. |
 | N-seat public surface | Infra A-D shared surfaces | Uses supported seat counts and shared seat-frame expectations. | Game-specific action order, private-card visibility, and outcome rationale remain River Ledger behavior. |
 
@@ -64,6 +64,7 @@ helper is not yet worth promotion for Gate 15.
 Debt status: no `game-stdlib` primitive is promoted, so there is no promotion
 debt and the repo-level open debt register remains `_None_`.
 
-Review trigger: reopen before Gate 15.1 side-pot/all-in work and again before
-later trick-taking/private-hand/card games if repeated defects or a third close
-shape proves a narrow behavior-free helper.
+Review trigger: Gate 15.1 has now reopened and closed the side-pot/all-in
+pressure as game-local. Reopen again before a later game repeats the same
+finite-stack hidden-information betting/allocation shape or if repeated defects
+prove a narrow behavior-free helper.

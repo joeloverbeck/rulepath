@@ -12,8 +12,8 @@ use crate::constants::API_VERSION;
 use crate::{
     apply_action, export_replay, feature_report, get_action_tree, get_action_tree_for_viewer,
     get_effects, get_view, import_replay, list_games, new_match, new_match_for_variant,
-    new_match_for_variant_with_seat_count, new_match_with_seat_count, replay_reset, replay_step,
-    run_bot_turn,
+    new_match_for_variant_with_seat_count, new_match_with_options, new_match_with_seat_count,
+    replay_reset, replay_step, run_bot_turn,
 };
 
 thread_local! {
@@ -97,6 +97,27 @@ pub unsafe extern "C" fn rulepath_new_match_with_seat_count(
 ) -> i32 {
     let game_id = unsafe { read_string(game_ptr, game_len) };
     write_result(game_id.and_then(|game_id| new_match_with_seat_count(&game_id, seed, seat_count)))
+}
+
+#[no_mangle]
+/// # Safety
+///
+/// `game_ptr..game_ptr + game_len` and
+/// `options_ptr..options_ptr + options_len` must be valid UTF-8 buffers for
+/// the duration of the call.
+pub unsafe extern "C" fn rulepath_new_match_with_options(
+    game_ptr: *const u8,
+    game_len: usize,
+    seed: u64,
+    seat_count: usize,
+    options_ptr: *const u8,
+    options_len: usize,
+) -> i32 {
+    let game_id = unsafe { read_string(game_ptr, game_len) };
+    let options = unsafe { read_string(options_ptr, options_len) };
+    write_result(game_id.and_then(|game_id| {
+        options.and_then(|options| new_match_with_options(&game_id, seed, seat_count, &options))
+    }))
 }
 
 #[no_mangle]

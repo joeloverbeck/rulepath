@@ -10,6 +10,14 @@ type WasmExports = {
   rulepath_list_games: () => number;
   rulepath_new_match: (gamePtr: number, gameLen: number, seed: bigint) => number;
   rulepath_new_match_with_seat_count: (gamePtr: number, gameLen: number, seed: bigint, seatCount: number) => number;
+  rulepath_new_match_with_options: (
+    gamePtr: number,
+    gameLen: number,
+    seed: bigint,
+    seatCount: number,
+    optionsPtr: number,
+    optionsLen: number,
+  ) => number;
   rulepath_new_match_with_variant: (
     gamePtr: number,
     gameLen: number,
@@ -726,6 +734,9 @@ export type RiverLedgerBoardSlotView = {
 export type RiverLedgerSeatView = {
   seat: RiverLedgerSeatId;
   status: "live" | "folded" | "showdown_eligible" | string;
+  starting_stack: number;
+  remaining_stack: number;
+  is_all_in: boolean;
   street_contribution: number;
   total_contribution: number;
   hidden_hole_count: number;
@@ -795,6 +806,19 @@ export type RiverLedgerTerminalView =
       explanations: string[];
       presentation_v2?: RiverLedgerShowdownPresentationV2 | null;
     };
+
+export type RiverLedgerPotTierView = {
+  pot_id: string;
+  amount: number;
+  cap: number | null;
+  contributors: RiverLedgerSeatId[];
+  eligible: RiverLedgerSeatId[];
+};
+
+export type RiverLedgerUncalledReturnView = {
+  seat: RiverLedgerSeatId;
+  amount: number;
+};
 
 export type RiverLedgerShowdownPresentationV2 = {
   result_banner: RiverLedgerShowdownResultBanner;
@@ -901,6 +925,8 @@ export type RiverLedgerPublicView = {
   small_blind: RiverLedgerSeatId;
   big_blind: RiverLedgerSeatId;
   pot_total: number;
+  pot_tiers: RiverLedgerPotTierView[];
+  uncalled_returns: RiverLedgerUncalledReturnView[];
   seats: RiverLedgerSeatView[];
   board: RiverLedgerCardView[];
   board_slots: RiverLedgerBoardSlotView[];
@@ -1493,6 +1519,21 @@ export class RulepathApi {
     return this.invokeJson<MatchCreated>(
       (args) => this.exports.rulepath_new_match(args[0].ptr, args[0].len, BigInt(seed)),
       [gameId],
+    );
+  }
+
+  newMatchWithOptions(gameId: string, seed: number, seatCount: number, options: unknown): MatchCreated {
+    return this.invokeJson<MatchCreated>(
+      (args) =>
+        this.exports.rulepath_new_match_with_options(
+          args[0].ptr,
+          args[0].len,
+          BigInt(seed),
+          seatCount,
+          args[1].ptr,
+          args[1].len,
+        ),
+      [gameId, JSON.stringify(options)],
     );
   }
 

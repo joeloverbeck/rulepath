@@ -4,18 +4,27 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-const args = parseArgs(process.argv.slice(2));
+const argv = process.argv.slice(2);
+if (argv.includes("--help") || argv.includes("-h")) {
+  printUsage();
+  process.exit(0);
+}
+
+const args = parseArgs(argv);
 const prefix = args["ticket-prefix"];
 const activeReference = args["active-reference"];
 const archivedReference = args["archived-reference"];
+const expectedCount = args["expected-count"];
+const expectedTicketRange = args["expected-ticket-range"];
 
 if (!prefix) {
-  console.error(
-    "Usage: audit-series-closeout.mjs --ticket-prefix PREFIX " +
-      "[--active-reference specs/name.md] " +
-      "[--archived-reference archive/specs/name.md]",
-  );
+  printUsage(console.error);
   process.exit(2);
+}
+
+let expectedTicketNames = null;
+if (expectedTicketRange) {
+  expectedTicketNames = expandTicketRange(expectedTicketRange);
 }
 
 let failures = 0;
@@ -31,6 +40,16 @@ function fail(message) {
 
 function ok(message) {
   console.log(`OK: ${message}`);
+}
+
+function printUsage(write = console.log) {
+  write(
+    "Usage: audit-series-closeout.mjs --ticket-prefix PREFIX " +
+      "[--active-reference specs/name.md] " +
+      "[--archived-reference archive/specs/name.md] " +
+      "[--expected-count N] " +
+      "[--expected-ticket-range PREFIX-001..020]",
+  );
 }
 
 function run(cmd, cmdArgs, options = {}) {
@@ -150,6 +169,27 @@ function parseArgs(argv) {
   return parsed;
 }
 
+function expandTicketRange(range) {
+  const match = /^(.*-)(\d+)\.\.(\d+)$/.exec(range);
+  if (!match) {
+    console.error(`Invalid --expected-ticket-range: ${range}`);
+    console.error("Expected form: PREFIX-001..020");
+    process.exit(2);
+  }
+  const [, stem, startText, endText] = match;
+  const start = Number.parseInt(startText, 10);
+  const end = Number.parseInt(endText, 10);
+  if (!Number.isInteger(start) || !Number.isInteger(end) || end < start) {
+    console.error(`Invalid --expected-ticket-range bounds: ${range}`);
+    process.exit(2);
+  }
+  const width = startText.length;
+  return Array.from({ length: end - start + 1 }, (_, offset) => {
+    const number = String(start + offset).padStart(width, "0");
+    return path.join("archive", "tickets", `${stem}${number}.md`);
+  });
+}
+
 section("Active Ticket References");
 const activeTicketRefs = run("rg", ["-n", prefix, "tickets"], { allowExitCodes: [0, 1] });
 if (activeTicketRefs.status === 0) {
@@ -163,6 +203,27 @@ const archivedTickets = listArchivedTickets();
 archivedTickets.forEach((file) => console.log(file));
 console.log(`count=${archivedTickets.length}`);
 if (archivedTickets.length === 0) fail(`no archived tickets found for ${prefix}`);
+if (expectedCount !== undefined) {
+  const count = Number.parseInt(expectedCount, 10);
+  if (!Number.isInteger(count) || String(count) !== expectedCount) {
+    fail(`invalid --expected-count value: ${expectedCount}`);
+  } else if (archivedTickets.length !== count) {
+    fail(`expected ${count} archived tickets, found ${archivedTickets.length}`);
+  } else {
+    ok(`archived ticket count matches expected ${count}`);
+  }
+}
+if (expectedTicketNames) {
+  const actual = new Set(archivedTickets);
+  const expected = new Set(expectedTicketNames);
+  const missing = expectedTicketNames.filter((file) => !actual.has(file));
+  const unexpected = archivedTickets.filter((file) => !expected.has(file));
+  missing.forEach((file) => fail(`expected archived ticket missing: ${file}`));
+  unexpected.forEach((file) => fail(`unexpected archived ticket for range: ${file}`));
+  if (missing.length === 0 && unexpected.length === 0) {
+    ok(`archived ticket names match expected range ${expectedTicketRange}`);
+  }
+}
 
 section("Archived Ticket Status And Outcome");
 archivedTickets.forEach(reportStatusOutcome);
@@ -189,7 +250,7 @@ if (activeReference) livePatterns.push(`(?<!archive/)${escapeRegex(activeReferen
 livePatterns.push(`(?<!archive/)tickets/${escapeRegex(prefix)}`);
 const staleSweep = run(
   "rg",
-  ["-n", "-P", livePatterns.join("|"), "specs", "tickets", "docs", "apps", "scripts"],
+  ["-n", "-P", livePatterns.join("|"), "specs", "tickets", "docs", "apps", "games", "scripts"],
   { allowExitCodes: [0, 1, 2] },
 );
 if (staleSweep.status === 0) fail("stale live-path references were found");
@@ -199,7 +260,7 @@ const archivePatterns = [`archive/tickets/${escapeRegex(prefix)}`];
 if (archivedReference) archivePatterns.push(escapeRegex(archivedReference));
 run(
   "rg",
-  ["-n", "-P", archivePatterns.join("|"), "specs", "docs", "apps", "scripts"],
+  ["-n", "-P", archivePatterns.join("|"), "specs", "docs", "apps", "games", "scripts"],
   { allowExitCodes: [0, 1, 2] },
 );
 

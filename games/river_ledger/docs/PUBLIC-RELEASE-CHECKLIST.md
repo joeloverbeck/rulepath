@@ -6,9 +6,9 @@ Public display name: `River Ledger`
 
 Implemented variant: `river_ledger_standard`
 
-Rules version: `river-ledger-rules-v1`
+Rules version: `river-ledger-rules-v2`
 
-Last updated: 2026-06-14
+Last updated: 2026-06-20
 
 ## Release Checklist
 
@@ -19,21 +19,21 @@ Last updated: 2026-06-14
 | Mechanic inventory complete | complete | [MECHANICS.md](MECHANICS.md) |
 | Native tests pass | complete | `cargo test -p river_ledger` |
 | Tooling registered | complete | simulate, replay-check, fixture-check, rule-coverage, `ci/games.json` |
-| Native simulation evidence complete | complete | `cargo run -p simulate -- --game river_ledger --seat-count 6 --games 1000 --start-seed 1506 --action-cap 48` |
-| Replay and fixture evidence complete | complete | `cargo run -p replay-check -- --game river_ledger --all`, `cargo run -p fixture-check -- --game river_ledger` |
+| Native simulation evidence complete | complete | `cargo run -p simulate -- --game river_ledger --games 1000` (cycles 3-6 seats and stack profiles) |
+| Replay and fixture evidence complete | complete | `cargo run -p replay-check -- --game river_ledger --all`, `cargo run -p fixture-check -- --game river_ledger`; v2 golden traces cover all-in, returns, and side-pot allocation |
 | Native benchmark evidence complete | complete | [BENCHMARKS.md](BENCHMARKS.md), `cargo bench -p river_ledger` |
 | Bots complete | complete | [AI.md](AI.md), [COMPETENT-PLAYER.md](COMPETENT-PLAYER.md), [BOT-STRATEGY-EVIDENCE-PACK.md](BOT-STRATEGY-EVIDENCE-PACK.md), `cargo test -p river_ledger --test bots` |
 | WASM registered | complete | `cargo test -p wasm-api`, `npm --prefix apps/web run smoke:wasm` |
 | UI integrated | complete | [UI.md](UI.md), `RiverLedgerBoard`, `npm --prefix apps/web run build`, `npm --prefix apps/web run smoke:ui` |
-| Browser no-leak/a11y smoke | complete | `node apps/web/e2e/river-ledger.smoke.mjs`, `npm --prefix apps/web run smoke:e2e` |
+| Browser no-leak/a11y smoke | complete | `node apps/web/e2e/river-ledger.smoke.mjs`, `npm --prefix apps/web run smoke:e2e`; includes all-in controls, pot tiers, stack labels, terminal allocation, responsive layout, and no private-token DOM/storage/console leaks |
 | Reduced-motion path | complete | shared shell smoke and River Ledger browser smoke |
-| Replay export/import safe | complete | golden traces, WASM replay dispatch, browser replay shell |
+| Replay export/import safe | complete | v2 golden traces, WASM replay dispatch, browser replay shell; v1 internal traces reject deterministically |
 | Public copy and assets original | complete | [SOURCES.md](SOURCES.md); no copied art, icons, fonts, scans, screenshots, component text, or trade dress |
 | Public display is neutral | complete | River Ledger uses abstract contribution units, neutral cards/ledger language, and no real-money framing |
 | Boundary checks pass | complete | `bash scripts/boundary-check.sh` |
 | Catalog docs reconciled | complete | `README.md`, `apps/web/README.md`, `node scripts/check-catalog-docs.mjs` |
-| Primitive-pressure closeout complete | complete | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md), GAT15RIVLEDTEX-020 archive |
-| Final acceptance/spec closeout complete | pending | GAT15RIVLEDTEX-021 final sweep and spec/index archive |
+| Primitive-pressure closeout complete | complete | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md), GAT151RIVLED-002 and GAT151RIVLED-020 archives |
+| Final acceptance/spec closeout complete | complete | GAT151RIVLED-020 final sweep, spec/index reconciliation, and archive |
 
 ## IP And Trade-Dress Review
 
@@ -51,14 +51,14 @@ Last updated: 2026-06-14
 
 | Surface | Status | Evidence |
 |---|---|---|
-| Rust public/seat views | pass | `cargo test -p river_ledger --test visibility`, pairwise 3-6 seat no-leak tests |
+| Rust public/seat views | pass | `cargo test -p river_ledger --test visibility`, pairwise 3-6 seat stack/pot no-leak tests |
 | action tree | pass | `cargo test -p river_ledger`, `cargo test -p wasm-api` |
 | diagnostics and stale submissions | pass | wrong-seat and cap golden traces, browser smoke diagnostic checks |
-| effect logs | pass | Rust effect filtering tests, replay golden traces |
-| DOM text and attributes | pass | `node apps/web/e2e/river-ledger.smoke.mjs` |
+| effect logs | pass | Rust effect filtering tests, replay golden traces, all-in/stack/pot award effect coverage |
+| DOM text and attributes | pass | `node apps/web/e2e/river-ledger.smoke.mjs`, `npm --prefix apps/web run smoke:e2e` |
 | test IDs | pass | River Ledger browser smoke checks no private card ids in selectors |
 | browser console and storage | pass | `node apps/web/e2e/river-ledger.smoke.mjs` |
-| replay export/import | pass | `public-replay-export-import.trace.json`, WASM replay dispatch, browser replay shell |
+| replay export/import | pass | `public-replay-export-import.trace.json`, v2 replay dispatch, browser replay shell |
 | bot explanations | pass | [BOT-STRATEGY-EVIDENCE-PACK.md](BOT-STRATEGY-EVIDENCE-PACK.md), `cargo test -p river_ledger --test bots` |
 | dev inspector | pass | viewer-filtered public summary only; browser no-leak smoke |
 
@@ -67,20 +67,20 @@ Last updated: 2026-06-14
 | Check | Status | Evidence |
 |---|---|---|
 | TypeScript does not decide legality | pass | `RiverLedgerBoard` maps `actionTree.choices`; Rust owns validation |
-| UI controls derive from Rust action tree | pass | [UI.md](UI.md), `node apps/web/e2e/river-ledger.smoke.mjs` |
+| UI controls derive from Rust action tree | pass | [UI.md](UI.md), `node apps/web/e2e/river-ledger.smoke.mjs`; stack-capped call/bet/raise labels render Rust action metadata |
 | stale/invalid submissions return safe diagnostics | pass | Rust validation traces and WASM dispatch tests |
 | no raw command editing in public mode | pass | Shell action controls and replay import/export only |
-| semantic effects drive animation/feedback | pass | shared effect feedback, River Ledger effect payloads, smoke evidence |
+| semantic effects drive animation/feedback | pass | shared effect feedback, River Ledger stack/contribution/street/showdown/pot effect payloads, smoke evidence |
 | seat counts come from catalog | pass | setup shell consumes `supportedSeatCounts` and `defaultSeats` |
 
 ## Replay Export/Import
 
 | Check | Status | Evidence |
 |---|---|---|
-| public export is viewer-scoped | pass | replay support tests and golden trace coverage |
+| public export is viewer-scoped | pass | replay support tests and v2 golden trace coverage |
 | import goes through Rust parser/projector | pass | WASM replay dispatch and replay viewer smoke |
 | browser shell does not repair replay data | pass | [../../../docs/WASM-CLIENT-BOUNDARY.md](../../../docs/WASM-CLIENT-BOUNDARY.md), replay UI code |
-| hidden setup state is excluded from public exports | pass | `RL-REPLAY-EXPORT-001`, `RL-VIS-DECKTAIL-001`, no-leak tests |
+| hidden setup state is excluded from public exports | pass | `RL-REPLAY-EXPORT-001`, `RL-VIS-DECKTAIL-001`, stack/pot no-leak tests |
 
 ## Bot Boundary
 
@@ -93,20 +93,20 @@ Last updated: 2026-06-14
 
 ## Release Decision
 
-Decision: release-ready for the trailing-doc scope, with final gate closeout
-pending.
+Decision: release-ready for Gate 15.1 v2.
 
 River Ledger has the required official-game docs, Rust implementation evidence,
 tool registration, WASM registration, public rules copy, browser renderer, e2e
 no-leak smoke, catalog docs, bot-boundary proof, primitive-pressure closeout,
-replay evidence, and neutral original presentation for public preview. The
-final acceptance/spec closeout remains in GAT15RIVLEDTEX-021.
+replay evidence, benchmark evidence, finite-stack/all-in/side-pot verification,
+and neutral original presentation for public preview. Gate 15.1 final
+acceptance/spec closeout is complete in GAT151RIVLED-020.
 
 ## Release Blockers
 
 | Blocker | Owner | Blocks public preview? |
 |---|---|---:|
-| Final acceptance sweep and spec/index closeout. | GAT15RIVLEDTEX-021 | no; blocks complete Gate 15 archival |
+| _None_ | _Not applicable._ | no |
 
 No known IP, no-leak, catalog, e2e, presentation-copy, smoke, replay
 export/import, or bot-boundary blocker remains for this ticket.

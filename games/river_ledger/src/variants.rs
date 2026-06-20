@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ids::{
     RULES_VERSION_LABEL, STANDARD_BIG_BET_UNIT, STANDARD_BIG_BLIND, STANDARD_DEFAULT_SEATS,
-    STANDARD_SMALL_BET_UNIT, STANDARD_SMALL_BLIND, VARIANT_ID,
+    STANDARD_SMALL_BET_UNIT, STANDARD_SMALL_BLIND, STANDARD_STARTING_STACK, VARIANT_ID,
 };
 
 const BEHAVIOR_KEYS: &[&str] = &[
@@ -115,6 +115,8 @@ impl VariantCatalog {
                 "big_blind",
                 "small_bet_unit",
                 "big_bet_unit",
+                "default_starting_stack",
+                "stack_presets",
                 "raise_cap_per_street",
                 "deck_order",
                 "terminal_outcomes",
@@ -133,6 +135,8 @@ impl VariantCatalog {
                 big_blind: required_u8(&values, "big_blind")?,
                 small_bet_unit: required_u8(&values, "small_bet_unit")?,
                 big_bet_unit: required_u8(&values, "big_bet_unit")?,
+                default_starting_stack: required_u16(&values, "default_starting_stack")?,
+                stack_presets: required_string(&values, "stack_presets")?,
                 raise_cap_per_street: required_u8(&values, "raise_cap_per_street")?,
                 deck_order: required_string(&values, "deck_order")?,
                 terminal_outcomes: required_string(&values, "terminal_outcomes")?,
@@ -153,6 +157,8 @@ pub struct Variant {
     pub big_blind: u8,
     pub small_bet_unit: u8,
     pub big_bet_unit: u8,
+    pub default_starting_stack: u16,
+    pub stack_presets: String,
     pub raise_cap_per_street: u8,
     pub deck_order: String,
     pub terminal_outcomes: String,
@@ -171,6 +177,8 @@ impl Variant {
             big_blind: STANDARD_BIG_BLIND,
             small_bet_unit: STANDARD_SMALL_BET_UNIT,
             big_bet_unit: STANDARD_BIG_BET_UNIT,
+            default_starting_stack: STANDARD_STARTING_STACK,
+            stack_presets: "equal_24;three_seat_8_16_24;six_seat_4_8_12_16_20_24".to_owned(),
             raise_cap_per_street: 3,
             deck_order: "standard_52_rank_suit_v1".to_owned(),
             terminal_outcomes: "last_live_hand_showdown_win_showdown_split".to_owned(),
@@ -266,6 +274,12 @@ fn required_u8(values: &BTreeMap<String, String>, key: &str) -> Result<u8, Strin
         .map_err(|_| format!("key `{key}` must fit u8"))
 }
 
+fn required_u16(values: &BTreeMap<String, String>, key: &str) -> Result<u16, String> {
+    required_string(values, key)?
+        .parse()
+        .map_err(|_| format!("key `{key}` must fit u16"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,6 +315,14 @@ mod tests {
         assert_eq!(manifest.street_count, STANDARD_STREET_COUNT);
         assert_eq!(manifest.card_count, STANDARD_CARD_COUNT);
         assert_eq!(variants.selected, Variant::river_ledger_standard());
+        assert_eq!(
+            variants.selected.default_starting_stack,
+            STANDARD_STARTING_STACK
+        );
+        assert!(variants
+            .selected
+            .stack_presets
+            .contains("three_seat_8_16_24"));
         assert_eq!(
             variants.selected.raise_cap_per_street,
             MAX_RAISES_PER_STREET

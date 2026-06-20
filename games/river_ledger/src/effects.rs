@@ -23,6 +23,29 @@ pub enum RiverLedgerEffect {
         amount_added: u16,
         pot_total: u16,
     },
+    StackChanged {
+        seat: RiverLedgerSeat,
+        remaining_stack: u16,
+        total_contribution: u16,
+    },
+    SeatBecameAllIn {
+        seat: RiverLedgerSeat,
+    },
+    UncalledContributionReturned {
+        seat: RiverLedgerSeat,
+        amount: u16,
+        pot_total: u16,
+    },
+    PotResolved {
+        pot_id: String,
+        amount: u16,
+        eligible: Vec<RiverLedgerSeat>,
+    },
+    PotAwarded {
+        pot_id: String,
+        seat: RiverLedgerSeat,
+        amount: u16,
+    },
     StreetAdvanced {
         street: Street,
         public_board: Vec<Card>,

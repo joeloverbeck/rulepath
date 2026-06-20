@@ -9,8 +9,42 @@ use river_ledger::{
 use crate::actors::river_actor_for_seat;
 use crate::constants::*;
 use crate::json::{diagnostic_json, escape_json};
+use crate::json_parse::{array_items, reject_unknown_root_fields, validate_json_object};
 use crate::seats::{parse_river_seat, river_seats_for_count};
 use crate::{option_string_json, AppliedCommand};
+
+pub(crate) fn river_setup_options_from_json(
+    options_json: Option<&str>,
+) -> Result<river_ledger::SetupOptions, String> {
+    let Some(input) = options_json
+        .map(str::trim)
+        .filter(|input| !input.is_empty())
+    else {
+        return Ok(river_ledger::SetupOptions::default());
+    };
+    validate_json_object(input)?;
+    reject_unknown_root_fields(input, &["starting_stacks"])?;
+
+    let starting_stacks = match array_items(input, "starting_stacks") {
+        Ok(items) => Some(
+            items
+                .into_iter()
+                .map(|item| {
+                    item.trim()
+                        .parse::<u16>()
+                        .map_err(|_| "starting_stacks entries must be u16 numbers".to_owned())
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        ),
+        Err(message) if message == "missing `starting_stacks`" => None,
+        Err(message) => return Err(message),
+    };
+
+    Ok(river_ledger::SetupOptions {
+        starting_stacks,
+        ..river_ledger::SetupOptions::default()
+    })
+}
 
 pub(crate) fn river_replay_to_cursor(
     seed: u64,
@@ -57,7 +91,7 @@ pub(crate) fn river_replay_step_json(
 
 pub(crate) fn river_view_json(view: &river_ledger::PublicView) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"active_seat_labels\":[{}],\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"seats\":[{}],\"board\":[{}],\"board_slots\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"active_seat_labels\":[{}],\"button\":\"{}\",\"small_blind\":\"{}\",\"big_blind\":\"{}\",\"pot_total\":{},\"pot_tiers\":[{}],\"uncalled_returns\":[{}],\"seats\":[{}],\"board\":[{}],\"board_slots\":[{}],\"terminal\":{},\"terminal_rationale\":{},\"freshness_token\":{},\"private_view\":{},\"ui\":{}}}",
         view.schema_version,
         view.rules_version,
         escape_json(&view.game_id),
@@ -75,6 +109,16 @@ pub(crate) fn river_view_json(view: &river_ledger::PublicView) -> String {
         escape_json(&view.small_blind.as_str()),
         escape_json(&view.big_blind.as_str()),
         view.pot_total,
+        view.pot_tiers
+            .iter()
+            .map(river_pot_tier_json)
+            .collect::<Vec<_>>()
+            .join(","),
+        view.uncalled_returns
+            .iter()
+            .map(river_uncalled_return_json)
+            .collect::<Vec<_>>()
+            .join(","),
         view.seats
             .iter()
             .map(river_seat_view_json)
@@ -116,14 +160,48 @@ pub(crate) fn option_river_seat_json(seat: Option<RiverLedgerSeat>) -> String {
 
 pub(crate) fn river_seat_view_json(seat: &river_ledger::visibility::SeatView) -> String {
     format!(
-        "{{\"seat\":\"{}\",\"status\":\"{}\",\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{},\"ledger_display\":{}}}",
+        "{{\"seat\":\"{}\",\"status\":\"{}\",\"starting_stack\":{},\"remaining_stack\":{},\"is_all_in\":{},\"street_contribution\":{},\"total_contribution\":{},\"hidden_hole_count\":{},\"ledger_display\":{}}}",
         escape_json(&seat.seat.as_str()),
         river_seat_status_label(seat.status),
+        seat.starting_stack,
+        seat.remaining_stack,
+        seat.is_all_in,
         seat.street_contribution,
         seat.total_contribution,
         seat.hidden_hole_count,
         river_seat_ledger_display_json(&seat.ledger_display)
     )
+}
+
+pub(crate) fn river_pot_tier_json(tier: &river_ledger::visibility::PotTierView) -> String {
+    format!(
+        "{{\"pot_id\":\"{}\",\"amount\":{},\"lower_cap\":{},\"upper_cap\":{},\"contributors\":[{}],\"eligible\":[{}]}}",
+        escape_json(&tier.pot_id),
+        tier.amount,
+        tier.lower_cap,
+        tier.upper_cap,
+        river_seat_array_json(&tier.contributors),
+        river_seat_array_json(&tier.eligible)
+    )
+}
+
+pub(crate) fn river_uncalled_return_json(
+    returned: &river_ledger::visibility::UncalledReturnView,
+) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"amount\":{},\"explanation\":\"{}\"}}",
+        escape_json(&returned.seat.as_str()),
+        returned.amount,
+        escape_json(&returned.explanation)
+    )
+}
+
+fn river_seat_array_json(seats: &[RiverLedgerSeat]) -> String {
+    seats
+        .iter()
+        .map(|seat| format!("\"{}\"", escape_json(&seat.as_str())))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 pub(crate) fn river_seat_ledger_display_json(
@@ -158,6 +236,7 @@ pub(crate) fn river_seat_ledger_field_json(
 pub(crate) fn river_seat_status_label(status: river_ledger::SeatStatus) -> &'static str {
     match status {
         river_ledger::SeatStatus::Live => "live",
+        river_ledger::SeatStatus::AllIn => "all_in",
         river_ledger::SeatStatus::Folded => "folded",
         river_ledger::SeatStatus::ShowdownEligible => "showdown_eligible",
     }
@@ -663,6 +742,50 @@ pub(crate) fn river_effect_json(effect: &EffectEnvelope<RiverLedgerEffect>) -> S
             escape_json(&river_effect_seat_label(*seat)),
             amount_added,
             pot_total
+        ),
+        RiverLedgerEffect::StackChanged {
+            seat,
+            remaining_stack,
+            total_contribution,
+        } => format!(
+            "{{\"type\":\"river_ledger_stack_changed\",\"seat\":\"{}\",\"remaining_stack\":{},\"total_contribution\":{}}}",
+            escape_json(&river_effect_seat_label(*seat)),
+            remaining_stack,
+            total_contribution
+        ),
+        RiverLedgerEffect::SeatBecameAllIn { seat } => format!(
+            "{{\"type\":\"river_ledger_seat_became_all_in\",\"seat\":\"{}\"}}",
+            escape_json(&river_effect_seat_label(*seat))
+        ),
+        RiverLedgerEffect::UncalledContributionReturned {
+            seat,
+            amount,
+            pot_total,
+        } => format!(
+            "{{\"type\":\"river_ledger_uncalled_contribution_returned\",\"seat\":\"{}\",\"amount\":{},\"pot_total\":{}}}",
+            escape_json(&river_effect_seat_label(*seat)),
+            amount,
+            pot_total
+        ),
+        RiverLedgerEffect::PotResolved {
+            pot_id,
+            amount,
+            eligible,
+        } => format!(
+            "{{\"type\":\"river_ledger_pot_resolved\",\"pot_id\":\"{}\",\"amount\":{},\"eligible\":[{}]}}",
+            escape_json(pot_id),
+            amount,
+            river_seat_array_json(eligible)
+        ),
+        RiverLedgerEffect::PotAwarded {
+            pot_id,
+            seat,
+            amount,
+        } => format!(
+            "{{\"type\":\"river_ledger_pot_awarded\",\"pot_id\":\"{}\",\"seat\":\"{}\",\"amount\":{}}}",
+            escape_json(pot_id),
+            escape_json(&river_effect_seat_label(*seat)),
+            amount
         ),
         RiverLedgerEffect::StreetAdvanced {
             street,

@@ -2,7 +2,10 @@ use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
 
 use crate::{
     cards::{canonical_deck, Card},
-    ids::{RiverLedgerSeat, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS},
+    ids::{
+        RiverLedgerSeat, MAX_STARTING_STACK, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
+        STANDARD_STARTING_STACK,
+    },
     state::{RiverLedgerState, SeatRoles},
     variants::Variant,
 };
@@ -11,6 +14,7 @@ use crate::{
 pub struct SetupOptions {
     pub variant: Variant,
     pub button_index: usize,
+    pub starting_stacks: Option<Vec<u16>>,
 }
 
 impl Default for SetupOptions {
@@ -18,6 +22,7 @@ impl Default for SetupOptions {
         Self {
             variant: Variant::river_ledger_standard(),
             button_index: 0,
+            starting_stacks: None,
         }
     }
 }
@@ -28,6 +33,8 @@ pub fn setup_match(
     options: &SetupOptions,
 ) -> Result<RiverLedgerState, Diagnostic> {
     validate_seat_count(seats.len())?;
+    let starting_stacks =
+        validate_starting_stacks(seats.len(), options.starting_stacks.as_deref())?;
 
     let button = RiverLedgerSeat::from_index(options.button_index % seats.len())
         .expect("button modulo valid seat count");
@@ -71,6 +78,7 @@ pub fn setup_match(
             big_blind,
             active_seat,
         },
+        starting_stacks,
         private_hands,
         community_deck,
         deck_tail,
@@ -88,6 +96,49 @@ pub fn validate_seat_count(count: usize) -> Result<(), Diagnostic> {
             "river_ledger requires between {STANDARD_MIN_SEATS} and {STANDARD_MAX_SEATS} seats"
         ),
     })
+}
+
+pub fn validate_starting_stacks(
+    seat_count: usize,
+    configured: Option<&[u16]>,
+) -> Result<Vec<u16>, Diagnostic> {
+    validate_seat_count(seat_count)?;
+
+    let stacks = configured
+        .map(|values| values.to_vec())
+        .unwrap_or_else(|| vec![STANDARD_STARTING_STACK; seat_count]);
+
+    if stacks.len() != seat_count {
+        return Err(Diagnostic {
+            code: "invalid_starting_stack_count".to_owned(),
+            message: format!(
+                "river_ledger starting stack count must equal seat count ({seat_count})"
+            ),
+        });
+    }
+
+    for (index, stack) in stacks.iter().copied().enumerate() {
+        if stack == 0 || stack > MAX_STARTING_STACK {
+            return Err(Diagnostic {
+                code: "invalid_starting_stack".to_owned(),
+                message: format!(
+                    "river_ledger starting stack for seat_{index} must be between 1 and {MAX_STARTING_STACK}"
+                ),
+            });
+        }
+    }
+
+    let total = stacks
+        .iter()
+        .try_fold(0u32, |total, stack| total.checked_add(u32::from(*stack)));
+    if total.is_none() {
+        return Err(Diagnostic {
+            code: "invalid_starting_stack_overflow".to_owned(),
+            message: "river_ledger starting stacks overflow the accounting total".to_owned(),
+        });
+    }
+
+    Ok(stacks)
 }
 
 pub fn shuffle_deck<R: DeterministicRng>(deck: &mut [Card], rng: &mut R) {

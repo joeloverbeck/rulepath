@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "trace_id": "river-ledger-folded-contribution-retained",
+  "fixture_kind": "showdown-placeholder",
+  "purpose": "G15.1 v2 allocation fixture: folded money remains in the pot while folded seats are not eligible.",
+  "migration_review": "GAT151RIVLED-017: folded contribution retention evidence added intentionally.",
+  "game_id": "river_ledger",
+  "rules_version": "river-ledger-rules-v1",
+  "seed": 1522,
+  "variant": "river_ledger_standard",
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "commands": [{ "seat": "seat_0", "action": "fold" }],
+  "expected_public_result": {
+    "folded_contribution_retained": true,
+    "folded_eligible": false,
+    "allocations": [{ "seat": "seat_1", "amount": 12 }]
+  }
+}
