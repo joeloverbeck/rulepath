@@ -33,6 +33,9 @@ export function PlainTricksBoard({
   const ownSeat = view.private_view.status === "seat" ? view.private_view.seat : null;
   const opponentSeat = ownSeat === "seat_0" ? "seat_1" : "seat_0";
   const opponentCount = ownSeat ? view.hand_counts[opponentSeat] : view.hand_counts.seat_0 + view.hand_counts.seat_1;
+  // When following, the leader's card is public; comparing it to a candidate
+  // tells the player whether the play wins the trick (higher card, led suit).
+  const ledCard = view.current_trick.plays.length > 0 ? view.current_trick.plays[0].card : null;
   const outcomeExplanation = terminal
     ? outcomeSurfaceData({
         gameId: "plain_tricks",
@@ -99,11 +102,12 @@ export function PlainTricksBoard({
             <div className="plain-hand" data-testid="plain-tricks-own-hand">
               {view.private_view.own_hand.map((card, index) => {
                 const choice = legalCards.get(card.card_id) ?? null;
+                const outcome = choice ? trickOutcome(card, ledCard) : null;
                 return (
                   <button
                     type="button"
                     key={card.card_id}
-                    className={`plain-card ${card.suit} ${choice ? "legal" : ""}`}
+                    className={`plain-card ${card.suit} ${choice ? "legal" : ""}${outcome ? ` outcome-${outcome}` : ""}`}
                     disabled={!canAct || !choice}
                     aria-label={choice?.accessibility_label ?? card.accessibility_label}
                     data-testid={`choice-plain-tricks-trick-${view.trick_index}-${index}`}
@@ -111,7 +115,9 @@ export function PlainTricksBoard({
                   >
                     <span>{card.suit}</span>
                     <strong>{card.rank}</strong>
-                    <small>{choice ? "Legal" : "Held"}</small>
+                    <small className={outcome ? `plain-trick-outcome ${outcome}` : ""}>
+                      {outcome === "wins" ? "Wins trick" : outcome === "loses" ? "Loses trick" : choice ? "Legal" : "Held"}
+                    </small>
                   </button>
                 );
               })}
@@ -126,6 +132,11 @@ export function PlainTricksBoard({
             <span>{view.ui.current_trick_label}</span>
             <strong>{view.current_trick.led_suit ? `Led ${view.current_trick.led_suit}` : "No suit led"}</strong>
           </div>
+          {ledCard && canAct ? (
+            <p className="plain-follow-hint" data-testid="plain-tricks-follow-hint">
+              Follow {ledCard.suit} if you hold it. Only a higher {ledCard.suit} wins this trick.
+            </p>
+          ) : null}
           <div className="plain-played-row">
             {view.current_trick.plays.length === 0 ? (
               <p className="muted">Waiting for the first card.</p>
@@ -229,6 +240,15 @@ function isTrickEffect(type: string): boolean {
 
 function privateHeading(view: PlainTricksPublicView): string {
   return view.private_view.status === "seat" ? `${seatLabel(view.private_view.seat)} view` : "Observer";
+}
+
+// With no trump, a follower's card wins only by being a higher card of the led
+// suit. Any off-suit follow loses. Returns null when leading (no led card yet).
+function trickOutcome(card: PlainTricksCardView, ledCard: PlainTricksCardView | null): "wins" | "loses" | null {
+  if (!ledCard) {
+    return null;
+  }
+  return card.suit === ledCard.suit && card.rank_value > ledCard.rank_value ? "wins" : "loses";
 }
 
 function statusLabel(view: PlainTricksPublicView): string {
