@@ -71,9 +71,8 @@ fn read_golden_trace(file_name: &str) -> String {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/golden_traces")
         .join(file_name);
-    std::fs::read_to_string(&path).unwrap_or_else(|error| {
-        panic!("failed to read golden trace {}: {error}", path.display())
-    })
+    std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("failed to read golden trace {}: {error}", path.display()))
 }
 
 fn expected_trace_id(file_name: &str) -> String {

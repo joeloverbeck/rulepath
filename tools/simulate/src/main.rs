@@ -148,6 +148,23 @@ struct DiagnosticFailureContext<'a> {
     diagnostic: Diagnostic,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+enum RiverLedgerStackProfile {
+    Default,
+    Asymmetric,
+    ShortPressure,
+}
+
+impl RiverLedgerStackProfile {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Default => "default",
+            Self::Asymmetric => "asymmetric",
+            Self::ShortPressure => "short_pressure",
+        }
+    }
+}
+
 fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String> {
     let mut config = Config::default();
     let mut args = args.into_iter();
@@ -472,20 +489,31 @@ fn run_poker_lite_simulation(config: Config) -> Result<String, String> {
 }
 
 fn run_river_ledger_simulation(config: Config) -> Result<String, String> {
-    let seat_count = config.seat_count.unwrap_or(6);
-    let seat_labels = (0..seat_count)
+    let summary_seat_count = config.seat_count.unwrap_or(6);
+    let seat_labels = (0..summary_seat_count)
         .map(|index| format!("seat_{index}"))
         .collect::<Vec<_>>();
     let seat_refs = seat_labels.iter().map(String::as_str).collect::<Vec<_>>();
     let started = Instant::now();
     let mut summary = Summary::new(&seat_refs);
     let mut splits = 0_u64;
+    let mut games_by_seat_count = BTreeMap::<String, u64>::new();
+    let mut games_by_stack_profile = BTreeMap::<String, u64>::new();
 
     for offset in 0..config.games {
         let seed = config.start_seed.wrapping_add(offset);
-        let (winners, actions) = run_one_river_ledger_game(&config, seed, seat_count)?;
+        let seat_count = river_ledger_seat_count_for_offset(&config, offset);
+        let stack_profile = river_ledger_stack_profile_for_offset(offset);
+        let (winners, actions) =
+            run_one_river_ledger_game(&config, seed, seat_count, stack_profile)?;
         summary.games_run += 1;
         summary.total_actions += actions as u64;
+        *games_by_seat_count
+            .entry(seat_count.to_string())
+            .or_insert(0) += 1;
+        *games_by_stack_profile
+            .entry(stack_profile.as_str().to_owned())
+            .or_insert(0) += 1;
         if winners.len() > 1 {
             splits += 1;
         }
@@ -507,17 +535,25 @@ fn run_river_ledger_simulation(config: Config) -> Result<String, String> {
          rules_version={RULES_VERSION}\n\
          data_version={DATA_VERSION}\n\
          start_seed={}\n\
-         seat_count={seat_count}\n\
+         seat_count_mode={}\n\
          games_run={}\n\
+         {}\n\
+         {}\n\
          {}\n\
          {}\n\
          split_games={splits}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
         config.start_seed,
+        config
+            .seat_count
+            .map(|count| count.to_string())
+            .unwrap_or_else(|| "cycled_3_to_6".to_owned()),
         summary.games_run,
         render_seat_order_strings(&seat_labels),
-        render_seat_counts("wins_by_seat", &summary.wins_by_seat)
+        render_seat_counts("wins_by_seat", &summary.wins_by_seat),
+        render_seat_counts("games_by_seat_count", &games_by_seat_count),
+        render_seat_counts("games_by_stack_profile", &games_by_stack_profile)
     ))
 }
 
@@ -1496,13 +1532,14 @@ fn run_one_river_ledger_game(
     config: &Config,
     seed: u64,
     seat_count: usize,
+    stack_profile: RiverLedgerStackProfile,
 ) -> Result<(Vec<String>, usize), String> {
     let seats = (0..seat_count)
         .map(|index| SeatId(format!("seat_{index}")))
         .collect::<Vec<_>>();
-    let mut state =
-        river_ledger::setup_match(Seed(seed), &seats, &river_ledger::SetupOptions::default())
-            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+    let setup_options = river_ledger_setup_options(seat_count, stack_profile);
+    let mut state = river_ledger::setup_match(Seed(seed), &seats, &setup_options)
+        .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
 
     for action_index in 0..config.action_cap {
         if let Some(outcome) = &state.terminal_outcome {
@@ -1546,11 +1583,48 @@ fn run_one_river_ledger_game(
          data_version={DATA_VERSION}\n\
          seed={seed}\n\
          seat_count={seat_count}\n\
+         stack_profile={}\n\
          action_cap={}\n\
          failure_reason=action cap reached before terminal outcome\n\
          replay_command=cargo run -p simulate -- --game river_ledger --seat-count {seat_count} --games 1 --start-seed {seed} --action-cap {}\n",
-        config.action_cap, config.action_cap
+        stack_profile.as_str(),
+        config.action_cap,
+        config.action_cap
     ))
+}
+
+fn river_ledger_seat_count_for_offset(config: &Config, offset: u64) -> usize {
+    config
+        .seat_count
+        .unwrap_or_else(|| 3 + (offset as usize % 4))
+}
+
+fn river_ledger_stack_profile_for_offset(offset: u64) -> RiverLedgerStackProfile {
+    match offset % 3 {
+        0 => RiverLedgerStackProfile::Default,
+        1 => RiverLedgerStackProfile::Asymmetric,
+        _ => RiverLedgerStackProfile::ShortPressure,
+    }
+}
+
+fn river_ledger_setup_options(
+    seat_count: usize,
+    stack_profile: RiverLedgerStackProfile,
+) -> river_ledger::SetupOptions {
+    let starting_stacks = match stack_profile {
+        RiverLedgerStackProfile::Default => None,
+        RiverLedgerStackProfile::Asymmetric => {
+            Some((0..seat_count).map(|index| 4 + index as u16 * 4).collect())
+        }
+        RiverLedgerStackProfile::ShortPressure => {
+            let base = [8, 3, 2, 5, 13, 21];
+            Some(base[..seat_count].to_vec())
+        }
+    };
+    river_ledger::SetupOptions {
+        starting_stacks,
+        ..river_ledger::SetupOptions::default()
+    }
 }
 
 fn run_one_plain_tricks_game(

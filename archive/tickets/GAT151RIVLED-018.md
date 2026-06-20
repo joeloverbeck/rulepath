@@ -1,6 +1,6 @@
 # GAT151RIVLED-018: Simulation, benchmarks, and BENCHMARKS.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence + docs) — `games/river_ledger/benches/{river_ledger.rs,thresholds.json}`, `docs/BENCHMARKS.md`, `ci/games.json`
@@ -76,3 +76,21 @@ Update `ci/games.json` sim flags to exercise asymmetric stacks/all-in pressure; 
 1. `cargo bench -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p fixture-check -- --game river_ledger` — bench + simulate + fixture are the correct performance/evidence boundary; thresholds are calibrated under the CI lanes, not in this ticket.
+
+## Outcome
+
+Completed 2026-06-20. Added the Gate 15.1 native benchmark lanes, including short-stack action generation/application, maximum-layer side-pot construction, multi-pot allocation, all-in showdown/projection, replay serialization, bot policy pressure, and full-game all-in pressure. The benchmark harness asserts the maximum-layer fixture shape directly: six distinct caps, folded money, at least three contestable pots, a returned top layer, and split-pot allocation. The all-in showdown/projection lane uses a no-return sibling fixture because resolved terminal allocations exclude already-returned uncalled excess.
+
+Updated `thresholds.json` to the River Ledger v2 benchmark report and documented the accepted ADR 0002/0003 smoke-floor threshold policy in `BENCHMARKS.md`. Updated River Ledger simulation so the default `--game river_ledger --games N` run cycles 3-6 seats and deterministic `default`, `asymmetric`, and `short_pressure` stack profiles, with summary counters for both. Updated `ci/games.json` to use that default coverage path. `fixture-check` now recognizes River Ledger v2 manifest/data versions while still accepting the current v1 placeholder golden-trace contract.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p simulate`
+3. `cargo test -p fixture-check`
+4. `cargo bench -p river_ledger`
+5. `cargo run -p simulate -- --game river_ledger --games 1000`
+6. `cargo run -p fixture-check -- --game river_ledger`
+7. `cargo run -p rule-coverage -- --game river_ledger`
+8. `node scripts/check-doc-links.mjs`
+9. `cargo run -p bench-report -- --input /tmp/river_ledger_bench.txt --thresholds games/river_ledger/benches/thresholds.json`
