@@ -1,6 +1,6 @@
 # GAT151RIVLED-001: Admission, rule contract, and v2 version plan
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (docs-only: authors the implementation-admission + rule-family + version plan; no code, traces, or version bump lands here)
@@ -74,3 +74,22 @@ Define the new stable families per spec §7.2 (`RL-STACK-*`, `RL-ALLIN-*`, `RL-P
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-player-rules.mjs`
 3. A narrower doc-link/player-rules boundary is correct here: no Rust changes land, so `cargo` gates are not exercised by this ticket.
+
+## Outcome
+
+Completed: 2026-06-20
+
+What changed:
+
+- Updated `games/river_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md` with the Gate 15.1 v2 admission delta, including configurable per-seat stacks with the equal 24-unit default, full-unit reopening, side-pot/accounting scope, game-local boundary, and v1 replay rejection plan.
+- Added the planned `river-ledger-rules-v2` / `rules_version = 2` / `data_version = 2` cutover note without changing current code or manifest versions.
+- Added the v2 rule-family plan and explicit supersession map for `RL-POT-SINGLE-001`, `RL-POT-SINGLE-002`, `RL-POT-ALLIN-001`, `RL-VAR-ALLIN-001`, and `RL-OOS-ALLIN-001`.
+
+Deviations:
+
+- None. This ticket remained documentation-only; `RULES.md`, `RULE-COVERAGE.md`, code, manifests, hashes, and traces remain unchanged for their later owning tickets.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `node scripts/check-player-rules.mjs` passed (`player-rules check passed -- 15 catalog games validated`).
