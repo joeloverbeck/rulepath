@@ -58,6 +58,15 @@ try {
 
   await keyboardStart(page);
   await waitForSelectorText(page, '[data-testid="counter"]', "0 / 21");
+  const racePreview = await page.evaluate(() => ({
+    remaining: document.querySelector('[data-testid="remaining"]')?.textContent ?? "",
+    reach: Array.from(document.querySelectorAll('[data-testid^="race-reach-"]')).map((chip) => chip.textContent?.trim() ?? ""),
+  }));
+  assert(racePreview.remaining === "21", `race board shows remaining to target, got "${racePreview.remaining}"`);
+  assert(
+    racePreview.reach.length === 3 && racePreview.reach.every((text) => /\+\d → \d/.test(text)),
+    `race board previews each add's resulting counter, got ${JSON.stringify(racePreview.reach)}`,
+  );
   await waitForText(page, "Choose a Rust-supplied action");
   await clickText(page, "button", "Add 1");
   await page.waitForFunction(() => {

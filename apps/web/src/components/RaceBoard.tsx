@@ -56,8 +56,8 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
           <strong data-testid="turn">{status}</strong>
         </div>
         <div>
-          <span>Token</span>
-          <strong>{view?.freshness_token ?? "--"}</strong>
+          <span>Remaining</span>
+          <strong data-testid="remaining">{view ? Math.max(0, target - counter) : "--"}</strong>
         </div>
       </div>
 
@@ -77,6 +77,27 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
           </text>
         </svg>
       </div>
+
+      {view && !view.winner ? (
+        <div className="race-reach" aria-label="Move preview">
+          <span className="race-reach-label">Each add reaches</span>
+          {[1, 2, 3].map((add) => {
+            const resulting = counter + add;
+            const legal = resulting <= target;
+            const wins = resulting === target;
+            return (
+              <span
+                key={add}
+                className={`race-reach-chip ${wins ? "win" : legal ? "" : "overshoot"}`}
+                data-testid={`race-reach-${add}`}
+              >
+                +{add} → {resulting}
+                {wins ? " · wins" : legal ? "" : " · over 21"}
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="board-status" role="status">
         <span>{outcomeExplanation ? outcomeAnnouncementText(outcomeExplanation) : latestEffect ? effectSummary(latestEffect) : "No action yet"}</span>

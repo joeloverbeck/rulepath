@@ -347,6 +347,44 @@ h2 {
   gap: 16px;
 }
 
+.race-reach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.race-reach-label {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.race-reach-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #d0d9d4;
+  background: #ffffff;
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: #2a3a34;
+}
+
+.race-reach-chip.win {
+  border-color: #2b8068;
+  background: #eef6f1;
+  color: #1f6b4f;
+}
+
+.race-reach-chip.overshoot {
+  color: #97742a;
+  border-color: #e0cfa0;
+  background: #faf6ec;
+  text-decoration: line-through;
+}
+
 .counter-stage {
   overflow: hidden;
   border: 1px solid #c7d4ce;
