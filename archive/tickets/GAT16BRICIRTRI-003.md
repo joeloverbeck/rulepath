@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-003: Primitive-pressure ledger (second use) and mechanic-atlas update
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `docs/MECHANIC-ATLAS.md`, `games/plain_tricks/docs/MECHANICS.md`, `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md`)
@@ -80,3 +80,25 @@ Add the second-use comparison reference (Briar Circuit) with no behavior change.
 1. `grep -nE 'follow-suit|led-suit comparator|winner-leads|deal rotation' docs/MECHANIC-ATLAS.md`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. `git diff --stat games/plain_tricks/` — confirms docs-only change to the sibling game.
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Added `games/briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the Plain Tricks ↔ Briar Circuit second-use comparison and a keep-local/defer decision.
+- Updated `docs/MECHANIC-ATLAS.md` so follow-suit legality, led-suit comparator, trick-winner-led order, and deal rotation/redeal list both `plain_tricks` and `briar_circuit` as repeated-shape candidates with the Gate 17 third-use trigger.
+- Updated `games/plain_tricks/docs/MECHANICS.md` and `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the Gate 16 second-use addendum.
+
+Deviations from plan:
+
+- None. No Rust behavior, traces, hashes, renderer, `game-stdlib`, or `engine-core` changes were made.
+
+Verification:
+
+- `grep -nE 'follow-suit|led-suit comparator|winner-leads|deal rotation|repeated-shape|second-use' docs/MECHANIC-ATLAS.md` showed the four trick-taking rows as second-use/repeated-shape records.
+- `grep -n 'Current debt: _None_' docs/MECHANIC-ATLAS.md` passed; the open promotion-debt register remains empty.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `git diff --stat games/plain_tricks/` showed only `games/plain_tricks/docs/MECHANICS.md` and `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md`.

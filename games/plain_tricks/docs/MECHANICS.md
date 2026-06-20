@@ -6,7 +6,7 @@ Roadmap stage/gate: Gate 10.1 trick-taking proof
 
 Rules version: `plain-tricks-rules-v1`
 
-Last updated: 2026-06-09
+Last updated: 2026-06-21
 
 ## Purpose
 
@@ -30,8 +30,8 @@ presents the Rust/WASM projection only.
 | turn/phase model | Six tricks per round, two rounds, trick winner leads next trick, round 2 starts with `seat_1`. | `rules.rs`, golden traces | `local-only` | No extra bidding, pass window, or reaction stack. |
 | randomness/chance | Seeded setup shuffle for each round; round 2 continues the same RNG stream. | `setup.rs`, `replay_support.rs`, golden traces | `repeated-shape candidate` | The shuffle/private deal remains game-local. |
 | visibility/hidden information | Owner sees own unplayed hand; opponent and observer see counts only; tail is internal only; played cards are public. | `visibility.rs`, [RULE-COVERAGE.md](RULE-COVERAGE.md), `plain-tricks.smoke.mjs` | `third-use pressure` | No-leak scope includes Rust payloads, WASM, DOM, storage, replay export, and dev panel. |
-| follow-suit legality | Leader may play any held card; follower must play led suit if holding it, otherwise any held card. | `actions.rs`, `rules.rs` | `local-only first use` | This is trick-taking pressure, not an engine-core primitive. |
-| trick resolution | Led-suit higher rank wins; off-suit follower loses to leader; winner leads next trick. | `rules.rs`, [RULES.md](RULES.md) | `local-only first use` | No trump, partnerships, equal-card tie, or point cards. |
+| follow-suit legality | Leader may play any held card; follower must play led suit if holding it, otherwise any held card. | `actions.rs`, `rules.rs`; [../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md](../../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md) | `second-use comparison recorded; keep local/defer` | Briar Circuit repeats the core shape with four seats, 2 clubs opening, first-trick point restrictions, and hearts-broken lead restrictions. No helper is promoted. |
+| trick resolution | Led-suit higher rank wins; off-suit follower loses to leader; winner leads next trick. | `rules.rs`, [RULES.md](RULES.md); [../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md](../../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md) | `second-use comparison recorded; keep local/defer` | Briar Circuit repeats the comparator/winner-leads shape with four-card tricks and penalty scoring. No trump, partnerships, equal-card tie, or point-card policy enters a helper. |
 | scoring/outcome | One point per trick, totals across two rounds, higher total wins, 6-6 split. | `rules.rs`, [RULE-COVERAGE.md](RULE-COVERAGE.md) | `local-only` | Outcome rationale is public and count-based. |
 | semantic effect shape | Deal counts/private hand-dealt effects, card played, trick resolved, round scored, deal rotated, match resolved, terminal, and public bot choice. | `effects.rs`, golden traces | `local-only` | Private hand-dealt effects are viewer-filtered. |
 | UI interaction pattern | Own hand, opponent face-down count, current trick, history ledger, Rust-legal card buttons, replay, reduced motion. | [UI.md](UI.md), `PlainTricksBoard.tsx` | `local-only` | `data-testid` anchors use trick/index, not card ids. |
@@ -40,9 +40,13 @@ presents the Rust/WASM projection only.
 
 ## Primitive Pressure Decision
 
-Follow-suit legality, trick-winner-led turn order, and trick scoring remain
-Plain Tricks-local in Gate 10.1. They are first official uses and do not justify
-`engine-core` or `game-stdlib` promotion.
+Follow-suit legality, led-suit trick comparison, and trick-winner-led turn
+order remain game-local after the Gate 16 Briar Circuit second-use review. The
+shared core is real, but Briar Circuit's pass window, opening-lead rule,
+first-trick point restriction, hearts-broken state, four-seat visibility, moon
+scoring, and threshold terminal rules make extraction premature. No
+`engine-core` or `game-stdlib` promotion is authorized; Gate 17 is the next
+third-use hard gate.
 
 Card/private-hand visibility has now reached third-use pressure across
 `high_card_duel`, `poker_lite`, and `plain_tricks`. This ticket records the

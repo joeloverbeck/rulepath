@@ -6,7 +6,7 @@ Status: third-use hard-gate decision recorded; extraction deferred/rejected
 
 Decision date: 2026-06-09
 
-Last updated: 2026-06-09
+Last updated: 2026-06-21
 
 Prepared by: `Codex`
 
@@ -278,6 +278,23 @@ implementation uncovers one of these facts:
   can improve without policy hooks;
 - a maintainer proposes any runtime helper that would affect visibility,
   reveal timing, action metadata, replay export, or bot input.
+
+## Gate 16 Trick-Taking Second-Use Addendum
+
+Date: 2026-06-21
+
+Briar Circuit records the second close use of Plain Tricks' trick-taking shapes
+in [../../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md](../../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md).
+
+The repeated shapes are follow-suit legality, led-suit trick comparison,
+trick-winner-led turn order, deterministic trick-hand deal rotation, and
+hidden-hand projection with played-card public reveal.
+
+Decision: keep local / defer extraction. No Plain Tricks behavior, traces,
+hashes, action paths, diagnostics, renderer, bot policy, or docs-generated
+player rules change. No `engine-core` noun, no `game-stdlib` helper, and no
+promotion debt are created. Gate 17 Oh Hell remains the third-use hard-gate
+trigger for close trick-taking behavior.
 
 Any reopen must again choose exactly one of reuse, promote, defer/reject, or
 ADR before a new repeated implementation proceeds.
