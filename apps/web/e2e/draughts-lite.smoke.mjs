@@ -121,7 +121,7 @@ async function assertBoardA11y(page) {
   assert(summary.legal === 4, `draughts_lite exposes four Rust legal origins, got ${summary.legal}`);
   assert(summary.missingNames.length === 0, `draughts_lite cells have accessible names: ${summary.missingNames.join(", ")}`);
   assert(summary.pieces === 24, `draughts_lite renders twenty-four pieces, got ${summary.pieces}`);
-  assert(summary.active.includes("seat_0"), "draughts_lite exposes text turn status");
+  assert(summary.active.includes("Seat 0"), "draughts_lite exposes humanized text turn status");
   assert(summary.activeDescendant.startsWith("draughts-cell-"), "draughts_lite grid exposes active descendant");
   assert(summary.live.includes("Rust-provided"), "draughts_lite live region announces Rust-provided choices");
   await assertFocusedVisibleAfterFocus(page, "draughts-cell-r1c1");
@@ -154,6 +154,7 @@ async function assertMandatoryCapture(page) {
   }));
   assert(summary.live.includes("Capture is mandatory"), "live region announces mandatory capture");
   assert(summary.cues.includes("Captures") && summary.cues.includes("1"), "capture cue reports capture origins");
+  assert(summary.cues.includes("mandatory"), "capture cue flags that capturing is mandatory");
   assert(summary.legalOrigins.includes("draughts-cell-r4c1"), "mandatory capture exposes the capturing origin");
 }
 
