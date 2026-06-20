@@ -16,6 +16,10 @@ pub const STANDARD_TRICKS_PER_HAND: u8 = 13;
 pub const STANDARD_RAW_POINTS_PER_HAND: u8 = 26;
 pub const STANDARD_MATCH_THRESHOLD: u16 = 100;
 pub const STANDARD_PASS_SIZE: u8 = 3;
+pub const ACTION_PASS: &str = "pass";
+pub const ACTION_PASS_SELECT: &str = "select";
+pub const ACTION_PASS_UNSELECT: &str = "unselect";
+pub const ACTION_PASS_CONFIRM: &str = "confirm";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum BriarCircuitSeat {

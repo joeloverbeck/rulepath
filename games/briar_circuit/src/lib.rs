@@ -14,12 +14,17 @@ pub mod ui;
 pub mod variants;
 pub mod visibility;
 
+pub use actions::{
+    apply_pass_action, parse_pass_action_path, validate_pass_command, PassAction, PassActionResult,
+};
 pub use cards::{canonical_deck, Card, CardId, Deck, Rank, Suit};
+pub use effects::{BriarCircuitEffect, PassCommitmentStatus};
 pub use ids::{
-    canonical_seat_ids, BriarCircuitSeat, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT,
+    canonical_seat_ids, BriarCircuitSeat, ACTION_PASS, ACTION_PASS_CONFIRM, ACTION_PASS_SELECT,
+    ACTION_PASS_UNSELECT, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT,
     STANDARD_DEFAULT_SEATS, STANDARD_HAND_SIZE, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
-    STANDARD_RANK_COUNT, STANDARD_SEAT_COUNT, STANDARD_SUIT_COUNT, STANDARD_TRICKS_PER_HAND,
-    VARIANT_ID,
+    STANDARD_PASS_SIZE, STANDARD_RANK_COUNT, STANDARD_SEAT_COUNT, STANDARD_SUIT_COUNT,
+    STANDARD_TRICKS_PER_HAND, VARIANT_ID,
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
@@ -27,6 +32,7 @@ pub use state::{
     Phase, PlayingTrickState, TerminalOutcome, TrickPlay,
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{project_pass_view, PassView};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use briar_circuit::{
-    canonical_deck, canonical_seat_ids, setup_match, Card, CardId, Rank, SetupOptions, Suit,
-    STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
+    apply_pass_action, canonical_deck, canonical_seat_ids, setup_match, BriarCircuitSeat, Card,
+    CardId, PassAction, Rank, SetupOptions, Suit, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
 };
 use engine_core::Seed;
 
@@ -53,4 +53,36 @@ fn setup_deals_full_deck_into_four_private_hands() {
     all_dealt.sort();
     assert_eq!(all_dealt, canonical_deck());
     assert_eq!(all_dealt.len(), STANDARD_CARD_COUNT as usize);
+}
+
+#[test]
+fn pass_exchange_conserves_full_deck_partition() {
+    let mut state = setup_match(Seed(1607), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    let selected: Vec<_> = BriarCircuitSeat::ALL
+        .into_iter()
+        .map(|seat| (seat, state.hand_for_internal(seat)[..3].to_vec()))
+        .collect();
+
+    for (seat, cards) in selected {
+        for card in cards {
+            apply_pass_action(&mut state, seat, PassAction::Select(card))
+                .expect("select pass card");
+        }
+        apply_pass_action(&mut state, seat, PassAction::Confirm).expect("confirm pass");
+    }
+
+    let mut all_after = Vec::new();
+    for seat in BriarCircuitSeat::ALL {
+        let hand = state.hand_for_internal(seat);
+        assert_eq!(hand.len(), STANDARD_HAND_SIZE as usize);
+        all_after.extend_from_slice(hand);
+    }
+
+    all_after.sort();
+    assert_eq!(all_after, canonical_deck());
+    assert_eq!(
+        all_after.iter().copied().collect::<BTreeSet<_>>().len(),
+        STANDARD_CARD_COUNT as usize
+    );
 }

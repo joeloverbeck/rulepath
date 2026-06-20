@@ -61,6 +61,33 @@ impl PassState {
             committed: Vec::new(),
         }
     }
+
+    pub fn selection_for(&self, seat: BriarCircuitSeat) -> &[CardId] {
+        self.selections
+            .iter()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, selection)| selection.as_slice())
+            .unwrap_or(&[])
+    }
+
+    pub fn selection_for_mut(&mut self, seat: BriarCircuitSeat) -> Option<&mut Vec<CardId>> {
+        self.selections
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, selection)| selection)
+    }
+
+    pub fn is_committed(&self, seat: BriarCircuitSeat) -> bool {
+        self.committed.contains(&seat)
+    }
+
+    pub fn committed_count(&self) -> usize {
+        self.committed.len()
+    }
+
+    pub fn pending_count(&self) -> usize {
+        BriarCircuitSeat::ALL.len() - self.committed.len()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -189,9 +216,9 @@ impl BriarCircuitState {
                 PassDirection::Hold => Phase::PlayingTrick(PlayingTrickState {
                     hearts_broken: false,
                     trick_index: 0,
-                    leader: BriarCircuitSeat::Seat0,
-                    active_seat: BriarCircuitSeat::Seat0,
-                    current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+                    leader: opening_leader_from_hands(&hands),
+                    active_seat: opening_leader_from_hands(&hands),
+                    current_trick: CurrentTrick::new(opening_leader_from_hands(&hands)),
                 }),
                 direction => Phase::Passing(PassState::new(direction)),
             },
@@ -211,6 +238,39 @@ impl BriarCircuitState {
             .find(|(candidate, _)| *candidate == seat)
             .map(|(_, hand)| hand.as_slice())
             .unwrap_or(&[])
+    }
+
+    pub fn hand_for_internal_mut(&mut self, seat: BriarCircuitSeat) -> Option<&mut Vec<CardId>> {
+        self.private_hands
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, hand)| hand)
+    }
+
+    pub fn pass_state(&self) -> Option<&PassState> {
+        match &self.phase {
+            Phase::Passing(pass) => Some(pass),
+            _ => None,
+        }
+    }
+
+    pub fn pass_state_mut(&mut self) -> Option<&mut PassState> {
+        match &mut self.phase {
+            Phase::Passing(pass) => Some(pass),
+            _ => None,
+        }
+    }
+
+    pub fn enter_playing_with_two_clubs_leader(&mut self) {
+        let leader = opening_leader_from_private_hands(&self.private_hands);
+        self.phase = Phase::PlayingTrick(PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 0,
+            leader,
+            active_seat: leader,
+            current_trick: CurrentTrick::new(leader),
+        });
+        self.freshness_token = FreshnessToken(self.freshness_token.0 + 1);
     }
 
     pub fn stable_internal_summary(&self) -> String {
@@ -242,4 +302,27 @@ impl BriarCircuitState {
                 .join(",")
         )
     }
+}
+
+fn opening_leader_from_hands(hands: &[Vec<CardId>; 4]) -> BriarCircuitSeat {
+    for seat in BriarCircuitSeat::ALL {
+        if hands[seat.index()]
+            .iter()
+            .any(|card| card.card().is_two_of_clubs())
+        {
+            return seat;
+        }
+    }
+    BriarCircuitSeat::Seat0
+}
+
+fn opening_leader_from_private_hands(
+    hands: &[(BriarCircuitSeat, Vec<CardId>)],
+) -> BriarCircuitSeat {
+    for (seat, hand) in hands {
+        if hand.iter().any(|card| card.card().is_two_of_clubs()) {
+            return *seat;
+        }
+    }
+    BriarCircuitSeat::Seat0
 }

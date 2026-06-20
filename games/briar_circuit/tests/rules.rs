@@ -1,13 +1,39 @@
 use briar_circuit::{
+    apply_pass_action,
     setup::{deal_order_after, next_dealer},
-    setup_match, BriarCircuitSeat, PassDirection, Phase, SetupOptions,
+    setup_match, validate_pass_command, BriarCircuitSeat, BriarCircuitState, PassAction,
+    PassDirection, Phase, SetupOptions,
 };
-use engine_core::{SeatId, Seed};
+use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 
 fn seats(count: usize) -> Vec<SeatId> {
     (0..count)
         .map(|index| SeatId(format!("seat_{index}")))
         .collect()
+}
+
+fn fresh_state() -> BriarCircuitState {
+    setup_match(Seed(1606), &seats(4), &SetupOptions::default()).expect("setup succeeds")
+}
+
+fn pass_command(
+    state: &BriarCircuitState,
+    seat: BriarCircuitSeat,
+    segments: &[&str],
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: SeatId(seat.as_str().to_owned()),
+        },
+        action_path: ActionPath {
+            segments: segments
+                .iter()
+                .map(|segment| (*segment).to_owned())
+                .collect(),
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
 }
 
 #[test]
@@ -78,5 +104,165 @@ fn pass_direction_cycle_and_targets_are_stable() {
     assert_eq!(
         PassDirection::Across.target_for(BriarCircuitSeat::Seat1),
         BriarCircuitSeat::Seat3
+    );
+}
+
+#[test]
+fn pass_command_validates_actor_path_freshness_and_rules_version() {
+    let state = fresh_state();
+    let seat = BriarCircuitSeat::Seat0;
+    let card = state.hand_for_internal(seat)[0];
+    let card_segment = card.as_str();
+    let envelope = pass_command(&state, seat, &["pass", "select", &card_segment]);
+
+    let (validated_seat, action) =
+        validate_pass_command(&state, &envelope).expect("command validates");
+
+    assert_eq!(validated_seat, seat);
+    assert_eq!(action, PassAction::Select(card));
+
+    let mut stale = envelope.clone();
+    stale.freshness_token = FreshnessToken(state.freshness_token.0 + 1);
+    assert_eq!(
+        validate_pass_command(&state, &stale)
+            .expect_err("stale command rejects")
+            .code,
+        "BC_STALE_COMMAND"
+    );
+
+    let mut wrong_rules = envelope;
+    wrong_rules.rules_version = RulesVersion(2);
+    assert_eq!(
+        validate_pass_command(&state, &wrong_rules)
+            .expect_err("wrong rules reject")
+            .code,
+        "BC_WRONG_RULES_VERSION"
+    );
+}
+
+#[test]
+fn pass_select_unselect_and_confirm_require_three_distinct_owned_cards() {
+    let mut state = fresh_state();
+    let seat = BriarCircuitSeat::Seat0;
+    let first = state.hand_for_internal(seat)[0];
+    let second = state.hand_for_internal(seat)[1];
+    let third = state.hand_for_internal(seat)[2];
+    let unowned = state.hand_for_internal(BriarCircuitSeat::Seat1)[0];
+
+    apply_pass_action(&mut state, seat, PassAction::Select(first)).expect("first select");
+
+    assert_eq!(
+        apply_pass_action(&mut state, seat, PassAction::Select(first))
+            .expect_err("duplicate select rejects")
+            .code,
+        "BC_PASS_DUPLICATE_CARD"
+    );
+    assert_eq!(
+        apply_pass_action(&mut state, seat, PassAction::Select(unowned))
+            .expect_err("unowned select rejects")
+            .code,
+        "BC_CARD_NOT_OWNED"
+    );
+    assert_eq!(
+        apply_pass_action(&mut state, seat, PassAction::Confirm)
+            .expect_err("short confirm rejects")
+            .code,
+        "BC_PASS_REQUIRES_THREE"
+    );
+
+    apply_pass_action(&mut state, seat, PassAction::Unselect(first)).expect("unselect");
+    assert_eq!(
+        apply_pass_action(&mut state, seat, PassAction::Unselect(first))
+            .expect_err("missing unselect rejects")
+            .code,
+        "BC_CARD_NOT_SELECTED"
+    );
+
+    for card in [first, second, third] {
+        apply_pass_action(&mut state, seat, PassAction::Select(card)).expect("select card");
+    }
+    apply_pass_action(&mut state, seat, PassAction::Confirm).expect("confirm succeeds");
+
+    assert_eq!(
+        apply_pass_action(&mut state, seat, PassAction::Unselect(first))
+            .expect_err("committed seat cannot mutate")
+            .code,
+        "BC_PASS_ALREADY_COMMITTED"
+    );
+}
+
+#[test]
+fn fourth_confirm_exchanges_cards_atomically_and_enters_playing_phase() {
+    let mut state = fresh_state();
+    let initial_hands: Vec<_> = BriarCircuitSeat::ALL
+        .into_iter()
+        .map(|seat| (seat, state.hand_for_internal(seat).to_vec()))
+        .collect();
+    let selected: Vec<_> = initial_hands
+        .iter()
+        .map(|(seat, hand)| (*seat, hand[..3].to_vec()))
+        .collect();
+
+    for (seat, cards) in &selected {
+        for card in cards {
+            apply_pass_action(&mut state, *seat, PassAction::Select(*card))
+                .expect("select pass card");
+        }
+        let result = apply_pass_action(&mut state, *seat, PassAction::Confirm)
+            .expect("confirm pass selection");
+        assert_eq!(
+            result.exchange_completed,
+            *seat == BriarCircuitSeat::Seat3,
+            "only fourth confirm completes exchange"
+        );
+    }
+
+    assert!(matches!(state.phase, Phase::PlayingTrick(_)));
+    for seat in BriarCircuitSeat::ALL {
+        assert_eq!(state.hand_for_internal(seat).len(), 13);
+    }
+
+    let direction = PassDirection::Left;
+    for (source, cards) in &selected {
+        let target = direction.target_for(*source);
+        for card in cards {
+            assert!(!state.hand_for_internal(*source).contains(card));
+            assert!(state.hand_for_internal(target).contains(card));
+        }
+    }
+}
+
+#[test]
+fn hold_hand_skips_selection_and_exchange() {
+    use briar_circuit::{setup::deal_hand, Variant};
+    use engine_core::SeededRng;
+
+    let mut rng = SeededRng::from_seed(Seed(1616));
+    let deal = deal_hand(&mut rng, BriarCircuitSeat::Seat3, 3).expect("deal succeeds");
+    let state = BriarCircuitState::new_after_deal(
+        Variant::briar_circuit_standard(),
+        [
+            SeatId("seat_0".to_owned()),
+            SeatId("seat_1".to_owned()),
+            SeatId("seat_2".to_owned()),
+            SeatId("seat_3".to_owned()),
+        ],
+        BriarCircuitSeat::Seat3,
+        3,
+        deal.hands,
+        deal.pass_direction,
+    );
+
+    assert_eq!(deal.pass_direction, PassDirection::Hold);
+    assert!(matches!(state.phase, Phase::PlayingTrick(_)));
+    assert_eq!(
+        apply_pass_action(
+            &mut state.clone(),
+            BriarCircuitSeat::Seat0,
+            PassAction::Confirm
+        )
+        .expect_err("hold hand has no pass phase")
+        .code,
+        "BC_WRONG_PHASE"
     );
 }

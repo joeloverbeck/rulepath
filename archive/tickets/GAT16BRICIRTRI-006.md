@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-006: Private pass phase (select, confirm, atomic exchange, hold)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/briar_circuit/src/actions.rs` (pass family), `state.rs` (pass substate), pass effects/views
@@ -85,3 +85,17 @@ Public commitment effect carries count/status only; private effects deliver own 
 1. `cargo test -p briar_circuit --test rules --test visibility --test property`
 2. `cargo test -p briar_circuit`
 3. A per-test scope is correct because the deliverable is the pass phase; the full pairwise matrix and WASM no-leak harness belong to 009/013.
+
+## Outcome
+
+Completed on 2026-06-21. Implemented Rust-owned pass command parsing,
+validation, private selection state, public/private pass effects, private pass
+view projection, atomic exchange, and hold-hand bypass into opening trick play.
+The exchange preserves deterministic hand ordering and recomputes the opening
+leader from the post-pass owner of the two of clubs.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p briar_circuit --test rules --test visibility --test property`
+3. `cargo test -p briar_circuit`
