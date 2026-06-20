@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-005: Setup, deterministic deal, dealer and pass-cycle state
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/briar_circuit/src/setup.rs` (+ `state.rs` deal/rotation state)
@@ -80,3 +80,28 @@ Fill the dealer-rotation and pass-direction-by-hand-index logic the phase state 
 1. `cargo test -p briar_circuit --test rules --test property --test replay`
 2. `cargo test -p briar_circuit`
 3. A per-test scope is correct because the deliverable is deterministic setup; full no-leak/WASM proof belongs to later tickets.
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Implemented seeded setup/deal for Briar Circuit using `engine_core::SeededRng` and the crate-local canonical 52-card deck.
+- Dealt all cards clockwise starting left of the dealer into four 13-card private hands with no remainder.
+- Added dealer-order helpers, clockwise dealer rotation, and pure pass-direction derivation from hand index.
+- Extended state construction so `setup_match` stores the dealt hands and pass phase for hand 0.
+- Added replay tests for identical-seed deal reproducibility, seed variance, and sequential hand-index/pass-direction reproduction.
+- Extended property and rule tests for full-deck partitioning, deal-left-of-dealer order, and dealer rotation.
+
+Deviations from plan:
+
+- None. Pass actions, projection/no-leak filtering, trick play, and scoring remain for later tickets.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p briar_circuit --test property` passed (4 tests).
+- `cargo test -p briar_circuit --test rules` passed (4 tests).
+- `cargo test -p briar_circuit --test replay` passed (3 tests).
+- `cargo test -p briar_circuit` passed (15 total tests including crate unit and serialization tests).

@@ -2,7 +2,7 @@ use engine_core::{FreshnessToken, SeatId};
 
 use crate::{
     cards::CardId,
-    ids::{BriarCircuitSeat, STANDARD_PASS_SIZE},
+    ids::{BriarCircuitSeat, STANDARD_HAND_SIZE, STANDARD_PASS_SIZE},
     variants::Variant,
 };
 
@@ -167,6 +167,44 @@ impl BriarCircuitState {
         }
     }
 
+    pub fn new_after_deal(
+        variant: Variant,
+        seats: [SeatId; 4],
+        dealer: BriarCircuitSeat,
+        hand_index: u32,
+        hands: [Vec<CardId>; 4],
+        pass_direction: PassDirection,
+    ) -> Self {
+        debug_assert!(hands
+            .iter()
+            .all(|hand| hand.len() == STANDARD_HAND_SIZE as usize));
+
+        Self {
+            variant,
+            seats,
+            dealer,
+            hand_index,
+            cumulative_scores: [0; 4],
+            phase: match pass_direction {
+                PassDirection::Hold => Phase::PlayingTrick(PlayingTrickState {
+                    hearts_broken: false,
+                    trick_index: 0,
+                    leader: BriarCircuitSeat::Seat0,
+                    active_seat: BriarCircuitSeat::Seat0,
+                    current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+                }),
+                direction => Phase::Passing(PassState::new(direction)),
+            },
+            private_hands: BriarCircuitSeat::ALL.into_iter().zip(hands).collect(),
+            captured_tricks: Vec::new(),
+            freshness_token: FreshnessToken(0),
+        }
+    }
+
+    pub fn pass_direction(&self) -> PassDirection {
+        PassDirection::for_hand_index(self.hand_index)
+    }
+
     pub fn hand_for_internal(&self, seat: BriarCircuitSeat) -> &[CardId] {
         self.private_hands
             .iter()
@@ -192,7 +230,14 @@ impl BriarCircuitState {
             self.cumulative_scores,
             self.private_hands
                 .iter()
-                .map(|(seat, hand)| format!("{}:{}", seat.as_str(), hand.len()))
+                .map(|(seat, hand)| format!(
+                    "{}:{}",
+                    seat.as_str(),
+                    hand.iter()
+                        .map(|card| card.as_str())
+                        .collect::<Vec<_>>()
+                        .join("/")
+                ))
                 .collect::<Vec<_>>()
                 .join(",")
         )

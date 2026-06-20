@@ -1,4 +1,7 @@
-use briar_circuit::{setup_match, BriarCircuitSeat, PassDirection, Phase, SetupOptions};
+use briar_circuit::{
+    setup::{deal_order_after, next_dealer},
+    setup_match, BriarCircuitSeat, PassDirection, Phase, SetupOptions,
+};
 use engine_core::{SeatId, Seed};
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -19,6 +22,27 @@ fn setup_accepts_exactly_four_seats() {
         state.phase,
         Phase::Passing(ref pass) if pass.direction == PassDirection::Left
     ));
+}
+
+#[test]
+fn deal_starts_left_of_dealer_and_dealer_rotates_clockwise() {
+    assert_eq!(
+        deal_order_after(BriarCircuitSeat::Seat0),
+        [
+            BriarCircuitSeat::Seat1,
+            BriarCircuitSeat::Seat2,
+            BriarCircuitSeat::Seat3,
+            BriarCircuitSeat::Seat0,
+        ]
+    );
+    assert_eq!(
+        next_dealer(BriarCircuitSeat::Seat0),
+        BriarCircuitSeat::Seat1
+    );
+    assert_eq!(
+        next_dealer(BriarCircuitSeat::Seat3),
+        BriarCircuitSeat::Seat0
+    );
 }
 
 #[test]
