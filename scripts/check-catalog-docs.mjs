@@ -1,7 +1,7 @@
 // Catalog-vs-docs drift check.
 //
 // The web-shell catalog (the set of browser-exposed games) is registered in
-// `crates/wasm-api/src/lib.rs` as `GAME_*` / `GAME_*_DISPLAY_NAME` const pairs.
+// `crates/wasm-api/src/constants.rs` as `GAME_*` / `GAME_*_DISPLAY_NAME` const pairs.
 // When a new game ships, its human-orientation doc surfaces must grow with it.
 // History (the Gate 8 and Gate 9 aftermath passes) shows three surfaces drift:
 //
@@ -18,7 +18,7 @@
 
 import { readFile } from "node:fs/promises";
 
-const WASM_API = "crates/wasm-api/src/lib.rs";
+const WASM_API = "crates/wasm-api/src/constants.rs";
 const WEB_README = "apps/web/README.md";
 const ROOT_README = "README.md";
 const WEB_PACKAGE = "apps/web/package.json";

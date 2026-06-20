@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const ROOT = process.env.RULEPATH_ROOT ?? DEFAULT_ROOT;
-const WASM_API = process.env.RULEPATH_WASM_API ?? path.join(ROOT, "crates/wasm-api/src/lib.rs");
+const WASM_API = process.env.RULEPATH_WASM_API ?? path.join(ROOT, "crates/wasm-api/src/constants.rs");
 const GAMES_DIR = process.env.RULEPATH_GAMES_DIR ?? path.join(ROOT, "games");
 const RULES_DIR = process.env.RULEPATH_WEB_RULES_DIR ?? path.join(ROOT, "apps/web/public/rules");
 const GAME_ID_FILTER = (process.env.RULEPATH_PLAYER_RULES_GAME_IDS ?? "")
