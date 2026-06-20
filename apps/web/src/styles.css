@@ -3395,6 +3395,15 @@ h2 {
   align-items: stretch;
 }
 
+.frontier-supply-note {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border-top: 1px solid #e0e6e2;
+  color: #5a6b64;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
 .frontier-map-panel {
   min-height: 360px;
   padding: 0.75rem;
