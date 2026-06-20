@@ -129,10 +129,54 @@ pub struct PlayingTrickState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MoonStatus {
+    None,
+    Shooter,
+    OpponentAdjusted,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatOutcomeBreakdown {
+    pub seat: BriarCircuitSeat,
+    pub raw_hearts_count: u8,
+    pub captured_queen_spades: bool,
+    pub raw_hand_points: u8,
+    pub moon_status: MoonStatus,
+    pub adjusted_hand_addition: u8,
+    pub cumulative_before: u16,
+    pub cumulative_after: u16,
+    pub rank: u8,
+    pub threshold_reached: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OutcomeStatus {
+    InProgress,
+    TiedLowContinuation {
+        tied_low_score: u16,
+        tied_seats: Vec<BriarCircuitSeat>,
+    },
+    Terminal {
+        winner: BriarCircuitSeat,
+        losers: Vec<BriarCircuitSeat>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutcomeBreakdown {
+    pub seats: Vec<SeatOutcomeBreakdown>,
+    pub threshold_reached: bool,
+    pub status: OutcomeStatus,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HandScoreBreakdown {
     pub raw_points: [u8; 4],
     pub hand_additions: [u8; 4],
     pub moon_shooter: Option<BriarCircuitSeat>,
+    pub cumulative_before: [u16; 4],
+    pub cumulative_after: [u16; 4],
+    pub outcome: OutcomeBreakdown,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -140,6 +184,7 @@ pub enum TerminalOutcome {
     UniqueLowScoreWin {
         winner: BriarCircuitSeat,
         cumulative_scores: [u16; 4],
+        breakdown: OutcomeBreakdown,
     },
 }
 

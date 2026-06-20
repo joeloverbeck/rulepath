@@ -2,9 +2,9 @@ use std::collections::BTreeSet;
 
 use briar_circuit::{
     apply_pass_action, apply_play_action, canonical_deck, canonical_seat_ids, legal_play_cards,
-    setup_match, trick_winner, BriarCircuitSeat, Card, CardId, CurrentTrick, PassAction, Phase,
-    PlayAction, PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay, STANDARD_CARD_COUNT,
-    STANDARD_HAND_SIZE,
+    raw_points_total, score_completed_hand, setup_match, trick_winner, BriarCircuitSeat,
+    CapturedTrick, Card, CardId, CurrentTrick, PassAction, Phase, PlayAction, PlayingTrickState,
+    Rank, SetupOptions, Suit, TrickPlay, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
 };
 use engine_core::Seed;
 
@@ -102,6 +102,23 @@ fn trick_state(
     state.private_hands = hands;
     state.phase = Phase::PlayingTrick(play);
     state
+}
+
+fn captured_trick(winner: BriarCircuitSeat, cards: Vec<CardId>) -> CapturedTrick {
+    CapturedTrick {
+        hand_index: 0,
+        trick_index: 0,
+        winner,
+        plays: cards
+            .into_iter()
+            .enumerate()
+            .map(|(index, card)| TrickPlay {
+                seat: BriarCircuitSeat::from_index(index % BriarCircuitSeat::ALL.len())
+                    .expect("seat index"),
+                card,
+            })
+            .collect(),
+    }
 }
 
 #[test]
@@ -233,5 +250,67 @@ fn captured_cards_partition_played_cards_after_completed_trick() {
     assert_eq!(captured, cards);
     for seat in BriarCircuitSeat::ALL {
         assert!(state.hand_for_internal(seat).is_empty());
+    }
+}
+
+#[test]
+fn raw_hand_points_conserve_twenty_six_points() {
+    let mut point_cards = Vec::new();
+    for rank in Rank::ALL {
+        point_cards.push(card(rank, Suit::Hearts));
+    }
+    point_cards.push(card(Rank::Queen, Suit::Spades));
+
+    let scoring = score_completed_hand(
+        &[
+            captured_trick(BriarCircuitSeat::Seat0, point_cards[..5].to_vec()),
+            captured_trick(BriarCircuitSeat::Seat1, point_cards[5..10].to_vec()),
+            captured_trick(BriarCircuitSeat::Seat2, point_cards[10..].to_vec()),
+        ],
+        [0, 0, 0, 0],
+    );
+
+    assert_eq!(raw_points_total(scoring.raw_points), 26);
+}
+
+#[test]
+fn moon_predicate_requires_one_seat_to_own_all_points() {
+    let mut point_cards = Vec::new();
+    for rank in Rank::ALL {
+        point_cards.push(card(rank, Suit::Hearts));
+    }
+    point_cards.push(card(Rank::Queen, Suit::Spades));
+
+    let moon = score_completed_hand(
+        &[captured_trick(BriarCircuitSeat::Seat0, point_cards.clone())],
+        [0, 0, 0, 0],
+    );
+    assert_eq!(moon.moon_shooter, Some(BriarCircuitSeat::Seat0));
+
+    let split = score_completed_hand(
+        &[
+            captured_trick(BriarCircuitSeat::Seat0, point_cards[..13].to_vec()),
+            captured_trick(BriarCircuitSeat::Seat1, point_cards[13..].to_vec()),
+        ],
+        [0, 0, 0, 0],
+    );
+    assert_eq!(split.moon_shooter, None);
+}
+
+#[test]
+fn cumulative_scores_are_monotonic_after_scoring() {
+    let scoring = score_completed_hand(
+        &[
+            captured_trick(BriarCircuitSeat::Seat0, vec![card(Rank::Two, Suit::Hearts)]),
+            captured_trick(
+                BriarCircuitSeat::Seat3,
+                vec![card(Rank::Queen, Suit::Spades)],
+            ),
+        ],
+        [5, 10, 15, 20],
+    );
+
+    for seat in BriarCircuitSeat::ALL {
+        assert!(scoring.cumulative_after[seat.index()] >= scoring.cumulative_before[seat.index()]);
     }
 }

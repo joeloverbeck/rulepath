@@ -1,9 +1,9 @@
 use briar_circuit::{
-    apply_pass_action, apply_play_action, legal_play_cards,
+    apply_pass_action, apply_play_action, legal_play_cards, score_completed_hand,
     setup::{deal_order_after, next_dealer},
     setup_match, validate_pass_command, validate_play_card, BriarCircuitSeat, BriarCircuitState,
-    Card, CurrentTrick, PassAction, PassDirection, Phase, PlayAction, PlayingTrickState, Rank,
-    SetupOptions, Suit, TrickPlay,
+    CapturedTrick, Card, CurrentTrick, MoonStatus, OutcomeStatus, PassAction, PassDirection, Phase,
+    PlayAction, PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay,
 };
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 
@@ -29,6 +29,23 @@ fn trick_state(
     state.private_hands = hands;
     state.phase = Phase::PlayingTrick(play);
     state
+}
+
+fn captured_trick(winner: BriarCircuitSeat, cards: Vec<briar_circuit::CardId>) -> CapturedTrick {
+    CapturedTrick {
+        hand_index: 0,
+        trick_index: 0,
+        winner,
+        plays: cards
+            .into_iter()
+            .enumerate()
+            .map(|(index, card)| TrickPlay {
+                seat: BriarCircuitSeat::from_index(index % BriarCircuitSeat::ALL.len())
+                    .expect("seat index"),
+                card,
+            })
+            .collect(),
+    }
 }
 
 fn pass_command(
@@ -522,4 +539,104 @@ fn highest_led_suit_wins_and_winner_leads_next() {
     assert_eq!(play.trick_index, 2);
     assert_eq!(play.leader, BriarCircuitSeat::Seat3);
     assert_eq!(play.active_seat, BriarCircuitSeat::Seat3);
+}
+
+#[test]
+fn scoring_counts_hearts_and_queen_spades_without_moon() {
+    let scoring = score_completed_hand(
+        &[
+            captured_trick(
+                BriarCircuitSeat::Seat0,
+                vec![
+                    card(Rank::Two, Suit::Hearts),
+                    card(Rank::Queen, Suit::Spades),
+                ],
+            ),
+            captured_trick(
+                BriarCircuitSeat::Seat2,
+                vec![card(Rank::Ace, Suit::Hearts), card(Rank::King, Suit::Clubs)],
+            ),
+        ],
+        [10, 20, 30, 40],
+    );
+
+    assert_eq!(scoring.raw_points, [14, 0, 1, 0]);
+    assert_eq!(scoring.hand_additions, [14, 0, 1, 0]);
+    assert_eq!(scoring.cumulative_after, [24, 20, 31, 40]);
+    assert_eq!(scoring.moon_shooter, None);
+    let seat0 = &scoring.outcome.seats[BriarCircuitSeat::Seat0.index()];
+    assert_eq!(seat0.raw_hearts_count, 1);
+    assert!(seat0.captured_queen_spades);
+    assert_eq!(seat0.moon_status, MoonStatus::None);
+}
+
+#[test]
+fn shoot_the_moon_adds_zero_to_shooter_and_twenty_six_to_opponents() {
+    let mut moon_cards = Vec::new();
+    for rank in Rank::ALL {
+        moon_cards.push(card(rank, Suit::Hearts));
+    }
+    moon_cards.push(card(Rank::Queen, Suit::Spades));
+
+    let scoring = score_completed_hand(
+        &[captured_trick(BriarCircuitSeat::Seat2, moon_cards)],
+        [70, 71, 72, 73],
+    );
+
+    assert_eq!(scoring.raw_points, [0, 0, 26, 0]);
+    assert_eq!(scoring.moon_shooter, Some(BriarCircuitSeat::Seat2));
+    assert_eq!(scoring.hand_additions, [26, 26, 0, 26]);
+    assert_eq!(scoring.cumulative_after, [96, 97, 72, 99]);
+    assert_eq!(
+        scoring.outcome.seats[BriarCircuitSeat::Seat2.index()].moon_status,
+        MoonStatus::Shooter
+    );
+    assert_eq!(
+        scoring.outcome.seats[BriarCircuitSeat::Seat0.index()].moon_status,
+        MoonStatus::OpponentAdjusted
+    );
+}
+
+#[test]
+fn threshold_unique_low_score_produces_terminal_winner() {
+    let scoring = score_completed_hand(
+        &[captured_trick(
+            BriarCircuitSeat::Seat3,
+            vec![card(Rank::Queen, Suit::Spades)],
+        )],
+        [88, 99, 101, 90],
+    );
+
+    assert!(scoring.outcome.threshold_reached);
+    assert_eq!(
+        scoring.outcome.status,
+        OutcomeStatus::Terminal {
+            winner: BriarCircuitSeat::Seat0,
+            losers: vec![
+                BriarCircuitSeat::Seat1,
+                BriarCircuitSeat::Seat2,
+                BriarCircuitSeat::Seat3,
+            ],
+        }
+    );
+}
+
+#[test]
+fn threshold_tied_low_score_continues_without_seat_order_break() {
+    let scoring = score_completed_hand(
+        &[captured_trick(
+            BriarCircuitSeat::Seat3,
+            vec![card(Rank::Queen, Suit::Spades)],
+        )],
+        [80, 80, 101, 90],
+    );
+
+    assert!(scoring.outcome.threshold_reached);
+    assert_eq!(
+        scoring.outcome.status,
+        OutcomeStatus::TiedLowContinuation {
+            tied_low_score: 80,
+            tied_seats: vec![BriarCircuitSeat::Seat0, BriarCircuitSeat::Seat1],
+        }
+    );
 }

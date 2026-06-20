@@ -31,10 +31,12 @@ pub use rules::{
     apply_play_card, is_point_card, legal_cards_for_playing_state, legal_play_cards,
     play_legality_reason, trick_winner, validate_play_card, PlayActionResult, PlayLegalityReason,
 };
+pub use scoring::{raw_points_total, score_completed_hand, terminal_outcome_for, MATCH_THRESHOLD};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
-    BriarCircuitState, CapturedTrick, CurrentTrick, HandScoreBreakdown, PassDirection, PassState,
-    Phase, PlayingTrickState, TerminalOutcome, TrickPlay,
+    BriarCircuitState, CapturedTrick, CurrentTrick, HandScoreBreakdown, MoonStatus,
+    OutcomeBreakdown, OutcomeStatus, PassDirection, PassState, Phase, PlayingTrickState,
+    SeatOutcomeBreakdown, TerminalOutcome, TrickPlay,
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{project_pass_view, PassView};

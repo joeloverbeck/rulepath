@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-008: Hand scoring, shoot-the-moon, match accumulation, threshold/tie, and outcome
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/briar_circuit/src/scoring.rs` (+ outcome model in `state.rs`)
@@ -79,3 +79,19 @@ Per-card raw point ledger; 26-point conservation; moon detection/transformation 
 1. `cargo test -p briar_circuit --test rules --test property`
 2. `cargo test -p briar_circuit`
 3. A per-test scope is correct because the deliverable is the scorer/outcome model; trace capture and projection are later tickets.
+
+## Outcome
+
+Completed on 2026-06-21. Implemented the typed scoring pipeline: raw
+captured-heart and Q♠ ledger, 26-point conservation, fixed shoot-the-moon
+transform, cumulative match additions, 100-point threshold evaluation,
+tied-low continuation, unique-low terminal outcome, and per-seat
+`OutcomeBreakdown` fields for later projection and trace work. Hand completion
+from trick play now updates cumulative scores and enters `Terminal` only when
+threshold evaluation has exactly one low-score winner.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p briar_circuit --test rules --test property`
+3. `cargo test -p briar_circuit`

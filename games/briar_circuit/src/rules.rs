@@ -4,10 +4,8 @@ use crate::{
     cards::{Card, CardId, Rank, Suit},
     effects::BriarCircuitEffect,
     ids::{BriarCircuitSeat, STANDARD_TRICKS_PER_HAND},
-    state::{
-        BriarCircuitState, CapturedTrick, CurrentTrick, HandScoreBreakdown, Phase,
-        PlayingTrickState, TrickPlay,
-    },
+    scoring::{score_completed_hand, terminal_outcome_for},
+    state::{BriarCircuitState, CapturedTrick, CurrentTrick, Phase, PlayingTrickState, TrickPlay},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -173,7 +171,12 @@ pub fn apply_play_card(
 
         if trick_index + 1 >= STANDARD_TRICKS_PER_HAND {
             hand_completed = true;
-            state.phase = Phase::ScoringHand(hand_score_breakdown(&state.captured_tricks));
+            let scoring = score_completed_hand(&state.captured_tricks, state.cumulative_scores);
+            state.cumulative_scores = scoring.cumulative_after;
+            state.phase = match terminal_outcome_for(&scoring.outcome) {
+                Some(outcome) => Phase::Terminal(outcome),
+                None => Phase::ScoringHand(scoring),
+            };
         } else {
             let next_index = trick_index + 1;
             state.phase = Phase::PlayingTrick(PlayingTrickState {
@@ -297,20 +300,6 @@ fn remove_card_from_hand(
         .ok_or_else(|| diagnostic("BC_CARD_NOT_OWNED", "played card is not owned"))?;
     hand.remove(index);
     Ok(())
-}
-
-fn hand_score_breakdown(captured: &[CapturedTrick]) -> HandScoreBreakdown {
-    let mut raw_points = [0; 4];
-    for trick in captured {
-        for play in &trick.plays {
-            raw_points[trick.winner.index()] += play.card.card().point_value();
-        }
-    }
-    HandScoreBreakdown {
-        raw_points,
-        hand_additions: raw_points,
-        moon_shooter: None,
-    }
 }
 
 fn diagnostic(code: &str, message: &str) -> Diagnostic {
