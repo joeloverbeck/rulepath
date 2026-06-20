@@ -4,7 +4,10 @@ use crate::{
     cards::{Card, Rank},
     evaluator::{best_five_from_seven, compare_evaluations, HandCategory, HandEvaluation},
     ids::RiverLedgerSeat,
-    pot::{allocate_single_pot, PotAllocation},
+    pot::{
+        allocate_layered_pots, allocate_single_pot, construct_contribution_layers,
+        winners_in_button_order, PotAllocation,
+    },
     state::{
         CategoryLadderPosition, RiverLedgerShowdownPresentationV2, RiverLedgerState, SeatStatus,
         ShowdownBoardCardPresentation, ShowdownCardUsageMark, ShowdownDecisiveReason,
@@ -185,13 +188,8 @@ pub fn resolve_showdown(state: &RiverLedgerState) -> TerminalOutcome {
 
 fn resolve_showdown_internal(state: &RiverLedgerState) -> ResolvedShowdown {
     let evaluations = evaluate_showdown_seats(state);
-    let canonical_winners = winning_seats(&evaluations);
-    let allocation = allocate_single_pot(
-        state.ledger.pot_total,
-        &canonical_winners,
-        state.button,
-        state.seats.len() as u8,
-    );
+    let allocation = resolve_showdown_allocation(state, &evaluations);
+    let canonical_winners = allocation.winners.clone();
     let headline = showdown_headline(&evaluations, &canonical_winners);
     let decisive_comparison = decisive_comparison(&evaluations, &canonical_winners);
     let comparison_basis = comparison_basis(&evaluations, &canonical_winners);
@@ -246,6 +244,68 @@ fn evaluate_showdown_seats(state: &RiverLedgerState) -> Vec<SeatEvaluation> {
             }
         })
         .collect()
+}
+
+fn resolve_showdown_allocation(
+    state: &RiverLedgerState,
+    evaluations: &[SeatEvaluation],
+) -> PotAllocation {
+    let contribution_total = state
+        .ledger
+        .seats
+        .iter()
+        .map(|seat| seat.total_contribution)
+        .sum::<u16>();
+    if contribution_total != state.ledger.pot_total {
+        let winners = winning_seats(evaluations);
+        return allocate_single_pot(
+            state.ledger.pot_total,
+            &winners,
+            state.button,
+            state.seats.len() as u8,
+        );
+    }
+
+    let layers = construct_contribution_layers(&state.ledger.seats);
+    let winners_by_pot = layers
+        .pots
+        .iter()
+        .map(|pot| {
+            let winners = if pot.eligible.len() == 1 {
+                pot.eligible.clone()
+            } else {
+                let eligible_evaluations = evaluations
+                    .iter()
+                    .filter(|entry| pot.eligible.contains(&entry.seat))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                winning_seats(&eligible_evaluations)
+            };
+            (pot.id.clone(), winners)
+        })
+        .collect::<Vec<_>>();
+    let layered_allocation = allocate_layered_pots(
+        layers,
+        &winners_by_pot,
+        state.button,
+        state.seats.len() as u8,
+    );
+    let aggregate_winners = layered_allocation.aggregate_winners;
+    PotAllocation {
+        pot_total: layered_allocation.pot_total,
+        winners: aggregate_winners.clone(),
+        shares: layered_allocation.aggregate_shares,
+        remainder: layered_allocation
+            .per_pot
+            .iter()
+            .map(|pot| pot.remainder)
+            .sum::<u16>(),
+        remainder_order: winners_in_button_order(
+            &aggregate_winners,
+            state.button,
+            state.seats.len() as u8,
+        ),
+    }
 }
 
 fn winning_seats(evaluations: &[SeatEvaluation]) -> Vec<RiverLedgerSeat> {

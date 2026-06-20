@@ -1141,6 +1141,68 @@ fn tied_showdown_splits_pot_and_reveals_only_showdown_seats() {
 }
 
 #[test]
+fn side_pot_showdown_allocates_each_pot_to_its_eligible_winner() {
+    let board = [
+        Card::new(Rank::Two, Suit::Clubs),
+        Card::new(Rank::Seven, Suit::Diamonds),
+        Card::new(Rank::Nine, Suit::Hearts),
+        Card::new(Rank::Jack, Suit::Spades),
+        Card::new(Rank::Queen, Suit::Clubs),
+    ];
+    let mut state = custom_showdown_state(
+        vec![
+            [
+                Card::new(Rank::Ace, Suit::Hearts),
+                Card::new(Rank::Ace, Suit::Spades),
+            ],
+            [
+                Card::new(Rank::King, Suit::Hearts),
+                Card::new(Rank::King, Suit::Spades),
+            ],
+            [
+                Card::new(Rank::Ten, Suit::Hearts),
+                Card::new(Rank::Ten, Suit::Spades),
+            ],
+        ],
+        board,
+    );
+    for (index, total) in [4, 8, 8].into_iter().enumerate() {
+        state.ledger.seats[index].starting_stack = 24;
+        state.ledger.seats[index].remaining_stack = 24 - total;
+        state.ledger.seats[index].total_contribution = total;
+        state.ledger.seats[index].street_contribution = 0;
+        state.ledger.seats[index].status = SeatStatus::ShowdownEligible;
+    }
+    state.ledger.pot_total = 20;
+
+    let TerminalOutcome::Showdown {
+        winners,
+        allocations,
+        pot_total,
+        ..
+    } = river_ledger::resolve_showdown(&state)
+    else {
+        panic!("showdown expected");
+    };
+
+    assert_eq!(pot_total, 20);
+    assert_eq!(winners, vec![seat(0), seat(1)]);
+    assert_eq!(
+        allocations,
+        vec![
+            PotShare {
+                seat: seat(0),
+                amount: 12,
+            },
+            PotShare {
+                seat: seat(1),
+                amount: 8,
+            },
+        ]
+    );
+}
+
+#[test]
 fn showdown_explanation_names_pair_of_queens_beating_pair_of_eights() {
     let state = custom_showdown_state(
         vec![

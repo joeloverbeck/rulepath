@@ -34,6 +34,26 @@ pub struct PotAllocation {
     pub remainder_order: Vec<RiverLedgerSeat>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PerPotAllocation {
+    pub pot_id: String,
+    pub amount: u16,
+    pub eligible: Vec<RiverLedgerSeat>,
+    pub winners: Vec<RiverLedgerSeat>,
+    pub shares: Vec<PotShare>,
+    pub remainder: u16,
+    pub remainder_order: Vec<RiverLedgerSeat>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LayeredPotAllocation {
+    pub pot_total: u16,
+    pub per_pot: Vec<PerPotAllocation>,
+    pub aggregate_shares: Vec<PotShare>,
+    pub aggregate_winners: Vec<RiverLedgerSeat>,
+    pub returns: Vec<UncalledReturn>,
+}
+
 pub fn allocate_single_pot(
     pot_total: u16,
     winners: &[RiverLedgerSeat],
@@ -67,6 +87,106 @@ pub fn allocate_single_pot(
         shares,
         remainder,
         remainder_order,
+    }
+}
+
+pub fn allocate_layered_pots(
+    layers: ContributionLayers,
+    winners_by_pot: &[(String, Vec<RiverLedgerSeat>)],
+    button: RiverLedgerSeat,
+    seat_count: u8,
+) -> LayeredPotAllocation {
+    let mut per_pot = Vec::with_capacity(layers.pots.len());
+    let mut aggregate = vec![0u16; seat_count as usize];
+    let mut pot_total = 0u16;
+
+    for pot in layers.pots {
+        let winners = winners_by_pot
+            .iter()
+            .find(|(id, _)| id == &pot.id)
+            .map(|(_, winners)| winners.as_slice())
+            .expect("every contribution layer has winners");
+        assert!(
+            !winners.is_empty(),
+            "each contribution layer requires at least one winner"
+        );
+        assert!(
+            winners.iter().all(|winner| pot.eligible.contains(winner)),
+            "pot winners must be eligible for that pot"
+        );
+
+        let remainder_order = winners_in_button_order(winners, button, seat_count);
+        let base_share = pot.amount / winners.len() as u16;
+        let remainder = pot.amount % winners.len() as u16;
+        let remainder_recipients = remainder_order
+            .iter()
+            .take(remainder as usize)
+            .copied()
+            .collect::<Vec<_>>();
+        let shares = winners
+            .iter()
+            .map(|seat| PotShare {
+                seat: *seat,
+                amount: base_share + u16::from(remainder_recipients.contains(seat)),
+            })
+            .collect::<Vec<_>>();
+        for share in &shares {
+            aggregate[share.seat.index()] = aggregate[share.seat.index()]
+                .checked_add(share.amount)
+                .expect("aggregate layered allocation fits u16");
+        }
+        pot_total = pot_total
+            .checked_add(pot.amount)
+            .expect("layered pot total fits u16");
+        per_pot.push(PerPotAllocation {
+            pot_id: pot.id,
+            amount: pot.amount,
+            eligible: pot.eligible,
+            winners: winners.to_vec(),
+            shares,
+            remainder,
+            remainder_order,
+        });
+    }
+
+    for returned in &layers.returns {
+        aggregate[returned.seat.index()] = aggregate[returned.seat.index()]
+            .checked_add(returned.amount)
+            .expect("aggregate return allocation fits u16");
+    }
+
+    let aggregate_shares = aggregate
+        .iter()
+        .enumerate()
+        .filter_map(|(index, amount)| {
+            (*amount > 0).then_some(PotShare {
+                seat: RiverLedgerSeat::from_index(index).expect("aggregate index is a valid seat"),
+                amount: *amount,
+            })
+        })
+        .collect::<Vec<_>>();
+    let aggregate_winners = aggregate_shares
+        .iter()
+        .map(|share| share.seat)
+        .collect::<Vec<_>>();
+
+    let allocated_total = aggregate_shares
+        .iter()
+        .map(|share| share.amount)
+        .sum::<u16>();
+    let returned_total = layers
+        .returns
+        .iter()
+        .map(|returned| returned.amount)
+        .sum::<u16>();
+    assert_eq!(allocated_total, pot_total + returned_total);
+
+    LayeredPotAllocation {
+        pot_total,
+        per_pot,
+        aggregate_shares,
+        aggregate_winners,
+        returns: layers.returns,
     }
 }
 

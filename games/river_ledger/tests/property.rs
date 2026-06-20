@@ -340,3 +340,63 @@ fn contribution_layer_constructor_conserves_and_orders_generated_profiles() {
         }
     }
 }
+
+#[test]
+fn layered_pot_allocation_conserves_each_pot_and_aggregate_total() {
+    for seat_count in 3..=6 {
+        for profile in 0..32u16 {
+            let ledgers = (0..seat_count)
+                .map(|index| {
+                    let total_contribution = 2 + ((profile + (index as u16 * 5)) % 6);
+                    SeatLedger {
+                        seat: seat(index),
+                        status: if index == seat_count - 1 && profile % 3 == 0 {
+                            SeatStatus::Folded
+                        } else {
+                            SeatStatus::ShowdownEligible
+                        },
+                        starting_stack: 24,
+                        remaining_stack: 24 - total_contribution,
+                        street_contribution: 0,
+                        total_contribution,
+                    }
+                })
+                .collect::<Vec<_>>();
+            let layers = river_ledger::pot::construct_contribution_layers(&ledgers);
+            let winners_by_pot = layers
+                .pots
+                .iter()
+                .map(|pot| (pot.id.clone(), vec![pot.eligible[0]]))
+                .collect::<Vec<_>>();
+            let allocation = river_ledger::pot::allocate_layered_pots(
+                layers,
+                &winners_by_pot,
+                seat(0),
+                seat_count as u8,
+            );
+
+            for pot in &allocation.per_pot {
+                assert_eq!(
+                    pot.shares.iter().map(|share| share.amount).sum::<u16>(),
+                    pot.amount
+                );
+                assert!(pot
+                    .winners
+                    .iter()
+                    .all(|winner| pot.eligible.contains(winner)));
+            }
+
+            let aggregate_total = allocation
+                .aggregate_shares
+                .iter()
+                .map(|share| share.amount)
+                .sum::<u16>();
+            let returned_total = allocation
+                .returns
+                .iter()
+                .map(|returned| returned.amount)
+                .sum::<u16>();
+            assert_eq!(aggregate_total, allocation.pot_total + returned_total);
+        }
+    }
+}

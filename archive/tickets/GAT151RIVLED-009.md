@@ -1,6 +1,6 @@
 # GAT151RIVLED-009: Per-pot allocation and settlement
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/river_ledger` (`pot.rs`, `showdown.rs`), tests
@@ -78,3 +78,20 @@ Produce one authoritative resolved result: aggregate per-seat awards and final s
 1. `cargo test -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p rule-coverage -- --game river_ledger` — allocation/remainder coverage is the correct boundary; effects/serialization are verified in later tickets.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Added per-pot allocation structures and `allocate_layered_pots(...)` to split each contribution layer independently, apply per-pot remainder order, validate winners against eligibility, aggregate seat awards, and include uncalled returns.
+- Updated showdown settlement to use contribution-conserving layered allocation states, with one-eligible-seat pots awarded directly to that eligible seat.
+- Preserved the old single-pot path only for legacy synthetic tests whose `pot_total` does not match per-seat contributions; contribution-conserving real states use the layered path.
+- Added a showdown test where one seat wins the main pot and another wins the side pot.
+- Added property coverage that every generated per-pot allocation conserves its pot amount and aggregate allocation total.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p simulate -- --game river_ledger --games 1000`
+- `cargo run -p rule-coverage -- --game river_ledger`
