@@ -1,4 +1,4 @@
-import type { SetupPlayMode } from "../state/shellReducer";
+import type { RiverLedgerStackMode, SetupPlayMode } from "../state/shellReducer";
 import { selectVariantDescription, type GameCatalogEntry, type SeatDisplayLabel } from "../wasm/client";
 import { GameCatalogIcon } from "./GameCatalogIcon";
 
@@ -8,11 +8,15 @@ type MatchSetupProps = {
   playMode: SetupPlayMode;
   variantId: string | null;
   seatCount: number | null;
+  riverLedgerStackMode: RiverLedgerStackMode;
+  riverLedgerStacks: number[];
   canStart: boolean;
   onSeedChange: (seed: number) => void;
   onPlayModeChange: (mode: SetupPlayMode) => void;
   onVariantChange: (variantId: string) => void;
   onSeatCountChange: (seatCount: number) => void;
+  onRiverLedgerStackModeChange: (mode: RiverLedgerStackMode) => void;
+  onRiverLedgerStackChange: (index: number, value: number) => void;
   onRulesOpen: (gameId: string) => void;
   onStart: () => void;
 };
@@ -38,11 +42,15 @@ export function MatchSetup({
   playMode,
   variantId,
   seatCount,
+  riverLedgerStackMode,
+  riverLedgerStacks,
   canStart,
   onSeedChange,
   onPlayModeChange,
   onVariantChange,
   onSeatCountChange,
+  onRiverLedgerStackModeChange,
+  onRiverLedgerStackChange,
   onRulesOpen,
   onStart,
 }: MatchSetupProps) {
@@ -161,6 +169,17 @@ export function MatchSetup({
         ))}
       </fieldset>
 
+      {selectedGame?.game_id === "river_ledger" && selectedSeatCount ? (
+        <RiverLedgerStackSetup
+          labels={selectedSetupLabels.labels}
+          seatCount={selectedSeatCount}
+          mode={riverLedgerStackMode}
+          customStacks={riverLedgerStacks}
+          onModeChange={onRiverLedgerStackModeChange}
+          onStackChange={onRiverLedgerStackChange}
+        />
+      ) : null}
+
       <section className="players-roles" aria-label="Players and roles">
         <div className="players-roles-heading">
           <span>Players & roles</span>
@@ -245,6 +264,76 @@ function setupSeatRoles(labels: SeatDisplayLabel[], playMode: SetupPlayMode): Ar
     label: entry.label,
     actor: actorLabel(playMode, index),
   }));
+}
+
+function RiverLedgerStackSetup({
+  labels,
+  seatCount,
+  mode,
+  customStacks,
+  onModeChange,
+  onStackChange,
+}: {
+  labels: SeatDisplayLabel[];
+  seatCount: number;
+  mode: RiverLedgerStackMode;
+  customStacks: number[];
+  onModeChange: (mode: RiverLedgerStackMode) => void;
+  onStackChange: (index: number, value: number) => void;
+}) {
+  const preset = riverLedgerShortStackPreset(seatCount);
+  const displayStacks = mode === "short_stack" ? preset : mode === "custom" ? customStacks.slice(0, seatCount) : Array(seatCount).fill(24);
+
+  return (
+    <fieldset className="river-stack-setup" aria-label="River Ledger starting stacks">
+      <legend>Starting stacks</legend>
+      <div className="river-stack-mode" role="radiogroup" aria-label="River Ledger stack mode">
+        {[
+          { value: "standard" as const, label: "Standard" },
+          { value: "short_stack" as const, label: "Short-stack" },
+          { value: "custom" as const, label: "Custom" },
+        ].map((option) => (
+          <label key={option.value} className={mode === option.value ? "selected" : ""}>
+            <input
+              type="radio"
+              name="river-ledger-stack-mode"
+              value={option.value}
+              checked={mode === option.value}
+              onChange={() => onModeChange(option.value)}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+      <div className="river-stack-grid">
+        {Array.from({ length: seatCount }, (_, index) => {
+          const label = labels[index]?.label ?? `Seat ${index + 1}`;
+          const value = displayStacks[index] ?? 24;
+          return (
+            <label className="river-stack-field" key={label}>
+              <span>{label}</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={value}
+                disabled={mode !== "custom"}
+                onChange={(event) => onStackChange(index, Number(event.currentTarget.value) || 1)}
+              />
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+export function riverLedgerShortStackPreset(seatCount: number): number[] {
+  const stacks = Array.from({ length: seatCount }, () => 24);
+  if (seatCount >= 1) stacks[0] = 8;
+  if (seatCount >= 2) stacks[1] = 3;
+  if (seatCount >= 3) stacks[2] = 2;
+  return stacks;
 }
 
 function setupLabelsForCount(game: GameCatalogEntry | null, selectedSeatCount: number | null): SetupLabelResolution {

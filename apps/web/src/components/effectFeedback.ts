@@ -320,6 +320,36 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.actor} added ${payload.amount_added ?? 0}; ledger total ${payload.pot_total ?? 0}.`,
         tone: "turn",
       };
+    case "river_ledger_stack_changed":
+      return {
+        title: "Stack updated",
+        detail: `${payload.seat ?? payload.actor ?? "Seat"} has ${payload.remaining_stack ?? 0} remaining.`,
+        tone: "turn",
+      };
+    case "river_ledger_seat_became_all_in":
+      return {
+        title: "All-in",
+        detail: `${payload.seat ?? payload.actor ?? "Seat"} is all-in.`,
+        tone: "turn",
+      };
+    case "river_ledger_uncalled_contribution_returned":
+      return {
+        title: "Uncalled returned",
+        detail: `${payload.seat ?? "Seat"} receives ${payload.amount ?? 0}.`,
+        tone: "turn",
+      };
+    case "river_ledger_pot_resolved":
+      return {
+        title: "Pot resolved",
+        detail: `Rust resolved ${payload.amount ?? payload.pot_amount ?? 0} from ${riverPotLabel(payload.pot_id)}.`,
+        tone: "terminal",
+      };
+    case "river_ledger_pot_awarded":
+      return {
+        title: "Pot awarded",
+        detail: `${payload.seat ?? payload.winner ?? "Winner"} receives ${payload.amount ?? 0} from ${riverPotLabel(payload.pot_id)}.`,
+        tone: "terminal",
+      };
     case "river_ledger_street_advanced":
       return {
         title: "Board revealed",
@@ -839,6 +869,16 @@ function riverStreetLabel(value: unknown): string {
     default:
       return "Street";
   }
+}
+
+function riverPotLabel(value: unknown): string {
+  if (value === "main_pot") {
+    return "main pot";
+  }
+  if (typeof value === "string" && value.length > 0) {
+    return "side pot";
+  }
+  return "pot";
 }
 
 function isPokerLiteOutcome(value: unknown): boolean {

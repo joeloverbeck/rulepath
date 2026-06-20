@@ -1,6 +1,6 @@
 # GAT151RIVLED-014: Web renderer and e2e smoke path
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web` components/state/styles + `e2e/river-ledger.smoke.mjs`
@@ -81,3 +81,20 @@ Extend `e2e/river-ledger.smoke.mjs` to drive an asymmetric all-in hand through t
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:e2e`
 3. `npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects` — UI/effect smokes are the correct presentation-layer boundary; Rust behavior is covered by earlier tickets.
+
+## Outcome
+
+Completed 2026-06-20.
+
+- Added River Ledger-only stack setup controls and routed preset/custom stacks through the WASM `newMatchWithOptions` setup-options path.
+- Rendered public starting/remaining stacks, all-in indicators, ordered pot tiers, contributors, eligibility, uncalled returns, and terminal allocation breakdown from WASM-projected fields.
+- Added effect feedback/animation targeting for stack, all-in, return, pot resolution, and pot award effect kinds.
+- Extended `river-ledger.smoke.mjs` with a custom short-stack all-in hotseat hand that reaches terminal, checks public pot/accounting display, accessible labels, and no hidden/raw-seat leakage.
+- Current WASM terminal view exposes aggregate terminal allocations rather than a separate per-pot terminal allocation list; the renderer shows terminal allocations alongside the Rust-projected pot-tier breakdown and does not compute allocation client-side.
+
+Verification:
+
+1. `npm --prefix apps/web run build`
+2. `npm --prefix apps/web run smoke:e2e`
+3. `npm --prefix apps/web run smoke:ui`
+4. `npm --prefix apps/web run smoke:effects`

@@ -143,6 +143,11 @@ try {
   await assertNoRawSeatIds(page, "seed-10018 showdown surface");
   assertNoForbiddenTerms(await fullBrowserSurface(page), "seed-10018 showdown surface", internalTerms);
 
+  await playShortStackAllInTerminal(page, baseUrl);
+  await assertShortStackAllInTerminal(page);
+  await assertNoRawSeatIds(page, "short-stack all-in terminal surface");
+  assertNoForbiddenTerms(await fullBrowserSurface(page), "short-stack all-in terminal surface", internalTerms);
+
   await assertSixSeatFrameSelector(page, baseUrl);
 
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "river_ledger noleak legal controls terminal responsive" }));
@@ -153,7 +158,7 @@ try {
   await new Promise((resolve) => server.close(resolve));
 }
 
-async function startRiverLedger(page, baseUrl, modeLabel, seatCount, seed = null) {
+async function startRiverLedger(page, baseUrl, modeLabel, seatCount, seed = null, stackSetup = null) {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await waitForText(page, "River Ledger");
   await assertFixedSeatSetup(page);
@@ -163,6 +168,9 @@ async function startRiverLedger(page, baseUrl, modeLabel, seatCount, seed = null
     await setSetupSeed(page, seed);
   }
   await clickLabel(page, modeLabel);
+  if (stackSetup) {
+    await configureRiverLedgerStacks(page, stackSetup);
+  }
   await clickText(page, "button", "Start Match");
 }
 
@@ -208,6 +216,29 @@ async function playSeed10018Showdown(page, baseUrl) {
       await waitForText(page, "Available choices").catch(async () => {
         if (!(await hasRiverLedgerOutcome(page))) {
           throw new Error(`River Ledger seed 10018 did not advance after ${action}`);
+        }
+      });
+    }
+  }
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+}
+
+async function playShortStackAllInTerminal(page, baseUrl) {
+  await startRiverLedger(page, baseUrl, "Hotseat", 3, 12, { mode: "custom", stacks: [2, 2, 2] });
+  await waitForText(page, "Available choices");
+  await assertShortStackSetupRendered(page);
+  for (let index = 0; index < 6 && !(await hasRiverLedgerOutcome(page)); index += 1) {
+    if (await hasEnabledRiverAction(page, "Call")) {
+      await clickRiverAction(page, "Call");
+    } else if (await hasEnabledRiverAction(page, "Check")) {
+      await clickRiverAction(page, "Check");
+    } else {
+      break;
+    }
+    if (!(await hasRiverLedgerOutcome(page))) {
+      await waitForText(page, "Available choices").catch(async () => {
+        if (!(await hasRiverLedgerOutcome(page))) {
+          throw new Error("Short-stack all-in path did not advance");
         }
       });
     }
@@ -276,6 +307,56 @@ async function assertSeed10018ShowdownLabels(page) {
   );
   assert(summary.panelText.includes("Seat 3"), `closest challenger label is one-based: ${summary.panelText}`);
   assert(!combined.includes("Seat 0 wins"), `seed 10018 surface must not use zero-based winner label: ${combined}`);
+}
+
+async function assertShortStackSetupRendered(page) {
+  const summary = await page.evaluate(() => {
+    const seats = Array.from(document.querySelectorAll(".river-ledger-seat")).map((seat) => seat.textContent ?? "");
+    const pot = document.querySelector('[data-testid="river-ledger-pot-tiers"]')?.textContent ?? "";
+    return {
+      seats,
+      pot,
+      allInCount: seats.filter((seat) => seat.includes("All-in")).length,
+      actions: Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).map((button) => button.textContent ?? ""),
+    };
+  });
+  assert(summary.seats.length === 3, `short-stack setup renders three seats: ${summary.seats.join(" | ")}`);
+  assert(
+    summary.seats.every((seat) => seat.includes("Stack") && seat.includes("/ 2")),
+    `short-stack seats render remaining/starting stacks: ${summary.seats.join(" | ")}`,
+  );
+  assert(summary.allInCount >= 1, `blind-posted short-stack setup marks an all-in seat: ${summary.seats.join(" | ")}`);
+  assert(summary.pot.includes("Main pot") && summary.pot.includes("Eligible"), `short-stack setup renders public pot tier: ${summary.pot}`);
+  assert(
+    summary.actions.some((text) => text.includes("Call") && text.includes("Call price 2") && text.includes("Adds 2")),
+    `short-stack action copy exposes Rust cost rows: ${summary.actions.join(" | ")}`,
+  );
+}
+
+async function assertShortStackAllInTerminal(page) {
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]');
+    return {
+      heading: document.querySelector("#river-ledger-heading")?.textContent ?? "",
+      potText: document.querySelector('[data-testid="river-ledger-pot-tiers"]')?.textContent ?? "",
+      seatText: Array.from(document.querySelectorAll(".river-ledger-seat")).map((seat) => seat.textContent ?? "").join("\n"),
+      outcomeText: panel?.textContent ?? "",
+      allocationRows: Array.from(panel?.querySelectorAll(".outcome-breakdown-section") ?? []).map((section) => section.textContent ?? ""),
+      effectText: document.querySelector('[data-testid="effects"]')?.textContent ?? "",
+    };
+  });
+  assert(summary.heading.includes("wins") || summary.heading.includes("split"), `short-stack hand reaches terminal: ${summary.heading}`);
+  assert(summary.potText.includes("Main pot") && summary.potText.includes("Eligible"), `terminal keeps public pot tiers: ${summary.potText}`);
+  assert(summary.seatText.includes("All-in"), `terminal keeps all-in seat indicators: ${summary.seatText}`);
+  assert(summary.outcomeText.includes("Terminal allocations"), `terminal outcome renders allocation section: ${summary.outcomeText}`);
+  assert(
+    summary.allocationRows.some((row) => row.includes("Terminal allocations") && row.includes("Seat")),
+    `terminal allocation rows use seat labels: ${summary.allocationRows.join(" | ")}`,
+  );
+  assert(
+    summary.effectText.includes("All-in") || summary.effectText.includes("Stack updated") || summary.effectText.includes("Pot awarded"),
+    `effect log names stack/pot all-in effects: ${summary.effectText}`,
+  );
 }
 
 async function assertSixSeatFrameSelector(page, baseUrl) {
@@ -654,6 +735,41 @@ async function setSetupSeed(page, seed) {
   );
 }
 
+async function configureRiverLedgerStacks(page, setup) {
+  await page.waitForSelector(".river-stack-setup");
+  if (setup.mode === "short_stack") {
+    await clickText(page, ".river-stack-mode label", "Short-stack");
+    return;
+  }
+  if (setup.mode === "custom") {
+    await clickText(page, ".river-stack-mode label", "Custom");
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll(".river-stack-field input")).every((input) => !input.disabled),
+    );
+    for (let index = 0; index < setup.stacks.length; index += 1) {
+      await setRiverLedgerStackInput(page, index, setup.stacks[index]);
+    }
+  }
+}
+
+async function setRiverLedgerStackInput(page, index, value) {
+  await page.$eval(
+    `.river-stack-field:nth-of-type(${index + 1}) input`,
+    (input, nextValue) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(input, String(nextValue));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    value,
+  );
+  await page.waitForFunction(
+    (selector, expected) => document.querySelector(selector)?.value === String(expected),
+    {},
+    `.river-stack-field:nth-of-type(${index + 1}) input`,
+    value,
+  );
+}
+
 async function hasRiverLedgerOutcome(page) {
   return page.evaluate(() => Boolean(document.querySelector('.outcome-explanation-panel[data-outcome-game="river_ledger"]')));
 }
@@ -874,6 +990,14 @@ async function clickRiverAction(page, label) {
     }
   }
   throw new Error(`No River Ledger action labeled ${label}`);
+}
+
+async function hasEnabledRiverAction(page, label) {
+  return page.evaluate((expected) =>
+    Array.from(document.querySelectorAll('[data-testid^="choice-river-ledger-"]')).some(
+      (button) => !button.disabled && button.querySelector("strong")?.textContent?.trim() === expected,
+    ),
+  label);
 }
 
 async function clickText(page, selector, text) {

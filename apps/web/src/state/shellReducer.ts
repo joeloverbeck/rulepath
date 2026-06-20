@@ -26,6 +26,7 @@ export type PendingOperation =
   | null;
 
 export type SetupPlayMode = "human_vs_bot" | "hotseat" | "bot_vs_bot";
+export type RiverLedgerStackMode = "standard" | "short_stack" | "custom";
 
 export type ReplaySessionState = {
   replayId: string;
@@ -55,6 +56,8 @@ export type ShellState = {
     playMode: SetupPlayMode;
     variantId: string | null;
     seatCount: number | null;
+    riverLedgerStackMode: RiverLedgerStackMode;
+    riverLedgerStacks: number[];
   };
   matchId: string | null;
   actorSeat: "seat_0" | "seat_1";
@@ -101,6 +104,8 @@ export type ShellAction =
   | { type: "setupPlayModeChanged"; playMode: SetupPlayMode }
   | { type: "setupVariantChanged"; variantId: string }
   | { type: "setupSeatCountChanged"; seatCount: number }
+  | { type: "setupRiverLedgerStackModeChanged"; mode: RiverLedgerStackMode }
+  | { type: "setupRiverLedgerStackChanged"; index: number; value: number }
   | { type: "viewerModeChanged"; viewerMode: ViewerMode }
   | { type: "matchStarting" }
   | { type: "matchStarted"; matchId: string }
@@ -141,6 +146,8 @@ export const initialShellState: ShellState = {
     playMode: "human_vs_bot",
     variantId: null,
     seatCount: null,
+    riverLedgerStackMode: "standard",
+    riverLedgerStacks: [],
   },
   matchId: null,
   actorSeat: "seat_0",
@@ -189,6 +196,10 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           ...state.setup,
           variantId: state.setup.variantId ?? selectedGame?.variants?.[0]?.id ?? null,
           seatCount: resolveSeatCount(selectedGame, state.setup.seatCount),
+          riverLedgerStacks: riverLedgerStacksForCount(
+            resolveSeatCount(selectedGame, state.setup.seatCount),
+            state.setup.riverLedgerStacks,
+          ),
         },
         pendingOperation: null,
       };
@@ -211,6 +222,8 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
           ...state.setup,
           variantId: selectedGame?.variants?.[0]?.id ?? null,
           seatCount: resolveSeatCount(selectedGame, null),
+          riverLedgerStackMode: "standard",
+          riverLedgerStacks: riverLedgerStacksForCount(resolveSeatCount(selectedGame, null), []),
         },
         matchId: null,
         view: null,
@@ -260,8 +273,31 @@ export function shellReducer(state: ShellState, action: ShellAction): ShellState
         setup: {
           ...state.setup,
           seatCount: action.seatCount,
+          riverLedgerStacks: riverLedgerStacksForCount(action.seatCount, state.setup.riverLedgerStacks),
         },
       };
+    case "setupRiverLedgerStackModeChanged":
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          riverLedgerStackMode: action.mode,
+          riverLedgerStacks: riverLedgerStacksForCount(state.setup.seatCount, state.setup.riverLedgerStacks),
+        },
+      };
+    case "setupRiverLedgerStackChanged": {
+      const stacks = riverLedgerStacksForCount(state.setup.seatCount, state.setup.riverLedgerStacks);
+      if (action.index < 0 || action.index >= stacks.length) {
+        return state;
+      }
+      return {
+        ...state,
+        setup: {
+          ...state.setup,
+          riverLedgerStacks: stacks.map((stack, index) => (index === action.index ? action.value : stack)),
+        },
+      };
+    }
     case "viewerModeChanged":
       return {
         ...state,
@@ -486,6 +522,20 @@ function resolveSeatCount(game: GameCatalogEntry | null, current: number | null)
     return game.default_seats;
   }
   return supportedSeats[0] ?? null;
+}
+
+function riverLedgerStacksForCount(seatCount: number | null, current: number[]): number[] {
+  if (!seatCount || seatCount < 1) {
+    return [];
+  }
+  return Array.from({ length: seatCount }, (_, index) => sanitizeStackInput(current[index] ?? 24));
+}
+
+function sanitizeStackInput(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 24;
+  }
+  return Math.max(1, Math.trunc(value));
 }
 
 function botDecisionSummary(result: BotTurnResult): BotDecisionSummary | null {

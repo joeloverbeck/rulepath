@@ -15,7 +15,12 @@ import type {
   SeatDisplayLabel,
 } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
-import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+import {
+  OutcomeExplanationPanel,
+  outcomeAnnouncementText,
+  outcomeSurfaceData,
+  type OutcomeExplanationBreakdownSection,
+} from "./OutcomeExplanationPanel";
 import { RiverLedgerCard, riverLedgerCardGroupLabel } from "./RiverLedgerCard";
 
 registerRiverLedgerAnimations();
@@ -68,6 +73,7 @@ export function RiverLedgerBoard({
               { label: "Winner count", value: view.terminal.winners.length },
             ],
           },
+          ...potBreakdownSections(view, labelForSeat),
         ],
         ruleIds: view.terminal.kind === "last_live_hand" ? ["RL-END-LAST-LIVE", "RL-SCORE-POT-AWARD"] : ["RL-SCORE-SHOWDOWN", "RL-END-SHOWDOWN"],
         riverLedgerShowdownV2: view.terminal.kind === "showdown" ? view.terminal.presentation_v2 ?? null : null,
@@ -105,6 +111,7 @@ export function RiverLedgerBoard({
 
       <div className="river-ledger-table-shell" aria-label={view.ui.surface_label}>
         <StreetStrip view={view} />
+        <PotLedger view={view} labelForSeat={labelForSeat} />
 
         <div className="river-ledger-layout">
           <section className="river-ledger-board-well" aria-label={view.ui.board_label}>
@@ -245,10 +252,24 @@ function SeatLedger({
 }) {
   const active = view.active_seat === seat.seat;
   const display = seat.ledger_display;
-  const metrics = [display.round_contribution, display.hand_contribution, display.hole_card_summary];
+  const allIn = seat.is_all_in || seat.remaining_stack === 0;
+  const metrics = [
+    display.round_contribution,
+    display.hand_contribution,
+    {
+      label: "Stack",
+      value: `${seat.remaining_stack} / ${seat.starting_stack}`,
+      accessibility_label: `${labelForSeat(seat.seat)} has ${seat.remaining_stack} remaining from ${seat.starting_stack} starting stack.`,
+    },
+    display.hole_card_summary,
+  ];
 
   return (
-    <section className={`river-ledger-seat ${active ? "active" : ""}`} aria-label={`${labelForSeat(seat.seat)} ledger`}>
+    <section
+      className={`river-ledger-seat ${active ? "active" : ""}${allIn ? " all-in" : ""}`}
+      aria-label={`${labelForSeat(seat.seat)} ledger`}
+      data-animation-target={`river-ledger-seat-${seat.seat}`}
+    >
       <div className="river-ledger-section-heading">
         <span>{labelForSeat(seat.seat)}</span>
         <strong>{display.status_label}</strong>
@@ -260,9 +281,61 @@ function SeatLedger({
           ))}
         </div>
       ) : null}
+      {allIn ? <span className="river-ledger-all-in">All-in</span> : null}
       {metrics.map((metric) => (
         <Metric key={metric.label} label={metric.label} value={metric.value} ariaLabel={metric.accessibility_label} />
       ))}
+    </section>
+  );
+}
+
+function PotLedger({ view, labelForSeat }: { view: RiverLedgerPublicView; labelForSeat: (seat: RiverLedgerSeatId) => string }) {
+  return (
+    <section className="river-ledger-pot-ledger" aria-label="Public pot tiers" data-animation-target="river-ledger-pot-ledger">
+      <div className="river-ledger-section-heading">
+        <span>Pot tiers</span>
+        <strong>{view.pot_tiers.length ? `${view.pot_tiers.length} tier${view.pot_tiers.length === 1 ? "" : "s"}` : "No tiers"}</strong>
+      </div>
+      <div className="river-ledger-pot-grid" data-testid="river-ledger-pot-tiers">
+        {view.pot_tiers.length ? (
+          view.pot_tiers.map((tier, index) => (
+            <article className="river-ledger-pot-tier" key={`${tier.pot_id}-${index}`}>
+              <header>
+                <strong>{potTierLabel(tier.pot_id, index)}</strong>
+                <span>{tier.amount}</span>
+              </header>
+              <dl>
+                <div>
+                  <dt>Cap</dt>
+                  <dd>{tier.cap ?? "Open"}</dd>
+                </div>
+                <div>
+                  <dt>Contributors</dt>
+                  <dd>{seatList(tier.contributors, labelForSeat)}</dd>
+                </div>
+                <div>
+                  <dt>Eligible</dt>
+                  <dd>{seatList(tier.eligible, labelForSeat)}</dd>
+                </div>
+              </dl>
+            </article>
+          ))
+        ) : (
+          <p className="muted">Rust has not formed a public pot tier.</p>
+        )}
+      </div>
+      {view.uncalled_returns.length ? (
+        <div className="river-ledger-returns" data-testid="river-ledger-uncalled-returns">
+          <span>Uncalled returns</span>
+          <ul>
+            {view.uncalled_returns.map((refund) => (
+              <li key={`${refund.seat}-${refund.amount}`}>
+                {labelForSeat(refund.seat)} receives {refund.amount}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -355,6 +428,17 @@ function registerRiverLedgerAnimations(): void {
   animationRegistry.register("river_ledger", "river_ledger_street_advanced", (step, context) =>
     highlightRiverTargets(context, ["river-ledger-board-reveal", "river-ledger-status"], step.reducedMotion),
   );
+  for (const effectType of [
+    "river_ledger_stack_changed",
+    "river_ledger_seat_became_all_in",
+    "river_ledger_uncalled_contribution_returned",
+    "river_ledger_pot_resolved",
+    "river_ledger_pot_awarded",
+  ]) {
+    animationRegistry.register("river_ledger", effectType, (step, context) =>
+      highlightRiverTargets(context, ["river-ledger-pot-ledger", "river-ledger-status"], step.reducedMotion),
+    );
+  }
   animationRegistry.register("river_ledger", "river_ledger_showdown_resolved", (step, context) =>
     stagedRiverShowdown(step, context),
   );
@@ -439,6 +523,55 @@ function riverStanding(
       { label: "Allocation", value: allocation },
     ],
   };
+}
+
+function potBreakdownSections(
+  view: RiverLedgerPublicView,
+  labelForSeat: (seat: RiverLedgerSeatId) => string,
+): OutcomeExplanationBreakdownSection[] {
+  const sections: OutcomeExplanationBreakdownSection[] = view.pot_tiers.map((tier, index) => ({
+    id: `pot-tier-${index}`,
+    heading: potTierLabel(tier.pot_id, index),
+    rows: [
+      { label: "Amount", value: tier.amount },
+      { label: "Cap", value: tier.cap ?? "Open" },
+      { label: "Contributors", value: seatList(tier.contributors, labelForSeat) },
+      { label: "Eligible", value: seatList(tier.eligible, labelForSeat) },
+    ],
+  }));
+  if (view.uncalled_returns.length) {
+    sections.push({
+      id: "uncalled-returns",
+      heading: "Uncalled returns",
+      rows: view.uncalled_returns.map((refund) => ({
+        label: labelForSeat(refund.seat),
+        value: refund.amount,
+      })),
+    });
+  }
+  if (view.terminal.terminal && view.terminal.allocations.length) {
+    sections.push({
+      id: "terminal-allocations",
+      heading: "Terminal allocations",
+      rows: view.terminal.allocations.map((allocation) => ({
+        label: labelForSeat(allocation.seat),
+        value: allocation.amount,
+      })),
+      defaultOpen: true,
+    });
+  }
+  return sections;
+}
+
+function potTierLabel(potId: string, index: number): string {
+  if (potId === "main_pot") {
+    return "Main pot";
+  }
+  return `Side pot ${index}`;
+}
+
+function seatList(seats: RiverLedgerSeatId[], labelForSeat: (seat: RiverLedgerSeatId) => string): string {
+  return seats.length ? seats.map(labelForSeat).join(", ") : "None";
 }
 
 function currentShowdownCategory(view: RiverLedgerPublicView): string | null {

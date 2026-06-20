@@ -2826,6 +2826,71 @@ h2 {
   font-weight: 800;
 }
 
+.river-stack-setup {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  border: 1px solid var(--rp-border-subtle);
+  border-radius: var(--rp-radius-sm);
+  padding: 12px;
+  background: var(--rp-surface-raised);
+}
+
+.river-stack-setup legend {
+  color: var(--rp-text-overline);
+  font-size: var(--rp-text-sm);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.river-stack-mode {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.river-stack-mode label,
+.river-stack-field {
+  border: 1px solid var(--rp-border-subtle);
+  border-radius: var(--rp-radius-sm);
+  background: var(--rp-surface-panel);
+}
+
+.river-stack-mode label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 8px 10px;
+  color: var(--rp-text-primary);
+  font-weight: 800;
+}
+
+.river-stack-mode label.selected {
+  border-color: var(--game-accent);
+  background: color-mix(in srgb, var(--game-card-art-bg) 74%, white);
+}
+
+.river-stack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+}
+
+.river-stack-field {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+}
+
+.river-stack-field span {
+  color: var(--rp-text-overline);
+  font-size: var(--rp-text-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .players-roles {
   display: grid;
   gap: var(--rp-space-4);
@@ -4521,6 +4586,7 @@ svg g[data-effect-kind] {
 .river-ledger-actions,
 .river-ledger-hand-rankings,
 .river-ledger-outcome,
+.river-ledger-pot-ledger,
 .river-ledger-latest {
   display: grid;
   gap: 10px;
@@ -4557,6 +4623,23 @@ svg g[data-effect-kind] {
 .river-ledger-seat.active {
   border-color: var(--rl-winner);
   box-shadow: inset 0 0 0 2px rgba(47, 95, 143, 0.14);
+}
+
+.river-ledger-seat.all-in {
+  border-color: var(--rl-accent);
+  background: color-mix(in srgb, var(--rl-accent-soft) 72%, var(--rl-panel));
+}
+
+.river-ledger-all-in {
+  justify-self: start;
+  border: 1px solid var(--rl-accent);
+  border-radius: 999px;
+  background: var(--rl-accent-soft);
+  color: var(--rl-accent);
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .river-ledger-board-well {
@@ -4744,6 +4827,84 @@ svg g[data-effect-kind] {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
+}
+
+.river-ledger-pot-ledger {
+  background: var(--rl-panel);
+}
+
+.river-ledger-pot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.river-ledger-pot-tier {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--rl-card-border);
+  border-radius: 6px;
+  background: var(--rl-card-face);
+  padding: 10px;
+}
+
+.river-ledger-pot-tier header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.river-ledger-pot-tier header strong {
+  color: var(--rl-ink);
+}
+
+.river-ledger-pot-tier header span {
+  color: var(--rl-river);
+  font-weight: 900;
+}
+
+.river-ledger-pot-tier dl,
+.river-ledger-returns ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+}
+
+.river-ledger-pot-tier dl > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.35fr) minmax(0, 0.65fr);
+  gap: 8px;
+}
+
+.river-ledger-pot-tier dt,
+.river-ledger-returns span {
+  color: var(--rl-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.river-ledger-pot-tier dd {
+  margin: 0;
+  color: var(--rl-ink);
+  overflow-wrap: anywhere;
+}
+
+.river-ledger-returns {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--rl-card-border);
+  border-radius: 6px;
+  background: var(--rl-river-soft);
+  padding: 10px;
+}
+
+.river-ledger-returns li {
+  list-style: none;
+  color: var(--rl-ink);
+  font-weight: 800;
 }
 
 .river-ledger-action {
@@ -5040,7 +5201,9 @@ svg g[data-effect-kind] {
   .river-ledger-seat-rail,
   .river-ledger-action-band,
   .river-ledger-action-grid,
+  .river-ledger-pot-grid,
   .river-ledger-latest,
+  .river-stack-mode,
   .river-ledger-bot-why dl {
     grid-template-columns: 1fr;
   }

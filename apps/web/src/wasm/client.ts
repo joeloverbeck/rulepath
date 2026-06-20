@@ -734,6 +734,9 @@ export type RiverLedgerBoardSlotView = {
 export type RiverLedgerSeatView = {
   seat: RiverLedgerSeatId;
   status: "live" | "folded" | "showdown_eligible" | string;
+  starting_stack: number;
+  remaining_stack: number;
+  is_all_in: boolean;
   street_contribution: number;
   total_contribution: number;
   hidden_hole_count: number;
@@ -803,6 +806,19 @@ export type RiverLedgerTerminalView =
       explanations: string[];
       presentation_v2?: RiverLedgerShowdownPresentationV2 | null;
     };
+
+export type RiverLedgerPotTierView = {
+  pot_id: string;
+  amount: number;
+  cap: number | null;
+  contributors: RiverLedgerSeatId[];
+  eligible: RiverLedgerSeatId[];
+};
+
+export type RiverLedgerUncalledReturnView = {
+  seat: RiverLedgerSeatId;
+  amount: number;
+};
 
 export type RiverLedgerShowdownPresentationV2 = {
   result_banner: RiverLedgerShowdownResultBanner;
@@ -909,6 +925,8 @@ export type RiverLedgerPublicView = {
   small_blind: RiverLedgerSeatId;
   big_blind: RiverLedgerSeatId;
   pot_total: number;
+  pot_tiers: RiverLedgerPotTierView[];
+  uncalled_returns: RiverLedgerUncalledReturnView[];
   seats: RiverLedgerSeatView[];
   board: RiverLedgerCardView[];
   board_slots: RiverLedgerBoardSlotView[];
