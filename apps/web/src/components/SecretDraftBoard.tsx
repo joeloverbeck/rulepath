@@ -174,13 +174,52 @@ function SeatDraftPanel({ view, seat }: { view: SecretDraftPublicView; seat: Sea
       {drafted.length === 0 ? (
         <p className="muted">No drafted items yet.</p>
       ) : (
-        <div className="secret-drafted-list">
-          {drafted.map((item) => (
-            <DraftedItem key={item.item_id} item={item} />
-          ))}
-        </div>
+        <>
+          <div className="secret-drafted-list">
+            {drafted.map((item) => (
+              <DraftedItem key={item.item_id} item={item} />
+            ))}
+          </div>
+          <DraftProgress drafted={drafted} />
+        </>
       )}
     </section>
+  );
+}
+
+const DRAFT_THREADS = ["ember", "tide", "grove"] as const;
+
+// Drafted collections are public, so set/thread composition is public too. The
+// scoring rewards complete ember+tide+grove sets and threads of three or more,
+// so surface that progress to make each commitment legible.
+function DraftProgress({ drafted }: { drafted: SecretDraftItemView[] }) {
+  const counts = DRAFT_THREADS.map((thread) => ({
+    thread,
+    count: drafted.filter((item) => item.thread === thread).length,
+  }));
+  const completeSets = Math.min(...counts.map((entry) => entry.count));
+  const atMinimum = counts.filter((entry) => entry.count === completeSets).map((entry) => entry.thread);
+  const needForNextSet = atMinimum.length < DRAFT_THREADS.length ? atMinimum : [];
+
+  return (
+    <div className="secret-progress" aria-label="Set and thread progress">
+      <div className="secret-progress-sets">
+        <span>Sets</span>
+        <strong data-testid="secret-progress-sets">{completeSets} complete</strong>
+        {needForNextSet.length > 0 ? <small>need {needForNextSet.join(" + ")} for the next set</small> : null}
+      </div>
+      <div className="secret-progress-threads">
+        {counts.map((entry) => (
+          <span
+            key={entry.thread}
+            className={`secret-thread-tally thread-${entry.thread}${entry.count >= 3 ? " bonus" : ""}`}
+          >
+            {entry.thread} ×{entry.count}
+            {entry.count >= 3 ? " · bonus" : ""}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

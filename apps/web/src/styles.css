@@ -3918,6 +3918,62 @@ svg g[data-effect-kind] {
   gap: 8px;
 }
 
+.secret-progress {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid #d8e0dc;
+  border-radius: 6px;
+  background: #f6f8f5;
+}
+
+.secret-progress-sets {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.secret-progress-sets span {
+  color: #687973;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.secret-progress-sets strong {
+  color: #25332e;
+}
+
+.secret-progress-sets small {
+  color: #5a6b64;
+  font-size: 0.78rem;
+}
+
+.secret-progress-threads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.secret-thread-tally {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid #d0d9d4;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.secret-thread-tally.bonus {
+  border-color: #2b8068;
+  background: #eef6f1;
+  color: #1f6b4f;
+}
+
 .secret-drafted-item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
