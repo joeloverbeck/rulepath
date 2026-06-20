@@ -1,7 +1,8 @@
 use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
 use river_ledger::{
     replay_support::{
-        export_public_replay, import_public_export, replay_internal_full_trace, trace_from_commands,
+        export_public_replay, import_public_export, replay_internal_full_trace,
+        replay_internal_full_trace_result, trace_from_commands,
     },
     setup_match, PotShare, RiverLedgerSeat, SetupOptions, TerminalOutcome,
 };
@@ -59,6 +60,20 @@ fn internal_trace_replays_to_same_hashes_and_state() {
     assert_eq!(
         first.final_state.stable_internal_summary(),
         second.final_state.stable_internal_summary()
+    );
+}
+
+#[test]
+fn v1_internal_trace_is_rejected_with_stable_diagnostic() {
+    let mut trace = trace_from_commands(21, 4, &[(3, "call")]);
+    trace.rules_version = "river-ledger-rules-v1".to_owned();
+
+    let diagnostic = replay_internal_full_trace_result(&trace).expect_err("v1 rejects");
+
+    assert_eq!(diagnostic.code, "river_ledger_rules_version_mismatch");
+    assert_eq!(
+        diagnostic.message,
+        "River Ledger replay uses river-ledger-rules-v1; expected river-ledger-rules-v2"
     );
 }
 

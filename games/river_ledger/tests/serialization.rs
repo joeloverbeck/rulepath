@@ -44,7 +44,7 @@ fn internal_trace_json_order_is_stable() {
 
     assert_eq!(trace.stable_bytes(), json.as_bytes());
     assert!(json.starts_with(
-        "{\"schema_version\":1,\"game_id\":\"river_ledger\",\"rules_version\":\"river-ledger-rules-v1\""
+        "{\"schema_version\":1,\"game_id\":\"river_ledger\",\"rules_version\":\"river-ledger-rules-v2\""
     ));
     assert!(json.contains("\"commands\":[{\"actor\":\"seat_3\",\"path\":[\"call\"]},{\"actor\":\"seat_0\",\"path\":[\"call\"]}]"));
 }
@@ -62,6 +62,7 @@ fn public_display_labels_do_not_replace_canonical_seat_ids() {
 
     assert_eq!(RiverLedgerSeat::from_index(1).unwrap().as_str(), "seat_1");
     assert!(state.stable_internal_summary().contains("seat_1"));
+    assert!(state.stable_internal_summary().contains("betting="));
 }
 
 #[test]
@@ -118,6 +119,7 @@ fn terminal_view_summary_includes_v2_showdown_presentation_deterministically() {
     assert_eq!(first, second);
     assert!(first.contains("showdown:"));
     assert!(first.contains("wins with"));
+    assert!(first.contains("tiers="));
 }
 
 #[test]

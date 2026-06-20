@@ -1,6 +1,6 @@
 # GAT151RIVLED-011: Replay, hash, and serialization v2 migration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`replay_support.rs`, `lib.rs`, `ids.rs`), `data/manifest.toml`, tests; intentional per-game v2 drift
@@ -81,3 +81,21 @@ Reject v1 replays with a stable deterministic version-mismatch diagnostic (defau
 1. `cargo test -p river_ledger`
 2. `bash scripts/boundary-check.sh`
 3. `cargo run -p replay-check -- --game river_ledger --all` — confirms v2 internal consistency; full golden-trace hashes are owned by GAT151RIVLED-017.
+
+## Outcome
+
+Completed on 2026-06-20.
+
+- Bumped River Ledger rules/data metadata to v2 in `ids.rs`, `manifest.toml`, and `variants.toml`.
+- Added deterministic replay-version validation with a stable v1 mismatch diagnostic; existing replay helpers now validate before executing/exporting.
+- Added betting/reopen state to stable internal and setup summaries so outcome-affecting v2 state participates in deterministic hashes.
+- Updated serialization tests for v2 labels and stable stack/reopen/pot projection fields.
+- Added replay coverage proving v1 internal traces are rejected instead of silently reinterpreted.
+- `lib.rs` did not require an edit because the replay support API remains exported through the existing module.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `bash scripts/boundary-check.sh`
+- `cargo run -p replay-check -- --game river_ledger --all`

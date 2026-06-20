@@ -2,7 +2,7 @@ use engine_core::{Actor, SeatId, Viewer};
 
 pub const GAME_ID: &str = "river_ledger";
 pub const VARIANT_ID: &str = "river_ledger_standard";
-pub const RULES_VERSION_LABEL: &str = "river-ledger-rules-v1";
+pub const RULES_VERSION_LABEL: &str = "river-ledger-rules-v2";
 pub const RULE_ID_PREFIX: &str = "RL-";
 
 pub const STANDARD_MIN_SEATS: u8 = 3;

@@ -1,6 +1,6 @@
 variant_id = "river_ledger_standard"
 display_name = "River Ledger"
-rules_version_label = "river-ledger-rules-v1"
+rules_version_label = "river-ledger-rules-v2"
 supported_seat_counts = "3,4,5,6"
 default_seats = 6
 street_sequence = "preflop,flop,turn,river,showdown"

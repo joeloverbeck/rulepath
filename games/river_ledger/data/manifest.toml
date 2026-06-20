@@ -1,9 +1,9 @@
 game_id = "river_ledger"
 display_name = "River Ledger"
 readiness = "planned-official-game"
-rules_version = 1
-rules_version_label = "river-ledger-rules-v1"
-data_version = 1
+rules_version = 2
+rules_version_label = "river-ledger-rules-v2"
+data_version = 2
 schema_version = 1
 theme_name = "river_ledger"
 min_seats = 3

@@ -38,6 +38,12 @@ pub struct ReplayResult {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReplayImportDiagnostic {
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PublicReplayExport {
     pub schema_version: u32,
     pub export_class: String,
@@ -190,6 +196,13 @@ pub fn command_for_state(
 }
 
 pub fn replay_internal_full_trace(trace: &RiverLedgerInternalTrace) -> ReplayResult {
+    replay_internal_full_trace_result(trace).expect("trace version is supported")
+}
+
+pub fn replay_internal_full_trace_result(
+    trace: &RiverLedgerInternalTrace,
+) -> Result<ReplayResult, ReplayImportDiagnostic> {
+    validate_trace_version(trace)?;
     let mut state = setup_match(
         engine_core::Seed(trace.seed_evidence),
         &seats(trace.seat_count),
@@ -209,20 +222,21 @@ pub fn replay_internal_full_trace(trace: &RiverLedgerInternalTrace) -> ReplayRes
         apply_action(&mut state, action).expect("trace command applies");
     }
 
-    ReplayResult {
+    Ok(ReplayResult {
         trace_hash: trace.stable_hash(),
         state_hash: state_hash(&state),
         effect_hash: effect_hash(&effects),
         view_hash: crate::view_hash(&project_view(&state, &Viewer { seat_id: None })),
         action_tree_hashes: action_hashes,
         final_state: state,
-    }
+    })
 }
 
 pub fn export_public_replay(
     trace: &RiverLedgerInternalTrace,
     viewer: &Viewer,
 ) -> PublicReplayExport {
+    validate_trace_version(trace).expect("trace version is supported");
     let mut state = setup_match(
         engine_core::Seed(trace.seed_evidence),
         &seats(trace.seat_count),
@@ -266,6 +280,19 @@ pub fn export_public_replay(
         variant: VARIANT_ID.to_owned(),
         steps,
     }
+}
+
+fn validate_trace_version(trace: &RiverLedgerInternalTrace) -> Result<(), ReplayImportDiagnostic> {
+    if trace.rules_version == RULES_VERSION_LABEL {
+        return Ok(());
+    }
+    Err(ReplayImportDiagnostic {
+        code: "river_ledger_rules_version_mismatch".to_owned(),
+        message: format!(
+            "River Ledger replay uses {}; expected {}",
+            trace.rules_version, RULES_VERSION_LABEL
+        ),
+    })
 }
 
 pub fn import_public_export(export: &PublicReplayExport) -> PublicReplayTimeline {

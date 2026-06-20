@@ -373,7 +373,7 @@ impl RiverLedgerState {
 
     pub fn stable_internal_summary(&self) -> String {
         format!(
-            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};stacks={};contributions={};freshness={}",
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};stacks={};contributions={};betting={};freshness={}",
             self.variant.id,
             self.seats.len(),
             stable_phase(self.phase),
@@ -389,6 +389,7 @@ impl RiverLedgerState {
             self.ledger.pot_total,
             stable_stacks(&self.ledger.seats),
             stable_contributions(&self.ledger.seats),
+            stable_betting(&self.betting),
             self.freshness_token.0,
         )
     }
@@ -402,7 +403,7 @@ impl RiverLedgerState {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};stacks={};contributions={}",
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};stacks={};contributions={};betting={}",
             self.variant.id,
             self.seats.len(),
             stable_phase(self.phase),
@@ -419,8 +420,43 @@ impl RiverLedgerState {
             self.ledger.pot_total,
             stable_stacks(&self.ledger.seats),
             stable_contributions(&self.ledger.seats),
+            stable_betting(&self.betting),
         )
     }
+}
+
+fn stable_betting(betting: &BettingRoundState) -> String {
+    let last_completed = betting
+        .last_completed_action_to_call
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            format!(
+                "seat_{index}:{}",
+                value
+                    .map(|amount| amount.to_string())
+                    .unwrap_or_else(|| "none".to_owned())
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "street={};current={};raises={};last_aggressor={};respond={};completed={}",
+        betting.street.as_str(),
+        betting.current_to_call,
+        betting.raises_this_street,
+        betting
+            .last_aggressor
+            .map(RiverLedgerSeat::as_str)
+            .unwrap_or_else(|| "none".to_owned()),
+        betting
+            .actors_to_respond
+            .iter()
+            .map(|seat| seat.as_str())
+            .collect::<Vec<_>>()
+            .join(","),
+        last_completed
+    )
 }
 
 pub(crate) fn response_order_after(start: RiverLedgerSeat, count: u8) -> Vec<RiverLedgerSeat> {
