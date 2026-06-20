@@ -64,6 +64,7 @@ try {
   await page.waitForSelector('[data-testid="token-bazaar-board"]');
   await assertBoardA11y(page);
   await assertCollectAmberGain(page);
+  await assertSeatIdentityAndActionLegs(page);
   await assertInventoryChipsCompact(page);
   await assertNoLeak(page, consoleMessages, "initial token_bazaar DOM");
 
@@ -165,6 +166,35 @@ async function assertCollectAmberGain(page) {
         { code: "IR", name: "iron", count: "0" },
       ]),
     `collect amber gain renders Rust metadata amber 2 / jade 0 / iron 0: ${JSON.stringify(gain)}`,
+  );
+}
+
+async function assertSeatIdentityAndActionLegs(page) {
+  const identity = await page.$eval('[data-testid="token-bazaar-identity"]', (element) => element.textContent ?? "");
+  assert(/you are seat 0/i.test(identity), `human-vs-bot exposes the local seat identity, got "${identity}"`);
+  const headings = await page.$$eval(".token-seat .token-section-heading span", (spans) =>
+    spans.map((span) => span.textContent?.trim() ?? ""),
+  );
+  assert(
+    headings.some((heading) => /seat 0 \(you\)/i.test(heading)),
+    `seat 0 inventory is tagged as the human, got ${JSON.stringify(headings)}`,
+  );
+  assert(
+    headings.some((heading) => /seat 1 \(bot\)/i.test(heading)),
+    `seat 1 inventory is tagged as the bot, got ${JSON.stringify(headings)}`,
+  );
+  const collectGet = await page.$eval(
+    '[data-testid="token-action-collect-amber"] .token-action-leg.gain .token-action-leg-label',
+    (element) => element.textContent?.trim() ?? "",
+  );
+  assert(/get/i.test(collectGet), `collect action labels its resources as a gain, got "${collectGet}"`);
+  const fulfillPay = await page.$$eval(
+    '[data-testid^="token-action-fulfill"] .token-action-leg.cost .token-action-leg-label',
+    (elements) => elements.map((element) => element.textContent?.trim() ?? ""),
+  );
+  assert(
+    fulfillPay.some((label) => /pay/i.test(label)),
+    `fulfill action labels its resources as a cost, got ${JSON.stringify(fulfillPay)}`,
   );
 }
 

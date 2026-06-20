@@ -608,6 +608,7 @@ function App() {
             effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            seatRoleLabels={seatRoleLabelsForMode(state.setup.playMode)}
             onChoice={playChoice}
           />
         ) : isSecretDraftView(view) ? (
