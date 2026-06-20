@@ -51,7 +51,7 @@ export function ColumnFourBoard({
         decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
         templateKey: view.terminal_kind === "draw" ? "column_four.full_board_draw" : "column_four.line_completed",
         templateParams: {
-          winner: view.winning_seat ?? "",
+          winner: humanizeSeats(view.winning_seat ?? ""),
           line_label: view.winning_line.join(", "),
         },
         finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
@@ -76,7 +76,7 @@ export function ColumnFourBoard({
       <div className="column-four-banner">
         <div>
           <p className="eyebrow">Column Four</p>
-          <h2 id="column-four-heading">{view.status_label}</h2>
+          <h2 id="column-four-heading">{humanizeSeats(view.status_label)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
           {terminalLabel(view)}
@@ -145,7 +145,7 @@ export function ColumnFourBoard({
       <div className="column-four-status">
         <div>
           <span>Active</span>
-          <strong>{view.active_seat ?? "terminal"}</strong>
+          <strong>{view.active_seat ? humanizeSeats(view.active_seat) : "Terminal"}</strong>
         </div>
         <div>
           <span>Ply</span>
@@ -224,23 +224,29 @@ function terminalLabel(view: ColumnFourPublicView): string {
     return "Draw";
   }
   if (view.terminal_kind === "win") {
-    return `${view.winning_seat} wins`;
+    return `${humanizeSeats(view.winning_seat ?? "")} wins`;
   }
-  return `${view.active_seat} to move`;
+  return `${humanizeSeats(view.active_seat ?? "")} to move`;
+}
+
+// The Column Four view emits raw seat ids ("seat_0"); present them as "Seat N"
+// to match the other boards and to keep screen readers from spelling out the id.
+function humanizeSeats(value: string): string {
+  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
 }
 
 function boardSummary(view: ColumnFourPublicView): string {
   const occupied = view.cells
     .filter((cell) => cell.owner)
-    .map((cell) => `${cell.cell} ${cell.owner}`)
+    .map((cell) => `${cell.cell} ${humanizeSeats(cell.owner ?? "")}`)
     .join(", ");
   const legal = view.legal_targets.map((target) => target.column).join(", ");
-  return `${view.status_label}. Occupied: ${occupied || "none"}. Legal columns: ${legal || "none"}.`;
+  return `${humanizeSeats(view.status_label)}. Occupied: ${occupied || "none"}. Legal columns: ${legal || "none"}.`;
 }
 
 function cellLabel(cell: ColumnFourPublicView["cells"][number]): string {
   if (cell.owner) {
-    return `${cell.cell}, occupied by ${cell.owner}`;
+    return `${cell.cell}, occupied by ${humanizeSeats(cell.owner)}`;
   }
   return `${cell.cell}, empty`;
 }
@@ -248,7 +254,7 @@ function cellLabel(cell: ColumnFourPublicView["cells"][number]): string {
 function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null) {
   return {
     id: seat,
-    label: seat,
+    label: humanizeSeats(seat),
     result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
     emphasized: winner === seat,
     values: [{ label: "Result", value: winner === seat ? "win" : winner ? "loss" : "draw" }],

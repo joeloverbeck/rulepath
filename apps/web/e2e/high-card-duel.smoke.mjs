@@ -94,6 +94,7 @@ try {
   await page.waitForSelector('[data-testid="high-card-commit-0"]');
   await page.click('[data-testid="high-card-commit-0"]');
   await waitForText(page, "Cards revealed");
+  await assertRevealHistory(page);
   await assertNoLeak(page, consoleMessages, "revealed DOM");
 
   await clickText(page, "button", "Export Current Run");
@@ -145,6 +146,23 @@ try {
     await browser.close();
   }
   await new Promise((resolve) => server.close(resolve));
+}
+
+async function assertRevealHistory(page) {
+  const summary = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('[data-testid^="high-card-history-"]'));
+    return {
+      count: rows.length,
+      firstRow: rows[0]?.textContent ?? "",
+    };
+  });
+  assert(summary.count >= 1, `revealed-round history lists resolved rounds, got ${summary.count}`);
+  assert(/Round 1/.test(summary.firstRow), `history names the round, got "${summary.firstRow}"`);
+  assert(
+    /Seat 0 \d/.test(summary.firstRow) && /Seat 1 \d/.test(summary.firstRow),
+    `history shows both revealed ranks, got "${summary.firstRow}"`,
+  );
+  assert(/won the round|Tie/i.test(summary.firstRow), `history shows the round result, got "${summary.firstRow}"`);
 }
 
 async function assertHighCardA11y(page) {

@@ -56,7 +56,7 @@ export function ThreeMarksBoard({
         decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
         templateKey: view.terminal_kind === "draw" ? "three_marks.full_board_draw" : "three_marks.line_completed",
         templateParams: {
-          winner: view.winning_seat ?? "",
+          winner: humanizeSeats(view.winning_seat ?? ""),
           line_label: view.winning_line.join(", "),
         },
         finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
@@ -81,7 +81,7 @@ export function ThreeMarksBoard({
       <div className="three-marks-banner">
         <div>
           <p className="eyebrow">Three Marks</p>
-          <h2 id="three-marks-heading">{view.status_label}</h2>
+          <h2 id="three-marks-heading">{humanizeSeats(view.status_label)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
           {terminalLabel(view)}
@@ -116,7 +116,7 @@ export function ThreeMarksBoard({
                 }
               }}
             >
-              {cell.owner ? <Mark owner={cell.owner} label={cell.shape ?? cell.owner} /> : <span className="empty-dot" />}
+              {cell.owner ? <Mark owner={cell.owner} label={cell.shape ?? humanizeSeats(cell.owner)} /> : <span className="empty-dot" />}
               <span className="cell-coord">{cell.id}</span>
             </button>
           );
@@ -126,7 +126,7 @@ export function ThreeMarksBoard({
       <div className="three-marks-status">
         <div>
           <span>Active</span>
-          <strong>{view.active_seat}</strong>
+          <strong>{view.active_seat ? humanizeSeats(view.active_seat) : "Terminal"}</strong>
         </div>
         <div>
           <span>Ply</span>
@@ -203,9 +203,15 @@ function parseLegalTarget(encoded: string): LegalTarget {
   };
 }
 
+// The Three Marks view emits raw seat ids ("seat_0"); present them as "Seat N"
+// to match the other boards and to keep screen readers from spelling out the id.
+function humanizeSeats(value: string): string {
+  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
+}
+
 function cellLabel(cell: CellModel): string {
   if (cell.owner) {
-    return `${cell.id}, occupied by ${cell.owner}`;
+    return `${cell.id}, occupied by ${humanizeSeats(cell.owner)}`;
   }
   return `${cell.id}, empty`;
 }
@@ -215,27 +221,27 @@ function terminalLabel(view: ThreeMarksPublicView): string {
     return "Draw";
   }
   if (view.terminal_kind === "win") {
-    return `${view.winning_seat} wins`;
+    return `${humanizeSeats(view.winning_seat ?? "")} wins`;
   }
-  return `${view.active_seat} to move`;
+  return `${humanizeSeats(view.active_seat ?? "")} to move`;
 }
 
 function boardSummary(cells: CellModel[], view: ThreeMarksPublicView): string {
   const occupied = cells
     .filter((cell) => cell.owner)
-    .map((cell) => `${cell.id} ${cell.owner}`)
+    .map((cell) => `${cell.id} ${humanizeSeats(cell.owner ?? "")}`)
     .join(", ");
   const legal = view.legal_targets
     .map(parseLegalTarget)
     .map((target) => target.cell)
     .join(", ");
-  return `${view.status_label}. Occupied: ${occupied || "none"}. Legal targets: ${legal || "none"}.`;
+  return `${humanizeSeats(view.status_label)}. Occupied: ${occupied || "none"}. Legal targets: ${legal || "none"}.`;
 }
 
 function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null) {
   return {
     id: seat,
-    label: seat,
+    label: humanizeSeats(seat),
     result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
     emphasized: winner === seat,
     values: [{ label: "Result", value: winner === seat ? "win" : winner ? "loss" : "draw" }],

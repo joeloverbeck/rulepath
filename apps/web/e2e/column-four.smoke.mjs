@@ -102,7 +102,7 @@ try {
   await assertAccessibleColumnControls(page);
   await assertPreview(page, "c4");
   await clickColumn(page, "c4");
-  await waitForCellTitle(page, "r1c4", "occupied by seat_0");
+  await waitForCellTitle(page, "r1c4", "occupied by Seat 0");
   await assertBotRationale(page);
   await assertNoLeak(page, consoleMessages, "human-vs-bot column_four");
   await exportImportAndStepReplay(page);
@@ -122,7 +122,7 @@ try {
   for (const column of ["c1", "c1", "c2", "c2", "c3", "c3", "c4"]) {
     await clickColumn(page, column);
   }
-  await waitForText(page, "seat_0 wins");
+  await waitForText(page, "Seat 0 wins");
   const winningCells = await page.$$eval(".column-cell.winning", (cells) => cells.length);
   assert(winningCells === 4, `winning line highlights exactly four cells, got ${winningCells}`);
   await assertTerminalControlsInert(page);
@@ -141,7 +141,7 @@ try {
   await assertFocusedVisible(page);
   await page.waitForSelector(".column-cell.preview");
   await page.keyboard.press("Enter");
-  await waitForCellTitle(page, "r1c4", "occupied by seat_0");
+  await waitForCellTitle(page, "r1c4", "occupied by Seat 0");
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startColumnFour(page, "Bot vs bot");
@@ -225,7 +225,7 @@ async function exportImportAndStepReplay(page) {
   await page.waitForSelector(".replay-board [data-testid=column-four-board]");
   await clickText(page, "button", "Step");
   await waitForText(page, "Cursor 1 /");
-  await waitForCellTitle(page, "r1c4", "occupied by seat_0", ".replay-board");
+  await waitForCellTitle(page, "r1c4", "occupied by Seat 0", ".replay-board");
   const sequence = await page.$$eval(".placement-sequence li", (items) => items.length);
   assert(sequence >= 1, "replay placement sequence renders");
 }

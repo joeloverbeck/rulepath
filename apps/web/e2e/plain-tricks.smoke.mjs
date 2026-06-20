@@ -101,6 +101,7 @@ try {
   await waitForText(page, "Seat 1 to play");
   const followerOwnLabels = await ownHandLabels(page);
   await assertForcedFollowSurface(page);
+  await assertFollowOutcomeCues(page);
   await assertSeatNoLeak(page, consoleMessages, [...followerOwnLabels, playedLabel], "after first public play");
 
   await clickText(page, "button", "Developer panel");
@@ -143,6 +144,15 @@ try {
 
   await playHumanVsBotToTerminal(page, baseUrl);
   await waitForText(page, "Trick totals");
+  await waitForText(page, "Tricks by round");
+  const perRound = await page.evaluate(() => {
+    const panel = document.querySelector(".outcome-explanation-panel")?.textContent ?? "";
+    return {
+      hasRound1: /Seat 0 round 1/.test(panel) && /Seat 1 round 1/.test(panel),
+      hasRound2: /Seat 0 round 2/.test(panel) && /Seat 1 round 2/.test(panel),
+    };
+  });
+  assert(perRound.hasRound1 && perRound.hasRound2, "outcome breaks tricks down by both rounds");
   await assertStorageClean(page);
   assertNoForbiddenTerms(consoleMessages.join("\n"), "console logs", internalTerms);
 
@@ -208,6 +218,24 @@ async function assertSeatNoLeak(page, consoleMessages, allowedLabels, label) {
   assert(surface.includes("Cards hidden"), "opponent hand renders as hidden count");
   assertNoForbiddenTerms(surface, label, [...cardIds, ...forbiddenLabels, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertFollowOutcomeCues(page) {
+  const summary = await page.evaluate(() => {
+    const legal = Array.from(document.querySelectorAll('[data-testid^="choice-plain-tricks-trick-"]')).filter(
+      (button) => !button.disabled,
+    );
+    return {
+      hint: document.querySelector('[data-testid="plain-tricks-follow-hint"]')?.textContent?.trim() ?? "",
+      outcomes: legal.map((button) => button.querySelector(".plain-trick-outcome")?.textContent?.trim() ?? ""),
+    };
+  });
+  assert(/follow/i.test(summary.hint), `follower sees a follow-suit hint, got "${summary.hint}"`);
+  assert(summary.outcomes.length > 0, "follower has at least one legal card");
+  assert(
+    summary.outcomes.every((outcome) => /wins trick|loses trick/i.test(outcome)),
+    `every legal follow card is tagged as winning or losing the trick, got ${JSON.stringify(summary.outcomes)}`,
+  );
 }
 
 async function assertForcedFollowSurface(page) {

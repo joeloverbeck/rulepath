@@ -116,7 +116,12 @@ export function PokerLiteBoard({
           <strong>{privateHeading(view)}</strong>
         </div>
         {view.private_view.status === "seat" && view.private_view.own_private ? (
-          <CrestCard card={view.private_view.own_private} tone="private" />
+          <>
+            <CrestCard card={view.private_view.own_private} tone="private" />
+            {view.private_view.own_strength_bucket ? (
+              <StrengthCue bucket={view.private_view.own_strength_bucket} />
+            ) : null}
+          </>
         ) : (
           <div className="poker-lite-hidden" data-testid="poker-lite-private-hidden">
             <span>Hidden</span>
@@ -221,6 +226,49 @@ function ShowdownPanel({ view }: { view: PokerLitePublicView }) {
       </div>
     </section>
   );
+}
+
+// Rust authors `own_strength_bucket` on the viewer's own private view:
+// "{rank}_private" while the center is hidden, then "paired_{rank}" or
+// "unpaired_{rank}" once the center is revealed. Surface it as the showdown
+// strength of the player's own crest (no opponent info, no leak).
+function StrengthCue({ bucket }: { bucket: string }) {
+  const cue = strengthCue(bucket);
+  return (
+    <p className={`poker-lite-strength ${cue.tone}`} data-testid="poker-lite-strength" data-tone={cue.tone}>
+      <strong>{cue.headline}</strong>
+      <span>{cue.detail}</span>
+    </p>
+  );
+}
+
+function strengthCue(bucket: string): { tone: "pair" | "nopair" | "hidden"; headline: string; detail: string } {
+  if (bucket.startsWith("paired_")) {
+    return {
+      tone: "pair",
+      headline: "Pair with the center",
+      detail: `Your ${rankLabel(bucket.slice("paired_".length))} crest matches the center rank — a pair beats any non-pair at showdown.`,
+    };
+  }
+  if (bucket.startsWith("unpaired_")) {
+    return {
+      tone: "nopair",
+      headline: "No pair",
+      detail: `Your ${rankLabel(bucket.slice("unpaired_".length))} crest does not match the center rank — the higher crest wins if neither side pairs.`,
+    };
+  }
+  if (bucket.endsWith("_private")) {
+    return {
+      tone: "hidden",
+      headline: `${rankLabel(bucket.slice(0, -"_private".length))} crest`,
+      detail: "The center crest is still hidden, so a pair cannot be read yet.",
+    };
+  }
+  return { tone: "hidden", headline: "Crest held", detail: "" };
+}
+
+function rankLabel(rank: string): string {
+  return rank.length > 0 ? rank.charAt(0).toUpperCase() + rank.slice(1) : rank;
 }
 
 function CrestCard({ card, label, tone }: { card: PokerLiteCardView; label?: string; tone: "center" | "private" | "revealed" }) {

@@ -85,6 +85,7 @@ try {
   await waitForText(page, "Seat 0 won the conflict");
   await waitForText(page, "Ember One / Ember Two");
   await assertRevealRendered(page);
+  await assertDraftProgress(page);
 
   await clickText(page, "button", "Export Current Run");
   const replayTextHandle = await page.waitForFunction(() => document.querySelector("textarea")?.value || "");
@@ -123,6 +124,23 @@ try {
     await browser.close();
   }
   await new Promise((resolve) => server.close(resolve));
+}
+
+async function assertDraftProgress(page) {
+  const summary = await page.evaluate(() => {
+    const panel = Array.from(document.querySelectorAll(".secret-seat")).find((seat) =>
+      /Seat 0/.test(seat.querySelector(".secret-section-heading span")?.textContent ?? ""),
+    );
+    const progress = panel?.querySelector(".secret-progress");
+    return {
+      sets: progress?.querySelector('[data-testid="secret-progress-sets"]')?.textContent ?? "",
+      threadCount: progress?.querySelectorAll(".secret-thread-tally").length ?? 0,
+      text: progress?.textContent ?? "",
+    };
+  });
+  assert(/\d complete/.test(summary.sets), `drafted collection reports complete-set count, got "${summary.sets}"`);
+  assert(summary.threadCount === 3, `progress tallies ember/tide/grove threads, got ${summary.threadCount}`);
+  assert(/ember/i.test(summary.text), "progress names the ember thread");
 }
 
 async function assertSecretDraftA11y(page) {

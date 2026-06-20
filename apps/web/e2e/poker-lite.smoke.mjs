@@ -71,6 +71,7 @@ try {
   await page.waitForSelector(".poker-lite-private .poker-lite-card.private");
   await assertPokerLiteA11y(page, true);
   await assertSeatPrivateView(page);
+  await assertStrengthCue(page, "hidden");
   await focusByTestId(page, "choice-poker-lite-round-0-1");
   await assertFocusedVisible(page);
   await page.keyboard.press("Enter");
@@ -116,6 +117,7 @@ try {
   await waitForText(page, "Held");
   await clickText(page, "button", "Hold");
   await waitForText(page, "Center revealed");
+  await assertStrengthCue(page, "revealed");
   await clickText(page, "button", "Hold");
   await waitForText(page, "Held");
   await clickText(page, "button", "Hold");
@@ -199,6 +201,21 @@ async function assertObserverNoLeak(page, consoleMessages, label) {
   assert(surface.includes("Center crest hidden"), "center remains hidden to observer");
   assertNoForbiddenTerms(surface, label, [...cardIds, ...cardLabels, ...rankTerms, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertStrengthCue(page, phase) {
+  const cue = await page.evaluate(() => {
+    const element = document.querySelector('[data-testid="poker-lite-strength"]');
+    return element ? { tone: element.getAttribute("data-tone"), text: element.textContent ?? "" } : null;
+  });
+  assert(cue !== null, "private crest shows a showdown-strength cue");
+  if (phase === "hidden") {
+    assert(cue.tone === "hidden", `before reveal the cue notes the center is hidden, got tone=${cue.tone}`);
+    assert(/center crest is still hidden/i.test(cue.text), `hidden cue explains the center is unknown, got "${cue.text}"`);
+  } else {
+    assert(cue.tone === "pair" || cue.tone === "nopair", `after reveal the cue states pair status, got tone=${cue.tone}`);
+    assert(/pair/i.test(cue.text), `revealed cue mentions pair status, got "${cue.text}"`);
+  }
 }
 
 async function assertSeatPrivateView(page) {

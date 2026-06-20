@@ -172,6 +172,8 @@ export function HighCardDuelBoard({
         )}
       </div>
 
+      <RevealHistory view={view} />
+
       <div className="board-status" role="status">
         <span>
           {outcomeExplanation
@@ -298,6 +300,37 @@ function latestEffectOfType(entries: EffectEntry[], type: string): EffectEntry |
   return null;
 }
 
+// Revealed rounds are public once both cards flip; surface them so a player can
+// review which ranks each side has already spent across the six-round match.
+function RevealHistory({ view }: { view: HighCardDuelPublicView }) {
+  if (view.revealed_cards.length === 0) {
+    return null;
+  }
+  return (
+    <section className="high-card-history" aria-label="Revealed round history">
+      <div className="high-card-history-heading">
+        <span>Revealed rounds</span>
+        <strong>{view.revealed_cards.length} resolved</strong>
+      </div>
+      <ol>
+        {view.revealed_cards.map((round) => {
+          const result =
+            round.winner === null ? "Tie — no point" : `${seatLabel(round.winner)} won the round`;
+          return (
+            <li key={round.round_number} data-testid={`high-card-history-${round.round_number}`}>
+              <span>Round {round.round_number}</span>
+              <strong>
+                {seatLabel("seat_0")} {round.seat_0_card.rank} · {seatLabel("seat_1")} {round.seat_1_card.rank}
+              </strong>
+              <small className={round.winner ? "won" : "tie"}>{result}</small>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 function statusLabel(view: HighCardDuelPublicView): string {
   if (view.terminal_kind === "win") {
     return `${seatLabel(view.winning_seat ?? "seat_0")} wins`;
@@ -313,9 +346,9 @@ function terminalLabel(view: HighCardDuelPublicView): string {
     return "Draw";
   }
   if (view.terminal_kind === "win") {
-    return `${view.winning_seat} wins`;
+    return `${seatLabel(view.winning_seat ?? "seat_0")} wins`;
   }
-  return view.active_seat ? `${view.active_seat} to commit` : "Resolving";
+  return view.active_seat ? `${seatLabel(view.active_seat)} to commit` : "Resolving";
 }
 
 function boardSummary(view: HighCardDuelPublicView, viewerLabel: string): string {

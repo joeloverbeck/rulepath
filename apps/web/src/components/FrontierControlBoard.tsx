@@ -179,6 +179,9 @@ export function FrontierControlBoard({
               </li>
             ))}
           </ol>
+          <p className="frontier-supply-note" data-testid="frontier-supply-note">
+            A stake is supplied when it has a guard-free trail back to Base Camp; supply is re-checked when each round scores.
+          </p>
         </section>
       </div>
 
@@ -191,7 +194,7 @@ export function FrontierControlBoard({
           {view.factions.map((faction) => (
             <li key={faction.seat}>
               <span>{faction.label}</span>
-              <strong>{faction.seat}</strong>
+              <strong>{humanizeSeats(faction.seat)}</strong>
               <small>{faction.faction === view.active_faction && !terminal ? "active" : "waiting"}</small>
             </li>
           ))}
@@ -304,6 +307,16 @@ function siteSummary(site: FrontierControlSiteView): string {
 }
 
 function siteStatus(site: FrontierControlSiteView): string {
-  const supplied = site.supplied === true ? "supplied" : site.supplied === false ? "cut" : "supply n/a";
-  return `guards ${site.guards}, crews ${site.crews}, ${supplied}`;
+  const base = `guards ${site.guards}, crews ${site.crews}`;
+  // Supply only matters for stakes; for other sites "supply n/a" is just noise.
+  if (!site.stake) {
+    return base;
+  }
+  const supply =
+    site.supplied === true ? "stake supplied" : site.supplied === false ? "stake cut" : "stake unscored";
+  return `${base} · ${supply}`;
+}
+
+function humanizeSeats(value: string): string {
+  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
 }

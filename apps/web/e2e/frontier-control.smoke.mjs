@@ -69,6 +69,7 @@ try {
   await clickText(page, "button", "Stake Ford");
   await waitForText(page, "Stake placed");
   await waitForText(page, "supplied");
+  await assertSupplyClarity(page);
   await assertNoLeak(page, consoleMessages, "prospector march and stake");
 
   await clickText(page, "button", "Patrol Gatehouse to Ford");
@@ -161,6 +162,28 @@ async function startFrontierControl(page, baseUrl, modeLabel, seed) {
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="frontier-control-board"]');
+}
+
+async function assertSupplyClarity(page) {
+  const summary = await page.evaluate(() => {
+    const sites = Array.from(document.querySelectorAll(".frontier-site-list li")).map((li) => li.textContent ?? "");
+    const factions = Array.from(document.querySelectorAll('[aria-label="Faction seats"] li')).map(
+      (li) => li.textContent ?? "",
+    );
+    return {
+      note: document.querySelector('[data-testid="frontier-supply-note"]')?.textContent ?? "",
+      stakeSite: sites.find((text) => /stake \d/i.test(text)) ?? "",
+      anyRawNa: sites.some((text) => /supply n\/a/i.test(text)),
+      factionText: factions.join(" | "),
+    };
+  });
+  assert(/base camp/i.test(summary.note), `supply note explains the Base Camp route, got "${summary.note}"`);
+  assert(
+    /stake (supplied|cut|unscored)/i.test(summary.stakeSite),
+    `stake site reports a clear supply state, got "${summary.stakeSite}"`,
+  );
+  assert(!summary.anyRawNa, "non-stake sites no longer show cryptic 'supply n/a'");
+  assert(/Seat 0/.test(summary.factionText) && !/seat_0/.test(summary.factionText), "faction seats are humanized");
 }
 
 async function assertFrontierBoardA11y(page) {

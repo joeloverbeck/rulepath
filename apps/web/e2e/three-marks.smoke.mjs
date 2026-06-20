@@ -69,9 +69,20 @@ try {
     await clickCell(page, cell);
     await waitForOccupied(page, cell);
   }
-  await waitForText(page, "seat_0 wins");
+  await waitForText(page, "Seat 0 wins");
   const winningCells = await page.$$eval(".three-cell.winning", (cells) => cells.length);
   assert(winningCells === 3, `winning line highlights exactly three cells, got ${winningCells}`);
+  const naming = await page.evaluate(() => {
+    const labels = Array.from(document.querySelectorAll('[data-testid="three-marks-board"] [aria-label]')).map(
+      (element) => element.getAttribute("aria-label") ?? "",
+    );
+    return {
+      humanized: labels.some((label) => /occupied by Seat \d/.test(label)),
+      rawSeat: labels.some((label) => /occupied by seat_\d/.test(label)),
+    };
+  });
+  assert(naming.humanized, "occupied cells expose humanized 'Seat N' accessible names");
+  assert(!naming.rawSeat, "cells no longer spell out raw 'seat_N' ids");
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startThreeMarks(page, "Hotseat");
