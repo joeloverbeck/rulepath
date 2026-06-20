@@ -193,10 +193,10 @@ For ticket-only series with no reference artifact, do not force a spec or
 reference closeout. Instead, perform a ticket-only closeout: confirm the active
 ticket glob is empty, the archived ticket list and count match the startup
 resolution, every archived ticket has a valid final status plus `## Outcome`,
-active specs/tickets/docs/apps/scripts have no stale live ticket paths, required
-verification commands were run, required per-ticket commits exist, and the final
-worktree/index excludes unrelated changes. State that no reference artifact was
-closed and skip the reference archival steps below.
+active specs/tickets/docs/apps/games/scripts have no stale live ticket paths,
+required verification commands were run, required per-ticket commits exist, and
+the final worktree/index excludes unrelated changes. State that no reference
+artifact was closed and skip the reference archival steps below.
 
 1. Re-read the reference artifact and verify every work item and exit criterion
    is done, explicitly rejected, deferred, not implemented, or not applicable.
@@ -274,8 +274,9 @@ evidence.
    the reference artifact archival and truthing as a separate final closeout
    step unless the user explicitly forbids reference archival.
 5. Repair active references and progress surfaces, especially `specs/README.md`
-   when a spec was closed, and any active tickets, docs, app README tables,
-   catalog/smoke lists, or scripts that referenced the live reference path.
+   when a spec was closed, and any active tickets, repo docs, per-game docs
+   under `games/*/docs/`, app README tables, catalog/smoke lists, or scripts
+   that referenced the live reference path.
    For specs, distinguish the progress index from the archived artifact:
    `specs/README.md` may keep its progress status as `Done`, while the archived
    spec document itself must use the repo's current archived-spec status
@@ -364,8 +365,9 @@ the live checkout:
   that use the repo's table-style spec header, `Done` in the status table is
   acceptable when prior archived specs use the same convention and `## Outcome`
   is present.
-- `specs/README.md`, progress surfaces, README/catalog surfaces, docs, scripts,
-  and active tickets/reference artifacts no longer point at stale live paths.
+- `specs/README.md`, progress surfaces, README/catalog surfaces, docs,
+  `games/*/docs/`, scripts, and active tickets/reference artifacts no longer
+  point at stale live paths.
   Distinguish live paths from archive paths during this sweep; references to
   `archive/specs/...` or `archive/tickets/...` are acceptable when the active
   tracker intentionally points there.
@@ -382,6 +384,8 @@ collect the same audit surfaces, but still inspect its output and run any
 repo-specific checks that the helper cannot infer.
 
 ```sh
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-count N
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
@@ -389,8 +393,8 @@ rg -n '^\*\*Status\*\*:|^## Outcome' archive/tickets/TICKET_PREFIX*.md
 test ! -e ACTIVE_REFERENCE_PATH
 rg -n '^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^\| Status \| `?Done`? \||^## Outcome' archive/specs/ARCHIVED_REFERENCE.md
 rg -n '^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*' archive/specs/ARCHIVED_REFERENCE.md && exit 1 || true
-rg -n -P '(?<!archive/)ACTIVE_REFERENCE_PATH|(?<!archive/)tickets/TICKET_PREFIX' specs tickets docs apps scripts || true
-rg -n -P 'archive/(specs/ARCHIVED_REFERENCE|tickets/TICKET_PREFIX)' specs docs apps scripts || true
+rg -n -P '(?<!archive/)ACTIVE_REFERENCE_PATH|(?<!archive/)tickets/TICKET_PREFIX' specs tickets docs apps games scripts || true
+rg -n -P 'archive/(specs/ARCHIVED_REFERENCE|tickets/TICKET_PREFIX)' specs docs apps games scripts || true
 git log --oneline --grep='TICKET_PREFIX' --all
 git status --short
 git diff --cached --name-status
@@ -399,12 +403,18 @@ git diff --cached --name-status
 Compare the archived ticket name list and count against the concrete ticket
 paths resolved at startup. Compare the commit ledger output against the archived
 ticket list before the final response, and include every per-ticket commit ID
-when commits were made as part of the series. If the reference status grep finds
-no valid archival status line, or the informal-status guard finds `ACCEPTED`, a
-bullet-style status field, or `Done` in a non-spec archival status line, the
-reference is not truthy enough for completion. For archived specs using the
-table-style status header, accept `Done` only when `## Outcome` is present and
-the active progress index points at the archived spec.
+when commits were made as part of the series. When using the helper, pass
+`--expected-count` or `--expected-ticket-range` when the startup ticket list is
+contiguous and known; still inspect the printed names for unusual or
+non-contiguous series. If the reference status grep finds no valid archival
+status line, or the informal-status guard finds `ACCEPTED`, a bullet-style
+status field, or `Done` in a non-spec archival status line, the reference is not
+truthy enough for completion. For archived specs using the table-style status
+header, accept `Done` only when `## Outcome` is present and the active progress
+index points at the archived spec. Historical `reports/` may contain
+provenance-only live paths; do not hard-fail those unless the active reference
+or ticket requires report repair, but do sweep active per-game docs under
+`games/*/docs/`.
 
 ## Reporting
 
