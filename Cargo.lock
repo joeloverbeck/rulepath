@@ -14,6 +14,14 @@ name = "bench-report"
 version = "0.1.0"
 
 [[package]]
+name = "briar_circuit"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
+
+[[package]]
 name = "column_four"
 version = "0.1.0"
 dependencies = [

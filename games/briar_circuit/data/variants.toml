@@ -1,0 +1,13 @@
+variant_id = "briar_circuit_standard"
+display_name = "Briar Circuit"
+rules_version_label = "briar-circuit-rules-v1"
+data_version_label = "briar-circuit-data-v1"
+seat_count = 4
+suit_count = 4
+rank_count = 13
+card_count = 52
+hand_size = 13
+tricks_per_hand = 13
+pass_cycle = "left_right_across_hold"
+deck_order = "standard_52_cards_clubs_diamonds_hearts_spades_rank_ascending_v1"
+terminal_outcomes = "unique_low_score_win_threshold_tie_continues"

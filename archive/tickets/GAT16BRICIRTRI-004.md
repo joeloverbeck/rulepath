@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-004: Crate skeleton, workspace wiring, typed card model, and phase state
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new crate `games/briar_circuit` (`src/{lib,ids,cards,state}.rs`, `data/{manifest,variants}.toml`); root `Cargo.toml` workspace member
@@ -94,3 +94,31 @@ Typed identity, display metadata, version anchors (`briar-circuit-data-v1`), off
 1. `cargo test -p briar_circuit`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. A workspace build is the correct boundary because the deliverable's risk is kernel-boundary leakage and workspace wiring, both proven by a full build + boundary check.
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Added the new `games/briar_circuit` Rust crate and wired it into the root workspace.
+- Added game-local `BriarCircuitSeat`, `Suit`, `Rank`, `CardId`, `Card`, canonical deck ordering, pass direction/target helpers, initial phase/state types, and fixed-four-seat setup validation.
+- Added strict `manifest.toml` and `variants.toml` parsing for inert typed metadata, including behavior-looking field rejection.
+- Added skeleton module files for later action, rules, scoring, effects, visibility, replay, bot, and UI tickets.
+- Added property, rules, and serialization tests for 52 unique cards, deterministic ordering, point-card values, pass-cycle targets, fixed-four-seat diagnostics, static-data rejection, and deterministic setup summaries.
+- Updated `Cargo.lock` with the new `briar_circuit` workspace package entry.
+
+Deviations from plan:
+
+- Deterministic shuffle/deal is intentionally not implemented in this ticket; `setup_match` creates the fixed-four-seat initial state substrate only. The ticket’s own out-of-scope section assigns shuffle/deal to the next implementation ticket.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p briar_circuit --test property` passed (3 tests).
+- `cargo test -p briar_circuit --test rules` passed (3 tests).
+- `cargo test -p briar_circuit --test serialization` passed (3 tests).
+- `cargo test -p briar_circuit` passed (10 total tests including crate unit test).
+- `cargo build -p briar_circuit` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
