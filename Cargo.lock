@@ -65,6 +65,7 @@ dependencies = [
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
+ "briar_circuit",
  "column_four",
  "directional_flip",
  "draughts_lite",
@@ -150,6 +151,7 @@ dependencies = [
 name = "replay-check"
 version = "0.1.0"
 dependencies = [
+ "briar_circuit",
  "column_four",
  "directional_flip",
  "draughts_lite",

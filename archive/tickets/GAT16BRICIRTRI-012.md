@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-012: Fixtures, native tool registrations, rule-coverage, and gate-1 CI
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (tooling + deterministic evidence) — `games/briar_circuit/data/fixtures/*`, `tools/{replay-check,fixture-check,rule-coverage}/src/main.rs`, `ci/games.json`, `.github/workflows/gate-1-game-smoke.yml`, finalize `RULE-COVERAGE.md`
@@ -85,3 +85,24 @@ Add the `ci/games.json` row (`{ "id": "briar_circuit", "sim_flags": "--seat-coun
 1. `cargo run -p fixture-check -- --game briar_circuit && cargo run -p rule-coverage -- --game briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The tool CLIs are the correct boundary; full `rule-coverage` green is reached once `BENCHMARKS.md` lands (GAT16BRICIRTRI-016), flagged as an expected partial-green window.
+
+## Outcome
+
+Completed on 2026-06-21. Registered `briar_circuit` with fixture-check,
+replay-check, rule-coverage, and `ci/games.json`; added the four typed fixture
+files; normalized rule coverage statuses; and added the `BC-*` rule prefix.
+Fixture-check, replay-check, and rule-coverage now pass for Briar Circuit.
+
+Expected interim gap:
+
+1. `node scripts/check-ci-games.mjs --emit` reports only that
+   `apps/web/e2e/briar-circuit.smoke.mjs` does not exist yet; that file is
+   explicitly owned by GAT16BRICIRTRI-015.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo run -p fixture-check -- --game briar_circuit`
+3. `cargo run -p replay-check -- --game briar_circuit --all`
+4. `cargo run -p rule-coverage -- --game briar_circuit`
+5. `node scripts/check-ci-games.mjs --emit` (expected e2e gap above)

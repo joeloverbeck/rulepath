@@ -334,6 +334,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/river_ledger/data/variants.toml",
             variant_id: "river_ledger_standard",
         }),
+        "briar_circuit" => Ok(RegisteredGame {
+            game_id: "briar_circuit",
+            rules_version: "briar-circuit-rules-v1",
+            trace_dir: "games/briar_circuit/tests/golden_traces",
+            fixture_dir: "games/briar_circuit/data/fixtures",
+            manifest_path: "games/briar_circuit/data/manifest.toml",
+            variants_path: "games/briar_circuit/data/variants.toml",
+            variant_id: "briar_circuit_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -387,9 +396,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -646,6 +655,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "briar_circuit" => {
+            let manifest = briar_circuit::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = briar_circuit::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -733,6 +757,9 @@ fn validate_trace(
     validate_json_object(path, input)?;
     if game.game_id == "river_ledger" {
         return validate_river_ledger_trace(game, path, input, seen_ids);
+    }
+    if game.game_id == "briar_circuit" {
+        return validate_briar_circuit_fixture(game, path, input, seen_ids);
     }
     if input.contains("\"export_class\":") {
         return validate_public_export_fixture(game, path, input);
@@ -901,6 +928,50 @@ fn validate_trace(
         ));
     }
 
+    Ok(())
+}
+
+fn validate_briar_circuit_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+    }
+    let id = optional_string_field(input, "trace")
+        .or_else(|| optional_string_field(input, "trace_id"))
+        .or_else(|| optional_string_field(input, "id"))
+        .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().to_string());
+    if !seen_ids.insert(id.clone()) {
+        return Err(format!("{}: duplicate trace id `{id}`", path.display()));
+    }
+    if !input.contains("\"schema_version\":1") && !input.contains("\"schema_version\": 1") {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if !input.contains("\"game_id\":\"briar_circuit\"")
+        && !input.contains("\"game\": \"briar_circuit\"")
+    {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if !input.contains(game.rules_version) {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
     Ok(())
 }
 
@@ -1133,6 +1204,12 @@ fn optional_string_array_field(input: &str, key: &str) -> Option<Vec<String>> {
     let open = tail.find('[')?;
     let close = tail[open..].find(']')? + open;
     Some(parse_array_strings(&tail[open + 1..close]))
+}
+
+fn optional_string_field(input: &str, key: &str) -> Option<String> {
+    let needle = format!("\"{key}\":");
+    let start = input.find(&needle)? + needle.len();
+    parse_string_at(input, start)
 }
 
 fn command_string_fields(input: &str, key: &str) -> Vec<String> {

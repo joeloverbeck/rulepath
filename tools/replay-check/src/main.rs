@@ -144,6 +144,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "river-ledger-rules-v1",
             trace_dir: "games/river_ledger/tests/golden_traces",
         }),
+        "briar_circuit" => Ok(RegisteredGame {
+            game_id: "briar_circuit",
+            rules_version: "briar-circuit-rules-v1",
+            trace_dir: "games/briar_circuit/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -259,10 +264,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --all");
 }
 
 fn check_trace_path(
@@ -281,6 +286,11 @@ fn check_trace_path(
             ));
         }
         println!("{}: river_ledger trace accepted", path.display());
+        return Ok(());
+    }
+    if game.game_id == "briar_circuit" {
+        validate_briar_circuit_trace(game, path, &input)?;
+        println!("{}: briar_circuit trace accepted", path.display());
         return Ok(());
     }
     if is_public_export_fixture(&input) {
@@ -320,6 +330,36 @@ fn check_trace_path(
         return Err(trace.failure("duplicate trace_id in checked trace set"));
     }
     trace.check(game)
+}
+
+fn validate_briar_circuit_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    if !input.contains("\"schema_version\":1") && !input.contains("\"schema_version\": 1") {
+        return Err(format!("{}: missing schema_version 1", path.display()));
+    }
+    if !input.contains("\"game_id\":\"briar_circuit\"")
+        && !input.contains("\"game\": \"briar_circuit\"")
+    {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if !input.contains(game.rules_version) {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
+    if !input.contains("migration_notes") {
+        return Err(format!("{}: missing migration_notes", path.display()));
+    }
+    Ok(())
 }
 
 fn validate_flood_watch_trace(
