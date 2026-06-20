@@ -1,8 +1,10 @@
 use std::collections::BTreeSet;
 
 use briar_circuit::{
-    apply_pass_action, canonical_deck, canonical_seat_ids, setup_match, BriarCircuitSeat, Card,
-    CardId, PassAction, Rank, SetupOptions, Suit, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
+    apply_pass_action, apply_play_action, canonical_deck, canonical_seat_ids, legal_play_cards,
+    setup_match, trick_winner, BriarCircuitSeat, Card, CardId, CurrentTrick, PassAction, Phase,
+    PlayAction, PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay, STANDARD_CARD_COUNT,
+    STANDARD_HAND_SIZE,
 };
 use engine_core::Seed;
 
@@ -85,4 +87,151 @@ fn pass_exchange_conserves_full_deck_partition() {
         all_after.iter().copied().collect::<BTreeSet<_>>().len(),
         STANDARD_CARD_COUNT as usize
     );
+}
+
+fn card(rank: Rank, suit: Suit) -> CardId {
+    Card::new(rank, suit).id()
+}
+
+fn trick_state(
+    hands: Vec<(BriarCircuitSeat, Vec<CardId>)>,
+    play: PlayingTrickState,
+) -> briar_circuit::BriarCircuitState {
+    let mut state = setup_match(Seed(1610), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    state.private_hands = hands;
+    state.phase = Phase::PlayingTrick(play);
+    state
+}
+
+#[test]
+fn legal_set_is_non_empty_for_acting_non_terminal_play_state() {
+    let state = trick_state(
+        vec![
+            (
+                BriarCircuitSeat::Seat0,
+                vec![
+                    card(Rank::Two, Suit::Hearts),
+                    card(Rank::Three, Suit::Clubs),
+                ],
+            ),
+            (BriarCircuitSeat::Seat1, vec![]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 4,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat0,
+            current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+        },
+    );
+
+    assert!(!legal_play_cards(&state, BriarCircuitSeat::Seat0)
+        .expect("legal cards")
+        .is_empty());
+}
+
+#[test]
+fn follow_suit_legal_set_is_closed_over_led_suit_when_available() {
+    let led = card(Rank::King, Suit::Diamonds);
+    let state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![]),
+            (
+                BriarCircuitSeat::Seat1,
+                vec![
+                    card(Rank::Two, Suit::Diamonds),
+                    card(Rank::Ace, Suit::Clubs),
+                    card(Rank::Queen, Suit::Spades),
+                ],
+            ),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: true,
+            trick_index: 3,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat1,
+            current_trick: CurrentTrick {
+                leader: BriarCircuitSeat::Seat0,
+                plays: vec![TrickPlay {
+                    seat: BriarCircuitSeat::Seat0,
+                    card: led,
+                }],
+            },
+        },
+    );
+
+    let legal = legal_play_cards(&state, BriarCircuitSeat::Seat1).expect("legal cards");
+    assert!(!legal.is_empty());
+    assert!(legal.iter().all(|card| card.card().suit == Suit::Diamonds));
+}
+
+#[test]
+fn off_suit_cards_never_win_trick() {
+    let plays = vec![
+        TrickPlay {
+            seat: BriarCircuitSeat::Seat0,
+            card: card(Rank::Three, Suit::Clubs),
+        },
+        TrickPlay {
+            seat: BriarCircuitSeat::Seat1,
+            card: card(Rank::Ace, Suit::Spades),
+        },
+        TrickPlay {
+            seat: BriarCircuitSeat::Seat2,
+            card: card(Rank::King, Suit::Clubs),
+        },
+        TrickPlay {
+            seat: BriarCircuitSeat::Seat3,
+            card: card(Rank::Ace, Suit::Hearts),
+        },
+    ];
+
+    assert_eq!(
+        trick_winner(&plays).expect("winner").seat,
+        BriarCircuitSeat::Seat2
+    );
+}
+
+#[test]
+fn captured_cards_partition_played_cards_after_completed_trick() {
+    let cards = [
+        card(Rank::Nine, Suit::Clubs),
+        card(Rank::Four, Suit::Clubs),
+        card(Rank::Ace, Suit::Diamonds),
+        card(Rank::Queen, Suit::Clubs),
+    ];
+    let mut state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![cards[0]]),
+            (BriarCircuitSeat::Seat1, vec![cards[1]]),
+            (BriarCircuitSeat::Seat2, vec![cards[2]]),
+            (BriarCircuitSeat::Seat3, vec![cards[3]]),
+        ],
+        PlayingTrickState {
+            hearts_broken: true,
+            trick_index: 6,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat0,
+            current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+        },
+    );
+
+    for (seat, played) in BriarCircuitSeat::ALL.into_iter().zip(cards) {
+        apply_play_action(&mut state, seat, PlayAction::Play(played)).expect("play succeeds");
+    }
+
+    let captured: Vec<_> = state.captured_tricks[0]
+        .plays
+        .iter()
+        .map(|play| play.card)
+        .collect();
+    assert_eq!(captured, cards);
+    for seat in BriarCircuitSeat::ALL {
+        assert!(state.hand_for_internal(seat).is_empty());
+    }
 }

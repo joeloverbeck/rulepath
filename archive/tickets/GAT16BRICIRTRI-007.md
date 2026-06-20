@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-007: Trick play legality and resolution
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/briar_circuit/src/rules.rs`, `src/actions.rs` (play family), trick substate in `state.rs`
@@ -84,3 +84,18 @@ Current trick (ordered public plays), leader/active seat, trick index, hearts-br
 1. `cargo test -p briar_circuit --test rules --test property --test visibility`
 2. `cargo test -p briar_circuit`
 3. A per-test scope is correct because the deliverable is play legality/resolution; scoring, full visibility, and traces are later tickets.
+
+## Outcome
+
+Completed on 2026-06-21. Implemented the Rust-owned trick legality rule in
+the exact spec order, play action parsing/application, stable play diagnostics,
+heart-breaking state transitions, led-suit winner selection, trick capture, and
+winner-leads-next sequencing. Hand closeout now transitions to `ScoringHand`
+with raw captured points so GAT16BRICIRTRI-008 can replace/extend scoring
+policy without needing to finish trick mechanics.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p briar_circuit --test rules --test property --test visibility`
+3. `cargo test -p briar_circuit`

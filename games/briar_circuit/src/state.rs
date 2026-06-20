@@ -261,6 +261,20 @@ impl BriarCircuitState {
         }
     }
 
+    pub fn playing_state(&self) -> Option<&PlayingTrickState> {
+        match &self.phase {
+            Phase::PlayingTrick(play) => Some(play),
+            _ => None,
+        }
+    }
+
+    pub fn playing_state_mut(&mut self) -> Option<&mut PlayingTrickState> {
+        match &mut self.phase {
+            Phase::PlayingTrick(play) => Some(play),
+            _ => None,
+        }
+    }
+
     pub fn enter_playing_with_two_clubs_leader(&mut self) {
         let leader = opening_leader_from_private_hands(&self.private_hands);
         self.phase = Phase::PlayingTrick(PlayingTrickState {

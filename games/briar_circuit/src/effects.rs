@@ -23,4 +23,16 @@ pub enum BriarCircuitEffect {
         sent_cards: Vec<CardId>,
         received_cards: Vec<CardId>,
     },
+    CardPlayed {
+        seat: BriarCircuitSeat,
+        card: CardId,
+    },
+    HeartsBroken {
+        seat: BriarCircuitSeat,
+    },
+    TrickCaptured {
+        trick_index: u8,
+        winner: BriarCircuitSeat,
+        cards: Vec<CardId>,
+    },
 }

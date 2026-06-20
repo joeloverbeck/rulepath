@@ -15,16 +15,21 @@ pub mod variants;
 pub mod visibility;
 
 pub use actions::{
-    apply_pass_action, parse_pass_action_path, validate_pass_command, PassAction, PassActionResult,
+    apply_pass_action, apply_play_action, parse_pass_action_path, parse_play_action_path,
+    validate_pass_command, validate_play_command, PassAction, PassActionResult, PlayAction,
 };
 pub use cards::{canonical_deck, Card, CardId, Deck, Rank, Suit};
 pub use effects::{BriarCircuitEffect, PassCommitmentStatus};
 pub use ids::{
     canonical_seat_ids, BriarCircuitSeat, ACTION_PASS, ACTION_PASS_CONFIRM, ACTION_PASS_SELECT,
-    ACTION_PASS_UNSELECT, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT,
+    ACTION_PASS_UNSELECT, ACTION_PLAY, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT,
     STANDARD_DEFAULT_SEATS, STANDARD_HAND_SIZE, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
     STANDARD_PASS_SIZE, STANDARD_RANK_COUNT, STANDARD_SEAT_COUNT, STANDARD_SUIT_COUNT,
     STANDARD_TRICKS_PER_HAND, VARIANT_ID,
+};
+pub use rules::{
+    apply_play_card, is_point_card, legal_cards_for_playing_state, legal_play_cards,
+    play_legality_reason, trick_winner, validate_play_card, PlayActionResult, PlayLegalityReason,
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{

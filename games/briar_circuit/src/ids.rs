@@ -20,6 +20,7 @@ pub const ACTION_PASS: &str = "pass";
 pub const ACTION_PASS_SELECT: &str = "select";
 pub const ACTION_PASS_UNSELECT: &str = "unselect";
 pub const ACTION_PASS_CONFIRM: &str = "confirm";
+pub const ACTION_PLAY: &str = "play";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum BriarCircuitSeat {

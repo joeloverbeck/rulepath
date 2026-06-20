@@ -1,1 +1,321 @@
-//! Trick legality and rule application land in later Briar Circuit tickets.
+use engine_core::Diagnostic;
+
+use crate::{
+    cards::{Card, CardId, Rank, Suit},
+    effects::BriarCircuitEffect,
+    ids::{BriarCircuitSeat, STANDARD_TRICKS_PER_HAND},
+    state::{
+        BriarCircuitState, CapturedTrick, CurrentTrick, HandScoreBreakdown, Phase,
+        PlayingTrickState, TrickPlay,
+    },
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum PlayLegalityReason {
+    Legal,
+    WrongPhase,
+    WrongSeat,
+    CardNotOwned,
+    TwoClubsMustOpen,
+    MustFollowSuit,
+    FirstTrickPointForbidden,
+    HeartsNotBroken,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlayActionResult {
+    pub effects: Vec<BriarCircuitEffect>,
+    pub trick_completed: bool,
+    pub hand_completed: bool,
+}
+
+pub fn legal_play_cards(
+    state: &BriarCircuitState,
+    seat: BriarCircuitSeat,
+) -> Result<Vec<CardId>, Diagnostic> {
+    let play = playing_state_for_actor(state, seat)?;
+    Ok(legal_cards_for_playing_state(
+        state.hand_for_internal(seat),
+        play,
+    ))
+}
+
+pub fn validate_play_card(
+    state: &BriarCircuitState,
+    seat: BriarCircuitSeat,
+    card: CardId,
+) -> Result<(), Diagnostic> {
+    match play_legality_reason(state, seat, card) {
+        PlayLegalityReason::Legal => Ok(()),
+        PlayLegalityReason::WrongPhase => Err(diagnostic(
+            "BC_WRONG_PHASE",
+            "briar_circuit play action is only legal during trick play",
+        )),
+        PlayLegalityReason::WrongSeat => Err(diagnostic(
+            "BC_WRONG_SEAT",
+            "only the active Briar Circuit seat may play",
+        )),
+        PlayLegalityReason::CardNotOwned => {
+            Err(diagnostic("BC_CARD_NOT_OWNED", "played card is not owned"))
+        }
+        PlayLegalityReason::TwoClubsMustOpen => Err(diagnostic(
+            "BC_TWO_CLUBS_MUST_OPEN",
+            "the first play of the hand must be the two of clubs",
+        )),
+        PlayLegalityReason::MustFollowSuit => Err(diagnostic(
+            "BC_MUST_FOLLOW_SUIT",
+            "actor must follow the led suit",
+        )),
+        PlayLegalityReason::FirstTrickPointForbidden => Err(diagnostic(
+            "BC_FIRST_TRICK_POINT_FORBIDDEN",
+            "point cards are forbidden on the first trick while a non-point card is available",
+        )),
+        PlayLegalityReason::HeartsNotBroken => Err(diagnostic(
+            "BC_HEARTS_NOT_BROKEN",
+            "hearts cannot be led until broken while a non-heart remains",
+        )),
+    }
+}
+
+pub fn play_legality_reason(
+    state: &BriarCircuitState,
+    seat: BriarCircuitSeat,
+    card: CardId,
+) -> PlayLegalityReason {
+    let play = match &state.phase {
+        Phase::PlayingTrick(play) => play,
+        _ => return PlayLegalityReason::WrongPhase,
+    };
+    if play.active_seat != seat {
+        return PlayLegalityReason::WrongSeat;
+    }
+    let hand = state.hand_for_internal(seat);
+    if !hand.contains(&card) {
+        return PlayLegalityReason::CardNotOwned;
+    }
+
+    let legal = legal_cards_for_playing_state(hand, play);
+    if legal.contains(&card) {
+        return PlayLegalityReason::Legal;
+    }
+
+    if play.trick_index == 0 && play.current_trick.plays.is_empty() {
+        return PlayLegalityReason::TwoClubsMustOpen;
+    }
+    if let Some(led_suit) = led_suit(play) {
+        if hand.iter().any(|held| held.card().suit == led_suit) && card.card().suit != led_suit {
+            return PlayLegalityReason::MustFollowSuit;
+        }
+    }
+    if play.trick_index == 0 && is_point_card(card.card()) {
+        return PlayLegalityReason::FirstTrickPointForbidden;
+    }
+    if play.current_trick.plays.is_empty()
+        && !play.hearts_broken
+        && card.card().is_heart()
+        && hand.iter().any(|held| !held.card().is_heart())
+    {
+        return PlayLegalityReason::HeartsNotBroken;
+    }
+
+    PlayLegalityReason::CardNotOwned
+}
+
+pub fn apply_play_card(
+    state: &mut BriarCircuitState,
+    seat: BriarCircuitSeat,
+    card: CardId,
+) -> Result<PlayActionResult, Diagnostic> {
+    validate_play_card(state, seat, card)?;
+    remove_card_from_hand(state, seat, card)?;
+
+    let mut effects = vec![BriarCircuitEffect::CardPlayed { seat, card }];
+    let mut trick_completed = false;
+    let mut hand_completed = false;
+
+    let heart_played = card.card().is_heart();
+    let mut completed_trick = None;
+    {
+        let play = state
+            .playing_state_mut()
+            .expect("validated trick play phase");
+        if heart_played && !play.hearts_broken {
+            play.hearts_broken = true;
+            effects.push(BriarCircuitEffect::HeartsBroken { seat });
+        }
+        play.current_trick.plays.push(TrickPlay { seat, card });
+        if play.current_trick.plays.len() == BriarCircuitSeat::ALL.len() {
+            completed_trick = Some((
+                play.trick_index,
+                play.current_trick.plays.clone(),
+                play.hearts_broken,
+            ));
+        } else {
+            play.active_seat = play.active_seat.next_clockwise();
+        }
+    }
+    state.freshness_token = state.freshness_token.next();
+
+    if let Some((trick_index, plays, hearts_broken)) = completed_trick {
+        trick_completed = true;
+        let winner = trick_winner(&plays).expect("four-play trick has winner");
+        state.captured_tricks.push(CapturedTrick {
+            hand_index: state.hand_index,
+            trick_index,
+            winner: winner.seat,
+            plays: plays.clone(),
+        });
+        effects.push(BriarCircuitEffect::TrickCaptured {
+            trick_index,
+            winner: winner.seat,
+            cards: plays.iter().map(|play| play.card).collect(),
+        });
+
+        if trick_index + 1 >= STANDARD_TRICKS_PER_HAND {
+            hand_completed = true;
+            state.phase = Phase::ScoringHand(hand_score_breakdown(&state.captured_tricks));
+        } else {
+            let next_index = trick_index + 1;
+            state.phase = Phase::PlayingTrick(PlayingTrickState {
+                hearts_broken,
+                trick_index: next_index,
+                leader: winner.seat,
+                active_seat: winner.seat,
+                current_trick: CurrentTrick::new(winner.seat),
+            });
+        }
+        state.freshness_token = state.freshness_token.next();
+    }
+
+    Ok(PlayActionResult {
+        effects,
+        trick_completed,
+        hand_completed,
+    })
+}
+
+pub fn legal_cards_for_playing_state(hand: &[CardId], play: &PlayingTrickState) -> Vec<CardId> {
+    if hand.is_empty() {
+        return Vec::new();
+    }
+
+    if play.trick_index == 0 && play.current_trick.plays.is_empty() {
+        return hand
+            .iter()
+            .copied()
+            .filter(|card| card.card().is_two_of_clubs())
+            .collect();
+    }
+
+    if let Some(led_suit) = led_suit(play) {
+        let followed: Vec<_> = hand
+            .iter()
+            .copied()
+            .filter(|card| card.card().suit == led_suit)
+            .collect();
+        if !followed.is_empty() {
+            return followed;
+        }
+    }
+
+    if play.trick_index == 0 {
+        let non_points: Vec<_> = hand
+            .iter()
+            .copied()
+            .filter(|card| !is_point_card(card.card()))
+            .collect();
+        if !non_points.is_empty() {
+            return non_points;
+        }
+        return hand.to_vec();
+    }
+
+    if play.current_trick.plays.is_empty() && !play.hearts_broken {
+        let non_hearts: Vec<_> = hand
+            .iter()
+            .copied()
+            .filter(|card| !card.card().is_heart())
+            .collect();
+        if !non_hearts.is_empty() {
+            return non_hearts;
+        }
+    }
+
+    hand.to_vec()
+}
+
+pub fn trick_winner(plays: &[TrickPlay]) -> Option<TrickPlay> {
+    let led_suit = plays.first()?.card.card().suit;
+    plays
+        .iter()
+        .copied()
+        .filter(|play| play.card.card().suit == led_suit)
+        .max_by_key(|play| play.card.card().rank.value())
+}
+
+pub const fn is_point_card(card: Card) -> bool {
+    card.is_heart() || matches!((card.rank, card.suit), (Rank::Queen, Suit::Spades))
+}
+
+fn playing_state_for_actor(
+    state: &BriarCircuitState,
+    seat: BriarCircuitSeat,
+) -> Result<&PlayingTrickState, Diagnostic> {
+    let play = state.playing_state().ok_or_else(|| {
+        diagnostic(
+            "BC_WRONG_PHASE",
+            "briar_circuit play action is only legal during trick play",
+        )
+    })?;
+    if play.active_seat != seat {
+        return Err(diagnostic(
+            "BC_WRONG_SEAT",
+            "only the active Briar Circuit seat may play",
+        ));
+    }
+    Ok(play)
+}
+
+fn led_suit(play: &PlayingTrickState) -> Option<Suit> {
+    play.current_trick
+        .plays
+        .first()
+        .map(|played| played.card.card().suit)
+}
+
+fn remove_card_from_hand(
+    state: &mut BriarCircuitState,
+    seat: BriarCircuitSeat,
+    card: CardId,
+) -> Result<(), Diagnostic> {
+    let hand = state
+        .hand_for_internal_mut(seat)
+        .ok_or_else(|| diagnostic("BC_WRONG_SEAT", "unknown seat hand"))?;
+    let index = hand
+        .iter()
+        .position(|candidate| *candidate == card)
+        .ok_or_else(|| diagnostic("BC_CARD_NOT_OWNED", "played card is not owned"))?;
+    hand.remove(index);
+    Ok(())
+}
+
+fn hand_score_breakdown(captured: &[CapturedTrick]) -> HandScoreBreakdown {
+    let mut raw_points = [0; 4];
+    for trick in captured {
+        for play in &trick.plays {
+            raw_points[trick.winner.index()] += play.card.card().point_value();
+        }
+    }
+    HandScoreBreakdown {
+        raw_points,
+        hand_additions: raw_points,
+        moon_shooter: None,
+    }
+}
+
+fn diagnostic(code: &str, message: &str) -> Diagnostic {
+    Diagnostic {
+        code: code.to_owned(),
+        message: message.to_owned(),
+    }
+}

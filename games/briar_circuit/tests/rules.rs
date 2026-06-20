@@ -1,8 +1,9 @@
 use briar_circuit::{
-    apply_pass_action,
+    apply_pass_action, apply_play_action, legal_play_cards,
     setup::{deal_order_after, next_dealer},
-    setup_match, validate_pass_command, BriarCircuitSeat, BriarCircuitState, PassAction,
-    PassDirection, Phase, SetupOptions,
+    setup_match, validate_pass_command, validate_play_card, BriarCircuitSeat, BriarCircuitState,
+    Card, CurrentTrick, PassAction, PassDirection, Phase, PlayAction, PlayingTrickState, Rank,
+    SetupOptions, Suit, TrickPlay,
 };
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 
@@ -14,6 +15,20 @@ fn seats(count: usize) -> Vec<SeatId> {
 
 fn fresh_state() -> BriarCircuitState {
     setup_match(Seed(1606), &seats(4), &SetupOptions::default()).expect("setup succeeds")
+}
+
+fn card(rank: Rank, suit: Suit) -> briar_circuit::CardId {
+    Card::new(rank, suit).id()
+}
+
+fn trick_state(
+    hands: Vec<(BriarCircuitSeat, Vec<briar_circuit::CardId>)>,
+    play: PlayingTrickState,
+) -> BriarCircuitState {
+    let mut state = fresh_state();
+    state.private_hands = hands;
+    state.phase = Phase::PlayingTrick(play);
+    state
 }
 
 fn pass_command(
@@ -265,4 +280,246 @@ fn hold_hand_skips_selection_and_exchange() {
         .code,
         "BC_WRONG_PHASE"
     );
+}
+
+#[test]
+fn first_play_of_hand_must_be_two_of_clubs() {
+    let two_clubs = card(Rank::Two, Suit::Clubs);
+    let three_clubs = card(Rank::Three, Suit::Clubs);
+    let mut state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![two_clubs, three_clubs]),
+            (BriarCircuitSeat::Seat1, vec![]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 0,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat0,
+            current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+        },
+    );
+
+    assert_eq!(
+        legal_play_cards(&state, BriarCircuitSeat::Seat0).expect("legal cards"),
+        vec![two_clubs]
+    );
+    assert_eq!(
+        validate_play_card(&state, BriarCircuitSeat::Seat0, three_clubs)
+            .expect_err("non-two-clubs opening rejects")
+            .code,
+        "BC_TWO_CLUBS_MUST_OPEN"
+    );
+
+    apply_play_action(
+        &mut state,
+        BriarCircuitSeat::Seat0,
+        PlayAction::Play(two_clubs),
+    )
+    .expect("two clubs opens");
+}
+
+#[test]
+fn followers_must_follow_led_suit_when_able() {
+    let led = card(Rank::Ten, Suit::Spades);
+    let spade = card(Rank::Three, Suit::Spades);
+    let club = card(Rank::Ace, Suit::Clubs);
+    let state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![]),
+            (BriarCircuitSeat::Seat1, vec![club, spade]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 1,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat1,
+            current_trick: CurrentTrick {
+                leader: BriarCircuitSeat::Seat0,
+                plays: vec![TrickPlay {
+                    seat: BriarCircuitSeat::Seat0,
+                    card: led,
+                }],
+            },
+        },
+    );
+
+    assert_eq!(
+        legal_play_cards(&state, BriarCircuitSeat::Seat1).expect("legal cards"),
+        vec![spade]
+    );
+    assert_eq!(
+        validate_play_card(&state, BriarCircuitSeat::Seat1, club)
+            .expect_err("off-suit rejects")
+            .code,
+        "BC_MUST_FOLLOW_SUIT"
+    );
+}
+
+#[test]
+fn first_trick_forbids_points_only_while_non_point_discard_exists() {
+    let led = card(Rank::Two, Suit::Clubs);
+    let heart = card(Rank::Ace, Suit::Hearts);
+    let queen_spades = card(Rank::Queen, Suit::Spades);
+    let diamond = card(Rank::Four, Suit::Diamonds);
+    let state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![]),
+            (BriarCircuitSeat::Seat1, vec![heart, queen_spades, diamond]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 0,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat1,
+            current_trick: CurrentTrick {
+                leader: BriarCircuitSeat::Seat0,
+                plays: vec![TrickPlay {
+                    seat: BriarCircuitSeat::Seat0,
+                    card: led,
+                }],
+            },
+        },
+    );
+
+    assert_eq!(
+        legal_play_cards(&state, BriarCircuitSeat::Seat1).expect("legal cards"),
+        vec![diamond]
+    );
+    assert_eq!(
+        validate_play_card(&state, BriarCircuitSeat::Seat1, heart)
+            .expect_err("first-trick heart rejects")
+            .code,
+        "BC_FIRST_TRICK_POINT_FORBIDDEN"
+    );
+
+    let exception_state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![]),
+            (BriarCircuitSeat::Seat1, vec![heart, queen_spades]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        state.playing_state().expect("playing").clone(),
+    );
+    assert_eq!(
+        legal_play_cards(&exception_state, BriarCircuitSeat::Seat1).expect("legal cards"),
+        vec![heart, queen_spades]
+    );
+}
+
+#[test]
+fn unbroken_hearts_cannot_be_led_until_only_hearts_remain() {
+    let heart = card(Rank::Five, Suit::Hearts);
+    let club = card(Rank::Five, Suit::Clubs);
+    let mut state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![heart, club]),
+            (BriarCircuitSeat::Seat1, vec![]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 1,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat0,
+            current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+        },
+    );
+
+    assert_eq!(
+        legal_play_cards(&state, BriarCircuitSeat::Seat0).expect("legal cards"),
+        vec![club]
+    );
+    assert_eq!(
+        validate_play_card(&state, BriarCircuitSeat::Seat0, heart)
+            .expect_err("heart lead rejects")
+            .code,
+        "BC_HEARTS_NOT_BROKEN"
+    );
+
+    state.private_hands = vec![
+        (BriarCircuitSeat::Seat0, vec![heart]),
+        (BriarCircuitSeat::Seat1, vec![]),
+        (BriarCircuitSeat::Seat2, vec![]),
+        (BriarCircuitSeat::Seat3, vec![]),
+    ];
+    apply_play_action(&mut state, BriarCircuitSeat::Seat0, PlayAction::Play(heart))
+        .expect("only-heart lead succeeds");
+    assert!(state.playing_state().expect("playing").hearts_broken);
+}
+
+#[test]
+fn hearts_break_on_hearts_but_not_queen_spades() {
+    let queen_spades = card(Rank::Queen, Suit::Spades);
+    let mut state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![queen_spades]),
+            (BriarCircuitSeat::Seat1, vec![]),
+            (BriarCircuitSeat::Seat2, vec![]),
+            (BriarCircuitSeat::Seat3, vec![]),
+        ],
+        PlayingTrickState {
+            hearts_broken: false,
+            trick_index: 1,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat0,
+            current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+        },
+    );
+
+    apply_play_action(
+        &mut state,
+        BriarCircuitSeat::Seat0,
+        PlayAction::Play(queen_spades),
+    )
+    .expect("queen spades lead succeeds");
+    assert!(!state.playing_state().expect("playing").hearts_broken);
+}
+
+#[test]
+fn highest_led_suit_wins_and_winner_leads_next() {
+    let lead = card(Rank::Ten, Suit::Clubs);
+    let low_club = card(Rank::Two, Suit::Clubs);
+    let off_suit_ace = card(Rank::Ace, Suit::Spades);
+    let high_club = card(Rank::Ace, Suit::Clubs);
+    let mut state = trick_state(
+        vec![
+            (BriarCircuitSeat::Seat0, vec![lead]),
+            (BriarCircuitSeat::Seat1, vec![low_club]),
+            (BriarCircuitSeat::Seat2, vec![off_suit_ace]),
+            (BriarCircuitSeat::Seat3, vec![high_club]),
+        ],
+        PlayingTrickState {
+            hearts_broken: true,
+            trick_index: 1,
+            leader: BriarCircuitSeat::Seat0,
+            active_seat: BriarCircuitSeat::Seat0,
+            current_trick: CurrentTrick::new(BriarCircuitSeat::Seat0),
+        },
+    );
+
+    for (seat, played) in [
+        (BriarCircuitSeat::Seat0, lead),
+        (BriarCircuitSeat::Seat1, low_club),
+        (BriarCircuitSeat::Seat2, off_suit_ace),
+        (BriarCircuitSeat::Seat3, high_club),
+    ] {
+        apply_play_action(&mut state, seat, PlayAction::Play(played)).expect("play succeeds");
+    }
+
+    assert_eq!(state.captured_tricks.len(), 1);
+    assert_eq!(state.captured_tricks[0].winner, BriarCircuitSeat::Seat3);
+    assert_eq!(state.captured_tricks[0].plays.len(), 4);
+    let play = state.playing_state().expect("next trick");
+    assert_eq!(play.trick_index, 2);
+    assert_eq!(play.leader, BriarCircuitSeat::Seat3);
+    assert_eq!(play.active_seat, BriarCircuitSeat::Seat3);
 }

@@ -5,8 +5,9 @@ use crate::{
     effects::{BriarCircuitEffect, PassCommitmentStatus},
     ids::{
         BriarCircuitSeat, ACTION_PASS, ACTION_PASS_CONFIRM, ACTION_PASS_SELECT,
-        ACTION_PASS_UNSELECT, RULES_VERSION_LABEL, STANDARD_PASS_SIZE,
+        ACTION_PASS_UNSELECT, ACTION_PLAY, RULES_VERSION_LABEL, STANDARD_PASS_SIZE,
     },
+    rules::{apply_play_card, validate_play_card, PlayActionResult},
     state::BriarCircuitState,
 };
 
@@ -21,6 +22,11 @@ pub enum PassAction {
 pub struct PassActionResult {
     pub effects: Vec<BriarCircuitEffect>,
     pub exchange_completed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum PlayAction {
+    Play(CardId),
 }
 
 pub fn validate_pass_command(
@@ -46,6 +52,30 @@ pub fn validate_pass_command(
     Ok((seat, action))
 }
 
+pub fn validate_play_command(
+    state: &BriarCircuitState,
+    envelope: &CommandEnvelope,
+) -> Result<(BriarCircuitSeat, PlayAction), Diagnostic> {
+    if envelope.rules_version.0 != 1 {
+        return Err(diagnostic(
+            "BC_WRONG_RULES_VERSION",
+            "briar_circuit command used an unsupported rules version",
+        ));
+    }
+    if envelope.freshness_token != state.freshness_token {
+        return Err(diagnostic(
+            "BC_STALE_COMMAND",
+            "briar_circuit command used a stale freshness token",
+        ));
+    }
+    let seat = BriarCircuitSeat::parse(&envelope.actor.seat_id.0)
+        .ok_or_else(|| diagnostic("BC_WRONG_SEAT", "actor is not a Briar Circuit seat"))?;
+    let action = parse_play_action_path(&envelope.action_path.segments)?;
+    let PlayAction::Play(card) = action;
+    validate_play_card(state, seat, card)?;
+    Ok((seat, action))
+}
+
 pub fn parse_pass_action_path(segments: &[String]) -> Result<PassAction, Diagnostic> {
     match segments {
         [family, action, card] if family == ACTION_PASS && action == ACTION_PASS_SELECT => {
@@ -65,6 +95,30 @@ pub fn parse_pass_action_path(segments: &[String]) -> Result<PassAction, Diagnos
             "BC_WRONG_PHASE",
             "command is not a Briar Circuit pass action",
         )),
+    }
+}
+
+pub fn parse_play_action_path(segments: &[String]) -> Result<PlayAction, Diagnostic> {
+    match segments {
+        [family, card] if family == ACTION_PLAY => {
+            let card = CardId::parse(card)
+                .ok_or_else(|| diagnostic("BC_UNKNOWN_CARD", "unknown play card id"))?;
+            Ok(PlayAction::Play(card))
+        }
+        _ => Err(diagnostic(
+            "BC_WRONG_PHASE",
+            "command is not a Briar Circuit play action",
+        )),
+    }
+}
+
+pub fn apply_play_action(
+    state: &mut BriarCircuitState,
+    seat: BriarCircuitSeat,
+    action: PlayAction,
+) -> Result<PlayActionResult, Diagnostic> {
+    match action {
+        PlayAction::Play(card) => apply_play_card(state, seat, card),
     }
 }
 
