@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-002: Requirements-admission receipt, player rules, and coverage skeleton
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/briar_circuit/docs/GAME-IMPLEMENTATION-ADMISSION.md`, `HOW-TO-PLAY.md`, `RULE-COVERAGE.md`)
@@ -79,3 +79,24 @@ Initial map of every `BC-*` rule ID to its planned unit/rule/property/trace/simu
 1. `comm -23 <(grep -oE 'BC-[A-Z]+-[0-9]+' games/briar_circuit/docs/RULES.md | sort -u) <(grep -oE 'BC-[A-Z]+-[0-9]+' games/briar_circuit/docs/RULE-COVERAGE.md | sort -u)`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command is correct here because `tools/rule-coverage` enforcement and player-rules generation require code and the catalog const that land later (012/013).
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Added `games/briar_circuit/docs/GAME-IMPLEMENTATION-ADMISSION.md` with the Gate 16 admission receipt, constraints, primitive-pressure blocker, no-leak risk review, UI/bot/benchmark expectations, and explicit decision to admit with constraints.
+- Added `games/briar_circuit/docs/HOW-TO-PLAY.md` with original player-facing rules prose, supported seats, pass/play flow, scoring, outcome explanation facts, and hidden-information/reveal timing for private hands, pass selections/provenance, and deck order.
+- Added `games/briar_circuit/docs/RULE-COVERAGE.md` as the initial `BC-*` coverage skeleton with planned implementation/evidence surfaces and open status rows for later tickets.
+
+Deviations from plan:
+
+- None. `node scripts/check-player-rules.mjs` was also run as an early guard even though full Briar Circuit catalog enforcement lands later.
+
+Verification:
+
+- `comm -23 <(grep -oE 'BC-[A-Z]+-[0-9]+' games/briar_circuit/docs/RULES.md | sort -u) <(grep -oE 'BC-[A-Z]+-[0-9]+' games/briar_circuit/docs/RULE-COVERAGE.md | sort -u)` produced no output.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `node scripts/check-player-rules.mjs` passed (`player-rules check passed — 15 catalog games validated`).
+- Manual hidden-information section check confirmed the player doc names private hands, pass selection/provenance privacy, and deck order/future-deal redaction.
