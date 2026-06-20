@@ -23,6 +23,7 @@ const ICONS: Record<string, IconComponent> = {
   "poker_lite": PokerLiteIcon,
   "river_ledger": RiverLedgerIcon,
   "plain_tricks": PlainTricksIcon,
+  "briar_circuit": BriarCircuitIcon,
   "masked_claims": MaskedClaimsIcon,
   "flood_watch": FloodWatchIcon,
   "frontier_control": FrontierControlIcon,
@@ -171,6 +172,17 @@ function PlainTricksIcon() {
       <path d="M6 7h5v10H6zM13 7h5v10h-5z" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" />
       <path d="M8.5 11h7M15.5 11l-2-2M15.5 11l-2 2" stroke="var(--game-card-art-line)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
       <AccentCircle cx={12} cy={17} r={1.5} />
+    </>
+  );
+}
+
+function BriarCircuitIcon() {
+  return (
+    <>
+      <path d="M12 4l6 4v8l-6 4-6-4V8z" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" />
+      <path d="M8.2 9.3h7.6M8.2 12h7.6M8.2 14.7h7.6" stroke="var(--game-card-art-line)" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M12 4v16M6 8l12 8M18 8L6 16" stroke="currentColor" strokeWidth="1.05" opacity="0.42" />
+      <AccentCircle cx={12} cy={12} r={1.7} />
     </>
   );
 }

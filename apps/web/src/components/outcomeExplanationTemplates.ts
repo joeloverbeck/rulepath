@@ -217,6 +217,27 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["plain_tricks"],
     ruleRefLabel: "Split rule",
   },
+  "briar_circuit.low_score_win": {
+    summary: "{winner} has the lowest score after the threshold hand.",
+    expandedHeading: "Lowest score wins",
+    requiredParams: ["winner"],
+    allowedGameIds: ["briar_circuit"],
+    ruleRefLabel: "Match threshold rule",
+  },
+  "briar_circuit.moon_adjustment": {
+    summary: "A moon shot changed the hand additions.",
+    expandedHeading: "Moon adjustment",
+    requiredParams: [],
+    allowedGameIds: ["briar_circuit"],
+    ruleRefLabel: "Moon scoring rule",
+  },
+  "briar_circuit.tied_low_continuation": {
+    summary: "The lowest score is tied, so another complete hand is needed.",
+    expandedHeading: "Tied low score",
+    requiredParams: [],
+    allowedGameIds: ["briar_circuit"],
+    ruleRefLabel: "Tie continuation rule",
+  },
   "masked_claims.score_win": {
     summary: "{winner} has the higher final score.",
     expandedHeading: "Final score",

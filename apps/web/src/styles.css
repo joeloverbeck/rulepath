@@ -547,6 +547,11 @@ h2 {
   gap: 14px;
 }
 
+.briar-board {
+  display: grid;
+  gap: 14px;
+}
+
 .column-four-banner {
   display: flex;
   align-items: end;
@@ -613,13 +618,33 @@ h2 {
   background: #f9faf7;
 }
 
+.briar-banner {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d7ded9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9faf7;
+}
+
 .plain-tricks-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
+.briar-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .plain-tricks-metrics > div,
+.briar-metrics > div,
+.briar-history,
+.briar-latest,
 .plain-history,
 .plain-latest {
   display: grid;
@@ -666,6 +691,13 @@ h2 {
 }
 
 .plain-tricks-metrics span,
+.briar-metrics span,
+.briar-section-heading span,
+.briar-history span,
+.briar-latest span,
+.briar-card span,
+.briar-hidden-hand span,
+.briar-seat span,
 .plain-section-heading span,
 .plain-history span,
 .plain-latest span,
@@ -682,6 +714,132 @@ h2 {
   grid-template-columns: minmax(0, 1.2fr) minmax(190px, 0.75fr) minmax(0, 0.8fr);
   gap: 12px;
   align-items: stretch;
+}
+
+.briar-table {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.briar-seat-rail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.briar-seat,
+.briar-trick,
+.briar-private,
+.briar-pass {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border: 1px solid #d0d9d4;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.briar-seat.active,
+.briar-seat.viewer {
+  border-color: #2b8068;
+  box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.14);
+}
+
+.briar-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.briar-trick,
+.briar-private,
+.briar-pass {
+  grid-column: 2;
+}
+
+.briar-trick-cards,
+.briar-hand {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.briar-card,
+.briar-played-card,
+.briar-hidden-hand {
+  min-block-size: 96px;
+  border: 1px solid #cfd8d2;
+  border-radius: 7px;
+  padding: 9px;
+  background: #fbfcfa;
+  color: #17231f;
+}
+
+.briar-card {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.briar-card.legal {
+  border-color: #2b8068;
+}
+
+.briar-card.selected {
+  background: #edf7f3;
+  box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.16);
+}
+
+.briar-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.briar-pass-meter {
+  overflow: hidden;
+  block-size: 10px;
+  border-radius: 999px;
+  background: #e1e8e4;
+}
+
+.briar-pass-meter span {
+  display: block;
+  block-size: 100%;
+  background: #2b8068;
+}
+
+.briar-confirm {
+  border: 1px solid #236d59;
+  border-radius: 7px;
+  padding: 9px 12px;
+  background: #2b8068;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.briar-confirm:disabled {
+  border-color: #cfd8d2;
+  background: #e9efeb;
+  color: #667770;
+}
+
+.briar-history ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.briar-history li {
+  display: grid;
+  grid-template-columns: 90px 110px minmax(0, 1fr);
+  gap: 8px;
 }
 
 .plain-seat,

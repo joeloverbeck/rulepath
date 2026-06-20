@@ -1,6 +1,7 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
 import type {
+  BriarCircuitPublicView,
   ColumnFourPublicView,
   DirectionalFlipPublicView,
   DraughtsLitePublicView,
@@ -321,6 +322,10 @@ function isRiverLedgerView(view: PublicView | null): view is RiverLedgerPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "river_ledger");
 }
 
+function isBriarCircuitView(view: PublicView | null): view is BriarCircuitPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "briar_circuit");
+}
+
 function formatActionPath(path: string[]): string {
   return path.join(" > ");
 }
@@ -474,6 +479,17 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
         value: view.terminal.terminal ? view.terminal.winners.join(", ") || "complete" : view.active_seat ?? "resolving",
       },
       { label: "Pot", value: String(view.pot_total) },
+    ];
+  }
+
+  if (isBriarCircuitView(view)) {
+    return [
+      { label: "Hand", value: String(view.hand_index + 1) },
+      { label: "Turn", value: view.active_seat ?? (view.pass ? `${view.pass.pending_count} pending` : view.phase) },
+      {
+        label: "Score",
+        value: `${view.cumulative_scores.seat_0}-${view.cumulative_scores.seat_1}-${view.cumulative_scores.seat_2}-${view.cumulative_scores.seat_3}`,
+      },
     ];
   }
 

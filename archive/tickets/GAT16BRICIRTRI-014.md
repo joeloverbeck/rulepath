@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-014: Public web renderer, accessibility, and outcome-explanation copy
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/BriarCircuitBoard.tsx`, `main.tsx`, `wasm/client.ts`, `GameCatalogIcon.tsx`, `outcomeExplanationTemplates.ts`
@@ -83,3 +83,28 @@ The four-seat table: owner hand as a semantic card list, legal-only card/pass co
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build && node scripts/check-presentation-copy.mjs`
 3. `smoke:ui` is the correct boundary for renderer behavior; DOM/storage no-leak and the full e2e path are proven in GAT16BRICIRTRI-015.
+
+## Outcome
+
+Completed: 2026-06-21
+
+Added the Briar Circuit React board and registered it in the app shell with a
+typed `BriarCircuitPublicView`, fixed-four catalog smoke coverage, a neutral
+catalog icon, shared helper terminal/summary guards, and Briar outcome-copy
+template keys. The board renders the four-seat table, public scores/counts,
+current trick, captured-trick history, private hand, pass-selection progress,
+and legal Rust-supplied pass/play controls from the WASM action tree without
+deriving legality in TypeScript. The pass-phase app actor selection now requests
+seat 0's tree when Briar has no single active seat.
+
+Extended `smoke-ui.mjs` with Briar fixed-seat metadata, observer redaction,
+seat private hand, unauthorized action-tree redaction, legal pass selection,
+and viewer-scoped replay export redaction. `check-outcome-explanations` remains
+intentionally out of scope until the Briar UI outcome documentation lands in
+GAT16BRICIRTRI-017.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node scripts/check-presentation-copy.mjs` passed.
+- `npm --prefix apps/web run build` passed.

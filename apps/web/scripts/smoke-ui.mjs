@@ -172,7 +172,7 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
-const twoSeatGames = catalog.filter((game) => game.game_id !== "river_ledger");
+const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit"].includes(game.game_id));
 assert(
   twoSeatGames.every(
     (game) =>
@@ -202,6 +202,19 @@ assert(
     riverLedgerCatalog.viewer_modes.includes("seat_5") &&
     riverLedgerCatalog.seat_labels.length === 6,
   "Rust catalog exposes river_ledger 3-6 seat metadata",
+);
+const briarCircuitCatalog = catalog.find((game) => game.game_id === "briar_circuit");
+assert(briarCircuitCatalog, "Rust catalog includes briar_circuit");
+assertVariantDescription(briarCircuitCatalog, "briar_circuit_standard", undefined);
+assert(
+  briarCircuitCatalog.hidden_information === true &&
+    briarCircuitCatalog.min_seats === 4 &&
+    briarCircuitCatalog.max_seats === 4 &&
+    briarCircuitCatalog.default_seats === 4 &&
+    JSON.stringify(briarCircuitCatalog.supported_seats) === JSON.stringify([4]) &&
+    briarCircuitCatalog.viewer_modes.includes("seat_3") &&
+    briarCircuitCatalog.seat_labels.length === 4,
+  "Rust catalog exposes briar_circuit fixed-four metadata",
 );
 const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
 assert(floodWatchCatalog, "Rust catalog includes flood_watch");
@@ -453,6 +466,79 @@ const plainImport = invoke(
   [JSON.stringify(plainExport)],
 );
 assert(plainImport.public_export === true, "plain_tricks public replay imports");
+
+const briarCircuit = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 17n),
+  ["briar_circuit"],
+);
+assert(briarCircuit.match_id, "briar_circuit start match returns a match id");
+assert(briarCircuit.variant_id === "briar_circuit_standard", "briar_circuit standard variant starts");
+const briarObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [briarCircuit.match_id],
+);
+assert(briarObserver.game_id === "briar_circuit", "briar_circuit Rust view is returned");
+assert(briarObserver.private_view_status === "observer", "briar_circuit observer view is redacted");
+assert(briarObserver.own_hand.length === 0, "briar_circuit observer omits private hand");
+const briarSeat0 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [briarCircuit.match_id, "seat_0"],
+);
+assert(briarSeat0.own_hand.length === 13, "briar_circuit seat view exposes own hand");
+const briarBlockedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [briarCircuit.match_id, "seat_0", "seat_1"],
+);
+assert(briarBlockedTree.choices.length === 0, "briar_circuit non-actor tree is empty");
+const briarTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [briarCircuit.match_id, "seat_0", "seat_0"],
+);
+const briarPass = briarTree.choices.find((choice) => choice.segment === "pass");
+const briarSelect = briarPass?.next?.choices?.find((choice) => choice.segment === "select");
+const briarCard = briarSelect?.next?.choices?.[0];
+assert(briarCard, "briar_circuit action tree exposes Rust pass card choices");
+const briarAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(briarTree.freshness_token),
+    ),
+  [briarCircuit.match_id, "seat_0", `pass>select>${briarCard.segment}`],
+);
+assert(briarAfterHuman.view.pass.own_selection.length === 1, "briar_circuit pass selection updates private view");
+assert(
+  briarAfterHuman.effects.some((effect) => effect.payload.type === "pass_selection_updated"),
+  "briar_circuit emits private pass-selection effect",
+);
+const briarExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [briarCircuit.match_id],
+);
+assert(briarExport.export_class === "viewer_scoped_observation_v1", "briar_circuit replay export is viewer scoped");
+assert(!JSON.stringify(briarExport).includes(briarCard.segment), "briar_circuit public replay omits private pass card");
 
 const maskedClaims = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
