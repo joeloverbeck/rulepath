@@ -70,14 +70,14 @@ export function DraughtsLiteBoard({
   const outcomeExplanation = terminal && view.winning_seat
     ? outcomeSurfaceData({
         gameId: "draughts_lite",
-        heading: `${view.winning_seat} wins`,
+        heading: `${seatLabel(view.winning_seat)} wins`,
         rationale: view.terminal_rationale,
         resultKind: "win",
         decisiveCause: "terminal_position",
         templateKey: "draughts_lite.opponent_no_pieces",
         templateParams: {
-          winner: view.winning_seat,
-          loser: otherSeat(view.winning_seat),
+          winner: seatLabel(view.winning_seat),
+          loser: seatLabel(otherSeat(view.winning_seat)),
         },
         finalStanding: [
           pieceStanding("seat_0", view.winning_seat, view.cells),
@@ -150,7 +150,7 @@ export function DraughtsLiteBoard({
       <div className="draughts-lite-banner">
         <div>
           <p className="eyebrow">Draughts Lite</p>
-          <h2 id="draughts-lite-heading">{view.status_label}</h2>
+          <h2 id="draughts-lite-heading">{humanizeSeats(view.status_label)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
           {terminalLabel(view)}
@@ -164,7 +164,7 @@ export function DraughtsLiteBoard({
       <div className="draughts-lite-status" aria-label="Match status">
         <div>
           <span>Active</span>
-          <strong>{view.active_seat ?? "terminal"}</strong>
+          <strong>{seatLabel(view.active_seat)}</strong>
         </div>
         <div>
           <span>Ply</span>
@@ -247,7 +247,10 @@ export function DraughtsLiteBoard({
 
       <div className="draughts-lite-cues" aria-label="Move cues">
         <Cue label="Choices" value={current.choices.length.toString()} />
-        <Cue label="Captures" value={captureChoiceCount.toString()} />
+        <Cue
+          label="Captures"
+          value={captureChoiceCount > 0 ? `${captureChoiceCount} · mandatory` : "0"}
+        />
         <Cue label="Promotion" value={countTagged(current.choices, "promotion").toString()} />
         <Cue label="Continuation" value={current.choices.some((choice) => choice.next?.choices?.length) ? "available" : "none"} />
       </div>
@@ -457,20 +460,30 @@ function addString(target: Set<string>, value: unknown) {
   }
 }
 
+// The Draughts view emits raw seat ids ("seat_0"); every other board and the
+// shared outcome panel present these as "Seat 0" / "Seat 1".
+function humanizeSeats(value: string): string {
+  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
+}
+
+function seatLabel(seat: string | null | undefined): string {
+  return seat ? humanizeSeats(seat) : "Terminal";
+}
+
 function terminalLabel(view: DraughtsLitePublicView): string {
   if (view.terminal_kind === "win") {
-    return `${view.winning_seat} wins`;
+    return `${seatLabel(view.winning_seat)} wins`;
   }
-  return `${view.active_seat} to move`;
+  return `${seatLabel(view.active_seat)} to move`;
 }
 
 function boardSummary(view: DraughtsLitePublicView, choices: ActionChoice[]): string {
   const occupied = view.cells
     .filter((cell) => cell.owner)
-    .map((cell) => `${cell.cell_id} ${cell.owner} ${cell.piece_kind}`)
+    .map((cell) => `${cell.cell_id} ${humanizeSeats(cell.owner ?? "")} ${cell.piece_kind}`)
     .join(", ");
   const legal = choices.map((choice) => choice.label).join(", ");
-  return `${view.status_label}. Occupied: ${occupied || "none"}. Legal choices: ${legal || "none"}.`;
+  return `${humanizeSeats(view.status_label)}. Occupied: ${occupied || "none"}. Legal choices: ${legal || "none"}.`;
 }
 
 function otherSeat(seat: "seat_0" | "seat_1"): "seat_0" | "seat_1" {
