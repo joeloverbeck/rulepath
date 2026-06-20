@@ -98,6 +98,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::PokerLite,
         RegisteredGame::PlainTricks,
         RegisteredGame::RiverLedger,
+        RegisteredGame::BriarCircuit,
     ]
         .iter()
         .map(|game| {
@@ -234,8 +235,21 @@ pub fn list_games() -> Result<String, String> {
                 river_catalog_seat_labels_json(),
                 catalog_viewer_modes_json(6)
             ),
+            RegisteredGame::BriarCircuit => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\",\"multi_seat\"],\"min_seats\":4,\"max_seats\":4,\"default_seats\":4,\"supported_seats\":[4],\"seat_labels\":{},\"viewer_modes\":{}}}",
+                escape_json(GAME_BRIAR_CIRCUIT),
+                escape_json(GAME_BRIAR_CIRCUIT_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                variants_json(&[(VARIANT_BRIAR_CIRCUIT_STANDARD, GAME_BRIAR_CIRCUIT_DISPLAY_NAME, None)]),
+                catalog_seat_labels_json(4),
+                catalog_viewer_modes_json(4)
+            ),
         };
-            if matches!(game, RegisteredGame::RiverLedger) {
+            if matches!(
+                game,
+                RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit
+            ) {
                 return catalog_json;
             }
             let seat_labels_json = match game {

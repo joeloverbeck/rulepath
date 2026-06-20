@@ -103,5 +103,12 @@
     "rules_asset_path": "/rules/river_ledger.md",
     "source_rules_version_checked": "river-ledger-rules-v2",
     "sha256": "3c749c9da3c941f817e3193025bce8e6d660f9e738ea209df0e6215fa3590743"
+  },
+  {
+    "game_id": "briar_circuit",
+    "display_name": "Briar Circuit",
+    "rules_asset_path": "/rules/briar_circuit.md",
+    "source_rules_version_checked": "briar-circuit-rules-v1",
+    "sha256": "fa951ca3dbd478462431b4299dcb8f99e9574366fae6129a430d090b75dbae83"
   }
 ]

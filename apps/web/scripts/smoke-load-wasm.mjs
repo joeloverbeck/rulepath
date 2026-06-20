@@ -95,6 +95,21 @@ assert(
 assert(
   catalog.some(
     (game) =>
+      game.game_id === "briar_circuit" &&
+      hasVariant(game, "briar_circuit_standard", "Briar Circuit") &&
+      game.hidden_information === true &&
+      game.min_seats === 4 &&
+      game.max_seats === 4 &&
+      game.default_seats === 4 &&
+      JSON.stringify(game.supported_seats) === JSON.stringify([4]) &&
+      game.viewer_modes.includes("seat_3") &&
+      game.tags.includes("trick_taking"),
+  ),
+  "list_games includes briar_circuit fixed-four hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
       game.game_id === "masked_claims" &&
       hasVariant(game, "masked_claims_standard", "Masked Claims") &&
       game.hidden_information === true &&
@@ -1181,6 +1196,126 @@ const plainReplayReset = invoke(
 );
 assert(plainReplayReset.public_export === true, "plain_tricks replay reset uses public timeline");
 
+const briarCreated = invoke(
+  (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 61n),
+  ["briar_circuit"],
+);
+assert(briarCreated.match_id, "briar_circuit new_match returns a match id");
+assert(briarCreated.variant_id === "briar_circuit_standard", "briar_circuit starts standard variant");
+
+const briarObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [briarCreated.match_id],
+);
+assert(briarObserver.game_id === "briar_circuit", "briar_circuit view is game-specific");
+assert(briarObserver.private_view_status === "observer", "briar_circuit observer view is redacted");
+assert(briarObserver.own_hand.length === 0, "briar_circuit observer omits private hand");
+assert(briarObserver.hand_counts.seat_0 === 13, "briar_circuit exposes hand counts to observer");
+
+const briarSeat0 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [briarCreated.match_id, "seat_0"],
+);
+assert(briarSeat0.private_view_status === "seat", "briar_circuit seat viewer receives private view");
+assert(briarSeat0.own_hand.length === 13, "briar_circuit seat view includes own hand");
+
+const briarUnauthorizedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [briarCreated.match_id, "seat_0", "seat_1"],
+);
+assert(briarUnauthorizedTree.choices.length === 0, "briar_circuit non-actor tree is redacted");
+
+const briarTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [briarCreated.match_id, "seat_0", "seat_0"],
+);
+const briarPath = firstCompletePath(briarTree.choices);
+assert(
+  briarPath[0] === "pass" && briarPath[1] === "select" && briarPath[2],
+  "briar_circuit action tree exposes pass selection paths",
+);
+
+const briarAfterHuman = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(briarTree.freshness_token),
+    ),
+  [briarCreated.match_id, "seat_0", briarPath.join(">")],
+);
+assert(briarAfterHuman.view.pass.own_selection.length === 1, "briar_circuit pass selection reaches Rust view");
+assert(
+  briarAfterHuman.effects.some((effect) => effect.payload.type === "pass_selection_updated"),
+  "briar_circuit emits semantic private pass-selection effect",
+);
+assert(!JSON.stringify(briarObserver).includes(briarPath[2]), "briar_circuit observer omits unplayed private card");
+
+const briarObserverEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n),
+  [briarCreated.match_id],
+);
+assert(
+  !JSON.stringify(briarObserverEffects).includes(briarPath[2]),
+  "briar_circuit observer effects omit private pass selection",
+);
+
+const briarAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 77n),
+  [briarCreated.match_id, "seat_1"],
+);
+assert(
+  briarAfterBot.effects.some((effect) => effect.payload.type === "pass_selection_updated"),
+  "briar_circuit bot dispatch applies a legal action",
+);
+
+const briarExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [briarCreated.match_id],
+);
+assert(briarExportedReplay.game_id === "briar_circuit", "briar_circuit export_replay preserves game id");
+assert(
+  briarExportedReplay.export_class === "viewer_scoped_observation_v1",
+  "briar_circuit export is viewer-scoped",
+);
+assert(!JSON.stringify(briarExportedReplay).includes('"commands"'), "briar_circuit public export omits command stream");
+assert(!JSON.stringify(briarExportedReplay).includes(briarPath[2]), "briar_circuit public export omits private card");
+
+const briarImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(briarExportedReplay)],
+);
+assert(briarImportedReplay.game_id === "briar_circuit", "briar_circuit import_replay preserves game id");
+assert(briarImportedReplay.public_export === true, "briar_circuit import marks public export");
+
+const briarReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [briarImportedReplay.replay_id],
+);
+assert(briarReplayReset.public_export === true, "briar_circuit replay reset uses public timeline");
+
 console.log(
   JSON.stringify({
     version,
@@ -1202,6 +1337,8 @@ console.log(
     secret_draft_public_export: secretImportedReplay.public_export,
     plain_tricks_match_id: plainCreated.match_id,
     plain_tricks_public_export: plainImportedReplay.public_export,
+    briar_circuit_match_id: briarCreated.match_id,
+    briar_circuit_public_export: briarImportedReplay.public_export,
   }),
 );
 

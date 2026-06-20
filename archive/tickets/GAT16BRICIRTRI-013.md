@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-013: WASM catalog, operation groups, adapter, and player-rules generation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/{constants,catalog,games}.rs` + `src/games/briar.rs`, `apps/web/scripts/smoke-load-wasm.mjs`, `apps/web/public/rules/{briar_circuit.md,manifest.json}`, `scripts/check-player-rules.mjs`
@@ -87,3 +87,30 @@ Generate `apps/web/public/rules/briar_circuit.md` from `HOW-TO-PLAY.md` via `scr
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm`
 3. `node scripts/copy-player-rules.mjs && node scripts/check-player-rules.mjs`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Implemented the additive Briar Circuit WASM registration and operation dispatch:
+catalog constants/metadata, fixed-four seat default handling, the `briar`
+bridge adapter, match/view/action/effect/bot/replay import-export dispatch, and
+the API surface snapshot update. The bridge projects only Rust/WASM-filtered
+viewer payloads and exports Briar replays as viewer-scoped public observations
+so private pass selections and command paths are not exposed.
+
+Generated `apps/web/public/rules/briar_circuit.md` and the rules manifest row
+from `games/briar_circuit/docs/HOW-TO-PLAY.md`; the source headings were
+normalized to the checker's exact player-rules section names. Added
+`briar_circuit` to the hidden-information player-rules registry and extended
+`smoke-load-wasm.mjs` with Briar catalog, fixed-seat, viewer-filtering,
+action-tree, apply, bot, effects, public replay export/import, and replay reset
+coverage.
+
+Verification:
+
+- `cargo test -p wasm-api` passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `node scripts/copy-player-rules.mjs && node scripts/check-player-rules.mjs`
+  passed.
+- `cargo fmt --all --check` passed.
