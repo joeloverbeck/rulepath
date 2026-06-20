@@ -17,6 +17,7 @@ type DirectionalFlipBoardProps = {
   reducedMotion: boolean;
   pending: boolean;
   interactive?: boolean;
+  seatRoleLabels?: Partial<Record<SeatId, string>>;
   onChoice?: (choice: ActionChoice) => void;
 };
 
@@ -32,6 +33,7 @@ export function DirectionalFlipBoard({
   reducedMotion,
   pending,
   interactive = true,
+  seatRoleLabels = {},
   onChoice,
 }: DirectionalFlipBoardProps) {
   const cells = useMemo(
@@ -70,6 +72,15 @@ export function DirectionalFlipBoard({
   const botEffect = latestEffectOfType(effects, "bot_chose_action");
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const canPlay = interactive && !pending && !terminal;
+  const seat0Role = seatRoleLabels.seat_0;
+  const seat1Role = seatRoleLabels.seat_1;
+  const showIdentity = interactive && seat0Role === "you" && seat1Role === "bot";
+  const scoreLeader =
+    view.score.seat_0 > view.score.seat_1
+      ? "seat_0"
+      : view.score.seat_1 > view.score.seat_0
+        ? "seat_1"
+        : null;
   const outcomeExplanation = terminal
     ? outcomeSurfaceData({
         gameId: "directional_flip",
@@ -142,14 +153,29 @@ export function DirectionalFlipBoard({
         {boardSummary(view)}
       </p>
 
+      {showIdentity ? (
+        <p className="directional-identity" data-testid="directional-identity">
+          You play the {view.ui.first_disc_shape_label} (Player 1). The bot plays the{" "}
+          {view.ui.second_disc_shape_label} (Player 2).
+        </p>
+      ) : null}
+
       <div className="directional-score" aria-label="Score">
-        <div>
-          <span>{view.ui.first_disc_shape_label}</span>
+        <div className={scoreLeader === "seat_0" ? "leading" : ""} data-testid="directional-score-seat_0">
+          <span>
+            {view.ui.first_disc_shape_label}
+            {roleSuffix(seat0Role)}
+          </span>
           <strong>{view.score.seat_0}</strong>
+          <small className="directional-lead-note">{leadNote("seat_0", scoreLeader)}</small>
         </div>
-        <div>
-          <span>{view.ui.second_disc_shape_label}</span>
+        <div className={scoreLeader === "seat_1" ? "leading" : ""} data-testid="directional-score-seat_1">
+          <span>
+            {view.ui.second_disc_shape_label}
+            {roleSuffix(seat1Role)}
+          </span>
           <strong>{view.score.seat_1}</strong>
+          <small className="directional-lead-note">{leadNote("seat_1", scoreLeader)}</small>
         </div>
         <div>
           <span>Ply</span>
@@ -387,6 +413,17 @@ function cellLabel(cell: DirectionalFlipCellView): string {
 
 function seatLabel(seat: string | null): string {
   return seat === "seat_0" ? "Player 1" : seat === "seat_1" ? "Player 2" : "No player";
+}
+
+function roleSuffix(role: string | undefined): string {
+  return role ? ` (${role})` : "";
+}
+
+function leadNote(seat: "seat_0" | "seat_1", leader: "seat_0" | "seat_1" | null): string {
+  if (leader === null) {
+    return "Tied";
+  }
+  return leader === seat ? "Leading" : "Behind";
 }
 
 function playerFacingText(value: string): string {

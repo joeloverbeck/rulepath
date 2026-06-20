@@ -56,6 +56,7 @@ try {
 
   await startDirectionalFlip(page);
   await assertBoard(page);
+  await assertSeatIdentity(page);
   await assertAccessibleCells(page);
   await assertPreview(page, "r3c4");
   await clickCell(page, "r3c4");
@@ -67,6 +68,7 @@ try {
 
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
   await startDirectionalFlip(page, "Hotseat");
+  await assertNoSeatIdentity(page);
   await keyboardPlaceAtR3c4(page);
   await waitForPly(page, 1);
   await page.keyboard.press("Escape");
@@ -120,6 +122,23 @@ async function assertBoard(page) {
   assert(board.legal === 4, `initial board exposes four Rust legal targets, got ${board.legal}`);
   assert(board.discs === 4, `initial board renders four starting discs, got ${board.discs}`);
   assert(board.status.length > 0, "board exposes text status");
+}
+
+async function assertSeatIdentity(page) {
+  const identity = await page.$eval('[data-testid="directional-identity"]', (element) => element.textContent ?? "");
+  assert(
+    /you play the ring disc/i.test(identity),
+    `human-vs-bot exposes the local seat identity, got "${identity}"`,
+  );
+  const seat0Role = await page.$eval('[data-testid="directional-score-seat_0"]', (element) => element.textContent ?? "");
+  const seat1Role = await page.$eval('[data-testid="directional-score-seat_1"]', (element) => element.textContent ?? "");
+  assert(/\(you\)/i.test(seat0Role), `seat_0 score is tagged as the human, got "${seat0Role}"`);
+  assert(/\(bot\)/i.test(seat1Role), `seat_1 score is tagged as the bot, got "${seat1Role}"`);
+}
+
+async function assertNoSeatIdentity(page) {
+  const present = await page.$('[data-testid="directional-identity"]');
+  assert(present === null, "hotseat does not assert a single-seat human identity");
 }
 
 async function assertAccessibleCells(page) {
