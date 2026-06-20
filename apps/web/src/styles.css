@@ -990,6 +990,56 @@ h2 {
   font-weight: 800;
 }
 
+.token-action-leg {
+  display: grid;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid #e0e6e2;
+}
+
+.token-action-leg.cost {
+  background: #fdf3ee;
+  border-color: #f0d3c4;
+}
+
+.token-action-leg.gain {
+  background: #eef7f1;
+  border-color: #c7e3d2;
+}
+
+.token-action-leg-label {
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.token-action-leg.cost .token-action-leg-label {
+  color: #b2502a;
+}
+
+.token-action-leg.gain .token-action-leg-label {
+  color: #2f7d5b;
+}
+
+.token-action-points {
+  font-weight: 900;
+  color: #17221e;
+}
+
+.token-bazaar-identity {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #c5d8cd;
+  border-left: 4px solid #2f7d5b;
+  border-radius: 6px;
+  background: #eef6f1;
+  color: #285c44;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
 .token-recent p {
   margin: 0;
   color: #33433d;

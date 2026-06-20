@@ -19,6 +19,7 @@ type TokenBazaarBoardProps = {
   reducedMotion: boolean;
   pending: boolean;
   interactive?: boolean;
+  seatRoleLabels?: Partial<Record<SeatId, string>>;
   onChoice?: (choice: ActionChoice) => void;
 };
 
@@ -32,9 +33,11 @@ export function TokenBazaarBoard({
   reducedMotion,
   pending,
   interactive = true,
+  seatRoleLabels = {},
   onChoice,
 }: TokenBazaarBoardProps) {
   const terminal = view.terminal.terminal;
+  const showIdentity = interactive && seatRoleLabels.seat_0 === "you" && seatRoleLabels.seat_1 === "bot";
   const choices = useMemo(() => actionTreeChoices(actionTree, view.legal_actions), [actionTree, view.legal_actions]);
   const canAct = Boolean(interactive && !pending && !terminal && view.active_seat && choices.length > 0);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
@@ -87,6 +90,12 @@ export function TokenBazaarBoard({
         {boardSummary(view)}
       </p>
 
+      {showIdentity ? (
+        <p className="token-bazaar-identity" data-testid="token-bazaar-identity">
+          You are {seatLabel("seat_0")}. The bot is {seatLabel("seat_1")}.
+        </p>
+      ) : null}
+
       <div className="token-bazaar-metrics" aria-label="Match accounting">
         <Metric label={view.ui.score_label} value={`${view.scores.seat_0} - ${view.scores.seat_1}`} />
         <Metric label={view.ui.turn_counter_label} value={`${view.turns_taken.seat_0} / ${view.turns_taken.turns_per_seat}`} />
@@ -95,7 +104,7 @@ export function TokenBazaarBoard({
       </div>
 
       <div className="token-bazaar-table" aria-label={view.ui.table_label}>
-        <SeatInventory view={view} seat="seat_0" />
+        <SeatInventory view={view} seat="seat_0" role={seatRoleLabels.seat_0} />
 
         <section className="token-supply" aria-label={view.ui.supply_label}>
           <div className="token-section-heading">
@@ -105,7 +114,7 @@ export function TokenBazaarBoard({
           <ResourceChips counts={view.supply} compact />
         </section>
 
-        <SeatInventory view={view} seat="seat_1" />
+        <SeatInventory view={view} seat="seat_1" role={seatRoleLabels.seat_1} />
       </div>
 
       <section className="token-market" aria-label={view.ui.market_label}>
@@ -187,16 +196,19 @@ export function TokenBazaarBoard({
   );
 }
 
-function SeatInventory({ view, seat }: { view: TokenBazaarPublicView; seat: SeatId }) {
+function SeatInventory({ view, seat, role }: { view: TokenBazaarPublicView; seat: SeatId; role?: string }) {
   const index = seat === "seat_0" ? 0 : 1;
   const inventory = view.inventories[index];
   const fulfilled = seat === "seat_0" ? view.fulfilled.seat_0 : view.fulfilled.seat_1;
   const active = view.active_seat === seat;
 
   return (
-    <section className={`token-seat ${active ? "active" : ""}`} aria-label={`${seatLabel(seat)} inventory`}>
+    <section className={`token-seat ${active ? "active" : ""}`} aria-label={`${seatLabel(seat)}${roleSuffix(role)} inventory`}>
       <div className="token-section-heading">
-        <span>{seatLabel(seat)}</span>
+        <span>
+          {seatLabel(seat)}
+          {roleSuffix(role)}
+        </span>
         <strong>{active ? "Active" : `${fulfilled.length} fulfilled`}</strong>
       </div>
       <ResourceChips counts={inventory.resources} compact />
@@ -236,11 +248,25 @@ function ActionMetadata({ choice }: { choice: ActionChoice }) {
   const points = metadataValue(choice, "points");
   return (
     <small>
-      {cost ? <ResourceChips counts={cost} compact label="Action cost" /> : null}
-      {gain ? <ResourceChips counts={gain} compact label="Action gain" /> : null}
-      {points ? <span>{points} points</span> : null}
+      {cost ? (
+        <span className="token-action-leg cost">
+          <span className="token-action-leg-label">Pay</span>
+          <ResourceChips counts={cost} compact label="Action cost" />
+        </span>
+      ) : null}
+      {gain ? (
+        <span className="token-action-leg gain">
+          <span className="token-action-leg-label">Get</span>
+          <ResourceChips counts={gain} compact label="Action gain" />
+        </span>
+      ) : null}
+      {points ? <span className="token-action-points">{points} points</span> : null}
     </small>
   );
+}
+
+function roleSuffix(role: string | undefined): string {
+  return role ? ` (${role})` : "";
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
