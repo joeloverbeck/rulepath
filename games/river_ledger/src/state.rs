@@ -46,6 +46,7 @@ pub enum Phase {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum SeatStatus {
     Live,
+    AllIn,
     Folded,
     ShowdownEligible,
 }
@@ -271,18 +272,23 @@ impl RiverLedgerState {
             let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
             let starting_stack = starting_stacks[index];
             let total_contribution = if seat == small_blind {
-                u16::from(STANDARD_SMALL_BLIND)
+                starting_stack.min(u16::from(STANDARD_SMALL_BLIND))
             } else if seat == big_blind {
-                u16::from(STANDARD_BIG_BLIND)
+                starting_stack.min(u16::from(STANDARD_BIG_BLIND))
             } else {
                 0
             };
             let remaining_stack = starting_stack
                 .checked_sub(total_contribution)
-                .expect("GAT151RIVLED-003 setup rejects stacks below forced posts");
+                .expect("forced posts are capped by starting stack");
+            let status = if remaining_stack == 0 {
+                SeatStatus::AllIn
+            } else {
+                SeatStatus::Live
+            };
             ledgers.push(SeatLedger {
                 seat,
-                status: SeatStatus::Live,
+                status,
                 starting_stack,
                 remaining_stack,
                 street_contribution: total_contribution,
@@ -290,7 +296,13 @@ impl RiverLedgerState {
             });
         }
 
-        let pot_total = u16::from(STANDARD_SMALL_BLIND + STANDARD_BIG_BLIND);
+        let pot_total = ledgers
+            .iter()
+            .try_fold(0u16, |total, seat| {
+                total.checked_add(seat.total_contribution)
+            })
+            .expect("setup forced posts fit u16");
+        let current_to_call = ledgers[big_blind.index()].street_contribution;
 
         Self {
             variant,
@@ -312,7 +324,7 @@ impl RiverLedgerState {
             },
             betting: BettingRoundState {
                 street: Street::Preflop,
-                current_to_call: u16::from(STANDARD_BIG_BLIND),
+                current_to_call,
                 raises_this_street: 0,
                 last_aggressor: Some(big_blind),
                 actors_to_respond: response_order_after(big_blind, seat_count),

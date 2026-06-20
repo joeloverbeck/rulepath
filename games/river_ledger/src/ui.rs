@@ -265,6 +265,7 @@ fn role_badges(roles: SeatLedgerRoles) -> Vec<String> {
 fn seat_status_label(status: SeatStatus) -> &'static str {
     match status {
         SeatStatus::Live => "Live",
+        SeatStatus::AllIn => "All-in",
         SeatStatus::Folded => "Folded",
         SeatStatus::ShowdownEligible => "Showdown eligible",
     }

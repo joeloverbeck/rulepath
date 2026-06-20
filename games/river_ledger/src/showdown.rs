@@ -172,7 +172,7 @@ pub fn showdown_eligible_seats(state: &RiverLedgerState) -> Vec<RiverLedgerSeat>
         .filter(|entry| {
             matches!(
                 entry.status,
-                SeatStatus::Live | SeatStatus::ShowdownEligible
+                SeatStatus::Live | SeatStatus::AllIn | SeatStatus::ShowdownEligible
             )
         })
         .map(|entry| entry.seat)

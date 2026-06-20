@@ -78,6 +78,28 @@ fn assert_accounting(state: &river_ledger::RiverLedgerState) {
     }
 }
 
+fn assert_setup_stack_conservation(state: &river_ledger::RiverLedgerState) {
+    let starting = state
+        .ledger
+        .seats
+        .iter()
+        .map(|seat| u32::from(seat.starting_stack))
+        .sum::<u32>();
+    let remaining_plus_contributed = state
+        .ledger
+        .seats
+        .iter()
+        .map(|seat| u32::from(seat.remaining_stack) + u32::from(seat.total_contribution))
+        .sum::<u32>();
+    assert_eq!(starting, remaining_plus_contributed);
+    assert!(state
+        .ledger
+        .seats
+        .iter()
+        .filter(|seat| seat.status == river_ledger::SeatStatus::AllIn)
+        .all(|seat| seat.remaining_stack == 0));
+}
+
 #[test]
 fn random_legal_action_sequences_preserve_accounting_invariants() {
     for count in 3..=6 {
@@ -118,6 +140,8 @@ fn setup_and_stable_serialization_are_deterministic_for_random_seed_sweep() {
                 setup_match(Seed(seed), &seats(count), &SetupOptions::default()).expect("left");
             let right =
                 setup_match(Seed(seed), &seats(count), &SetupOptions::default()).expect("right");
+            assert_setup_stack_conservation(&left);
+            assert_setup_stack_conservation(&right);
 
             assert_eq!(
                 left.stable_internal_summary(),

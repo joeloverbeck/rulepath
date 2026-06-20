@@ -3,8 +3,8 @@ use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
 use crate::{
     cards::{canonical_deck, Card},
     ids::{
-        RiverLedgerSeat, MAX_STARTING_STACK, STANDARD_BIG_BLIND, STANDARD_MAX_SEATS,
-        STANDARD_MIN_SEATS, STANDARD_SMALL_BLIND, STANDARD_STARTING_STACK,
+        RiverLedgerSeat, MAX_STARTING_STACK, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
+        STANDARD_STARTING_STACK,
     },
     state::{RiverLedgerState, SeatRoles},
     variants::Variant,
@@ -44,8 +44,6 @@ pub fn setup_match(
     let big_blind = small_blind
         .next_in_count(seats.len() as u8)
         .expect("big blind");
-    validate_forced_post_capacity(&starting_stacks, small_blind, STANDARD_SMALL_BLIND)?;
-    validate_forced_post_capacity(&starting_stacks, big_blind, STANDARD_BIG_BLIND)?;
     let active_seat = big_blind
         .next_in_count(seats.len() as u8)
         .expect("preflop active seat");
@@ -141,25 +139,6 @@ pub fn validate_starting_stacks(
     }
 
     Ok(stacks)
-}
-
-fn validate_forced_post_capacity(
-    starting_stacks: &[u16],
-    seat: RiverLedgerSeat,
-    forced_post: u8,
-) -> Result<(), Diagnostic> {
-    let stack = starting_stacks[seat.index()];
-    if stack >= u16::from(forced_post) {
-        return Ok(());
-    }
-
-    Err(Diagnostic {
-        code: "invalid_starting_stack_for_forced_post".to_owned(),
-        message: format!(
-            "river_ledger starting stack for {} must cover the current forced post ({forced_post})",
-            seat.as_str()
-        ),
-    })
 }
 
 pub fn shuffle_deck<R: DeterministicRng>(deck: &mut [Card], rng: &mut R) {

@@ -1,6 +1,6 @@
 # GAT151RIVLED-004: Stack ledger and forced posts
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`state.rs`, `setup.rs`), tests
@@ -78,3 +78,26 @@ Cap each blind post by the posting seat's remaining stack, creating a determinis
 1. `cargo test -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p fixture-check -- --game river_ledger` — narrower than the web/WASM gates, which this ticket does not touch.
+
+## Outcome
+
+Completed: 2026-06-20
+
+What changed:
+
+- Added the typed `SeatStatus::AllIn` state and public UI label.
+- Changed forced-post setup to cap small/big blind contributions by the posting seat's starting stack, leaving exact-exhausted or short-posting seats with `remaining_stack = 0` and `AllIn` status.
+- Derived setup `pot_total` and preflop `current_to_call` from the actual capped forced posts.
+- Kept all stack/all-in behavior game-local in `games/river_ledger`; no `engine-core` or `game-stdlib` change.
+- Added setup-level stack conservation assertions and rule tests for short small blind, short big blind, exact blind exhaustion, and no-underflow behavior.
+
+Deviations:
+
+- Full action-level stack decrement/capping remains out of scope for this ticket and is still owned by GAT151RIVLED-005. Conservation assertions added here are setup/forced-post focused so they do not preempt the next legal-action ticket.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p river_ledger` passed.
+- `cargo run -p simulate -- --game river_ledger --games 1000` passed (`games_run=1000`).
+- `cargo run -p fixture-check -- --game river_ledger` passed (`fixture-check: all fixtures passed`).

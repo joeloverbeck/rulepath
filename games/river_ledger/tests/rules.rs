@@ -204,6 +204,28 @@ fn assert_showdown_surface_agreement(outcome: &TerminalOutcome) {
     }
 }
 
+fn assert_stack_conservation(state: &river_ledger::RiverLedgerState) {
+    let starting = state
+        .ledger
+        .seats
+        .iter()
+        .map(|ledger| ledger.starting_stack)
+        .sum::<u16>();
+    let remaining_plus_contributed = state
+        .ledger
+        .seats
+        .iter()
+        .map(|ledger| ledger.remaining_stack + ledger.total_contribution)
+        .sum::<u16>();
+    assert_eq!(starting, remaining_plus_contributed);
+    assert!(state
+        .ledger
+        .seats
+        .iter()
+        .filter(|ledger| ledger.status == SeatStatus::AllIn)
+        .all(|ledger| ledger.remaining_stack == 0));
+}
+
 #[test]
 fn setup_accepts_three_to_six_seats_and_rejects_other_counts() {
     let options = SetupOptions::default();
@@ -288,6 +310,7 @@ fn setup_assigns_button_blinds_active_seat_and_initial_ledger() {
         state.ledger.pot_total,
         u16::from(STANDARD_SMALL_BLIND + STANDARD_BIG_BLIND)
     );
+    assert_stack_conservation(&state);
 }
 
 #[test]
@@ -310,6 +333,7 @@ fn setup_uses_equal_default_starting_stacks() {
     assert!(state
         .stable_internal_summary()
         .contains("stacks=seat_0:24:24,seat_1:24:23,seat_2:24:22"));
+    assert_stack_conservation(&state);
 }
 
 #[test]
@@ -337,6 +361,7 @@ fn setup_accepts_ordered_asymmetric_starting_stacks() {
             ("seat_2".to_owned(), 24, 22),
         ]
     );
+    assert_stack_conservation(&state);
 }
 
 #[test]
@@ -380,14 +405,58 @@ fn setup_rejects_malformed_starting_stacks() {
     };
     let err = setup_match(Seed(42), &seats(3), &out_of_range).expect_err("range rejects");
     assert_eq!(err.code, "invalid_starting_stack");
+}
 
-    let cannot_cover_current_forced_post = SetupOptions {
+#[test]
+fn setup_caps_short_forced_posts_and_marks_all_in() {
+    let short_big_blind = SetupOptions {
         starting_stacks: Some(vec![8, 16, 1]),
         ..SetupOptions::default()
     };
-    let err = setup_match(Seed(43), &seats(3), &cannot_cover_current_forced_post)
-        .expect_err("pre-capping ticket rejects short forced post");
-    assert_eq!(err.code, "invalid_starting_stack_for_forced_post");
+    let state = setup_match(Seed(43), &seats(3), &short_big_blind).expect("short post setup");
+    let big_blind = &state.ledger.seats[2];
+    assert_eq!(big_blind.starting_stack, 1);
+    assert_eq!(big_blind.street_contribution, 1);
+    assert_eq!(big_blind.total_contribution, 1);
+    assert_eq!(big_blind.remaining_stack, 0);
+    assert_eq!(big_blind.status, SeatStatus::AllIn);
+    assert_eq!(state.ledger.pot_total, 2);
+    assert_eq!(state.betting.current_to_call, 1);
+    assert_stack_conservation(&state);
+
+    let short_small_blind = SetupOptions {
+        starting_stacks: Some(vec![8, 1, 24]),
+        ..SetupOptions::default()
+    };
+    let state = setup_match(Seed(44), &seats(3), &short_small_blind).expect("short small setup");
+    let small_blind = &state.ledger.seats[1];
+    assert_eq!(small_blind.starting_stack, 1);
+    assert_eq!(small_blind.street_contribution, 1);
+    assert_eq!(small_blind.remaining_stack, 0);
+    assert_eq!(small_blind.status, SeatStatus::AllIn);
+    assert_eq!(state.ledger.pot_total, 3);
+    assert_stack_conservation(&state);
+}
+
+#[test]
+fn setup_exact_blind_exhaustion_is_all_in_without_underflow() {
+    let exact_blinds = SetupOptions {
+        starting_stacks: Some(vec![8, 1, 2]),
+        ..SetupOptions::default()
+    };
+    let state = setup_match(Seed(45), &seats(3), &exact_blinds).expect("exact blind setup");
+
+    for index in [1, 2] {
+        let ledger = &state.ledger.seats[index];
+        assert_eq!(ledger.remaining_stack, 0);
+        assert_eq!(ledger.status, SeatStatus::AllIn);
+        assert_eq!(
+            ledger.starting_stack, ledger.total_contribution,
+            "forced post consumes the exact stack"
+        );
+    }
+    assert_eq!(state.ledger.pot_total, 3);
+    assert_stack_conservation(&state);
 }
 
 #[test]
