@@ -79,6 +79,7 @@ try {
 
   await startMaskedClaims(page, baseUrl, "Hotseat", 13);
   await assertMaskedClaimsA11y(page, true);
+  await assertClaimRiskCues(page);
   await assertNoLeak(page, consoleMessages, "initial hotseat");
   await focusByTestId(page, "masked-claims-claim-turn-0-0-0");
   await assertFocusedVisible(page);
@@ -196,6 +197,33 @@ async function assertMaskedClaimsA11y(page, expectChoices) {
   }
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);
   assert(summary.liveText.length > 0, "masked_claims latest-effect region has text");
+}
+
+async function assertClaimRiskCues(page) {
+  const summary = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('[data-testid="masked-claims-own-hand"] .plain-card'));
+    return {
+      legend: document.querySelector('[data-testid="masked-claims-legend"]')?.textContent?.trim() ?? "",
+      badges: cards.map((card) => card.querySelector(".masked-grade-badge")?.textContent?.trim() ?? ""),
+      relations: cards.map((card) =>
+        Array.from(card.querySelectorAll(".masked-declare .masked-claim-cue")).map((cue) => cue.textContent?.trim() ?? ""),
+      ),
+    };
+  });
+  assert(/true grade/i.test(summary.legend), `claim risk legend renders, got "${summary.legend}"`);
+  assert(
+    summary.badges.length > 0 && summary.badges.every((badge) => /true grade \d of \d/i.test(badge)),
+    `every held mask shows its true grade rank, got ${JSON.stringify(summary.badges)}`,
+  );
+  const flat = summary.relations.flat();
+  assert(flat.includes("true"), "at least one declaration is tagged as the true grade");
+  assert(flat.includes("bluff"), "overclaim declarations are tagged as a bluff");
+  assert(flat.includes("under"), "underclaim declarations are tagged as under");
+  // Each held mask must expose exactly one truthful declaration.
+  assert(
+    summary.relations.every((card) => card.filter((relation) => relation === "true").length === 1),
+    `each mask has exactly one true-grade declaration, got ${JSON.stringify(summary.relations)}`,
+  );
 }
 
 async function assertResponseControls(page, expected) {

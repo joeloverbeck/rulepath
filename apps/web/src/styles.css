@@ -704,6 +704,68 @@ h2 {
   background: #edf7f2;
 }
 
+.masked-claim-legend {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+  padding: 6px 10px;
+  border: 1px solid #d7ded9;
+  border-radius: 6px;
+  background: #f6f8f5;
+  color: #3a4a44;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.masked-grade-badge {
+  align-self: start;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #e6efe9;
+  color: #285c44;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.masked-declare {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.masked-declare.bluff {
+  border-color: #e3b48f;
+}
+
+.masked-declare.true {
+  border-color: #2b8068;
+}
+
+.masked-claim-cue {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.masked-claim-cue.true {
+  background: #2b8068;
+  color: #fff;
+}
+
+.masked-claim-cue.under {
+  background: #e6efe9;
+  color: #2f6b52;
+}
+
+.masked-claim-cue.bluff {
+  background: #f3d8c2;
+  color: #9a4a17;
+}
+
 .plain-card.gale,
 .plain-played-card.gale {
   box-shadow: inset 4px 0 0 #4f83a7;
