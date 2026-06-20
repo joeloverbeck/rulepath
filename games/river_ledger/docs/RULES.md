@@ -220,6 +220,7 @@ Bot notes are not rule authority; they constrain later bot documents and code.
 | `RL-BOT-L0-001` | Level 0 chooses randomly among legal actions with deterministic seeded tie handling. | legal action tree | hidden opponent cards, deck tail, rollout sampling |
 | `RL-BOT-L1-001` | Level 1 uses conservative public/own-hole heuristics. | own hole-card class, public board texture, call price, live-opponent count, street, cap pressure | opponent hole cards, future board cards, hidden deck identities |
 | `RL-BOT-L2-001` | Level 2 uses the authored evidence-pack priority vector and deterministic tie-breaks. | fields named in the evidence pack | MCTS, ISMCTS, Monte Carlo, ML, RL, solvers, hidden-state sampling |
+| `RL-BOT-ALLIN-001` | Bots distinguish stack-capped legal actions and return no action when all-in or terminal. | authorized seat view, public stack/call/eligibility facts, legal action metadata | opponent secrets, deck tail, bot-only legality, direct state mutation |
 | `RL-BOT-EXPLAIN-001` | Bot explanations are viewer-safe. | public facts and, for owner-private rationale, own authorized hole-card buckets | opponent secrets, deck tail, unauthorized evaluated hands |
 
 ## UI and player-facing presentation

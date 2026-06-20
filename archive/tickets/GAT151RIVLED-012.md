@@ -1,6 +1,6 @@
 # GAT151RIVLED-012: Bots (L0/L1/L2) for stack-capped play
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`bots.rs`), tests
@@ -74,3 +74,21 @@ Feed L1/L2 only public stack/pot/call/eligibility facts; update deterministic po
 1. `cargo test -p river_ledger`
 2. `cargo run -p simulate -- --game river_ledger --games 1000`
 3. `cargo run -p rule-coverage -- --game river_ledger` — bot-legality coverage is the correct boundary; cross-surface no-leak is proven in GAT151RIVLED-016.
+
+## Outcome
+
+Completed: 2026-06-20
+
+Implemented stack-aware L1/L2 bot candidates by consuming Rust legal-action metadata (`amount_owed`, `adds_to_pot`, stack before/after, all-in/full-raise/reopen flags) instead of ranking action families alone. L1 and L2 continue to submit normal action paths through the legal-action API, and no-action all-in/terminal states remain represented by the existing `no_legal_actions` diagnostic.
+
+Updated public bot explanations to distinguish call all-in, bet all-in, full raise all-in, short raise all-in, and ordinary fixed-unit actions using only public stack/call/ledger facts. Added bot tests for all-in/terminal no-action handling across L0/L1/L2, call-all-in and short-raise-all-in explanation labels, deterministic hidden-state poisoning, public input whitelisting, and unchanged command validation.
+
+Added the minimal `RL-BOT-ALLIN-001` rule and coverage rows required for this ticket's coverage proof. The broader bot strategy docs remain owned by GAT151RIVLED-019.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p river_ledger --test bots` — passed.
+3. `cargo test -p river_ledger` — passed.
+4. `cargo run -p simulate -- --game river_ledger --games 1000` — passed.
+5. `cargo run -p rule-coverage -- --game river_ledger` — passed.
