@@ -1,6 +1,6 @@
 # GAT151RIVLED-003: Typed per-seat stack setup
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`setup.rs`, `state.rs`, `variants.rs`), `data/manifest.toml`, `data/variants.toml`, new `data/fixtures/*`
@@ -83,3 +83,27 @@ Add equal-default and neutral asymmetric presets to `data/manifest.toml` / `data
 1. `cargo test -p river_ledger`
 2. `cargo run -p fixture-check -- --game river_ledger`
 3. `cargo run -p simulate -- --game river_ledger --games 100` — narrower than full workspace tests because this ticket changes only setup/data, with betting unchanged.
+
+## Outcome
+
+Completed: 2026-06-20
+
+What changed:
+
+- Added optional ordered per-seat starting stacks to `SetupOptions`, with an equal 24-unit default and Rust-side validation for seat-count length, positive bounded values, checked total arithmetic, and current forced-post capacity.
+- Added `starting_stack` and `remaining_stack` to River Ledger seat ledgers and stable summaries, initialized from the validated setup vector while leaving all-in and blind-capping behavior for GAT151RIVLED-004.
+- Added inert typed variant metadata for the default stack and neutral asymmetric stack presets.
+- Added asymmetric 3-seat and 6-seat setup fixtures for `[8, 16, 24]` and `[4, 8, 12, 16, 20, 24]`.
+- Updated direct test constructors in River Ledger and `wasm-api` tests to provide default stack vectors.
+
+Deviations:
+
+- Short forced-post stacks currently reject with `invalid_starting_stack_for_forced_post`; GAT151RIVLED-004 owns relaxing that path by capping forced posts and marking the posting seat all-in.
+
+Verification:
+
+- `cargo fmt --all --check` passed after formatting.
+- `cargo test -p river_ledger` passed.
+- `cargo run -p fixture-check -- --game river_ledger` passed (`fixture-check: all fixtures passed`).
+- `cargo run -p simulate -- --game river_ledger --games 100` passed (`games_run=100`).
+- `cargo test -p wasm-api` passed after the constructor-signature test update.

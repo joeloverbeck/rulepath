@@ -5,7 +5,8 @@ use river_ledger::state::SeatRoles;
 use river_ledger::{
     apply_action, canonical_deck, legal_action_tree, setup_match, validate_command, Card, PotShare,
     Rank, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Street, Suit, TerminalOutcome,
-    Variant, STANDARD_BIG_BLIND, STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND,
+    Variant, MAX_STARTING_STACK, STANDARD_BIG_BLIND, STANDARD_CARD_COUNT, STANDARD_SMALL_BLIND,
+    STANDARD_STARTING_STACK,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -101,6 +102,7 @@ fn custom_showdown_state(
             big_blind: seat(2),
             active_seat: seat(0),
         },
+        vec![STANDARD_STARTING_STACK; private_hands.len()],
         private_hands,
         board,
         Vec::new(),
@@ -110,6 +112,8 @@ fn custom_showdown_state(
         .map(|index| SeatLedger {
             seat: seat(index),
             status: SeatStatus::ShowdownEligible,
+            starting_stack: STANDARD_STARTING_STACK,
+            remaining_stack: STANDARD_STARTING_STACK - 3,
             street_contribution: 0,
             total_contribution: 3,
         })
@@ -261,13 +265,129 @@ fn setup_assigns_button_blinds_active_seat_and_initial_ledger() {
         u16::from(STANDARD_SMALL_BLIND)
     );
     assert_eq!(
+        state.ledger.seats[1].starting_stack,
+        STANDARD_STARTING_STACK
+    );
+    assert_eq!(
+        state.ledger.seats[1].remaining_stack,
+        STANDARD_STARTING_STACK - u16::from(STANDARD_SMALL_BLIND)
+    );
+    assert_eq!(
         state.ledger.seats[2].total_contribution,
         u16::from(STANDARD_BIG_BLIND)
+    );
+    assert_eq!(
+        state.ledger.seats[2].starting_stack,
+        STANDARD_STARTING_STACK
+    );
+    assert_eq!(
+        state.ledger.seats[2].remaining_stack,
+        STANDARD_STARTING_STACK - u16::from(STANDARD_BIG_BLIND)
     );
     assert_eq!(
         state.ledger.pot_total,
         u16::from(STANDARD_SMALL_BLIND + STANDARD_BIG_BLIND)
     );
+}
+
+#[test]
+fn setup_uses_equal_default_starting_stacks() {
+    let state = standard_state(3);
+
+    assert_eq!(
+        state
+            .ledger
+            .seats
+            .iter()
+            .map(|ledger| (ledger.seat.as_str(), ledger.starting_stack))
+            .collect::<Vec<_>>(),
+        vec![
+            ("seat_0".to_owned(), STANDARD_STARTING_STACK),
+            ("seat_1".to_owned(), STANDARD_STARTING_STACK),
+            ("seat_2".to_owned(), STANDARD_STARTING_STACK),
+        ]
+    );
+    assert!(state
+        .stable_internal_summary()
+        .contains("stacks=seat_0:24:24,seat_1:24:23,seat_2:24:22"));
+}
+
+#[test]
+fn setup_accepts_ordered_asymmetric_starting_stacks() {
+    let options = SetupOptions {
+        starting_stacks: Some(vec![8, 16, 24]),
+        ..SetupOptions::default()
+    };
+    let state = setup_match(Seed(33), &seats(3), &options).expect("asymmetric setup");
+
+    assert_eq!(
+        state
+            .ledger
+            .seats
+            .iter()
+            .map(|ledger| (
+                ledger.seat.as_str(),
+                ledger.starting_stack,
+                ledger.remaining_stack
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            ("seat_0".to_owned(), 8, 8),
+            ("seat_1".to_owned(), 16, 15),
+            ("seat_2".to_owned(), 24, 22),
+        ]
+    );
+}
+
+#[test]
+fn setup_accepts_six_seat_asymmetric_acceptance_vector() {
+    let options = SetupOptions {
+        starting_stacks: Some(vec![4, 8, 12, 16, 20, 24]),
+        ..SetupOptions::default()
+    };
+    let state = setup_match(Seed(36), &seats(6), &options).expect("6p asymmetric setup");
+
+    assert_eq!(
+        state
+            .ledger
+            .seats
+            .iter()
+            .map(|ledger| ledger.starting_stack)
+            .collect::<Vec<_>>(),
+        vec![4, 8, 12, 16, 20, 24]
+    );
+}
+
+#[test]
+fn setup_rejects_malformed_starting_stacks() {
+    let wrong_length = SetupOptions {
+        starting_stacks: Some(vec![8, 16]),
+        ..SetupOptions::default()
+    };
+    let err = setup_match(Seed(40), &seats(3), &wrong_length).expect_err("wrong length rejects");
+    assert_eq!(err.code, "invalid_starting_stack_count");
+
+    let zero_stack = SetupOptions {
+        starting_stacks: Some(vec![8, 0, 24]),
+        ..SetupOptions::default()
+    };
+    let err = setup_match(Seed(41), &seats(3), &zero_stack).expect_err("zero rejects");
+    assert_eq!(err.code, "invalid_starting_stack");
+
+    let out_of_range = SetupOptions {
+        starting_stacks: Some(vec![8, MAX_STARTING_STACK + 1, 24]),
+        ..SetupOptions::default()
+    };
+    let err = setup_match(Seed(42), &seats(3), &out_of_range).expect_err("range rejects");
+    assert_eq!(err.code, "invalid_starting_stack");
+
+    let cannot_cover_current_forced_post = SetupOptions {
+        starting_stacks: Some(vec![8, 16, 1]),
+        ..SetupOptions::default()
+    };
+    let err = setup_match(Seed(43), &seats(3), &cannot_cover_current_forced_post)
+        .expect_err("pre-capping ticket rejects short forced post");
+    assert_eq!(err.code, "invalid_starting_stack_for_forced_post");
 }
 
 #[test]

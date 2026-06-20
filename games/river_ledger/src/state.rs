@@ -54,6 +54,8 @@ pub enum SeatStatus {
 pub struct SeatLedger {
     pub seat: RiverLedgerSeat,
     pub status: SeatStatus,
+    pub starting_stack: u16,
+    pub remaining_stack: u16,
     pub street_contribution: u16,
     pub total_contribution: u16,
 }
@@ -247,6 +249,7 @@ impl RiverLedgerState {
         variant: Variant,
         seats: Vec<SeatId>,
         roles: SeatRoles,
+        starting_stacks: Vec<u16>,
         private_hands: Vec<[Card; 2]>,
         community_deck: [Card; 5],
         deck_tail: Vec<Card>,
@@ -258,9 +261,15 @@ impl RiverLedgerState {
             active_seat,
         } = roles;
         let seat_count = seats.len() as u8;
+        assert_eq!(
+            starting_stacks.len(),
+            seats.len(),
+            "setup validates one starting stack per seat"
+        );
         let mut ledgers = Vec::with_capacity(seats.len());
         for index in 0..seats.len() {
             let seat = RiverLedgerSeat::from_index(index).expect("setup creates valid seats");
+            let starting_stack = starting_stacks[index];
             let total_contribution = if seat == small_blind {
                 u16::from(STANDARD_SMALL_BLIND)
             } else if seat == big_blind {
@@ -268,9 +277,14 @@ impl RiverLedgerState {
             } else {
                 0
             };
+            let remaining_stack = starting_stack
+                .checked_sub(total_contribution)
+                .expect("GAT151RIVLED-003 setup rejects stacks below forced posts");
             ledgers.push(SeatLedger {
                 seat,
                 status: SeatStatus::Live,
+                starting_stack,
+                remaining_stack,
                 street_contribution: total_contribution,
                 total_contribution,
             });
@@ -333,7 +347,7 @@ impl RiverLedgerState {
 
     pub fn stable_internal_summary(&self) -> String {
         format!(
-            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};contributions={};freshness={}",
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};private={};community={};tail={};pot={};stacks={};contributions={};freshness={}",
             self.variant.id,
             self.seats.len(),
             stable_phase(self.phase),
@@ -347,6 +361,7 @@ impl RiverLedgerState {
             stable_cards(&self.community_deck),
             stable_cards(&self.deck_tail),
             self.ledger.pot_total,
+            stable_stacks(&self.ledger.seats),
             stable_contributions(&self.ledger.seats),
             self.freshness_token.0,
         )
@@ -361,7 +376,7 @@ impl RiverLedgerState {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};contributions={}",
+            "variant={};seats={};phase={};button={};sb={};bb={};active={};board_visible={};hole_counts={};reserved_community_count={};deck_tail_count={};pot={};stacks={};contributions={}",
             self.variant.id,
             self.seats.len(),
             stable_phase(self.phase),
@@ -376,6 +391,7 @@ impl RiverLedgerState {
             self.community_deck.len(),
             self.deck_tail.len(),
             self.ledger.pot_total,
+            stable_stacks(&self.ledger.seats),
             stable_contributions(&self.ledger.seats),
         )
     }
@@ -427,6 +443,21 @@ fn stable_contributions(seats: &[SeatLedger]) -> String {
                 seat.seat.as_str(),
                 seat.street_contribution,
                 seat.total_contribution
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn stable_stacks(seats: &[SeatLedger]) -> String {
+    seats
+        .iter()
+        .map(|seat| {
+            format!(
+                "{}:{}:{}",
+                seat.seat.as_str(),
+                seat.starting_stack,
+                seat.remaining_stack
             )
         })
         .collect::<Vec<_>>()

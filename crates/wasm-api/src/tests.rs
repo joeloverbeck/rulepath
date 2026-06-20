@@ -1235,6 +1235,7 @@ fn river_ledger_bridge_redacts_folded_showdown_explanation_fields() {
             big_blind: seat(2),
             active_seat: seat(0),
         },
+        vec![river_ledger::STANDARD_STARTING_STACK; 3],
         vec![
             [
                 river_ledger::Card::new(river_ledger::Rank::Two, river_ledger::Suit::Diamonds),
@@ -1261,6 +1262,8 @@ fn river_ledger_bridge_redacts_folded_showdown_explanation_fields() {
             } else {
                 river_ledger::SeatStatus::ShowdownEligible
             },
+            starting_stack: river_ledger::STANDARD_STARTING_STACK,
+            remaining_stack: river_ledger::STANDARD_STARTING_STACK - 3,
             street_contribution: 0,
             total_contribution: 3,
         })
