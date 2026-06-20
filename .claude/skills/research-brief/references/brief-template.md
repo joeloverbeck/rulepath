@@ -32,7 +32,9 @@ contains the §2 read-list):
 ### 2. Read in full (authority order)
 
 An explicit, tiered path list — every file Session 2 must read before producing — each
-with a one-line reason it is load-bearing *for this target*. Built from Step 2 exploration.
+with a one-line reason it is load-bearing *for this target* (when a volunteered floor is a
+directory/glob like `docs/**`, give per-file reasons for the load-bearing files and one
+directory-level reason for the incidental remainder — see SKILL Step 2). Built from Step 2 exploration.
 Order by the `docs/README.md` authority index. Example shape:
 
 ```
