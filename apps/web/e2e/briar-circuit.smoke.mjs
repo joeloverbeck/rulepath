@@ -71,6 +71,7 @@ try {
   await startBriar(page, baseUrl, "Human vs bot", 17);
   await page.waitForSelector('[data-testid="briar-circuit-own-hand"]');
   await assertBriarA11y(page, true);
+  await assertBriarControlSurface(page);
   const seat0Labels = await ownCardLabels(page);
   assert(seat0Labels.length === 13, "seat 0 private view exposes 13 own cards");
   await assertSeatNoLeak(page, consoleMessages, seat0Labels, "seat 0 view");
@@ -145,6 +146,21 @@ async function assertBriarA11y(page, expectChoices) {
   }
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);
   assert(summary.liveText.length > 0, "briar_circuit latest-effect region has text");
+}
+
+async function assertBriarControlSurface(page) {
+  const surface = await page.evaluate(() => {
+    const panel = document.querySelector(".action-panel");
+    return {
+      genericPanel: Boolean(panel),
+      restart: Boolean(document.querySelector('[data-testid="briar-circuit-restart"]')),
+    };
+  });
+  // Briar Circuit interaction is fully owned by its board (cards + confirm + restart).
+  // The generic action panel must not coexist with it: its buttons cannot submit a
+  // nested play/pass leaf and were rendered permanently disabled, which is confusing.
+  assert(!surface.genericPanel, "briar_circuit does not render the redundant generic action panel");
+  assert(surface.restart, "briar_circuit board exposes its own restart control");
 }
 
 async function assertObserverNoLeak(page, consoleMessages) {

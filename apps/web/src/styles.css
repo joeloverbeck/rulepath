@@ -629,6 +629,26 @@ h2 {
   background: #f9faf7;
 }
 
+.briar-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.briar-restart {
+  border: 1px solid #c4ccc6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  background: #fff;
+  color: #243029;
+  font: inherit;
+  cursor: pointer;
+}
+
+.briar-restart:hover {
+  background: #eef2ee;
+}
+
 .plain-tricks-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

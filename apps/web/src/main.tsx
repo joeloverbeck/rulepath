@@ -677,6 +677,7 @@ function App() {
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
+            onRestart={start}
           />
         ) : isMaskedClaimsView(view) ? (
           <MaskedClaimsBoard
@@ -740,6 +741,7 @@ function App() {
         isPokerLiteView(view) ||
         isRiverLedgerView(view) ||
         isPlainTricksView(view) ||
+        isBriarCircuitView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
         isFrontierControlView(view) ||

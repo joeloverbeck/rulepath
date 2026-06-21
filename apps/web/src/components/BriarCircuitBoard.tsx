@@ -18,6 +18,7 @@ type BriarCircuitBoardProps = {
   pending: boolean;
   interactive?: boolean;
   onPathSubmit?: (path: string[]) => void;
+  onRestart?: () => void;
 };
 
 type PathChoice = {
@@ -36,6 +37,7 @@ export function BriarCircuitBoard({
   pending,
   interactive = true,
   onPathSubmit,
+  onRestart,
 }: BriarCircuitBoardProps) {
   const paths = useMemo(() => flattenActionTree(actionTree), [actionTree]);
   const passSelect = useMemo(() => new Map(paths.filter((entry) => isPassSelect(entry.path)).map((entry) => [entry.path[2], entry])), [paths]);
@@ -87,9 +89,16 @@ export function BriarCircuitBoard({
           <p className="eyebrow">{view.display_name}</p>
           <h2 id="briar-heading">{statusLabel(view)}</h2>
         </div>
-        <span className="turn-pill" data-testid="turn">
-          {turnLabel(view)}
-        </span>
+        <div className="briar-banner-actions">
+          <span className="turn-pill" data-testid="turn">
+            {turnLabel(view)}
+          </span>
+          {onRestart ? (
+            <button type="button" className="briar-restart" data-testid="briar-circuit-restart" onClick={onRestart}>
+              Restart
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <p className="sr-only" aria-live="polite">
