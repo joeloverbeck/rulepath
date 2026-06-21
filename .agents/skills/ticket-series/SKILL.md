@@ -134,6 +134,11 @@ For each ticket:
    the observation and narrow the claim instead of overclaiming. For example, if
    a simulator passes but reports setup-level action counts rather than
    full-match play, quote that in the ticket or reference `Outcome`.
+   For multi-hand, variable-seat, or schedule-heavy games, do not assume the
+   simulator's default action cap is enough to prove terminal completion. Inspect
+   the ticket/spec or simulator help when needed, set an explicit
+   complete-match `--action-cap`, and record cap retries separately from rules
+   failures.
 6. Update the ticket following `docs/archival-workflow.md`:
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
@@ -293,6 +298,10 @@ evidence.
    source/reference note false, update that closeout fact even when the ticket's
    local `Files to Touch` list is narrower. Record the extra closeout repair as
    a deviation in the capstone ticket or reference `Outcome`.
+   If a release/IP checklist asks for human or legal review and no human has
+   provided that review in the current session, record the review as pending or
+   maintainer-owned. Do not invent a human signoff; distinguish automated/docs
+   evidence from human release clearance.
    For specs, distinguish the progress index from the archived artifact:
    `specs/README.md` may keep its progress status as `Done`, while the archived
    spec document itself must use the repo's current archived-spec status
