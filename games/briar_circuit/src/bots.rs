@@ -111,7 +111,7 @@ pub fn legal_bot_actions(
 
 fn l1_priority(
     state: &BriarCircuitState,
-    seat: BriarCircuitSeat,
+    _seat: BriarCircuitSeat,
     action: BriarCircuitBotAction,
 ) -> (u8, u8, u8) {
     match action {
@@ -123,14 +123,23 @@ fn l1_priority(
         BriarCircuitBotAction::Pass(PassAction::Confirm) => (1, 0, 0),
         BriarCircuitBotAction::Pass(PassAction::Unselect(_)) => (2, 0, 0),
         BriarCircuitBotAction::Play(PlayAction::Play(card)) => {
-            let card_value = card.card().point_value();
-            let leading = state.playing_state().is_some_and(|play| {
-                play.active_seat == seat && play.current_trick.plays.is_empty()
-            });
-            if leading {
-                (0, card_value, card.card().rank.value())
-            } else {
-                (1, card_value, card.card().rank.value())
+            let detail = card.card();
+            let point_value = detail.point_value();
+            let rank = detail.rank.value();
+            let led_suit = state
+                .playing_state()
+                .and_then(|play| play.current_trick.plays.first())
+                .map(|first| first.card.card().suit);
+            match led_suit {
+                // Leading a trick, or following the led suit: keep control low by
+                // playing the lowest-penalty, lowest-ranked legal card (duck).
+                None => (0, point_value, rank),
+                Some(suit) if detail.suit == suit => (0, point_value, rank),
+                // Void in the led suit: an off-suit card can never win this trick, so
+                // shed the most dangerous holding first (queen of spades, then high
+                // hearts, then high cards) rather than hoarding penalties for later.
+                // This is own-hand danger management only; it reads no opponent state.
+                Some(_) => (0, u8::MAX - point_value, u8::MAX - rank),
             }
         }
     }
