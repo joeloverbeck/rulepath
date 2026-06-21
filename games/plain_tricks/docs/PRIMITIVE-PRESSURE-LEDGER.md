@@ -299,16 +299,49 @@ trigger for close trick-taking behavior.
 Any reopen must again choose exactly one of reuse, promote, defer/reject, or
 ADR before a new repeated implementation proceeds.
 
+## Gate 17 Helper-Conformance Addendum
+
+Date: 2026-06-21
+
+Gate 17 Vow Tide created the third close use of follow-suit selection and
+led-suit/trump trick comparison. The repository-level decision in
+[../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md) promotes the
+narrow pure `game-stdlib::trick_taking` helper:
+
+- `follow_suit_indices` selects stable held-card indices matching the led suit,
+  or every held-card index when the hand is void in that suit.
+- `winning_play_index` selects the stable winning play index from
+  caller-projected suit/rank values. Plain Tricks uses it with `trump = None`.
+
+Plain Tricks now adopts both helper functions. The conformance is intentionally
+behavior-preserving:
+
+- local `TrickCardId`, `TrickSuit`, `TrickRank`, seats, phases, diagnostics,
+  action paths, effect order, scoring, visibility projection, bot policy, replay
+  support, and UI surfaces remain Plain Tricks owned;
+- the helper returns only indices, which Plain Tricks maps back to its existing
+  cards and seats without reordering leaves or effects;
+- trick-winner-led turn order and deal/redeal policy remain explicit
+  anti-examples, not promoted helper behavior.
+
+Verification receipt for this addendum is recorded in
+`archive/tickets/GAT17VOWTIDOHHEL-003.md`. The intended proof is unchanged
+Plain Tricks tests, replay-check hashes, and native benchmark execution after
+the helper swap. No §10A promotion debt is opened because Gate 17 performs the
+matching prior-game conformance in-gate.
+
 ## Review Checklist
 
 - The third-use hard gate for deterministic shuffle / private hand / staged
   reveal is resolved before Plain Tricks rules implementation.
-- The recorded decision is exactly one option: defer/reject extraction and keep
-  local.
+- The Gate 17 follow-suit/comparator hard gate is resolved by the promoted
+  helper, and Plain Tricks adopts it without broadening helper scope.
 - Public resource accounting is explicitly not triggered by trick-count
   scoring.
 - `engine-core` remains noun-free.
-- `game-stdlib` receives no new helper.
+- `game-stdlib` receives only the narrow pure trick-taking helper; no card,
+  hand, trick phase, winner-leads, deal, score, visibility, or bot helper is
+  admitted.
 - Static data remains typed content, parameters, metadata, fixtures, traces, and
   reports only.
 - Existing `high_card_duel` and `poker_lite` traces are preserved.

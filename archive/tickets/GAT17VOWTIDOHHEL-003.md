@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-003: Back-port `plain_tricks` to the promoted helper
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `games/plain_tricks/src/{rules,actions}.rs`, `games/plain_tricks/Cargo.toml`, `games/plain_tricks/docs/{PRIMITIVE-PRESSURE-LEDGER,MECHANICS}.md`
@@ -78,3 +78,25 @@ Record the helper-conformance receipt and preserved-evidence note in `PRIMITIVE-
 1. `cargo test -p plain_tricks`
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. Narrower command rationale: replay-check `--all` is the determinism boundary that proves the swap changed nothing; full-workspace test is deferred to the capstone.
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Added `game-stdlib` as a `plain_tricks` dependency.
+- Replaced Plain Tricks' local led-suit filtering in `actions::legal_cards` and `must_follow_suit` with `game_stdlib::trick_taking::follow_suit_indices`, preserving existing hand order and diagnostics.
+- Replaced the local trumpless trick-winner comparison in `rules::trick_winner` with `game_stdlib::trick_taking::winning_play_index(..., trump = None, ...)`, preserving the existing seat mapping and winner-leads transition.
+- Updated `games/plain_tricks/docs/MECHANICS.md` and `games/plain_tricks/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the Gate 17 helper-conformance receipt and the explicit local-policy boundaries.
+
+Deviations from plan:
+
+- None. No Plain Tricks rule, action path, diagnostic, effect, visibility, bot, UI, trace, or scoring behavior was intentionally changed.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p plain_tricks` passed: 35 unit tests, 7 bot tests, 5 property tests, 4 replay tests, 4 serialization tests, 5 visibility tests, and doc tests.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain Tricks golden traces checked `ok` or documented `not-applicable`, ending with `replay-check: all traces passed`.
+- `cargo bench -p plain_tricks` passed; all reported operations exceeded their thresholds, including `random_legal_full_playout` at `6785.14 matches_per_second` against the `2000.00` floor in this local run.

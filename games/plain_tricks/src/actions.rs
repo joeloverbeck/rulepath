@@ -2,6 +2,7 @@ use engine_core::{
     ActionChoice, ActionMetadata, ActionNode, ActionPreview, ActionTree, Actor, CommandEnvelope,
     Diagnostic,
 };
+use game_stdlib::trick_taking::follow_suit_indices;
 
 use crate::{
     ids::{PlainTricksSeat, TrickCardId, ACTION_PLAY},
@@ -72,16 +73,10 @@ pub fn legal_cards(state: &PlainTricksState, actor: PlainTricksSeat) -> Vec<Tric
     let Some(led_suit) = state.current_trick.led_suit else {
         return Vec::new();
     };
-    let suited = hand
-        .iter()
-        .copied()
-        .filter(|card| card.suit() == led_suit)
-        .collect::<Vec<_>>();
-    if suited.is_empty() {
-        hand.to_vec()
-    } else {
-        suited
-    }
+    follow_suit_indices(hand, led_suit, |card| card.suit())
+        .into_iter()
+        .map(|index| hand[index])
+        .collect()
 }
 
 pub fn actor_seat(state: &PlainTricksState, actor: &Actor) -> Option<PlainTricksSeat> {
@@ -199,11 +194,14 @@ fn must_follow_suit(state: &PlainTricksState, actor: PlainTricksSeat) -> bool {
     let Some(led_suit) = state.current_trick.led_suit else {
         return false;
     };
-    !state.current_trick.plays.is_empty()
-        && state
-            .hand_for_internal(actor)
-            .iter()
-            .any(|card| card.suit() == led_suit)
+    if state.current_trick.plays.is_empty() {
+        return false;
+    }
+
+    let hand = state.hand_for_internal(actor);
+    follow_suit_indices(hand, led_suit, |card| card.suit())
+        .first()
+        .is_some_and(|&index| hand[index].suit() == led_suit)
 }
 
 fn card_choice(

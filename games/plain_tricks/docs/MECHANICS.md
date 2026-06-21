@@ -30,8 +30,8 @@ presents the Rust/WASM projection only.
 | turn/phase model | Six tricks per round, two rounds, trick winner leads next trick, round 2 starts with `seat_1`. | `rules.rs`, golden traces | `local-only` | No extra bidding, pass window, or reaction stack. |
 | randomness/chance | Seeded setup shuffle for each round; round 2 continues the same RNG stream. | `setup.rs`, `replay_support.rs`, golden traces | `repeated-shape candidate` | The shuffle/private deal remains game-local. |
 | visibility/hidden information | Owner sees own unplayed hand; opponent and observer see counts only; tail is internal only; played cards are public. | `visibility.rs`, [RULE-COVERAGE.md](RULE-COVERAGE.md), `plain-tricks.smoke.mjs` | `third-use pressure` | No-leak scope includes Rust payloads, WASM, DOM, storage, replay export, and dev panel. |
-| follow-suit legality | Leader may play any held card; follower must play led suit if holding it, otherwise any held card. | `actions.rs`, `rules.rs`; [../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md](../../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md) | `second-use comparison recorded; keep local/defer` | Briar Circuit repeats the core shape with four seats, 2 clubs opening, first-trick point restrictions, and hearts-broken lead restrictions. No helper is promoted. |
-| trick resolution | Led-suit higher rank wins; off-suit follower loses to leader; winner leads next trick. | `rules.rs`, [RULES.md](RULES.md); [../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md](../../briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md) | `second-use comparison recorded; keep local/defer` | Briar Circuit repeats the comparator/winner-leads shape with four-card tricks and penalty scoring. No trump, partnerships, equal-card tie, or point-card policy enters a helper. |
+| follow-suit legality | Leader may play any held card; follower must play led suit if holding it, otherwise any held card. | `actions.rs`, `rules.rs`; [../../../crates/game-stdlib/src/trick_taking.rs](../../../crates/game-stdlib/src/trick_taking.rs); [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md) | `promoted primitive adopted` | Gate 17 promotes `game-stdlib::trick_taking::follow_suit_indices`; Plain Tricks now uses it with local card IDs, diagnostics, visibility, effects, scoring, and action ordering preserved. |
+| trick resolution | Led-suit higher rank wins; off-suit follower loses to leader; winner leads next trick. | `rules.rs`, [RULES.md](RULES.md); [../../../crates/game-stdlib/src/trick_taking.rs](../../../crates/game-stdlib/src/trick_taking.rs); [../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md) | `promoted primitive adopted for comparison; winner-leads local` | Gate 17 promotes `game-stdlib::trick_taking::winning_play_index` for the pure trumpless comparator. Winner-leads turn mutation remains Plain Tricks local behavior. |
 | scoring/outcome | One point per trick, totals across two rounds, higher total wins, 6-6 split. | `rules.rs`, [RULE-COVERAGE.md](RULE-COVERAGE.md) | `local-only` | Outcome rationale is public and count-based. |
 | semantic effect shape | Deal counts/private hand-dealt effects, card played, trick resolved, round scored, deal rotated, match resolved, terminal, and public bot choice. | `effects.rs`, golden traces | `local-only` | Private hand-dealt effects are viewer-filtered. |
 | UI interaction pattern | Own hand, opponent face-down count, current trick, history ledger, Rust-legal card buttons, replay, reduced motion. | [UI.md](UI.md), `PlainTricksBoard.tsx` | `local-only` | `data-testid` anchors use trick/index, not card ids. |
@@ -40,13 +40,12 @@ presents the Rust/WASM projection only.
 
 ## Primitive Pressure Decision
 
-Follow-suit legality, led-suit trick comparison, and trick-winner-led turn
-order remain game-local after the Gate 16 Briar Circuit second-use review. The
-shared core is real, but Briar Circuit's pass window, opening-lead rule,
-first-trick point restriction, hearts-broken state, four-seat visibility, moon
-scoring, and threshold terminal rules make extraction premature. No
-`engine-core` or `game-stdlib` promotion is authorized; Gate 17 is the next
-third-use hard gate.
+Follow-suit legality and the pure led-suit trick comparator were promoted during
+Gate 17 after Vow Tide created the third close use. Plain Tricks adopts
+`game-stdlib::trick_taking::follow_suit_indices` and
+`game-stdlib::trick_taking::winning_play_index` with `trump = None`.
+Winner-leads turn order, deal rotation, scoring, diagnostics, effects,
+visibility, bot policy, replay, and UI presentation remain game-local.
 
 Card/private-hand visibility has now reached third-use pressure across
 `high_card_duel`, `poker_lite`, and `plain_tricks`. This ticket records the
@@ -57,8 +56,9 @@ earns a shared helper.
 ## Review Checklist
 
 - `engine-core` remains noun-free.
-- `game-stdlib` receives no card, hand, suit, rank, trick, follow-suit, tail, or
-  deal primitive in this ticket.
+- `game-stdlib` receives only the Gate 17 promoted pure trick-taking selection
+  and comparator helper; Plain Tricks keeps cards, hands, suits, ranks, tricks,
+  tail, deal policy, scoring, effects, and visibility local.
 - Static data carries labels, fixtures, traces, and version declarations only;
   all legality and scoring stay in Rust.
 - Browser controls and effect rows present Rust payloads only.
