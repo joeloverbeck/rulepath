@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-014: Bot-strategy documentation (AI, competent-player, evidence pack)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — game-local bot docs only (`games/vow_tide/docs/{AI,COMPETENT-PLAYER,BOT-STRATEGY-EVIDENCE-PACK}.md`)
@@ -77,3 +77,17 @@ Status `L2 not admitted / intentionally deferred`; `L3 not applicable` (imperfec
 1. `node scripts/check-doc-links.mjs`
 2. `cargo test -p vow_tide --test bots` (confirms the documented behavior still holds)
 3. Narrower command rationale: docs are prose; their factual backing is the already-green bot suite + simulations.
+
+## Outcome
+
+Completed 2026-06-21. Added Vow Tide bot strategy documentation:
+
+1. `games/vow_tide/docs/AI.md` records L0/L1 policy ids, authorized input fields, deterministic tie-breaks, explanation examples, simulation summary shape, known weaknesses, and constrained public-default posture.
+2. `games/vow_tide/docs/COMPETENT-PLAYER.md` records original strategy analysis, novice traps, contract-relative play, dealer-hook pressure, lawful inference boundaries, and future Level 2 feature candidates.
+3. `games/vow_tide/docs/BOT-STRATEGY-EVIDENCE-PACK.md` records `L2 not admitted`, `L3 not applicable`, forbidden AI/search methods, deferred Level 2 evidence fields, and the current L1 weight set as authored code/prose rather than data.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`; script scope did not count the new unreferenced Vow Tide docs, so local doc links were also manually checked against existing files).
+2. `cargo test -p vow_tide --test bots` passed.
+3. Manual docs/code parity grep confirmed `AI.md` and the evidence pack match `games/vow_tide/src/bots.rs` for `vow-tide-level1-v1`, own ace/trump-control bidding, lowest-current-winner play while needing tricks, and deferred `L2 not admitted` / `L3 not applicable` status.
