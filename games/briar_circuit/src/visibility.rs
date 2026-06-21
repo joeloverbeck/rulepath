@@ -5,7 +5,7 @@ use crate::{
     effects::BriarCircuitEffect,
     ids::BriarCircuitSeat,
     rules::legal_play_cards,
-    state::{BriarCircuitState, CapturedTrick, Phase, TrickPlay},
+    state::{BriarCircuitState, CapturedTrick, PassState, Phase, TrickPlay},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,7 +42,16 @@ pub struct ActionPreview {
 pub fn project_view(state: &BriarCircuitState, viewer: &Viewer) -> BriarCircuitView {
     let viewer_seat = viewer_seat(viewer);
     let (phase, active_seat, hearts_broken, current_trick) = match &state.phase {
-        Phase::Passing(_) => ("passing".to_owned(), None, None, Vec::new()),
+        // The simultaneous pass is resolved one commitment at a time. Reporting the
+        // next uncommitted seat as the active seat is public-safe (commit order is
+        // public per BC-PASS-003; card identities stay owner-private) and lets the
+        // generic turn machinery drive each seat's pass selection.
+        Phase::Passing(pass) => (
+            "passing".to_owned(),
+            next_uncommitted_seat(pass),
+            None,
+            Vec::new(),
+        ),
         Phase::PlayingTrick(play) => (
             "playing".to_owned(),
             Some(play.active_seat),
@@ -164,6 +173,12 @@ pub fn filter_effects_for_viewer(
             _ => None,
         })
         .collect()
+}
+
+fn next_uncommitted_seat(pass: &PassState) -> Option<BriarCircuitSeat> {
+    BriarCircuitSeat::ALL
+        .into_iter()
+        .find(|seat| !pass.is_committed(*seat))
 }
 
 fn viewer_seat(viewer: &Viewer) -> Option<BriarCircuitSeat> {
