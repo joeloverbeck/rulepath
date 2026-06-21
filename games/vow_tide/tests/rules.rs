@@ -1,11 +1,14 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use vow_tide::{
-    actions::{legal_action_tree, legal_bids, validate_bid_command},
+    actions::{
+        legal_action_tree, legal_bids, legal_cards, validate_bid_command, validate_play_command,
+    },
+    cards::{Card, CardId, Rank, Suit},
     ids::{
         canonical_seat_ids, hand_schedule_for_seats, max_hand_size_for_seats, VowTideSeat,
         STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
     },
-    rules::apply_bid,
+    rules::{apply_bid, apply_play},
     setup::{setup_match, SetupOptions},
     state::Phase,
 };
@@ -208,6 +211,94 @@ fn bid_during_playing_phase_is_wrong_phase() {
     assert_eq!(diagnostic.code, "VT_WRONG_PHASE");
 }
 
+#[test]
+fn lead_may_be_any_card_including_trump() {
+    let mut state = complete_bidding_to_play();
+    let trump_card = card_with_suit(state.trump_suit(), Rank::Ace);
+    replace_hand(&mut state, VowTideSeat::Seat1, vec![trump_card]);
+
+    let play = validate_play_command(
+        &state,
+        &play_command_for_state(&state, VowTideSeat::Seat1, trump_card),
+    )
+    .expect("trump lead validates");
+    apply_play(&mut state, play).expect("trump lead applies");
+
+    let playing = state.playing_state().expect("playing phase");
+    assert_eq!(playing.current_trick.plays[0].card, trump_card);
+    assert_eq!(state.active_seat(), Some(VowTideSeat::Seat2));
+}
+
+#[test]
+fn follower_holding_led_suit_must_follow() {
+    let mut state = complete_bidding_to_play();
+    let led_suit = non_trump_suit(state.trump_suit());
+    let led_card = card_with_suit(led_suit, Rank::Two);
+    let follow_card = card_with_suit(led_suit, Rank::Three);
+    let off_suit = card_with_suit(state.trump_suit(), Rank::Ace);
+    replace_hand(&mut state, VowTideSeat::Seat1, vec![led_card]);
+    replace_hand(&mut state, VowTideSeat::Seat2, vec![off_suit, follow_card]);
+
+    apply_play_value(&mut state, VowTideSeat::Seat1, led_card);
+    assert_eq!(legal_cards(&state, VowTideSeat::Seat2), vec![follow_card]);
+
+    let diagnostic = validate_play_command(
+        &state,
+        &play_command_for_state(&state, VowTideSeat::Seat2, off_suit),
+    )
+    .expect_err("off suit rejected when led suit held");
+    assert_eq!(diagnostic.code, "VT_MUST_FOLLOW_SUIT");
+}
+
+#[test]
+fn void_follower_may_play_any_card() {
+    let mut state = complete_bidding_to_play();
+    let led_suit = non_trump_suit(state.trump_suit());
+    let led_card = card_with_suit(led_suit, Rank::Two);
+    let trump_card = card_with_suit(state.trump_suit(), Rank::Ace);
+    replace_hand(&mut state, VowTideSeat::Seat1, vec![led_card]);
+    replace_hand(&mut state, VowTideSeat::Seat2, vec![trump_card]);
+
+    apply_play_value(&mut state, VowTideSeat::Seat1, led_card);
+    assert_eq!(legal_cards(&state, VowTideSeat::Seat2), vec![trump_card]);
+    apply_play_value(&mut state, VowTideSeat::Seat2, trump_card);
+}
+
+#[test]
+fn highest_trump_wins_and_winner_leads_next_trick() {
+    let mut state = complete_bidding_to_play();
+    let trump = state.trump_suit();
+    let led_suit = non_trump_suit(trump);
+    let seat_1 = card_with_suit(led_suit, Rank::Ace);
+    let seat_2 = card_with_suit(led_suit, Rank::King);
+    let seat_3 = card_with_suit(trump, Rank::Two);
+    let seat_0 = card_with_suit(led_suit, Rank::Queen);
+    replace_hand(&mut state, VowTideSeat::Seat1, vec![seat_1]);
+    replace_hand(&mut state, VowTideSeat::Seat2, vec![seat_2]);
+    replace_hand(&mut state, VowTideSeat::Seat3, vec![seat_3]);
+    replace_hand(&mut state, VowTideSeat::Seat0, vec![seat_0]);
+
+    apply_play_value(&mut state, VowTideSeat::Seat1, seat_1);
+    apply_play_value(&mut state, VowTideSeat::Seat2, seat_2);
+    apply_play_value(&mut state, VowTideSeat::Seat3, seat_3);
+    apply_play_value(&mut state, VowTideSeat::Seat0, seat_0);
+
+    assert_eq!(state.captured_tricks.len(), 1);
+    assert_eq!(state.captured_tricks[0].winner, VowTideSeat::Seat3);
+    assert_eq!(
+        state.trick_counts,
+        vec![
+            (VowTideSeat::Seat0, 0),
+            (VowTideSeat::Seat1, 0),
+            (VowTideSeat::Seat2, 0),
+            (VowTideSeat::Seat3, 1),
+        ]
+    );
+    let playing = state.playing_state().expect("playing phase");
+    assert_eq!(playing.leader, VowTideSeat::Seat3);
+    assert_eq!(playing.active_seat, VowTideSeat::Seat3);
+}
+
 fn setup_state(seat_count: usize) -> vow_tide::state::VowTideState {
     setup_match(
         Seed(19),
@@ -223,6 +314,25 @@ fn apply_bid_value(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat,
     apply_bid(state, bid).expect("bid applies");
 }
 
+fn apply_play_value(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat, card: CardId) {
+    let play = validate_play_command(state, &play_command_for_state(state, seat, card))
+        .expect("play validates");
+    apply_play(state, play).expect("play applies");
+}
+
+fn complete_bidding_to_play() -> vow_tide::state::VowTideState {
+    let mut state = setup_state(4);
+    apply_bid_value(&mut state, VowTideSeat::Seat1, 0);
+    apply_bid_value(&mut state, VowTideSeat::Seat2, 0);
+    apply_bid_value(&mut state, VowTideSeat::Seat3, 0);
+    apply_bid_value(&mut state, VowTideSeat::Seat0, 1);
+    state
+}
+
+fn replace_hand(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat, cards: Vec<CardId>) {
+    *state.hand_for_internal_mut(seat).expect("hand exists") = cards;
+}
+
 fn command_for_state(
     state: &vow_tide::state::VowTideState,
     seat: VowTideSeat,
@@ -232,6 +342,21 @@ fn command_for_state(
         actor: actor(seat),
         action_path: ActionPath {
             segments: vec!["bid".to_owned(), value.to_string()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn play_command_for_state(
+    state: &vow_tide::state::VowTideState,
+    seat: VowTideSeat,
+    card: CardId,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: actor(seat),
+        action_path: ActionPath {
+            segments: vec!["play".to_owned(), card.as_str()],
         },
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
@@ -253,4 +378,15 @@ fn bid_leaf_segments(tree: &engine_core::ActionTree) -> Vec<String> {
         .iter()
         .map(|choice| choice.segment.clone())
         .collect()
+}
+
+fn card_with_suit(suit: Suit, rank: Rank) -> CardId {
+    Card::new(rank, suit).id()
+}
+
+fn non_trump_suit(trump: Suit) -> Suit {
+    Suit::ALL
+        .into_iter()
+        .find(|suit| *suit != trump)
+        .expect("standard deck has non-trump suits")
 }

@@ -63,6 +63,36 @@ pub struct PlayingTrickState {
     pub trick_index: u8,
     pub leader: VowTideSeat,
     pub active_seat: VowTideSeat,
+    pub current_trick: CurrentTrick,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct TrickPlay {
+    pub seat: VowTideSeat,
+    pub card: CardId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CurrentTrick {
+    pub leader: VowTideSeat,
+    pub plays: Vec<TrickPlay>,
+}
+
+impl CurrentTrick {
+    pub fn new(leader: VowTideSeat) -> Self {
+        Self {
+            leader,
+            plays: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CapturedTrick {
+    pub hand_index: u32,
+    pub trick_index: u8,
+    pub winner: VowTideSeat,
+    pub plays: Vec<TrickPlay>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,6 +120,8 @@ pub struct VowTideState {
     pub public_bids: Vec<(VowTideSeat, Option<u8>)>,
     pub phase: Phase,
     pub private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
+    pub trick_counts: Vec<(VowTideSeat, u8)>,
+    pub captured_tricks: Vec<CapturedTrick>,
     pub trump_indicator: CardId,
     pub hidden_stock: Vec<CardId>,
     pub deal_order: Vec<VowTideSeat>,
@@ -133,6 +165,8 @@ impl VowTideState {
             public_bids: seat_order.iter().map(|seat| (*seat, None)).collect(),
             phase: Phase::Bidding(BiddingState::new(seat_count, active_seat)),
             private_hands: deal.private_hands,
+            trick_counts: seat_order.iter().map(|seat| (*seat, 0)).collect(),
+            captured_tricks: Vec::new(),
             trump_indicator: deal.trump_indicator,
             hidden_stock: deal.hidden_stock,
             deal_order: deal.deal_order,
@@ -191,6 +225,37 @@ impl VowTideState {
             .find(|(candidate, _)| *candidate == seat)
             .map(|(_, hand)| hand.as_slice())
             .unwrap_or(&[])
+    }
+
+    pub fn hand_for_internal_mut(&mut self, seat: VowTideSeat) -> Option<&mut Vec<CardId>> {
+        self.private_hands
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, hand)| hand)
+    }
+
+    pub fn playing_state(&self) -> Option<&PlayingTrickState> {
+        match &self.phase {
+            Phase::PlayingTrick(playing) => Some(playing),
+            _ => None,
+        }
+    }
+
+    pub fn playing_state_mut(&mut self) -> Option<&mut PlayingTrickState> {
+        match &mut self.phase {
+            Phase::PlayingTrick(playing) => Some(playing),
+            _ => None,
+        }
+    }
+
+    pub fn increment_trick_count(&mut self, seat: VowTideSeat) {
+        if let Some((_, count)) = self
+            .trick_counts
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+        {
+            *count = count.saturating_add(1);
+        }
     }
 
     pub fn trump_suit(&self) -> Suit {

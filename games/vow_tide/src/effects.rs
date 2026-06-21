@@ -1,4 +1,4 @@
-use crate::ids::VowTideSeat;
+use crate::{cards::CardId, ids::VowTideSeat};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VowTideEffect {
@@ -15,5 +15,15 @@ pub enum VowTideEffect {
     },
     BiddingCompleted {
         first_leader: VowTideSeat,
+    },
+    CardPlayed {
+        seat: VowTideSeat,
+        card: CardId,
+        trick_index: u8,
+    },
+    TrickCaptured {
+        trick_index: u8,
+        winner: VowTideSeat,
+        cards: Vec<CardId>,
     },
 }

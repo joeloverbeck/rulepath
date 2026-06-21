@@ -3,13 +3,14 @@ use std::collections::BTreeSet;
 use engine_core::Seed;
 use vow_tide::{
     actions::{legal_action_tree, legal_bids, validate_bid_command},
-    cards::{canonical_deck, CardId},
+    cards::{canonical_deck, Card, CardId, Rank, Suit},
     ids::{
         canonical_seat_ids, hand_schedule_for_seats, VowTideSeat, STANDARD_MAX_SEATS,
         STANDARD_MIN_SEATS,
     },
-    rules::apply_bid,
+    rules::{apply_bid, trick_winner},
     setup::{deal_for_hand, seed_for_hand, setup_match, SetupOptions},
+    state::TrickPlay,
 };
 
 #[test]
@@ -128,6 +129,61 @@ fn legal_tree_and_validator_agree_for_bidding_states() {
     }
 }
 
+#[test]
+fn trick_winner_prefers_highest_trump_then_highest_led_suit() {
+    for trump in Suit::ALL {
+        let led = Suit::ALL
+            .into_iter()
+            .find(|suit| *suit != trump)
+            .expect("non-trump suit exists");
+        let trump_play = TrickPlay {
+            seat: VowTideSeat::Seat2,
+            card: Card::new(Rank::Two, trump).id(),
+        };
+        let led_ace = TrickPlay {
+            seat: VowTideSeat::Seat1,
+            card: Card::new(Rank::Ace, led).id(),
+        };
+        let off_ace = TrickPlay {
+            seat: VowTideSeat::Seat3,
+            card: Card::new(Rank::Ace, third_suit(led, trump)).id(),
+        };
+
+        assert_eq!(
+            trick_winner(&[led_ace, trump_play, off_ace], trump).expect("winner"),
+            VowTideSeat::Seat2
+        );
+
+        let led_king = TrickPlay {
+            seat: VowTideSeat::Seat0,
+            card: Card::new(Rank::King, led).id(),
+        };
+        assert_eq!(
+            trick_winner(&[led_king, off_ace, led_ace], trump).expect("winner"),
+            VowTideSeat::Seat1
+        );
+    }
+}
+
+#[test]
+fn stable_first_occurrence_wins_equal_projected_values() {
+    let plays = [
+        TrickPlay {
+            seat: VowTideSeat::Seat1,
+            card: Card::new(Rank::Ace, Suit::Clubs).id(),
+        },
+        TrickPlay {
+            seat: VowTideSeat::Seat2,
+            card: Card::new(Rank::Ace, Suit::Clubs).id(),
+        },
+    ];
+
+    assert_eq!(
+        trick_winner(&plays, Suit::Spades).expect("winner"),
+        VowTideSeat::Seat1
+    );
+}
+
 fn all_internal_cards(
     hands: &[(VowTideSeat, Vec<CardId>)],
     trump_indicator: CardId,
@@ -216,4 +272,11 @@ fn bid_leaf_segments(tree: &engine_core::ActionTree) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn third_suit(first: Suit, second: Suit) -> Suit {
+    Suit::ALL
+        .into_iter()
+        .find(|suit| *suit != first && *suit != second)
+        .expect("standard deck has at least three suits")
 }

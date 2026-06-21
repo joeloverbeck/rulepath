@@ -1,9 +1,12 @@
 use engine_core::{CommandEnvelope, Diagnostic};
+use game_stdlib::trick_taking::winning_play_index;
 
 use crate::{
-    actions::{self, ValidatedBid},
+    actions::{self, ValidatedBid, ValidatedPlay},
+    cards::CardId,
     effects::VowTideEffect,
-    state::{Phase, PlayingTrickState, VowTideState},
+    ids::VowTideSeat,
+    state::{CapturedTrick, CurrentTrick, Phase, PlayingTrickState, TrickPlay, VowTideState},
 };
 
 pub fn validate_bid_command(
@@ -90,6 +93,7 @@ pub fn apply_bid(
             trick_index: 0,
             leader: first_leader,
             active_seat: first_leader,
+            current_trick: CurrentTrick::new(first_leader),
         });
         effects.push(VowTideEffect::BiddingCompleted { first_leader });
     } else {
@@ -117,6 +121,166 @@ pub fn apply_bid(
 
     state.freshness_token = state.freshness_token.next();
     Ok(effects)
+}
+
+pub fn validate_play_command(
+    state: &VowTideState,
+    envelope: &CommandEnvelope,
+) -> Result<ValidatedPlay, Diagnostic> {
+    if envelope.freshness_token != state.freshness_token {
+        return Err(stale_command_diagnostic());
+    }
+    if envelope.rules_version.0 != 1 {
+        return Err(wrong_rules_version_diagnostic());
+    }
+
+    let actor = actions::actor_seat(state, &envelope.actor).ok_or_else(wrong_seat_diagnostic)?;
+    let playing = state.playing_state().ok_or_else(wrong_phase_diagnostic)?;
+    if playing.active_seat != actor {
+        return Err(wrong_seat_diagnostic());
+    }
+    let action = actions::parse_play_action_path(&envelope.action_path.segments)?;
+    if !state.hand_for_internal(actor).contains(&action.card) {
+        return Err(card_not_owned_diagnostic(action.card));
+    }
+    if !actions::legal_cards(state, actor).contains(&action.card) {
+        return Err(must_follow_suit_diagnostic());
+    }
+
+    Ok(ValidatedPlay {
+        actor,
+        card: action.card,
+        hand_index: state.hand_index,
+        trick_index: playing.trick_index,
+    })
+}
+
+pub fn apply_play(
+    state: &mut VowTideState,
+    play: ValidatedPlay,
+) -> Result<Vec<VowTideEffect>, Diagnostic> {
+    validate_play_still_legal(state, play)?;
+    let mut effects = Vec::new();
+
+    let hand = state
+        .hand_for_internal_mut(play.actor)
+        .expect("validated actor has hand");
+    let card_index = hand
+        .iter()
+        .position(|card| *card == play.card)
+        .expect("validated card must be in hand");
+    let card = hand.remove(card_index);
+
+    {
+        let playing = state
+            .playing_state_mut()
+            .expect("validated play requires playing phase");
+        playing.current_trick.plays.push(TrickPlay {
+            seat: play.actor,
+            card,
+        });
+    }
+    effects.push(VowTideEffect::CardPlayed {
+        seat: play.actor,
+        card,
+        trick_index: play.trick_index,
+    });
+
+    let seat_count = state.seat_count();
+    let current_len = state
+        .playing_state()
+        .expect("playing phase")
+        .current_trick
+        .plays
+        .len();
+    if current_len == seat_count {
+        resolve_current_trick(state, &mut effects)?;
+    } else {
+        let next = play.actor.next_clockwise(seat_count);
+        state
+            .playing_state_mut()
+            .expect("playing phase")
+            .active_seat = next;
+    }
+
+    state.freshness_token = state.freshness_token.next();
+    Ok(effects)
+}
+
+pub fn trick_winner(
+    plays: &[TrickPlay],
+    trump: crate::cards::Suit,
+) -> Result<VowTideSeat, Diagnostic> {
+    let led_suit = plays
+        .first()
+        .map(|play| play.card.card().suit)
+        .ok_or_else(malformed_trick_state_diagnostic)?;
+    let winner_index = winning_play_index(
+        plays,
+        led_suit,
+        Some(trump),
+        |play| play.card.card().suit,
+        |play| play.card.card().rank,
+    )
+    .ok_or_else(malformed_trick_state_diagnostic)?;
+    Ok(plays[winner_index].seat)
+}
+
+fn validate_play_still_legal(state: &VowTideState, play: ValidatedPlay) -> Result<(), Diagnostic> {
+    let playing = state.playing_state().ok_or_else(wrong_phase_diagnostic)?;
+    if playing.active_seat != play.actor {
+        return Err(wrong_seat_diagnostic());
+    }
+    if state.hand_index != play.hand_index || playing.trick_index != play.trick_index {
+        return Err(stale_command_diagnostic());
+    }
+    if !state.hand_for_internal(play.actor).contains(&play.card) {
+        return Err(card_not_owned_diagnostic(play.card));
+    }
+    if !actions::legal_cards(state, play.actor).contains(&play.card) {
+        return Err(must_follow_suit_diagnostic());
+    }
+    Ok(())
+}
+
+fn resolve_current_trick(
+    state: &mut VowTideState,
+    effects: &mut Vec<VowTideEffect>,
+) -> Result<(), Diagnostic> {
+    let (trick_index, plays) = {
+        let playing = state.playing_state().expect("playing phase");
+        (playing.trick_index, playing.current_trick.plays.clone())
+    };
+    let winner = trick_winner(&plays, state.trump_suit())?;
+    state.increment_trick_count(winner);
+    state.captured_tricks.push(CapturedTrick {
+        hand_index: state.hand_index,
+        trick_index,
+        winner,
+        plays: plays.clone(),
+    });
+    effects.push(VowTideEffect::TrickCaptured {
+        trick_index,
+        winner,
+        cards: plays.iter().map(|play| play.card).collect(),
+    });
+
+    let hand_size = state
+        .current_hand_size()
+        .ok_or_else(wrong_phase_diagnostic)?;
+    let playing = state.playing_state_mut().expect("playing phase");
+    if trick_index + 1 < hand_size {
+        let next_trick_index = trick_index + 1;
+        playing.trick_index = next_trick_index;
+        playing.leader = winner;
+        playing.active_seat = winner;
+        playing.current_trick = CurrentTrick::new(winner);
+    } else {
+        playing.leader = winner;
+        playing.active_seat = winner;
+        playing.current_trick = CurrentTrick::new(winner);
+    }
+    Ok(())
 }
 
 fn validate_bid_still_legal(state: &VowTideState, bid: ValidatedBid) -> Result<(), Diagnostic> {
@@ -156,7 +320,38 @@ pub fn stale_command_diagnostic() -> Diagnostic {
 pub fn wrong_phase_diagnostic() -> Diagnostic {
     Diagnostic {
         code: "VT_WRONG_PHASE".to_owned(),
-        message: "bid commands are legal only during Vow Tide bidding".to_owned(),
+        message: "command is not legal during the current Vow Tide phase".to_owned(),
+    }
+}
+
+pub fn unknown_card_diagnostic() -> Diagnostic {
+    Diagnostic {
+        code: "VT_UNKNOWN_CARD".to_owned(),
+        message: "play commands require a recognized Vow Tide card id".to_owned(),
+    }
+}
+
+pub fn card_not_owned_diagnostic(card: CardId) -> Diagnostic {
+    Diagnostic {
+        code: "VT_CARD_NOT_OWNED".to_owned(),
+        message: format!(
+            "the submitted card `{}` is not owned by the actor",
+            card.as_str()
+        ),
+    }
+}
+
+pub fn must_follow_suit_diagnostic() -> Diagnostic {
+    Diagnostic {
+        code: "VT_MUST_FOLLOW_SUIT".to_owned(),
+        message: "a Vow Tide follower holding the led suit must play that suit".to_owned(),
+    }
+}
+
+fn malformed_trick_state_diagnostic() -> Diagnostic {
+    Diagnostic {
+        code: "VT_MALFORMED_TRICK_STATE".to_owned(),
+        message: "vow_tide trick resolution requires at least one eligible play".to_owned(),
     }
 }
 

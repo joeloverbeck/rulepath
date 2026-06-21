@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-008: Trick-play legality and resolution via the promoted helper
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `games/vow_tide/src/{actions,rules,effects,state}.rs`; new play golden traces
@@ -81,3 +81,21 @@ On each play apply the Appendix B.1.1 order: resolve the winner via `winning_pla
 1. `cargo test -p vow_tide --test rules --test property`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: rules+property are the legality/resolution boundary; cross-game helper conformance is in 002/003/004.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added Vow Tide `play/<card_id>` legal leaves during the playing phase, with card metadata limited to public card facts and current public trick context.
+- Implemented follow-suit legality through `game_stdlib::trick_taking::follow_suit_indices`; ownership, phase, active-seat, diagnostics, and effects remain game-local.
+- Implemented trick resolution through `game_stdlib::trick_taking::winning_play_index`, passing the public per-hand trump and mapping the winning index back to Vow Tide seats locally.
+- Added captured-trick state, current-trick state, per-seat trick counts, card-play effects, trick-captured effects, and winner-leads-next transitions. Hand scoring and schedule advancement remain out of scope for 009.
+- Added rule/property tests for lead-any including trump, forced follow-suit, void-any play, highest-trump winner, highest-led winner, stable first occurrence, and winner-leads state.
+- Added play golden trace fixtures for `trump-may-lead`, `follow-suit-forced`, and `highest-trump-wins`.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide --test rules --test property` passed: 21 targeted tests.
+- `cargo test -p vow_tide` passed: 26 integration tests plus crate/doc test harnesses.
+- `cargo clippy -p vow_tide --all-targets -- -D warnings` passed.

@@ -1,0 +1,24 @@
+{
+  "trace_id": "highest-trump-wins",
+  "seed": 20260621,
+  "seat_count": 4,
+  "hand_index": 0,
+  "trick_index": 0,
+  "trump_suit": "hearts",
+  "led_suit": "clubs",
+  "plays": [
+    { "seat": "seat_1", "card": "ace_clubs" },
+    { "seat": "seat_2", "card": "king_clubs" },
+    { "seat": "seat_3", "card": "two_hearts" },
+    { "seat": "seat_0", "card": "queen_clubs" }
+  ],
+  "winner": "seat_3",
+  "next_leader": "seat_3",
+  "trick_counts_after": [
+    { "seat": "seat_0", "tricks": 0 },
+    { "seat": "seat_1", "tricks": 0 },
+    { "seat": "seat_2", "tricks": 0 },
+    { "seat": "seat_3", "tricks": 1 }
+  ],
+  "rule_ids": ["VT-TRICK-WIN-001", "VT-NEXT-LEAD-001"]
+}
