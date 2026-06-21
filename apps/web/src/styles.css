@@ -1112,6 +1112,20 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+.briar-pass-instruction {
+  margin: 0;
+  color: #40514b;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.briar-pass-progress {
+  color: #687973;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .briar-pass-meter {
   overflow: hidden;
   block-size: 10px;

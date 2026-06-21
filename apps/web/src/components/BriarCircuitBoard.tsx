@@ -311,22 +311,36 @@ export function BriarCircuitBoard({
         {view.pass ? (
           <section className="briar-pass" aria-label="Pass progress">
             <div className="briar-section-heading">
-              <span>Pass</span>
+              <span>Pass {view.pass.direction}</span>
               <strong>
-                {view.pass.direction} {view.pass.own_selection.length}/3
+                {view.pass.own_committed ? "Committed" : `${view.pass.own_selection.length} of 3 chosen`}
               </strong>
             </div>
-            <div className="briar-pass-meter" aria-label={`${view.pass.committed_count} seats committed`}>
+            <p className="briar-pass-instruction">
+              {view.private_view_status !== "seat"
+                ? "The four seats are choosing cards to pass privately."
+                : view.pass.own_committed
+                  ? "Your three cards are locked in. Waiting for the other seats to commit."
+                  : `Choose 3 cards from your hand to pass ${view.pass.direction}, then confirm.`}
+            </p>
+            <div className="briar-pass-meter" aria-label={`${view.pass.committed_count} of 4 seats committed`}>
               <span style={{ inlineSize: `${(view.pass.committed_count / 4) * 100}%` }} />
             </div>
-            <button
-              type="button"
-              className="briar-confirm"
-              disabled={!canAct || !passConfirm || view.pass.own_committed}
-              onClick={() => passConfirm && onPathSubmit?.(passConfirm.path)}
-            >
-              {view.pass.own_committed ? "Pass committed" : "Confirm pass"}
-            </button>
+            <small className="briar-pass-progress">{view.pass.committed_count} of 4 seats committed</small>
+            {view.private_view_status === "seat" ? (
+              <button
+                type="button"
+                className="briar-confirm"
+                disabled={!canAct || !passConfirm || view.pass.own_committed}
+                onClick={() => passConfirm && onPathSubmit?.(passConfirm.path)}
+              >
+                {view.pass.own_committed
+                  ? "Pass committed"
+                  : passConfirm
+                    ? "Confirm pass"
+                    : `Choose ${3 - view.pass.own_selection.length} more`}
+              </button>
+            ) : null}
           </section>
         ) : null}
       </div>
@@ -506,7 +520,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function statusLabel(view: BriarCircuitPublicView): string {
   if (view.phase === "passing" && view.pass) {
-    return `Pass ${view.pass.direction}: ${view.pass.committed_count} committed`;
+    return `Passing ${view.pass.direction}`;
   }
   if (view.phase === "playing") {
     return view.active_seat ? `${seatLabel(view.active_seat)} to play` : "Playing";
