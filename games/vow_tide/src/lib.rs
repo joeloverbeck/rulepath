@@ -3,8 +3,11 @@
 //! This crate keeps all Oh Hell-family nouns local to the game module. The
 //! shared engine sees only generic Rulepath contracts.
 
+pub mod actions;
 pub mod cards;
+pub mod effects;
 pub mod ids;
+pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod variants;

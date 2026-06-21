@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-007: Bidding actions, exact dealer hook, legal tree, validation, first-use ledger
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/vow_tide/src/{actions,rules,effects}.rs` (bidding paths); modifies `state.rs`; new `games/vow_tide/docs/PRIMITIVE-PRESSURE-LEDGER.md`; modifies `docs/MECHANIC-ATLAS.md` (bidding first-use row)
@@ -85,3 +85,21 @@ Author `games/vow_tide/docs/PRIMITIVE-PRESSURE-LEDGER.md` bidding `local-only` e
 1. `cargo test -p vow_tide --test rules --test property`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: rules+property suites are the legality boundary; data-behavior rejection is proven by fixture-check (015).
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added local Vow Tide bidding modules for `bid/<decimal_u8>` action paths, ascending Rust legal leaves, dealer-only `H-S` hook omission, public bid effects, and independent validator checks.
+- Extended state with public accepted bid rows that persist after bidding completes, while retaining unsubmitted choices outside authoritative state.
+- Added tests for bid order, range, wrong-seat/wrong-phase/stale/duplicate diagnostics, hook rejection, legal-tree/validator equivalence, and dealer hook non-empty legal sets.
+- Added public-only golden bid traces for left-of-dealer order, hook forbidden total, hook out-of-range no-removal, zero bid acceptance, and upper-bound bid acceptance.
+- Added `games/vow_tide/docs/PRIMITIVE-PRESSURE-LEDGER.md` and the Mechanic Atlas first-use row, recording numeric trick contracts as local-only with no shared bid framework or behavior in data.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide --test rules --test property` passed: 15 targeted tests.
+- `cargo test -p vow_tide` passed: 20 integration tests plus crate/doc test harnesses.
+- `cargo clippy -p vow_tide --all-targets -- -D warnings` passed.
+- `node scripts/check-doc-links.mjs` passed: checked 27 markdown files.

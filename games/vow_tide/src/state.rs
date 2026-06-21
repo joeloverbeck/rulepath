@@ -23,6 +23,39 @@ impl BiddingState {
                 .collect(),
         }
     }
+
+    pub fn bid_for(&self, seat: VowTideSeat) -> Option<u8> {
+        self.bids
+            .iter()
+            .find(|(candidate, _)| *candidate == seat)
+            .and_then(|(_, bid)| *bid)
+    }
+
+    pub fn bid_for_mut(&mut self, seat: VowTideSeat) -> Option<&mut Option<u8>> {
+        self.bids
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, bid)| bid)
+    }
+
+    pub fn accepted_bid_total(&self) -> u8 {
+        self.bids.iter().filter_map(|(_, bid)| *bid).sum()
+    }
+
+    pub fn all_bids_set(&self) -> bool {
+        self.bids.iter().all(|(_, bid)| bid.is_some())
+    }
+
+    pub fn next_unset_after(&self, seat: VowTideSeat, seat_count: usize) -> Option<VowTideSeat> {
+        let mut candidate = seat.next_clockwise(seat_count);
+        for _ in 0..seat_count {
+            if self.bid_for(candidate).is_none() {
+                return Some(candidate);
+            }
+            candidate = candidate.next_clockwise(seat_count);
+        }
+        None
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -54,6 +87,7 @@ pub struct VowTideState {
     pub hand_index: u32,
     pub hand_schedule: Vec<u8>,
     pub cumulative_scores: Vec<(VowTideSeat, i16)>,
+    pub public_bids: Vec<(VowTideSeat, Option<u8>)>,
     pub phase: Phase,
     pub private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
     pub trump_indicator: CardId,
@@ -63,17 +97,22 @@ pub struct VowTideState {
     pub seed: Seed,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InitialDealState {
+    pub hand_index: u32,
+    pub private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
+    pub trump_indicator: CardId,
+    pub hidden_stock: Vec<CardId>,
+    pub deal_order: Vec<VowTideSeat>,
+}
+
 impl VowTideState {
     pub fn new_after_deal(
         variant: Variant,
         seats: Vec<SeatId>,
         hand_schedule: Vec<u8>,
         dealer: VowTideSeat,
-        hand_index: u32,
-        private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
-        trump_indicator: CardId,
-        hidden_stock: Vec<CardId>,
-        deal_order: Vec<VowTideSeat>,
+        deal: InitialDealState,
         seed: Seed,
     ) -> Self {
         let seat_count = seats.len();
@@ -88,14 +127,15 @@ impl VowTideState {
                 .map(|seat| seat.fallback_label().to_owned())
                 .collect(),
             dealer,
-            hand_index,
+            hand_index: deal.hand_index,
             hand_schedule,
             cumulative_scores: seat_order.iter().map(|seat| (*seat, 0)).collect(),
+            public_bids: seat_order.iter().map(|seat| (*seat, None)).collect(),
             phase: Phase::Bidding(BiddingState::new(seat_count, active_seat)),
-            private_hands,
-            trump_indicator,
-            hidden_stock,
-            deal_order,
+            private_hands: deal.private_hands,
+            trump_indicator: deal.trump_indicator,
+            hidden_stock: deal.hidden_stock,
+            deal_order: deal.deal_order,
             freshness_token: FreshnessToken(0),
             seed,
         }
@@ -115,6 +155,34 @@ impl VowTideState {
             Phase::PlayingTrick(playing) => Some(playing.active_seat),
             Phase::Terminal(_) => None,
         }
+    }
+
+    pub fn bidding_state(&self) -> Option<&BiddingState> {
+        match &self.phase {
+            Phase::Bidding(bidding) => Some(bidding),
+            _ => None,
+        }
+    }
+
+    pub fn bidding_state_mut(&mut self) -> Option<&mut BiddingState> {
+        match &mut self.phase {
+            Phase::Bidding(bidding) => Some(bidding),
+            _ => None,
+        }
+    }
+
+    pub fn bid_for(&self, seat: VowTideSeat) -> Option<u8> {
+        self.public_bids
+            .iter()
+            .find(|(candidate, _)| *candidate == seat)
+            .and_then(|(_, bid)| *bid)
+    }
+
+    pub fn public_bid_for_mut(&mut self, seat: VowTideSeat) -> Option<&mut Option<u8>> {
+        self.public_bids
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, bid)| bid)
     }
 
     pub fn hand_for_internal(&self, seat: VowTideSeat) -> &[CardId] {
@@ -146,13 +214,14 @@ impl VowTideState {
             Phase::Terminal(_) => "terminal".to_owned(),
         };
         format!(
-            "{}|variant={}|dealer={}|hand={}|schedule={:?}|scores={:?}|phase={phase}|trump={}|stock={}|hands={}",
+            "{}|variant={}|dealer={}|hand={}|schedule={:?}|scores={:?}|bids={:?}|phase={phase}|trump={}|stock={}|hands={}",
             VARIANT_ID,
             self.variant.id,
             self.dealer.as_str(),
             self.hand_index,
             self.hand_schedule,
             self.cumulative_scores,
+            self.public_bids,
             self.trump_indicator.as_str(),
             self.hidden_stock
                 .iter()

@@ -3,7 +3,7 @@ use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
 use crate::{
     cards::{canonical_deck, CardId},
     ids::{hand_schedule_for_seats, supported_seat_count, VowTideSeat},
-    state::VowTideState,
+    state::{InitialDealState, VowTideState},
     variants::Variant,
 };
 
@@ -44,11 +44,13 @@ pub fn setup_match(
         seats.to_vec(),
         schedule,
         dealer,
-        hand_index,
-        deal.hands,
-        deal.trump_indicator,
-        deal.hidden_stock,
-        deal.deal_order,
+        InitialDealState {
+            hand_index,
+            private_hands: deal.hands,
+            trump_indicator: deal.trump_indicator,
+            hidden_stock: deal.hidden_stock,
+            deal_order: deal.deal_order,
+        },
         seed,
     ))
 }

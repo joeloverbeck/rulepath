@@ -2,11 +2,13 @@ use std::collections::BTreeSet;
 
 use engine_core::Seed;
 use vow_tide::{
+    actions::{legal_action_tree, legal_bids, validate_bid_command},
     cards::{canonical_deck, CardId},
     ids::{
         canonical_seat_ids, hand_schedule_for_seats, VowTideSeat, STANDARD_MAX_SEATS,
         STANDARD_MIN_SEATS,
     },
+    rules::apply_bid,
     setup::{deal_for_hand, seed_for_hand, setup_match, SetupOptions},
 };
 
@@ -76,6 +78,56 @@ fn setup_deals_clockwise_from_left_of_dealer_and_conserves_cards() {
     }
 }
 
+#[test]
+fn dealer_hook_never_empties_legal_bids_for_reachable_prefixes() {
+    for hand_size in 1..=10 {
+        for prefix_total in 0..=(hand_size * 3) {
+            let legal = dealer_legal_bids_for_prefix(hand_size, prefix_total);
+            assert!(!legal.is_empty());
+            if prefix_total <= hand_size {
+                assert!(!legal.contains(&(hand_size - prefix_total)));
+                assert_eq!(legal.len(), hand_size as usize);
+            } else {
+                assert_eq!(legal, (0..=hand_size).collect::<Vec<_>>());
+            }
+        }
+    }
+}
+
+#[test]
+fn legal_tree_and_validator_agree_for_bidding_states() {
+    for prefix in [
+        Vec::new(),
+        vec![0],
+        vec![2],
+        vec![3, 3, 3],
+        vec![10, 10, 10],
+    ] {
+        let mut state = setup_state(4);
+        for (seat, bid) in [VowTideSeat::Seat1, VowTideSeat::Seat2, VowTideSeat::Seat3]
+            .into_iter()
+            .zip(prefix)
+        {
+            apply_bid_value(&mut state, seat, bid);
+        }
+
+        let Some(active) = state.active_seat() else {
+            continue;
+        };
+        let tree_bids = bid_leaf_segments(&legal_action_tree(&state, &actor(active)))
+            .into_iter()
+            .map(|segment| segment.parse::<u8>().expect("u8 bid"))
+            .collect::<Vec<_>>();
+        let helper_bids = legal_bids(&state, active);
+        assert_eq!(tree_bids, helper_bids);
+
+        for bid in 0..=state.current_hand_size().expect("hand size") {
+            let result = validate_bid_command(&state, &command(&state, active, bid));
+            assert_eq!(result.is_ok(), helper_bids.contains(&bid));
+        }
+    }
+}
+
 fn all_internal_cards(
     hands: &[(VowTideSeat, Vec<CardId>)],
     trump_indicator: CardId,
@@ -104,4 +156,64 @@ fn all_internal_cards(
         );
     }
     cards
+}
+
+fn dealer_legal_bids_for_prefix(hand_size: u8, prefix_total: u8) -> Vec<u8> {
+    let forbidden = if prefix_total <= hand_size {
+        Some(hand_size - prefix_total)
+    } else {
+        None
+    };
+    (0..=hand_size)
+        .filter(|bid| Some(*bid) != forbidden)
+        .collect()
+}
+
+fn setup_state(seat_count: usize) -> vow_tide::state::VowTideState {
+    setup_match(
+        Seed(29),
+        &canonical_seat_ids(seat_count),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds")
+}
+
+fn apply_bid_value(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat, value: u8) {
+    let bid = validate_bid_command(state, &command(state, seat, value)).expect("bid validates");
+    apply_bid(state, bid).expect("bid applies");
+}
+
+fn command(
+    state: &vow_tide::state::VowTideState,
+    seat: VowTideSeat,
+    value: u8,
+) -> engine_core::CommandEnvelope {
+    engine_core::CommandEnvelope {
+        actor: actor(seat),
+        action_path: engine_core::ActionPath {
+            segments: vec!["bid".to_owned(), value.to_string()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: engine_core::RulesVersion(1),
+    }
+}
+
+fn actor(seat: VowTideSeat) -> engine_core::Actor {
+    engine_core::Actor {
+        seat_id: engine_core::SeatId(seat.as_str().to_owned()),
+    }
+}
+
+fn bid_leaf_segments(tree: &engine_core::ActionTree) -> Vec<String> {
+    tree.root
+        .choices
+        .first()
+        .and_then(|choice| choice.next.as_ref())
+        .map(|node| {
+            node.choices
+                .iter()
+                .map(|choice| choice.segment.clone())
+                .collect()
+        })
+        .unwrap_or_default()
 }

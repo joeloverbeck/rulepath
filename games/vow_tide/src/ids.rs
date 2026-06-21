@@ -11,6 +11,7 @@ pub const STANDARD_SUIT_COUNT: u8 = 4;
 pub const STANDARD_RANK_COUNT: u8 = 13;
 pub const STANDARD_CARD_COUNT: u8 = STANDARD_SUIT_COUNT * STANDARD_RANK_COUNT;
 pub const STANDARD_MAX_HAND_SIZE: u8 = 10;
+pub const ACTION_BID: &str = "bid";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum VowTideSeat {

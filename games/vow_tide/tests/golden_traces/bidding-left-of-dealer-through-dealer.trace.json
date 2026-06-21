@@ -1,0 +1,17 @@
+{
+  "trace_id": "bidding-left-of-dealer-through-dealer",
+  "seed": 20260621,
+  "seat_count": 4,
+  "hand_size": 10,
+  "phase": "playing_trick",
+  "active_seat": "seat_1",
+  "public_total": 9,
+  "hook_forbidden_bid": null,
+  "legal_bids": [],
+  "accepted_bids": [
+    { "seat": "seat_0", "bid": 0 },
+    { "seat": "seat_1", "bid": 2 },
+    { "seat": "seat_2", "bid": 3 },
+    { "seat": "seat_3", "bid": 4 }
+  ]
+}
