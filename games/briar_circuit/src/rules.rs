@@ -1,4 +1,5 @@
 use engine_core::Diagnostic;
+use game_stdlib::trick_taking::{follow_suit_indices, winning_play_index};
 
 use crate::{
     cards::{Card, CardId, Rank, Suit},
@@ -249,12 +250,14 @@ pub fn legal_cards_for_playing_state(hand: &[CardId], play: &PlayingTrickState) 
     }
 
     if let Some(led_suit) = led_suit(play) {
-        let followed: Vec<_> = hand
-            .iter()
-            .copied()
-            .filter(|card| card.card().suit == led_suit)
-            .collect();
-        if !followed.is_empty() {
+        let followed = follow_suit_indices(hand, led_suit, |card| card.card().suit)
+            .into_iter()
+            .map(|index| hand[index])
+            .collect::<Vec<_>>();
+        if followed
+            .first()
+            .is_some_and(|card| card.card().suit == led_suit)
+        {
             return followed;
         }
     }
@@ -287,11 +290,14 @@ pub fn legal_cards_for_playing_state(hand: &[CardId], play: &PlayingTrickState) 
 
 pub fn trick_winner(plays: &[TrickPlay]) -> Option<TrickPlay> {
     let led_suit = plays.first()?.card.card().suit;
-    plays
-        .iter()
-        .copied()
-        .filter(|play| play.card.card().suit == led_suit)
-        .max_by_key(|play| play.card.card().rank.value())
+    winning_play_index(
+        plays,
+        led_suit,
+        None,
+        |play| play.card.card().suit,
+        |play| play.card.card().rank.value(),
+    )
+    .map(|index| plays[index])
 }
 
 pub const fn is_point_card(card: Card) -> bool {
