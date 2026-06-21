@@ -279,3 +279,57 @@ fn played_card_identity_is_public_without_pass_provenance() {
     assert!(!payload.contains("PassExchangePrivate"));
     assert!(!payload.contains("PassSelectionUpdated"));
 }
+
+/// Commits a seat's three-card pass using the first three owned cards.
+fn commit_seat_pass(state: &mut briar_circuit::BriarCircuitState, seat: BriarCircuitSeat) {
+    for _ in 0..3 {
+        let card = *state
+            .hand_for_internal(seat)
+            .iter()
+            .find(|card| !pass_selection(state, seat).contains(card))
+            .expect("a selectable card exists");
+        apply_pass_action(state, seat, PassAction::Select(card)).expect("select succeeds");
+    }
+    apply_pass_action(state, seat, PassAction::Confirm).expect("confirm succeeds");
+}
+
+fn pass_selection(
+    state: &briar_circuit::BriarCircuitState,
+    seat: BriarCircuitSeat,
+) -> Vec<briar_circuit::CardId> {
+    match &state.phase {
+        Phase::Passing(pass) => pass.selection_for(seat).to_vec(),
+        _ => Vec::new(),
+    }
+}
+
+#[test]
+fn passing_phase_reports_next_uncommitted_seat_as_active() {
+    // Hand 0 is a left-pass hand, so the match opens in the pass phase. The simultaneous
+    // pass is driven one commitment at a time, so the public view must surface the next
+    // seat that still owes a commitment so the turn machinery can advance every seat.
+    let mut state = setup_match(
+        Seed(1608),
+        &briar_circuit::canonical_seat_ids(),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    assert!(matches!(state.phase, Phase::Passing(_)));
+
+    let active =
+        |state: &briar_circuit::BriarCircuitState| project_view(state, &viewer(None)).active_seat;
+
+    assert_eq!(active(&state), Some(BriarCircuitSeat::Seat0));
+    commit_seat_pass(&mut state, BriarCircuitSeat::Seat0);
+    assert_eq!(active(&state), Some(BriarCircuitSeat::Seat1));
+    commit_seat_pass(&mut state, BriarCircuitSeat::Seat1);
+    assert_eq!(active(&state), Some(BriarCircuitSeat::Seat2));
+    commit_seat_pass(&mut state, BriarCircuitSeat::Seat2);
+    assert_eq!(active(&state), Some(BriarCircuitSeat::Seat3));
+
+    // The fourth commitment triggers the atomic exchange and enters trick play, so the
+    // active seat becomes the two-of-clubs opener rather than a passing seat.
+    commit_seat_pass(&mut state, BriarCircuitSeat::Seat3);
+    assert!(matches!(state.phase, Phase::PlayingTrick(_)));
+    assert_eq!(active(&state), Some(state.two_clubs_leader()));
+}

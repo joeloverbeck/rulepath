@@ -1,9 +1,13 @@
-use engine_core::{HashValue, SeatId, Viewer};
+use engine_core::{Diagnostic, HashValue, SeatId, Seed, Viewer};
 
 use crate::{
+    actions::{apply_pass_action, apply_play_action},
+    bots::{BriarCircuitBotAction, BriarCircuitL1Bot},
     effects::BriarCircuitEffect,
-    ids::{BriarCircuitSeat, GAME_ID, RULES_VERSION_LABEL},
-    state::BriarCircuitState,
+    ids::{canonical_seat_ids, BriarCircuitSeat, GAME_ID, RULES_VERSION_LABEL},
+    scoring::MATCH_THRESHOLD,
+    setup::{setup_match, SetupOptions},
+    state::{BriarCircuitState, Phase, TerminalOutcome},
     visibility::{filter_effects_for_viewer, project_action_previews, project_view},
 };
 
@@ -34,6 +38,112 @@ pub struct ViewerReplayExport {
     pub viewer_label: String,
     pub observation_timeline: Vec<String>,
     pub migration_notes: Vec<String>,
+}
+
+/// Deterministic replay of a complete Level 1 bot-driven match. Because the L1
+/// policy, deal, scoring, and rules are all deterministic, a fixed seed fully
+/// determines the outcome, so this is the canonical regression surface for
+/// multi-hand golden traces: any change to deal, rules, scoring, or the L1 policy
+/// changes one of the returned hashes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BotMatchReplay {
+    pub snapshot: ReplayHashSnapshot,
+    pub effect_hash: HashValue,
+    pub terminal: bool,
+    pub winner: Option<BriarCircuitSeat>,
+    pub hands_played: u32,
+    pub cumulative_scores: [u16; 4],
+    pub action_count: u32,
+    /// Pass direction of each hand played, in order (e.g. left, right, across, hold, ...).
+    pub pass_directions: Vec<String>,
+    /// Dealer of each hand played, in order; rotates clockwise after every hand.
+    pub dealers: Vec<String>,
+    /// Number of completed non-terminal hands after which a cumulative score had
+    /// already reached the match threshold but the low score was tied, so play
+    /// continued (BC-MATCH-003 tied-low continuation).
+    pub tie_continuation_hands: u32,
+}
+
+pub fn replay_bot_match(seed: u64, action_cap: usize) -> Result<BotMatchReplay, Diagnostic> {
+    let mut state = setup_match(Seed(seed), &canonical_seat_ids(), &SetupOptions::default())?;
+    let bot = BriarCircuitL1Bot::new(Seed(seed ^ 0xB16A_C1CC));
+    let mut effects: Vec<BriarCircuitEffect> = Vec::new();
+    let mut action_count = 0_u32;
+    let mut pass_directions = vec![state.pass_direction().as_str().to_owned()];
+    let mut dealers = vec![state.dealer.as_str().to_owned()];
+    let mut tie_continuation_hands = 0_u32;
+    let mut prev_hand_index = state.hand_index;
+
+    while !matches!(state.phase, Phase::Terminal(_)) {
+        let Some(seat) = bot_match_active_seat(&state) else {
+            break;
+        };
+        let decision = bot.select_decision(&state, seat)?;
+        match decision.action {
+            BriarCircuitBotAction::Pass(action) => {
+                effects.extend(apply_pass_action(&mut state, seat, action)?.effects);
+            }
+            BriarCircuitBotAction::Play(action) => {
+                effects.extend(apply_play_action(&mut state, seat, action)?.effects);
+            }
+        }
+        action_count += 1;
+
+        if state.hand_index != prev_hand_index {
+            // A non-terminal hand completed and the next hand was dealt. If a score has
+            // already crossed the threshold, the match only continued because the low
+            // score was tied (a unique low would have ended the match).
+            if state
+                .cumulative_scores
+                .iter()
+                .any(|score| *score >= MATCH_THRESHOLD)
+            {
+                tie_continuation_hands += 1;
+            }
+            pass_directions.push(state.pass_direction().as_str().to_owned());
+            dealers.push(state.dealer.as_str().to_owned());
+            prev_hand_index = state.hand_index;
+        }
+
+        if action_count as usize >= action_cap {
+            break;
+        }
+    }
+
+    let viewer = Viewer { seat_id: None };
+    let (terminal, winner) = match &state.phase {
+        Phase::Terminal(TerminalOutcome::UniqueLowScoreWin { winner, .. }) => (true, Some(*winner)),
+        _ => (false, None),
+    };
+    // At terminal the final hand index is not advanced, so it counts as one more hand.
+    let hands_played = if terminal {
+        state.hand_index + 1
+    } else {
+        state.hand_index
+    };
+
+    Ok(BotMatchReplay {
+        snapshot: replay_hash_snapshot(&state),
+        effect_hash: effect_hash(&effects, &viewer),
+        terminal,
+        winner,
+        hands_played,
+        cumulative_scores: state.cumulative_scores,
+        action_count,
+        pass_directions,
+        dealers,
+        tie_continuation_hands,
+    })
+}
+
+fn bot_match_active_seat(state: &BriarCircuitState) -> Option<BriarCircuitSeat> {
+    match &state.phase {
+        Phase::Passing(pass) => BriarCircuitSeat::ALL
+            .into_iter()
+            .find(|seat| !pass.is_committed(*seat)),
+        Phase::PlayingTrick(play) => Some(play.active_seat),
+        Phase::ScoringHand(_) | Phase::Terminal(_) => None,
+    }
 }
 
 pub fn replay_hash_snapshot(state: &BriarCircuitState) -> ReplayHashSnapshot {

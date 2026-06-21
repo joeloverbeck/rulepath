@@ -1038,6 +1038,13 @@ export type BriarCircuitPassView = {
   own_committed: boolean;
 };
 
+export type BriarCircuitHandSummaryView = {
+  raw_points: Record<BriarCircuitSeatId, number>;
+  hand_additions: Record<BriarCircuitSeatId, number>;
+  cumulative_after: Record<BriarCircuitSeatId, number>;
+  moon_shooter: BriarCircuitSeatId | null;
+};
+
 export type BriarCircuitOutcomeRationale = OutcomeRationalePayload;
 
 export type BriarCircuitPublicView = {
@@ -1059,6 +1066,7 @@ export type BriarCircuitPublicView = {
   hearts_broken: boolean | null;
   current_trick: BriarCircuitTrickPlayView[];
   captured_tricks: BriarCircuitCapturedTrickView[];
+  last_hand_summary: BriarCircuitHandSummaryView | null;
   freshness_token: number;
   private_view_status: "observer" | "seat";
   terminal_rationale?: BriarCircuitOutcomeRationale | null;

@@ -1,5 +1,6 @@
 use briar_circuit::{
-    canonical_seat_ids, export_viewer_timeline, import_viewer_timeline, replay_hash_snapshot,
+    canonical_seat_ids, export_viewer_timeline, import_viewer_timeline, replay_bot_match,
+    replay_hash_snapshot,
     setup::{deal_hand, next_dealer},
     setup_match, BriarCircuitSeat, PassDirection, SetupOptions, ViewerExportClass,
 };
@@ -163,4 +164,73 @@ fn golden_trace_minimum_inventory_exists() {
         );
         assert!(payload.contains("migration_notes"));
     }
+}
+
+#[test]
+fn bot_match_replay_is_deterministic_and_reaches_a_multi_hand_terminal() {
+    // A fixed seed fully determines the L1 bot match, so two replays must be identical
+    // and must reach a unique-low-score terminal across several hands.
+    for seed in [1600_u64, 1601, 1700, 9001] {
+        let first = replay_bot_match(seed, 8192).expect("bot match replays");
+        let second = replay_bot_match(seed, 8192).expect("bot match replays");
+        assert_eq!(first, second, "seed {seed} replay is deterministic");
+        assert!(first.terminal, "seed {seed} reaches a terminal outcome");
+        assert!(
+            first.winner.is_some(),
+            "seed {seed} has a unique-low winner"
+        );
+        assert!(
+            first.hands_played >= 2,
+            "seed {seed} plays multiple hands (got {})",
+            first.hands_played
+        );
+        // The winner holds the unique lowest cumulative score.
+        let winner = first.winner.expect("winner");
+        let low = *first.cumulative_scores.iter().min().expect("scores");
+        assert_eq!(first.cumulative_scores[winner.index()], low);
+        assert_eq!(
+            first
+                .cumulative_scores
+                .iter()
+                .filter(|score| **score == low)
+                .count(),
+            1,
+            "seed {seed} winner low score is unique"
+        );
+    }
+}
+
+#[test]
+fn bot_match_replay_diverges_across_seeds() {
+    // Different seeds produce different deals, so their replay hashes should differ.
+    let a = replay_bot_match(1600, 8192).expect("replay");
+    let b = replay_bot_match(2600, 8192).expect("replay");
+    assert_ne!(
+        a.snapshot.state_hash, b.snapshot.state_hash,
+        "distinct seeds yield distinct terminal state hashes"
+    );
+}
+
+#[test]
+fn bot_match_replay_records_pass_cycle_dealer_rotation_and_tie_continuation() {
+    // Pass direction and dealer rotation are deterministic from the hand index, so the
+    // first four hands of any multi-hand match follow the published cycle.
+    let canonical = replay_bot_match(1600, 8192).expect("replay");
+    assert_eq!(
+        canonical.pass_directions[..4],
+        ["left", "right", "across", "hold"]
+    );
+    assert_eq!(
+        canonical.dealers[..4],
+        ["seat_0", "seat_1", "seat_2", "seat_3"]
+    );
+    assert_eq!(canonical.tie_continuation_hands, 0);
+
+    // Seed 1625 crosses the threshold with a tied low score, so the match continues.
+    let tie = replay_bot_match(1625, 8192).expect("replay");
+    assert!(
+        tie.tie_continuation_hands >= 1,
+        "seed 1625 continues past a tied-low threshold hand"
+    );
+    assert!(tie.terminal && tie.winner.is_some());
 }

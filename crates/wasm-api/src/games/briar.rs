@@ -170,7 +170,7 @@ pub(crate) fn briar_view_json(
     freshness_token: u64,
 ) -> String {
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"viewer_seat\":{},\"phase\":\"{}\",\"dealer\":\"{}\",\"hand_index\":{},\"cumulative_scores\":{},\"hand_counts\":{},\"own_hand\":[{}],\"pass\":{},\"active_seat\":{},\"hearts_broken\":{},\"current_trick\":[{}],\"captured_tricks\":[{}],\"freshness_token\":{},\"private_view_status\":\"{}\",\"hidden_fields\":[\"opponent_hands\",\"pass_provenance\",\"deck_order\"],\"ui\":{}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"viewer_seat\":{},\"phase\":\"{}\",\"dealer\":\"{}\",\"hand_index\":{},\"cumulative_scores\":{},\"hand_counts\":{},\"own_hand\":[{}],\"pass\":{},\"active_seat\":{},\"hearts_broken\":{},\"current_trick\":[{}],\"captured_tricks\":[{}],\"last_hand_summary\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"hidden_fields\":[\"opponent_hands\",\"pass_provenance\",\"deck_order\"],\"ui\":{}}}",
         SCHEMA_VERSION,
         RULES_VERSION,
         escape_json(GAME_BRIAR_CIRCUIT),
@@ -203,6 +203,9 @@ pub(crate) fn briar_view_json(
             .map(briar_captured_trick_json)
             .collect::<Vec<_>>()
             .join(","),
+        view.last_hand_summary
+            .as_ref()
+            .map_or_else(|| "null".to_owned(), briar_hand_summary_json),
         freshness_token,
         if view.viewer_seat.is_some() { "seat" } else { "observer" },
         briar_ui_json()
@@ -427,6 +430,23 @@ fn briar_scores_json(scores: [u16; 4]) -> String {
     format!(
         "{{\"seat_0\":{},\"seat_1\":{},\"seat_2\":{},\"seat_3\":{}}}",
         scores[0], scores[1], scores[2], scores[3]
+    )
+}
+
+fn briar_raw_points_json(values: [u8; 4]) -> String {
+    format!(
+        "{{\"seat_0\":{},\"seat_1\":{},\"seat_2\":{},\"seat_3\":{}}}",
+        values[0], values[1], values[2], values[3]
+    )
+}
+
+fn briar_hand_summary_json(summary: &briar_circuit::HandSummaryView) -> String {
+    format!(
+        "{{\"raw_points\":{},\"hand_additions\":{},\"cumulative_after\":{},\"moon_shooter\":{}}}",
+        briar_raw_points_json(summary.raw_points),
+        briar_raw_points_json(summary.hand_additions),
+        briar_scores_json(summary.cumulative_after),
+        option_briar_seat_json(summary.moon_shooter)
     )
 }
 

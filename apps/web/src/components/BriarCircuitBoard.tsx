@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type {
   ActionChoice,
   ActionTree,
+  BriarCircuitHandSummaryView,
   BriarCircuitPublicView,
   BriarCircuitSeatId,
   EffectEntry,
@@ -18,6 +19,7 @@ type BriarCircuitBoardProps = {
   pending: boolean;
   interactive?: boolean;
   onPathSubmit?: (path: string[]) => void;
+  onRestart?: () => void;
 };
 
 type PathChoice = {
@@ -36,6 +38,7 @@ export function BriarCircuitBoard({
   pending,
   interactive = true,
   onPathSubmit,
+  onRestart,
 }: BriarCircuitBoardProps) {
   const paths = useMemo(() => flattenActionTree(actionTree), [actionTree]);
   const passSelect = useMemo(() => new Map(paths.filter((entry) => isPassSelect(entry.path)).map((entry) => [entry.path[2], entry])), [paths]);
@@ -48,6 +51,13 @@ export function BriarCircuitBoard({
   const selected = new Set(view.pass?.own_selection.map((card) => card.card_id) ?? []);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase !== "terminal");
+  // Between-hands scoring summary: the most recently completed hand, retained by Rust.
+  // Each hand has a unique cumulative-score signature, so dismissal is keyed by it; a
+  // newly completed hand produces a new signature and re-shows the panel.
+  const summary = view.last_hand_summary;
+  const summarySignature = summary ? SEATS.map((seat) => summary.cumulative_after[seat]).join("-") : null;
+  const [dismissedSignature, setDismissedSignature] = useState<string | null>(null);
+  const showHandSummary = Boolean(summary && view.phase !== "terminal" && summarySignature !== dismissedSignature);
   const trickChanged = effects.some((entry) => ["card_played", "trick_captured", "hearts_broken"].includes(String(entry.effect.payload.type)));
   const outcomeExplanation =
     view.phase === "terminal"
@@ -87,10 +97,25 @@ export function BriarCircuitBoard({
           <p className="eyebrow">{view.display_name}</p>
           <h2 id="briar-heading">{statusLabel(view)}</h2>
         </div>
-        <span className="turn-pill" data-testid="turn">
-          {turnLabel(view)}
-        </span>
+        <div className="briar-banner-actions">
+          <span className="turn-pill" data-testid="turn">
+            {turnLabel(view)}
+          </span>
+          {onRestart ? (
+            <button type="button" className="briar-restart" data-testid="briar-circuit-restart" onClick={onRestart}>
+              Restart
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {showHandSummary && summary ? (
+        <HandSummaryPanel
+          summary={summary}
+          handNumber={view.hand_index}
+          onDismiss={() => setDismissedSignature(summarySignature)}
+        />
+      ) : null}
 
       <p className="sr-only" aria-live="polite">
         {view.display_name}, {view.phase}, hand {view.hand_index + 1}, {view.current_trick.length} cards in the current trick.
@@ -246,6 +271,49 @@ function isPassSelect(path: string[]): boolean {
 
 function isPassUnselect(path: string[]): boolean {
   return path[0] === "pass" && path[1] === "unselect" && Boolean(path[2]);
+}
+
+function HandSummaryPanel({
+  summary,
+  handNumber,
+  onDismiss,
+}: {
+  summary: BriarCircuitHandSummaryView;
+  handNumber: number;
+  onDismiss: () => void;
+}) {
+  const moonShooter = summary.moon_shooter;
+  return (
+    <section className="briar-hand-summary" role="status" aria-live="polite" data-testid="briar-hand-summary">
+      <div className="briar-hand-summary-head">
+        <strong>Hand {handNumber} complete</strong>
+        {moonShooter ? <span className="briar-moon-flag">{seatLabel(moonShooter)} shot the moon</span> : null}
+      </div>
+      <table className="briar-hand-summary-table">
+        <thead>
+          <tr>
+            <th scope="col">Seat</th>
+            <th scope="col">Took</th>
+            <th scope="col">Added</th>
+            <th scope="col">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {SEATS.map((seat) => (
+            <tr key={seat} className={seat === moonShooter ? "moon" : ""}>
+              <th scope="row">{seatLabel(seat)}</th>
+              <td>{summary.raw_points[seat]}</td>
+              <td>+{summary.hand_additions[seat]}</td>
+              <td>{summary.cumulative_after[seat]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <button type="button" className="briar-hand-summary-continue" data-testid="briar-hand-summary-continue" onClick={onDismiss}>
+        Continue
+      </button>
+    </section>
+  );
 }
 
 function SeatPanel({ view, seat }: { view: BriarCircuitPublicView; seat: BriarCircuitSeatId }) {

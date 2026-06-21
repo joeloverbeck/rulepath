@@ -359,6 +359,100 @@ fn validate_briar_circuit_trace(
     if !input.contains("migration_notes") {
         return Err(format!("{}: missing migration_notes", path.display()));
     }
+    // Bot-match traces are executable: a fixed seed fully determines the deterministic
+    // Level 1 bot match, so replay it and compare the recorded outcome and hashes. Any
+    // change to the deal, rules, scoring, moon transform, or L1 policy fails the trace.
+    let is_bot_match = string_field(input, "fixture_kind").ok().as_deref() == Some("bot-match");
+    if is_bot_match {
+        validate_briar_bot_match_trace(path, input)?;
+    }
+    Ok(())
+}
+
+fn validate_briar_bot_match_trace(path: &Path, input: &str) -> Result<(), String> {
+    let with_path = |message: String| format!("{}: {message}", path.display());
+
+    let seed = number_field(input, "seed").map_err(with_path)?;
+    let action_cap = number_field(input, "action_cap").map_err(with_path)? as usize;
+    let replay = briar_circuit::replay_bot_match(seed, action_cap)
+        .map_err(|diagnostic| with_path(format!("bot-match replay failed: {}", diagnostic.code)))?;
+
+    if !replay.terminal {
+        return Err(with_path(
+            "bot-match replay did not reach a terminal outcome".to_owned(),
+        ));
+    }
+
+    let expected_winner = string_field(input, "expected_winner").map_err(with_path)?;
+    let actual_winner = replay
+        .winner
+        .map(|seat| seat.as_str().to_owned())
+        .unwrap_or_default();
+    if expected_winner != actual_winner {
+        return Err(with_path(format!(
+            "winner mismatch: expected {expected_winner}, actual {actual_winner}"
+        )));
+    }
+
+    let expected_hands = number_field(input, "expected_hands_played").map_err(with_path)?;
+    if u64::from(replay.hands_played) != expected_hands {
+        return Err(with_path(format!(
+            "hands_played mismatch: expected {expected_hands}, actual {}",
+            replay.hands_played
+        )));
+    }
+
+    for (key, actual) in [
+        ("expected_state_hash", replay.snapshot.state_hash.0),
+        (
+            "expected_public_view_hash",
+            replay.snapshot.public_view_hash.0,
+        ),
+        (
+            "expected_public_action_hash",
+            replay.snapshot.public_action_hash.0,
+        ),
+        ("expected_effect_hash", replay.effect_hash.0),
+    ] {
+        let expected = number_field(input, key).map_err(with_path)?;
+        if expected != actual {
+            return Err(with_path(format!(
+                "{key} mismatch: expected {expected}, actual {actual}"
+            )));
+        }
+    }
+
+    // Optional multi-hand structural assertions (checked only when present).
+    if input.contains("\"expected_pass_cycle\"") {
+        let expected = optional_string_array_field(input, "expected_pass_cycle")
+            .ok_or_else(|| with_path("expected_pass_cycle must be a string array".to_owned()))?;
+        if !replay.pass_directions.starts_with(expected.as_slice()) {
+            return Err(with_path(format!(
+                "pass cycle mismatch: expected prefix {expected:?}, actual {:?}",
+                replay.pass_directions
+            )));
+        }
+    }
+    if input.contains("\"expected_dealer_cycle\"") {
+        let expected = optional_string_array_field(input, "expected_dealer_cycle")
+            .ok_or_else(|| with_path("expected_dealer_cycle must be a string array".to_owned()))?;
+        if !replay.dealers.starts_with(expected.as_slice()) {
+            return Err(with_path(format!(
+                "dealer cycle mismatch: expected prefix {expected:?}, actual {:?}",
+                replay.dealers
+            )));
+        }
+    }
+    if input.contains("\"expected_min_tie_continuations\"") {
+        let expected = number_field(input, "expected_min_tie_continuations").map_err(with_path)?;
+        if u64::from(replay.tie_continuation_hands) < expected {
+            return Err(with_path(format!(
+                "tie continuation mismatch: expected at least {expected}, actual {}",
+                replay.tie_continuation_hands
+            )));
+        }
+    }
+
     Ok(())
 }
 

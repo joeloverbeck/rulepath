@@ -1,4 +1,4 @@
-use engine_core::{FreshnessToken, SeatId};
+use engine_core::{FreshnessToken, SeatId, Seed};
 
 use crate::{
     cards::CardId,
@@ -207,6 +207,14 @@ pub struct BriarCircuitState {
     pub private_hands: Vec<(BriarCircuitSeat, Vec<CardId>)>,
     pub captured_tricks: Vec<CapturedTrick>,
     pub freshness_token: FreshnessToken,
+    /// Match seed retained so later hands can be dealt deterministically and
+    /// reproducibly during replay. Excluded from `stable_internal_summary` and
+    /// every viewer projection so it never alters hashes or leaks deal material.
+    pub seed: Seed,
+    /// Public scoring breakdown of the most recently completed hand, retained so
+    /// the browser can show a between-hands summary while the next hand is dealt.
+    /// Cleared on setup; set whenever a hand finishes. Only public scoring facts.
+    pub last_hand_summary: Option<HandScoreBreakdown>,
 }
 
 impl BriarCircuitState {
@@ -236,6 +244,8 @@ impl BriarCircuitState {
                 .collect(),
             captured_tricks: Vec::new(),
             freshness_token: FreshnessToken(0),
+            seed: Seed(0),
+            last_hand_summary: None,
         }
     }
 
@@ -270,7 +280,14 @@ impl BriarCircuitState {
             private_hands: BriarCircuitSeat::ALL.into_iter().zip(hands).collect(),
             captured_tricks: Vec::new(),
             freshness_token: FreshnessToken(0),
+            seed: Seed(0),
+            last_hand_summary: None,
         }
+    }
+
+    /// The seat that must open a hand by leading the two of clubs.
+    pub fn two_clubs_leader(&self) -> BriarCircuitSeat {
+        opening_leader_from_private_hands(&self.private_hands)
     }
 
     pub fn pass_direction(&self) -> PassDirection {

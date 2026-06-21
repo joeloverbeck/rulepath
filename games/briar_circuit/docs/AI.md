@@ -54,7 +54,7 @@ mutates state directly.
 | Item | Decision/evidence |
 |---|---|
 | policy name/version | `briar-circuit-l1-baseline-v1` |
-| decision order summary | During pass, prefer high point-pressure cards; confirm after three selected cards. During play, choose a legal card with small public/own-hand priority over point value and rank. |
+| decision order summary | During pass, prefer high point-pressure cards; confirm after three selected cards. During play, lead or follow the led suit with the lowest-penalty, lowest-ranked legal card (duck); when void in the led suit, shed the highest-penalty legal card first (queen of spades, then high hearts, then high cards), since an off-suit card cannot win the trick. Own-hand information only. |
 | mandatory rule handling | Legal set comes from Rust; invalid options are absent. |
 | tie-break method | deterministic sort/order over legal candidates; no hidden random search |
 | information access | own hand and public state/history via Rust state/view surfaces; no opponent hand/deck order |
@@ -106,7 +106,7 @@ separate bounded task.
 | Bot | Decision order |
 |---|---|
 | random legal | enumerate legal actions, sample deterministic random index, return selected legal action |
-| bounded baseline | pass: select high point-pressure cards, then confirm; play: choose legal action by public/own-hand point and rank ordering |
+| bounded baseline | pass: select high point-pressure cards, then confirm; play: duck with the lowest-penalty card when leading or following the led suit, and shed the highest-penalty card when void in the led suit |
 | authored policy | not admitted |
 
 ## Explanation Examples
@@ -122,7 +122,7 @@ separate bounded task.
 | Bot | Weakness | Why acceptable | Mitigation/future trigger |
 |---|---|---|---|
 | random legal | ignores strategy | Level 0 is required legality baseline only | none; not public default |
-| bounded baseline | shallow: no suit-memory model, no endgame table-leader policy, no moon prevention/planning | Gate 16 admits L1 only, and it is safe/deterministic | complete Level 2 evidence pack before claiming competent play |
+| bounded baseline | shallow: no suit-memory model, no endgame table-leader policy, no opponent-aware moon prevention/planning | Gate 16 admits L1 only, and it is safe/deterministic. Its own-hand discard order (shed highest penalty when void) lowers the accidental shoot-the-moon rate in 1000-match self-play from ~9% to ~3% of hands, but it still reads no opponent state and does not actively defend against a moon. | complete Level 2 evidence pack before claiming competent play |
 
 ## Tests
 

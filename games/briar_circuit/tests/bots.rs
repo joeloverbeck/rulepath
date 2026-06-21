@@ -2,6 +2,7 @@ use briar_circuit::{
     apply_pass_action, apply_play_action, canonical_seat_ids, legal_bot_actions, setup_match,
     BriarCircuitBotAction, BriarCircuitL0Bot, BriarCircuitL1Bot, BriarCircuitSeat, Card,
     CurrentTrick, PassAction, Phase, PlayAction, PlayingTrickState, Rank, SetupOptions, Suit,
+    TrickPlay,
 };
 use engine_core::Seed;
 
@@ -136,4 +137,80 @@ fn bot_explanations_do_not_name_hidden_cards_or_forbidden_methods() {
     ] {
         assert!(!decision.explanation.contains(forbidden));
     }
+}
+
+/// Helper: a trick already led with `led` by Seat1, with Seat0 to act.
+fn trick_led_by_seat1(led: briar_circuit::CardId) -> PlayingTrickState {
+    let mut current_trick = CurrentTrick::new(BriarCircuitSeat::Seat1);
+    current_trick.plays.push(TrickPlay {
+        seat: BriarCircuitSeat::Seat1,
+        card: led,
+    });
+    PlayingTrickState {
+        hearts_broken: true,
+        trick_index: 3,
+        leader: BriarCircuitSeat::Seat1,
+        active_seat: BriarCircuitSeat::Seat0,
+        current_trick,
+    }
+}
+
+#[test]
+fn l1_bot_sheds_highest_penalty_card_when_void_in_led_suit() {
+    // Seat0 is void in the led suit (clubs) so it must discard. It should shed the most
+    // dangerous holding (queen of spades) instead of hoarding it, since an off-suit card
+    // can never win the trick. Own-hand danger management only — no opponent state read.
+    let mut state = setup_match(Seed(1621), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    let seat = BriarCircuitSeat::Seat0;
+    let queen_spades = card(Rank::Queen, Suit::Spades);
+    state.private_hands = vec![
+        (
+            seat,
+            vec![
+                queen_spades,
+                card(Rank::Two, Suit::Diamonds),
+                card(Rank::Three, Suit::Hearts),
+            ],
+        ),
+        (BriarCircuitSeat::Seat1, Vec::new()),
+        (BriarCircuitSeat::Seat2, Vec::new()),
+        (BriarCircuitSeat::Seat3, Vec::new()),
+    ];
+    state.phase = Phase::PlayingTrick(trick_led_by_seat1(card(Rank::Five, Suit::Clubs)));
+
+    let decision = BriarCircuitL1Bot::new(Seed(11))
+        .select_decision(&state, seat)
+        .expect("decision");
+    assert_eq!(
+        decision.action,
+        BriarCircuitBotAction::Play(PlayAction::Play(queen_spades)),
+        "void bot sheds the queen of spades rather than hoarding the penalty"
+    );
+}
+
+#[test]
+fn l1_bot_ducks_lowest_card_when_following_the_led_suit() {
+    // When it can follow suit, the baseline still ducks with its lowest in-suit card to
+    // avoid taking control of the trick.
+    let mut state = setup_match(Seed(1622), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    let seat = BriarCircuitSeat::Seat0;
+    let low_club = card(Rank::Two, Suit::Clubs);
+    state.private_hands = vec![
+        (seat, vec![card(Rank::King, Suit::Clubs), low_club]),
+        (BriarCircuitSeat::Seat1, Vec::new()),
+        (BriarCircuitSeat::Seat2, Vec::new()),
+        (BriarCircuitSeat::Seat3, Vec::new()),
+    ];
+    state.phase = Phase::PlayingTrick(trick_led_by_seat1(card(Rank::Five, Suit::Clubs)));
+
+    let decision = BriarCircuitL1Bot::new(Seed(12))
+        .select_decision(&state, seat)
+        .expect("decision");
+    assert_eq!(
+        decision.action,
+        BriarCircuitBotAction::Play(PlayAction::Play(low_club)),
+        "following bot ducks with its lowest club"
+    );
 }

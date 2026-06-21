@@ -640,3 +640,141 @@ fn threshold_tied_low_score_continues_without_seat_order_break() {
         }
     );
 }
+
+/// Drives the active seat through one full hand using only Rust-legal actions.
+/// Returns when the hand index advances, a terminal outcome is reached, or a
+/// generous step cap is hit (which indicates a soft-lock).
+fn drive_until_hand_advances(state: &mut BriarCircuitState) {
+    let start_hand = state.hand_index;
+    for _ in 0..400 {
+        enum Step {
+            Select(BriarCircuitSeat, briar_circuit::CardId),
+            Confirm(BriarCircuitSeat),
+            Play(BriarCircuitSeat, briar_circuit::CardId),
+            Stop(&'static str),
+            Done,
+        }
+        let step = match &state.phase {
+            Phase::Passing(pass) => {
+                let seat = BriarCircuitSeat::ALL
+                    .into_iter()
+                    .find(|seat| !pass.is_committed(*seat))
+                    .expect("an uncommitted seat exists during passing");
+                let selection = pass.selection_for(seat);
+                if selection.len() < 3 {
+                    let card = *state
+                        .hand_for_internal(seat)
+                        .iter()
+                        .find(|card| !selection.contains(card))
+                        .expect("a selectable owned card exists");
+                    Step::Select(seat, card)
+                } else {
+                    Step::Confirm(seat)
+                }
+            }
+            Phase::PlayingTrick(play) => {
+                let seat = play.active_seat;
+                let legal = legal_play_cards(state, seat).expect("legal play cards");
+                let card = *legal.first().expect("at least one legal play exists");
+                Step::Play(seat, card)
+            }
+            Phase::ScoringHand(_) => {
+                Step::Stop("soft-locked in ScoringHand; next hand never dealt")
+            }
+            Phase::Terminal(_) => Step::Done,
+        };
+        match step {
+            Step::Select(seat, card) => {
+                apply_pass_action(state, seat, PassAction::Select(card)).expect("select legal");
+            }
+            Step::Confirm(seat) => {
+                apply_pass_action(state, seat, PassAction::Confirm).expect("confirm legal");
+            }
+            Step::Play(seat, card) => {
+                apply_play_action(state, seat, PlayAction::Play(card)).expect("play legal");
+            }
+            Step::Stop(reason) => panic!("{reason}"),
+            Step::Done => return,
+        }
+        if state.hand_index != start_hand {
+            return;
+        }
+    }
+    panic!("hand did not advance within the step cap");
+}
+
+#[test]
+fn completed_non_terminal_hand_deals_and_advances_to_next_hand() {
+    let mut state =
+        setup_match(Seed(1606), &seats(4), &SetupOptions::default()).expect("setup succeeds");
+    assert_eq!(state.hand_index, 0);
+    assert_eq!(state.dealer, BriarCircuitSeat::Seat0);
+
+    drive_until_hand_advances(&mut state);
+
+    // A single hand can score at most 26 points, well under the 100 threshold, so
+    // the match must continue into a freshly dealt second hand rather than freeze.
+    assert_eq!(state.hand_index, 1, "match advanced to the second hand");
+    assert_eq!(
+        state.dealer,
+        next_dealer(BriarCircuitSeat::Seat0),
+        "dealer rotates clockwise after a completed hand"
+    );
+    assert!(
+        matches!(state.phase, Phase::Passing(_)),
+        "hand index 1 uses the right-pass selection phase"
+    );
+    assert!(
+        state.captured_tricks.is_empty(),
+        "captured tricks reset for the new hand so scoring does not double-count"
+    );
+    for seat in BriarCircuitSeat::ALL {
+        assert_eq!(
+            state.hand_for_internal(seat).len(),
+            13,
+            "every seat is re-dealt a full hand"
+        );
+    }
+}
+
+#[test]
+fn second_hand_deal_is_deterministic_for_a_fixed_seed() {
+    let mut first =
+        setup_match(Seed(4242), &seats(4), &SetupOptions::default()).expect("setup succeeds");
+    let mut second =
+        setup_match(Seed(4242), &seats(4), &SetupOptions::default()).expect("setup succeeds");
+    drive_until_hand_advances(&mut first);
+    drive_until_hand_advances(&mut second);
+    assert_eq!(first.hand_index, 1);
+    assert_eq!(
+        first.stable_internal_summary(),
+        second.stable_internal_summary(),
+        "the same seed reproduces the same second-hand deal"
+    );
+}
+
+#[test]
+fn completed_hand_retains_public_scoring_summary_for_between_hands_display() {
+    let mut state =
+        setup_match(Seed(1606), &seats(4), &SetupOptions::default()).expect("setup succeeds");
+    assert!(
+        state.last_hand_summary.is_none(),
+        "no hand summary exists before any hand completes"
+    );
+
+    drive_until_hand_advances(&mut state);
+
+    let summary = state
+        .last_hand_summary
+        .as_ref()
+        .expect("a completed hand retains its public scoring summary");
+    assert_eq!(
+        summary.cumulative_after, state.cumulative_scores,
+        "summary cumulative matches the live cumulative scores"
+    );
+    let total_additions: u16 = summary.hand_additions.iter().map(|v| u16::from(*v)).sum();
+    assert!(
+        total_additions == 26 || total_additions == 78,
+        "hand additions conserve the 26 raw points (or 78 across a moon), got {total_additions}"
+    );
+}

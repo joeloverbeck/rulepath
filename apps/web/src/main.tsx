@@ -677,6 +677,7 @@ function App() {
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
+            onRestart={start}
           />
         ) : isMaskedClaimsView(view) ? (
           <MaskedClaimsBoard
@@ -740,6 +741,7 @@ function App() {
         isPokerLiteView(view) ||
         isRiverLedgerView(view) ||
         isPlainTricksView(view) ||
+        isBriarCircuitView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
         isFrontierControlView(view) ||
@@ -847,12 +849,10 @@ function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): ViewerSeat
   if (isTerminalView(view)) {
     return null;
   }
-  if (isBriarCircuitView(view) && view.phase === "passing") {
-    if (playMode === "hotseat") {
-      return view.viewer_seat ?? "seat_0";
-    }
-    return playMode === "human_vs_bot" ? "seat_0" : null;
-  }
+  // Briar Circuit projects an active seat during the pass phase (the next seat that
+  // still owes a commitment), so passing is driven by the same active-seat machinery
+  // as trick play: the human acts on their own active turn and bot seats are advanced
+  // by the auto-bot effect. No pass-specific special case is needed.
   if (playMode === "hotseat") {
     return view.active_seat ?? null;
   }

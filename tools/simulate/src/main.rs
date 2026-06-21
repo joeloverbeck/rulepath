@@ -1,7 +1,10 @@
 use std::{collections::BTreeMap, env, fs, path::PathBuf, process, time::Instant};
 
 use briar_circuit::{
-    canonical_seat_ids as briar_seat_ids, setup_match as setup_briar_match, BriarCircuitL1Bot,
+    apply_pass_action as apply_briar_pass, apply_play_action as apply_briar_play,
+    canonical_seat_ids as briar_seat_ids, setup_match as setup_briar_match, BriarCircuitBotAction,
+    BriarCircuitL1Bot, BriarCircuitSeat, Phase as BriarPhase,
+    TerminalOutcome as BriarTerminalOutcome,
 };
 use column_four::{ColumnFourRandomBot, ColumnFourSeat};
 use directional_flip::{DirectionalFlipRandomBot, DirectionalFlipSeat};
@@ -371,41 +374,50 @@ fn run_simulation(config: Config) -> Result<String, String> {
     ))
 }
 
+/// The pass/play action budget for one full Briar Circuit match. A 100-point
+/// Hearts-family match runs many hands (each ~52-68 actions), so the generic
+/// short-game default cap is far too small; this floor keeps single-match
+/// simulation honest while still bounding pathological tied-low continuations.
+const BRIAR_CIRCUIT_MIN_ACTION_CAP: usize = 4096;
+
+struct BriarCircuitMatchOutcome {
+    winner: Option<BriarCircuitSeat>,
+    actions: u64,
+    hands_played: u64,
+    moon_hands: u64,
+    tie_continuations: u64,
+    reached_terminal: bool,
+}
+
 fn run_briar_circuit_simulation(config: Config) -> Result<String, String> {
     let started = Instant::now();
     let mut games_run = 0_u64;
     let mut total_actions = 0_u64;
+    let mut total_hands = 0_u64;
     let mut moon_count = 0_u64;
     let mut threshold_tie_count = 0_u64;
+    let mut nonterminal_matches = 0_u64;
+    let mut wins = [0_u64; 4];
 
     for offset in 0..config.games {
         let seed = config.start_seed.wrapping_add(offset);
-        let state = setup_briar_match(
-            Seed(seed),
-            &briar_seat_ids(),
-            &briar_circuit::SetupOptions::default(),
-        )
-        .map_err(|diagnostic| format!("briar_circuit setup failed: {}\n", diagnostic.code))?;
-        let bot = BriarCircuitL1Bot::new(Seed(seed ^ 0xB16A_C1CC));
-        let decision = bot
-            .select_decision(&state, briar_circuit::BriarCircuitSeat::Seat0)
-            .map_err(|diagnostic| {
-                format!(
-                    "briar_circuit bot failed at seed {seed}: {}\n",
-                    diagnostic.code
-                )
-            })?;
-        if decision.action_path.is_empty() {
-            return Err(format!("briar_circuit empty bot action at seed {seed}\n"));
-        }
+        let outcome = run_one_briar_circuit_match(&config, seed)?;
         games_run += 1;
-        total_actions += 1;
-        let _ = &mut moon_count;
-        let _ = &mut threshold_tie_count;
+        total_actions += outcome.actions;
+        total_hands += outcome.hands_played;
+        moon_count += outcome.moon_hands;
+        threshold_tie_count += outcome.tie_continuations;
+        if let Some(winner) = outcome.winner {
+            wins[winner.index()] += 1;
+        }
+        if !outcome.reached_terminal {
+            nonterminal_matches += 1;
+        }
     }
 
     let elapsed_secs = started.elapsed().as_secs_f64();
     let average_length = total_actions as f64 / games_run as f64;
+    let average_hands = total_hands as f64 / games_run as f64;
     let throughput = if elapsed_secs > 0.0 {
         games_run as f64 / elapsed_secs
     } else {
@@ -419,13 +431,134 @@ fn run_briar_circuit_simulation(config: Config) -> Result<String, String> {
          start_seed={}\n\
          games_run={games_run}\n\
          seat_order=seat_0,seat_1,seat_2,seat_3\n\
+         wins_by_seat=seat_0:{},seat_1:{},seat_2:{},seat_3:{}\n\
+         nonterminal_matches={nonterminal_matches}\n\
          total_actions={total_actions}\n\
+         total_hands={total_hands}\n\
+         average_hands_per_match={average_hands:.2}\n\
          moon_count={moon_count}\n\
          threshold_tie_count={threshold_tie_count}\n\
          average_length={average_length:.2}\n\
          throughput_games_per_sec={throughput:.2}\n",
-        config.start_seed
+        config.start_seed, wins[0], wins[1], wins[2], wins[3]
     ))
+}
+
+/// Drive a single Briar Circuit match to its terminal outcome using the Level 1
+/// bot for every seat, counting hands, moon hands, and tied-low continuations.
+fn run_one_briar_circuit_match(
+    config: &Config,
+    seed: u64,
+) -> Result<BriarCircuitMatchOutcome, String> {
+    let mut state = setup_briar_match(
+        Seed(seed),
+        &briar_seat_ids(),
+        &briar_circuit::SetupOptions::default(),
+    )
+    .map_err(|diagnostic| format!("briar_circuit setup failed: {}\n", diagnostic.code))?;
+    let bot = BriarCircuitL1Bot::new(Seed(seed ^ 0xB16A_C1CC));
+    let cap = config.action_cap.max(BRIAR_CIRCUIT_MIN_ACTION_CAP);
+
+    let mut actions = 0_u64;
+    let mut hands_played = 0_u64;
+    let mut moon_hands = 0_u64;
+    let mut tie_continuations = 0_u64;
+    let mut prev_cumulative = state.cumulative_scores;
+    let mut prev_hand_index = state.hand_index;
+
+    loop {
+        if let BriarPhase::Terminal(BriarTerminalOutcome::UniqueLowScoreWin {
+            winner,
+            cumulative_scores,
+            ..
+        }) = &state.phase
+        {
+            // The terminal hand also resolves at a hand boundary; account for it.
+            if hand_addition_total(*cumulative_scores, prev_cumulative) == MOON_ADDITION_TOTAL {
+                moon_hands += 1;
+            }
+            hands_played += 1;
+            return Ok(BriarCircuitMatchOutcome {
+                winner: Some(*winner),
+                actions,
+                hands_played,
+                moon_hands,
+                tie_continuations,
+                reached_terminal: true,
+            });
+        }
+
+        let seat = briar_active_seat(&state).ok_or_else(|| {
+            format!("briar_circuit reached a non-actionable phase at seed {seed}\n")
+        })?;
+        let decision = bot.select_decision(&state, seat).map_err(|diagnostic| {
+            format!(
+                "briar_circuit bot failed at seed {seed}: {}\n",
+                diagnostic.code
+            )
+        })?;
+        match decision.action {
+            BriarCircuitBotAction::Pass(action) => {
+                apply_briar_pass(&mut state, seat, action).map_err(|diagnostic| {
+                    format!(
+                        "briar_circuit pass apply failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            BriarCircuitBotAction::Play(action) => {
+                apply_briar_play(&mut state, seat, action).map_err(|diagnostic| {
+                    format!(
+                        "briar_circuit play apply failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+        }
+        actions += 1;
+
+        if state.hand_index != prev_hand_index {
+            // A non-terminal hand just completed and the next hand was dealt.
+            if hand_addition_total(state.cumulative_scores, prev_cumulative) == MOON_ADDITION_TOTAL
+            {
+                moon_hands += 1;
+            }
+            if state.cumulative_scores.iter().any(|score| *score >= 100) {
+                tie_continuations += 1;
+            }
+            hands_played += 1;
+            prev_cumulative = state.cumulative_scores;
+            prev_hand_index = state.hand_index;
+        }
+
+        if actions as usize >= cap {
+            return Ok(BriarCircuitMatchOutcome {
+                winner: None,
+                actions,
+                hands_played,
+                moon_hands,
+                tie_continuations,
+                reached_terminal: false,
+            });
+        }
+    }
+}
+
+/// Total of the per-seat additions a moon hand produces (0 + 26 + 26 + 26).
+const MOON_ADDITION_TOTAL: u16 = 78;
+
+fn hand_addition_total(after: [u16; 4], before: [u16; 4]) -> u16 {
+    (0..4).map(|index| after[index] - before[index]).sum()
+}
+
+fn briar_active_seat(state: &briar_circuit::BriarCircuitState) -> Option<BriarCircuitSeat> {
+    match &state.phase {
+        BriarPhase::Passing(pass) => BriarCircuitSeat::ALL
+            .into_iter()
+            .find(|seat| !pass.is_committed(*seat)),
+        BriarPhase::PlayingTrick(play) => Some(play.active_seat),
+        BriarPhase::ScoringHand(_) | BriarPhase::Terminal(_) => None,
+    }
 }
 
 fn run_token_bazaar_simulation(config: Config) -> Result<String, String> {
@@ -2514,6 +2647,52 @@ mod tests {
         assert!(!output.contains("seat_0_wins="));
         assert!(output.contains("average_length="));
         assert!(output.contains("throughput_games_per_sec="));
+    }
+
+    #[test]
+    fn briar_circuit_matches_play_to_a_terminal_winner() {
+        // The match must run many hands to a unique-low-score winner rather than
+        // freeze after the first hand. Drive several seeds through the real bot path.
+        for seed in [1600_u64, 1601, 1700, 9001] {
+            let outcome = run_one_briar_circuit_match(
+                &Config {
+                    action_cap: 8192,
+                    ..Config::default()
+                },
+                seed,
+            )
+            .expect("briar match runs");
+            assert!(
+                outcome.reached_terminal,
+                "seed {seed} reached a terminal outcome"
+            );
+            assert!(outcome.winner.is_some(), "seed {seed} has a winner");
+            assert!(
+                outcome.hands_played >= 2,
+                "seed {seed} played multiple hands (got {})",
+                outcome.hands_played
+            );
+        }
+    }
+
+    #[test]
+    fn briar_circuit_simulation_summary_reports_real_play() {
+        let output = run_briar_circuit_simulation(Config {
+            game: GAME_BRIAR_CIRCUIT.to_owned(),
+            games: 40,
+            start_seed: 1600,
+            action_cap: 4096,
+            ..Config::default()
+        })
+        .expect("briar simulation succeeds");
+
+        assert!(output.contains("games_run=40"));
+        assert!(output.contains("nonterminal_matches=0"));
+        assert!(output.contains("wins_by_seat=seat_0:"));
+        // A real match runs several hands, so the average action length is far above
+        // the single-decision placeholder the driver used to report.
+        assert!(output.contains("average_hands_per_match="));
+        assert!(!output.contains("average_length=1.00"));
     }
 
     #[test]
