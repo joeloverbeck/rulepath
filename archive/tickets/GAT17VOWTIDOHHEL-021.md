@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-021: Trailing game docs — mechanics, UI, implementation admission
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — game-local docs only (`games/vow_tide/docs/{MECHANICS,UI,GAME-IMPLEMENTATION-ADMISSION}.md`)
@@ -78,3 +78,20 @@ Complete the final implementation receipt (requirements receipt was authored in 
 1. `node scripts/check-doc-links.mjs && node scripts/check-outcome-explanations.mjs`
 2. `node scripts/check-catalog-docs.mjs` (confirms no doc surface regressed)
 3. Narrower command rationale: docs are prose; their factual backing is the green implementation suites + the outcome-explanation checker.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added `games/vow_tide/docs/MECHANICS.md` with the Gate 17 mechanic inventory, repeated-shape comparisons, promoted `game-stdlib::trick_taking` helper reuse, local numeric-bid pressure, hidden-info surfaces, UI/bot/effect notes, and benchmark implications.
+- Added `games/vow_tide/docs/UI.md` documenting the Rust/React boundary, 3-7 seat layout, viewer matrix, bid/card controls, replay, accessibility, reduced motion, no-leak rules, and mandatory outcome/victory explanation section.
+- Updated `games/vow_tide/docs/GAME-IMPLEMENTATION-ADMISSION.md` from pre-code admission to an as-built implementation receipt with final evidence and remaining series closeout.
+- Split `games/vow_tide/docs/RULES.md` into explicit `Scoring and accounting` and `Terminal conditions` headings for the outcome-explanation contract.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `node scripts/check-catalog-docs.mjs`
+
+Manual cross-check: the mechanics inventory matches the implemented Vow behavior, including 3-7 seats, public bids, dealer hook, promoted follow-suit/comparator helpers, hidden stock/hands, exact-bid scoring, Rust-owned outcome standings, and benchmark lanes.

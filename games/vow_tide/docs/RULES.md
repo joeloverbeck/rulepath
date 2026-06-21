@@ -88,12 +88,17 @@ docs together.
 | `VT-NEXT-LEAD-001` | After a non-final trick | The trick winner leads the next trick. | Rust transition | Winner-leads sequencing remains game-local, not a stdlib policy. |
 | `VT-HAND-END-001` | After `H` tricks in a hand | The hand ends after exactly `H` tricks. Every seat has zero cards, and all dealt cards are in completed tricks. | Rust transition | Scoring and next-hand setup follow atomically. |
 
-## Scoring and terminal outcome
+## Scoring and accounting
 
 | Rule ID | Scoring/accounting rule | Timing | Tiebreaker/edge case | Notes |
 |---|---|---|---|---|
 | `VT-SCORE-001` | A seat whose tricks taken exactly equal its bid scores `10 + bid`; every miss, under or over, scores zero. Cumulative scores never decrease. | End of each hand | A successful zero bid scores 10. | No consolation trick points and no negative penalties. |
 | `VT-HAND-ADVANCE-001` | Hand result/history is recorded atomically before dealer and schedule advance. If more hands remain, Rust rotates dealer, deals the next scheduled hand, reveals trump, clears bids/tricks, and enters bidding. | End of each hand | The one-card hand occurs once before the schedule ascends. | Effects must preserve deterministic order. |
+
+## Terminal conditions
+
+| Rule ID | Terminal rule | Timing | Tiebreaker/edge case | Notes |
+|---|---|---|---|---|
 | `VT-TERMINAL-001` | The match ends only after the final scheduled hand. | After final hand scoring | No point target and no extra tie-break hand. | Simulation action caps are test guards, not game rules. |
 | `VT-STANDINGS-001` | Highest cumulative score wins. Equal top scores are co-winners. Standings use competition ranking with stable seat order only for serialization/display. | Terminal | Tied leaders share rank 1. | Rust supplies the ranked outcome; TypeScript must not re-rank. |
 | `VT-OUTCOME-001` | Rust supplies seat-keyed hand history, exact/miss totals, successful zero count, cumulative score, rank, co-winner flag, and concise public decisive facts for the shared outcome surface. | Terminal and current standings | Hidden hand/stock facts are never part of public rationale. | UI renders the Rust-authored fields. |

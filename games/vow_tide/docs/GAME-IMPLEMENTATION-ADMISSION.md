@@ -14,7 +14,7 @@ Public role: hidden-info proof / public showcase candidate / variable-N exact-bi
 
 Prepared by: Codex
 
-Date: 2026-06-21
+Last updated: 2026-06-21
 
 ## Admission Summary
 
@@ -29,6 +29,28 @@ Admission covers only `vow_tide_standard`. It does not admit alternate
 schedules, no-trump variants, bid changes, teams, partnerships, generic bidding
 frameworks, broad card/deck/trick engines, kernel vocabulary growth, TypeScript
 legality, or solver/search/ML bots.
+
+## Final Implementation Receipt
+
+The Gate 17 implementation has landed as game-local Rust plus presentation-only
+WASM/React surfaces. The final evidence set covers:
+
+- deterministic setup, 3-7 seat schedules, deals, trump indicator, hidden stock,
+  and stable diagnostics;
+- numeric bidding, dealer hook filtering, follow-suit play, trump-aware trick
+  resolution, exact-bid scoring, and final standings;
+- observer and every seat-private projection, including hidden hand/stock
+  no-leak proof across browser, WASM, replay export, logs, storage, and bots;
+- internal replay, viewer-scoped replay import/export, fixtures, rule coverage,
+  simulation, and golden trace proof;
+- Level 0 and bounded Level 1 bots with viewer-safe explanations;
+- Vow Tide web renderer, seven-seat viewer selector, hotseat handoff, keyboard,
+  reduced-motion, replay, and outcome explanation smoke;
+- native benchmark lanes by seat count plus helper/back-port comparison runs.
+
+This receipt does not mark the Gate 17 spec done by itself. The series closeout
+still owns public-release checklist, central atlas/source surfaces, and the
+spec `Done` flip.
 
 ## Required Evidence
 
@@ -51,12 +73,12 @@ legality, or solver/search/ML bots.
 
 | Prerequisite | Path | Complete? | Notes/blockers |
 |---|---|---:|---|
-| source/IP notes | [SOURCES.md](SOURCES.md) | initial | Rules-family facts, deviations, neutral naming, and release blockers are recorded; final asset/IP review remains open. |
+| source/IP notes | [SOURCES.md](SOURCES.md) | yes | Rules-family facts, deviations, neutral naming, and release blockers are recorded; final asset/IP review remains in the public-release checklist. |
 | original rules with stable rule IDs | [RULES.md](RULES.md) | yes | `VT-*` IDs cover identity, seats, cards, schedule, deal, trump, bidding, play, scoring, visibility, replay, bots, outcome, and boundaries. |
-| rule coverage matrix | `RULE-COVERAGE.md` | no | Ticket 016 must create the one-row-per-rule evidence matrix. |
-| mechanic inventory | `MECHANICS.md` | no | Ticket 021 completes trailing mechanics documentation. |
-| primitive-pressure ledger, if needed | `PRIMITIVE-PRESSURE-LEDGER.md` | no | Tickets 002-004 must resolve the third-use trick-taking hard gate before Vow Tide trick behavior. |
-| competent-player analysis | `COMPETENT-PLAYER.md` | no | Ticket 014 completes strategy posture; L2 remains not admitted. |
+| rule coverage matrix | [RULE-COVERAGE.md](RULE-COVERAGE.md) | yes | The coverage matrix is green under `cargo run -p rule-coverage -- --game vow_tide`. |
+| mechanic inventory | [MECHANICS.md](MECHANICS.md) | yes | Final mechanics inventory records helper reuse, local bid pressure, hidden-info surfaces, UI, bot, and benchmark implications. |
+| primitive-pressure ledger, if needed | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md) | yes | Gate 17 promoted the narrow trick-taking helper and back-ported it to prior games without open helper debt. |
+| competent-player analysis | [COMPETENT-PLAYER.md](COMPETENT-PLAYER.md) | yes | L0/L1 evidence is complete; L2 remains not admitted. |
 | ADR, if boundary-changing | not applicable now | yes | No kernel, schema, data-language, visibility-taxonomy, or public API exception is admitted. |
 
 ## Source And IP Readiness
@@ -86,9 +108,9 @@ legality, or solver/search/ML bots.
 
 | Check | Status | Evidence/notes |
 |---|---|
-| coverage matrix has one row per rule ID | blocked for release | Ticket 016 owns `RULE-COVERAGE.md`. |
-| terminal result coverage is complete for every viewer class | blocked for release | Tickets 009-011 and 016 must prove scoring, terminal, no-leak, replay, and outcome coverage. |
-| deferred/unsupported/not applicable rows are explicit | constrained | Out-of-scope rules are explicit in `RULES.md`; coverage rows land later. |
+| coverage matrix has one row per rule ID | ready | `RULE-COVERAGE.md` is present and rule coverage passes. |
+| terminal result coverage is complete for every viewer class | ready | Scoring, terminal, replay, no-leak, and outcome evidence are complete. |
+| deferred/unsupported/not applicable rows are explicit | ready | Out-of-scope rules are explicit in `RULES.md` and coverage rows. |
 | primary Rust test strategy is identified | ready | Spec and tickets require rules, property, replay, serialization, visibility, bots, fixture, coverage, simulation, and WASM tests. |
 | golden trace needs are identified | ready | Gate 17 spec §7.6 names the minimum trace inventory. |
 | invalid/stale diagnostic trace needs are identified | ready | `RULES.md` lists the diagnostic code floor. |
@@ -101,26 +123,26 @@ legality, or solver/search/ML bots.
 
 | Check | Status | Evidence/notes |
 |---|---|
-| all mechanic atlas categories are inventoried | blocked for release | Ticket 021 owns final `MECHANICS.md`. |
+| all mechanic atlas categories are inventoried | ready | `MECHANICS.md` is complete for Gate 17. |
 | min/max seats and stable seat labels are recorded | ready | 3-7, default 4, `seat_0` through `seat_6`, `Tide 1` through `Tide 7`. |
 | wrong-seat-count diagnostics are viewer-safe and identified | ready | `VT-SEATS-001` and diagnostic floor require stable safe rejection. |
-| topology/object-count inventory is complete | constrained | Rules record 52 cards, up to 7 seats, K schedule, public trick and hidden stock; final mechanics/bench docs land later. |
+| topology/object-count inventory is complete | ready | Rules, mechanics, UI, and benchmark docs record 52 cards, 3-7 seats, max hand sizes, public trick, hidden stock, and outcome surfaces. |
 | local mechanics are named and scoped | ready | Bidding/contracts, schedule/deal, scoring, visibility, bots, and outcome remain game-local. |
-| reused primitives are justified | constrained | Trick-selection/comparator helper promotion must land in tickets 002-004. |
-| repeated-shape comparison is complete | constrained | Gate 17 spec contains the decision; repo/game ledgers must be updated before trick behavior. |
-| third-use hard gate is cleared when applicable | blocked before Vow Tide trick behavior | Tickets 002-004 must promote and back-port the helper with no open debt. |
-| atlas interlock status is recorded for next-phase scaling pressure | constrained | `docs/MECHANIC-ATLAS.md` must be updated in ticket 002 and final closeout. |
-| repo atlas update required? | yes | Trick-taking rows and numeric contract first-use row must update. |
+| reused primitives are justified | ready | Vow reuses `game-stdlib::trick_taking` for the pure follow-suit and winning-index subsets. |
+| repeated-shape comparison is complete | ready | `MECHANICS.md` records repeated-shape comparisons and local/defer decisions. |
+| third-use hard gate is cleared when applicable | ready | Helper promotion and Plain Tricks/Briar Circuit back-port evidence are complete. |
+| atlas interlock status is recorded for next-phase scaling pressure | constrained | Final central atlas closeout remains in GAT17VOWTIDOHHEL-022. |
+| repo atlas update required? | yes | Ticket 022 owns final central atlas/source/release checklist truthing. |
 
 ## Primitive-Pressure Status
 
 | Mechanic shape | Status | Decision/evidence | Blocks implementation? |
 |---|---|---|---:|
-| follow-suit legality | extraction required at Gate 17 | Plain Tricks and Briar Circuit are prior close uses; Gate 17 selects a narrow `game-stdlib` helper and back-port. | yes before Vow Tide trick behavior |
-| trick resolution / led-suit comparator | extraction required at Gate 17 | Same helper promotion covers stable winning-index comparison with optional trump. | yes before Vow Tide trick behavior |
+| follow-suit legality | promoted primitive | `game-stdlib::trick_taking::follow_suit_indices` is reused by Vow Tide and back-ported to prior trick games. | no |
+| trick resolution / led-suit comparator | promoted primitive | `game-stdlib::trick_taking::winning_play_index` covers stable winning-index comparison with optional trump. | no |
 | trick-winner-leads turn order | reviewed anti-example | Repeated shape is acknowledged, but mutation/phase policy remains game-local. | no after ledger decision |
 | deal rotation / trick-round redeal | reviewed anti-example | Repeated shape is acknowledged, but RNG/deal/schedule/dealer policy remains game-local. | no after ledger decision |
-| numeric bid / contract-vs-result / dealer hook | local-only first official use | Vow Tide is first use; record local-only ledger and compare again at Gate 18 or another close use. | no after ledger entry |
+| numeric bid / contract-vs-result / dealer hook | local-only first official use | Vow Tide is first use; compare again at Gate 18 or another close use. | no |
 
 ## Engine-Core Contamination Review
 
@@ -212,28 +234,25 @@ Decision rationale:
 
 - The Gate 17 spec defines a bounded, original, neutral public game that uses
   existing Rulepath architecture and no kernel/schema exception.
-- The third-use trick-taking pressure is known and has a selected narrow
-  helper/back-port path before Vow Tide trick behavior.
-- The initial `RULES.md`, `SOURCES.md`, and this admission receipt establish
-  stable rule IDs, source/IP posture, seat/visibility commitments, and
-  boundary constraints before gameplay code starts.
+- The third-use trick-taking pressure is resolved by a narrow `game-stdlib`
+  helper and back-port evidence, with Vow-specific bidding, schedule, scoring,
+  visibility, replay, and bots kept local.
+- The completed docs, tests, traces, simulation, WASM/web smokes, no-leak
+  checks, and benchmarks establish the final Gate 17 implementation receipt.
 
 Explicit constraints:
 
 - Public-facing surfaces use **Vow Tide** and original neutral copy.
 - `vow_tide` remains the internal id for code, tools, WASM, web registration,
   traces, and docs.
-- Trick-taking helper promotion and Plain Tricks/Briar Circuit conformance must
-  complete before Vow Tide trick-play behavior lands.
-- Documentation admission alone does not mark Gate 17 complete.
+- Documentation admission alone does not mark Gate 17 complete; the series
+  closeout must still archive public-release and central tracking surfaces.
 
 ## Blocking Issues
 
 | Issue | Required fix | Owner | Blocks coding? |
 |---|---|---|---:|
-| Trick-taking third-use hard gate | Promote/back-port the narrow helper and update atlas/game ledgers in tickets 002-004. | Rulepath maintainers / agents | yes for Vow Tide trick behavior |
-| Rule coverage matrix absent | Create `RULE-COVERAGE.md` with one row per `VT-*` ID in ticket 016. | Rulepath maintainers / agents | no for initial setup; yes for release |
-| Final asset/IP release review open | Close after icon/renderer/public rules/assets exist in ticket 022. | Rulepath maintainers | no for code; yes for public release |
+| Final public-release checklist and central atlas/source closeout | Complete GAT17VOWTIDOHHEL-022 and final spec truthing. | Rulepath maintainers / agents | no for code; yes for Gate 17 closeout |
 
 ## Sign-off
 
