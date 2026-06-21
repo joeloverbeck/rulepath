@@ -216,6 +216,32 @@ fn briar_circuit_catalog_uses_one_based_default_seat_labels() {
 }
 
 #[test]
+fn race_to_n_and_directional_flip_catalogs_use_player_labels() {
+    let games = list_games().expect("games listed");
+    let race_start = games
+        .find("\"game_id\":\"race_to_n\"")
+        .expect("race catalog entry present");
+    let three_marks_start = games
+        .find("\"game_id\":\"three_marks\"")
+        .expect("three marks catalog entry present");
+    let race = &games[race_start..three_marks_start];
+    assert!(race.contains(
+        "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Player 1\"},{\"seat\":\"seat_1\",\"label\":\"Player 2\"}]"
+    ));
+
+    let directional_start = games
+        .find("\"game_id\":\"directional_flip\"")
+        .expect("directional catalog entry present");
+    let draughts_start = games
+        .find("\"game_id\":\"draughts_lite\"")
+        .expect("draughts catalog entry present");
+    let directional = &games[directional_start..draughts_start];
+    assert!(directional.contains(
+        "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Player 1\"},{\"seat\":\"seat_1\",\"label\":\"Player 2\"}]"
+    ));
+}
+
+#[test]
 fn feature_report_lists_ops() {
     let report = feature_report().expect("feature report returned");
     assert!(report.contains("\"api_version\":\"rulepath-wasm-api/0.1.0\""));

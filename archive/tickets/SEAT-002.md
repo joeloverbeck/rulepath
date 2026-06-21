@@ -1,6 +1,6 @@
 # SEAT-002: Preserve "Player N" seat labels for Race to N and Directional Flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (per-game catalog seat-label override for `RegisteredGame::RaceToN` and `RegisteredGame::DirectionalFlip`)
@@ -110,3 +110,25 @@ Extend the `match game` at `catalog.rs:255-258` with arms for
 
 1. `cargo test -p wasm-api`
 2. `cargo test --workspace`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+- Added a Rust-side catalog player-label generator that emits `Player 1` /
+  `Player 2` over the existing `{seat,label}` shape.
+- Routed `RegisteredGame::RaceToN` and `RegisteredGame::DirectionalFlip`
+  through the existing per-game `seat_labels_json` override seam.
+- Added `wasm-api` catalog assertions for Race to N and Directional Flip and
+  regenerated the public API snapshot for the intended catalog value drift.
+
+Deviations:
+- None.
+
+Verification:
+- `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo test --workspace` passed.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
