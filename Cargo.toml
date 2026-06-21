@@ -21,6 +21,7 @@ members = [
     "games/event_frontier",
     "games/river_ledger",
     "games/briar_circuit",
+    "games/vow_tide",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",

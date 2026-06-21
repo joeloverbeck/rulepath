@@ -1,0 +1,154 @@
+use engine_core::{FreshnessToken, SeatId, Seed};
+
+use crate::{
+    cards::CardId,
+    ids::{VowTideSeat, VARIANT_ID},
+    variants::Variant,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BiddingState {
+    pub active_seat: VowTideSeat,
+    pub bids: Vec<(VowTideSeat, Option<u8>)>,
+}
+
+impl BiddingState {
+    pub fn new(seat_count: usize, active_seat: VowTideSeat) -> Self {
+        Self {
+            active_seat,
+            bids: VowTideSeat::ALL
+                .into_iter()
+                .take(seat_count)
+                .map(|seat| (seat, None))
+                .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlayingTrickState {
+    pub trick_index: u8,
+    pub leader: VowTideSeat,
+    pub active_seat: VowTideSeat,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TerminalOutcome {
+    pub winners: Vec<VowTideSeat>,
+    pub final_scores: Vec<(VowTideSeat, i16)>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Phase {
+    Bidding(BiddingState),
+    PlayingTrick(PlayingTrickState),
+    Terminal(TerminalOutcome),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VowTideState {
+    pub variant: Variant,
+    pub seats: Vec<SeatId>,
+    pub seat_labels: Vec<String>,
+    pub dealer: VowTideSeat,
+    pub hand_index: u32,
+    pub hand_schedule: Vec<u8>,
+    pub cumulative_scores: Vec<(VowTideSeat, i16)>,
+    pub phase: Phase,
+    pub private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
+    pub freshness_token: FreshnessToken,
+    pub seed: Seed,
+}
+
+impl VowTideState {
+    pub fn new_empty_hand(
+        variant: Variant,
+        seats: Vec<SeatId>,
+        hand_schedule: Vec<u8>,
+        dealer: VowTideSeat,
+        seed: Seed,
+    ) -> Self {
+        let seat_count = seats.len();
+        let seat_order: Vec<_> = VowTideSeat::ALL.into_iter().take(seat_count).collect();
+        let active_seat = dealer.next_clockwise(seat_count);
+
+        Self {
+            variant,
+            seats,
+            seat_labels: seat_order
+                .iter()
+                .map(|seat| seat.fallback_label().to_owned())
+                .collect(),
+            dealer,
+            hand_index: 0,
+            hand_schedule,
+            cumulative_scores: seat_order.iter().map(|seat| (*seat, 0)).collect(),
+            phase: Phase::Bidding(BiddingState::new(seat_count, active_seat)),
+            private_hands: seat_order
+                .into_iter()
+                .map(|seat| (seat, Vec::new()))
+                .collect(),
+            freshness_token: FreshnessToken(0),
+            seed,
+        }
+    }
+
+    pub fn seat_count(&self) -> usize {
+        self.seats.len()
+    }
+
+    pub fn current_hand_size(&self) -> Option<u8> {
+        self.hand_schedule.get(self.hand_index as usize).copied()
+    }
+
+    pub fn active_seat(&self) -> Option<VowTideSeat> {
+        match &self.phase {
+            Phase::Bidding(bidding) => Some(bidding.active_seat),
+            Phase::PlayingTrick(playing) => Some(playing.active_seat),
+            Phase::Terminal(_) => None,
+        }
+    }
+
+    pub fn hand_for_internal(&self, seat: VowTideSeat) -> &[CardId] {
+        self.private_hands
+            .iter()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, hand)| hand.as_slice())
+            .unwrap_or(&[])
+    }
+
+    pub fn stable_internal_summary(&self) -> String {
+        let phase = match &self.phase {
+            Phase::Bidding(bidding) => format!("bidding:{}", bidding.active_seat.as_str()),
+            Phase::PlayingTrick(playing) => {
+                format!(
+                    "playing:{}:{}",
+                    playing.trick_index,
+                    playing.active_seat.as_str()
+                )
+            }
+            Phase::Terminal(_) => "terminal".to_owned(),
+        };
+        format!(
+            "{}|variant={}|dealer={}|hand={}|schedule={:?}|scores={:?}|phase={phase}|hands={}",
+            VARIANT_ID,
+            self.variant.id,
+            self.dealer.as_str(),
+            self.hand_index,
+            self.hand_schedule,
+            self.cumulative_scores,
+            self.private_hands
+                .iter()
+                .map(|(seat, hand)| format!(
+                    "{}:{}",
+                    seat.as_str(),
+                    hand.iter()
+                        .map(|card| card.as_str())
+                        .collect::<Vec<_>>()
+                        .join("/")
+                ))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}

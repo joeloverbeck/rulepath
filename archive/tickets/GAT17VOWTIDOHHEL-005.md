@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-005: Crate skeleton, workspace wiring, card model, variable-seat setup, schedule, phase state
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new crate `games/vow_tide/` (`src/{lib,ids,cards,setup,state}.rs`, `Cargo.toml`, `data/{manifest,variants}.toml` stubs); modifies root `Cargo.toml`
@@ -87,3 +87,19 @@ Create `games/vow_tide/Cargo.toml` (deps `engine-core`, `ai-core`, `game-stdlib`
 1. `cargo test -p vow_tide`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. Narrower command rationale: per-crate test is the correct boundary; deal/trump determinism is proven in 006.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added the `games/vow_tide` workspace crate with game-local card, seat, schedule, setup, phase/state, and inert metadata modules.
+- Added flat `data/manifest.toml` and `data/variants.toml` stubs plus `load_manifest()` / `load_variants()` loaders that reject unknown or behavior-looking fields.
+- Wired `games/vow_tide` into the workspace and captured the new local package in `Cargo.lock`.
+- Added setup/schedule and serialization-order tests for accepted/rejected seat counts, stable `VT_INVALID_SEAT_COUNT`, `K..1..K` schedules, canonical 52-card ordering, deterministic state summaries, and metadata loading.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide` passed: 6 integration tests plus crate/doc test harnesses.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed with `engine-core boundary check passed`.

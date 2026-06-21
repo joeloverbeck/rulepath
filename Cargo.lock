@@ -254,6 +254,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vow_tide"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "wasm-api"
 version = "0.1.0"
 dependencies = [

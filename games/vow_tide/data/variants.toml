@@ -1,0 +1,15 @@
+variant_id = "vow_tide_standard"
+display_name = "Vow Tide"
+rules_version_label = "vow-tide-rules-v1"
+data_version_label = "vow-tide-data-v1"
+min_seats = 3
+default_seats = 4
+max_seats = 7
+supported_seats = "3,4,5,6,7"
+suit_count = 4
+rank_count = 13
+card_count = 52
+max_hand_size = 10
+schedule = "max_hand_size_down_to_1_up_to_max_hand_size"
+deck_order = "standard_52_cards_clubs_diamonds_hearts_spades_rank_ascending_v1"
+terminal_outcomes = "highest_score_wins_ties_allowed"
