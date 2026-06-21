@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-017: WASM registration, operation groups, bridge no-leak, player rules
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `crates/wasm-api/src/games/vow.rs`, `games/vow_tide/docs/HOW-TO-PLAY.md`, `apps/web/public/rules/vow_tide.md`; modifies `crates/wasm-api/src/{lib,constants,games,catalog}.rs`, `apps/web/scripts/smoke-load-wasm.mjs`, `scripts/check-player-rules.mjs`, `apps/web/public/rules/manifest.json`
@@ -84,3 +84,20 @@ Author `HOW-TO-PLAY.md` (goal/setup/bid/play/score/finish + hidden-information s
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm && node scripts/check-player-rules.mjs`
 3. Narrower command rationale: smoke:wasm + the bridge test are the boundary; the catalog README surfaces co-land with the web smoke (019).
+
+## Outcome
+
+Completed: 2026-06-21
+
+Implemented Vow Tide WASM registration across constants, catalog metadata, the game module registry, match storage, view/action/effect/bot/replay dispatch, and the API surface snapshot. Added `crates/wasm-api/src/games/vow.rs` for Vow Tide setup, seat/viewer mapping, Rust legal action dispatch, filtered views/effects, bot dispatch, viewer-scoped replay export/import, and a pairwise JSON projection no-leak test over supported seat counts 3 through 7.
+
+Added the player-facing `games/vow_tide/docs/HOW-TO-PLAY.md`, generated `apps/web/public/rules/vow_tide.md` and the public rules manifest row with `scripts/copy-player-rules.mjs`, registered `vow_tide` as a hidden-information game in `scripts/check-player-rules.mjs`, and extended `apps/web/scripts/smoke-load-wasm.mjs` to smoke the Vow Tide catalog entry, seven-seat setup, observer/seat redaction, unauthorized tree redaction, Rust bid application, bot turn, effect log, and viewer-scoped replay import/reset path.
+
+Deviations: generic command replay import/step reconstructs Vow Tide with the default four-seat setup because the existing generic replay parser has no seat-count field. The live match export path preserves the match seat count and exports the viewer-scoped public replay used by the browser smoke.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `npm --prefix apps/web run smoke:wasm`
+- `node scripts/check-player-rules.mjs`

@@ -151,6 +151,7 @@ use games::river::*;
 use games::secret::*;
 use games::three::*;
 use games::token::*;
+use games::vow::*;
 use json::*;
 use replay::*;
 use seats::*;
@@ -268,6 +269,13 @@ pub(crate) enum MatchRecord {
         effects: EffectLog<briar_circuit::BriarCircuitEffect>,
         commands: Vec<AppliedCommand>,
     },
+    VowTide {
+        game_id: String,
+        seed: u64,
+        state: vow_tide::state::VowTideState,
+        effects: EffectLog<vow_tide::effects::VowTideEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -303,6 +311,7 @@ pub(crate) enum RegisteredGame {
     PlainTricks,
     RiverLedger,
     BriarCircuit,
+    VowTide,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -337,6 +346,8 @@ pub fn new_match_for_variant(
 fn default_seat_count_for_game(game_id: &str) -> usize {
     if game_id == GAME_BRIAR_CIRCUIT {
         briar_circuit::STANDARD_SEAT_COUNT as usize
+    } else if game_id == GAME_VOW_TIDE {
+        4
     } else {
         DEFAULT_SEAT_COUNT
     }
@@ -745,6 +756,28 @@ pub fn new_match_for_variant_with_seat_count(
                 escape_json(VARIANT_BRIAR_CIRCUIT_STANDARD)
             ))
         }
+        RegisteredGame::VowTide => {
+            let state = create_vow_tide_match(seed, seat_count)?;
+            let match_id = next_match_id(GAME_VOW_TIDE);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::VowTide {
+                        game_id: GAME_VOW_TIDE.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(GAME_VOW_TIDE),
+                escape_json(VARIANT_VOW_TIDE_STANDARD)
+            ))
+        }
     }
 }
 
@@ -875,6 +908,14 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             let viewer = briar_viewer_for_seat(state, viewer_seat)?;
             Ok(briar_view_json(
                 &briar_circuit::project_view(state, &viewer),
+                state.freshness_token.0,
+            ))
+        }
+        MatchRecord::VowTide { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = vow_viewer_for_seat(state, viewer_seat)?;
+            Ok(vow_view_json(
+                &vow_tide::visibility::project_view(state, &viewer),
                 state.freshness_token.0,
             ))
         }
@@ -1039,6 +1080,14 @@ pub fn get_action_tree_for_viewer(
                 return Ok(empty_action_tree_json(state.freshness_token));
             }
             Ok(briar_action_tree_json(state, seat))
+        }
+        MatchRecord::VowTide { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_vow_seat(actor_seat)?;
+            if !vow_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            vow_action_tree_json(state, seat)
         }
     })
 }
@@ -1576,6 +1625,36 @@ pub fn apply_action(
                 effect_json,
                 briar_view_json(
                     &briar_circuit::project_view(state, &viewer),
+                    state.freshness_token.0,
+                )
+            ))
+        }
+        MatchRecord::VowTide {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_vow_seat(actor_seat)?;
+            let command = parse_action_path(action_path);
+            let effects = vow_apply_command(state, seat, command.clone(), freshness_token)?;
+            let viewer = vow_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = vow_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_vow_seat(seat).to_owned(),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                vow_view_json(
+                    &vow_tide::visibility::project_view(state, &viewer),
                     state.freshness_token.0,
                 )
             ))
@@ -2217,6 +2296,41 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 )
             ))
         }
+        MatchRecord::VowTide {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_vow_seat(actor_seat)?;
+            let decision = vow_select_bot_decision(state, seat, bot_seed)?;
+            let command = decision.action_path.clone();
+            let freshness_token = state.freshness_token.0;
+            let effects = vow_apply_command(state, seat, command.clone(), freshness_token)?;
+            let viewer = vow_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = vow_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_vow_seat(seat).to_owned(),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&decision.policy_id),
+                decision.policy_version,
+                escape_json(&decision.rationale),
+                effect_json,
+                vow_view_json(
+                    &vow_tide::visibility::project_view(state, &viewer),
+                    state.freshness_token.0,
+                )
+            ))
+        }
     })
 }
 
@@ -2578,6 +2692,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::VowTide {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = vow_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        vow_logged_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -2866,6 +3002,16 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             resolve_game(game_id)?;
             briar_replay_document_json(&format!("export-{match_id}"), *seed, commands)
         }
+        MatchRecord::VowTide {
+            game_id,
+            seed,
+            state,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            vow_replay_document_json(*seed, state.seats.len(), commands)
+        }
     })
 }
 
@@ -2903,6 +3049,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if is_briar_circuit_public_export(doc) {
         return import_briar_circuit_public_replay(doc);
     }
+    if is_vow_tide_public_export(doc) {
+        return import_vow_tide_public_replay(doc);
+    }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
             "invalid_replay",
@@ -2931,6 +3080,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_PLAIN_TRICKS
         && parsed.game_id != GAME_RIVER_LEDGER
         && parsed.game_id != GAME_BRIAR_CIRCUIT
+        && parsed.game_id != GAME_VOW_TIDE
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -3121,6 +3271,17 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             (
                 briar_view_json(
                     &briar_circuit::project_view(&state, &Viewer { seat_id: None }),
+                    state.freshness_token.0,
+                ),
+                effects.len(),
+            )
+        }
+        RegisteredGame::VowTide => {
+            let (state, effects) =
+                vow_replay_to_cursor(parsed.seed, 4, &parsed.commands, command_count)?;
+            (
+                vow_view_json(
+                    &vow_tide::visibility::project_view(&state, &Viewer { seat_id: None }),
                     state.freshness_token.0,
                 ),
                 effects.len(),
@@ -3355,6 +3516,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::VowTide => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    vow_replay_to_cursor(record.seed, 4, &record.commands, bounded_cursor)?;
+                Ok(vow_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
@@ -3408,6 +3581,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_PLAIN_TRICKS => Ok(RegisteredGame::PlainTricks),
         GAME_RIVER_LEDGER => Ok(RegisteredGame::RiverLedger),
         GAME_BRIAR_CIRCUIT => Ok(RegisteredGame::BriarCircuit),
+        GAME_VOW_TIDE => Ok(RegisteredGame::VowTide),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -3433,6 +3607,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::PlainTricks => PLAIN_TRICKS_TRACE_RULES_VERSION,
         RegisteredGame::RiverLedger => RIVER_LEDGER_TRACE_RULES_VERSION,
         RegisteredGame::BriarCircuit => BRIAR_CIRCUIT_TRACE_RULES_VERSION,
+        RegisteredGame::VowTide => VOW_TIDE_TRACE_RULES_VERSION,
     }
 }
 

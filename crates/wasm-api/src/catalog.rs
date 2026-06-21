@@ -119,6 +119,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::PlainTricks,
         RegisteredGame::RiverLedger,
         RegisteredGame::BriarCircuit,
+        RegisteredGame::VowTide,
     ]
         .iter()
         .map(|game| {
@@ -265,10 +266,20 @@ pub fn list_games() -> Result<String, String> {
                 catalog_seat_labels_json(4),
                 catalog_viewer_modes_json(4)
             ),
+            RegisteredGame::VowTide => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\",\"bidding\",\"multi_seat\"],\"min_seats\":3,\"max_seats\":7,\"default_seats\":4,\"supported_seats\":[3,4,5,6,7],\"seat_labels\":{},\"viewer_modes\":{}}}",
+                escape_json(GAME_VOW_TIDE),
+                escape_json(GAME_VOW_TIDE_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                variants_json(&[(VARIANT_VOW_TIDE_STANDARD, GAME_VOW_TIDE_DISPLAY_NAME, None)]),
+                catalog_vow_tide_seat_labels_json(),
+                catalog_viewer_modes_json(7)
+            ),
         };
             if matches!(
                 game,
-                RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit
+                RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit | RegisteredGame::VowTide
             ) {
                 return catalog_json;
             }
@@ -284,6 +295,21 @@ pub fn list_games() -> Result<String, String> {
         .collect::<Vec<_>>()
         .join(",");
     Ok(format!("[{games}]"))
+}
+
+fn catalog_vow_tide_seat_labels_json() -> String {
+    format!(
+        "[{}]",
+        (0..7)
+            .map(|index| {
+                format!(
+                    "{{\"seat\":\"seat_{index}\",\"label\":\"Tide {}\"}}",
+                    index + 1
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
 }
 
 pub fn feature_report() -> Result<String, String> {

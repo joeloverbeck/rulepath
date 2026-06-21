@@ -110,6 +110,22 @@ assert(
 assert(
   catalog.some(
     (game) =>
+      game.game_id === "vow_tide" &&
+      hasVariant(game, "vow_tide_standard", "Vow Tide") &&
+      game.hidden_information === true &&
+      game.min_seats === 3 &&
+      game.max_seats === 7 &&
+      game.default_seats === 4 &&
+      JSON.stringify(game.supported_seats) === JSON.stringify([3, 4, 5, 6, 7]) &&
+      game.viewer_modes.includes("seat_6") &&
+      game.tags.includes("trick_taking") &&
+      game.tags.includes("bidding"),
+  ),
+  "list_games includes vow_tide variable-seat hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
       game.game_id === "masked_claims" &&
       hasVariant(game, "masked_claims_standard", "Masked Claims") &&
       game.hidden_information === true &&
@@ -1196,6 +1212,127 @@ const plainReplayReset = invoke(
 );
 assert(plainReplayReset.public_export === true, "plain_tricks replay reset uses public timeline");
 
+const vowCreated = invoke(
+  (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, 71n, 7),
+  ["vow_tide"],
+);
+assert(vowCreated.match_id, "vow_tide new_match_with_seat_count returns a match id");
+assert(vowCreated.variant_id === "vow_tide_standard", "vow_tide starts standard variant");
+
+const vowObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [vowCreated.match_id],
+);
+assert(vowObserver.game_id === "vow_tide", "vow_tide view is game-specific");
+assert(vowObserver.private_view_status === "observer", "vow_tide observer view is redacted");
+assert(vowObserver.own_hand.length === 0, "vow_tide observer omits private hand");
+assert(vowObserver.hand_counts.seat_0 === 7, "vow_tide exposes hand counts to observer");
+assert(vowObserver.hidden_stock_count > 0, "vow_tide exposes hidden stock count without identity");
+assert(vowObserver.public_bids.seat_0 === null, "vow_tide starts with public empty bids");
+
+const vowSeat0 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [vowCreated.match_id, "seat_0"],
+);
+assert(vowSeat0.private_view_status === "seat", "vow_tide seat viewer receives private view");
+assert(vowSeat0.own_hand.length === 7, "vow_tide seat view includes own hand");
+
+const vowUnauthorizedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [vowCreated.match_id, "seat_1", "seat_0"],
+);
+assert(vowUnauthorizedTree.choices.length === 0, "vow_tide non-actor tree is redacted");
+
+const vowTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [vowCreated.match_id, "seat_1", "seat_1"],
+);
+const vowBidPath = firstCompletePath(vowTree.choices);
+assert(vowBidPath[0] === "bid" && vowBidPath[1], "vow_tide action tree exposes bid paths");
+
+const vowAfterBid = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(vowTree.freshness_token),
+    ),
+  [vowCreated.match_id, "seat_1", vowBidPath.join(">")],
+);
+assert(vowAfterBid.view.public_bids.seat_1 !== null, "vow_tide bid reaches Rust view");
+assert(
+  vowAfterBid.effects.some((effect) => effect.payload.kind === "bid_accepted"),
+  "vow_tide emits semantic bid effect",
+);
+for (const card of vowSeat0.own_hand) {
+  assert(!JSON.stringify(vowObserver).includes(card.card_id), `vow_tide observer omits private card ${card.card_id}`);
+}
+
+const vowAfterBot = invoke(
+  (args) =>
+    wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, 79n),
+  [vowCreated.match_id, "seat_2"],
+);
+assert(vowAfterBot.policy_id?.includes("vow-tide"), "vow_tide bot reports policy id");
+assert(vowAfterBot.effects.length > 0, "vow_tide bot dispatch applies a legal action");
+
+const vowObserverEffects = invoke(
+  (args) => wasm.rulepath_get_effects(args[0].ptr, args[0].len, 0n),
+  [vowCreated.match_id],
+);
+assert(vowObserverEffects.length > 0, "vow_tide exposes public semantic effects");
+for (const card of vowSeat0.own_hand) {
+  assert(!JSON.stringify(vowObserverEffects).includes(card.card_id), `vow_tide observer effects omit private card ${card.card_id}`);
+}
+
+const vowExportedReplay = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [vowCreated.match_id],
+);
+assert(vowExportedReplay.game_id === "vow_tide", "vow_tide export_replay preserves game id");
+assert(
+  vowExportedReplay.export_class === "viewer_scoped_observation_v1",
+  "vow_tide export is viewer-scoped",
+);
+assert(!JSON.stringify(vowExportedReplay).includes('"commands"'), "vow_tide public export omits command stream");
+for (const card of vowSeat0.own_hand) {
+  assert(!JSON.stringify(vowExportedReplay).includes(card.card_id), `vow_tide export omits private card ${card.card_id}`);
+}
+
+const vowImportedReplay = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(vowExportedReplay)],
+);
+assert(vowImportedReplay.game_id === "vow_tide", "vow_tide import_replay preserves game id");
+assert(vowImportedReplay.public_export === true, "vow_tide import marks public export");
+
+const vowReplayReset = invoke(
+  (args) => wasm.rulepath_replay_reset(args[0].ptr, args[0].len),
+  [vowImportedReplay.replay_id],
+);
+assert(vowReplayReset.public_export === true, "vow_tide replay reset uses public timeline");
+
 const briarCreated = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 61n),
   ["briar_circuit"],
@@ -1337,6 +1474,8 @@ console.log(
     secret_draft_public_export: secretImportedReplay.public_export,
     plain_tricks_match_id: plainCreated.match_id,
     plain_tricks_public_export: plainImportedReplay.public_export,
+    vow_tide_match_id: vowCreated.match_id,
+    vow_tide_public_export: vowImportedReplay.public_export,
     briar_circuit_match_id: briarCreated.match_id,
     briar_circuit_public_export: briarImportedReplay.public_export,
   }),
