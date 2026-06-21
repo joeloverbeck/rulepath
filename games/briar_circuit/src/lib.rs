@@ -33,8 +33,8 @@ pub use ids::{
 };
 pub use replay_support::{
     action_hash, effect_hash, export_viewer_timeline, import_viewer_timeline, parse_export_header,
-    replay_hash_snapshot, view_hash, ReplayHashSnapshot, ViewerExportClass, ViewerReplayExport,
-    TRACE_SCHEMA_VERSION, VIEWER_EXPORT_VERSION,
+    replay_bot_match, replay_hash_snapshot, view_hash, BotMatchReplay, ReplayHashSnapshot,
+    ViewerExportClass, ViewerReplayExport, TRACE_SCHEMA_VERSION, VIEWER_EXPORT_VERSION,
 };
 pub use rules::{
     apply_play_card, is_point_card, legal_cards_for_playing_state, legal_play_cards,
