@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-013: Simulator registration and seeded simulations by seat count
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `tools/simulate/src/main.rs`
@@ -69,3 +69,18 @@ Add `const GAME_VOW_TIDE`, the validation entry, and a `run_vow_tide_simulation(
 1. `cargo run -p simulate -- --game vow_tide --seat-count 7 --games 1000 --start-seed 170700 --action-cap 2048`
 2. `for n in 3 4 5 6 7; do cargo run -p simulate -- --game vow_tide --seat-count $n --games 1000 --start-seed 170${n}00 --action-cap 2048; done`
 3. Narrower command rationale: the seat-count matrix run is the determinism+completion boundary; bot legality is proven natively in 012.
+
+## Outcome
+
+Completed 2026-06-21. Registered `vow_tide` in `tools/simulate` with `--seat-count 3..=7` validation and default seat count 4. The simulator now runs deterministic mixed L1/L0 bot playouts through normal legal leaves and Rust validation/application, emits seat-keyed wins/co-wins/exact-bid rates plus average actions/hands, hook exclusions, completion rate, and reports action-cap failures as reproducible failures with seed, seat count, command stream, phase, and replay snapshot hashes. Vow Tide summary output intentionally omits wall-clock throughput so identical seed + seat count produces identical stdout.
+
+Verification:
+
+1. `cargo fmt --all --check` passed.
+2. `cargo build -p simulate` passed.
+3. `cargo run -p simulate -- --game vow_tide --seat-count 3 --games 1000 --start-seed 170300 --action-cap 2048` passed with `action_cap_failures=0`.
+4. `cargo run -p simulate -- --game vow_tide --seat-count 4 --games 1000 --start-seed 170400 --action-cap 2048` passed with `action_cap_failures=0`.
+5. `cargo run -p simulate -- --game vow_tide --seat-count 5 --games 1000 --start-seed 170500 --action-cap 2048` passed with `action_cap_failures=0`.
+6. `cargo run -p simulate -- --game vow_tide --seat-count 6 --games 1000 --start-seed 170600 --action-cap 2048` passed with `action_cap_failures=0`.
+7. `cargo run -p simulate -- --game vow_tide --seat-count 7 --games 1000 --start-seed 170700 --action-cap 2048` passed with `action_cap_failures=0`.
+8. Direct same-seed stdout comparison for seat count 4, games 1000, start seed 170400 passed.

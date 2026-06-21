@@ -33,6 +33,14 @@ use river_ledger::RiverLedgerLevel2Bot;
 use secret_draft::{SecretDraftRandomBot, SecretDraftSeat};
 use three_marks::{ThreeMarksRandomBot, ThreeMarksSeat};
 use token_bazaar::{TokenBazaarRandomBot, TokenBazaarSeat};
+use vow_tide::{
+    actions as vow_tide_actions,
+    bots::{VowTideL0Bot, VowTideL1Bot},
+    ids::{canonical_seat_ids as vow_tide_seat_ids, VowTideSeat},
+    replay_support as vow_tide_replay, rules as vow_tide_rules,
+    setup::{setup_match as setup_vow_tide_match, SetupOptions as VowTideSetupOptions},
+    state::Phase as VowTidePhase,
+};
 
 const GAME_ID: &str = "race_to_n";
 const GAME_THREE_MARKS: &str = "three_marks";
@@ -50,6 +58,7 @@ const GAME_POKER_LITE: &str = "poker_lite";
 const GAME_PLAIN_TRICKS: &str = "plain_tricks";
 const GAME_RIVER_LEDGER: &str = "river_ledger";
 const GAME_BRIAR_CIRCUIT: &str = "briar_circuit";
+const GAME_VOW_TIDE: &str = "vow_tide";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -214,9 +223,10 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_PLAIN_TRICKS
         && config.game != GAME_RIVER_LEDGER
         && config.game != GAME_BRIAR_CIRCUIT
+        && config.game != GAME_VOW_TIDE
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}\n",
             config.game
         ));
     }
@@ -227,6 +237,12 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         let seat_count = config.seat_count.unwrap_or(6);
         if !(3..=6).contains(&seat_count) {
             return Err("--seat-count for river_ledger must be 3, 4, 5, or 6\n".to_owned());
+        }
+    }
+    if config.game == GAME_VOW_TIDE {
+        let seat_count = config.seat_count.unwrap_or(4);
+        if !(3..=7).contains(&seat_count) {
+            return Err("--seat-count for vow_tide must be 3, 4, 5, 6, or 7\n".to_owned());
         }
     }
     if config.games == 0 {
@@ -258,7 +274,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -337,6 +353,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_BRIAR_CIRCUIT {
         return run_briar_circuit_simulation(config);
+    }
+    if config.game == GAME_VOW_TIDE {
+        return run_vow_tide_simulation(config);
     }
 
     let started = Instant::now();
@@ -559,6 +578,334 @@ fn briar_active_seat(state: &briar_circuit::BriarCircuitState) -> Option<BriarCi
         BriarPhase::PlayingTrick(play) => Some(play.active_seat),
         BriarPhase::ScoringHand(_) | BriarPhase::Terminal(_) => None,
     }
+}
+
+struct VowTideMatchOutcome {
+    winners: Vec<VowTideSeat>,
+    actions: u64,
+    hands_played: u64,
+    exact_by_seat: Vec<u64>,
+    hook_exclusions: u64,
+}
+
+fn run_vow_tide_simulation(config: Config) -> Result<String, String> {
+    let seat_count = config.seat_count.unwrap_or(4);
+    let seat_labels = (0..seat_count)
+        .map(|index| format!("seat_{index}"))
+        .collect::<Vec<_>>();
+    let mut games_run = 0_u64;
+    let mut total_actions = 0_u64;
+    let mut total_hands = 0_u64;
+    let mut hook_exclusions = 0_u64;
+    let mut co_win_games = 0_u64;
+    let mut wins_by_seat = zero_counts_by_string_seat(&seat_labels);
+    let mut co_wins_by_seat = zero_counts_by_string_seat(&seat_labels);
+    let mut exact_by_seat = vec![0_u64; seat_count];
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let outcome = run_one_vow_tide_match(&config, seed, seat_count)?;
+        games_run += 1;
+        total_actions += outcome.actions;
+        total_hands += outcome.hands_played;
+        hook_exclusions += outcome.hook_exclusions;
+        for (index, exact_count) in outcome.exact_by_seat.into_iter().enumerate() {
+            exact_by_seat[index] += exact_count;
+        }
+        if outcome.winners.len() > 1 {
+            co_win_games += 1;
+            for winner in &outcome.winners {
+                increment_seat_count(&mut co_wins_by_seat, winner.as_str());
+            }
+        }
+        for winner in outcome.winners {
+            increment_seat_count(&mut wins_by_seat, winner.as_str());
+        }
+    }
+
+    let average_actions = total_actions as f64 / games_run as f64;
+    let average_hands = total_hands as f64 / games_run as f64;
+    Ok(format!(
+        "simulate summary\n\
+         game_id=vow_tide\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         seat_count={seat_count}\n\
+         games_run={games_run}\n\
+         {}\n\
+         bot_policy_mix=seat_even_l1_seat_odd_l0\n\
+         {}\n\
+         {}\n\
+         co_win_games={co_win_games}\n\
+         exact_bid_rate_by_seat={}\n\
+         total_actions={total_actions}\n\
+         total_hands={total_hands}\n\
+         average_actions_per_match={average_actions:.2}\n\
+         average_hands_per_match={average_hands:.2}\n\
+         hook_exclusions={hook_exclusions}\n\
+         action_cap_failures=0\n\
+         completion_rate_percent=100.00\n",
+        config.start_seed,
+        render_seat_order_strings(&seat_labels),
+        render_seat_counts("wins_by_seat", &wins_by_seat),
+        render_seat_counts("co_wins_by_seat", &co_wins_by_seat),
+        render_exact_rates(&seat_labels, &exact_by_seat, total_hands)
+    ))
+}
+
+fn run_one_vow_tide_match(
+    config: &Config,
+    seed: u64,
+    seat_count: usize,
+) -> Result<VowTideMatchOutcome, String> {
+    let mut state = setup_vow_tide_match(
+        Seed(seed),
+        &vow_tide_seat_ids(seat_count),
+        &VowTideSetupOptions::default(),
+    )
+    .map_err(|diagnostic| format!("vow_tide setup failed: {}\n", diagnostic.code))?;
+    let mut command_stream = Vec::<String>::new();
+    let mut last_effects = Vec::<vow_tide::effects::VowTideEffect>::new();
+    let mut hook_exclusions = 0_u64;
+
+    for action_index in 0..config.action_cap {
+        if let VowTidePhase::Terminal(terminal) = &state.phase {
+            return Ok(vow_tide_outcome(
+                terminal.winners.clone(),
+                action_index as u64,
+                hook_exclusions,
+                &state,
+            ));
+        }
+
+        let actor_seat = state.active_seat().ok_or_else(|| {
+            vow_tide_failure_report(
+                config,
+                seed,
+                seat_count,
+                action_index,
+                &state,
+                &last_effects,
+                &command_stream,
+                "non-terminal state has no active seat",
+            )
+        })?;
+        let actor = Actor {
+            seat_id: state.seats[actor_seat.index()].clone(),
+        };
+        let tree = vow_tide_actions::legal_action_tree(&state, &actor);
+        assert_tree_well_formed(GAME_VOW_TIDE, seed, action_index, config.action_cap, &tree)?;
+        if state
+            .bidding_state()
+            .and_then(|bidding| vow_tide_actions::hook_forbidden_bid(&state, bidding, actor_seat))
+            .is_some()
+        {
+            hook_exclusions += 1;
+        }
+        let bot_seed = Seed(bot_seed(seed, action_index));
+        let decision = if actor_seat.index() % 2 == 0 {
+            VowTideL1Bot::new(bot_seed)
+                .select_decision(&state, actor_seat)
+                .map_err(|diagnostic| {
+                    vow_tide_failure_report(
+                        config,
+                        seed,
+                        seat_count,
+                        action_index,
+                        &state,
+                        &last_effects,
+                        &command_stream,
+                        &format!("L1 bot failed: {}", diagnostic.code),
+                    )
+                })?
+        } else {
+            VowTideL0Bot::new(bot_seed)
+                .select_decision(&state, actor_seat)
+                .map_err(|diagnostic| {
+                    vow_tide_failure_report(
+                        config,
+                        seed,
+                        seat_count,
+                        action_index,
+                        &state,
+                        &last_effects,
+                        &command_stream,
+                        &format!("L0 bot failed: {}", diagnostic.code),
+                    )
+                })?
+        };
+        let chosen_action_path = decision.action_path.segments.join("/");
+        let command = CommandEnvelope {
+            actor,
+            action_path: decision.action_path,
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(RULES_VERSION),
+        };
+        last_effects = match command.action_path.segments.first().map(String::as_str) {
+            Some(vow_tide::ids::ACTION_BID) => {
+                let bid = vow_tide_rules::validate_bid_command(&state, &command).map_err(
+                    |diagnostic| {
+                        vow_tide_failure_report(
+                            config,
+                            seed,
+                            seat_count,
+                            action_index,
+                            &state,
+                            &last_effects,
+                            &command_stream,
+                            &format!("bid validation failed: {}", diagnostic.code),
+                        )
+                    },
+                )?;
+                vow_tide_rules::apply_bid(&mut state, bid).map_err(|diagnostic| {
+                    vow_tide_failure_report(
+                        config,
+                        seed,
+                        seat_count,
+                        action_index,
+                        &state,
+                        &last_effects,
+                        &command_stream,
+                        &format!("bid apply failed: {}", diagnostic.code),
+                    )
+                })?
+            }
+            Some(vow_tide_actions::ACTION_PLAY) => {
+                let play = vow_tide_rules::validate_play_command(&state, &command).map_err(
+                    |diagnostic| {
+                        vow_tide_failure_report(
+                            config,
+                            seed,
+                            seat_count,
+                            action_index,
+                            &state,
+                            &last_effects,
+                            &command_stream,
+                            &format!("play validation failed: {}", diagnostic.code),
+                        )
+                    },
+                )?;
+                vow_tide_rules::apply_play(&mut state, play).map_err(|diagnostic| {
+                    vow_tide_failure_report(
+                        config,
+                        seed,
+                        seat_count,
+                        action_index,
+                        &state,
+                        &last_effects,
+                        &command_stream,
+                        &format!("play apply failed: {}", diagnostic.code),
+                    )
+                })?
+            }
+            _ => {
+                return Err(vow_tide_failure_report(
+                    config,
+                    seed,
+                    seat_count,
+                    action_index,
+                    &state,
+                    &last_effects,
+                    &command_stream,
+                    "bot selected an unknown action family",
+                ));
+            }
+        };
+        command_stream.push(format!("{}:{chosen_action_path}", actor_seat.as_str()));
+    }
+
+    Err(vow_tide_failure_report(
+        config,
+        seed,
+        seat_count,
+        config.action_cap,
+        &state,
+        &last_effects,
+        &command_stream,
+        "action cap reached before terminal outcome",
+    ))
+}
+
+fn vow_tide_outcome(
+    winners: Vec<VowTideSeat>,
+    actions: u64,
+    hook_exclusions: u64,
+    state: &vow_tide::state::VowTideState,
+) -> VowTideMatchOutcome {
+    let mut exact_by_seat = vec![0_u64; state.seat_count()];
+    for hand in &state.completed_hands {
+        for result in &hand.seats {
+            if result.exact {
+                exact_by_seat[result.seat.index()] += 1;
+            }
+        }
+    }
+    VowTideMatchOutcome {
+        winners,
+        actions,
+        hands_played: state.completed_hands.len() as u64,
+        exact_by_seat,
+        hook_exclusions,
+    }
+}
+
+fn zero_counts_by_string_seat(seats: &[String]) -> BTreeMap<String, u64> {
+    seats.iter().map(|seat| (seat.clone(), 0)).collect()
+}
+
+fn render_exact_rates(seats: &[String], exact_by_seat: &[u64], total_hands: u64) -> String {
+    let entries = seats
+        .iter()
+        .enumerate()
+        .map(|(index, seat)| {
+            let rate = if total_hands == 0 {
+                0.0
+            } else {
+                exact_by_seat[index] as f64 / total_hands as f64
+            };
+            format!("{seat}:{rate:.4}")
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{{{entries}}}")
+}
+
+fn vow_tide_failure_report(
+    config: &Config,
+    seed: u64,
+    seat_count: usize,
+    action_index: usize,
+    state: &vow_tide::state::VowTideState,
+    effects: &[vow_tide::effects::VowTideEffect],
+    command_stream: &[String],
+    reason: &str,
+) -> String {
+    let snapshot = vow_tide_replay::snapshot(state, effects);
+    format!(
+        "SIMULATION FAILURE\n\
+         game_id=vow_tide\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         seed={seed}\n\
+         seat_count={seat_count}\n\
+         action_cap={}\n\
+         action_index={action_index}\n\
+         phase={:?}\n\
+         command_stream=[{}]\n\
+         state_hash={}\n\
+         observer_view_hash={}\n\
+         effect_hash={}\n\
+         failure_reason={reason}\n\
+         replay_command=cargo run -p simulate -- --game vow_tide --seat-count {seat_count} --games 1 --start-seed {seed} --action-cap {}\n",
+        config.action_cap,
+        state.phase,
+        command_stream.join(","),
+        snapshot.state_hash,
+        snapshot.observer_view_hash,
+        snapshot.effect_hash,
+        config.action_cap
+    )
 }
 
 fn run_token_bazaar_simulation(config: Config) -> Result<String, String> {
