@@ -1,6 +1,6 @@
 # SEAT-001: Make the default catalog seat labels 1-based
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (`catalog_seat_labels_json` seat-label JSON consumed by the web catalog payload and the VIEWER panel)
@@ -121,3 +121,25 @@ Update every wasm-api catalog/snapshot assertion that currently expects the
 
 1. `cargo test -p wasm-api`
 2. `cargo test --workspace`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+- `catalog_seat_labels_json` now keeps stable `seat_{index}` IDs while emitting
+  1-based human labels (`Seat 1`, `Seat 2`, ...).
+- `wasm-api` catalog tests now pin the default generator and Briar Circuit's
+  four-seat catalog labels.
+- The public API snapshot was regenerated for the intended catalog value drift.
+
+Deviations:
+- The internal default-label helper was made `pub(crate)` so the crate-local
+  unit test can assert its exact serialized output. It remains non-public API.
+
+Verification:
+- `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo test --workspace` passed.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.

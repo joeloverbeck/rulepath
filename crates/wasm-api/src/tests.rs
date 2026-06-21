@@ -143,7 +143,7 @@ fn list_games_reports_registered_games() {
     assert!(games.contains("\"default_seats\":2"));
     assert!(games.contains("\"supported_seats\":[2]"));
     assert!(games.contains(
-            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 0\"},{\"seat\":\"seat_1\",\"label\":\"Seat 1\"}]"
+            "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\"}]"
         ));
     assert!(games.contains(
             "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Charter\"},{\"seat\":\"seat_1\",\"label\":\"Freeholders\"}]"
@@ -193,6 +193,26 @@ fn list_games_reports_registered_games() {
     assert!(games.contains("\"environment_automation\""));
     assert!(games.contains("\"bounded_pledge\""));
     assert!(games.contains("\"trick_taking\""));
+}
+
+#[test]
+fn default_catalog_seat_labels_are_one_based() {
+    assert_eq!(
+        crate::catalog::catalog_seat_labels_json(4),
+        "[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\"},{\"seat\":\"seat_2\",\"label\":\"Seat 3\"},{\"seat\":\"seat_3\",\"label\":\"Seat 4\"}]"
+    );
+}
+
+#[test]
+fn briar_circuit_catalog_uses_one_based_default_seat_labels() {
+    let games = list_games().expect("games listed");
+    let briar_start = games
+        .find("\"game_id\":\"briar_circuit\"")
+        .expect("briar catalog entry present");
+    let briar = &games[briar_start..];
+    assert!(briar.contains(
+        "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Seat 1\"},{\"seat\":\"seat_1\",\"label\":\"Seat 2\"},{\"seat\":\"seat_2\",\"label\":\"Seat 3\"},{\"seat\":\"seat_3\",\"label\":\"Seat 4\"}]"
+    ));
 }
 
 #[test]
