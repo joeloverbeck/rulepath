@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-020: Native benchmarks, helper before/after, calibrated CI floors by seat count
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence + docs) — new `games/vow_tide/benches/vow_tide.rs`, `games/vow_tide/benches/thresholds.json`, `games/vow_tide/docs/BENCHMARKS.md`; modifies `games/vow_tide/Cargo.toml`
@@ -76,3 +76,24 @@ Document operations/fixtures by seat count, helper before/after evidence, enviro
 1. `cargo bench -p vow_tide`
 2. `cargo run -p rule-coverage -- --game vow_tide`
 3. Narrower command rationale: `cargo bench` is the native performance boundary; rule-coverage confirms `BENCHMARKS.md` closes the 016 partial-green window.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added `games/vow_tide/benches/vow_tide.rs` with a native Rust benchmark harness for setup/deal, first/dealer-hook bid legal trees, lead/follow play legal trees, bid/play validate+apply, trick resolution, hand scoring, observer/all-seat projections, effect filtering, replay snapshot plus viewer export/import, L0/L1 bot decisions, and complete seeded matches across 3-7 seats.
+- Added `games/vow_tide/benches/thresholds.json` with seat-keyed smoke floors and the Gate 17 provisional `75 matches_per_second` full-match floor for every supported seat count.
+- Added `games/vow_tide/docs/BENCHMARKS.md` documenting the native/WASM split, lane families, helper comparison evidence, threshold policy, and CI strategy.
+- Wired the Vow bench target in `games/vow_tide/Cargo.toml`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo bench -p vow_tide -- full_seeded_match_7p`
+- `cargo bench -p vow_tide` passed all lanes; complete seeded match results were approximately 1027/s (3p), 842/s (4p), 507/s (5p), 811/s (6p), and 944/s (7p), all above the 75/s floor.
+- `cargo run -p rule-coverage -- --game vow_tide`
+- `cargo bench -p game-stdlib`
+- `cargo bench -p plain_tricks`
+- `cargo bench -p briar_circuit`
+
+The helper/back-port comparison benches passed their existing floors; no material Plain Tricks or Briar Circuit regression was observed in this local evidence run.

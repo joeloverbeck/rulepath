@@ -9,3 +9,12 @@ repository.workspace = true
 ai-core = { path = "../../crates/ai-core" }
 engine-core = { path = "../../crates/engine-core" }
 game-stdlib = { path = "../../crates/game-stdlib" }
+
+[lib]
+path = "src/lib.rs"
+bench = false
+
+[[bench]]
+name = "vow_tide"
+path = "benches/vow_tide.rs"
+harness = false
