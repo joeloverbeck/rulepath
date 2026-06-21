@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-001: Vow Tide rules, sources, and requirements-admission receipt
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — game-local rules/source docs only (`games/vow_tide/docs/*`); no Rust/code surface
@@ -78,3 +78,24 @@ Fill the requirements-first admission receipt (rules locked, seat declaration, v
 1. `node scripts/check-doc-links.mjs`
 2. `grep -nE "VT-[A-Z]+-[0-9]+" games/vow_tide/docs/RULES.md`
 3. Narrower command is correct: no crate exists yet, so doc-link + ID-presence are the only runnable surfaces; rule-coverage validates the IDs once the tool arm lands (016).
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Added `games/vow_tide/docs/RULES.md` with the Gate 17 `VT-*` rule set, Vow Tide identity, 3-7 seat declaration, schedule/deal/trump rules, bidding/hook rules, trick-play/scoring/terminal rules, visibility/replay/bot/outcome boundaries, deviations, and out-of-scope variants.
+- Added `games/vow_tide/docs/SOURCES.md` with Pagat/Trickster source reconciliation, prior-art classification, neutral-name rationale, original-prose/no-copy posture, IP/trade-dress release blockers, and rule-source cross-reference.
+- Added `games/vow_tide/docs/GAME-IMPLEMENTATION-ADMISSION.md` with the requirements-first admission receipt, proof surfaces, open downstream docs, third-use trick-taking gate constraints, hidden-information safeguards, bot/UI/benchmark expectations, and explicit release blockers.
+
+Deviations from plan:
+
+- None. This remained documentation-only; no Rust, workspace, tool, WASM, or web code was added.
+- `HOW-TO-PLAY.md`, `RULE-COVERAGE.md`, `MECHANICS.md`, and final IP sign-off remain with their later tickets as planned.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `rg -o "VT-[A-Z]+(?:-[A-Z]+)*-[0-9]+" games/vow_tide/docs/RULES.md | sort -u` confirmed the full Appendix A rule-ID set: `VT-IDENTITY-001` through `VT-BOUNDARY-001`.
+- Manual IP/source review against `docs/IP-POLICY.md` and the Gate 17 spec confirmed the new prose is Rulepath-authored, source facts are summarized rather than copied, no assets/fonts/trade dress landed in this ticket, and human public-release/IP review remains recorded for ticket 022.
