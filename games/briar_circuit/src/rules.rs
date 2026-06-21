@@ -5,7 +5,11 @@ use crate::{
     effects::BriarCircuitEffect,
     ids::{BriarCircuitSeat, STANDARD_TRICKS_PER_HAND},
     scoring::{score_completed_hand, terminal_outcome_for},
-    state::{BriarCircuitState, CapturedTrick, CurrentTrick, Phase, PlayingTrickState, TrickPlay},
+    setup::{deal_for_hand, next_dealer},
+    state::{
+        BriarCircuitState, CapturedTrick, CurrentTrick, PassDirection, PassState, Phase,
+        PlayingTrickState, TrickPlay,
+    },
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -173,10 +177,13 @@ pub fn apply_play_card(
             hand_completed = true;
             let scoring = score_completed_hand(&state.captured_tricks, state.cumulative_scores);
             state.cumulative_scores = scoring.cumulative_after;
-            state.phase = match terminal_outcome_for(&scoring.outcome) {
-                Some(outcome) => Phase::Terminal(outcome),
-                None => Phase::ScoringHand(scoring),
-            };
+            match terminal_outcome_for(&scoring.outcome) {
+                Some(outcome) => state.phase = Phase::Terminal(outcome),
+                // The match threshold is never reached in a single hand, so any
+                // non-terminal completed hand (in progress or a tied-low score)
+                // continues by dealing the next hand per BC-MATCH-001/003.
+                None => begin_next_hand(state)?,
+            }
         } else {
             let next_index = trick_index + 1;
             state.phase = Phase::PlayingTrick(PlayingTrickState {
@@ -195,6 +202,34 @@ pub fn apply_play_card(
         trick_completed,
         hand_completed,
     })
+}
+
+/// Rotate the dealer, advance the hand index, and deterministically deal the
+/// next hand, entering its pass selection (or the opening lead on a hold hand).
+/// Captured tricks reset so the new hand scores only its own points.
+fn begin_next_hand(state: &mut BriarCircuitState) -> Result<(), Diagnostic> {
+    let dealer = next_dealer(state.dealer);
+    let hand_index = state.hand_index + 1;
+    let deal = deal_for_hand(state.seed, dealer, hand_index)?;
+
+    state.dealer = dealer;
+    state.hand_index = hand_index;
+    state.captured_tricks.clear();
+    state.private_hands = BriarCircuitSeat::ALL.into_iter().zip(deal.hands).collect();
+    state.phase = match deal.pass_direction {
+        PassDirection::Hold => {
+            let leader = state.two_clubs_leader();
+            Phase::PlayingTrick(PlayingTrickState {
+                hearts_broken: false,
+                trick_index: 0,
+                leader,
+                active_seat: leader,
+                current_trick: CurrentTrick::new(leader),
+            })
+        }
+        direction => Phase::Passing(PassState::new(direction)),
+    };
+    Ok(())
 }
 
 pub fn legal_cards_for_playing_state(hand: &[CardId], play: &PlayingTrickState) -> Vec<CardId> {

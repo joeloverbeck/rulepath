@@ -29,11 +29,10 @@ pub fn setup_match(
         return Err(invalid_seat_count_diagnostic(seats.len()));
     }
 
-    let mut rng = SeededRng::from_seed(seed);
     let dealer = BriarCircuitSeat::Seat0;
-    let deal = deal_hand(&mut rng, dealer, 0)?;
+    let deal = deal_for_hand(seed, dealer, 0)?;
 
-    Ok(BriarCircuitState::new_after_deal(
+    let mut state = BriarCircuitState::new_after_deal(
         options.variant.clone(),
         [
             seats[0].clone(),
@@ -45,7 +44,26 @@ pub fn setup_match(
         0,
         deal.hands,
         deal.pass_direction,
-    ))
+    );
+    state.seed = seed;
+    Ok(state)
+}
+
+/// Derive the per-hand deal seed from the match seed. Hand 0 reuses the match
+/// seed unchanged so first-hand deals remain byte-identical to the original
+/// implementation; later hands mix the index in to decorrelate their shuffles.
+pub const fn seed_for_hand(match_seed: Seed, hand_index: u32) -> Seed {
+    Seed(match_seed.0 ^ (hand_index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15))
+}
+
+/// Deterministically deal a hand from the match seed and hand index.
+pub fn deal_for_hand(
+    match_seed: Seed,
+    dealer: BriarCircuitSeat,
+    hand_index: u32,
+) -> Result<HandDeal, Diagnostic> {
+    let mut rng = SeededRng::from_seed(seed_for_hand(match_seed, hand_index));
+    deal_hand(&mut rng, dealer, hand_index)
 }
 
 pub fn invalid_seat_count_diagnostic(actual: usize) -> Diagnostic {
