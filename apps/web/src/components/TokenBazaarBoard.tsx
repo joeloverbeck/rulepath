@@ -8,6 +8,7 @@ import type {
   TokenBazaarPublicView,
   TokenBazaarResourceCounts,
 } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -99,7 +100,7 @@ export function TokenBazaarBoard({
       <div className="token-bazaar-metrics" aria-label="Match accounting">
         <Metric label={view.ui.score_label} value={`${view.scores.seat_0} - ${view.scores.seat_1}`} />
         <Metric label={view.ui.turn_counter_label} value={`${view.turns_taken.seat_0} / ${view.turns_taken.turns_per_seat}`} />
-        <Metric label="Seat 1 turns" value={`${view.turns_taken.seat_1} / ${view.turns_taken.turns_per_seat}`} />
+        <Metric label={`${seatLabel("seat_1")} turns`} value={`${view.turns_taken.seat_1} / ${view.turns_taken.turns_per_seat}`} />
         <Metric label="Queue" value={`${view.queue_remaining} contracts`} />
       </div>
 
@@ -334,7 +335,7 @@ function boardSummary(view: TokenBazaarPublicView): string {
 }
 
 function seatLabel(seat: SeatId): string {
-  return seat === "seat_0" ? "Seat 0" : "Seat 1";
+  return resolveSeatLabel(seat);
 }
 
 function resourceCode(resource: keyof TokenBazaarResourceCounts): string {

@@ -171,17 +171,17 @@ async function assertCollectAmberGain(page) {
 
 async function assertSeatIdentityAndActionLegs(page) {
   const identity = await page.$eval('[data-testid="token-bazaar-identity"]', (element) => element.textContent ?? "");
-  assert(/you are seat 0/i.test(identity), `human-vs-bot exposes the local seat identity, got "${identity}"`);
+  assert(/you are seat 1/i.test(identity), `human-vs-bot exposes the local seat identity, got "${identity}"`);
   const headings = await page.$$eval(".token-seat .token-section-heading span", (spans) =>
     spans.map((span) => span.textContent?.trim() ?? ""),
   );
   assert(
-    headings.some((heading) => /seat 0 \(you\)/i.test(heading)),
-    `seat 0 inventory is tagged as the human, got ${JSON.stringify(headings)}`,
+    headings.some((heading) => /seat 1 \(you\)/i.test(heading)),
+    `seat 1 inventory is tagged as the human, got ${JSON.stringify(headings)}`,
   );
   assert(
-    headings.some((heading) => /seat 1 \(bot\)/i.test(heading)),
-    `seat 1 inventory is tagged as the bot, got ${JSON.stringify(headings)}`,
+    headings.some((heading) => /seat 2 \(bot\)/i.test(heading)),
+    `seat 2 inventory is tagged as the bot, got ${JSON.stringify(headings)}`,
   );
   const collectGet = await page.$eval(
     '[data-testid="token-action-collect-amber"] .token-action-leg.gain .token-action-leg-label',

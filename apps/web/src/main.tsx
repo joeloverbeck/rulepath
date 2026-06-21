@@ -55,6 +55,7 @@ import {
   type RiverLedgerPublicView,
   type RulepathApi,
   type SeatId,
+  type SeatDisplayLabel,
   type SecretDraftPublicView,
   type ThreeMarksPublicView,
   type TokenBazaarPublicView,
@@ -571,7 +572,7 @@ function App() {
         />
 
         {state.selectedGameId === "race_to_n" ? (
-          <RaceBoard view={isRaceView(view) ? view : null} latestEffect={latestEffect} />
+          <RaceBoard view={isRaceView(view) ? view : null} latestEffect={latestEffect} seatLabels={catalogSeatLabels(selectedGame)} />
         ) : isColumnFourView(view) ? (
           <ColumnFourBoard
             view={view}
@@ -579,6 +580,7 @@ function App() {
             effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            seatLabels={catalogSeatLabels(selectedGame)}
             onChoice={playChoice}
           />
         ) : isDirectionalFlipView(view) ? (
@@ -589,6 +591,7 @@ function App() {
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
             seatRoleLabels={seatRoleLabelsForMode(state.setup.playMode)}
+            seatLabels={catalogSeatLabels(selectedGame)}
             onChoice={playChoice}
           />
         ) : isDraughtsLiteView(view) ? (
@@ -707,6 +710,7 @@ function App() {
             effects={state.effects}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            seatLabels={catalogSeatLabels(selectedGame)}
             onPathSubmit={playPath}
           />
         ) : isEventFrontierView(view) ? (
@@ -726,6 +730,7 @@ function App() {
             latestEffect={latestEffect}
             reducedMotion={state.reducedMotion}
             pending={state.pendingOperation !== null}
+            seatLabels={catalogSeatLabels(selectedGame)}
             onChoice={playChoice}
           />
         ) : (
@@ -892,6 +897,10 @@ function selectedVariantForStart(selectedGame: { variants?: Array<{ id: string }
     return undefined;
   }
   return selectedGame.variants.some((variant) => variant.id === variantId) ? variantId ?? undefined : selectedGame.variants[0]?.id;
+}
+
+function catalogSeatLabels(game: GameCatalogEntry | null): SeatDisplayLabel[] {
+  return game?.seat_labels ?? game?.ui?.seat_labels ?? [];
 }
 
 function riverLedgerSetupOptions(

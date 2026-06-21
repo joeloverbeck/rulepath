@@ -183,7 +183,7 @@ async function assertSupplyClarity(page) {
     `stake site reports a clear supply state, got "${summary.stakeSite}"`,
   );
   assert(!summary.anyRawNa, "non-stake sites no longer show cryptic 'supply n/a'");
-  assert(/Seat 0/.test(summary.factionText) && !/seat_0/.test(summary.factionText), "faction seats are humanized");
+  assert(/Seat 1/.test(summary.factionText) && !/seat_0/.test(summary.factionText), "faction seats are humanized");
 }
 
 async function assertFrontierBoardA11y(page) {

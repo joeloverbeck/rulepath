@@ -204,7 +204,7 @@ After design approval, do NOT implement until the user picks an implementation o
 
 An explicit user-named destination overrides this table; when it creates a new directory or sits outside the repo's tracked workflows (`specs/`, `tickets/`, `docs/`), record that placement and any index/workflow non-obligations as a named assumption.
 
-When persisting ≥3 files (e.g. a dependency-linked ticket set), track one task per file so progress stays visible — see `references/triage-and-deliverables.md` §Deliverable classification. Never commit a deliverable; leave it for user review.
+When persisting ≥3 files (e.g. a dependency-linked ticket set), track one task per file *for interruptible or long-running multi-file work* so progress stays visible — see `references/triage-and-deliverables.md` §Deliverable classification. A short batch of fast, atomic `Write`s whose success confirmations already surface progress may skip the task list; note that `TaskCreate`/`TaskUpdate` are deferred tools requiring a `ToolSearch` load first, so weigh that overhead against the visibility gained. Never commit a deliverable; leave it for user review.
 
 **Quick triage of deliverable shape → destination** (full per-type rules in `references/triage-and-deliverables.md` §Deliverable classification):
 
@@ -247,12 +247,12 @@ Design doc written to docs/plans/YYYY-MM-DD-<topic>-design.md
 
 What would you like to do next?
 1. Record the decision as an ADR (write to docs/adr/)
-2. Decompose into tickets (`/reassess-spec`, then `/spec-to-tickets` → `tickets/<PREFIX>-NNN.md`)
+2. Decompose into tickets — spec-decomposition only (`/reassess-spec`, then `/spec-to-tickets` → `tickets/<PREFIX>-NNN.md`)
 3. Start implementing directly
 4. Done for now — I'll review the design doc later
 ```
 
-Adjust options to the deliverable: for an ADR, offer decompose-into-agent-tasks / implement / done; for agent tasks, offer begin-first-task / refine / done; for an ADR-plus-implementing-tickets set, present one combined menu covering the set (record/accept the decision / refine / implement the first ticket / done) rather than a separate menu per file. Use `AskUserQuestion` when its schema is available; inline numbered options are an acceptable fallback. Under autonomous/headless operation (a harness directive that the user is not watching in real time and blocking questions stall the work), prefer the inline numbered menu in the final message over a blocking `AskUserQuestion` — the menu content requirement is unchanged. If the user picks an option that invokes another skill, invoke it. If they pick "done," end.
+Adjust options to the deliverable: for an ADR, offer decompose-into-agent-tasks / implement / done; for agent tasks, offer begin-first-task / refine / done; for an ADR-plus-implementing-tickets set, present one combined menu covering the set (record/accept the decision / refine / implement the first ticket / done) rather than a separate menu per file. For a **directly-authored** ticket set (approaches path, no source spec), the menu is begin-first-task / refine / done — the `/reassess-spec`→`/spec-to-tickets` decompose option does **not** apply and must be omitted; offer a *validate-assumptions-before-implementing* option in its place when the tickets carry unconfirmed Assumption-Reassessment items. Use `AskUserQuestion` when its schema is available; inline numbered options are an acceptable fallback. Under autonomous/headless operation (a harness directive that the user is not watching in real time and blocking questions stall the work), prefer the inline numbered menu in the final message over a blocking `AskUserQuestion` — the menu content requirement is unchanged. If the user picks an option that invokes another skill, invoke it. If they pick "done," end.
 
 **If a Step 6 option spawns a follow-up brainstorm cycle for related scope** (a next agent task alongside the just-written one, a related ADR the menu surfaced — distinct from re-triaging the prior verdicts): re-enter at Step 1, not Step 2; emit the Step 1 sub-step 8 post-exploration confidence anchor for the new cycle (even when exploration is trivial, and equally inside a pre-authorized collapsed turn — see §Guardrails §User pre-authorization's final-message contents); the prior cycle's context typically elevates initial confidence so the interview-skip threshold applies.
 

@@ -24,7 +24,14 @@ const ROOT_README = "README.md";
 const WEB_PACKAGE = "apps/web/package.json";
 
 // Smoke files in `smoke:e2e` that are not per-game (no catalog entry).
-const NON_GAME_SMOKE = new Set(["shell", "a11y-noleak", "rules-display", "outcome-explanation", "animation"]);
+const NON_GAME_SMOKE = new Set([
+  "shell",
+  "seat-label-consistency",
+  "a11y-noleak",
+  "rules-display",
+  "outcome-explanation",
+  "animation",
+]);
 
 const failures = [];
 

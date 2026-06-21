@@ -98,7 +98,7 @@ try {
   );
   await page.keyboard.press("Enter");
   await waitForText(page, "Card played");
-  await waitForText(page, "Seat 1 to play");
+  await waitForText(page, "Seat 2 to play");
   const followerOwnLabels = await ownHandLabels(page);
   await assertForcedFollowSurface(page);
   await assertFollowOutcomeCues(page);
@@ -148,8 +148,8 @@ try {
   const perRound = await page.evaluate(() => {
     const panel = document.querySelector(".outcome-explanation-panel")?.textContent ?? "";
     return {
-      hasRound1: /Seat 0 round 1/.test(panel) && /Seat 1 round 1/.test(panel),
-      hasRound2: /Seat 0 round 2/.test(panel) && /Seat 1 round 2/.test(panel),
+      hasRound1: /Seat 1 round 1/.test(panel) && /Seat 2 round 1/.test(panel),
+      hasRound2: /Seat 1 round 2/.test(panel) && /Seat 2 round 2/.test(panel),
     };
   });
   assert(perRound.hasRound1 && perRound.hasRound2, "outcome breaks tricks down by both rounds");

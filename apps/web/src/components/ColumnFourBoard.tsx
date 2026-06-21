@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import type { ActionChoice, ColumnFourPublicView, EffectEntry } from "../wasm/client";
+import type { ActionChoice, ColumnFourPublicView, EffectEntry, SeatDisplayLabel } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -10,6 +11,7 @@ type ColumnFourBoardProps = {
   reducedMotion: boolean;
   pending: boolean;
   interactive?: boolean;
+  seatLabels?: SeatDisplayLabel[];
   onChoice?: (choice: ActionChoice) => void;
 };
 
@@ -24,8 +26,10 @@ export function ColumnFourBoard({
   reducedMotion,
   pending,
   interactive = true,
+  seatLabels = [],
   onChoice,
 }: ColumnFourBoardProps) {
+  const labelText = (value: string) => humanizeSeats(value, seatLabels);
   const [previewCell, setPreviewCell] = useState<string | null>(null);
   const terminal = view.terminal_kind !== "non_terminal";
   const winningCells = useMemo(() => new Set(view.winning_line), [view.winning_line]);
@@ -45,16 +49,16 @@ export function ColumnFourBoard({
   const outcomeExplanation = terminal
     ? outcomeSurfaceData({
         gameId: "column_four",
-        heading: terminalLabel(view),
+        heading: terminalLabel(view, labelText),
         rationale: view.terminal_rationale,
         resultKind: view.terminal_kind === "draw" ? "draw" : "win",
         decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
         templateKey: view.terminal_kind === "draw" ? "column_four.full_board_draw" : "column_four.line_completed",
         templateParams: {
-          winner: humanizeSeats(view.winning_seat ?? ""),
+          winner: labelText(view.winning_seat ?? ""),
           line_label: view.winning_line.join(", "),
         },
-        finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
+        finalStanding: [standing("seat_0", view.winning_seat, labelText), standing("seat_1", view.winning_seat, labelText)],
         breakdownSections: [
           {
             id: "terminal-line",
@@ -76,15 +80,15 @@ export function ColumnFourBoard({
       <div className="column-four-banner">
         <div>
           <p className="eyebrow">Column Four</p>
-          <h2 id="column-four-heading">{humanizeSeats(view.status_label)}</h2>
+          <h2 id="column-four-heading">{labelText(view.status_label)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
-          {terminalLabel(view)}
+          {terminalLabel(view, labelText)}
         </span>
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {boardSummary(view)}
+        {boardSummary(view, labelText)}
       </p>
 
       <div className="column-controls" role="group" aria-label="Column choices">
@@ -119,7 +123,7 @@ export function ColumnFourBoard({
         })}
       </div>
 
-      <div className="column-four-stage" role="img" aria-label={boardSummary(view)} data-testid="column-four-board">
+      <div className="column-four-stage" role="img" aria-label={boardSummary(view, labelText)} data-testid="column-four-board">
         <svg viewBox={`0 0 ${boardWidth} ${boardHeight}`} aria-hidden="true">
           <rect className="column-four-backdrop" x="0" y="0" width={boardWidth} height={boardHeight} rx="8" />
           {cells.map((cell) => {
@@ -135,7 +139,7 @@ export function ColumnFourBoard({
               >
                 <circle cx={x + CELL_SIZE / 2} cy={y + CELL_SIZE / 2} r={CELL_SIZE / 2 - 4} />
                 {cell.owner ? <Piece owner={cell.owner} x={x} y={y} label={cell.piece_shape_label ?? cell.owner} /> : null}
-                <title>{cellLabel(cell)}</title>
+                <title>{cellLabel(cell, labelText)}</title>
               </g>
             );
           })}
@@ -145,7 +149,7 @@ export function ColumnFourBoard({
       <div className="column-four-status">
         <div>
           <span>Active</span>
-          <strong>{view.active_seat ? humanizeSeats(view.active_seat) : "Terminal"}</strong>
+          <strong>{view.active_seat ? labelText(view.active_seat) : "Terminal"}</strong>
         </div>
         <div>
           <span>Ply</span>
@@ -219,42 +223,40 @@ function Piece({ owner, x, y, label }: { owner: "seat_0" | "seat_1"; x: number; 
   );
 }
 
-function terminalLabel(view: ColumnFourPublicView): string {
+function terminalLabel(view: ColumnFourPublicView, labelText: (value: string) => string): string {
   if (view.terminal_kind === "draw") {
     return "Draw";
   }
   if (view.terminal_kind === "win") {
-    return `${humanizeSeats(view.winning_seat ?? "")} wins`;
+    return `${labelText(view.winning_seat ?? "")} wins`;
   }
-  return `${humanizeSeats(view.active_seat ?? "")} to move`;
+  return `${labelText(view.active_seat ?? "")} to move`;
 }
 
-// The Column Four view emits raw seat ids ("seat_0"); present them as "Seat N"
-// to match the other boards and to keep screen readers from spelling out the id.
-function humanizeSeats(value: string): string {
-  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
+function humanizeSeats(value: string, labels: SeatDisplayLabel[]): string {
+  return value.replace(/\bseat_\d+\b/g, (seat) => resolveSeatLabel(seat, { catalogSeatLabels: labels }));
 }
 
-function boardSummary(view: ColumnFourPublicView): string {
+function boardSummary(view: ColumnFourPublicView, labelText: (value: string) => string): string {
   const occupied = view.cells
     .filter((cell) => cell.owner)
-    .map((cell) => `${cell.cell} ${humanizeSeats(cell.owner ?? "")}`)
+    .map((cell) => `${cell.cell} ${labelText(cell.owner ?? "")}`)
     .join(", ");
   const legal = view.legal_targets.map((target) => target.column).join(", ");
-  return `${humanizeSeats(view.status_label)}. Occupied: ${occupied || "none"}. Legal columns: ${legal || "none"}.`;
+  return `${labelText(view.status_label)}. Occupied: ${occupied || "none"}. Legal columns: ${legal || "none"}.`;
 }
 
-function cellLabel(cell: ColumnFourPublicView["cells"][number]): string {
+function cellLabel(cell: ColumnFourPublicView["cells"][number], labelText: (value: string) => string): string {
   if (cell.owner) {
-    return `${cell.cell}, occupied by ${humanizeSeats(cell.owner)}`;
+    return `${cell.cell}, occupied by ${labelText(cell.owner)}`;
   }
   return `${cell.cell}, empty`;
 }
 
-function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null) {
+function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null, labelText: (value: string) => string) {
   return {
     id: seat,
-    label: humanizeSeats(seat),
+    label: labelText(seat),
     result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
     emphasized: winner === seat,
     values: [{ label: "Result", value: winner === seat ? "win" : winner ? "loss" : "draw" }],

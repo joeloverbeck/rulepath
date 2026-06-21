@@ -7,6 +7,7 @@ import type {
   BriarCircuitSeatId,
   EffectEntry,
 } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -376,7 +377,7 @@ function lowestScoreSeat(view: BriarCircuitPublicView): BriarCircuitSeatId {
 }
 
 function seatLabel(seat: BriarCircuitSeatId): string {
-  return `Seat ${Number(seat.slice(-1)) + 1}`;
+  return resolveSeatLabel(seat);
 }
 
 function formatCardId(cardId: string): string {

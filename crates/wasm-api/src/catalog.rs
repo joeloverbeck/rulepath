@@ -62,11 +62,31 @@ fn catalog_seat_metadata_fields(seat_count: usize, seat_labels_json: Option<&str
     )
 }
 
-fn catalog_seat_labels_json(seat_count: usize) -> String {
+pub(crate) fn catalog_seat_labels_json(seat_count: usize) -> String {
     format!(
         "[{}]",
         (0..seat_count)
-            .map(|index| { format!("{{\"seat\":\"seat_{index}\",\"label\":\"Seat {index}\"}}") })
+            .map(|index| {
+                format!(
+                    "{{\"seat\":\"seat_{index}\",\"label\":\"Seat {}\"}}",
+                    index + 1
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn catalog_player_labels_json(seat_count: usize) -> String {
+    format!(
+        "[{}]",
+        (0..seat_count)
+            .map(|index| {
+                format!(
+                    "{{\"seat\":\"seat_{index}\",\"label\":\"Player {}\"}}",
+                    index + 1
+                )
+            })
             .collect::<Vec<_>>()
             .join(",")
     )
@@ -253,6 +273,9 @@ pub fn list_games() -> Result<String, String> {
                 return catalog_json;
             }
             let seat_labels_json = match game {
+                RegisteredGame::RaceToN | RegisteredGame::DirectionalFlip => {
+                    Some(catalog_player_labels_json(DEFAULT_SEAT_COUNT))
+                }
                 RegisteredGame::EventFrontier => Some(event_frontier_catalog_seat_labels_json()),
                 _ => None,
             };

@@ -401,13 +401,12 @@ const outcomeValueCopy: Record<string, string> = {
 };
 
 export function seatDisplayLabel(seat: string): string {
-  const match = /^seat_(\d+)$/.exec(seat);
-  return match ? `Seat ${match[1]}` : seat;
+  return /^seat_\d+$/.test(seat) ? resolveSeatLabel(seat) : seat;
 }
 
 export function outcomeDisplayText(value: string): string {
   return value
-    .replace(/\bseat_(\d+)\b/g, (_match, seatIndex: string) => `Seat ${seatIndex}`)
+    .replace(/\bseat_\d+\b/g, (seat) => resolveSeatLabel(seat))
     .replace(/\br(\d+)c(\d+)\b/g, (_match, row: string, column: string) => `row ${row} column ${column}`)
     .replace(/\b[a-z]+(?:_[a-z]+)+\b/g, (token) => outcomeValueCopy[token] ?? token);
 }
@@ -420,3 +419,4 @@ export function outcomeDisplayValue(value: string): string {
   const seatLabel = seatDisplayLabel(value);
   return seatLabel === value ? outcomeDisplayText(value) : seatLabel;
 }
+import { resolveSeatLabel } from "../seatLabels";

@@ -1,4 +1,5 @@
 import type { GameCatalogEntry, PublicView, SeatDisplayLabel } from "../wasm/client";
+import { resolveSeatLabels } from "../seatLabels";
 
 export type SeatFrameViewerMode = { kind: "observer" } | { kind: "seat"; seat: string };
 
@@ -80,23 +81,30 @@ export function SeatFrame({ game, view, viewerMode, onViewerModeChange }: SeatFr
 }
 
 function activeSeatLabels(view: PublicView | null, game: GameCatalogEntry | null): SeatDisplayLabel[] {
+  const activeLabels = viewActiveSeatLabels(view);
+  const catalogLabels = game?.seat_labels ?? [];
+  const catalogUiLabels = game?.ui?.seat_labels ?? [];
+  const seats = seatOrder(activeLabels, catalogLabels, catalogUiLabels);
+  return resolveSeatLabels(seats, {
+    activeSeatLabels: activeLabels,
+    catalogSeatLabels: catalogLabels,
+    catalogUiSeatLabels: catalogUiLabels,
+  });
+}
+
+function viewActiveSeatLabels(view: PublicView | null): SeatDisplayLabel[] {
   if (view) {
     const projection = view as SeatProjection;
     if (Array.isArray(projection.active_seat_labels) && projection.active_seat_labels.length > 0) {
       return projection.active_seat_labels;
     }
   }
-  return catalogSeatLabels(game);
+  return [];
 }
 
-function catalogSeatLabels(game: GameCatalogEntry | null): SeatDisplayLabel[] {
-  const labels = game?.seat_labels ?? game?.ui?.seat_labels ?? [];
-  return labels.length
-    ? labels
-    : [
-        { seat: "seat_0", label: "Seat 0" },
-        { seat: "seat_1", label: "Seat 1" },
-      ];
+function seatOrder(...labelSets: SeatDisplayLabel[][]): string[] {
+  const labels = labelSets.find((items) => items.length > 0);
+  return labels?.map((entry) => entry.seat) ?? ["seat_0", "seat_1"];
 }
 
 function projectedSeatSet(view: PublicView | null, kind: "active" | "pending"): Set<string> {

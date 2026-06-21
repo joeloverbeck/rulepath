@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, SecretDraftItemView, SecretDraftPublicView, SeatId } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -293,7 +294,7 @@ function boardSummary(view: SecretDraftPublicView): string {
 }
 
 function seatLabel(seat: SeatId): string {
-  return seat === "seat_0" ? "Seat 0" : "Seat 1";
+  return resolveSeatLabel(seat);
 }
 
 function draftStanding(seat: SeatId, winner: SeatId | null, view: SecretDraftPublicView) {

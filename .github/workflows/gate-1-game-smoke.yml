@@ -178,12 +178,14 @@ jobs:
       - name: Static preview smoke
         run: node apps/web/scripts/smoke-preview.mjs
 
-      - name: Cross-cutting browser shell + a11y/no-leak e2e
+      - name: Cross-cutting browser e2e (shell, seat labels, a11y/no-leak, rules, outcome, animation)
         run: |
           node apps/web/e2e/shell.smoke.mjs
+          node apps/web/e2e/seat-label-consistency.smoke.mjs
           node apps/web/e2e/a11y-noleak.smoke.mjs
           node apps/web/e2e/rules-display.smoke.mjs
           node apps/web/e2e/outcome-explanation.smoke.mjs
+          node apps/web/e2e/animation.smoke.mjs
 
       - name: Docs link check
         run: node scripts/check-doc-links.mjs
