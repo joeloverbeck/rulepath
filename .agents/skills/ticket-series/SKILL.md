@@ -130,6 +130,10 @@ For each ticket:
    sandbox failure and successful rerun in the ticket `Outcome`, reference
    `Outcome`, or final report, whichever owns the evidence. Treat assertion
    failures as real test failures.
+   When a passing command emits surprising scope or coverage details, record
+   the observation and narrow the claim instead of overclaiming. For example, if
+   a simulator passes but reports setup-level action counts rather than
+   full-match play, quote that in the ticket or reference `Outcome`.
 6. Update the ticket following `docs/archival-workflow.md`:
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
@@ -149,6 +153,14 @@ For each ticket:
    - Stage archived renames with path-scoped staging such as
      `git add -A tickets archive/tickets`; after `git mv`, do not rely on
      adding the removed source path directly.
+     A safe sequence for tracked tickets is:
+
+```sh
+git mv tickets/TICKET_ID.md archive/tickets/TICKET_ID.md
+git add -A tickets archive/tickets
+git add <other-ticket-owned-files>
+```
+
    - Before committing, run a strict archived-ticket truth check against the
      archived ticket path. It must have an archival final status and `## Outcome`,
      and it must not have informal statuses such as `DONE`, `COMPLETE`,
@@ -277,6 +289,10 @@ evidence.
    when a spec was closed, and any active tickets, repo docs, per-game docs
    under `games/*/docs/`, app README tables, catalog/smoke lists, or scripts
    that referenced the live reference path.
+   If capstone success makes a live checklist, status table, release note, or
+   source/reference note false, update that closeout fact even when the ticket's
+   local `Files to Touch` list is narrower. Record the extra closeout repair as
+   a deviation in the capstone ticket or reference `Outcome`.
    For specs, distinguish the progress index from the archived artifact:
    `specs/README.md` may keep its progress status as `Done`, while the archived
    spec document itself must use the repo's current archived-spec status
@@ -323,6 +339,7 @@ instead of memory. A compact checklist is enough:
 - Group verification commands by proof surface.
 - Note any rerun or escalation evidence and where it was recorded.
 - Note intentionally skipped gates with reasons.
+- Note surprising-but-passing command output that narrows the evidence claim.
 - Confirm the archived reference status/outcome and stale-path sweep.
 
 For long-running or resumed series that may span context compaction, keep an
@@ -422,6 +439,13 @@ Final responses must include:
 
 - Tickets completed and archived.
 - Per-ticket commit IDs when commits were made as part of the series.
+  For long contiguous series, use a compact ledger instead of summarizing only
+  the latest commits, for example:
+
+```text
+001 4119f20, 002 cb5bea1, 003 a88b254, ...
+```
+
 - Reference artifact archived, or reason no spec/reference artifact was closed.
 - Verification commands actually run.
 - Any checks not run and why.
