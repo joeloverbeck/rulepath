@@ -1,0 +1,13 @@
+{
+  "trace_id": "terminal-co-winners-competition-rank",
+  "hands_played": 1,
+  "winners": ["seat_0", "seat_1"],
+  "standings": [
+    { "seat": "seat_0", "score": 10, "rank": 1, "is_winner": true },
+    { "seat": "seat_1", "score": 10, "rank": 1, "is_winner": true },
+    { "seat": "seat_2", "score": 0, "rank": 3, "is_winner": false },
+    { "seat": "seat_3", "score": 0, "rank": 3, "is_winner": false }
+  ],
+  "terminal_reason": "fixed_schedule_complete",
+  "rule_ids": ["VT-TERMINAL-001", "VT-STANDINGS-001", "VT-OUTCOME-001"]
+}

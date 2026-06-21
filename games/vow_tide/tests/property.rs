@@ -9,6 +9,7 @@ use vow_tide::{
         STANDARD_MIN_SEATS,
     },
     rules::{apply_bid, trick_winner},
+    scoring::terminal_outcome,
     setup::{deal_for_hand, seed_for_hand, setup_match, SetupOptions},
     state::TrickPlay,
 };
@@ -181,6 +182,37 @@ fn stable_first_occurrence_wins_equal_projected_values() {
     assert_eq!(
         trick_winner(&plays, Suit::Spades).expect("winner"),
         VowTideSeat::Seat1
+    );
+}
+
+#[test]
+fn terminal_competition_ranking_is_stable_and_seat_keyed() {
+    let mut state = setup_state(4);
+    state.cumulative_scores = vec![
+        (VowTideSeat::Seat0, 20),
+        (VowTideSeat::Seat1, 30),
+        (VowTideSeat::Seat2, 30),
+        (VowTideSeat::Seat3, 10),
+    ];
+
+    let outcome = terminal_outcome(&state);
+
+    assert_eq!(
+        outcome.winners,
+        vec![VowTideSeat::Seat1, VowTideSeat::Seat2]
+    );
+    assert_eq!(
+        outcome
+            .standings
+            .iter()
+            .map(|standing| (standing.seat, standing.rank, standing.cumulative_score))
+            .collect::<Vec<_>>(),
+        vec![
+            (VowTideSeat::Seat1, 1, 30),
+            (VowTideSeat::Seat2, 1, 30),
+            (VowTideSeat::Seat0, 3, 20),
+            (VowTideSeat::Seat3, 4, 10),
+        ]
     );
 }
 

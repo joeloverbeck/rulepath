@@ -4,6 +4,7 @@ use engine_core::Seed;
 use vow_tide::{
     cards::{canonical_deck, Card, CardId, Rank, Suit},
     ids::{canonical_seat_ids, STANDARD_CARD_COUNT},
+    scoring::terminal_outcome,
     setup::{setup_match, SetupOptions},
     variants::{expected_manifest, load_manifest, load_variants, Variant},
 };
@@ -57,4 +58,30 @@ fn metadata_stubs_load_inert_standard_content() {
 
     assert_eq!(manifest, expected_manifest());
     assert_eq!(variants.selected, Variant::vow_tide_standard());
+}
+
+#[test]
+fn terminal_outcome_order_is_deterministic_for_serialization() {
+    let options = SetupOptions::default();
+    let seats = canonical_seat_ids(4);
+    let mut state = setup_match(Seed(5), &seats, &options).expect("setup succeeds");
+    state.cumulative_scores = vec![
+        (vow_tide::ids::VowTideSeat::Seat0, 10),
+        (vow_tide::ids::VowTideSeat::Seat1, 30),
+        (vow_tide::ids::VowTideSeat::Seat2, 30),
+        (vow_tide::ids::VowTideSeat::Seat3, 0),
+    ];
+
+    let first = terminal_outcome(&state);
+    let second = terminal_outcome(&state);
+
+    assert_eq!(first, second);
+    assert_eq!(
+        first
+            .standings
+            .iter()
+            .map(|standing| (standing.seat.as_str(), standing.rank))
+            .collect::<Vec<_>>(),
+        vec![("seat_1", 1), ("seat_2", 1), ("seat_0", 3), ("seat_3", 4)]
+    );
 }

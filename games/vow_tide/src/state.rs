@@ -98,7 +98,37 @@ pub struct CapturedTrick {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TerminalOutcome {
     pub winners: Vec<VowTideSeat>,
-    pub final_scores: Vec<(VowTideSeat, i16)>,
+    pub standings: Vec<Standing>,
+    pub hands_played: u32,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Standing {
+    pub seat: VowTideSeat,
+    pub cumulative_score: i16,
+    pub rank: u8,
+    pub is_winner: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatHandResult {
+    pub seat: VowTideSeat,
+    pub bid: u8,
+    pub tricks_taken: u8,
+    pub exact: bool,
+    pub successful_zero: bool,
+    pub addition: i16,
+    pub cumulative_before: i16,
+    pub cumulative_after: i16,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HandScoreBreakdown {
+    pub hand_index: u32,
+    pub hand_size: u8,
+    pub dealer: VowTideSeat,
+    pub trump_indicator: CardId,
+    pub seats: Vec<SeatHandResult>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -122,6 +152,8 @@ pub struct VowTideState {
     pub private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
     pub trick_counts: Vec<(VowTideSeat, u8)>,
     pub captured_tricks: Vec<CapturedTrick>,
+    pub completed_hands: Vec<HandScoreBreakdown>,
+    pub terminal_outcome: Option<TerminalOutcome>,
     pub trump_indicator: CardId,
     pub hidden_stock: Vec<CardId>,
     pub deal_order: Vec<VowTideSeat>,
@@ -167,6 +199,8 @@ impl VowTideState {
             private_hands: deal.private_hands,
             trick_counts: seat_order.iter().map(|seat| (*seat, 0)).collect(),
             captured_tricks: Vec::new(),
+            completed_hands: Vec::new(),
+            terminal_outcome: None,
             trump_indicator: deal.trump_indicator,
             hidden_stock: deal.hidden_stock,
             deal_order: deal.deal_order,
@@ -256,6 +290,29 @@ impl VowTideState {
         {
             *count = count.saturating_add(1);
         }
+    }
+
+    pub fn cumulative_score_for(&self, seat: VowTideSeat) -> i16 {
+        self.cumulative_scores
+            .iter()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, score)| *score)
+            .unwrap_or_default()
+    }
+
+    pub fn cumulative_score_for_mut(&mut self, seat: VowTideSeat) -> Option<&mut i16> {
+        self.cumulative_scores
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, score)| score)
+    }
+
+    pub fn trick_count_for(&self, seat: VowTideSeat) -> u8 {
+        self.trick_counts
+            .iter()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, count)| *count)
+            .unwrap_or_default()
     }
 
     pub fn trump_suit(&self) -> Suit {

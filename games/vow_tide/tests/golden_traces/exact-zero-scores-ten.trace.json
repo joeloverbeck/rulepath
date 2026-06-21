@@ -1,0 +1,14 @@
+{
+  "trace_id": "exact-zero-scores-ten",
+  "hand_index": 0,
+  "hand_size": 10,
+  "dealer": "seat_0",
+  "trump_indicator": "eight_hearts",
+  "results": [
+    { "seat": "seat_0", "bid": 0, "tricks": 0, "exact": true, "successful_zero": true, "addition": 10, "cumulative_before": 0, "cumulative_after": 10 },
+    { "seat": "seat_1", "bid": 2, "tricks": 2, "exact": true, "successful_zero": false, "addition": 12, "cumulative_before": 0, "cumulative_after": 12 },
+    { "seat": "seat_2", "bid": 3, "tricks": 2, "exact": false, "successful_zero": false, "addition": 0, "cumulative_before": 0, "cumulative_after": 0 },
+    { "seat": "seat_3", "bid": 4, "tricks": 5, "exact": false, "successful_zero": false, "addition": 0, "cumulative_before": 0, "cumulative_after": 0 }
+  ],
+  "rule_ids": ["VT-SCORE-001"]
+}

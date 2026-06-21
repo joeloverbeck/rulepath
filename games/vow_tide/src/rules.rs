@@ -6,6 +6,7 @@ use crate::{
     cards::CardId,
     effects::VowTideEffect,
     ids::VowTideSeat,
+    scoring,
     state::{CapturedTrick, CurrentTrick, Phase, PlayingTrickState, TrickPlay, VowTideState},
 };
 
@@ -276,9 +277,7 @@ fn resolve_current_trick(
         playing.active_seat = winner;
         playing.current_trick = CurrentTrick::new(winner);
     } else {
-        playing.leader = winner;
-        playing.active_seat = winner;
-        playing.current_trick = CurrentTrick::new(winner);
+        scoring::resolve_completed_hand(state, effects)?;
     }
     Ok(())
 }

@@ -8,6 +8,7 @@ pub mod cards;
 pub mod effects;
 pub mod ids;
 pub mod rules;
+pub mod scoring;
 pub mod setup;
 pub mod state;
 pub mod variants;

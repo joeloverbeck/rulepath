@@ -26,4 +26,18 @@ pub enum VowTideEffect {
         winner: VowTideSeat,
         cards: Vec<CardId>,
     },
+    HandScored {
+        hand_index: u32,
+        additions: Vec<(VowTideSeat, i16)>,
+        cumulative_scores: Vec<(VowTideSeat, i16)>,
+    },
+    HandAdvanced {
+        hand_index: u32,
+        dealer: VowTideSeat,
+        hand_size: u8,
+        trump_indicator: CardId,
+    },
+    MatchCompleted {
+        winners: Vec<VowTideSeat>,
+    },
 }

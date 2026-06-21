@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-009: Exact-contract scoring, schedule progression, terminal standings, outcome model
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/vow_tide/src/scoring.rs`; modifies `state.rs`, `effects.rs`; new scoring/terminal golden traces
@@ -79,3 +79,20 @@ Construct competition-ranked standings (co-winners share rank 1; stable seat ord
 1. `cargo test -p vow_tide --test rules --test property --test serialization`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: scoring/terminal are native-deterministic; the outcome-explanation checker runs once the web/doc surfaces land (018/021).
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added `games/vow_tide/src/scoring.rs` with exact-or-zero hand scoring, immutable hand summaries, deterministic dealer/schedule advance, and fixed-schedule terminal outcome construction.
+- Extended state with completed hand results, terminal outcome, seat standings, successful-zero flags, cumulative score helpers, and competition-ranked standings.
+- Wired final-trick resolution to score the hand, emit scoring effects, advance to the next deterministic hand, or enter terminal when the schedule is complete.
+- Added scoring/terminal tests for successful zero, exact positive, under/over misses, hand-result-before-advance ordering, dealer rotation, terminal co-winners, competition ranking, monotonic scores, and deterministic terminal outcome ordering.
+- Added `exact-zero-scores-ten` and `terminal-co-winners-competition-rank` golden trace fixtures.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide --test rules --test property --test serialization` passed: 29 targeted tests.
+- `cargo test -p vow_tide` passed: 31 integration tests plus crate/doc test harnesses.
+- `cargo clippy -p vow_tide --all-targets -- -D warnings` passed.

@@ -9,6 +9,7 @@ use vow_tide::{
         STANDARD_MAX_SEATS, STANDARD_MIN_SEATS,
     },
     rules::{apply_bid, apply_play},
+    scoring::{resolve_completed_hand, score_current_hand},
     setup::{setup_match, SetupOptions},
     state::Phase,
 };
@@ -299,6 +300,78 @@ fn highest_trump_wins_and_winner_leads_next_trick() {
     assert_eq!(playing.active_seat, VowTideSeat::Seat3);
 }
 
+#[test]
+fn exact_contract_scoring_includes_zero_and_misses_score_zero() {
+    let mut state = setup_state(4);
+    set_public_bids(&mut state, &[(0, 0), (1, 2), (2, 3), (3, 4)]);
+    set_trick_counts(&mut state, &[(0, 0), (1, 2), (2, 2), (3, 5)]);
+
+    let breakdown = score_current_hand(&mut state).expect("hand scores");
+
+    assert_eq!(breakdown.seats[VowTideSeat::Seat0.index()].addition, 10);
+    assert!(breakdown.seats[VowTideSeat::Seat0.index()].successful_zero);
+    assert_eq!(breakdown.seats[VowTideSeat::Seat1.index()].addition, 12);
+    assert_eq!(breakdown.seats[VowTideSeat::Seat2.index()].addition, 0);
+    assert_eq!(breakdown.seats[VowTideSeat::Seat3.index()].addition, 0);
+    assert_eq!(
+        state.cumulative_scores,
+        vec![
+            (VowTideSeat::Seat0, 10),
+            (VowTideSeat::Seat1, 12),
+            (VowTideSeat::Seat2, 0),
+            (VowTideSeat::Seat3, 0),
+        ]
+    );
+}
+
+#[test]
+fn hand_resolution_records_before_dealer_and_schedule_advance() {
+    let mut state = setup_state(4);
+    state.hand_schedule = vec![1, 2];
+    set_public_bids(&mut state, &[(0, 1), (1, 0), (2, 0), (3, 0)]);
+    set_trick_counts(&mut state, &[(0, 1), (1, 0), (2, 0), (3, 0)]);
+    let mut effects = Vec::new();
+
+    resolve_completed_hand(&mut state, &mut effects).expect("hand resolves");
+
+    assert_eq!(state.completed_hands.len(), 1);
+    assert_eq!(state.completed_hands[0].hand_index, 0);
+    assert_eq!(state.hand_index, 1);
+    assert_eq!(state.dealer, VowTideSeat::Seat1);
+    assert!(matches!(state.phase, Phase::Bidding(_)));
+    assert_eq!(state.current_hand_size(), Some(2));
+    assert_eq!(
+        state
+            .public_bids
+            .iter()
+            .filter(|(_, bid)| bid.is_some())
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn terminal_co_winners_use_competition_rank() {
+    let mut state = setup_state(4);
+    state.hand_schedule = vec![1];
+    set_public_bids(&mut state, &[(0, 0), (1, 0), (2, 0), (3, 0)]);
+    set_trick_counts(&mut state, &[(0, 0), (1, 0), (2, 1), (3, 1)]);
+    let mut effects = Vec::new();
+
+    resolve_completed_hand(&mut state, &mut effects).expect("match resolves");
+
+    let outcome = state.terminal_outcome.expect("terminal outcome");
+    assert_eq!(
+        outcome.winners,
+        vec![VowTideSeat::Seat0, VowTideSeat::Seat1]
+    );
+    assert_eq!(outcome.standings[0].rank, 1);
+    assert_eq!(outcome.standings[1].rank, 1);
+    assert_eq!(outcome.standings[2].rank, 3);
+    assert_eq!(outcome.standings[3].rank, 3);
+    assert!(matches!(state.phase, Phase::Terminal(_)));
+}
+
 fn setup_state(seat_count: usize) -> vow_tide::state::VowTideState {
     setup_match(
         Seed(19),
@@ -331,6 +404,18 @@ fn complete_bidding_to_play() -> vow_tide::state::VowTideState {
 
 fn replace_hand(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat, cards: Vec<CardId>) {
     *state.hand_for_internal_mut(seat).expect("hand exists") = cards;
+}
+
+fn set_public_bids(state: &mut vow_tide::state::VowTideState, values: &[(usize, u8)]) {
+    for (seat, bid) in values {
+        state.public_bids[*seat].1 = Some(*bid);
+    }
+}
+
+fn set_trick_counts(state: &mut vow_tide::state::VowTideState, values: &[(usize, u8)]) {
+    for (seat, count) in values {
+        state.trick_counts[*seat].1 = *count;
+    }
 }
 
 fn command_for_state(
