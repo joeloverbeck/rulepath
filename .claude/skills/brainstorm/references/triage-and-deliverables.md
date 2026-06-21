@@ -133,7 +133,7 @@ The full per-type rules behind SKILL.md Step 5's quick-triage table.
 
 **Deliverable pivot.** If the user redirects the deliverable type mid-brainstorm ("actually, make this an ADR"), reclassify and adjust the flow; don't re-confirm — they told you what they want. When the request pre-authorizes a choice among types ("agent task or ADR, whichever fits"), the operator may select based on scope evidence from exploration without re-prompting — cite the scope basis in the deliverable lead.
 
-When persisting ≥3 files, track one task per file so progress is visible. Do NOT commit any deliverable — leave it for user review.
+When persisting ≥3 files, track one task per file *for interruptible or long-running multi-file work* so progress is visible; a short batch of fast, atomic `Write`s whose success confirmations already surface progress may skip the task list (`TaskCreate`/`TaskUpdate` are deferred tools needing a `ToolSearch` load first — weigh that overhead). Do NOT commit any deliverable — leave it for user review.
 
 ---
 
