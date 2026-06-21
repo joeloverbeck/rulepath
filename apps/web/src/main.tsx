@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
 import { ActionControls } from "./components/ActionControls";
+import { BriarCircuitBoard } from "./components/BriarCircuitBoard";
 import { ColumnFourBoard } from "./components/ColumnFourBoard";
 import { DevPanel } from "./components/DevPanel";
 import { DirectionalFlipBoard } from "./components/DirectionalFlipBoard";
@@ -36,6 +37,7 @@ import {
   loadApi,
   type ActionChoice,
   type ApiError,
+  type BriarCircuitPublicView,
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
   type DraughtsLitePublicView,
@@ -666,6 +668,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
           />
+        ) : isBriarCircuitView(view) ? (
+          <BriarCircuitBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isMaskedClaimsView(view) ? (
           <MaskedClaimsBoard
             view={view}
@@ -835,6 +847,12 @@ function humanSeatForMode(playMode: SetupPlayMode, view: PublicView): ViewerSeat
   if (isTerminalView(view)) {
     return null;
   }
+  if (isBriarCircuitView(view) && view.phase === "passing") {
+    if (playMode === "hotseat") {
+      return view.viewer_seat ?? "seat_0";
+    }
+    return playMode === "human_vs_bot" ? "seat_0" : null;
+  }
   if (playMode === "hotseat") {
     return view.active_seat ?? null;
   }
@@ -944,6 +962,10 @@ function isPlainTricksView(view: PublicView | null): view is PlainTricksPublicVi
   return Boolean(view && "game_id" in view && view.game_id === "plain_tricks");
 }
 
+function isBriarCircuitView(view: PublicView | null): view is BriarCircuitPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "briar_circuit");
+}
+
 function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
 }
@@ -978,6 +1000,9 @@ function isTerminalView(view: PublicView): boolean {
   }
   if (isPlainTricksView(view)) {
     return view.terminal.kind !== "non_terminal";
+  }
+  if (isBriarCircuitView(view)) {
+    return view.phase === "terminal";
   }
   if (isMaskedClaimsView(view)) {
     return view.terminal.kind !== "non_terminal";
@@ -1069,7 +1094,18 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
           ? view.terminal.draw
             ? "split"
             : `${view.terminal.winner} won`
-          : `${view.phase}, tricks ${view.total_trick_counts.seat_0}-${view.total_trick_counts.seat_1}`,
+        : `${view.phase}, tricks ${view.total_trick_counts.seat_0}-${view.total_trick_counts.seat_1}`,
+    };
+  }
+  if (view.game_id === "briar_circuit") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? view.viewer_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.phase === "terminal"
+          ? "terminal"
+          : `${view.phase}, scores ${view.cumulative_scores.seat_0}-${view.cumulative_scores.seat_1}-${view.cumulative_scores.seat_2}-${view.cumulative_scores.seat_3}`,
     };
   }
   if (view.game_id === "masked_claims") {

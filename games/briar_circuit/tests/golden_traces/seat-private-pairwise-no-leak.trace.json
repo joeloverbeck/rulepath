@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "game": "briar_circuit",
+  "rules_version": "briar-circuit-rules-v1",
+  "trace": "seat-private-pairwise-no-leak",
+  "classification": "viewer-scoped-no-leak",
+  "viewers": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "matrix": "all 12 ordered source-seat to unauthorized-seat checks plus observer checks",
+  "assertions": [
+    "owner projection may include owner hand and owner pass selection",
+    "unauthorized projections receive no source unplayed cards, pass selections, private previews, private diagnostics, or private effects",
+    "played card identity is public only through public play effects and carries no pass provenance"
+  ],
+  "migration_notes": ["trace-schema-v1 additive briar_circuit trace"],
+  "deferred_replay_check": "GAT16BRICIRTRI-012 registers replay-check validation"
+}

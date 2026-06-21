@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "game": "briar_circuit",
+  "rules_version": "briar-circuit-rules-v1",
+  "trace": "public-observer-no-leak",
+  "classification": "viewer-scoped-no-leak",
+  "viewer": "public",
+  "assertions": [
+    "observer receives public phase, counts, plays, tricks, scores, and outcomes only",
+    "observer receives no unplayed hand cards, pass selections, private previews, private diagnostics, or private effects"
+  ],
+  "migration_notes": ["trace-schema-v1 additive briar_circuit trace"],
+  "deferred_replay_check": "GAT16BRICIRTRI-012 registers replay-check validation"
+}

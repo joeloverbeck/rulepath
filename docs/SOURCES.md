@@ -13,6 +13,7 @@ These sources inform Rulepath architecture, authoring discipline, bot policy, UI
 | `race_to_n` | `games/race_to_n/docs/SOURCES.md` | completed for Gate 1 |
 | `three_marks` | `games/three_marks/docs/SOURCES.md` | completed for Gate 4; covers original Rulepath naming, public-domain/classic-family context, variant choice, and asset posture |
 | `high_card_duel` | `games/high_card_duel/docs/SOURCES.md` | completed for Gate 8; covers original neutral card-game naming, War/Blackjack exclusion, variant choice, hidden-information posture, and public asset posture |
+| `briar_circuit` | `games/briar_circuit/docs/SOURCES.md` | opened for Gate 16; covers original Briar Circuit naming, classic Hearts rules-family references, selected variant choices, pass/visibility privacy, and asset/IP review posture |
 
 ## Source-use rules
 

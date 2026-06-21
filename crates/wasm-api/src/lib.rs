@@ -135,6 +135,7 @@ use action_path::*;
 use action_tree::*;
 use actors::*;
 use constants::*;
+use games::briar::*;
 use games::column::*;
 use games::directional::*;
 use games::draughts::*;
@@ -260,6 +261,13 @@ pub(crate) enum MatchRecord {
         effects: EffectLog<RiverLedgerEffect>,
         commands: Vec<AppliedCommand>,
     },
+    BriarCircuit {
+        game_id: String,
+        seed: u64,
+        state: briar_circuit::BriarCircuitState,
+        effects: EffectLog<briar_circuit::BriarCircuitEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -294,6 +302,7 @@ pub(crate) enum RegisteredGame {
     PokerLite,
     PlainTricks,
     RiverLedger,
+    BriarCircuit,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -301,7 +310,7 @@ pub fn placeholder_version() -> &'static str {
 }
 
 pub fn new_match(game_id: &str, seed: u64) -> Result<String, String> {
-    new_match_with_seat_count(game_id, seed, DEFAULT_SEAT_COUNT)
+    new_match_with_seat_count(game_id, seed, default_seat_count_for_game(game_id))
 }
 
 pub fn new_match_with_seat_count(
@@ -317,7 +326,20 @@ pub fn new_match_for_variant(
     variant_id: Option<&str>,
     seed: u64,
 ) -> Result<String, String> {
-    new_match_for_variant_with_seat_count(game_id, variant_id, seed, DEFAULT_SEAT_COUNT)
+    new_match_for_variant_with_seat_count(
+        game_id,
+        variant_id,
+        seed,
+        default_seat_count_for_game(game_id),
+    )
+}
+
+fn default_seat_count_for_game(game_id: &str) -> usize {
+    if game_id == GAME_BRIAR_CIRCUIT {
+        briar_circuit::STANDARD_SEAT_COUNT as usize
+    } else {
+        DEFAULT_SEAT_COUNT
+    }
 }
 
 pub fn new_match_with_options(
@@ -701,6 +723,28 @@ pub fn new_match_for_variant_with_seat_count(
             ))
         }
         RegisteredGame::RiverLedger => create_river_ledger_match(seed, seat_count, None),
+        RegisteredGame::BriarCircuit => {
+            let state = create_briar_circuit_match(seed, seat_count)?;
+            let match_id = next_match_id(GAME_BRIAR_CIRCUIT);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::BriarCircuit {
+                        game_id: GAME_BRIAR_CIRCUIT.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(GAME_BRIAR_CIRCUIT),
+                escape_json(VARIANT_BRIAR_CIRCUIT_STANDARD)
+            ))
+        }
     }
 }
 
@@ -825,6 +869,14 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             resolve_game(game_id)?;
             let viewer = river_viewer_for_seat(state, viewer_seat)?;
             Ok(river_view_json(&river_project_view(state, &viewer)))
+        }
+        MatchRecord::BriarCircuit { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = briar_viewer_for_seat(state, viewer_seat)?;
+            Ok(briar_view_json(
+                &briar_circuit::project_view(state, &viewer),
+                state.freshness_token.0,
+            ))
         }
     })
 }
@@ -979,6 +1031,14 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = river_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&river_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::BriarCircuit { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_briar_seat(actor_seat)?;
+            if !briar_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            Ok(briar_action_tree_json(state, seat))
         }
     })
 }
@@ -1488,6 +1548,36 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 river_view_json(&river_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::BriarCircuit {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_briar_seat(actor_seat)?;
+            let command = parse_action_path(action_path);
+            let effects = briar_apply_command(state, seat, command.clone(), freshness_token)?;
+            let viewer = briar_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = briar_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_briar_seat(seat).to_owned(),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                briar_view_json(
+                    &briar_circuit::project_view(state, &viewer),
+                    state.freshness_token.0,
+                )
             ))
         }
     })
@@ -2092,6 +2182,41 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 river_view_json(&river_project_view(state, &viewer))
             ))
         }
+        MatchRecord::BriarCircuit {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_briar_seat(actor_seat)?;
+            let (rationale, action_path) = briar_select_bot_action(state, seat, bot_seed)?;
+            let command = engine_core::ActionPath {
+                segments: action_path,
+            };
+            let freshness_token = state.freshness_token.0;
+            let effects = briar_apply_command(state, seat, command.clone(), freshness_token)?;
+            let viewer = briar_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = briar_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_briar_seat(seat).to_owned(),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"briar_circuit_l1\",\"policy_version\":1,\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(&rationale),
+                effect_json,
+                briar_view_json(
+                    &briar_circuit::project_view(state, &viewer),
+                    state.freshness_token.0,
+                )
+            ))
+        }
     })
 }
 
@@ -2431,6 +2556,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::BriarCircuit {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = briar_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        briar_logged_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -2710,6 +2857,15 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             };
             Ok(river_export_public_replay(&trace, &Viewer { seat_id: None }).to_json())
         }
+        MatchRecord::BriarCircuit {
+            game_id,
+            seed,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            briar_replay_document_json(&format!("export-{match_id}"), *seed, commands)
+        }
     })
 }
 
@@ -2744,6 +2900,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if is_plain_tricks_public_export(doc) {
         return import_plain_tricks_public_replay(doc);
     }
+    if is_briar_circuit_public_export(doc) {
+        return import_briar_circuit_public_replay(doc);
+    }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
             "invalid_replay",
@@ -2771,6 +2930,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_POKER_LITE
         && parsed.game_id != GAME_PLAIN_TRICKS
         && parsed.game_id != GAME_RIVER_LEDGER
+        && parsed.game_id != GAME_BRIAR_CIRCUIT
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -2952,6 +3112,17 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                 river_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
             (
                 river_view_json(&river_project_view(&state, &Viewer { seat_id: None })),
+                effects.len(),
+            )
+        }
+        RegisteredGame::BriarCircuit => {
+            let (state, effects) =
+                briar_replay_to_cursor(parsed.seed, &parsed.commands, command_count)?;
+            (
+                briar_view_json(
+                    &briar_circuit::project_view(&state, &Viewer { seat_id: None }),
+                    state.freshness_token.0,
+                ),
                 effects.len(),
             )
         }
@@ -3172,6 +3343,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::BriarCircuit => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    briar_replay_to_cursor(record.seed, &record.commands, bounded_cursor)?;
+                Ok(briar_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
@@ -3224,6 +3407,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_POKER_LITE => Ok(RegisteredGame::PokerLite),
         GAME_PLAIN_TRICKS => Ok(RegisteredGame::PlainTricks),
         GAME_RIVER_LEDGER => Ok(RegisteredGame::RiverLedger),
+        GAME_BRIAR_CIRCUIT => Ok(RegisteredGame::BriarCircuit),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -3248,6 +3432,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::PokerLite => POKER_LITE_TRACE_RULES_VERSION,
         RegisteredGame::PlainTricks => PLAIN_TRICKS_TRACE_RULES_VERSION,
         RegisteredGame::RiverLedger => RIVER_LEDGER_TRACE_RULES_VERSION,
+        RegisteredGame::BriarCircuit => BRIAR_CIRCUIT_TRACE_RULES_VERSION,
     }
 }
 

@@ -1,0 +1,1 @@
+{"schema_version":1,"game_id":"briar_circuit","rules_version":"briar-circuit-rules-v1","trace":"pass-across-atomic-exchange","pass_direction":"across","migration_notes":["trace-schema-v1 additive briar_circuit trace"],"deferred_validator":"GAT16BRICIRTRI-012 replay-check registration"}

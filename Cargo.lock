@@ -14,6 +14,14 @@ name = "bench-report"
 version = "0.1.0"
 
 [[package]]
+name = "briar_circuit"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+]
+
+[[package]]
 name = "column_four"
 version = "0.1.0"
 dependencies = [
@@ -57,6 +65,7 @@ dependencies = [
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
+ "briar_circuit",
  "column_four",
  "directional_flip",
  "draughts_lite",
@@ -142,6 +151,7 @@ dependencies = [
 name = "replay-check"
 version = "0.1.0"
 dependencies = [
+ "briar_circuit",
  "column_four",
  "directional_flip",
  "draughts_lite",
@@ -196,6 +206,7 @@ name = "simulate"
 version = "0.1.0"
 dependencies = [
  "ai-core",
+ "briar_circuit",
  "column_four",
  "directional_flip",
  "draughts_lite",
@@ -245,6 +256,7 @@ name = "wasm-api"
 version = "0.1.0"
 dependencies = [
  "ai-core",
+ "briar_circuit",
  "column_four",
  "directional_flip",
  "draughts_lite",

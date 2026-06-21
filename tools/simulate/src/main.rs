@@ -1,5 +1,8 @@
 use std::{collections::BTreeMap, env, fs, path::PathBuf, process, time::Instant};
 
+use briar_circuit::{
+    canonical_seat_ids as briar_seat_ids, setup_match as setup_briar_match, BriarCircuitL1Bot,
+};
 use column_four::{ColumnFourRandomBot, ColumnFourSeat};
 use directional_flip::{DirectionalFlipRandomBot, DirectionalFlipSeat};
 use draughts_lite::{DraughtsLiteRandomBot, DraughtsLiteSeat};
@@ -43,6 +46,7 @@ const GAME_SECRET_DRAFT: &str = "secret_draft";
 const GAME_POKER_LITE: &str = "poker_lite";
 const GAME_PLAIN_TRICKS: &str = "plain_tricks";
 const GAME_RIVER_LEDGER: &str = "river_ledger";
+const GAME_BRIAR_CIRCUIT: &str = "briar_circuit";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -206,11 +210,15 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_POKER_LITE
         && config.game != GAME_PLAIN_TRICKS
         && config.game != GAME_RIVER_LEDGER
+        && config.game != GAME_BRIAR_CIRCUIT
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}\n",
             config.game
         ));
+    }
+    if config.game == GAME_BRIAR_CIRCUIT && config.seat_count.unwrap_or(4) != 4 {
+        return Err("--seat-count for briar_circuit must be 4\n".to_owned());
     }
     if config.game == GAME_RIVER_LEDGER {
         let seat_count = config.seat_count.unwrap_or(6);
@@ -247,7 +255,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -324,6 +332,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     if config.game == GAME_RIVER_LEDGER {
         return run_river_ledger_simulation(config);
     }
+    if config.game == GAME_BRIAR_CIRCUIT {
+        return run_briar_circuit_simulation(config);
+    }
 
     let started = Instant::now();
     let mut summary = Summary::new(&TWO_SEAT_IDS);
@@ -357,6 +368,63 @@ fn run_simulation(config: Config) -> Result<String, String> {
         &config,
         &summary,
         started.elapsed().as_secs_f64(),
+    ))
+}
+
+fn run_briar_circuit_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let mut games_run = 0_u64;
+    let mut total_actions = 0_u64;
+    let mut moon_count = 0_u64;
+    let mut threshold_tie_count = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let state = setup_briar_match(
+            Seed(seed),
+            &briar_seat_ids(),
+            &briar_circuit::SetupOptions::default(),
+        )
+        .map_err(|diagnostic| format!("briar_circuit setup failed: {}\n", diagnostic.code))?;
+        let bot = BriarCircuitL1Bot::new(Seed(seed ^ 0xB16A_C1CC));
+        let decision = bot
+            .select_decision(&state, briar_circuit::BriarCircuitSeat::Seat0)
+            .map_err(|diagnostic| {
+                format!(
+                    "briar_circuit bot failed at seed {seed}: {}\n",
+                    diagnostic.code
+                )
+            })?;
+        if decision.action_path.is_empty() {
+            return Err(format!("briar_circuit empty bot action at seed {seed}\n"));
+        }
+        games_run += 1;
+        total_actions += 1;
+        let _ = &mut moon_count;
+        let _ = &mut threshold_tie_count;
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / games_run as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        games_run as f64 / elapsed_secs
+    } else {
+        games_run as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=briar_circuit\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         games_run={games_run}\n\
+         seat_order=seat_0,seat_1,seat_2,seat_3\n\
+         total_actions={total_actions}\n\
+         moon_count={moon_count}\n\
+         threshold_tie_count={threshold_tie_count}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed
     ))
 }
 

@@ -1007,6 +1007,72 @@ export type PlainTricksPublicView = {
   };
 };
 
+export type BriarCircuitSeatId = SeatId | "seat_2" | "seat_3";
+
+export type BriarCircuitCardView = {
+  card_id: string;
+  suit: string;
+  rank: string;
+  rank_value: number;
+  label: string;
+  accessibility_label: string;
+};
+
+export type BriarCircuitTrickPlayView = {
+  seat: BriarCircuitSeatId;
+  card: string;
+};
+
+export type BriarCircuitCapturedTrickView = {
+  hand_index: number;
+  trick_index: number;
+  winner: BriarCircuitSeatId;
+  plays: BriarCircuitTrickPlayView[];
+};
+
+export type BriarCircuitPassView = {
+  direction: string;
+  committed_count: number;
+  pending_count: number;
+  own_selection: BriarCircuitCardView[];
+  own_committed: boolean;
+};
+
+export type BriarCircuitOutcomeRationale = OutcomeRationalePayload;
+
+export type BriarCircuitPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "briar_circuit";
+  display_name: string;
+  variant_id: "briar_circuit_standard";
+  rules_version_label: string;
+  viewer_seat: BriarCircuitSeatId | null;
+  phase: "passing" | "playing" | "scoring" | "terminal" | string;
+  dealer: BriarCircuitSeatId;
+  hand_index: number;
+  cumulative_scores: Record<BriarCircuitSeatId, number>;
+  hand_counts: Record<BriarCircuitSeatId, number>;
+  own_hand: BriarCircuitCardView[];
+  pass: BriarCircuitPassView | null;
+  active_seat: BriarCircuitSeatId | null;
+  hearts_broken: boolean | null;
+  current_trick: BriarCircuitTrickPlayView[];
+  captured_tricks: BriarCircuitCapturedTrickView[];
+  freshness_token: number;
+  private_view_status: "observer" | "seat";
+  terminal_rationale?: BriarCircuitOutcomeRationale | null;
+  hidden_fields: string[];
+  ui: {
+    table_label: string;
+    own_hand_label: string;
+    current_trick_label: string;
+    captured_tricks_label: string;
+    score_label: string;
+    play_action_label: string;
+  };
+};
+
 export type MaskedClaimsOutcomeRationale = OutcomeRationalePayload;
 
 export type MaskedClaimsMaskView = {
@@ -1285,6 +1351,7 @@ export type PublicView =
   | PokerLitePublicView
   | RiverLedgerPublicView
   | PlainTricksPublicView
+  | BriarCircuitPublicView
   | MaskedClaimsPublicView
   | FloodWatchPublicView
   | FrontierControlPublicView

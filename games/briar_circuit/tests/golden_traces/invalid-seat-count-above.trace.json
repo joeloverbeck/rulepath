@@ -1,0 +1,1 @@
+{"schema_version":1,"game_id":"briar_circuit","rules_version":"briar-circuit-rules-v1","trace":"invalid-seat-count-above","diagnostic":"BC_UNSUPPORTED_SEAT_COUNT","migration_notes":["trace-schema-v1 additive briar_circuit trace"],"deferred_validator":"GAT16BRICIRTRI-012 replay-check registration"}

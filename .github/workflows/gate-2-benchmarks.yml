@@ -65,6 +65,9 @@ jobs:
       - name: plain_tricks bench smoke
         run: cargo bench -p plain_tricks -- legal_actions
 
+      - name: briar_circuit bench smoke
+        run: cargo bench -p briar_circuit -- legal_actions
+
   bench-gate:
     name: Benchmark threshold gate
     if: github.event_name != 'pull_request'
@@ -145,6 +148,11 @@ jobs:
 
           cargo bench -p plain_tricks | tee /tmp/plain_tricks-benchmark-report.txt
           if ! cargo run -p bench-report -- --input /tmp/plain_tricks-benchmark-report.txt --thresholds games/plain_tricks/benches/thresholds.json; then
+            failed=1
+          fi
+
+          cargo bench -p briar_circuit | tee /tmp/briar_circuit-benchmark-report.txt
+          if ! cargo run -p bench-report -- --input /tmp/briar_circuit-benchmark-report.txt --thresholds games/briar_circuit/benches/thresholds.json; then
             failed=1
           fi
 

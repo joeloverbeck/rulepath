@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "trace_id": "briar_circuit_first_trick_exception",
+  "fixture_kind": "play_legality",
+  "purpose": "first trick all-points exception evidence",
+  "game_id": "briar_circuit",
+  "rules_version": "briar-circuit-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": 1,
+  "seed": 1601,
+  "variant": "briar_circuit_standard",
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "migration_notes": ["trace-schema-v1 additive briar_circuit fixture"]
+}

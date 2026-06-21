@@ -30,6 +30,7 @@ const HIDDEN_INFO_GAMES = new Set([
   "poker_lite",
   "plain_tricks",
   "river_ledger",
+  "briar_circuit",
   "masked_claims",
   "flood_watch",
   "event_frontier",
