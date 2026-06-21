@@ -41,7 +41,7 @@ copied.
 
 | Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
 |---|---|---|---|---|---|---|
-| Rulepath Gate 16 Briar Circuit spec | `../../../specs/gate-16-briar-circuit-trick-taking.md` | 2026-06-21 | project authority | product scope, variant lock, rule IDs, naming rationale, no-leak taxonomy, command suite, docs, tests, replay, bot, WASM, UI, benchmark, and capstone obligations | none | Governs this game's implementation tickets and acceptance evidence. |
+| Rulepath Gate 16 Briar Circuit spec | `../../../archive/specs/gate-16-briar-circuit-trick-taking.md` | 2026-06-21 | project authority | product scope, variant lock, rule IDs, naming rationale, no-leak taxonomy, command suite, docs, tests, replay, bot, WASM, UI, benchmark, and capstone obligations | none | Governs this game's implementation tickets and acceptance evidence. |
 | Rulepath Official Game Contract | `../../../docs/OFFICIAL-GAME-CONTRACT.md` | 2026-06-21 | project authority | requirements-first workflow and official-game evidence | none | Governs rules summary, source notes, player rules, rule coverage, outcome docs, no-leak proof, and web exposure. |
 | Rulepath IP Policy | `../../../docs/IP-POLICY.md` | 2026-06-21 | project authority | naming, source-use limits, and public asset caution | none | Supports the original neutral public name and forbids copied prose, assets, and trade dress. |
 | Rulepath repository source bibliography | `../../../docs/SOURCES.md` | 2026-06-21 | project authority | central bibliography pattern and source-use rules | none | This per-game note adds the Briar Circuit-specific rules-family references. |
