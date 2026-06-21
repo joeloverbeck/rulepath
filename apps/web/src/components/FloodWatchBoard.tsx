@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, FloodWatchPublicView } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { animationRegistry } from "../animation/registry";
 import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
 import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
@@ -314,7 +315,7 @@ function districtLabel(view: FloodWatchPublicView, district: string): string {
 }
 
 function seatLabel(seat: string): string {
-  return seat === "seat_0" ? "Seat 0" : seat === "seat_1" ? "Seat 1" : seat;
+  return resolveSeatLabel(seat);
 }
 
 function registerFloodWatchAnimations(): void {

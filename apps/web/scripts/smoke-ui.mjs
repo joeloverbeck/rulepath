@@ -172,6 +172,15 @@ assert(staleDiagnostic?.code === "stale_action", "stale submission returns Rust 
 const catalog = invoke(() => wasm.rulepath_list_games(), []);
 assert(catalog.some((game) => game.game_id === "race_to_n"), "Rust catalog includes race_to_n");
 assert(catalog.some((game) => game.game_id === "three_marks"), "Rust catalog includes three_marks");
+const raceCatalog = catalog.find((game) => game.game_id === "race_to_n");
+assert(raceCatalog, "Rust catalog includes race_to_n entry");
+assert(
+  JSON.stringify(raceCatalog.seat_labels) === JSON.stringify([
+    { seat: "seat_0", label: "Player 1" },
+    { seat: "seat_1", label: "Player 2" },
+  ]),
+  "Rust catalog exposes Race player labels",
+);
 const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit"].includes(game.game_id));
 assert(
   twoSeatGames.every(
@@ -215,6 +224,15 @@ assert(
     briarCircuitCatalog.viewer_modes.includes("seat_3") &&
     briarCircuitCatalog.seat_labels.length === 4,
   "Rust catalog exposes briar_circuit fixed-four metadata",
+);
+assert(
+  JSON.stringify(briarCircuitCatalog.seat_labels) === JSON.stringify([
+    { seat: "seat_0", label: "Seat 1" },
+    { seat: "seat_1", label: "Seat 2" },
+    { seat: "seat_2", label: "Seat 3" },
+    { seat: "seat_3", label: "Seat 4" },
+  ]),
+  "Rust catalog exposes Briar Circuit one-based seat labels",
 );
 const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
 assert(floodWatchCatalog, "Rust catalog includes flood_watch");

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { ActionChoice, ActionTree, EffectEntry, FrontierControlPublicView, FrontierControlSiteView } from "../wasm/client";
+import type { ActionChoice, ActionTree, EffectEntry, FrontierControlPublicView, FrontierControlSiteView, SeatDisplayLabel } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -11,6 +12,7 @@ type FrontierControlBoardProps = {
   reducedMotion: boolean;
   pending: boolean;
   interactive?: boolean;
+  seatLabels?: SeatDisplayLabel[];
   onPathSubmit?: (path: string[]) => void;
 };
 
@@ -61,8 +63,10 @@ export function FrontierControlBoard({
   reducedMotion,
   pending,
   interactive = true,
+  seatLabels = [],
   onPathSubmit,
 }: FrontierControlBoardProps) {
+  const labelText = (value: string) => humanizeSeats(value, seatLabels);
   const choices = actionTree?.choices ?? [];
   const grouped = useMemo(() => groupChoices(choices), [choices]);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
@@ -194,7 +198,7 @@ export function FrontierControlBoard({
           {view.factions.map((faction) => (
             <li key={faction.seat}>
               <span>{faction.label}</span>
-              <strong>{humanizeSeats(faction.seat)}</strong>
+              <strong>{labelText(faction.seat)}</strong>
               <small>{faction.faction === view.active_faction && !terminal ? "active" : "waiting"}</small>
             </li>
           ))}
@@ -317,6 +321,6 @@ function siteStatus(site: FrontierControlSiteView): string {
   return `${base} · ${supply}`;
 }
 
-function humanizeSeats(value: string): string {
-  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
+function humanizeSeats(value: string, labels: SeatDisplayLabel[]): string {
+  return value.replace(/\bseat_\d+\b/g, (seat) => resolveSeatLabel(seat, { catalogSeatLabels: labels }));
 }

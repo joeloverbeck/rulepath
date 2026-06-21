@@ -36,7 +36,7 @@ Scope: `apps/web` served `dist` shell for all browser-catalog games through Rive
 - Veiled Draft reduced motion: the smoke verifies reduced-motion mode suppresses item/reveal animation while preserving pending/reveal order.
 - Veiled Draft replay accessibility: replay import/reset/step renders the public observer timeline with redacted command summaries rather than raw command paths.
 - Flood Watch cooperative path: the Flood Watch smoke covers forecast reveal, role labels, multi-action budget spending, environment-phase effects, human-vs-bot teammate automation, bot-vs-bot stepping, shared win/loss terminals, replay import/export, reduced motion, and responsive layout.
-- River Ledger N-seat path: the River Ledger smoke covers six catalog seats, observer/seat viewer modes, Seat 0 private cards, legal-only action buttons, terminal outcome rendering, and responsive layout.
+- River Ledger N-seat path: the River Ledger smoke covers six catalog seats, observer/seat viewer modes, Seat 1 private cards, legal-only action buttons, terminal outcome rendering, and responsive layout.
 
 ## No-Leak Surfaces
 

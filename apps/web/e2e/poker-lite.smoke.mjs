@@ -241,9 +241,9 @@ async function assertShowdownRendered(page) {
     showdownText: document.querySelector(".poker-lite-showdown")?.textContent ?? "",
     terminalText: document.querySelector(".outcome-explanation-panel")?.textContent ?? "",
   }));
-  assert(summary.showdownText.includes("Seat 0"), "showdown includes seat 0 reveal");
-  assert(summary.showdownText.includes("Center"), "showdown includes center reveal");
   assert(summary.showdownText.includes("Seat 1"), "showdown includes seat 1 reveal");
+  assert(summary.showdownText.includes("Center"), "showdown includes center reveal");
+  assert(summary.showdownText.includes("Seat 2"), "showdown includes seat 2 reveal");
   assert(summary.terminalText.includes("Shared pool") || summary.terminalText.includes("Split ledger"), "outcome panel summarizes ledger");
 }
 

@@ -1,6 +1,6 @@
 # SEAT-005: Migrate per-board play-area seat labels to the shared resolver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `apps/web` only (per-board `seatLabel()` helpers and seat-label call sites)
@@ -124,3 +124,43 @@ resolver in place of their bespoke lookups, to remove the last of the duplicatio
 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+- Routed board play-area labels through `resolveSeatLabel` across the SEAT-005
+  board set, including Race, Directional Flip, Briar Circuit, Draughts Lite,
+  Event Frontier, Flood Watch, High Card Duel, Masked Claims, Plain Tricks,
+  Poker Lite, River Ledger, Secret Draft, and Token Bazaar.
+- Migrated the additional board-local raw-seat formatters found during grep in
+  Column Four, Three Marks, and Frontier Control so their play-area text also
+  uses the shared resolver.
+- Passed catalog seat labels from the selected game/replay catalog into boards
+  whose view payloads do not carry labels, preserving Rust-authored `Player N`
+  labels for Race and Directional Flip and one-based `Seat N` labels for default
+  games.
+- Updated mode/status and outcome-template display helpers that formatted raw
+  `seat_N` tokens so they use the resolver instead of independent 0-based copy.
+- Updated e2e assertions for the new one-based labels and extended
+  `smoke-ui.mjs` with representative catalog assertions for Race (`Player 1/2`)
+  and Briar Circuit (`Seat 1..4`).
+
+Deviations:
+- The ticket's file list omitted Column Four, Three Marks, and Frontier Control,
+  but they still contained play-area `seat_N` display formatting and were
+  migrated to satisfy the invariant that boards do not invent seat labels.
+- A focused grep still finds `seat === "seat_0"` in non-label control/indexing
+  logic and setup-only copy in `MatchSetup`; no migrated play-area label helper
+  keeps the old hardcoded `Seat 0`/`Player 1` formatter.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:effects` passed.
+- `npm --prefix apps/web run smoke:e2e` passed after the assertion updates.
+- Focused grep over `apps/web/src/components` showed no remaining play-area
+  hardcoded `Seat 0`, `Player 1`, `Player 2`, or `seat.slice(-1)` label
+  formatter; remaining `seat === "seat_0"` matches are data selection, role
+  suffix, or setup surfaces.

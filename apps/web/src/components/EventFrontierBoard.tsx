@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, EventFrontierPublicView, EventFrontierSiteView, SeatId } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { animationRegistry } from "../animation/registry";
 import type { SchedulerPresentation, SchedulerStep } from "../animation/scheduler";
 import { animateFade, animateHighlight, type PresentationContext } from "../animation/presenters";
@@ -317,7 +318,7 @@ function factionLabel(view: EventFrontierPublicView, faction: string | null | un
 }
 
 function seatLabel(view: EventFrontierPublicView, seat: string): string {
-  return view.ui.seat_labels.find((entry) => entry.seat === seat)?.label ?? seat;
+  return resolveSeatLabel(seat, { catalogUiSeatLabels: view.ui.seat_labels });
 }
 
 function roleSuffix(role: string | undefined): string {

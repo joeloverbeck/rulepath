@@ -22,6 +22,7 @@ import {
   type OutcomeExplanationBreakdownSection,
 } from "./OutcomeExplanationPanel";
 import { RiverLedgerCard, riverLedgerCardGroupLabel } from "./RiverLedgerCard";
+import { resolveSeatLabel } from "../seatLabels";
 
 registerRiverLedgerAnimations();
 
@@ -594,15 +595,7 @@ function seatStatusLabel(status: string): string {
 }
 
 function seatLabeler(labels: SeatDisplayLabel[]): (seat: RiverLedgerSeatId) => string {
-  const lookup = new Map(labels.map((label) => [label.seat, label.label]));
-  return (seat) => {
-    const label = lookup.get(seat);
-    if (label) return label;
-    if (import.meta.env.DEV) {
-      console.assert(false, "Missing River Ledger public seat label.");
-    }
-    return "Seat";
-  };
+  return (seat) => resolveSeatLabel(seat, { catalogUiSeatLabels: labels });
 }
 
 const streetSteps = [

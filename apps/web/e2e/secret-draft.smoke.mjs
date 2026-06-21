@@ -82,7 +82,7 @@ try {
   await focusByTestId(page, "secret-draft-choice-1-0");
   await page.keyboard.press("Enter");
   await waitForText(page, "Choices revealed");
-  await waitForText(page, "Seat 0 won the conflict");
+  await waitForText(page, "Seat 1 won the conflict");
   await waitForText(page, "Ember One / Ember Two");
   await assertRevealRendered(page);
   await assertDraftProgress(page);
@@ -129,7 +129,7 @@ try {
 async function assertDraftProgress(page) {
   const summary = await page.evaluate(() => {
     const panel = Array.from(document.querySelectorAll(".secret-seat")).find((seat) =>
-      /Seat 0/.test(seat.querySelector(".secret-section-heading span")?.textContent ?? ""),
+      /Seat 1/.test(seat.querySelector(".secret-section-heading span")?.textContent ?? ""),
     );
     const progress = panel?.querySelector(".secret-progress");
     return {
@@ -172,7 +172,7 @@ async function assertRevealRendered(page) {
   assert(reveal.effectText.includes("Reveal batch"), "effect log groups reveal batch start");
   assert(reveal.effectText.includes("Draft resolved"), "effect log reports draft resolution");
   assert(reveal.historyText.includes("Round 1"), "reveal history records round one");
-  assert(reveal.pendingText.includes("Seat 0") && reveal.pendingText.includes("Seat 1"), "pending seats remain seat-anchored");
+  assert(reveal.pendingText.includes("Seat 1") && reveal.pendingText.includes("Seat 2"), "pending seats remain seat-anchored");
 }
 
 async function assertHumanVsBotCommitPath(page, baseUrl, consoleMessages) {

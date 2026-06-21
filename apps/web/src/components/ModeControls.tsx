@@ -1,5 +1,6 @@
 import type { BotDecisionSummary, SetupPlayMode } from "../state/shellReducer";
 import type { PublicView, SeatDisplayLabel, ViewerSeatId } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 
 type ModeControlsProps = {
   playMode: SetupPlayMode;
@@ -180,10 +181,9 @@ function modeLabel(playMode: SetupPlayMode): string {
 function activeActorLabel(view: PublicView | null, seat: ViewerSeatId, playMode: SetupPlayMode): string {
   const seatLabels = seatLabelsForView(view);
   if (seatLabels.length > 0) {
-    const label = seatLabels.find((entry) => entry.seat === seat)?.label;
-    return `${label ?? playerLabel(seat)}${roleSuffix(playMode, seat)}`;
+    return `${resolveSeatLabel(seat, { activeSeatLabels: seatLabels })}${roleSuffix(playMode, seat)}`;
   }
-  return playerLabel(seat);
+  return resolveSeatLabel(seat);
 }
 
 function seatLabelsForView(view: PublicView | null): SeatDisplayLabel[] {
@@ -192,10 +192,6 @@ function seatLabelsForView(view: PublicView | null): SeatDisplayLabel[] {
     return ui.seat_labels;
   }
   return [];
-}
-
-function playerLabel(seat: ViewerSeatId): string {
-  return `Player ${Number(seat.replace("seat_", "")) + 1}`;
 }
 
 function roleSuffix(playMode: SetupPlayMode, seat: ViewerSeatId): string {

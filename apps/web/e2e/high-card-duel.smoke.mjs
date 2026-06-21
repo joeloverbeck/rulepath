@@ -159,7 +159,7 @@ async function assertRevealHistory(page) {
   assert(summary.count >= 1, `revealed-round history lists resolved rounds, got ${summary.count}`);
   assert(/Round 1/.test(summary.firstRow), `history names the round, got "${summary.firstRow}"`);
   assert(
-    /Seat 0 \d/.test(summary.firstRow) && /Seat 1 \d/.test(summary.firstRow),
+    /Seat 1 \d/.test(summary.firstRow) && /Seat 2 \d/.test(summary.firstRow),
     `history shows both revealed ranks, got "${summary.firstRow}"`,
   );
   assert(/won the round|Tie/i.test(summary.firstRow), `history shows the round result, got "${summary.firstRow}"`);

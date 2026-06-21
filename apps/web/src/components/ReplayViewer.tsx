@@ -144,6 +144,7 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
                 reducedMotion={reducedMotion}
                 pending={false}
                 interactive={false}
+                seatLabels={game?.seat_labels ?? game?.ui?.seat_labels ?? []}
               />
               {replay ? <PlacementSequence replay={replay} /> : null}
             </div>

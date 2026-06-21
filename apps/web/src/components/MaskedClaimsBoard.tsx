@@ -7,6 +7,7 @@ import type {
   MaskedClaimsPublicView,
   SeatId,
 } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -459,5 +460,5 @@ function seatLabel(seat: SeatId | null): string {
   if (!seat) {
     return "Terminal";
   }
-  return seat === "seat_0" ? "Seat 0" : "Seat 1";
+  return resolveSeatLabel(seat);
 }

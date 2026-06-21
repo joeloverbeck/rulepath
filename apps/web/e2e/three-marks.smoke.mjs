@@ -69,7 +69,7 @@ try {
     await clickCell(page, cell);
     await waitForOccupied(page, cell);
   }
-  await waitForText(page, "Seat 0 wins");
+  await waitForText(page, "Seat 1 wins");
   const winningCells = await page.$$eval(".three-cell.winning", (cells) => cells.length);
   assert(winningCells === 3, `winning line highlights exactly three cells, got ${winningCells}`);
   const naming = await page.evaluate(() => {

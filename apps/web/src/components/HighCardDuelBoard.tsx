@@ -371,7 +371,7 @@ function phaseLabel(phase: HighCardDuelPublicView["phase"]): string {
 }
 
 function seatLabel(seat: SeatId): string {
-  return seat === "seat_0" ? "Seat 0" : "Seat 1";
+  return resolveSeatLabel(seat);
 }
 
 function sameViewerMode(left: ViewerMode, right: ViewerMode): boolean {

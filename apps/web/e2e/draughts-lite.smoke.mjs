@@ -121,7 +121,7 @@ async function assertBoardA11y(page) {
   assert(summary.legal === 4, `draughts_lite exposes four Rust legal origins, got ${summary.legal}`);
   assert(summary.missingNames.length === 0, `draughts_lite cells have accessible names: ${summary.missingNames.join(", ")}`);
   assert(summary.pieces === 24, `draughts_lite renders twenty-four pieces, got ${summary.pieces}`);
-  assert(summary.active.includes("Seat 0"), "draughts_lite exposes humanized text turn status");
+  assert(summary.active.includes("Seat 1"), "draughts_lite exposes humanized text turn status");
   assert(summary.activeDescendant.startsWith("draughts-cell-"), "draughts_lite grid exposes active descendant");
   assert(summary.live.includes("Rust-provided"), "draughts_lite live region announces Rust-provided choices");
   await assertFocusedVisibleAfterFocus(page, "draughts-cell-r1c1");

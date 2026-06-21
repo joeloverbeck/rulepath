@@ -1,4 +1,5 @@
-import type { ActionChoice, EffectEntry, ThreeMarksPublicView } from "../wasm/client";
+import type { ActionChoice, EffectEntry, SeatDisplayLabel, ThreeMarksPublicView } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -8,6 +9,7 @@ type ThreeMarksBoardProps = {
   reducedMotion: boolean;
   pending: boolean;
   interactive?: boolean;
+  seatLabels?: SeatDisplayLabel[];
   onChoice?: (choice: ActionChoice) => void;
 };
 
@@ -35,8 +37,10 @@ export function ThreeMarksBoard({
   reducedMotion,
   pending,
   interactive = true,
+  seatLabels = [],
   onChoice,
 }: ThreeMarksBoardProps) {
+  const labelText = (value: string) => humanizeSeats(value, seatLabels);
   const cells = view.cells.map(parseCell).sort((left, right) => left.row - right.row || left.column - right.column);
   const legalTargets = new Map(view.legal_targets.map((target) => {
     const parsed = parseLegalTarget(target);
@@ -44,22 +48,22 @@ export function ThreeMarksBoard({
   }));
   const terminal = view.terminal_kind !== "non_terminal";
   const winningCells = new Set(view.winning_line);
-  const summary = boardSummary(cells, view);
+  const summary = boardSummary(cells, view, labelText);
   const botEffect = latestEffect?.effect.payload.type === "bot_chose_action" ? latestEffect : null;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const outcomeExplanation = terminal
     ? outcomeSurfaceData({
         gameId: "three_marks",
-        heading: terminalLabel(view),
+        heading: terminalLabel(view, labelText),
         rationale: view.terminal_rationale,
         resultKind: view.terminal_kind === "draw" ? "draw" : "win",
         decisiveCause: view.terminal_kind === "draw" ? "full_board_draw" : "line_completed",
         templateKey: view.terminal_kind === "draw" ? "three_marks.full_board_draw" : "three_marks.line_completed",
         templateParams: {
-          winner: humanizeSeats(view.winning_seat ?? ""),
+          winner: labelText(view.winning_seat ?? ""),
           line_label: view.winning_line.join(", "),
         },
-        finalStanding: [standing("seat_0", view.winning_seat), standing("seat_1", view.winning_seat)],
+        finalStanding: [standing("seat_0", view.winning_seat, labelText), standing("seat_1", view.winning_seat, labelText)],
         breakdownSections: [
           {
             id: "terminal-line",
@@ -81,10 +85,10 @@ export function ThreeMarksBoard({
       <div className="three-marks-banner">
         <div>
           <p className="eyebrow">Three Marks</p>
-          <h2 id="three-marks-heading">{humanizeSeats(view.status_label)}</h2>
+          <h2 id="three-marks-heading">{labelText(view.status_label)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
-          {terminalLabel(view)}
+          {terminalLabel(view, labelText)}
         </span>
       </div>
 
@@ -104,7 +108,7 @@ export function ThreeMarksBoard({
               key={cell.id}
               className={`three-cell ${occupied ? "occupied" : "empty"} ${cell.owner ?? ""} ${winning ? "winning" : ""}`}
               disabled={disabled}
-              aria-label={legal?.accessibilityLabel ?? cellLabel(cell)}
+              aria-label={legal?.accessibilityLabel ?? cellLabel(cell, labelText)}
               data-testid={`three-cell-${cell.id}`}
               onClick={() => {
                 if (legal && onChoice) {
@@ -116,7 +120,7 @@ export function ThreeMarksBoard({
                 }
               }}
             >
-              {cell.owner ? <Mark owner={cell.owner} label={cell.shape ?? humanizeSeats(cell.owner)} /> : <span className="empty-dot" />}
+              {cell.owner ? <Mark owner={cell.owner} label={cell.shape ?? labelText(cell.owner)} /> : <span className="empty-dot" />}
               <span className="cell-coord">{cell.id}</span>
             </button>
           );
@@ -126,7 +130,7 @@ export function ThreeMarksBoard({
       <div className="three-marks-status">
         <div>
           <span>Active</span>
-          <strong>{view.active_seat ? humanizeSeats(view.active_seat) : "Terminal"}</strong>
+          <strong>{view.active_seat ? labelText(view.active_seat) : "Terminal"}</strong>
         </div>
         <div>
           <span>Ply</span>
@@ -203,45 +207,43 @@ function parseLegalTarget(encoded: string): LegalTarget {
   };
 }
 
-// The Three Marks view emits raw seat ids ("seat_0"); present them as "Seat N"
-// to match the other boards and to keep screen readers from spelling out the id.
-function humanizeSeats(value: string): string {
-  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
+function humanizeSeats(value: string, labels: SeatDisplayLabel[]): string {
+  return value.replace(/\bseat_\d+\b/g, (seat) => resolveSeatLabel(seat, { catalogSeatLabels: labels }));
 }
 
-function cellLabel(cell: CellModel): string {
+function cellLabel(cell: CellModel, labelText: (value: string) => string): string {
   if (cell.owner) {
-    return `${cell.id}, occupied by ${humanizeSeats(cell.owner)}`;
+    return `${cell.id}, occupied by ${labelText(cell.owner)}`;
   }
   return `${cell.id}, empty`;
 }
 
-function terminalLabel(view: ThreeMarksPublicView): string {
+function terminalLabel(view: ThreeMarksPublicView, labelText: (value: string) => string): string {
   if (view.terminal_kind === "draw") {
     return "Draw";
   }
   if (view.terminal_kind === "win") {
-    return `${humanizeSeats(view.winning_seat ?? "")} wins`;
+    return `${labelText(view.winning_seat ?? "")} wins`;
   }
-  return `${humanizeSeats(view.active_seat ?? "")} to move`;
+  return `${labelText(view.active_seat ?? "")} to move`;
 }
 
-function boardSummary(cells: CellModel[], view: ThreeMarksPublicView): string {
+function boardSummary(cells: CellModel[], view: ThreeMarksPublicView, labelText: (value: string) => string): string {
   const occupied = cells
     .filter((cell) => cell.owner)
-    .map((cell) => `${cell.id} ${humanizeSeats(cell.owner ?? "")}`)
+    .map((cell) => `${cell.id} ${labelText(cell.owner ?? "")}`)
     .join(", ");
   const legal = view.legal_targets
     .map(parseLegalTarget)
     .map((target) => target.cell)
     .join(", ");
-  return `${humanizeSeats(view.status_label)}. Occupied: ${occupied || "none"}. Legal targets: ${legal || "none"}.`;
+  return `${labelText(view.status_label)}. Occupied: ${occupied || "none"}. Legal targets: ${legal || "none"}.`;
 }
 
-function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null) {
+function standing(seat: "seat_0" | "seat_1", winner: "seat_0" | "seat_1" | null, labelText: (value: string) => string) {
   return {
     id: seat,
-    label: humanizeSeats(seat),
+    label: labelText(seat),
     result: winner === seat ? "Winner" : winner ? "Loss" : "Draw",
     emphasized: winner === seat,
     values: [{ label: "Result", value: winner === seat ? "win" : winner ? "loss" : "draw" }],

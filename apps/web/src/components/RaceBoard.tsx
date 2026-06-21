@@ -1,21 +1,24 @@
-import type { EffectEntry, RacePublicView } from "../wasm/client";
+import type { EffectEntry, RacePublicView, SeatDisplayLabel } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type RaceBoardProps = {
   view: RacePublicView | null;
   latestEffect: EffectEntry | null;
+  seatLabels?: SeatDisplayLabel[];
 };
 
-export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
+export function RaceBoard({ view, latestEffect, seatLabels = [] }: RaceBoardProps) {
+  const labelForSeat = (seat: string) => seatLabel(seat, seatLabels);
   const counter = view?.counter ?? 0;
   const target = view?.target ?? 21;
   const progress = target > 0 ? Math.min(100, (counter / target) * 100) : 0;
-  const status = view?.winner ? `${seatLabel(view.winner)} won` : view ? `${seatLabel(view.active_seat)} to move` : "Ready";
+  const status = view?.winner ? `${labelForSeat(view.winner)} won` : view ? `${labelForSeat(view.active_seat)} to move` : "Ready";
   const outcomeExplanation = view?.winner
     ? outcomeSurfaceData({
         gameId: "race_to_n",
-        heading: `${seatLabel(view.winner)} wins`,
+        heading: `${labelForSeat(view.winner)} wins`,
         rationale: view.terminal_rationale,
         resultKind: "win",
         decisiveCause: "exact_target_reached",
@@ -24,7 +27,7 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
         finalStanding: [
           {
             id: view.winner,
-            label: seatLabel(view.winner),
+            label: labelForSeat(view.winner),
             result: "Winner",
             emphasized: true,
             values: [{ label: "Counter", value: counter }],
@@ -100,7 +103,7 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
       ) : null}
 
       <div className="board-status" role="status">
-        <span>{outcomeExplanation ? outcomeAnnouncementText(outcomeExplanation) : latestEffect ? effectSummary(latestEffect) : "No action yet"}</span>
+        <span>{outcomeExplanation ? outcomeAnnouncementText(outcomeExplanation) : latestEffect ? effectSummary(latestEffect, labelForSeat) : "No action yet"}</span>
       </div>
 
       {outcomeExplanation ? <OutcomeExplanationPanel explanation={outcomeExplanation} /> : null}
@@ -108,10 +111,10 @@ export function RaceBoard({ view, latestEffect }: RaceBoardProps) {
   );
 }
 
-function seatLabel(seat: string): string {
-  return seat === "seat_0" ? "Player 1" : seat === "seat_1" ? "Player 2" : seat;
+function seatLabel(seat: string, labels: SeatDisplayLabel[]): string {
+  return resolveSeatLabel(seat, { catalogSeatLabels: labels });
 }
 
-function effectSummary(entry: EffectEntry): string {
-  return feedbackForEffect(entry).detail.replace(/\bseat_0\b/g, "Player 1").replace(/\bseat_1\b/g, "Player 2");
+function effectSummary(entry: EffectEntry, labelForSeat: (seat: string) => string): string {
+  return feedbackForEffect(entry).detail.replace(/\bseat_0\b/g, labelForSeat("seat_0")).replace(/\bseat_1\b/g, labelForSeat("seat_1"));
 }

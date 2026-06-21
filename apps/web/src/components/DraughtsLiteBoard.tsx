@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { ActionChoice, ActionTree, DraughtsLiteCellView, DraughtsLitePublicView, EffectEntry } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -460,14 +461,14 @@ function addString(target: Set<string>, value: unknown) {
   }
 }
 
-// The Draughts view emits raw seat ids ("seat_0"); every other board and the
-// shared outcome panel present these as "Seat 0" / "Seat 1".
+// The Draughts view emits raw seat ids ("seat_0"); normalize them through the
+// shared resolver so display copy stays aligned with the Rust catalog default.
 function humanizeSeats(value: string): string {
-  return value.replace(/\bseat_(\d+)\b/g, (_match, index: string) => `Seat ${index}`);
+  return value.replace(/\bseat_(\d+)\b/g, (seat) => resolveSeatLabel(seat));
 }
 
 function seatLabel(seat: string | null | undefined): string {
-  return seat ? humanizeSeats(seat) : "Terminal";
+  return seat ? resolveSeatLabel(seat) : "Terminal";
 }
 
 function terminalLabel(view: DraughtsLitePublicView): string {

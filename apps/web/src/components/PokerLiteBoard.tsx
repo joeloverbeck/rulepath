@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, PokerLiteCardView, PokerLitePublicView, SeatId } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -220,9 +221,9 @@ function ShowdownPanel({ view }: { view: PokerLitePublicView }) {
         <strong>{view.showdown.winner ? `${seatLabel(view.showdown.winner)} leads` : "Split strength"}</strong>
       </div>
       <div className="poker-lite-showdown-grid">
-        <CrestCard card={view.showdown.seat_0_private} label="Seat 0" tone="revealed" />
+        <CrestCard card={view.showdown.seat_0_private} label={seatLabel("seat_0")} tone="revealed" />
         <CrestCard card={view.showdown.center} label="Center" tone="center" />
-        <CrestCard card={view.showdown.seat_1_private} label="Seat 1" tone="revealed" />
+        <CrestCard card={view.showdown.seat_1_private} label={seatLabel("seat_1")} tone="revealed" />
       </div>
     </section>
   );
@@ -348,7 +349,7 @@ function isRevealEffect(type: string): boolean {
 }
 
 function seatLabel(seat: SeatId): string {
-  return seat === "seat_0" ? "Seat 0" : "Seat 1";
+  return resolveSeatLabel(seat);
 }
 
 function pokerTemplateKey(view: PokerLitePublicView): string {
