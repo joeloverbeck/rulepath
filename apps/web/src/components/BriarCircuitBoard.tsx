@@ -8,7 +8,7 @@ import type {
   EffectEntry,
 } from "../wasm/client";
 import { resolveSeatLabel } from "../seatLabels";
-import { feedbackForEffect } from "./effectFeedback";
+import { feedbackForEffect, type EffectFeedback } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type BriarCircuitBoardProps = {
@@ -129,7 +129,13 @@ export function BriarCircuitBoard({
     const { rank, suit } = splitCardId(play.card);
     return sum + (pointValue(suit, rank) ?? 0);
   }, 0);
-  const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  // Briar Circuit emits seat-keyed effects (card_played, trick_captured, …) whose
+  // raw payloads carry snake_case seat ids and effect-type strings. The shared
+  // feedbackForEffect leaves several of them unhandled (showing "trick_captured")
+  // or prints the raw "seat_3". briarFeedbackForEffect re-narrates them with the
+  // public seat labels and plain-language copy used everywhere else on the board;
+  // it falls back to the shared formatter for anything it does not recognize.
+  const feedback = latestEffect ? briarFeedbackForEffect(latestEffect) ?? feedbackForEffect(latestEffect) : null;
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase !== "terminal");
   // Between-hands scoring summary: the most recently completed hand, retained by Rust.
   // Each hand has a unique cumulative-score signature, so dismissal is keyed by it; a
@@ -516,6 +522,83 @@ function Metric({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+// Re-narrate Briar Circuit's own public/private effects with the friendly seat
+// labels and card names used across the board. Returns null for effect types this
+// game does not emit so the caller can fall back to the shared formatter. All
+// referenced facts are already public (played cards, captured tricks, pass counts)
+// or belong to the viewer's own seat (pass selection) — no hidden state is exposed.
+function briarFeedbackForEffect(entry: EffectEntry): EffectFeedback | null {
+  const payload = entry.effect.payload;
+  switch (payload.type) {
+    case "card_played": {
+      const seat = payload.seat as BriarCircuitSeatId;
+      return {
+        title: "Card played",
+        detail: `${seatLabel(seat)} played ${formatCardId(String(payload.card))}.`,
+        tone: "movement",
+      };
+    }
+    case "trick_captured": {
+      const winner = payload.winner as BriarCircuitSeatId;
+      const trickNumber = Number(payload.trick_index ?? 0) + 1;
+      const cards = Array.isArray(payload.cards) ? (payload.cards as string[]) : [];
+      const points = cards.reduce((sum, card) => {
+        const { rank, suit } = splitCardId(card);
+        return sum + (pointValue(suit, rank) ?? 0);
+      }, 0);
+      return {
+        title: "Trick won",
+        detail:
+          points > 0
+            ? `${seatLabel(winner)} won trick ${trickNumber} and took ${points} penalty ${points === 1 ? "point" : "points"}.`
+            : `${seatLabel(winner)} won trick ${trickNumber} with no penalty points.`,
+        tone: "turn",
+      };
+    }
+    case "hearts_broken": {
+      const seat = payload.seat as BriarCircuitSeatId;
+      return {
+        title: "Hearts broken",
+        detail: `${seatLabel(seat)} broke hearts — hearts can now be led.`,
+        tone: "movement",
+      };
+    }
+    case "pass_commitment_public": {
+      const committed = Number(payload.committed_count ?? 0);
+      return {
+        title: "Pass committed",
+        detail: `${committed} of 4 seats have locked in their pass.`,
+        tone: "turn",
+      };
+    }
+    case "pass_exchange_public": {
+      const direction = String(payload.direction ?? "");
+      return {
+        title: "Cards passed",
+        detail: direction ? `Passing ${direction} is complete — play begins.` : "The pass is complete — play begins.",
+        tone: "movement",
+      };
+    }
+    case "pass_selection_updated": {
+      const count = Number(payload.selected_count ?? 0);
+      return {
+        title: "Pass selection",
+        detail: `You have chosen ${count} of 3 cards to pass.`,
+        tone: "neutral",
+      };
+    }
+    case "pass_exchange_private": {
+      return {
+        title: "Pass complete",
+        detail: "Your pass is complete and your new hand is ready.",
+        tone: "neutral",
+      };
+    }
+    default:
+      return null;
+  }
 }
 
 function statusLabel(view: BriarCircuitPublicView): string {

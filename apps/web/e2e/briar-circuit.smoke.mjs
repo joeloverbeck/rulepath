@@ -83,6 +83,7 @@ try {
   await waitForText(page, "Selected");
   await waitForText(page, "1 of 3 selected");
   await assertSeatNoLeak(page, consoleMessages, [...seat0Labels, selectedLabel], "seat 0 after pass selection");
+  await assertLiveStatusHumanized(page);
 
   await clickText(page, "button", "Export Current Run");
   const replayTextHandle = await page.waitForFunction(() => document.querySelector("textarea")?.value || "");
@@ -176,6 +177,16 @@ async function assertSeatNoLeak(page, consoleMessages, allowedLabels, label) {
   const surface = await fullBrowserSurface(page);
   assertNoForbiddenTerms(surface, label, [...cardIds, ...forbiddenLabels, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertLiveStatusHumanized(page) {
+  // The live status region narrates Rust-supplied effects. It must use the public
+  // seat labels and plain copy the rest of the board uses, never raw snake_case
+  // effect-type strings (e.g. "trick_captured") or raw seat ids (e.g. "seat_3").
+  const latest = await page.$eval(".briar-latest", (element) => element.textContent ?? "");
+  assert(latest.trim().length > 0, "briar_circuit live status has text");
+  assert(!/\bseat_\d+\b/i.test(latest), `briar_circuit live status avoids raw seat ids: ${latest}`);
+  assert(!/[a-z0-9]+_[a-z0-9_]+/.test(latest), `briar_circuit live status avoids raw snake_case identifiers: ${latest}`);
 }
 
 async function ownCardLabels(page) {
