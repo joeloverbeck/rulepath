@@ -668,6 +668,11 @@ fn run_one_vow_tide_match(
     let mut command_stream = Vec::<String>::new();
     let mut last_effects = Vec::<vow_tide::effects::VowTideEffect>::new();
     let mut hook_exclusions = 0_u64;
+    let failure_context = VowTideFailureContext {
+        config,
+        seed,
+        seat_count,
+    };
 
     for action_index in 0..config.action_cap {
         if let VowTidePhase::Terminal(terminal) = &state.phase {
@@ -681,9 +686,7 @@ fn run_one_vow_tide_match(
 
         let actor_seat = state.active_seat().ok_or_else(|| {
             vow_tide_failure_report(
-                config,
-                seed,
-                seat_count,
+                &failure_context,
                 action_index,
                 &state,
                 &last_effects,
@@ -709,9 +712,7 @@ fn run_one_vow_tide_match(
                 .select_decision(&state, actor_seat)
                 .map_err(|diagnostic| {
                     vow_tide_failure_report(
-                        config,
-                        seed,
-                        seat_count,
+                        &failure_context,
                         action_index,
                         &state,
                         &last_effects,
@@ -724,9 +725,7 @@ fn run_one_vow_tide_match(
                 .select_decision(&state, actor_seat)
                 .map_err(|diagnostic| {
                     vow_tide_failure_report(
-                        config,
-                        seed,
-                        seat_count,
+                        &failure_context,
                         action_index,
                         &state,
                         &last_effects,
@@ -747,9 +746,7 @@ fn run_one_vow_tide_match(
                 let bid = vow_tide_rules::validate_bid_command(&state, &command).map_err(
                     |diagnostic| {
                         vow_tide_failure_report(
-                            config,
-                            seed,
-                            seat_count,
+                            &failure_context,
                             action_index,
                             &state,
                             &last_effects,
@@ -760,9 +757,7 @@ fn run_one_vow_tide_match(
                 )?;
                 vow_tide_rules::apply_bid(&mut state, bid).map_err(|diagnostic| {
                     vow_tide_failure_report(
-                        config,
-                        seed,
-                        seat_count,
+                        &failure_context,
                         action_index,
                         &state,
                         &last_effects,
@@ -775,9 +770,7 @@ fn run_one_vow_tide_match(
                 let play = vow_tide_rules::validate_play_command(&state, &command).map_err(
                     |diagnostic| {
                         vow_tide_failure_report(
-                            config,
-                            seed,
-                            seat_count,
+                            &failure_context,
                             action_index,
                             &state,
                             &last_effects,
@@ -788,9 +781,7 @@ fn run_one_vow_tide_match(
                 )?;
                 vow_tide_rules::apply_play(&mut state, play).map_err(|diagnostic| {
                     vow_tide_failure_report(
-                        config,
-                        seed,
-                        seat_count,
+                        &failure_context,
                         action_index,
                         &state,
                         &last_effects,
@@ -801,9 +792,7 @@ fn run_one_vow_tide_match(
             }
             _ => {
                 return Err(vow_tide_failure_report(
-                    config,
-                    seed,
-                    seat_count,
+                    &failure_context,
                     action_index,
                     &state,
                     &last_effects,
@@ -816,9 +805,7 @@ fn run_one_vow_tide_match(
     }
 
     Err(vow_tide_failure_report(
-        config,
-        seed,
-        seat_count,
+        &failure_context,
         config.action_cap,
         &state,
         &last_effects,
@@ -871,10 +858,16 @@ fn render_exact_rates(seats: &[String], exact_by_seat: &[u64], total_hands: u64)
     format!("{{{entries}}}")
 }
 
-fn vow_tide_failure_report(
-    config: &Config,
+/// Run-level context shared by every vow_tide failure report, bundled so the
+/// reporter keeps a clean argument list (clippy::too_many_arguments).
+struct VowTideFailureContext<'a> {
+    config: &'a Config,
     seed: u64,
     seat_count: usize,
+}
+
+fn vow_tide_failure_report(
+    context: &VowTideFailureContext<'_>,
     action_index: usize,
     state: &vow_tide::state::VowTideState,
     effects: &[vow_tide::effects::VowTideEffect],
@@ -882,6 +875,9 @@ fn vow_tide_failure_report(
     reason: &str,
 ) -> String {
     let snapshot = vow_tide_replay::snapshot(state, effects);
+    let seed = context.seed;
+    let seat_count = context.seat_count;
+    let action_cap = context.config.action_cap;
     format!(
         "SIMULATION FAILURE\n\
          game_id=vow_tide\n\
@@ -889,7 +885,7 @@ fn vow_tide_failure_report(
          data_version={DATA_VERSION}\n\
          seed={seed}\n\
          seat_count={seat_count}\n\
-         action_cap={}\n\
+         action_cap={action_cap}\n\
          action_index={action_index}\n\
          phase={:?}\n\
          command_stream=[{}]\n\
@@ -897,14 +893,12 @@ fn vow_tide_failure_report(
          observer_view_hash={}\n\
          effect_hash={}\n\
          failure_reason={reason}\n\
-         replay_command=cargo run -p simulate -- --game vow_tide --seat-count {seat_count} --games 1 --start-seed {seed} --action-cap {}\n",
-        config.action_cap,
+         replay_command=cargo run -p simulate -- --game vow_tide --seat-count {seat_count} --games 1 --start-seed {seed} --action-cap {action_cap}\n",
         state.phase,
         command_stream.join(","),
         snapshot.state_hash,
         snapshot.observer_view_hash,
         snapshot.effect_hash,
-        config.action_cap
     )
 }
 

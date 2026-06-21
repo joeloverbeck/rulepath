@@ -32,7 +32,6 @@ const BEHAVIOR_KEYS: &[&str] = &[
     "deal_formula",
     "rotation_formula",
     "bid_formula",
-    "bot_policy",
 ];
 
 const ALLOWED_JSON_KEYS: &[&str] = &[

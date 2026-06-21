@@ -189,7 +189,7 @@ export function VowTideBoard({
       <section className="vow-tide-actions" aria-label="Vow Tide actions">
         <div className="vow-tide-section-heading">
           <span>Actions</span>
-          <strong>{canAct ? "Rust legal choices" : pending ? "Working" : "Waiting"}</strong>
+          <strong>{canAct ? "Available choices" : pending ? "Working" : "Waiting"}</strong>
         </div>
         <div className="vow-tide-action-grid">
           {paths.length === 0 ? (
@@ -320,15 +320,15 @@ function vowFeedback(entry: EffectEntry | null): { title: string; detail: string
   const summary = String(entry.effect.payload.summary ?? "");
   switch (kind) {
     case "bid_accepted":
-      return { title: "Bid accepted", detail: summary || "Rust recorded the public bid.", tone: "turn" };
+      return { title: "Bid accepted", detail: summary || "Recorded the public bid.", tone: "turn" };
     case "card_played":
-      return { title: "Card played", detail: summary || "Rust played a card to the trick.", tone: "movement" };
+      return { title: "Card played", detail: summary || "Played a card to the trick.", tone: "movement" };
     case "trick_captured":
-      return { title: "Trick captured", detail: summary || "Rust awarded the trick.", tone: "movement" };
+      return { title: "Trick captured", detail: summary || "Awarded the trick.", tone: "movement" };
     case "hand_scored":
-      return { title: "Hand scored", detail: summary || "Rust scored exact bids.", tone: "turn" };
+      return { title: "Hand scored", detail: summary || "Scored exact bids.", tone: "turn" };
     case "match_completed":
-      return { title: "Match completed", detail: summary || "Rust finalized standings.", tone: "terminal" };
+      return { title: "Match completed", detail: summary || "Finalized standings.", tone: "terminal" };
     default:
       return null;
   }

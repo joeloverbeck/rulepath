@@ -336,7 +336,7 @@ pub(crate) fn vow_select_bot_decision(
     seat: VowTideSeat,
     bot_seed: u64,
 ) -> Result<vow_tide::bots::BotDecision, String> {
-    if seat.index() % 2 == 0 {
+    if seat.index().is_multiple_of(2) {
         VowTideL1Bot::new(Seed(bot_seed))
             .select_decision(state, seat)
             .map_err(diagnostic_json)
