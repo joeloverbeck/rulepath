@@ -126,7 +126,8 @@ export type FeatureReport = {
 
 export type SeatId = "seat_0" | "seat_1";
 export type RiverLedgerSeatId = SeatId | "seat_2" | "seat_3" | "seat_4" | "seat_5";
-export type ViewerSeatId = RiverLedgerSeatId;
+export type VowTideSeatId = RiverLedgerSeatId | "seat_6";
+export type ViewerSeatId = VowTideSeatId;
 export type ViewerModeId = "observer" | ViewerSeatId;
 export type ViewerMode = { kind: "observer" } | { kind: "seat"; seat: ViewerSeatId };
 
@@ -1081,6 +1082,62 @@ export type BriarCircuitPublicView = {
   };
 };
 
+export type VowTideCardView = {
+  card_id: string;
+  suit: string;
+  rank: string;
+  label: string;
+};
+
+export type VowTidePlayedCardView = {
+  seat: VowTideSeatId;
+  card: VowTideCardView;
+};
+
+export type VowTideTerminalView =
+  | { kind: "non_terminal" }
+  | {
+      kind: "terminal";
+      winners: VowTideSeatId[];
+      standings: Array<{ seat: VowTideSeatId; score: number; rank: number; is_winner: boolean }>;
+      hands_played: number;
+    };
+
+export type VowTideOutcomeRationale = OutcomeRationalePayload;
+
+export type VowTidePublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "vow_tide";
+  display_name: string;
+  variant_id: "vow_tide_standard";
+  rules_version_label: string;
+  phase: "bidding" | "playing_trick" | "terminal" | string;
+  active_seat: VowTideSeatId | null;
+  dealer: VowTideSeatId;
+  hand_index: number;
+  hand_size: number;
+  hand_schedule: number[];
+  trump_indicator: VowTideCardView;
+  hand_counts: Partial<Record<VowTideSeatId, number>>;
+  hidden_stock_count: number;
+  public_bids: Partial<Record<VowTideSeatId, number | null>>;
+  trick_counts: Partial<Record<VowTideSeatId, number>>;
+  cumulative_scores: Partial<Record<VowTideSeatId, number>>;
+  current_trick: VowTidePlayedCardView[];
+  captured_tricks_count: number;
+  completed_hand_count: number;
+  terminal: VowTideTerminalView;
+  terminal_rationale?: VowTideOutcomeRationale | null;
+  freshness_token: number;
+  private_view_status: "observer" | "seat";
+  own_hand: VowTideCardView[];
+  hidden_fields: string[];
+  ui: {
+    action_families: string[];
+  };
+};
+
 export type MaskedClaimsOutcomeRationale = OutcomeRationalePayload;
 
 export type MaskedClaimsMaskView = {
@@ -1360,6 +1417,7 @@ export type PublicView =
   | RiverLedgerPublicView
   | PlainTricksPublicView
   | BriarCircuitPublicView
+  | VowTidePublicView
   | MaskedClaimsPublicView
   | FloodWatchPublicView
   | FrontierControlPublicView

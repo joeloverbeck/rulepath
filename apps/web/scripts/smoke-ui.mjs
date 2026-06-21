@@ -181,7 +181,7 @@ assert(
   ]),
   "Rust catalog exposes Race player labels",
 );
-const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit"].includes(game.game_id));
+const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit", "vow_tide"].includes(game.game_id));
 assert(
   twoSeatGames.every(
     (game) =>
@@ -233,6 +233,19 @@ assert(
     { seat: "seat_3", label: "Seat 4" },
   ]),
   "Rust catalog exposes Briar Circuit one-based seat labels",
+);
+const vowTideCatalog = catalog.find((game) => game.game_id === "vow_tide");
+assert(vowTideCatalog, "Rust catalog includes vow_tide");
+assertVariantDescription(vowTideCatalog, "vow_tide_standard", undefined);
+assert(
+  vowTideCatalog.hidden_information === true &&
+    vowTideCatalog.min_seats === 3 &&
+    vowTideCatalog.max_seats === 7 &&
+    vowTideCatalog.default_seats === 4 &&
+    JSON.stringify(vowTideCatalog.supported_seats) === JSON.stringify([3, 4, 5, 6, 7]) &&
+    vowTideCatalog.viewer_modes.includes("seat_6") &&
+    vowTideCatalog.seat_labels.length === 7,
+  "Rust catalog exposes vow_tide 3-7 seat metadata",
 );
 const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
 assert(floodWatchCatalog, "Rust catalog includes flood_watch");
@@ -297,6 +310,17 @@ assert(
       game.tags.includes("public_accounting"),
   ),
   "Rust catalog includes river_ledger standard hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "vow_tide" &&
+      hasVariant(game, "vow_tide_standard", "Vow Tide") &&
+      game.hidden_information === true &&
+      game.tags.includes("trick_taking") &&
+      game.tags.includes("bidding"),
+  ),
+  "Rust catalog includes vow_tide standard hidden-information variant",
 );
 
 const riverLedger = invoke(
@@ -557,6 +581,80 @@ const briarExport = invoke(
 );
 assert(briarExport.export_class === "viewer_scoped_observation_v1", "briar_circuit replay export is viewer scoped");
 assert(!JSON.stringify(briarExport).includes(briarCard.segment), "briar_circuit public replay omits private pass card");
+
+for (const seatCount of [3, 4, 5, 6, 7]) {
+  const match = invoke(
+    (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(120 + seatCount), seatCount),
+    ["vow_tide"],
+  );
+  const view = invoke((args) => wasm.rulepath_get_view(args[0].ptr, args[0].len), [match.match_id]);
+  assert(view.game_id === "vow_tide", `vow_tide ${seatCount}-seat Rust view is returned`);
+  assert(Object.keys(view.hand_counts).length === seatCount, `vow_tide ${seatCount}-seat view exposes hand-count rail`);
+}
+const vowTide = invoke(
+  (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, 127n, 7),
+  ["vow_tide"],
+);
+assert(vowTide.match_id, "vow_tide start match returns a match id");
+assert(vowTide.variant_id === "vow_tide_standard", "vow_tide standard variant starts");
+const vowObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [vowTide.match_id],
+);
+assert(vowObserver.private_view_status === "observer", "vow_tide observer view is redacted");
+assert(vowObserver.own_hand.length === 0, "vow_tide observer omits private hand");
+assert(vowObserver.cumulative_scores.seat_0 === 0, "vow_tide view exposes public cumulative scores");
+const vowSeat1 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [vowTide.match_id, "seat_1"],
+);
+assert(vowSeat1.own_hand.length === 7, "vow_tide seat view exposes own hand at seven seats");
+const vowBlockedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [vowTide.match_id, "seat_1", "seat_0"],
+);
+assert(vowBlockedTree.choices.length === 0, "vow_tide non-actor tree is empty");
+const vowTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [vowTide.match_id, "seat_1", "seat_1"],
+);
+const vowBid = vowTree.choices.find((choice) => choice.segment === "bid")?.next?.choices?.[0];
+assert(vowBid, "vow_tide action tree exposes Rust bid choices");
+const vowAfterBid = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(vowTree.freshness_token),
+    ),
+  [vowTide.match_id, "seat_1", `bid>${vowBid.segment}`],
+);
+assert(vowAfterBid.view.public_bids.seat_1 !== null, "vow_tide bid updates public bids");
+assert(
+  vowAfterBid.effects.some((effect) => effect.payload.type === "bid_accepted"),
+  "vow_tide emits bid effect",
+);
 
 const maskedClaims = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),

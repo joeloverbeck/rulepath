@@ -29,6 +29,7 @@ import { SeatFrame, type SeatFrameViewerMode } from "./components/SeatFrame";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { TurnReportPanel } from "./components/TurnReportPanel";
+import { VowTideBoard } from "./components/VowTideBoard";
 import { animationRegistry } from "./animation/registry";
 import { EffectAnimationScheduler } from "./animation/scheduler";
 import { createDevSettleAssertion } from "./animation/settleAssertion";
@@ -59,6 +60,7 @@ import {
   type SecretDraftPublicView,
   type ThreeMarksPublicView,
   type TokenBazaarPublicView,
+  type VowTidePublicView,
   type ViewerSeatId,
   type ViewerMode,
 } from "./wasm/client";
@@ -682,6 +684,16 @@ function App() {
             onPathSubmit={playPath}
             onRestart={start}
           />
+        ) : isVowTideView(view) ? (
+          <VowTideBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isMaskedClaimsView(view) ? (
           <MaskedClaimsBoard
             view={view}
@@ -747,6 +759,7 @@ function App() {
         isRiverLedgerView(view) ||
         isPlainTricksView(view) ||
         isBriarCircuitView(view) ||
+        isVowTideView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
         isFrontierControlView(view) ||
@@ -975,6 +988,10 @@ function isBriarCircuitView(view: PublicView | null): view is BriarCircuitPublic
   return Boolean(view && "game_id" in view && view.game_id === "briar_circuit");
 }
 
+function isVowTideView(view: PublicView | null): view is VowTidePublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "vow_tide");
+}
+
 function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
 }
@@ -1012,6 +1029,9 @@ function isTerminalView(view: PublicView): boolean {
   }
   if (isBriarCircuitView(view)) {
     return view.phase === "terminal";
+  }
+  if (isVowTideView(view)) {
+    return view.terminal.kind !== "non_terminal";
   }
   if (isMaskedClaimsView(view)) {
     return view.terminal.kind !== "non_terminal";
@@ -1115,6 +1135,19 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
         view.phase === "terminal"
           ? "terminal"
           : `${view.phase}, scores ${view.cumulative_scores.seat_0}-${view.cumulative_scores.seat_1}-${view.cumulative_scores.seat_2}-${view.cumulative_scores.seat_3}`,
+    };
+  }
+  if (view.game_id === "vow_tide") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.terminal.kind !== "non_terminal"
+          ? view.terminal.winners.length > 1
+            ? "shared win"
+            : `${view.terminal.winners[0] ?? "seat_0"} won`
+          : `${view.phase}, hand ${view.hand_index + 1}, size ${view.hand_size}`,
     };
   }
   if (view.game_id === "masked_claims") {

@@ -182,7 +182,7 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         PrivateView::Observer => String::new(),
     };
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"dealer\":\"{}\",\"hand_index\":{},\"hand_size\":{},\"hand_schedule\":{},\"trump_indicator\":{},\"hand_counts\":{},\"hidden_stock_count\":{},\"public_bids\":{},\"trick_counts\":{},\"current_trick\":{},\"captured_tricks_count\":{},\"completed_hand_count\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"hidden_stock\",\"deck_order\"],\"ui\":{{\"action_families\":[\"bid\",\"play\"]}}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"dealer\":\"{}\",\"hand_index\":{},\"hand_size\":{},\"hand_schedule\":{},\"trump_indicator\":{},\"hand_counts\":{},\"hidden_stock_count\":{},\"public_bids\":{},\"trick_counts\":{},\"cumulative_scores\":{},\"current_trick\":{},\"captured_tricks_count\":{},\"completed_hand_count\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"hidden_stock\",\"deck_order\"],\"ui\":{{\"action_families\":[\"bid\",\"play\"]}}}}",
         SCHEMA_VERSION,
         RULES_VERSION,
         escape_json(GAME_VOW_TIDE),
@@ -200,6 +200,7 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         view.hidden_stock_count,
         vow_bids_json(&view.public_bids),
         vow_seat_u8_json(&view.trick_counts),
+        vow_seat_i16_json(&view.cumulative_scores),
         vow_current_trick_json(view),
         view.captured_tricks.len(),
         view.completed_hand_count,
@@ -388,6 +389,17 @@ fn vow_seat_u8_json(values: &[(VowTideSeat, u8)]) -> String {
     )
 }
 
+fn vow_seat_i16_json(values: &[(VowTideSeat, i16)]) -> String {
+    format!(
+        "{{{}}}",
+        values
+            .iter()
+            .map(|(seat, value)| format!("\"{}\":{}", seat.as_str(), value))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
 fn vow_bids_json(values: &[(VowTideSeat, Option<u8>)]) -> String {
     format!(
         "{{{}}}",
@@ -427,11 +439,25 @@ fn vow_terminal_json(view: &PublicView) -> String {
         || "{\"kind\":\"non_terminal\"}".to_owned(),
         |terminal| {
             format!(
-                "{{\"kind\":\"terminal\",\"winners\":[{}],\"hands_played\":{}}}",
+                "{{\"kind\":\"terminal\",\"winners\":[{}],\"standings\":[{}],\"hands_played\":{}}}",
                 terminal
                     .winners
                     .iter()
                     .map(|seat| format!("\"{}\"", seat.as_str()))
+                    .collect::<Vec<_>>()
+                    .join(","),
+                terminal
+                    .standings
+                    .iter()
+                    .map(|(seat, score, rank, is_winner)| {
+                        format!(
+                            "{{\"seat\":\"{}\",\"score\":{},\"rank\":{},\"is_winner\":{}}}",
+                            seat.as_str(),
+                            score,
+                            rank,
+                            is_winner
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join(","),
                 terminal.hands_played
@@ -442,7 +468,8 @@ fn vow_terminal_json(view: &PublicView) -> String {
 
 fn vow_effect_payload_json(effect: &VowTideEffect) -> String {
     format!(
-        "{{\"kind\":\"{}\",\"summary\":\"{}\"}}",
+        "{{\"type\":\"{}\",\"kind\":\"{}\",\"summary\":\"{}\"}}",
+        vow_effect_kind(effect),
         vow_effect_kind(effect),
         escape_json(&format!("{effect:?}"))
     )

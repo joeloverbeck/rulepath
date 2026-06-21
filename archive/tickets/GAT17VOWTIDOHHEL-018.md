@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-018: Web renderer, board dispatch, catalog/icon, outcome surfaces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — new `apps/web/src/components/VowTideBoard.tsx`; modifies `ReplayViewer.tsx`, `GamePicker.tsx`/catalog, `outcomeExplanationTemplates.ts`, `apps/web/src/wasm/client.ts`, `apps/web/scripts/smoke-ui.mjs`, `apps/web/scripts/smoke-effect-feedback.mjs`
@@ -79,3 +79,21 @@ Add the viewer-safe outcome template to `outcomeExplanationTemplates.ts` and the
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects`
 3. Narrower command rationale: build + UI/effects smokes are the presentation boundary; e2e/no-leak/a11y are the 019 capstone.
+
+## Outcome
+
+Completed: 2026-06-21
+
+Added `VowTideBoard.tsx` and wired Vow Tide into the live board selector, replay viewer, terminal helpers, typed WASM client view model, catalog icon, scoped CSS, effect feedback, and outcome explanation templates. The board renders the Rust-projected 3-7 seat rail, trump indicator, public bids, current trick, private own hand, Rust legal bid/play action paths, cumulative scores, terminal standings, and viewer-safe outcome panel without computing bid legality, follow-suit legality, trick winners, scores, or ranking in TypeScript.
+
+Adjusted the Vow WASM JSON view to expose public `cumulative_scores` and terminal `standings`, and normalized Vow effect payloads with a `type` field so shared web effect feedback can consume semantic Rust effects. Updated `smoke-ui.mjs` for Vow Tide catalog/seat-count/view/action checks and `smoke-effect-feedback.mjs` for Vow Tide bid-effect coverage.
+
+Deviations: `node scripts/check-outcome-explanations.mjs` was tried as an extra guard and still fails on future 021-owned documentation prerequisites: missing `games/vow_tide/docs/UI.md` plus missing `RULES.md` section headings for scoring/accounting and terminal conditions. The 018 acceptance gates pass; full outcome-doc reconciliation remains with the documented 021 surface.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `cargo test -p wasm-api`

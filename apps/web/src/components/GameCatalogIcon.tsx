@@ -24,6 +24,7 @@ const ICONS: Record<string, IconComponent> = {
   "river_ledger": RiverLedgerIcon,
   "plain_tricks": PlainTricksIcon,
   "briar_circuit": BriarCircuitIcon,
+  "vow_tide": VowTideIcon,
   "masked_claims": MaskedClaimsIcon,
   "flood_watch": FloodWatchIcon,
   "frontier_control": FrontierControlIcon,
@@ -183,6 +184,18 @@ function BriarCircuitIcon() {
       <path d="M8.2 9.3h7.6M8.2 12h7.6M8.2 14.7h7.6" stroke="var(--game-card-art-line)" strokeWidth="1.35" strokeLinecap="round" />
       <path d="M12 4v16M6 8l12 8M18 8L6 16" stroke="currentColor" strokeWidth="1.05" opacity="0.42" />
       <AccentCircle cx={12} cy={12} r={1.7} />
+    </>
+  );
+}
+
+function VowTideIcon() {
+  return (
+    <>
+      <path d="M5 16c2.2-2 4.5-2 7 0s4.8 2 7 0" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M7 6h5.2v8H7zM12.8 6H18v8h-5.2z" stroke="currentColor" strokeWidth="1.45" strokeLinejoin="round" />
+      <path d="M9.6 9.8h5M15 9.8l-1.5-1.5M15 9.8l-1.5 1.5" stroke="var(--game-card-art-line)" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 19c3-1.1 5-1.1 7 0 1.6.9 3.2.9 5 0" stroke="var(--game-card-art-line)" strokeWidth="1.45" strokeLinecap="round" />
+      <AccentCircle cx={12} cy={15.5} r={1.55} />
     </>
   );
 }

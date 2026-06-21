@@ -16,6 +16,7 @@ import type {
   SecretDraftPublicView,
   ThreeMarksPublicView,
   TokenBazaarPublicView,
+  VowTidePublicView,
 } from "../wasm/client";
 import { ColumnFourBoard } from "./ColumnFourBoard";
 import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
@@ -24,6 +25,7 @@ import { EventFrontierBoard } from "./EventFrontierBoard";
 import { FrontierControlBoard } from "./FrontierControlBoard";
 import { SeatFrame } from "./SeatFrame";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
+import { VowTideBoard } from "./VowTideBoard";
 
 type ReplayViewerProps = {
   game: GameCatalogEntry | null;
@@ -53,6 +55,7 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
     step && isFrontierControlView(step.view) ? step.view : null;
   const eventFrontierView: EventFrontierPublicView | null =
     step && isEventFrontierView(step.view) ? step.view : null;
+  const vowTideView: VowTidePublicView | null = step && isVowTideView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -169,6 +172,19 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
                   <strong>{eventFrontierView.reckoning_count}</strong>
                 </div>
               </div>
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : vowTideView ? (
+            <div className="replay-board">
+              <VowTideBoard
+                view={vowTideView}
+                actionTree={null}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
               {replay ? <PlacementSequence replay={replay} /> : null}
             </div>
           ) : null}
@@ -325,6 +341,10 @@ function isRiverLedgerView(view: PublicView | null): view is RiverLedgerPublicVi
 
 function isBriarCircuitView(view: PublicView | null): view is BriarCircuitPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "briar_circuit");
+}
+
+function isVowTideView(view: PublicView | null): view is VowTidePublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "vow_tide");
 }
 
 function formatActionPath(path: string[]): string {
@@ -491,6 +511,14 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
         label: "Score",
         value: `${view.cumulative_scores.seat_0}-${view.cumulative_scores.seat_1}-${view.cumulative_scores.seat_2}-${view.cumulative_scores.seat_3}`,
       },
+    ];
+  }
+  if (isVowTideView(view)) {
+    return [
+      { label: "Game", value: "Vow Tide" },
+      { label: "Hand", value: String(view.hand_index + 1) },
+      { label: "Phase", value: view.phase },
+      { label: "Scores", value: Object.values(view.cumulative_scores).join("-") },
     ];
   }
 

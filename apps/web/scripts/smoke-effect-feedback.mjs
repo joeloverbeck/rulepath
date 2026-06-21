@@ -71,6 +71,12 @@ try {
   }
 
   function newMatch(gameId, seed) {
+    if (gameId === "vow_tide") {
+      return invoke(
+        (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(seed), 7),
+        [gameId],
+      );
+    }
     if (gameId === "river_ledger") {
       return invoke(
         (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(seed), 4),
@@ -274,6 +280,7 @@ try {
     ["masked_claims", 2],
     ["flood_watch", 2],
     ["frontier_control", 2],
+    ["vow_tide", 1],
   ]);
 
   for (const [index, game] of catalog.entries()) {
@@ -312,6 +319,7 @@ try {
     ["river_ledger", "river_ledger_contribution_changed"],
     ["river_ledger", "river_ledger_street_advanced"],
     ["river_ledger", "river_ledger_showdown_resolved"],
+    ["vow_tide", "bid_accepted"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {
