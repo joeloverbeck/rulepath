@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-010: Variable-N visibility projection, effect filtering, exhaustive pairwise no-leak
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/vow_tide/src/visibility.rs`; modifies `effects.rs`; new `games/vow_tide/tests/visibility.rs` + no-leak golden traces
@@ -83,3 +83,22 @@ Filter semantic effects per viewer independently from the state view; never incl
 1. `cargo test -p vow_tide --test visibility`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: the native exhaustive matrix is the authoritative pairwise proof; the WASM-bridge harness (017) and browser samples (019) extend it to those surfaces.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added `games/vow_tide/src/visibility.rs` as the Rust-owned projector for public observer and seat-private views.
+- Projected public facts, owner-only hands, hand counts, stock count without stock identity/order, public bids/tricks/scores, terminal standings, and stable view bytes.
+- Added effect filtering entrypoint; current semantic effects are public-only and the filter does not expose hidden hands or stock.
+- Added exhaustive native no-leak coverage for 3–7 seats, verifying observer and every ordered seat-pair does not receive unauthorized hand or stock canaries.
+- Added visibility trace fixtures for public observer no-leak and 7-seat pairwise no-leak.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide --test visibility` passed: 3 visibility/no-leak tests.
+- `cargo test -p vow_tide --test serialization` passed: 4 serialization tests.
+- `cargo test -p vow_tide` passed: 34 integration tests plus crate/doc test harnesses.
+- `bash scripts/boundary-check.sh` passed with `engine-core boundary check passed`.
+- `cargo clippy -p vow_tide --all-targets -- -D warnings` passed.

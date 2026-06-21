@@ -12,6 +12,7 @@ pub mod scoring;
 pub mod setup;
 pub mod state;
 pub mod variants;
+pub mod visibility;
 
 pub use setup::{setup_match, SetupOptions};
 pub use variants::{load_manifest, load_variants};

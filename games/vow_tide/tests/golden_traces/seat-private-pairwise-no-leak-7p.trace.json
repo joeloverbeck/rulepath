@@ -1,0 +1,9 @@
+{
+  "trace_id": "seat-private-pairwise-no-leak-7p",
+  "seat_count": 7,
+  "checked_ordered_seat_pairs": 42,
+  "stock_visibility": "never_browser_exposed",
+  "private_hand_rule": "viewer sees own hand only",
+  "forbidden_cross_seat_tokens_absent": true,
+  "rule_ids": ["VT-VIEW-001", "VT-EFFECT-001"]
+}
