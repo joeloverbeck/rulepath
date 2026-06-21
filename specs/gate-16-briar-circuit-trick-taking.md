@@ -8,7 +8,7 @@
 | File | `specs/gate-16-briar-circuit-trick-taking.md` |
 | Roadmap stage | Stage 16 / Public scaling phase |
 | Roadmap build gate | Gate 16 |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-20 |
 | Owner | Rulepath maintainers / implementation agents |
 | Primary crate | `games/briar_circuit` |
@@ -1011,3 +1011,74 @@ The references below are repo-relative paths into this same repository. Consult 
 [^R18]: `docs/AGENT-DISCIPLINE.md` (repo-relative).
 [^R19]: `docs/WASM-CLIENT-BOUNDARY.md` (repo-relative).
 [^R20]: `docs/README.md` (repo-relative).
+
+## Outcome
+
+Completed: 2026-06-21
+
+Completed tickets: `archive/tickets/GAT16BRICIRTRI-001.md` through
+`archive/tickets/GAT16BRICIRTRI-018.md`.
+
+Implementation summary:
+
+- Shipped Briar Circuit as a fixed-four-seat, Rust-owned, hidden-information
+  trick-taking official game with deterministic deal/pass/play/scoring,
+  viewer-scoped replay/export, Rust bot policy, native benchmark receipt, and a
+  React/SVG presentation shell that consumes Rust/WASM legality and view data.
+- Kept trick-taking/card nouns local to game crates. The second-use comparison
+  against `plain_tricks` is documented as keep-local/defer; Gate 17 remains the
+  third-use helper-promotion hard gate.
+- Closed the public-release docs, source/IP notes, no-leak evidence, web smoke,
+  catalog/index surfaces, and release checklist.
+
+Verification evidence:
+
+- Rust hygiene/tests: `cargo fmt --all --check`;
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings`;
+  `cargo check --workspace`; `cargo test -p briar_circuit --test rules`;
+  `cargo test -p briar_circuit --test property`;
+  `cargo test -p briar_circuit --test replay`;
+  `cargo test -p briar_circuit --test serialization`;
+  `cargo test -p briar_circuit --test visibility`;
+  `cargo test -p briar_circuit --test bots`;
+  `cargo test -p briar_circuit`; `cargo test -p wasm-api`;
+  `cargo test --workspace`.
+- Per-game tools: `cargo run -p fixture-check -- --game briar_circuit`;
+  `cargo run -p rule-coverage -- --game briar_circuit`;
+  `cargo run -p replay-check -- --game briar_circuit`;
+  `cargo run -p replay-check -- --game briar_circuit --all`;
+  `cargo run -p simulate -- --game briar_circuit --seat-count 4 --games 1000 --start-seed 1600 --action-cap 4096`.
+- Benchmarks: `cargo bench -p briar_circuit` passed every benchmark row,
+  including `full_seeded_match_terminal` at 47,679.90 matches/second against
+  the provisional 100 matches/second floor on a local native, non-isolated run.
+- Docs/boundary: `bash scripts/boundary-check.sh`;
+  `rg -n 'Current debt: _None_' docs/MECHANIC-ATLAS.md`;
+  `node scripts/check-doc-links.mjs`; `node scripts/check-player-rules.mjs`;
+  `node scripts/check-catalog-docs.mjs`; `node scripts/check-ci-games.mjs`;
+  `node scripts/check-outcome-explanations.mjs`;
+  `node scripts/check-presentation-copy.mjs`.
+- Web: `npm --prefix apps/web run build`;
+  `npm --prefix apps/web run smoke:wasm`;
+  `npm --prefix apps/web run smoke:ui`;
+  `npm --prefix apps/web run smoke:e2e`, including the Briar Circuit
+  no-leak/keyboard/replay/reduced-motion browser smoke.
+
+Trace and no-leak receipt:
+
+- `replay-check --all` accepted all 37 Briar Circuit golden traces, including
+  public/seat-private export/import, pass-choice no-leak, pairwise no-leak,
+  observer no-leak, bot-vs-bot full match, and WASM-exported terminal traces.
+- Native visibility tests, WASM export checks, and the Briar Circuit browser
+  smoke all passed; no hidden hand, pass-selection, pass-provenance, deck, bot
+  hidden input, DOM, storage, console, trace, or replay-export leak was observed.
+
+Deviations:
+
+- The ticket's test-plan example used `cargo fmt --all -- --check`; the live
+  repository and current Cargo CLI use `cargo fmt --all --check`.
+- Capstone clippy exposed warnings in the benchmark source added by the prior
+  benchmark ticket. The warnings were fixed locally by avoiding unnecessary
+  allocation and a redundant conversion; no runtime rule behavior changed.
+- The simulator command passed with `total_actions=1000` and
+  `average_length=1.00`, reflecting the current setup-level simulation runner
+  shape for this game rather than a full-match throughput claim.

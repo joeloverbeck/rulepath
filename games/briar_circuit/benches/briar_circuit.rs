@@ -513,7 +513,8 @@ fn state_before_fourth_pass_confirm() -> BriarCircuitState {
     ] {
         select_three_and_confirm(&mut state, seat);
     }
-    for card in state.hand_for_internal(BriarCircuitSeat::Seat3)[..3].to_vec() {
+    let seat3_cards = first_three_cards(&state, BriarCircuitSeat::Seat3);
+    for card in seat3_cards {
         apply_pass_action(
             &mut state,
             BriarCircuitSeat::Seat3,
@@ -593,7 +594,7 @@ fn apply_next_pass_action(state: &mut BriarCircuitState) {
                 .is_some_and(|pass| !pass.is_committed(*seat))
         })
         .expect("pending pass seat exists");
-    let bot = BriarCircuitL1Bot::new(Seed(u64::from(state.freshness_token.0)));
+    let bot = BriarCircuitL1Bot::new(Seed(state.freshness_token.0));
     let decision = bot.select_decision(state, seat).expect("pass bot decision");
     apply_bot_decision(state, decision.action);
 }
@@ -626,11 +627,16 @@ fn apply_bot_decision(state: &mut BriarCircuitState, action: BriarCircuitBotActi
 }
 
 fn select_three_and_confirm(state: &mut BriarCircuitState, seat: BriarCircuitSeat) {
-    for card in state.hand_for_internal(seat)[..3].to_vec() {
+    for card in first_three_cards(state, seat) {
         apply_pass_action(state, seat, briar_circuit::PassAction::Select(card))
             .expect("select pass card");
     }
     apply_pass_action(state, seat, briar_circuit::PassAction::Confirm).expect("confirm pass");
+}
+
+fn first_three_cards(state: &BriarCircuitState, seat: BriarCircuitSeat) -> [CardId; 3] {
+    let hand = state.hand_for_internal(seat);
+    [hand[0], hand[1], hand[2]]
 }
 
 fn first_play_command(state: &BriarCircuitState, seat: BriarCircuitSeat) -> CommandEnvelope {

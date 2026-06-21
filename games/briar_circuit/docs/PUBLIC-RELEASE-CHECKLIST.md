@@ -37,7 +37,7 @@ browser payloads, DOM, storage, logs, exports, traces, or tests.
 | AI registry complete | pass | [AI.md](AI.md) |
 | UI doc complete | pass | [UI.md](UI.md), includes outcome section |
 | benchmarks complete | pass | [BENCHMARKS.md](BENCHMARKS.md), `cargo bench -p briar_circuit` |
-| primitive-pressure ledger complete | pass local / central pending capstone | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md); central atlas update belongs to closeout |
+| primitive-pressure ledger complete | pass | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md); central atlas no-debt confirmation recorded at capstone |
 | supported player-count smoke | pass | exactly four seats, setup rejects other counts |
 | pairwise no-leak matrix | pass | Rust visibility tests, WASM no-leak tests, Briar e2e canary scan |
 | per-seat outcome explanation | pass | [UI.md](UI.md), `check-outcome-explanations.mjs` |
@@ -138,7 +138,7 @@ browser payloads, DOM, storage, logs, exports, traces, or tests.
 
 ## Public Release Decision
 
-Decision: release with explicit constraints after capstone closeout
+Decision: release with explicit constraints
 
 Decision rationale:
 
@@ -146,8 +146,8 @@ Decision rationale:
   no-leak evidence, viewer-scoped replay/export, web renderer smoke, native
   benchmarks, and bot safety docs.
 - Level 2 is not part of the release claim.
-- The series capstone still owns central atlas/spec/index closeout and final
-  full-gate evidence aggregation.
+- The series capstone recorded central atlas/spec/index closeout and final
+  full-gate evidence aggregation on 2026-06-21.
 
 Release constraints:
 
@@ -160,10 +160,10 @@ Release constraints:
 
 | Issue | Required fix | Owner | Blocks release? |
 |---|---|---|---:|
-| central atlas/spec closeout pending | complete GAT16BRICIRTRI-018 | Rulepath | yes for gate finalization |
+| none | no blocking release issue remains after GAT16BRICIRTRI-018 closeout | Rulepath | no |
 
 ## Human Review Notes
 
 | Reviewer | Area | Notes | Date |
 |---|---|---|---|
-| pending human | IP/UI/accessibility/release | Automated/docs evidence is complete for this ticket; human release review may still inspect final public build. | 2026-06-21 |
+| pending human | IP/UI/accessibility/release | Automated/docs evidence is complete for Gate 16; human release review may still inspect final public build. | 2026-06-21 |

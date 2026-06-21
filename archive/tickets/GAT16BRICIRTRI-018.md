@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-018: Public-release closeout and Done-flip capstone
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (docs/status — `specs/README.md`, `specs/gate-16-briar-circuit-trick-taking.md`, closeout evidence)
@@ -75,3 +75,64 @@ Run the §7.1 command suite, record exact commands/versions/outcomes, the trace 
 1. `cargo fmt --all -- --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace`
 2. `cargo run -p fixture-check -- --game briar_circuit && cargo run -p rule-coverage -- --game briar_circuit && cargo run -p replay-check -- --game briar_circuit --all && cargo run -p simulate -- --game briar_circuit --seat-count 4 --games 1000 --start-seed 1600 --action-cap 4096`
 3. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:wasm && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:e2e && node scripts/check-catalog-docs.mjs && node scripts/check-outcome-explanations.mjs`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+
+- Flipped the Gate 16 Briar Circuit spec status to `Done` and recorded a compact
+  closeout ledger covering ticket archive inventory, trace/no-leak evidence,
+  benchmark receipt, source/IP posture, atlas debt, docs/catalog checks, and
+  web smoke proof.
+- Updated the public scaling tracker row in `specs/README.md` to `Done` and
+  admitted Gate 17 as the next not-started row.
+- Reconciled the Briar Circuit public-release checklist so the capstone closeout
+  is no longer listed as a blocking release issue.
+- Fixed clippy warnings in the benchmark source surfaced by the full capstone
+  gate by avoiding unnecessary allocation and a redundant conversion.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `cargo check --workspace`
+- `cargo test -p briar_circuit --test rules`
+- `cargo test -p briar_circuit --test property`
+- `cargo test -p briar_circuit --test replay`
+- `cargo test -p briar_circuit --test serialization`
+- `cargo test -p briar_circuit --test visibility`
+- `cargo test -p briar_circuit --test bots`
+- `cargo test -p briar_circuit`
+- `cargo test -p wasm-api`
+- `cargo test --workspace`
+- `cargo run -p fixture-check -- --game briar_circuit`
+- `cargo run -p rule-coverage -- --game briar_circuit`
+- `cargo run -p replay-check -- --game briar_circuit`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `cargo run -p simulate -- --game briar_circuit --seat-count 4 --games 1000 --start-seed 1600 --action-cap 4096`
+- `cargo bench -p briar_circuit`
+- `bash scripts/boundary-check.sh`
+- `rg -n 'Current debt: _None_' docs/MECHANIC-ATLAS.md`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-ci-games.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `node scripts/check-presentation-copy.mjs`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:e2e`
+
+Deviations:
+
+- The ticket's test-plan example used `cargo fmt --all -- --check`; the live
+  repository and AGENTS guidance use `cargo fmt --all --check`, which was run.
+- The capstone touched `games/briar_circuit/benches/briar_circuit.rs` only to
+  satisfy clippy in the benchmark gate added by GAT16BRICIRTRI-016. No game
+  legality, replay, visibility, WASM, or web behavior changed.
+- The simulator command passed with `total_actions=1000` and
+  `average_length=1.00`, which is recorded as the current setup-level simulator
+  proof shape for Briar Circuit rather than a full-match simulation claim.
