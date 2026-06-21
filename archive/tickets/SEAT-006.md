@@ -1,6 +1,6 @@
 # SEAT-006: Cross-game seat-label consistency integration test
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `apps/web` integration test (and optional wasm-api assertion); no product code change
@@ -105,3 +105,37 @@ layer.
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
 3. `cargo test -p wasm-api`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+- Added `apps/web/e2e/seat-label-consistency.smoke.mjs`, a browser smoke that
+  reads Rust catalog `seat_labels` from the built WASM artifact, renders the app,
+  and compares catalog labels against both SeatFrame viewer/rail labels and
+  play-area board labels.
+- Covered the three active label schemes: Race to 21 (`Player 1/2`), Briar
+  Circuit (`Seat 1..4`, the originally reported mismatch class), and River
+  Ledger (`Seat 1..6` multi-seat labels).
+- Wired the new smoke into `npm --prefix apps/web run smoke:e2e` immediately
+  after the shell smoke so future full e2e runs fail on viewer/play-area/catalog
+  divergence.
+
+Deviations:
+- Did not add the optional Rust-side `crates/wasm-api/src/tests.rs` assertion;
+  SEAT-001/SEAT-002 already pin catalog label production, and this ticket's
+  missing guard was the web integration equality across catalog, VIEWER, and
+  play-area surfaces.
+- The integration smoke covers one representative game per label scheme rather
+  than every registered board, matching the ticket's fallback coverage guidance
+  because each board exposes labels through different DOM structures.
+- The first parallel verification attempt of `smoke:e2e` overlapped a
+  concurrent `smoke:ui` build and failed in Vite output cleanup with `ENOTEMPTY`
+  under `apps/web/dist/rules`; rerunning `smoke:e2e` by itself passed.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/seat-label-consistency.smoke.mjs` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
