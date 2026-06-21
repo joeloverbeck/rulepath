@@ -1,6 +1,6 @@
 # SEAT-003: Add a shared TypeScript seat-label resolver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `apps/web` only (new presentation helper; no Rust/engine change)
@@ -104,3 +104,27 @@ Reuse the existing `SeatDisplayLabel` type; do not redeclare it.
 
 1. `npm --prefix apps/web test -- seatLabels`
 2. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+- Added `apps/web/src/seatLabels.ts` with `resolveSeatLabel` and
+  `resolveSeatLabels`.
+- The resolver prefers Rust-projected `active_seat_labels`, then catalog
+  `seat_labels`, then catalog `ui.seat_labels`, and only then uses a defensive
+  1-based fallback.
+- Added `apps/web/src/seatLabels.test.ts` covering source precedence, list
+  resolution, 1-based fallback behavior, non-seat fallback behavior, and the
+  dev-warning path.
+
+Deviations:
+- The package has no `npm --prefix apps/web test` script. The TypeScript test was
+  executed by bundling it with the existing `esbuild` dependency and running the
+  bundled module with Node.
+
+Verification:
+- `npm exec esbuild -- src/seatLabels.test.ts --bundle --format=esm --platform=node --outfile=/tmp/rulepath-seatLabels.test.mjs` passed from `apps/web/`.
+- `node /tmp/rulepath-seatLabels.test.mjs` passed.
+- `npm --prefix apps/web run build` passed.
