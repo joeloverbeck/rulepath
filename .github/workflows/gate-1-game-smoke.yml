@@ -3,8 +3,9 @@ name: Gate 1 game smoke
 # Build-once + per-game matrix (see docs/plans/2026-06-14-gate-1-ci-split-design.md):
 # - `build` compiles the four check tools and the web app once and uploads them
 #   as artifacts.
-# - `game` fans out one parallel lane per game (driven by ci/games.json) for the
-#   simulation / replay / fixture / coverage / per-game e2e checks, so wall-clock
+# - `game` fans out one parallel lane per game (driven by ci/games.json,
+#   including each game's optional e2e script) for the simulation / replay /
+#   fixture / coverage / per-game e2e checks, so wall-clock
 #   stays flat as games are added instead of growing serially.
 # - `repo-checks` runs the game-independent checks (boundary, docs, cross-cutting
 #   smokes and e2e) exactly once.

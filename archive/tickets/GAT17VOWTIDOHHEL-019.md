@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-019: E2E smoke, accessibility/no-leak, catalog README reconciliation, CI wiring
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (audit + e2e) — new `apps/web/e2e/vow-tide.smoke.mjs`; modifies `ci/games.json`, `apps/web/README.md`, `README.md`, `.github/workflows/gate-1-game-smoke.yml`
@@ -77,3 +77,23 @@ Add the `vow_tide` row to `ci/games.json` (`"--seat-count 4 --action-cap 2048"`,
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-ci-games.mjs`
 3. Narrower command rationale: the e2e smoke + catalog check are the browser-acceptance boundary; native evidence is covered by the per-crate suites.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added `apps/web/e2e/vow-tide.smoke.mjs` covering 3-seat setup, 7-seat setup, seven-seat viewer selection, observer/private no-leak, legal bid/card controls, keyboard activation, hotseat handoff, dealer-hook bid exclusion, public replay import/export, reduced motion, and responsive layout.
+- Wired Vow Tide into `ci/games.json`, `apps/web/package.json` `smoke:e2e`, root/web catalog README surfaces, and the gate-1 workflow comment describing the manifest-driven per-game e2e lane.
+- Updated the cross-cutting rules-display smoke's explicit catalog list for Vow Tide.
+- Fixed the browser acceptance bugs exposed by the new seven-seat smoke: Vow WASM views now project active seat labels for the selected seat count, and the shared viewer-id guard permits `seat_6`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/rules-display.smoke.mjs`
+- `node apps/web/e2e/vow-tide.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `cargo test -p wasm-api`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-ci-games.mjs`

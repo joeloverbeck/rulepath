@@ -182,7 +182,7 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         PrivateView::Observer => String::new(),
     };
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"dealer\":\"{}\",\"hand_index\":{},\"hand_size\":{},\"hand_schedule\":{},\"trump_indicator\":{},\"hand_counts\":{},\"hidden_stock_count\":{},\"public_bids\":{},\"trick_counts\":{},\"cumulative_scores\":{},\"current_trick\":{},\"captured_tricks_count\":{},\"completed_hand_count\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"hidden_stock\",\"deck_order\"],\"ui\":{{\"action_families\":[\"bid\",\"play\"]}}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"active_seat_labels\":[{}],\"dealer\":\"{}\",\"hand_index\":{},\"hand_size\":{},\"hand_schedule\":{},\"trump_indicator\":{},\"hand_counts\":{},\"hidden_stock_count\":{},\"public_bids\":{},\"trick_counts\":{},\"cumulative_scores\":{},\"current_trick\":{},\"captured_tricks_count\":{},\"completed_hand_count\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"hidden_stock\",\"deck_order\"],\"ui\":{{\"action_families\":[\"bid\",\"play\"]}}}}",
         SCHEMA_VERSION,
         RULES_VERSION,
         escape_json(GAME_VOW_TIDE),
@@ -191,6 +191,7 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         escape_json(vow_tide::ids::RULES_VERSION_LABEL),
         escape_json(&view.phase),
         option_vow_seat_json(view.active_seat),
+        vow_active_seat_labels_json(view),
         view.dealer.as_str(),
         view.hand_index,
         view.hand_size,
@@ -209,6 +210,21 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         private_status,
         own_hand
     )
+}
+
+fn vow_active_seat_labels_json(view: &PublicView) -> String {
+    view.seats
+        .iter()
+        .zip(view.seat_labels.iter())
+        .map(|(seat, label)| {
+            format!(
+                "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
+                escape_json(seat),
+                escape_json(label)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 pub(crate) fn vow_effects_json(

@@ -1243,7 +1243,7 @@ function activeViewerSeatIds(view: PublicView | null, game: GameCatalogEntry | n
 }
 
 function isViewerSeatId(value: string): value is ViewerSeatId {
-  return ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"].includes(value);
+  return ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5", "seat_6"].includes(value);
 }
 
 function GenericGameSurface({
