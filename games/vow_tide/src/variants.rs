@@ -1,9 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::ids::{
-    DATA_VERSION_LABEL, GAME_ID, RULES_VERSION_LABEL, STANDARD_CARD_COUNT, STANDARD_DEFAULT_SEATS,
-    STANDARD_MAX_HAND_SIZE, STANDARD_MAX_SEATS, STANDARD_MIN_SEATS, STANDARD_RANK_COUNT,
-    STANDARD_SUIT_COUNT, VARIANT_ID,
+    DATA_VERSION_LABEL, GAME_ID, RULES_VERSION_LABEL, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS,
+    STANDARD_MIN_SEATS, VARIANT_ID,
 };
 
 const BEHAVIOR_KEYS: &[&str] = &[
@@ -51,12 +50,11 @@ pub struct Manifest {
     pub default_seats: u8,
     pub max_seats: u8,
     pub supported_seats: String,
-    pub suit_count: u8,
-    pub rank_count: u8,
-    pub card_count: u8,
-    pub max_hand_size: u8,
-    pub schedule: String,
-    pub deck_order: String,
+    pub seat_label_prefix: String,
+    pub public_family_label: String,
+    pub card_back_style: String,
+    pub trump_indicator_label: String,
+    pub stock_label: String,
 }
 
 impl Manifest {
@@ -78,12 +76,11 @@ impl Manifest {
                 "default_seats",
                 "max_seats",
                 "supported_seats",
-                "suit_count",
-                "rank_count",
-                "card_count",
-                "max_hand_size",
-                "schedule",
-                "deck_order",
+                "seat_label_prefix",
+                "public_family_label",
+                "card_back_style",
+                "trump_indicator_label",
+                "stock_label",
             ],
         )?;
 
@@ -101,12 +98,11 @@ impl Manifest {
             default_seats: required_u8(&values, "default_seats")?,
             max_seats: required_u8(&values, "max_seats")?,
             supported_seats: required_string(&values, "supported_seats")?,
-            suit_count: required_u8(&values, "suit_count")?,
-            rank_count: required_u8(&values, "rank_count")?,
-            card_count: required_u8(&values, "card_count")?,
-            max_hand_size: required_u8(&values, "max_hand_size")?,
-            schedule: required_string(&values, "schedule")?,
-            deck_order: required_string(&values, "deck_order")?,
+            seat_label_prefix: required_string(&values, "seat_label_prefix")?,
+            public_family_label: required_string(&values, "public_family_label")?,
+            card_back_style: required_string(&values, "card_back_style")?,
+            trump_indicator_label: required_string(&values, "trump_indicator_label")?,
+            stock_label: required_string(&values, "stock_label")?,
         })
     }
 }
@@ -130,13 +126,12 @@ impl VariantCatalog {
                 "default_seats",
                 "max_seats",
                 "supported_seats",
-                "suit_count",
-                "rank_count",
-                "card_count",
-                "max_hand_size",
-                "schedule",
-                "deck_order",
-                "terminal_outcomes",
+                "seat_label_prefix",
+                "public_family_label",
+                "card_back_style",
+                "trump_indicator_label",
+                "stock_label",
+                "co_winner_label",
             ],
         )?;
 
@@ -150,13 +145,12 @@ impl VariantCatalog {
                 default_seats: required_u8(&values, "default_seats")?,
                 max_seats: required_u8(&values, "max_seats")?,
                 supported_seats: required_string(&values, "supported_seats")?,
-                suit_count: required_u8(&values, "suit_count")?,
-                rank_count: required_u8(&values, "rank_count")?,
-                card_count: required_u8(&values, "card_count")?,
-                max_hand_size: required_u8(&values, "max_hand_size")?,
-                schedule: required_string(&values, "schedule")?,
-                deck_order: required_string(&values, "deck_order")?,
-                terminal_outcomes: required_string(&values, "terminal_outcomes")?,
+                seat_label_prefix: required_string(&values, "seat_label_prefix")?,
+                public_family_label: required_string(&values, "public_family_label")?,
+                card_back_style: required_string(&values, "card_back_style")?,
+                trump_indicator_label: required_string(&values, "trump_indicator_label")?,
+                stock_label: required_string(&values, "stock_label")?,
+                co_winner_label: required_string(&values, "co_winner_label")?,
             },
         })
     }
@@ -172,13 +166,12 @@ pub struct Variant {
     pub default_seats: u8,
     pub max_seats: u8,
     pub supported_seats: String,
-    pub suit_count: u8,
-    pub rank_count: u8,
-    pub card_count: u8,
-    pub max_hand_size: u8,
-    pub schedule: String,
-    pub deck_order: String,
-    pub terminal_outcomes: String,
+    pub seat_label_prefix: String,
+    pub public_family_label: String,
+    pub card_back_style: String,
+    pub trump_indicator_label: String,
+    pub stock_label: String,
+    pub co_winner_label: String,
 }
 
 impl Variant {
@@ -192,14 +185,12 @@ impl Variant {
             default_seats: STANDARD_DEFAULT_SEATS,
             max_seats: STANDARD_MAX_SEATS,
             supported_seats: "3,4,5,6,7".to_owned(),
-            suit_count: STANDARD_SUIT_COUNT,
-            rank_count: STANDARD_RANK_COUNT,
-            card_count: STANDARD_CARD_COUNT,
-            max_hand_size: STANDARD_MAX_HAND_SIZE,
-            schedule: "max_hand_size_down_to_1_up_to_max_hand_size".to_owned(),
-            deck_order: "standard_52_cards_clubs_diamonds_hearts_spades_rank_ascending_v1"
-                .to_owned(),
-            terminal_outcomes: "highest_score_wins_ties_allowed".to_owned(),
+            seat_label_prefix: "Tide".to_owned(),
+            public_family_label: "exact-bid trick-taking".to_owned(),
+            card_back_style: "rulepath-vow-tide-back-v1".to_owned(),
+            trump_indicator_label: "Trump indicator".to_owned(),
+            stock_label: "Hidden stock".to_owned(),
+            co_winner_label: "Co-winner".to_owned(),
         }
     }
 
@@ -223,7 +214,7 @@ pub fn expected_manifest() -> Manifest {
     Manifest {
         game_id: GAME_ID.to_owned(),
         display_name: "Vow Tide".to_owned(),
-        readiness: "scaffold".to_owned(),
+        readiness: "fixture-checked".to_owned(),
         rules_version: 1,
         rules_version_label: RULES_VERSION_LABEL.to_owned(),
         data_version: 1,
@@ -234,12 +225,11 @@ pub fn expected_manifest() -> Manifest {
         default_seats: STANDARD_DEFAULT_SEATS,
         max_seats: STANDARD_MAX_SEATS,
         supported_seats: "3,4,5,6,7".to_owned(),
-        suit_count: STANDARD_SUIT_COUNT,
-        rank_count: STANDARD_RANK_COUNT,
-        card_count: STANDARD_CARD_COUNT,
-        max_hand_size: STANDARD_MAX_HAND_SIZE,
-        schedule: "max_hand_size_down_to_1_up_to_max_hand_size".to_owned(),
-        deck_order: "standard_52_cards_clubs_diamonds_hearts_spades_rank_ascending_v1".to_owned(),
+        seat_label_prefix: "Tide".to_owned(),
+        public_family_label: "exact-bid trick-taking".to_owned(),
+        card_back_style: "rulepath-vow-tide-back-v1".to_owned(),
+        trump_indicator_label: "Trump indicator".to_owned(),
+        stock_label: "Hidden stock".to_owned(),
     }
 }
 

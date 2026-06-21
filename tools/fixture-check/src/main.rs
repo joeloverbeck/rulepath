@@ -24,6 +24,15 @@ const BEHAVIOR_KEYS: &[&str] = &[
     "valid_if",
     "on_play",
     "on_reveal",
+    "formula",
+    "score_formula",
+    "tie_break_formula",
+    "trick_winner_formula",
+    "follow_suit_formula",
+    "deal_formula",
+    "rotation_formula",
+    "bid_formula",
+    "bot_policy",
 ];
 
 const ALLOWED_JSON_KEYS: &[&str] = &[
@@ -146,6 +155,32 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "public_view_summary",
     "public_effects",
     "redacted_command_summary",
+];
+
+const VOW_TIDE_ALLOWED_JSON_KEYS: &[&str] = &[
+    "schema_version",
+    "trace_id",
+    "fixture_kind",
+    "purpose",
+    "game_id",
+    "rules_version",
+    "engine_version",
+    "data_version",
+    "seed",
+    "variant",
+    "seats",
+    "seat_count",
+    "expected_dealer",
+    "expected_first_leader",
+    "expected_hand_size",
+    "expected_hand_count",
+    "expected_trump_public",
+    "expected_hidden_stock_count",
+    "expected_hook_prefix_total",
+    "expected_hook_forbidden_bid",
+    "expected_terminal_winners",
+    "expected_competition_ranks",
+    "note",
 ];
 
 fn main() {
@@ -343,6 +378,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/briar_circuit/data/variants.toml",
             variant_id: "briar_circuit_standard",
         }),
+        "vow_tide" => Ok(RegisteredGame {
+            game_id: "vow_tide",
+            rules_version: "vow-tide-rules-v1",
+            trace_dir: "games/vow_tide/data/fixtures",
+            fixture_dir: "games/vow_tide/data/fixtures",
+            manifest_path: "games/vow_tide/data/manifest.toml",
+            variants_path: "games/vow_tide/data/variants.toml",
+            variant_id: "vow_tide_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -396,9 +440,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -670,6 +714,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "vow_tide" => {
+            let manifest = vow_tide::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = vow_tide::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -760,6 +819,9 @@ fn validate_trace(
     }
     if game.game_id == "briar_circuit" {
         return validate_briar_circuit_fixture(game, path, input, seen_ids);
+    }
+    if game.game_id == "vow_tide" {
+        return validate_vow_tide_fixture(game, path, input, seen_ids);
     }
     if input.contains("\"export_class\":") {
         return validate_public_export_fixture(game, path, input);
@@ -971,6 +1033,120 @@ fn validate_briar_circuit_fixture(
             path.display(),
             game.rules_version
         ));
+    }
+    Ok(())
+}
+
+fn validate_vow_tide_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+        if !VOW_TIDE_ALLOWED_JSON_KEYS.contains(&key.as_str()) {
+            return Err(format!("{}: unknown field `{key}`", path.display()));
+        }
+    }
+    let trace_id = required_string(path, input, "trace_id")?;
+    if !trace_id.starts_with("vow_tide_") {
+        return Err(format!(
+            "{}: vow_tide trace_id must start with vow_tide_",
+            path.display()
+        ));
+    }
+    if !seen_ids.insert(trace_id.clone()) {
+        return Err(format!(
+            "{}: duplicate trace_id `{trace_id}`",
+            path.display()
+        ));
+    }
+    if required_number(path, input, "schema_version")? != 1 {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if required_string(path, input, "game_id")? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if required_string(path, input, "rules_version")? != game.rules_version {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
+    if required_number(path, input, "data_version")? != 1 {
+        return Err(format!("{}: data_version must be 1", path.display()));
+    }
+    if required_string(path, input, "variant")? != game.variant_id {
+        return Err(format!(
+            "{}: variant must be {}",
+            path.display(),
+            game.variant_id
+        ));
+    }
+    if required_string(path, input, "purpose")?.trim().is_empty() {
+        return Err(format!("{}: purpose must be non-empty", path.display()));
+    }
+    let fixture_kind = required_string(path, input, "fixture_kind")?;
+    if !matches!(
+        fixture_kind.as_str(),
+        "setup" | "bidding_hook" | "terminal_tie"
+    ) {
+        return Err(format!(
+            "{}: unsupported vow_tide fixture_kind `{fixture_kind}`",
+            path.display()
+        ));
+    }
+    let seats = optional_string_array_field(input, "seats")
+        .ok_or_else(|| format!("{}: missing string array `seats`", path.display()))?;
+    if !(3..=7).contains(&seats.len()) {
+        return Err(format!(
+            "{}: vow_tide seats must contain 3, 4, 5, 6, or 7 seats",
+            path.display()
+        ));
+    }
+    for (index, seat) in seats.iter().enumerate() {
+        if seat != &format!("seat_{index}") {
+            return Err(format!(
+                "{}: vow_tide seat order must be stable seat_N order",
+                path.display()
+            ));
+        }
+    }
+    if required_number(path, input, "seat_count")? != seats.len() as u64 {
+        return Err(format!(
+            "{}: seat_count must match seats length",
+            path.display()
+        ));
+    }
+    for field in [
+        "expected_dealer",
+        "expected_first_leader",
+        "expected_hand_size",
+        "expected_hand_count",
+        "expected_trump_public",
+        "expected_hidden_stock_count",
+    ] {
+        require_key(path, input, field)?;
+    }
+    if fixture_kind == "bidding_hook" {
+        require_key(path, input, "expected_hook_prefix_total")?;
+        require_key(path, input, "expected_hook_forbidden_bid")?;
+    }
+    if fixture_kind == "terminal_tie" {
+        require_key(path, input, "expected_terminal_winners")?;
+        require_key(path, input, "expected_competition_ranks")?;
     }
     Ok(())
 }
@@ -1355,6 +1531,27 @@ mod tests {
 
     const VALID: &str =
         include_str!("../../../games/race_to_n/tests/golden_traces/shortest-normal.trace.json");
+    const VALID_VOW_TIDE_FIXTURE: &str = r#"{
+      "schema_version": 1,
+      "trace_id": "vow_tide_test_fixture",
+      "fixture_kind": "setup",
+      "purpose": "test fixture",
+      "game_id": "vow_tide",
+      "rules_version": "vow-tide-rules-v1",
+      "engine_version": "engine-core-0.1.0",
+      "data_version": 1,
+      "seed": 1,
+      "variant": "vow_tide_standard",
+      "seats": ["seat_0", "seat_1", "seat_2"],
+      "seat_count": 3,
+      "expected_dealer": "seat_0",
+      "expected_first_leader": "seat_1",
+      "expected_hand_size": 10,
+      "expected_hand_count": 19,
+      "expected_trump_public": true,
+      "expected_hidden_stock_count": 21,
+      "note": "test"
+    }"#;
 
     fn validate_one(input: &str) -> Result<(), String> {
         let mut seen = HashSet::new();
@@ -1388,6 +1585,42 @@ mod tests {
         let err = validate_one(&input).unwrap_err();
 
         assert!(err.contains("behavior-looking key `trigger`"));
+    }
+
+    #[test]
+    fn vow_tide_fixture_behavior_key_fails() {
+        let input = VALID_VOW_TIDE_FIXTURE.replace(
+            r#""note": "test""#,
+            r#""note": "test", "score_formula": "10 + bid""#,
+        );
+        let mut seen = HashSet::new();
+        let err = validate_vow_tide_fixture(
+            resolve_game("vow_tide").unwrap(),
+            Path::new("vow_tide_test.fixture.json"),
+            &input,
+            &mut seen,
+        )
+        .unwrap_err();
+
+        assert!(err.contains("behavior-looking key `score_formula`"));
+    }
+
+    #[test]
+    fn vow_tide_fixture_unknown_key_fails() {
+        let input = VALID_VOW_TIDE_FIXTURE.replace(
+            r#""note": "test""#,
+            r#""note": "test", "unknown_field": "nope""#,
+        );
+        let mut seen = HashSet::new();
+        let err = validate_vow_tide_fixture(
+            resolve_game("vow_tide").unwrap(),
+            Path::new("vow_tide_test.fixture.json"),
+            &input,
+            &mut seen,
+        )
+        .unwrap_err();
+
+        assert!(err.contains("unknown field `unknown_field`"));
     }
 
     #[test]

@@ -22,6 +22,7 @@ river_ledger = { path = "../../games/river_ledger" }
 secret_draft = { path = "../../games/secret_draft" }
 three_marks = { path = "../../games/three_marks" }
 token_bazaar = { path = "../../games/token_bazaar" }
+vow_tide = { path = "../../games/vow_tide" }
 
 [[bin]]
 name = "fixture-check"

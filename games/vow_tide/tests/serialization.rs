@@ -8,7 +8,9 @@ use vow_tide::{
     replay_support::{export_for_viewer, import_viewer_export, observer},
     scoring::terminal_outcome,
     setup::{setup_match, SetupOptions},
-    variants::{expected_manifest, load_manifest, load_variants, Variant},
+    variants::{
+        expected_manifest, load_manifest, load_variants, Manifest, Variant, VariantCatalog,
+    },
 };
 
 #[test]
@@ -60,6 +62,29 @@ fn metadata_stubs_load_inert_standard_content() {
 
     assert_eq!(manifest, expected_manifest());
     assert_eq!(variants.selected, Variant::vow_tide_standard());
+}
+
+#[test]
+fn metadata_rejects_unknown_and_behavior_looking_fields() {
+    let manifest = include_str!("../data/manifest.toml");
+    let unknown_manifest = format!("{manifest}\nunknown_field = \"not allowed\"\n");
+    let behavior_manifest = format!("{manifest}\nscore_formula = \"10 + bid\"\n");
+    assert!(Manifest::parse(&unknown_manifest)
+        .expect_err("unknown field rejected")
+        .contains("unknown field"));
+    assert!(Manifest::parse(&behavior_manifest)
+        .expect_err("behavior field rejected")
+        .contains("behavior-looking field"));
+
+    let variants = include_str!("../data/variants.toml");
+    let unknown_variants = format!("{variants}\nunknown_field = \"not allowed\"\n");
+    let behavior_variants = format!("{variants}\nbot_policy = \"peek\"\n");
+    assert!(VariantCatalog::parse(&unknown_variants)
+        .expect_err("unknown field rejected")
+        .contains("unknown field"));
+    assert!(VariantCatalog::parse(&behavior_variants)
+        .expect_err("behavior field rejected")
+        .contains("behavior-looking field"));
 }
 
 #[test]

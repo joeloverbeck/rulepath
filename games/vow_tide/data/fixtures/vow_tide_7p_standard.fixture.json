@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "trace_id": "vow_tide_7p_standard",
+  "fixture_kind": "setup",
+  "purpose": "seven-seat deterministic setup metadata",
+  "game_id": "vow_tide",
+  "rules_version": "vow-tide-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": 1,
+  "seed": 170715,
+  "variant": "vow_tide_standard",
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5", "seat_6"],
+  "seat_count": 7,
+  "expected_dealer": "seat_0",
+  "expected_first_leader": "seat_1",
+  "expected_hand_size": 7,
+  "expected_hand_count": 13,
+  "expected_trump_public": true,
+  "expected_hidden_stock_count": 2,
+  "note": "Fixture carries expected setup metadata only; schedule and deal behavior remain Rust-owned."
+}

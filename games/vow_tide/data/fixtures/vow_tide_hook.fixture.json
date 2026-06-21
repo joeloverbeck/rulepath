@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "trace_id": "vow_tide_hook",
+  "fixture_kind": "bidding_hook",
+  "purpose": "dealer hook metadata for a four-seat opening hand",
+  "game_id": "vow_tide",
+  "rules_version": "vow-tide-rules-v1",
+  "engine_version": "engine-core-0.1.0",
+  "data_version": 1,
+  "seed": 170716,
+  "variant": "vow_tide_standard",
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "seat_count": 4,
+  "expected_dealer": "seat_0",
+  "expected_first_leader": "seat_1",
+  "expected_hand_size": 10,
+  "expected_hand_count": 19,
+  "expected_trump_public": true,
+  "expected_hidden_stock_count": 11,
+  "expected_hook_prefix_total": 9,
+  "expected_hook_forbidden_bid": 1,
+  "note": "Fixture names hook evidence values; hook legality remains Rust-owned."
+}

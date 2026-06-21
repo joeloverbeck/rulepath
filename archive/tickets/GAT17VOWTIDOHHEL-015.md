@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-015: Data manifest/variants/fixtures and fixture-check registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — finalizes `games/vow_tide/data/{manifest,variants}.toml`, new `games/vow_tide/data/fixtures/*.json`, `load_manifest`/`load_variants`; modifies `tools/fixture-check/src/main.rs`
@@ -79,3 +79,17 @@ Add the `vow_tide` `resolve_game()` arm with all paths + `variant_id = "vow_tide
 1. `cargo run -p fixture-check -- --game vow_tide`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: fixture-check is the static-data boundary validator; rule/replay coverage are proven by their own tools (016).
+
+## Outcome
+
+Completed 2026-06-21. Finalized Vow Tide's typed static-data boundary so `manifest.toml` and `variants.toml` carry identity, version, supported-seat, and presentation metadata only. Removed scaffold schedule/deck/scoring-style metadata from the data layer and kept those behaviors Rust-owned. Added declarative setup/hook/terminal-tie fixtures for 3, 4, 6, and 7 seats plus fixture-check registration for `vow_tide`.
+
+Fixture-check now validates Vow Tide fixture schema, version consistency, stable `seat_N` ordering, supported seat counts, unknown-key rejection, and behavior-looking key rejection, including formula and bot-policy keys. Game-level metadata parser tests also assert unknown and behavior-looking TOML fields fail closed.
+
+Verification:
+
+1. `cargo fmt --all --check` passed.
+2. `cargo run -p fixture-check -- --game vow_tide` passed.
+3. `cargo test -p vow_tide` passed.
+4. `cargo build -p fixture-check` passed.
+5. `cargo test -p fixture-check` passed, including Vow Tide unknown-field and `score_formula` behavior-key rejection assertions.
