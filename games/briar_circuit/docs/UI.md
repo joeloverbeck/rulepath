@@ -41,6 +41,7 @@ React + SVG/HTML remains the renderer. Canvas/PixiJS is not needed.
 | pass controls | up to 13 select/unselect controls plus confirm | 14 controls | keyboard usable | `briar-circuit.smoke.mjs` |
 | current trick | 0-4 public cards | 4 | effect-driven reveal class, reduced-motion safe | `BriarCircuitBoard.tsx` |
 | captured tricks | 0-13 rows | 13 rows / 52 public card ids after play | scroll/readable history | `briar-circuit.smoke.mjs` |
+| between-hands summary | 4 score rows when a hand just closed | 4 | dismissible panel from the projected `last_hand_summary` (public scoring only) | `BriarCircuitBoard.tsx` |
 | outcome panel | 4 standing rows | 4 | shared outcome panel | `check-outcome-explanations.mjs` |
 
 ## Multi-Seat Layout

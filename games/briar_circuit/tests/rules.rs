@@ -752,3 +752,29 @@ fn second_hand_deal_is_deterministic_for_a_fixed_seed() {
         "the same seed reproduces the same second-hand deal"
     );
 }
+
+#[test]
+fn completed_hand_retains_public_scoring_summary_for_between_hands_display() {
+    let mut state =
+        setup_match(Seed(1606), &seats(4), &SetupOptions::default()).expect("setup succeeds");
+    assert!(
+        state.last_hand_summary.is_none(),
+        "no hand summary exists before any hand completes"
+    );
+
+    drive_until_hand_advances(&mut state);
+
+    let summary = state
+        .last_hand_summary
+        .as_ref()
+        .expect("a completed hand retains its public scoring summary");
+    assert_eq!(
+        summary.cumulative_after, state.cumulative_scores,
+        "summary cumulative matches the live cumulative scores"
+    );
+    let total_additions: u16 = summary.hand_additions.iter().map(|v| u16::from(*v)).sum();
+    assert!(
+        total_additions == 26 || total_additions == 78,
+        "hand additions conserve the 26 raw points (or 78 across a moon), got {total_additions}"
+    );
+}

@@ -17,6 +17,16 @@ pub struct PassView {
     pub own_committed: bool,
 }
 
+/// Public scoring summary of the most recently completed hand, shown between
+/// hands in the browser. Carries only public scoring facts (no card identities).
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HandSummaryView {
+    pub raw_points: [u8; 4],
+    pub hand_additions: [u8; 4],
+    pub cumulative_after: [u16; 4],
+    pub moon_shooter: Option<BriarCircuitSeat>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BriarCircuitView {
     pub viewer_seat: Option<BriarCircuitSeat>,
@@ -31,6 +41,7 @@ pub struct BriarCircuitView {
     pub hearts_broken: Option<bool>,
     pub current_trick: Vec<TrickPlay>,
     pub captured_tricks: Vec<CapturedTrick>,
+    pub last_hand_summary: Option<HandSummaryView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -80,6 +91,15 @@ pub fn project_view(state: &BriarCircuitState, viewer: &Viewer) -> BriarCircuitV
         hearts_broken,
         current_trick,
         captured_tricks: state.captured_tricks.clone(),
+        last_hand_summary: state
+            .last_hand_summary
+            .as_ref()
+            .map(|breakdown| HandSummaryView {
+                raw_points: breakdown.raw_points,
+                hand_additions: breakdown.hand_additions,
+                cumulative_after: breakdown.cumulative_after,
+                moon_shooter: breakdown.moon_shooter,
+            }),
     }
 }
 

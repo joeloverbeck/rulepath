@@ -177,6 +177,9 @@ pub fn apply_play_card(
             hand_completed = true;
             let scoring = score_completed_hand(&state.captured_tricks, state.cumulative_scores);
             state.cumulative_scores = scoring.cumulative_after;
+            // Retain the just-completed hand's public scoring so the browser can show a
+            // between-hands summary while (for non-terminal hands) the next hand is dealt.
+            state.last_hand_summary = Some(scoring.clone());
             match terminal_outcome_for(&scoring.outcome) {
                 Some(outcome) => state.phase = Phase::Terminal(outcome),
                 // The match threshold is never reached in a single hand, so any

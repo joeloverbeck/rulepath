@@ -50,7 +50,7 @@ pub use state::{
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
     effect_envelopes, filter_effects_for_viewer, project_action_previews, project_pass_view,
-    project_view, ActionPreview, BriarCircuitView, PassView,
+    project_view, ActionPreview, BriarCircuitView, HandSummaryView, PassView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

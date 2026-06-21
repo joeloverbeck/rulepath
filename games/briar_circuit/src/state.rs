@@ -211,6 +211,10 @@ pub struct BriarCircuitState {
     /// reproducibly during replay. Excluded from `stable_internal_summary` and
     /// every viewer projection so it never alters hashes or leaks deal material.
     pub seed: Seed,
+    /// Public scoring breakdown of the most recently completed hand, retained so
+    /// the browser can show a between-hands summary while the next hand is dealt.
+    /// Cleared on setup; set whenever a hand finishes. Only public scoring facts.
+    pub last_hand_summary: Option<HandScoreBreakdown>,
 }
 
 impl BriarCircuitState {
@@ -241,6 +245,7 @@ impl BriarCircuitState {
             captured_tricks: Vec::new(),
             freshness_token: FreshnessToken(0),
             seed: Seed(0),
+            last_hand_summary: None,
         }
     }
 
@@ -276,6 +281,7 @@ impl BriarCircuitState {
             captured_tricks: Vec::new(),
             freshness_token: FreshnessToken(0),
             seed: Seed(0),
+            last_hand_summary: None,
         }
     }
 
