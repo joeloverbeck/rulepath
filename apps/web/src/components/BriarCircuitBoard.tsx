@@ -242,7 +242,13 @@ export function BriarCircuitBoard({
           ) : null}
           <div className="briar-trick-cards">
             {view.current_trick.length === 0 ? (
-              <p className="muted">Waiting for a legal play.</p>
+              <p className="muted">
+                {view.phase === "terminal"
+                  ? "The match is complete. See the result below."
+                  : view.phase === "passing"
+                    ? "The trick begins once every seat has passed."
+                    : "Waiting for a legal play."}
+              </p>
             ) : (
               view.current_trick.map((play, index) => {
                 const { rank, suit } = splitCardId(play.card);
@@ -490,14 +496,19 @@ function SeatPanel({
 }) {
   const active = view.active_seat === seat;
   const viewer = view.viewer_seat === seat;
+  // At terminal, Rust has resolved a unique lowest cumulative score; the shared
+  // outcome panel marks the same seat the winner. Surface it on the score rail too,
+  // where players are already watching the running totals.
+  const winner = view.phase === "terminal" && seat === lowestScoreSeat(view);
   return (
-    <article className={`briar-seat ${active ? "active" : ""}${viewer ? " viewer" : ""}`}>
+    <article className={`briar-seat ${active ? "active" : ""}${viewer ? " viewer" : ""}${winner ? " winner" : ""}`}>
       {/* The seat label must stay the sole direct-child <span> of .briar-seat:
           seat-label-consistency.smoke.mjs reads ".briar-seat > span" and asserts
           it equals the Rust catalog labels. Tags/points are non-span elements. */}
       <span>{seatLabel(seat)}</span>
-      {viewer || active ? (
+      {viewer || active || winner ? (
         <div className="briar-seat-tags">
+          {winner ? <em className="briar-seat-tag winner">Winner</em> : null}
           {viewer ? <em className="briar-seat-tag you">You</em> : null}
           {active ? <em className="briar-seat-tag turn">To play</em> : null}
         </div>
@@ -608,10 +619,18 @@ function statusLabel(view: BriarCircuitPublicView): string {
   if (view.phase === "playing") {
     return view.active_seat ? `${seatLabel(view.active_seat)} to play` : "Playing";
   }
+  if (view.phase === "terminal") {
+    // Rust resolves the match to a unique lowest cumulative score (BC-MATCH-003);
+    // the shared outcome panel names the same winner from this projected view.
+    return `Match complete — ${seatLabel(lowestScoreSeat(view))} wins`;
+  }
   return view.phase;
 }
 
 function turnLabel(view: BriarCircuitPublicView): string {
+  if (view.phase === "terminal") {
+    return "Final";
+  }
   return view.active_seat ? seatLabel(view.active_seat) : view.pass ? `${view.pass.pending_count} pending` : view.phase;
 }
 

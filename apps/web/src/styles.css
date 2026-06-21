@@ -829,6 +829,12 @@ h2 {
   box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.32);
 }
 
+.briar-seat.winner {
+  border-color: #b8860b;
+  background: #fdf6e3;
+  box-shadow: inset 0 0 0 2px rgba(184, 134, 11, 0.35);
+}
+
 .briar-seat-tags {
   display: flex;
   align-items: center;
@@ -853,6 +859,11 @@ h2 {
 
 .briar-seat .briar-seat-tag.turn {
   background: #2b8068;
+  color: #ffffff;
+}
+
+.briar-seat .briar-seat-tag.winner {
+  background: #b8860b;
   color: #ffffff;
 }
 
