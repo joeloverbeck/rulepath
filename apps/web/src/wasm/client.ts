@@ -1038,6 +1038,8 @@ export type BriarCircuitPassView = {
   own_committed: boolean;
 };
 
+export type BriarCircuitOutcomeRationale = OutcomeRationalePayload;
+
 export type BriarCircuitPublicView = {
   schema_version: number;
   rules_version: number;
@@ -1059,6 +1061,7 @@ export type BriarCircuitPublicView = {
   captured_tricks: BriarCircuitCapturedTrickView[];
   freshness_token: number;
   private_view_status: "observer" | "seat";
+  terminal_rationale?: BriarCircuitOutcomeRationale | null;
   hidden_fields: string[];
   ui: {
     table_label: string;

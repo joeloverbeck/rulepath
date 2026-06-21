@@ -1,6 +1,6 @@
 # GAT16BRICIRTRI-017: Trailing game documentation (mechanics, UI, AI, bot evidence, release checklist)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Medium
 **Engine Changes**: None (docs — `games/briar_circuit/docs/{MECHANICS,UI,AI,COMPETENT-PLAYER,BOT-STRATEGY-EVIDENCE-PACK,PUBLIC-RELEASE-CHECKLIST}.md`)
@@ -77,3 +77,27 @@ Briar Circuit's official-game doc set must be completed: the mechanic inventory,
 1. `node scripts/check-outcome-explanations.mjs`
 2. `node scripts/check-doc-links.mjs`
 3. A docs-scope verification is correct here; behavior is already proven by 004–016 and exercised by the closeout capstone (018).
+
+## Outcome
+
+Completed: 2026-06-21
+
+Implemented the trailing Briar Circuit official-game documentation set:
+
+- Added `games/briar_circuit/docs/MECHANICS.md` with atlas-category inventory, trick-taking second-use/defer posture, no kernel/helper promotion, UI/effect/bot/benchmark notes, and the Gate 17 third-use warning.
+- Added `games/briar_circuit/docs/UI.md` with Rust/React boundary, four-seat layout, legal action mapping, pass flow, effect presentation, replay/dev-inspector boundaries, accessibility notes, and the required `Outcome / victory explanation` section.
+- Added `games/briar_circuit/docs/AI.md` documenting L0/L1 shipped bots, exact information access, explanations, known weaknesses, tests, benchmarks, and the constrained public-default posture.
+- Added `games/briar_circuit/docs/COMPETENT-PLAYER.md` with original strategy analysis, visible-signal boundaries, private-inference exclusions, kingmaking/moon-risk notes, examples, anti-examples, and future Level 2 candidate features.
+- Added `games/briar_circuit/docs/BOT-STRATEGY-EVIDENCE-PACK.md` explicitly recording `L2 not admitted` and the future evidence required before any Level 2 policy can be coded.
+- Added `games/briar_circuit/docs/PUBLIC-RELEASE-CHECKLIST.md` with official-game, IP, no-leak, replay/export, UI/accessibility, bot, benchmark, and closeout gate status.
+
+Deviations:
+
+- `node scripts/check-outcome-explanations.mjs` revealed that Briar's existing `RULES.md` used headings that did not match the checker contract and that `apps/web/src/wasm/client.ts` did not yet mirror an optional Briar outcome rationale type/field. Those inert contract surfaces were updated so the required acceptance command passes. No rule behavior, bot behavior, or renderer logic changed.
+- The UI doc records the current web outcome behavior honestly: the board formats the Rust/WASM projected terminal view into the shared outcome panel and uses `briar_circuit.low_score_win`; `briar_circuit.moon_adjustment` and `briar_circuit.tied_low_continuation` remain documented template keys for rule parity rather than claimed current terminal-panel branches.
+
+Verification:
+
+- `node scripts/check-outcome-explanations.mjs` passed: `outcome-explanations check passed — 16 catalog games validated`.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `npm --prefix apps/web run build` passed after the optional Briar outcome-rationale TypeScript mirror change.

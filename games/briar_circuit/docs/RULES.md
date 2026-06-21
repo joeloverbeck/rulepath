@@ -150,7 +150,7 @@ hearts-broken state, trick winner, score, or terminal outcome.
 | `BC-TRICK-001` | The highest-ranked card of the led suit wins the trick; off-suit cards never win. | after the fourth card is played | Ace is high. Suits never break ties. |
 | `BC-TRICK-002` | The trick winner captures all four played cards and leads the next trick unless the hand is complete. | trick resolution | Captured cards are the sole source of raw hand points. |
 
-## Scoring And Match End
+## Scoring and accounting
 
 | Rule ID | Scoring/match rule | Timing | Notes |
 |---|---|---|---|
@@ -160,6 +160,14 @@ hearts-broken state, trick winner, score, or terminal outcome.
 | `BC-MATCH-001` | Hand additions accumulate monotonically by seat. | after each scored hand | Lower cumulative score is better. |
 | `BC-MATCH-002` | After a completed hand, if any cumulative score is at least 100, evaluate match end. | hand close | Threshold is never checked mid-hand. |
 | `BC-MATCH-003` | If the lowest cumulative score is unique, that seat wins; if the low score is tied, continue complete hands with dealer and pass cycle rotation. | threshold evaluation | Seat order never breaks a low-score tie. |
+
+## Terminal conditions
+
+| Rule ID | Terminal rule | Rust source of truth | Notes |
+|---|---|---|---|
+| `BC-MATCH-002` | After a completed hand, if any cumulative score is at least 100, evaluate the match. | `score_completed_hand`, `OutcomeBreakdown.threshold_reached` | Threshold is never checked mid-hand. |
+| `BC-MATCH-003` | A unique lowest cumulative score produces the terminal winner; a tied low score continues the match. | `OutcomeStatus::Terminal`, `OutcomeStatus::TiedLowContinuation`, `TerminalOutcome::UniqueLowScoreWin` | Seat order never breaks a low-score tie. |
+| `BC-OUTCOME-001` | Terminal presentation uses Rust-authored per-seat scoring and outcome breakdowns. | `OutcomeBreakdown`, `SeatOutcomeBreakdown`, WASM `BriarCircuitPublicView` mirror | TypeScript renders projected outcome facts; it must not decide the winner. |
 
 ## Visibility And Private Information
 
