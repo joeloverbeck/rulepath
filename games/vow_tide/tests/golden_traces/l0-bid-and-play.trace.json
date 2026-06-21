@@ -1,0 +1,9 @@
+{
+  "trace_id": "l0-bid-and-play",
+  "policy_id": "vow-tide-random-legal-v0",
+  "input_scope": "seat_private_view_plus_legal_tree",
+  "selection": "seeded_random_legal_leaf",
+  "validation": "normal_command_validator",
+  "explanation": "viewer_safe",
+  "forbidden": ["hidden_stock", "other_hands", "determinization", "search"]
+}

@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-012: L0 random-legal and bounded L1 rule-informed bots
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/vow_tide/src/bots.rs`; new `games/vow_tide/tests/bots.rs` + bot golden traces
@@ -78,3 +78,15 @@ Bidding: deterministic own-hand control estimate clamped to `0..=H`, nearest leg
 1. `cargo test -p vow_tide --test bots`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: the bots suite is the legality/no-leak boundary; many-seed completion across N=3..7 is exercised by the simulator (013).
+
+## Outcome
+
+Completed 2026-06-21. Added Vow Tide L0 seeded random-legal and bounded L1 rule-informed bots over authorized projected seat views plus normal Rust legal leaves. L1 bidding uses own-hand control estimates with hook-safe nearest legal bids; L1 play uses public trick state and the promoted trick comparator to prefer the lowest currently-winning card when the contract needs tricks, otherwise a low losing/legal card. Bot explanations stay viewer-safe and tests audit that bot input contains only the acting seat's private hand, public facts, and legal leaves.
+
+Verification:
+
+1. `cargo fmt --all --check` passed.
+2. `cargo test -p vow_tide --test bots` passed.
+3. `cargo test -p vow_tide` passed.
+4. `cargo clippy -p vow_tide --all-targets -- -D warnings` passed.
+5. Manual grep/review confirmed no MCTS/ISMCTS/Monte Carlo/ML/RL/determinization/rollout implementation in `games/vow_tide/src/bots.rs`; the only hidden-stock reference in the bot test suite is the authorized-input no-leak canary.

@@ -4,6 +4,7 @@
 //! shared engine sees only generic Rulepath contracts.
 
 pub mod actions;
+pub mod bots;
 pub mod cards;
 pub mod effects;
 pub mod ids;
