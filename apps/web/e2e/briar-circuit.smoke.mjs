@@ -84,6 +84,7 @@ try {
   await waitForText(page, "1 of 3 selected");
   await assertSeatNoLeak(page, consoleMessages, [...seat0Labels, selectedLabel], "seat 0 after pass selection");
   await assertLiveStatusHumanized(page);
+  await assertSelectedCardLabelDescriptive(page);
 
   await clickText(page, "button", "Export Current Run");
   const replayTextHandle = await page.waitForFunction(() => document.querySelector("textarea")?.value || "");
@@ -177,6 +178,16 @@ async function assertSeatNoLeak(page, consoleMessages, allowedLabels, label) {
   const surface = await fullBrowserSurface(page);
   assertNoForbiddenTerms(surface, label, [...cardIds, ...forbiddenLabels, ...internalTerms]);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertSelectedCardLabelDescriptive(page) {
+  // A selected pass card must keep a descriptive, consistent accessible name
+  // ("<rank> of <suit>, … selected to pass") rather than reverting to the terse
+  // Rust unselect-leaf label (e.g. "QH"), which screen readers cannot interpret.
+  const label = await page.$eval(".briar-card.selected", (button) => button.getAttribute("aria-label") ?? "");
+  assert(label.length > 0, "selected pass card exposes an accessible name");
+  assert(/ of /.test(label), `selected pass card names its suit in words: ${label}`);
+  assert(label.toLowerCase().includes("selected to pass"), `selected pass card announces its state: ${label}`);
 }
 
 async function assertLiveStatusHumanized(page) {

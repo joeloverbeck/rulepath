@@ -69,6 +69,34 @@ function splitCardId(cardId: string): { rank: string; suit: string } {
   return { rank: cardId.slice(0, idx), suit: cardId.slice(idx + 1) };
 }
 
+// Build a consistent, screen-reader-friendly accessible name for an owner-hand
+// card button. The Rust-supplied labels are inconsistent across states (verbose
+// "three clubs" for a select/play leaf, but terse "QH"/"qd" for an unselect leaf
+// or a held card), so a selected/held card would announce cryptically. UI.md
+// permits TypeScript to format labels; the identity here comes from the viewer's
+// own authorized card metadata (rank/suit), and the state words mirror the visible
+// small-text — no legality is computed (the disabled/pressed states come from Rust).
+function cardAccessibleName(
+  card: { rank: string; suit: string },
+  state: { selectedForPass: boolean; canSelect: boolean; canPlay: boolean },
+): string {
+  const parts = [`${card.rank} of ${card.suit}`];
+  const penalty = pointValue(card.suit, card.rank);
+  if (penalty !== null) {
+    parts.push(`${penalty} penalty ${penalty === 1 ? "point" : "points"}`);
+  }
+  if (state.selectedForPass) {
+    parts.push("selected to pass");
+  } else if (state.canSelect) {
+    parts.push("choose to pass");
+  } else if (state.canPlay) {
+    parts.push("play to the trick");
+  } else {
+    parts.push("held");
+  }
+  return parts.join(", ");
+}
+
 function CardFace({ suit, rank }: { suit: string; rank: string }) {
   return (
     <span className="briar-card-face" aria-hidden="true">
@@ -296,7 +324,11 @@ export function BriarCircuitBoard({
                     } ${action ? "legal" : ""}${selectedForPass ? " selected" : ""}`}
                     disabled={!canAct || !action}
                     aria-pressed={selectedForPass}
-                    aria-label={action?.choice.accessibility_label ?? card.accessibility_label}
+                    aria-label={cardAccessibleName(card, {
+                      selectedForPass,
+                      canSelect: Boolean(selectChoice),
+                      canPlay: Boolean(playChoice),
+                    })}
                     onClick={() => action && onPathSubmit?.(action.path)}
                   >
                     <CardFace suit={card.suit} rank={card.rank} />
