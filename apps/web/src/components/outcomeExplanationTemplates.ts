@@ -238,6 +238,20 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["briar_circuit"],
     ruleRefLabel: "Tie continuation rule",
   },
+  "vow_tide.high_score_win": {
+    summary: "{winner} has the highest cumulative score.",
+    expandedHeading: "Highest score wins",
+    requiredParams: ["winner"],
+    allowedGameIds: ["vow_tide"],
+    ruleRefLabel: "VT-STANDINGS-001",
+  },
+  "vow_tide.shared_high_score": {
+    summary: "The highest cumulative score is shared.",
+    expandedHeading: "Shared high score",
+    requiredParams: [],
+    allowedGameIds: ["vow_tide"],
+    ruleRefLabel: "VT-STANDINGS-001",
+  },
   "masked_claims.score_win": {
     summary: "{winner} has the higher final score.",
     expandedHeading: "Final score",
@@ -396,6 +410,7 @@ const outcomeValueCopy: Record<string, string> = {
   split: "Split",
   terminal_position: "Terminal position",
   trick_win: "Trick win",
+  vow_tide: "Vow Tide",
   win: "Win",
   yield_win: "Yield win",
 };

@@ -1,0 +1,15 @@
+{
+  "trace_id": "trump-may-lead",
+  "seed": 20260621,
+  "seat_count": 4,
+  "hand_index": 0,
+  "trick_index": 0,
+  "trump_suit": "hearts",
+  "leader": "seat_1",
+  "active_seat_after": "seat_2",
+  "play": { "seat": "seat_1", "card": "ace_hearts" },
+  "current_trick": [
+    { "seat": "seat_1", "card": "ace_hearts" }
+  ],
+  "rule_ids": ["VT-FIRST-LEAD-001", "VT-TRUMP-001"]
+}

@@ -1,4 +1,5 @@
 use engine_core::{Diagnostic, EffectEnvelope};
+use game_stdlib::trick_taking::winning_play_index;
 
 use crate::{
     actions::{self, ValidatedAction},
@@ -62,13 +63,17 @@ pub fn apply_action(
 }
 
 pub fn trick_winner(leader_play: TrickPlay, follower_play: TrickPlay) -> PlainTricksSeat {
+    let plays = [leader_play, follower_play];
     let led_suit = leader_play.card.suit();
-    if follower_play.card.suit() == led_suit && follower_play.card.rank() > leader_play.card.rank()
-    {
-        follower_play.seat
-    } else {
-        leader_play.seat
-    }
+    let winner_index = winning_play_index(
+        &plays,
+        led_suit,
+        None,
+        |play| play.card.suit(),
+        |play| play.card.rank(),
+    )
+    .expect("leader play must be eligible for trumpless led-suit comparison");
+    plays[winner_index].seat
 }
 
 fn ensure_action_still_legal(

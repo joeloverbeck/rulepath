@@ -144,6 +144,13 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             benchmarks_path: "games/briar_circuit/docs/BENCHMARKS.md",
             benchmarks_required: false,
         }),
+        "vow_tide" => Ok(RegisteredGame {
+            game_id: "vow_tide",
+            rules_path: "games/vow_tide/docs/RULES.md",
+            coverage_path: "games/vow_tide/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/vow_tide/docs/BENCHMARKS.md",
+            benchmarks_required: false,
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -172,7 +179,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide>"
                     );
                     process::exit(0);
                 }
@@ -302,6 +309,18 @@ fn is_rule_id(value: &str) -> bool {
                         .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit())
             });
     }
+    if parts.first() == Some(&"VT") {
+        return parts.len() >= 3
+            && parts
+                .last()
+                .is_some_and(|part| part.len() == 3 && part.chars().all(|ch| ch.is_ascii_digit()))
+            && parts[1..parts.len() - 1].iter().all(|part| {
+                !part.is_empty()
+                    && part
+                        .chars()
+                        .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit())
+            });
+    }
     parts.len() == 3
         && matches!(
             parts[0],
@@ -318,6 +337,7 @@ fn is_rule_id(value: &str) -> bool {
                 | "FW"
                 | "EF"
                 | "BC"
+                | "VT"
         )
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())
@@ -400,6 +420,8 @@ mod tests {
         assert!(is_rule_id("FC-SCORE-GARRISON-FORT"));
         assert!(is_rule_id("RL-SETUP-SEATS-001"));
         assert!(is_rule_id("RL-EVAL-001"));
+        assert!(is_rule_id("VT-BID-ORDER-001"));
+        assert!(is_rule_id("VT-VIEW-001"));
         assert!(!is_rule_id("RL-SETUP-SEATS-ABC"));
         assert!(!is_rule_id("XX-SCOPE-001"));
     }

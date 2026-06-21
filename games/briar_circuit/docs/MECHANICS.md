@@ -51,19 +51,23 @@ replay, and bots. TypeScript presents Rust/WASM output only.
 
 | Mechanic shape | Already appears in | Same shape? | Similarities | Differences | Required next step |
 |---|---|---:|---|---|---|
-| follow-suit legality | `plain_tricks` | similar | Led suit restricts followers when able. | Briar adds 4 seats, 2 clubs opening, first-trick point restriction, hearts-broken lead rule, and penalty scoring. | Keep local/defer; Gate 17 is third-use hard gate. |
-| led-suit trick comparator | `plain_tricks` | similar | Highest led suit wins; off-suit cannot win. | Briar has four-card tricks, captured point cards, and moon/threshold scoring. | Keep local/defer; no helper promoted. |
+| follow-suit legality | `plain_tricks`, `vow_tide` | similar | Led suit restricts followers when able. | Briar adds 4 seats, 2 clubs opening, first-trick point restriction, hearts-broken lead rule, and penalty scoring. | Gate 17 promoted `game-stdlib::trick_taking::follow_suit_indices`; Briar adopts it for the pure base subset while keeping Hearts restrictions local. |
+| led-suit trick comparator | `plain_tricks`, `vow_tide` | similar | Highest led suit wins; off-suit cannot win. | Briar has four-card tricks, captured point cards, and moon/threshold scoring. | Gate 17 promoted `game-stdlib::trick_taking::winning_play_index`; Briar adopts it with `trump = None`. |
 | trick winner leads next | `plain_tricks` | similar | Winner becomes next leader. | Briar hand has 13 tricks and pass/dealer cycle. | Keep local/defer. |
 | private hand and viewer no-leak | `high_card_duel`, `poker_lite`, `plain_tricks`, `river_ledger` | similar | Owner-private components and public projections. | Briar adds four-seat pairwise pass provenance and all-seat projections. | Record in atlas/capstone; no `engine-core` noun. |
 | simultaneous hidden commitment | `secret_draft`, `masked_claims` | related, not same | Hidden choice before reveal/public consequence. | Briar commits card identities to deterministic pass routing, not bids/claims. | Keep local; no generic commitment primitive. |
 
 ## Primitive Pressure Decision
 
-No `game-stdlib` or `engine-core` primitive is promoted by Gate 16. The
-follow-suit/trick-taking shapes are genuine second-use pressure with
-Plain Tricks, but extraction is premature because the shared core is entangled
-with Briar-specific pass, first-trick, hearts-broken, moon, threshold, and
-four-seat no-leak rules. Gate 17 is the third-use hard gate.
+No `game-stdlib` or `engine-core` primitive was promoted by Gate 16. Gate 17
+later promoted the narrow pure `game-stdlib::trick_taking` helper after Vow Tide
+created the third close use. Briar Circuit now adopts `follow_suit_indices` for
+the base led-suit subset and `winning_play_index` with `trump = None` for the
+pure comparator.
+
+Briar-specific pass, first-trick, hearts-broken, moon, threshold, four-seat
+no-leak, scoring, effects, diagnostics, winner-leads, and UI rules remain
+game-local.
 
 `games/briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md` records the detailed
 keep-local/defer decision. The series capstone owns the central atlas/status
@@ -95,4 +99,5 @@ update.
 - TypeScript presents Rust/WASM payloads only.
 - Hidden hands, pass provenance, deck order, and bot private facts stay out of unauthorized surfaces.
 - Level 2 is not admitted.
-- Gate 17 remains the trick-taking third-use hard gate.
+- Gate 17 resolves the follow-suit/comparator third-use hard gate through the
+  narrow helper; Briar Circuit adopts it without opening promotion debt.

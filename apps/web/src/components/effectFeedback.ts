@@ -386,8 +386,50 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "card_played":
       return {
         title: "Card played",
-        detail: `${payload.seat} played a public card.`,
+        detail: payload.summary ? String(payload.summary) : `${payload.seat} played a public card.`,
         tone: "movement",
+      };
+    case "bid_accepted":
+      return {
+        title: "Bid accepted",
+        detail: String(payload.summary ?? "Rust recorded the public bid."),
+        tone: "turn",
+      };
+    case "dealer_hook_constrained":
+      return {
+        title: "Dealer hook applied",
+        detail: String(payload.summary ?? "Rust removed the hooked dealer bid."),
+        tone: "turn",
+      };
+    case "bidding_completed":
+      return {
+        title: "Bidding complete",
+        detail: String(payload.summary ?? "Rust moved from bidding to trick play."),
+        tone: "turn",
+      };
+    case "trick_captured":
+      return {
+        title: "Trick captured",
+        detail: String(payload.summary ?? "Rust awarded the trick."),
+        tone: "movement",
+      };
+    case "hand_scored":
+      return {
+        title: "Hand scored",
+        detail: String(payload.summary ?? "Rust scored exact bids."),
+        tone: "turn",
+      };
+    case "hand_advanced":
+      return {
+        title: "Hand advanced",
+        detail: String(payload.summary ?? "Rust dealt the next scheduled hand."),
+        tone: "turn",
+      };
+    case "match_completed":
+      return {
+        title: "Match completed",
+        detail: String(payload.summary ?? "Rust finalized Vow Tide standings."),
+        tone: "terminal",
       };
     case "trick_resolved":
       return {

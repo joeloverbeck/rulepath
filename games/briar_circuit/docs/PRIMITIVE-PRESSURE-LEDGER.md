@@ -196,3 +196,35 @@ implementation, or earlier if implementation uncovers one of these facts:
 - a maintainer proposes any runtime helper that would affect pass timing, lead
   restrictions, point-card rules, visibility, replay export, bot input, or
   scoring.
+
+## Gate 17 Helper-Conformance Addendum
+
+Date: 2026-06-21
+
+Gate 17 Vow Tide created the third close use of follow-suit selection and
+trick-winner comparison. The repository-level decision in
+[../../../docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md) promotes the
+narrow pure `game-stdlib::trick_taking` helper:
+
+- `follow_suit_indices` selects stable held-card indices matching the led suit,
+  or every held-card index when the hand is void.
+- `winning_play_index` selects the stable winning play index from
+  caller-projected suit/rank values. Briar Circuit uses it with `trump = None`.
+
+Briar Circuit now adopts both helper functions for the pure repeated core while
+retaining every Hearts-family policy locally:
+
+- the 2 clubs opening requirement remains in `rules.rs` before helper selection;
+- first-trick point-card and hearts-broken lead restrictions still filter the
+  caller-owned local legal set after the base follow-suit decision;
+- local `CardId`, `Suit`, `Rank`, seats, phases, diagnostics, effects,
+  visibility projection, pass commitment/exchange, scoring, terminal, replay,
+  bot policy, and UI surfaces remain Briar Circuit owned;
+- trick-winner-led turn order and deal/redeal/dealer rotation remain explicit
+  anti-examples, not promoted helper behavior.
+
+Verification receipt for this addendum is recorded in
+`archive/tickets/GAT17VOWTIDOHHEL-004.md`. The intended proof is unchanged Briar
+Circuit tests, visibility tests, replay-check hashes, and native benchmark
+execution after the helper swap. No §10A promotion debt is opened because Gate
+17 performs matching prior-game conformance in-gate.

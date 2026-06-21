@@ -1,0 +1,10 @@
+{
+  "trace_id": "l1-contract-relative-bid-and-play",
+  "policy_id": "vow-tide-level1-v1",
+  "input_scope": "own_hand_public_facts_legal_leaves",
+  "bidding": "own_hand_control_estimate_nearest_legal_bid_hook_adjusted",
+  "play": "contract_needed_relative_legal_card_choice",
+  "validation": "normal_command_validator",
+  "explanation": "viewer_safe",
+  "forbidden": ["MCTS", "ISMCTS", "Monte Carlo", "ML", "RL", "hidden_world_sampling"]
+}

@@ -2,7 +2,7 @@
 
 Status: researched bibliography for the foundation set.
 
-Last reviewed: 2026-06-08.
+Last reviewed: 2026-06-21.
 
 These sources inform Rulepath architecture, authoring discipline, bot policy, UI policy, data-format policy, replay model, and IP caution. They are precedents and warnings, not text to copy. Game-specific source notes must still document exact rules sources, chosen variants, naming rationale, and asset status.
 
@@ -14,6 +14,7 @@ These sources inform Rulepath architecture, authoring discipline, bot policy, UI
 | `three_marks` | `games/three_marks/docs/SOURCES.md` | completed for Gate 4; covers original Rulepath naming, public-domain/classic-family context, variant choice, and asset posture |
 | `high_card_duel` | `games/high_card_duel/docs/SOURCES.md` | completed for Gate 8; covers original neutral card-game naming, War/Blackjack exclusion, variant choice, hidden-information posture, and public asset posture |
 | `briar_circuit` | `games/briar_circuit/docs/SOURCES.md` | opened for Gate 16; covers original Briar Circuit naming, classic Hearts rules-family references, selected variant choices, pass/visibility privacy, and asset/IP review posture |
+| `vow_tide` | `games/vow_tide/docs/SOURCES.md` | completed for Gate 17; covers original Vow Tide naming, classic Oh Hell rules-family references, 3-7-seat variant choices, bid/hook/scoring deviations, hidden-stock privacy, helper conformance, and asset/IP review posture |
 
 ## Source-use rules
 

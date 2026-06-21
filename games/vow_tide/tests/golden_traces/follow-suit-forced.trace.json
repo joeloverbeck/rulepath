@@ -1,0 +1,16 @@
+{
+  "trace_id": "follow-suit-forced",
+  "seed": 20260621,
+  "seat_count": 4,
+  "hand_index": 0,
+  "trick_index": 0,
+  "trump_suit": "hearts",
+  "led_suit": "clubs",
+  "leader_play": { "seat": "seat_1", "card": "two_clubs" },
+  "follower": "seat_2",
+  "follower_hand": ["ace_hearts", "three_clubs"],
+  "legal_cards": ["three_clubs"],
+  "rejected_card": "ace_hearts",
+  "diagnostic": "VT_MUST_FOLLOW_SUIT",
+  "rule_ids": ["VT-FOLLOW-001"]
+}

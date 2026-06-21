@@ -1,0 +1,9 @@
+{
+  "trace_id": "public-observer-no-leak-3p",
+  "seat_count": 3,
+  "observer_private_view": "observer",
+  "observer_hidden_stock_visibility": "count_only",
+  "observer_hand_visibility": "counts_only",
+  "forbidden_tokens_absent": ["two_clubs", "three_diamonds", "four_hearts", "king_clubs"],
+  "rule_ids": ["VT-VIEW-001", "VT-EFFECT-001"]
+}

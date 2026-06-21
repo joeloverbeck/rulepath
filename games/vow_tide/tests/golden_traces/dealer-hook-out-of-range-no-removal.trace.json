@@ -1,0 +1,17 @@
+{
+  "trace_id": "dealer-hook-out-of-range-no-removal",
+  "seed": 20260621,
+  "seat_count": 4,
+  "hand_size": 10,
+  "phase": "bidding",
+  "active_seat": "seat_0",
+  "public_total": 30,
+  "hook_forbidden_bid": null,
+  "legal_bids": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "accepted_bids": [
+    { "seat": "seat_0", "bid": null },
+    { "seat": "seat_1", "bid": 10 },
+    { "seat": "seat_2", "bid": 10 },
+    { "seat": "seat_3", "bid": 10 }
+  ]
+}

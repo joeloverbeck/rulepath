@@ -10,3 +10,9 @@ engine-core = { path = "../engine-core" }
 
 [lib]
 path = "src/lib.rs"
+bench = false
+
+[[bench]]
+name = "trick_taking"
+path = "benches/trick_taking.rs"
+harness = false

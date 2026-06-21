@@ -1,0 +1,15 @@
+{
+  "trace_id": "public-replay-export-import",
+  "schema_version": 1,
+  "game_id": "vow_tide",
+  "rules_version_label": "vow-tide-rules-v1",
+  "viewer": "observer",
+  "source": "visibility_projector",
+  "redaction": {
+    "seed": "absent",
+    "internal_full_trace": "absent",
+    "hidden_stock_identity_order": "absent",
+    "private_hands": "absent"
+  },
+  "round_trip": "byte-stable"
+}

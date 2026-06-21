@@ -19,6 +19,7 @@ version = "0.1.0"
 dependencies = [
  "ai-core",
  "engine-core",
+ "game-stdlib",
 ]
 
 [[package]]
@@ -81,6 +82,7 @@ dependencies = [
  "secret_draft",
  "three_marks",
  "token_bazaar",
+ "vow_tide",
 ]
 
 [[package]]
@@ -129,6 +131,7 @@ version = "0.1.0"
 dependencies = [
  "ai-core",
  "engine-core",
+ "game-stdlib",
 ]
 
 [[package]]
@@ -168,6 +171,7 @@ dependencies = [
  "secret_draft",
  "three_marks",
  "token_bazaar",
+ "vow_tide",
 ]
 
 [[package]]
@@ -223,6 +227,7 @@ dependencies = [
  "secret_draft",
  "three_marks",
  "token_bazaar",
+ "vow_tide",
 ]
 
 [[package]]
@@ -252,6 +257,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vow_tide"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "wasm-api"
 version = "0.1.0"
 dependencies = [
@@ -273,4 +287,5 @@ dependencies = [
  "secret_draft",
  "three_marks",
  "token_bazaar",
+ "vow_tide",
 ]

@@ -110,5 +110,12 @@
     "rules_asset_path": "/rules/briar_circuit.md",
     "source_rules_version_checked": "briar-circuit-rules-v1",
     "sha256": "fa951ca3dbd478462431b4299dcb8f99e9574366fae6129a430d090b75dbae83"
+  },
+  {
+    "game_id": "vow_tide",
+    "display_name": "Vow Tide",
+    "rules_asset_path": "/rules/vow_tide.md",
+    "source_rules_version_checked": "vow-tide-rules-v1",
+    "sha256": "a82918c8b99fabb6b2b5f6b2bf132edef7c88efb58e870194c6d65b5cabceb85"
   }
 ]

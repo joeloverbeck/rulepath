@@ -21,3 +21,4 @@ pub(crate) mod river;
 pub(crate) mod secret;
 pub(crate) mod three;
 pub(crate) mod token;
+pub(crate) mod vow;
