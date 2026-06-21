@@ -1015,6 +1015,54 @@ h2 {
   box-shadow: inset 3px 0 0 #2b8068;
 }
 
+.briar-played-card .briar-led-flag {
+  margin-inline-start: 6px;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #236d59;
+}
+
+.briar-trick-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.briar-led-chip,
+.briar-stake-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border: 1px solid #d0d9d4;
+  border-radius: 999px;
+  background: #f3f6f3;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.briar-led-chip.red {
+  color: #b3123b;
+}
+
+.briar-led-chip.black {
+  color: #1b2a24;
+}
+
+.briar-led-chip strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.briar-stake-chip {
+  color: #b3123b;
+  background: #fdeef2;
+  border-color: #e3a9bd;
+}
+
 .briar-trick-points {
   color: #b3123b;
   font-style: normal;

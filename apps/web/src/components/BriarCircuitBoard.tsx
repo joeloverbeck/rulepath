@@ -121,6 +121,14 @@ export function BriarCircuitBoard({
     }
     return totals;
   }, [view.captured_tricks, view.hand_index]);
+  // Current-trick facts that are purely positional/visible (NOT the trick winner,
+  // which UI.md forbids TypeScript from computing): the led suit is the suit of the
+  // opening card, and "at stake" is the penalty value already visible on the table.
+  const trickLeadSuit = view.current_trick.length ? splitCardId(view.current_trick[0].card).suit : null;
+  const trickStake = view.current_trick.reduce((sum, play) => {
+    const { rank, suit } = splitCardId(play.card);
+    return sum + (pointValue(suit, rank) ?? 0);
+  }, 0);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase !== "terminal");
   // Between-hands scoring summary: the most recently completed hand, retained by Rust.
@@ -212,22 +220,38 @@ export function BriarCircuitBoard({
             <span>{view.ui.current_trick_label}</span>
             <strong>{view.current_trick.length ? `${view.current_trick.length} / 4 played` : "No cards played"}</strong>
           </div>
+          {view.current_trick.length && trickLeadSuit ? (
+            <div className="briar-trick-meta">
+              <span className={`briar-led-chip ${isRedSuit(trickLeadSuit) ? "red" : "black"}`}>
+                Led{" "}
+                <strong aria-hidden="true">{SUIT_GLYPH[trickLeadSuit] ?? trickLeadSuit}</strong>
+                <span className="sr-only">{trickLeadSuit}</span>
+              </span>
+              {trickStake > 0 ? (
+                <span className="briar-stake-chip">
+                  {trickStake} {trickStake === 1 ? "point" : "points"} at stake
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           <div className="briar-trick-cards">
             {view.current_trick.length === 0 ? (
               <p className="muted">Waiting for a legal play.</p>
             ) : (
-              view.current_trick.map((play) => {
+              view.current_trick.map((play, index) => {
                 const { rank, suit } = splitCardId(play.card);
                 const penalty = pointValue(suit, rank);
-                const leadSuit = view.current_trick[0] ? splitCardId(view.current_trick[0].card).suit : suit;
                 return (
                   <div
                     className={`briar-played-card ${isRedSuit(suit) ? "red" : "black"}${penalty !== null ? " point" : ""}${
-                      suit === leadSuit ? " lead" : ""
+                      index === 0 ? " lead" : ""
                     }`}
                     key={`${play.seat}-${play.card}`}
                   >
-                    <span className="briar-played-seat">{seatLabel(play.seat)}</span>
+                    <span className="briar-played-seat">
+                      {seatLabel(play.seat)}
+                      {index === 0 ? <em className="briar-led-flag">Led</em> : null}
+                    </span>
                     <CardFace suit={suit} rank={rank} />
                     <span className="sr-only">{formatCardId(play.card)}</span>
                   </div>
