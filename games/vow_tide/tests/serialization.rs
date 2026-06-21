@@ -1,9 +1,11 @@
 use std::collections::BTreeSet;
 
 use engine_core::Seed;
+use engine_core::StableSerialize;
 use vow_tide::{
     cards::{canonical_deck, Card, CardId, Rank, Suit},
     ids::{canonical_seat_ids, STANDARD_CARD_COUNT},
+    replay_support::{export_for_viewer, import_viewer_export, observer},
     scoring::terminal_outcome,
     setup::{setup_match, SetupOptions},
     variants::{expected_manifest, load_manifest, load_variants, Variant},
@@ -84,4 +86,18 @@ fn terminal_outcome_order_is_deterministic_for_serialization() {
             .collect::<Vec<_>>(),
         vec![("seat_1", 1), ("seat_2", 1), ("seat_0", 3), ("seat_3", 4)]
     );
+}
+
+#[test]
+fn viewer_export_serialization_is_stable_and_versioned() {
+    let options = SetupOptions::default();
+    let seats = canonical_seat_ids(4);
+    let state = setup_match(Seed(17), &seats, &options).expect("setup succeeds");
+    let export = export_for_viewer(&state, &[], &observer());
+    let imported = import_viewer_export(&export).expect("import succeeds");
+
+    assert_eq!(export, imported);
+    assert_eq!(export.schema_version, 1);
+    assert_eq!(export.game_id, "vow_tide");
+    assert_eq!(export.stable_bytes(), imported.stable_bytes());
 }

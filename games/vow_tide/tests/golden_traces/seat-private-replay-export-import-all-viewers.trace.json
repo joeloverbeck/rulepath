@@ -1,0 +1,16 @@
+{
+  "trace_id": "seat-private-replay-export-import-all-viewers",
+  "schema_version": 1,
+  "game_id": "vow_tide",
+  "rules_version_label": "vow-tide-rules-v1",
+  "viewer_scope": "seat_private",
+  "seat_viewers": ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5", "seat_6"],
+  "private_rule": "each seat export may contain only that seat's own observations",
+  "redaction": {
+    "other_hands": "absent",
+    "hidden_stock_identity_order": "absent",
+    "seed": "absent",
+    "internal_full_trace": "absent"
+  },
+  "round_trip": "byte-stable"
+}

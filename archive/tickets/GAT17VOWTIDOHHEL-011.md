@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-011: Replay support, serialization, viewer-scoped exports, golden-trace pack
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new `games/vow_tide/src/replay_support.rs`; new `games/vow_tide/tests/{replay,serialization}.rs`; consolidated golden-trace pack
@@ -83,3 +83,20 @@ Author the remaining §7.6 traces not owned by an earlier module (replay export/
 1. `cargo test -p vow_tide --test replay --test serialization`
 2. `cargo test -p vow_tide`
 3. Narrower command rationale: native replay/serialization tests are the determinism boundary; `replay-check --all` confirms via the tool once 016 registers vow_tide.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added `games/vow_tide/src/replay_support.rs` with deterministic native replay snapshots, stable FNV-style hashes, and viewer-scoped exports built from the visibility projector.
+- Added viewer export import/validation for Trace Schema v1-style payloads without exposing raw seed, hidden stock identity/order, another seat's hand, or an internal full trace.
+- Added replay tests for identical setup hash reproduction, viewer export/import byte stability, viewer-scope redaction, and stable hash behavior.
+- Extended serialization tests with stable, versioned viewer export round-trip coverage.
+- Added replay export/import golden trace fixtures for public observer and all seat-private viewer scopes.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide --test replay --test serialization` passed: 8 targeted tests.
+- `cargo test -p vow_tide` passed: 37 integration tests plus crate/doc test harnesses.
+- `cargo clippy -p vow_tide --all-targets -- -D warnings` passed.

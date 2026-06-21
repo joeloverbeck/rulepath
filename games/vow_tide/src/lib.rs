@@ -7,6 +7,7 @@ pub mod actions;
 pub mod cards;
 pub mod effects;
 pub mod ids;
+pub mod replay_support;
 pub mod rules;
 pub mod scoring;
 pub mod setup;
