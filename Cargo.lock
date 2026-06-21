@@ -171,6 +171,7 @@ dependencies = [
  "secret_draft",
  "three_marks",
  "token_bazaar",
+ "vow_tide",
 ]
 
 [[package]]

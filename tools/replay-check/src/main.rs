@@ -149,6 +149,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "briar-circuit-rules-v1",
             trace_dir: "games/briar_circuit/tests/golden_traces",
         }),
+        "vow_tide" => Ok(RegisteredGame {
+            game_id: "vow_tide",
+            rules_version: "vow-tide-rules-v1",
+            trace_dir: "games/vow_tide/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -264,10 +269,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --all");
 }
 
 fn check_trace_path(
@@ -291,6 +296,17 @@ fn check_trace_path(
     if game.game_id == "briar_circuit" {
         validate_briar_circuit_trace(game, path, &input)?;
         println!("{}: briar_circuit trace accepted", path.display());
+        return Ok(());
+    }
+    if game.game_id == "vow_tide" {
+        let trace_id = validate_vow_tide_trace(game, path, &input)?;
+        if !seen_ids.insert(trace_id) {
+            return Err(format!(
+                "{}: duplicate trace_id in checked trace set",
+                path.display()
+            ));
+        }
+        println!("{}: vow_tide trace accepted", path.display());
         return Ok(());
     }
     if is_public_export_fixture(&input) {
@@ -453,6 +469,120 @@ fn validate_briar_bot_match_trace(path: &Path, input: &str) -> Result<(), String
         }
     }
 
+    Ok(())
+}
+
+fn validate_vow_tide_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<String, String> {
+    validate_json_object(path, input)?;
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let trace_id = string_field(input, "trace_id").map_err(with_path)?;
+    if trace_id.trim().is_empty() {
+        return Err(format!("{}: trace_id must be non-empty", path.display()));
+    }
+    if input.contains("\"game_id\"") {
+        let game_id = string_field(input, "game_id")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if game_id != game.game_id {
+            return Err(format!(
+                "{}: game_id must be {}, got `{}`",
+                path.display(),
+                game.game_id,
+                game_id
+            ));
+        }
+    }
+    if input.contains("\"rules_version\"") {
+        let rules_version = string_field(input, "rules_version")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if rules_version != game.rules_version {
+            return Err(format!(
+                "{}: rules_version must be {}, got `{}`",
+                path.display(),
+                game.rules_version,
+                rules_version
+            ));
+        }
+    }
+    if input.contains("\"seed\"") && input.contains("\"seat_count\"") {
+        validate_vow_tide_setup_projection(path, input)?;
+    }
+    Ok(trace_id)
+}
+
+fn validate_vow_tide_setup_projection(path: &Path, input: &str) -> Result<(), String> {
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let seed = number_field(input, "seed").map_err(with_path)?;
+    let seat_count = number_field(input, "seat_count").map_err(with_path)? as usize;
+    let state = vow_tide::setup_match(
+        Seed(seed),
+        &vow_tide::ids::canonical_seat_ids(seat_count),
+        &vow_tide::SetupOptions::default(),
+    )
+    .map_err(|diagnostic| {
+        format!(
+            "{}: vow_tide setup replay failed: {}",
+            path.display(),
+            diagnostic.code
+        )
+    })?;
+
+    if input.contains("\"hand_size\"") {
+        let expected = number_field(input, "hand_size").map_err(with_path)? as u8;
+        if state.current_hand_size() != Some(expected) {
+            return Err(format!(
+                "{}: hand_size mismatch: expected {expected}, actual {:?}",
+                path.display(),
+                state.current_hand_size()
+            ));
+        }
+    }
+    if input.contains("\"trump_indicator\"") {
+        let expected = string_field(input, "trump_indicator").map_err(with_path)?;
+        let actual = state.trump_indicator.as_str();
+        if actual != expected {
+            return Err(format!(
+                "{}: trump_indicator mismatch: expected {expected}, actual {actual}",
+                path.display()
+            ));
+        }
+    }
+    if input.contains("\"hidden_stock_count\"") {
+        let expected = number_field(input, "hidden_stock_count").map_err(with_path)? as usize;
+        if state.hidden_stock.len() != expected {
+            return Err(format!(
+                "{}: hidden_stock_count mismatch: expected {expected}, actual {}",
+                path.display(),
+                state.hidden_stock.len()
+            ));
+        }
+    }
+    if input.contains("\"dealer\"") {
+        let expected = string_field(input, "dealer").map_err(with_path)?;
+        let actual = state.dealer.as_str();
+        if actual != expected {
+            return Err(format!(
+                "{}: dealer mismatch: expected {expected}, actual {actual}",
+                path.display()
+            ));
+        }
+    }
+    if input.contains("\"first_leader\"") {
+        let expected = string_field(input, "first_leader").map_err(with_path)?;
+        let actual = state
+            .active_seat()
+            .map(|seat| seat.as_str())
+            .unwrap_or_default();
+        if actual != expected {
+            return Err(format!(
+                "{}: first_leader mismatch: expected {expected}, actual {actual}",
+                path.display()
+            ));
+        }
+    }
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-016: replay-check + rule-coverage registration and RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `tools/replay-check/src/main.rs`, `tools/rule-coverage/src/main.rs`; new `games/vow_tide/docs/RULE-COVERAGE.md`
@@ -74,3 +74,15 @@ Add the `vow_tide` arm (`rules_path`, `coverage_path`, `benchmarks_path`, `bench
 1. `cargo run -p replay-check -- --game vow_tide --all`
 2. `cargo run -p rule-coverage -- --game vow_tide`
 3. Narrower command rationale: the two tools are the trace/coverage boundary; the partial-green window on `BENCHMARKS.md` closes at 020.
+
+## Outcome
+
+Completed 2026-06-21. Registered `vow_tide` in `replay-check` and `rule-coverage`, added Vow Tide replay validation for lightweight golden traces, and authored `games/vow_tide/docs/RULE-COVERAGE.md` with one row per unique `VT-*` rule from `RULES.md`. Replay-check replays setup projections from seed and seat count when present in the trace and validates duplicate trace IDs across the pack. Rule-coverage now accepts variable-length `VT-*` IDs such as `VT-BID-ORDER-001` and validates the coverage matrix. Vow Tide benchmarks remain optional until ticket 020 lands `BENCHMARKS.md`, as planned in the ticket.
+
+Verification:
+
+1. `cargo fmt --all --check` passed.
+2. `cargo build -p replay-check -p rule-coverage` passed.
+3. `cargo run -p replay-check -- --game vow_tide --all` passed across all 19 golden traces.
+4. `cargo run -p rule-coverage -- --game vow_tide` passed.
+5. `cargo test -p rule-coverage` passed, including `VT-BID-ORDER-001` parser coverage.
