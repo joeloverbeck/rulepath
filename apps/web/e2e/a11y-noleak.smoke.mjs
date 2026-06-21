@@ -347,14 +347,14 @@ async function assertSeatFrameViewerNoLeak(page, consoleMessages) {
     rail: document.querySelector(".seat-frame-rail")?.textContent ?? "",
   }));
   assert(summary.labels.includes("Observer"), "seat frame exposes observer viewer");
-  assert(summary.labels.includes("Seat 0"), "seat frame exposes Seat 0 viewer");
   assert(summary.labels.includes("Seat 1"), "seat frame exposes Seat 1 viewer");
-  assert(summary.selected === "Seat 0", `seat frame starts on Seat 0, got ${summary.selected}`);
+  assert(summary.labels.includes("Seat 2"), "seat frame exposes Seat 2 viewer");
+  assert(summary.selected === "Seat 1", `seat frame starts on Seat 1, got ${summary.selected}`);
   assert(summary.rail.includes("Active"), "seat frame rail reflects Rust-projected active seat");
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_0 DOM");
 
-  await clickSeatFrameButton(page, "Seat 1");
-  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Seat 1"));
+  await clickSeatFrameButton(page, "Seat 2");
+  await page.waitForFunction(() => document.querySelector(".seat-frame-viewers input:checked")?.closest("label")?.textContent?.includes("Seat 2"));
   await waitForText(page, "Waiting for active seat");
   await assertNoPrivateSeatFrameLeak(page, consoleMessages, "high_card_duel seat-frame seat_1 DOM");
 

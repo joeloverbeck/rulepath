@@ -71,7 +71,7 @@ try {
   await waitForText(page, "Observer only");
   await assertNoLeak(page, consoleMessages, "observer DOM");
 
-  await clickText(page, "button", "Seat 0");
+  await clickText(page, "button", "Seat 1");
   await page.waitForSelector('[data-testid="high-card-commit-0"]');
   await focusByTestId(page, "high-card-commit-0");
   await assertFocusedVisible(page);
@@ -90,7 +90,7 @@ try {
   assert(!replayText.includes('"seed"'), "default export omits hidden seed");
   assertNoForbiddenTerms(replayText, "pre-reveal replay export");
 
-  await clickText(page, "button", "Seat 1");
+  await clickText(page, "button", "Seat 2");
   await page.waitForSelector('[data-testid="high-card-commit-0"]');
   await page.click('[data-testid="high-card-commit-0"]');
   await waitForText(page, "Cards revealed");
@@ -181,8 +181,8 @@ async function assertHighCardA11y(page) {
     };
   });
   assert(summary.board, "high_card_duel board renders");
-  assert(summary.viewerButtons.includes("Seat 0"), "viewer selector exposes Seat 0");
   assert(summary.viewerButtons.includes("Seat 1"), "viewer selector exposes Seat 1");
+  assert(summary.viewerButtons.includes("Seat 2"), "viewer selector exposes Seat 2");
   assert(summary.viewerButtons.includes("Observer"), "viewer selector exposes observer");
   assert(summary.commitButtons > 0, "active seat has Rust-provided private commit buttons");
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);

@@ -8,6 +8,7 @@ import type {
   SeatId,
   ViewerMode,
 } from "../wasm/client";
+import { resolveSeatLabel } from "../seatLabels";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -24,10 +25,10 @@ type HighCardDuelBoardProps = {
   onViewerModeChange?: (viewerMode: ViewerMode) => void;
 };
 
-const VIEWER_OPTIONS: Array<{ label: string; mode: ViewerMode }> = [
-  { label: "Seat 0", mode: { kind: "seat", seat: "seat_0" } },
-  { label: "Seat 1", mode: { kind: "seat", seat: "seat_1" } },
-  { label: "Observer", mode: { kind: "observer" } },
+const VIEWER_OPTIONS: ViewerMode[] = [
+  { kind: "seat", seat: "seat_0" },
+  { kind: "seat", seat: "seat_1" },
+  { kind: "observer" },
 ];
 
 export function HighCardDuelBoard({
@@ -50,7 +51,7 @@ export function HighCardDuelBoard({
   const revealEffect = latestEffectOfType(effects, "cards_revealed");
   const commitEffect = latestEffectOfType(effects, "commit_face_down");
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
-  const viewerLabel = viewerSeat ? seatLabel(viewerSeat) : "Observer";
+  const viewerLabel = viewerSeat ? resolveSeatLabel(viewerSeat) : "Observer";
   const outcomeExplanation = terminal
     ? outcomeSurfaceData({
         gameId: "high_card_duel",
@@ -97,16 +98,17 @@ export function HighCardDuelBoard({
 
       <div className="high-card-viewer-controls" role="group" aria-label="Viewer mode">
         {VIEWER_OPTIONS.map((option) => {
-          const selected = sameViewerMode(option.mode, viewerMode);
+          const selected = sameViewerMode(option, viewerMode);
+          const label = option.kind === "seat" ? resolveSeatLabel(option.seat) : "Observer";
           return (
             <button
               type="button"
-              key={option.label}
+              key={label}
               className={selected ? "selected" : ""}
               aria-pressed={selected}
-              onClick={() => onViewerModeChange?.(option.mode)}
+              onClick={() => onViewerModeChange?.(option)}
             >
-              {option.label}
+              {label}
             </button>
           );
         })}

@@ -1,6 +1,6 @@
 # SEAT-004: Migrate the VIEWER panel and viewer-mode selectors to the shared resolver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `apps/web` only (`SeatFrame.tsx` and per-board viewer-mode option lists)
@@ -96,3 +96,37 @@ the full set via grep first.
 
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-21
+
+Changed:
+- `SeatFrame` now resolves viewer labels through `resolveSeatLabels` using
+  Rust-projected `active_seat_labels`, catalog `seat_labels`, and catalog
+  `ui.seat_labels`.
+- Removed the `SeatFrame` hardcoded `Seat 0` / `Seat 1` fallback and replaced it
+  with the shared resolver's 1-based defensive fallback.
+- `HighCardDuelBoard` viewer-mode buttons now derive labels through
+  `resolveSeatLabel` instead of a local hardcoded `VIEWER_OPTIONS` label list.
+- Updated affected e2e assertions to expect 1-based viewer labels.
+
+Deviations:
+- High Card Duel's board-local viewer selector has no catalog or view label
+  source in its component props and the current `HighCardDuelPublicView` has no
+  `active_seat_labels`, so that selector uses the shared resolver's defensive
+  1-based fallback. This removes the old hardcoded labels but is not a proof that
+  High Card's board-local selector is Rust-fed; broader board wiring is owned by
+  SEAT-005.
+- The remaining `Seat 0` / `Seat 1` literal in `HighCardDuelBoard.tsx` is the
+  play-area `seatLabel` helper, explicitly out of scope for this ticket and owned
+  by SEAT-005.
+
+Verification:
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `node apps/web/e2e/high-card-duel.smoke.mjs` passed.
+- `node apps/web/e2e/a11y-noleak.smoke.mjs` passed.
+- Focused grep showed no `SeatFrame` hardcoded `Seat 0` / `Seat 1` fallback and
+  no hardcoded labels in `HighCardDuelBoard`'s `VIEWER_OPTIONS`; the only
+  remaining High Card match is the SEAT-005 play-area helper.
