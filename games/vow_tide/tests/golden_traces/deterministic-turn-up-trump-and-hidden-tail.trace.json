@@ -1,0 +1,21 @@
+{
+  "trace_id": "deterministic-turn-up-trump-and-hidden-tail",
+  "seed": 20260621,
+  "seed_derivation": "vow_tide_hand_seed_v1_xor_golden_ratio",
+  "seat_count": 4,
+  "dealer": "seat_0",
+  "deal_order": ["seat_1", "seat_2", "seat_3", "seat_0"],
+  "hand_index": 0,
+  "hand_size": 10,
+  "schedule": [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "trump_indicator": "eight_hearts",
+  "trump_suit": "hearts",
+  "hidden_stock_count": 11,
+  "hidden_stock": ["six_spades", "six_hearts", "four_clubs", "queen_clubs", "nine_clubs", "jack_hearts", "ten_spades", "jack_clubs", "three_spades", "nine_diamonds", "eight_clubs"],
+  "private_hands": [
+      { "seat": "seat_0", "cards": ["jack_spades", "two_clubs", "two_hearts", "jack_diamonds", "queen_hearts", "seven_spades", "seven_diamonds", "ace_clubs", "king_hearts", "two_spades"] },
+      { "seat": "seat_1", "cards": ["six_diamonds", "queen_spades", "ace_hearts", "three_clubs", "four_diamonds", "king_diamonds", "nine_hearts", "ten_hearts", "two_diamonds", "three_diamonds"] },
+      { "seat": "seat_2", "cards": ["queen_diamonds", "king_spades", "six_clubs", "five_hearts", "ace_spades", "nine_spades", "eight_spades", "king_clubs", "four_hearts", "five_spades"] },
+      { "seat": "seat_3", "cards": ["ten_clubs", "five_diamonds", "seven_hearts", "three_hearts", "five_clubs", "eight_diamonds", "ten_diamonds", "ace_diamonds", "four_spades", "seven_clubs"] }
+  ]
+}

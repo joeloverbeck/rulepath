@@ -1,7 +1,7 @@
 use engine_core::{FreshnessToken, SeatId, Seed};
 
 use crate::{
-    cards::CardId,
+    cards::{CardId, Suit},
     ids::{VowTideSeat, VARIANT_ID},
     variants::Variant,
 };
@@ -56,16 +56,24 @@ pub struct VowTideState {
     pub cumulative_scores: Vec<(VowTideSeat, i16)>,
     pub phase: Phase,
     pub private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
+    pub trump_indicator: CardId,
+    pub hidden_stock: Vec<CardId>,
+    pub deal_order: Vec<VowTideSeat>,
     pub freshness_token: FreshnessToken,
     pub seed: Seed,
 }
 
 impl VowTideState {
-    pub fn new_empty_hand(
+    pub fn new_after_deal(
         variant: Variant,
         seats: Vec<SeatId>,
         hand_schedule: Vec<u8>,
         dealer: VowTideSeat,
+        hand_index: u32,
+        private_hands: Vec<(VowTideSeat, Vec<CardId>)>,
+        trump_indicator: CardId,
+        hidden_stock: Vec<CardId>,
+        deal_order: Vec<VowTideSeat>,
         seed: Seed,
     ) -> Self {
         let seat_count = seats.len();
@@ -80,14 +88,14 @@ impl VowTideState {
                 .map(|seat| seat.fallback_label().to_owned())
                 .collect(),
             dealer,
-            hand_index: 0,
+            hand_index,
             hand_schedule,
             cumulative_scores: seat_order.iter().map(|seat| (*seat, 0)).collect(),
             phase: Phase::Bidding(BiddingState::new(seat_count, active_seat)),
-            private_hands: seat_order
-                .into_iter()
-                .map(|seat| (seat, Vec::new()))
-                .collect(),
+            private_hands,
+            trump_indicator,
+            hidden_stock,
+            deal_order,
             freshness_token: FreshnessToken(0),
             seed,
         }
@@ -117,6 +125,14 @@ impl VowTideState {
             .unwrap_or(&[])
     }
 
+    pub fn trump_suit(&self) -> Suit {
+        self.trump_indicator.card().suit
+    }
+
+    pub fn hidden_stock_internal(&self) -> &[CardId] {
+        &self.hidden_stock
+    }
+
     pub fn stable_internal_summary(&self) -> String {
         let phase = match &self.phase {
             Phase::Bidding(bidding) => format!("bidding:{}", bidding.active_seat.as_str()),
@@ -130,13 +146,19 @@ impl VowTideState {
             Phase::Terminal(_) => "terminal".to_owned(),
         };
         format!(
-            "{}|variant={}|dealer={}|hand={}|schedule={:?}|scores={:?}|phase={phase}|hands={}",
+            "{}|variant={}|dealer={}|hand={}|schedule={:?}|scores={:?}|phase={phase}|trump={}|stock={}|hands={}",
             VARIANT_ID,
             self.variant.id,
             self.dealer.as_str(),
             self.hand_index,
             self.hand_schedule,
             self.cumulative_scores,
+            self.trump_indicator.as_str(),
+            self.hidden_stock
+                .iter()
+                .map(|card| card.as_str())
+                .collect::<Vec<_>>()
+                .join("/"),
             self.private_hands
                 .iter()
                 .map(|(seat, hand)| format!(

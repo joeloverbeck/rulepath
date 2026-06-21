@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-006: Deterministic deal, per-hand RNG, turn-up trump, hidden stock
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — modifies `games/vow_tide/src/{setup,state}.rs`; new `games/vow_tide/src/cards.rs` deal helpers (or `setup.rs`); new setup golden traces under `games/vow_tide/tests/golden_traces/`
@@ -83,3 +83,19 @@ Author `setup-{3,4,5,6,7}p-schedule-and-deal.trace.json` and `deterministic-turn
 1. `cargo test -p vow_tide`
 2. `cargo test -p vow_tide --test property`
 3. Narrower command rationale: native property/trace tests are the determinism boundary; full `replay-check --all` runs once the tool arm (016) registers vow_tide.
+
+## Outcome
+
+Completed on 2026-06-21.
+
+- Added documented v1 per-hand seed derivation, deterministic shuffling, and single-card clockwise deal order from left of dealer.
+- Extended Vow Tide state with dealt private hands, public trump indicator, hidden stock, and deal order while keeping stock/internal card identity out of any viewer projection surface.
+- Added conservation and determinism tests across 3–7 seats, including same seed/hand reproduction, different-seed divergence, seed partitioning by hand index, trump non-playability, and complete 52-card conservation.
+- Added native golden trace fixtures for 3-seat setup, 7-seat setup, and deterministic turn-up trump/hidden tail; `golden_traces.rs` regenerates and compares them byte-for-byte.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p vow_tide` passed: 11 integration tests plus crate/doc test harnesses.
+- `cargo test -p vow_tide --test property` passed: 4 property tests.
+- `replay-check --game vow_tide` was not run because the ticket explicitly defers tool registration to 016; native trace assertion covered this ticket's deterministic trace boundary.
