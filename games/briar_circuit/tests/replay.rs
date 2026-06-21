@@ -210,3 +210,27 @@ fn bot_match_replay_diverges_across_seeds() {
         "distinct seeds yield distinct terminal state hashes"
     );
 }
+
+#[test]
+fn bot_match_replay_records_pass_cycle_dealer_rotation_and_tie_continuation() {
+    // Pass direction and dealer rotation are deterministic from the hand index, so the
+    // first four hands of any multi-hand match follow the published cycle.
+    let canonical = replay_bot_match(1600, 8192).expect("replay");
+    assert_eq!(
+        canonical.pass_directions[..4],
+        ["left", "right", "across", "hold"]
+    );
+    assert_eq!(
+        canonical.dealers[..4],
+        ["seat_0", "seat_1", "seat_2", "seat_3"]
+    );
+    assert_eq!(canonical.tie_continuation_hands, 0);
+
+    // Seed 1625 crosses the threshold with a tied low score, so the match continues.
+    let tie = replay_bot_match(1625, 8192).expect("replay");
+    assert!(
+        tie.tie_continuation_hands >= 1,
+        "seed 1625 continues past a tied-low threshold hand"
+    );
+    assert!(tie.terminal && tie.winner.is_some());
+}

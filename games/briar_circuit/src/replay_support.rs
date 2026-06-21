@@ -5,6 +5,7 @@ use crate::{
     bots::{BriarCircuitBotAction, BriarCircuitL1Bot},
     effects::BriarCircuitEffect,
     ids::{canonical_seat_ids, BriarCircuitSeat, GAME_ID, RULES_VERSION_LABEL},
+    scoring::MATCH_THRESHOLD,
     setup::{setup_match, SetupOptions},
     state::{BriarCircuitState, Phase, TerminalOutcome},
     visibility::{filter_effects_for_viewer, project_action_previews, project_view},
@@ -53,6 +54,14 @@ pub struct BotMatchReplay {
     pub hands_played: u32,
     pub cumulative_scores: [u16; 4],
     pub action_count: u32,
+    /// Pass direction of each hand played, in order (e.g. left, right, across, hold, ...).
+    pub pass_directions: Vec<String>,
+    /// Dealer of each hand played, in order; rotates clockwise after every hand.
+    pub dealers: Vec<String>,
+    /// Number of completed non-terminal hands after which a cumulative score had
+    /// already reached the match threshold but the low score was tied, so play
+    /// continued (BC-MATCH-003 tied-low continuation).
+    pub tie_continuation_hands: u32,
 }
 
 pub fn replay_bot_match(seed: u64, action_cap: usize) -> Result<BotMatchReplay, Diagnostic> {
@@ -60,6 +69,10 @@ pub fn replay_bot_match(seed: u64, action_cap: usize) -> Result<BotMatchReplay, 
     let bot = BriarCircuitL1Bot::new(Seed(seed ^ 0xB16A_C1CC));
     let mut effects: Vec<BriarCircuitEffect> = Vec::new();
     let mut action_count = 0_u32;
+    let mut pass_directions = vec![state.pass_direction().as_str().to_owned()];
+    let mut dealers = vec![state.dealer.as_str().to_owned()];
+    let mut tie_continuation_hands = 0_u32;
+    let mut prev_hand_index = state.hand_index;
 
     while !matches!(state.phase, Phase::Terminal(_)) {
         let Some(seat) = bot_match_active_seat(&state) else {
@@ -75,6 +88,23 @@ pub fn replay_bot_match(seed: u64, action_cap: usize) -> Result<BotMatchReplay, 
             }
         }
         action_count += 1;
+
+        if state.hand_index != prev_hand_index {
+            // A non-terminal hand completed and the next hand was dealt. If a score has
+            // already crossed the threshold, the match only continued because the low
+            // score was tied (a unique low would have ended the match).
+            if state
+                .cumulative_scores
+                .iter()
+                .any(|score| *score >= MATCH_THRESHOLD)
+            {
+                tie_continuation_hands += 1;
+            }
+            pass_directions.push(state.pass_direction().as_str().to_owned());
+            dealers.push(state.dealer.as_str().to_owned());
+            prev_hand_index = state.hand_index;
+        }
+
         if action_count as usize >= action_cap {
             break;
         }
@@ -100,6 +130,9 @@ pub fn replay_bot_match(seed: u64, action_cap: usize) -> Result<BotMatchReplay, 
         hands_played,
         cumulative_scores: state.cumulative_scores,
         action_count,
+        pass_directions,
+        dealers,
+        tie_continuation_hands,
     })
 }
 

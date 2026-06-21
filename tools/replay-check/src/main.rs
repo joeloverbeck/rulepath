@@ -422,6 +422,37 @@ fn validate_briar_bot_match_trace(path: &Path, input: &str) -> Result<(), String
         }
     }
 
+    // Optional multi-hand structural assertions (checked only when present).
+    if input.contains("\"expected_pass_cycle\"") {
+        let expected = optional_string_array_field(input, "expected_pass_cycle")
+            .ok_or_else(|| with_path("expected_pass_cycle must be a string array".to_owned()))?;
+        if !replay.pass_directions.starts_with(expected.as_slice()) {
+            return Err(with_path(format!(
+                "pass cycle mismatch: expected prefix {expected:?}, actual {:?}",
+                replay.pass_directions
+            )));
+        }
+    }
+    if input.contains("\"expected_dealer_cycle\"") {
+        let expected = optional_string_array_field(input, "expected_dealer_cycle")
+            .ok_or_else(|| with_path("expected_dealer_cycle must be a string array".to_owned()))?;
+        if !replay.dealers.starts_with(expected.as_slice()) {
+            return Err(with_path(format!(
+                "dealer cycle mismatch: expected prefix {expected:?}, actual {:?}",
+                replay.dealers
+            )));
+        }
+    }
+    if input.contains("\"expected_min_tie_continuations\"") {
+        let expected = number_field(input, "expected_min_tie_continuations").map_err(with_path)?;
+        if u64::from(replay.tie_continuation_hands) < expected {
+            return Err(with_path(format!(
+                "tie continuation mismatch: expected at least {expected}, actual {}",
+                replay.tie_continuation_hands
+            )));
+        }
+    }
+
     Ok(())
 }
 
