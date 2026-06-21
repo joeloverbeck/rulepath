@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-022: Public-release closeout, central docs, helper conformance receipt, `Done`-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — docs/status-only (capstone): `games/vow_tide/docs/PUBLIC-RELEASE-CHECKLIST.md`, central `docs/SOURCES.md` / `docs/MECHANIC-ATLAS.md`, `specs/README.md`, the spec Status
@@ -77,3 +77,44 @@ Flip Gate 17 to `Done` in `specs/README.md` (completion date + concise evidence)
 1. `cargo test --workspace && cargo run -p replay-check -- --game vow_tide --all`
 2. `cargo run -p replay-check -- --game plain_tricks --all && cargo run -p replay-check -- --game briar_circuit --all`
 3. Narrower command rationale: the workspace suite + per-game replay-check (incl. the back-ported games) is the end-to-end acceptance + no-debt boundary; the web/doc gates confirm the public surface.
+
+## Outcome
+
+Completed: 2026-06-21.
+
+Gate 17 was closed as `Done`. Added
+`games/vow_tide/docs/PUBLIC-RELEASE-CHECKLIST.md`, reconciled central
+`docs/SOURCES.md` and `docs/MECHANIC-ATLAS.md`, flipped the Gate 17 row in
+`specs/README.md`, set the Gate 17 spec status/outcome to `Done`, and archived
+the spec at
+`archive/specs/gate-17-vow-tide-oh-hell-bidding-trick-taking.md`.
+
+The atlas §10A no-debt receipt now records the Gate 17
+`game-stdlib::trick_taking` helper promotion, same-gate Plain Tricks/Briar
+Circuit conformance, Vow Tide helper use, and `Current debt: _None_`.
+
+Verification:
+
+- `cargo test --workspace`
+- `cargo run -p fixture-check -- --game vow_tide`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `cargo run -p rule-coverage -- --game vow_tide`
+- `cargo run -p simulate -- --game vow_tide --seat-count 3 --games 1000 --action-cap 512`
+- `cargo run -p simulate -- --game vow_tide --seat-count 4 --games 1000 --action-cap 1024`
+- `cargo run -p simulate -- --game vow_tide --seat-count 5 --games 1000 --action-cap 1024`
+- `cargo run -p simulate -- --game vow_tide --seat-count 6 --games 1000 --action-cap 1024`
+- `cargo run -p simulate -- --game vow_tide --seat-count 7 --games 1000 --action-cap 1024`
+- `cargo run -p replay-check -- --game plain_tricks --all`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:e2e`
+- `cargo bench -p vow_tide`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `bash scripts/boundary-check.sh`
+
+Deviation: the first 3-seat simulation attempt used the simulator default
+`--action-cap 64` and correctly stopped before terminal because Vow Tide has
+multi-hand matches. The accepted simulation evidence uses explicit complete-match
+caps: 512 for 3 seats and 1024 for 4-7 seats.

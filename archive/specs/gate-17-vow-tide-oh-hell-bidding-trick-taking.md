@@ -8,7 +8,7 @@
 | File | `specs/gate-17-vow-tide-oh-hell-bidding-trick-taking.md` |
 | Roadmap stage | Stage 17 / Public scaling phase |
 | Roadmap build gate | Gate 17 |
-| Status | `Planned` / implementation not started |
+| Status | `Done` |
 | Date | 2026-06-21 |
 | Owner | Rulepath maintainers / implementation agents |
 | Primary crate | `games/vow_tide` |
@@ -1407,8 +1407,23 @@ Each reference below names a repository-relative path. The spec was authored aga
 
 # Outcome
 
-**Specification status:** `Planned` / implementation not started.
+**Specification status:** `Done`.
 
-This document admits Gate 17 as **Vow Tide**, a variable 3–7-seat exact-bid trick-taking official game. It locks one coherent rules variant, resolves the third-use trick-taking hard gate through a narrow `game-stdlib` promotion with same-gate Plain Tricks and Briar Circuit back-ports, keeps bidding/contracts local as a first use, and defines the required Rust, replay, no-leak, bot, benchmark, WASM, web, accessibility, documentation, and closeout evidence.
+Completed: 2026-06-21.
 
-No implementation tickets are emitted by this deliverable. The next process step after acceptance is `/reassess-spec`, followed by `/spec-to-tickets`.
+Gate 17 shipped **Vow Tide**, a variable 3-7-seat exact-bid trick-taking
+official game. The implementation locks the `vow_tide_standard` variant,
+registers the Rust game, tools, WASM bridge, public rules, web renderer, e2e
+smoke, rule coverage, replay/fixture evidence, simulations, bot docs, benchmark
+evidence, source/IP notes, and public-release checklist.
+
+The third-use trick-taking hard gate closed through the narrow
+`game-stdlib::trick_taking` promotion. Plain Tricks and Briar Circuit were
+conformed in the same gate, Vow Tide uses the helper, and `docs/MECHANIC-ATLAS.md`
+§10A records `Current debt: _None_`.
+
+Verification recorded for closeout includes `cargo test --workspace`,
+`fixture-check`, `replay-check`, `rule-coverage`, the 3-7-seat simulation matrix,
+Plain Tricks and Briar Circuit replay checks, `cargo bench -p vow_tide`, web
+build/e2e smoke, catalog/doc/outcome checkers, and the central spec/source/atlas
+status reconciliation.
