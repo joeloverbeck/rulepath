@@ -105,6 +105,22 @@ export function BriarCircuitBoard({
     () => [...view.own_hand].sort((a, b) => SUIT_SORT[a.suit] - SUIT_SORT[b.suit] || a.rank_value - b.rank_value),
     [view.own_hand],
   );
+  // Penalty points each seat has captured *this hand*, derived from the public
+  // captured-trick history. This is presentation aggregation of already-public
+  // played cards (no hidden state) and gives the player moon/risk awareness that
+  // the live Rust view does not surface directly.
+  const handPoints = useMemo(() => {
+    const totals: Record<BriarCircuitSeatId, number> = { seat_0: 0, seat_1: 0, seat_2: 0, seat_3: 0 };
+    for (const trick of view.captured_tricks) {
+      if (trick.hand_index !== view.hand_index) continue;
+      const trickPoints = trick.plays.reduce((sum, play) => {
+        const { rank, suit } = splitCardId(play.card);
+        return sum + (pointValue(suit, rank) ?? 0);
+      }, 0);
+      totals[trick.winner] += trickPoints;
+    }
+    return totals;
+  }, [view.captured_tricks, view.hand_index]);
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase !== "terminal");
   // Between-hands scoring summary: the most recently completed hand, retained by Rust.
@@ -179,15 +195,15 @@ export function BriarCircuitBoard({
 
       <div className="briar-metrics" aria-label="Briar Circuit status">
         <Metric label="Hand" value={String(view.hand_index + 1)} />
-        <Metric label={view.ui.score_label} value={scoreLine(view)} />
+        <Metric label="Leader (low wins)" value={leaderLine(view)} />
         <Metric label="Dealer" value={seatLabel(view.dealer)} />
-        <Metric label="Hearts" value={view.hearts_broken ? "Broken" : "Closed"} />
+        <Metric label="Hearts" value={view.hearts_broken ? "Broken — can be led" : "Not broken"} />
       </div>
 
       <div className="briar-table" aria-label={view.ui.table_label}>
         <section className="briar-seat-rail" aria-label="Seats">
           {SEATS.map((seat) => (
-            <SeatPanel key={seat} view={view} seat={seat} />
+            <SeatPanel key={seat} view={view} seat={seat} handPoints={handPoints[seat]} />
           ))}
         </section>
 
@@ -419,16 +435,38 @@ function HandSummaryPanel({
   );
 }
 
-function SeatPanel({ view, seat }: { view: BriarCircuitPublicView; seat: BriarCircuitSeatId }) {
+function SeatPanel({
+  view,
+  seat,
+  handPoints,
+}: {
+  view: BriarCircuitPublicView;
+  seat: BriarCircuitSeatId;
+  handPoints: number;
+}) {
   const active = view.active_seat === seat;
   const viewer = view.viewer_seat === seat;
   return (
     <article className={`briar-seat ${active ? "active" : ""}${viewer ? " viewer" : ""}`}>
+      {/* The seat label must stay the sole direct-child <span> of .briar-seat:
+          seat-label-consistency.smoke.mjs reads ".briar-seat > span" and asserts
+          it equals the Rust catalog labels. Tags/points are non-span elements. */}
       <span>{seatLabel(seat)}</span>
+      {viewer || active ? (
+        <div className="briar-seat-tags">
+          {viewer ? <em className="briar-seat-tag you">You</em> : null}
+          {active ? <em className="briar-seat-tag turn">To play</em> : null}
+        </div>
+      ) : null}
       <strong>{view.cumulative_scores[seat]}</strong>
       <small>
-        {view.hand_counts[seat]} cards{seat === view.dealer ? " / dealer" : ""}
+        {view.hand_counts[seat]} cards{seat === view.dealer ? " · dealer" : ""}
       </small>
+      {handPoints > 0 ? (
+        <em className="briar-seat-points" aria-label={`${handPoints} penalty points taken this hand`}>
+          {handPoints} this hand
+        </em>
+      ) : null}
     </article>
   );
 }
@@ -470,8 +508,11 @@ function actionLabel(path: string[]): string {
   return "Legal";
 }
 
-function scoreLine(view: BriarCircuitPublicView): string {
-  return SEATS.map((seat) => view.cumulative_scores[seat]).join(" / ");
+// Lower cumulative score wins (BC-MATCH-003), so the "leader" is the lowest score.
+function leaderLine(view: BriarCircuitPublicView): string {
+  const lowest = Math.min(...SEATS.map((seat) => view.cumulative_scores[seat]));
+  const leaders = SEATS.filter((seat) => view.cumulative_scores[seat] === lowest);
+  return leaders.length > 1 ? `Tied · ${lowest}` : `${seatLabel(leaders[0])} · ${lowest}`;
 }
 
 function lowestScoreSeat(view: BriarCircuitPublicView): BriarCircuitSeatId {

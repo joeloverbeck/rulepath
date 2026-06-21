@@ -825,6 +825,50 @@ h2 {
   box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.14);
 }
 
+.briar-seat.active {
+  box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.32);
+}
+
+.briar-seat-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.briar-seat .briar-seat-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.briar-seat .briar-seat-tag.you {
+  background: #e6f0ec;
+  color: #236d59;
+}
+
+.briar-seat .briar-seat-tag.turn {
+  background: #2b8068;
+  color: #ffffff;
+}
+
+.briar-seat .briar-seat-points {
+  justify-self: start;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-style: normal;
+  text-transform: none;
+  color: #b3123b;
+  background: #fdeef2;
+  border: 1px solid #e3a9bd;
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
 .briar-section-heading {
   display: flex;
   align-items: center;
