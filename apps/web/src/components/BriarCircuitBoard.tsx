@@ -30,6 +30,54 @@ type PathChoice = {
 
 const SEATS: BriarCircuitSeatId[] = ["seat_0", "seat_1", "seat_2", "seat_3"];
 
+const SUIT_GLYPH: Record<string, string> = { clubs: "♣", diamonds: "♦", hearts: "♥", spades: "♠" };
+const RANK_GLYPH: Record<string, string> = {
+  two: "2",
+  three: "3",
+  four: "4",
+  five: "5",
+  six: "6",
+  seven: "7",
+  eight: "8",
+  nine: "9",
+  ten: "10",
+  jack: "J",
+  queen: "Q",
+  king: "K",
+  ace: "A",
+};
+// Display-only suit grouping. Alternating red/black keeps adjacent suit groups
+// visually distinct when the owner hand is sorted.
+const SUIT_SORT: Record<string, number> = { clubs: 0, diamonds: 1, spades: 2, hearts: 3 };
+
+function isRedSuit(suit: string): boolean {
+  return suit === "hearts" || suit === "diamonds";
+}
+
+// Penalty cards under briar-circuit-rules-v1 scoring: each heart is 1, the queen
+// of spades is 13. This is a presentation-only highlight of an already-known card
+// identity; Rust remains the scoring authority and TypeScript decides no legality.
+function pointValue(suit: string, rank: string): number | null {
+  if (suit === "spades" && rank === "queen") return 13;
+  if (suit === "hearts") return 1;
+  return null;
+}
+
+function splitCardId(cardId: string): { rank: string; suit: string } {
+  const idx = cardId.lastIndexOf("_");
+  if (idx < 0) return { rank: cardId, suit: "" };
+  return { rank: cardId.slice(0, idx), suit: cardId.slice(idx + 1) };
+}
+
+function CardFace({ suit, rank }: { suit: string; rank: string }) {
+  return (
+    <span className="briar-card-face" aria-hidden="true">
+      <span className="briar-card-rank">{RANK_GLYPH[rank] ?? rank}</span>
+      <span className="briar-card-suit">{SUIT_GLYPH[suit] ?? suit}</span>
+    </span>
+  );
+}
+
 export function BriarCircuitBoard({
   view,
   actionTree,
@@ -50,6 +98,13 @@ export function BriarCircuitBoard({
   const passConfirm = paths.find((entry) => entry.path[0] === "pass" && entry.path[1] === "confirm") ?? null;
   const playChoices = useMemo(() => new Map(paths.filter((entry) => entry.path[0] === "play").map((entry) => [entry.path[1], entry])), [paths]);
   const selected = new Set(view.pass?.own_selection.map((card) => card.card_id) ?? []);
+  // Sort the owner hand for display only (suit groups, then ascending rank). Pure
+  // presentation: the underlying Rust action leaves are looked up by card id, so
+  // reordering the buttons never changes which plays are legal.
+  const sortedHand = useMemo(
+    () => [...view.own_hand].sort((a, b) => SUIT_SORT[a.suit] - SUIT_SORT[b.suit] || a.rank_value - b.rank_value),
+    [view.own_hand],
+  );
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase !== "terminal");
   // Between-hands scoring summary: the most recently completed hand, retained by Rust.
@@ -145,12 +200,23 @@ export function BriarCircuitBoard({
             {view.current_trick.length === 0 ? (
               <p className="muted">Waiting for a legal play.</p>
             ) : (
-              view.current_trick.map((play) => (
-                <div className="briar-played-card" key={`${play.seat}-${play.card}`}>
-                  <span>{seatLabel(play.seat)}</span>
-                  <strong>{formatCardId(play.card)}</strong>
-                </div>
-              ))
+              view.current_trick.map((play) => {
+                const { rank, suit } = splitCardId(play.card);
+                const penalty = pointValue(suit, rank);
+                const leadSuit = view.current_trick[0] ? splitCardId(view.current_trick[0].card).suit : suit;
+                return (
+                  <div
+                    className={`briar-played-card ${isRedSuit(suit) ? "red" : "black"}${penalty !== null ? " point" : ""}${
+                      suit === leadSuit ? " lead" : ""
+                    }`}
+                    key={`${play.seat}-${play.card}`}
+                  >
+                    <span className="briar-played-seat">{seatLabel(play.seat)}</span>
+                    <CardFace suit={suit} rank={rank} />
+                    <span className="sr-only">{formatCardId(play.card)}</span>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
@@ -162,25 +228,34 @@ export function BriarCircuitBoard({
           </div>
           {view.private_view_status === "seat" ? (
             <div className="briar-hand" data-testid="briar-circuit-own-hand">
-              {view.own_hand.map((card) => {
+              {sortedHand.map((card) => {
                 const selectChoice = passSelect.get(card.card_id) ?? null;
                 const unselectChoice = passUnselect.get(card.card_id) ?? null;
                 const playChoice = playChoices.get(card.card_id) ?? null;
                 const selectedForPass = selected.has(card.card_id);
                 const action = selectedForPass ? unselectChoice : selectChoice ?? playChoice;
+                const penalty = pointValue(card.suit, card.rank);
                 return (
                   <button
                     type="button"
                     key={card.card_id}
-                    className={`briar-card ${card.suit} ${action ? "legal" : ""}${selectedForPass ? " selected" : ""}`}
+                    className={`briar-card suit-${card.suit} ${isRedSuit(card.suit) ? "red" : "black"}${
+                      penalty !== null ? " point" : ""
+                    } ${action ? "legal" : ""}${selectedForPass ? " selected" : ""}`}
                     disabled={!canAct || !action}
                     aria-pressed={selectedForPass}
                     aria-label={action?.choice.accessibility_label ?? card.accessibility_label}
                     onClick={() => action && onPathSubmit?.(action.path)}
                   >
-                    <span>{card.suit}</span>
-                    <strong>{card.rank}</strong>
-                    <small>{selectedForPass ? "Selected" : action ? actionLabel(action.path) : "Held"}</small>
+                    <CardFace suit={card.suit} rank={card.rank} />
+                    {penalty !== null ? (
+                      <span className="briar-card-penalty" aria-hidden="true">
+                        {penalty}
+                      </span>
+                    ) : null}
+                    <small className="briar-card-state">
+                      {selectedForPass ? "Selected" : action ? actionLabel(action.path) : "Held"}
+                    </small>
                   </button>
                 );
               })}
@@ -225,13 +300,40 @@ export function BriarCircuitBoard({
           <p className="muted">Captured tricks will appear here.</p>
         ) : (
           <ol>
-            {view.captured_tricks.slice(-6).map((trick) => (
-              <li key={`${trick.hand_index}-${trick.trick_index}`}>
-                <span>Trick {trick.trick_index + 1}</span>
-                <strong>{seatLabel(trick.winner)}</strong>
-                <small>{trick.plays.map((play) => `${seatLabel(play.seat)} ${formatCardId(play.card)}`).join(" / ")}</small>
-              </li>
-            ))}
+            {view.captured_tricks.slice(-6).map((trick) => {
+              const trickPoints = trick.plays.reduce((total, play) => {
+                const { rank, suit } = splitCardId(play.card);
+                return total + (pointValue(suit, rank) ?? 0);
+              }, 0);
+              return (
+                <li key={`${trick.hand_index}-${trick.trick_index}`}>
+                  <span>Trick {trick.trick_index + 1}</span>
+                  <strong>
+                    {seatLabel(trick.winner)}
+                    {trickPoints > 0 ? <em className="briar-trick-points"> +{trickPoints}</em> : null}
+                  </strong>
+                  <small className="briar-history-cards">
+                    {trick.plays.map((play) => {
+                      const { rank, suit } = splitCardId(play.card);
+                      const penalty = pointValue(suit, rank);
+                      return (
+                        <span
+                          key={play.card}
+                          className={`briar-mini-card ${isRedSuit(suit) ? "red" : "black"}${penalty !== null ? " point" : ""}`}
+                        >
+                          <span className="briar-mini-seat">{seatLabel(play.seat)}</span>
+                          <span className="briar-mini-glyph" aria-hidden="true">
+                            {RANK_GLYPH[rank] ?? rank}
+                            {SUIT_GLYPH[suit] ?? suit}
+                          </span>
+                          <span className="sr-only">{formatCardId(play.card)}</span>
+                        </span>
+                      );
+                    })}
+                  </small>
+                </li>
+              );
+            })}
           </ol>
         )}
       </section>
