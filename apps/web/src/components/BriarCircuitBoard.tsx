@@ -8,7 +8,7 @@ import type {
   EffectEntry,
 } from "../wasm/client";
 import { resolveSeatLabel } from "../seatLabels";
-import { feedbackForEffect } from "./effectFeedback";
+import { feedbackForEffect, type EffectFeedback } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type BriarCircuitBoardProps = {
@@ -30,6 +30,82 @@ type PathChoice = {
 
 const SEATS: BriarCircuitSeatId[] = ["seat_0", "seat_1", "seat_2", "seat_3"];
 
+const SUIT_GLYPH: Record<string, string> = { clubs: "♣", diamonds: "♦", hearts: "♥", spades: "♠" };
+const RANK_GLYPH: Record<string, string> = {
+  two: "2",
+  three: "3",
+  four: "4",
+  five: "5",
+  six: "6",
+  seven: "7",
+  eight: "8",
+  nine: "9",
+  ten: "10",
+  jack: "J",
+  queen: "Q",
+  king: "K",
+  ace: "A",
+};
+// Display-only suit grouping. Alternating red/black keeps adjacent suit groups
+// visually distinct when the owner hand is sorted.
+const SUIT_SORT: Record<string, number> = { clubs: 0, diamonds: 1, spades: 2, hearts: 3 };
+
+function isRedSuit(suit: string): boolean {
+  return suit === "hearts" || suit === "diamonds";
+}
+
+// Penalty cards under briar-circuit-rules-v1 scoring: each heart is 1, the queen
+// of spades is 13. This is a presentation-only highlight of an already-known card
+// identity; Rust remains the scoring authority and TypeScript decides no legality.
+function pointValue(suit: string, rank: string): number | null {
+  if (suit === "spades" && rank === "queen") return 13;
+  if (suit === "hearts") return 1;
+  return null;
+}
+
+function splitCardId(cardId: string): { rank: string; suit: string } {
+  const idx = cardId.lastIndexOf("_");
+  if (idx < 0) return { rank: cardId, suit: "" };
+  return { rank: cardId.slice(0, idx), suit: cardId.slice(idx + 1) };
+}
+
+// Build a consistent, screen-reader-friendly accessible name for an owner-hand
+// card button. The Rust-supplied labels are inconsistent across states (verbose
+// "three clubs" for a select/play leaf, but terse "QH"/"qd" for an unselect leaf
+// or a held card), so a selected/held card would announce cryptically. UI.md
+// permits TypeScript to format labels; the identity here comes from the viewer's
+// own authorized card metadata (rank/suit), and the state words mirror the visible
+// small-text — no legality is computed (the disabled/pressed states come from Rust).
+function cardAccessibleName(
+  card: { rank: string; suit: string },
+  state: { selectedForPass: boolean; canSelect: boolean; canPlay: boolean },
+): string {
+  const parts = [`${card.rank} of ${card.suit}`];
+  const penalty = pointValue(card.suit, card.rank);
+  if (penalty !== null) {
+    parts.push(`${penalty} penalty ${penalty === 1 ? "point" : "points"}`);
+  }
+  if (state.selectedForPass) {
+    parts.push("selected to pass");
+  } else if (state.canSelect) {
+    parts.push("choose to pass");
+  } else if (state.canPlay) {
+    parts.push("play to the trick");
+  } else {
+    parts.push("held");
+  }
+  return parts.join(", ");
+}
+
+function CardFace({ suit, rank }: { suit: string; rank: string }) {
+  return (
+    <span className="briar-card-face" aria-hidden="true">
+      <span className="briar-card-rank">{RANK_GLYPH[rank] ?? rank}</span>
+      <span className="briar-card-suit">{SUIT_GLYPH[suit] ?? suit}</span>
+    </span>
+  );
+}
+
 export function BriarCircuitBoard({
   view,
   actionTree,
@@ -50,7 +126,44 @@ export function BriarCircuitBoard({
   const passConfirm = paths.find((entry) => entry.path[0] === "pass" && entry.path[1] === "confirm") ?? null;
   const playChoices = useMemo(() => new Map(paths.filter((entry) => entry.path[0] === "play").map((entry) => [entry.path[1], entry])), [paths]);
   const selected = new Set(view.pass?.own_selection.map((card) => card.card_id) ?? []);
-  const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  // Sort the owner hand for display only (suit groups, then ascending rank). Pure
+  // presentation: the underlying Rust action leaves are looked up by card id, so
+  // reordering the buttons never changes which plays are legal.
+  const sortedHand = useMemo(
+    () => [...view.own_hand].sort((a, b) => SUIT_SORT[a.suit] - SUIT_SORT[b.suit] || a.rank_value - b.rank_value),
+    [view.own_hand],
+  );
+  // Penalty points each seat has captured *this hand*, derived from the public
+  // captured-trick history. This is presentation aggregation of already-public
+  // played cards (no hidden state) and gives the player moon/risk awareness that
+  // the live Rust view does not surface directly.
+  const handPoints = useMemo(() => {
+    const totals: Record<BriarCircuitSeatId, number> = { seat_0: 0, seat_1: 0, seat_2: 0, seat_3: 0 };
+    for (const trick of view.captured_tricks) {
+      if (trick.hand_index !== view.hand_index) continue;
+      const trickPoints = trick.plays.reduce((sum, play) => {
+        const { rank, suit } = splitCardId(play.card);
+        return sum + (pointValue(suit, rank) ?? 0);
+      }, 0);
+      totals[trick.winner] += trickPoints;
+    }
+    return totals;
+  }, [view.captured_tricks, view.hand_index]);
+  // Current-trick facts that are purely positional/visible (NOT the trick winner,
+  // which UI.md forbids TypeScript from computing): the led suit is the suit of the
+  // opening card, and "at stake" is the penalty value already visible on the table.
+  const trickLeadSuit = view.current_trick.length ? splitCardId(view.current_trick[0].card).suit : null;
+  const trickStake = view.current_trick.reduce((sum, play) => {
+    const { rank, suit } = splitCardId(play.card);
+    return sum + (pointValue(suit, rank) ?? 0);
+  }, 0);
+  // Briar Circuit emits seat-keyed effects (card_played, trick_captured, …) whose
+  // raw payloads carry snake_case seat ids and effect-type strings. The shared
+  // feedbackForEffect leaves several of them unhandled (showing "trick_captured")
+  // or prints the raw "seat_3". briarFeedbackForEffect re-narrates them with the
+  // public seat labels and plain-language copy used everywhere else on the board;
+  // it falls back to the shared formatter for anything it does not recognize.
+  const feedback = latestEffect ? briarFeedbackForEffect(latestEffect) ?? feedbackForEffect(latestEffect) : null;
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase !== "terminal");
   // Between-hands scoring summary: the most recently completed hand, retained by Rust.
   // Each hand has a unique cumulative-score signature, so dismissal is keyed by it; a
@@ -124,15 +237,15 @@ export function BriarCircuitBoard({
 
       <div className="briar-metrics" aria-label="Briar Circuit status">
         <Metric label="Hand" value={String(view.hand_index + 1)} />
-        <Metric label={view.ui.score_label} value={scoreLine(view)} />
+        <Metric label="Leader (low wins)" value={leaderLine(view)} />
         <Metric label="Dealer" value={seatLabel(view.dealer)} />
-        <Metric label="Hearts" value={view.hearts_broken ? "Broken" : "Closed"} />
+        <Metric label="Hearts" value={view.hearts_broken ? "Broken — can be led" : "Not broken"} />
       </div>
 
       <div className="briar-table" aria-label={view.ui.table_label}>
         <section className="briar-seat-rail" aria-label="Seats">
           {SEATS.map((seat) => (
-            <SeatPanel key={seat} view={view} seat={seat} />
+            <SeatPanel key={seat} view={view} seat={seat} handPoints={handPoints[seat]} />
           ))}
         </section>
 
@@ -141,16 +254,49 @@ export function BriarCircuitBoard({
             <span>{view.ui.current_trick_label}</span>
             <strong>{view.current_trick.length ? `${view.current_trick.length} / 4 played` : "No cards played"}</strong>
           </div>
+          {view.current_trick.length && trickLeadSuit ? (
+            <div className="briar-trick-meta">
+              <span className={`briar-led-chip ${isRedSuit(trickLeadSuit) ? "red" : "black"}`}>
+                Led{" "}
+                <strong aria-hidden="true">{SUIT_GLYPH[trickLeadSuit] ?? trickLeadSuit}</strong>
+                <span className="sr-only">{trickLeadSuit}</span>
+              </span>
+              {trickStake > 0 ? (
+                <span className="briar-stake-chip">
+                  {trickStake} {trickStake === 1 ? "point" : "points"} at stake
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           <div className="briar-trick-cards">
             {view.current_trick.length === 0 ? (
-              <p className="muted">Waiting for a legal play.</p>
+              <p className="muted">
+                {view.phase === "terminal"
+                  ? "The match is complete. See the result below."
+                  : view.phase === "passing"
+                    ? "The trick begins once every seat has passed."
+                    : "Waiting for a legal play."}
+              </p>
             ) : (
-              view.current_trick.map((play) => (
-                <div className="briar-played-card" key={`${play.seat}-${play.card}`}>
-                  <span>{seatLabel(play.seat)}</span>
-                  <strong>{formatCardId(play.card)}</strong>
-                </div>
-              ))
+              view.current_trick.map((play, index) => {
+                const { rank, suit } = splitCardId(play.card);
+                const penalty = pointValue(suit, rank);
+                return (
+                  <div
+                    className={`briar-played-card ${isRedSuit(suit) ? "red" : "black"}${penalty !== null ? " point" : ""}${
+                      index === 0 ? " lead" : ""
+                    }`}
+                    key={`${play.seat}-${play.card}`}
+                  >
+                    <span className="briar-played-seat">
+                      {seatLabel(play.seat)}
+                      {index === 0 ? <em className="briar-led-flag">Led</em> : null}
+                    </span>
+                    <CardFace suit={suit} rank={rank} />
+                    <span className="sr-only">{formatCardId(play.card)}</span>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
@@ -162,25 +308,38 @@ export function BriarCircuitBoard({
           </div>
           {view.private_view_status === "seat" ? (
             <div className="briar-hand" data-testid="briar-circuit-own-hand">
-              {view.own_hand.map((card) => {
+              {sortedHand.map((card) => {
                 const selectChoice = passSelect.get(card.card_id) ?? null;
                 const unselectChoice = passUnselect.get(card.card_id) ?? null;
                 const playChoice = playChoices.get(card.card_id) ?? null;
                 const selectedForPass = selected.has(card.card_id);
                 const action = selectedForPass ? unselectChoice : selectChoice ?? playChoice;
+                const penalty = pointValue(card.suit, card.rank);
                 return (
                   <button
                     type="button"
                     key={card.card_id}
-                    className={`briar-card ${card.suit} ${action ? "legal" : ""}${selectedForPass ? " selected" : ""}`}
+                    className={`briar-card suit-${card.suit} ${isRedSuit(card.suit) ? "red" : "black"}${
+                      penalty !== null ? " point" : ""
+                    } ${action ? "legal" : ""}${selectedForPass ? " selected" : ""}`}
                     disabled={!canAct || !action}
                     aria-pressed={selectedForPass}
-                    aria-label={action?.choice.accessibility_label ?? card.accessibility_label}
+                    aria-label={cardAccessibleName(card, {
+                      selectedForPass,
+                      canSelect: Boolean(selectChoice),
+                      canPlay: Boolean(playChoice),
+                    })}
                     onClick={() => action && onPathSubmit?.(action.path)}
                   >
-                    <span>{card.suit}</span>
-                    <strong>{card.rank}</strong>
-                    <small>{selectedForPass ? "Selected" : action ? actionLabel(action.path) : "Held"}</small>
+                    <CardFace suit={card.suit} rank={card.rank} />
+                    {penalty !== null ? (
+                      <span className="briar-card-penalty" aria-hidden="true">
+                        {penalty}
+                      </span>
+                    ) : null}
+                    <small className="briar-card-state">
+                      {selectedForPass ? "Selected" : action ? actionLabel(action.path) : "Held"}
+                    </small>
                   </button>
                 );
               })}
@@ -196,22 +355,36 @@ export function BriarCircuitBoard({
         {view.pass ? (
           <section className="briar-pass" aria-label="Pass progress">
             <div className="briar-section-heading">
-              <span>Pass</span>
+              <span>Pass {view.pass.direction}</span>
               <strong>
-                {view.pass.direction} {view.pass.own_selection.length}/3
+                {view.pass.own_committed ? "Committed" : `${view.pass.own_selection.length} of 3 chosen`}
               </strong>
             </div>
-            <div className="briar-pass-meter" aria-label={`${view.pass.committed_count} seats committed`}>
+            <p className="briar-pass-instruction">
+              {view.private_view_status !== "seat"
+                ? "The four seats are choosing cards to pass privately."
+                : view.pass.own_committed
+                  ? "Your three cards are locked in. Waiting for the other seats to commit."
+                  : `Choose 3 cards from your hand to pass ${view.pass.direction}, then confirm.`}
+            </p>
+            <div className="briar-pass-meter" aria-label={`${view.pass.committed_count} of 4 seats committed`}>
               <span style={{ inlineSize: `${(view.pass.committed_count / 4) * 100}%` }} />
             </div>
-            <button
-              type="button"
-              className="briar-confirm"
-              disabled={!canAct || !passConfirm || view.pass.own_committed}
-              onClick={() => passConfirm && onPathSubmit?.(passConfirm.path)}
-            >
-              {view.pass.own_committed ? "Pass committed" : "Confirm pass"}
-            </button>
+            <small className="briar-pass-progress">{view.pass.committed_count} of 4 seats committed</small>
+            {view.private_view_status === "seat" ? (
+              <button
+                type="button"
+                className="briar-confirm"
+                disabled={!canAct || !passConfirm || view.pass.own_committed}
+                onClick={() => passConfirm && onPathSubmit?.(passConfirm.path)}
+              >
+                {view.pass.own_committed
+                  ? "Pass committed"
+                  : passConfirm
+                    ? "Confirm pass"
+                    : `Choose ${3 - view.pass.own_selection.length} more`}
+              </button>
+            ) : null}
           </section>
         ) : null}
       </div>
@@ -225,13 +398,40 @@ export function BriarCircuitBoard({
           <p className="muted">Captured tricks will appear here.</p>
         ) : (
           <ol>
-            {view.captured_tricks.slice(-6).map((trick) => (
-              <li key={`${trick.hand_index}-${trick.trick_index}`}>
-                <span>Trick {trick.trick_index + 1}</span>
-                <strong>{seatLabel(trick.winner)}</strong>
-                <small>{trick.plays.map((play) => `${seatLabel(play.seat)} ${formatCardId(play.card)}`).join(" / ")}</small>
-              </li>
-            ))}
+            {view.captured_tricks.slice(-6).map((trick) => {
+              const trickPoints = trick.plays.reduce((total, play) => {
+                const { rank, suit } = splitCardId(play.card);
+                return total + (pointValue(suit, rank) ?? 0);
+              }, 0);
+              return (
+                <li key={`${trick.hand_index}-${trick.trick_index}`}>
+                  <span>Trick {trick.trick_index + 1}</span>
+                  <strong>
+                    {seatLabel(trick.winner)}
+                    {trickPoints > 0 ? <em className="briar-trick-points"> +{trickPoints}</em> : null}
+                  </strong>
+                  <small className="briar-history-cards">
+                    {trick.plays.map((play) => {
+                      const { rank, suit } = splitCardId(play.card);
+                      const penalty = pointValue(suit, rank);
+                      return (
+                        <span
+                          key={play.card}
+                          className={`briar-mini-card ${isRedSuit(suit) ? "red" : "black"}${penalty !== null ? " point" : ""}`}
+                        >
+                          <span className="briar-mini-seat">{seatLabel(play.seat)}</span>
+                          <span className="briar-mini-glyph" aria-hidden="true">
+                            {RANK_GLYPH[rank] ?? rank}
+                            {SUIT_GLYPH[suit] ?? suit}
+                          </span>
+                          <span className="sr-only">{formatCardId(play.card)}</span>
+                        </span>
+                      );
+                    })}
+                  </small>
+                </li>
+              );
+            })}
           </ol>
         )}
       </section>
@@ -317,16 +517,43 @@ function HandSummaryPanel({
   );
 }
 
-function SeatPanel({ view, seat }: { view: BriarCircuitPublicView; seat: BriarCircuitSeatId }) {
+function SeatPanel({
+  view,
+  seat,
+  handPoints,
+}: {
+  view: BriarCircuitPublicView;
+  seat: BriarCircuitSeatId;
+  handPoints: number;
+}) {
   const active = view.active_seat === seat;
   const viewer = view.viewer_seat === seat;
+  // At terminal, Rust has resolved a unique lowest cumulative score; the shared
+  // outcome panel marks the same seat the winner. Surface it on the score rail too,
+  // where players are already watching the running totals.
+  const winner = view.phase === "terminal" && seat === lowestScoreSeat(view);
   return (
-    <article className={`briar-seat ${active ? "active" : ""}${viewer ? " viewer" : ""}`}>
+    <article className={`briar-seat ${active ? "active" : ""}${viewer ? " viewer" : ""}${winner ? " winner" : ""}`}>
+      {/* The seat label must stay the sole direct-child <span> of .briar-seat:
+          seat-label-consistency.smoke.mjs reads ".briar-seat > span" and asserts
+          it equals the Rust catalog labels. Tags/points are non-span elements. */}
       <span>{seatLabel(seat)}</span>
+      {viewer || active || winner ? (
+        <div className="briar-seat-tags">
+          {winner ? <em className="briar-seat-tag winner">Winner</em> : null}
+          {viewer ? <em className="briar-seat-tag you">You</em> : null}
+          {active ? <em className="briar-seat-tag turn">To play</em> : null}
+        </div>
+      ) : null}
       <strong>{view.cumulative_scores[seat]}</strong>
       <small>
-        {view.hand_counts[seat]} cards{seat === view.dealer ? " / dealer" : ""}
+        {view.hand_counts[seat]} cards{seat === view.dealer ? " · dealer" : ""}
       </small>
+      {handPoints > 0 ? (
+        <em className="briar-seat-points" aria-label={`${handPoints} penalty points taken this hand`}>
+          {handPoints} this hand
+        </em>
+      ) : null}
     </article>
   );
 }
@@ -340,17 +567,102 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Re-narrate Briar Circuit's own public/private effects with the friendly seat
+// labels and card names used across the board. Returns null for effect types this
+// game does not emit so the caller can fall back to the shared formatter. All
+// referenced facts are already public (played cards, captured tricks, pass counts)
+// or belong to the viewer's own seat (pass selection) — no hidden state is exposed.
+function briarFeedbackForEffect(entry: EffectEntry): EffectFeedback | null {
+  const payload = entry.effect.payload;
+  switch (payload.type) {
+    case "card_played": {
+      const seat = payload.seat as BriarCircuitSeatId;
+      return {
+        title: "Card played",
+        detail: `${seatLabel(seat)} played ${formatCardId(String(payload.card))}.`,
+        tone: "movement",
+      };
+    }
+    case "trick_captured": {
+      const winner = payload.winner as BriarCircuitSeatId;
+      const trickNumber = Number(payload.trick_index ?? 0) + 1;
+      const cards = Array.isArray(payload.cards) ? (payload.cards as string[]) : [];
+      const points = cards.reduce((sum, card) => {
+        const { rank, suit } = splitCardId(card);
+        return sum + (pointValue(suit, rank) ?? 0);
+      }, 0);
+      return {
+        title: "Trick won",
+        detail:
+          points > 0
+            ? `${seatLabel(winner)} won trick ${trickNumber} and took ${points} penalty ${points === 1 ? "point" : "points"}.`
+            : `${seatLabel(winner)} won trick ${trickNumber} with no penalty points.`,
+        tone: "turn",
+      };
+    }
+    case "hearts_broken": {
+      const seat = payload.seat as BriarCircuitSeatId;
+      return {
+        title: "Hearts broken",
+        detail: `${seatLabel(seat)} broke hearts — hearts can now be led.`,
+        tone: "movement",
+      };
+    }
+    case "pass_commitment_public": {
+      const committed = Number(payload.committed_count ?? 0);
+      return {
+        title: "Pass committed",
+        detail: `${committed} of 4 seats have locked in their pass.`,
+        tone: "turn",
+      };
+    }
+    case "pass_exchange_public": {
+      const direction = String(payload.direction ?? "");
+      return {
+        title: "Cards passed",
+        detail: direction ? `Passing ${direction} is complete — play begins.` : "The pass is complete — play begins.",
+        tone: "movement",
+      };
+    }
+    case "pass_selection_updated": {
+      const count = Number(payload.selected_count ?? 0);
+      return {
+        title: "Pass selection",
+        detail: `You have chosen ${count} of 3 cards to pass.`,
+        tone: "neutral",
+      };
+    }
+    case "pass_exchange_private": {
+      return {
+        title: "Pass complete",
+        detail: "Your pass is complete and your new hand is ready.",
+        tone: "neutral",
+      };
+    }
+    default:
+      return null;
+  }
+}
+
 function statusLabel(view: BriarCircuitPublicView): string {
   if (view.phase === "passing" && view.pass) {
-    return `Pass ${view.pass.direction}: ${view.pass.committed_count} committed`;
+    return `Passing ${view.pass.direction}`;
   }
   if (view.phase === "playing") {
     return view.active_seat ? `${seatLabel(view.active_seat)} to play` : "Playing";
+  }
+  if (view.phase === "terminal") {
+    // Rust resolves the match to a unique lowest cumulative score (BC-MATCH-003);
+    // the shared outcome panel names the same winner from this projected view.
+    return `Match complete — ${seatLabel(lowestScoreSeat(view))} wins`;
   }
   return view.phase;
 }
 
 function turnLabel(view: BriarCircuitPublicView): string {
+  if (view.phase === "terminal") {
+    return "Final";
+  }
   return view.active_seat ? seatLabel(view.active_seat) : view.pass ? `${view.pass.pending_count} pending` : view.phase;
 }
 
@@ -368,8 +680,11 @@ function actionLabel(path: string[]): string {
   return "Legal";
 }
 
-function scoreLine(view: BriarCircuitPublicView): string {
-  return SEATS.map((seat) => view.cumulative_scores[seat]).join(" / ");
+// Lower cumulative score wins (BC-MATCH-003), so the "leader" is the lowest score.
+function leaderLine(view: BriarCircuitPublicView): string {
+  const lowest = Math.min(...SEATS.map((seat) => view.cumulative_scores[seat]));
+  const leaders = SEATS.filter((seat) => view.cumulative_scores[seat] === lowest);
+  return leaders.length > 1 ? `Tied · ${lowest}` : `${seatLabel(leaders[0])} · ${lowest}`;
 }
 
 function lowestScoreSeat(view: BriarCircuitPublicView): BriarCircuitSeatId {

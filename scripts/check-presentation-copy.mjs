@@ -54,22 +54,56 @@ async function collectFiles(dir) {
 function scanSource(file, source) {
   const failures = [];
   const lines = source.split(/\r?\n/);
+  // Track `{/* ... */}` / `/* ... */` block comments so their prose is exempt,
+  // mirroring the existing `//` line-comment exemption: comments are never
+  // rendered, so engine/debug vocabulary in them is not a play-surface leak.
+  let inBlockComment = false;
   lines.forEach((line, index) => {
-    if (exemptLine.test(line)) {
+    const { visible, inBlockComment: next } = stripBlockComments(line, inBlockComment);
+    inBlockComment = next;
+    if (exemptLine.test(line) || visible.trim() === "") {
       return;
     }
     const lineNumber = index + 1;
     for (const term of debugTerms) {
-      if (term.test(line)) {
+      if (term.test(visible)) {
         failures.push(`${file}:${lineNumber}: debug vocabulary in play-surface copy: ${line.trim()}`);
         break;
       }
     }
-    if (looksLikeJsxText(line) && rawIdentifier.test(line)) {
+    if (looksLikeJsxText(visible) && rawIdentifier.test(visible)) {
       failures.push(`${file}:${lineNumber}: raw internal identifier in play-surface copy: ${line.trim()}`);
     }
   });
   return failures;
+}
+
+// Return the portion of `line` outside any block comment, carrying the
+// open-comment state across lines. The non-comment text retains its original
+// columns blanked out so JSX-text and identifier checks stay accurate.
+function stripBlockComments(line, inBlockComment) {
+  let rest = line;
+  let visible = "";
+  while (rest.length > 0) {
+    if (inBlockComment) {
+      const close = rest.indexOf("*/");
+      if (close === -1) {
+        return { visible, inBlockComment: true };
+      }
+      rest = rest.slice(close + 2);
+      inBlockComment = false;
+    } else {
+      const open = rest.indexOf("/*");
+      if (open === -1) {
+        visible += rest;
+        return { visible, inBlockComment: false };
+      }
+      visible += rest.slice(0, open);
+      rest = rest.slice(open + 2);
+      inBlockComment = true;
+    }
+  }
+  return { visible, inBlockComment };
 }
 
 function looksLikeJsxText(line) {
@@ -87,6 +121,20 @@ async function runSelfTest() {
 }
 `,
     );
+    const commented = join(root, "CommentedBoard.tsx");
+    await writeFile(
+      commented,
+      `export function CommentedBoard() {
+  return (
+    <section>
+      {/* The label must equal the Rust catalog labels; this comment is exempt.
+          A multi-line block comment mentioning WASM and payload is fine too. */}
+      <span>Player one</span>
+    </section>
+  );
+}
+`,
+    );
     const devPanel = join(root, "DevPanel.tsx");
     await writeFile(devPanel, `export function DevPanel() { return <p>Rust diagnostics payload</p>; }\n`);
     const source = await readFile(violation, "utf8");
@@ -101,6 +149,12 @@ async function runSelfTest() {
     if (devFailures.length > 0) {
       console.error("presentation-copy self-test failed: dev panel should be outside scanned naming scope");
       console.error(devFailures.join("\n"));
+      process.exit(1);
+    }
+    const commentFailures = scanSource("CommentedBoard.tsx", await readFile(commented, "utf8"));
+    if (commentFailures.length > 0) {
+      console.error("presentation-copy self-test failed: block-comment prose should be exempt");
+      console.error(commentFailures.join("\n"));
       process.exit(1);
     }
     console.log("presentation-copy self-test passed");

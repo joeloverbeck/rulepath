@@ -825,6 +825,61 @@ h2 {
   box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.14);
 }
 
+.briar-seat.active {
+  box-shadow: inset 0 0 0 2px rgba(43, 128, 104, 0.32);
+}
+
+.briar-seat.winner {
+  border-color: #b8860b;
+  background: #fdf6e3;
+  box-shadow: inset 0 0 0 2px rgba(184, 134, 11, 0.35);
+}
+
+.briar-seat-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.briar-seat .briar-seat-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.briar-seat .briar-seat-tag.you {
+  background: #e6f0ec;
+  color: #236d59;
+}
+
+.briar-seat .briar-seat-tag.turn {
+  background: #2b8068;
+  color: #ffffff;
+}
+
+.briar-seat .briar-seat-tag.winner {
+  background: #b8860b;
+  color: #ffffff;
+}
+
+.briar-seat .briar-seat-points {
+  justify-self: start;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-style: normal;
+  text-transform: none;
+  color: #b3123b;
+  background: #fdeef2;
+  border: 1px solid #e3a9bd;
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
 .briar-section-heading {
   display: flex;
   align-items: center;
@@ -857,8 +912,10 @@ h2 {
 }
 
 .briar-card {
+  position: relative;
   display: grid;
   gap: 5px;
+  align-content: space-between;
   text-align: left;
   cursor: pointer;
 }
@@ -875,6 +932,209 @@ h2 {
 .briar-card:disabled {
   cursor: not-allowed;
   opacity: 0.58;
+}
+
+/* Suit/rank glyph faces, color coding, and point-card cues (presentation only). */
+.briar-card-face,
+.briar-played-card .briar-card-face {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.briar-card .briar-card-rank,
+.briar-played-card .briar-card-rank {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: none;
+}
+
+.briar-card .briar-card-suit,
+.briar-played-card .briar-card-suit {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+}
+
+/* Explicit per-glyph color: the .briar-card-face wrapper is itself a <span>, so a
+   generic ".briar-card span" rule would otherwise repaint it neutral gray. */
+.briar-card.red .briar-card-rank,
+.briar-card.red .briar-card-suit,
+.briar-played-card.red .briar-card-rank,
+.briar-played-card.red .briar-card-suit {
+  color: #b3123b;
+}
+
+.briar-card.black .briar-card-rank,
+.briar-card.black .briar-card-suit,
+.briar-played-card.black .briar-card-rank,
+.briar-played-card.black .briar-card-suit {
+  color: #1b2a24;
+}
+
+.briar-card .briar-card-state {
+  color: #687973;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.briar-card.point:not(.selected) {
+  background: #fdeef2;
+}
+
+.briar-card-penalty {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-end: 6px;
+  min-inline-size: 18px;
+  block-size: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #b3123b;
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.briar-played-card {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.briar-played-card .briar-played-seat {
+  color: #687973;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.briar-played-card.point {
+  background: #fdeef2;
+  border-color: #e3a9bd;
+}
+
+.briar-played-card.lead {
+  box-shadow: inset 3px 0 0 #2b8068;
+}
+
+.briar-played-card .briar-led-flag {
+  margin-inline-start: 6px;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #236d59;
+}
+
+.briar-trick-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.briar-led-chip,
+.briar-stake-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border: 1px solid #d0d9d4;
+  border-radius: 999px;
+  background: #f3f6f3;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.briar-led-chip.red {
+  color: #b3123b;
+}
+
+.briar-led-chip.black {
+  color: #1b2a24;
+}
+
+.briar-led-chip strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.briar-stake-chip {
+  color: #b3123b;
+  background: #fdeef2;
+  border-color: #e3a9bd;
+}
+
+.briar-trick-points {
+  color: #b3123b;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.briar-history-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.briar-mini-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border: 1px solid #dde3de;
+  border-radius: 5px;
+}
+
+.briar-mini-card.red {
+  color: #b3123b;
+}
+
+.briar-mini-card.black {
+  color: #1b2a24;
+}
+
+.briar-mini-card.point {
+  background: #fdeef2;
+  border-color: #e3a9bd;
+}
+
+.briar-history .briar-mini-seat {
+  color: #8b9a93;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.briar-history .briar-mini-card .briar-mini-glyph {
+  color: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.briar-pass-instruction {
+  margin: 0;
+  color: #40514b;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.briar-pass-progress {
+  color: #687973;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .briar-pass-meter {
