@@ -1,6 +1,6 @@
 # GAT17VOWTIDOHHEL-002: Promote `game-stdlib::trick_taking` helper + atlas decision
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `crates/game-stdlib/src/trick_taking.rs` + `crates/game-stdlib/benches/trick_taking.rs`; modifies `crates/game-stdlib/src/lib.rs`, `docs/MECHANIC-ATLAS.md`
@@ -84,3 +84,28 @@ Update `docs/MECHANIC-ATLAS.md` §10 follow-suit and comparator rows to `promote
 1. `cargo test -p game-stdlib`
 2. `cargo clippy -p game-stdlib --all-targets -- -D warnings && bash scripts/boundary-check.sh`
 3. `cargo bench -p game-stdlib` (before/after baseline consumed by the back-port tickets and 020).
+
+## Outcome
+
+Completed: 2026-06-21
+
+What changed:
+
+- Added `crates/game-stdlib/src/trick_taking.rs` with the pure `follow_suit_indices` and `winning_play_index` helpers, inline unit/property-style tests, and doc comments that define examples, anti-examples, and caller-owned policy boundaries.
+- Exported `game_stdlib::trick_taking` from `crates/game-stdlib/src/lib.rs`.
+- Added a repo-style custom `cargo bench -p game-stdlib` harness at `crates/game-stdlib/benches/trick_taking.rs` and the matching `[[bench]]` wiring in `crates/game-stdlib/Cargo.toml`.
+- Updated `docs/MECHANIC-ATLAS.md` to record Gate 17's option-2 promotion for follow-suit selection and led/trump comparator behavior, and to record winner-leads plus deal/redeal/dealer rotation as explicit non-promoted anti-examples.
+
+Deviations from plan:
+
+- The ticket mentioned Criterion as a possible bench style, but the repository's existing game benches use custom `harness = false` binaries and no Criterion dependency. The implementation follows the existing repo style so the bench target works without adding an external dev-dependency.
+- Plain Tricks and Briar Circuit back-ports remain out of scope for this ticket and are still owned by tickets 003 and 004.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p game-stdlib` passed: 22 unit tests, including the new trick-taking helper tests.
+- `cargo clippy -p game-stdlib --all-targets -- -D warnings` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `cargo bench -p game-stdlib` passed and ran the four helper operations: `follow_suit_present`, `follow_suit_void`, `winning_play_trump`, and `winning_play_led`.
+- `rg -n "trick_taking|follow_suit_indices|winning_play_index|winner-leads|deal/redeal|Current debt: _None_" docs/MECHANIC-ATLAS.md crates/game-stdlib/src/lib.rs crates/game-stdlib/src/trick_taking.rs crates/game-stdlib/Cargo.toml` confirmed the helper export, atlas decision/non-goals, and unchanged open-debt register text.
