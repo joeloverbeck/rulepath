@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-015: Centralize IP evidence receipt + add external SOURCES with lessons/non-adoptions
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/IP-POLICY.md`, `docs/SOURCES.md`)
@@ -73,3 +73,31 @@ Add the 8 external sources to `docs/SOURCES.md`, each with its Rulepath-specific
 1. `grep -niE "GAME-EVIDENCE|non-adoption|lesson" docs/IP-POLICY.md docs/SOURCES.md`
 2. `node scripts/check-doc-links.mjs`
 3. The receipt + source-count grep is the correct boundary; docs-only with no code surface.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Updated `docs/IP-POLICY.md` with a centralized IP evidence receipt and source-ID
+policy. Per-game `GAME-EVIDENCE.md` now owns the source/IP receipt status and
+artifact links, while detailed consulted-source notes remain the owner for
+source IDs, variant decisions, naming rationale, asset/font posture,
+copied-content status, and human/legal review questions.
+
+Updated `docs/SOURCES.md` with the eight external doc/template change-plan
+comparables (`EXT-1` through `EXT-8`). Each entry records its
+Rulepath-specific lesson and an explicit non-adoption boundary so external
+framework assumptions do not override Rulepath doctrine.
+
+Verification:
+
+- `grep -niE "GAME-EVIDENCE|IP receipt|source ID" docs/IP-POLICY.md` returned
+  the centralized receipt/source-ID section.
+- `grep -ciE "non-adoption|not adopted" docs/SOURCES.md` returned `8`.
+- `grep -niE "EXT-[1-8]|Rulepath-specific lesson|Non-adoption" docs/SOURCES.md`
+  returned the eight comparable-source rows.
+- `test -f templates/GAME-EVIDENCE.md` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: none; all entries are reference/comparable boundaries only, with no
+copied external doctrine or public game content.
