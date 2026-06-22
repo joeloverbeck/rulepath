@@ -408,7 +408,10 @@ function biddingTallyText(view: VowTidePublicView, seats: VowTideSeatId[]): stri
     }
   }
   const remaining = toBid === 1 ? "1 seat still to bid" : `${toBid} seats still to bid`;
-  return `Bids in: ${claimed} of ${view.hand_size} tricks claimed · ${remaining}`;
+  // Phrase "claimed" and "in the hand" as separate counts rather than "X of Y"
+  // so the legitimate over-bid case (claimed > hand size, when non-dealer seats
+  // overbid) reads naturally instead of looking like a broken fraction.
+  return `Bids in: ${claimed} claimed · ${view.hand_size} tricks in the hand · ${remaining}`;
 }
 
 // Restates the follow-suit rule for the player whose turn it is to play, based
