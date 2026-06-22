@@ -1,6 +1,6 @@
 # ADR: <title>
 
-Status: Proposed | Accepted | Superseded | Rejected
+Status: Proposed
 
 Date: YYYY-MM-DD
 
@@ -20,14 +20,24 @@ Related documents:
 - `docs/IP-POLICY.md`
 - `docs/AGENT-DISCIPLINE.md`
 
-Optional scaling / supersession fields:
+Required scaling / supersession fields:
 
 - Affected foundation sections: <sections or none>
 - Superseded decision, if any: <ADR/section or none>
 - Hidden-information no-leak compatibility: <public/private/viewer impact>
 - No-DSL/no-YAML compatibility: <data-language impact>
-- Migration plan: <docs/code/traces/data/back-port plan or none>
+- Evidence classification: <doctrine/code/trace/fixture/benchmark/UI/IP/none>
+- Compatibility window: <none, permanent, or start/end conditions>
+- Accepted exceptions: <exception IDs or none>
+- Effective only after named foundation updates land: <yes/no + named docs>
+- Proposed-ADR review trigger / expiry: <event/date before re-review or none>
 - Rollback / contamination risk: <how to avoid kernel, data, private-content, or UI contamination>
+
+Migration matrix:
+
+| Adopter / surface | Required change | Owner | Compatibility window | Verification |
+|---|---|---|---|---|
+| <surface or none> | <change or none> | <owner> | <window> | <proof> |
 
 ## Context
 

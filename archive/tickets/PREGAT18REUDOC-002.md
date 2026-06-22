@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-002: Strengthen ADR-TEMPLATE for the scaling/supersession era
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — docs-only (`docs/adr/ADR-TEMPLATE.md`)
@@ -78,3 +78,21 @@ Replace the prose `Migration plan` line with an adopter/migration matrix; keep `
 1. `grep -niE "compatibility window|evidence.classification|accepted.exception|review.trigger|migration matrix" docs/adr/ADR-TEMPLATE.md`
 2. `node scripts/check-doc-links.mjs`
 3. A field-presence grep is the correct boundary for the template fields; `check-doc-links.mjs` covers link integrity.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Changed `docs/adr/ADR-TEMPLATE.md` so new ADRs start from one selected
+`Status: Proposed`, carry a required scaling / supersession field block, include
+the missing evidence-classification, compatibility-window, accepted-exception,
+foundation-effective, and Proposed-ADR review-trigger fields, and use a migration
+matrix instead of a prose migration-plan line.
+
+Deviations: none.
+
+Verification:
+
+- `grep -niE "compatibility window|evidence.classification|accepted.exception|review.trigger|migration matrix" docs/adr/ADR-TEMPLATE.md`
+  returned the new required fields and migration matrix.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
