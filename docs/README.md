@@ -18,13 +18,14 @@ Read these documents in this order.
 | 8 | [UI-INTERACTION.md](UI-INTERACTION.md) | Public visual target, legal-only interaction, previews, effect-driven animation, replay UI, accessibility. |
 | 9 | [TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md) | Test taxonomy, golden traces, deterministic replay/hash discipline, no-leak tests, benchmarks, CI. |
 | 10 | [TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md) | Trace and replay-fixture schema law; subordinate to the constitution, architecture, data boundary, and accepted visibility/hash ADRs. |
-| 11 | [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md) | N-seat and larger-surface obligations; subordinate to the constitution, architecture, data boundary, hidden-info ADRs, and bot law. |
-| 12 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
-| 13 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
-| 14 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
-| 15 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
-| 16 | [WASM-CLIENT-BOUNDARY.md](WASM-CLIENT-BOUNDARY.md) | Gate 3 Rust/WASM-to-browser client contract, operation groups, replay safety, and dev-panel data whitelist. |
-| 17 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
+| 11 | [EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md) | Evidence fixture profile contract governed by ADR 0009; separates command traces, setup/domain fixtures, and viewer-scoped exports. |
+| 12 | [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md) | N-seat and larger-surface obligations; subordinate to the constitution, architecture, data boundary, hidden-info ADRs, and bot law. |
+| 13 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
+| 14 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
+| 15 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
+| 16 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
+| 17 | [WASM-CLIENT-BOUNDARY.md](WASM-CLIENT-BOUNDARY.md) | Gate 3 Rust/WASM-to-browser client contract, operation groups, replay safety, and dev-panel data whitelist. |
+| 18 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
 
 ## ADR status index
 

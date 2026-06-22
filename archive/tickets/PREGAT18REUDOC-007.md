@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-007: Author docs/EVIDENCE-FIXTURE-CONTRACT.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs-only (new `docs/EVIDENCE-FIXTURE-CONTRACT.md`, `docs/README.md`)
@@ -75,3 +75,31 @@ Add the contract's authority-map line to `docs/README.md` at its correct layer (
 1. `grep -niE "v1|validator|visibility|version anchor" docs/EVIDENCE-FIXTURE-CONTRACT.md`
 2. `node scripts/check-doc-links.mjs && git diff --stat -- '**/*.trace.json'`
 3. The profile grep + no-byte-drift `git diff` is the correct boundary; the contract is decision-only with no code surface.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Created `docs/EVIDENCE-FIXTURE-CONTRACT.md` as the ADR 0009-governed evidence
+profile contract. It defines the five profiles `replay-command-v1`,
+`public-export-v1`, `seat-private-export-v1`, `setup-evidence-v1`, and
+`domain-evidence-v1`, including validator ownership, visibility classification,
+version anchors, canonical-byte authority, hash-surface rules, private
+test-only handling, and the rule that filename suffixes are non-authoritative.
+
+Updated `docs/README.md` to add the contract to the ordered authority map.
+
+Deviations: none.
+
+Verification:
+
+- `grep -nE "replay-command-v1|public-export-v1|seat-private-export-v1|setup-evidence-v1|domain-evidence-v1" docs/EVIDENCE-FIXTURE-CONTRACT.md`
+  returned all five profiles.
+- `grep -niE "filename suffix|validator|visibility|version anchor" docs/EVIDENCE-FIXTURE-CONTRACT.md`
+  returned the non-authoritative suffix statement plus validator, visibility,
+  and version-anchor sections.
+- `grep -n "EVIDENCE-FIXTURE-CONTRACT" docs/README.md` returned the authority-map
+  line, and `grep -nE "^Status: Accepted" docs/adr/0009-replay-fixture-hash-taxonomy.md`
+  confirmed the governing ADR is accepted.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --stat -- '**/*.trace.json'` was empty.
