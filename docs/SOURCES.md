@@ -28,6 +28,24 @@ Rulepath source notes MUST:
 - record variant decisions and deviations for each implemented game;
 - mark uncertainty instead of inventing support.
 
+## Doctrine comparables and adoption boundaries
+
+These source IDs came from the doc/template change-plan research. They shape
+Rulepath doctrine only as comparables and warnings; they are not authority over
+Rulepath's foundation docs, accepted ADRs, templates, or game-specific source
+notes.
+
+| Source ID | Source | Rulepath-specific lesson | Explicit boundary |
+|---|---|---|---|
+| `EXT-1` | [Diataxis](https://diataxis.fr/) and [four-mode primer](https://diataxis.fr/start-here/) | Separate reference law, how-to workflow, explanation, and evidence receipts instead of making every template repeat all modes. | Non-adoption: Rulepath does not adopt Diataxis as a mandatory doc taxonomy or rename foundation docs to match it. |
+| `EXT-2` | [The Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) | Test layering and DRY/DAMP tradeoffs support extracting repetition only when it obscures correctness, while retaining use-before-reuse discipline. | Non-adoption: Rulepath does not replace its replay, simulation, no-leak, benchmark, browser-smoke, or per-game evidence taxonomy with a generic pyramid. |
+| `EXT-3` | [OpenSpiel introduction](https://openspiel.readthedocs.io/en/latest/intro.html) and [core API reference](https://openspiel.readthedocs.io/en/latest/api_reference.html) | A generic game kernel can coexist with game-specific state, and observations/information states are distinct viewer contracts. | Non-adoption: Rulepath does not adopt OpenSpiel's architecture, search/RL agenda, or public bot policy. |
+| `EXT-4` | [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/info/rfc8785/) | Hashing requires an invariant representation, explicit canonicalization, and versioning. | Non-adoption: Rulepath does not switch replay/hash surfaces to JSON canonicalization without an accepted migration. |
+| `EXT-5` | [Rust API Guidelines checklist](https://rust-lang.github.io/api-guidelines/checklist.html) | Validating newtypes, inherent constructors, and type-significant arguments support narrow typed scaffolding APIs. | Non-adoption: Rulepath does not treat generic Rust API style as permission to move game behavior or mechanic nouns into `engine-core`. |
+| `EXT-6` | [Proptest state-machine testing](https://proptest-rs.github.io/proptest/proptest/state-machine.html) | Shared test support can generate transitions and compare invariants while leaving game-specific legality and reference models in each game. | Non-adoption: Rulepath does not replace named rule tests, golden traces, replay/hash checks, simulations, or no-leak matrices with property testing alone. |
+| `EXT-7` | [Michael Nygard, Documenting Architecture Decisions](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions) | Explicit ADR status and supersession keep small consequential decisions reviewable. | Non-adoption: Rulepath does not make blog-style ADR prose itself binding; accepted repo ADRs and foundation docs remain the authority. |
+| `EXT-8` | [boardgame.io Game API](https://github.com/boardgameio/boardgame.io/blob/main/docs/documentation/api/Game.md) | Generic setup validation and per-player state projection are useful comparative patterns. | Non-adoption: Rulepath does not adopt JavaScript rule authority, boardgame.io plugin/state architecture, or weaker replay/export visibility taxonomy. |
+
 ## Comparable web and tabletop systems
 
 ### boardgame.io

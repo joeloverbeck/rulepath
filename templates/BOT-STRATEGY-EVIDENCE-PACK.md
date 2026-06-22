@@ -14,6 +14,15 @@ Prepared by: `<name/agent>`
 
 Date: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-11 -> BOT-STRATEGY-EVIDENCE-PACK.md`.
+This template owns Level 2 policy translation: input view, legal-action API,
+candidate extraction, priority order, deterministic tie-breaks, explanation
+redaction, failure modes, tests, and benchmark IDs. `COMPETENT-PLAYER.md` owns
+human strategy prose; `GAME-EVIDENCE.md` owns bot level/policy status,
+benchmark workload status, and release blockers.
+
 ## Purpose and gate
 
 This is the formal design input for a Level 2 authored-policy bot. A Level 2 bot MUST NOT be coded until this pack is complete and reviewed.
@@ -24,23 +33,13 @@ The policy MUST be deterministic under seed, rules version, policy version, inpu
 
 ## Explicit public v1/v2 exclusions
 
-No MCTS/Monte Carlo/ML/RL assertion: `<confirm this public bot uses no MCTS, ISMCTS, Monte Carlo-style bot, ML, or RL path>`.
+Public bot law lives in [`AI-BOTS.md`](../docs/AI-BOTS.md). This pack records
+the per-game compliance statement only:
 
-The Level 2 public bot MUST NOT use:
-
-- omniscient state;
-- hidden-state shortcuts;
-- future random outcomes;
-- unbounded weight soup;
-- static data tactical conditions;
-- random blunder injection by default;
-- public v1/v2 MCTS;
-- public v1/v2 ISMCTS;
-- public v1/v2 Monte Carlo-style bots;
-- public v1/v2 ML;
-- public v1/v2 RL.
-
-Future search, ML, or RL work requires an ADR under the foundation docs.
+`<confirm this public bot uses the legal action API, authorized views only, no
+omniscient state, no hidden-state shortcuts, no future random outcomes, no
+unbounded weight soup, no static-data tactical conditions, no random blunder
+injection by default, and no public v1/v2 MCTS/ISMCTS/Monte Carlo/ML/RL path.>`
 
 ## Source documents consumed
 
@@ -248,9 +247,13 @@ Do not hide weaknesses behind magic weights.
 | explanations | yes | viewer-safe public explanations | `<tests>` |
 | simulation/fuzz | yes | many-seed games, failure reporting | `<runs>` |
 | replay/hash | yes | bot decision reproducible in replay | `<tests>` |
-| benchmark | yes | latency and throughput | `<benchmarks>` |
+| benchmark | yes | latency and throughput | `BENCH-*` / `<benchmarks>` |
 
 ## Latency and benchmark budget
+
+`GAME-EVIDENCE.md#benchmarks-and-bot-policy` owns the benchmark workload ID and
+current status. This section records the policy's required budget and the
+measurement command that proves it.
 
 | Operation | Target/budget | Measurement command | Baseline | Notes |
 |---|---:|---|---:|---|
@@ -282,5 +285,5 @@ Describe how the public UI should expose the bot's recent decision or “why?”
 - Style profiles do not cheat or weaken mandatory priorities.
 - Hidden-information no-leak tests cover explanations, candidate rankings, replay exports, diagnostics, and dev inspector where applicable.
 - Public v1/v2 MCTS, ISMCTS, Monte Carlo bots, ML, and RL are absent.
-- Test plan, simulation plan, replay/hash plan, and benchmark plan are complete.
+- Test plan, simulation plan, replay/hash plan, and benchmark IDs are complete.
 - Public UX note is concise and product-facing.

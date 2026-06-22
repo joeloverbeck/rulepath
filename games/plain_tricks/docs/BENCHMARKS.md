@@ -12,7 +12,8 @@ The provisional native floor is at least 2,000 completed random-legal matches
 per second for `random_legal_full_playout` in the native benchmark lane.
 
 This is a provisional Gate 10.1 floor under ADR 0002 and ADR 0003. ADR 0005 is
-not accepted and is not claimed here. A follow-up calibration ticket should
+accepted variance-aware calibration doctrine, but this provisional floor is not
+claimed as an ADR 0005-calibrated CI floor. A follow-up calibration ticket should
 replace the smoke floors and confirm or adjust the random-legal floor using
 repeated measurements from the selected benchmark runner.
 

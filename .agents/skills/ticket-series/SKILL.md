@@ -15,6 +15,15 @@ Rulepath is Rust-first. Rust owns game behavior; TypeScript/React presents
 Rust/WASM output only. Keep every ticket inside the boundaries in the live
 foundation docs.
 
+## Support Assets
+
+- `scripts/audit-series-closeout.mjs` collects the standard final closeout
+  audit surfaces for archived tickets, archived references, stale live paths,
+  commit ledger, and git status. Use it as directed in Completion Audit.
+- `agents/openai.yaml` is an OpenAI-facing skill manifest and prompt stub. It
+  does not change the main workflow and does not authorize skipping the
+  `SKILL.md` instructions.
+
 ## Inputs
 
 - Ticket selector: usually a glob under `tickets/`.
@@ -46,6 +55,11 @@ families after that pass, stop and ask for the intended selector.
      tickets, unrelated user work, generated output, or unknown state;
    - identify the resumed ticket boundary and evidence for that boundary;
    - do not commit or archive until the boundary is clear.
+   After context compaction or any resumed continuation, run a minimal
+   revalidation pass before editing: `git status --short`, active ticket glob,
+   current ticket read, reference/index status, staged index, unrelated dirty
+   paths, and the next exact action. Treat conversation summaries and resume
+   ledgers as orientation, not proof of current checkout state.
 4. Read the always-required Rulepath orientation and workflow docs:
    - `AGENTS.md`
    - `docs/README.md`
@@ -405,9 +419,12 @@ the live checkout:
 Run a concrete version of this checklist before reporting done or calling
 `update_goal`; adapt placeholders to the ticket prefix and reference path:
 
-If this skill includes `scripts/audit-series-closeout.mjs`, you may use it to
-collect the same audit surfaces, but still inspect its output and run any
-repo-specific checks that the helper cannot infer.
+When the ticket range and reference artifact are known, run
+`scripts/audit-series-closeout.mjs` by default to collect the standard audit
+surfaces, then inspect its output and run any repo-specific checks that the
+helper cannot infer. For non-contiguous or unusual series where the helper
+cannot express the expected set cleanly, run the manual audit commands below
+and explain why the helper was skipped.
 
 ```sh
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-count N

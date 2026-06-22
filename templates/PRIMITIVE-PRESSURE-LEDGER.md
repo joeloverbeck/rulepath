@@ -8,6 +8,15 @@ Last updated: YYYY-MM-DD
 
 Prepared by: `<name/agent>`
 
+Template realignment mapping: report `B-15 -> PRIMITIVE-PRESSURE-LEDGER.md`
+
+Scaffolding register: [`MECHANICAL-SCAFFOLDING-REGISTER.md`](../docs/MECHANICAL-SCAFFOLDING-REGISTER.md)
+
+Behavioral scope only: this ledger governs repeated behavioral mechanic
+pressure. Non-behavioral repeated plumbing, production mechanical
+scaffolding, test scaffolding, evidence scaffolding, and presentation
+scaffolding must be rejected here and routed to the scaffolding register.
+
 ## Hard gate
 
 A third official game with the same mechanic shape is blocked until this ledger records one of:
@@ -18,12 +27,19 @@ A third official game with the same mechanic shape is blocked until this ledger 
 - `ADR-required`.
 
 This ledger is not a universal behavior-language proposal. It is evidence for or against a narrow typed helper.
+It is also not the decision surface for behavior-free infrastructure such as effect envelopes,
+seat IDs, action-tree transport, replay/hash bytes, benchmark/evidence records, or test harness
+plumbing. Those candidates belong in the scaffolding register.
 
 ## Mechanic shape
 
-Describe the repeated mechanic shape in prose. Avoid game-specific brand names. Avoid adding game nouns to `engine-core`.
+Describe the repeated behavioral mechanic shape in prose. Avoid game-specific brand names. Avoid adding game nouns to `engine-core`.
 
 - `<mechanic_shape_description>`
+
+Reject or redirect the candidate if the repeated shape is mechanical scaffolding
+rather than behavior. Use the scaffolding register for behavior-free duplicate
+plumbing around existing generic contracts.
 
 ## Games exerting pressure
 
@@ -193,6 +209,7 @@ Not a fit:
 
 - `<anti_example>`
 - generic multiplayer framework work without a specific repeated typed shape
+- effect-envelope, seat-ID, action-tree, replay/hash, benchmark/evidence, or test-harness plumbing that should be routed to the scaffolding register
 - large static maps used as a behavior language
 - one-off UI layout similarity without shared Rust behavior pressure
 - broad hidden-information abstraction that cannot state pairwise no-leak tests
@@ -211,6 +228,7 @@ ADR is required if the proposal changes architecture, replay/hash semantics, dat
 
 - Third-game hard gate is satisfied or the game is blocked.
 - Repeated shape was compared across actual official games.
+- Non-behavioral scaffolding candidates were rejected or redirected to the scaffolding register.
 - No game noun enters `engine-core`.
 - Helper belongs in `game-stdlib` or stays local.
 - No untyped behavior language is created.

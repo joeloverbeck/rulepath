@@ -44,6 +44,18 @@ Every stage and gate must satisfy [OFFICIAL-GAME-CONTRACT.md](OFFICIAL-GAME-CONT
 
 > Implementation progress and the per-gate spec for each gate are tracked in [`../specs/README.md`](../specs/README.md). The ladder above is law; that index is the mutable progress tracker. This document is not edited to record which gates are done.
 
+Pre-Gate-18 debt interlock: before opening Gate 18 implementation work, the
+current gate spec must confirm that mechanical scaffolding debt and trace debt
+from Gates 15-17 are either closed, explicitly not applicable, or deferred by an
+accepted authority. Mechanical scaffolding decisions are governed by
+[ADR 0008](adr/0008-mechanical-scaffolding-governance.md) and
+[MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md).
+Replay, fixture, export, and hash-surface debt is governed by
+[ADR 0009](adr/0009-replay-fixture-hash-taxonomy.md),
+[TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md),
+[TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md), and
+[EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md).
+
 ## 2. Per-stage requirements
 
 Each official game stage MUST produce or verify:
@@ -65,6 +77,14 @@ Each official game stage MUST produce or verify:
 A third repeated mechanic shape MUST resolve through the primitive-pressure ledger before proceeding.
 
 When that resolution promotes a `game-stdlib` primitive, all previous official games using the promoted shape MUST be migrated, audited not applicable, or explicitly excepted. Open promotion debt is a maintenance interlock: it is specced and closed before the next new mechanic-ladder gate unless an accepted ADR says otherwise.
+
+Every new mechanic-ladder gate must include a per-gate debt review before
+implementation starts: mechanic-atlas pressure, mechanical scaffolding debt,
+trace debt, fixture-profile debt, seat/viewer grammar debt, replay/hash
+migration debt, and evidence-receipt blockers. The review may be short, but it
+must name the governing ledger, register, ADR, receipt, or `not applicable`
+rationale. This debt review does not reorder the product mechanic ladder and is
+not implementation progress tracking.
 
 Cross-game public UI infrastructure specs, such as the shared How to Play /
 Rules surface, may be tracked outside the mechanic gate ladder. They do not

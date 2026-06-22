@@ -1,10 +1,11 @@
 # ADR: Variance-aware CI benchmark floors
 
-Status: Proposed
+Status: Accepted
 
-Status note: this ADR remains Proposed as of 2026-06-13. It is not binding
-benchmark doctrine unless maintainers later accept it. Active docs must not cite
-it as accepted law.
+Status note: accepted on 2026-06-22 after the BENCICAL-003 and BENCICAL-004
+implementation evidence showed the variance-aware floor rule had been applied to
+the shipped benchmark manifests and testing doctrine from three representative
+CI runs. This ADR is binding benchmark doctrine from that date forward.
 
 Date: 2026-06-08
 
@@ -137,7 +138,7 @@ The exact recalibrated values are committed by the implementation tickets
 
 | Alternative | Why considered | Why accepted/rejected |
 |---|---|---|
-| Variance-aware floors: floor ≥15% below the min across ≥3 representative CI runs; recalibrate the un-migrated `measured_baseline` ops; name regression-relative gating as the next step | The three steady-state runs are tightly clustered, so a margin below their minimum is robust without new infrastructure; ADR 0003 named this class of fix as the planned follow-up. | Preferred by this proposed ADR. Minimal, honest, keeps the gate hard-failing, calibrates to representative CI evidence rather than one fast sample, keeps native baselines on the record, and changes no PR behavior or workflow file. |
+| Variance-aware floors: floor ≥15% below the min across ≥3 representative CI runs; recalibrate the un-migrated `measured_baseline` ops; name regression-relative gating as the next step | The three steady-state runs are tightly clustered, so a margin below their minimum is robust without new infrastructure; ADR 0003 named this class of fix as the planned follow-up. | Accepted. Minimal, honest, keeps the gate hard-failing, calibrates to representative CI evidence rather than one fast sample, keeps native baselines on the record, and changes no PR behavior or workflow file. |
 | Regression-relative gating now (stored baseline + relative check) | Most robust; immune to fleet heterogeneity; named by ADR 0003 as the robust long-term fix. | Rejected for this scope. Requires a baseline-artifact mechanism and a `bench-report` parser/logic change before `main` goes green; recorded as the committed next step instead. |
 | Re-floor below the single latest CI sample again (repeat ADR 0003's method) | Smallest data edit. | Rejected. It repeats the exact defect — single-observation calibration — and will breach again on the next slightly slower runner instance. |
 | Make the `main`/scheduled lane non-gating smoke too | Turns `main` green immediately. | Rejected. Hides all throughput regressions and contradicts TESTING §15/§16 "do not hide unknown performance" and the hard-fail requirement; ADR 0003 rejected this for the same reason. |

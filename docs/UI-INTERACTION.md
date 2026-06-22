@@ -222,9 +222,17 @@ Repeated presentation shapes across games (per-game `ui.rs` display-metadata
 modules, board adapters, effect-to-animation registrations, presentation-TOML
 layouts) are governed by this document and the official-game contract; they
 are not mechanic-atlas promotion pressure. Promotion of presentation helpers
-into `game-stdlib` is deferred until a third structural divergence between
-implementations of the same presentation shape, or an official-game count
-above 20, and routes through the atlas ledger at that time.
+into shared code is deferred until semantic scaffolding review shows that the
+shape is behavior-free, viewer-safe, deterministic where relevant, and
+semantically identical across duplicate sites. A third structural divergence
+between implementations of the same presentation shape triggers a
+pre-third-copy scaffolding review through
+[ADR 0008](adr/0008-mechanical-scaffolding-governance.md) and the
+[MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md);
+raw official-game count alone is not a promotion trigger. Any candidate that
+encodes renderer policy, legality, visibility policy, hidden-state meaning, or
+game behavior is rejected from the scaffolding lane and remains local or is
+routed to the appropriate accepted authority.
 
 Each official game carries an inert per-game catalog identity in
 `games/<id>/src/ui.rs` (icon id, theme key, accent/shape token names, and an

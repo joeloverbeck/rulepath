@@ -96,6 +96,30 @@ public-observer or explicitly labelled seat-private observation timelines.
 Future schema migration is not a TypeScript concern unless a later spec adds a
 documented migration surface.
 
+## Canonical Seat Grammar
+
+Rust/WASM owns seat-id parsing, formatting, and viewer projection. TypeScript
+passes through Rust-provided seat ids and requested viewers; it must not
+normalize, infer, reorder, or validate seat ids on its own.
+
+The going-forward canonical seat grammar for external browser/replay payloads is
+`seat_<zero-based>`, such as `seat_0`. `SeatId` remains opaque in the Rust
+contract today, so this document is a boundary policy and does not by itself
+change the exported API schema.
+
+During the migration window, replay/import-facing code may accept only these
+bounded import-only aliases:
+
+- `seat_<n>`: canonical underscore form;
+- `seat-<n>`: legacy hyphen form;
+- `seat-a`: legacy letter form, accepted only where an importer has an explicit
+  seat-order mapping for the document being imported.
+
+Unknown forms are rejected. Alias handling is not an open-ended normalizer, and
+it must not allow TypeScript to decide which private timeline a viewer receives.
+Strict canonical output and Rust parser migration are deferred to the Part C
+implementation unit; until then, the WASM exported-API schema is unchanged.
+
 ## Developer Panel Safety
 
 The developer panel is secondary to the play surface and shows only whitelisted,

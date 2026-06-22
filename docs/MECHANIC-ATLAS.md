@@ -20,6 +20,13 @@ The atlas records:
 
 The atlas is not a wish list for a universal tabletop engine. It is an evidence ledger.
 
+The atlas governs behavioral mechanics. Non-behavioral repetition around generic
+contracts routes to
+[MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md) under
+accepted ADR 0008. If a candidate controls legality, scoring, reveal, projection,
+effect meaning, bot policy, hidden-state semantics, or any other game behavior,
+it stays in this atlas process; it is not scaffolding.
+
 ## 2. Mechanic inventory categories
 
 Every official game `MECHANICS.md` MUST answer these categories:

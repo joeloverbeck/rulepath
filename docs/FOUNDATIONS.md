@@ -90,6 +90,21 @@ Promotion is not only extraction. When a helper is promoted to `game-stdlib`, ev
 
 No helper may enter `engine-core` merely because multiple games use it.
 
+Accepted ADR 0008 adds a separate mechanical-scaffolding lane for behavior-free
+typed infrastructure around generic contracts. Mechanical scaffolding may cover
+repeated plumbing for allowed vocabulary such as effect envelopes, seat IDs,
+actor/viewer IDs, action trees, command envelopes, visibility scopes,
+replay/hash bytes, serialization boundaries, benchmark/evidence records, and
+dev-only evidence harnesses. It MUST NOT encode legality, scoring, reveal
+policy, turn policy, strategy, hidden-state semantics, renderer policy,
+game-local state meaning, or private licensed content.
+
+Mechanical-scaffolding decisions are recorded in
+[MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md). The
+register is not a shortcut around the mechanic atlas: if a candidate controls,
+configures, or interprets behavior, it stays under the behavioral mechanic
+process above or requires a separate accepted ADR.
+
 ## 5. Static data is typed content, not behavior
 
 Rulepath is data-driven for typed content, parameters, presentation metadata, fixtures, traces, and variant selection. Rulepath is not data-driven for rule behavior in v1/v2.
@@ -186,6 +201,8 @@ unless Rust has made those facts public or otherwise authorized for that viewer.
 - Promoted `game-stdlib` primitives are adopted by all matching official games, or each non-adoption has an explicit accepted exception in the atlas.
 - Open promotion debt is closed before the next mechanic-ladder gate unless an accepted exception or ADR says otherwise.
 - Third-use mechanic pressure is resolved before proceeding.
+- Mechanical-scaffolding candidates are behavior-free, registered, and rejected
+  or rerouted when they encode game mechanics or hidden-state policy.
 - Static data is typed content/parameters/metadata/fixtures/traces only.
 - Unknown fields in hand-authored data are rejected by default.
 - Behavior-looking fields are blocked or escalated.

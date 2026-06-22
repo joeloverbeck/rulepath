@@ -12,6 +12,13 @@ Prepared by: `<name/agent>`
 
 Last updated: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-05 -> GAME-RULE-COVERAGE.md`. This
+template owns the rule-ID-to-proof matrix. `GAME-EVIDENCE.md` owns cross-template
+viewer matrices, trace profile status, benchmark workload IDs, release status,
+and artifact-link rollups.
+
 ## Purpose
 
 This is the requirements traceability matrix for the game. It maps every stable rule ID in `GAME-RULES.md` to implementation areas and verification evidence.
@@ -34,20 +41,23 @@ UI smoke tests do not prove rule correctness. Rust tests, named rule tests, gold
 
 ## Rule coverage matrix
 
-| Rule ID | Rule summary | Source/rationale | Rust implementation module/function/area | Unit tests | Named rule tests | Golden traces | Property/invariant coverage | Simulation/fuzz coverage | Replay/hash coverage | Serialization coverage | Visibility/no-leak coverage | Bot coverage | UI smoke coverage if web-exposed | Benchmark relevance | Status | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `R-SCOPE-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | not applicable / `<coverage>` | `<coverage>` | `<smoke>` | none / `<benchmark>` | not started | `<notes>` |
-| `R-COMP-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-SETUP-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-TURN-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-ACTION-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-RESTRICT-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-SCORE-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-END-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-VIS-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-RNG-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not applicable | `<notes>` |
-| `R-VAR-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
-| `R-AMB-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `<tests>` | `<tests>` | `<traces>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<coverage>` | `<smoke>` | `<benchmark>` | not started | `<notes>` |
+Use stable evidence IDs so `GAME-EVIDENCE.md`, release checklists, and future
+tools can link to proof without copying this matrix.
+
+| Rule ID | Rule summary | Source/rationale | Rust implementation module/function/area | Evidence IDs | Fixture profile | Primary tests/traces | Visibility/no-leak evidence ID | Replay/hash evidence ID | Bot/UI evidence IDs | Status | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `R-SCOPE-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-SCOPE-001` | not applicable / `replay-command-v1` / `domain-evidence-v1` | `<tests/traces>` | not applicable / `LEAK-*` | not applicable / `TRACE-*` | not applicable / `UI-*` / `BOT-*` | not started | `<notes>` |
+| `R-COMP-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-COMP-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-SETUP-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-SETUP-001` | `setup-evidence-v1` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-TURN-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-TURN-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-ACTION-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-ACTION-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-RESTRICT-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-RESTRICT-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-SCORE-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-SCORE-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-END-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-END-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-VIS-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-VIS-001` | `domain-evidence-v1` | `<tests/traces>` | `LEAK-001` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-RNG-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-RNG-001` | `replay-command-v1` / not applicable | `<tests/traces>` | `<LEAK-* or not applicable>` | `TRACE-001` | not applicable / `<BOT-*>` | not applicable | `<notes>` |
+| `R-VAR-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-VAR-001` | `setup-evidence-v1` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
+| `R-AMB-001` | `<summary>` | `<source/rationale>` | `<module/area>` | `RULE-AMB-001` | `<profile>` | `<tests/traces>` | `<LEAK-* or not applicable>` | `<TRACE-* or not applicable>` | `<UI-*/BOT-* or not applicable>` | not started | `<notes>` |
 
 ## Intentionally deferred, unsupported, or not applicable rules
 
@@ -102,19 +112,24 @@ Use this section for hidden-information games. For perfect-information games, fi
 
 ## Terminal result and viewer-class coverage
 
-Every terminal result and every viewer class in `GAME-RULES.md#seat-model` MUST have explicit coverage. This proves that standings, per-seat explanations, team/partnership results, no-reveal endings, and replay/export views are projected by Rust for each viewer class.
+Every terminal result and every viewer class in `GAME-RULES.md#seat-model` MUST
+have explicit coverage. `GAME-EVIDENCE.md#viewer-matrix` owns the public and
+per-seat viewer matrix rollup; this coverage file links the rule IDs and
+evidence IDs that prove it.
 
-| Terminal result | Rule IDs | Viewer class | Expected projection | Trace/test evidence | Status |
+| Terminal result | Rule IDs | Viewer class | Expected projection | Evidence ID/link | Status |
 |---|---|---|---|---|---|
-| `<win/loss/draw/split/shared outcome/elimination/no-reveal terminal>` | `<rule_ids>` | `<viewer class>` | `<per-seat or per-team facts visible to this viewer>` | `<trace/test>` | not started / partial / covered |
+| `<win/loss/draw/split/shared outcome/elimination/no-reveal terminal>` | `<rule_ids>` | `<viewer class>` | `<per-seat or per-team facts visible to this viewer>` | `LEAK-*` / `TRACE-*` / `<trace/test>` | not started / partial / covered |
 
 ## Pairwise N-seat hidden-information coverage
 
-Required for hidden-information N-seat games. For perfect-information games, fill one explicit `not applicable` row. Each private datum owned by a source seat MUST be checked against each viewer class and every public/browser/replay/bot surface that could leak it.
+Required for hidden-information N-seat games. `GAME-EVIDENCE.md#viewer-matrix`
+owns the pairwise no-leak matrix rollup. Keep rule-specific evidence IDs here
+and link the detailed matrix from the receipt.
 
-| Source seat private datum | Viewer | Surface | Expected visibility | Trace/test evidence | Status |
+| Pairwise no-leak evidence ID | Rule IDs | Source private datum | Viewer class | Receipt row/link | Status |
 |---|---|---|---|---|---|
-| `<seat/private datum or not applicable>` | `<owning seat / teammate / opponent / public observer / replay viewer / dev-only harness>` | public view / action tree / preview / diagnostics / effect log / DOM / logs / storage / replay export / bot explanation / candidate ranking / dev inspector | visible / redacted / aggregate only / not applicable | `<trace/test>` | not started / partial / covered / not applicable |
+| `LEAK-001` | `<rule_ids>` | `<seat/private datum or not applicable>` | `<owning seat / teammate / opponent / public observer / replay viewer / dev-only harness>` | `GAME-EVIDENCE.md#viewer-matrix` | not started / partial / covered / not applicable |
 
 ## Test mapping summary
 
@@ -128,11 +143,14 @@ Required for hidden-information N-seat games. For perfect-information games, fil
 |---|---:|---|---|---|---|
 | `<run>` | `<count>` | `<bots>` | `<rule_ids>` | completed games, terminal outcomes, illegal action attempts, invariant failures, average length, playout throughput, failing seed command stream | `<notes>` |
 
-## Benchmark relevance map
+## Benchmark relevance links
 
-| Benchmark | Rule IDs/mechanics relevant | Why relevant | Current threshold/status |
+`GAME-EVIDENCE.md` owns benchmark workload IDs and current status. This section
+links rules to benchmark evidence without duplicating benchmark receipts.
+
+| Benchmark evidence ID | Rule IDs/mechanics relevant | Why relevant | Receipt row/link |
 |---|---|---|---|
-| `<benchmark>` | `<rule_ids>` | `<reason>` | `<threshold/status>` |
+| `BENCH-001` | `<rule_ids>` | `<reason>` | `GAME-EVIDENCE.md#benchmarks-and-bot-policy` |
 
 ## Rule-ID migration notes
 
@@ -144,6 +162,7 @@ Required for hidden-information N-seat games. For perfect-information games, fil
 
 - Every rule ID in `GAME-RULES.md` has exactly one primary row here.
 - Section numbers alone are not used as requirements keys.
+- Evidence IDs are stable and linked from `GAME-EVIDENCE.md` where cross-template status is needed.
 - Every deferred, unsupported, or not-applicable item has an explicit rationale.
 - Rust tests and traces are primary for rule correctness.
 - UI smoke tests are marked as smoke only.
@@ -152,5 +171,5 @@ Required for hidden-information N-seat games. For perfect-information games, fil
 - Serialization compatibility is covered or explicitly deferred.
 - Visibility/no-leak surfaces are covered or explicitly `not applicable`.
 - Bot coverage uses legal action APIs and allowed views.
-- Benchmark relevance is recorded for hot rules/mechanics.
+- Benchmark relevance links are recorded for hot rules/mechanics; current workload status lives in `GAME-EVIDENCE.md`.
 - Rule-ID migrations update rules, coverage, tests, traces, docs, and release notes.

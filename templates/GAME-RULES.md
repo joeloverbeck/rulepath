@@ -14,6 +14,12 @@ Created: YYYY-MM-DD
 
 Last updated: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-04 -> GAME-RULES.md`. This template
+owns original formal rules prose and stable rule IDs. `GAME-EVIDENCE.md` owns
+cross-template conformance status and artifact links.
+
 ## Rule authority
 
 This document is the original Rulepath rules summary for the implemented variant. It MUST be written in original Rulepath prose.
@@ -49,6 +55,7 @@ Suggested rule-ID prefixes:
 | coverage matrix | `<path/to/GAME-RULE-COVERAGE.md>` |
 | mechanic inventory | `<path/to/GAME-MECHANICS.md>` |
 | implementation admission | `<path/to/GAME-IMPLEMENTATION-ADMISSION.md>` |
+| evidence receipt | `<path/to/GAME-EVIDENCE.md>` |
 
 ## Purpose and scope
 
@@ -166,11 +173,13 @@ Public/browser payloads MUST NOT reveal hidden information through public views,
 
 ## Bot-relevant non-authoritative strategy notes
 
-These notes are not rule authority. They guide `COMPETENT-PLAYER.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, and `GAME-AI.md`. Strategy claims MUST be checked against rule IDs above.
+This document does not own strategy prose. Strategy claims belong in
+`COMPETENT-PLAYER.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, and `GAME-AI.md`.
+Use this section only to link rule IDs that have strategic consequences.
 
-| Situation | Practical note | Rule IDs checked | Hidden-info limit |
+| Situation | Rule IDs with strategic consequence | Strategy document link | Hidden-info limit |
 |---|---|---|---|
-| `<situation>` | `<strategy note>` | `<rule_ids>` | `<limit>` |
+| `<situation>` | `<rule_ids>` | `<COMPETENT-PLAYER.md#... or BOT-STRATEGY-EVIDENCE-PACK.md#...>` | `<limit>` |
 
 ## Known ambiguities and chosen resolutions
 
@@ -192,7 +201,10 @@ These notes are not rule authority. They guide `COMPETENT-PLAYER.md`, `BOT-STRAT
 
 ## Rule coverage link
 
-The implementation and evidence mapping lives in `GAME-RULE-COVERAGE.md`.
+The rule-to-proof mapping lives in `GAME-RULE-COVERAGE.md`. Cross-template
+status, viewer matrices, trace profile status, benchmark workload IDs, bot
+policy IDs, source/IP receipt status, and release blockers live in
+`GAME-EVIDENCE.md`.
 
 Every rule ID in this document MUST appear in `GAME-RULE-COVERAGE.md`. Silent gaps are not allowed.
 

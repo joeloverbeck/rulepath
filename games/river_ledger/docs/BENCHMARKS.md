@@ -43,8 +43,8 @@ Thresholds in [thresholds.json](../benches/thresholds.json) are provisional
 native smoke floors calibrated under the accepted ADR 0002 / ADR 0003 benchmark
 process until repeated CI hardware baselines are available. They are not allowed
 to justify lookup-table evaluators, hidden-state shortcuts, weaker explanations,
-or reduced no-leak coverage. Proposed ADR 0005 is not a binding threshold source
-for these lanes.
+or reduced no-leak coverage. Accepted ADR 0005 governs variance-aware CI-floor
+calibration once repeated runner measurements are available for these lanes.
 
 ## Native Evidence
 

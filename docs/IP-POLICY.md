@@ -68,6 +68,27 @@ original Rulepath prose, neutral names, and no copied rulebook text, examples,
 diagrams, art, logos, fonts, or trade dress. They may summarize the Rulepath
 implementation's rules but must not reproduce external protected expression.
 
+## 4A. IP evidence receipt and source IDs
+
+Each official game records its centralized IP receipt in
+[`GAME-EVIDENCE.md`](../templates/GAME-EVIDENCE.md). That receipt links the
+source/IP fields that prove the public artifact is original, public-domain,
+permissioned, or otherwise compatible with this policy. It is a status and
+artifact-link receipt only; detailed consulted-source notes, ambiguity
+resolution, naming rationale, asset posture, font posture, copied-content
+status, and human/legal review questions remain in the game's source notes.
+
+Per-game source notes SHOULD assign stable source IDs for every consulted source
+that affects rule facts, variant selection, naming, assets, fonts, or release
+blockers. Other documents should cite those source IDs rather than copying
+source prose or repeating IP narratives. `GAME-EVIDENCE.md` then links the
+source-note artifact and summarizes the current source/IP receipt status.
+
+Repository-level comparable systems and external prior art live in
+[SOURCES.md](SOURCES.md). Those sources may inform doctrine, but each entry must
+record the Rulepath-specific lesson and any explicit non-adoption so external
+framework assumptions do not override this policy.
+
 ## 5. Common names and neutral names
 
 Common descriptive names MAY be used when safe. Neutral names SHOULD be used when a commercial title, trademark, trade dress, or product identity creates avoidable risk.

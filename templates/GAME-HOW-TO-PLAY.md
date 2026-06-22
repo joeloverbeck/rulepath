@@ -3,7 +3,12 @@
 _Game ID: `<game_id>`_  
 _Formal rules source: `games/<game_id>/docs/RULES.md`_  
 _Formal rules version checked: `<rules-version>`_  
+_Evidence receipt: `games/<game_id>/docs/GAME-EVIDENCE.md`_  
 _Strategy guide: `games/<game_id>/docs/COMPETENT-PLAYER.md`_
+
+Template realignment mapping: report `B-09 -> GAME-HOW-TO-PLAY.md`. This page
+owns player-facing how-to prose. `GAME-EVIDENCE.md` owns source/version receipt
+status and release evidence links.
 
 ## At a glance
 
@@ -124,6 +129,7 @@ Formal rule IDs, Rust validation notes, rule coverage, bot strategy, and impleme
 Confirm before merging:
 
 - [ ] Prose is original Rulepath wording.
+- [ ] Formal rules and evidence receipt links are current.
 - [ ] No copied rulebook text, examples, diagrams, assets, names, fonts, or trade dress.
 - [ ] No strategy advice copied from `COMPETENT-PLAYER.md`.
 - [ ] No hidden match-state examples or seed-specific data.

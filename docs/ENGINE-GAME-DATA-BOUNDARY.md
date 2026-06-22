@@ -29,6 +29,25 @@ Do not use “data-driven rules” approvingly. In Rulepath, that phrase names t
 | `wasm-api` | thin batched bridge over Rust behavior | rules, hidden-state filtering by UI, renderer logic |
 | `apps/web` | presentation, controls derived from Rust legal choices, replay UI, accessibility, responsive layout | legality, behavior, hidden-state authority, bot decisions |
 
+## 2A. Reuse Lanes
+
+Rulepath uses four explicit reuse lanes. The narrowest-layer-wins rule applies:
+put the helper in the lowest layer that can own it without violating behavior
+authority, vocabulary, visibility, determinism, or static-data boundaries.
+
+| Lane | Home | Allowed | Forbidden |
+|---|---|---|---|
+| Kernel ergonomics | `engine-core` | Tiny helpers over allowed generic contract vocabulary such as ids, versions, action paths, command envelopes, visibility scopes, effect envelopes, replay/checkpoint/hash contracts, and serialization boundaries. | Mechanic nouns, rule helpers, game strategy, renderer policy, network policy, storage policy, or content schemas. |
+| Mechanical scaffolding | `game-stdlib`, future dev-only `game-test-support`, `wasm-api`, or local code depending on scope | Behavior-free typed infrastructure governed by [ADR 0008](adr/0008-mechanical-scaffolding-governance.md) and [MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md): seat-ID parse/format, action-tree encoding, stable-byte helpers, effect-envelope construction, or evidence harnesses when they do not decide game behavior. | Deal/reveal/projection policy, betting, pot allocation, trick lifecycle, teams, graph semantics, accounting, reaction windows, scoring, terminal outcome, bot strategy, legality, or hidden-state policy. |
+| Behavioral mechanics | `games/*` first, then `game-stdlib` only after mechanic-atlas approval | Typed game behavior and narrow promoted primitives after repeated official-game evidence, examples, anti-examples, tests, benchmarks, and required back-ports. | Speculative universal mechanics, unearned helpers, promotion debt without an accepted exception, or `engine-core` mechanic vocabulary. |
+| Typed content | `games/*/data`, manifests, fixtures, traces, docs, templates | Inert typed content, parameters, labels, variants, fixtures, traces, evidence receipts, source notes, rules/help prose, and UI metadata. | Selectors, branches, triggers, loops, conditions, formulas, tactical AI logic, procedural mutation instructions, hidden defaults, or any rule behavior. |
+
+If a proposed helper fits multiple lanes, choose the narrowest lawful home. If a
+candidate needs game nouns or behavior policy, it is not kernel ergonomics. If it
+decides rules, scoring, visibility, effects, or bot choices, it is not
+mechanical scaffolding. If static data would control behavior, stop and require
+an ADR before proceeding.
+
 ## 3. Generic contract vocabulary versus mechanic vocabulary
 
 `engine-core` MAY use generic contract vocabulary:

@@ -14,171 +14,73 @@ Prepared by: `<name/agent>`
 
 Date: YYYY-MM-DD
 
+Template realignment mapping: report `B-07 -> GAME-IMPLEMENTATION-ADMISSION.md`
+
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
 ## Purpose
 
-This is a gate receipt before serious coding starts.
+This is a pre-build admission receipt. It answers whether implementation work
+may begin under the current Rulepath foundation docs.
 
-It is not a ticket. It is not an implementation plan. It decides whether implementation work may start under the corrected Rulepath foundation docs.
+It is not a ticket, implementation plan, release checklist, or post-build proof
+report. Post-build proof lives in `GAME-EVIDENCE.md`, domain evidence files,
+and the public release checklist.
 
-Admission does not waive later rule coverage, tests, traces, benchmarks, UI polish, bot evidence, or release gates.
+Admission does not waive later rule coverage, tests, traces, benchmarks, UI
+polish, bot evidence, no-leak proof, or release gates.
 
-## Prerequisite documents
+## Source, Scope, and Rule Readiness
 
-| Prerequisite | Path | Complete? | Notes/blockers |
-|---|---|---:|---|
-| source/IP notes | `<path/to/GAME-SOURCES.md>` | yes/no | `<notes>` |
-| original rules with stable rule IDs | `<path/to/GAME-RULES.md>` | yes/no | `<notes>` |
-| rule coverage matrix | `<path/to/GAME-RULE-COVERAGE.md>` | yes/no | `<notes>` |
-| mechanic inventory | `<path/to/GAME-MECHANICS.md>` | yes/no | `<notes>` |
-| primitive-pressure ledger, if needed | `<path/to/PRIMITIVE-PRESSURE-LEDGER.md>` | yes/no/not applicable | `<notes>` |
-| competent-player analysis, if strategy matters | `<path/to/COMPETENT-PLAYER.md>` | yes/no/not applicable | `<notes>` |
-| ADR, if boundary-changing | `<path/to/docs/adr/...>` | yes/no/not applicable | `<notes>` |
-
-## Source and IP readiness
-
-| Check | Status | Evidence/notes |
-|---|---|---|
-| consulted sources recorded with dates | ready / blocked / constrained | `<notes>` |
-| sources used only for verification/context | ready / blocked / constrained | `<notes>` |
-| Rulepath rules prose is original | ready / blocked / constrained | `<notes>` |
-| no copied card/component text | ready / blocked / constrained / not applicable | `<notes>` |
-| no copied art/icons/screenshots/scans/fonts/trade dress | ready / blocked / constrained | `<notes>` |
-| public naming rationale recorded | ready / blocked / constrained | `<notes>` |
-| private licensed content excluded from public files | ready / blocked / constrained / not applicable | `<notes>` |
-| human/legal review triggers cleared or recorded | ready / blocked / constrained | `<notes>` |
-
-## Rule-ID readiness
-
-| Check | Status | Evidence/notes |
-|---|---|---|
-| every implemented rule has a stable rule ID | ready / blocked / constrained | `<notes>` |
-| rule IDs use stable prefixes, not section-only references | ready / blocked / constrained | `<notes>` |
-| ambiguities have chosen resolutions and IDs | ready / blocked / constrained / not applicable | `<notes>` |
-| out-of-scope variants are explicit | ready / blocked / constrained / not applicable | `<notes>` |
-| rule-ID migration policy is understood | ready / blocked / constrained | `<notes>` |
-
-Rule IDs MUST remain stable after implementation unless intentionally migrated with notes and coverage updates.
-
-## Rule coverage readiness
-
-| Check | Status | Evidence/notes |
-|---|---|---|
-| coverage matrix has one row per rule ID | ready / blocked / constrained | `<notes>` |
-| terminal result coverage is complete for every viewer class | ready / blocked / constrained | `<notes>` |
-| deferred/unsupported/not applicable rows are explicit | ready / blocked / constrained | `<notes>` |
-| primary Rust test strategy is identified | ready / blocked / constrained | `<notes>` |
-| golden trace needs are identified | ready / blocked / constrained | `<notes>` |
-| invalid/stale diagnostic trace needs are identified | ready / blocked / constrained | `<notes>` |
-| replay/hash requirements are identified | ready / blocked / constrained | `<notes>` |
-| serialization requirements are identified | ready / blocked / constrained | `<notes>` |
-| visibility/no-leak requirements are identified | ready / blocked / constrained / not applicable | `<notes>` |
-| UI smoke coverage is scoped as smoke only | ready / blocked / constrained / not applicable | `<notes>` |
-
-## Mechanic inventory readiness
-
-| Check | Status | Evidence/notes |
-|---|---|---|
-| all mechanic atlas categories are inventoried | ready / blocked / constrained | `<notes>` |
-| min/max seats and stable seat labels are recorded | ready / blocked / constrained | `<notes>` |
-| wrong-seat-count diagnostics are viewer-safe and identified | ready / blocked / constrained | `<notes>` |
-| topology/object-count inventory is complete | ready / blocked / constrained / not applicable | `<notes>` |
-| local mechanics are named and scoped | ready / blocked / constrained | `<notes>` |
-| reused primitives are justified | ready / blocked / constrained / not applicable | `<notes>` |
-| repeated-shape comparison is complete | ready / blocked / constrained / not applicable | `<notes>` |
-| second-use review is recorded when applicable | ready / blocked / constrained / not applicable | `<notes>` |
-| third-use hard gate is cleared when applicable | ready / blocked / constrained / not applicable | `<notes>` |
-| atlas interlock status is recorded for next-phase scaling pressure | ready / blocked / constrained / not applicable | `<notes>` |
-| repo atlas update required? | yes/no | `<notes>` |
-
-A third official game with the same mechanic shape is blocked until the primitive-pressure ledger records reuse, promotion, explicit defer/reject, or ADR-required.
-
-## Primitive-pressure status
-
-| Mechanic shape | Status | Decision/evidence | Blocks implementation? |
-|---|---|---|---:|
-| `<shape>` | local-only / repeated-shape candidate / extraction required / promoted primitive / rejected/deferred with rationale / ADR-required | `<evidence>` | yes/no |
-
-## Engine-core contamination review
-
-| Boundary check | Result | Notes |
-|---|---|---|
-| no game noun needs to enter `engine-core` | pass / fail / constrained | `<notes>` |
-| no rule helper needs to enter `engine-core` | pass / fail / constrained | `<notes>` |
-| no private licensed name/data needs to enter kernel contracts | pass / fail / constrained | `<notes>` |
-| any generic contract change has ADR or explicit non-goal | pass / fail / constrained | `<notes>` |
-
-## Static-data behavior review
-
-| Check | Result | Notes |
-|---|---|---|
-| static data limited to typed content, parameters, metadata, fixtures, traces, or reports | pass / fail / constrained | `<notes>` |
-| no selectors, rule branches, loops, triggers, tactical conditions, or exception logic in data | pass / fail / constrained | `<notes>` |
-| no YAML by default | pass / fail / constrained | `<notes>` |
-| no DSL at project start | pass / fail / constrained | `<notes>` |
-
-## Hidden-information risk review
-
-| Surface | Risk level | Required safeguard/test | Admission status |
+| Admission surface | Status | Evidence link | Notes/blockers |
 |---|---|---|---|
-| public/browser payload | none/low/medium/high | `<test>` | ready/blocked/not applicable |
-| action tree | none/low/medium/high | `<test>` | ready/blocked/not applicable |
-| preview | none/low/medium/high | `<test>` | ready/blocked/not applicable |
-| diagnostics/effect log | none/low/medium/high | `<test>` | ready/blocked/not applicable |
-| DOM/test IDs/local storage/replay export | none/low/medium/high | `<test>` | ready/blocked/not applicable |
-| bot explanations/candidate rankings | none/low/medium/high | `<test>` | ready/blocked/not applicable |
-| dev inspector | none/low/medium/high | `<test>` | ready/blocked/not applicable |
+| source/IP notes are ready | ready/blocked/constrained | `<GAME-SOURCES.md>` | `<notes>` |
+| original rules with stable rule IDs are ready | ready/blocked/constrained | `<GAME-RULES.md>` | `<notes>` |
+| implemented variants and out-of-scope variants are explicit | ready/blocked/constrained | `<GAME-RULES.md or GAME-SOURCES.md>` | `<notes>` |
+| supported seat counts and stable labels are explicit | ready/blocked/constrained | `<GAME-RULES.md or GAME-MECHANICS.md>` | `<notes>` |
+| rule coverage strategy is identified | ready/blocked/constrained | `<GAME-RULE-COVERAGE.md>` | `<notes>` |
 
-## Seat, projection, and topology admission
+## Novel Mechanics and Pressure
 
-| Check | Status | Evidence/notes |
+| Surface | Status | Evidence link | Blocks implementation? |
+|---|---|---|---:|
+| mechanic inventory complete enough to start | ready/blocked/constrained | `<GAME-MECHANICS.md>` | yes/no |
+| primitive-pressure decision, if needed | ready/blocked/not applicable: `<rationale>` | `<PRIMITIVE-PRESSURE-LEDGER.md or atlas link>` | yes/no |
+| mechanical-scaffolding decision, if needed | ready/blocked/not applicable: `<rationale>` | `<MECHANICAL-SCAFFOLDING-REGISTER.md link>` | yes/no |
+| ADR needed for boundary-changing work | yes/no | `<docs/adr/... or rationale>` | yes/no |
+
+## Boundary Risks
+
+| Boundary | Admission result | Evidence/notes |
 |---|---|---|
-| min/max seats accepted by setup are explicit | ready / blocked / constrained | `<notes>` |
-| unsupported seat counts reject with viewer-safe diagnostics | ready / blocked / constrained | `<notes>` |
-| official seat IDs and stable seat labels are defined | ready / blocked / constrained | `<notes>` |
-| per-viewer projection proof plan exists | ready / blocked / constrained | `<notes>` |
-| pairwise no-leak proof plan exists for every source seat private datum and viewer surface | ready / blocked / constrained / not applicable | `<notes>` |
-| topology/object-count inventory covers all public and private objects | ready / blocked / constrained / not applicable | `<notes>` |
-| mechanic-atlas interlock status is ready for N-seat/topology/evaluator/shared-accounting pressure | ready / blocked / constrained / not applicable | `<notes>` |
+| `engine-core` remains generic and noun-free | pass/fail/constrained | `<notes>` |
+| no static-data behavior language is introduced | pass/fail/constrained | `<notes>` |
+| Rust remains the authority for legality, validation, effects, views, and bots | pass/fail/constrained | `<notes>` |
+| hidden-information risk has a named proof plan | pass/fail/not applicable: `<rationale>` | `<GAME-EVIDENCE.md planned row or coverage link>` |
+| private licensed content is excluded from public paths | pass/fail/not applicable: `<rationale>` | `<GAME-SOURCES.md or release-review link>` |
 
-## Bot level required for this stage
+## Required Evidence Profile
 
-| Level | Required before public release? | Coding may start now? | Evidence required |
-|---:|---:|---:|---|
-| 0 random legal | yes/no | yes/no | legal action API, deterministic seed, simulations |
-| 1 baseline | yes/no | yes/no | obvious tactics, legality/determinism/explanation tests |
-| 2 authored policy | yes/no | yes/no | completed `COMPETENT-PLAYER.md` and `BOT-STRATEGY-EVIDENCE-PACK.md` before coding |
-| 3 shallow deterministic search | yes/no | yes/no | allowed only for small perfect-information games with benchmark evidence |
-
-Public v1/v2 bots MUST NOT use MCTS, ISMCTS, Monte Carlo-style bots, ML, or RL.
-
-## UI exposure expectations
-
-| Check | Status | Notes |
-|---|---|---|
-| web-exposed in this stage? | yes/no | `<notes>` |
-| React + SVG default accepted | yes/no/constrained | `<notes>` |
-| legal-action tree maps to UI controls | ready/blocked/constrained | `<notes>` |
-| TypeScript presentation-only boundary understood | ready/blocked/constrained | `<notes>` |
-| effect-driven animation expectations identified | ready/blocked/constrained/not applicable | `<notes>` |
-| accessibility/reduced-motion/responsive expectations identified | ready/blocked/constrained/not applicable | `<notes>` |
-
-## Benchmark expectations
-
-| Operation | Needed before implementation? | Needed before release? | Notes |
+| Evidence area | Required before coding? | Required before release? | Owner/link |
 |---|---:|---:|---|
-| setup | yes/no | yes/no | `<notes>` |
-| legal action generation | yes/no | yes/no | `<notes>` |
-| preview | yes/no | yes/no | `<notes>` |
-| validation/apply action | yes/no | yes/no | `<notes>` |
-| public/private view generation | yes/no | yes/no | `<notes>` |
-| effect filtering | yes/no | yes/no | `<notes>` |
-| serialization/deserialization | yes/no | yes/no | `<notes>` |
-| replay throughput/hash | yes/no | yes/no | `<notes>` |
-| random playout throughput | yes/no | yes/no | `<notes>` |
-| bot decision latency | yes/no | yes/no | `<notes>` |
-| WASM/browser smoke | yes/no | yes/no | `<notes>` |
+| conformance receipt | yes/no | yes | `<GAME-EVIDENCE.md>` |
+| named rule tests and coverage | yes/no | yes | `<GAME-RULE-COVERAGE.md>` |
+| replay/hash and serialization proof | yes/no | yes/no | `<GAME-EVIDENCE.md trace/replay rows>` |
+| no-leak proof | yes/no/not applicable | yes/no/not applicable | `<GAME-EVIDENCE.md hidden-info matrix>` |
+| UI evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-UI.md>` |
+| bot evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-AI.md>` |
+| benchmark evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-BENCHMARKS.md>` |
 
-## Admission decision
+## Delta Admission
+
+Use this section for later expansions so the original admission does not
+accumulate a second implementation report.
+
+| Delta | Scope change | New or changed risks | Required evidence update | Decision |
+|---|---|---|---|---|
+| `<delta id>` | `<scope>` | `<risks>` | `<GAME-EVIDENCE.md/domain link>` | admitted / blocked / admitted with constraints |
+
+## Admission Decision
 
 Decision: admitted / blocked / admitted with explicit constraints
 
@@ -190,7 +92,7 @@ Explicit constraints if admitted conditionally:
 
 - `<constraint>`
 
-## Blocking issues
+## Blocking Issues
 
 | Issue | Required fix | Owner | Blocks coding? |
 |---|---|---|---:|
@@ -203,3 +105,4 @@ Prepared by: `<name/agent>`
 Reviewed by: `<name>`
 
 Date: YYYY-MM-DD
+

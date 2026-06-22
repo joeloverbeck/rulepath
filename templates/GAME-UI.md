@@ -12,6 +12,14 @@ Prepared by: `<name/agent>`
 
 Last updated: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-13 -> GAME-UI.md`. This template owns
+game-specific UI deltas: product target, renderer/surface budget, seat layout,
+action mapping, previews, effect-to-animation mapping, outcome surfaces,
+accessibility labels, and smoke cases. `GAME-EVIDENCE.md` owns cross-template
+viewer/no-leak matrix status and release evidence links.
+
 ## Purpose
 
 This document defines the product-facing web UI plan for the game. It applies `docs/UI-INTERACTION.md` to one game.
@@ -299,23 +307,17 @@ Reduced-motion mode MUST reduce, replace, or remove non-essential motion while p
 
 ## Hidden-information safeguards
 
-Fill every surface. Perfect-information games may use explicit `not applicable` with rationale.
+`GAME-EVIDENCE.md#viewer-matrix` owns the cross-template public/per-seat
+viewer matrix and no-leak status. Use this section for UI-specific deltas and
+evidence IDs only. Perfect-information games may use explicit `not applicable`
+with rationale.
 
-| Surface | Safeguard | Test |
-|---|---|---|
-| browser payload/public view | `<safeguard>` | `<test>` |
-| action tree | `<safeguard>` | `<test>` |
-| Rust-generated preview | `<safeguard>` | `<test>` |
-| effect log | `<safeguard>` | `<test>` |
-| diagnostics/disabled reasons | `<safeguard>` | `<test>` |
-| DOM attributes | `<safeguard>` | `<test>` |
-| test IDs | `<safeguard>` | `<test>` |
-| browser console/logs | `<safeguard>` | `<test>` |
-| local storage/session storage | `<safeguard>` | `<test>` |
-| replay export/import | `<safeguard>` | `<test>` |
-| bot explanations | `<safeguard>` | `<test>` |
-| candidate rankings | `<safeguard>` | `<test>` |
-| dev inspector | `<safeguard>` | `<test>` |
+| UI no-leak evidence ID | Surface | Game-specific safeguard delta | Receipt row/link | Test |
+|---|---|---|---|---|
+| `LEAK-UI-001` | browser payload/public view | `<safeguard>` | `GAME-EVIDENCE.md#viewer-matrix` | `<test>` |
+| `LEAK-UI-002` | action tree / Rust-generated preview / diagnostics | `<safeguard>` | `GAME-EVIDENCE.md#viewer-matrix` | `<test>` |
+| `LEAK-UI-003` | DOM attributes / test IDs / browser logs / storage | `<safeguard>` | `GAME-EVIDENCE.md#viewer-matrix` | `<test>` |
+| `LEAK-UI-004` | replay export/import / bot explanations / candidate rankings / dev inspector | `<safeguard>` | `GAME-EVIDENCE.md#viewer-matrix` | `<test>` |
 
 ## UI smoke tests
 
@@ -346,5 +348,5 @@ Fill every surface. Perfect-information games may use explicit `not applicable` 
 - Previews are Rust-generated and viewer-safe.
 - Animation is effect-driven and settles to Rust public view.
 - Accessibility labels, keyboard/focus, screen-reader summaries, contrast, reduced motion, and responsive behavior are explicit.
-- Hidden-information safeguards cover browser payloads, action tree, preview, effect log, diagnostics, DOM attributes, test IDs, logs, local storage, replay export, bot explanations, candidate rankings, and dev inspector.
+- Hidden-information UI deltas link to the `GAME-EVIDENCE.md` viewer/no-leak matrix.
 - UI smoke tests are not treated as proof of rule correctness.

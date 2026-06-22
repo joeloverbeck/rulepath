@@ -10,6 +10,13 @@ Prepared by: `<name/agent>`
 
 Last updated: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-06 -> GAME-MECHANICS.md`. This template
+owns game-local mechanic classification and mechanic/scaffolding pressure
+analysis. `GAME-EVIDENCE.md` owns the conformance receipt links for mechanic and
+scaffolding decisions.
+
 ## Purpose
 
 This inventory applies `docs/MECHANIC-ATLAS.md` to one game. It records game-local mechanic shapes, primitive reuse, repeated-shape pressure, extraction/defer decisions, and effects/UI/bot/benchmark implications.
@@ -58,9 +65,9 @@ Use only these status labels:
 
 ## Repeated-shape comparison
 
-| Mechanic shape | Already appears in | Same shape? | Similarities | Differences | Required next step |
-|---|---|---:|---|---|---|
-| `<shape>` | `<game_ids>` | yes/no/unclear | `<similarities>` | `<differences>` | none / compare / ledger / reuse / promote / defer / ADR |
+| Shape | Classification | Governing owner | Already appears in | Same shape? | Similarities | Differences | Required next step |
+|---|---|---|---|---:|---|---|---|
+| `<shape>` | behavioral mechanic / production mechanical scaffolding / test scaffolding / presentation scaffolding / superficial similarity | mechanic atlas / mechanical scaffolding register / local-only / ADR | `<game_ids>` | yes/no/unclear | `<similarities>` | `<differences>` | none / compare / ledger / register / reuse / promote / defer / ADR |
 
 ## Second-use note
 
@@ -110,6 +117,10 @@ For every repeated shape, explain why it is staying local, being reused, being p
 | `<shape>` | local / reuse / promote / defer / reject / ADR-required | `<rationale>` | yes/no | preserve / update with rationale / none | `<impact>` |
 
 ## Effects, UI, and bot notes
+
+Cross-template conformance status for effects, UI, bot, visibility, and
+benchmark evidence lives in `GAME-EVIDENCE.md`. Keep only mechanic implications
+and rule links here.
 
 | Area | Requirement | Rule IDs | Notes |
 |---|---|---|---|
@@ -161,4 +172,5 @@ The following are forbidden:
 - `engine-core` remains noun-free.
 - Static data remains typed content/parameters/metadata/fixtures/traces/reports only.
 - Effects, UI, bot, visibility, and benchmark impacts are recorded.
+- Cross-template mechanic/scaffolding decision status links from `GAME-EVIDENCE.md`.
 - Repo atlas and primitive-pressure ledger updates are identified.
