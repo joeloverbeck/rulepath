@@ -1,6 +1,6 @@
 # UNI8CMECSCA-009: Pilot canonical seat IDs in Race to N and River Ledger
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/race_to_n/src/ids.rs`, `games/river_ledger/src/ids.rs`
@@ -76,3 +76,24 @@ Same adoption for the variable-seat IDs, preserving byte-identical output across
 1. `cargo run -p replay-check -- --game race_to_n --all && cargo run -p replay-check -- --game river_ledger --all`
 2. `cargo test -p race_to_n -p river_ledger`
 3. `replay-check` plus the games' suites are the correct boundary because byte/hash identity proves the adoption is neutral.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Routed `RaceSeat::parse` through the kernel `SeatId::parse_canonical` / `canonical_zero_based_index` API while preserving the existing borrowed `as_str()` output.
+- Routed River Ledger seat formatting, parsing, `SeatId` construction, and actor construction through the kernel canonical seat API while preserving byte-identical `seat_<n>` output.
+- Flipped `MSC-8C-002` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from `candidate` to `accepted` with the 007-009 proof evidence.
+
+Deviations:
+- None. `trace_race_seat` and historical hyphen trace/fixture strings were not changed; no committed golden trace or fixture path changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo test -p race_to_n -p river_ledger`
+- `cargo test --workspace`
+- `git diff --quiet -- games/race_to_n/tests/golden_traces games/river_ledger/tests/golden_traces games/river_ledger/data games/race_to_n/data`
+- `node scripts/check-doc-links.mjs`

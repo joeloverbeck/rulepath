@@ -42,11 +42,14 @@ impl RiverLedgerSeat {
     }
 
     pub fn as_str(self) -> String {
-        format!("seat_{}", self.index)
+        SeatId::from_zero_based_index(self.index as u32).0
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        let raw_index = value.strip_prefix("seat_")?.parse::<usize>().ok()?;
+        let raw_index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()? as usize;
         Self::from_index(raw_index)
     }
 
@@ -68,12 +71,12 @@ impl RiverLedgerSeat {
 }
 
 pub fn seat_id_for_index(index: usize) -> Option<SeatId> {
-    RiverLedgerSeat::from_index(index).map(|seat| SeatId(seat.as_str()))
+    RiverLedgerSeat::from_index(index).map(|seat| SeatId::from_zero_based_index(seat.index as u32))
 }
 
 pub fn actor_for_seat(seat: RiverLedgerSeat) -> Actor {
     Actor {
-        seat_id: SeatId(seat.as_str()),
+        seat_id: SeatId::from_zero_based_index(seat.index as u32),
     }
 }
 

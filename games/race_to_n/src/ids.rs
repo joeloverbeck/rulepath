@@ -1,3 +1,5 @@
+use engine_core::SeatId;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum RaceSeat {
     Seat0,
@@ -35,10 +37,10 @@ impl RaceSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            _ => None,
-        }
+        let index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()?;
+        Self::from_index(index as usize)
     }
 }

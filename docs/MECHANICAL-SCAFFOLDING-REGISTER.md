@@ -115,7 +115,7 @@ mechanical scaffolding.
 
 ### MSC-8C-002 - Canonical seat-ID grammar plus import aliases
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-02.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-02.
 - Candidate: strict canonical `seat_<zero-based>` parse/format/index helpers
   plus an explicit WASM/import adapter for bounded legacy aliases.
 - semantic.risk: `medium`; seat identity is kernel vocabulary, but permissive
@@ -142,11 +142,14 @@ mechanical scaffolding.
 - Migration set: canonical helper tests, `crates/wasm-api/src/seats.rs`, Race
   to N and River Ledger pilots; historical hyphen traces remain readable until
   named migrations.
-- Acceptance evidence: round-trip/rejection tables, alias-import tests,
-  canonical-output tests for adopted paths, legacy fixture-read checks, and doc
-  link checks.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-007 through UNI8CMECSCA-009 evidence.
+- Acceptance evidence: UNI8CMECSCA-007 kernel round-trip/rejection tables;
+  UNI8CMECSCA-008 `wasm-api` alias-import and rejection tests; UNI8CMECSCA-009
+  Race/River canonical-seat pilot tests, replay checks, workspace tests, and
+  no-golden-diff proof.
+- Rejection rationale: not applicable; accepted with import-boundary and
+  no-silent-migration exclusions above.
+- Next review trigger: named ADR-0009 seat-string migrations or C-11 game
+  audits if additional games adopt canonical helpers.
 
 ### MSC-8C-003 - Seat-count validation and ring-index arithmetic
 
