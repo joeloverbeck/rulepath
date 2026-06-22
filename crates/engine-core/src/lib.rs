@@ -15,6 +15,7 @@ pub use game::Game;
 pub use replay::{
     Checkpoint, DataVersion, EffectCursor, EffectLog, EngineVersion, HashSurface, HashValue,
     LoggedEffect, ReplayHashSet, ReplayRecord, SeatAssignment, SerializationContract,
+    StableBytesRecordWriter, StableBytesTypeTag, StableBytesWriter, StableBytesWriterError,
     StableSerialize, UnknownFieldPolicy, ViewHash,
 };
 pub use rng::{DeterministicRng, SeededRng};

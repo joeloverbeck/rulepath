@@ -1,6 +1,6 @@
 # UNI8CMECSCA-012: Implement `StableBytesWriter` v1 in `engine-core`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/engine-core/src/replay.rs` (or a noun-free sibling re-exported there)
@@ -77,3 +77,35 @@ Golden vectors per operation; ordering and collision negatives; determinism chec
 1. `cargo test -p engine-core`
 2. `bash scripts/boundary-check.sh`
 3. The engine-core suite is the correct boundary — no game adopts v1 bytes until the Wave-2 pilots.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added `StableBytesWriter` v1 and `StableBytesRecordWriter` to `engine-core`
+  with the published `RPSB` header, writer version, raw domain bytes, surface
+  version, typed field records, little-endian integers, length-delimited
+  strings/bytes/records/sequences/options, explicit enum discriminants, and
+  duplicate/non-increasing tag rejection.
+- Re-exported the writer, record writer, type tags, and writer error from
+  `engine-core` so later tickets can consume the private `replay` module's
+  public surface.
+- Added golden byte-contract tests for the v1 header, primitive fields, nested
+  records, sequences, options, enum discriminants, delimiter-collision
+  resistance, ordering errors, and repeated-input determinism.
+- Flipped `MSC-8C-005` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from
+  `candidate` to `accepted`.
+
+Deviations:
+- The ticket listed only `crates/engine-core/src/replay.rs`; updating
+  `crates/engine-core/src/lib.rs` was required because `replay` is a private
+  module and the writer must be re-exported for follow-on work.
+- No game, fixture, replay hash, `HashValue::from_stable_bytes`, or existing
+  `StableSerialize` behavior was changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p engine-core`
+- `bash scripts/boundary-check.sh`
+- `cargo build --workspace`

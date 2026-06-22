@@ -220,7 +220,7 @@ mechanical scaffolding.
 
 ### MSC-8C-005 - Stable-byte writer v1
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-05.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-05.
 - Candidate: explicit `StableBytesWriter` v1 with magic, domain, surface
   version, type tags, field tags, lengths, deterministic integer endianness,
   sequence framing, option framing, and duplicate/non-increasing field-tag
@@ -247,8 +247,13 @@ mechanical scaffolding.
 - Acceptance evidence: golden byte vectors, nested/sequence/option vectors,
   delimiter-collision negatives, field-order rejection tests, and cross-run
   determinism checks.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-012 evidence.
+- Acceptance evidence: UNI8CMECSCA-012 implemented the writer in `engine-core`
+  with golden byte vectors for header, primitive fields, nested records,
+  sequences, options, enum discriminants, delimiter-collision resistance,
+  duplicate/non-increasing tag rejection, and repeated-input determinism.
+- Rejection rationale: not applicable.
+- Next review trigger: first game/hash-surface migration evidence in
+  UNI8CMECSCA-013 through UNI8CMECSCA-015.
 
 ### MSC-8C-006 - Dev-only game test-support crate
 
