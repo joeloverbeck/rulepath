@@ -1,6 +1,6 @@
 # UNI8CMECSCA-007: Strict canonical `SeatId` parse/format in `engine-core`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/engine-core/src/lib.rs` (`SeatId` methods, `CanonicalSeatIdError`)
@@ -76,3 +76,20 @@ Exhaustive round-trip and rejection tables covering `seat_0`, boundary indices, 
 1. `cargo test -p engine-core`
 2. `bash scripts/boundary-check.sh`
 3. The engine-core suite is the correct boundary — no game adopts the API until UNI8CMECSCA-009.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added `CanonicalSeatIdError` and strict `SeatId` APIs in `engine-core`: `from_zero_based_index`, `parse_canonical`, and `canonical_zero_based_index`.
+- Documented grammar version 1 as exactly `seat_<unsigned-zero-based-decimal>` and kept legacy aliases out of the kernel.
+- Added round-trip and rejection-table tests for boundary indices, empty suffix, missing prefix, signs, whitespace, non-digits, non-ASCII digits, leading zeros, and `u32` overflow.
+
+Deviations:
+- None. No game call sites, WASM import aliases, `FromStr`, or legacy seat spellings were changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p engine-core`
+- `bash scripts/boundary-check.sh`

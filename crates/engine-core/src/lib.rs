@@ -28,6 +28,67 @@ pub struct MatchId(pub String);
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct SeatId(pub String);
 
+/// Structural error for canonical seat IDs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum CanonicalSeatIdError {
+    MissingPrefix,
+    EmptyIndex,
+    LeadingZero,
+    InvalidCharacter { ch: char },
+    NonAsciiDigit { ch: char },
+    Overflow,
+}
+
+impl SeatId {
+    /// Constructs a canonical seat ID using grammar version 1:
+    /// `seat_<unsigned-zero-based-decimal>`.
+    pub fn from_zero_based_index(index: u32) -> Self {
+        Self(format!("seat_{index}"))
+    }
+
+    /// Parses grammar version 1 canonical seat IDs:
+    /// `seat_<unsigned-zero-based-decimal>`.
+    ///
+    /// This strict parser rejects whitespace, signs, empty suffixes,
+    /// non-digits, non-ASCII digits, `u32` overflow, and non-canonical leading
+    /// zero spellings except `seat_0`. Legacy aliases belong at import
+    /// boundaries, not in the kernel.
+    pub fn parse_canonical(input: &str) -> Result<Self, CanonicalSeatIdError> {
+        let index = parse_canonical_seat_index(input)?;
+        Ok(Self::from_zero_based_index(index))
+    }
+
+    /// Extracts the zero-based index from a grammar version 1 canonical seat
+    /// ID.
+    pub fn canonical_zero_based_index(&self) -> Result<u32, CanonicalSeatIdError> {
+        parse_canonical_seat_index(&self.0)
+    }
+}
+
+fn parse_canonical_seat_index(input: &str) -> Result<u32, CanonicalSeatIdError> {
+    let suffix = input
+        .strip_prefix("seat_")
+        .ok_or(CanonicalSeatIdError::MissingPrefix)?;
+    if suffix.is_empty() {
+        return Err(CanonicalSeatIdError::EmptyIndex);
+    }
+    if suffix.len() > 1 && suffix.starts_with('0') {
+        return Err(CanonicalSeatIdError::LeadingZero);
+    }
+    for ch in suffix.chars() {
+        if ch.is_ascii_digit() {
+            continue;
+        }
+        if ch.is_numeric() {
+            return Err(CanonicalSeatIdError::NonAsciiDigit { ch });
+        }
+        return Err(CanonicalSeatIdError::InvalidCharacter { ch });
+    }
+    suffix
+        .parse::<u32>()
+        .map_err(|_| CanonicalSeatIdError::Overflow)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct PlayerId(pub String);
 
@@ -159,5 +220,54 @@ mod tests {
 
         assert_eq!(envelope.payload, NonCopyPayload("owned".to_owned()));
         assert_eq!(envelope.visibility, VisibilityScope::Public);
+    }
+
+    #[test]
+    fn canonical_seat_id_round_trips_zero_based_indices() {
+        for index in [0, 1, 7, 42, u32::MAX] {
+            let seat_id = SeatId::from_zero_based_index(index);
+
+            assert_eq!(seat_id.0, format!("seat_{index}"));
+            assert_eq!(SeatId::parse_canonical(&seat_id.0), Ok(seat_id.clone()));
+            assert_eq!(seat_id.canonical_zero_based_index(), Ok(index));
+        }
+    }
+
+    #[test]
+    fn canonical_seat_id_rejects_non_canonical_spellings() {
+        let cases = [
+            ("seat-", CanonicalSeatIdError::MissingPrefix),
+            (" seat_1", CanonicalSeatIdError::MissingPrefix),
+            ("seat_", CanonicalSeatIdError::EmptyIndex),
+            ("seat_01", CanonicalSeatIdError::LeadingZero),
+            (
+                "seat_+1",
+                CanonicalSeatIdError::InvalidCharacter { ch: '+' },
+            ),
+            (
+                "seat_-1",
+                CanonicalSeatIdError::InvalidCharacter { ch: '-' },
+            ),
+            (
+                "seat_1 ",
+                CanonicalSeatIdError::InvalidCharacter { ch: ' ' },
+            ),
+            ("seat_a", CanonicalSeatIdError::InvalidCharacter { ch: 'a' }),
+            ("seat_１", CanonicalSeatIdError::NonAsciiDigit { ch: '１' }),
+            ("seat_4294967296", CanonicalSeatIdError::Overflow),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(
+                SeatId::parse_canonical(input),
+                Err(expected),
+                "{input} rejects"
+            );
+            assert_eq!(
+                SeatId(input.to_owned()).canonical_zero_based_index(),
+                Err(expected),
+                "{input} extracts"
+            );
+        }
     }
 }
