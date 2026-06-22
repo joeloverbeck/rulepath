@@ -1,6 +1,6 @@
 # UNI8CMECSCA-006: Pilot C-01 effect-envelope constructors in Race to N and River Ledger
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/race_to_n/src/effects.rs`, `games/river_ledger/src/effects.rs`
@@ -76,3 +76,23 @@ Replace public literals with `public(..)` and seat-private literals with `privat
 1. `cargo run -p replay-check -- --game race_to_n --all && cargo run -p replay-check -- --game river_ledger --all`
 2. `cargo test -p race_to_n -p river_ledger`
 3. `replay-check` plus the visibility suites are the correct boundary because behavior-neutrality is proven by byte/hash/visibility identity, not by new assertions.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Replaced the Race to N public effect-envelope literal with `EffectEnvelope::public(payload)`.
+- Replaced River Ledger public and seat-private effect-envelope literals with `EffectEnvelope::public(payload)` and `EffectEnvelope::private_to(owner_seat_id, payload)`.
+- Flipped `MSC-8C-001` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from `candidate` to `accepted` with the constructor and pilot verification evidence.
+
+Deviations:
+- None. Payload construction, effect order, seat scopes, goldens, hashes, and visibility filtering were unchanged.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo test -p race_to_n -p river_ledger`
+- `cargo test --workspace`
+- `node scripts/check-doc-links.mjs`

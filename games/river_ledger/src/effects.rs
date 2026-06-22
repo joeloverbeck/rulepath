@@ -56,20 +56,14 @@ pub enum RiverLedgerEffect {
 }
 
 pub fn public_effect(payload: RiverLedgerEffect) -> EffectEnvelope<RiverLedgerEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(
     owner_seat_id: SeatId,
     payload: RiverLedgerEffect,
 ) -> EffectEnvelope<RiverLedgerEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::PrivateToSeat(owner_seat_id),
-        payload,
-    }
+    EffectEnvelope::private_to(owner_seat_id, payload)
 }
 
 pub fn setup_effects(state: &RiverLedgerState) -> Vec<EffectEnvelope<RiverLedgerEffect>> {

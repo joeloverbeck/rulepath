@@ -83,7 +83,7 @@ mechanical scaffolding.
 
 ### MSC-8C-001 - Generic effect-envelope constructors
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-01.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-01.
 - Candidate: inherent constructors for `EffectEnvelope<T>` public and
   seat-private envelopes.
 - semantic.risk: `low`; the helper sets only the existing generic
@@ -106,11 +106,12 @@ mechanical scaffolding.
 - Determinism impact: none beyond preserving existing ordered effect bytes.
 - Migration set: initial pilots in Race to N and River Ledger only; remaining
   games stay local until later C-11 audits.
-- Acceptance evidence: constructor-vs-literal equality tests, Race/River replay
-  and visibility checks, and no effect-order/hash delta.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-005 and UNI8CMECSCA-006 implementation
-  evidence.
+- Acceptance evidence: UNI8CMECSCA-005 constructor-vs-literal equality and
+  move-semantics tests; UNI8CMECSCA-006 Race/River replay checks, River
+  visibility checks, and workspace tests with no effect-order/hash delta.
+- Rejection rationale: not applicable; accepted with behavior exclusions above.
+- Next review trigger: C-11 game audits if additional games need effect-envelope
+  migration.
 
 ### MSC-8C-002 - Canonical seat-ID grammar plus import aliases
 
