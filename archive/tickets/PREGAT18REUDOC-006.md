@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-006: Author docs/MECHANICAL-SCAFFOLDING-REGISTER.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs-only (new `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `docs/README.md`)
@@ -75,3 +75,31 @@ Add the register's authority-map line to `docs/README.md` at its correct layer.
 1. `grep -niE "non-promotion|stays behavioral|semantic.risk|migration set" docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
 2. `node scripts/check-doc-links.mjs`
 3. The grep + link check is the correct boundary; the register is a docs deliverable with no code surface.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Created `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` as the ADR 0008-governed
+decision register for behavior-free mechanical scaffolding. The register defines
+required per-entry fields including `semantic.risk`, production-vs-test home,
+affected hashes, visibility impact, duplicate sites, migration set, acceptance
+evidence, rejection rationale, and next review trigger. It also records an
+explicit non-promotion list that keeps deal/reveal/projection/betting/pot/trick
+lifecycle/teams/graph/accounting/reaction/scoring shapes behavioral.
+
+Updated `docs/README.md` to add the register to the ordered authority map.
+
+Deviations: while editing the same authority surface, updated the ADR status
+index to include ADR 0008 and ADR 0009, both already accepted by prior tickets;
+leaving them absent would have made the index stale.
+
+Verification:
+
+- `grep -niE "non-promotion|stays behavioral|semantic.risk|migration set" docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+  returned the entry fields and non-promotion list.
+- `grep -n "MECHANICAL-SCAFFOLDING-REGISTER" docs/README.md` returned the
+  authority-map line.
+- `grep -nE "^Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md`
+  confirmed the governing ADR is accepted.
+- `node scripts/check-doc-links.mjs` passed (`Checked 30 markdown files`).

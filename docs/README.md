@@ -13,17 +13,18 @@ Read these documents in this order.
 | 3 | [ENGINE-GAME-DATA-BOUNDARY.md](ENGINE-GAME-DATA-BOUNDARY.md) | The exact boundary between `engine-core`, `game-stdlib`, `games/*`, static data, formats, and future DSL pressure. |
 | 4 | [OFFICIAL-GAME-CONTRACT.md](OFFICIAL-GAME-CONTRACT.md) | What it means for a game to be official; requirements-first workflow from rules research through bots and UI. |
 | 5 | [MECHANIC-ATLAS.md](MECHANIC-ATLAS.md) | Mechanic inventory, primitive-pressure ledger, second-use comparison, third-use hard gate. |
-| 6 | [AI-BOTS.md](AI-BOTS.md) | Bot law, levels, hidden-information safety, Level 2 strategy evidence workflow, explanations, personalities. |
-| 7 | [UI-INTERACTION.md](UI-INTERACTION.md) | Public visual target, legal-only interaction, previews, effect-driven animation, replay UI, accessibility. |
-| 8 | [TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md) | Test taxonomy, golden traces, deterministic replay/hash discipline, no-leak tests, benchmarks, CI. |
-| 9 | [TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md) | Trace and replay-fixture schema law; subordinate to the constitution, architecture, data boundary, and accepted visibility/hash ADRs. |
-| 10 | [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md) | N-seat and larger-surface obligations; subordinate to the constitution, architecture, data boundary, hidden-info ADRs, and bot law. |
-| 11 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
-| 12 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
-| 13 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
-| 14 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
-| 15 | [WASM-CLIENT-BOUNDARY.md](WASM-CLIENT-BOUNDARY.md) | Gate 3 Rust/WASM-to-browser client contract, operation groups, replay safety, and dev-panel data whitelist. |
-| 16 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
+| 6 | [MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md) | Mechanical-scaffolding decision register governed by ADR 0008; subordinate to the behavioral mechanic atlas and foundation boundary law. |
+| 7 | [AI-BOTS.md](AI-BOTS.md) | Bot law, levels, hidden-information safety, Level 2 strategy evidence workflow, explanations, personalities. |
+| 8 | [UI-INTERACTION.md](UI-INTERACTION.md) | Public visual target, legal-only interaction, previews, effect-driven animation, replay UI, accessibility. |
+| 9 | [TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md) | Test taxonomy, golden traces, deterministic replay/hash discipline, no-leak tests, benchmarks, CI. |
+| 10 | [TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md) | Trace and replay-fixture schema law; subordinate to the constitution, architecture, data boundary, and accepted visibility/hash ADRs. |
+| 11 | [MULTI-SEAT-AND-SURFACE-CONTRACT.md](MULTI-SEAT-AND-SURFACE-CONTRACT.md) | N-seat and larger-surface obligations; subordinate to the constitution, architecture, data boundary, hidden-info ADRs, and bot law. |
+| 12 | [ROADMAP.md](ROADMAP.md) | Prescriptive staged ladder and build gates. |
+| 13 | [IP-POLICY.md](IP-POLICY.md) | Public/private content policy, naming, original prose/assets, generated asset and font review. |
+| 14 | [AGENT-DISCIPLINE.md](AGENT-DISCIPLINE.md) | Coding-agent law: bounded tasks, forbidden changes, failing-test protocol, handoff expectations. |
+| 15 | [SOURCES.md](SOURCES.md) | Researched bibliography and Rulepath-specific lessons. |
+| 16 | [WASM-CLIENT-BOUNDARY.md](WASM-CLIENT-BOUNDARY.md) | Gate 3 Rust/WASM-to-browser client contract, operation groups, replay safety, and dev-panel data whitelist. |
+| 17 | [adr/ADR-TEMPLATE.md](adr/ADR-TEMPLATE.md) | Foundation-level ADR template for architecture-changing decisions. |
 
 ## ADR status index
 
@@ -40,6 +41,8 @@ used to supersede foundation documents unless maintainers later mark them
 | [0005](adr/0005-variance-aware-ci-benchmark-floors.md) | Accepted | Variance-aware CI benchmark floors |
 | [0006](adr/0006-blackjack-lite-roadmap-placement.md) | Accepted | Blackjack Lite roadmap placement |
 | [0007](adr/0007-next-public-scaling-phase-and-gate-p-tail.md) | Accepted | Next public scaling phase and Gate P tail placement |
+| [0008](adr/0008-mechanical-scaffolding-governance.md) | Accepted | Mechanical scaffolding governance |
+| [0009](adr/0009-replay-fixture-hash-taxonomy.md) | Accepted | Replay, fixture, export, and hash taxonomy v2 |
 
 ## What belongs in this set
 
