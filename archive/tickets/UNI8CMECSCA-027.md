@@ -1,6 +1,6 @@
 # UNI8CMECSCA-027: Thin profile dispatch in `fixture-check` and `replay-check`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `tools/replay-check/src/main.rs`, `tools/fixture-check/src/main.rs`
@@ -9,6 +9,38 @@
 ## Problem
 
 The pilots (UNI8CMECSCA-023…026) need the canonical validators to recognize the ADR-0009 profiles they adopt. This ticket adds thin profile registration/dispatch to `fixture-check` and `replay-check` only where the pilots require it. The tools keep canonical validator ownership and invoke game-owned validators; they do not depend on `game-test-support` by default and acquire no game behavior. Unknown profile/fields reject; no behavior-looking fixture key becomes executable; no production dependency edge appears.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Implemented local profile registration/dispatch in `replay-check` for
+`replay-command-v1`, `public-export-v1`, and `seat-private-export-v1`, and in
+`fixture-check` for `setup-evidence-v1` and `domain-evidence-v1`. The tools
+validate optional embedded profile metadata when present, reject unknown
+profiles and cross-profile fields, and keep current legacy pilot artifacts
+valid without changing their bytes. `fixture-check --game river_ledger` now
+also includes the River 3-seat setup fixture, and `fixture-check --game
+briar_circuit` includes the Briar moon and first-trick domain fixtures. No
+`game-test-support` dependency was added to either tool.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p replay-check -p fixture-check`
+3. `cargo run -p replay-check -- --game race_to_n --all`
+4. `cargo run -p replay-check -- --game vow_tide --all`
+5. `cargo run -p fixture-check -- --game river_ledger`
+6. `cargo run -p fixture-check -- --game briar_circuit`
+7. `cargo tree --workspace -e normal --invert game-test-support`
+8. `cargo tree --workspace -e normal,build --invert game-test-support`
+9. `bash scripts/boundary-check.sh`
+10. `cargo test --workspace`
+
+The literal `selector|formula|trigger|procedure` grep over the tool files only
+finds the existing forbidden-key list/tests and unrelated Token Bazaar terminal
+state field names; the new profile dispatch does not execute behavior-looking
+fixture keys.
 
 ## Assumption Reassessment (2026-06-22)
 

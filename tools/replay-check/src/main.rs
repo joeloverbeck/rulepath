@@ -28,6 +28,39 @@ use three_marks::replay_support::{
 };
 use token_bazaar::{ContractId, ResourceCounts};
 
+const PROFILE_VERSION_V1: &str = "v1";
+const REPLAY_COMMAND_V1: &str = "replay-command-v1";
+const PUBLIC_EXPORT_V1: &str = "public-export-v1";
+const SEAT_PRIVATE_EXPORT_V1: &str = "seat-private-export-v1";
+const PROFILE_COMMON_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "hash_surface_version",
+    "canonical_byte_authority",
+];
+const PROFILE_SPECIFIC_FIELDS: &[&str] = &[
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
+    "viewer_seat",
+    "viewer_seat_version",
+    "pairwise_no_leak",
+];
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &["commands", "checkpoints", "expected_hashes"];
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] =
+    &["export_steps", "import_round_trip", "hidden_absence_tokens"];
+const SEAT_PRIVATE_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "viewer_seat",
+    "viewer_seat_version",
+    "export_steps",
+    "pairwise_no_leak",
+];
+
 fn main() {
     if let Err(error) = run(env::args().skip(1).collect()) {
         eprintln!("{error}");
@@ -282,6 +315,7 @@ fn check_trace_path(
 ) -> Result<(), String> {
     let input = fs::read_to_string(path)
         .map_err(|error| format!("{}: failed to read: {error}", path.display()))?;
+    validate_replay_profile_dispatch(game, path, &input)?;
     if game.game_id == "river_ledger" {
         let trace_id = validate_river_ledger_trace(game, path, &input)?;
         if !seen_ids.insert(trace_id) {
@@ -955,6 +989,7 @@ impl Trace {
     fn parse(path: &Path, input: &str) -> Result<Self, String> {
         validate_json_object(path, input)?;
         reject_unknown_root_fields(path, input)?;
+        validate_replay_profile_metadata(path, input)?;
 
         let schema_version = number_field(input, "schema_version")
             .map_err(|error| parse_error(path, "unknown", &error))?;
@@ -2285,6 +2320,19 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         "expected_private_explanation",
         "actor_seat",
         "setup_patch",
+        "profile_id",
+        "profile_version",
+        "visibility_class",
+        "validator_owner",
+        "hash_surface_version",
+        "canonical_byte_authority",
+        "expected_hashes",
+        "export_steps",
+        "import_round_trip",
+        "hidden_absence_tokens",
+        "viewer_seat",
+        "viewer_seat_version",
+        "pairwise_no_leak",
     ];
     for key in top_level_keys(input)? {
         if !allowed.contains(&key.as_str()) {
@@ -2296,6 +2344,121 @@ fn reject_unknown_root_fields(path: &Path, input: &str) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn validate_replay_profile_dispatch(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    let Some(profile_id) = optional_profile_id(input) else {
+        return Ok(());
+    };
+    let expected = match game.game_id {
+        "race_to_n" => &[REPLAY_COMMAND_V1][..],
+        "vow_tide" => &[PUBLIC_EXPORT_V1, SEAT_PRIVATE_EXPORT_V1][..],
+        _ => &[][..],
+    };
+    if !expected.contains(&profile_id.as_str()) {
+        return Err(parse_error(
+            path,
+            &profile_id,
+            &format!(
+                "profile `{profile_id}` is not registered for replay-check game {}",
+                game.game_id
+            ),
+        ));
+    }
+    validate_replay_profile_metadata(path, input)
+}
+
+fn validate_replay_profile_metadata(path: &Path, input: &str) -> Result<(), String> {
+    let Some(profile_id) = optional_profile_id(input) else {
+        return Ok(());
+    };
+    let (allowed_visibility, allowed_profile_fields) = match profile_id.as_str() {
+        REPLAY_COMMAND_V1 => (
+            &["internal-dev", "public"][..],
+            REPLAY_COMMAND_PROFILE_FIELDS,
+        ),
+        PUBLIC_EXPORT_V1 => (&["public"][..], PUBLIC_EXPORT_PROFILE_FIELDS),
+        SEAT_PRIVATE_EXPORT_V1 => (&["seat-private"][..], SEAT_PRIVATE_EXPORT_PROFILE_FIELDS),
+        _ => {
+            return Err(parse_error(
+                path,
+                &profile_id,
+                &format!("unknown profile `{profile_id}`"),
+            ));
+        }
+    };
+
+    let profile_version = string_field(input, "profile_version")
+        .map_err(|error| parse_error(path, &profile_id, &error))?;
+    if profile_version != PROFILE_VERSION_V1 {
+        return Err(parse_error(
+            path,
+            &profile_id,
+            &format!("profile_version must be {PROFILE_VERSION_V1}"),
+        ));
+    }
+    let visibility = string_field(input, "visibility_class")
+        .map_err(|error| parse_error(path, &profile_id, &error))?;
+    if !allowed_visibility.contains(&visibility.as_str()) {
+        return Err(parse_error(
+            path,
+            &profile_id,
+            &format!("visibility_class `{visibility}` is invalid for {profile_id}"),
+        ));
+    }
+    let validator_owner = string_field(input, "validator_owner")
+        .map_err(|error| parse_error(path, &profile_id, &error))?;
+    if validator_owner.trim().is_empty() {
+        return Err(parse_error(
+            path,
+            &profile_id,
+            "validator_owner must be non-empty",
+        ));
+    }
+    let canonical_byte_authority = string_field(input, "canonical_byte_authority")
+        .map_err(|error| parse_error(path, &profile_id, &error))?;
+    if canonical_byte_authority.trim().is_empty() {
+        return Err(parse_error(
+            path,
+            &profile_id,
+            "canonical_byte_authority must be non-empty",
+        ));
+    }
+    if string_field(input, "migration_update_note")
+        .map_err(|error| parse_error(path, &profile_id, &error))?
+        .trim()
+        .is_empty()
+    {
+        return Err(parse_error(
+            path,
+            &profile_id,
+            "migration_update_note must be non-empty",
+        ));
+    }
+
+    for key in top_level_keys(input).map_err(|error| parse_error(path, &profile_id, &error))? {
+        if PROFILE_SPECIFIC_FIELDS.contains(&key.as_str())
+            && !allowed_profile_fields.contains(&key.as_str())
+        {
+            return Err(parse_error(
+                path,
+                &profile_id,
+                &format!("field `{key}` is not valid for {profile_id}"),
+            ));
+        }
+        if PROFILE_COMMON_FIELDS.contains(&key.as_str()) {
+            continue;
+        }
+    }
+    Ok(())
+}
+
+fn optional_profile_id(input: &str) -> Option<String> {
+    optional_string_field(input, "profile_id").ok().flatten()
 }
 
 fn top_level_keys(input: &str) -> Result<Vec<String>, String> {
@@ -3021,10 +3184,49 @@ mod tests {
     const VALID: &str =
         include_str!("../../../games/race_to_n/tests/golden_traces/shortest-normal.trace.json");
 
+    fn replay_profile_trace(extra: &str) -> String {
+        VALID.replace(
+            "\"trace_id\": \"shortest-normal\"",
+            &format!(
+                "\"trace_id\": \"shortest-normal\", \
+                 \"profile_id\": \"replay-command-v1\", \
+                 \"profile_version\": \"v1\", \
+                 \"visibility_class\": \"internal-dev\", \
+                 \"validator_owner\": \"replay-check\", \
+                 \"hash_surface_version\": \"v1\", \
+                 \"canonical_byte_authority\": \"replay-check\"{extra}"
+            ),
+        )
+    }
+
     #[test]
     fn valid_trace_passes() {
         let trace = Trace::parse(Path::new("shortest-normal.trace.json"), VALID).unwrap();
         trace.check(resolve_game("race_to_n").unwrap()).unwrap();
+    }
+
+    #[test]
+    fn replay_command_profile_metadata_passes() {
+        let input = replay_profile_trace("");
+        let trace = Trace::parse(Path::new("shortest-normal.trace.json"), &input).unwrap();
+
+        trace.check(resolve_game("race_to_n").unwrap()).unwrap();
+    }
+
+    #[test]
+    fn unknown_profile_fails() {
+        let input = replay_profile_trace("").replace("replay-command-v1", "unknown-profile-v1");
+        let error = Trace::parse(Path::new("shortest-normal.trace.json"), &input).unwrap_err();
+
+        assert!(error.contains("unknown profile `unknown-profile-v1`"));
+    }
+
+    #[test]
+    fn cross_profile_field_fails() {
+        let input = replay_profile_trace(", \"viewer_seat\": \"seat_0\"");
+        let error = Trace::parse(Path::new("shortest-normal.trace.json"), &input).unwrap_err();
+
+        assert!(error.contains("field `viewer_seat` is not valid for replay-command-v1"));
     }
 
     #[test]

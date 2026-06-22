@@ -34,6 +34,30 @@ const BEHAVIOR_KEYS: &[&str] = &[
     "bid_formula",
 ];
 
+const PROFILE_VERSION_V1: &str = "v1";
+const SETUP_EVIDENCE_V1: &str = "setup-evidence-v1";
+const DOMAIN_EVIDENCE_V1: &str = "domain-evidence-v1";
+const PROFILE_COMMON_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "hash_surface_version",
+    "canonical_byte_authority",
+];
+const PROFILE_SPECIFIC_FIELDS: &[&str] = &[
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+    "domain_schema_version",
+    "domain_input",
+    "expected_domain",
+];
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] =
+    &["seat_grammar_version", "setup_options", "expected_setup"];
+const DOMAIN_EVIDENCE_PROFILE_FIELDS: &[&str] =
+    &["domain_schema_version", "domain_input", "expected_domain"];
+
 const ALLOWED_JSON_KEYS: &[&str] = &[
     "schema_version",
     "trace_id",
@@ -154,6 +178,18 @@ const ALLOWED_JSON_KEYS: &[&str] = &[
     "public_view_summary",
     "public_effects",
     "redacted_command_summary",
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+    "domain_schema_version",
+    "domain_input",
+    "expected_domain",
 ];
 
 const VOW_TIDE_ALLOWED_JSON_KEYS: &[&str] = &[
@@ -180,6 +216,12 @@ const VOW_TIDE_ALLOWED_JSON_KEYS: &[&str] = &[
     "expected_terminal_winners",
     "expected_competition_ranks",
     "note",
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "hash_surface_version",
+    "canonical_byte_authority",
 ];
 
 fn main() {
@@ -207,6 +249,12 @@ fn run(args: Vec<String>) -> Result<(), String> {
         for path in trace_paths(game)? {
             collect(
                 validate_trace_path(game, &path, &mut seen_ids),
+                &mut failures,
+            );
+        }
+        for path in pilot_profile_fixture_paths(game) {
+            collect(
+                validate_trace_path(game, Path::new(path), &mut seen_ids),
                 &mut failures,
             );
         }
@@ -461,6 +509,129 @@ fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
         return Err(format!("{}: no .json traces found", game.trace_dir));
     }
     Ok(paths)
+}
+
+fn pilot_profile_fixture_paths(game: RegisteredGame) -> &'static [&'static str] {
+    match game.game_id {
+        "river_ledger" => {
+            &["games/river_ledger/data/fixtures/river_ledger_3p_standard.fixture.json"]
+        }
+        "briar_circuit" => &[
+            "games/briar_circuit/data/fixtures/briar_circuit_moon.fixture.json",
+            "games/briar_circuit/data/fixtures/briar_circuit_first_trick_exception.fixture.json",
+        ],
+        _ => &[],
+    }
+}
+
+fn validate_fixture_profile_dispatch(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<(), String> {
+    let Some(profile_id) = optional_string_field(input, "profile_id") else {
+        return Ok(());
+    };
+    let expected = match game.game_id {
+        "river_ledger" => &[SETUP_EVIDENCE_V1][..],
+        "briar_circuit" => &[DOMAIN_EVIDENCE_V1][..],
+        _ => &[][..],
+    };
+    if !expected.contains(&profile_id.as_str()) {
+        return Err(format!(
+            "{}: profile `{profile_id}` is not registered for fixture-check game {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    validate_fixture_profile_metadata(path, input)
+}
+
+fn validate_fixture_profile_metadata(path: &Path, input: &str) -> Result<(), String> {
+    let Some(profile_id) = optional_string_field(input, "profile_id") else {
+        return Ok(());
+    };
+    let (allowed_visibility, allowed_profile_fields) = match profile_id.as_str() {
+        SETUP_EVIDENCE_V1 => (
+            &["public", "viewer-scoped", "seat-private", "internal-dev"][..],
+            SETUP_EVIDENCE_PROFILE_FIELDS,
+        ),
+        DOMAIN_EVIDENCE_V1 => (
+            &[
+                "public",
+                "viewer-scoped",
+                "seat-private",
+                "internal-dev",
+                "private-source",
+            ][..],
+            DOMAIN_EVIDENCE_PROFILE_FIELDS,
+        ),
+        _ => {
+            return Err(format!(
+                "{}: unknown profile `{profile_id}`",
+                path.display()
+            ));
+        }
+    };
+
+    let profile_version = required_string(path, input, "profile_version")?;
+    if profile_version != PROFILE_VERSION_V1 {
+        return Err(format!(
+            "{}: profile_version must be {PROFILE_VERSION_V1}",
+            path.display()
+        ));
+    }
+    let visibility = required_string(path, input, "visibility_class")?;
+    if !allowed_visibility.contains(&visibility.as_str()) {
+        return Err(format!(
+            "{}: visibility_class `{visibility}` is invalid for {profile_id}",
+            path.display()
+        ));
+    }
+    if required_string(path, input, "validator_owner")?
+        .trim()
+        .is_empty()
+    {
+        return Err(format!(
+            "{}: validator_owner must be non-empty",
+            path.display()
+        ));
+    }
+    if required_string(path, input, "canonical_byte_authority")?
+        .trim()
+        .is_empty()
+    {
+        return Err(format!(
+            "{}: canonical_byte_authority must be non-empty",
+            path.display()
+        ));
+    }
+    if optional_string_field(input, "migration_update_note")
+        .or_else(|| optional_string_field(input, "migration_notes"))
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
+        return Err(format!(
+            "{}: migration_update_note or migration_notes must be non-empty",
+            path.display()
+        ));
+    }
+
+    for key in top_level_keys(input).map_err(|error| format!("{}: {error}", path.display()))? {
+        if PROFILE_SPECIFIC_FIELDS.contains(&key.as_str())
+            && !allowed_profile_fields.contains(&key.as_str())
+        {
+            return Err(format!(
+                "{}: field `{key}` is not valid for {profile_id}",
+                path.display()
+            ));
+        }
+        if PROFILE_COMMON_FIELDS.contains(&key.as_str()) {
+            continue;
+        }
+    }
+    Ok(())
 }
 
 fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
@@ -813,7 +984,11 @@ fn validate_trace(
     seen_ids: &mut HashSet<String>,
 ) -> Result<(), String> {
     validate_json_object(path, input)?;
+    validate_fixture_profile_dispatch(game, path, input)?;
     if game.game_id == "river_ledger" {
+        if input.contains("\"fixture_id\": \"river_ledger_3p_standard\"") {
+            return validate_river_ledger_setup_evidence_fixture(game, path, input, seen_ids);
+        }
         return validate_river_ledger_trace(game, path, input, seen_ids);
     }
     if game.game_id == "briar_circuit" {
@@ -1017,9 +1192,9 @@ fn validate_briar_circuit_fixture(
     if !input.contains("\"schema_version\":1") && !input.contains("\"schema_version\": 1") {
         return Err(format!("{}: schema_version must be 1", path.display()));
     }
-    if !input.contains("\"game_id\":\"briar_circuit\"")
-        && !input.contains("\"game\": \"briar_circuit\"")
-    {
+    let game_id =
+        optional_string_field(input, "game_id").or_else(|| optional_string_field(input, "game"));
+    if game_id.as_deref() != Some(game.game_id) {
         return Err(format!(
             "{}: game_id must be {}",
             path.display(),
@@ -1146,6 +1321,87 @@ fn validate_vow_tide_fixture(
     if fixture_kind == "terminal_tie" {
         require_key(path, input, "expected_terminal_winners")?;
         require_key(path, input, "expected_competition_ranks")?;
+    }
+    Ok(())
+}
+
+fn validate_river_ledger_setup_evidence_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+    }
+    let fixture_id = required_string(path, input, "fixture_id")?;
+    if !seen_ids.insert(fixture_id.clone()) {
+        return Err(format!(
+            "{}: duplicate fixture_id `{fixture_id}`",
+            path.display()
+        ));
+    }
+    if fixture_id != "river_ledger_3p_standard" {
+        return Err(format!(
+            "{}: unsupported setup-evidence fixture `{fixture_id}`",
+            path.display()
+        ));
+    }
+    if required_string(path, input, "game_id")? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    let rules_version = required_string(path, input, "rules_version")?;
+    if !matches!(
+        rules_version.as_str(),
+        "river-ledger-rules-v1" | "river-ledger-rules-v2"
+    ) {
+        return Err(format!(
+            "{}: unsupported river_ledger rules_version `{rules_version}`",
+            path.display()
+        ));
+    }
+    if required_string(path, input, "variant")? != game.variant_id {
+        return Err(format!(
+            "{}: variant must be {}",
+            path.display(),
+            game.variant_id
+        ));
+    }
+    if required_number(path, input, "seat_count")? != 3 {
+        return Err(format!("{}: seat_count must be 3", path.display()));
+    }
+    for (field, expected) in [
+        ("button", "seat_0"),
+        ("small_blind", "seat_1"),
+        ("big_blind", "seat_2"),
+        ("initial_active", "seat_0"),
+    ] {
+        if required_string(path, input, field)? != expected {
+            return Err(format!("{}: {field} must be {expected}", path.display()));
+        }
+    }
+    for (field, expected) in [
+        ("public_board_count", 0),
+        ("private_hole_cards_per_seat", 2),
+        ("reserved_community_count", 5),
+        ("deck_tail_count", 41),
+    ] {
+        if required_number(path, input, field)? != expected {
+            return Err(format!("{}: {field} must be {expected}", path.display()));
+        }
+    }
+    if required_string(path, input, "purpose")?.trim().is_empty() {
+        return Err(format!("{}: purpose must be non-empty", path.display()));
     }
     Ok(())
 }
@@ -1494,6 +1750,72 @@ fn all_json_keys(input: &str) -> Result<Vec<String>, String> {
     Ok(keys)
 }
 
+fn top_level_keys(input: &str) -> Result<Vec<String>, String> {
+    let body = input
+        .trim()
+        .strip_prefix('{')
+        .and_then(|value| value.strip_suffix('}'))
+        .ok_or_else(|| "malformed trace JSON object".to_owned())?;
+    let mut keys = Vec::new();
+    let mut index = 0;
+    while index < body.len() {
+        let rest = body[index..].trim_start();
+        if rest.is_empty() {
+            break;
+        }
+        let skipped = body[index..].len() - rest.len();
+        index += skipped;
+        if body[index..].starts_with(',') {
+            index += 1;
+            continue;
+        }
+        let (key, next) = parse_json_string_at(body, index)?;
+        index = next;
+        let after_key = body[index..].trim_start();
+        if !after_key.starts_with(':') {
+            return Err("malformed trace JSON field".to_owned());
+        }
+        index += body[index..].len() - after_key.len() + 1;
+        index = skip_json_value(body, index);
+        keys.push(key);
+    }
+    Ok(keys)
+}
+
+fn skip_json_value(input: &str, mut index: usize) -> usize {
+    while input[index..].starts_with(char::is_whitespace) {
+        index += input[index..].chars().next().unwrap().len_utf8();
+    }
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut depth = 0_i32;
+    for (offset, ch) in input[index..].char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match ch {
+            '"' => in_string = true,
+            '{' | '[' => depth += 1,
+            '}' | ']' => {
+                if depth == 0 {
+                    return index + offset;
+                }
+                depth -= 1;
+            }
+            ',' if depth == 0 => return index + offset + 1,
+            _ => {}
+        }
+    }
+    input.len()
+}
+
 fn parse_string_at(input: &str, start: usize) -> Option<String> {
     let tail = input[start..].trim_start();
     let tail = tail.strip_prefix('"')?;
@@ -1530,6 +1852,9 @@ mod tests {
 
     const VALID: &str =
         include_str!("../../../games/race_to_n/tests/golden_traces/shortest-normal.trace.json");
+    const VALID_RIVER_SETUP: &str = include_str!(
+        "../../../games/river_ledger/data/fixtures/river_ledger_3p_standard.fixture.json"
+    );
     const VALID_VOW_TIDE_FIXTURE: &str = r#"{
       "schema_version": 1,
       "trace_id": "vow_tide_test_fixture",
@@ -1562,9 +1887,70 @@ mod tests {
         )
     }
 
+    fn river_setup_profile_fixture(extra: &str) -> String {
+        VALID_RIVER_SETUP.replace(
+            "\"fixture_id\": \"river_ledger_3p_standard\"",
+            &format!(
+                "\"fixture_id\": \"river_ledger_3p_standard\", \
+                 \"profile_id\": \"setup-evidence-v1\", \
+                 \"profile_version\": \"v1\", \
+                 \"visibility_class\": \"public\", \
+                 \"validator_owner\": \"fixture-check\", \
+                 \"hash_surface_version\": \"not-applicable\", \
+                 \"canonical_byte_authority\": \"none\", \
+                 \"migration_update_note\": \"test profile metadata\"{extra}"
+            ),
+        )
+    }
+
     #[test]
     fn valid_trace_passes() {
         validate_one(VALID).unwrap();
+    }
+
+    #[test]
+    fn river_setup_profile_metadata_passes() {
+        let mut seen = HashSet::new();
+        validate_trace(
+            resolve_game("river_ledger").unwrap(),
+            Path::new("river_ledger_3p_standard.fixture.json"),
+            &river_setup_profile_fixture(""),
+            &mut seen,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn fixture_unknown_profile_fails() {
+        let input =
+            river_setup_profile_fixture("").replace("setup-evidence-v1", "unknown-profile-v1");
+        let mut seen = HashSet::new();
+        let err = validate_trace(
+            resolve_game("river_ledger").unwrap(),
+            Path::new("river_ledger_3p_standard.fixture.json"),
+            &input,
+            &mut seen,
+        )
+        .unwrap_err();
+
+        assert!(err.contains(
+            "profile `unknown-profile-v1` is not registered for fixture-check game river_ledger"
+        ));
+    }
+
+    #[test]
+    fn fixture_cross_profile_field_fails() {
+        let input = river_setup_profile_fixture(", \"domain_input\": {}");
+        let mut seen = HashSet::new();
+        let err = validate_trace(
+            resolve_game("river_ledger").unwrap(),
+            Path::new("river_ledger_3p_standard.fixture.json"),
+            &input,
+            &mut seen,
+        )
+        .unwrap_err();
+
+        assert!(err.contains("field `domain_input` is not valid for setup-evidence-v1"));
     }
 
     #[test]

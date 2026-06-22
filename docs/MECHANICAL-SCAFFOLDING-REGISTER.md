@@ -375,8 +375,12 @@ mechanical scaffolding.
   the legacy moon scoring and first-trick exception fixtures, with
   canonical-byte authority `none`, no fixture byte changes, and scoring/legality
   delegated to Briar Rust code.
+  UNI8CMECSCA-027 added thin local profile dispatch to `replay-check` and
+  `fixture-check` for the Race, Vow, River, and Briar pilots, including strict
+  unknown-profile/cross-profile-field rejection and no `game-test-support` tool
+  dependency.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-027 CLI tool output validation.
+- Next review trigger: future C-08 pilot/output expansion under C-11.
 
 ### MSC-8C-009 - Versioned bounded-index sampling
 
