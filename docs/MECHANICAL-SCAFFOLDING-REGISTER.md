@@ -356,7 +356,7 @@ mechanical scaffolding.
 
 ### MSC-8C-009 - Versioned bounded-index sampling
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-09.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-09.
 - Candidate: document legacy modulo `next_index` semantics and add
   `next_index_unbiased_v1` for explicit rejection-sampling bounded indices.
 - semantic.risk: `medium`; random-word mapping is kernel vocabulary, but
@@ -379,12 +379,13 @@ mechanical scaffolding.
   and versioned.
 - Migration set: engine-core vectors first, River Ledger local unbiased helper
   replacement only; all other games remain unchanged in 8C.
-- Acceptance evidence: legacy modulo vectors unchanged, unbiased v1 returned
-  indices and consumed-word vectors including rejection cases, River local-vs-
-  shared equivalence, replay/visibility checks, and no downstream setup byte
-  drift.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-016 and UNI8CMECSCA-017 evidence.
+- Acceptance evidence: UNI8CMECSCA-016 documented legacy modulo consumption,
+  preserved legacy `next_index` vectors, added unbiased v1 returned-index and
+  consumed-word vectors including rejection cases, and matched the existing
+  local rejection-sampling algorithm in engine-core tests.
+- Rejection rationale: not applicable.
+- Next review trigger: UNI8CMECSCA-017 River local-vs-shared equivalence,
+  replay/visibility checks, and no downstream setup byte drift.
 
 ### MSC-8C-010 - Behavioral-policy bundle on the Non-Promotion List - rejected / local-only
 

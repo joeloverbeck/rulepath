@@ -1,6 +1,6 @@
 # UNI8CMECSCA-016: Document legacy `next_index`; add `next_index_unbiased_v1`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/engine-core/src/rng.rs`
@@ -75,3 +75,30 @@ Deterministic vectors pinning returned indices and `next_u64` counts for both me
 1. `cargo test -p engine-core`
 2. `bash scripts/boundary-check.sh`
 3. The engine-core suite is the correct boundary — River adopts the method in UNI8CMECSCA-017.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Documented `DeterministicRng::next_index` as the legacy modulo bounded-index
+  sampler that consumes exactly one `next_u64` word for every nonzero bound.
+- Added `DeterministicRng::next_index_unbiased_v1`, using the characterized
+  accepted-zone rejection-sampling algorithm with `u128` range arithmetic.
+- Added engine-core vector tests for legacy modulo draw counts, unbiased zero
+  bounds, power-of-two and non-power-of-two accepted draws, a rejected
+  `u64::MAX` draw for bound 3, and equivalence with the existing local
+  rejection-sampling algorithm.
+- Flipped `MSC-8C-009` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from
+  `candidate` to `accepted` for the sampler primitive.
+
+Deviations:
+- None. No game caller was migrated and `next_index` behavior/consumption stayed
+  unchanged.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p engine-core`
+- `bash scripts/boundary-check.sh`
+- `cargo build --workspace`
+- `rg -n 'legacy modulo|next_index_unbiased_v1|accepted zone|Rejections consume|one \`next_u64\` word' crates/engine-core/src/rng.rs`
