@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-008: FOUNDATIONS §4 scaffolding lane + ENGINE-GAME-DATA-BOUNDARY four-lane split
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/FOUNDATIONS.md`, `docs/ENGINE-GAME-DATA-BOUNDARY.md`)
@@ -77,3 +77,26 @@ Add the four explicit reuse lanes (kernel ergonomics / scaffolding / behavioral 
 1. `grep -niE "scaffolding|narrowest.layer|four.*lane" docs/FOUNDATIONS.md docs/ENGINE-GAME-DATA-BOUNDARY.md`
 2. `bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs`
 3. `boundary-check.sh` is the correct boundary for kernel-noun safety; the greps prove the lane text landed.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Updated `docs/FOUNDATIONS.md` §4 with the ADR 0008 mechanical-scaffolding lane
+and scaffolding-register invariant while preserving the behavioral third-use
+hard gate word-for-word. Updated `docs/ENGINE-GAME-DATA-BOUNDARY.md` with four
+explicit reuse lanes: kernel ergonomics, mechanical scaffolding, behavioral
+mechanics, and typed content, plus the narrowest-layer-wins rule.
+
+Deviations: none.
+
+Verification:
+
+- `grep -niE "mechanical scaffolding|scaffolding register" docs/FOUNDATIONS.md`
+  returned the §4 lane text.
+- `grep -niE "kernel ergonomics|narrowest.layer|four.*lane|mechanical scaffolding|behavioral mechanics|typed content" docs/ENGINE-GAME-DATA-BOUNDARY.md`
+  returned the four-lane model and narrowest-layer-wins rule.
+- `grep -nF "third official use: hard gate. The game MUST NOT proceed until the primitive-pressure ledger decides reuse, narrow promotion, explicit deferral/rejection with rationale, or ADR escalation." docs/FOUNDATIONS.md docs/adr/0008-mechanical-scaffolding-governance.md`
+  confirmed the behavioral third-use hard gate stayed word-for-word effective.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
