@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-009: ARCHITECTURE ownership matrix + MECHANIC-ATLAS behavioral/scaffolding split
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/ARCHITECTURE.md`, `docs/MECHANIC-ATLAS.md`)
@@ -76,3 +76,33 @@ Keep §§4–8 the behavioral gate verbatim; add a pointer that non-behavioral r
 1. `grep -niE "ownership matrix|game-test-support|scaffolding register" docs/ARCHITECTURE.md docs/MECHANIC-ATLAS.md`
 2. `bash scripts/boundary-check.sh && node scripts/check-doc-links.mjs`
 3. The grep + boundary-check pair is the correct boundary; these are docs with no code surface beyond the kernel-noun guard.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Updated `docs/ARCHITECTURE.md` with a reuse ownership matrix that distinguishes
+kernel ergonomics, shared behavior-free game-layer scaffolding, future dev-only
+`game-test-support`, browser bridge adapters, and local-only scaffolding. The
+matrix states the dev-dependency rule for `game-test-support` and keeps
+production/WASM/browser surfaces from depending on it.
+
+Updated `docs/MECHANIC-ATLAS.md` with an additive split note: the atlas governs
+behavioral mechanics, while non-behavioral generic-contract repetition routes to
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md` under ADR 0008. The existing §§4–8
+behavioral gate headings were preserved.
+
+Deviations: none.
+
+Verification:
+
+- `grep -niE "ownership matrix|game-test-support|kernel ergonomics" docs/ARCHITECTURE.md`
+  returned the ownership matrix.
+- `grep -niE "MECHANICAL-SCAFFOLDING-REGISTER|scaffolding register" docs/MECHANIC-ATLAS.md`
+  returned the register link.
+- `grep -nE "^## [4-8]\\." docs/MECHANIC-ATLAS.md` confirmed the behavioral gate
+  headings remain present.
+- `grep -nE "^Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md`
+  confirmed the governing ADR is accepted.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).

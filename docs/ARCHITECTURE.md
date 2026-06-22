@@ -68,6 +68,25 @@ engine-core -> no Rulepath crate with game mechanics
 | `tools/*` | simulation, replay checking, trace inspection, rule coverage, benchmark reports, seed reduction, fixture validation | game behavior not present in games, public UI polish |
 
 
+### 3A. Reuse Ownership Matrix
+
+Accepted ADR 0008 separates behavior-free mechanical scaffolding from behavioral
+mechanic promotion. The ownership matrix below decides where scaffolding-shaped
+work may live. The narrowest lawful owner wins.
+
+| Reuse lane | Owner | Allowed scope | Dependency rule |
+|---|---|---|---|
+| Kernel ergonomics | `engine-core` | Tiny helpers over generic contract vocabulary already allowed in the kernel: ids, versions, actor/viewer contracts, action paths, command envelopes, effect envelopes, visibility scopes, replay/hash/checkpoint contracts, and serialization boundaries. | Normal dependency of all Rust crates that need core contracts. |
+| Shared behavior-free game-layer scaffolding | `game-stdlib` | Typed helpers over game-layer inputs that are behavior-free, deterministic, leak-safe, and registered in [MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md). | Optional production dependency from games that adopt the helper. |
+| Dev-only evidence/test scaffolding | future `game-test-support` crate | Pairwise no-leak harnesses, replay/evidence profile harnesses, fixture builders, and similar test-only infrastructure governed by the scaffolding register. | Dev-dependency only. Production crates and WASM/browser surfaces MUST NOT depend on it. |
+| Browser bridge adapters | `wasm-api` | Thin adapters that serialize Rust-owned safe payloads or evidence/export profiles without deciding legality, visibility, or rules. | `wasm-api` may depend on Rust behavior crates; `apps/web` consumes only the exported API. |
+| Local-only scaffolding | owning crate or game | Repetition that is not semantically identical, not proven behavior-free, or not worth extracting. | No shared dependency. Revisit at the next register trigger. |
+
+If a helper needs game nouns or decides behavior, it is not kernel ergonomics. If
+it decides legality, scoring, reveal, projection, effect meaning, bot policy, or
+hidden-state semantics, it is not mechanical scaffolding and must remain
+game-local, follow the mechanic atlas, or require a separate ADR.
+
 ### 3.1 Promoted-helper conformance
 
 When a helper is promoted to `game-stdlib`, dependency direction alone is not enough. Every official game whose local code matches the promoted primitive's scope MUST either depend on and use that helper, be audited not applicable, or carry an accepted atlas exception. The obligation is retroactive: older admitted games are still official games and must not silently fork a primitive once the primitive has been promoted.
