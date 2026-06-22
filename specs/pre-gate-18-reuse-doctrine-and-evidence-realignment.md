@@ -1,13 +1,13 @@
 # Pre-Gate-18 — Reuse-Doctrine & Evidence Realignment
 
-**Status**: Planned
+**Status**: Done
 
 | Field | Value |
 |---|---|
 | Spec ID | `pre-gate-18-reuse-doctrine-and-evidence-realignment` |
 | Roadmap stage | Public scaling phase — pre-Gate-18 foundation pass (non-feature) |
 | Roadmap build gate | Pre-Gate-18 — **non-feature** docs / doctrine / template realignment |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-22 |
 | Owner | Rulepath maintainers |
 | Primary targets | `docs/adr/0008-*.md` (new), `docs/adr/0009-*.md` (new), `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` (new), `docs/EVIDENCE-FIXTURE-CONTRACT.md` (new), `templates/GAME-EVIDENCE.md` (new), the foundation/area doc set, `templates/**`, `specs/README.md` |

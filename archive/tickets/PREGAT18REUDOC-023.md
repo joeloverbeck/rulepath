@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-023: Capstone — index reconcile, spec Done-flip, exit-criteria verification
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs/status-only (`specs/README.md`, `specs/pre-gate-18-reuse-doctrine-and-evidence-realignment.md`)
@@ -81,3 +81,21 @@ Run the doc gates and the no-drift check; record results as the acceptance evide
 1. `grep -nE "8M|8C|Part C|Gate 18" specs/README.md`
 2. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && bash scripts/boundary-check.sh && git status --porcelain -- crates/ games/ tools/ apps/ scripts/ '**/*.trace.json'`
 3. The index/status greps + the full doc-gate run + no-drift `git status` are the correct boundary: this capstone verifies the whole pass without touching code.
+
+## Outcome
+
+Completed on 2026-06-22. `specs/README.md` now marks the `8M`
+Pre-Gate-18 reuse-doctrine and evidence realignment row `Done`; the existing
+`8C` Part C seed and Gate 18 interlock remain present once each and were not
+duplicated. The spec file's top-level status and table status now read `Done`.
+
+Verification:
+
+1. `grep -nE "pre-gate-18.*Done|8M.*Done" specs/README.md` returned the `8M` row as `Done`.
+2. `grep -c "Mechanical-scaffolding code extraction (Part C)" specs/README.md` returned `1`.
+3. `grep -c "Gate 18 — Spades" specs/README.md` returned `1`.
+4. `grep -nE "^\\| Status \\| Done|Status.*Done" specs/pre-gate-18-reuse-doctrine-and-evidence-realignment.md` returned both spec status fields.
+5. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+6. `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed — 17 games reflected in intro, root, and smoke surfaces`).
+7. `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+8. `git status --porcelain -- crates/ games/ tools/ apps/ scripts/ '**/*.trace.json'` returned no output.
