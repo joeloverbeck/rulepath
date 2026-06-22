@@ -114,10 +114,30 @@ export function VowTideBoard({
       </p>
 
       <div className="vow-tide-metrics" aria-label="Vow Tide status">
-        <Metric label="Hand" value={`${view.hand_index + 1} / ${view.hand_schedule.length}`} />
-        <Metric label="Hand size" value={String(view.hand_size)} />
-        <Metric label="Dealer" value={seatLabel(view.dealer)} />
-        <Metric label="Hidden stock" value={String(view.hidden_stock_count)} />
+        <Metric
+          label="Hand"
+          value={`${view.hand_index + 1} / ${view.hand_schedule.length}`}
+          caption="of the schedule"
+          title="Current hand number out of the fixed hand schedule."
+        />
+        <Metric
+          label="Hand size"
+          value={String(view.hand_size)}
+          caption="cards per seat"
+          title="Cards dealt to each seat this hand."
+        />
+        <Metric
+          label="Dealer"
+          value={seatLabel(view.dealer)}
+          caption="bids last"
+          title="The dealer bids last and may be blocked from one bid value by the hook."
+        />
+        <Metric
+          label="Hidden stock"
+          value={String(view.hidden_stock_count)}
+          caption="undealt, face-down"
+          title="Undealt cards kept face-down after the trump indicator; never revealed."
+        />
       </div>
 
       <div className="vow-tide-table">
@@ -306,11 +326,22 @@ function CardFace({ card }: { card: VowTideCardView }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  caption,
+  title,
+}: {
+  label: string;
+  value: string;
+  caption?: string;
+  title?: string;
+}) {
   return (
-    <div className="vow-tide-metric">
+    <div className="vow-tide-metric" title={title}>
       <span>{label}</span>
       <strong>{value}</strong>
+      {caption ? <small className="vow-tide-metric-caption">{caption}</small> : null}
     </div>
   );
 }

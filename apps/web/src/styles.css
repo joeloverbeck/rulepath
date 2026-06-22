@@ -1598,6 +1598,12 @@ h2 {
   background: #edf6f4;
 }
 
+.vow-tide-metric-caption {
+  color: var(--vow-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .vow-tide-bid-tally {
   margin: 0;
   padding: var(--rp-space-2);
