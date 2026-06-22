@@ -1598,6 +1598,18 @@ h2 {
   background: #edf6f4;
 }
 
+.vow-tide-played-card.leading {
+  border-color: var(--vow-accent);
+  border-width: 2px;
+  background: #edf6f4;
+  box-shadow: 0 0 0 1px var(--vow-accent) inset;
+}
+
+.vow-tide-played-card.leading small {
+  color: var(--vow-accent);
+  font-weight: 800;
+}
+
 .vow-tide-card-face {
   display: inline-grid;
   place-items: center;

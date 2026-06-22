@@ -28,6 +28,11 @@ pub struct PublicView {
     pub public_bids: Vec<(VowTideSeat, Option<u8>)>,
     pub trick_counts: Vec<(VowTideSeat, u8)>,
     pub current_trick: Vec<PlayedCardView>,
+    /// Seat currently winning the in-progress trick, decided by Rust trump/led
+    /// comparison. `None` outside trick play or before any card is played.
+    /// Derivable from `current_trick` + `trump_indicator`, so it is deliberately
+    /// excluded from `stable_summary` to keep replay hashes stable.
+    pub current_trick_leader: Option<VowTideSeat>,
     pub captured_tricks: Vec<CapturedTrickView>,
     pub cumulative_scores: Vec<(VowTideSeat, i16)>,
     pub completed_hand_count: usize,
@@ -102,6 +107,7 @@ pub fn project_view(state: &VowTideState, viewer: &Viewer) -> PublicView {
         public_bids: state.public_bids.clone(),
         trick_counts: state.trick_counts.clone(),
         current_trick: current_trick(state),
+        current_trick_leader: current_trick_leader(state),
         captured_tricks: state
             .captured_tricks
             .iter()
@@ -225,6 +231,18 @@ fn current_trick(state: &VowTideState) -> Vec<PlayedCardView> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// Seat winning the in-progress trick so far, using the same Rust trump/led
+/// comparison that resolves completed tricks. `None` when not in trick play or
+/// when no card has been played yet.
+fn current_trick_leader(state: &VowTideState) -> Option<VowTideSeat> {
+    let playing = state.playing_state()?;
+    let plays = &playing.current_trick.plays;
+    if plays.is_empty() {
+        return None;
+    }
+    crate::rules::trick_winner(plays, state.trump_suit()).ok()
 }
 
 fn captured_trick_view(trick: &CapturedTrick) -> CapturedTrickView {

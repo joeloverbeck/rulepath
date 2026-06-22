@@ -140,7 +140,9 @@ export function VowTideBoard({
               <span>Current trick</span>
               <strong>
                 {view.current_trick.length
-                  ? `Led ${suitName(view.current_trick[0].card.suit)} · ${view.current_trick.length} played`
+                  ? `Led ${suitName(view.current_trick[0].card.suit)} · ${view.current_trick.length} played${
+                      view.current_trick_leader ? ` · ${seatLabel(view.current_trick_leader)} leading` : ""
+                    }`
                   : "No cards played"}
               </strong>
             </div>
@@ -151,12 +153,18 @@ export function VowTideBoard({
                   <strong>{view.active_seat ? `${seatLabel(view.active_seat)} to act` : "Complete"}</strong>
                 </div>
               ) : (
-                view.current_trick.map((play) => (
-                  <div key={`${play.seat}-${play.card.card_id}`} className="vow-tide-played-card">
-                    <CardFace card={play.card} />
-                    <small>{seatLabel(play.seat)}</small>
-                  </div>
-                ))
+                view.current_trick.map((play) => {
+                  const leading = play.seat === view.current_trick_leader;
+                  return (
+                    <div
+                      key={`${play.seat}-${play.card.card_id}`}
+                      className={`vow-tide-played-card ${leading ? "leading" : ""}`}
+                    >
+                      <CardFace card={play.card} />
+                      <small>{seatLabel(play.seat)}{leading ? " · leading" : ""}</small>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

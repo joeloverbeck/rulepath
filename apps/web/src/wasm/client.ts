@@ -1125,6 +1125,7 @@ export type VowTidePublicView = {
   trick_counts: Partial<Record<VowTideSeatId, number>>;
   cumulative_scores: Partial<Record<VowTideSeatId, number>>;
   current_trick: VowTidePlayedCardView[];
+  current_trick_leader: VowTideSeatId | null;
   captured_tricks_count: number;
   completed_hand_count: number;
   terminal: VowTideTerminalView;
