@@ -121,6 +121,7 @@ try {
   await page.waitForSelector('[data-testid="vow-tide-board"]');
   await assertSeatCount(page, 7);
   await assertViewerSelector(page, 7);
+  await assertSeatFrameLayout(page);
   await assertObserverNoLeak(page, consoleMessages, "7-seat observer");
 
   await startVow(page, baseUrl, "Hotseat", 7, 19);
@@ -237,6 +238,35 @@ async function assertViewerSelector(page, seatCount) {
   await clickText(page, ".seat-frame-viewers label", "Observer");
   await page.waitForFunction(() => document.querySelector('.seat-frame-viewers input[value="observer"]')?.checked === true);
   await page.waitForSelector('[data-testid="vow-tide-private-hidden"]');
+}
+
+async function assertSeatFrameLayout(page) {
+  const layout = await page.evaluate(() => {
+    const frame = document.querySelector(".seat-frame");
+    const viewers = document.querySelector(".seat-frame-viewers");
+    const rail = document.querySelector(".seat-frame-rail");
+    if (!frame || !viewers || !rail) {
+      return null;
+    }
+    const frameRect = frame.getBoundingClientRect();
+    const viewersRect = viewers.getBoundingClientRect();
+    const railRect = rail.getBoundingClientRect();
+    const railColumns = window.getComputedStyle(rail).gridTemplateColumns.trim();
+    return {
+      frameWidth: frameRect.width,
+      viewersHeight: viewersRect.height,
+      railWidth: railRect.width,
+      railColumns,
+      railTracks: railColumns.length > 0 ? railColumns.split(/\s+/).filter((track) => track !== "0px").length : 0,
+    };
+  });
+  assert(layout, "seat frame layout is measurable");
+  assert(
+    layout.railWidth >= layout.frameWidth * 0.8,
+    `seat frame rail spans the shared frame: ${JSON.stringify(layout)}`,
+  );
+  assert(layout.railTracks >= 2, `seven-seat rail resolves to multiple columns: ${JSON.stringify(layout)}`);
+  assert(layout.viewersHeight < 180, `viewer selector is not stretched into a tall empty panel: ${JSON.stringify(layout)}`);
 }
 
 async function assertObserverNoLeak(page, consoleMessages, label) {

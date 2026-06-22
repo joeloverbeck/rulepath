@@ -54,6 +54,8 @@ export function VowTideBoard({
     [paths],
   );
   const canAct = Boolean(interactive && !pending && view.terminal.kind === "non_terminal" && paths.length > 0);
+  const playHint = followSuitHint(view, paths, canAct);
+  const biddingTally = biddingTallyText(view, seats);
   const feedback = vowFeedback(latestEffect) ?? (latestEffect ? feedbackForEffect(latestEffect) : null);
   const changed = effects.some((entry) => ["bid_accepted", "card_played", "trick_captured", "hand_scored"].includes(vowEffectKind(entry)));
   const outcomeExplanation =
@@ -112,10 +114,30 @@ export function VowTideBoard({
       </p>
 
       <div className="vow-tide-metrics" aria-label="Vow Tide status">
-        <Metric label="Hand" value={`${view.hand_index + 1} / ${view.hand_schedule.length}`} />
-        <Metric label="Hand size" value={String(view.hand_size)} />
-        <Metric label="Dealer" value={seatLabel(view.dealer)} />
-        <Metric label="Hidden stock" value={String(view.hidden_stock_count)} />
+        <Metric
+          label="Hand"
+          value={`${view.hand_index + 1} / ${view.hand_schedule.length}`}
+          caption="of the schedule"
+          title="Current hand number out of the fixed hand schedule."
+        />
+        <Metric
+          label="Hand size"
+          value={String(view.hand_size)}
+          caption="cards per seat"
+          title="Cards dealt to each seat this hand."
+        />
+        <Metric
+          label="Dealer"
+          value={seatLabel(view.dealer)}
+          caption="bids last"
+          title="The dealer bids last and may be blocked from one bid value by the hook."
+        />
+        <Metric
+          label="Hidden stock"
+          value={String(view.hidden_stock_count)}
+          caption="undealt, face-down"
+          title="Undealt cards kept face-down after the trump indicator; never revealed."
+        />
       </div>
 
       <div className="vow-tide-table">
@@ -127,13 +149,24 @@ export function VowTideBoard({
 
         <section className="vow-tide-center" aria-label="Current trick and trump">
           <div className="vow-tide-trump">
-            <span>Trump indicator</span>
+            <div className="vow-tide-trump-text">
+              <span>Trump indicator</span>
+              <strong className={`vow-tide-trump-suit ${suitTone(view.trump_indicator.suit)}`}>
+                Trump: {suitName(view.trump_indicator.suit)} {SUIT_GLYPH[view.trump_indicator.suit] ?? ""}
+              </strong>
+            </div>
             <CardFace card={view.trump_indicator} />
           </div>
           <div className="vow-tide-trick">
             <div className="vow-tide-section-heading">
               <span>Current trick</span>
-              <strong>{view.current_trick.length ? `${view.current_trick.length} played` : "No cards played"}</strong>
+              <strong>
+                {view.current_trick.length
+                  ? `Led ${suitName(view.current_trick[0].card.suit)} · ${view.current_trick.length} played${
+                      view.current_trick_leader ? ` · ${seatLabel(view.current_trick_leader)} leading` : ""
+                    }`
+                  : "No cards played"}
+              </strong>
             </div>
             <div className="vow-tide-played-cards">
               {view.current_trick.length === 0 ? (
@@ -142,12 +175,18 @@ export function VowTideBoard({
                   <strong>{view.active_seat ? `${seatLabel(view.active_seat)} to act` : "Complete"}</strong>
                 </div>
               ) : (
-                view.current_trick.map((play) => (
-                  <div key={`${play.seat}-${play.card.card_id}`} className="vow-tide-played-card">
-                    <CardFace card={play.card} />
-                    <small>{seatLabel(play.seat)}</small>
-                  </div>
-                ))
+                view.current_trick.map((play) => {
+                  const leading = play.seat === view.current_trick_leader;
+                  return (
+                    <div
+                      key={`${play.seat}-${play.card.card_id}`}
+                      className={`vow-tide-played-card ${leading ? "leading" : ""}`}
+                    >
+                      <CardFace card={play.card} />
+                      <small>{seatLabel(play.seat)}{leading ? " · leading" : ""}</small>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -159,6 +198,11 @@ export function VowTideBoard({
           <span>Private hand</span>
           <strong>{view.private_view_status === "seat" ? `${view.own_hand.length} cards` : "Hidden for observer"}</strong>
         </div>
+        {playHint ? (
+          <p className="vow-tide-play-hint" role="note">
+            {playHint}
+          </p>
+        ) : null}
         <div className="vow-tide-hand">
           {view.private_view_status !== "seat" ? (
             <div className="vow-tide-facedown" data-testid="vow-tide-private-hidden">
@@ -191,6 +235,17 @@ export function VowTideBoard({
           <span>Actions</span>
           <strong>{canAct ? "Available choices" : pending ? "Working" : "Waiting"}</strong>
         </div>
+        {biddingTally ? (
+          <p className="vow-tide-bid-tally" role="note">
+            {biddingTally}
+          </p>
+        ) : null}
+        {view.phase === "bidding" && view.dealer_hook_forbidden_bid !== null ? (
+          <p className="vow-tide-hook-note" role="note">
+            Dealer hook: {seatLabel(view.dealer)} can't bid {view.dealer_hook_forbidden_bid} — it would make all bids
+            total the hand size ({view.hand_size}).
+          </p>
+        ) : null}
         <div className="vow-tide-action-grid">
           {paths.length === 0 ? (
             <p className="muted">No actions available.</p>
@@ -271,11 +326,22 @@ function CardFace({ card }: { card: VowTideCardView }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  caption,
+  title,
+}: {
+  label: string;
+  value: string;
+  caption?: string;
+  title?: string;
+}) {
   return (
-    <div className="vow-tide-metric">
+    <div className="vow-tide-metric" title={title}>
       <span>{label}</span>
       <strong>{value}</strong>
+      {caption ? <small className="vow-tide-metric-caption">{caption}</small> : null}
     </div>
   );
 }
@@ -349,4 +415,50 @@ function formatBid(value: number | null | undefined): string {
 
 function suitTone(suit: string): string {
   return suit === "hearts" || suit === "diamonds" ? "red" : "black";
+}
+
+function suitName(suit: string): string {
+  return suit.length > 0 ? suit.charAt(0).toUpperCase() + suit.slice(1) : suit;
+}
+
+// Public running tally of bids during the bidding phase: how many tricks the
+// table has already promised versus the hand size, and how many seats have yet
+// to bid. Pure arithmetic over public bids — no strategy advice.
+function biddingTallyText(view: VowTidePublicView, seats: VowTideSeatId[]): string | null {
+  if (view.phase !== "bidding") {
+    return null;
+  }
+  let claimed = 0;
+  let toBid = 0;
+  for (const seat of seats) {
+    const bid = view.public_bids[seat];
+    if (bid === null || bid === undefined) {
+      toBid += 1;
+    } else {
+      claimed += bid;
+    }
+  }
+  const remaining = toBid === 1 ? "1 seat still to bid" : `${toBid} seats still to bid`;
+  // Phrase "claimed" and "in the hand" as separate counts rather than "X of Y"
+  // so the legitimate over-bid case (claimed > hand size, when non-dealer seats
+  // overbid) reads naturally instead of looking like a broken fraction.
+  return `Bids in: ${claimed} claimed · ${view.hand_size} tricks in the hand · ${remaining}`;
+}
+
+// Restates the follow-suit rule for the player whose turn it is to play, based
+// on the Rust-provided legal set and the public led suit. It does not decide
+// legality — Rust already filtered the playable cards; this only explains why.
+function followSuitHint(view: VowTidePublicView, paths: PathChoice[], canAct: boolean): string | null {
+  const myPlayTurn = canAct && view.phase === "playing_trick" && paths.some((entry) => entry.path[0] === "play");
+  if (!myPlayTurn || view.private_view_status !== "seat") {
+    return null;
+  }
+  if (view.current_trick.length === 0) {
+    return "You lead this trick — play any card.";
+  }
+  const ledSuit = view.current_trick[0].card.suit;
+  const holdsLedSuit = view.own_hand.some((card) => card.suit === ledSuit);
+  return holdsLedSuit
+    ? `You must follow ${suitName(ledSuit)}.`
+    : `Void in ${suitName(ledSuit)} — play any card, including trump.`;
 }
