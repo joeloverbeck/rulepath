@@ -1,6 +1,6 @@
 # UNI8CMECSCA-029: Finalize MSC-8C-010 rejected/local-only and review exclusions (C-10)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance doc (`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`)
@@ -71,3 +71,28 @@ Finalize `MSC-8C-010` as `rejected / local-only` with the review trigger; review
 1. `grep -n 'MSC-8C-010' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
 2. `node scripts/check-doc-links.mjs`
 3. The register is a governance doc; grep + doc-link integrity is the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Finalized `MSC-8C-010` as `rejected / local-only` with explicit behavior
+exclusions for deal, reveal, projection, betting, pot, trick, team, graph,
+accounting, reaction, scoring, and outcome policy. The register now records the
+completed C-10 review, keeps the accepted helper entries' behavior exclusions as
+the evidence boundary, and moves the next review trigger to a future
+mechanic-ladder gate only.
+
+`docs/MECHANIC-ATLAS.md` was intentionally unchanged. Section 10A still reads
+`Current debt: _None_`, so no behavioral promotion debt was created. No code,
+fixtures, hashes, WASM surface, or runtime behavior changed.
+
+Verification:
+
+1. `grep -n 'MSC-8C-010' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+2. `grep -n 'deal, reveal, projection, betting' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+3. `grep -n 'pot, trick, team, graph' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+4. `grep -n 'accounting, reaction, scoring, and outcome' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+5. `rg -n "Current debt: _None_|Current debt: None" docs/MECHANIC-ATLAS.md`
+6. `node scripts/check-doc-links.mjs`
+7. `git diff --check`

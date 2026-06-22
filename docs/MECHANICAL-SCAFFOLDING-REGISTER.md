@@ -433,21 +433,23 @@ mechanical scaffolding.
   `games/briar_circuit/docs/PRIMITIVE-PRESSURE-LEDGER.md`,
   `games/vow_tide/docs/PRIMITIVE-PRESSURE-LEDGER.md`, and
   `docs/MECHANIC-ATLAS.md`.
-- Behavior exclusions: the entry excludes all listed policy from the
-  mechanical-scaffolding lane rather than defining helper scope.
+- Behavior exclusions: the entry excludes deal, reveal, projection, betting,
+  pot, trick, team, graph, accounting, reaction, scoring, and outcome policy
+  from the mechanical-scaffolding lane rather than defining helper scope.
 - Affected hashes: none from this register decision; any future behavioral
   migration would need its own atlas/ADR evidence and named hash migration.
 - Visibility impact: none from this register decision; game-owned visibility
   policy remains unchanged.
 - Determinism impact: none from this register decision.
 - Migration set: none.
-- Acceptance evidence: register review against the Non-Promotion List,
+- Acceptance evidence: register review against the Non-Promotion List completed
+  in UNI8CMECSCA-029,
   `docs/MECHANIC-ATLAS.md` section 10A still showing `Current debt: _None_`,
-  and final C-10 review in UNI8CMECSCA-029.
+  and the accepted MSC-8C entries retaining explicit behavior exclusions.
 - Rejection rationale: the bundle includes behavior-bearing policy and hidden
   information semantics, so it is not mechanical scaffolding under ADR 0008.
-- Next review trigger: UNI8CMECSCA-029 and the next mechanic-ladder gate if a
-  later game repeats one of these behavioral shapes.
+- Next review trigger: the next mechanic-ladder gate if a later game repeats
+  one of these behavioral shapes.
 
 ## Review Checklist
 
