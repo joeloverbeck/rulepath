@@ -1,6 +1,6 @@
 # UNI8CMECSCA-019: Implement generic no-leak matrix geometry in `game-test-support::no_leak`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/game-test-support/src/no_leak.rs` (new), `crates/game-test-support/src/lib.rs`
@@ -80,3 +80,36 @@ Authorized / unauthorized / public-after-reveal / not-applicable / missing-canar
 1. `cargo test -p game-test-support`
 2. `bash scripts/boundary-check.sh`
 3. The `game-test-support` unit suite is the correct boundary — game pilots exercise it in UNI8CMECSCA-020/021.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Implemented `game_test_support::no_leak` with
+  `ExposureExpectation`, `LeakProbe`, `PairwiseLeakFailureKind`,
+  `PairwiseLeakFailure`, `PairwiseLeakFailures`, and
+  `assert_pairwise_no_leak`.
+- The harness enumerates caller-provided viewers, surfaces, and probes; it uses
+  caller-provided snapshot, expectation, and containment closures; and it
+  aggregates structured failures without constructing views or deciding
+  authorization/reveal policy.
+- Added unit tests covering authorized, unauthorized, revealed,
+  not-applicable, missing-canary, unexpected-presence,
+  false-positive-resistant containment, and diagnostic rendering cases.
+- Flipped `MSC-8C-007` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from
+  `candidate` to `accepted`.
+
+Deviations:
+- The ticket sketched `Result<(), PairwiseLeakFailure<...>>`; the implemented
+  API returns `Result<(), PairwiseLeakFailures<...>>` so failures are aggregated
+  as required by the problem statement.
+- No game pilot, projection, authorization, reveal, redaction, or canary
+  injection into committed artifacts was added.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p game-test-support`
+- `bash scripts/boundary-check.sh`
+- `cargo build --workspace`
+- `rg -n "project_view\\s*\\(|project\\s*\\(|redact\\s*\\(|authorize\\s*\\(|authorization\\s*\\(|reveal\\s*\\(" crates/game-test-support/src/no_leak.rs` returned no matches.

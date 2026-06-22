@@ -289,7 +289,7 @@ mechanical scaffolding.
 
 ### MSC-8C-007 - Pairwise no-leak assertion geometry
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-07.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-07.
 - Candidate: generic source-seat x viewer x surface x canary matrix assertion
   geometry with structured failure reporting.
 - semantic.risk: `medium`; the harness is behavior-free only if games provide
@@ -311,11 +311,13 @@ mechanical scaffolding.
 - Determinism impact: deterministic matrix enumeration and stable failure text.
 - Migration set: High Card Duel two-seat pilot, then River Ledger 3-6-seat
   pilot; other hidden-information games deferred to C-11.
-- Acceptance evidence: harness unit tests for present/absent/not-applicable,
-  missing canaries, false-positive resistance, diagnostic rendering, High Card
-  case counts, River 3/4/5/6 matrices, and zero leak failures.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-019 through UNI8CMECSCA-021 evidence.
+- Acceptance evidence: UNI8CMECSCA-019 implemented the generic matrix
+  enumeration and structured failure types with unit tests for authorized,
+  unauthorized, revealed, not-applicable, missing-canary,
+  false-positive-resistant containment, and diagnostic-rendering cases.
+- Rejection rationale: not applicable.
+- Next review trigger: UNI8CMECSCA-020 High Card Duel pilot and
+  UNI8CMECSCA-021 River Ledger 3/4/5/6 matrices.
 
 ### MSC-8C-008 - Evidence-profile drivers
 
