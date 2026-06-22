@@ -381,3 +381,29 @@ Do not:
   marker yet), and several `ADR-TEMPLATE.md` fields (see D7). **Already done /
   do not recreate:** the `specs/README.md` Part C (`8C`) seed and Gate 18 interlock
   (see D13).
+
+## Outcome
+
+Completed: 2026-06-22
+
+The pre-Gate-18 docs/doctrine/template realignment shipped as a docs-only pass.
+ADR 0008 and ADR 0009 are accepted, the mechanical-scaffolding register and
+evidence-fixture contract exist, trace/fixture/hash authority is split, the
+canonical `GAME-EVIDENCE.md` receipt and completion profiles exist, and the
+foundation, area-doc, roadmap, and template surfaces named by this spec were
+updated by archived tickets `PREGAT18REUDOC-001` through `PREGAT18REUDOC-023`.
+
+Exit evidence:
+
+- `specs/README.md` marks the `8M` row `Done`.
+- The `8C` Part C seed and Gate 18 interlock are present once each and were not
+  duplicated.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `node scripts/check-catalog-docs.mjs` passed (`catalog-docs check passed — 17
+  games reflected in intro, root, and smoke surfaces`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+- `git status --porcelain -- crates/ games/ tools/ apps/ scripts/ '**/*.trace.json'`
+  returned no output.
+
+No game code, Rust/WASM, tooling, CI, trace fixture, benchmark output, RNG,
+serialization, or hash bytes were intentionally changed by this pass.

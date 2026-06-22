@@ -20,7 +20,7 @@ Related documents:
 - `docs/TESTING-REPLAY-BENCHMARKING.md`
 - `docs/WASM-CLIENT-BOUNDARY.md`
 - `docs/adr/0004-hidden-info-replay-export-taxonomy.md`
-- `specs/pre-gate-18-reuse-doctrine-and-evidence-realignment.md`
+- `archive/specs/pre-gate-18-reuse-doctrine-and-evidence-realignment.md`
 
 Required scaling / supersession fields:
 
