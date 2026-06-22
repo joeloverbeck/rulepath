@@ -127,13 +127,22 @@ export function VowTideBoard({
 
         <section className="vow-tide-center" aria-label="Current trick and trump">
           <div className="vow-tide-trump">
-            <span>Trump indicator</span>
+            <div className="vow-tide-trump-text">
+              <span>Trump indicator</span>
+              <strong className={`vow-tide-trump-suit ${suitTone(view.trump_indicator.suit)}`}>
+                Trump: {suitName(view.trump_indicator.suit)} {SUIT_GLYPH[view.trump_indicator.suit] ?? ""}
+              </strong>
+            </div>
             <CardFace card={view.trump_indicator} />
           </div>
           <div className="vow-tide-trick">
             <div className="vow-tide-section-heading">
               <span>Current trick</span>
-              <strong>{view.current_trick.length ? `${view.current_trick.length} played` : "No cards played"}</strong>
+              <strong>
+                {view.current_trick.length
+                  ? `Led ${suitName(view.current_trick[0].card.suit)} · ${view.current_trick.length} played`
+                  : "No cards played"}
+              </strong>
             </div>
             <div className="vow-tide-played-cards">
               {view.current_trick.length === 0 ? (
@@ -349,4 +358,8 @@ function formatBid(value: number | null | undefined): string {
 
 function suitTone(suit: string): string {
   return suit === "hearts" || suit === "diamonds" ? "red" : "black";
+}
+
+function suitName(suit: string): string {
+  return suit.length > 0 ? suit.charAt(0).toUpperCase() + suit.slice(1) : suit;
 }

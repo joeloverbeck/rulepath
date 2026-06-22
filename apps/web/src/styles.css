@@ -1560,6 +1560,20 @@ h2 {
   gap: var(--rp-space-3);
 }
 
+.vow-tide-trump-text {
+  display: grid;
+  gap: 4px;
+}
+
+.vow-tide-trump-suit {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.vow-tide-trump-suit.red {
+  color: #ad3f32;
+}
+
 .vow-tide-hand {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
