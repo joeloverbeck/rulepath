@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-022: ROADMAP pre-Gate-18 + per-gate scaffolding/trace debt interlocks
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs-only (`docs/ROADMAP.md`)
@@ -69,3 +69,20 @@ Add a pre-Gate-18 scaffolding/trace debt interlock and a per-gate atlas + scaffo
 1. `grep -niE "scaffolding.*debt|trace.*debt|pre-Gate-18" docs/ROADMAP.md`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. The interlock grep + ladder diff is the correct boundary; docs-only with the boundary guard as a safety net.
+
+## Outcome
+
+Completed on 2026-06-22. `docs/ROADMAP.md` now has a pre-Gate-18 debt
+interlock for mechanical scaffolding debt and trace debt, plus a per-gate debt
+review note covering mechanic-atlas pressure, scaffolding debt, trace/fixture
+profile debt, seat/viewer grammar debt, replay/hash migration debt, and
+evidence-receipt blockers. The product mechanic ladder rows were not changed.
+
+Verification:
+
+1. `grep -niE "scaffolding.*debt|trace.*debt|pre-Gate-18" docs/ROADMAP.md` returned the new interlock prose.
+2. `grep -n "^Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md docs/adr/0009-replay-fixture-hash-taxonomy.md` confirmed the referenced ADRs are accepted.
+3. `grep -niE "mechanical-scaffolding lane|Mechanical-scaffolding decisions" docs/FOUNDATIONS.md` confirmed the scaffolding-lane doctrine exists.
+4. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+5. `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`).
+6. `git diff -- docs/ROADMAP.md` showed only added interlock prose and no ladder-row edits.
