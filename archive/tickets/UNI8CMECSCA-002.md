@@ -1,6 +1,6 @@
 # UNI8CMECSCA-002: Add register entries MSC-8C-001…010 before any helper implementation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance doc (`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`)
@@ -70,3 +70,35 @@ For each of `MSC-8C-001`…`MSC-8C-010`, add a full Entry Schema row/block. Use 
 1. `grep -cE 'MSC-8C-0(0[1-9]|10)' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
 2. `node scripts/check-doc-links.mjs`
 3. The register is a governance doc with no compiled surface, so grep + doc-link integrity is the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Added complete register blocks for `MSC-8C-001` through `MSC-8C-010` in
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md` before any helper implementation.
+Entries `MSC-8C-001` through `MSC-8C-009` start as `candidate` entries owned by
+their later implementation tickets. `MSC-8C-010` starts as
+`rejected / local-only` because the behavioral-policy bundle belongs in game
+crates or the behavioral mechanic atlas, not in the mechanical-scaffolding lane.
+
+Each entry includes owner/status, candidate, semantic risk, proposed home,
+production-vs-test home, exact duplicate/pilot sites, behavior exclusions,
+affected hashes, visibility impact, determinism impact, migration set,
+acceptance evidence, rejection rationale, and next review trigger.
+
+Deviations: none. This ticket changed only the register and did not implement
+helpers, alter code, edit `docs/MECHANIC-ATLAS.md`, or flip any candidate to an
+accepted/promoted state.
+
+Verification:
+
+- `grep -cE 'MSC-8C-0(0[1-9]|10)' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+  returned `10`.
+- `grep -n 'MSC-8C-010' docs/MECHANICAL-SCAFFOLDING-REGISTER.md` showed the
+  `MSC-8C-010` heading with `rejected / local-only`.
+- `rg -n 'TBD|placeholder|to be determined|_None_ \| _No promoted' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+  returned no matches.
+- `rg -n 'Current debt: _None_' docs/MECHANIC-ATLAS.md` confirmed atlas open
+  promotion debt remains none.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
