@@ -90,6 +90,31 @@ Use profile names from
 Hidden-information, asymmetric-view, partnership, or 3+ seat games must link the
 pairwise no-leak matrix and per-seat outcome evidence.
 
+## Hidden-Information No-Leak Matrix
+
+Fill every row for hidden-information, asymmetric-view, partnership, or 3+
+seat games. Perfect-information games may mark rows `not applicable` with a
+rationale. This matrix owns the detailed no-leak proof formerly repeated in the
+public release checklist.
+
+| Surface | Status | Evidence/test | Notes |
+|---|---|---|---|
+| public/browser payload | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| public view | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| action tree | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| previews | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| diagnostics/disabled reasons | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| effect logs | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| command logs | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| DOM attributes | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| test IDs | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| browser console/logs | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| local storage/session storage | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| replay export/import | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| bot explanations | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| candidate rankings | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| dev inspector/public build boundary | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+
 ## Replay and Hash Compatibility
 
 | Surface | Version/status | Artifact link | Notes |

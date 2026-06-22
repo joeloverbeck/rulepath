@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-020: Convert GAME-AI / ADMISSION / PUBLIC-RELEASE-CHECKLIST to receipts/registries
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`templates/GAME-AI.md`, `templates/GAME-IMPLEMENTATION-ADMISSION.md`, `templates/PUBLIC-RELEASE-CHECKLIST.md`)
@@ -77,3 +77,23 @@ Migrate the duplicated no-leak matrix (and any other duplicated proof) into `GAM
 1. `grep -lF "GAME-EVIDENCE" templates/GAME-AI.md templates/GAME-IMPLEMENTATION-ADMISSION.md templates/PUBLIC-RELEASE-CHECKLIST.md`
 2. `node scripts/check-doc-links.mjs`
 3. The receipt-link grep + checkpoint-retention grep + link check is the correct boundary; migrated proof is grep-checked on the receipt side.
+
+## Outcome
+
+Completed on 2026-06-22. `templates/GAME-AI.md` is now a compact shipped
+bot registry with report mapping `B-12 -> GAME-AI.md`; `templates/GAME-IMPLEMENTATION-ADMISSION.md`
+is a pre-build admission and delta-admission receipt with mapping
+`B-07 -> GAME-IMPLEMENTATION-ADMISSION.md`; and
+`templates/PUBLIC-RELEASE-CHECKLIST.md` is a final release sign-off over
+linked evidence with mapping `B-16 -> PUBLIC-RELEASE-CHECKLIST.md`.
+The detailed hidden-information no-leak surface matrix now lives in
+`templates/GAME-EVIDENCE.md`, and the release checklist links to that receipt
+instead of duplicating the matrix.
+
+Verification:
+
+1. `grep -lF "GAME-EVIDENCE" templates/GAME-AI.md templates/GAME-IMPLEMENTATION-ADMISSION.md templates/PUBLIC-RELEASE-CHECKLIST.md` listed all three templates.
+2. `grep -niE "Hidden-Information No-Leak Matrix|public/browser payload|candidate rankings|dev inspector/public build boundary" templates/GAME-EVIDENCE.md templates/PUBLIC-RELEASE-CHECKLIST.md` confirmed the no-leak matrix is owned by `GAME-EVIDENCE.md` and referenced by the release checklist.
+3. `grep -niE "decision|sign-off" templates/GAME-IMPLEMENTATION-ADMISSION.md templates/PUBLIC-RELEASE-CHECKLIST.md` confirmed admission/release lifecycle checkpoints remain.
+4. `test -f templates/GAME-EVIDENCE.md` passed.
+5. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
