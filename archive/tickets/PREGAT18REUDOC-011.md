@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-011: WASM-CLIENT-BOUNDARY canonical seat grammar + alias policy
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/WASM-CLIENT-BOUNDARY.md`)
@@ -75,3 +75,29 @@ Specify a bounded import-only alias policy covering the existing `seat-<n>` (hyp
 1. `grep -niE "seat_|alias|reject unknown" docs/WASM-CLIENT-BOUNDARY.md`
 2. `node scripts/check-doc-links.mjs && git diff --stat -- crates/wasm-api`
 3. The grammar/alias grep + no-WASM-change `git diff` is the correct boundary: contract documented, migration deferred.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Added a canonical external seat grammar section to
+`docs/WASM-CLIENT-BOUNDARY.md`. The boundary now documents
+`seat_<zero-based>` as the going-forward canonical form, states that `SeatId`
+remains opaque today, keeps Rust/WASM as the parse/format/projection authority,
+and limits migration-window import aliases to `seat_<n>`, `seat-<n>`, and the
+legacy mapped `seat-a` form. Unknown forms are rejected, TypeScript remains
+pass-through only, and the exported WASM API schema remains unchanged pending
+the Part C parser/migration work.
+
+Verification:
+
+- `grep -niE "seat_<zero-based>|canonical seat" docs/WASM-CLIENT-BOUNDARY.md`
+  returned the canonical grammar section.
+- `grep -niE "alias|seat-|reject" docs/WASM-CLIENT-BOUNDARY.md` returned the
+  bounded alias/rejection policy.
+- `grep -n "^Status: Accepted" docs/adr/0009-replay-fixture-hash-taxonomy.md`
+  returned `Status: Accepted`.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --stat -- crates/wasm-api` was empty.
+
+Deviation: none; this was a docs-only boundary contract update.
