@@ -55,6 +55,7 @@ export function VowTideBoard({
   );
   const canAct = Boolean(interactive && !pending && view.terminal.kind === "non_terminal" && paths.length > 0);
   const playHint = followSuitHint(view, paths, canAct);
+  const biddingTally = biddingTallyText(view, seats);
   const feedback = vowFeedback(latestEffect) ?? (latestEffect ? feedbackForEffect(latestEffect) : null);
   const changed = effects.some((entry) => ["bid_accepted", "card_played", "trick_captured", "hand_scored"].includes(vowEffectKind(entry)));
   const outcomeExplanation =
@@ -214,6 +215,11 @@ export function VowTideBoard({
           <span>Actions</span>
           <strong>{canAct ? "Available choices" : pending ? "Working" : "Waiting"}</strong>
         </div>
+        {biddingTally ? (
+          <p className="vow-tide-bid-tally" role="note">
+            {biddingTally}
+          </p>
+        ) : null}
         {view.phase === "bidding" && view.dealer_hook_forbidden_bid !== null ? (
           <p className="vow-tide-hook-note" role="note">
             Dealer hook: {seatLabel(view.dealer)} can't bid {view.dealer_hook_forbidden_bid} — it would make all bids
@@ -382,6 +388,27 @@ function suitTone(suit: string): string {
 
 function suitName(suit: string): string {
   return suit.length > 0 ? suit.charAt(0).toUpperCase() + suit.slice(1) : suit;
+}
+
+// Public running tally of bids during the bidding phase: how many tricks the
+// table has already promised versus the hand size, and how many seats have yet
+// to bid. Pure arithmetic over public bids — no strategy advice.
+function biddingTallyText(view: VowTidePublicView, seats: VowTideSeatId[]): string | null {
+  if (view.phase !== "bidding") {
+    return null;
+  }
+  let claimed = 0;
+  let toBid = 0;
+  for (const seat of seats) {
+    const bid = view.public_bids[seat];
+    if (bid === null || bid === undefined) {
+      toBid += 1;
+    } else {
+      claimed += bid;
+    }
+  }
+  const remaining = toBid === 1 ? "1 seat still to bid" : `${toBid} seats still to bid`;
+  return `Bids in: ${claimed} of ${view.hand_size} tricks claimed · ${remaining}`;
 }
 
 // Restates the follow-suit rule for the player whose turn it is to play, based
