@@ -14,6 +14,12 @@ Last updated: YYYY-MM-DD
 
 Rules version connected to this source note: `<rules_version>`
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-03 -> GAME-SOURCES.md`. This template
+owns source/IP narrative detail. `GAME-EVIDENCE.md` owns the source/IP receipt
+status and release evidence links.
+
 ## Source-use statement
 
 Rulepath uses consulted sources to verify rules, variants, terminology context, public-history context, and ambiguity resolution.
@@ -24,9 +30,9 @@ Do not paste proprietary text into this file. Summarize in original language.
 
 ## Consulted sources
 
-| Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
-|---|---|---|---|---|---|---|
-| `<source_name>` | `<url_or_reference>` | YYYY-MM-DD | official rules / publisher / rules authority / standards body / reputable secondary / community reference / unverified | rule verification / variant comparison / ambiguity / naming / historical context / strategy context / asset license | none / quoted short excerpt reviewed / license-reviewed asset / human review needed | `<notes>` |
+| Source ID | Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
+|---|---|---|---|---|---|---|---|
+| `SRC-001` | `<source_name>` | `<url_or_reference>` | YYYY-MM-DD | official rules / publisher / rules authority / standards body / reputable secondary / community reference / unverified | rule verification / variant comparison / ambiguity / naming / historical context / strategy context / asset license | none / quoted short excerpt reviewed / license-reviewed asset / human review needed | `<notes>` |
 
 Source quality guidance:
 
@@ -143,6 +149,9 @@ Mark any trigger that applies.
 
 ## Release blocking concerns
 
+Detailed release decision status belongs in `GAME-EVIDENCE.md` and the public
+release checklist. This table records source/IP blockers only.
+
 | Concern | Blocking? | Required resolution | Owner |
 |---|---:|---|---|
 | `<concern>` | yes/no | `<resolution>` | `<owner>` |
@@ -168,6 +177,7 @@ Every release-relevant rule ID in `GAME-RULES.md` SHOULD have source or rational
 ## Final source/IP checklist
 
 - Sources are summarized in original language.
+- Stable source IDs are assigned for release-relevant sources.
 - Source quality and date consulted are recorded.
 - Variant choices and deviations are explicit.
 - Ambiguities connect to rule IDs and tests.
@@ -176,4 +186,4 @@ Every release-relevant rule ID in `GAME-RULES.md` SHOULD have source or rational
 - Fonts are system-only or license-reviewed.
 - Public/private content boundary is explicit.
 - Human/legal review triggers are not hidden.
-- Release blockers are recorded.
+- Source/IP blockers are recorded here and receipt status links from `GAME-EVIDENCE.md`.

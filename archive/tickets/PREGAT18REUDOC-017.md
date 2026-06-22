@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-017: Slim the rules/coverage template cluster into GAME-EVIDENCE
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`templates/GAME-SOURCES.md`, `templates/GAME-RULES.md`, `templates/GAME-RULE-COVERAGE.md`, `templates/GAME-MECHANICS.md`, `templates/GAME-HOW-TO-PLAY.md`)
@@ -79,3 +79,38 @@ Migrate each removed required-proof field (no-leak matrix, IP/source receipt, be
 1. `grep -lF "GAME-EVIDENCE" templates/GAME-SOURCES.md templates/GAME-RULES.md templates/GAME-RULE-COVERAGE.md templates/GAME-MECHANICS.md templates/GAME-HOW-TO-PLAY.md`
 2. `node scripts/check-doc-links.mjs`
 3. The receipt-link grep + link check is the correct boundary; the migrated-proof presence is grep-checked on the receipt side.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Slimmed the rules/coverage template cluster by adding explicit
+`GAME-EVIDENCE.md` receipt links, domain-owner notes, and report mapping notes:
+
+- `B-03 -> GAME-SOURCES.md`: source/IP narrative authority; added stable source
+  IDs and routed source/IP receipt status to `GAME-EVIDENCE.md`.
+- `B-04 -> GAME-RULES.md`: formal rules and stable rule-ID authority; routed
+  cross-template conformance status and strategy prose out to owning docs.
+- `B-05 -> GAME-RULE-COVERAGE.md`: rule-ID-to-proof authority; added stable
+  evidence IDs and fixture profiles, and replaced duplicated viewer/no-leak and
+  benchmark status matrices with receipt-linked evidence rows.
+- `B-06 -> GAME-MECHANICS.md`: mechanic classification and pressure authority;
+  added behavioral/scaffolding/superficial classification and routed
+  cross-template decision status to `GAME-EVIDENCE.md`.
+- `B-09 -> GAME-HOW-TO-PLAY.md`: player-facing how-to authority; added the
+  evidence receipt link and kept source/version evidence as a receipt concern.
+
+Verification:
+
+- `grep -lF "GAME-EVIDENCE" templates/GAME-SOURCES.md templates/GAME-RULES.md templates/GAME-RULE-COVERAGE.md templates/GAME-MECHANICS.md templates/GAME-HOW-TO-PLAY.md`
+  listed all five templates.
+- `grep -niE "no-leak|viewer matrix" templates/GAME-EVIDENCE.md` returned the
+  receipt-side viewer/no-leak owner surface.
+- `grep -niE "B-03|B-04|B-05|B-06|B-09|Source ID|Evidence IDs|Fixture profile|Classification" templates/GAME-SOURCES.md templates/GAME-RULES.md templates/GAME-RULE-COVERAGE.md templates/GAME-MECHANICS.md templates/GAME-HOW-TO-PLAY.md`
+  returned the B-ID mappings and new source/evidence/classification fields.
+- `test -f templates/GAME-EVIDENCE.md` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: the receipt already contained the viewer matrix and pairwise no-leak
+owner surface from ticket 012, so this ticket did not need to modify
+`templates/GAME-EVIDENCE.md`.
