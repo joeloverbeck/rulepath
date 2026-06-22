@@ -29,6 +29,41 @@ Hidden-information N-seat games require a pairwise no-leak proof matrix covering
 public observer, each seat viewer, replay export, effect log, bot explanation,
 and dev panel surfaces.
 
+## 1A. Conformance receipt and completion profiles
+
+Every official game MUST maintain a filled
+[`GAME-EVIDENCE.md`](../templates/GAME-EVIDENCE.md) receipt. The receipt is the
+canonical per-game status and artifact-link index for this contract: it records
+the current completion profile, versions, supported seats/variants, source/IP
+receipt, rule-coverage summary, named evidence profiles, public and per-seat
+viewer matrix, replay/hash compatibility, benchmark workload IDs, bot
+levels/policy IDs, mechanic and scaffolding decisions, release state, blockers,
+and exact artifact links.
+
+Completion profiles describe applicability and stage. They do not weaken this
+contract, waive a [FOUNDATIONS.md](FOUNDATIONS.md) §11 invariant, bypass a §12
+stop condition, or permit silent evidence gaps. A profile may mark an evidence
+surface `not applicable` only with a rationale and an owning artifact link where
+one exists.
+
+Use the profile definitions in
+[`templates/README.md`](../templates/README.md#completion-profiles). In contract
+terms:
+
+- `full` means the complete official-game contract is in scope.
+- `minimal-perfect-information` may mark hidden-information and seat-private
+  evidence not applicable with rationale, but still needs replay, coverage,
+  simulation, benchmark, bot, UI, and IP evidence.
+- `hidden-information` requires explicit public-observer and per-seat viewer
+  evidence for every private-data surface.
+- `n-seat` requires declared seat ranges, viewer matrices, outcome breakdowns,
+  replay/export coverage, UI coverage, and no-leak evidence where applicable.
+- `release-candidate` adds public artifact inspection, release checklist, and
+  any required human/legal review status.
+- `intentionally-deferred` must link the deferring spec or ticket and name the
+  gate that must close the deferred evidence before public release or later
+  roadmap advancement.
+
 ## 2. Readiness labels
 
 Use these labels honestly:
@@ -279,6 +314,8 @@ Trace updates require notes explaining whether behavior changed, effect contract
 Before marking a game official, verify:
 
 - the game satisfies [FOUNDATIONS.md](FOUNDATIONS.md) universal invariants;
+- `GAME-EVIDENCE.md` exists for the game, names its completion profile, and
+  links the artifacts that prove each applicable evidence surface;
 - rule docs and implementation match;
 - player-facing `HOW-TO-PLAY.md` exists, is original prose, and matches the formal rules version it cites;
 - source notes are complete and IP-safe;

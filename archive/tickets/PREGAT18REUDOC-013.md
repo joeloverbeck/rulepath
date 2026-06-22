@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-013: Point OFFICIAL-GAME-CONTRACT at GAME-EVIDENCE + completion profiles
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs-only (`docs/OFFICIAL-GAME-CONTRACT.md`)
@@ -70,3 +70,25 @@ Define the completion profiles in contract terms, keeping every existing evidenc
 1. `grep -niE "GAME-EVIDENCE|completion profile" docs/OFFICIAL-GAME-CONTRACT.md`
 2. `node scripts/check-doc-links.mjs`
 3. The pointer grep + link check is the correct boundary; docs-only with no code surface.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Updated `docs/OFFICIAL-GAME-CONTRACT.md` to point official games at
+`templates/GAME-EVIDENCE.md` as the canonical per-game conformance receipt. The
+contract now defines completion profiles in contract terms, states that profiles
+describe applicability and stage only, and explicitly preserves the
+`FOUNDATIONS.md` §11 invariants and §12 stop conditions. The official acceptance
+check now requires each game to have a `GAME-EVIDENCE.md` receipt naming its
+completion profile and linking the artifacts that prove applicable evidence
+surfaces.
+
+Verification:
+
+- `grep -niE "GAME-EVIDENCE|completion profile" docs/OFFICIAL-GAME-CONTRACT.md`
+  returned the receipt pointer, profile definition, and acceptance-check row.
+- `test -f templates/GAME-EVIDENCE.md` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: none; this was a docs-only contract pointer/update.
