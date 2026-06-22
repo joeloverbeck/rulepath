@@ -1,6 +1,6 @@
 # UNI8CMECSCA-023: Race to N drives `replay-command-v1`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/race_to_n/tests/replay_tests.rs`, `games/race_to_n/Cargo.toml` (`[dev-dependencies]`)
@@ -76,3 +76,20 @@ Adopt `ReplayCommandV1Driver` to drive the `shortest-normal` fixture through Rac
 1. `cargo test -p race_to_n`
 2. `cargo run -p replay-check -- --game race_to_n --all`
 3. The game suite plus `replay-check` are the correct boundary — the driver must replay through real game functions without perturbing the fixture.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Adopted `ReplayCommandV1Driver` in Race to N by adding `game-test-support` as a dev-dependency and wrapping the existing `shortest-normal` fixture replay in a driver-backed test. The test builds virtual `replay-command-v1` metadata from the legacy fixture, validates it through the driver, then delegates command replay and hash checks to Race's existing replay support. The legacy fixture remains byte-unchanged and explicitly lacks `profile_id` / `profile_version` metadata.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p race_to_n`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `git diff --quiet -- games/race_to_n/tests/golden_traces/shortest-normal.trace.json`
+- `bash scripts/boundary-check.sh`
+- `cargo test --workspace`

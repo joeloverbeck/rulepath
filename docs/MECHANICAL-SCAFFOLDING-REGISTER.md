@@ -363,8 +363,10 @@ mechanical scaffolding.
   adapter handoff after metadata acceptance only, positive and negative driver
   tests for all five profiles, strict unknown/wrong-profile rejection,
   canonical-byte-authority `none` handling, and no production dependency edge.
+  UNI8CMECSCA-023 adopted `ReplayCommandV1Driver` in Race to N against the
+  legacy `shortest-normal` fixture without changing fixture bytes.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-023 through UNI8CMECSCA-027 pilot artifact
+- Next review trigger: UNI8CMECSCA-024 through UNI8CMECSCA-027 pilot artifact
   validations and CLI tool output.
 
 ### MSC-8C-009 - Versioned bounded-index sampling
