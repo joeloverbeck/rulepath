@@ -1,6 +1,6 @@
 # UNI8CMECSCA-022: Implement five profile drivers in `game-test-support::profiles`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/game-test-support/src/profiles.rs` (new), `crates/game-test-support/src/lib.rs`
@@ -80,3 +80,18 @@ Positive + negative conformance per driver (wrong ID/version, missing visibility
 1. `cargo test -p game-test-support`
 2. `bash scripts/boundary-check.sh`
 3. The `game-test-support` unit suite is the correct boundary — game/tool adoption follows in UNI8CMECSCA-023…027.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Implemented `game-test-support::profiles` with five distinct typed drivers: `ReplayCommandV1Driver`, `PublicExportV1Driver`, `SeatPrivateExportV1Driver`, `SetupEvidenceV1Driver`, and `DomainEvidenceV1Driver`. The drivers share metadata validation but keep separate profile ids, visibility rules, and field allowlists; they reject wrong profile/version, missing visibility, mismatched validator owner, illegal canonical-byte claims, missing migration notes, unknown fields, and cross-profile field misuse. Adapter handoff only occurs after metadata validation succeeds, so setup, replay, projection, import/export, scoring, and domain behavior remain caller-owned.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p game-test-support`
+- `cargo build --workspace`
+- `bash scripts/boundary-check.sh`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `rg -n "selector|formula|trigger|procedure" crates/game-test-support/src/profiles.rs` (no matches)

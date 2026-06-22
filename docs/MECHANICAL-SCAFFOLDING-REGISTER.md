@@ -327,7 +327,7 @@ mechanical scaffolding.
 
 ### MSC-8C-008 - Evidence-profile drivers
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-08.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-08.
 - Candidate: separate drivers for `replay-command-v1`, `public-export-v1`,
   `seat-private-export-v1`, `setup-evidence-v1`, and `domain-evidence-v1` with
   common metadata checks.
@@ -358,12 +358,14 @@ mechanical scaffolding.
 - Migration set: Race replay-command, River setup-evidence, Vow public and
   seat-private export, Briar domain evidence, plus thin `fixture-check` and
   `replay-check` dispatch if required.
-- Acceptance evidence: positive and negative driver tests for all five
-  profiles, strict unknown/wrong-profile rejection, pilot artifact validations,
-  CLI tool output, no behavior-looking fixture keys becoming executable, and no
-  production dependency edge.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-022 through UNI8CMECSCA-027 evidence.
+- Acceptance evidence: UNI8CMECSCA-022 implemented five distinct
+  `game-test-support::profiles` driver types, shared metadata validation,
+  adapter handoff after metadata acceptance only, positive and negative driver
+  tests for all five profiles, strict unknown/wrong-profile rejection,
+  canonical-byte-authority `none` handling, and no production dependency edge.
+- Rejection rationale: not applicable.
+- Next review trigger: UNI8CMECSCA-023 through UNI8CMECSCA-027 pilot artifact
+  validations and CLI tool output.
 
 ### MSC-8C-009 - Versioned bounded-index sampling
 
