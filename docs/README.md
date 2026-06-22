@@ -37,7 +37,7 @@ used to supersede foundation documents unless maintainers later mark them
 | [0002](adr/0002-ci-benchmark-gating-lanes.md) | Accepted | CI benchmark gating lanes |
 | [0003](adr/0003-ci-calibrated-benchmark-thresholds.md) | Accepted | CI-calibrated benchmark thresholds |
 | [0004](adr/0004-hidden-info-replay-export-taxonomy.md) | Accepted | Hidden-information replay/export visibility taxonomy |
-| [0005](adr/0005-variance-aware-ci-benchmark-floors.md) | Proposed | Variance-aware CI benchmark floors |
+| [0005](adr/0005-variance-aware-ci-benchmark-floors.md) | Accepted | Variance-aware CI benchmark floors |
 | [0006](adr/0006-blackjack-lite-roadmap-placement.md) | Accepted | Blackjack Lite roadmap placement |
 | [0007](adr/0007-next-public-scaling-phase-and-gate-p-tail.md) | Accepted | Next public scaling phase and Gate P tail placement |
 

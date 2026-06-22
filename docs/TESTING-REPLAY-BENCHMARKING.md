@@ -389,12 +389,13 @@ does not weaken any threshold value.
 
 Per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md), the committed
 `thresholds.json` value is the enforced floor for the CI runner that executes the
-scheduled / manual / `main`-push gate. Faster native workstation baselines and
-native targets MUST remain documented in each game's `BENCHMARKS.md`; lowering a
-CI floor without preserving that native evidence still hides performance and
-violates this doctrine. [ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md)
-proposes a variance-aware calibration rule, but it remains Proposed and is not
-binding doctrine unless accepted.
+scheduled / manual / `main`-push gate. Per
+[ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md), CI floors calibrated
+from repeated runner evidence are variance-aware: at least 15% below the minimum
+representative `ubuntu-latest` measurement. Faster native workstation baselines
+and native targets MUST remain documented in each game's `BENCHMARKS.md`;
+lowering a CI floor without preserving that native evidence still hides
+performance and violates this doctrine.
 
 ## 16. Benchmark report contents
 
@@ -447,10 +448,10 @@ Gate 2 benchmark-report threshold checks MUST hard-fail the scheduled / manual /
 `main`-push benchmark lane when required thresholds fail. Pull requests run a
 non-gating benchmark smoke instead; the lane split is defined in
 [ADR 0002](adr/0002-ci-benchmark-gating-lanes.md). The enforced thresholds are
-CI-runner floors per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md).
-[ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md) is Proposed; apply it
-only if maintainers accept it. Native targets such as the accepted Stage 1
-`race_to_n` target in
+CI-runner floors per [ADR 0003](adr/0003-ci-calibrated-benchmark-thresholds.md)
+and variance-aware per
+[ADR 0005](adr/0005-variance-aware-ci-benchmark-floors.md). Native targets such
+as the accepted Stage 1 `race_to_n` target in
 [ADR 0001](adr/0001-stage-1-random-playout-budget.md) remain documented in the
 game benchmark notes.
 

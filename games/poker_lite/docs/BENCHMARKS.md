@@ -35,9 +35,9 @@ lacks stable repeated measurements for Crest Ledger on benchmark runners.
 
 Follow-up calibration: collect repeated Gate 2 CI measurements after
 `poker_lite` is registered in the tool lanes, document the runner environment,
-and tighten thresholds under ADR-0002 and ADR-0003 benchmark-gating semantics.
-ADR-0005 remains proposed, so this document and the threshold manifest do not
-depend on it being accepted.
+and tighten thresholds under ADR-0002, ADR-0003, and accepted ADR-0005
+benchmark-gating semantics. This document and the threshold manifest remain
+provisional until those repeated measurements exist.
 
 ## Verification Commands
 

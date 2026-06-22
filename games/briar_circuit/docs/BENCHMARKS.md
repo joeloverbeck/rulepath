@@ -39,11 +39,11 @@ remaining hand only through validated legal pass/play commands.
 
 Thresholds in [thresholds.json](../benches/thresholds.json) are provisional
 native smoke floors under accepted ADR 0002 and ADR 0003 benchmark policy until
-repeated CI-runner baselines are available. ADR 0005 remains Proposed in the
-live foundation docs and is not claimed as binding doctrine here. Calibration
-may replace a provisional floor only from measured evidence, and may not remove
-an operation, bypass visibility filtering, weaken outcome explanation detail, or
-introduce lookup/search shortcuts.
+repeated CI-runner baselines are available. Accepted ADR 0005 governs
+variance-aware CI-floor calibration once repeated runner measurements are
+available. Calibration may replace a provisional floor only from measured
+evidence, and may not remove an operation, bypass visibility filtering, weaken
+outcome explanation detail, or introduce lookup/search shortcuts.
 
 ## Native Evidence
 

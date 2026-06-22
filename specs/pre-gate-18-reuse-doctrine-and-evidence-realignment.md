@@ -373,9 +373,10 @@ Do not:
   `MECHANIC-ATLAS.md` §§4–8 (behavioral gate), `ENGINE-GAME-DATA-BOUNDARY.md` §13,
   `UI-INTERACTION.md` §10A + the "official-game count above 20" trigger (line 227),
   ADR 0004 (`Accepted`, governs the no-leak taxonomy ADR 0009 must preserve),
-  ADR 0005 (`Proposed`; binding MUST/MUST-NOT prose still present despite the
-  Phase-0 non-binding note — so D8's "remove binding-sounding prose if non-accepted"
-  is live), `TRACE-SCHEMA-v1.md` (self-describes as "canonical trace **and replay
+  ADR 0005 (was `Proposed` with binding MUST/MUST-NOT prose at reassessment;
+  [`PREGAT18REUDOC-003`](../archive/tickets/PREGAT18REUDOC-003.md) accepts it
+  with wording/reference fixes), `TRACE-SCHEMA-v1.md`
+  (self-describes as "canonical trace **and replay
   fixture** schema" — broader than the command/replay contract, no superseded
   marker yet), and several `ADR-TEMPLATE.md` fields (see D7). **Already done /
   do not recreate:** the `specs/README.md` Part C (`8C`) seed and Gate 18 interlock

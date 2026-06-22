@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-003: Dispose ADR 0005 (accept / reject / supersede)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/adr/0005-variance-aware-ci-benchmark-floors.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/README.md`)
@@ -81,3 +81,32 @@ Update `TESTING-REPLAY-BENCHMARKING.md` references and the `docs/README.md` ADR 
 1. `grep -nE "^Status:|MUST" docs/adr/0005-variance-aware-ci-benchmark-floors.md`
 2. `node scripts/check-doc-links.mjs && git diff --stat -- games/*/benches`
 3. The grep + `git diff` pair is the correct boundary: it proves the disposition landed and that no benchmark byte drifted.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Accepted ADR 0005 with wording fixes after reviewing the shipped BENCICAL-003
+and BENCICAL-004 evidence: the variance-aware floors were already applied from
+representative CI runs `27101213584`, `27111487150`, and `27114668009`, and the
+testing doctrine had already been updated to describe that rule. Updated the ADR
+status, `docs/README.md` ADR status index, and
+`docs/TESTING-REPLAY-BENCHMARKING.md` references accordingly.
+
+Deviations: repaired stale "ADR 0005 is proposed / not accepted" wording in
+benchmark notes for `river_ledger`, `briar_circuit`, `poker_lite`, and
+`plain_tricks`, and amended the active pre-Gate-18 spec reassessment note so it
+records the original finding plus this ticket's accepted disposition. No
+benchmark threshold files were edited.
+
+Verification:
+
+- `grep -nE "^Status:|MUST" docs/adr/0005-variance-aware-ci-benchmark-floors.md`
+  showed `Status: Accepted`; retained MUST/MUST-NOT prose is now binding because
+  the ADR is accepted.
+- `grep -niE "ADR 0005" docs/TESTING-REPLAY-BENCHMARKING.md docs/README.md`
+  showed the accepted status and accepted variance-aware calibration references.
+- `rg -n "remains proposed|remains Proposed|not accepted|not binding|Proposed ADR 0005|ADR-0005 remains|ADR 0005 remains" docs games templates specs`
+  found no ADR 0005 status contradictions.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
+- `git diff --stat -- games/*/benches` was empty.
