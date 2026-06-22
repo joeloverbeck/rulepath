@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-012: Author templates/GAME-EVIDENCE.md + completion profiles in templates/README.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — docs-only (new `templates/GAME-EVIDENCE.md`, `templates/README.md`)
@@ -76,3 +76,35 @@ Add the completion-profile system + lifecycle, with explicit not-applicable reas
 1. `grep -niE "completion profile|viewer matrix|benchmark workload|bot level|scaffolding register" templates/GAME-EVIDENCE.md`
 2. `node scripts/check-doc-links.mjs`
 3. The field grep + link check is the correct boundary; the checker that consumes these fields is deferred (A5).
+
+## Outcome
+
+Completed: 2026-06-22
+
+Created `templates/GAME-EVIDENCE.md` as a status/rationale/artifact-link
+receipt for official-game conformance. It records versions, completion profile,
+supported seats and variants, source/IP receipt, rule-coverage summary, named
+evidence fixture profiles, public and per-seat viewer matrix, replay/hash
+compatibility, benchmark workload IDs, bot levels/policy IDs, mechanic and
+mechanical-scaffolding decisions, release state, blockers, and exact artifact
+links. The receipt explicitly forbids duplicated domain prose, hidden
+information, rule data, and procedural behavior.
+
+Updated `templates/README.md` with a completion-profile system, lifecycle
+placement for `GAME-EVIDENCE.md`, a template-index row, and usage rules requiring
+explicit `not applicable: <rationale>` entries. The README states that
+completion profiles never waive `docs/FOUNDATIONS.md` §11 invariants or §12 stop
+conditions.
+
+Verification:
+
+- `test -f templates/GAME-EVIDENCE.md` passed.
+- `grep -niE "completion profile|viewer matrix|artifact link" templates/GAME-EVIDENCE.md`
+  returned the receipt field set.
+- `grep -niE "completion profile|not.applicable" templates/README.md` returned
+  the completion-profile and not-applicable guidance.
+- `grep -niE "completion profile|viewer matrix|benchmark workload|bot level|scaffolding register|source and ip|rule-coverage|named trace profiles|replay and hash|release state|artifact links" templates/GAME-EVIDENCE.md`
+  returned the expected D5 field groups.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: none; the future machine checker remains deferred as planned.

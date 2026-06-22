@@ -28,6 +28,29 @@ Every official game MUST complete the relevant templates in full. Tiny games, in
 
 A filled template may be stored under the game directory using the repository's per-game naming convention. Keep the template intent intact even if the filled file is named `RULES.md`, `SOURCES.md`, or similar.
 
+## Completion profiles
+
+Every official game MUST maintain `GAME-EVIDENCE.md` as the status and
+artifact-link receipt for its current completion profile. A completion profile
+selects which evidence surfaces are applicable for a game stage; it does not
+waive any invariant in `docs/FOUNDATIONS.md` §11 or any stop condition in §12.
+
+Use these profile labels unless a spec defines a narrower gate-specific label:
+
+| Completion profile | Use when | Required not applicable rationale |
+|---|---|---|
+| `full` | The game is intended to satisfy the complete official-game contract. | Any unsupported variant, bot, benchmark, visibility, or release surface. |
+| `minimal-perfect-information` | The game is perfect-information and has no seat-private state. | Hidden-information, pairwise no-leak, and seat-private export rows must explain why they are not applicable. |
+| `hidden-information` | Any game state, action, effect, diagnostic, bot evidence, or replay/export surface is viewer-scoped or seat-private. | Public observer, each seat, and every private-data surface must have evidence or a blocker. |
+| `n-seat` | The game supports more than two seats, teams, partnerships, coalitions, asymmetric roles, or multiple viewer classes. | Every omitted seat-range, viewer matrix, outcome, UI, replay/export, and no-leak row needs a reason. |
+| `release-candidate` | A game is being prepared for public linking, hosting, tagging, screenshotting, or demo video capture. | Any pending human/legal review, public artifact inspection, or release checklist row must name the owner/blocker. |
+| `intentionally-deferred` | A bounded spec or gate explicitly defers completion of a surface. | Link the deferring ticket/spec and state what must happen before public release or the next gate. |
+
+Profile rows use explicit `not applicable: <rationale>` text. Do not leave
+blank rows, and do not use a profile to bypass Rust authority, viewer safety,
+deterministic replay/hash expectations, IP conservatism, bot limits, or
+official-game evidence requirements.
+
 ## N-seat adoption note
 
 Every game with more than two seats MUST fill the seat-range, turn-order, view matrix, pairwise no-leak matrix, outcome matrix, and surface-scale fields across the relevant templates. This includes `GAME-RULES.md`, `GAME-RULE-COVERAGE.md`, `GAME-MECHANICS.md`, `GAME-IMPLEMENTATION-ADMISSION.md`, `GAME-UI.md`, `GAME-BENCHMARKS.md`, `GAME-AI.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, `COMPETENT-PLAYER.md`, `PUBLIC-RELEASE-CHECKLIST.md`, `PRIMITIVE-PRESSURE-LEDGER.md`, and `AGENT-TASK.md`.
@@ -42,14 +65,15 @@ Two-seat games SHOULD still state their seat model explicitly and may use clear 
 4. `GAME-MECHANICS.md`
 5. `GAME-IMPLEMENTATION-ADMISSION.md`
 6. `AGENT-TASK.md` for bounded work
-7. `GAME-HOW-TO-PLAY.md`
-8. `COMPETENT-PLAYER.md` when strategy matters
-9. `BOT-STRATEGY-EVIDENCE-PACK.md` before Level 2 bot coding
-10. `GAME-AI.md`
-11. `GAME-UI.md`
-12. `GAME-BENCHMARKS.md`
-13. `PRIMITIVE-PRESSURE-LEDGER.md` when repeated shape pressure exists
-14. `PUBLIC-RELEASE-CHECKLIST.md` before public release
+7. `GAME-EVIDENCE.md` initialized with the current completion profile
+8. `GAME-HOW-TO-PLAY.md`
+9. `COMPETENT-PLAYER.md` when strategy matters
+10. `BOT-STRATEGY-EVIDENCE-PACK.md` before Level 2 bot coding
+11. `GAME-AI.md`
+12. `GAME-UI.md`
+13. `GAME-BENCHMARKS.md`
+14. `PRIMITIVE-PRESSURE-LEDGER.md` when repeated shape pressure exists
+15. `PUBLIC-RELEASE-CHECKLIST.md` before public release
 
 This order is requirements-first. Do not start serious implementation because a UI sketch is tempting. Public polish wins over speculative engine research, but public polish must sit on Rust rule authority, deterministic replay, coverage, and IP-safe content.
 
@@ -63,6 +87,7 @@ This order is requirements-first. Do not start serious implementation because a 
 | `GAME-MECHANICS.md` | Per-game mechanic inventory and primitive-pressure review. | Every official game before implementation admission and whenever mechanics change. | `docs/MECHANIC-ATLAS.md`, `docs/ENGINE-GAME-DATA-BOUNDARY.md` |
 | `GAME-IMPLEMENTATION-ADMISSION.md` | Short gate receipt proving prerequisites are ready before serious coding. | Before serious implementation work starts for an official game. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/ROADMAP.md` |
 | `AGENT-TASK.md` | Universal bounded task packet for agents and humans. | Any bounded implementation, testing, docs, refactor, UI, bot, benchmark, or release-prep task. | `docs/AGENT-DISCIPLINE.md` |
+| `GAME-EVIDENCE.md` | Machine-friendly status and artifact-link receipt for completion profile, viewer matrix, trace profiles, replay/hash, benchmark, bot, mechanic, scaffolding, release, blocker, and artifact-link evidence. | Every official game; initialize at implementation admission and update whenever evidence changes. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/EVIDENCE-FIXTURE-CONTRACT.md` |
 | `GAME-HOW-TO-PLAY.md` | Player-facing rules prose rendered by the shared web How to Play / Rules surface. Distinct from formal `GAME-RULES.md` and strategy-oriented `COMPETENT-PLAYER.md`. | Every official catalog game. | `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/UI-INTERACTION.md`, `docs/IP-POLICY.md` |
 | `COMPETENT-PLAYER.md` | Human/LLM-authored strategy analysis checked against rules. | When a game needs a competent bot or strategy-sensitive public UX. | `docs/AI-BOTS.md`, `docs/OFFICIAL-GAME-CONTRACT.md` |
 | `BOT-STRATEGY-EVIDENCE-PACK.md` | Formal Level 2 authored-policy design input. | Before coding any Level 2 bot. | `docs/AI-BOTS.md`, `docs/TESTING-REPLAY-BENCHMARKING.md` |
@@ -75,6 +100,11 @@ This order is requirements-first. Do not start serious implementation because a 
 ## Usage rules
 
 - Prefer explicit `not applicable` with rationale over blank sections.
+- Keep `GAME-EVIDENCE.md` as status and artifact links only. Put domain prose,
+  rules text, strategy analysis, UI copy, and behavior details in their owning
+  templates.
+- Completion profiles require explicit not applicable reasons and never waive
+  `docs/FOUNDATIONS.md` §11 invariants or §12 stop conditions.
 - Shared law belongs in the foundation docs. Templates MAY include local acceptance checks; they MUST NOT paste the whole foundation checklist everywhere.
 - Rule IDs are stable requirements. Rename or split them only with a migration note and coverage update.
 - Rust is authoritative for legality, validation, effects, replay, visibility, serialization, and bots.
