@@ -1,6 +1,6 @@
 # UNI8CMECSCA-010: Add `game-stdlib::seat` — `SeatCount` / `SeatCountRange` / ring index
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/game-stdlib/src/seat.rs` (new), `crates/game-stdlib/src/lib.rs`
@@ -75,3 +75,22 @@ Add `pub mod seat;` and re-export the public types.
 1. `cargo test -p game-stdlib`
 2. `cargo build --workspace`
 3. The `game-stdlib` suite is the correct boundary — no game adopts the module until UNI8CMECSCA-011.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added `game_stdlib::seat` with `SeatCount`, `SeatCountRange`, and structural error enums for count, range, and index validation.
+- Added nonzero count construction, inclusive range validation, checked index validation, and `next_ring_index` wraparound.
+- Re-exported the seat-count types from `game-stdlib`.
+- Added inline tests covering valid count ranges, ring wraparound, zero rejection, invalid current index, min/max inversion, and maximum-size ring arithmetic.
+
+Deviations:
+- None. No game adopted the helper in this ticket, and no turn/dealer/pass/partnership policy or generated seat enum was added.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p game-stdlib`
+- `cargo build --workspace`
+- `bash scripts/boundary-check.sh`
