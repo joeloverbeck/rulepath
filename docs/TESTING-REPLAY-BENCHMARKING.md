@@ -40,8 +40,10 @@ Rule tests live in Rust first. UI smoke tests do not replace rule tests.
 
 Golden traces are executable historical evidence. Trace Schema v1 is defined in
 [TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md). That document is the canonical field
-authority for trace JSON and replay fixtures; this section states testing
-doctrine only.
+authority for legacy command/replay trace JSON; broader evidence fixture
+profiles are defined in
+[EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md). This section
+states testing doctrine only.
 
 Trace Schema v1 includes:
 
@@ -82,6 +84,51 @@ checks, migration/update-note enforcement, and fixture hygiene. `replay-check`
 owns executing trace setup/options/commands through the game's Rust behavior and
 comparing replay surfaces against expected hashes. `trace-viewer` is a
 viewer-safe triage aid for humans; it is not rule authority.
+
+## 3A. Shared test-support law
+
+Shared test-support code is allowed only when it is behavior-free scaffolding
+under ADR 0008 and the mechanical scaffolding register. It may build fixtures,
+drive no-leak matrices, compare replay/profile surfaces, or reduce duplicated
+test setup. It MUST NOT decide setup legality, rule legality, scoring,
+projection/redaction policy, bot choices, or effect meaning.
+
+Production crates and browser/WASM surfaces MUST NOT depend on dev-only
+test-support crates. Test-support helpers that touch hidden information may use
+internal-dev evidence only inside native tests or explicit no-leak harnesses;
+they must not emit hidden facts into browser payloads, DOM, logs, public replay
+exports, bot explanations, candidate rankings, or public CI artifacts.
+
+## 3B. Fixture profiles and hash-migration protocol
+
+Evidence fixture profiles are defined by
+[EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md):
+
+| Fixture profile | Primary validator | Visibility posture |
+|---|---|---|
+| `replay-command-v1` | `fixture-check` plus `replay-check` | internal-dev by default; public only for safe perfect-information command evidence |
+| `public-export-v1` | Rust/WASM export/import smoke plus no-leak checks | public observer only |
+| `seat-private-export-v1` | Rust/WASM export/import smoke plus pairwise no-leak checks | exactly one labelled seat viewer |
+| `setup-evidence-v1` | fixture/static-data validators plus game setup validators | public unless explicitly viewer-scoped, seat-private, or internal-dev |
+| `domain-evidence-v1` | named game-local validator or fixture-check extension | explicit per artifact |
+
+The filename suffix is not authority. Profile id, visibility class, version
+anchors, and validator owner decide how an artifact is checked.
+
+Hash-migration protocol:
+
+1. Name the affected surface: state, effect, action-tree, public-view,
+   seat-private-view, public-export, seat-private-export, or game-local domain.
+2. State whether canonical bytes are preserved, intentionally migrated, or not
+   defined for that profile.
+3. Record the profile id, profile version, rules/data version, and hash-surface
+   version.
+4. Add a non-empty migration/update note explaining why the old expected surface
+   is no longer valid.
+5. Run the validator that owns the profile and the replay/no-leak checks that
+   cover the affected visibility surface.
+6. Do not regenerate traces, exports, fixtures, or hashes in bulk. Migration is
+   allowed only for named artifacts and named surfaces.
 
 ## 4. Replay determinism
 

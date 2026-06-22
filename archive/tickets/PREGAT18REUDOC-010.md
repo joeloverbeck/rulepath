@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-010: TESTING test-support law + fixture profiles + hash-migration protocol; narrow TRACE-SCHEMA-v1
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/TRACE-SCHEMA-v1.md`)
@@ -77,3 +77,32 @@ Narrow its scope statement to the command/replay contract (or mark it superseded
 1. `grep -niE "test-support|fixture profile|hash.migration|superseded" docs/TESTING-REPLAY-BENCHMARKING.md docs/TRACE-SCHEMA-v1.md`
 2. `node scripts/check-doc-links.mjs && git diff --stat -- '**/*.trace.json'`
 3. The grep + no-byte-drift `git diff` is the correct boundary: prose narrowing without trace/hash migration.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Updated `docs/TESTING-REPLAY-BENCHMARKING.md` with shared test-support law,
+named fixture profiles from `docs/EVIDENCE-FIXTURE-CONTRACT.md`, and a
+hash-migration protocol that requires named surfaces, version anchors, migration
+notes, owning validators, and no bulk trace/hash regeneration.
+
+Narrowed `docs/TRACE-SCHEMA-v1.md` to legacy command/replay trace evidence and
+pointed setup/domain evidence fixtures plus public/seat-private exports to
+`docs/EVIDENCE-FIXTURE-CONTRACT.md` under ADR 0009. The root field table and
+schema field names were not changed.
+
+Deviations: none.
+
+Verification:
+
+- `grep -niE "test-support|fixture profile|hash.migration" docs/TESTING-REPLAY-BENCHMARKING.md`
+  returned the new sections.
+- `grep -niE "command/replay|superseded|EVIDENCE-FIXTURE-CONTRACT" docs/TRACE-SCHEMA-v1.md`
+  returned the narrowed status/scope and fixture-contract pointer.
+- `grep -nE "^Status: Accepted" docs/adr/0009-replay-fixture-hash-taxonomy.md`
+  confirmed the governing ADR is accepted.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --stat -- '**/*.trace.json'` was empty.
+- Manual diff review confirmed `TRACE-SCHEMA-v1.md` changes were prose-only
+  before the existing field table.

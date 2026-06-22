@@ -1,12 +1,24 @@
 # Rulepath Trace Schema v1
 
-Status: canonical trace and replay fixture schema for Gate 2.
+Status: legacy command/replay trace schema for Gate 2.
 
-Trace Schema v1 defines the JSON shape for golden traces and replay fixtures. A trace is typed evidence for deterministic replay, hash drift detection, diagnostics, visibility surfaces, and benchmark or simulation reproduction. A trace is never rule behavior.
+Trace Schema v1 defines the JSON shape for legacy command/replay golden traces.
+A trace is typed evidence for deterministic replay, hash drift detection,
+diagnostics, visibility surfaces, and benchmark or simulation reproduction. A
+trace is never rule behavior.
+
+Setup evidence fixtures, domain evidence fixtures, public replay exports, and
+seat-private replay exports are classified by
+[EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md) under ADR 0009.
+Trace Schema v1 remains valid for existing command/replay evidence until a named
+migration changes it.
 
 Rust game code remains the behavior authority. Static trace files may record setup data, command evidence, expected hashes, expected diagnostics, expected outcomes, migration notes, and not-applicable rationale. They MUST NOT contain selectors, rule branches, procedural instructions, or any other DSL-like behavior.
 
-Legacy key-value `.trace` files may be imported only as temporary migration inputs. After Gate 2, CI golden traces use Trace Schema v1 JSON. Any retained legacy fixture must be explicitly marked as migration-only and checked by `fixture-check`.
+Legacy key-value `.trace` files may be imported only as temporary migration
+inputs. After Gate 2, CI golden command/replay traces use Trace Schema v1 JSON.
+Any retained legacy fixture must be explicitly marked as migration-only and
+checked by `fixture-check`.
 
 ## 1. File Contract
 
