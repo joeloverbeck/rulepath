@@ -2,13 +2,16 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, EffectCursor, EffectLog, FreshnessToken, RulesVersion,
     SeatId, Seed, Viewer, VisibilityScope,
 };
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use high_card_duel::{
     apply_action, cards_revealed_effect, commit_face_down_effect, commit_segment,
-    deal_private_card_effect, hand_count_changed_effect, own_commit_confirmed_effect,
+    deal_private_card_effect, export_public_observer_replay, generate_internal_full_trace,
+    hand_count_changed_effect, legal_action_tree, own_commit_confirmed_effect,
     private_diagnostic_effect, project_view, public_diagnostic_effect, refill_started_effect,
     round_scored_effect, setup_match, terminal_effect, validate_command, CardId,
-    HighCardDuelEffect, HighCardDuelSeat, OutcomeRationaleView, Phase, PrivateView,
-    RoundOutcomeBreakdownView, Score, SetupOptions, Sigil, TerminalOutcome, TerminalView,
+    HighCardDuelEffect, HighCardDuelRandomBot, HighCardDuelSeat, OutcomeRationaleView, Phase,
+    PrivateView, RoundOutcomeBreakdownView, Score, SetupOptions, Sigil, TerminalOutcome,
+    TerminalView,
 };
 
 fn seat_id(index: u8) -> SeatId {
@@ -46,6 +49,228 @@ fn apply_card(state: &mut high_card_duel::HighCardDuelState, actor_index: u8, ca
     let command = command(actor_index, card, state.freshness_token);
     let action = validate_command(state, &command).expect("command validates");
     apply_action(state, action);
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl MatrixViewer {
+    fn as_viewer(self) -> Viewer {
+        match self {
+            MatrixViewer::Observer => viewer(None),
+            MatrixViewer::Seat0 => viewer(Some(0)),
+            MatrixViewer::Seat1 => viewer(Some(1)),
+        }
+    }
+
+    fn seat(self) -> Option<HighCardDuelSeat> {
+        match self {
+            MatrixViewer::Observer => None,
+            MatrixViewer::Seat0 => Some(HighCardDuelSeat::Seat0),
+            MatrixViewer::Seat1 => Some(HighCardDuelSeat::Seat1),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixSurface {
+    View,
+    ActionTree,
+    Diagnostic,
+    Effect,
+    ReplayExport,
+    BotInput,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum CanaryId {
+    Hand,
+    ExportHiddenTail,
+}
+
+fn matrix_viewers() -> Vec<MatrixViewer> {
+    vec![
+        MatrixViewer::Observer,
+        MatrixViewer::Seat0,
+        MatrixViewer::Seat1,
+    ]
+}
+
+fn matrix_surfaces() -> Vec<MatrixSurface> {
+    vec![
+        MatrixSurface::View,
+        MatrixSurface::ActionTree,
+        MatrixSurface::Diagnostic,
+        MatrixSurface::Effect,
+        MatrixSurface::ReplayExport,
+        MatrixSurface::BotInput,
+    ]
+}
+
+fn source_index(source: HighCardDuelSeat) -> u8 {
+    match source {
+        HighCardDuelSeat::Seat0 => 0,
+        HighCardDuelSeat::Seat1 => 1,
+    }
+}
+
+fn no_leak_probes() -> Vec<LeakProbe<HighCardDuelSeat, CanaryId, String>> {
+    let state = setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let trace = generate_internal_full_trace(7);
+    let replay = high_card_duel::replay_internal_full_trace(&trace);
+    let hidden_tail = replay
+        .final_state
+        .deck
+        .first()
+        .copied()
+        .expect("full trace leaves an unrevealed deck tail card");
+
+    vec![
+        LeakProbe {
+            source_seat: HighCardDuelSeat::Seat0,
+            canary_id: CanaryId::Hand,
+            canary: state.hand_for(HighCardDuelSeat::Seat0)[0].stable_id(),
+        },
+        LeakProbe {
+            source_seat: HighCardDuelSeat::Seat1,
+            canary_id: CanaryId::Hand,
+            canary: state.hand_for(HighCardDuelSeat::Seat1)[0].stable_id(),
+        },
+        LeakProbe {
+            source_seat: HighCardDuelSeat::Seat0,
+            canary_id: CanaryId::ExportHiddenTail,
+            canary: hidden_tail.stable_id(),
+        },
+    ]
+}
+
+fn no_leak_snapshot(viewer: &MatrixViewer, surface: &MatrixSurface) -> String {
+    match surface {
+        MatrixSurface::View => {
+            let state =
+                setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+            project_view(&state, &viewer.as_viewer()).stable_summary()
+        }
+        MatrixSurface::ActionTree => {
+            let mut state =
+                setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+            if let Some(seat) = viewer.seat() {
+                state.lead_seat = seat;
+            }
+            let actor = Actor {
+                seat_id: viewer.seat().map_or_else(
+                    || SeatId("observer".to_owned()),
+                    |seat| seat_id(source_index(seat)),
+                ),
+            };
+            format!("{:?}", legal_action_tree(&state, &actor))
+        }
+        MatrixSurface::Diagnostic => {
+            let state =
+                setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+            let bad_command = CommandEnvelope {
+                actor: Actor {
+                    seat_id: seat_id(1),
+                },
+                action_path: ActionPath {
+                    segments: vec![commit_segment(state.hand_for(HighCardDuelSeat::Seat1)[0])],
+                },
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(1),
+            };
+            format!("{:?}", validate_command(&state, &bad_command))
+        }
+        MatrixSurface::Effect => {
+            let state =
+                setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+            let mut log = EffectLog::new();
+            log.push(own_commit_confirmed_effect(
+                HighCardDuelSeat::Seat0,
+                seat_id(0),
+                state.hand_for(HighCardDuelSeat::Seat0)[0],
+                1,
+            ));
+            log.push(own_commit_confirmed_effect(
+                HighCardDuelSeat::Seat1,
+                seat_id(1),
+                state.hand_for(HighCardDuelSeat::Seat1)[0],
+                1,
+            ));
+            log.since(EffectCursor(0), &viewer.as_viewer())
+                .iter()
+                .filter_map(|entry| match &entry.envelope.payload {
+                    HighCardDuelEffect::DealPrivateCard { card, .. }
+                    | HighCardDuelEffect::OwnCommitConfirmed { card, .. } => Some(card.stable_id()),
+                    HighCardDuelEffect::CardsRevealed {
+                        seat_0_card,
+                        seat_1_card,
+                        ..
+                    } => Some(format!(
+                        "{}:{}",
+                        seat_0_card.stable_id(),
+                        seat_1_card.stable_id()
+                    )),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("|")
+        }
+        MatrixSurface::ReplayExport => {
+            let trace = generate_internal_full_trace(7);
+            export_public_observer_replay(&trace).to_json()
+        }
+        MatrixSurface::BotInput => match viewer.seat() {
+            Some(seat) => {
+                let state = setup_match(Seed(7), &seats(), &SetupOptions::default())
+                    .expect("setup succeeds");
+                HighCardDuelRandomBot::input_for(&state, seat).stable_summary()
+            }
+            None => String::new(),
+        },
+    }
+}
+
+fn no_leak_expectation(
+    source: &HighCardDuelSeat,
+    viewer: &MatrixViewer,
+    surface: &MatrixSurface,
+    canary_id: &CanaryId,
+) -> ExposureExpectation {
+    match (surface, canary_id) {
+        (MatrixSurface::ReplayExport, CanaryId::ExportHiddenTail) => {
+            ExposureExpectation::MustBeAbsent
+        }
+        (MatrixSurface::ReplayExport, CanaryId::Hand) => ExposureExpectation::NotApplicable,
+        (_, CanaryId::ExportHiddenTail) => ExposureExpectation::NotApplicable,
+        (MatrixSurface::Diagnostic, CanaryId::Hand) => ExposureExpectation::MustBeAbsent,
+        (MatrixSurface::View, CanaryId::Hand)
+        | (MatrixSurface::ActionTree, CanaryId::Hand)
+        | (MatrixSurface::Effect, CanaryId::Hand)
+        | (MatrixSurface::BotInput, CanaryId::Hand) => {
+            if viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+    }
+}
+
+#[test]
+fn no_leak_harness_covers_public_seat_replay_effect_and_bot_surfaces() {
+    assert_pairwise_no_leak(
+        matrix_viewers(),
+        matrix_surfaces(),
+        no_leak_probes(),
+        no_leak_snapshot,
+        no_leak_expectation,
+        |snapshot, canary| snapshot.contains(canary),
+    )
+    .expect("high card duel pairwise no-leak matrix passes");
 }
 
 #[test]

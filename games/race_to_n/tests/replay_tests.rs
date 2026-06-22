@@ -1,5 +1,25 @@
 use engine_core::HashValue;
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use race_to_n::replay_support::{replay_bot_action, replay_commands, replay_invalid};
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -175,7 +195,22 @@ fn parse_first_array_string(input: &str) -> String {
     parse_string_at(input, 0).expect("array must contain a string path segment")
 }
 
-fn assert_fixture(fixture: TraceFixture) {
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "race_to_n::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
+    }
+}
+
+fn assert_fixture(fixture: &TraceFixture) {
     assert!(!fixture.note.is_empty(), "{} has a trace note", fixture.id);
     assert!(
         !fixture.migration_update_note.is_empty(),
@@ -240,6 +275,20 @@ fn assert_fixture(fixture: TraceFixture) {
 }
 
 #[test]
+fn replay_command_v1_driver_replays_shortest_normal_fixture() {
+    let fixture_json = include_str!("golden_traces/shortest-normal.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    let fixture = parse_trace_schema_v1_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| assert_fixture(&fixture))
+        .expect("replay-command-v1 driver accepts shortest-normal profile");
+}
+
+#[test]
 fn replay_reproduces_hashes_for_same_inputs() {
     let commands = vec!["add-3".to_owned(), "add-2".to_owned(), "add-1".to_owned()];
     let left = replay_commands(99, &commands);
@@ -256,7 +305,7 @@ fn golden_traces_match_expected_hashes() {
         include_str!("golden_traces/bot-action.trace.json"),
         include_str!("golden_traces/invalid-stale-diagnostic.trace.json"),
     ] {
-        assert_fixture(parse_trace_schema_v1_fixture(fixture));
+        assert_fixture(&parse_trace_schema_v1_fixture(fixture));
     }
 }
 

@@ -1,6 +1,7 @@
 use engine_core::{
-    ActionNode, ActionPath, ActionPreview, ActionTree, Actor, CommandEnvelope, Diagnostic,
-    EffectEnvelope, HashValue, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
+    ActionNode, ActionPath, ActionPreview, ActionTree, ActionTreeEncodingVersion, Actor,
+    CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
+    StableSerialize, Viewer,
 };
 
 use crate::{
@@ -323,7 +324,19 @@ pub fn effect_stable_string(effect: &EffectEnvelope<DraughtsLiteEffect>) -> Stri
 }
 
 pub fn action_tree_hash(tree: &ActionTree) -> HashValue {
-    HashValue::from_stable_bytes(encode_action_node(&tree.root).as_bytes())
+    HashValue::from_stable_bytes(action_tree_legacy_bytes(tree).as_bytes())
+}
+
+pub fn action_tree_legacy_bytes(tree: &ActionTree) -> String {
+    encode_action_node(&tree.root)
+}
+
+pub fn action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    tree.stable_bytes(ActionTreeEncodingVersion::V1)
+}
+
+pub fn action_tree_v1_hash(tree: &ActionTree) -> HashValue {
+    tree.stable_hash(ActionTreeEncodingVersion::V1)
 }
 
 pub fn diagnostic_hash(diagnostics: &[Diagnostic]) -> HashValue {

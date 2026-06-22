@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::{ids::RaceSeat, state::CounterValue};
 
@@ -26,8 +26,5 @@ pub enum RaceEffect {
 }
 
 pub fn public_effect(payload: RaceEffect) -> EffectEnvelope<RaceEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }

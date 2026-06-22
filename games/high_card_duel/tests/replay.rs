@@ -98,6 +98,25 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_bot_and_no_leak_surfac
     }
 }
 
+#[test]
+fn characterization_public_and_seat_private_artifacts_are_pinned() {
+    let public_export_trace = include_str!("golden_traces/public-replay-export-import.trace.json");
+    let seat_private_trace = include_str!("golden_traces/seat-private-view.trace.json");
+    let trace = generate_internal_full_trace(9);
+    let public_export = export_public_observer_replay(&trace);
+
+    assert_eq!(
+        HashValue::from_stable_bytes(public_export_trace.as_bytes()),
+        HashValue(3518406067041173473)
+    );
+    assert_eq!(
+        HashValue::from_stable_bytes(seat_private_trace.as_bytes()),
+        HashValue(15303656505157591945)
+    );
+    assert_eq!(public_export.stable_hash(), HashValue(11079559833511455730));
+    assert_eq!(public_export.viewer, "observer");
+}
+
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {
     assert_eq!(number_field(input, "schema_version"), 1);
     assert_eq!(string_field(input, "variant"), VARIANT_ID);

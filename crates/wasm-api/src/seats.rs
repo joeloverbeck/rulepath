@@ -22,21 +22,75 @@ use secret_draft::SecretDraftSeat;
 use three_marks::ThreeMarksSeat;
 use token_bazaar::TokenBazaarSeat;
 
+const TWO_SEAT_SYMBOLIC_ALIASES: &[(&str, u32)] = &[("seat-a", 0), ("seat-b", 1)];
+const SIX_SEAT_SYMBOLIC_ALIASES: &[(&str, u32)] = &[
+    ("seat-a", 0),
+    ("seat-b", 1),
+    ("seat-c", 2),
+    ("seat-d", 3),
+    ("seat-e", 4),
+    ("seat-f", 5),
+];
+
+fn unknown_seat(value: &str) -> String {
+    format!(
+        "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
+        escape_json(value)
+    )
+}
+
+fn parse_seat_import(
+    value: &str,
+    seat_count: u32,
+    symbolic_aliases: &[(&str, u32)],
+) -> Result<SeatId, String> {
+    if let Ok(seat_id) = SeatId::parse_canonical(value) {
+        return bounded_canonical_seat(value, seat_id, seat_count);
+    }
+
+    if let Some(suffix) = value.strip_prefix("seat-") {
+        if let Ok(seat_id) = SeatId::parse_canonical(&format!("seat_{suffix}")) {
+            return bounded_canonical_seat(value, seat_id, seat_count);
+        }
+    }
+
+    let mut matches = symbolic_aliases
+        .iter()
+        .filter(|(alias, _)| *alias == value)
+        .map(|(_, index)| *index);
+    match (matches.next(), matches.next()) {
+        (Some(index), None) if index < seat_count => Ok(SeatId::from_zero_based_index(index)),
+        _ => Err(unknown_seat(value)),
+    }
+}
+
+fn bounded_canonical_seat(value: &str, seat_id: SeatId, seat_count: u32) -> Result<SeatId, String> {
+    let index = seat_id
+        .canonical_zero_based_index()
+        .map_err(|_| unknown_seat(value))?;
+    if index < seat_count {
+        Ok(seat_id)
+    } else {
+        Err(unknown_seat(value))
+    }
+}
+
+fn parse_seat_enum<T>(
+    value: &str,
+    seat_count: u32,
+    symbolic_aliases: &[(&str, u32)],
+    parse: impl FnOnce(&str) -> Option<T>,
+) -> Result<T, String> {
+    let seat_id = parse_seat_import(value, seat_count, symbolic_aliases)?;
+    parse(&seat_id.0).ok_or_else(|| unknown_seat(value))
+}
+
 pub(crate) fn parse_race_seat(value: &str) -> Result<RaceSeat, String> {
-    RaceSeat::parse(value).ok_or_else(|| {
-        format!(
-            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-            escape_json(value)
-        )
-    })
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, RaceSeat::parse)
 }
 
 pub(crate) fn parse_replay_race_seat(value: &str) -> Result<RaceSeat, String> {
-    match value {
-        "seat-0" => Ok(RaceSeat::Seat0),
-        "seat-1" => Ok(RaceSeat::Seat1),
-        _ => parse_race_seat(value),
-    }
+    parse_race_seat(value)
 }
 
 pub(crate) fn trace_race_seat(seat: RaceSeat) -> &'static str {
@@ -47,16 +101,7 @@ pub(crate) fn trace_race_seat(seat: RaceSeat) -> &'static str {
 }
 
 pub(crate) fn parse_three_seat(value: &str) -> Result<ThreeMarksSeat, String> {
-    match value {
-        "seat-0" => Ok(ThreeMarksSeat::Seat0),
-        "seat-1" => Ok(ThreeMarksSeat::Seat1),
-        _ => ThreeMarksSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, ThreeMarksSeat::parse)
 }
 
 pub(crate) fn trace_three_seat(seat: ThreeMarksSeat) -> &'static str {
@@ -67,16 +112,7 @@ pub(crate) fn trace_three_seat(seat: ThreeMarksSeat) -> &'static str {
 }
 
 pub(crate) fn parse_column_seat(value: &str) -> Result<ColumnFourSeat, String> {
-    match value {
-        "seat-0" => Ok(ColumnFourSeat::Seat0),
-        "seat-1" => Ok(ColumnFourSeat::Seat1),
-        _ => ColumnFourSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, ColumnFourSeat::parse)
 }
 
 pub(crate) fn trace_column_seat(seat: ColumnFourSeat) -> &'static str {
@@ -87,16 +123,12 @@ pub(crate) fn trace_column_seat(seat: ColumnFourSeat) -> &'static str {
 }
 
 pub(crate) fn parse_directional_seat(value: &str) -> Result<DirectionalFlipSeat, String> {
-    match value {
-        "seat-0" => Ok(DirectionalFlipSeat::Seat0),
-        "seat-1" => Ok(DirectionalFlipSeat::Seat1),
-        _ => DirectionalFlipSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(
+        value,
+        2,
+        TWO_SEAT_SYMBOLIC_ALIASES,
+        DirectionalFlipSeat::parse,
+    )
 }
 
 pub(crate) fn trace_directional_seat(seat: DirectionalFlipSeat) -> &'static str {
@@ -107,16 +139,7 @@ pub(crate) fn trace_directional_seat(seat: DirectionalFlipSeat) -> &'static str 
 }
 
 pub(crate) fn parse_draughts_seat(value: &str) -> Result<DraughtsLiteSeat, String> {
-    match value {
-        "seat-0" => Ok(DraughtsLiteSeat::Seat0),
-        "seat-1" => Ok(DraughtsLiteSeat::Seat1),
-        _ => DraughtsLiteSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, DraughtsLiteSeat::parse)
 }
 
 pub(crate) fn trace_draughts_seat(seat: DraughtsLiteSeat) -> &'static str {
@@ -127,16 +150,7 @@ pub(crate) fn trace_draughts_seat(seat: DraughtsLiteSeat) -> &'static str {
 }
 
 pub(crate) fn parse_high_card_seat(value: &str) -> Result<HighCardDuelSeat, String> {
-    match value {
-        "seat-0" => Ok(HighCardDuelSeat::Seat0),
-        "seat-1" => Ok(HighCardDuelSeat::Seat1),
-        _ => HighCardDuelSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, HighCardDuelSeat::parse)
 }
 
 pub(crate) fn trace_high_card_seat(seat: HighCardDuelSeat) -> &'static str {
@@ -147,16 +161,7 @@ pub(crate) fn trace_high_card_seat(seat: HighCardDuelSeat) -> &'static str {
 }
 
 pub(crate) fn parse_masked_seat(value: &str) -> Result<MaskedClaimsSeat, String> {
-    match value {
-        "seat-0" => Ok(MaskedClaimsSeat::Seat0),
-        "seat-1" => Ok(MaskedClaimsSeat::Seat1),
-        _ => MaskedClaimsSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, MaskedClaimsSeat::parse)
 }
 
 pub(crate) fn trace_masked_seat(seat: MaskedClaimsSeat) -> &'static str {
@@ -164,49 +169,19 @@ pub(crate) fn trace_masked_seat(seat: MaskedClaimsSeat) -> &'static str {
 }
 
 pub(crate) fn parse_flood_seat(value: &str) -> Result<SeatId, String> {
-    match value {
-        "seat-0" | "seat_0" => Ok(SeatId("seat_0".to_owned())),
-        "seat-1" | "seat_1" => Ok(SeatId("seat_1".to_owned())),
-        _ => Err(format!(
-            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-            escape_json(value)
-        )),
-    }
+    parse_seat_import(value, 2, TWO_SEAT_SYMBOLIC_ALIASES)
 }
 
 pub(crate) fn parse_frontier_seat(value: &str) -> Result<SeatId, String> {
-    match value {
-        "seat-0" | "seat_0" => Ok(SeatId("seat_0".to_owned())),
-        "seat-1" | "seat_1" => Ok(SeatId("seat_1".to_owned())),
-        _ => Err(format!(
-            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-            escape_json(value)
-        )),
-    }
+    parse_seat_import(value, 2, TWO_SEAT_SYMBOLIC_ALIASES)
 }
 
 pub(crate) fn parse_event_frontier_seat(value: &str) -> Result<SeatId, String> {
-    match value {
-        "seat-0" | "seat_0" => Ok(SeatId("seat_0".to_owned())),
-        "seat-1" | "seat_1" => Ok(SeatId("seat_1".to_owned())),
-        _ => Err(format!(
-            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-            escape_json(value)
-        )),
-    }
+    parse_seat_import(value, 2, TWO_SEAT_SYMBOLIC_ALIASES)
 }
 
 pub(crate) fn parse_token_seat(value: &str) -> Result<TokenBazaarSeat, String> {
-    match value {
-        "seat-0" => Ok(TokenBazaarSeat::Seat0),
-        "seat-1" => Ok(TokenBazaarSeat::Seat1),
-        _ => TokenBazaarSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, TokenBazaarSeat::parse)
 }
 
 pub(crate) fn trace_token_seat(seat: TokenBazaarSeat) -> &'static str {
@@ -217,16 +192,7 @@ pub(crate) fn trace_token_seat(seat: TokenBazaarSeat) -> &'static str {
 }
 
 pub(crate) fn parse_secret_seat(value: &str) -> Result<SecretDraftSeat, String> {
-    match value {
-        "seat-0" => Ok(SecretDraftSeat::Seat0),
-        "seat-1" => Ok(SecretDraftSeat::Seat1),
-        _ => SecretDraftSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, SecretDraftSeat::parse)
 }
 
 pub(crate) fn trace_secret_seat(seat: SecretDraftSeat) -> &'static str {
@@ -234,16 +200,7 @@ pub(crate) fn trace_secret_seat(seat: SecretDraftSeat) -> &'static str {
 }
 
 pub(crate) fn parse_poker_seat(value: &str) -> Result<PokerLiteSeat, String> {
-    match value {
-        "seat-0" => Ok(PokerLiteSeat::Seat0),
-        "seat-1" => Ok(PokerLiteSeat::Seat1),
-        _ => PokerLiteSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, PokerLiteSeat::parse)
 }
 
 pub(crate) fn trace_poker_seat(seat: PokerLiteSeat) -> &'static str {
@@ -251,16 +208,7 @@ pub(crate) fn trace_poker_seat(seat: PokerLiteSeat) -> &'static str {
 }
 
 pub(crate) fn parse_plain_seat(value: &str) -> Result<PlainTricksSeat, String> {
-    match value {
-        "seat-0" => Ok(PlainTricksSeat::Seat0),
-        "seat-1" => Ok(PlainTricksSeat::Seat1),
-        _ => PlainTricksSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_seat_enum(value, 2, TWO_SEAT_SYMBOLIC_ALIASES, PlainTricksSeat::parse)
 }
 
 pub(crate) fn trace_plain_seat(seat: PlainTricksSeat) -> &'static str {
@@ -268,12 +216,7 @@ pub(crate) fn trace_plain_seat(seat: PlainTricksSeat) -> &'static str {
 }
 
 pub(crate) fn parse_river_seat(value: &str) -> Result<RiverLedgerSeat, String> {
-    RiverLedgerSeat::parse(value).ok_or_else(|| {
-        format!(
-            "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-            escape_json(value)
-        )
-    })
+    parse_seat_enum(value, 6, SIX_SEAT_SYMBOLIC_ALIASES, RiverLedgerSeat::parse)
 }
 
 pub(crate) fn trace_river_seat(seat: RiverLedgerSeat) -> String {
@@ -340,4 +283,60 @@ fn underscore_seats_for_count(seat_count: usize) -> Vec<SeatId> {
     (0..seat_count)
         .map(|index| SeatId(format!("seat_{index}")))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn import_adapter_accepts_canonical_hyphen_and_symbolic_aliases() {
+        assert_eq!(parse_race_seat("seat_0"), Ok(RaceSeat::Seat0));
+        assert_eq!(parse_race_seat("seat-1"), Ok(RaceSeat::Seat1));
+        assert_eq!(parse_race_seat("seat-a"), Ok(RaceSeat::Seat0));
+        assert_eq!(parse_race_seat("seat-b"), Ok(RaceSeat::Seat1));
+
+        assert_eq!(parse_draughts_seat("seat_0"), Ok(DraughtsLiteSeat::Seat0));
+        assert_eq!(parse_draughts_seat("seat-1"), Ok(DraughtsLiteSeat::Seat1));
+        assert_eq!(parse_draughts_seat("seat-a"), Ok(DraughtsLiteSeat::Seat0));
+
+        assert_eq!(parse_high_card_seat("seat-0"), Ok(HighCardDuelSeat::Seat0));
+        assert_eq!(parse_high_card_seat("seat-b"), Ok(HighCardDuelSeat::Seat1));
+
+        assert_eq!(parse_flood_seat("seat-a"), Ok(SeatId("seat_0".to_owned())));
+        assert_eq!(
+            parse_frontier_seat("seat-1"),
+            Ok(SeatId("seat_1".to_owned()))
+        );
+        assert_eq!(
+            parse_event_frontier_seat("seat_1"),
+            Ok(SeatId("seat_1".to_owned()))
+        );
+
+        assert_eq!(
+            parse_river_seat("seat_5"),
+            RiverLedgerSeat::from_index(5).ok_or_else(|| unknown_seat("seat_5"))
+        );
+        assert_eq!(
+            parse_river_seat("seat-f"),
+            RiverLedgerSeat::from_index(5).ok_or_else(|| unknown_seat("seat-f"))
+        );
+    }
+
+    #[test]
+    fn import_adapter_rejects_unknown_out_of_range_and_ambiguous_labels() {
+        assert_eq!(parse_race_seat("seat_2"), Err(unknown_seat("seat_2")));
+        assert_eq!(parse_race_seat("seat-2"), Err(unknown_seat("seat-2")));
+        assert_eq!(parse_race_seat("seat-c"), Err(unknown_seat("seat-c")));
+        assert_eq!(parse_race_seat("seat_01"), Err(unknown_seat("seat_01")));
+        assert_eq!(parse_race_seat("seat_１"), Err(unknown_seat("seat_１")));
+        assert_eq!(
+            parse_seat_import("seat-a", 2, &[("seat-a", 0), ("seat-a", 1)]),
+            Err(unknown_seat("seat-a"))
+        );
+        assert_eq!(
+            parse_seat_import("seat-c", 2, &[("seat-c", 2)]),
+            Err(unknown_seat("seat-c"))
+        );
+    }
 }

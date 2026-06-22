@@ -1,6 +1,6 @@
 use engine_core::{
-    ActionPath, ActionTree, Actor, CommandEnvelope, EffectEnvelope, HashValue, RulesVersion,
-    SeatId, Seed, StableSerialize,
+    ActionPath, ActionTree, ActionTreeEncodingVersion, Actor, CommandEnvelope, EffectEnvelope,
+    HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
 
 use crate::{
@@ -149,12 +149,23 @@ pub fn effect_stable_string(effect: &EffectEnvelope<RaceEffect>) -> String {
 }
 
 pub fn action_tree_hash(tree: &ActionTree) -> HashValue {
-    let bytes = tree
-        .root
+    let bytes = action_tree_legacy_bytes(tree);
+    HashValue::from_stable_bytes(bytes.as_bytes())
+}
+
+pub fn action_tree_legacy_bytes(tree: &ActionTree) -> String {
+    tree.root
         .choices
         .iter()
         .map(|choice| choice.segment.as_str())
         .collect::<Vec<_>>()
-        .join("|");
-    HashValue::from_stable_bytes(bytes.as_bytes())
+        .join("|")
+}
+
+pub fn action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    tree.stable_bytes(ActionTreeEncodingVersion::V1)
+}
+
+pub fn action_tree_v1_hash(tree: &ActionTree) -> HashValue {
+    tree.stable_hash(ActionTreeEncodingVersion::V1)
 }

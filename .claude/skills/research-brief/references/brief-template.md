@@ -112,8 +112,14 @@ Pointers Session 2 must honor — trim to the constraints the target actually en
 
 Exactly what Session 2 outputs — leave no ambiguity:
 
-- each **downloadable markdown document**, by filename and whether it **replaces** an
-  existing file or is **new**;
+- each **downloadable markdown document**, by filename and which of three shapes it is:
+  it **replaces** an existing file, it is a **new** file landing at a fixed repo path, or
+  it is an **intermediate artifact** — a design / work-indication document the user saves
+  under `reports/` and a downstream skill converts into the final file (the `new-spec`
+  pipeline: `/reassess-spec` → `/spec-to-tickets` turns it into `specs/<slug>.md` and its
+  tickets). For an intermediate artifact, name the eventual target path but state plainly
+  that the deliverable itself does **not** land there — so Session 2 doesn't present a
+  ready-to-drop final file and skip the reassess/decompose step;
 - for replacements, name the file being replaced and what must be preserved vs. changed;
 - the **locked / no-questions** instruction, verbatim intent:
 

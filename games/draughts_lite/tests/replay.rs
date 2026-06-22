@@ -1,12 +1,16 @@
-use draughts_lite::replay_support::{diagnostic_hash, replay_from_state, DraughtsLiteReplayJson};
+use draughts_lite::replay_support::{
+    action_tree_hash, action_tree_legacy_bytes, action_tree_v1_bytes, action_tree_v1_hash,
+    diagnostic_hash, replay_from_state, DraughtsLiteReplayJson,
+};
 use draughts_lite::{
-    apply_action, setup_match, validate_command, CellOccupancy, DraughtsLiteSeat,
-    DraughtsLiteSnapshot, DraughtsLiteState, Piece, PieceId, PieceKind, SetupOptions,
-    TerminalOutcome, Variant,
+    apply_action, legal_action_tree, setup_match, validate_command, CellOccupancy,
+    DraughtsLiteSeat, DraughtsLiteSnapshot, DraughtsLiteState, Piece, PieceId, PieceKind,
+    SetupOptions, TerminalOutcome, Variant,
 };
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionChoice, ActionMetadata, ActionNode, ActionPath, ActionTree, Actor, CommandEnvelope,
+    FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableBytesRecordWriter,
+    StableBytesTypeTag, StableBytesWriter, StableSerialize,
 };
 use game_stdlib::board_space::Coord;
 
@@ -109,6 +113,123 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_bot_choice() {
     ] {
         assert_fixture(parse_trace_schema_v1_fixture(fixture));
     }
+}
+
+#[test]
+fn characterization_compound_action_tree_legacy_hash_is_pinned() {
+    let state = initial_state("multi_jump", 7);
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+
+    assert_eq!(tree.root.choices.len(), 1);
+    assert_eq!(tree.root.choices[0].segment, "from/r3c2");
+    assert!(tree.root.choices[0].next.is_some());
+    assert_eq!(action_tree_hash(&tree), HashValue(7788678278305142813));
+}
+
+#[test]
+fn compound_action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let state = initial_state("multi_jump", 7);
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_hash(&tree), HashValue(7788678278305142813));
+    assert_eq!(
+        HashValue::from_stable_bytes(action_tree_legacy_bytes(&tree).as_bytes()),
+        action_tree_hash(&tree)
+    );
+    assert_eq!(v1_bytes, expected_action_tree_v1_bytes(&tree));
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        HashValue(390_128_801_164_796_593)
+    );
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
+}
+
+#[test]
+fn characterization_compound_action_tree_nested_boundaries_are_ambiguous() {
+    let mut nested_parent = ActionChoice::leaf("from/r3c2", "From", "From");
+    nested_parent.next = Some(Box::new(ActionNode {
+        choices: vec![ActionChoice::leaf("jump/r5c4", "Jump", "Jump")],
+    }));
+    let nested_tree = ActionTree::flat(FreshnessToken(0), vec![nested_parent]);
+
+    let flat_delimiter_segment = ActionTree::flat(
+        FreshnessToken(0),
+        vec![ActionChoice::leaf(
+            "from/r3c2|From|From|unavailable|||jump/r5c4",
+            "Jump",
+            "Jump",
+        )],
+    );
+
+    assert_ne!(nested_tree, flat_delimiter_segment);
+    assert_eq!(
+        action_tree_hash(&nested_tree),
+        action_tree_hash(&flat_delimiter_segment)
+    );
+    assert_ne!(
+        action_tree_v1_bytes(&nested_tree),
+        action_tree_v1_bytes(&flat_delimiter_segment)
+    );
+    assert_ne!(
+        action_tree_v1_hash(&nested_tree),
+        action_tree_v1_hash(&flat_delimiter_segment)
+    );
+}
+
+#[test]
+fn characterization_compound_action_tree_metadata_and_tags_are_unframed() {
+    let mut compact_entries = ActionChoice::leaf("from/r3c2", "From", "From");
+    compact_entries.metadata = vec![ActionMetadata {
+        key: "captured".to_owned(),
+        value: "seat_1-p01,landing=r5c4".to_owned(),
+    }];
+    compact_entries.tags = vec!["capture,forced".to_owned()];
+
+    let mut split_entries = ActionChoice::leaf("from/r3c2", "From", "From");
+    split_entries.metadata = vec![
+        ActionMetadata {
+            key: "captured".to_owned(),
+            value: "seat_1-p01".to_owned(),
+        },
+        ActionMetadata {
+            key: "landing".to_owned(),
+            value: "r5c4".to_owned(),
+        },
+    ];
+    split_entries.tags = vec!["capture".to_owned(), "forced".to_owned()];
+
+    let compact_tree = ActionTree::flat(FreshnessToken(0), vec![compact_entries]);
+    let split_tree = ActionTree::flat(FreshnessToken(0), vec![split_entries]);
+
+    assert_ne!(compact_tree, split_tree);
+    assert_eq!(
+        action_tree_hash(&compact_tree),
+        action_tree_hash(&split_tree)
+    );
+}
+
+#[test]
+fn characterization_legacy_trace_without_profile_metadata_is_still_accepted() {
+    let fixture = include_str!("golden_traces/multi-jump.trace.json");
+
+    assert!(!fixture.contains("\"profile_id\""));
+    assert!(!fixture.contains("\"profile_version\""));
+    assert!(!fixture.contains("\"canonical_byte_authority\""));
+
+    let parsed = parse_trace_schema_v1_fixture(fixture);
+    assert_eq!(parsed.id, "draughts-lite-multi-jump");
+    assert_eq!(parsed.kind, "commands");
+    assert_eq!(
+        parsed.commands[0].action_path,
+        ["from/r3c2", "jump/r5c4", "jump/r7c6"]
+    );
 }
 
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {
@@ -422,6 +543,70 @@ fn empty_state(active_seat: DraughtsLiteSeat, mut pieces: Vec<Piece>) -> Draught
         terminal_outcome: None,
         terminal_reason: None,
         freshness_token: FreshnessToken(0),
+    }
+}
+
+fn expected_action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    let mut writer = StableBytesWriter::new(b"action_tree", 1).expect("writer");
+    writer
+        .write_u64_field(1, tree.freshness_token.0)
+        .expect("freshness");
+    writer
+        .write_record_field(2, |record| encode_expected_node_v1(record, &tree.root))
+        .expect("root");
+    writer.into_bytes()
+}
+
+fn encode_expected_node_v1(
+    record: &mut StableBytesRecordWriter,
+    node: &ActionNode,
+) -> Result<(), engine_core::StableBytesWriterError> {
+    let choices = node
+        .choices
+        .iter()
+        .map(expected_choice_v1_record)
+        .collect::<Result<Vec<_>, _>>()?;
+    record.write_sequence_field(1, choices)
+}
+
+fn expected_choice_v1_record(
+    choice: &ActionChoice,
+) -> Result<Vec<u8>, engine_core::StableBytesWriterError> {
+    let mut record = StableBytesRecordWriter::new();
+    record.write_string_field(1, &choice.segment)?;
+    record.write_string_field(2, &choice.label)?;
+    record.write_string_field(3, &choice.accessibility_label)?;
+    record.write_sequence_field(4, expected_metadata_v1_records(&choice.metadata)?)?;
+    record.write_sequence_field(5, choice.tags.iter().map(String::as_bytes))?;
+    record.write_enum_field(6, expected_preview_discriminant(choice.preview))?;
+    if let Some(next) = &choice.next {
+        let mut child = StableBytesRecordWriter::new();
+        encode_expected_node_v1(&mut child, next)?;
+        record.write_some_field(7, StableBytesTypeTag::Record, &child.into_bytes())?;
+    } else {
+        record.write_none_field(7)?;
+    }
+    Ok(record.into_bytes())
+}
+
+fn expected_metadata_v1_records(
+    metadata: &[ActionMetadata],
+) -> Result<Vec<Vec<u8>>, engine_core::StableBytesWriterError> {
+    metadata
+        .iter()
+        .map(|entry| {
+            let mut record = StableBytesRecordWriter::new();
+            record.write_string_field(1, &entry.key)?;
+            record.write_string_field(2, &entry.value)?;
+            Ok(record.into_bytes())
+        })
+        .collect()
+}
+
+const fn expected_preview_discriminant(preview: engine_core::ActionPreview) -> u32 {
+    match preview {
+        engine_core::ActionPreview::Unavailable => 0,
+        engine_core::ActionPreview::Available => 1,
     }
 }
 

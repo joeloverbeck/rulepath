@@ -1,11 +1,13 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, Viewer,
 };
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
+use river_ledger::replay_support::{export_public_replay, trace_from_commands};
 use river_ledger::state::SeatRoles;
 use river_ledger::{
     apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
-    setup_match, validate_command, Card, Rank, RiverLedgerEffect, RiverLedgerSeat, SeatLedger,
-    SeatStatus, SetupOptions, Suit, TerminalOutcome, Variant,
+    setup_match, validate_command, Card, Rank, RiverLedgerEffect, RiverLedgerLevel1Bot,
+    RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Suit, TerminalOutcome, Variant,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -217,6 +219,264 @@ fn assert_nonterminal_pairwise_matrix(state: &river_ledger::RiverLedgerState, la
                 &format!("{label} legal action tree owner seat_{owner}"),
             );
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixViewer {
+    Observer,
+    Seat(usize),
+}
+
+impl MatrixViewer {
+    fn as_viewer(self) -> Viewer {
+        match self {
+            MatrixViewer::Observer => viewer(None),
+            MatrixViewer::Seat(index) => viewer(Some(index)),
+        }
+    }
+
+    fn seat(self) -> Option<usize> {
+        match self {
+            MatrixViewer::Observer => None,
+            MatrixViewer::Seat(index) => Some(index),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixSurface {
+    View,
+    SetupEffect,
+    ActionTree,
+    Diagnostic,
+    ReplayExport,
+    ShowdownView,
+    BotInput,
+    BotExplanation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum CanaryId {
+    PrivateHand,
+    FutureCard,
+    FoldedShowdownHand,
+}
+
+fn matrix_viewers(count: usize) -> Vec<MatrixViewer> {
+    let mut viewers = vec![MatrixViewer::Observer];
+    viewers.extend((0..count).map(MatrixViewer::Seat));
+    viewers
+}
+
+fn matrix_surfaces() -> Vec<MatrixSurface> {
+    vec![
+        MatrixSurface::View,
+        MatrixSurface::SetupEffect,
+        MatrixSurface::ActionTree,
+        MatrixSurface::Diagnostic,
+        MatrixSurface::ReplayExport,
+        MatrixSurface::ShowdownView,
+        MatrixSurface::BotInput,
+        MatrixSurface::BotExplanation,
+    ]
+}
+
+fn no_leak_probes(count: usize) -> Vec<LeakProbe<usize, CanaryId, String>> {
+    let state = setup_match(
+        Seed(100 + count as u64),
+        &seats(count),
+        &SetupOptions::default(),
+    )
+    .expect("setup");
+    let showdown = showdown_state_with_folded_seat(count);
+    let mut probes = Vec::new();
+
+    for source in 0..count {
+        probes.push(LeakProbe {
+            source_seat: source,
+            canary_id: CanaryId::PrivateHand,
+            canary: private_ids_for(&state, source)
+                .first()
+                .cloned()
+                .expect("source has private card"),
+        });
+    }
+
+    probes.push(LeakProbe {
+        source_seat: 0,
+        canary_id: CanaryId::FutureCard,
+        canary: unrevealed_public_ids(&state)
+            .first()
+            .cloned()
+            .expect("setup has future card"),
+    });
+    probes.push(LeakProbe {
+        source_seat: 0,
+        canary_id: CanaryId::FoldedShowdownHand,
+        canary: private_ids_for(&showdown, 0)
+            .first()
+            .cloned()
+            .expect("folded showdown seat has private card"),
+    });
+
+    probes
+}
+
+fn visible_setup_effect_card_ids(
+    state: &river_ledger::RiverLedgerState,
+    matrix_viewer: &MatrixViewer,
+) -> String {
+    filter_effects_for_viewer(&setup_effects(state), &matrix_viewer.as_viewer())
+        .iter()
+        .flat_map(|effect| match &effect.payload {
+            RiverLedgerEffect::PrivateCardsDealt { cards, .. } => {
+                cards.iter().map(|card| card.id()).collect::<Vec<_>>()
+            }
+            RiverLedgerEffect::StreetAdvanced { public_board, .. } => public_board
+                .iter()
+                .map(|card| card.id())
+                .collect::<Vec<_>>(),
+            RiverLedgerEffect::ShowdownResolved { outcome } => {
+                vec![format!("{outcome:?}")]
+            }
+            _ => Vec::new(),
+        })
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
+fn no_leak_snapshot(count: usize, matrix_viewer: &MatrixViewer, surface: &MatrixSurface) -> String {
+    match surface {
+        MatrixSurface::View => {
+            let state = setup_match(
+                Seed(100 + count as u64),
+                &seats(count),
+                &SetupOptions::default(),
+            )
+            .expect("setup");
+            project_view(&state, &matrix_viewer.as_viewer()).stable_summary()
+        }
+        MatrixSurface::SetupEffect => {
+            let state = setup_match(
+                Seed(100 + count as u64),
+                &seats(count),
+                &SetupOptions::default(),
+            )
+            .expect("setup");
+            visible_setup_effect_card_ids(&state, matrix_viewer)
+        }
+        MatrixSurface::ActionTree => {
+            let state = setup_match(
+                Seed(100 + count as u64),
+                &seats(count),
+                &SetupOptions::default(),
+            )
+            .expect("setup");
+            match matrix_viewer.seat() {
+                Some(index) => format!("{:?}", legal_action_tree(&state, &actor(index))),
+                None => String::new(),
+            }
+        }
+        MatrixSurface::Diagnostic => {
+            let state = setup_match(
+                Seed(100 + count as u64),
+                &seats(count),
+                &SetupOptions::default(),
+            )
+            .expect("setup");
+            let active = state.active_seat.expect("setup has active seat").index();
+            let wrong = (active + 1) % count;
+            format!(
+                "{:?}",
+                validate_command(&state, &command(&state, wrong, "call"))
+            )
+        }
+        MatrixSurface::ReplayExport => {
+            let trace = trace_from_commands(100 + count as u64, count, &[]);
+            export_public_replay(&trace, &matrix_viewer.as_viewer()).to_json()
+        }
+        MatrixSurface::ShowdownView => {
+            let state = showdown_state_with_folded_seat(count);
+            project_view(&state, &matrix_viewer.as_viewer()).stable_summary()
+        }
+        MatrixSurface::BotInput => {
+            let state = setup_match(
+                Seed(100 + count as u64),
+                &seats(count),
+                &SetupOptions::default(),
+            )
+            .expect("setup");
+            match matrix_viewer.seat() {
+                Some(index) => river_ledger::RiverLedgerLevel2Bot::input_for(&state, seat(index))
+                    .stable_summary(),
+                None => String::new(),
+            }
+        }
+        MatrixSurface::BotExplanation => {
+            let state = setup_match(
+                Seed(100 + count as u64),
+                &seats(count),
+                &SetupOptions::default(),
+            )
+            .expect("setup");
+            let active = state.active_seat.expect("setup has active seat");
+            RiverLedgerLevel1Bot::new(Seed(17))
+                .select_decision(&state, active)
+                .map(|decision| format!("{decision:?}"))
+                .unwrap_or_else(|diagnostic| format!("{diagnostic:?}"))
+        }
+    }
+}
+
+fn no_leak_expectation(
+    source: &usize,
+    matrix_viewer: &MatrixViewer,
+    surface: &MatrixSurface,
+    canary_id: &CanaryId,
+) -> ExposureExpectation {
+    match (canary_id, surface) {
+        (CanaryId::FutureCard, _) => ExposureExpectation::MustBeAbsent,
+        (CanaryId::FoldedShowdownHand, MatrixSurface::ShowdownView) => {
+            if matrix_viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+        (CanaryId::FoldedShowdownHand, _) => ExposureExpectation::NotApplicable,
+        (CanaryId::PrivateHand, MatrixSurface::View)
+        | (CanaryId::PrivateHand, MatrixSurface::SetupEffect)
+        | (CanaryId::PrivateHand, MatrixSurface::ReplayExport) => {
+            if matrix_viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+        (CanaryId::PrivateHand, MatrixSurface::ShowdownView) => ExposureExpectation::NotApplicable,
+        (
+            CanaryId::PrivateHand,
+            MatrixSurface::ActionTree
+            | MatrixSurface::Diagnostic
+            | MatrixSurface::BotInput
+            | MatrixSurface::BotExplanation,
+        ) => ExposureExpectation::MustBeAbsent,
+    }
+}
+
+#[test]
+fn no_leak_harness_covers_full_n_seat_river_matrix() {
+    for count in 3..=6 {
+        assert_pairwise_no_leak(
+            matrix_viewers(count),
+            matrix_surfaces(),
+            no_leak_probes(count),
+            |matrix_viewer, surface| no_leak_snapshot(count, matrix_viewer, surface),
+            no_leak_expectation,
+            |snapshot, canary| snapshot.contains(canary),
+        )
+        .unwrap_or_else(|failures| panic!("{count}-seat River Ledger no-leak matrix: {failures}"));
     }
 }
 
