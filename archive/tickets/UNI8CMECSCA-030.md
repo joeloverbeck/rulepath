@@ -1,6 +1,6 @@
 # UNI8CMECSCA-030: Seed four bounded C-11 follow-on rows in `specs/README.md`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs/index (`specs/README.md`)
@@ -75,3 +75,35 @@ Update the Gate 18 row to require the four rows closed / explicitly not-applicab
 1. `grep -nE '8C-R[1-4]' specs/README.md`
 2. `node scripts/check-doc-links.mjs`
 3. The index plus doc-link integrity is the correct boundary — the deliverable is seeded rows, not code.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Seeded four bounded C-11 follow-on rows in `specs/README.md`, all left
+`Not started`:
+
+1. `8C-R1` covers `race_to_n` residual audit, `draughts_lite` residual audit,
+   `three_marks`, `column_four`, `directional_flip`, and `token_bazaar`.
+2. `8C-R2` covers `high_card_duel` residual audit, `secret_draft`,
+   `poker_lite`, and `masked_claims`.
+3. `8C-R3` covers `plain_tricks`, `flood_watch`, `frontier_control`, and
+   `event_frontier`.
+4. `8C-R4` covers `river_ledger` residual audit, `briar_circuit`, and
+   `vow_tide`.
+
+Each row records applicable-helper audit scope, hash/visibility obligations,
+rollback/admission shape, and accepted not-applicable/exception handling. The
+Gate 18 row remains `Not started` and now requires 8C plus 8C-R1...8C-R4 closure
+or explicit not-applicable/accepted-excepted outcomes before admission.
+
+No C-11 retrofit was implemented. No code, fixtures, hashes, WASM surface, or
+runtime behavior changed.
+
+Verification:
+
+1. `grep -nE '8C-R[1-4]' specs/README.md`
+2. `sed -n '/| 8C-R1 |/,/| 9 |/p' specs/README.md`
+3. `for g in briar_circuit column_four directional_flip draughts_lite event_frontier flood_watch frontier_control high_card_duel masked_claims plain_tricks poker_lite race_to_n river_ledger secret_draft three_marks token_bazaar vow_tide; do count=$(sed -n '/| 8C-R1 |/,/| 9 |/p' specs/README.md | rg -o "$g" | wc -l); printf '%s %s\n' "$g" "$count"; done`
+4. `node scripts/check-doc-links.mjs`
+5. `git diff --check`
