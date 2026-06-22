@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-005: Author + accept ADR 0009 — Replay/Fixture/Hash Taxonomy v2
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — docs-only (new `docs/adr/0009-replay-fixture-hash-taxonomy.md`)
@@ -77,3 +77,31 @@ A maintainer reviews and flips `Status` to `Accepted`; downstream tickets (007/0
 1. `grep -nE "^Status:|artifact class|visibility class|validator|hash|ADR 0004" docs/adr/0009-replay-fixture-hash-taxonomy.md`
 2. `node scripts/check-doc-links.mjs && git diff --stat -- '**/*.trace.json' games/*/benches`
 3. The grep + no-byte-drift `git diff` is the correct boundary: it proves the decision landed without any trace/hash migration.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Created `docs/adr/0009-replay-fixture-hash-taxonomy.md` as an accepted,
+decision-only ADR defining artifact classes, visibility classes, validator
+ownership, version identifiers, canonical-byte authority, hash-surface rules,
+compatibility windows, and the relationship to ADR 0004. The ADR preserves and
+strengthens ADR 0004's hidden-information internal-trace vs viewer-scoped export
+split and narrows future Trace Schema v1 wording toward legacy command/replay
+evidence without changing any artifact bytes.
+
+Deviations: the ticket described a separate human sign-off pause after a
+`Proposed` draft. The governing spec says this pass authors and accepts ADR 0009,
+and the user requested implementation of the full series, so the ADR was
+recorded as `Status: Accepted` in this ticket rather than leaving downstream
+gated tickets blocked.
+
+Verification:
+
+- `grep -nE "^Status:|artifact class|visibility class|validator|hash|ADR 0004" docs/adr/0009-replay-fixture-hash-taxonomy.md`
+  showed `Status: Accepted`, artifact/visibility/validator/hash fields, and the
+  ADR 0004 relationship.
+- `rg -n "ADR 0004|public-export-v1|seat-private-export-v1|replay-command-v1|setup-evidence-v1|domain-evidence-v1|canonical-byte|Trace Schema v1" docs/adr/0009-replay-fixture-hash-taxonomy.md`
+  showed the named profiles and Trace Schema v1 disposition.
+- `node scripts/check-doc-links.mjs` passed (`Checked 29 markdown files`).
+- `git diff --stat -- '**/*.trace.json' games/*/benches` was empty.
