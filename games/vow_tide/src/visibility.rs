@@ -33,6 +33,11 @@ pub struct PublicView {
     /// Derivable from `current_trick` + `trump_indicator`, so it is deliberately
     /// excluded from `stable_summary` to keep replay hashes stable.
     pub current_trick_leader: Option<VowTideSeat>,
+    /// During bidding, the bid value the active bidder is barred from by the
+    /// dealer hook (`Some` only when the active bidder is the dealer and the
+    /// hook applies). Public-derivable from accepted bids + hand size, so it is
+    /// excluded from `stable_summary` to keep replay hashes stable.
+    pub dealer_hook_forbidden_bid: Option<u8>,
     pub captured_tricks: Vec<CapturedTrickView>,
     pub cumulative_scores: Vec<(VowTideSeat, i16)>,
     pub completed_hand_count: usize,
@@ -108,6 +113,7 @@ pub fn project_view(state: &VowTideState, viewer: &Viewer) -> PublicView {
         trick_counts: state.trick_counts.clone(),
         current_trick: current_trick(state),
         current_trick_leader: current_trick_leader(state),
+        dealer_hook_forbidden_bid: dealer_hook_forbidden_bid(state),
         captured_tricks: state
             .captured_tricks
             .iter()
@@ -243,6 +249,14 @@ fn current_trick_leader(state: &VowTideState) -> Option<VowTideSeat> {
         return None;
     }
     crate::rules::trick_winner(plays, state.trump_suit()).ok()
+}
+
+/// Bid value the active bidder is barred from by the dealer hook, using the
+/// same Rust rule that filters the legal bid set. `None` unless the active
+/// bidder is the dealer and the hook constrains them this turn.
+fn dealer_hook_forbidden_bid(state: &VowTideState) -> Option<u8> {
+    let bidding = state.bidding_state()?;
+    crate::actions::hook_forbidden_bid(state, bidding, bidding.active_seat)
 }
 
 fn captured_trick_view(trick: &CapturedTrick) -> CapturedTrickView {

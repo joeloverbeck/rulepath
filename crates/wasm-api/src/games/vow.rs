@@ -183,7 +183,7 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         PrivateView::Observer => String::new(),
     };
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"active_seat_labels\":[{}],\"dealer\":\"{}\",\"hand_index\":{},\"hand_size\":{},\"hand_schedule\":{},\"trump_indicator\":{},\"hand_counts\":{},\"hidden_stock_count\":{},\"public_bids\":{},\"trick_counts\":{},\"cumulative_scores\":{},\"current_trick\":{},\"current_trick_leader\":{},\"captured_tricks_count\":{},\"completed_hand_count\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"hidden_stock\",\"deck_order\"],\"ui\":{{\"action_families\":[\"bid\",\"play\"]}}}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"phase\":\"{}\",\"active_seat\":{},\"active_seat_labels\":[{}],\"dealer\":\"{}\",\"hand_index\":{},\"hand_size\":{},\"hand_schedule\":{},\"trump_indicator\":{},\"hand_counts\":{},\"hidden_stock_count\":{},\"public_bids\":{},\"trick_counts\":{},\"cumulative_scores\":{},\"current_trick\":{},\"current_trick_leader\":{},\"dealer_hook_forbidden_bid\":{},\"captured_tricks_count\":{},\"completed_hand_count\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"hidden_stock\",\"deck_order\"],\"ui\":{{\"action_families\":[\"bid\",\"play\"]}}}}",
         SCHEMA_VERSION,
         RULES_VERSION,
         escape_json(GAME_VOW_TIDE),
@@ -205,6 +205,9 @@ pub(crate) fn vow_view_json(view: &PublicView, freshness_token: u64) -> String {
         vow_seat_i16_json(&view.cumulative_scores),
         vow_current_trick_json(view),
         option_vow_seat_json(view.current_trick_leader),
+        view
+            .dealer_hook_forbidden_bid
+            .map_or_else(|| "null".to_owned(), |bid| bid.to_string()),
         view.captured_tricks.len(),
         view.completed_hand_count,
         vow_terminal_json(view),

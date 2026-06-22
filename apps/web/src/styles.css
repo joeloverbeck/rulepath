@@ -1598,6 +1598,17 @@ h2 {
   background: #edf6f4;
 }
 
+.vow-tide-hook-note {
+  margin: 0;
+  padding: var(--rp-space-2);
+  border: 1px solid var(--vow-warm);
+  border-radius: var(--rp-radius-sm);
+  background: #fdf4e9;
+  color: #8a5320;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .vow-tide-played-card.leading {
   border-color: var(--vow-accent);
   border-width: 2px;

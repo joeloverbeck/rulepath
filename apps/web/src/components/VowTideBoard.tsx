@@ -208,6 +208,12 @@ export function VowTideBoard({
           <span>Actions</span>
           <strong>{canAct ? "Available choices" : pending ? "Working" : "Waiting"}</strong>
         </div>
+        {view.phase === "bidding" && view.dealer_hook_forbidden_bid !== null ? (
+          <p className="vow-tide-hook-note" role="note">
+            Dealer hook: {seatLabel(view.dealer)} can't bid {view.dealer_hook_forbidden_bid} — it would make all bids
+            total the hand size ({view.hand_size}).
+          </p>
+        ) : null}
         <div className="vow-tide-action-grid">
           {paths.length === 0 ? (
             <p className="muted">No actions available.</p>
