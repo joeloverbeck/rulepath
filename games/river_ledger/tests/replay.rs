@@ -205,6 +205,38 @@ fn public_export_import_round_trips_for_observer_and_seat_viewer() {
 }
 
 #[test]
+fn characterization_setup_export_and_visibility_artifacts_are_pinned() {
+    let setup_fixture = include_str!("../data/fixtures/river_ledger_3p_standard.fixture.json");
+    let public_trace = include_str!("golden_traces/public-replay-export-import.trace.json");
+    let seat_private_trace = include_str!("golden_traces/seat-private-view.trace.json");
+    let trace = trace_from_commands(21, 3, &[]);
+    let observer_export = export_public_replay(&trace, &Viewer { seat_id: None });
+    let seat_export = export_public_replay(
+        &trace,
+        &Viewer {
+            seat_id: Some(SeatId("seat_0".to_owned())),
+        },
+    );
+
+    assert_eq!(
+        HashValue::from_stable_bytes(setup_fixture.as_bytes()),
+        HashValue(2633580370171550625)
+    );
+    assert_eq!(
+        HashValue::from_stable_bytes(public_trace.as_bytes()),
+        HashValue(11946834064931283956)
+    );
+    assert_eq!(
+        HashValue::from_stable_bytes(seat_private_trace.as_bytes()),
+        HashValue(6382002720248622821)
+    );
+    assert_eq!(observer_export.stable_hash(), HashValue(2482097568303728278));
+    assert_eq!(seat_export.stable_hash(), HashValue(7443748736294317283));
+    assert_eq!(observer_export.viewer, "observer");
+    assert_eq!(seat_export.viewer, "seat_0");
+}
+
+#[test]
 fn observer_public_export_omits_hidden_facts_and_seed() {
     let trace = trace_from_commands(21, 4, &[(3, "call"), (0, "call")]);
     let export = export_public_replay(&trace, &Viewer { seat_id: None });

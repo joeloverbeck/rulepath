@@ -196,6 +196,24 @@ mod tests {
         }
     }
 
+    struct CountingRng {
+        values: Vec<u64>,
+        draws: usize,
+    }
+
+    impl CountingRng {
+        fn new(values: Vec<u64>) -> Self {
+            Self { values, draws: 0 }
+        }
+    }
+
+    impl DeterministicRng for CountingRng {
+        fn next_u64(&mut self) -> u64 {
+            self.draws += 1;
+            self.values.remove(0)
+        }
+    }
+
     #[test]
     fn bounded_index_rejects_high_residue_band() {
         let range = u128::from(u64::MAX) + 1;
@@ -204,5 +222,18 @@ mod tests {
         let mut rng = FixedRng::new(vec![rejected, 4]);
 
         assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+    }
+
+    #[test]
+    fn characterization_bounded_index_unbiased_draw_count_is_pinned() {
+        let range = u128::from(u64::MAX) + 1;
+        let accepted_zone_for_three = range - (range % 3);
+        let rejected = accepted_zone_for_three as u64;
+        let mut rng = CountingRng::new(vec![rejected, 4, 9]);
+
+        assert_eq!(next_bounded_index_unbiased(&mut rng, 0), None);
+        assert_eq!(rng.draws, 0);
+        assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+        assert_eq!(rng.draws, 2);
     }
 }

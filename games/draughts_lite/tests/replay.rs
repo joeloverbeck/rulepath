@@ -1,6 +1,8 @@
-use draughts_lite::replay_support::{diagnostic_hash, replay_from_state, DraughtsLiteReplayJson};
+use draughts_lite::replay_support::{
+    action_tree_hash, diagnostic_hash, replay_from_state, DraughtsLiteReplayJson,
+};
 use draughts_lite::{
-    apply_action, setup_match, validate_command, CellOccupancy, DraughtsLiteSeat,
+    apply_action, legal_action_tree, setup_match, validate_command, CellOccupancy, DraughtsLiteSeat,
     DraughtsLiteSnapshot, DraughtsLiteState, Piece, PieceId, PieceKind, SetupOptions,
     TerminalOutcome, Variant,
 };
@@ -109,6 +111,20 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_bot_choice() {
     ] {
         assert_fixture(parse_trace_schema_v1_fixture(fixture));
     }
+}
+
+#[test]
+fn characterization_compound_action_tree_legacy_hash_is_pinned() {
+    let state = initial_state("multi_jump", 7);
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+
+    assert_eq!(tree.root.choices.len(), 1);
+    assert_eq!(tree.root.choices[0].segment, "from/r3c2");
+    assert!(tree.root.choices[0].next.is_some());
+    assert_eq!(action_tree_hash(&tree), HashValue(7788678278305142813));
 }
 
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {

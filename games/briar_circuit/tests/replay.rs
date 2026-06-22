@@ -4,7 +4,7 @@ use briar_circuit::{
     setup::{deal_hand, next_dealer},
     setup_match, BriarCircuitSeat, PassDirection, SetupOptions, ViewerExportClass,
 };
-use engine_core::{Seed, SeededRng};
+use engine_core::{HashValue, Seed, SeededRng};
 
 const REQUIRED_TRACES: &[&str] = &[
     "setup-four-seat-deterministic-deal.trace.json",
@@ -164,6 +164,27 @@ fn golden_trace_minimum_inventory_exists() {
         );
         assert!(payload.contains("migration_notes"));
     }
+}
+
+#[test]
+fn characterization_domain_fixture_artifacts_are_pinned() {
+    let moon_fixture = include_str!("../data/fixtures/briar_circuit_moon.fixture.json");
+    let first_trick_exception_fixture =
+        include_str!("../data/fixtures/briar_circuit_first_trick_exception.fixture.json");
+
+    assert_eq!(
+        HashValue::from_stable_bytes(moon_fixture.as_bytes()),
+        HashValue(12129920730792203110)
+    );
+    assert_eq!(
+        HashValue::from_stable_bytes(first_trick_exception_fixture.as_bytes()),
+        HashValue(16932830783837267987)
+    );
+    assert!(moon_fixture.contains("\"trace_id\": \"briar_circuit_moon\""));
+    assert!(first_trick_exception_fixture
+        .contains("\"trace_id\": \"briar_circuit_first_trick_exception\""));
+    assert!(!moon_fixture.contains("selector"));
+    assert!(!first_trick_exception_fixture.contains("selector"));
 }
 
 #[test]

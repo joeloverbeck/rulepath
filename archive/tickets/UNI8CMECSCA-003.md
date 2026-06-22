@@ -1,6 +1,6 @@
 # UNI8CMECSCA-003: Characterize every pilot byte/hash/visibility/RNG surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (deterministic evidence + docs) — `reports/8c-mechanical-scaffolding-characterization.md` plus characterization tests under the pilot game crates
@@ -84,3 +84,44 @@ Add deterministic tests that emit/compare the recorded bytes, hashes, seat spell
 1. `cargo test -p river_ledger characterization`
 2. `cargo test --workspace`
 3. The pilot-crate test suites plus `replay-check`/`fixture-check` are the correct boundary because the packet must round-trip through the real SUT and validators, not a standalone script.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Added `reports/8c-mechanical-scaffolding-characterization.md` with baseline
+records for the Unit 8C pilot surfaces: Race flat action-tree hash, Draughts
+compound action-tree hash, River setup/export/visibility surfaces and RNG draw
+count, High Card Duel public/seat-private surfaces, Vow Tide public and
+seat-private exports, and Briar Circuit domain fixtures. The report records
+SUT-derived hashes, input vectors, profile/visibility classifications,
+compatibility windows, rollback boundaries, and validator commands without
+committing private card identities or hidden canary values.
+
+Added characterization assertions in the pilot test suites:
+
+- `games/race_to_n/tests/serialization_tests.rs`
+- `games/draughts_lite/tests/replay.rs`
+- `games/river_ledger/tests/replay.rs`
+- `games/river_ledger/src/setup.rs` (`#[cfg(test)]` only, to keep the local RNG
+  helper private)
+- `games/high_card_duel/tests/replay.rs`
+- `games/vow_tide/tests/replay.rs`
+- `games/briar_circuit/tests/replay.rs`
+
+Deviations: the Draughts legacy action-tree byte string is private to the
+current replay-support encoder, so the committed packet records and tests the
+SUT-derived legacy hash and root/recursive shape rather than exposing a new
+byte accessor. River export characterization uses a setup-only trace to keep
+the baseline focused on setup/public/seat-private surfaces and avoid inventing
+additional command evidence in this characterization ticket.
+
+Verification:
+
+- `cargo test -p race_to_n -p draughts_lite -p river_ledger -p high_card_duel -p vow_tide -p briar_circuit characterization --no-fail-fast` passed.
+- `cargo test -p river_ledger -p race_to_n -p draughts_lite -p high_card_duel -p vow_tide -p briar_circuit` passed.
+- `cargo run -p replay-check -- --game river_ledger --all` passed (`replay-check: all traces passed`).
+- `cargo run -p fixture-check -- --game river_ledger` passed (`fixture-check: all fixtures passed`).
+- `test -f reports/8c-mechanical-scaffolding-characterization.md` passed.
+- `rg -n 'two_clubs|three_diamonds|four_hearts|five_spades|king_clubs|hcd:r[0-9]|private_hands_internal|community_deck_internal|deck_tail_internal' reports/8c-mechanical-scaffolding-characterization.md` returned no matches.
+- `cargo test --workspace` passed.

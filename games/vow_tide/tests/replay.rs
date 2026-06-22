@@ -50,6 +50,28 @@ fn viewer_exports_round_trip_and_remain_viewer_scoped() {
 }
 
 #[test]
+fn characterization_viewer_export_artifacts_are_pinned() {
+    let public_trace = include_str!("golden_traces/public-replay-export-import.trace.json");
+    let seat_private_trace =
+        include_str!("golden_traces/seat-private-replay-export-import-all-viewers.trace.json");
+    let state = setup_match(
+        Seed(20260621),
+        &canonical_seat_ids(4),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    let observer_export = export_for_viewer(&state, &[], &observer());
+    let seat_0_export = export_for_viewer(&state, &[], &seat_viewer("seat_0"));
+
+    assert_eq!(stable_hash(public_trace.as_bytes()), 9606057229737834804);
+    assert_eq!(stable_hash(seat_private_trace.as_bytes()), 16909558442784598481);
+    assert_eq!(observer_export.stable_hash().0, 14136592432406028852);
+    assert_eq!(seat_0_export.stable_hash().0, 12688236753872554050);
+    assert_eq!(observer_export.viewer, "observer");
+    assert_eq!(seat_0_export.viewer, "seat_0");
+}
+
+#[test]
 fn stable_hash_is_byte_order_sensitive_and_repeatable() {
     assert_eq!(stable_hash(b"vow_tide"), stable_hash(b"vow_tide"));
     assert_ne!(stable_hash(b"vow_tide"), stable_hash(b"tide_vow"));

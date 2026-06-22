@@ -1,9 +1,10 @@
 use engine_core::{
-    ActionPath, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, StableSerialize,
+    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
+    StableSerialize,
 };
 use race_to_n::{
-    project_view, setup_match, CounterValue, PublicView, RaceReplayJson, RaceSeat, RaceSnapshot,
-    SetupOptions,
+    legal_action_tree, project_view, replay_support::action_tree_hash, setup_match, CounterValue,
+    PublicView, RaceReplayJson, RaceSeat, RaceSnapshot, SetupOptions,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -113,4 +114,23 @@ fn command_envelope_shape_remains_replay_ready() {
 
     assert_eq!(command.action_path.segments, vec!["add-1"]);
     assert_eq!(command.rules_version, RulesVersion(1));
+}
+
+#[test]
+fn characterization_flat_action_tree_legacy_bytes_and_hash_are_pinned() {
+    let state = setup_match(Seed(9), &seats(), &SetupOptions::default()).unwrap();
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let legacy_bytes = tree
+        .root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+
+    assert_eq!(legacy_bytes, "add-1|add-2|add-3");
+    assert_eq!(action_tree_hash(&tree), HashValue(8451402319224114161));
 }
