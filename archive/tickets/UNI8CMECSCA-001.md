@@ -1,6 +1,6 @@
 # UNI8CMECSCA-001: Flip `specs/README.md` row 8C to Planned
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — docs/status-only (`specs/README.md`)
@@ -71,3 +71,25 @@ Unit 8C's design is finalized (`specs/unit-8c-mechanical-scaffolding-code-extrac
 1. `grep -nE '^\| 8C ' specs/README.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command is correct because the deliverable is a single index-row edit; doc-link integrity is the only pipeline guard that can regress.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Changed `specs/README.md` row 8C from a stale unwritten/`Not started`/`Blocked`
+seed to a `Planned` row linking
+`specs/unit-8c-mechanical-scaffolding-code-extraction.md`. The replacement
+interlock text now describes the shared mechanical-scaffolding C-01...C-10
+scope, the dev-only `game-test-support` crate, bounded pilots, forward-seeded
+C-11 retrofits, ADR-0009-governed hash/visibility migration, and the no-blanket-
+golden-regeneration constraint.
+
+Deviations: none. The edit stayed limited to the single 8C index row; Gate 18
+and `docs/ROADMAP.md` were not changed.
+
+Verification:
+
+- `grep -nE '^\| 8C ' specs/README.md` showed row 8C with the spec link and
+  Status `Planned`.
+- `grep -n '8C' specs/README.md` showed no `**Blocked**` text on the 8C row.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
