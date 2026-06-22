@@ -1,6 +1,6 @@
 # UNI8CMECSCA-028: Pilot-consolidation audit — no speculative API survives without a caller
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Conditional — Yes (may trim unused API in `engine-core` / `game-stdlib` / `game-test-support` as surfaced); None if every helper already has a real caller
@@ -9,6 +9,43 @@
 ## Problem
 
 After the pilots land, audit that every accepted helper has at least one real game caller, every pilot still retains its game-specific behavior assertions, and no helper accumulated a mechanic-policy flag to satisfy a pilot. If a helper has no convincing caller, remove it rather than keep speculative API; if a pilot dropped a specific assertion for a generic one, restore it. This in-ticket audit gates the build (self-deciding): it either records "all helpers have real callers, no policy flags" or trims the offending API.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Audit result: all accepted helpers have real game/tool callers, no accepted
+helper exposes a mechanic-policy flag, and no API trim was needed.
+
+Call-site inventory:
+
+1. C-01 `EffectEnvelope::{public,private_to}` → `games/race_to_n/src/effects.rs`, `games/river_ledger/src/effects.rs`.
+2. C-02 canonical `SeatId` grammar → `crates/wasm-api/src/seats.rs`, `games/race_to_n/src/ids.rs`, `games/river_ledger/src/ids.rs`.
+3. C-03 `game-stdlib::seat::{SeatCount,SeatCountRange,next_ring_index}` → `games/race_to_n/src/setup.rs`, `games/river_ledger/src/setup.rs`.
+4. C-04/C-05 action-tree v1 + stable-byte writer → `games/race_to_n/src/replay_support.rs`, `games/draughts_lite/src/replay_support.rs`, plus pilot byte-contract tests.
+5. C-06/C-07 `game-test-support::no_leak` matrix → `games/high_card_duel/tests/visibility.rs`, `games/river_ledger/tests/visibility.rs`.
+6. C-08 profile drivers → `games/race_to_n/tests/replay_tests.rs`, `games/river_ledger/tests/replay.rs`, `games/vow_tide/tests/replay.rs`, `games/briar_circuit/tests/replay.rs`, with CLI dispatch in `tools/replay-check/src/main.rs` and `tools/fixture-check/src/main.rs`.
+7. C-09 `DeterministicRng::next_index_unbiased_v1` → `games/river_ledger/src/setup.rs`.
+
+Policy-flag grep across `crates/engine-core/src`,
+`crates/game-stdlib/src/seat.rs`, and `crates/game-test-support/src` found no
+helper signature carrying the audited policy terms (`is_trick_game`,
+`private_hand`, `all_in`, `team_count`, `pass_direction`, `reveal_on`, deal /
+projection / scoring / terminal / pot / betting / trick / team / graph /
+reaction policy). The only match was the `game-test-support` crate-level
+production-boundary comment.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test --workspace`
+3. `bash scripts/boundary-check.sh`
+4. `cargo run -p replay-check -- --game race_to_n --all`
+5. `cargo run -p replay-check -- --game draughts_lite --all`
+6. `cargo run -p replay-check -- --game high_card_duel --all`
+7. `cargo run -p replay-check -- --game river_ledger --all`
+8. `cargo run -p replay-check -- --game vow_tide --all`
+9. `cargo run -p replay-check -- --game briar_circuit --all`
 
 ## Assumption Reassessment (2026-06-22)
 
