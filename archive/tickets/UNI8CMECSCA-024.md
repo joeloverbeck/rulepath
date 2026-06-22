@@ -1,6 +1,6 @@
 # UNI8CMECSCA-024: River Ledger drives `setup-evidence-v1`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/tests/replay.rs` (`[dev-dependencies]` already added by UNI8CMECSCA-021)
@@ -71,3 +71,20 @@ Adopt `SetupEvidenceV1Driver` to validate the 3-seat setup fixture's manifest/pr
 1. `cargo test -p river_ledger`
 2. `cargo run -p fixture-check -- --game river_ledger`
 3. The game suite plus `fixture-check` are the correct boundary — setup evidence is validated as input, not executed.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Adopted `SetupEvidenceV1Driver` in River Ledger by adding a setup-evidence test around `river_ledger_3p_standard.fixture.json`. The test creates virtual `setup-evidence-v1` metadata with `canonical_byte_authority = none` and no canonical-byte claim, validates that metadata through the driver, then compares fixture fields against River's own `setup_match` output. Setup legality, options, variant, seat roles, private-hand counts, reserved community count, and deck-tail count remain game-owned. The fixture file itself was not modified and still has no profile metadata.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `git diff --quiet -- games/river_ledger/data/fixtures/river_ledger_3p_standard.fixture.json`
+- `rg -n "profile_id|canonical_byte_authority|profile_version" games/river_ledger/data/fixtures/river_ledger_3p_standard.fixture.json` (no matches)
+- `bash scripts/boundary-check.sh`
+- `cargo test --workspace`

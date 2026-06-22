@@ -1,4 +1,7 @@
 use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, SetupEvidenceV1Driver, PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
+};
 use river_ledger::{
     replay_support::{
         export_public_replay, import_public_export, replay_internal_full_trace,
@@ -6,6 +9,23 @@ use river_ledger::{
     },
     setup_match, PotShare, RiverLedgerSeat, SetupOptions, TerminalOutcome,
 };
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+];
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
     (3, "call"),
@@ -82,6 +102,123 @@ fn expected_trace_id(file_name: &str) -> String {
             .strip_suffix(".trace.json")
             .expect("golden trace suffix")
     )
+}
+
+fn setup_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("UNI8CMECSCA-024 virtual setup-evidence classification"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn fixture_string_field(input: &str, key: &str) -> String {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let tail = input[start..].trim_start();
+    let tail = tail
+        .strip_prefix('"')
+        .unwrap_or_else(|| panic!("field `{key}` must be a string"));
+    let end = tail
+        .find('"')
+        .unwrap_or_else(|| panic!("field `{key}` string must close"));
+    tail[..end].to_owned()
+}
+
+fn fixture_number_field(input: &str, key: &str) -> usize {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let digits = input[start..]
+        .trim_start()
+        .chars()
+        .take_while(|ch| ch.is_ascii_digit())
+        .collect::<String>();
+    digits
+        .parse()
+        .unwrap_or_else(|error| panic!("field `{key}` must be a number: {error}"))
+}
+
+fn assert_standard_3p_setup_fixture(input: &str) {
+    assert_eq!(
+        fixture_string_field(input, "fixture_id"),
+        "river_ledger_3p_standard"
+    );
+    assert_eq!(fixture_string_field(input, "game_id"), "river_ledger");
+    assert_eq!(
+        fixture_string_field(input, "variant"),
+        "river_ledger_standard"
+    );
+    assert_eq!(
+        fixture_string_field(input, "rules_version"),
+        "river-ledger-rules-v1"
+    );
+    assert_eq!(fixture_number_field(input, "seat_count"), 3);
+
+    let seed = fixture_number_field(input, "seed") as u64;
+    let seats = (0..fixture_number_field(input, "seat_count"))
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect::<Vec<_>>();
+    let state =
+        setup_match(engine_core::Seed(seed), &seats, &SetupOptions::default()).expect("setup");
+
+    assert_eq!(state.seats.len(), fixture_number_field(input, "seat_count"));
+    assert_eq!(state.button.as_str(), fixture_string_field(input, "button"));
+    assert_eq!(
+        state.small_blind.as_str(),
+        fixture_string_field(input, "small_blind")
+    );
+    assert_eq!(
+        state.big_blind.as_str(),
+        fixture_string_field(input, "big_blind")
+    );
+    assert_eq!(
+        state.active_seat.map(|seat| seat.as_str()),
+        Some(fixture_string_field(input, "initial_active"))
+    );
+    assert_eq!(
+        state.board.len(),
+        fixture_number_field(input, "public_board_count")
+    );
+    assert_eq!(
+        state.private_hands_internal()[0].len(),
+        fixture_number_field(input, "private_hole_cards_per_seat")
+    );
+    assert_eq!(
+        state.community_deck_internal().len(),
+        fixture_number_field(input, "reserved_community_count")
+    );
+    assert_eq!(
+        state.deck_tail_internal().len(),
+        fixture_number_field(input, "deck_tail_count")
+    );
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_standard_3p_setup_fixture() {
+    let setup_fixture = include_str!("../data/fixtures/river_ledger_3p_standard.fixture.json");
+    assert!(!setup_fixture.contains("\"profile_id\""));
+    assert!(!setup_fixture.contains("\"canonical_byte_authority\""));
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_standard_3p_setup_fixture(setup_fixture)
+        })
+        .expect("setup-evidence-v1 driver accepts River setup fixture");
 }
 
 #[test]

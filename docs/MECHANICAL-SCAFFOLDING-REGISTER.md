@@ -365,8 +365,11 @@ mechanical scaffolding.
   canonical-byte-authority `none` handling, and no production dependency edge.
   UNI8CMECSCA-023 adopted `ReplayCommandV1Driver` in Race to N against the
   legacy `shortest-normal` fixture without changing fixture bytes.
+  UNI8CMECSCA-024 adopted `SetupEvidenceV1Driver` in River Ledger against the
+  legacy 3-seat setup fixture with canonical-byte authority `none` and no
+  fixture byte changes.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-024 through UNI8CMECSCA-027 pilot artifact
+- Next review trigger: UNI8CMECSCA-025 through UNI8CMECSCA-027 pilot artifact
   validations and CLI tool output.
 
 ### MSC-8C-009 - Versioned bounded-index sampling
