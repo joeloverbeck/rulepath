@@ -122,6 +122,7 @@ dependencies = [
  "ai-core",
  "engine-core",
  "game-stdlib",
+ "game-test-support",
 ]
 
 [[package]]

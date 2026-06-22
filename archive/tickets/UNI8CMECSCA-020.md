@@ -1,6 +1,6 @@
 # UNI8CMECSCA-020: Pilot the no-leak harness in High Card Duel (two-seat)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/high_card_duel/tests/visibility.rs`, `games/high_card_duel/Cargo.toml` (`[dev-dependencies]`)
@@ -76,3 +76,20 @@ Adopt `assert_pairwise_no_leak` for the two-seat matrix with game-supplied snaps
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
 3. The game's visibility suite plus `replay-check` are the correct boundary — the matrix and the export round-trips are exercised together.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Implemented the High Card Duel no-leak harness pilot by adding `game-test-support` as a dev-dependency and layering `assert_pairwise_no_leak` over the existing `visibility.rs` tests. The matrix covers public observer, seat 0, and seat 1 across view projection, action tree, diagnostics, filtered effects, public replay export, and bot input. Existing reveal-specific assertions remain in place. The probes are deterministic in-memory private card identities plus an export-only hidden deck-tail probe; no committed golden trace was changed.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p high_card_duel`
+- `cargo run -p replay-check -- --game high_card_duel --all`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `bash scripts/boundary-check.sh`
+- `rg -n "HCD_NO_LEAK_TEST_CANARY|HCD_CANARY" games/high_card_duel/tests/golden_traces` (no matches)
+- `cargo test --workspace`

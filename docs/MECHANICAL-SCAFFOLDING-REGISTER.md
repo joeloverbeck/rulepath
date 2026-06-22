@@ -315,9 +315,11 @@ mechanical scaffolding.
   enumeration and structured failure types with unit tests for authorized,
   unauthorized, revealed, not-applicable, missing-canary,
   false-positive-resistant containment, and diagnostic-rendering cases.
+  UNI8CMECSCA-020 piloted the harness in High Card Duel across observer, seat
+  0, and seat 1 for view, action tree, diagnostic, effect, replay export, and
+  bot-input surfaces while retaining reveal-specific assertions.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-020 High Card Duel pilot and
-  UNI8CMECSCA-021 River Ledger 3/4/5/6 matrices.
+- Next review trigger: UNI8CMECSCA-021 River Ledger 3/4/5/6 matrices.
 
 ### MSC-8C-008 - Evidence-profile drivers
 
