@@ -16,6 +16,13 @@ Prepared by: `<name/agent>`
 
 Last updated: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-14 -> GAME-BENCHMARKS.md`. This
+template owns benchmark workload definitions, compatibility anchors,
+measurement environments, commands, and results. `GAME-EVIDENCE.md` owns the
+benchmark workload ID rollup, bot policy IDs, release status, and blockers.
+
 ## Benchmark doctrine
 
 Native Rust benchmarks are primary for rule, replay, simulation, and bot hot paths. WASM/browser smoke benchmarks are required when web-exposed behavior, renderer integration, or JS/WASM boundary behavior is relevant.
@@ -43,17 +50,17 @@ Do not optimize without benchmark evidence. Do not accept regressions without ra
 
 ## Commands
 
-| Benchmark/smoke | Command | Environment | Notes |
-|---|---|---|---|
-| `<benchmark>` | `<command>` | native / wasm / browser | `<notes>` |
+| Workload ID | Benchmark/smoke | Command | Environment | Fixture/profile ID | Notes |
+|---|---|---|---|---|---|
+| `BENCH-001` | `<benchmark>` | `<command>` | native / wasm / browser | `<fixture_or_profile_id>` | `<notes>` |
 
 ## Seat count and surface fixture matrix
 
 Every official seat count and the largest official surface fixture MUST be represented. The largest official variant requires legal-action, preview, apply, project-view, serialize, replay-import, bot-turn, and WASM smoke coverage.
 
-| Seat count | Surface fixture | Legal-action benchmark | Preview benchmark | Apply benchmark | Project-view benchmark | Serialize benchmark | Replay-import benchmark | Bot-turn benchmark | WASM smoke benchmark | Status |
-|---:|---|---|---|---|---|---|---|---|---|---|
-| `<seat_count>` | `<min/typical/max-surface fixture>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | not started / partial / covered |
+| Seat count | Surface fixture | Workload IDs | Legal-action benchmark | Preview benchmark | Apply benchmark | Project-view benchmark | Serialize benchmark | Replay-import benchmark | Bot-turn benchmark | WASM smoke benchmark | Status |
+|---:|---|---|---|---|---|---|---|---|---|---|---|
+| `<seat_count>` | `<min/typical/max-surface fixture>` | `BENCH-*` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | not started / partial / covered |
 
 ## Native benchmark section
 
@@ -118,13 +125,13 @@ Every official seat count and the largest official surface fixture MUST be repre
 
 ## Trace/data/hash compatibility notes
 
-| Artifact | Version/hash | Compatible? | Notes/action |
-|---|---|---:|---|
-| golden traces | `<version/hash>` | yes/no | `<notes>` |
-| replay export format | `<version/hash>` | yes/no | `<notes>` |
-| serialized state/checkpoint | `<version/hash>` | yes/no | `<notes>` |
-| data/manifest | `<version/hash>` | yes/no | `<notes>` |
-| bot policy | `<version/hash>` | yes/no | `<notes>` |
+| Workload ID | Artifact | Fixture/profile ID | Version/hash | Compatible? | Notes/action |
+|---|---|---|---|---:|---|
+| `BENCH-001` | golden traces | `<profile_id>` | `<version/hash>` | yes/no | `<notes>` |
+| `BENCH-002` | replay export format | `<profile_id>` | `<version/hash>` | yes/no | `<notes>` |
+| `BENCH-003` | serialized state/checkpoint | `<profile_id>` | `<version/hash>` | yes/no | `<notes>` |
+| `BENCH-004` | data/manifest | `<profile_id>` | `<version/hash>` | yes/no | `<notes>` |
+| `BENCH-005` | bot policy | `<policy_id>` | `<version/hash>` | yes/no | `<notes>` |
 
 ## Accepted regressions
 
@@ -143,6 +150,7 @@ Regressions accepted for public polish, correctness, visibility safety, replay c
 ## Review checklist
 
 - Benchmark report records rules, data/manifest, and engine versions.
+- Benchmark workload IDs are stable and linked from `GAME-EVIDENCE.md`.
 - Native benchmarks cover setup, legal actions, preview, validation, apply action, view generation, effect filtering, serialization, replay, playout, and bot latency where applicable.
 - WASM/browser smoke covers public web hot paths where relevant.
 - Regression thresholds are explicit.

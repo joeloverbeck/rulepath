@@ -10,6 +10,14 @@ Prepared by: `<name/agent>`
 
 Date: YYYY-MM-DD
 
+Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
+
+Template realignment mapping: report `B-10 -> COMPETENT-PLAYER.md`. This
+template owns human-readable strategy claims, examples, anti-examples, visible
+inference, and rule-ID links when a game needs public strategy guidance or a
+Level 2 strategy base. `GAME-EVIDENCE.md` owns completion profile, bot level,
+policy ID, benchmark workload, and release-status links.
+
 ## Purpose and authority
 
 This document is human/LLM-authored strategy analysis for the implemented Rulepath variant. It feeds Level 2 bot design.
@@ -155,13 +163,19 @@ Required for 3+ seat, team, partnership, or coalition-sensitive games. For games
 
 ## Translation to candidate Level 2 bot features
 
-These are candidates for `BOT-STRATEGY-EVIDENCE-PACK.md`; they are not yet a policy.
+These are candidates for `BOT-STRATEGY-EVIDENCE-PACK.md`; they are not yet a
+policy. Exact bot input view, deterministic ranking, tie-breaks, benchmark IDs,
+and implementation tests belong in the bot evidence pack and `GAME-EVIDENCE.md`.
 
 | Candidate feature | Derived from | Visible to bot? | Used for | Hidden-info risk | Test implied |
 |---|---|---:|---|---|---|
 | `<feature>` | `<section/example>` | yes/no | candidate extraction / priority / tie-break / explanation / style profile | none / low / medium / high | `<test>` |
 
 ## Tests implied by strategy claims
+
+Use this section for strategy-claim test implications only. Bot implementation
+test status and benchmark workload IDs are recorded in `GAME-EVIDENCE.md` and
+the bot evidence pack.
 
 | Strategy claim | Rule IDs | Test type | Test name placeholder | Notes |
 |---|---|---|---|---|

@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-018: Slim the bot/strategy/UI/bench template cluster into GAME-EVIDENCE
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`templates/COMPETENT-PLAYER.md`, `templates/BOT-STRATEGY-EVIDENCE-PACK.md`, `templates/GAME-UI.md`, `templates/GAME-BENCHMARKS.md`)
@@ -78,3 +78,37 @@ Migrate the benchmark workload IDs, the `GAME-UI` no-leak matrix, and the strate
 1. `grep -lF "GAME-EVIDENCE" templates/COMPETENT-PLAYER.md templates/BOT-STRATEGY-EVIDENCE-PACK.md templates/GAME-UI.md templates/GAME-BENCHMARKS.md`
 2. `node scripts/check-doc-links.mjs`
 3. The receipt-link grep + link check is the correct boundary; migrated-proof presence is grep-checked on the receipt side.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Slimmed the bot/strategy/UI/benchmark template cluster by adding
+`GAME-EVIDENCE.md` receipt links, domain-owner notes, and report mapping notes:
+
+- `B-10 -> COMPETENT-PLAYER.md`: human-readable strategy authority; routed bot
+  level, policy ID, benchmark workload, and release status to `GAME-EVIDENCE.md`.
+- `B-11 -> BOT-STRATEGY-EVIDENCE-PACK.md`: Level 2 policy translation
+  authority; replaced repeated generic bot exclusions with an `AI-BOTS.md`
+  reference plus per-game compliance statement and linked benchmark IDs to the
+  receipt.
+- `B-13 -> GAME-UI.md`: game-specific UI delta authority; replaced the detailed
+  hidden-info safeguards matrix with UI no-leak evidence IDs linked to the
+  `GAME-EVIDENCE.md` viewer matrix.
+- `B-14 -> GAME-BENCHMARKS.md`: benchmark workload authority; added stable
+  workload IDs, fixture/profile anchors, and compatibility rows that link to the
+  receipt rollup.
+
+Verification:
+
+- `grep -lF "GAME-EVIDENCE" templates/COMPETENT-PLAYER.md templates/BOT-STRATEGY-EVIDENCE-PACK.md templates/GAME-UI.md templates/GAME-BENCHMARKS.md`
+  listed all four templates.
+- `grep -niE "no-leak|benchmark workload" templates/GAME-EVIDENCE.md` returned
+  the receipt-side no-leak and benchmark workload owner surfaces.
+- `grep -niE "B-10|B-11|B-13|B-14|BENCH-|LEAK-UI|bot level|policy" templates/COMPETENT-PLAYER.md templates/BOT-STRATEGY-EVIDENCE-PACK.md templates/GAME-UI.md templates/GAME-BENCHMARKS.md`
+  returned the B-ID mappings and evidence/workload/policy fields.
+- `test -f templates/GAME-EVIDENCE.md` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: `GAME-AI.md` is intentionally left for ticket 020; this ticket only
+updated the four listed bot/strategy/UI/benchmark templates.
