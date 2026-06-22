@@ -1,6 +1,6 @@
 # UNI8CMECSCA-005: Add `EffectEnvelope::public` / `private_to` constructors
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `crates/engine-core/src/lib.rs` (`EffectEnvelope<T>` inherent methods)
@@ -74,3 +74,20 @@ Constructor-vs-literal equality for both scopes; payload move semantics; exact s
 1. `cargo test -p engine-core`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. The engine-core unit suite is the correct boundary — no game consumes the constructors yet.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added `EffectEnvelope::public(payload)` and `EffectEnvelope::private_to(seat_id, payload)` inherent constructors in `engine-core`.
+- Added unit tests proving public/private constructor output is field-equal to the existing struct literals and that a non-`Copy` payload is moved into the envelope.
+
+Deviations:
+- None. No game effect call sites were migrated and no serialization, filtering, reveal, or hash behavior changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p engine-core`
+- `cargo build --workspace`
+- `bash scripts/boundary-check.sh`

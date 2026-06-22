@@ -80,6 +80,26 @@ pub struct EffectEnvelope<T> {
     pub payload: T,
 }
 
+impl<T> EffectEnvelope<T> {
+    /// Builds a public effect envelope without filtering, reveal, or
+    /// serialization behavior.
+    pub fn public(payload: T) -> Self {
+        Self {
+            visibility: VisibilityScope::Public,
+            payload,
+        }
+    }
+
+    /// Builds a seat-private effect envelope for an already-typed seat without
+    /// filtering, reveal, or serialization behavior.
+    pub fn private_to(seat_id: SeatId, payload: T) -> Self {
+        Self {
+            visibility: VisibilityScope::PrivateToSeat(seat_id),
+            payload,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +120,44 @@ mod tests {
         assert_eq!(envelope.rules_version, RulesVersion(1));
         assert_eq!(envelope.actor.seat_id, SeatId("seat-a".to_owned()));
         assert_eq!(envelope.freshness_token, FreshnessToken(7));
+    }
+
+    #[test]
+    fn effect_envelope_public_matches_literal_scope_and_payload() {
+        let envelope = EffectEnvelope::public("payload".to_owned());
+
+        assert_eq!(
+            envelope,
+            EffectEnvelope {
+                visibility: VisibilityScope::Public,
+                payload: "payload".to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn effect_envelope_private_to_matches_literal_scope_and_payload() {
+        let seat_id = SeatId("seat_0".to_owned());
+        let envelope = EffectEnvelope::private_to(seat_id.clone(), vec!["payload".to_owned()]);
+
+        assert_eq!(
+            envelope,
+            EffectEnvelope {
+                visibility: VisibilityScope::PrivateToSeat(seat_id),
+                payload: vec!["payload".to_owned()],
+            }
+        );
+    }
+
+    #[test]
+    fn effect_envelope_constructors_move_non_copy_payloads() {
+        #[derive(Debug, Eq, PartialEq)]
+        struct NonCopyPayload(String);
+
+        let payload = NonCopyPayload("owned".to_owned());
+        let envelope = EffectEnvelope::public(payload);
+
+        assert_eq!(envelope.payload, NonCopyPayload("owned".to_owned()));
+        assert_eq!(envelope.visibility, VisibilityScope::Public);
     }
 }
