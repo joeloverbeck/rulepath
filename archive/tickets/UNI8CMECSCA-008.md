@@ -1,6 +1,6 @@
 # UNI8CMECSCA-008: One `wasm-api` seat import adapter (canonical + legacy aliases)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api/src/seats.rs`
@@ -76,3 +76,24 @@ Per-game import table tests (canonical/hyphen/symbolic) and a rejection table.
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game race_to_n --all`
 3. `wasm-api` tests plus `replay-check` are the correct boundary — the import unification must not perturb any committed trace byte.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added one `wasm-api` seat import adapter in `crates/wasm-api/src/seats.rs` that accepts strict canonical `seat_<n>`, bounded legacy `seat-<n>`, and explicit symbolic aliases such as `seat-a`, normalizing successful imports to canonical `SeatId`.
+- Routed the existing `seats.rs` per-game import parsers through the adapter while leaving all `trace_*` output adapters and seat roster builders unchanged.
+- Added adapter tests for canonical, hyphen, symbolic, out-of-range, invalid, and ambiguous-alias cases.
+
+Deviations:
+- Local Vow Tide and Briar Circuit parsers remain in their game modules because this ticket's file scope is `crates/wasm-api/src/seats.rs`; no test failure indicated scope expansion was required.
+- The broad grep for app seat strings found existing UI label/display code, so the no-TypeScript-normalization proof used `git diff --quiet -- apps/web`, which confirmed this ticket changed no app files.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo test --workspace`
+- `git diff --quiet -- apps/web`
