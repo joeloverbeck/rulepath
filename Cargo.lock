@@ -109,6 +109,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "game-test-support"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+]
+
+[[package]]
 name = "high_card_duel"
 version = "0.1.0"
 dependencies = [

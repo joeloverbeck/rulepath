@@ -1,6 +1,6 @@
 # UNI8CMECSCA-018: Create dev-only `crates/game-test-support` + boundary guard
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/game-test-support/{Cargo.toml,src/lib.rs}` (new), `Cargo.toml`, `scripts/boundary-check.sh`
@@ -81,3 +81,35 @@ Add an assertion that `cargo tree -e normal --invert game-test-support` (or an e
 1. `cargo tree --workspace -e normal --invert game-test-support`
 2. `bash scripts/boundary-check.sh && cargo build --workspace`
 3. `cargo tree` + the boundary script are the correct boundary — the dev-only contract is a dependency-graph property, not a unit-test property.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added workspace member `crates/game-test-support`.
+- Created the dev/test-only crate with a normal dependency only on
+  `engine-core`.
+- Declared public module boundaries for later work via `pub mod no_leak` and
+  `pub mod profiles`, with stub module files.
+- Extended `scripts/boundary-check.sh` to run
+  `cargo tree --workspace -e normal,build --invert game-test-support` and fail
+  if any reverse dependency edge appears after the root package.
+- Flipped `MSC-8C-006` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from
+  `candidate` to `accepted`.
+
+Deviations:
+- Added `crates/game-test-support/src/no_leak.rs` and
+  `crates/game-test-support/src/profiles.rs` in addition to `src/lib.rs` so the
+  declared public modules compile as real module boundaries for later tickets.
+- `Cargo.lock` gained the new workspace package entry when the crate was built.
+- No game, tool, production crate, or dev-dependency consumer was added.
+
+Verification:
+- `cargo build -p game-test-support`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `bash scripts/boundary-check.sh`
+- `cargo build --workspace`
+- `cargo fmt --all --check`
+- `rg -n "games/|path = \"\\.\\./\\.\\./games|path = \"\\.\\./games|engine-core|pub mod" crates/game-test-support`

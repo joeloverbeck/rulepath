@@ -259,7 +259,7 @@ mechanical scaffolding.
 
 ### MSC-8C-006 - Dev-only game test-support crate
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-06.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-06.
 - Candidate: new `crates/game-test-support` crate for test/evidence
   orchestration only.
 - semantic.risk: `medium`; the crate is lawful only if production crates,
@@ -278,11 +278,14 @@ mechanical scaffolding.
 - Determinism impact: deterministic test enumeration and reporting only.
 - Migration set: workspace manifest, `crates/game-test-support`, boundary
   script guard, and pilot dev-dependencies added by later tickets.
-- Acceptance evidence: crate compile, module-boundary tests, boundary script,
-  `cargo tree --workspace -e normal --invert game-test-support`, and no normal
-  reverse dependency.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-018 evidence.
+- Acceptance evidence: UNI8CMECSCA-018 created the workspace crate, declared
+  `no_leak` and `profiles` module boundaries, compiled
+  `game-test-support`, passed `cargo tree --workspace -e normal --invert
+  game-test-support` with only the root package, and extended
+  `scripts/boundary-check.sh` to reject normal/build reverse dependency edges.
+- Rejection rationale: not applicable.
+- Next review trigger: UNI8CMECSCA-019 no-leak implementation and
+  UNI8CMECSCA-022 profile-driver implementation.
 
 ### MSC-8C-007 - Pairwise no-leak assertion geometry
 

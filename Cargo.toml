@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/engine-core",
     "crates/game-stdlib",
+    "crates/game-test-support",
     "crates/ai-core",
     "crates/wasm-api",
     "games/race_to_n",
