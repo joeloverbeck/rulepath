@@ -6,6 +6,7 @@ use engine_core::{
 use vow_tide::{
     actions::legal_action_tree as vow_legal_action_tree,
     bots::{VowTideL0Bot, VowTideL1Bot},
+    cards::{CardId, Suit},
     effects::VowTideEffect,
     ids::{canonical_seat_ids, VowTideSeat},
     replay_support::{export_for_viewer, import_viewer_export, observer, ViewerExport},
@@ -487,8 +488,120 @@ fn vow_effect_payload_json(effect: &VowTideEffect) -> String {
         "{{\"type\":\"{}\",\"kind\":\"{}\",\"summary\":\"{}\"}}",
         vow_effect_kind(effect),
         vow_effect_kind(effect),
-        escape_json(&format!("{effect:?}"))
+        escape_json(&vow_effect_summary(effect))
     )
+}
+
+/// Player-facing seat label, matching the board's `Tide N` rail labels.
+fn vow_seat_label(seat: VowTideSeat) -> &'static str {
+    seat.fallback_label()
+}
+
+/// Player-facing card label with a suit glyph, e.g. `10♠`. Only ever called on
+/// public cards (played cards and the public trump indicator), so it leaks no
+/// hidden information.
+fn vow_card_label(card: CardId) -> String {
+    let card = card.card();
+    let glyph = match card.suit {
+        Suit::Clubs => "\u{2663}",
+        Suit::Diamonds => "\u{2666}",
+        Suit::Hearts => "\u{2665}",
+        Suit::Spades => "\u{2660}",
+    };
+    format!("{}{glyph}", card.rank.short_label())
+}
+
+fn vow_suit_name(suit: Suit) -> &'static str {
+    match suit {
+        Suit::Clubs => "Clubs",
+        Suit::Diamonds => "Diamonds",
+        Suit::Hearts => "Hearts",
+        Suit::Spades => "Spades",
+    }
+}
+
+/// Human-readable, viewer-safe status copy for each public effect. Replaces the
+/// previous raw `{effect:?}` Debug rendering that leaked internal identifiers
+/// (`Seat0`, `CardId(13)`) into the player-facing status line.
+fn vow_effect_summary(effect: &VowTideEffect) -> String {
+    match effect {
+        VowTideEffect::BidAccepted {
+            seat,
+            bid,
+            public_total,
+        } => format!(
+            "{} bid {bid} — table total {public_total}.",
+            vow_seat_label(*seat)
+        ),
+        VowTideEffect::DealerHookConstrained {
+            dealer,
+            forbidden_bid,
+            hand_size,
+            ..
+        } => format!(
+            "Dealer hook: {} cannot bid {forbidden_bid} (it would make all bids total the hand size, {hand_size}).",
+            vow_seat_label(*dealer)
+        ),
+        VowTideEffect::BiddingCompleted { first_leader } => format!(
+            "Bidding complete — {} leads the first trick.",
+            vow_seat_label(*first_leader)
+        ),
+        VowTideEffect::CardPlayed { seat, card, .. } => {
+            format!("{} played {}.", vow_seat_label(*seat), vow_card_label(*card))
+        }
+        VowTideEffect::TrickCaptured {
+            trick_index,
+            winner,
+            cards,
+        } => {
+            let played = cards
+                .iter()
+                .map(|card| vow_card_label(*card))
+                .collect::<Vec<_>>()
+                .join(" ");
+            format!(
+                "{} won trick {} ({played}).",
+                vow_seat_label(*winner),
+                u16::from(*trick_index) + 1
+            )
+        }
+        VowTideEffect::HandScored {
+            hand_index,
+            additions,
+            ..
+        } => {
+            let parts = additions
+                .iter()
+                .map(|(seat, delta)| format!("{} {delta:+}", vow_seat_label(*seat)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Hand {} scored — {parts}.", hand_index + 1)
+        }
+        VowTideEffect::HandAdvanced {
+            hand_index,
+            dealer,
+            hand_size,
+            trump_indicator,
+        } => format!(
+            "Hand {} begins — dealer {}, {hand_size} cards each, trump {} {}.",
+            hand_index + 1,
+            vow_seat_label(*dealer),
+            vow_suit_name(trump_indicator.card().suit),
+            vow_card_label(*trump_indicator)
+        ),
+        VowTideEffect::MatchCompleted { winners } => {
+            let names = winners
+                .iter()
+                .map(|seat| vow_seat_label(*seat))
+                .collect::<Vec<_>>()
+                .join(", ");
+            if winners.len() == 1 {
+                format!("Match complete — {names} wins.")
+            } else {
+                format!("Match complete — {names} share the win.")
+            }
+        }
+    }
 }
 
 fn vow_effect_kind(effect: &VowTideEffect) -> &'static str {
