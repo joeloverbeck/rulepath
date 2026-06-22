@@ -1,6 +1,6 @@
 # UNI8CMECSCA-017: River Ledger adopts `next_index_unbiased_v1`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/src/setup.rs`
@@ -75,3 +75,33 @@ River local-vs-shared equivalence vectors (returned indices + `next_u64` count) 
 1. `cargo run -p replay-check -- --game river_ledger --all && cargo run -p fixture-check -- --game river_ledger`
 2. `cargo test -p river_ledger`
 3. `replay-check`/`fixture-check` plus the equivalence test are the correct boundary — byte/consumption identity is the acceptance bar.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Replaced River Ledger's shuffle call to the local unbiased bounded-index
+  helper with `rng.next_index_unbiased_v1(index + 1)`.
+- Removed River Ledger's local `next_bounded_index_unbiased` helper.
+- Updated River setup tests to pin the shared method's rejected-draw behavior,
+  zero-bound draw count, and returned-index/draw-count equivalence against a
+  test-local copy of the removed algorithm for selected bounds.
+- Updated `MSC-8C-009` acceptance evidence with River's local-vs-shared
+  equivalence and no-artifact-drift proof.
+
+Deviations:
+- The ticket listed only `games/river_ledger/src/setup.rs`; updating
+  `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` was needed to record the completed
+  River adoption evidence.
+- No other game RNG caller, shuffle order, deal order, fixture, golden trace,
+  setup bytes, replay hash, or visibility output was changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `cargo test -p river_ledger`
+- `git diff --quiet -- games/river_ledger/tests/golden_traces games/river_ledger/data`
+- `cargo test --workspace`
+- `rg -n "next_bounded_index_unbiased" games/river_ledger/src/setup.rs` returned no matches.

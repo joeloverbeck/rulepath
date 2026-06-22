@@ -382,10 +382,12 @@ mechanical scaffolding.
 - Acceptance evidence: UNI8CMECSCA-016 documented legacy modulo consumption,
   preserved legacy `next_index` vectors, added unbiased v1 returned-index and
   consumed-word vectors including rejection cases, and matched the existing
-  local rejection-sampling algorithm in engine-core tests.
+  local rejection-sampling algorithm in engine-core tests; UNI8CMECSCA-017
+  replaced River Ledger's local helper with the shared method, pinned
+  local-vs-shared returned-index/draw-count equivalence, and passed River
+  replay/fixture/visibility plus workspace checks with no setup artifact drift.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-017 River local-vs-shared equivalence,
-  replay/visibility checks, and no downstream setup byte drift.
+- Next review trigger: future explicit RNG migrations outside Unit 8C, if any.
 
 ### MSC-8C-010 - Behavioral-policy bundle on the Non-Promotion List - rejected / local-only
 
