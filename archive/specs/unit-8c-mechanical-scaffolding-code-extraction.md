@@ -35,7 +35,7 @@ hidden-information laws.
 | **Stage** | Public scaling phase; pre-Gate-18 code unit |
 | **Gate / unit** | Unit 8C; non-game infrastructure and pilot-adoption unit |
 | **Status on authoring** | `Planned` |
-| **Status** | `Done` |
+| Status | `Done` |
 | **Date** | 2026-06-22 |
 | **Owner** | Rulepath maintainers |
 | **Source scope** | `reports/RULEPATH-DOC-AND-TEMPLATE-CHANGE-PLAN.md` Part C, C-01…C-11, Batches 3–4, narrowed by completed unit 8M. |
