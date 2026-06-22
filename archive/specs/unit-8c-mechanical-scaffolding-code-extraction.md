@@ -1,13 +1,12 @@
 # Unit 8C — Mechanical-scaffolding code extraction (Part C)
 
-Unit 8C is the next unit of work: `specs/README.md` selects the lowest unit not
-marked `Done`, row `8M` is `Done`, and `8C` is the next non-`Done` row before
-Gate 18. Its dependencies are satisfied — ADR 0008 (mechanical-scaffolding
+Unit 8C is complete: `specs/README.md` selects the lowest unit not marked
+`Done`, row `8M` is `Done`, and 8C now closes the pre-Gate-18
+mechanical-scaffolding unit while seeding 8C-R1...8C-R4 before Gate 18. Its
+dependencies were satisfied — ADR 0008 (mechanical-scaffolding
 governance) and ADR 0009 (replay/fixture/hash taxonomy) are both `Accepted`,
 ADR 0004 (hidden-info replay/export) governs the visibility surfaces, and
-`docs/MECHANIC-ATLAS.md` §10A records `Current debt: None`. The row-8C `Blocked`
-wording in the index is therefore stale state, not an unresolved doctrinal
-conflict; authoring this spec flips that row to `Planned` (work item 8C-001).
+`docs/MECHANIC-ATLAS.md` §10A records `Current debt: _None_`.
 
 Scope delta against the source report
 (`reports/RULEPATH-DOC-AND-TEMPLATE-CHANGE-PLAN.md`, Part C / Batches 3–4):
@@ -36,6 +35,7 @@ hidden-information laws.
 | **Stage** | Public scaling phase; pre-Gate-18 code unit |
 | **Gate / unit** | Unit 8C; non-game infrastructure and pilot-adoption unit |
 | **Status on authoring** | `Planned` |
+| **Status** | `Done` |
 | **Date** | 2026-06-22 |
 | **Owner** | Rulepath maintainers |
 | **Source scope** | `reports/RULEPATH-DOC-AND-TEMPLATE-CHANGE-PLAN.md` Part C, C-01…C-11, Batches 3–4, narrowed by completed unit 8M. |
@@ -883,6 +883,74 @@ Each assumption is one-line-correctable by the maintainer before its first depen
 | **A-10 — profile write authority** | New or migrated evidence writes canonical profile metadata; legacy artifacts may be read through bounded adapters. Read compatibility does not make legacy spellings canonical output. |
 | **A-11 — no new ADR** | Accepted ADRs 0008/0009/0004 fully authorize the scoped work. A new ADR is required only if implementation changes kernel responsibility, hash algorithm, visibility meaning, hand-authored format, or other §13 trigger beyond those decisions. |
 | **A-12 — documentation** | No normative `docs/**` amendment is needed beyond using the register; the tracker/spec/API documentation changes in §10 are sufficient unless implementation uncovers a named contradiction. |
+
+## Outcome
+
+Completed: 2026-06-22
+
+Unit 8C is `Done`. C-01...C-09 landed as accepted mechanical-scaffolding entries,
+C-10 remains `rejected / local-only`, and C-11 is seeded forward as four bounded
+unimplemented rows. No Gate 18 game work was executed.
+
+Closeout evidence:
+
+| Evidence | Result |
+|---|---|
+| Register | [`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`](../../docs/MECHANICAL-SCAFFOLDING-REGISTER.md) records `MSC-8C-001`...`MSC-8C-009` as accepted and `MSC-8C-010` as rejected/local-only, with final closeout evidence. |
+| Characterization | [`reports/8c-mechanical-scaffolding-characterization.md`](../../reports/8c-mechanical-scaffolding-characterization.md) plus archived tickets `UNI8CMECSCA-003`...`UNI8CMECSCA-004` preserve the legacy byte/hash ambiguity and pre-migration evidence boundary. |
+| Implementation and pilots | Archived tickets `UNI8CMECSCA-005`...`UNI8CMECSCA-027` record the helper implementations, pilots, migration receipts, replay/fixture evidence, and dependency checks. |
+| Consolidation and boundary | Archived tickets `UNI8CMECSCA-028`...`UNI8CMECSCA-030` record caller inventory, C-10 rejected/local-only closeout, and C-11 follow-on ownership. |
+| Forward rows | [`specs/README.md`](../../specs/README.md) includes 8C-R1...8C-R4 as `Not started`, covers every official game exactly once, and keeps Gate 18 blocked on their closure / not-applicable / accepted-excepted outcomes. |
+
+Exit-criteria mapping:
+
+| Exit criteria | Evidence |
+|---|---|
+| EC-01...EC-03 | Locked scope, register-first governance, and ownership are covered by the register, archived tickets `UNI8CMECSCA-001`...`UNI8CMECSCA-004`, `bash scripts/boundary-check.sh`, and `cargo tree --workspace -e normal --invert game-test-support`. |
+| EC-04...EC-13 | C-01/C-02/C-03/C-04/C-05/C-09 behavior, compatibility, byte/hash, legacy-read, and RNG evidence is covered by archived tickets `UNI8CMECSCA-005`...`UNI8CMECSCA-017`, focused shared/game crate tests, and pilot `replay-check` / `fixture-check` runs. |
+| EC-14...EC-18 | Dev-only dependency and no-leak geometry are covered by archived tickets `UNI8CMECSCA-018`...`UNI8CMECSCA-021`, `bash scripts/boundary-check.sh`, `cargo tree --workspace -e normal --invert game-test-support`, and High Card/River focused tests. |
+| EC-19...EC-23 | Profile separation, real callers, ADR-0004 preservation, fixture/data boundary, and tool ownership are covered by archived tickets `UNI8CMECSCA-022`...`UNI8CMECSCA-027`, tool strict-rejection tests, and all pilot `replay-check` / `fixture-check` runs. |
+| EC-24...EC-27 | Noun-free kernel, full test health, benchmark-threshold non-drift, and C-10 boundary are covered by `bash scripts/boundary-check.sh`, `cargo test --workspace --all-targets`, the register, and archived tickets `UNI8CMECSCA-028`...`UNI8CMECSCA-029`. |
+| EC-28...EC-30 | Follow-on ownership, documentation truth, and Gate 18 admission are covered by archived ticket `UNI8CMECSCA-030`, [`specs/README.md`](../../specs/README.md), `node scripts/check-doc-links.mjs`, and `node scripts/check-catalog-docs.mjs`. |
+
+Final verification commands all exited successfully:
+
+1. `cargo fmt --all -- --check`
+2. `cargo test -p engine-core`
+3. `cargo test -p game-stdlib`
+4. `cargo test -p game-test-support`
+5. `cargo test -p wasm-api`
+6. `cargo test -p race_to_n`
+7. `cargo test -p draughts_lite`
+8. `cargo test -p high_card_duel`
+9. `cargo test -p river_ledger`
+10. `cargo test -p vow_tide`
+11. `cargo test -p briar_circuit`
+12. `cargo test --workspace --all-targets`
+13. `cargo run -p replay-check -- --game race_to_n --all`
+14. `cargo run -p replay-check -- --game draughts_lite --all`
+15. `cargo run -p replay-check -- --game high_card_duel --all`
+16. `cargo run -p replay-check -- --game river_ledger --all`
+17. `cargo run -p replay-check -- --game vow_tide --all`
+18. `cargo run -p replay-check -- --game briar_circuit --all`
+19. `cargo run -p fixture-check -- --game race_to_n`
+20. `cargo run -p fixture-check -- --game river_ledger`
+21. `cargo run -p fixture-check -- --game vow_tide`
+22. `cargo run -p fixture-check -- --game briar_circuit`
+23. `bash scripts/boundary-check.sh`
+24. `cargo tree --workspace -e normal --invert game-test-support`
+25. `node scripts/check-doc-links.mjs`
+26. `node scripts/check-catalog-docs.mjs`
+
+`cargo test --workspace --all-targets` executed benchmark binaries as test
+targets and exited successfully. Some benchmark JSON rows printed local
+threshold `pass: false` values for pre-existing benchmark floors; no benchmark
+source or threshold was edited by 8C closeout, and benchmark threshold
+recalibration remains out of scope.
+
+`apps/web/README.md`, foundation docs, ADRs, architecture docs, roadmap docs,
+mechanic atlas, code, tests, fixtures, hashes, WASM surfaces, and runtime
+behavior were intentionally unchanged during this capstone.
 
 [^rfc8949]: RFC 8949, *Concise Binary Object Representation (CBOR)*, especially §4.2 deterministic encoding requirements: definite lengths and deterministic map-key order. <https://www.rfc-editor.org/rfc/rfc8949>
 [^borsh]: Borsh specification: canonical/deterministic bytes, little-endian integers, length-prefixed dynamic containers, deterministic ordering for unordered containers, and declared struct/enum order. <https://borsh.io/>

@@ -451,6 +451,24 @@ mechanical scaffolding.
 - Next review trigger: the next mechanic-ladder gate if a later game repeats
   one of these behavioral shapes.
 
+### Unit 8C closeout evidence - 2026-06-22
+
+- Final state: `MSC-8C-001`...`MSC-8C-009` are `accepted`; `MSC-8C-010` is
+  `rejected / local-only`.
+- Pilot receipts: Race to N, Draughts Lite, High Card Duel, River Ledger, Vow
+  Tide, and Briar Circuit evidence is recorded in the owning entries above and
+  in the archived UNI8CMECSCA-005...UNI8CMECSCA-030 tickets.
+- Final validators: `cargo fmt --all -- --check`, focused shared/pilot crate
+  tests, `cargo test --workspace --all-targets`, pilot `replay-check` and
+  `fixture-check` runs, `bash scripts/boundary-check.sh`,
+  `cargo tree --workspace -e normal --invert game-test-support`,
+  `node scripts/check-doc-links.mjs`, and
+  `node scripts/check-catalog-docs.mjs` all completed successfully for
+  UNI8CMECSCA-031.
+- Scope result: no production-code, test, byte, fixture, hash, WASM, atlas, or
+  roadmap change was needed for closeout; the four 8C-R follow-on rows remain
+  unimplemented and `Not started`.
+
 ## Review Checklist
 
 Before accepting a register entry, verify:

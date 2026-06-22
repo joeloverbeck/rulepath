@@ -1,6 +1,6 @@
 # UNI8CMECSCA-031: 8C closeout capstone — evidence, register finalize, `Done`-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs/status-only (`specs/unit-8c-…md`, `specs/README.md`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`)
@@ -81,3 +81,54 @@ Flip row 8C `Planned` → `Done` with the concise outcome/evidence link; leave 8
 1. `cargo test --workspace --all-targets`
 2. `bash scripts/boundary-check.sh && cargo tree --workspace -e normal --invert game-test-support && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs`
 3. The full workspace suite plus the boundary/dependency/doc guards are the correct boundary — the capstone verifies the composed pipeline and reconciles status, adding no logic.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Finalized Unit 8C as `Done` after running the capstone evidence suite. The spec
+now has a closeout outcome with EC-01...EC-30 evidence mapping, the register has
+a final 8C closeout proof block, and `specs/README.md` flips row 8C to `Done`
+while leaving 8C-R1...8C-R4 `Not started`.
+
+No production code, tests, fixtures, hashes, WASM surface, atlas text, roadmap,
+foundation doc, ADR, architecture doc, or runtime behavior changed in this
+capstone.
+
+Verification:
+
+1. `cargo fmt --all -- --check`
+2. `cargo test -p engine-core`
+3. `cargo test -p game-stdlib`
+4. `cargo test -p game-test-support`
+5. `cargo test -p wasm-api`
+6. `cargo test -p race_to_n`
+7. `cargo test -p draughts_lite`
+8. `cargo test -p high_card_duel`
+9. `cargo test -p river_ledger`
+10. `cargo test -p vow_tide`
+11. `cargo test -p briar_circuit`
+12. `cargo test --workspace --all-targets`
+13. `cargo run -p replay-check -- --game race_to_n --all`
+14. `cargo run -p replay-check -- --game draughts_lite --all`
+15. `cargo run -p replay-check -- --game high_card_duel --all`
+16. `cargo run -p replay-check -- --game river_ledger --all`
+17. `cargo run -p replay-check -- --game vow_tide --all`
+18. `cargo run -p replay-check -- --game briar_circuit --all`
+19. `cargo run -p fixture-check -- --game race_to_n`
+20. `cargo run -p fixture-check -- --game river_ledger`
+21. `cargo run -p fixture-check -- --game vow_tide`
+22. `cargo run -p fixture-check -- --game briar_circuit`
+23. `bash scripts/boundary-check.sh`
+24. `cargo tree --workspace -e normal --invert game-test-support`
+25. `node scripts/check-doc-links.mjs`
+26. `node scripts/check-catalog-docs.mjs`
+27. `grep -nE '^\| 8C ' specs/README.md`
+28. `grep -nE '8C-R[1-4]' specs/README.md`
+29. `rg -n 'Status.*Done|Unit 8C is `Done`|EC-01...EC-30|Unit 8C closeout evidence' archive/specs/unit-8c-mechanical-scaffolding-code-extraction.md docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+30. `git diff --check`
+
+Note: `cargo test --workspace --all-targets` exited successfully. Because this
+workspace includes benchmark binaries as all-targets, that command printed some
+pre-existing local benchmark rows with `pass: false`; those are not the
+capstone's benchmark gate, and 8C did not edit benchmark sources or thresholds.
