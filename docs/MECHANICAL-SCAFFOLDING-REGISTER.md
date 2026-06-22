@@ -185,7 +185,7 @@ mechanical scaffolding.
 
 ### MSC-8C-004 - Action-tree encoding/hash v1
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-04.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-04.
 - Candidate: versioned canonical encoding and stable hash for the current
   `ActionTree`, `ActionNode`, `ActionChoice`, `ActionMetadata`, and
   `ActionPreview` contract.
@@ -212,11 +212,13 @@ mechanical scaffolding.
 - Migration set: Race flat-tree and Draughts compound-tree pilots; legacy
   surfaces keep read compatibility through C-11 unless later accepted specs
   close it.
-- Acceptance evidence: collision/ambiguity characterization, kernel encoding
-  vectors, Race/Draughts old-vs-v1 hash receipts, replay-check/fixture-check
-  evidence for any migrated artifact.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-012 through UNI8CMECSCA-015 evidence.
+- Acceptance evidence: collision/ambiguity characterization from
+  UNI8CMECSCA-004, `StableBytesWriter` byte-contract evidence from
+  UNI8CMECSCA-012, and UNI8CMECSCA-013 kernel V1 encoding vectors/hash
+  receipts for empty, flat, metadata/tag, preview, and recursive action trees.
+- Rejection rationale: not applicable.
+- Next review trigger: Race/Draughts old-vs-v1 hash receipts and
+  replay-check/fixture-check evidence from UNI8CMECSCA-014/015.
 
 ### MSC-8C-005 - Stable-byte writer v1
 

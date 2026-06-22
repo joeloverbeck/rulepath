@@ -1,6 +1,6 @@
 # UNI8CMECSCA-013: Implement `ActionTreeEncodingVersion::V1` over `StableBytesWriter`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/engine-core/src/action.rs`
@@ -75,3 +75,39 @@ Empty / flat / multi-choice / metadata+tag / preview / recursive trees with pinn
 1. `cargo test -p engine-core`
 2. `bash scripts/boundary-check.sh`
 3. The engine-core suite is the correct boundary — game pilots adopt v1 in UNI8CMECSCA-014/015.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added `ActionTreeEncodingVersion::V1` and version-explicit
+  `ActionTree::stable_bytes(version)` / `ActionTree::stable_hash(version)` over
+  `StableBytesWriter` with domain `action_tree` and surface version `1`.
+- Encoded the current action-tree contract only: freshness token, root/child
+  choices in vector order, choice segment/label/accessibility label, metadata
+  key/value records in vector order, tags in vector order, payload-free preview
+  discriminants, and explicit `next` none/some child framing.
+- Re-exported `ActionTreeEncodingVersion` from `engine-core`.
+- Added engine-core V1 byte/hash coverage for empty, flat, metadata/tag,
+  preview, recursive, child-framing, vector-order, and non-contract-field
+  absence cases.
+- Flipped `MSC-8C-004` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from
+  `candidate` to `accepted`.
+
+Deviations:
+- The ticket listed only `crates/engine-core/src/action.rs`; updating
+  `crates/engine-core/src/lib.rs` was required to expose the version enum to
+  follow-on game pilots.
+- No game hash, fixture, replay output, or unversioned action-tree persisted
+  hash method was added.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p engine-core`
+- `bash scripts/boundary-check.sh`
+- `cargo build --workspace`
+- `rg -n "pub fn stable_(bytes|hash)\\(" crates/engine-core/src/action.rs`
+  returned only the two version-explicit methods:
+  `stable_bytes(&self, version: ActionTreeEncodingVersion)` and
+  `stable_hash(&self, version: ActionTreeEncodingVersion)`.

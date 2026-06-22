@@ -9,7 +9,8 @@ mod replay;
 mod rng;
 
 pub use action::{
-    ActionChoice, ActionMetadata, ActionNode, ActionPreview, ActionTree, FreshnessToken,
+    ActionChoice, ActionMetadata, ActionNode, ActionPreview, ActionTree, ActionTreeEncodingVersion,
+    FreshnessToken,
 };
 pub use game::Game;
 pub use replay::{
