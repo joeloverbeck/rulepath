@@ -54,6 +54,7 @@ export function VowTideBoard({
     [paths],
   );
   const canAct = Boolean(interactive && !pending && view.terminal.kind === "non_terminal" && paths.length > 0);
+  const playHint = followSuitHint(view, paths, canAct);
   const feedback = vowFeedback(latestEffect) ?? (latestEffect ? feedbackForEffect(latestEffect) : null);
   const changed = effects.some((entry) => ["bid_accepted", "card_played", "trick_captured", "hand_scored"].includes(vowEffectKind(entry)));
   const outcomeExplanation =
@@ -176,6 +177,11 @@ export function VowTideBoard({
           <span>Private hand</span>
           <strong>{view.private_view_status === "seat" ? `${view.own_hand.length} cards` : "Hidden for observer"}</strong>
         </div>
+        {playHint ? (
+          <p className="vow-tide-play-hint" role="note">
+            {playHint}
+          </p>
+        ) : null}
         <div className="vow-tide-hand">
           {view.private_view_status !== "seat" ? (
             <div className="vow-tide-facedown" data-testid="vow-tide-private-hidden">
@@ -376,4 +382,22 @@ function suitTone(suit: string): string {
 
 function suitName(suit: string): string {
   return suit.length > 0 ? suit.charAt(0).toUpperCase() + suit.slice(1) : suit;
+}
+
+// Restates the follow-suit rule for the player whose turn it is to play, based
+// on the Rust-provided legal set and the public led suit. It does not decide
+// legality — Rust already filtered the playable cards; this only explains why.
+function followSuitHint(view: VowTidePublicView, paths: PathChoice[], canAct: boolean): string | null {
+  const myPlayTurn = canAct && view.phase === "playing_trick" && paths.some((entry) => entry.path[0] === "play");
+  if (!myPlayTurn || view.private_view_status !== "seat") {
+    return null;
+  }
+  if (view.current_trick.length === 0) {
+    return "You lead this trick — play any card.";
+  }
+  const ledSuit = view.current_trick[0].card.suit;
+  const holdsLedSuit = view.own_hand.some((card) => card.suit === ledSuit);
+  return holdsLedSuit
+    ? `You must follow ${suitName(ledSuit)}.`
+    : `Void in ${suitName(ledSuit)} — play any card, including trump.`;
 }
