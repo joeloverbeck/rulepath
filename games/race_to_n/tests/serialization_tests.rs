@@ -1,6 +1,6 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionChoice, ActionMetadata, ActionPath, ActionTree, Actor, CommandEnvelope, FreshnessToken,
+    HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
 use race_to_n::{
     legal_action_tree, project_view, replay_support::action_tree_hash, setup_match, CounterValue,
@@ -133,4 +133,87 @@ fn characterization_flat_action_tree_legacy_bytes_and_hash_are_pinned() {
 
     assert_eq!(legacy_bytes, "add-1|add-2|add-3");
     assert_eq!(action_tree_hash(&tree), HashValue(8451402319224114161));
+}
+
+#[test]
+fn characterization_flat_action_tree_delimiter_strings_are_ambiguous() {
+    let split_delimiter = ActionTree::flat(
+        FreshnessToken(0),
+        vec![
+            ActionChoice::leaf("add-1|add-2", "A", "A"),
+            ActionChoice::leaf("add-3", "B", "B"),
+        ],
+    );
+    let joined_delimiter = ActionTree::flat(
+        FreshnessToken(0),
+        vec![
+            ActionChoice::leaf("add-1", "A", "A"),
+            ActionChoice::leaf("add-2|add-3", "B", "B"),
+        ],
+    );
+
+    assert_ne!(split_delimiter, joined_delimiter);
+    assert_eq!(
+        action_tree_hash(&split_delimiter),
+        action_tree_hash(&joined_delimiter)
+    );
+}
+
+#[test]
+fn characterization_flat_action_tree_empty_choice_and_absent_boundary_collide() {
+    let explicit_empty_segment = ActionTree::flat(
+        FreshnessToken(0),
+        vec![
+            ActionChoice::leaf("add-1", "A", "A"),
+            ActionChoice::leaf("", "empty", "empty"),
+        ],
+    );
+    let absent_second_choice = ActionTree::flat(
+        FreshnessToken(0),
+        vec![ActionChoice::leaf("add-1|", "A", "A")],
+    );
+
+    assert_ne!(explicit_empty_segment, absent_second_choice);
+    assert_eq!(
+        action_tree_hash(&explicit_empty_segment),
+        action_tree_hash(&absent_second_choice)
+    );
+}
+
+#[test]
+fn characterization_flat_action_tree_metadata_and_tag_order_are_ignored() {
+    let mut metadata_first = ActionChoice::leaf("add-1", "A", "A");
+    metadata_first.metadata = vec![
+        ActionMetadata {
+            key: "first".to_owned(),
+            value: "1".to_owned(),
+        },
+        ActionMetadata {
+            key: "second".to_owned(),
+            value: "2".to_owned(),
+        },
+    ];
+    metadata_first.tags = vec!["left".to_owned(), "right".to_owned()];
+
+    let mut metadata_swapped = ActionChoice::leaf("add-1", "A", "A");
+    metadata_swapped.metadata = vec![
+        ActionMetadata {
+            key: "second".to_owned(),
+            value: "2".to_owned(),
+        },
+        ActionMetadata {
+            key: "first".to_owned(),
+            value: "1".to_owned(),
+        },
+    ];
+    metadata_swapped.tags = vec!["right".to_owned(), "left".to_owned()];
+
+    let first_tree = ActionTree::flat(FreshnessToken(0), vec![metadata_first]);
+    let swapped_tree = ActionTree::flat(FreshnessToken(0), vec![metadata_swapped]);
+
+    assert_ne!(first_tree, swapped_tree);
+    assert_eq!(
+        action_tree_hash(&first_tree),
+        action_tree_hash(&swapped_tree)
+    );
 }

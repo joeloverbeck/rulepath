@@ -64,7 +64,10 @@ fn characterization_viewer_export_artifacts_are_pinned() {
     let seat_0_export = export_for_viewer(&state, &[], &seat_viewer("seat_0"));
 
     assert_eq!(stable_hash(public_trace.as_bytes()), 9606057229737834804);
-    assert_eq!(stable_hash(seat_private_trace.as_bytes()), 16909558442784598481);
+    assert_eq!(
+        stable_hash(seat_private_trace.as_bytes()),
+        16909558442784598481
+    );
     assert_eq!(observer_export.stable_hash().0, 14136592432406028852);
     assert_eq!(seat_0_export.stable_hash().0, 12688236753872554050);
     assert_eq!(observer_export.viewer, "observer");

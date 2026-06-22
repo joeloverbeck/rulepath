@@ -1,6 +1,6 @@
 # UNI8CMECSCA-004: Add collision/ambiguity characterization tests around the local encoders
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — characterization tests around the per-game local action-tree encoders
@@ -76,3 +76,22 @@ Add a test showing the current path's behavior when fixture profile metadata is 
 1. `cargo test -p race_to_n -p draughts_lite`
 2. `cargo run -p replay-check -- --game race_to_n --all`
 3. The two pilot crates plus `replay-check` are the correct boundary because the ambiguity must be shown against the real local encoders and their goldens.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added Race to N characterization tests showing the current flat action-tree hash collides for delimiter-bearing segments, empty-choice vs absent-boundary shapes, and metadata/tag order changes that are ignored by the legacy segment-only encoder.
+- Added Draughts Lite characterization tests showing the current compound action-tree hash collides across recursive child boundaries and unframed metadata/tag entry boundaries.
+- Added a Draughts Lite legacy-trace characterization that confirms current trace parsing still accepts a command fixture with no future profile metadata fields.
+
+Deviations:
+- The tests characterize current ambiguity and legacy profile-metadata absence only; no encoder, golden trace, expected hash, or fixture was changed.
+- `cargo fmt --all` also normalized two assertion layouts in `games/river_ledger/tests/replay.rs` and `games/vow_tide/tests/replay.rs` that came from the previous characterization ticket; those are formatting-only changes.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p race_to_n -p draughts_lite`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p replay-check -- --game draughts_lite --all`

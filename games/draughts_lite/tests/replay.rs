@@ -2,13 +2,13 @@ use draughts_lite::replay_support::{
     action_tree_hash, diagnostic_hash, replay_from_state, DraughtsLiteReplayJson,
 };
 use draughts_lite::{
-    apply_action, legal_action_tree, setup_match, validate_command, CellOccupancy, DraughtsLiteSeat,
-    DraughtsLiteSnapshot, DraughtsLiteState, Piece, PieceId, PieceKind, SetupOptions,
-    TerminalOutcome, Variant,
+    apply_action, legal_action_tree, setup_match, validate_command, CellOccupancy,
+    DraughtsLiteSeat, DraughtsLiteSnapshot, DraughtsLiteState, Piece, PieceId, PieceKind,
+    SetupOptions, TerminalOutcome, Variant,
 };
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionChoice, ActionMetadata, ActionNode, ActionPath, ActionTree, Actor, CommandEnvelope,
+    FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
 use game_stdlib::board_space::Coord;
 
@@ -125,6 +125,79 @@ fn characterization_compound_action_tree_legacy_hash_is_pinned() {
     assert_eq!(tree.root.choices[0].segment, "from/r3c2");
     assert!(tree.root.choices[0].next.is_some());
     assert_eq!(action_tree_hash(&tree), HashValue(7788678278305142813));
+}
+
+#[test]
+fn characterization_compound_action_tree_nested_boundaries_are_ambiguous() {
+    let mut nested_parent = ActionChoice::leaf("from/r3c2", "From", "From");
+    nested_parent.next = Some(Box::new(ActionNode {
+        choices: vec![ActionChoice::leaf("jump/r5c4", "Jump", "Jump")],
+    }));
+    let nested_tree = ActionTree::flat(FreshnessToken(0), vec![nested_parent]);
+
+    let flat_delimiter_segment = ActionTree::flat(
+        FreshnessToken(0),
+        vec![ActionChoice::leaf(
+            "from/r3c2|From|From|unavailable|||jump/r5c4",
+            "Jump",
+            "Jump",
+        )],
+    );
+
+    assert_ne!(nested_tree, flat_delimiter_segment);
+    assert_eq!(
+        action_tree_hash(&nested_tree),
+        action_tree_hash(&flat_delimiter_segment)
+    );
+}
+
+#[test]
+fn characterization_compound_action_tree_metadata_and_tags_are_unframed() {
+    let mut compact_entries = ActionChoice::leaf("from/r3c2", "From", "From");
+    compact_entries.metadata = vec![ActionMetadata {
+        key: "captured".to_owned(),
+        value: "seat_1-p01,landing=r5c4".to_owned(),
+    }];
+    compact_entries.tags = vec!["capture,forced".to_owned()];
+
+    let mut split_entries = ActionChoice::leaf("from/r3c2", "From", "From");
+    split_entries.metadata = vec![
+        ActionMetadata {
+            key: "captured".to_owned(),
+            value: "seat_1-p01".to_owned(),
+        },
+        ActionMetadata {
+            key: "landing".to_owned(),
+            value: "r5c4".to_owned(),
+        },
+    ];
+    split_entries.tags = vec!["capture".to_owned(), "forced".to_owned()];
+
+    let compact_tree = ActionTree::flat(FreshnessToken(0), vec![compact_entries]);
+    let split_tree = ActionTree::flat(FreshnessToken(0), vec![split_entries]);
+
+    assert_ne!(compact_tree, split_tree);
+    assert_eq!(
+        action_tree_hash(&compact_tree),
+        action_tree_hash(&split_tree)
+    );
+}
+
+#[test]
+fn characterization_legacy_trace_without_profile_metadata_is_still_accepted() {
+    let fixture = include_str!("golden_traces/multi-jump.trace.json");
+
+    assert!(!fixture.contains("\"profile_id\""));
+    assert!(!fixture.contains("\"profile_version\""));
+    assert!(!fixture.contains("\"canonical_byte_authority\""));
+
+    let parsed = parse_trace_schema_v1_fixture(fixture);
+    assert_eq!(parsed.id, "draughts-lite-multi-jump");
+    assert_eq!(parsed.kind, "commands");
+    assert_eq!(
+        parsed.commands[0].action_path,
+        ["from/r3c2", "jump/r5c4", "jump/r7c6"]
+    );
 }
 
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {

@@ -230,7 +230,10 @@ fn characterization_setup_export_and_visibility_artifacts_are_pinned() {
         HashValue::from_stable_bytes(seat_private_trace.as_bytes()),
         HashValue(6382002720248622821)
     );
-    assert_eq!(observer_export.stable_hash(), HashValue(2482097568303728278));
+    assert_eq!(
+        observer_export.stable_hash(),
+        HashValue(2482097568303728278)
+    );
     assert_eq!(seat_export.stable_hash(), HashValue(7443748736294317283));
     assert_eq!(observer_export.viewer, "observer");
     assert_eq!(seat_export.viewer, "seat_0");
