@@ -6,6 +6,20 @@ Rulepath bots exist to make public games enjoyable, testable, and demonstrable. 
 
 The goal is competent, explainable, fair, human-plausible, non-superhuman play. The goal is not a generic bot that plays every game.
 
+## 0. AI document owners
+
+Each AI-related document has one owner/purpose. Do not duplicate full bot
+doctrine across game docs; link to the owning document and record only the
+game-specific status or evidence needed there.
+
+| Document | Owner/purpose | Must not duplicate |
+|---|---|---|
+| `docs/AI-BOTS.md` | Repository bot law, allowed techniques, forbidden techniques, information boundary, explanation requirements, and public-bot acceptance. | Per-game bot registries, full strategy analysis, or policy evidence packs. |
+| `COMPETENT-PLAYER.md` | Human-readable strategy analysis for one game/variant, checked against rules and used as Level 2 design input. | Repository bot law or implementation registry state. |
+| `BOT-STRATEGY-EVIDENCE-PACK.md` | Formal Level 2 authored-policy design input: candidate extraction, priority order, information boundaries, tests, explanations, and benchmarks for one policy. | General bot doctrine or long-form player strategy prose. |
+| `GAME-AI.md` | Per-game bot registry and status receipt: which bots exist, their levels/policy ids, public suitability, evidence links, tests, benchmarks, and known weaknesses. | Full Level 2 evidence pack or competent-player strategy prose. |
+| `GAME-EVIDENCE.md` | Cross-template conformance receipt linking bot levels, bot policy ids, benchmark evidence, release state, and blockers. | Bot doctrine, policy design, or strategy prose. |
+
 ## 1. Core bot law
 
 Bots MUST:

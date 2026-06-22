@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-014: AI-BOTS one-owner + UI-INTERACTION semantic scaffolding review
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs-only (`docs/AI-BOTS.md`, `docs/UI-INTERACTION.md`)
@@ -74,3 +74,33 @@ Replace the §10A "official-game count above 20" promotion trigger with a semant
 1. `grep -niE "count above 20|scaffolding review" docs/UI-INTERACTION.md`
 2. `node scripts/check-doc-links.mjs`
 3. The old-phrase-gone / new-phrase-present grep pair is the correct boundary for the trigger swap.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Updated `docs/AI-BOTS.md` with a one-owner/purpose table for the AI-related doc
+set. The repository bot law remains in `AI-BOTS.md`; per-game strategy,
+Level 2 policy evidence, per-game bot registry/status, and cross-template
+evidence links each point to their owning documents without duplicating full bot
+doctrine.
+
+Updated `docs/UI-INTERACTION.md` §10A to remove the raw
+`official-game count above 20` presentation-helper promotion trigger. Repeated
+presentation shapes now require semantic scaffolding review through ADR 0008 and
+`MECHANICAL-SCAFFOLDING-REGISTER.md`, with behavior, legality, visibility,
+renderer-policy, hidden-state, and game-rule candidates rejected from the
+scaffolding lane.
+
+Verification:
+
+- `grep -niE "official-game count above 20" docs/UI-INTERACTION.md` returned no
+  matches.
+- `grep -niE "scaffolding review" docs/UI-INTERACTION.md` returned the
+  replacement trigger.
+- `grep -niE "owner|purpose" docs/AI-BOTS.md` returned the one-owner framing.
+- `grep -n "^Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md`
+  returned `Status: Accepted`.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: none; bot doctrine and UI behavior remain documentation-only.
