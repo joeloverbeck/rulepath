@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-001: docs/README authority-map hygiene + ADR status index
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — docs-only (`docs/README.md`)
@@ -78,3 +78,22 @@ State that `Proposed` ADRs are informative only and must not be cited as accepte
 1. `grep -nE "TRACE-SCHEMA-v1|[Pp]roposed ADR" docs/README.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower grep is the correct boundary for the new entries; `check-doc-links.mjs` is the full-pipeline link-integrity gate.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Changed `docs/README.md` to add `TRACE-SCHEMA-v1.md` to the ordered authority
+map, add a central ADR status index for ADRs 0001 through 0007, and state that
+Proposed ADRs are informative only until accepted and paired with the named
+foundation updates.
+
+Deviations: the live authority map is a table rather than the numbered list
+wording in the ticket, so the table format was preserved and later rows were
+renumbered.
+
+Verification:
+
+- `grep -nE "TRACE-SCHEMA-v1|[Pp]roposed ADR" docs/README.md` returned the
+  Trace Schema authority-map row and the Proposed ADR policy statement.
+- `node scripts/check-doc-links.mjs` passed (`Checked 27 markdown files`).
