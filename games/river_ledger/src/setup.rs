@@ -1,4 +1,5 @@
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::{SeatCount, SeatCountRange};
 
 use crate::{
     cards::{canonical_deck, Card},
@@ -32,21 +33,18 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<RiverLedgerState, Diagnostic> {
-    validate_seat_count(seats.len())?;
+    let seat_count = river_seat_count(seats.len())?;
     let starting_stacks =
         validate_starting_stacks(seats.len(), options.starting_stacks.as_deref())?;
 
-    let button = RiverLedgerSeat::from_index(options.button_index % seats.len())
-        .expect("button modulo valid seat count");
-    let small_blind = button
-        .next_in_count(seats.len() as u8)
-        .expect("small blind");
-    let big_blind = small_blind
-        .next_in_count(seats.len() as u8)
-        .expect("big blind");
-    let active_seat = big_blind
-        .next_in_count(seats.len() as u8)
-        .expect("preflop active seat");
+    let button = river_seat_at(
+        seat_count
+            .checked_index(options.button_index % seat_count.get())
+            .expect("button modulo valid seat count"),
+    );
+    let small_blind = next_ring_seat(seat_count, button);
+    let big_blind = next_ring_seat(seat_count, small_blind);
+    let active_seat = next_ring_seat(seat_count, big_blind);
 
     let mut rng = SeededRng::from_seed(seed);
     let mut deck = canonical_deck();
@@ -86,16 +84,35 @@ pub fn setup_match(
 }
 
 pub fn validate_seat_count(count: usize) -> Result<(), Diagnostic> {
-    if (STANDARD_MIN_SEATS as usize..=STANDARD_MAX_SEATS as usize).contains(&count) {
-        return Ok(());
-    }
+    river_seat_count(count).map(|_| ())
+}
 
-    Err(Diagnostic {
+fn river_seat_count(count: usize) -> Result<SeatCount, Diagnostic> {
+    SeatCountRange::inclusive(STANDARD_MIN_SEATS as usize, STANDARD_MAX_SEATS as usize)
+        .expect("river_ledger standard seat range is valid")
+        .validate(count)
+        .map_err(|_| invalid_seat_count())
+}
+
+fn invalid_seat_count() -> Diagnostic {
+    Diagnostic {
         code: "invalid_seat_count".to_owned(),
         message: format!(
             "river_ledger requires between {STANDARD_MIN_SEATS} and {STANDARD_MAX_SEATS} seats"
         ),
-    })
+    }
+}
+
+fn river_seat_at(index: usize) -> RiverLedgerSeat {
+    RiverLedgerSeat::from_index(index).expect("validated seat index maps to RiverLedgerSeat")
+}
+
+fn next_ring_seat(count: SeatCount, seat: RiverLedgerSeat) -> RiverLedgerSeat {
+    river_seat_at(
+        count
+            .next_ring_index(seat.index())
+            .expect("validated RiverLedgerSeat is inside count"),
+    )
 }
 
 pub fn validate_starting_stacks(

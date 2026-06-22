@@ -1,4 +1,5 @@
 use engine_core::{Diagnostic, FreshnessToken, SeatId, Seed};
+use game_stdlib::SeatCountRange;
 
 use crate::{
     ids::RaceSeat,
@@ -24,12 +25,16 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<RaceState, Diagnostic> {
-    if seats.len() != options.variant.seat_count as usize {
-        return Err(Diagnostic {
-            code: "invalid_seat_count".to_owned(),
-            message: "race_to_n requires exactly two seats".to_owned(),
-        });
-    }
+    SeatCountRange::inclusive(
+        options.variant.seat_count as usize,
+        options.variant.seat_count as usize,
+    )
+    .expect("race_to_n variant seat count is nonzero")
+    .validate(seats.len())
+    .map_err(|_| Diagnostic {
+        code: "invalid_seat_count".to_owned(),
+        message: "race_to_n requires exactly two seats".to_owned(),
+    })?;
 
     Ok(RaceState {
         variant: options.variant.clone(),

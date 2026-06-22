@@ -153,7 +153,7 @@ mechanical scaffolding.
 
 ### MSC-8C-003 - Seat-count validation and ring-index arithmetic
 
-- Entry id: 2026-06-22, status `candidate`, owner Unit 8C / C-03.
+- Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-03.
 - Candidate: `game-stdlib::seat` structural `SeatCount`,
   `SeatCountRange`, checked index, and next-ring-index arithmetic.
 - semantic.risk: `medium`; count/ring arithmetic is behavior-free only while
@@ -175,11 +175,13 @@ mechanical scaffolding.
 - Determinism impact: deterministic checked arithmetic and wraparound only.
 - Migration set: Race to N exact-two pilot and River Ledger 3-6 validation/ring
   pilot; other games deferred to C-11 audits.
-- Acceptance evidence: structural-error unit/property tests, setup acceptance
-  and rejection tests, diagnostic-preservation checks, replay comparisons, and
-  boundary review.
-- Rejection rationale: not applicable while candidate.
-- Next review trigger: UNI8CMECSCA-010 and UNI8CMECSCA-011 evidence.
+- Acceptance evidence: UNI8CMECSCA-010 structural-error unit/property tests;
+  UNI8CMECSCA-011 Race/River setup acceptance and rejection tests,
+  diagnostic-preservation checks, replay/fixture comparisons, workspace tests,
+  and policy-term grep proof for `game-stdlib::seat`.
+- Rejection rationale: not applicable; accepted with behavior exclusions above.
+- Next review trigger: C-11 audits if additional games adopt seat-count or ring
+  helpers.
 
 ### MSC-8C-004 - Action-tree encoding/hash v1
 

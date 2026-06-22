@@ -1,6 +1,6 @@
 # UNI8CMECSCA-011: Pilot seat-count/ring plumbing in Race to N and River Ledger
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/race_to_n/src/setup.rs`, `games/river_ledger/src/setup.rs`
@@ -45,6 +45,8 @@ Use `SeatCountRange::inclusive(3,6).validate(..)` and `next_ring_index`/`checked
 
 - `games/race_to_n/src/setup.rs` (modify)
 - `games/river_ledger/src/setup.rs` (modify)
+- `games/race_to_n/Cargo.toml` (modify — add production `game-stdlib` dependency required by the pilot)
+- `games/river_ledger/Cargo.toml` (modify — add production `game-stdlib` dependency required by the pilot)
 
 ## Out of Scope
 
@@ -76,3 +78,27 @@ Use `SeatCountRange::inclusive(3,6).validate(..)` and `next_ring_index`/`checked
 1. `cargo test -p race_to_n -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all && cargo run -p fixture-check -- --game river_ledger`
 3. The games' suites plus `replay-check`/`fixture-check` are the correct boundary — behavior-neutrality is proven by unchanged diagnostics and byte identity.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Race to N setup now validates its exact seat count through `SeatCountRange`, mapping structural errors back to the existing `invalid_seat_count` diagnostic.
+- River Ledger setup now validates its 3-6 seat range through `SeatCountRange` and uses `SeatCount::checked_index` / `next_ring_index` for setup-time button, blind, and preflop active-seat ring arithmetic while keeping modulo button policy and diagnostics local.
+- Added normal `game-stdlib` dependencies to Race to N and River Ledger so the production setup code can use the helper.
+- Flipped `MSC-8C-003` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` from `candidate` to `accepted`.
+
+Deviations:
+- The original Files to Touch omitted the two game `Cargo.toml` files; adding `game-stdlib` as a production dependency was required for the pilot adoption to compile.
+- No setup diagnostic text, replay/fixture bytes, betting policy, button/dealer policy, or shared generated seat enum was changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p race_to_n -p river_ledger`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `cargo test --workspace`
+- `rg -n "\\b(dealer|button|blind|bet|turn|pass|partner|partnership|team|role)\\b" crates/game-stdlib/src/seat.rs` returned no matches.
+- `node scripts/check-doc-links.mjs`
