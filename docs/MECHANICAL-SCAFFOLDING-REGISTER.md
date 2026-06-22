@@ -368,8 +368,11 @@ mechanical scaffolding.
   UNI8CMECSCA-024 adopted `SetupEvidenceV1Driver` in River Ledger against the
   legacy 3-seat setup fixture with canonical-byte authority `none` and no
   fixture byte changes.
+  UNI8CMECSCA-025 adopted `PublicExportV1Driver` and
+  `SeatPrivateExportV1Driver` in Vow Tide against the legacy public and
+  all-viewer seat-private export fixtures without changing fixture bytes.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-025 through UNI8CMECSCA-027 pilot artifact
+- Next review trigger: UNI8CMECSCA-026 through UNI8CMECSCA-027 pilot artifact
   validations and CLI tool output.
 
 ### MSC-8C-009 - Versioned bounded-index sampling

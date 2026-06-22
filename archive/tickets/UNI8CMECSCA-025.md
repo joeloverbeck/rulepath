@@ -1,6 +1,6 @@
 # UNI8CMECSCA-025: Vow Tide drives `public-export-v1` and `seat-private-export-v1`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/vow_tide/tests/replay.rs`, `games/vow_tide/Cargo.toml` (`[dev-dependencies]`)
@@ -76,3 +76,21 @@ Adopt `PublicExportV1Driver` and `SeatPrivateExportV1Driver` over the existing p
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The game suite plus `replay-check` are the correct boundary — export round-trips are exercised through real Vow projection.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Adopted `PublicExportV1Driver` and `SeatPrivateExportV1Driver` in Vow Tide by adding `game-test-support` as a dev-dependency and wrapping the existing public and all-viewer seat-private export fixtures in driver-backed tests. The tests create virtual profile metadata without editing the fixtures, delegate export/import semantics to Vow's replay support, verify the observer export excludes all seat canaries and hidden stock, and verify every declared `seat_0` through `seat_6` export is viewer-labeled, round-trips, includes only its own canary, and excludes other seats plus hidden stock. Vow bidding/deal/trick/no-leak policy code was not touched.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `bash scripts/boundary-check.sh`
+- `git diff --quiet -- games/vow_tide/tests/golden_traces/public-replay-export-import.trace.json games/vow_tide/tests/golden_traces/seat-private-replay-export-import-all-viewers.trace.json`
+- `git diff --name-only -- games/vow_tide/src games/vow_tide/tests games/vow_tide/Cargo.toml` showed only `games/vow_tide/Cargo.toml` and `games/vow_tide/tests/replay.rs`
+- `cargo test --workspace`
