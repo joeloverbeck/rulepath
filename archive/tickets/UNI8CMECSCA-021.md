@@ -1,6 +1,6 @@
 # UNI8CMECSCA-021: Pilot the no-leak harness in River Ledger (N-seat 3–6)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger/tests/visibility.rs`, `games/river_ledger/Cargo.toml` (`[dev-dependencies]`)
@@ -76,3 +76,21 @@ Adopt `assert_pairwise_no_leak` for the full 3–6 source × viewer × surface m
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The visibility suite plus `replay-check` are the correct boundary — the per-count matrices and showdown exports are exercised together.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Implemented the River Ledger N-seat no-leak harness pilot by adding `game-test-support` as a dev-dependency and layering `assert_pairwise_no_leak` over the existing `visibility.rs` suite. The matrix runs for counts 3, 4, 5, and 6 with observer plus every seat viewer across view projection, setup effects, action tree, diagnostics, viewer-scoped replay export, folded-showdown projection, bot input, and bot explanation surfaces. Existing River-specific lifecycle, stack/pot, diagnostics, and showdown assertions remain in place. Betting, pot, evaluator, showdown, and allocation modules were not touched.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `bash scripts/boundary-check.sh`
+- `rg -n "RIVER_NO_LEAK_TEST_CANARY|RIVER_CANARY|NO_LEAK_CANARY" games/river_ledger/tests/golden_traces` (no matches)
+- `cargo test --workspace`
+- `git diff --name-only` showed only `Cargo.lock`, `games/river_ledger/Cargo.toml`, and `games/river_ledger/tests/visibility.rs` under River implementation scope.

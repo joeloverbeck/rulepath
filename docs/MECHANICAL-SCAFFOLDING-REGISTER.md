@@ -318,8 +318,12 @@ mechanical scaffolding.
   UNI8CMECSCA-020 piloted the harness in High Card Duel across observer, seat
   0, and seat 1 for view, action tree, diagnostic, effect, replay export, and
   bot-input surfaces while retaining reveal-specific assertions.
+  UNI8CMECSCA-021 piloted the harness in River Ledger across counts 3-6 for
+  observer plus every seat viewer over view, effect, action, diagnostic,
+  export, showdown, bot-input, and bot-explanation surfaces while leaving
+  betting/pot/showdown policy game-owned.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-021 River Ledger 3/4/5/6 matrices.
+- Next review trigger: broader hidden-information game migration under C-11.
 
 ### MSC-8C-008 - Evidence-profile drivers
 
