@@ -1,6 +1,6 @@
 # UNI8CMECSCA-015: Draughts Lite compound-tree action-encoding pilot
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/draughts_lite/src/replay_support.rs`
@@ -75,3 +75,33 @@ Legacy-vs-v1 compound-tree bytes/hash and the nested ambiguity negative.
 1. `cargo run -p replay-check -- --game draughts_lite --all`
 2. `cargo test -p draughts_lite`
 3. `replay-check` plus the comparison test are the correct boundary — the recursive case must not perturb the committed compound trace.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added Draughts Lite helper functions for named legacy bytes and the parallel
+  V1 action-tree surface: `action_tree_legacy_bytes`,
+  `action_tree_v1_bytes`, and `action_tree_v1_hash`.
+- Added a compound multi-jump comparison test that computes legacy and V1 from
+  the same recursive legal action tree, pins the legacy hash, pins the V1 bytes
+  through the `StableBytesWriter` field contract, and pins the V1 hash
+  `390128801164796593`.
+- Extended the existing nested-boundary ambiguity characterization to prove the
+  legacy collision no longer collides under V1 bytes or V1 hash.
+
+Deviations:
+- The ticket listed only `games/draughts_lite/src/replay_support.rs`; the
+  comparison and nested-collision assertions were added in
+  `games/draughts_lite/tests/replay.rs`, where the existing compound-tree
+  characterization tests live.
+- No golden trace, fixture hash, legacy hash value, path legality, movement,
+  capture, or promotion behavior was changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo run -p replay-check -- --game draughts_lite --all`
+- `cargo test -p draughts_lite`
+- `git diff --quiet -- games/draughts_lite/tests/golden_traces`
+- `cargo test --workspace`

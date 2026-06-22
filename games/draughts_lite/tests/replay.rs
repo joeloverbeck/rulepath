@@ -1,5 +1,6 @@
 use draughts_lite::replay_support::{
-    action_tree_hash, diagnostic_hash, replay_from_state, DraughtsLiteReplayJson,
+    action_tree_hash, action_tree_legacy_bytes, action_tree_v1_bytes, action_tree_v1_hash,
+    diagnostic_hash, replay_from_state, DraughtsLiteReplayJson,
 };
 use draughts_lite::{
     apply_action, legal_action_tree, setup_match, validate_command, CellOccupancy,
@@ -8,7 +9,8 @@ use draughts_lite::{
 };
 use engine_core::{
     ActionChoice, ActionMetadata, ActionNode, ActionPath, ActionTree, Actor, CommandEnvelope,
-    FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
+    FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableBytesRecordWriter,
+    StableBytesTypeTag, StableBytesWriter, StableSerialize,
 };
 use game_stdlib::board_space::Coord;
 
@@ -128,6 +130,28 @@ fn characterization_compound_action_tree_legacy_hash_is_pinned() {
 }
 
 #[test]
+fn compound_action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let state = initial_state("multi_jump", 7);
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_hash(&tree), HashValue(7788678278305142813));
+    assert_eq!(
+        HashValue::from_stable_bytes(action_tree_legacy_bytes(&tree).as_bytes()),
+        action_tree_hash(&tree)
+    );
+    assert_eq!(v1_bytes, expected_action_tree_v1_bytes(&tree));
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        HashValue(390_128_801_164_796_593)
+    );
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
+}
+
+#[test]
 fn characterization_compound_action_tree_nested_boundaries_are_ambiguous() {
     let mut nested_parent = ActionChoice::leaf("from/r3c2", "From", "From");
     nested_parent.next = Some(Box::new(ActionNode {
@@ -148,6 +172,14 @@ fn characterization_compound_action_tree_nested_boundaries_are_ambiguous() {
     assert_eq!(
         action_tree_hash(&nested_tree),
         action_tree_hash(&flat_delimiter_segment)
+    );
+    assert_ne!(
+        action_tree_v1_bytes(&nested_tree),
+        action_tree_v1_bytes(&flat_delimiter_segment)
+    );
+    assert_ne!(
+        action_tree_v1_hash(&nested_tree),
+        action_tree_v1_hash(&flat_delimiter_segment)
     );
 }
 
@@ -511,6 +543,70 @@ fn empty_state(active_seat: DraughtsLiteSeat, mut pieces: Vec<Piece>) -> Draught
         terminal_outcome: None,
         terminal_reason: None,
         freshness_token: FreshnessToken(0),
+    }
+}
+
+fn expected_action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    let mut writer = StableBytesWriter::new(b"action_tree", 1).expect("writer");
+    writer
+        .write_u64_field(1, tree.freshness_token.0)
+        .expect("freshness");
+    writer
+        .write_record_field(2, |record| encode_expected_node_v1(record, &tree.root))
+        .expect("root");
+    writer.into_bytes()
+}
+
+fn encode_expected_node_v1(
+    record: &mut StableBytesRecordWriter,
+    node: &ActionNode,
+) -> Result<(), engine_core::StableBytesWriterError> {
+    let choices = node
+        .choices
+        .iter()
+        .map(expected_choice_v1_record)
+        .collect::<Result<Vec<_>, _>>()?;
+    record.write_sequence_field(1, choices)
+}
+
+fn expected_choice_v1_record(
+    choice: &ActionChoice,
+) -> Result<Vec<u8>, engine_core::StableBytesWriterError> {
+    let mut record = StableBytesRecordWriter::new();
+    record.write_string_field(1, &choice.segment)?;
+    record.write_string_field(2, &choice.label)?;
+    record.write_string_field(3, &choice.accessibility_label)?;
+    record.write_sequence_field(4, expected_metadata_v1_records(&choice.metadata)?)?;
+    record.write_sequence_field(5, choice.tags.iter().map(String::as_bytes))?;
+    record.write_enum_field(6, expected_preview_discriminant(choice.preview))?;
+    if let Some(next) = &choice.next {
+        let mut child = StableBytesRecordWriter::new();
+        encode_expected_node_v1(&mut child, next)?;
+        record.write_some_field(7, StableBytesTypeTag::Record, &child.into_bytes())?;
+    } else {
+        record.write_none_field(7)?;
+    }
+    Ok(record.into_bytes())
+}
+
+fn expected_metadata_v1_records(
+    metadata: &[ActionMetadata],
+) -> Result<Vec<Vec<u8>>, engine_core::StableBytesWriterError> {
+    metadata
+        .iter()
+        .map(|entry| {
+            let mut record = StableBytesRecordWriter::new();
+            record.write_string_field(1, &entry.key)?;
+            record.write_string_field(2, &entry.value)?;
+            Ok(record.into_bytes())
+        })
+        .collect()
+}
+
+const fn expected_preview_discriminant(preview: engine_core::ActionPreview) -> u32 {
+    match preview {
+        engine_core::ActionPreview::Unavailable => 0,
+        engine_core::ActionPreview::Available => 1,
     }
 }
 
