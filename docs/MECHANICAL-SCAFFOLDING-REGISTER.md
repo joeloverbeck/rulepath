@@ -371,9 +371,12 @@ mechanical scaffolding.
   UNI8CMECSCA-025 adopted `PublicExportV1Driver` and
   `SeatPrivateExportV1Driver` in Vow Tide against the legacy public and
   all-viewer seat-private export fixtures without changing fixture bytes.
+  UNI8CMECSCA-026 adopted `DomainEvidenceV1Driver` in Briar Circuit against
+  the legacy moon scoring and first-trick exception fixtures, with
+  canonical-byte authority `none`, no fixture byte changes, and scoring/legality
+  delegated to Briar Rust code.
 - Rejection rationale: not applicable.
-- Next review trigger: UNI8CMECSCA-026 through UNI8CMECSCA-027 pilot artifact
-  validations and CLI tool output.
+- Next review trigger: UNI8CMECSCA-027 CLI tool output validation.
 
 ### MSC-8C-009 - Versioned bounded-index sampling
 

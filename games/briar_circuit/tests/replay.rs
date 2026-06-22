@@ -1,10 +1,15 @@
 use briar_circuit::{
     canonical_seat_ids, export_viewer_timeline, import_viewer_timeline, replay_bot_match,
-    replay_hash_snapshot,
+    replay_hash_snapshot, score_completed_hand,
     setup::{deal_hand, next_dealer},
-    setup_match, BriarCircuitSeat, PassDirection, SetupOptions, ViewerExportClass,
+    setup_match, BriarCircuitSeat, CapturedTrick, Card, CardId, CurrentTrick, PassDirection, Phase,
+    PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay, ViewerExportClass,
 };
-use engine_core::{HashValue, Seed, SeededRng};
+use engine_core::{FreshnessToken, HashValue, Seed, SeededRng};
+use game_test_support::profiles::{
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, DOMAIN_EVIDENCE_V1,
+    PROFILE_VERSION_V1,
+};
 
 const REQUIRED_TRACES: &[&str] = &[
     "setup-four-seat-deterministic-deal.trace.json",
@@ -45,6 +50,62 @@ const REQUIRED_TRACES: &[&str] = &[
     "bot-vs-bot-full-match.trace.json",
     "wasm-exported-moon-terminal.trace.json",
 ];
+
+const DOMAIN_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "domain_schema_version",
+    "domain_input",
+    "expected_domain",
+];
+
+fn domain_evidence_profile_artifact<'a>(
+    visibility_class: &'a str,
+    canonical_byte_claim: bool,
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: DOMAIN_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some(visibility_class),
+            validator_owner: "briar_circuit",
+            canonical_byte_authority: "none",
+            migration_update_note: Some(
+                "virtual domain-evidence-v1 metadata around legacy Briar Circuit fixture",
+            ),
+        },
+        fields: DOMAIN_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim,
+    }
+}
+
+fn card(rank: Rank, suit: Suit) -> CardId {
+    Card::new(rank, suit).id()
+}
+
+fn captured_trick(winner: BriarCircuitSeat, cards: Vec<CardId>) -> CapturedTrick {
+    CapturedTrick {
+        hand_index: 0,
+        trick_index: 0,
+        winner,
+        plays: cards
+            .into_iter()
+            .enumerate()
+            .map(|(index, card)| TrickPlay {
+                seat: BriarCircuitSeat::from_index(index % BriarCircuitSeat::ALL.len())
+                    .expect("seat index"),
+                card,
+            })
+            .collect(),
+    }
+}
 
 #[test]
 fn identical_seed_reproduces_identical_initial_deal() {
@@ -185,6 +246,107 @@ fn characterization_domain_fixture_artifacts_are_pinned() {
         .contains("\"trace_id\": \"briar_circuit_first_trick_exception\""));
     assert!(!moon_fixture.contains("selector"));
     assert!(!first_trick_exception_fixture.contains("selector"));
+}
+
+#[test]
+fn moon_fixture_drives_domain_evidence_v1_without_data_scoring() {
+    let moon_fixture = include_str!("../data/fixtures/briar_circuit_moon.fixture.json");
+    assert!(!moon_fixture.contains("profile_id"));
+    assert!(moon_fixture.contains("\"fixture_kind\": \"scoring\""));
+    assert!(moon_fixture.contains("\"game_id\": \"briar_circuit\""));
+    assert!(moon_fixture.contains("\"rules_version\": \"briar-circuit-rules-v1\""));
+    assert!(moon_fixture.contains("\"data_version\": 1"));
+    assert!(moon_fixture.contains("migration_notes"));
+
+    DomainEvidenceV1Driver::new("briar_circuit")
+        .validate_with(
+            &domain_evidence_profile_artifact("internal-dev", false),
+            |report| {
+                assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+                assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+                assert_eq!(report.visibility_class, "internal-dev");
+                assert_eq!(report.validator_owner, "briar_circuit");
+
+                let mut point_cards = Vec::new();
+                for rank in Rank::ALL {
+                    point_cards.push(card(rank, Suit::Hearts));
+                }
+                point_cards.push(card(Rank::Queen, Suit::Spades));
+
+                let scoring = score_completed_hand(
+                    &[captured_trick(BriarCircuitSeat::Seat0, point_cards)],
+                    [0, 0, 0, 0],
+                );
+
+                assert_eq!(scoring.raw_points, [26, 0, 0, 0]);
+                assert_eq!(scoring.moon_shooter, Some(BriarCircuitSeat::Seat0));
+                assert_eq!(scoring.hand_additions, [0, 26, 26, 26]);
+            },
+        )
+        .expect("domain-evidence-v1 moon fixture metadata validates");
+}
+
+#[test]
+fn first_trick_exception_fixture_is_shape_only_domain_evidence() {
+    let exception_fixture =
+        include_str!("../data/fixtures/briar_circuit_first_trick_exception.fixture.json");
+    assert!(!exception_fixture.contains("profile_id"));
+    assert!(exception_fixture.contains("\"fixture_kind\": \"play_legality\""));
+    assert!(exception_fixture.contains("\"game_id\": \"briar_circuit\""));
+    assert!(exception_fixture.contains("\"rules_version\": \"briar-circuit-rules-v1\""));
+    assert!(exception_fixture.contains("\"data_version\": 1"));
+    assert!(exception_fixture.contains("migration_notes"));
+
+    DomainEvidenceV1Driver::new("briar_circuit")
+        .validate_with(
+            &domain_evidence_profile_artifact("internal-dev", false),
+            |report| {
+                assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+                assert_eq!(report.visibility_class, "internal-dev");
+
+                let led = card(Rank::Two, Suit::Clubs);
+                let point_cards = vec![
+                    card(Rank::Two, Suit::Hearts),
+                    card(Rank::Three, Suit::Hearts),
+                    card(Rank::Queen, Suit::Spades),
+                ];
+                let state = briar_circuit::BriarCircuitState {
+                    variant: briar_circuit::Variant::briar_circuit_standard(),
+                    seats: canonical_seat_ids(),
+                    dealer: BriarCircuitSeat::Seat3,
+                    hand_index: 0,
+                    cumulative_scores: [0, 0, 0, 0],
+                    phase: Phase::PlayingTrick(PlayingTrickState {
+                        hearts_broken: false,
+                        trick_index: 0,
+                        leader: BriarCircuitSeat::Seat0,
+                        active_seat: BriarCircuitSeat::Seat1,
+                        current_trick: CurrentTrick {
+                            leader: BriarCircuitSeat::Seat0,
+                            plays: vec![TrickPlay {
+                                seat: BriarCircuitSeat::Seat0,
+                                card: led,
+                            }],
+                        },
+                    }),
+                    private_hands: vec![
+                        (BriarCircuitSeat::Seat0, vec![]),
+                        (BriarCircuitSeat::Seat1, point_cards.clone()),
+                        (BriarCircuitSeat::Seat2, vec![]),
+                        (BriarCircuitSeat::Seat3, vec![]),
+                    ],
+                    captured_tricks: Vec::new(),
+                    freshness_token: FreshnessToken(0),
+                    seed: Seed(1601),
+                    last_hand_summary: None,
+                };
+
+                let legal = briar_circuit::legal_play_cards(&state, BriarCircuitSeat::Seat1)
+                    .expect("legal");
+                assert_eq!(legal, point_cards);
+            },
+        )
+        .expect("domain-evidence-v1 first-trick boundary metadata validates");
 }
 
 #[test]
