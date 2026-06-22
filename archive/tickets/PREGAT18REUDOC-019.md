@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-019: Realign PRIMITIVE-PRESSURE-LEDGER (behavioral; redirect plumbing to the register)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs-only (`templates/PRIMITIVE-PRESSURE-LEDGER.md`)
@@ -68,3 +68,18 @@ Edit `templates/PRIMITIVE-PRESSURE-LEDGER.md` to state it governs behavioral mec
 1. `grep -niE "scaffolding register|behavioral" templates/PRIMITIVE-PRESSURE-LEDGER.md`
 2. `node scripts/check-doc-links.mjs`
 3. The redirect grep + link check is the correct boundary; docs-only with no code surface.
+
+## Outcome
+
+Completed on 2026-06-22. `templates/PRIMITIVE-PRESSURE-LEDGER.md`
+now records report mapping `B-15 -> PRIMITIVE-PRESSURE-LEDGER.md`,
+states the ledger is for behavioral mechanic pressure only, and redirects
+non-behavioral scaffolding candidates to
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`.
+
+Verification:
+
+1. `grep -niE "MECHANICAL-SCAFFOLDING-REGISTER|scaffolding register" templates/PRIMITIVE-PRESSURE-LEDGER.md` returned the new redirect lines.
+2. `grep -niE "behavioral" templates/PRIMITIVE-PRESSURE-LEDGER.md` returned the behavioral-only framing.
+3. `test -f docs/MECHANICAL-SCAFFOLDING-REGISTER.md` passed.
+4. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
