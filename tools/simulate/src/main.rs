@@ -588,7 +588,15 @@ struct VowTideMatchOutcome {
     hook_exclusions: u64,
 }
 
-fn run_vow_tide_simulation(config: Config) -> Result<String, String> {
+/// The action budget for one full Vow Tide match. The fixed schedule deals
+/// `2K-1` hands (each up to `H` tricks for every seat) plus one bid per seat per
+/// hand, so the generic short-game default cap is far too small. The longest
+/// supported match is the five-seat schedule at 640 actions; this floor keeps
+/// single-match simulation honest while leaving headroom above that maximum.
+const VOW_TIDE_MIN_ACTION_CAP: usize = 1024;
+
+fn run_vow_tide_simulation(mut config: Config) -> Result<String, String> {
+    config.action_cap = config.action_cap.max(VOW_TIDE_MIN_ACTION_CAP);
     let seat_count = config.seat_count.unwrap_or(4);
     let seat_labels = (0..seat_count)
         .map(|index| format!("seat_{index}"))
@@ -3034,6 +3042,34 @@ mod tests {
         // the single-decision placeholder the driver used to report.
         assert!(output.contains("average_hands_per_match="));
         assert!(!output.contains("average_length=1.00"));
+    }
+
+    #[test]
+    fn vow_tide_simulation_completes_at_default_action_cap() {
+        // A full Vow Tide match plays the entire fixed hand schedule, which needs
+        // far more actions than the generic short-game default cap. The simulator
+        // must floor the cap so the documented `--game vow_tide` command (with no
+        // explicit --action-cap) drives every supported seat count to terminal.
+        for seat_count in [3usize, 4, 5, 6, 7] {
+            let output = run_vow_tide_simulation(Config {
+                game: GAME_VOW_TIDE.to_owned(),
+                seat_count: Some(seat_count),
+                games: 8,
+                ..Config::default()
+            })
+            .unwrap_or_else(|error| {
+                panic!("vow_tide {seat_count}-seat sim completes at default cap: {error}")
+            });
+
+            assert!(
+                output.contains("completion_rate_percent=100.00"),
+                "{seat_count}-seat run reaches terminal: {output}"
+            );
+            assert!(
+                output.contains("action_cap_failures=0"),
+                "{seat_count}-seat run has no cap failures: {output}"
+            );
+        }
     }
 
     #[test]
