@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-021: AGENT-TASK reference-not-copy law + scaffold-refactor profile
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs-only (`templates/AGENT-TASK.md`)
@@ -72,3 +72,18 @@ Add a scaffold-refactor task profile that applies the bounded scaffold-refactor 
 1. `grep -niE "reference|GAME-EVIDENCE|scaffold.refactor" templates/AGENT-TASK.md`
 2. `node scripts/check-doc-links.mjs`
 3. The reference-law + profile grep + link check is the correct boundary; docs-only with no code surface.
+
+## Outcome
+
+Completed on 2026-06-22. `templates/AGENT-TASK.md` now has an explicit
+reference-not-copy law, links task evidence to `GAME-EVIDENCE.md` receipt rows,
+and adds a `scaffold-refactor` task profile that points at
+`docs/AGENT-DISCIPLINE.md` §8A and the mechanical scaffolding register.
+
+Verification:
+
+1. `grep -niE "reference.*not.*copy|GAME-EVIDENCE" templates/AGENT-TASK.md` returned the new law and receipt references.
+2. `grep -niE "scaffold.refactor" templates/AGENT-TASK.md` returned the new task profile.
+3. `grep -niE "Scaffold-refactor protocol|scaffold-refactor" docs/AGENT-DISCIPLINE.md` confirmed the dependency protocol exists.
+4. `test -f templates/GAME-EVIDENCE.md` passed.
+5. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).

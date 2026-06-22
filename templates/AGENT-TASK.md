@@ -4,6 +4,8 @@ Task ID: `<task_id>`
 
 Task kind: rules | game implementation | bot work | UI work | testing | benchmark work | refactor | primitive-pressure review | docs | release prep | other: `<kind>`
 
+Task profile: standard | scaffold-refactor | evidence-only | release sign-off | other: `<profile>`
+
 Prepared by: `<name/agent>`
 
 Date: YYYY-MM-DD
@@ -27,6 +29,18 @@ Foundation documents to obey:
 - `docs/IP-POLICY.md`
 - `docs/AGENT-DISCIPLINE.md`
 - `docs/SOURCES.md`
+
+## Reference-Not-Copy Law
+
+This task packet MUST reference law and evidence, not copy it. Link the
+governing foundation docs, ADRs, registers, filled game docs, and
+`GAME-EVIDENCE.md` receipt rows that own the proof. Do not paste foundation law,
+large evidence matrices, rule prose, strategy prose, or release proof into the
+task packet unless the task-specific delta requires a short excerpt.
+
+When evidence is required, name the owner and exact expected row/artifact. The
+task packet may summarize why that evidence matters, but the linked owner
+remains authoritative.
 
 Other required docs, ADRs, source notes, or filled templates:
 
@@ -114,6 +128,29 @@ Do not do these things:
 | private content | Private licensed stress tests are isolated, optional, non-public, and non-architectural. | `<IP review>` |
 | seat/surface scope | This task covers only the named supported seat counts, viewer pairs, surfaces, topology/object counts, and outcome rows. | `<docs/tests>` |
 
+## Scaffold-Refactor Profile
+
+Use this profile only when `Task profile` is `scaffold-refactor`. It applies
+the bounded protocol in
+[`AGENT-DISCIPLINE.md` §8A](../docs/AGENT-DISCIPLINE.md) and the accepted
+authority named by the task, usually
+[`MECHANICAL-SCAFFOLDING-REGISTER.md`](../docs/MECHANICAL-SCAFFOLDING-REGISTER.md)
+and ADR 0008.
+
+| Required field | Value/evidence |
+|---|---|
+| accepted authority | `<ADR/register/ticket>` |
+| exact duplicate sites | `<paths/symbols/games/tools>` |
+| affected hashes and trace profiles | `<GAME-EVIDENCE.md rows or trace ids>` |
+| visibility and no-leak impact | `<GAME-EVIDENCE.md hidden-info matrix rows or not applicable: rationale>` |
+| migration set | `<games/crates/tools/docs>` |
+| forbidden behavior changes | `<legality/visibility/scoring/effects/UI/bot changes that are out of scope>` |
+| characterization tests before migration | `<tests/traces/fixtures>` |
+| first adopter and comparison evidence | `<reference game/tool and comparison command>` |
+
+Scaffold-refactor acceptance MUST NOT be only "tests pass" or broad golden
+updates. Record semantic identity or the accepted migration authority.
+
 ## Tests required
 
 | Test category | Required? | Specific tests or commands | Notes |
@@ -166,6 +203,7 @@ Native Rust benchmark evidence is primary. WASM/browser smoke benchmark evidence
 | `GAME-AI.md` | yes/no | `<change>` |
 | `GAME-UI.md` | yes/no | `<change>` |
 | `GAME-BENCHMARKS.md` | yes/no | `<change>` |
+| `GAME-EVIDENCE.md` | yes/no | `<receipt row/artifact link>` |
 | `PRIMITIVE-PRESSURE-LEDGER.md` | yes/no | `<change>` |
 | `PUBLIC-RELEASE-CHECKLIST.md` | yes/no | `<change>` |
 | foundation docs/ADR | no by default | ADR required only for architectural decisions |
