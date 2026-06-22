@@ -1,6 +1,6 @@
 # UNI8CMECSCA-014: Race flat-tree action-encoding pilot (parallel new surface)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/race_to_n/src/replay_support.rs`
@@ -75,3 +75,32 @@ Pin legacy and v1 bytes/hash for the same flat tree; assert legacy trace unchang
 1. `cargo run -p replay-check -- --game race_to_n --all`
 2. `cargo test -p race_to_n`
 3. `replay-check` plus the comparison test are the correct boundary — the parallel surface must not alter the committed legacy trace.
+
+## Outcome
+
+Completed: 2026-06-22
+
+What changed:
+- Added Race helper functions for the named parallel V1 action-tree surface:
+  `action_tree_v1_bytes` and `action_tree_v1_hash`.
+- Kept the legacy Race action-tree hash path unchanged and factored its legacy
+  joined-segment bytes into `action_tree_legacy_bytes`.
+- Added a Race flat-tree comparison test that computes legacy and V1 from the
+  same legal action tree, pins the legacy bytes/hash, pins the V1 bytes through
+  the `StableBytesWriter` field contract, and pins the V1 hash
+  `143078033215105790`.
+
+Deviations:
+- The ticket listed only `games/race_to_n/src/replay_support.rs`; the
+  comparison test was added in `games/race_to_n/tests/serialization_tests.rs`
+  because Race's serialization characterization tests already own the legacy
+  flat-tree byte/hash pins.
+- No golden trace, fixture hash, legacy hash value, seat output, or replay
+  expectation was changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo run -p replay-check -- --game race_to_n --all`
+- `cargo test -p race_to_n`
+- `git diff --quiet -- games/race_to_n/tests/golden_traces`
+- `cargo test --workspace`

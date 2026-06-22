@@ -1,10 +1,14 @@
 use engine_core::{
     ActionChoice, ActionMetadata, ActionPath, ActionTree, Actor, CommandEnvelope, FreshnessToken,
-    HashValue, RulesVersion, SeatId, Seed, StableSerialize,
+    HashValue, RulesVersion, SeatId, Seed, StableBytesRecordWriter, StableBytesWriter,
+    StableSerialize,
 };
 use race_to_n::{
-    legal_action_tree, project_view, replay_support::action_tree_hash, setup_match, CounterValue,
-    PublicView, RaceReplayJson, RaceSeat, RaceSnapshot, SetupOptions,
+    legal_action_tree, project_view,
+    replay_support::{
+        action_tree_hash, action_tree_legacy_bytes, action_tree_v1_bytes, action_tree_v1_hash,
+    },
+    setup_match, CounterValue, PublicView, RaceReplayJson, RaceSeat, RaceSnapshot, SetupOptions,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -123,16 +127,32 @@ fn characterization_flat_action_tree_legacy_bytes_and_hash_are_pinned() {
         seat_id: SeatId("seat-0".to_owned()),
     };
     let tree = legal_action_tree(&state, &actor);
-    let legacy_bytes = tree
-        .root
-        .choices
-        .iter()
-        .map(|choice| choice.segment.as_str())
-        .collect::<Vec<_>>()
-        .join("|");
+    let legacy_bytes = action_tree_legacy_bytes(&tree);
 
     assert_eq!(legacy_bytes, "add-1|add-2|add-3");
     assert_eq!(action_tree_hash(&tree), HashValue(8451402319224114161));
+}
+
+#[test]
+fn race_flat_action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let state = setup_match(Seed(9), &seats(), &SetupOptions::default()).unwrap();
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_legacy_bytes(&tree), "add-1|add-2|add-3");
+    assert_eq!(action_tree_hash(&tree), HashValue(8451402319224114161));
+    assert_eq!(
+        v1_bytes,
+        expected_race_flat_action_tree_v1_bytes(state.freshness_token.0)
+    );
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        HashValue(143_078_033_215_105_790)
+    );
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
 }
 
 #[test]
@@ -216,4 +236,52 @@ fn characterization_flat_action_tree_metadata_and_tag_order_are_ignored() {
         action_tree_hash(&first_tree),
         action_tree_hash(&swapped_tree)
     );
+}
+
+fn expected_race_flat_action_tree_v1_bytes(freshness_token: u64) -> Vec<u8> {
+    let mut writer = StableBytesWriter::new(b"action_tree", 1).expect("writer");
+    writer
+        .write_u64_field(1, freshness_token)
+        .expect("freshness");
+    writer
+        .write_record_field(2, |record| {
+            record.write_sequence_field(
+                1,
+                [1_u8, 2, 3].map(expected_race_flat_action_choice_v1_record),
+            )?;
+            Ok(())
+        })
+        .expect("root");
+    writer.into_bytes()
+}
+
+fn expected_race_flat_action_choice_v1_record(amount: u8) -> Vec<u8> {
+    let mut record = StableBytesRecordWriter::new();
+    record
+        .write_string_field(1, &format!("add-{amount}"))
+        .expect("segment");
+    record
+        .write_string_field(2, &format!("Add {amount}"))
+        .expect("label");
+    record
+        .write_string_field(3, &format!("Add {amount} to the counter"))
+        .expect("accessibility label");
+    record
+        .write_sequence_field(4, [expected_amount_metadata_v1_record(amount)])
+        .expect("metadata");
+    record
+        .write_sequence_field(5, [b"flat".as_slice(), b"counter".as_slice()])
+        .expect("tags");
+    record.write_enum_field(6, 1).expect("preview");
+    record.write_none_field(7).expect("next");
+    record.into_bytes()
+}
+
+fn expected_amount_metadata_v1_record(amount: u8) -> Vec<u8> {
+    let mut record = StableBytesRecordWriter::new();
+    record.write_string_field(1, "amount").expect("key");
+    record
+        .write_string_field(2, &amount.to_string())
+        .expect("value");
+    record.into_bytes()
 }
