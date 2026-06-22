@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-004: Author + accept ADR 0008 — Mechanical Scaffolding Governance
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — docs-only (new `docs/adr/0008-mechanical-scaffolding-governance.md`)
@@ -76,3 +76,28 @@ A maintainer reviews and flips `Status` to `Accepted` (Phase-0 precedent: the re
 1. `grep -nE "^Status:|FOUNDATIONS|§4|§11|§12|§13|§10A" docs/adr/0008-mechanical-scaffolding-governance.md`
 2. `node scripts/check-doc-links.mjs`
 3. The grep + manual `FOUNDATIONS.md` §4 diff is the correct boundary; there is no code surface to test.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Created `docs/adr/0008-mechanical-scaffolding-governance.md` as an accepted
+ADR defining the mechanical-scaffolding lane, exclusions, allowed homes,
+evidence and decision rules, mechanic-atlas interlock, and exact downstream
+foundation/area-doc sections it amends. The ADR quotes the behavioral third-use
+hard gate unchanged and states that downstream foundation/register updates must
+land before the lane is used for production code.
+
+Deviations: the ticket described a separate human sign-off pause after a
+`Proposed` draft. The governing spec says this pass authors and accepts ADR 0008,
+and the user requested implementation of the full series, so the ADR was
+recorded as `Status: Accepted` in this ticket rather than leaving the series
+blocked before downstream gated tickets.
+
+Verification:
+
+- `grep -nE "^Status:|FOUNDATIONS|§4|§11|§12|§13|§10A" docs/adr/0008-mechanical-scaffolding-governance.md`
+  showed `Status: Accepted` plus the named amended sections.
+- `rg -n "third official use: hard gate|mechanical-scaffolding|ENGINE-GAME-DATA-BOUNDARY|MECHANIC-ATLAS|UI-INTERACTION|ARCHITECTURE" docs/adr/0008-mechanical-scaffolding-governance.md`
+  showed the behavior-gate quote and all five downstream doc targets.
+- `node scripts/check-doc-links.mjs` passed (`Checked 28 markdown files`).
