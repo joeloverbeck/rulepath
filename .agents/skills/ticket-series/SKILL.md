@@ -286,12 +286,15 @@ evidence.
    - add a bottom `Outcome` section for completed specs or reference docs;
    - include completion date, what changed, deviations from the plan, and
      verification results.
-   For specs that already use the repository's spec-table header convention
-   (`| Status | Done |` or ``| Status | `Done` |``) and prior archived specs use
-   that convention, preserve the spec-table convention instead of forcing a
-   `**Status**: COMPLETED` line. The archived spec still must have a truthful
-   final status and a bottom `## Outcome`. Tickets continue to use the
-   `**Status**: COMPLETED` archival workflow vocabulary.
+   For specs that already use the repository's spec-table header convention and
+   prior archived specs use that convention, preserve the spec-table convention
+   instead of forcing a `**Status**: COMPLETED` line. Use the exact archived-spec
+   row label `| Status |` with value `Done` or `` `Done` `` (for example,
+   ``| Status | `Done` |``). Do not use bolded labels such as
+   ``| **Status** | `Done` |``; the closeout helper intentionally rejects that
+   near-miss. The archived spec still must have a truthful final status and a
+   bottom `## Outcome`. Tickets continue to use the `**Status**: COMPLETED`
+   archival workflow vocabulary.
 4. Archive the reference artifact, using `git mv` when tracked:
    - specs to `archive/specs/`;
    - triage notes from `docs/triage/` to `archive/triage/`;
@@ -336,6 +339,17 @@ evidence.
 8. If a `/goal` is active, mark it complete only after implementation,
    verification, ticket archives, reference archive/repair when applicable, and
    required commits are done.
+
+Goal completion gate:
+
+1. Run `scripts/audit-series-closeout.mjs` or the manual Completion Audit
+   equivalent against the live checkout.
+2. Fix every failure or explicitly classify it as out of scope with evidence.
+3. Commit any audit repair, including reference-status or stale-path fixes.
+4. Rerun the closeout audit after the final commit and inspect the output.
+5. Confirm `git status --short` shows only unrelated worktree changes and
+   `git diff --cached --name-status` is empty.
+6. Call `update_goal` only after all checks above are true.
 
 If a final gate uncovers a stale test assertion, proof fixture, or small defect
 owned by an earlier archived ticket, fix it before closeout. Record the fix in
@@ -403,8 +417,9 @@ the live checkout:
   `docs/archival-workflow.md`, reject `Done`, `ACCEPTED`, or other informal
   statuses before reporting done or calling `update_goal`. For archived specs
   that use the repo's table-style spec header, `Done` in the status table is
-  acceptable when prior archived specs use the same convention and `## Outcome`
-  is present.
+  acceptable only with the exact `| Status |` row label, when prior archived
+  specs use the same convention and `## Outcome` is present. Reject bolded
+  near-misses such as ``| **Status** | `Done` |``.
 - `specs/README.md`, progress surfaces, README/catalog surfaces, docs,
   `games/*/docs/`, scripts, and active tickets/reference artifacts no longer
   point at stale live paths.

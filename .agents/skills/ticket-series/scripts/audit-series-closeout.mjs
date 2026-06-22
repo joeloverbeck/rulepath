@@ -128,9 +128,11 @@ function reportArchivedReference(file) {
 
   const validStatus = /^\*\*Status\*\*: .*?(COMPLETED|REJECTED|DEFERRED|NOT IMPLEMENTED)$|^\| Status \| `?Done`? \|/;
   const informalStatus = /^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*/;
+  const boldSpecStatus = /^\| \*\*Status\*\* \| `?Done`? \|/;
   let hasValidStatus = false;
   let hasOutcome = false;
   let informal = false;
+  let nearMiss = false;
 
   lines.forEach((line, index) => {
     if (validStatus.test(line) || /^## Outcome/.test(line)) {
@@ -142,11 +144,20 @@ function reportArchivedReference(file) {
       informal = true;
       console.log(`${file}:${index + 1}:INFORMAL_STATUS:${line}`);
     }
+    if (boldSpecStatus.test(line)) {
+      nearMiss = true;
+      console.log(`${file}:${index + 1}:NEAR_MISS_STATUS:${line}`);
+    }
   });
 
   if (!hasValidStatus) fail(`${file} has no valid archival status line`);
   if (!hasOutcome) fail(`${file} has no ## Outcome`);
   if (informal) fail(`${file} contains informal status syntax`);
+  if (nearMiss) {
+    fail(
+      `${file} uses a bolded spec status label; use exact row: | Status | \`Done\` |`,
+    );
+  }
 }
 
 function parseArgs(argv) {
