@@ -1,6 +1,6 @@
 # PREGAT18REUDOC-016: AGENT-DISCIPLINE scaffold-refactor protocol + archival closeout receipt
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs-only (`docs/AGENT-DISCIPLINE.md`, `docs/archival-workflow.md`)
@@ -73,3 +73,35 @@ Add a closeout-receipt requirement so completed units record their acceptance ev
 1. `grep -niE "scaffold.refactor|closeout receipt" docs/AGENT-DISCIPLINE.md docs/archival-workflow.md`
 2. `node scripts/check-doc-links.mjs`
 3. The protocol + receipt grep is the correct boundary; docs-only with no code surface.
+
+## Outcome
+
+Completed: 2026-06-22
+
+Added `docs/AGENT-DISCIPLINE.md` §8A, a bounded scaffold-refactor protocol for
+shared-scaffolding and hash-sensitive refactors. The protocol requires accepted
+lane authority, exact adopter/hash/visibility/migration inventory,
+characterization tests, one-reference-game migration, trace/hash/no-leak
+comparison, register exceptions for non-migration, and explicit authorization
+for any intentional trace/hash/schema migration. It bans broad "update all
+goldens" or green-tests-only acceptance.
+
+Updated `docs/archival-workflow.md` to require a closeout receipt inside
+`## Outcome` for archived specs, reports, ticket series, agent tasks,
+design/plan docs, and triage docs that change authority, evidence surfaces, or
+closeout state. The receipt records commits, recommendation dispositions,
+affected authority/ADR state, open mechanic/scaffolding debt, checks run, live
+index links, and historical-commit provenance caveats.
+
+Verification:
+
+- `grep -niE "scaffold.refactor|scaffolding refactor" docs/AGENT-DISCIPLINE.md`
+  returned the new protocol.
+- `grep -niE "closeout receipt" docs/archival-workflow.md` returned the
+  archival requirement.
+- `grep -n "^Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md`
+  returned `Status: Accepted`.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+
+Deviation: none; this is process-doc-only and does not implement scaffolding
+extraction.

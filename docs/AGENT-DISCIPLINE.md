@@ -168,6 +168,41 @@ Agents MUST NOT “clean up” repeated mechanics into `engine-core`. Earned hel
 
 After a helper is promoted, agents MUST treat matching local implementations in earlier official games as conformance work, not optional cleanup. A spec that advances the mechanic ladder while promotion debt is open is invalid unless the atlas records an accepted exception or ADR. Same-gate deferral must name the games, primitive, evidence, risk, and closure gate. Agents must preserve behavior by default during conformance repair and must not update traces, hashes, diagnostics, effect order, UI surfaces, or bot behavior unless the spec explicitly authorizes the migration and explains why.
 
+## 8A. Scaffold-refactor protocol
+
+Shared-scaffolding and hash-sensitive refactors MUST be bounded tasks, not
+open-ended cleanup. Before starting, the task packet MUST name the accepted
+authority for the lane, usually
+[ADR 0008](adr/0008-mechanical-scaffolding-governance.md) and the
+[MECHANICAL-SCAFFOLDING-REGISTER.md](MECHANICAL-SCAFFOLDING-REGISTER.md), plus
+the exact duplicate sites, affected hashes, visibility impact, migration set,
+and forbidden behavior changes.
+
+For a scaffold-refactor task, agents MUST:
+
+1. validate whether any failing tests are still valid;
+2. classify failures as system-under-test, test-suite, environment, or stale
+   expectation before editing;
+3. inventory exact adopters, current trace/hash surfaces, fixture profiles, and
+   no-leak matrices;
+4. freeze public behavior by adding or naming characterization tests before the
+   helper migration;
+5. implement the narrow helper without adding mechanic nouns, rule policy,
+   reveal policy, scoring, strategy, renderer policy, YAML, or a DSL;
+6. migrate one reference game or tool first and compare traces, hashes,
+   serialization, diagnostics, no-leak evidence, and public/browser payloads;
+7. migrate remaining matching sites only when the comparison proves semantic
+   identity, or record an accepted exception/defer/reject decision in the
+   governing register;
+8. record any intentional trace/hash/schema migration under the accepted ADR or
+   ticket that authorized it.
+
+Agents MUST NOT use "update all goldens", broad formatting churn, or "tests
+pass" alone as scaffold-refactor acceptance. If the refactor changes legality,
+visibility authorization, scoring, hidden-state meaning, effect semantics,
+replay bytes, or public UI behavior without explicit migration authority, stop
+and reassess.
+
 ## 9. Bot protocol
 
 Agents implementing bots MUST:
