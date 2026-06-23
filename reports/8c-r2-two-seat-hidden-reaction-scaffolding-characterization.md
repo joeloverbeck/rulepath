@@ -788,6 +788,28 @@ Evidence:
   and `wasm-exported.trace.json: public export fixture accepted`, then
   `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-022 - Poker Lite game-test-support dev-only dependency
+
+Selected surface: `games/poker_lite/Cargo.toml` `[dev-dependencies]` and the
+corresponding `Cargo.lock` package dependency list.
+
+Before state: Poker Lite had no `game-test-support` dependency.
+
+After state: Poker Lite lists `game-test-support` only under
+`[dev-dependencies]`; the lockfile records the package dependency edge.
+
+ADR-0009 classification: `unchanged`. This is a dev-only test-infrastructure
+edge for later no-leak/profile harness use. No normal/build/WASM/tool edge was
+added, and no production code or runtime behavior changed.
+
+Evidence:
+
+- `cargo tree --workspace -e normal --invert game-test-support` output showed
+  only `game-test-support v0.1.0`, with no `poker_lite` normal edge.
+- `bash scripts/boundary-check.sh` passed and reported
+  `game-test-support dev-only boundary check passed`.
+- `cargo test -p poker_lite` passed.
+
 ### UNI8CR2TWOSEA-016 - Masked Claims exact-two-seat structural validation
 
 Selected surface: `games/masked_claims/src/setup.rs::setup_match` and the
