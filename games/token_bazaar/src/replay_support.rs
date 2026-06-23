@@ -1,6 +1,6 @@
 use engine_core::{
-    ActionPath, ActionTree, Actor, CommandEnvelope, EffectEnvelope, HashValue, RulesVersion,
-    SeatId, Seed, StableSerialize, Viewer,
+    ActionPath, ActionTree, ActionTreeEncodingVersion, Actor, CommandEnvelope, EffectEnvelope,
+    HashValue, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
 };
 
 use crate::{
@@ -255,6 +255,14 @@ pub fn action_tree_hash(tree: &ActionTree) -> HashValue {
         .collect::<Vec<_>>()
         .join("|");
     HashValue::from_stable_bytes(bytes.as_bytes())
+}
+
+pub fn action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    tree.stable_bytes(ActionTreeEncodingVersion::V1)
+}
+
+pub fn action_tree_v1_hash(tree: &ActionTree) -> HashValue {
+    tree.stable_hash(ActionTreeEncodingVersion::V1)
 }
 
 fn project_step(

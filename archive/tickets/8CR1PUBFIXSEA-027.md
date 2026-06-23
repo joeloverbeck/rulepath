@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-027: Token Bazaar C-04/C-05 parallel action-tree v1 surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/token_bazaar` (`src/replay_support.rs`, `tests/serialization.rs`); legacy and public-export hashes retained
@@ -75,3 +75,33 @@ In `games/token_bazaar/tests/serialization.rs`, pin the legacy sentinel, the v1 
 1. `cargo test -p token_bazaar`
 2. `cargo run -p replay-check -- --game token_bazaar --all`
 3. The per-game serialization test plus replay-check are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added Token Bazaar's parallel v1 action-tree helpers in
+`games/token_bazaar/src/replay_support.rs`; both wrappers delegate directly to
+`ActionTree::stable_bytes/stable_hash(ActionTreeEncodingVersion::V1)`.
+Legacy `action_tree_hash`, `ReplayHashes.action_tree_hash`, committed traces,
+and public replay export hashes remain authoritative and unchanged.
+
+Pinned a focused receipt in `games/token_bazaar/tests/serialization.rs` for the
+opening tree:
+
+- legacy action-tree hash: `18446619012895702437`
+- v1 action-tree hash: `12286856647248594947`
+- v1 byte length: `2087`
+- empty public export hash for seed 9: `15196735406343894975`
+- v1 domain/header coverage: `RPSB` + `action_tree`
+- segment order covers the collect actions through `fulfill/slot_0`
+- metadata order covers collect `family` < `gain` < `bundle_id` and fulfill
+  `family` < `cost` < `slot_id` < `contract_id` < `points`
+
+Verification:
+
+1. `cargo test -p token_bazaar action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel -- --exact`
+2. `cargo test -p token_bazaar`
+3. `cargo run -p replay-check -- --game token_bazaar --all`
+4. `rg -n "stable_bytes\\(ActionTreeEncodingVersion::V1\\)|stable_hash\\(ActionTreeEncodingVersion::V1\\)|fn action_tree_v1" games/token_bazaar/src/replay_support.rs`
+5. `cargo fmt --all -- --check`
