@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-002: Draughts Lite C-01 public-envelope constructor adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/draughts_lite` (`src/effects.rs`); effect bytes and visibility byte-identical
@@ -70,3 +70,26 @@ In `public_effect`, replace the `EffectEnvelope { visibility: VisibilityScope::P
 1. `cargo test -p draughts_lite`
 2. `cargo run -p replay-check -- --game draughts_lite --all`
 3. The per-game replay-check is the correct boundary: this surface is game-local effect serialization, not a workspace-wide contract.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Implemented the C-01 Draughts Lite public-envelope constructor adoption by
+replacing the local `EffectEnvelope { visibility: VisibilityScope::Public,
+payload }` literal in `games/draughts_lite/src/effects.rs::public_effect` with
+`EffectEnvelope::public(payload)`. Added a focused unit test proving the helper
+still returns public visibility and preserves the payload.
+
+Deviations from the original plan:
+
+- Removed the now-unused production `VisibilityScope` import after the first
+  verification pass exposed a warning; `VisibilityScope` remains test-local.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p draughts_lite` passed.
+- `cargo run -p replay-check -- --game draughts_lite --all` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `rg -n "EffectEnvelope::public|EffectEnvelope \\{|VisibilityScope::Public" games/draughts_lite/src/effects.rs` confirmed the public helper now calls `EffectEnvelope::public`, with `VisibilityScope::Public` only in tests.

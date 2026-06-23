@@ -1,4 +1,4 @@
-use engine_core::{Diagnostic, EffectEnvelope, VisibilityScope};
+use engine_core::{Diagnostic, EffectEnvelope};
 use game_stdlib::board_space::Coord;
 
 use crate::{
@@ -86,10 +86,7 @@ impl TerminalWinReason {
 }
 
 pub fn public_effect(payload: DraughtsLiteEffect) -> EffectEnvelope<DraughtsLiteEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn move_effects(legal_move: &LegalMove) -> Vec<EffectEnvelope<DraughtsLiteEffect>> {
@@ -209,6 +206,20 @@ mod tests {
     use engine_core::VisibilityScope;
 
     use super::*;
+
+    #[test]
+    fn public_effect_uses_public_visibility_and_preserves_payload() {
+        let payload = DraughtsLiteEffect::ForcedCaptureAvailable {
+            active_seat: DraughtsLiteSeat::Seat0,
+            capture_origin_count: 2,
+            explanation: "A capture is mandatory.".to_owned(),
+        };
+
+        let effect = public_effect(payload.clone());
+
+        assert_eq!(effect.visibility, VisibilityScope::Public);
+        assert_eq!(effect.payload, payload);
+    }
 
     #[test]
     fn bot_chose_action_effect_is_public_safe_prose() {
