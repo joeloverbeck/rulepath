@@ -1,7 +1,8 @@
-use engine_core::{SeatId, Seed, StableSerialize, Viewer};
+use engine_core::{SeatId, Seed, StableSerialize, Viewer, VisibilityScope};
 use high_card_duel::{
     export_public_observer_replay, generate_internal_full_trace, import_public_export,
-    project_view, setup_match, HighCardDuelSeat, Manifest, SetupOptions, VariantCatalog,
+    project_view, public_effect, setup_match, HighCardDuelEffect, HighCardDuelSeat, Manifest,
+    SetupOptions, VariantCatalog,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -40,6 +41,21 @@ fn public_and_seat_view_serialization_is_stable_for_same_seed() {
     assert!(left_seat
         .stable_summary()
         .contains(HighCardDuelSeat::Seat0.as_str()));
+}
+
+#[test]
+fn public_effect_constructor_preserves_public_scope_and_payload_text() {
+    let effect = public_effect(HighCardDuelEffect::HandCountChanged {
+        seat_0_count: 2,
+        seat_1_count: 3,
+        deck_count: 18,
+    });
+
+    assert_eq!(effect.visibility, VisibilityScope::Public);
+    assert_eq!(
+        effect.payload.public_payload_text(),
+        "hcd_hand_count_changed:seat_0_count=2;seat_1_count=3;deck_count=18"
+    );
 }
 
 #[test]

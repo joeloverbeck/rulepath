@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-002: High Card Duel — public effect-envelope constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/src/effects.rs`; adopts `engine-core` `EffectEnvelope::public`
@@ -66,3 +66,28 @@ Replace the local public-envelope literal in `public_effect` with `EffectEnvelop
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Completed: 2026-06-23
+
+Replaced `games/high_card_duel/src/effects.rs::public_effect`'s local public
+envelope literal with `EffectEnvelope::public(payload)`. The change is limited
+to public effect-envelope construction; payload formation, private envelope
+construction, effect ordering, reveal policy, recipient choice, and filtering
+remain game-owned.
+
+Added
+`games/high_card_duel/tests/serialization.rs::public_effect_constructor_preserves_public_scope_and_payload_text`
+to pin the public visibility scope and representative stable public payload
+text. The characterization report now records this migration as
+ADR-0009 `unchanged`.
+
+Deviations: none.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.

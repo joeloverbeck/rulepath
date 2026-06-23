@@ -320,3 +320,28 @@ Changed-artifact inventory at report creation:
 - New file: `reports/8c-r2-two-seat-hidden-reaction-scaffolding-characterization.md`.
 - No production code, fixtures, golden traces, schemas, or WASM/browser files
   were changed for this report-only ticket.
+
+## Migration Evidence Ledger
+
+### UNI8CR2TWOSEA-002 - High Card Duel public effect constructor
+
+Selected surface: `games/high_card_duel/src/effects.rs::public_effect`.
+
+Before state: local literal constructor
+`EffectEnvelope { visibility: VisibilityScope::Public, payload }`.
+
+After state: `EffectEnvelope::public(payload)`.
+
+ADR-0009 classification: `unchanged`. This changes only generic envelope
+construction and preserves payload text, visibility scope, effect ordering,
+stable effect strings, replay hashes, and viewer filtering. Rollback removes
+only this constructor call and restores the local literal.
+
+Evidence:
+
+- `games/high_card_duel/tests/serialization.rs::public_effect_constructor_preserves_public_scope_and_payload_text`
+  pins public scope and representative stable public payload text.
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.

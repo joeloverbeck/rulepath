@@ -131,10 +131,7 @@ impl HighCardDuelEffect {
 }
 
 pub fn public_effect(payload: HighCardDuelEffect) -> EffectEnvelope<HighCardDuelEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(
