@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-009: Column Four C-02 strict canonical seat parser
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/column_four` (`src/ids.rs`); accepted canonical input unchanged, no trace/golden change
@@ -74,3 +74,25 @@ Add direct parser tests asserting rejection of leading-zero, Unicode-digit, hyph
 1. `cargo test -p column_four`
 2. `cargo test -p wasm-api`
 3. The game-parser unit tests plus the wasm-api import test are the correct boundary.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Changes:
+
+- Rewrote `ColumnFourSeat::parse` to delegate to `SeatId::parse_canonical`, then map the bounded canonical index through `ColumnFourSeat::from_index`.
+- Preserved `ColumnFourSeat::as_str()` output exactly (`seat_0`, `seat_1`).
+- Added direct parser tests proving canonical bounded values are accepted and leading-zero, Unicode-digit, hyphen, symbolic, and out-of-range spellings are rejected at the game parser.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p column_four` passed, including the new parser acceptance/rejection tests.
+- `cargo test -p wasm-api` passed, including `seats::tests::import_adapter_accepts_canonical_hyphen_and_symbolic_aliases`.
+- `cargo run -p replay-check -- --game column_four --all` passed; all Column Four traces reported `ok`.
+- Grep proof confirms `ColumnFourSeat::parse` calls `SeatId::parse_canonical`, and non-canonical examples remain rejection-only in the game parser tests.
