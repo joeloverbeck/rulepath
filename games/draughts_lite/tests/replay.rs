@@ -14,7 +14,8 @@ use engine_core::{
 };
 use game_stdlib::board_space::Coord;
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, SetupEvidenceV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 
 const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
@@ -32,6 +33,23 @@ const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
     "commands",
     "checkpoints",
     "expected_hashes",
+];
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
 ];
 
 #[derive(Debug)]
@@ -93,6 +111,10 @@ fn replay_json_stable_serialization_preserves_multi_segment_paths() {
 fn replay_standard_fixture_metadata_is_present_and_public_safe() {
     let fixture = include_str!("../data/fixtures/draughts_lite_standard.fixture.json");
 
+    assert_standard_setup_fixture_metadata(fixture);
+}
+
+fn assert_standard_setup_fixture_metadata(fixture: &str) {
     assert_eq!(
         string_field(fixture, "fixture_id"),
         "draughts_lite_standard_gate7"
@@ -107,6 +129,37 @@ fn replay_standard_fixture_metadata_is_present_and_public_safe() {
     assert!(fixture.contains("\"fixture_kinds\""));
     assert!(!fixture.contains("private"));
     assert!(!fixture.contains("debug"));
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_standard_setup_fixture() {
+    let setup_fixture = include_str!("../data/fixtures/draughts_lite_standard.fixture.json");
+    assert!(!setup_fixture.contains("\"profile_id\""));
+    assert!(!setup_fixture.contains("\"profile_version\""));
+    assert!(!setup_fixture.contains("\"canonical_byte_authority\""));
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_standard_setup_fixture_metadata(setup_fixture)
+        })
+        .expect("setup-evidence-v1 driver accepts Draughts Lite setup fixture");
+}
+
+fn setup_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("Draughts Lite setup-evidence profile classification"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
 }
 
 #[test]

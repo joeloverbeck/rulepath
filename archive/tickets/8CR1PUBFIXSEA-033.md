@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-033: Draughts Lite C-08 setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/draughts_lite` (`tests/replay.rs`); fixture bytes unchanged
@@ -70,3 +70,24 @@ In `games/draughts_lite/tests/replay.rs` (or the reassessed fixture-test owner),
 1. `cargo test -p draughts_lite`
 2. `cargo run -p fixture-check -- --game draughts_lite`
 3. The per-game test plus `fixture-check` are the correct boundary: setup classification is game-local, fixture validation is `fixture-check`'s.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `setup_evidence_v1_driver_validates_standard_setup_fixture` in
+`games/draughts_lite/tests/replay.rs`. The test builds a typed
+`ProfileArtifact` with `setup-evidence-v1` / `v1`, public visibility,
+`fixture-check` validator ownership, `canonical_byte_authority: "none"`, and
+`canonical_byte_claim: false`, then validates with
+`SetupEvidenceV1Driver::new("fixture-check")` before delegating to the
+existing standard setup fixture metadata assertions. The fixture remains
+profile-free and byte-unchanged.
+
+Verification:
+
+1. `cargo test -p draughts_lite setup_evidence_v1_driver_validates_standard_setup_fixture -- --exact`
+2. `cargo test -p draughts_lite`
+3. `cargo run -p fixture-check -- --game draughts_lite`
+4. `cargo fmt --all -- --check`
+5. `git diff --name-only -- games/draughts_lite/data/fixtures/draughts_lite_standard.fixture.json`
