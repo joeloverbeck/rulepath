@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-026: Poker Lite — C-07 pairwise no-leak geometry
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/tests/{visibility,bots,replay}.rs`; adopts `game_test_support::no_leak` pairwise matrix
@@ -68,3 +68,26 @@ Using `game_test_support::no_leak`, enumerate source seat × viewer × surface c
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added a `game_test_support::no_leak` pairwise matrix in
+`games/poker_lite/tests/visibility.rs`. The matrix covers both private crest
+source seats across observer, seat 0, and seat 1 viewers for pre-showdown view,
+action tree, diagnostic, effect, public export, seat-private export, and bot
+input surfaces; center-revealed pre-showdown views; authorized showdown view
+and public export; and yield view/public export for each possible losing seat.
+The caller-owned expectations preserve Poker Lite policy: owner views and
+seat-private exports may contain the owner private crest before showdown,
+setup effects do not expose raw crest ids, showdown reveals both crests, and
+yield public surfaces keep the losing crest hidden while the loser owner view
+may still contain its own private crest. Existing focused bot and replay tests
+stayed green, so no redundant edits were needed there.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p poker_lite`
+3. `cargo run -p replay-check -- --game poker_lite --all`

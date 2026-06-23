@@ -1,8 +1,11 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
+use poker_lite::replay_support::{effect_stable_string, export_public_replay, trace_from_commands};
 use poker_lite::{
     apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
-    setup_match, validate_command, CenterView, CrestCardId, Phase, PokerLiteSeat, PrivateView,
-    SetupOptions, ShowdownReveal, TerminalOutcome, TerminalView,
+    setup_match, validate_command, CenterView, CrestCardId, Phase, PokerLiteLevel2Bot,
+    PokerLiteSeat, PrivateView, SetupOptions, ShowdownReveal, TerminalOutcome, TerminalView,
+    ACTION_HOLD, ACTION_PRESS, ACTION_YIELD,
 };
 
 fn standard_state() -> poker_lite::PokerLiteState {
@@ -57,6 +60,279 @@ fn command(state: &poker_lite::PokerLiteState, seat: &str, segment: &str) -> Com
 fn apply_segment(state: &mut poker_lite::PokerLiteState, seat: &str, segment: &str) {
     let action = validate_command(state, &command(state, seat, segment)).expect("valid command");
     apply_action(state, action).expect("apply succeeds");
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl MatrixViewer {
+    fn viewer(self) -> Viewer {
+        viewer(match self {
+            MatrixViewer::Observer => None,
+            MatrixViewer::Seat0 => Some("seat_0"),
+            MatrixViewer::Seat1 => Some("seat_1"),
+        })
+    }
+
+    fn seat(self) -> Option<PokerLiteSeat> {
+        match self {
+            MatrixViewer::Observer => None,
+            MatrixViewer::Seat0 => Some(PokerLiteSeat::Seat0),
+            MatrixViewer::Seat1 => Some(PokerLiteSeat::Seat1),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixSurface {
+    PreShowdownView,
+    PreShowdownActionTree,
+    PreShowdownDiagnostic,
+    PreShowdownEffect,
+    PreShowdownPublicExport,
+    PreShowdownSeatPrivateExport,
+    PreShowdownBotInput,
+    CenterRevealedView,
+    ShowdownView,
+    ShowdownPublicExport,
+    YieldView(PokerLiteSeat),
+    YieldPublicExport(PokerLiteSeat),
+}
+
+fn matrix_viewers() -> Vec<MatrixViewer> {
+    vec![
+        MatrixViewer::Observer,
+        MatrixViewer::Seat0,
+        MatrixViewer::Seat1,
+    ]
+}
+
+fn matrix_surfaces() -> Vec<MatrixSurface> {
+    vec![
+        MatrixSurface::PreShowdownView,
+        MatrixSurface::PreShowdownActionTree,
+        MatrixSurface::PreShowdownDiagnostic,
+        MatrixSurface::PreShowdownEffect,
+        MatrixSurface::PreShowdownPublicExport,
+        MatrixSurface::PreShowdownSeatPrivateExport,
+        MatrixSurface::PreShowdownBotInput,
+        MatrixSurface::CenterRevealedView,
+        MatrixSurface::ShowdownView,
+        MatrixSurface::ShowdownPublicExport,
+        MatrixSurface::YieldView(PokerLiteSeat::Seat0),
+        MatrixSurface::YieldPublicExport(PokerLiteSeat::Seat0),
+        MatrixSurface::YieldView(PokerLiteSeat::Seat1),
+        MatrixSurface::YieldPublicExport(PokerLiteSeat::Seat1),
+    ]
+}
+
+fn matrix_probes() -> Vec<LeakProbe<PokerLiteSeat, &'static str, CrestCardId>> {
+    let state = standard_state();
+    PokerLiteSeat::ALL
+        .into_iter()
+        .map(|source_seat| LeakProbe {
+            source_seat,
+            canary_id: "private_crest",
+            canary: state.private_card_for_internal(source_seat),
+        })
+        .collect()
+}
+
+fn seat_name(seat: PokerLiteSeat) -> &'static str {
+    match seat {
+        PokerLiteSeat::Seat0 => "seat_0",
+        PokerLiteSeat::Seat1 => "seat_1",
+    }
+}
+
+fn showdown_state() -> poker_lite::PokerLiteState {
+    let mut state = standard_state();
+    for (seat, segment) in [
+        ("seat_0", ACTION_HOLD),
+        ("seat_1", ACTION_HOLD),
+        ("seat_1", ACTION_HOLD),
+        ("seat_0", ACTION_HOLD),
+    ] {
+        apply_segment(&mut state, seat, segment);
+    }
+    state
+}
+
+fn center_revealed_state() -> poker_lite::PokerLiteState {
+    let mut state = standard_state();
+    apply_segment(&mut state, "seat_0", ACTION_HOLD);
+    apply_segment(&mut state, "seat_1", ACTION_HOLD);
+    state
+}
+
+fn yield_state(loser: PokerLiteSeat) -> poker_lite::PokerLiteState {
+    let mut state = standard_state();
+    match loser {
+        PokerLiteSeat::Seat0 => {
+            apply_segment(&mut state, "seat_0", ACTION_HOLD);
+            apply_segment(&mut state, "seat_1", ACTION_PRESS);
+            apply_segment(&mut state, "seat_0", ACTION_YIELD);
+        }
+        PokerLiteSeat::Seat1 => {
+            apply_segment(&mut state, "seat_0", ACTION_PRESS);
+            apply_segment(&mut state, "seat_1", ACTION_YIELD);
+        }
+    }
+    state
+}
+
+fn trace_for(surface: MatrixSurface) -> poker_lite::replay_support::PokerLiteInternalTrace {
+    match surface {
+        MatrixSurface::ShowdownPublicExport => trace_from_commands(
+            11,
+            &[
+                (PokerLiteSeat::Seat0, ACTION_HOLD),
+                (PokerLiteSeat::Seat1, ACTION_HOLD),
+                (PokerLiteSeat::Seat1, ACTION_HOLD),
+                (PokerLiteSeat::Seat0, ACTION_HOLD),
+            ],
+        ),
+        MatrixSurface::YieldPublicExport(PokerLiteSeat::Seat0) => trace_from_commands(
+            11,
+            &[
+                (PokerLiteSeat::Seat0, ACTION_HOLD),
+                (PokerLiteSeat::Seat1, ACTION_PRESS),
+                (PokerLiteSeat::Seat0, ACTION_YIELD),
+            ],
+        ),
+        MatrixSurface::YieldPublicExport(PokerLiteSeat::Seat1) => trace_from_commands(
+            11,
+            &[
+                (PokerLiteSeat::Seat0, ACTION_PRESS),
+                (PokerLiteSeat::Seat1, ACTION_YIELD),
+            ],
+        ),
+        _ => trace_from_commands(11, &[]),
+    }
+}
+
+fn matrix_snapshot(viewer_case: &MatrixViewer, surface: &MatrixSurface) -> String {
+    let viewer = viewer_case.viewer();
+    match *surface {
+        MatrixSurface::PreShowdownView => format!("{:?}", project_view(&standard_state(), &viewer)),
+        MatrixSurface::PreShowdownActionTree => match viewer_case.seat() {
+            Some(seat) => format!(
+                "{:?}",
+                legal_action_tree(&standard_state(), &actor(seat_name(seat)))
+            ),
+            None => format!(
+                "{:?}",
+                legal_action_tree(&standard_state(), &actor("observer"))
+            ),
+        },
+        MatrixSurface::PreShowdownDiagnostic => {
+            let state = standard_state();
+            format!(
+                "{:?}",
+                validate_command(&state, &command(&state, "seat_0", "match"))
+            )
+        }
+        MatrixSurface::PreShowdownEffect => {
+            filter_effects_for_viewer(&setup_effects(&standard_state()), &viewer)
+                .iter()
+                .map(effect_stable_string)
+                .collect::<Vec<_>>()
+                .join("|")
+        }
+        MatrixSurface::PreShowdownPublicExport => export_public_replay(
+            &trace_for(MatrixSurface::PreShowdownPublicExport),
+            &Viewer { seat_id: None },
+        )
+        .to_json(),
+        MatrixSurface::PreShowdownSeatPrivateExport => export_public_replay(
+            &trace_for(MatrixSurface::PreShowdownSeatPrivateExport),
+            &viewer,
+        )
+        .to_json(),
+        MatrixSurface::PreShowdownBotInput => match viewer_case.seat() {
+            Some(seat) => PokerLiteLevel2Bot::input_for(&standard_state(), seat).stable_summary(),
+            None => String::new(),
+        },
+        MatrixSurface::CenterRevealedView => {
+            format!("{:?}", project_view(&center_revealed_state(), &viewer))
+        }
+        MatrixSurface::ShowdownView => format!("{:?}", project_view(&showdown_state(), &viewer)),
+        MatrixSurface::ShowdownPublicExport => {
+            export_public_replay(&trace_for(*surface), &Viewer { seat_id: None }).to_json()
+        }
+        MatrixSurface::YieldView(loser) => {
+            format!("{:?}", project_view(&yield_state(loser), &viewer))
+        }
+        MatrixSurface::YieldPublicExport(_) => {
+            export_public_replay(&trace_for(*surface), &Viewer { seat_id: None }).to_json()
+        }
+    }
+}
+
+fn matrix_expectation(
+    source: &PokerLiteSeat,
+    viewer: &MatrixViewer,
+    surface: &MatrixSurface,
+    _canary_id: &&'static str,
+) -> ExposureExpectation {
+    match *surface {
+        MatrixSurface::PreShowdownView
+        | MatrixSurface::PreShowdownSeatPrivateExport
+        | MatrixSurface::CenterRevealedView => {
+            if viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+        MatrixSurface::PreShowdownEffect => ExposureExpectation::MustBeAbsent,
+        MatrixSurface::PreShowdownActionTree
+        | MatrixSurface::PreShowdownDiagnostic
+        | MatrixSurface::PreShowdownPublicExport
+        | MatrixSurface::PreShowdownBotInput => ExposureExpectation::MustBeAbsent,
+        MatrixSurface::ShowdownView | MatrixSurface::ShowdownPublicExport => {
+            ExposureExpectation::MustBePresent
+        }
+        MatrixSurface::YieldView(loser) => {
+            if *source == loser {
+                if viewer.seat() == Some(loser) {
+                    ExposureExpectation::MustBePresent
+                } else {
+                    ExposureExpectation::MustBeAbsent
+                }
+            } else {
+                ExposureExpectation::NotApplicable
+            }
+        }
+        MatrixSurface::YieldPublicExport(loser) => {
+            if *source == loser {
+                ExposureExpectation::MustBeAbsent
+            } else {
+                ExposureExpectation::NotApplicable
+            }
+        }
+    }
+}
+
+fn snapshot_contains_card(snapshot: &String, card: &CrestCardId) -> bool {
+    snapshot.contains(card.as_str()) || snapshot.contains(&card.label())
+}
+
+#[test]
+fn pairwise_no_leak_matrix_covers_private_showdown_and_yield_surfaces() {
+    assert_pairwise_no_leak(
+        matrix_viewers(),
+        matrix_surfaces(),
+        matrix_probes(),
+        matrix_snapshot,
+        matrix_expectation,
+        snapshot_contains_card,
+    )
+    .expect("poker lite pairwise no-leak matrix passes");
 }
 
 fn terminal_state_with(outcome: TerminalOutcome) -> poker_lite::PokerLiteState {

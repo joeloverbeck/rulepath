@@ -848,6 +848,44 @@ Evidence:
   `game-test-support dev-only boundary check passed`.
 - `cargo test -p poker_lite` passed.
 
+### UNI8CR2TWOSEA-026 - Poker Lite C-07 pairwise no-leak geometry
+
+Selected surface: `games/poker_lite/tests/visibility.rs` pairwise no-leak
+matrix using `game_test_support::no_leak`.
+
+Before state: Poker Lite had focused private-view, center reveal, showdown,
+yield, bot, and replay no-leak tests, but no shared pairwise matrix over both
+private crest source seats and viewer classes.
+
+After state:
+`pairwise_no_leak_matrix_covers_private_showdown_and_yield_surfaces`
+enumerates both private crest source seats across observer, seat 0, and seat 1
+viewers. Covered surfaces include pre-showdown view, action tree, diagnostic,
+effect, public export, seat-private export, bot input, center-revealed
+pre-showdown view, showdown view/public export, and yield view/public export
+for each possible losing seat.
+
+ADR-0009 classification: `unchanged`. This adds only deterministic no-leak
+evidence. It keeps hand privacy, showdown reveal, and yield non-reveal policy
+in Poker Lite, and adds no golden trace, fixture, or committed canary.
+
+Evidence:
+
+- The matrix preserves the existing owner policy: owner view and seat-private
+  export can contain the owner private crest before showdown, setup effects do
+  not expose raw crest ids, showdown reveals both crests, and yield public
+  surfaces keep the losing crest hidden while the loser owner view may still
+  contain its own private crest.
+- `games/poker_lite/tests/visibility.rs::pairwise_no_leak_matrix_covers_private_showdown_and_yield_surfaces`
+  passed.
+- Existing `games/poker_lite/tests/bots.rs::level2_input_whitelist_excludes_forbidden_hidden_material`
+  and `games/poker_lite/tests/replay.rs::yield_terminal_public_export_cannot_reconstruct_folded_private_cards`
+  remained green.
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
+  Lite traces passed.
+
 ### UNI8CR2TWOSEA-016 - Masked Claims exact-two-seat structural validation
 
 Selected surface: `games/masked_claims/src/setup.rs::setup_match` and the
