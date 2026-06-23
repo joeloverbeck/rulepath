@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-025: Secret Draft — C-07 pairwise no-leak geometry
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/tests/{visibility,bots,replay}.rs`; adopts `game_test_support::no_leak` pairwise matrix
@@ -68,3 +68,24 @@ Using `game_test_support::no_leak`, enumerate source seat × viewer × surface c
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added a `game_test_support::no_leak` pairwise matrix in
+`games/secret_draft/tests/visibility.rs`. The matrix covers both source seats
+across observer, seat 0, and seat 1 viewers for pre-reveal commitment/private
+view fields, action metadata, diagnostics, effects, public export,
+seat-private export, and bot rationale, plus post-synchronized-reveal view,
+effect, public export, and seat-private export surfaces. The pre-reveal
+snapshots intentionally check commitment relation surfaces rather than raw
+visible-pool/action-choice item ids, because Secret Draft keeps the visible
+pool public until the synchronized reveal. Existing focused bot and replay
+tests stayed green, so no redundant edits were needed there.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p secret_draft`
+3. `cargo run -p replay-check -- --game secret_draft --all`

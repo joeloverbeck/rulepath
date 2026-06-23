@@ -756,6 +756,44 @@ Evidence:
   `game-test-support dev-only boundary check passed`.
 - `cargo test -p secret_draft` passed.
 
+### UNI8CR2TWOSEA-025 - Secret Draft C-07 pairwise no-leak geometry
+
+Selected surface: `games/secret_draft/tests/visibility.rs` pairwise no-leak
+matrix using `game_test_support::no_leak`.
+
+Before state: Secret Draft had focused pre-reveal redaction, bot, public
+export, and internal-trace authority tests, but no shared pairwise matrix over
+both source seats and viewer classes.
+
+After state:
+`pairwise_no_leak_matrix_covers_pre_commit_and_post_reveal_surfaces` enumerates
+both source seats across observer, seat 0, and seat 1 viewers. Pre-reveal
+surfaces cover commitment/private view fields, action metadata, diagnostics,
+effects, public export, seat-private export, and bot rationale. Post-reveal
+surfaces cover view, effect, public export, and seat-private export.
+
+ADR-0009 classification: `unchanged`. This adds only deterministic no-leak
+evidence. It keeps synchronized reveal policy in Secret Draft, keeps the
+visible pool public pre-reveal, treats raw internal command traces as
+`internal-dev`, and adds no golden trace, fixture, or committed canary.
+
+Evidence:
+
+- The matrix models committed-choice secrecy separately from public visible
+  pool membership, because a still-visible item may remain a legal public
+  choice before synchronized reveal.
+- `games/secret_draft/tests/visibility.rs::pairwise_no_leak_matrix_covers_pre_commit_and_post_reveal_surfaces`
+  passed.
+- Existing
+  `games/secret_draft/tests/bots.rs::level1_uses_only_public_information_when_opponent_commitment_differs`
+  and
+  `games/secret_draft/tests/visibility.rs::raw_internal_trace_is_the_only_checked_surface_that_keeps_private_command_authority`
+  remained green.
+- `cargo fmt --all --check` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

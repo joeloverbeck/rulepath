@@ -1,4 +1,5 @@
 use engine_core::{ActionPath, CommandEnvelope, RulesVersion, SeatId, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use secret_draft::{
     actions::{commit_segment, legal_action_metadata, legal_action_tree, validate_command},
     apply_action,
@@ -42,6 +43,285 @@ fn one_commit_state(item: DraftItemId) -> (SecretDraftState, Vec<String>) {
         state,
         effects.iter().map(effect_stable_string).collect::<Vec<_>>(),
     )
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl MatrixViewer {
+    fn viewer(self) -> Viewer {
+        match self {
+            MatrixViewer::Observer => Viewer { seat_id: None },
+            MatrixViewer::Seat0 => Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned())),
+            },
+            MatrixViewer::Seat1 => Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned())),
+            },
+        }
+    }
+
+    fn seat(self) -> Option<SecretDraftSeat> {
+        match self {
+            MatrixViewer::Observer => None,
+            MatrixViewer::Seat0 => Some(SecretDraftSeat::Seat0),
+            MatrixViewer::Seat1 => Some(SecretDraftSeat::Seat1),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixSurface {
+    PreCommitView(SecretDraftSeat),
+    PreCommitActionTree(SecretDraftSeat),
+    PreCommitDiagnostic(SecretDraftSeat),
+    PreCommitEffect(SecretDraftSeat),
+    PreCommitPublicExport(SecretDraftSeat),
+    PreCommitSeatPrivateExport(SecretDraftSeat),
+    PreCommitBot(SecretDraftSeat),
+    PostRevealView,
+    PostRevealEffect,
+    PostRevealPublicExport,
+    PostRevealSeatPrivateExport,
+}
+
+fn matrix_viewers() -> Vec<MatrixViewer> {
+    vec![
+        MatrixViewer::Observer,
+        MatrixViewer::Seat0,
+        MatrixViewer::Seat1,
+    ]
+}
+
+fn matrix_surfaces() -> Vec<MatrixSurface> {
+    vec![
+        MatrixSurface::PreCommitView(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitActionTree(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitDiagnostic(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitEffect(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitPublicExport(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitSeatPrivateExport(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitBot(SecretDraftSeat::Seat0),
+        MatrixSurface::PreCommitView(SecretDraftSeat::Seat1),
+        MatrixSurface::PreCommitActionTree(SecretDraftSeat::Seat1),
+        MatrixSurface::PreCommitDiagnostic(SecretDraftSeat::Seat1),
+        MatrixSurface::PreCommitEffect(SecretDraftSeat::Seat1),
+        MatrixSurface::PreCommitPublicExport(SecretDraftSeat::Seat1),
+        MatrixSurface::PreCommitSeatPrivateExport(SecretDraftSeat::Seat1),
+        MatrixSurface::PreCommitBot(SecretDraftSeat::Seat1),
+        MatrixSurface::PostRevealView,
+        MatrixSurface::PostRevealEffect,
+        MatrixSurface::PostRevealPublicExport,
+        MatrixSurface::PostRevealSeatPrivateExport,
+    ]
+}
+
+fn hidden_item(source: SecretDraftSeat) -> DraftItemId {
+    match source {
+        SecretDraftSeat::Seat0 => DraftItemId::Ember4,
+        SecretDraftSeat::Seat1 => DraftItemId::Grove4,
+    }
+}
+
+fn matrix_probes() -> Vec<LeakProbe<SecretDraftSeat, &'static str, DraftItemId>> {
+    SecretDraftSeat::ALL
+        .into_iter()
+        .map(|source_seat| LeakProbe {
+            source_seat,
+            canary_id: "committed_item",
+            canary: hidden_item(source_seat),
+        })
+        .collect()
+}
+
+fn apply_commit(
+    state: &mut SecretDraftState,
+    seat: SecretDraftSeat,
+    item: DraftItemId,
+) -> Vec<String> {
+    let envelope = command(state, seat, item);
+    let validated = validate_command(state, &envelope).expect("commit validates");
+    apply_action(state, validated)
+        .expect("commit applies")
+        .iter()
+        .map(effect_stable_string)
+        .collect()
+}
+
+fn pre_commit_state(source: SecretDraftSeat) -> (SecretDraftState, Vec<String>) {
+    let mut state = setup();
+    let effects = apply_commit(&mut state, source, hidden_item(source));
+    (state, effects)
+}
+
+fn post_reveal_state() -> (SecretDraftState, Vec<String>) {
+    let mut state = setup();
+    apply_commit(
+        &mut state,
+        SecretDraftSeat::Seat0,
+        hidden_item(SecretDraftSeat::Seat0),
+    );
+    let reveal_effects = apply_commit(
+        &mut state,
+        SecretDraftSeat::Seat1,
+        hidden_item(SecretDraftSeat::Seat1),
+    );
+    (state, reveal_effects)
+}
+
+fn trace_for_commits(commits: &[(SecretDraftSeat, DraftItemId)]) -> SecretDraftInternalTrace {
+    SecretDraftInternalTrace {
+        schema_version: 1,
+        game_id: GAME_ID.to_owned(),
+        rules_version: RULES_VERSION_LABEL.to_owned(),
+        variant: VARIANT_ID.to_owned(),
+        seed_evidence: 44,
+        commands: commits
+            .iter()
+            .map(|(seat, item)| ReplayCommand {
+                actor: seat.as_str().to_owned(),
+                path: vec![commit_segment(*item)],
+            })
+            .collect(),
+    }
+}
+
+fn matrix_snapshot(viewer: &MatrixViewer, surface: &MatrixSurface) -> String {
+    match *surface {
+        MatrixSurface::PreCommitView(source) => {
+            let (state, _) = pre_commit_state(source);
+            let view = secret_draft::project_view(&state, &viewer.viewer());
+            format!("{:?}|{:?}", view.commitments, view.private_view)
+        }
+        MatrixSurface::PreCommitActionTree(source) => {
+            let (state, _) = pre_commit_state(source);
+            match viewer.seat() {
+                Some(seat) => format!(
+                    "{:?}",
+                    legal_action_metadata(&state, &actor_for_seat(&state, seat))
+                ),
+                None => format!(
+                    "{:?}",
+                    legal_action_metadata(
+                        &state,
+                        &engine_core::Actor {
+                            seat_id: SeatId("observer".to_owned()),
+                        }
+                    )
+                ),
+            }
+        }
+        MatrixSurface::PreCommitDiagnostic(source) => {
+            let (state, _) = pre_commit_state(source);
+            format!(
+                "{:?}",
+                validate_command(&state, &command(&state, source, hidden_item(source)))
+            )
+        }
+        MatrixSurface::PreCommitEffect(source) => {
+            let (_, effects) = pre_commit_state(source);
+            effects.join("|")
+        }
+        MatrixSurface::PreCommitPublicExport(source) => export_public_replay(
+            &trace_for_commits(&[(source, hidden_item(source))]),
+            &Viewer { seat_id: None },
+        )
+        .to_json(),
+        MatrixSurface::PreCommitSeatPrivateExport(source) => {
+            let viewer = viewer.viewer();
+            export_public_replay(
+                &trace_for_commits(&[(source, hidden_item(source))]),
+                &viewer,
+            )
+            .to_json()
+        }
+        MatrixSurface::PreCommitBot(source) => {
+            let (state, _) = pre_commit_state(source);
+            match viewer.seat() {
+                Some(seat) => SecretDraftLevel1Bot::new(engine_core::Seed(7))
+                    .select_decision(&state, seat)
+                    .map_or_else(|_| String::new(), |decision| decision.rationale),
+                None => String::new(),
+            }
+        }
+        MatrixSurface::PostRevealView => {
+            let (state, _) = post_reveal_state();
+            format!("{:?}", secret_draft::project_view(&state, &viewer.viewer()))
+        }
+        MatrixSurface::PostRevealEffect => {
+            let (_, effects) = post_reveal_state();
+            effects.join("|")
+        }
+        MatrixSurface::PostRevealPublicExport => export_public_replay(
+            &trace_for_commits(&[
+                (SecretDraftSeat::Seat0, hidden_item(SecretDraftSeat::Seat0)),
+                (SecretDraftSeat::Seat1, hidden_item(SecretDraftSeat::Seat1)),
+            ]),
+            &Viewer { seat_id: None },
+        )
+        .to_json(),
+        MatrixSurface::PostRevealSeatPrivateExport => {
+            let viewer = viewer.viewer();
+            export_public_replay(
+                &trace_for_commits(&[
+                    (SecretDraftSeat::Seat0, hidden_item(SecretDraftSeat::Seat0)),
+                    (SecretDraftSeat::Seat1, hidden_item(SecretDraftSeat::Seat1)),
+                ]),
+                &viewer,
+            )
+            .to_json()
+        }
+    }
+}
+
+fn matrix_expectation(
+    source: &SecretDraftSeat,
+    _viewer: &MatrixViewer,
+    surface: &MatrixSurface,
+    _canary_id: &&'static str,
+) -> ExposureExpectation {
+    match *surface {
+        MatrixSurface::PreCommitView(pre_source)
+        | MatrixSurface::PreCommitActionTree(pre_source)
+        | MatrixSurface::PreCommitDiagnostic(pre_source)
+        | MatrixSurface::PreCommitEffect(pre_source)
+        | MatrixSurface::PreCommitPublicExport(pre_source)
+        | MatrixSurface::PreCommitSeatPrivateExport(pre_source)
+        | MatrixSurface::PreCommitBot(pre_source) => {
+            if pre_source == *source {
+                ExposureExpectation::MustBeAbsent
+            } else {
+                ExposureExpectation::NotApplicable
+            }
+        }
+        MatrixSurface::PostRevealView
+        | MatrixSurface::PostRevealEffect
+        | MatrixSurface::PostRevealPublicExport
+        | MatrixSurface::PostRevealSeatPrivateExport => ExposureExpectation::MustBePresent,
+    }
+}
+
+fn snapshot_contains_item(snapshot: &String, item: &DraftItemId) -> bool {
+    snapshot.contains(item.as_str())
+        || snapshot.contains(item.label())
+        || snapshot.contains(&format!("{item:?}"))
+}
+
+#[test]
+fn pairwise_no_leak_matrix_covers_pre_commit_and_post_reveal_surfaces() {
+    assert_pairwise_no_leak(
+        matrix_viewers(),
+        matrix_surfaces(),
+        matrix_probes(),
+        matrix_snapshot,
+        matrix_expectation,
+        snapshot_contains_item,
+    )
+    .expect("secret draft pairwise no-leak matrix passes");
 }
 
 #[test]
