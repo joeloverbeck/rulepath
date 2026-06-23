@@ -939,6 +939,41 @@ Evidence:
   `game-test-support dev-only boundary check passed`.
 - `cargo test -p masked_claims` passed.
 
+### UNI8CR2TWOSEA-027 - Masked Claims C-07 pairwise no-leak geometry
+
+Selected surface: `games/masked_claims/tests/visibility.rs` pairwise no-leak
+matrix using `game_test_support::no_leak`.
+
+Before state: Masked Claims had focused pending-claim, accepted-secret, bot,
+and replay no-leak tests, but no shared pairwise matrix over both claimant
+source seats and viewer classes.
+
+After state:
+`pairwise_no_leak_matrix_covers_pending_accepted_and_challenge_surfaces`
+enumerates both claimant source seats across observer, seat 0, and seat 1
+viewers. Covered surfaces include pending claim view, responder action tree,
+effects, public export, bot rationale, accepted-secret view/public export, and
+challenge-reveal view/effects/public export.
+
+ADR-0009 classification: `unchanged`. This adds only deterministic no-leak
+evidence. It keeps reaction-window, pending-responder, accepted-secret, and
+challenge-reveal policy in Masked Claims, and adds no golden trace, fixture, or
+committed canary.
+
+Evidence:
+
+- The matrix advances through a real accepted claim before constructing a seat 1
+  source claim, so claimant sequencing remains game-owned.
+- `games/masked_claims/tests/visibility.rs::pairwise_no_leak_matrix_covers_pending_accepted_and_challenge_surfaces`
+  passed.
+- Existing `games/masked_claims/tests/visibility.rs::accepted_masks_remain_hidden_after_resolution_and_bot_rationale_is_safe`
+  and `games/masked_claims/tests/replay.rs::challenge_reveal_appears_after_public_claim_effect`
+  remained green.
+- `cargo fmt --all --check` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; all Masked
+  Claims traces passed.
+
 ### UNI8CR2TWOSEA-017 - High Card Duel parallel action-tree v1 bytes/hash
 
 Selected surface: `games/high_card_duel/src/replay_support.rs` additive

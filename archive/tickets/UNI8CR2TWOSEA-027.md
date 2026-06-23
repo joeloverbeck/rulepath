@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-027: Masked Claims — C-07 pairwise no-leak geometry
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/tests/{visibility,bots,replay}.rs`; adopts `game_test_support::no_leak` pairwise matrix
@@ -68,3 +68,23 @@ Using `game_test_support::no_leak`, enumerate source seat × viewer × surface c
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added a `game_test_support::no_leak` pairwise matrix in
+`games/masked_claims/tests/visibility.rs`. The matrix covers both claimant
+source seats across observer, seat 0, and seat 1 viewers for pending claim
+view, responder action tree, effects, public export, and bot rationale;
+accepted-secret view and public export; and challenge-reveal view, effects,
+and public export. The setup advances through a real accepted claim before
+constructing a seat 1 source claim, so reaction-window and pending-responder
+policy remain game-local. Existing focused bot and replay tests stayed green,
+so no redundant edits were needed there.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p masked_claims`
+3. `cargo run -p replay-check -- --game masked_claims --all`
