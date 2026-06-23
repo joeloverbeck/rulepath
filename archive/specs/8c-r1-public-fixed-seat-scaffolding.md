@@ -1,11 +1,13 @@
 # Unit 8C-R1 — C-11 follow-on: public/fixed-seat scaffolding
 
-- Spec ID: `8c-r1-public-fixed-seat-scaffolding`
-- Roadmap stage: Public scaling phase — C-11 follow-on retrofit lane
-- Roadmap build gate: 8C-R1 (precedes 8C-R2…R4 and Gate 18)
-- Status: Done
-- Date: 2026-06-23
-- Owner: Rulepath maintainers; implementation delegated through bounded `AGENT-TASK` packets
+| Field | Value |
+|---|---|
+| Spec ID | `8c-r1-public-fixed-seat-scaffolding` |
+| Roadmap stage | Public scaling phase — C-11 follow-on retrofit lane |
+| Roadmap build gate | 8C-R1 (precedes 8C-R2…R4 and Gate 18) |
+| Status | `Done` |
+| Date | 2026-06-23 |
+| Owner | Rulepath maintainers; implementation delegated through bounded `AGENT-TASK` packets |
 
 This spec is an implementation plan. It is subordinate to the foundation set in
 [`../docs/README.md`](../docs/README.md) and MUST NOT redefine any foundation
@@ -723,7 +725,7 @@ The accepted form must answer **yes** to every item:
 - Is the artifact framed for `/reassess-spec` → `/spec-to-tickets` rather than execution?
 - Do EC-28/EC-30 and successor sequencing remain intact?
 
-## 13. Outcome
+## Outcome
 
 Completed on 2026-06-23.
 
