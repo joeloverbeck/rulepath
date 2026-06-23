@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-028: Draughts Lite C-08 replay-command profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/draughts_lite` (`Cargo.toml` dev-dep + `tests/replay.rs`); trace bytes unchanged
@@ -76,3 +76,30 @@ In `games/draughts_lite/tests/replay.rs`, build a `ProfileArtifact` from the exi
 1. `cargo test -p draughts_lite`
 2. `cargo tree -p draughts_lite -e normal`
 3. The per-game test plus the `cargo tree` dev-only proof are the correct boundary: the adapter is dev-only and game-local.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `game-test-support` as a Draughts Lite dev-dependency and recorded the
+corresponding `Cargo.lock` package dependency entry. No normal dependency path
+was introduced: `cargo tree -p draughts_lite -e normal` lists only `ai-core`,
+`engine-core`, and `game-stdlib`.
+
+Added `replay_command_v1_driver_replays_shortest_quiet_fixture` in
+`games/draughts_lite/tests/replay.rs`. The test builds a typed
+`ProfileArtifact` with `replay-command-v1` / `v1`, `internal-dev` visibility,
+`replay-check` validator ownership, and
+`draughts_lite::replay_support` canonical byte authority, then validates with
+`ReplayCommandV1Driver::new("replay-check")` before delegating to the existing
+fixture replay/hash assertions. The committed trace JSON remains profile-free
+and byte-unchanged.
+
+Verification:
+
+1. `cargo test -p draughts_lite replay_command_v1_driver_replays_shortest_quiet_fixture -- --exact`
+2. `cargo test -p draughts_lite`
+3. `cargo tree -p draughts_lite -e normal`
+4. `cargo run -p replay-check -- --game draughts_lite --all`
+5. `cargo fmt --all -- --check`
+6. `git diff --name-only -- games/draughts_lite/tests/golden_traces`

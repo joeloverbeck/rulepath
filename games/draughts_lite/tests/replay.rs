@@ -13,6 +13,26 @@ use engine_core::{
     StableBytesTypeTag, StableBytesWriter, StableSerialize,
 };
 use game_stdlib::board_space::Coord;
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -230,6 +250,38 @@ fn characterization_legacy_trace_without_profile_metadata_is_still_accepted() {
         parsed.commands[0].action_path,
         ["from/r3c2", "jump/r5c4", "jump/r7c6"]
     );
+}
+
+#[test]
+fn replay_command_v1_driver_replays_shortest_quiet_fixture() {
+    let fixture_json = include_str!("golden_traces/shortest-quiet.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    assert!(!fixture_json.contains("\"canonical_byte_authority\""));
+    let fixture = parse_trace_schema_v1_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_fixture(parse_trace_schema_v1_fixture(fixture_json))
+        })
+        .expect("replay-command-v1 driver accepts shortest-quiet profile");
+}
+
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "draughts_lite::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
+    }
 }
 
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {
