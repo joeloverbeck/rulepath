@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-003: Three Marks C-01 public-envelope constructor adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/three_marks` (`src/effects.rs`); effect bytes and visibility byte-identical
@@ -70,3 +70,26 @@ In `public_effect`, replace the `EffectEnvelope { visibility: VisibilityScope::P
 1. `cargo test -p three_marks`
 2. `cargo run -p replay-check -- --game three_marks --all`
 3. The per-game replay-check is the correct boundary: this surface is game-local effect serialization.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Implemented the C-01 Three Marks public-envelope constructor adoption by
+replacing the local `EffectEnvelope { visibility: VisibilityScope::Public,
+payload }` literal in `games/three_marks/src/effects.rs::public_effect` with
+`EffectEnvelope::public(payload)`. Added a focused unit test proving public
+visibility and payload preservation.
+
+Deviations from the original plan:
+
+- Added a new `effects.rs` test module because Three Marks had no existing
+  effects-local test block for this exact helper.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p three_marks` passed.
+- `cargo run -p replay-check -- --game three_marks --all` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `rg -n "EffectEnvelope::public|EffectEnvelope \\{|VisibilityScope::Public" games/three_marks/src/effects.rs` confirmed the public helper now calls `EffectEnvelope::public`, with `VisibilityScope::Public` only in the focused test.

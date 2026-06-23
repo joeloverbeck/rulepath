@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::{
     ids::{CellId, ThreeMarksSeat},
@@ -63,8 +63,25 @@ pub enum RejectionReason {
 }
 
 pub fn public_effect(payload: ThreeMarksEffect) -> EffectEnvelope<ThreeMarksEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
+    EffectEnvelope::public(payload)
+}
+
+#[cfg(test)]
+mod tests {
+    use engine_core::VisibilityScope;
+
+    use super::*;
+
+    #[test]
+    fn public_effect_uses_public_visibility_and_preserves_payload() {
+        let payload = ThreeMarksEffect::PlacementRejected {
+            reason: RejectionReason::Occupied,
+            label: "occupied".to_owned(),
+        };
+
+        let effect = public_effect(payload.clone());
+
+        assert_eq!(effect.visibility, VisibilityScope::Public);
+        assert_eq!(effect.payload, payload);
     }
 }
