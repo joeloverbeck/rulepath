@@ -19,7 +19,9 @@ foundation docs.
 
 - `scripts/audit-series-closeout.mjs` collects the standard final closeout
   audit surfaces for archived tickets, archived references, stale live paths,
-  commit ledger, and git status. Use it as directed in Completion Audit.
+  commit ledger, and git status. Use it as directed in Completion Audit. It
+  also supports `--reference-only` for focused archived-reference truthing and
+  `--ledger-format compact` for final-report-ready commit ledgers.
 - `agents/openai.yaml` is an OpenAI-facing skill manifest and prompt stub. It
   does not change the main workflow and does not authorize skipping the
   `SKILL.md` instructions.
@@ -293,8 +295,19 @@ evidence.
    ``| Status | `Done` |``). Do not use bolded labels such as
    ``| **Status** | `Done` |``; the closeout helper intentionally rejects that
    near-miss. The archived spec still must have a truthful final status and a
-   bottom `## Outcome`. Tickets continue to use the `**Status**: COMPLETED`
-   archival workflow vocabulary.
+   bottom `## Outcome`. Before the reference archive commit, the archived spec
+   should contain this exact shape:
+
+```markdown
+| Field | Value |
+|---|---|
+| Status | `Done` |
+
+## Outcome
+```
+
+   Tickets continue to use the `**Status**: COMPLETED` archival workflow
+   vocabulary.
 4. Archive the reference artifact, using `git mv` when tracked:
    - specs to `archive/specs/`;
    - triage notes from `docs/triage/` to `archive/triage/`;
@@ -331,7 +344,12 @@ evidence.
    This is a hard stop: execute the concrete completion-audit commands from the
    next section against the live checkout before any final response or
    `update_goal` call. A mental checklist is not enough for final reference
-   truthing.
+   truthing. When you need a narrow pre-commit check for just the archived
+   reference shape, run:
+
+```sh
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md
+```
 7. Run a final status/diff check and commit the reference archive/truthing work.
    Run all git index-mutating commands serially during this closeout, including
    `git add`, `git mv`, `git commit`, and `git restore --staged`; never run
@@ -442,8 +460,9 @@ cannot express the expected set cleanly, run the manual audit commands below
 and explain why the helper was skipped.
 
 ```sh
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-count N
-node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
@@ -478,14 +497,19 @@ or ticket requires report repair, but do sweep active per-game docs under
 
 Final responses must include:
 
+- Confirmation that the closeout audit passed after the final commit and before
+  writing the final response.
 - Tickets completed and archived.
 - Per-ticket commit IDs when commits were made as part of the series.
   For long contiguous series, use a compact ledger instead of summarizing only
   the latest commits, for example:
 
 ```text
-001 4119f20, 002 cb5bea1, 003 a88b254, ...
+001 4119f20, 002 cb5bea1, 003 a88b254, 004 1c02d99, 005 e32f411
+006 2ac1f7b, 007 7819e22, 008 84fb0c5, 009 a5321dd, 010 d4198be
 ```
+
+  The closeout helper can generate this form with `--ledger-format compact`.
 
 - Reference artifact archived, or reason no spec/reference artifact was closed.
 - Verification commands actually run.

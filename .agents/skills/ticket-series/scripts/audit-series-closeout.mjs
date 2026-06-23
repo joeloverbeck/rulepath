@@ -16,9 +16,20 @@ const activeReference = args["active-reference"];
 const archivedReference = args["archived-reference"];
 const expectedCount = args["expected-count"];
 const expectedTicketRange = args["expected-ticket-range"];
+const ledgerFormat = args["ledger-format"];
+const referenceOnly = args["reference-only"] === true;
 
-if (!prefix) {
+if (!prefix && !referenceOnly) {
   printUsage(console.error);
+  process.exit(2);
+}
+if (ledgerFormat !== undefined && ledgerFormat !== "compact") {
+  console.error(`Invalid --ledger-format: ${ledgerFormat}`);
+  console.error("Expected: compact");
+  process.exit(2);
+}
+if (referenceOnly && !archivedReference) {
+  console.error("--reference-only requires --archived-reference");
   process.exit(2);
 }
 
@@ -48,7 +59,11 @@ function printUsage(write = console.log) {
       "[--active-reference specs/name.md] " +
       "[--archived-reference archive/specs/name.md] " +
       "[--expected-count N] " +
-      "[--expected-ticket-range PREFIX-001..020]",
+      "[--expected-ticket-range PREFIX-001..020] " +
+      "[--ledger-format compact]\n" +
+      "       audit-series-closeout.mjs --reference-only " +
+      "[--active-reference specs/name.md] " +
+      "--archived-reference archive/specs/name.md",
   );
 }
 
@@ -162,6 +177,7 @@ function reportArchivedReference(file) {
 
 function parseArgs(argv) {
   const parsed = {};
+  const flagArgs = new Set(["reference-only"]);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (!arg.startsWith("--")) {
@@ -169,6 +185,10 @@ function parseArgs(argv) {
       process.exit(2);
     }
     const key = arg.slice(2);
+    if (flagArgs.has(key)) {
+      parsed[key] = true;
+      continue;
+    }
     const value = argv[i + 1];
     if (!value || value.startsWith("--")) {
       console.error(`Missing value for ${arg}`);
@@ -201,43 +221,45 @@ function expandTicketRange(range) {
   });
 }
 
-section("Active Ticket References");
-const activeTicketRefs = run("rg", ["-n", prefix, "tickets"], { allowExitCodes: [0, 1] });
-if (activeTicketRefs.status === 0) {
-  fail(`active tickets still reference ${prefix}`);
-} else {
-  ok(`no active ticket references for ${prefix}`);
-}
-
-section("Archived Tickets");
-const archivedTickets = listArchivedTickets();
-archivedTickets.forEach((file) => console.log(file));
-console.log(`count=${archivedTickets.length}`);
-if (archivedTickets.length === 0) fail(`no archived tickets found for ${prefix}`);
-if (expectedCount !== undefined) {
-  const count = Number.parseInt(expectedCount, 10);
-  if (!Number.isInteger(count) || String(count) !== expectedCount) {
-    fail(`invalid --expected-count value: ${expectedCount}`);
-  } else if (archivedTickets.length !== count) {
-    fail(`expected ${count} archived tickets, found ${archivedTickets.length}`);
+if (!referenceOnly) {
+  section("Active Ticket References");
+  const activeTicketRefs = run("rg", ["-n", prefix, "tickets"], { allowExitCodes: [0, 1] });
+  if (activeTicketRefs.status === 0) {
+    fail(`active tickets still reference ${prefix}`);
   } else {
-    ok(`archived ticket count matches expected ${count}`);
+    ok(`no active ticket references for ${prefix}`);
   }
-}
-if (expectedTicketNames) {
-  const actual = new Set(archivedTickets);
-  const expected = new Set(expectedTicketNames);
-  const missing = expectedTicketNames.filter((file) => !actual.has(file));
-  const unexpected = archivedTickets.filter((file) => !expected.has(file));
-  missing.forEach((file) => fail(`expected archived ticket missing: ${file}`));
-  unexpected.forEach((file) => fail(`unexpected archived ticket for range: ${file}`));
-  if (missing.length === 0 && unexpected.length === 0) {
-    ok(`archived ticket names match expected range ${expectedTicketRange}`);
-  }
-}
 
-section("Archived Ticket Status And Outcome");
-archivedTickets.forEach(reportStatusOutcome);
+  section("Archived Tickets");
+  const archivedTickets = listArchivedTickets();
+  archivedTickets.forEach((file) => console.log(file));
+  console.log(`count=${archivedTickets.length}`);
+  if (archivedTickets.length === 0) fail(`no archived tickets found for ${prefix}`);
+  if (expectedCount !== undefined) {
+    const count = Number.parseInt(expectedCount, 10);
+    if (!Number.isInteger(count) || String(count) !== expectedCount) {
+      fail(`invalid --expected-count value: ${expectedCount}`);
+    } else if (archivedTickets.length !== count) {
+      fail(`expected ${count} archived tickets, found ${archivedTickets.length}`);
+    } else {
+      ok(`archived ticket count matches expected ${count}`);
+    }
+  }
+  if (expectedTicketNames) {
+    const actual = new Set(archivedTickets);
+    const expected = new Set(expectedTicketNames);
+    const missing = expectedTicketNames.filter((file) => !actual.has(file));
+    const unexpected = archivedTickets.filter((file) => !expected.has(file));
+    missing.forEach((file) => fail(`expected archived ticket missing: ${file}`));
+    unexpected.forEach((file) => fail(`unexpected archived ticket for range: ${file}`));
+    if (missing.length === 0 && unexpected.length === 0) {
+      ok(`archived ticket names match expected range ${expectedTicketRange}`);
+    }
+  }
+
+  section("Archived Ticket Status And Outcome");
+  archivedTickets.forEach(reportStatusOutcome);
+}
 
 section("Reference Paths");
 if (activeReference) {
@@ -258,25 +280,37 @@ if (archivedReference) {
 section("Stale Live Path Sweep");
 const livePatterns = [];
 if (activeReference) livePatterns.push(`(?<!archive/)${escapeRegex(activeReference)}`);
-livePatterns.push(`(?<!archive/)tickets/${escapeRegex(prefix)}`);
-const staleSweep = run(
-  "rg",
-  ["-n", "-P", livePatterns.join("|"), "specs", "tickets", "docs", "apps", "games", "scripts"],
-  { allowExitCodes: [0, 1, 2] },
-);
-if (staleSweep.status === 0) fail("stale live-path references were found");
+if (prefix) livePatterns.push(`(?<!archive/)tickets/${escapeRegex(prefix)}`);
+if (livePatterns.length > 0) {
+  const staleSweep = run(
+    "rg",
+    ["-n", "-P", livePatterns.join("|"), "specs", "tickets", "docs", "apps", "games", "scripts"],
+    { allowExitCodes: [0, 1, 2] },
+  );
+  if (staleSweep.status === 0) fail("stale live-path references were found");
+} else {
+  console.log("SKIP: no --active-reference or --ticket-prefix provided");
+}
 
-section("Archive Reference Sweep");
-const archivePatterns = [`archive/tickets/${escapeRegex(prefix)}`];
-if (archivedReference) archivePatterns.push(escapeRegex(archivedReference));
-run(
-  "rg",
-  ["-n", "-P", archivePatterns.join("|"), "specs", "docs", "apps", "games", "scripts"],
-  { allowExitCodes: [0, 1, 2] },
-);
+if (!referenceOnly) {
+  section("Archive Reference Sweep");
+  const archivePatterns = [`archive/tickets/${escapeRegex(prefix)}`];
+  if (archivedReference) archivePatterns.push(escapeRegex(archivedReference));
+  run(
+    "rg",
+    ["-n", "-P", archivePatterns.join("|"), "specs", "docs", "apps", "games", "scripts"],
+    { allowExitCodes: [0, 1, 2] },
+  );
 
-section("Commit Ledger");
-run("git", ["log", "--oneline", `--grep=${prefix}`, "--all"], { allowExitCodes: [0] });
+  section("Commit Ledger");
+  const commitLedger = run("git", ["log", "--oneline", `--grep=${prefix}`, "--all"], {
+    allowExitCodes: [0],
+  });
+  if (ledgerFormat === "compact") {
+    section("Compact Commit Ledger");
+    printCompactLedger(commitLedger.stdout ?? "");
+  }
+}
 
 section("Git Status");
 run("git", ["status", "--short"], { allowExitCodes: [0] });
@@ -286,4 +320,35 @@ process.exitCode = failures > 0 ? 1 : 0;
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function printCompactLedger(logOutput) {
+  const ticketPattern = new RegExp(`\\b${escapeRegex(prefix)}-(\\d+)\\b`);
+  const rows = [];
+  logOutput
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .forEach((line) => {
+      const match = /^(?<sha>[0-9a-f]+)\s+(?<subject>.+)$/.exec(line);
+      if (!match?.groups) return;
+      const ticketMatch = ticketPattern.exec(match.groups.subject);
+      if (!ticketMatch) return;
+      rows.push({ number: ticketMatch[1], sha: match.groups.sha });
+    });
+
+  if (rows.length === 0) {
+    fail(`no commit ledger rows matched ${prefix}-NNN`);
+    return;
+  }
+
+  rows
+    .sort((left, right) => Number(left.number) - Number(right.number))
+    .reduce((lines, row, index) => {
+      const item = `${row.number} ${row.sha}`;
+      const lineIndex = Math.floor(index / 5);
+      lines[lineIndex] = lines[lineIndex] ? `${lines[lineIndex]}, ${item}` : item;
+      return lines;
+    }, [])
+    .forEach((line) => console.log(line));
 }
