@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-001: Characterization baseline and locked determination
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new governance/characterization report (`reports/8c-r1-public-fixed-seat-scaffolding-characterization.md`); no code, schema, or trace change
@@ -78,3 +78,38 @@ Record the C-06/C-07/C-09/C-10 applicability conclusions and every accepted-exce
 1. `cargo run -p replay-check -- --game token_bazaar --all` (representative sentinel re-read).
 2. `cargo test --workspace --all-targets` (full-pipeline baseline-green proof).
 3. A narrower per-game command is the correct boundary for sentinel pinning; the workspace run proves the baseline is globally green before migrations start.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Implemented the report-only admission baseline in
+`reports/8c-r1-public-fixed-seat-scaffolding-characterization.md`. The report
+records the locked 8C-R1 determination, primary and sub-surface verdicts, current
+C-01/C-02/C-03/C-04/C-05/C-08 surfaces, selected WASM exported-trace
+before-digests, accepted exceptions, C-06/C-07/C-09/C-10 checkpoint conclusions,
+and the command evidence run before any migration ticket.
+
+Deviations from the original plan:
+
+- Ran all six per-game `replay-check --all` commands rather than only the
+  representative Token Bazaar check so every ticket-family sentinel has direct
+  admission evidence.
+- Recorded that `cargo test --workspace --all-targets` executes benchmark
+  harness binaries in this workspace; some benchmark rows printed `pass:false`
+  while the command itself exited 0. This ticket treats that as baseline test
+  evidence, not benchmark-gate evidence.
+
+Verification:
+
+- `cargo test --workspace --all-targets` passed.
+- `cargo run -p replay-check -- --game race_to_n --all` passed.
+- `cargo run -p replay-check -- --game draughts_lite --all` passed.
+- `cargo run -p replay-check -- --game three_marks --all` passed.
+- `cargo run -p replay-check -- --game column_four --all` passed.
+- `cargo run -p replay-check -- --game directional_flip --all` passed.
+- `cargo run -p replay-check -- --game token_bazaar --all` passed.
+- `sha256sum` over the six selected `wasm-exported.trace.json` files passed and
+  the digests are recorded in the report.
+- `find ... golden_traces ... | sort | xargs sha256sum` passed and established
+  the before inventory for later non-selected trace byte comparisons.
