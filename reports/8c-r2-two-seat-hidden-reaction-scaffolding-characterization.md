@@ -888,6 +888,38 @@ Evidence:
 - `cargo run -p replay-check -- --game masked_claims --all` passed; all
   Masked Claims traces were accepted under the current not-applicable baseline.
 
+### UNI8CR2TWOSEA-032 - High Card Duel setup-evidence-v1 profile driver
+
+Selected surface: `games/high_card_duel/tests/serialization.rs` setup-evidence
+profile-driver test over the existing read-only fixture metadata.
+
+Before state: High Card Duel had a metadata-only fixture and internal setup
+assertions, but no `SetupEvidenceV1Driver` receipt for public setup evidence.
+
+After state:
+`setup_evidence_v1_profile_driver_wraps_public_fixture_metadata` validates the
+`setup-evidence-v1` metadata (`v1`, `public`,
+`validator_owner = high_card_duel`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing fixture bytes.
+
+ADR-0009 classification: `unchanged`. This adds typed setup-profile evidence
+only. The fixture remains read-only, private deal assertions stay internal-dev,
+no canonical byte claim is made, and no fixture artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `setup-evidence-v1`, `v1`, `public`, and
+  `high_card_duel`.
+- The fixture still contains public fixture id, game, variant, rules version,
+  and fixture-kind metadata only.
+- The fixture contains no `private_deal` field and no private card command
+  token such as `hcd:r`.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p fixture-check -- --game high_card_duel` passed with
+  `fixture-check: all fixtures passed`.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

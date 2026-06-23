@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-032: High Card Duel — setup-evidence-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/tests/serialization.rs`; adopts `game-test-support` `SetupEvidenceV1Driver`; fixture read-only
@@ -66,3 +66,22 @@ In `tests/serialization.rs`, invoke `SetupEvidenceV1Driver` over the existing fi
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p fixture-check -- --game high_card_duel`
+
+## Outcome
+
+Implemented in `games/high_card_duel/tests/serialization.rs` with
+`setup_evidence_v1_profile_driver_wraps_public_fixture_metadata`. The test
+validates `setup-evidence-v1` metadata for `high_card_duel`, delegates through
+`SetupEvidenceV1Driver::validate_with` to the existing read-only fixture bytes,
+and confirms the driver makes no canonical byte claim.
+
+The fixture remains metadata-only: the test asserts public fixture id, game,
+variant, rules version, and fixture kinds while confirming no private deal or
+private card command token is present. The driver rejects wrong profile id,
+wrong validator owner, wrong visibility, and an illegal profile field.
+
+Verification passed:
+
+1. `cargo test -p high_card_duel setup_evidence_v1_profile_driver_wraps_public_fixture_metadata -- --nocapture`
+2. `cargo test -p high_card_duel`
+3. `cargo run -p fixture-check -- --game high_card_duel`
