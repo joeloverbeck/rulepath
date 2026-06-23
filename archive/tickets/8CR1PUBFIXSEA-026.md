@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-026: Directional Flip C-04/C-05 parallel action-tree v1 surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/directional_flip` (`src/replay_support.rs`, `tests/replay.rs`); legacy hash retained
@@ -75,3 +75,35 @@ In `games/directional_flip/tests/replay.rs`, pin the legacy sentinel, the v1 byt
 1. `cargo test -p directional_flip`
 2. `cargo run -p replay-check -- --game directional_flip --all`
 3. The per-game serialization test plus replay-check are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added Directional Flip's parallel v1 action-tree helpers in
+`games/directional_flip/src/replay_support.rs`; both wrappers delegate directly
+to `ActionTree::stable_bytes/stable_hash(ActionTreeEncodingVersion::V1)`.
+Legacy `action_tree_hash`, `ReplayHashes.action_tree_hash`, and committed trace
+hashes remain authoritative and unchanged.
+
+Pinned a focused receipt in `games/directional_flip/tests/replay.rs` for the
+opening tree:
+
+- legacy action-tree hash: `17097613169116532881`
+- v1 action-tree hash: `15334878763169959513`
+- v1 byte length: `2092`
+- v1 domain/header coverage: `RPSB` + `action_tree`
+- segment order: `place/r3c4` < `place/r4c3` < `place/r5c6` < `place/r6c5`
+- label/accessibility, metadata order, and tag order are covered by byte-order
+  assertions
+- preview, child structure, and freshness framing are covered by v1 hash
+  mutation-sensitivity assertions while the wrapper output is pinned equal to
+  the kernel encoder output
+
+Verification:
+
+1. `cargo test -p directional_flip action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel -- --exact`
+2. `cargo test -p directional_flip`
+3. `cargo run -p replay-check -- --game directional_flip --all`
+4. `rg -n "stable_bytes\\(ActionTreeEncodingVersion::V1\\)|stable_hash\\(ActionTreeEncodingVersion::V1\\)|fn action_tree_v1" games/directional_flip/src/replay_support.rs`
+5. `cargo fmt --all -- --check`

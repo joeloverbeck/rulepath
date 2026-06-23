@@ -1,3 +1,6 @@
+use directional_flip::replay_support::{
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash,
+};
 use directional_flip::{
     apply_action, legal_action_tree, replay_commands, replay_from_state, setup_match,
     validate_command, CellId, CellOccupancy, ColumnId, DirectionalFlipLevel2Bot,
@@ -5,8 +8,8 @@ use directional_flip::{
     Manifest, RowId, SetupOptions, TerminalOutcome, VariantCatalog,
 };
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionChoice, ActionNode, ActionPath, ActionPreview, ActionTreeEncodingVersion, Actor,
+    CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
 
 #[derive(Debug)]
@@ -129,6 +132,97 @@ fn df_ser_001_replay_json_rejects_unknown_fields_and_round_trips() {
     let json = replay.to_json();
     assert_eq!(DirectionalFlipReplayJson::from_json(&json).unwrap(), replay);
     assert!(DirectionalFlipReplayJson::from_json("{\"debug\":\"nope\"}").is_err());
+}
+
+#[test]
+fn action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let state = setup_match(Seed(9), &seats(), &SetupOptions::default()).unwrap();
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_hash(&tree), HashValue(17097613169116532881));
+    assert_eq!(v1_bytes, tree.stable_bytes(ActionTreeEncodingVersion::V1));
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        tree.stable_hash(ActionTreeEncodingVersion::V1)
+    );
+    assert_eq!(action_tree_v1_hash(&tree), HashValue(15334878763169959513));
+    assert_eq!(v1_bytes.len(), 2092);
+    assert!(v1_bytes.starts_with(b"RPSB"));
+    assert!(v1_bytes
+        .windows(b"action_tree".len())
+        .any(|window| window == b"action_tree"));
+    assert!(byte_offset(&v1_bytes, b"place/r3c4") < byte_offset(&v1_bytes, b"place/r4c3"));
+    assert!(byte_offset(&v1_bytes, b"place/r4c3") < byte_offset(&v1_bytes, b"place/r5c6"));
+    assert!(byte_offset(&v1_bytes, b"place/r5c6") < byte_offset(&v1_bytes, b"place/r6c5"));
+    assert!(
+        byte_offset(&v1_bytes, b"Place at r3c4")
+            < byte_offset(&v1_bytes, b"Place at r3c4, flipping 1 disc")
+    );
+    assert!(
+        byte_offset(&v1_bytes, b"action_kind") < byte_offset(&v1_bytes, b"cell_id")
+            && byte_offset(&v1_bytes, b"cell_id") < byte_offset(&v1_bytes, b"row")
+            && byte_offset(&v1_bytes, b"row") < byte_offset(&v1_bytes, b"column")
+            && byte_offset(&v1_bytes, b"column") < byte_offset(&v1_bytes, b"preview_id")
+            && byte_offset(&v1_bytes, b"preview_id")
+                < byte_offset(&v1_bytes, b"ordered_flip_cells")
+            && byte_offset(&v1_bytes, b"ordered_flip_cells")
+                < byte_offset(&v1_bytes, b"direction_groups")
+            && byte_offset(&v1_bytes, b"direction_groups") < byte_offset(&v1_bytes, b"explanation")
+    );
+    let flat_tag = byte_offset(&v1_bytes, b"flat");
+    let placement_tag = byte_offset_after(&v1_bytes, b"placement", flat_tag);
+    let cell_tag = byte_offset_after(&v1_bytes, b"cell", placement_tag);
+    let preview_tag = byte_offset_after(&v1_bytes, b"preview", cell_tag);
+    assert!(flat_tag < placement_tag && placement_tag < cell_tag && cell_tag < preview_tag);
+    assert!(tree
+        .root
+        .choices
+        .iter()
+        .all(|choice| choice.preview == ActionPreview::Available && choice.next.is_none()));
+    let mut freshness_changed = tree.clone();
+    freshness_changed.freshness_token = FreshnessToken(tree.freshness_token.0 + 1);
+    assert_ne!(
+        action_tree_v1_hash(&tree),
+        action_tree_v1_hash(&freshness_changed)
+    );
+    let mut preview_changed = tree.clone();
+    preview_changed.root.choices[0].preview = ActionPreview::Unavailable;
+    assert_ne!(
+        action_tree_v1_hash(&tree),
+        action_tree_v1_hash(&preview_changed)
+    );
+    let mut child_changed = tree.clone();
+    child_changed.root.choices[0].next = Some(Box::new(ActionNode {
+        choices: vec![ActionChoice::leaf(
+            "confirm",
+            "Confirm",
+            "Confirm placement",
+        )],
+    }));
+    assert_ne!(
+        action_tree_v1_hash(&tree),
+        action_tree_v1_hash(&child_changed)
+    );
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+        .expect("needle appears in v1 bytes")
+}
+
+fn byte_offset_after(haystack: &[u8], needle: &[u8], offset: usize) -> usize {
+    offset
+        + haystack[offset..]
+            .windows(needle.len())
+            .position(|window| window == needle)
+            .expect("needle appears in v1 bytes after offset")
 }
 
 #[test]
