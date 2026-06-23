@@ -397,6 +397,67 @@ Evidence:
 - `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
   checked and `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-045 - R2 register receipts and report consolidation
+
+Selected surfaces:
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md::MSC-8C-001...010` and this
+characterization report.
+
+Before state: R2 had per-ticket implementation evidence in this report and
+archived tickets, but the mechanical-scaffolding register still had only the
+original Unit 8C and R1 receipt tables under `MSC-8C-001...010`.
+
+After state: the register now has append-only R2 receipt tables under every
+existing `MSC-8C-001...010` entry:
+
+- `MSC-8C-001`: four public constructor migrations, two private constructor
+  migrations, and Secret/Masked private-effect N/As.
+- `MSC-8C-002`: four canonical parser migrations plus WASM/import legacy
+  roster exceptions and Masked Claims N/A.
+- `MSC-8C-003`: four exact-two-seat structural migrations and the ring/index
+  N/A.
+- `MSC-8C-004`: four action-tree v1 migrations, including Secret/Poker legacy
+  hash exceptions.
+- `MSC-8C-005`: four action-tree stable-byte writer consumers plus adjacent
+  state/effect/view/replay/export/diagnostic exception rows.
+- `MSC-8C-006`: HCD retained dev-only proof plus Secret/Poker/Masked dev-only
+  dependency migrations and workspace normal-edge proof.
+- `MSC-8C-007`: HCD residual no-leak pilot verification plus Secret/Poker/Masked
+  pairwise no-leak matrix migrations and committed-canary N/A proof.
+- `MSC-8C-008`: replay-command, setup-evidence, public-export,
+  seat-private-export, and domain-evidence profile verdicts, including HCD and
+  Masked seat-private N/As and domain N/A.
+- `MSC-8C-009`: HCD, Poker, and Masked unbiased bounded-index migrations plus
+  Secret N/A.
+- `MSC-8C-010`: four game-specific reaffirmations that reveal/reaction,
+  projection, pledge/pot/showdown/yield, claim/reaction, scoring, outcome, bot,
+  TypeScript authority, YAML, DSL, and static behavior stay game-owned.
+
+ADR-0009 classification: `unchanged` for this ticket. It records governance
+receipts only. No code, schema, fixture, trace, canonical byte authority, or
+runtime behavior changed.
+
+C-10 non-promotion verdict: `rejected / local-only` reaffirmed. Behavior stays
+in the game crates or, for future repeated behavior, the mechanic atlas/ADR
+process. The R2 scaffolding lane remains limited to behavior-free contracts,
+test harnesses, evidence profiles, typed parser/count helpers, and explicit
+stable-byte/RNG surfaces.
+
+Reconciliation result:
+
+- Every R2 implementation ticket `UNI8CR2TWOSEA-002...044` now has a matching
+  report entry and a register receipt, accepted exception, or N/A row.
+- The report records the narrowed Masked Claims replay-check claim: current
+  Masked traces pass through the not-applicable baseline path.
+- No unowned cleanup bucket remains for C-01...C-10 receipts; final acceptance
+  gates and `specs/README.md` status closeout remain ticket `-046` scope.
+
+Evidence:
+
+- Manual review against spec sections 3.3...3.10, 4.3, and 5.14.
+- `node scripts/check-doc-links.mjs` passed after ticket archival.
+- `cargo test --workspace --all-targets` passed after ticket archival.
+
 ### UNI8CR2TWOSEA-019 - Poker Lite parallel action-tree v1 bytes/hash
 
 Selected surface: `games/poker_lite/src/replay_support.rs` additive

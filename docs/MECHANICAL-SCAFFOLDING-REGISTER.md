@@ -124,6 +124,19 @@ R1 public fixed-seat receipts, 2026-06-23:
 | `directional_flip` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-005.md` | effect order, payload, visibility, and hashes unchanged | restore local literal constructor | C-11 game audit or effect-surface migration |
 | `token_bazaar` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-006.md` | effect order, payload, visibility, hashes, and public export effect bytes unchanged | restore local literal constructor | C-11 game audit or effect/export-surface migration |
 
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | public effect envelope constructor | migrated | `archive/tickets/UNI8CR2TWOSEA-002.md`; `reports/8c-r2-two-seat-hidden-reaction-scaffolding-characterization.md` | public payload/order/hash and visibility unchanged | restore local literal constructor | C-11 game audit or effect-surface migration |
+| `high_card_duel` | seat-private effect envelope constructor | migrated | `archive/tickets/UNI8CR2TWOSEA-003.md`; characterization report | owner scope, filtered payload, effect order/hash, and no-leak visibility unchanged | restore local literal constructor | C-11 private-effect migration |
+| `secret_draft` | public effect envelope constructor | migrated | `archive/tickets/UNI8CR2TWOSEA-004.md`; characterization report | public commit/reveal effect payloads and hashes unchanged | restore local literal constructor | C-11 effect-surface migration |
+| `secret_draft` | seat-private effect constructor | not applicable | characterization report C-01 private verdict | no local private-effect constructor exists; no visibility/hash change | no R2 change to roll back | first Secret private-effect surface |
+| `poker_lite` | public effect envelope constructor | migrated | `archive/tickets/UNI8CR2TWOSEA-005.md`; characterization report | public pledge/showdown/yield effect bytes and visibility unchanged | restore local literal constructor | C-11 effect-surface migration |
+| `poker_lite` | seat-private effect envelope constructor | migrated | `archive/tickets/UNI8CR2TWOSEA-006.md`; characterization report | owner scope, private deal payloads, and no-leak filtering unchanged | restore local literal constructor | C-11 private-effect migration |
+| `masked_claims` | public effect envelope constructor | migrated | `archive/tickets/UNI8CR2TWOSEA-007.md`; characterization report | claim/window/reveal/terminal public effect bytes and visibility unchanged | restore local literal constructor | C-11 effect-surface migration |
+| `masked_claims` | seat-private effect constructor | not applicable | characterization report C-01 private verdict | no local private-effect constructor exists; no visibility/hash change | no R2 change to roll back | first Masked private-effect surface |
+
 ### MSC-8C-002 - Canonical seat-ID grammar plus import aliases
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-02.
@@ -180,6 +193,17 @@ R1 public fixed-seat receipts, 2026-06-23:
 | `token_bazaar` | selected WASM trace roster output | migrated | `archive/tickets/8CR1PUBFIXSEA-018.md`; report after-receipt | selected WASM export roster bytes changed to canonical underscore only; actor/winner/public-export hash authority unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
 | R1 wave | native `default_seats` and non-WASM legacy trace seats | accepted exception | characterization report accepted-exception table | mixed spelling remains outside selected WASM exports; no visibility change | no R1 change to roll back | separately admitted native replay/trace seat-surface migration |
 
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | typed strict canonical parser | migrated | `archive/tickets/UNI8CR2TWOSEA-008.md`; characterization report | parser accepts canonical seats and rejects malformed/out-of-range labels; state/effect/hash surfaces unchanged | restore local parser branch | C-11 native seat-surface migration |
+| `secret_draft` | typed strict canonical parser | migrated | `archive/tickets/UNI8CR2TWOSEA-009.md`; characterization report | parser accepts canonical seats and rejects malformed/out-of-range labels; state/effect/hash surfaces unchanged | restore local parser branch | C-11 native seat-surface migration |
+| `poker_lite` | typed strict canonical parser | migrated | `archive/tickets/UNI8CR2TWOSEA-010.md`; characterization report | parser accepts canonical seats and rejects malformed/out-of-range labels; state/effect/hash surfaces unchanged | restore local parser branch | C-11 native seat-surface migration |
+| `masked_claims` | typed strict canonical parser | migrated | `archive/tickets/UNI8CR2TWOSEA-011.md`; characterization report | parser accepts canonical seats and rejects malformed/out-of-range labels; state/effect/hash surfaces unchanged | restore local parser branch | C-11 native seat-surface migration |
+| R2 WASM/import boundary | legacy roster aliases for HCD, Secret, and Poker | accepted exception | `archive/tickets/UNI8CR2TWOSEA-012.md`; characterization report | aliases remain import-only/read-compatibility; no TypeScript normalization or output flip | remove adapter exception only under named seat-string migration | named ADR-0009 seat-string migration |
+| R2 WASM/import boundary | Masked Claims legacy roster aliases | not applicable | `archive/tickets/UNI8CR2TWOSEA-012.md`; characterization report | no legacy roster exception required; no visibility/hash change | no R2 change to roll back | first Masked legacy import need |
+
 ### MSC-8C-003 - Seat-count validation and ring-index arithmetic
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-03.
@@ -223,6 +247,16 @@ R1 public fixed-seat receipts, 2026-06-23:
 | `directional_flip` | exact two-seat validation | migrated | `archive/tickets/8CR1PUBFIXSEA-022.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate | C-11 game audit or setup-surface migration |
 | `token_bazaar` | exact two-seat validation plus normal `game-stdlib` dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-023.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate and remove normal dependency | C-11 game audit or setup-surface migration |
 | R1 wave | ring/index geometry | not applicable | characterization report C-03 matrix | typed two-seat `other()` mappings remain game-local; no visibility/hash change | no R1 change to roll back | future ring/index helper adoption in a game with ring geometry |
+
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | exact two-seat validation | migrated | `archive/tickets/UNI8CR2TWOSEA-013.md`; characterization report | exact diagnostic, setup state, private hands, replay, and visibility unchanged | restore local exact-count predicate | C-11 setup-surface migration |
+| `secret_draft` | exact two-seat validation plus normal `game-stdlib` dependency | migrated | `archive/tickets/UNI8CR2TWOSEA-014.md`; characterization report | exact diagnostic, setup draft pool, commitments, replay, and visibility unchanged | restore local predicate and remove normal dependency | C-11 setup-surface migration |
+| `poker_lite` | exact two-seat validation plus normal `game-stdlib` dependency | migrated | `archive/tickets/UNI8CR2TWOSEA-015.md`; characterization report | exact diagnostic, shuffle/deal state, private hands, replay, and visibility unchanged | restore local predicate and remove normal dependency | C-11 setup-surface migration |
+| `masked_claims` | exact two-seat validation plus normal `game-stdlib` dependency | migrated | `archive/tickets/UNI8CR2TWOSEA-016.md`; characterization report | exact diagnostic, hands/reserve state, replay, and visibility unchanged | restore local predicate and remove normal dependency | C-11 setup-surface migration |
+| R2 four-game wave | ring/index geometry | not applicable | characterization report C-03 matrix | fixed two-seat `other()` and phase-order rules remain game-local; no visibility/hash change | no R2 change to roll back | future game with ring geometry |
 
 ### MSC-8C-004 - Action-tree encoding/hash v1
 
@@ -272,6 +306,15 @@ R1 public fixed-seat receipts, 2026-06-23:
 | `directional_flip` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR1PUBFIXSEA-026.md` | legacy `action_tree_hash` unchanged and authoritative; v1 hash is parallel viewer-safe evidence | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
 | `token_bazaar` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR1PUBFIXSEA-027.md` | legacy `action_tree_hash` unchanged and authoritative; v1 hash is parallel viewer-safe evidence | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
 | R1 wave | legacy Trace Schema v1 action-tree hash | accepted exception | characterization report accepted-exception table | compatibility preserved by keeping legacy hash authority unchanged | remove no code; exception-only receipt | future authority flip with ADR-0009 packet |
+
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | action-tree v1 wrappers/hash for commit trees | migrated | `archive/tickets/UNI8CR2TWOSEA-017.md`; characterization report | v1 bytes/hash added as parallel surface; legal choices, legacy checks, hidden commits, and visibility unchanged | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `secret_draft` | action-tree v1 wrappers/hash for commit trees | migrated with legacy exception | `archive/tickets/UNI8CR2TWOSEA-018.md`; characterization report | v1 bytes/hash added as parallel surface; legacy `action_tree_hash` remains authoritative | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `poker_lite` | action-tree v1 wrappers/hash for pledge phases | migrated with legacy exception | `archive/tickets/UNI8CR2TWOSEA-019.md`; characterization report | v1 bytes/hash added as parallel surface; legacy `action_tree_hash` remains authoritative | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `masked_claims` | action-tree v1 wrappers/hash for claim/response trees | migrated | `archive/tickets/UNI8CR2TWOSEA-020.md`; characterization report | v1 bytes/hash added as parallel surface; pending response choices and hidden tile facts unchanged | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
 
 ### MSC-8C-005 - Stable-byte writer v1
 
@@ -326,6 +369,16 @@ R1 public fixed-seat receipts, 2026-06-23:
 | R1 wave | replay/export bytes/hash outside selected WASM seat output | accepted exception | characterization report C-05 exception table | selected WASM seat bytes changed only under C-02 receipts; other replay/export bytes unchanged | restore selected WASM traces/output if needed | dedicated replay/export migration |
 | R1 wave | dedicated diagnostic bytes/hash | accepted exception or not applicable by game | characterization report C-05 exception table | no diagnostic byte/hash or visibility change | no R1 change to roll back | dedicated diagnostic-surface migration |
 
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | action-tree v1 writer use | migrated | `archive/tickets/UNI8CR2TWOSEA-017.md`; characterization report | v1 action-tree bytes only; state/effect/view/replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| `secret_draft` | action-tree v1 writer use | migrated | `archive/tickets/UNI8CR2TWOSEA-018.md`; characterization report | v1 action-tree bytes only; legacy action hash and adjacent surfaces unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| `poker_lite` | action-tree v1 writer use | migrated | `archive/tickets/UNI8CR2TWOSEA-019.md`; characterization report | v1 action-tree bytes only; legacy action hash and adjacent surfaces unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| `masked_claims` | action-tree v1 writer use | migrated | `archive/tickets/UNI8CR2TWOSEA-020.md`; characterization report | v1 action-tree bytes only; state/effect/view/replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| R2 four-game wave | state/effect/public-view/replay/export/diagnostic stable-byte authority | accepted exception or not applicable by surface | characterization report C-05 exception matrix | no broad stable-byte authority flip; no golden/fixture regeneration | no R2 change to roll back outside named v1 action-tree wrappers | dedicated stable-byte migration with ADR-0009 packet |
+
 ### MSC-8C-006 - Dev-only game test-support crate
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-06.
@@ -367,6 +420,16 @@ R1 public fixed-seat receipts, 2026-06-23:
 | `directional_flip` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-031.md`; `archive/tickets/8CR1PUBFIXSEA-034.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile tests | next profile-driver adoption |
 | `token_bazaar` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-032.md`; `archive/tickets/8CR1PUBFIXSEA-035.md`; `archive/tickets/8CR1PUBFIXSEA-036.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile tests | next profile-driver adoption |
 | workspace | production/build reverse dependency edge | accepted proof: no production/build path | characterization report C-06 closeout; `cargo tree --workspace -e normal --invert game-test-support` | output shows only `game-test-support`; no runtime edge | boundary failure would require removing offending dependency | every profile-driver adoption and final closeout |
+
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | existing `game-test-support` dev dependency | retained pilot dependency | `archive/tickets/UNI8CR2TWOSEA-024.md`; characterization report | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile/no-leak tests if unused | next no-leak/profile adoption |
+| `secret_draft` | `game-test-support` dev dependency | migrated | `archive/tickets/UNI8CR2TWOSEA-021.md`; characterization report | dev/test-only; no runtime hash/visibility impact | remove dev dependency and harness/profile tests | next no-leak/profile adoption |
+| `poker_lite` | `game-test-support` dev dependency | migrated | `archive/tickets/UNI8CR2TWOSEA-022.md`; characterization report | dev/test-only; no runtime hash/visibility impact | remove dev dependency and harness/profile tests | next no-leak/profile adoption |
+| `masked_claims` | `game-test-support` dev dependency | migrated | `archive/tickets/UNI8CR2TWOSEA-023.md`; characterization report | dev/test-only; no runtime hash/visibility impact | remove dev dependency and harness/profile tests | next no-leak/profile adoption |
+| workspace | production/build reverse dependency edge | accepted proof: no production/build path | characterization report C-06 closeout; `bash scripts/boundary-check.sh`; `cargo tree --workspace -e normal --invert game-test-support` | no runtime edge; no WASM/tool production dependency | remove offending normal/build dependency if detected | every profile/no-leak adoption and final closeout |
 
 ### MSC-8C-007 - Pairwise no-leak assertion geometry
 
@@ -412,6 +475,16 @@ R1 public fixed-seat receipts, 2026-06-23:
 |---|---|---|---|---|---|---|
 | R1 six-game wave | pairwise source-seat x viewer no-leak matrix | not applicable | characterization report C-07 closeout | games are public/perfect-information for this wave; no hidden source datum or unauthorized seat-private viewer pair introduced | no C-07 artifact added | future hidden-info/private-view surface |
 | R1 six-game wave | public visibility regressions | retained existing evidence | per-game migration tickets and existing visibility/replay suites | visibility surfaces unchanged except canonical public seat strings in selected WASM exports | restore offending migration if visibility drift appears | future hidden-info/private-view surface |
+
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | residual no-leak pilot verification | verified retained pilot plus residual matrix | `archive/tickets/UNI8CR2TWOSEA-024.md`; characterization report | hidden lead commitment remains absent from observer/opponent surfaces and present only on authorized owner/internal surfaces | remove residual test only if pilot evidence supersedes it | next HCD hidden-info surface |
+| `secret_draft` | pairwise source-seat x viewer no-leak matrix | migrated | `archive/tickets/UNI8CR2TWOSEA-025.md`; characterization report | private draft choices and seeds remain absent from unauthorized views/effects/replay/bot surfaces | remove matrix test and dev dependency | next Secret hidden-info/export surface |
+| `poker_lite` | pairwise source-seat x viewer no-leak matrix | migrated | `archive/tickets/UNI8CR2TWOSEA-026.md`; characterization report | own/opponent/public hand access, showdown reveal, yield non-reveal, effects, exports, and bots stay scoped | remove matrix test and dev dependency | next Poker hidden-info/export surface |
+| `masked_claims` | pairwise source-seat x viewer no-leak matrix | migrated | `archive/tickets/UNI8CR2TWOSEA-027.md`; characterization report | pending claim, responder tree, accepted-secret state, challenge reveal, export, and bot surfaces stay scoped | remove matrix test and dev dependency | next Masked hidden-info/export surface |
+| R2 four-game wave | committed canary artifacts | accepted proof: no committed canary | characterization report C-07 closeout | canaries remain in-memory test data only; no trace, fixture, export, DOM, storage, log, or snapshot leak | remove offending artifact if ever introduced | every hidden-info proof expansion |
 
 ### MSC-8C-008 - Evidence-profile drivers
 
@@ -487,6 +560,28 @@ R1 public fixed-seat receipts, 2026-06-23:
 | R1 six-game wave | `seat-private-export-v1` profile | not applicable | characterization report C-08 matrix | observer and seat views are equivalent or no seat-private export in this wave; no visibility/hash change | no artifact added | future private-view/export surface |
 | R1 six-game wave | `domain-evidence-v1` profile | not applicable | characterization report C-08 matrix | no domain evidence fixture admitted in this wave; no visibility/hash change | no artifact added | future domain-evidence surface |
 
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | `replay-command-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-028.md`; characterization report | internal-dev profile evidence only; command trace validator remains game-owned | remove profile wrapper test | next replay profile adoption |
+| `secret_draft` | `replay-command-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-029.md`; characterization report | internal-dev profile evidence only; no public leak or canonical byte claim | remove profile wrapper test | next replay profile adoption |
+| `poker_lite` | `replay-command-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-030.md`; characterization report | internal-dev profile evidence only; no public leak or canonical byte claim | remove profile wrapper test | next replay profile adoption |
+| `masked_claims` | `replay-command-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-031.md`; characterization report | internal-dev profile evidence only; wraps existing rule replay evidence | remove profile wrapper test | next replay profile adoption |
+| `high_card_duel` | `setup-evidence-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-032.md`; characterization report | setup fixture read-only; no private deal or RNG seed leak | remove setup profile test | next setup-evidence profile adoption |
+| `secret_draft` | `setup-evidence-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-033.md`; characterization report | setup fixture read-only; visible pool and commitment placeholder verified | remove setup profile test | next setup-evidence profile adoption |
+| `poker_lite` | `setup-evidence-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-034.md`; characterization report | setup fixture read-only; private cards remain setup-hidden | remove setup profile test | next setup-evidence profile adoption |
+| `masked_claims` | `setup-evidence-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-035.md`; characterization report | setup fixture read-only; hand/reserve internals remain hidden | remove setup profile test | next setup-evidence profile adoption |
+| `high_card_duel` | `public-export-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-036.md`; characterization report | observer export hash checked; no hidden commitment or seed leak | remove public-export profile test | next public-export profile adoption |
+| `secret_draft` | `public-export-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-037.md`; characterization report | observer export redacts pre-reveal path/item and seed material | remove public-export profile test | next public-export profile adoption |
+| `poker_lite` | `public-export-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-038.md`; characterization report | observer export preserves showdown/yield redaction policy | remove public-export profile test | next public-export profile adoption |
+| `masked_claims` | `public-export-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-039.md`; characterization report | observer export keeps claim tile redaction; replay-check currently accepts Masked traces via not-applicable baseline | remove public-export profile test | next public-export profile adoption |
+| `high_card_duel` | `seat-private-export-v1` profile | not applicable | characterization report C-08 matrix | no seat-private export profile admitted for R2; no visibility/hash change | no R2 change to roll back | first HCD seat-private export profile need |
+| `secret_draft` | `seat-private-export-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-040.md`; characterization report | viewer labels explicit; pre-reveal item/path and seed remain absent even for owner export | remove seat-private profile test | next seat-private profile adoption |
+| `poker_lite` | `seat-private-export-v1` profile | migrated | `archive/tickets/UNI8CR2TWOSEA-041.md`; characterization report | own crest present, opponent crest and seed absent; showdown/yield policy unchanged | remove seat-private profile test | next seat-private profile adoption |
+| `masked_claims` | `seat-private-export-v1` profile | not applicable | characterization report C-08 matrix | no seat-private export profile admitted for R2; no visibility/hash change | no R2 change to roll back | first Masked seat-private export profile need |
+| R2 four-game wave | `domain-evidence-v1` profile | not applicable | characterization report C-08 matrix | no domain evidence fixture admitted; no visibility/hash change | no R2 change to roll back | future domain-evidence surface |
+
 ### MSC-8C-009 - Versioned bounded-index sampling
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-09.
@@ -528,6 +623,15 @@ R1 public fixed-seat receipts, 2026-06-23:
 |---|---|---|---|---|---|---|
 | R1 six-game wave | bounded-index RNG sampling | not applicable | characterization report C-09 closeout | no RNG helper/sampler migration; bot RNG, setup RNG, replay hashes, and vectors unchanged | no R1 change to roll back | separately admitted RNG migration packet |
 
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | setup shuffle bounded-index sampler | migrated | `archive/tickets/UNI8CR2TWOSEA-042.md`; characterization report | fixed words, rejection counts, deck/deal vectors, replay, export, and visibility unchanged | restore local helper and call | future explicit RNG migration |
+| `secret_draft` | setup shuffle bounded-index sampler | not applicable | characterization report C-09 matrix | no local unbiased bounded-index helper in R2 scope; no RNG/hash/visibility change | no R2 change to roll back | first Secret bounded-index helper migration |
+| `poker_lite` | setup shuffle bounded-index sampler | migrated | `archive/tickets/UNI8CR2TWOSEA-043.md`; characterization report | fixed words, rejection counts, private-hand deal vectors, showdown/yield traces, and visibility unchanged | restore local helper and call | future explicit RNG migration |
+| `masked_claims` | setup shuffle bounded-index sampler | migrated | `archive/tickets/UNI8CR2TWOSEA-044.md`; characterization report | fixed words, rejection counts, hands/reserve vectors, pending-claim/export redaction, and visibility unchanged | restore local helper and call | future explicit RNG migration |
+
 ### MSC-8C-010 - Behavioral-policy bundle on the Non-Promotion List - rejected / local-only
 
 - Entry id: 2026-06-22, status `rejected / local-only`, owner Unit 8C / C-10.
@@ -567,6 +671,15 @@ R1 public fixed-seat receipts, 2026-06-23:
 | Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
 |---|---|---|---|---|---|---|
 | R1 six-game wave | deal/reveal/projection/scoring/outcome/bot/diagnostic policy bundle | rejected / local-only reaffirmed | characterization report C-10 closeout; `bash scripts/boundary-check.sh` | no behavior, legality, setup policy, projection, scoring, outcome, bot, diagnostic policy, TypeScript authority, YAML, DSL, or static behavior moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or any proposed behavioral extraction |
+
+R2 two-seat hidden/reaction receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `high_card_duel` | deal/reveal/projection/reaction/scoring/outcome/bot policy bundle | rejected / local-only reaffirmed | `archive/tickets/UNI8CR2TWOSEA-045.md`; characterization report C-10 consolidation | no behavior, legality, reveal timing, projection, scoring, outcome, bot, TypeScript authority, YAML, DSL, or static behavior moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or proposed HCD behavioral extraction |
+| `secret_draft` | draft/reveal/projection/reaction/outcome/bot policy bundle | rejected / local-only reaffirmed | `archive/tickets/UNI8CR2TWOSEA-045.md`; characterization report C-10 consolidation | no behavior, legality, reveal timing, projection, outcome, bot, TypeScript authority, YAML, DSL, or static behavior moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or proposed Secret behavioral extraction |
+| `poker_lite` | pledge/pot/showdown/yield/projection/scoring/outcome/bot policy bundle | rejected / local-only reaffirmed | `archive/tickets/UNI8CR2TWOSEA-045.md`; characterization report C-10 consolidation | no pledge, pot, showdown, yield, projection, scoring, outcome, bot, TypeScript authority, YAML, DSL, or static behavior moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or proposed Poker behavioral extraction |
+| `masked_claims` | claim/reaction/reveal/projection/scoring/outcome/bot policy bundle | rejected / local-only reaffirmed | `archive/tickets/UNI8CR2TWOSEA-045.md`; characterization report C-10 consolidation | no claim, reaction-window, reveal, projection, scoring, outcome, bot, TypeScript authority, YAML, DSL, or static behavior moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or proposed Masked behavioral extraction |
 
 ### Unit 8C closeout evidence - 2026-06-22
 

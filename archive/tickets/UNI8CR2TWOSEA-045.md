@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-045: R2 register receipts, report consolidation, and C-10 non-promotion
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance: append R2 register receipts (`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`) and reconcile the characterization report; no code, schema, or trace change
@@ -71,3 +71,33 @@ Complete the append-only report (`reports/8c-r2-two-seat-hidden-reaction-scaffol
 
 1. `node scripts/check-doc-links.mjs`
 2. `cargo test --workspace --all-targets` (confirms every migration the receipts record is green)
+
+## Outcome
+
+Completed: 2026-06-23
+
+The R2 receipt tables were appended beneath the existing
+`MSC-8C-001...010` entries in
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`. The rows cover every R2 migration,
+accepted exception, and not-applicable verdict for C-01 through C-09, and add
+game-specific C-10 rows reaffirming that reveal/reaction/projection,
+pledge/pot/showdown/yield, claim/reaction, scoring, outcome, bot, TypeScript
+authority, YAML, DSL, and static behavior stay game-owned.
+
+The characterization report was reconciled with a consolidation section that
+summarizes all receipt groups, records the explicit C-10 non-promotion verdict,
+and names the remaining ticket `-046` scope for final acceptance gates and the
+`specs/README.md` status closeout.
+
+No code, schema, fixture, trace, canonical byte authority, runtime behavior, or
+existing register decision changed. The register updates are append-only.
+
+Verification:
+
+- Manual review against spec sections 3.3...3.10, 4.3, and 5.14 completed.
+- `cargo test --workspace --all-targets` exited 0. The command includes bench
+  binaries that print benchmark JSON; some historical per-operation benchmark
+  rows reported `pass:false`, but those rows did not fail the command and are
+  outside this governance ticket's threshold ownership.
+- `node scripts/check-doc-links.mjs` passed after this ticket was moved to
+  `archive/tickets/UNI8CR2TWOSEA-045.md`, matching the register evidence links.
