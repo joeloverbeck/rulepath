@@ -422,3 +422,30 @@ Evidence:
   included `bot-action.trace.json ... not-applicable trace accepted` and
   `wasm-exported.trace.json: public export fixture accepted`, then
   `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-006 - Poker Lite private effect constructor
+
+Selected surface: `games/poker_lite/src/effects.rs::private_effect`.
+
+Before state: local literal constructor
+`EffectEnvelope { visibility: VisibilityScope::PrivateToSeat(owner_seat_id), payload }`.
+
+After state: `EffectEnvelope::private_to(owner_seat_id, payload)`.
+
+ADR-0009 classification: `unchanged`. This changes only generic seat-private
+envelope construction and preserves owner `SeatId`, payload formation, private
+setup-card delivery, bot-choice visibility, filtered-effect projection, replay
+hashes, and observer/opponent filtering.
+
+Evidence:
+
+- `games/poker_lite/src/effects.rs::private_effect_constructor_preserves_owner_scope_and_payload`
+  pins private scope and exact representative payload preservation.
+- Existing Poker Lite no-leak coverage remains green, including
+  `tests/visibility.rs` and `tests/bots.rs`.
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; output
+  included `deal-private-no-leak.trace.json`, `seat-private-view.trace.json`,
+  and `wasm-exported.trace.json: public export fixture accepted`, then
+  `replay-check: all traces passed`.

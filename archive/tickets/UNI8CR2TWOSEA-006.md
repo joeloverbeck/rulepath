@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-006: Poker Lite — private effect-envelope constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/src/effects.rs`; adopts `engine-core` `EffectEnvelope::private_to`
@@ -66,3 +66,17 @@ Replace the local seat-private envelope literal in `private_effect` with `Effect
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed on 2026-06-23. `games/poker_lite/src/effects.rs::private_effect`
+now delegates to `EffectEnvelope::private_to(owner_seat_id, payload)` with the
+existing owner `SeatId` and payload unchanged. Added focused coverage for the
+constructor helper to pin `VisibilityScope::PrivateToSeat(owner)` and exact
+payload preservation.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p poker_lite`
+3. `cargo run -p replay-check -- --game poker_lite --all`
