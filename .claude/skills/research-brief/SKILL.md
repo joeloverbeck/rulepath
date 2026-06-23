@@ -87,7 +87,7 @@ You MAY dispatch the Step 2 exploration agents and the Step 4 interview batch in
 Before writing, present in chat:
 
 1. the **settled intentions** — the resolved decisions the interview produced (these become §3 of the brief and are what make Session 2 "locked");
-2. the **deliverable spec** — exactly which downloadable markdown docs Session 2 must produce (per doc: replace / new / intermediate-artifact-converted-downstream — see `references/brief-template.md` §7 — plus filenames);
+2. the **deliverable spec** — exactly which downloadable markdown docs Session 2 must produce (per doc: replace / new / intermediate artifact — for the `new-spec` pipeline the spec is saved to `specs/<gate>-<slug>.md`, then reassessed in place by `/reassess-spec` and decomposed by `/spec-to-tickets`; see `references/brief-template.md` §7 — plus filenames);
 3. the **read-in-full list** (authority-ordered, with the one-line reasons). When the read set is large — e.g. a near-whole-doc-set overhaul spanning many docs plus templates — the gate may present the list authority-ordered with reasons summarized by tier, or deferred to the brief, rather than one reason per file; the brief's §2 must still carry a one-line reason for every load-bearing file regardless (a directory/glob floor like `docs/**` may cover its incidental, non-load-bearing files with one directory-level reason — see Step 2).
 
 If a minor residual ambiguity persists at this gate without an early exit (e.g. the user's wording left a detail genuinely open), surface it here as a labeled `assumption: <X>` for the user to confirm or override, rather than re-interviewing — then carry it into the brief's §3 the same way an early-exit assumption is carried.

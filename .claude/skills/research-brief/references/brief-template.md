@@ -114,12 +114,15 @@ Exactly what Session 2 outputs — leave no ambiguity:
 
 - each **downloadable markdown document**, by filename and which of three shapes it is:
   it **replaces** an existing file, it is a **new** file landing at a fixed repo path, or
-  it is an **intermediate artifact** — a design / work-indication document the user saves
-  under `reports/` and a downstream skill converts into the final file (the `new-spec`
-  pipeline: `/reassess-spec` → `/spec-to-tickets` turns it into `specs/<slug>.md` and its
-  tickets). For an intermediate artifact, name the eventual target path but state plainly
-  that the deliverable itself does **not** land there — so Session 2 doesn't present a
-  ready-to-drop final file and skip the reassess/decompose step;
+  it is an **intermediate artifact** — a design / work-indication document that a downstream
+  skill revalidates and decomposes before it becomes final. For the `new-spec` pipeline the
+  deliverable **is** the spec: the user saves it to `specs/<gate>-<slug>.md`, then
+  `/reassess-spec` reassesses it **in place** against the codebase, then `/spec-to-tickets`
+  decomposes it into `tickets/`. (`/reassess-spec` takes a `spec_path` under `specs/` — it
+  does **not** convert a `reports/` draft, so name `specs/<gate>-<slug>.md` as the save target,
+  not `reports/`.) For an intermediate artifact, name the eventual target path but state plainly
+  that the deliverable is **not yet final** — so Session 2 doesn't present a ready-to-decompose
+  file and skip the reassess step;
 - for replacements, name the file being replaced and what must be preserved vs. changed;
 - the **locked / no-questions** instruction, verbatim intent:
 
@@ -145,7 +148,7 @@ and `docs/README.md` are load-bearing for every type.
 
 | Target type | Load-bearing docs / files (beyond the two universal) |
 |---|---|
-| **new-spec** | `docs/ARCHITECTURE.md` and `docs/ENGINE-GAME-DATA-BOUNDARY.md` for the touched subsystem; the relevant `docs/ROADMAP.md` gate; `specs/README.md` and sibling `specs/*.md`; `tickets/README.md` and `tickets/_TEMPLATE.md` if decomposition follows; the relevant `games/*` module if game-specific. |
+| **new-spec** | `docs/ARCHITECTURE.md` and `docs/ENGINE-GAME-DATA-BOUNDARY.md` for the touched subsystem; the relevant `docs/ROADMAP.md` gate; `specs/README.md` and sibling `specs/*.md`; `tickets/README.md` and `tickets/_TEMPLATE.md` if decomposition follows; the relevant `games/*` module if game-specific. **For a non-game infra/scaffolding/governance unit** (a recurring class here — e.g. 8M, 8C, 8C-R*, Infra A–D): also `docs/MECHANIC-ATLAS.md` (§10/§10A debt), `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, and the governing ADRs (e.g. 0008/0009/0004); the `games/*` module is then optional. |
 | **thorny-fix** | the area doc(s) for the affected subsystem (`ARCHITECTURE.md`, `ENGINE-GAME-DATA-BOUNDARY.md`, `TESTING-REPLAY-BENCHMARKING.md`, etc.); the relevant code seams in `crates/`, `games/`, `tools/`, or `apps/web/`; any `reports/**` or `archive/**` audit touching the defect; any accepted `docs/adr/**` the fix must still satisfy. |
 | **hardening / boundary-enforcement / anti-leak** | `docs/ENGINE-GAME-DATA-BOUNDARY.md` (engine-core / game-stdlib / static-data boundary) and `docs/AI-BOTS.md` (hidden-information safety); `docs/TESTING-REPLAY-BENCHMARKING.md` (no-leak tests, determinism, replay/hash); `docs/IP-POLICY.md` (public/private leak boundary); `docs/AGENT-DISCIPLINE.md`; prior hardening specs in `archive/specs/**` and any audit `reports/**`. |
 | **foundational / doc-overhaul** | the full doc being overhauled plus every document above it in the `docs/README.md` order (authority flows downward); `docs/README.md` for the authority table and layering rule; any staleness/downstream `reports/**`; cross-references in lower docs/specs that the overhaul will invalidate; relevant `docs/adr/**` that pin the affected doctrine. |
