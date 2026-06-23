@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-035: Token Bazaar C-08 setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/token_bazaar` (`tests/replay.rs`); fixture bytes unchanged
@@ -70,3 +70,25 @@ In `games/token_bazaar/tests/replay.rs`, build a `SetupEvidenceV1Driver` with va
 1. `cargo test -p token_bazaar`
 2. `cargo run -p fixture-check -- --game token_bazaar`
 3. The per-game test plus `fixture-check` are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `setup_evidence_v1_driver_validates_standard_setup_fixture` in
+`games/token_bazaar/tests/replay.rs`. The test builds a typed
+`ProfileArtifact` with `setup-evidence-v1` / `v1`, public visibility,
+`fixture-check` validator ownership, `canonical_byte_authority: "none"`, and
+`canonical_byte_claim: false`, then validates with
+`SetupEvidenceV1Driver::new("fixture-check")` before delegating to Token
+Bazaar's standard setup fixture metadata assertions. The fixture remains
+profile-free and byte-unchanged; this setup profile remains separate from the
+replay-command and public-export profile surfaces.
+
+Verification:
+
+1. `cargo test -p token_bazaar setup_evidence_v1_driver_validates_standard_setup_fixture -- --exact`
+2. `cargo test -p token_bazaar`
+3. `cargo run -p fixture-check -- --game token_bazaar`
+4. `cargo fmt --all -- --check`
+5. `git diff --name-only -- games/token_bazaar/data/fixtures/token_bazaar_standard.fixture.json`

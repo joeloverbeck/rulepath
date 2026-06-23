@@ -3,7 +3,8 @@ use engine_core::{
     StableSerialize, Viewer,
 };
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, SetupEvidenceV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use token_bazaar::{
     action_tree_hash, apply_action, default_seats, determine_terminal_outcome, effect_hash,
@@ -28,6 +29,23 @@ const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
     "commands",
     "checkpoints",
     "expected_hashes",
+];
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
 ];
 
 #[derive(Debug)]
@@ -107,6 +125,49 @@ fn replay_command_v1_driver_replays_shortest_normal_fixture() {
             assert_trace_fixture(parse_trace_fixture(fixture_json))
         })
         .expect("replay-command-v1 driver accepts shortest-normal profile");
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_standard_setup_fixture() {
+    let setup_fixture = include_str!("../data/fixtures/token_bazaar_standard.fixture.json");
+    assert!(!setup_fixture.contains("\"profile_id\""));
+    assert!(!setup_fixture.contains("\"profile_version\""));
+    assert!(!setup_fixture.contains("\"canonical_byte_authority\""));
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_standard_setup_fixture_metadata(setup_fixture)
+        })
+        .expect("setup-evidence-v1 driver accepts Token Bazaar setup fixture");
+}
+
+fn setup_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("Token Bazaar setup-evidence profile classification"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_standard_setup_fixture_metadata(fixture: &str) {
+    assert!(fixture.contains("\"fixture_id\": \"token_bazaar_standard_gate9\""));
+    assert_eq!(string_field(fixture, "game_id"), GAME_ID);
+    assert_eq!(string_field(fixture, "variant"), VARIANT_ID);
+    assert_eq!(string_field(fixture, "rules_version"), RULES_VERSION_LABEL);
+    assert_eq!(number_field(fixture, "trace_schema_version"), 1);
+    assert!(fixture.contains("\"fixture_kinds\""));
+    assert!(fixture.contains("\"public-export\""));
+    assert!(!fixture.contains("private"));
+    assert!(!fixture.contains("debug"));
 }
 
 fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
