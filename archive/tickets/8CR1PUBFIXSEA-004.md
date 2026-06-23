@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-004: Column Four C-01 public-envelope constructor adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/column_four` (`src/effects.rs`); effect bytes and visibility byte-identical
@@ -70,3 +70,25 @@ In `public_effect`, replace the `EffectEnvelope { visibility: VisibilityScope::P
 1. `cargo test -p column_four`
 2. `cargo run -p replay-check -- --game column_four --all`
 3. The per-game replay-check is the correct boundary: this surface is game-local effect serialization.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Implemented the C-01 Column Four public-envelope constructor adoption by
+replacing the local `EffectEnvelope { visibility: VisibilityScope::Public,
+payload }` literal in `games/column_four/src/effects.rs::public_effect` with
+`EffectEnvelope::public(payload)`. Added a focused unit test proving public
+visibility and payload preservation.
+
+Deviations from the original plan:
+
+- None.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p column_four` passed.
+- `cargo run -p replay-check -- --game column_four --all` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `rg -n "EffectEnvelope::public|EffectEnvelope \\{|VisibilityScope::Public" games/column_four/src/effects.rs` confirmed the public helper now calls `EffectEnvelope::public`, with `VisibilityScope::Public` only in tests.
