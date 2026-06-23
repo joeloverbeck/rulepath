@@ -1036,6 +1036,38 @@ Evidence:
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-028 - High Card Duel replay-command-v1 profile driver
+
+Selected surface: `games/high_card_duel/tests/replay.rs` profile-driver test
+over the existing internal command trace.
+
+Before state: High Card Duel had internal command trace generation and replay
+validation, but no `ReplayCommandV1Driver` receipt.
+
+After state:
+`replay_command_v1_profile_driver_wraps_internal_trace_validator` validates
+the `replay-command-v1` metadata (`v1`, `internal-dev`,
+`validator_owner = high_card_duel`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing internal trace validator.
+
+ADR-0009 classification: `unchanged`. This adds typed profile evidence only.
+The existing internal trace bytes remain authoritative, no canonical byte claim
+is made, no artifact is rewritten, and no viewer surface receives internal
+commands.
+
+Evidence:
+
+- Valid profile metadata reports `replay-command-v1`, `v1`, `internal-dev`,
+  and `high_card_duel`.
+- `validate_with` returns the existing trace stable hash from
+  `replay_internal_full_trace`.
+- Wrong profile id, wrong validator owner, and illegal profile field are
+  rejected.
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
+
 ### UNI8CR2TWOSEA-018 - Secret Draft parallel action-tree v1 bytes/hash
 
 Selected surface: `games/secret_draft/src/replay_support.rs` additive

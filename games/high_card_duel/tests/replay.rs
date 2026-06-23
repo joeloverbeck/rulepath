@@ -2,6 +2,10 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize, Viewer,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use high_card_duel::{
     action_tree_v1_bytes, action_tree_v1_hash, active_commit_seat, actor_for_state, apply_action,
     command_for_state, effect_hash, export_public_observer_replay, generate_internal_full_trace,
@@ -143,6 +147,86 @@ fn action_tree_v1_bytes_and_hashes_are_pinned_for_commit_states() {
         action_tree_v1_hash(&reply_tree),
         HashValue(10401739316208507941)
     );
+}
+
+#[test]
+fn replay_command_v1_profile_driver_wraps_internal_trace_validator() {
+    let trace = generate_internal_full_trace(9);
+    let driver = ReplayCommandV1Driver::new("high_card_duel");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        "high_card_duel",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "high_card_duel");
+
+    let replay_hash = driver
+        .validate_with(&artifact, |_| {
+            let replay = replay_internal_full_trace(&trace);
+            replay.trace_hash
+        })
+        .expect("profile delegates to internal trace validator");
+    assert_eq!(replay_hash, trace.stable_hash());
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile =
+        replay_command_profile_artifact("public-export-v1", "high_card_duel", &["commands"]);
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = replay_command_profile_artifact(REPLAY_COMMAND_V1, "other", &["commands"]);
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_field = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        "high_card_duel",
+        &["commands", "export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
 }
 
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {
