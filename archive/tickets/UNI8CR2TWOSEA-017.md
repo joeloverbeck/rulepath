@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-017: High Card Duel — parallel action-tree v1 bytes/hash
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/src/replay_support.rs`; adds a parallel `ActionTreeEncodingVersion::V1` byte/hash surface via `StableBytesWriter`
@@ -73,3 +73,20 @@ Add v1 byte/hash vectors to `tests/replay.rs` / `tests/serialization.rs` without
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Completed on 2026-06-23. Added additive, version-explicit
+`action_tree_v1_bytes` and `action_tree_v1_hash` adapters over existing HCD
+legal action trees using `ActionTreeEncodingVersion::V1`. Re-exported the
+helpers for integration tests. Existing legacy/state/effect/view/export/replay
+hashes remain unchanged; the C-07 debug snapshot was not relabeled or touched.
+
+Added replay tests pinning lead-commit and reply-commit v1 byte lengths and
+hashes while confirming the legal choice count stays unchanged.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p high_card_duel`
+3. `cargo run -p replay-check -- --game high_card_duel --all`

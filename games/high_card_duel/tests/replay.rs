@@ -3,11 +3,12 @@ use engine_core::{
     StableSerialize, Viewer,
 };
 use high_card_duel::{
-    active_commit_seat, apply_action, effect_hash, export_public_observer_replay,
-    generate_internal_full_trace, import_public_export, legal_action_tree, project_view,
-    replay_internal_full_trace, setup_match, state_hash, validate_command,
-    HighCardDuelInternalTrace, HighCardDuelRandomBot, HighCardDuelSeat, ReplayCommandPath,
-    SetupOptions, TerminalOutcome, GAME_ID, RANDOM_POLICY_ID, RULES_VERSION_LABEL, VARIANT_ID,
+    action_tree_v1_bytes, action_tree_v1_hash, active_commit_seat, actor_for_state, apply_action,
+    command_for_state, effect_hash, export_public_observer_replay, generate_internal_full_trace,
+    import_public_export, legal_action_tree, project_view, replay_internal_full_trace, setup_match,
+    state_hash, validate_command, HighCardDuelInternalTrace, HighCardDuelRandomBot,
+    HighCardDuelSeat, ReplayCommandPath, SetupOptions, TerminalOutcome, GAME_ID, RANDOM_POLICY_ID,
+    RULES_VERSION_LABEL, VARIANT_ID,
 };
 
 #[derive(Debug)]
@@ -115,6 +116,33 @@ fn characterization_public_and_seat_private_artifacts_are_pinned() {
     );
     assert_eq!(public_export.stable_hash(), HashValue(11079559833511455730));
     assert_eq!(public_export.viewer, "observer");
+}
+
+#[test]
+fn action_tree_v1_bytes_and_hashes_are_pinned_for_commit_states() {
+    let mut state =
+        setup_match(Seed(31), &default_seats(), &SetupOptions::default()).expect("setup succeeds");
+    let lead_tree = legal_action_tree(&state, &actor_for_state(&state));
+
+    assert_eq!(lead_tree.root.choices.len(), 3);
+    assert_eq!(action_tree_v1_bytes(&lead_tree).len(), 1104);
+    assert_eq!(
+        action_tree_v1_hash(&lead_tree),
+        HashValue(13958272533655564487)
+    );
+
+    let command = command_for_state(&state, vec![lead_tree.root.choices[0].segment.clone()]);
+    let action = validate_command(&state, &command).expect("lead commit validates");
+    apply_action(&mut state, action);
+
+    let reply_tree = legal_action_tree(&state, &actor_for_state(&state));
+
+    assert_eq!(reply_tree.root.choices.len(), 3);
+    assert_eq!(action_tree_v1_bytes(&reply_tree).len(), 1107);
+    assert_eq!(
+        action_tree_v1_hash(&reply_tree),
+        HashValue(10401739316208507941)
+    );
 }
 
 fn parse_trace_schema_v1_fixture(input: &str) -> TraceFixture {

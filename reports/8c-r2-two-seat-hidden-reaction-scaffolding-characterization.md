@@ -737,3 +737,30 @@ Evidence:
 - `cargo run -p replay-check -- --game masked_claims --all` passed; output
   included `public-observer-no-leak.trace.json`, `claim-pending-window.trace.json`,
   and `public-replay-export-import.trace.json`, then all traces passed.
+
+### UNI8CR2TWOSEA-017 - High Card Duel parallel action-tree v1 bytes/hash
+
+Selected surface: `games/high_card_duel/src/replay_support.rs` additive
+action-tree v1 adapter.
+
+Before state: HCD had `legal_action_tree` and legacy test-local segment-string
+hashing in replay tests, but no game-owned version-pinned v1 byte/hash wrapper.
+
+After state: `action_tree_v1_bytes` and `action_tree_v1_hash` expose
+`ActionTreeEncodingVersion::V1` bytes/hash for existing legal action trees.
+The adapter is additive and independently removable.
+
+ADR-0009 classification: `parallel-new-surface`. This adds only explicit v1
+action-tree evidence for representative commit states. Existing legal choices,
+metadata, previews, legacy hashes, state/effect/view/export/replay bytes, and
+C-07 debug snapshot behavior are unchanged.
+
+Evidence:
+
+- `games/high_card_duel/tests/replay.rs::action_tree_v1_bytes_and_hashes_are_pinned_for_commit_states`
+  pins lead-commit v1 length/hash `1104` / `13958272533655564487` and
+  reply-commit v1 length/hash `1107` / `10401739316208507941`.
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
