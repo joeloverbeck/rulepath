@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-042: High Card Duel — unbiased bounded-index adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/src/setup.rs`; replaces the local sampler call with `engine-core` `DeterministicRng::next_index_unbiased_v1`
@@ -66,3 +66,22 @@ Replace the local `next_bounded_index_unbiased` call site in `setup.rs` (used by
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Replaced High Card Duel's local unbiased bounded-index helper call in
+`games/high_card_duel/src/setup.rs` with
+`DeterministicRng::next_index_unbiased_v1`. The duplicated local helper and
+crate re-export were removed; tests now exercise the shared engine-core sampler
+directly.
+
+Fixed-vector tests preserve the high-residue rejection result and draw count,
+including zero-bound no-consumption behavior. No shuffle loop bounds, deal
+order, seed handling, or game policy changed.
+
+Verification passed:
+
+1. `cargo test -p high_card_duel bounded_index_rejects_high_residue_band -- --nocapture`
+2. `cargo test -p high_card_duel setup_shuffle_uses_unbiased_bounded_index_or_documented_helper -- --nocapture`
+3. `cargo test -p high_card_duel`
+4. `cargo run -p replay-check -- --game high_card_duel --all`

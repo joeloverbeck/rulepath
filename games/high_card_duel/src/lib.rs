@@ -42,7 +42,7 @@ pub use rules::{
     round_winner, stale_action_diagnostic, validate_command, wrong_phase_diagnostic,
     wrong_seat_diagnostic, ValidatedAction,
 };
-pub use setup::{next_bounded_index_unbiased, setup_match, shuffle_deck, SetupOptions};
+pub use setup::{setup_match, shuffle_deck, SetupOptions};
 pub use state::{HighCardDuelState, Phase, RevealedRound, Score, TerminalOutcome};
 pub use ui::{
     card_accessibility_label, face_down_commitment_label, revealed_card_accessibility_label,
