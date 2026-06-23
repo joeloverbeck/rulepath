@@ -71,8 +71,9 @@ pub(crate) fn deal_setup<R: DeterministicRng>(rng: &mut R) -> Result<SetupDeal, 
 
 pub fn shuffle_masks<R: DeterministicRng>(masks: &mut [MaskTileId], rng: &mut R) {
     for index in (1..masks.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         masks.swap(index, swap_index);
     }
 }
@@ -81,26 +82,6 @@ fn setup_masks_exhausted() -> Diagnostic {
     Diagnostic {
         code: "invalid_masks_exhausted".to_owned(),
         message: "masked_claims setup masks exhausted during deal".to_owned(),
-    }
-}
-
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
     }
 }
 
@@ -114,16 +95,18 @@ mod tests {
 
     struct FixedRng {
         values: Vec<u64>,
+        draws: usize,
     }
 
     impl FixedRng {
         fn new(values: Vec<u64>) -> Self {
-            Self { values }
+            Self { values, draws: 0 }
         }
     }
 
     impl DeterministicRng for FixedRng {
         fn next_u64(&mut self) -> u64 {
+            self.draws += 1;
             self.values.remove(0)
         }
     }
@@ -255,13 +238,15 @@ mod tests {
         let rejected = accepted_zone_for_three as u64;
         let mut rng = FixedRng::new(vec![rejected, 4]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+        assert_eq!(rng.next_index_unbiased_v1(3), Some(1));
+        assert_eq!(rng.draws, 2);
     }
 
     #[test]
     fn bounded_index_rejects_empty_bound() {
         let mut rng = FixedRng::new(vec![0]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 0), None);
+        assert_eq!(rng.next_index_unbiased_v1(0), None);
+        assert_eq!(rng.draws, 0);
     }
 }

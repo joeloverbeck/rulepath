@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-044: Masked Claims — unbiased bounded-index adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/src/setup.rs`; replaces the local rejection sampler call with `engine-core` `DeterministicRng::next_index_unbiased_v1`
@@ -66,3 +66,27 @@ Replace the local rejection-sampler call site in `setup.rs` (used by `shuffle_ma
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Completed: 2026-06-23
+
+Masked Claims now calls `DeterministicRng::next_index_unbiased_v1(index + 1)`
+directly from `games/masked_claims/src/setup.rs::shuffle_masks`. The
+duplicated local `next_bounded_index_unbiased` helper was removed. Existing
+setup tests were retargeted to the shared sampler and now assert both the fixed
+high-residue vector and draw counts: bound `3` still rejects once then returns
+index `1`, and zero-bound sampling returns `None` without drawing.
+
+No loop bounds, shuffle/deal order, seed meaning, hands/reserve policy,
+pending-claim behavior, export redaction, or replay artifacts were changed.
+ADR-0009 classification remains `unchanged`.
+
+Verification:
+
+- `cargo test -p masked_claims bounded_index_rejects_high_residue_band -- --nocapture` passed.
+- `cargo test -p masked_claims bounded_index_rejects_empty_bound -- --nocapture` passed.
+- `rg -n "next_bounded_index_unbiased|next_index_unbiased_v1" games/masked_claims/src/setup.rs games/masked_claims/tests` shows only `next_index_unbiased_v1` in the shuffle call and setup tests.
+- `cargo fmt --all --check` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; all Masked Claims traces were accepted through the current replay-check not-applicable baseline path.
