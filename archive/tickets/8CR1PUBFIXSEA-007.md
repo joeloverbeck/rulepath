@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-007: Draughts Lite C-02 strict canonical seat parser
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/draughts_lite` (`src/ids.rs`); accepted canonical input unchanged, no trace/golden change
@@ -74,3 +74,25 @@ Add direct parser tests asserting rejection of leading-zero, Unicode-digit, hyph
 1. `cargo test -p draughts_lite`
 2. `cargo test -p wasm-api`
 3. The game-parser unit tests plus the wasm-api import test are the correct boundary: strictness is game-local, alias acceptance is WASM-boundary-local.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Changes:
+
+- Rewrote `DraughtsLiteSeat::parse` to delegate to `SeatId::parse_canonical`, then map the bounded canonical index back through `DraughtsLiteSeat::from_index`.
+- Preserved `DraughtsLiteSeat::as_str()` output exactly (`seat_0`, `seat_1`).
+- Added direct parser tests proving canonical bounded values are accepted and leading-zero, Unicode-digit, hyphen, symbolic, and out-of-range spellings are rejected at the game parser.
+
+Deviations:
+
+- `cargo fmt --all -- --check` initially failed on rustfmt wrapping for the new rejection table; `cargo fmt --all` was run and the format check passed afterward. No behavior change was needed.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed after rustfmt.
+- `cargo test -p draughts_lite` passed, including the new parser acceptance/rejection tests.
+- `cargo test -p wasm-api` passed, including `seats::tests::import_adapter_accepts_canonical_hyphen_and_symbolic_aliases`.
+- `cargo run -p replay-check -- --game draughts_lite --all` passed; all Draughts Lite traces reported `ok`.
+- Grep proof confirms `DraughtsLiteSeat::parse` calls `SeatId::parse_canonical`, and non-canonical examples remain rejection-only in the game parser tests.

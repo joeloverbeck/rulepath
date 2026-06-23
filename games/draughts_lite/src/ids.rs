@@ -1,3 +1,4 @@
+use engine_core::SeatId;
 use game_stdlib::board_space::{Coord, Dimensions, Parity};
 
 pub const GAME_ID: &str = "draughts_lite";
@@ -55,11 +56,11 @@ impl DraughtsLiteSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            _ => None,
-        }
+        let index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()?;
+        Self::from_index(index as usize)
     }
 }
 
@@ -102,6 +103,22 @@ mod tests {
         assert_eq!(id.stable_id(), "seat_1-p07");
         assert_eq!(PieceId::new(DraughtsLiteSeat::Seat0, 0), None);
         assert_eq!(PieceId::new(DraughtsLiteSeat::Seat0, 13), None);
+    }
+
+    #[test]
+    fn seat_parse_accepts_only_canonical_bounded_ids() {
+        for seat in DraughtsLiteSeat::ALL {
+            assert_eq!(DraughtsLiteSeat::parse(seat.as_str()), Some(seat));
+        }
+    }
+
+    #[test]
+    fn seat_parse_rejects_non_canonical_and_out_of_range_ids() {
+        for value in [
+            "seat_00", "seat_01", "seat_１", "seat-0", "seat-a", "seat_2",
+        ] {
+            assert_eq!(DraughtsLiteSeat::parse(value), None, "{value}");
+        }
     }
 
     #[test]
