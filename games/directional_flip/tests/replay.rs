@@ -12,7 +12,8 @@ use engine_core::{
     CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, SetupEvidenceV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 
 const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
@@ -30,6 +31,23 @@ const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
     "commands",
     "checkpoints",
     "expected_hashes",
+];
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
 ];
 
 #[derive(Debug)]
@@ -80,6 +98,57 @@ fn df_replay_001_replay_export_import_step_reset_hashes_are_deterministic() {
         left.view_hash
     );
     assert_ne!(left.replay_hash.0, 0);
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_standard_setup_fixture() {
+    let setup_fixture = include_str!("../data/fixtures/directional_flip_standard.fixture.json");
+    assert!(!setup_fixture.contains("\"profile_id\""));
+    assert!(!setup_fixture.contains("\"profile_version\""));
+    assert!(!setup_fixture.contains("\"canonical_byte_authority\""));
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_standard_setup_fixture_metadata(setup_fixture)
+        })
+        .expect("setup-evidence-v1 driver accepts Directional Flip setup fixture");
+}
+
+fn setup_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("Directional Flip setup-evidence profile classification"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_standard_setup_fixture_metadata(fixture: &str) {
+    assert_eq!(
+        string_field(fixture, "fixture_id"),
+        "directional_flip_standard_gate6"
+    );
+    assert_eq!(string_field(fixture, "game_id"), "directional_flip");
+    assert_eq!(
+        string_field(fixture, "variant"),
+        "directional_flip_standard"
+    );
+    assert_eq!(
+        string_field(fixture, "rules_version"),
+        "directional_flip-rules-v1"
+    );
+    assert_eq!(number_field(fixture, "trace_schema_version"), 1);
+    assert!(fixture.contains("\"fixture_kinds\""));
+    assert!(!fixture.contains("private"));
+    assert!(!fixture.contains("debug"));
 }
 
 #[test]
