@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-003: High Card Duel — private effect-envelope constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/src/effects.rs`; adopts `engine-core` `EffectEnvelope::private_to`
@@ -67,3 +67,31 @@ Replace the local seat-private envelope literal in `private_effect` with `Effect
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Completed: 2026-06-23
+
+Replaced `games/high_card_duel/src/effects.rs::private_effect`'s local
+seat-private envelope literal with
+`EffectEnvelope::private_to(owner_seat_id, payload)`. The change is limited to
+seat-private effect-envelope construction; owner selection, payload formation,
+public envelope construction, reveal timing, recipient policy, diagnostics, and
+filtering remain game-owned.
+
+Existing High Card visibility coverage already pins owner-only exposure through
+`effect_private_card_identity_is_private_to_owner`,
+`effect_filtering_returns_correct_sets_for_observer_seat0_seat1`,
+`effect_visibility_scopes_match_spec`, and the pairwise no-leak harness. The
+characterization report now records this migration as ADR-0009 `unchanged`.
+
+Deviations: no new test was required because existing `tests/visibility.rs`
+coverage already asserts private owner scope and observer/opponent filtering for
+this exact surface.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.

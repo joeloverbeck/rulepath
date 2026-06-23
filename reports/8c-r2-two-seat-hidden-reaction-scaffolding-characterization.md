@@ -345,3 +345,29 @@ Evidence:
 - `cargo test -p high_card_duel` passed.
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-003 - High Card Duel private effect constructor
+
+Selected surface: `games/high_card_duel/src/effects.rs::private_effect`.
+
+Before state: local literal constructor
+`EffectEnvelope { visibility: VisibilityScope::PrivateToSeat(owner_seat_id), payload }`.
+
+After state: `EffectEnvelope::private_to(owner_seat_id, payload)`.
+
+ADR-0009 classification: `unchanged`. This changes only generic seat-private
+envelope construction and preserves owner `SeatId`, payload formation,
+filtered-effect projection, private diagnostics/deal/commit payloads, effect
+hashes, and observer/opponent filtering. Rollback removes only this constructor
+call and restores the local literal.
+
+Evidence:
+
+- Existing `games/high_card_duel/tests/visibility.rs` coverage pins this
+  surface: `effect_private_card_identity_is_private_to_owner`,
+  `effect_filtering_returns_correct_sets_for_observer_seat0_seat1`,
+  `effect_visibility_scopes_match_spec`, and the pairwise no-leak harness.
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
