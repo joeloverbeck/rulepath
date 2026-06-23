@@ -1021,6 +1021,41 @@ Evidence:
 - `cargo run -p fixture-check -- --game masked_claims` passed with
   `fixture-check: all fixtures passed`.
 
+### UNI8CR2TWOSEA-036 - High Card Duel public-export-v1 profile driver
+
+Selected surface: `games/high_card_duel/tests/replay.rs` profile-driver test
+over the existing observer-only public replay export, plus the existing
+visibility no-leak surface in `games/high_card_duel/tests/visibility.rs`.
+
+Before state: High Card Duel pinned the observer export hash and had export
+no-leak coverage, but no `PublicExportV1Driver` receipt for the public export
+profile.
+
+After state:
+`public_export_v1_profile_driver_wraps_observer_export_validator` validates the
+`public-export-v1` metadata (`v1`, `public`,
+`validator_owner = high_card_duel`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing observer export hash.
+
+ADR-0009 classification: `unchanged`. This adds typed public-export profile
+evidence only. The export remains observer-only, existing export bytes remain
+authoritative, no canonical byte claim is made, and no export artifact is
+rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `public-export-v1`, `v1`, `public`, and
+  `high_card_duel`.
+- `validate_with` returns the existing observer export stable hash
+  `11079559833511455730`.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- The observer export still omits seed material, private commit tokens, and
+  unrevealed deck-tail identities.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; all HCD
+  traces passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

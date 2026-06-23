@@ -341,9 +341,16 @@ fn residual_profile_tree_count_effect_and_rng_surfaces_keep_lead_commit_hidden()
     }
 
     let trace = generate_internal_full_trace(7);
+    let replay = high_card_duel::replay_internal_full_trace(&trace);
     let public_export = export_public_observer_replay(&trace);
+    let public_export_json = public_export.to_json();
     assert_eq!(public_export.export_class, "public_observer_projection_v1");
     assert_eq!(public_export.viewer, "observer");
+    assert!(!public_export_json.contains("\"seed\""));
+    assert!(!public_export_json.contains("commit/hcd:r"));
+    for hidden_card in replay.final_state.deck.iter() {
+        assert!(!public_export_json.contains(&hidden_card.stable_id()));
+    }
 }
 
 fn filtered_private_card_ids(log: &EffectLog<HighCardDuelEffect>, viewer: &Viewer) -> String {

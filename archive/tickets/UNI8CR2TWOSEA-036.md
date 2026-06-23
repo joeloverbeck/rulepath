@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-036: High Card Duel — public-export-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/tests/{replay,visibility}.rs`; adopts `game-test-support` `PublicExportV1Driver` (observer-only)
@@ -67,3 +67,24 @@ In `tests/replay.rs` (with the no-leak assertions in `tests/visibility.rs`), inv
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Implemented in `games/high_card_duel/tests/replay.rs` with
+`public_export_v1_profile_driver_wraps_observer_export_validator`. The test
+validates `public-export-v1` metadata for `high_card_duel`, delegates through
+`PublicExportV1Driver::validate_with` to the existing observer export hash, and
+confirms the driver makes no canonical byte claim.
+
+The export remains observer-only and byte-authoritative through the existing
+export path. The test rejects wrong profile id, wrong validator owner, wrong
+visibility, and an illegal profile field. `games/high_card_duel/tests/visibility.rs`
+now explicitly asserts the observer export omits seed material, private commit
+tokens, and unrevealed deck-tail identities.
+
+Verification passed:
+
+1. `cargo test -p high_card_duel public_export_v1_profile_driver_wraps_observer_export_validator -- --nocapture`
+2. `cargo test -p high_card_duel residual_profile_tree_count_effect_and_rng_surfaces_keep_lead_commit_hidden -- --nocapture`
+3. `cargo test -p high_card_duel`
+4. `cargo run -p replay-check -- --game high_card_duel --all`
