@@ -6,7 +6,7 @@
 | Artifact slug | `8c-r2-two-seat-hidden-reaction-scaffolding` |
 | Roadmap stage | Public scaling phase — C-11 follow-on retrofit lane |
 | Roadmap build gate | `8C-R2` (precedes `8C-R3`, `8C-R4`, and Gate 18) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-23 |
 | Owner | Rulepath maintainers; implementation delegated through bounded `AGENT-TASK` packets |
 | Analysis baseline | Authored against `joeloverbeck/rulepath` at `e06bdb0`, then re-grounded against current `main` during `/reassess-spec`: every referenced symbol, path, and governance row below validated unchanged. `e06bdb0` is now an ancestor of `main`. |
@@ -1109,3 +1109,73 @@ The accepted form must answer **yes** to every question:
 [^ext-cargo-dev]: Rust Project, *The Cargo Book — Development dependencies*, https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#development-dependencies
 [^ext-rfc8785]: RFC Editor, *RFC 8785 — JSON Canonicalization Scheme*, https://www.rfc-editor.org/rfc/rfc8785.html
 [^ext-protobuf]: Protocol Buffers Documentation, *Proto Serialization Is Not Canonical*, https://protobuf.dev/programming-guides/serialization-not-canonical/
+
+## Outcome
+
+Completed: 2026-06-23
+
+Completed tickets: `UNI8CR2TWOSEA-001` through `UNI8CR2TWOSEA-046`, all
+archived under `archive/tickets/` with `COMPLETED` status and `## Outcome`.
+
+Implementation summary:
+
+- High Card Duel residual C-04/C-05/C-07/C-08/C-09 evidence landed while
+  preserving the existing C-07 pilot discharge.
+- Secret Draft, Poker Lite, and Masked Claims closed the applicable
+  effect-envelope, canonical parser, exact-two-seat, action-tree v1,
+  dev-only support, pairwise no-leak, evidence-profile, and RNG receipt rows.
+- The mechanical-scaffolding register has append-only R2 receipts under
+  `MSC-8C-001...010`, including explicit N/A and accepted-exception rows.
+- C-10 remains `rejected / local-only`: reveal/reaction/projection,
+  pledge/pot/showdown/yield, claim/reaction, scoring, outcome, bot, TypeScript
+  authority, YAML, DSL, and static behavior stayed game-owned.
+- `specs/README.md` now marks only `8C-R2` as `Done`; `8C-R3`, `8C-R4`, and
+  Gate 18 remain pending.
+
+Verification evidence:
+
+- `cargo fmt --all -- --check`
+- `cargo test -p engine-core`
+- `cargo test -p game-stdlib`
+- `cargo test -p game-test-support`
+- `cargo test -p wasm-api`
+- `cargo test -p high_card_duel`
+- `cargo test -p secret_draft`
+- `cargo test -p poker_lite`
+- `cargo test -p masked_claims`
+- `cargo test -p replay-check`
+- `cargo test -p fixture-check`
+- `cargo test --workspace --all-targets`
+- `cargo run -p replay-check -- --game high_card_duel --all`
+- `cargo run -p replay-check -- --game secret_draft --all`
+- `cargo run -p replay-check -- --game poker_lite --all`
+- `cargo run -p replay-check -- --game masked_claims --all`
+- `cargo run -p fixture-check -- --game high_card_duel`
+- `cargo run -p fixture-check -- --game secret_draft`
+- `cargo run -p fixture-check -- --game poker_lite`
+- `cargo run -p fixture-check -- --game masked_claims`
+- `bash scripts/boundary-check.sh`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+
+Manual/non-command evidence: no screenshot or browser evidence was required;
+this unit had no web/UI deliverable.
+
+Archive truthing:
+
+- The active ticket glob `tickets/UNI8CR2TWOSEA-*.md` is empty.
+- The archived ticket count is 46.
+- Golden/fixture changed-file inventory printed no paths.
+- The characterization report records the full capstone evidence ledger and
+  narrowed replay-check notes for Poker Lite and Masked Claims not-applicable
+  trace handling.
+
+Known evidence caveat: `cargo test --workspace --all-targets` exits 0 but runs
+bench binaries that print benchmark JSON; some historical per-operation rows
+reported `pass:false`. This did not fail the command and no benchmark
+threshold was changed for this unit.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`

@@ -2,8 +2,8 @@
 
 Date: 2026-06-23
 Baseline commit: `51a5c12636696d974b9491cc49bcff5590fca64b`
-Ticket: `tickets/UNI8CR2TWOSEA-001.md`
-Reference: `specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md`
+Ticket: `archive/tickets/UNI8CR2TWOSEA-001.md`
+Reference: `archive/specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md`
 
 This report is the pre-migration baseline for Unit 8C-R2. It records current
 surfaces only; it does not authorize any byte, hash, visibility, seat-ID, RNG,
