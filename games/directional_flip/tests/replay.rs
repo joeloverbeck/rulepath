@@ -11,6 +11,26 @@ use engine_core::{
     ActionChoice, ActionNode, ActionPath, ActionPreview, ActionTreeEncodingVersion, Actor,
     CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -85,6 +105,38 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_bot_choices() {
     for fixture in fixtures {
         assert_no_behavior_keys(fixture);
         assert_fixture(parse_trace_schema_v1_fixture(fixture));
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_replays_opening_legal_move_fixture() {
+    let fixture_json = include_str!("golden_traces/opening-legal-move.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    assert!(!fixture_json.contains("\"canonical_byte_authority\""));
+    let fixture = parse_trace_schema_v1_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_fixture(parse_trace_schema_v1_fixture(fixture_json))
+        })
+        .expect("replay-command-v1 driver accepts opening-legal-move profile");
+}
+
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "directional_flip::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
     }
 }
 
