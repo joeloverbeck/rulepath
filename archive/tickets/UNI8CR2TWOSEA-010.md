@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-010: Poker Lite — canonical seat parser adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/src/ids.rs`; delegates canonical acceptance to `engine-core` `SeatId::parse_canonical`
@@ -70,3 +70,20 @@ Add canonical, out-of-range, leading-zero, alias, Unicode-lookalike, and role-la
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed on 2026-06-23. `PokerLiteSeat::parse` now delegates canonical seat
+grammar acceptance to `SeatId::parse_canonical`, then maps the parsed
+zero-based index to the local two-seat enum. Legacy hyphen and symbolic aliases
+remain outside the game crate in the WASM import adapter.
+
+Added parser coverage for canonical `seat_0`/`seat_1` acceptance plus
+out-of-range, leading-zero, hyphen, symbolic alias, Unicode lookalike, and role
+label rejection.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p poker_lite`
+3. `cargo run -p replay-check -- --game poker_lite --all`
