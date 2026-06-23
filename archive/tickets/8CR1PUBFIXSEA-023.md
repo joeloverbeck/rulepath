@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-023: Token Bazaar C-03 exact seat-count validation + game-stdlib dependency
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/token_bazaar` (`Cargo.toml` normal dep + `src/setup.rs`); diagnostic bytes and setup state byte-identical
@@ -76,3 +76,19 @@ Replace the hand-written predicate in `setup_match` with `SeatCountRange::inclus
 1. `cargo test -p token_bazaar`
 2. `cargo tree -p token_bazaar -e normal`
 3. The per-game setup tests plus the `cargo tree` production-edge proof are the correct boundary: validity is game-local and the dependency addition must stay production-minimal.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- Added `game-stdlib` as the only new normal dependency for `games/token_bazaar`; `Cargo.lock` records that dependency edge.
+- `games/token_bazaar/src/setup.rs::setup_match` now validates the fixed two-seat range with `SeatCountRange::inclusive(...).validate(...)`.
+- The game-owned `invalid_seat_count` diagnostic mapping remains unchanged, and the focused wrong-count test now pins both diagnostic code and message.
+- The typed `TokenBazaarSeat::other()` mapping and setup ordering/state construction were left unchanged.
+
+Verification:
+
+- `cargo fmt --all -- --check`
+- `cargo test -p token_bazaar`
+- `cargo tree -p token_bazaar -e normal` showed `ai-core`, `engine-core`, and the newly added `game-stdlib` normal dependency; `game-stdlib` only brings `engine-core`.
+- `cargo run -p replay-check -- --game token_bazaar --all`
