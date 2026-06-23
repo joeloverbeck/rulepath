@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-021: Secret Draft — game-test-support dev-only dependency
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/secret_draft/Cargo.toml` `[dev-dependencies]`
@@ -38,6 +38,7 @@ Add `game-test-support` under `[dev-dependencies]` in `games/secret_draft/Cargo.
 ## Files to Touch
 
 - `games/secret_draft/Cargo.toml` (modify; serialized after `-014`)
+- `Cargo.lock` (modify; records the dev-dependency edge)
 
 ## Out of Scope
 
@@ -66,3 +67,19 @@ Add `game-test-support` under `[dev-dependencies]` in `games/secret_draft/Cargo.
 
 1. `cargo tree --workspace -e normal --invert game-test-support`
 2. `cargo test -p secret_draft`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `game-test-support` under `games/secret_draft/Cargo.toml`
+`[dev-dependencies]` only, with the corresponding `Cargo.lock` package edge.
+No normal/build/WASM/tool dependency edge was added, and no harness-using tests
+were added in this ticket.
+
+Verification passed:
+
+1. `cargo tree --workspace -e normal --invert game-test-support` showed only
+   the `game-test-support` package itself, with no `secret_draft` normal edge.
+2. `bash scripts/boundary-check.sh`
+3. `cargo test -p secret_draft`

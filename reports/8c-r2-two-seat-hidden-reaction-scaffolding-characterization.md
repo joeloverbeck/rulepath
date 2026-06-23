@@ -734,6 +734,28 @@ Evidence:
 - `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
   checked and `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-021 - Secret Draft game-test-support dev-only dependency
+
+Selected surface: `games/secret_draft/Cargo.toml` `[dev-dependencies]` and
+the corresponding `Cargo.lock` package dependency list.
+
+Before state: Secret Draft had no `game-test-support` dependency.
+
+After state: Secret Draft lists `game-test-support` only under
+`[dev-dependencies]`; the lockfile records the package dependency edge.
+
+ADR-0009 classification: `unchanged`. This is a dev-only test-infrastructure
+edge for later no-leak/profile harness use. No normal/build/WASM/tool edge was
+added, and no production code or runtime behavior changed.
+
+Evidence:
+
+- `cargo tree --workspace -e normal --invert game-test-support` output showed
+  only `game-test-support v0.1.0`, with no `secret_draft` normal edge.
+- `bash scripts/boundary-check.sh` passed and reported
+  `game-test-support dev-only boundary check passed`.
+- `cargo test -p secret_draft` passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal
