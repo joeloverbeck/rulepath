@@ -1,5 +1,6 @@
 use engine_core::{Diagnostic, FreshnessToken, SeatId, Seed};
 use game_stdlib::board_space::Coord;
+use game_stdlib::SeatCountRange;
 
 use crate::{
     ids::{
@@ -35,7 +36,12 @@ pub fn setup_match(
         });
     }
 
-    if seats.len() != options.variant.seat_count as usize {
+    let seat_count = options.variant.seat_count as usize;
+    if SeatCountRange::inclusive(seat_count, seat_count)
+        .expect("standard draughts_lite seat count is nonzero")
+        .validate(seats.len())
+        .is_err()
+    {
         return Err(Diagnostic {
             code: "invalid_seat_count".to_owned(),
             message: "draughts_lite requires exactly two seats".to_owned(),
@@ -187,6 +193,10 @@ mod tests {
             .expect_err("setup rejects missing seat");
 
         assert_eq!(diagnostic.code, "invalid_seat_count");
+        assert_eq!(
+            diagnostic.message,
+            "draughts_lite requires exactly two seats"
+        );
     }
 
     #[test]
