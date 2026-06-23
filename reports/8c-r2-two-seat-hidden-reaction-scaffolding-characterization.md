@@ -988,6 +988,39 @@ Evidence:
 - `cargo run -p fixture-check -- --game poker_lite` passed with
   `fixture-check: all fixtures passed`.
 
+### UNI8CR2TWOSEA-035 - Masked Claims setup-evidence-v1 profile driver
+
+Selected surface: `games/masked_claims/tests/serialization.rs` setup-evidence
+profile-driver test over the existing read-only fixture metadata.
+
+Before state: Masked Claims had public fixture parsing and mask metadata
+checks, but no `SetupEvidenceV1Driver` receipt for public setup evidence.
+
+After state:
+`setup_evidence_v1_profile_driver_wraps_mask_fixture_metadata` validates the
+`setup-evidence-v1` metadata (`v1`, `public`,
+`validator_owner = masked_claims`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing fixture bytes.
+
+ADR-0009 classification: `unchanged`. This adds typed setup-profile evidence
+only. The fixture remains read-only, hand and reserve identity stay hidden or
+internal-only, no reaction policy is encoded in data, no canonical byte claim
+is made, and no fixture artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `setup-evidence-v1`, `v1`, `public`, and
+  `masked_claims`.
+- The fixture still contains public fixture id, game, variant, rules version,
+  mask-order metadata, `hand_status = hidden_by_setup`, and
+  `reserve_status = internal_only`.
+- The fixture contains no selector, trigger, or reaction policy field.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p fixture-check -- --game masked_claims` passed with
+  `fixture-check: all fixtures passed`.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

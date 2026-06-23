@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-035: Masked Claims — setup-evidence-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/tests/serialization.rs`; adopts `game-test-support` `SetupEvidenceV1Driver`; fixture read-only
@@ -66,3 +66,23 @@ In `tests/serialization.rs`, invoke `SetupEvidenceV1Driver` over the existing fi
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p fixture-check -- --game masked_claims`
+
+## Outcome
+
+Implemented in `games/masked_claims/tests/serialization.rs` with
+`setup_evidence_v1_profile_driver_wraps_mask_fixture_metadata`. The test
+validates `setup-evidence-v1` metadata for `masked_claims`, delegates through
+`SetupEvidenceV1Driver::validate_with` to the existing read-only fixture bytes,
+and confirms the driver makes no canonical byte claim.
+
+The fixture remains mask-order/status metadata only: hand status stays
+`hidden_by_setup`, reserve status stays `internal_only`, and no selector,
+trigger, or reaction policy appears in fixture data. The driver rejects wrong
+profile id, wrong validator owner, wrong visibility, and an illegal profile
+field.
+
+Verification passed:
+
+1. `cargo test -p masked_claims setup_evidence_v1_profile_driver_wraps_mask_fixture_metadata -- --nocapture`
+2. `cargo test -p masked_claims`
+3. `cargo run -p fixture-check -- --game masked_claims`
