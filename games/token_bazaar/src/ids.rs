@@ -1,3 +1,5 @@
+use engine_core::SeatId;
+
 pub const GAME_ID: &str = "token_bazaar";
 pub const VARIANT_ID: &str = "token_bazaar_standard";
 pub const RULES_VERSION_LABEL: &str = "token-bazaar-rules-v1";
@@ -47,11 +49,11 @@ impl TokenBazaarSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            _ => None,
-        }
+        let index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()?;
+        Self::from_index(index as usize)
     }
 }
 
@@ -282,5 +284,14 @@ mod tests {
         assert_eq!(TokenBazaarSlot::from_index(0), Some(TokenBazaarSlot::Slot0));
         assert_eq!(TokenBazaarSlot::from_index(2), Some(TokenBazaarSlot::Slot2));
         assert_eq!(TokenBazaarSlot::from_index(3), None);
+    }
+
+    #[test]
+    fn seat_parse_rejects_non_canonical_and_out_of_range_ids() {
+        for value in [
+            "seat_00", "seat_01", "seat_１", "seat-0", "seat-a", "seat_2",
+        ] {
+            assert_eq!(TokenBazaarSeat::parse(value), None, "{value}");
+        }
     }
 }

@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-011: Token Bazaar C-02 strict canonical seat parser
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/token_bazaar` (`src/ids.rs`); accepted canonical input unchanged, no trace/golden change
@@ -74,3 +74,25 @@ Add direct parser tests asserting rejection of leading-zero, Unicode-digit, hyph
 1. `cargo test -p token_bazaar`
 2. `cargo test -p wasm-api`
 3. The game-parser unit tests plus the wasm-api import test are the correct boundary.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Changes:
+
+- Rewrote `TokenBazaarSeat::parse` to delegate to `SeatId::parse_canonical`, then map the bounded canonical index through `TokenBazaarSeat::from_index`.
+- Preserved `TokenBazaarSeat::as_str()` output exactly (`seat_0`, `seat_1`).
+- Added direct parser tests proving leading-zero, Unicode-digit, hyphen, symbolic, and out-of-range spellings are rejected at the game parser; canonical round-trip coverage remains in the existing stable-ID test.
+
+Deviations:
+
+- None.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p token_bazaar` passed, including `ids::tests::seat_parse_rejects_non_canonical_and_out_of_range_ids` and `replay_support::tests::public_export_import_is_lossless_and_public_safe`.
+- `cargo test -p wasm-api` passed, including `seats::tests::import_adapter_accepts_canonical_hyphen_and_symbolic_aliases`.
+- `cargo run -p replay-check -- --game token_bazaar --all` passed; all Token Bazaar traces reported `ok`.
+- Grep proof confirms `TokenBazaarSeat::parse` calls `SeatId::parse_canonical`, and non-canonical examples remain rejection-only in the game parser tests.
