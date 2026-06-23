@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-015: Poker Lite — exact-two-seat structural validation + game-stdlib dependency
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/Cargo.toml`, `games/poker_lite/src/setup.rs`; adds normal `game-stdlib` dependency and adopts `SeatCount`
@@ -71,3 +71,20 @@ Replace the hand-written length predicate in `setup_match` with a structural `Se
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed on 2026-06-23. Added the normal `game-stdlib` dependency for
+`poker_lite` and updated `Cargo.lock`. `setup_match` now validates nonzero seat
+structure through `SeatCount` while preserving the game-owned
+`STANDARD_SEAT_COUNT` expectation and the exact `invalid_seat_count`
+diagnostic code/message. No ring helper was adopted.
+
+Added setup tests for accepted two-seat setup and rejected 0/1/3 seat counts
+with the exact diagnostic.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p poker_lite`
+3. `cargo run -p replay-check -- --game poker_lite --all`
