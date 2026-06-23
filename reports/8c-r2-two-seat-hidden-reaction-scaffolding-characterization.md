@@ -794,6 +794,38 @@ Evidence:
 - `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
   checked and `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-029 - Secret Draft replay-command-v1 profile driver
+
+Selected surface: `games/secret_draft/tests/replay.rs` profile-driver test over
+the existing internal command trace.
+
+Before state: Secret Draft had internal command trace generation and replay
+validation, but no `ReplayCommandV1Driver` receipt.
+
+After state:
+`replay_command_v1_profile_driver_wraps_internal_trace_validator` validates
+the `replay-command-v1` metadata (`v1`, `internal-dev`,
+`validator_owner = secret_draft`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing generated internal trace
+validator.
+
+ADR-0009 classification: `unchanged`. This adds typed profile evidence only.
+The private command trace remains `internal-dev`, existing trace bytes remain
+authoritative, no canonical byte claim is made, and no artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `replay-command-v1`, `v1`, `internal-dev`,
+  and `secret_draft`.
+- `validate_with` returns the existing trace stable hash from
+  `replay_internal_full_trace`.
+- Wrong profile id, wrong validator owner, and illegal profile field are
+  rejected.
+- `cargo fmt --all --check` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

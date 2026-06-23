@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-029: Secret Draft — replay-command-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/tests/replay.rs`, `games/secret_draft/src/replay_support.rs`; adopts `game-test-support` `ReplayCommandV1Driver` (internal-dev)
@@ -67,3 +67,24 @@ In `tests/replay.rs`, invoke `ReplayCommandV1Driver` over the existing internal 
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `games/secret_draft/tests/replay.rs::replay_command_v1_profile_driver_wraps_internal_trace_validator`.
+The test validates `ReplayCommandV1Driver` metadata for
+`profile_id = replay-command-v1`, `profile_version = v1`, `visibility_class =
+internal-dev`, `validator_owner = secret_draft`, and
+`canonical_byte_authority = none`, then delegates through `validate_with` to
+the existing generated internal full-trace replay validator and compares the
+resulting trace hash to the trace's existing stable hash. It also verifies
+rejection for wrong profile id, wrong validator owner, and illegal profile
+fields. No artifact was rewritten, no omniscient export was added, and no
+`replay_support.rs` accessor was needed.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p secret_draft`
+3. `cargo run -p replay-check -- --game secret_draft --all`
