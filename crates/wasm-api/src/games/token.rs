@@ -11,7 +11,7 @@ use crate::actors::token_actor_for_seat;
 use crate::commands::command_record_json;
 use crate::constants::*;
 use crate::json::{diagnostic_json, escape_json};
-use crate::seats::{parse_token_seat, seats};
+use crate::seats::{canonical_seats_for_count, parse_token_seat, seats};
 use crate::{string_array, visibility_json, AppliedCommand};
 
 pub(crate) fn token_replay_to_cursor(
@@ -61,7 +61,19 @@ pub(crate) fn token_replay_document_json(
     let commands_json = commands
         .iter()
         .enumerate()
-        .map(|(index, command)| command_record_json(index, command))
+        .map(|(index, command)| token_command_record_json(index, command))
+        .collect::<Result<Vec<_>, _>>()?
+        .join(",");
+    let seats_json = canonical_seats_for_count(2)
+        .iter()
+        .enumerate()
+        .map(|(index, seat)| {
+            format!(
+                "{{\"seat_id\":\"{}\",\"player_id\":\"player-{}\"}}",
+                escape_json(&seat.0),
+                index
+            )
+        })
         .collect::<Vec<_>>()
         .join(",");
     let checkpoints = if commands.is_empty() {
@@ -81,7 +93,7 @@ pub(crate) fn token_replay_document_json(
     };
 
     Ok(format!(
-        "{{\"schema_version\":{},\"trace_id\":\"token-bazaar-{}\",\"fixture_kind\":\"wasm\",\"purpose\":\"public_export_round_trip\",\"note\":\"Token Bazaar public_export_round_trip replay fixture.\",\"migration_update_note\":\"Updated expected hashes for VICEXPSHASUR-007 tiebreak rationale projection.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{{\"seat_id\":\"seat-0\",\"player_id\":\"player-0\"}},{{\"seat_id\":\"seat-1\",\"player_id\":\"player-1\"}}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_diagnostic_hashes\":null,\"expected_public_export_hashes\":{{\"final\":{}}},\"expected_outcome\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"expected_terminal_state\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"not_applicable\":{{\"hidden_information\":\"token_bazaar is fully public.\",\"stochastic_game_events\":\"token_bazaar game rules use no randomness.\",\"private_view_hashes\":\"token_bazaar observer and seat views are identical.\",\"preview_hashes\":\"token_bazaar uses legal action metadata rather than a separate preview hash.\"}}}}",
+        "{{\"schema_version\":{},\"trace_id\":\"token-bazaar-{}\",\"fixture_kind\":\"wasm\",\"purpose\":\"public_export_round_trip\",\"note\":\"Token Bazaar public_export_round_trip replay fixture.\",\"migration_update_note\":\"Updated expected hashes for VICEXPSHASUR-007 tiebreak rationale projection.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_diagnostic_hashes\":null,\"expected_public_export_hashes\":{{\"final\":{}}},\"expected_outcome\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"expected_terminal_state\":{{\"terminal\":{},\"winner\":{},\"draw\":{}}},\"not_applicable\":{{\"hidden_information\":\"token_bazaar is fully public.\",\"stochastic_game_events\":\"token_bazaar game rules use no randomness.\",\"private_view_hashes\":\"token_bazaar observer and seat views are identical.\",\"preview_hashes\":\"token_bazaar uses legal action metadata rather than a separate preview hash.\"}}}}",
         SCHEMA_VERSION,
         escape_json(trace_id),
         escape_json(GAME_TOKEN_BAZAAR),
@@ -90,6 +102,7 @@ pub(crate) fn token_replay_document_json(
         escape_json(DATA_VERSION),
         seed,
         escape_json(VARIANT_TOKEN_BAZAAR_STANDARD),
+        seats_json,
         commands_json,
         checkpoints,
         hashes.final_state_hash.0,
@@ -104,6 +117,18 @@ pub(crate) fn token_replay_document_json(
         terminal,
         winner,
         draw
+    ))
+}
+
+fn token_command_record_json(index: usize, command: &AppliedCommand) -> Result<String, String> {
+    let seat = parse_token_seat(&command.actor_seat)?;
+    Ok(command_record_json(
+        index,
+        &AppliedCommand {
+            actor_seat: seat.as_str().to_owned(),
+            action_path: command.action_path.clone(),
+            freshness_token: command.freshness_token,
+        },
     ))
 }
 

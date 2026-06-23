@@ -191,6 +191,20 @@ seat-bearing field deltas one game at a time.
   `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
   reported only `games/directional_flip/tests/golden_traces/wasm-exported.trace.json`.
 
+### 8CR1PUBFIXSEA-018 Token Bazaar after receipt
+
+- File: `games/token_bazaar/tests/golden_traces/wasm-exported.trace.json`
+- Before SHA-256: `bad018e566306a9e80fabc6446b1897401378b9c1c64062a46949c044d1d0bd0`
+- After SHA-256: `cc9a4ab8358120e5e20ce55e05a8c5bc96e6ef3309b4805de025951b93be8275`
+- Seat-bearing delta: roster `seat-0` / `seat-1` -> `seat_0` / `seat_1`;
+  command actors remained canonical `seat_0` / `seat_1`; winner remains `null`.
+- Public-export proof: expected public-export hash authority remained
+  `6430508291884454126`; the golden trace diff changed only the two roster
+  `seat_id` fields.
+- Verification: `cargo test -p wasm-api`; `cargo run -p replay-check -- --game token_bazaar --all`;
+  `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
+  reported only `games/token_bazaar/tests/golden_traces/wasm-exported.trace.json`.
+
 Baseline command for full trace digest inventory:
 
 ```text

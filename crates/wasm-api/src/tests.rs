@@ -795,6 +795,9 @@ fn token_bazaar_surface_drives_public_accounting_group() {
     assert!(exported.contains("\"game_id\":\"token_bazaar\""));
     assert!(exported.contains("\"rules_version\":\"token-bazaar-rules-v1\""));
     assert!(exported.contains("\"expected_public_export_hashes\""));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(!exported.contains("\"state\":"));
     assert!(!exported.contains("candidate"));
     assert!(!exported.contains("debug"));
@@ -802,6 +805,13 @@ fn token_bazaar_surface_drives_public_accounting_group() {
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"token_bazaar\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen token bazaar export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"token_bazaar\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
