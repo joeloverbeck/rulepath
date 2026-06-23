@@ -706,3 +706,34 @@ Evidence:
   included `deal-private-no-leak.trace.json`, `seat-private-view.trace.json`,
   and `wasm-exported.trace.json: public export fixture accepted`, then
   `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-016 - Masked Claims exact-two-seat structural validation
+
+Selected surface: `games/masked_claims/src/setup.rs::setup_match` and the
+normal `game-stdlib` dependency edge.
+
+Before state: local predicate compared `seats.len()` directly against
+`STANDARD_SEAT_COUNT`; `masked_claims` had no normal `game-stdlib` dependency.
+
+After state: `SeatCount::new(seats.len())` validates nonzero structure and the
+resulting count is compared against the game-owned `STANDARD_SEAT_COUNT`.
+`games/masked_claims/Cargo.toml` and `Cargo.lock` record the normal
+`game-stdlib` dependency.
+
+ADR-0009 classification: `unchanged`. This changes only the structural count
+helper used by setup validation and preserves the exact diagnostic
+code/message, standard expected-count policy, setup shuffle/deal behavior,
+state bytes, and replay hashes. `SeatCount::next_ring_index` remains not
+applicable.
+
+Evidence:
+
+- `games/masked_claims/src/setup.rs::setup_accepts_exact_standard_seat_count`
+  pins accepted two-seat setup.
+- `games/masked_claims/src/setup.rs::setup_rejects_wrong_seat_counts_with_exact_diagnostic`
+  pins 0/1/3 rejection with the exact diagnostic.
+- `cargo fmt --all --check` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; output
+  included `public-observer-no-leak.trace.json`, `claim-pending-window.trace.json`,
+  and `public-replay-export-import.trace.json`, then all traces passed.
