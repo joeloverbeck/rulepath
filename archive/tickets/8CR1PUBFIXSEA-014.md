@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-014: Draughts Lite WASM output canonical seat migration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `wasm-api` (`src/seats.rs`, `src/games/draughts.rs`, `src/tests.rs`) + one golden trace
@@ -78,3 +78,23 @@ Update the `crates/wasm-api/src/tests.rs` expectation and regenerate ONLY `games
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game draughts_lite --all`
 3. The per-game replay-check plus the wasm-api round-trip test is the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- Draughts Lite WASM replay export now emits canonical `seat_0` / `seat_1` roster IDs, command actor IDs, and terminal winner IDs via the shared canonical output helpers while leaving `seats()` / `seats_for_count()` and non-WASM traces unchanged.
+- `crates/wasm-api/src/tests.rs` now asserts canonical Draughts export output, verifies no legacy `seat-0` remains in the new export, and verifies legacy hyphen-spelled Draughts export documents remain importable.
+- Updated only `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json` among `wasm-exported.trace.json` golden files, and recorded the before/after SHA-256 receipt in `reports/8c-r1-public-fixed-seat-scaffolding-characterization.md`.
+- Regenerated `crates/wasm-api/tests/snapshots/api_surface.tsv` after the intended Draughts `export_replay` snapshot drift.
+
+Verification:
+
+- `cargo fmt --all -- --check`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game draughts_lite --all`
+- `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json` -> `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json`
+
+Deviation:
+
+- Initial `cargo test -p wasm-api` failed only in `tests/api_surface.rs::public_api_surface_matches_snapshot` because the public API snapshot still expected Draughts roster `seat-0` / `seat-1`. The intended snapshot was regenerated with `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface`, then `cargo test -p wasm-api` passed.

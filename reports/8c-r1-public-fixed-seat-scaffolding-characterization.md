@@ -144,6 +144,17 @@ seat-bearing field deltas one game at a time.
   `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
   reported only `games/race_to_n/tests/golden_traces/wasm-exported.trace.json`.
 
+### 8CR1PUBFIXSEA-014 Draughts Lite after receipt
+
+- File: `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json`
+- Before SHA-256: `f000a314e7f5295c34bb3da19830792bfaa1d7e2c8d16053e8742903c3bf9c98`
+- After SHA-256: `59f512a8a563edfb4d662dc3a065cd7fe45c1ee519eaa1404458ab21da08a566`
+- Seat-bearing delta: roster `seat-0` / `seat-1` -> `seat_0` / `seat_1`;
+  command actor `seat-0` -> `seat_0`; winner remains `null`.
+- Verification: `cargo test -p wasm-api`; `cargo run -p replay-check -- --game draughts_lite --all`;
+  `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
+  reported only `games/draughts_lite/tests/golden_traces/wasm-exported.trace.json`.
+
 Baseline command for full trace digest inventory:
 
 ```text
