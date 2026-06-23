@@ -502,3 +502,28 @@ Evidence:
 - `cargo test -p high_card_duel` passed.
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-009 - Secret Draft canonical seat parser adoption
+
+Selected surface: `games/secret_draft/src/ids.rs::SecretDraftSeat::parse`.
+
+Before state: local manual match accepted only `"seat_0"` and `"seat_1"`.
+
+After state: `SeatId::parse_canonical(value)` handles canonical grammar
+acceptance, then `canonical_zero_based_index()` maps through
+`SecretDraftSeat::from_index`.
+
+ADR-0009 classification: `unchanged`. This changes only the parser authority
+for canonical grammar and preserves the game-local two-seat bound. The game
+crate still rejects hyphen IDs, symbolic aliases, ambiguous labels,
+out-of-range IDs, leading-zero spellings, Unicode lookalikes, and role names.
+Legacy aliases remain import-only in the WASM adapter.
+
+Evidence:
+
+- `games/secret_draft/src/ids.rs::seat_parser_rejects_non_canonical_and_out_of_range_ids`
+  pins canonical acceptance and strict game-crate rejection vectors.
+- `cargo fmt --all --check` passed after rustfmt formatting was applied.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
