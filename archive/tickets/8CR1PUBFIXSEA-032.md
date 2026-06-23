@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-032: Token Bazaar C-08 replay-command profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/token_bazaar` (`Cargo.toml` dev-dep + `tests/replay.rs`); trace/export bytes unchanged
@@ -76,3 +76,31 @@ In `games/token_bazaar/tests/replay.rs`, build a `ProfileArtifact` from the exis
 1. `cargo test -p token_bazaar`
 2. `cargo tree -p token_bazaar -e normal`
 3. The per-game test plus the `cargo tree` dev-only proof are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `game-test-support` as a Token Bazaar dev-dependency and recorded the
+corresponding `Cargo.lock` package dependency entry. No normal dependency path
+was introduced: `cargo tree -p token_bazaar -e normal` lists only `ai-core`,
+`engine-core`, and `game-stdlib`.
+
+Added `replay_command_v1_driver_replays_shortest_normal_fixture` in
+`games/token_bazaar/tests/replay.rs`. The test builds a typed
+`ProfileArtifact` with `replay-command-v1` / `v1`, `internal-dev` visibility,
+`replay-check` validator ownership, and `token_bazaar::replay_support`
+canonical byte authority, then validates with
+`ReplayCommandV1Driver::new("replay-check")` before delegating to the existing
+fixture replay/hash assertions. This replay profile remains separate from the
+public-export profile surface. The committed trace/export JSON remains
+profile-free and byte-unchanged.
+
+Verification:
+
+1. `cargo test -p token_bazaar replay_command_v1_driver_replays_shortest_normal_fixture -- --exact`
+2. `cargo test -p token_bazaar`
+3. `cargo tree -p token_bazaar -e normal`
+4. `cargo run -p replay-check -- --game token_bazaar --all`
+5. `cargo fmt --all -- --check`
+6. `git diff --name-only -- games/token_bazaar/tests/golden_traces`
