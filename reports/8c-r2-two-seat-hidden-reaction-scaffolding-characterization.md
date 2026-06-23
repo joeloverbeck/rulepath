@@ -449,3 +449,31 @@ Evidence:
   included `deal-private-no-leak.trace.json`, `seat-private-view.trace.json`,
   and `wasm-exported.trace.json: public export fixture accepted`, then
   `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-007 - Masked Claims public effect constructor
+
+Selected surface: `games/masked_claims/src/effects.rs::public_effect`.
+
+Before state: local literal constructor
+`EffectEnvelope { visibility: VisibilityScope::Public, payload }`.
+
+After state: `EffectEnvelope::public(payload)`.
+
+ADR-0009 classification: `unchanged`. This changes only generic public
+envelope construction and preserves payload formation, claim/reaction redaction,
+reveal timing, public effect bytes, replay hashes, and viewer filtering. Masked
+Claims still has no seat-private effect constructor; that N/A remains a
+report/register receipt rather than new code.
+
+Evidence:
+
+- `games/masked_claims/src/effects.rs::public_effect_constructor_preserves_public_scope_and_payload`
+  pins public scope and exact representative payload preservation.
+- Existing Masked Claims no-leak coverage remains green, including
+  `tests/visibility.rs` and effect tests that keep claim/window/accept/terminal
+  payloads free of hidden tile IDs.
+- `cargo fmt --all --check` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; output
+  included `public-observer-no-leak.trace.json`, `claim-pending-window.trace.json`,
+  and `public-replay-export-import.trace.json`, then all traces passed.

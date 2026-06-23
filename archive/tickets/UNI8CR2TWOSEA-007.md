@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-007: Masked Claims — public effect-envelope constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/src/effects.rs`; adopts `engine-core` `EffectEnvelope::public`
@@ -67,3 +67,17 @@ Replace the local public-envelope literal in `public_effect` with `EffectEnvelop
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Completed on 2026-06-23. `games/masked_claims/src/effects.rs::public_effect`
+now delegates to `EffectEnvelope::public(payload)` with payload formation and
+claim/reaction redaction unchanged. Masked Claims still has no seat-private
+effect constructor; that remains a not-applicable report/register receipt, not
+new code.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p masked_claims`
+3. `cargo run -p replay-check -- --game masked_claims --all`
