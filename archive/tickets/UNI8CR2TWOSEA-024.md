@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-024: High Card Duel — C-07 no-leak pilot receipt verification
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/tests/visibility.rs`, `games/high_card_duel/tests/bots.rs`; residual no-leak verification, no pilot reconstruction
@@ -67,3 +67,23 @@ Assert the existing pilot matrix and `MSC-8C-007` coverage still hold; add resid
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Verified the existing C-07 pilot receipt by retaining
+`no_leak_harness_covers_public_seat_replay_effect_and_bot_surfaces`, then added
+a residual `visibility.rs` check for the post-lead-commit pre-reveal state.
+The new check covers public count/profile metadata, owner/opponent projected
+views, filtered effects, reply legal action tree debug/v1 bytes, reply bot
+input, and deterministic reply bot decision output. It uses real in-memory
+cards from seeded setup, adds no committed canary, and does not rebuild the
+pilot matrix or change any golden trace/fixture bytes. `tests/bots.rs` already
+covered the relevant bot input/decision boundary, so no edit there was needed.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p high_card_duel`
+3. `cargo run -p replay-check -- --game high_card_duel --all`

@@ -890,6 +890,41 @@ Evidence:
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-024 - High Card Duel C-07 no-leak pilot receipt verification
+
+Selected surface: `games/high_card_duel/tests/visibility.rs` residual no-leak
+coverage on top of the existing C-07 pilot matrix.
+
+Before state: High Card Duel already had `MSC-8C-007` coverage through
+`no_leak_harness_covers_public_seat_replay_effect_and_bot_surfaces` plus
+focused reveal-specific tests.
+
+After state: the pilot matrix remains intact, and
+`residual_profile_tree_count_effect_and_rng_surfaces_keep_lead_commit_hidden`
+adds post-lead-commit pre-reveal checks for public counts/profile labels,
+owner/opponent projected views, filtered effects, reply action tree debug/v1
+bytes, reply bot input, and deterministic reply bot decision output.
+
+ADR-0009 classification: `unchanged`. This adds only residual evidence. It
+does not rebuild the pilot matrix, change legality, change reveal timing, add
+committed canaries, or alter any golden trace/fixture bytes.
+
+Evidence:
+
+- Existing
+  `games/high_card_duel/tests/visibility.rs::no_leak_harness_covers_public_seat_replay_effect_and_bot_surfaces`
+  remained green.
+- New
+  `games/high_card_duel/tests/visibility.rs::residual_profile_tree_count_effect_and_rng_surfaces_keep_lead_commit_hidden`
+  verifies the unrevealed lead commit is absent from observer/opponent surfaces
+  and present only on owner/authorized private surfaces.
+- `games/high_card_duel/tests/bots.rs::bot_cannot_access_opponent_hand_deck_or_hidden_commitment_via_input_type`
+  remained green, so no additional bot-test edit was needed.
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
+
 ### UNI8CR2TWOSEA-018 - Secret Draft parallel action-tree v1 bytes/hash
 
 Selected surface: `games/secret_draft/src/replay_support.rs` additive
