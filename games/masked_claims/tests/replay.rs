@@ -1,8 +1,10 @@
 use engine_core::{ActionPath, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, Viewer};
 use masked_claims::{
-    actor_for_seat, apply_action, legal_action_tree, project_view, setup_match, validate_command,
-    MaskedClaimsLevel1Bot, MaskedClaimsSeat, Phase, PublicReplayExport, PublicReplayStep,
-    SetupOptions,
+    actor_for_seat, apply_action, legal_action_tree, project_view,
+    replay_support::{action_tree_v1_bytes, action_tree_v1_hash},
+    setup_match, validate_command, MaskedClaimsLevel1Bot, MaskedClaimsSeat, Phase,
+    PublicReplayExport, PublicReplayStep, SetupOptions, ACTION_CLAIM, ACTION_RESPOND_ACCEPT,
+    ACTION_RESPOND_CHALLENGE,
 };
 
 const GOLDEN_TRACES: [(&str, &str); 17] = [
@@ -171,6 +173,40 @@ fn golden_traces_are_present_parseable_and_viewer_safe() {
     }
 }
 
+#[test]
+fn action_tree_v1_bytes_and_hashes_are_pinned_for_claim_and_response_shapes() {
+    let mut state =
+        setup_match(Seed(31), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let claim_tree = legal_action_tree(&state, &actor_for_seat(&state, MaskedClaimsSeat::Seat0));
+
+    assert_eq!(choice_segments(&claim_tree), vec![ACTION_CLAIM]);
+    assert_eq!(action_tree_v1_bytes(&claim_tree).len(), 15326);
+    assert_eq!(
+        action_tree_v1_hash(&claim_tree),
+        HashValue(3772732430772540101)
+    );
+
+    let claim_path = first_claim_path(&claim_tree, "5");
+    let validated = validate_command(
+        &state,
+        &command(&state, MaskedClaimsSeat::Seat0, claim_path),
+    )
+    .expect("claim validates");
+    apply_action(&mut state, validated).expect("claim applies");
+
+    let response_tree = legal_action_tree(&state, &actor_for_seat(&state, MaskedClaimsSeat::Seat1));
+
+    assert_eq!(
+        choice_segments(&response_tree),
+        vec![ACTION_RESPOND_ACCEPT, ACTION_RESPOND_CHALLENGE]
+    );
+    assert_eq!(action_tree_v1_bytes(&response_tree).len(), 1100);
+    assert_eq!(
+        action_tree_v1_hash(&response_tree),
+        HashValue(689297409234037920)
+    );
+}
+
 fn replay_run(seed: u64) -> ReplayRun {
     let mut state =
         setup_match(Seed(seed), &seats(), &SetupOptions::default()).expect("setup succeeds");
@@ -231,6 +267,31 @@ fn replay_run(seed: u64) -> ReplayRun {
 
 fn hash(value: &str) -> HashValue {
     HashValue::from_stable_bytes(value.as_bytes())
+}
+
+fn first_claim_path(tree: &engine_core::ActionTree, declared: &str) -> ActionPath {
+    let claim = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == ACTION_CLAIM)
+        .expect("claim family");
+    let tile = &claim.next.as_ref().expect("tile choices").choices[0];
+    ActionPath {
+        segments: vec![
+            ACTION_CLAIM.to_owned(),
+            tile.segment.clone(),
+            declared.to_owned(),
+        ],
+    }
+}
+
+fn choice_segments(tree: &engine_core::ActionTree) -> Vec<&str> {
+    tree.root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect()
 }
 
 fn assert_trace_field(name: &str, trace: &str, needle: &str) {

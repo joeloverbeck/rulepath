@@ -428,6 +428,34 @@ Evidence:
 - `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
   Lite traces passed, including the public export fixture.
 
+### UNI8CR2TWOSEA-020 - Masked Claims parallel action-tree v1 bytes/hash
+
+Selected surface: `games/masked_claims/src/replay_support.rs` additive
+action-tree v1 adapter.
+
+Before state: Masked Claims had compound claim and flat response legal action
+trees, but no game-owned version-pinned v1 byte/hash wrapper.
+
+After state: `action_tree_v1_bytes` and `action_tree_v1_hash` expose
+`ActionTreeEncodingVersion::V1` bytes/hash for existing legal action trees.
+The adapter is additive and independently removable.
+
+ADR-0009 classification: `parallel-new-surface`. This adds explicit v1
+action-tree evidence for the nested claim shape and pending-response shape.
+Existing legality, reaction-window ownership, pending-responder policy, state
+bytes, public export bytes, and trace bytes are unchanged.
+
+Evidence:
+
+- `games/masked_claims/tests/replay.rs::action_tree_v1_bytes_and_hashes_are_pinned_for_claim_and_response_shapes`
+  pins the claim tree root choice `claim` with v1 length/hash `15326` /
+  `3772732430772540101`, and the response choices `respond/accept,
+  respond/challenge` with v1 length/hash `1100` / `689297409234037920`.
+- `cargo fmt --all --check` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; all Masked
+  Claims traces passed.
+
 ### UNI8CR2TWOSEA-005 - Poker Lite public effect constructor
 
 Selected surface: `games/poker_lite/src/effects.rs::public_effect`.

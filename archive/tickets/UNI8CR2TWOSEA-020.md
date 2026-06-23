@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-020: Masked Claims — parallel action-tree v1 bytes/hash (claim + response trees)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/src/replay_support.rs`; adds a parallel `ActionTreeEncodingVersion::V1` byte/hash surface over the compound claim and flat response trees
@@ -72,3 +72,20 @@ Add v1 byte/hash vectors for both shapes to `tests/replay.rs`, without altering 
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added an additive, version-explicit `ActionTreeEncodingVersion::V1` byte/hash
+surface in `games/masked_claims/src/replay_support.rs`. Added replay evidence
+covering both the nested compound claim tree and the flat pending-response
+tree, pinning choice ordering, v1 byte lengths, and v1 hashes. Existing
+legality, reaction-window ownership, pending-responder policy, public export
+JSON, and golden traces were not changed.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p masked_claims`
+3. `cargo run -p replay-check -- --game masked_claims --all`

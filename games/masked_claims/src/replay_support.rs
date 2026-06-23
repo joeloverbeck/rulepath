@@ -1,4 +1,4 @@
-use engine_core::StableSerialize;
+use engine_core::{ActionTree, ActionTreeEncodingVersion, HashValue, StableSerialize};
 
 use crate::{visibility::PublicView, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID};
 
@@ -93,6 +93,14 @@ impl StableSerialize for PublicReplayExport {
     fn stable_bytes(&self) -> Vec<u8> {
         self.to_json().into_bytes()
     }
+}
+
+pub fn action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    tree.stable_bytes(ActionTreeEncodingVersion::V1)
+}
+
+pub fn action_tree_v1_hash(tree: &ActionTree) -> HashValue {
+    tree.stable_hash(ActionTreeEncodingVersion::V1)
 }
 
 impl PublicReplayStep {
