@@ -645,3 +645,32 @@ Evidence:
 - `cargo test -p high_card_duel` passed.
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-014 - Secret Draft exact-two-seat structural validation
+
+Selected surface: `games/secret_draft/src/setup.rs::setup_match` and the
+normal `game-stdlib` dependency edge.
+
+Before state: local predicate compared `seats.len()` directly against
+`STANDARD_SEAT_COUNT`; `secret_draft` had no normal `game-stdlib` dependency.
+
+After state: `SeatCount::new(seats.len())` validates nonzero structure and the
+resulting count is compared against the game-owned `STANDARD_SEAT_COUNT`.
+`games/secret_draft/Cargo.toml` and `Cargo.lock` record the normal
+`game-stdlib` dependency.
+
+ADR-0009 classification: `unchanged`. This changes only the structural count
+helper used by setup validation and preserves the exact diagnostic
+code/message, standard expected-count policy, setup state bytes, and replay
+hashes. `SeatCount::next_ring_index` remains not applicable.
+
+Evidence:
+
+- `games/secret_draft/src/setup.rs::setup_accepts_exact_standard_seat_count`
+  pins accepted two-seat setup.
+- `games/secret_draft/src/setup.rs::setup_rejects_wrong_seat_counts_with_exact_diagnostic`
+  pins 0/1/3 rejection with the exact diagnostic.
+- `cargo fmt --all --check` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
