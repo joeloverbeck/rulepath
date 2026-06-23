@@ -6,7 +6,7 @@ Scope: `race_to_n`, `draughts_lite`, `three_marks`, `column_four`,
 `directional_flip`, and `token_bazaar`
 
 This report is the append-only baseline required by
-`specs/8c-r1-public-fixed-seat-scaffolding.md` before any R1 migration begins.
+`archive/specs/8c-r1-public-fixed-seat-scaffolding.md` before any R1 migration begins.
 It records current repository state only. Ticket `8CR1PUBFIXSEA-001` changes no
 Rust code, schema, fixture, trace, hash, replay, seat spelling, WASM output, or
 visibility surface.

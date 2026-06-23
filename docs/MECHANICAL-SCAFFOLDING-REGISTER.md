@@ -594,7 +594,7 @@ R1 public fixed-seat receipts, 2026-06-23:
   closed for `race_to_n`, `draughts_lite`, `three_marks`, `column_four`,
   `directional_flip`, and `token_bazaar`.
 - Final validators: the full §7.1 command set in
-  `specs/8c-r1-public-fixed-seat-scaffolding.md` passed, including focused
+  `archive/specs/8c-r1-public-fixed-seat-scaffolding.md` passed, including focused
   crates, `cargo test --workspace --all-targets`, six `replay-check --all`
   runs, six `fixture-check` runs, `bash scripts/boundary-check.sh`,
   `cargo tree --workspace -e normal --invert game-test-support`,

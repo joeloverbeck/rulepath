@@ -172,7 +172,7 @@ Produce **one downloadable markdown document**: the Unit 8C-R1 implementation sp
 - **Shape: intermediate spec artifact — NOT a ready-to-drop final repo file.** The user saves
   your output and runs the repository's new-spec pipeline (`/reassess-spec` → `/spec-to-tickets`)
   to revalidate it against the codebase and decompose it into `tickets/`. The eventual target
-  path is `specs/8c-r1-public-fixed-seat-scaffolding.md` (label one-line-correctable), but your
+  path is `archive/specs/8c-r1-public-fixed-seat-scaffolding.md` (label one-line-correctable), but your
   deliverable **does not land there directly** and must not be presented as already-final or as
   skipping the reassess/decompose step. Suggest the user save it under `reports/` (or `specs/`
   for the reassess step) as a working artifact.
