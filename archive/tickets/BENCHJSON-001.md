@@ -1,6 +1,6 @@
 # BENCHJSON-001: Restore Gate 2 benchmark JSON schema conformance for masked_claims and frontier_control
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `games/masked_claims/benches/masked_claims.rs` and `games/frontier_control/benches/frontier_control.rs` (benchmark harnesses only; no `engine-core`/`game-stdlib`/rules/trace/schema-of-record changes)
@@ -98,3 +98,26 @@ Because ADR 0002 keeps `bench-report` off the pull-request lane (shared runners 
 1. `cargo bench -p masked_claims | tee /tmp/masked_claims-benchmark-report.txt && cargo run -p bench-report -- --input /tmp/masked_claims-benchmark-report.txt --thresholds games/masked_claims/benches/thresholds.json`
 2. `cargo bench -p frontier_control | tee /tmp/frontier_control-benchmark-report.txt && cargo run -p bench-report -- --input /tmp/frontier_control-benchmark-report.txt --thresholds games/frontier_control/benches/thresholds.json`
 3. Narrower per-game `bench-report` invocation is the correct boundary because `bench-report` is the sole consumer of the benchmark JSON contract and reproduces exactly what the `bench-gate` CI step does per game.
+
+## Outcome
+
+Completed: 2026-06-23
+
+What changed:
+
+- `games/masked_claims/benches/masked_claims.rs` now emits benchmark JSON in the `bench-report` schema: top-level provenance metadata (`build_profile`, `command`, `os`, `rust_version`, `hardware_environment_notes`), an `operations` array, and per-operation `current_value`.
+- `games/frontier_control/benches/frontier_control.rs` now emits the same required provenance metadata while preserving its conforming `operations[].current_value` shape.
+- No thresholds, rationale classes, workflow lanes, game rules, traces, `engine-core`, or `game-stdlib` code changed.
+
+Deviations:
+
+- Kept the existing ignored per-operation diagnostic fields (`iterations`, `elapsed_ms`, plus `threshold`/`pass` in `masked_claims`) rather than trimming the reports to the newer minimal reference shape. `bench-report` ignores these extra fields and the required schema fields now conform.
+- Did not rerun the full GitHub `bench-gate` workflow locally; the owned acceptance proof is the two previously failing per-game `cargo bench | bench-report` invocations.
+
+Verification:
+
+- `cargo bench -p masked_claims | tee /tmp/masked_claims-benchmark-report.txt && cargo run -p bench-report -- --input /tmp/masked_claims-benchmark-report.txt --thresholds games/masked_claims/benches/thresholds.json` passed; `bench-report: 12 operations passed thresholds for masked_claims`.
+- `cargo bench -p frontier_control | tee /tmp/frontier_control-benchmark-report.txt && cargo run -p bench-report -- --input /tmp/frontier_control-benchmark-report.txt --thresholds games/frontier_control/benches/thresholds.json` passed; `bench-report: 11 operations passed thresholds for frontier_control`.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
