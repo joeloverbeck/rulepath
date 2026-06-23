@@ -1,7 +1,7 @@
 use engine_core::{ActionPath, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, Viewer};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
 };
 use masked_claims::{
     actor_for_seat, apply_action, legal_action_tree, project_view,
@@ -201,6 +201,96 @@ fn replay_command_v1_profile_driver_wraps_rule_replay_evidence() {
 }
 
 #[test]
+fn public_export_v1_profile_driver_wraps_observer_export_validator() {
+    let run = replay_run(31);
+    let driver = PublicExportV1Driver::new("masked_claims");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "masked_claims",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "masked_claims");
+
+    let export_hash = driver
+        .validate_with(&artifact, |_| {
+            HashValue::from_stable_bytes(run.export_json.as_bytes())
+        })
+        .expect("profile delegates to observer export validator");
+    assert_eq!(
+        export_hash,
+        HashValue::from_stable_bytes(run.export_json.as_bytes())
+    );
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+    assert!(!run.export_json.contains("claim/mask_g"));
+    assert!(!run.export_json.contains("\"seed\""));
+
+    let wrong_profile = public_export_profile_artifact(
+        "replay-command-v1",
+        Some("public"),
+        "masked_claims",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "other",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("seat-private"),
+        "masked_claims",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "masked_claims",
+        &["export_steps", "commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
 fn challenge_reveal_appears_after_public_claim_effect() {
     let mut state =
         setup_match(Seed(32), &seats(), &SetupOptions::default()).expect("setup succeeds");
@@ -357,6 +447,26 @@ fn replay_run_profile_hash(seed: u64) -> HashValue {
 }
 
 fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact<'a>(
     profile_id: &'a str,
     visibility_class: Option<&'a str>,
     validator_owner: &'a str,

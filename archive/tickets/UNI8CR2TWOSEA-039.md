@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-039: Masked Claims — public-export-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/tests/{replay,visibility}.rs`; adopts `game-test-support` `PublicExportV1Driver` (observer-only)
@@ -67,3 +67,24 @@ In `tests/replay.rs` (with no-leak assertions in `tests/visibility.rs`), invoke 
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Implemented in `games/masked_claims/tests/replay.rs` with
+`public_export_v1_profile_driver_wraps_observer_export_validator`. The test
+validates `public-export-v1` metadata for `masked_claims`, delegates through
+`PublicExportV1Driver::validate_with` to the existing observer export JSON
+bytes, and confirms the driver makes no canonical byte claim.
+
+The observer export path is unchanged and continues to redact claim tile
+identity and seed material. The test rejects wrong profile id, wrong validator
+owner, wrong visibility, and an illegal profile field.
+`games/masked_claims/tests/visibility.rs` now explicitly checks observer export
+seed redaction alongside hidden claimed-tile redaction.
+
+Verification passed:
+
+1. `cargo test -p masked_claims public_export_v1_profile_driver_wraps_observer_export_validator -- --nocapture`
+2. `cargo test -p masked_claims public_and_opponent_surfaces_hide_unrevealed_tile_ids -- --nocapture`
+3. `cargo test -p masked_claims`
+4. `cargo run -p replay-check -- --game masked_claims --all`

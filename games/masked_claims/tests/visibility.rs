@@ -371,10 +371,11 @@ fn public_and_opponent_surfaces_hide_unrevealed_tile_ids() {
         opponent,
         action_tree,
         format!("{effects:?}"),
-        export,
+        export.clone(),
     ] {
         assert!(!surface.contains(&hidden_tile), "{surface}");
     }
+    assert!(!export.contains("\"seed\""));
 }
 
 #[test]

@@ -1128,6 +1128,40 @@ Evidence:
 - `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
   Lite traces passed.
 
+### UNI8CR2TWOSEA-039 - Masked Claims public-export-v1 profile driver
+
+Selected surface: `games/masked_claims/tests/replay.rs` profile-driver test
+over the existing observer public replay export, plus the existing claimed-tile
+redaction surface in `games/masked_claims/tests/visibility.rs`.
+
+Before state: Masked Claims had observer public export round-trip and
+claimed-tile redaction tests, but no `PublicExportV1Driver` receipt for the
+public export profile.
+
+After state:
+`public_export_v1_profile_driver_wraps_observer_export_validator` validates the
+`public-export-v1` metadata (`v1`, `public`,
+`validator_owner = masked_claims`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing observer export JSON bytes.
+
+ADR-0009 classification: `unchanged`. This adds typed public-export profile
+evidence only. The observer export path remains unchanged, existing export
+bytes remain authoritative, no canonical byte claim is made, and no export
+artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `public-export-v1`, `v1`, `public`, and
+  `masked_claims`.
+- `validate_with` returns a stable hash over the existing observer export JSON
+  bytes produced by `replay_run(31)`.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- The observer export still omits claim tile ids and seed material.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; all
+  Masked Claims traces were accepted under the current not-applicable baseline.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal
