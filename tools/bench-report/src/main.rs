@@ -11,14 +11,28 @@ fn run(args: Vec<String>) -> Result<(), String> {
     let config = Config::parse(args)?;
     let report_input = fs::read_to_string(&config.input)
         .map_err(|error| format!("{}: failed to read report: {error}", config.input.display()))?;
-    let thresholds_input = fs::read_to_string(&config.thresholds).map_err(|error| {
+    let report = Report::parse(&report_input)?;
+
+    if config.schema_only {
+        validate_report_schema(&report)?;
+        println!(
+            "bench-report: schema OK for {} ({} operations)",
+            report.game_id,
+            report.operations.len()
+        );
+        return Ok(());
+    }
+
+    let thresholds = config
+        .thresholds
+        .as_ref()
+        .expect("thresholds required outside schema-only mode");
+    let thresholds_input = fs::read_to_string(thresholds).map_err(|error| {
         format!(
             "{}: failed to read thresholds: {error}",
-            config.thresholds.display()
+            thresholds.display()
         )
     })?;
-
-    let report = Report::parse(&report_input)?;
     let thresholds = ThresholdSet::parse(&thresholds_input)?;
     if let Some(game) = &config.game {
         let registered = resolve_game(game)?;
@@ -42,8 +56,9 @@ fn run(args: Vec<String>) -> Result<(), String> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Config {
     input: PathBuf,
-    thresholds: PathBuf,
+    thresholds: Option<PathBuf>,
     game: Option<String>,
+    schema_only: bool,
 }
 
 impl Config {
@@ -59,6 +74,7 @@ impl Config {
         let mut input = None;
         let mut thresholds = None;
         let mut game = None;
+        let mut schema_only = false;
         let mut iter = args.into_iter();
         while let Some(arg) = iter.next() {
             match arg.as_str() {
@@ -67,15 +83,20 @@ impl Config {
                     thresholds = Some(PathBuf::from(next_arg(&mut iter, "--thresholds")?));
                 }
                 "--game" => game = Some(next_arg(&mut iter, "--game")?),
+                "--schema-only" => schema_only = true,
                 other => return Err(format!("unknown argument `{other}`")),
             }
         }
 
-        let thresholds = match (thresholds, game.as_deref()) {
-            (Some(path), _) => path,
-            (None, Some(game)) => PathBuf::from(resolve_game(game)?.thresholds_path),
-            (None, None) => {
-                return Err("--thresholds is required unless --game is supplied".to_owned())
+        let thresholds = if schema_only {
+            thresholds
+        } else {
+            match (thresholds, game.as_deref()) {
+                (Some(path), _) => Some(path),
+                (None, Some(game)) => Some(PathBuf::from(resolve_game(game)?.thresholds_path)),
+                (None, None) => {
+                    return Err("--thresholds is required unless --game is supplied".to_owned());
+                }
             }
         };
 
@@ -83,6 +104,7 @@ impl Config {
             input: input.ok_or_else(|| "--input is required".to_owned())?,
             thresholds,
             game,
+            schema_only,
         })
     }
 }
@@ -148,6 +170,7 @@ fn print_help() {
     println!("bench-report 0.1.0");
     println!("usage: bench-report --input <report> --thresholds <thresholds>");
     println!("       bench-report --game <race_to_n|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|plain_tricks> --input <report>");
+    println!("       bench-report --schema-only --input <report>");
 }
 
 #[derive(Clone, Debug)]
@@ -264,7 +287,8 @@ impl ThresholdSet {
 }
 
 fn validate_report(report: &Report, thresholds: &ThresholdSet) -> Result<(), String> {
-    if report.schema_version != 1 || thresholds.schema_version != 1 {
+    validate_report_schema(report)?;
+    if thresholds.schema_version != 1 {
         return Err("bench-report: schema_version must be 1".to_owned());
     }
     for (field, report_value, threshold_value) in [
@@ -291,23 +315,6 @@ fn validate_report(report: &Report, thresholds: &ThresholdSet) -> Result<(), Str
             ));
         }
     }
-    for (field, value) in [
-        ("build_profile", &report.build_profile),
-        ("command", &report.command),
-        ("os", &report.os),
-        ("rust_version", &report.rust_version),
-        (
-            "hardware_environment_notes",
-            &report.hardware_environment_notes,
-        ),
-    ] {
-        if value.trim().is_empty() {
-            return Err(format!(
-                "bench-report: required metadata `{field}` is empty"
-            ));
-        }
-    }
-
     let operations = report
         .operations
         .iter()
@@ -351,6 +358,29 @@ fn validate_report(report: &Report, thresholds: &ThresholdSet) -> Result<(), Str
     } else {
         Err(format!("bench-report failure\n{}", failures.join("\n\n")))
     }
+}
+
+fn validate_report_schema(report: &Report) -> Result<(), String> {
+    if report.schema_version != 1 {
+        return Err("bench-report: schema_version must be 1".to_owned());
+    }
+    for (field, value) in [
+        ("build_profile", &report.build_profile),
+        ("command", &report.command),
+        ("os", &report.os),
+        ("rust_version", &report.rust_version),
+        (
+            "hardware_environment_notes",
+            &report.hardware_environment_notes,
+        ),
+    ] {
+        if value.trim().is_empty() {
+            return Err(format!(
+                "bench-report: required metadata `{field}` is empty"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn extract_json_object(input: &str) -> Option<String> {
@@ -558,6 +588,7 @@ fn parse_number_at(input: &str, start: usize) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     const THRESHOLDS: &str = include_str!("../../../games/race_to_n/benches/thresholds.json");
 
@@ -609,6 +640,16 @@ mod tests {
         let report = Report::parse(input)?;
         let thresholds = ThresholdSet::parse(THRESHOLDS)?;
         validate_report(&report, &thresholds)
+    }
+
+    fn write_temp_report(name: &str, contents: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock after epoch")
+            .as_nanos();
+        let path = env::temp_dir().join(format!("bench-report-{name}-{nonce}.json"));
+        fs::write(&path, contents).expect("write temp report");
+        path
     }
 
     #[test]
@@ -667,6 +708,67 @@ mod tests {
         let error = validate(&input).unwrap_err();
 
         assert!(error.contains("missing field `rust_version`"));
+    }
+
+    #[test]
+    fn schema_only_accepts_conforming_report_without_thresholds() {
+        let path = write_temp_report("schema-ok", &valid_report());
+        let result = run(vec![
+            "--schema-only".to_owned(),
+            "--input".to_owned(),
+            path.display().to_string(),
+        ]);
+        fs::remove_file(path).expect("remove temp report");
+
+        result.unwrap();
+    }
+
+    #[test]
+    fn schema_only_rejects_missing_metadata() {
+        let input = valid_report().replace("\"build_profile\":\"bench\",", "");
+        let path = write_temp_report("missing-build-profile", &input);
+        let error = run(vec![
+            "--schema-only".to_owned(),
+            "--input".to_owned(),
+            path.display().to_string(),
+        ])
+        .unwrap_err();
+        fs::remove_file(path).expect("remove temp report");
+
+        assert!(error.contains("missing field `build_profile`"));
+    }
+
+    #[test]
+    fn schema_only_rejects_missing_operations_array() {
+        let input = valid_report().replace("\"operations\":[", "\"results\":[");
+        let path = write_temp_report("missing-operations", &input);
+        let error = run(vec![
+            "--schema-only".to_owned(),
+            "--input".to_owned(),
+            path.display().to_string(),
+        ])
+        .unwrap_err();
+        fs::remove_file(path).expect("remove temp report");
+
+        assert!(error.contains("missing array `operations`"));
+    }
+
+    #[test]
+    fn schema_only_rejects_operation_missing_current_value() {
+        let input = valid_report().replace(
+            "\"operation_name\":\"legal_actions\",\"unit\":\"trees_per_second\",\"current_value\":1000001",
+            "\"operation_name\":\"legal_actions\",\"unit\":\"trees_per_second\",\"value\":1000001",
+        );
+        let path = write_temp_report("missing-current-value", &input);
+        let error = run(vec![
+            "--schema-only".to_owned(),
+            "--input".to_owned(),
+            path.display().to_string(),
+        ])
+        .unwrap_err();
+        fs::remove_file(path).expect("remove temp report");
+
+        assert!(error.contains("missing field `current_value`"));
     }
 
     #[test]

@@ -1,6 +1,7 @@
 use std::{
     env,
     hint::black_box,
+    process::Command,
     time::{Duration, Instant},
 };
 
@@ -17,6 +18,7 @@ use frontier_control::{
 const DATA_VERSION: &str = "1";
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
 const REPORT_SCHEMA_VERSION: u32 = 1;
+const BUILD_PROFILE: &str = "bench";
 
 struct BenchResult {
     name: &'static str,
@@ -49,6 +51,7 @@ impl BenchResult {
 
 fn main() {
     let filter = operation_filter();
+    let metadata = ReportMetadata::new();
     let results = run_benchmarks(filter.as_deref());
 
     println!("frontier_control native benchmarks");
@@ -66,7 +69,7 @@ fn main() {
         );
     }
     println!("BEGIN_FRONTIER_CONTROL_BENCHMARK_JSON");
-    println!("{}", benchmark_report_json(&results));
+    println!("{}", benchmark_report_json(&metadata, &results));
     println!("END_FRONTIER_CONTROL_BENCHMARK_JSON");
 }
 
@@ -339,14 +342,50 @@ fn command(
     }
 }
 
-fn benchmark_report_json(results: &[BenchResult]) -> String {
+struct ReportMetadata {
+    command: String,
+    os: String,
+    rust_version: String,
+    hardware_environment_notes: String,
+}
+
+impl ReportMetadata {
+    fn new() -> Self {
+        Self {
+            command: env::args().collect::<Vec<_>>().join(" "),
+            os: format!("{} {}", env::consts::OS, env::consts::ARCH),
+            rust_version: rust_version(),
+            hardware_environment_notes:
+                "Local native benchmark run; no CPU pinning, thermal isolation, or hardware probe."
+                    .to_owned(),
+        }
+    }
+}
+
+fn rust_version() -> String {
+    Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+fn benchmark_report_json(metadata: &ReportMetadata, results: &[BenchResult]) -> String {
     format!(
-        "{{\"schema_version\":{},\"game_id\":\"{}\",\"rules_version\":\"{}\",\"data_version\":\"{}\",\"engine_version\":\"{}\",\"operations\":[{}]}}",
+        "{{\"schema_version\":{},\"game_id\":\"{}\",\"rules_version\":\"{}\",\"data_version\":\"{}\",\"engine_version\":\"{}\",\"build_profile\":\"{}\",\"command\":\"{}\",\"os\":\"{}\",\"rust_version\":\"{}\",\"hardware_environment_notes\":\"{}\",\"operations\":[{}]}}",
         REPORT_SCHEMA_VERSION,
         GAME_ID,
         RULES_VERSION_LABEL,
         DATA_VERSION,
         ENGINE_VERSION,
+        BUILD_PROFILE,
+        escape_json(&metadata.command),
+        escape_json(&metadata.os),
+        escape_json(&metadata.rust_version),
+        escape_json(&metadata.hardware_environment_notes),
         results
             .iter()
             .map(bench_result_json)
@@ -364,4 +403,11 @@ fn bench_result_json(result: &BenchResult) -> String {
         result.elapsed.as_secs_f64() * 1_000.0,
         result.current_value()
     )
+}
+
+fn escape_json(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
 }

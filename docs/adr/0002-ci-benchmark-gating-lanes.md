@@ -55,8 +55,13 @@ Benchmark threshold enforcement is split into two CI lanes.
 
 - The pull-request lane MUST run a non-gating benchmark **smoke** only: it
   compiles and runs the native harness (`cargo bench -p race_to_n -- legal_actions`)
-  and MUST NOT invoke `bench-report`. Shared PR runners are not a valid
-  throughput-gating environment.
+  and MUST NOT invoke `bench-report` in threshold mode. Shared PR runners are not
+  a valid throughput-gating environment.
+- The pull-request lane MAY invoke `bench-report --schema-only` on smoke output
+  to validate benchmark-report shape: required metadata fields are present and
+  non-empty, and `operations` entries are well formed. Schema validation is
+  environment-independent and MUST NOT compare measured values against
+  thresholds.
 - The scheduled, manual, and `main`-push lane MUST run the full benchmark and
   hard-fail through `bench-report` against
   `games/race_to_n/benches/thresholds.json`.
@@ -84,6 +89,8 @@ pull-request lane runs the smoke described above.
 Positive consequences:
 
 - Pull requests stop failing on shared-runner throughput noise.
+- Pull requests can fail on malformed benchmark JSON before drift reaches
+  `main`, without turning shared-runner throughput into a PR gate.
 - Benchmark gating stays hard-failing on the scheduled / manual / `main` lane; no
   performance is hidden.
 - No threshold value changes, so no risk of silently weakening ADR 0001.
@@ -105,6 +112,9 @@ Operational requirements:
 - `.github/workflows/gate-2-benchmarks.yml` implements both lanes via
   `if: github.event_name == 'pull_request'` (smoke) and
   `if: github.event_name != 'pull_request'` (gate).
+- `bench-report --schema-only` is allowed only for report-shape validation on
+  the PR smoke lane; threshold comparison remains scheduled / manual /
+  `main`-push only.
 - `docs/TESTING-REPLAY-BENCHMARKING.md` §15 and §17 reference this ADR for the
   lane definition.
 - `games/race_to_n/docs/BENCHMARKS.md` records the observed `ubuntu-latest`
