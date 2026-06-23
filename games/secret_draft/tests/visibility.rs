@@ -407,6 +407,21 @@ fn pending_effects_diagnostics_and_public_export_redact_committed_item() {
         ),
         hidden,
     );
+
+    for seat in ["seat_0", "seat_1"] {
+        let seat_export = export_public_replay(
+            &trace,
+            &Viewer {
+                seat_id: Some(SeatId(seat.to_owned())),
+            },
+        );
+        assert_eq!(seat_export.viewer, seat);
+        let seat_json = seat_export.to_json();
+        assert!(seat_json.contains("commit_redacted"));
+        assert_no_hidden("seat-private public export json", &seat_json, hidden);
+        assert!(!seat_json.contains("seed"));
+        assert!(!seat_json.contains("44"));
+    }
 }
 
 #[test]

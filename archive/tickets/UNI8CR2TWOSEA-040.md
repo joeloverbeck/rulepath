@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-040: Secret Draft — seat-private-export-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/tests/{replay,visibility}.rs`; adopts `game-test-support` `SeatPrivateExportV1Driver` over `seat_0`/`seat_1` viewers
@@ -67,3 +67,24 @@ In `tests/replay.rs` (with no-leak assertions in `tests/visibility.rs`), invoke 
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
+
+## Outcome
+
+Implemented in `games/secret_draft/tests/replay.rs` with
+`seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports`. The test
+validates `seat-private-export-v1` metadata for `secret_draft`, delegates
+through `SeatPrivateExportV1Driver::validate_with` to the existing
+`export_public_replay` path for `seat_0` and `seat_1`, and confirms the driver
+makes no canonical byte claim.
+
+The viewer labels are explicit (`seat_0`, `seat_1`) and the pre-reveal
+committed choice remains redacted even for the owner. No new exporter or export
+rewrite was introduced. The test rejects wrong profile id, wrong validator
+owner, wrong visibility, and an illegal profile field.
+
+Verification passed:
+
+1. `cargo test -p secret_draft seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports -- --nocapture`
+2. `cargo test -p secret_draft pending_effects_diagnostics_and_public_export_redact_committed_item -- --nocapture`
+3. `cargo test -p secret_draft`
+4. `cargo run -p replay-check -- --game secret_draft --all`

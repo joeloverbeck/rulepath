@@ -1162,6 +1162,42 @@ Evidence:
 - `cargo run -p replay-check -- --game masked_claims --all` passed; all
   Masked Claims traces were accepted under the current not-applicable baseline.
 
+### UNI8CR2TWOSEA-040 - Secret Draft seat-private-export-v1 profile driver
+
+Selected surface: `games/secret_draft/tests/replay.rs` profile-driver test
+over existing viewer-scoped `export_public_replay` calls for `seat_0` and
+`seat_1`, plus the pre-reveal redaction surface in
+`games/secret_draft/tests/visibility.rs`.
+
+Before state: Secret Draft had viewer-scoped export support and redaction
+tests, but no `SeatPrivateExportV1Driver` receipt for seat-private export
+profile metadata.
+
+After state:
+`seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports` validates
+the `seat-private-export-v1` metadata (`v1`, `seat-private`,
+`validator_owner = secret_draft`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing viewer-scoped export bytes
+for both seats.
+
+ADR-0009 classification: `unchanged`. This adds typed seat-private export
+profile evidence only. The existing export path remains unchanged, no new
+exporter is introduced, no canonical byte claim is made, and no export artifact
+is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `seat-private-export-v1`, `v1`,
+  `seat-private`, and `secret_draft`.
+- Viewer labels are explicit as `seat_0` and `seat_1`.
+- The pre-reveal committed item id/path and seed material remain absent even
+  for the owner export.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; all Secret
+  Draft traces passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

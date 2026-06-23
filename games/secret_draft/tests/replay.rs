@@ -3,7 +3,8 @@ use engine_core::{
 };
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
-    ReplayCommandV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
+    ReplayCommandV1Driver, SeatPrivateExportV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1,
 };
 use secret_draft::{
     actions::{commit_segment, validate_command},
@@ -309,6 +310,120 @@ fn public_export_v1_profile_driver_wraps_observer_export_validator() {
     );
 }
 
+#[test]
+fn seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports() {
+    let trace = SecretDraftInternalTrace {
+        schema_version: 1,
+        game_id: GAME_ID.to_owned(),
+        rules_version: RULES_VERSION_LABEL.to_owned(),
+        variant: secret_draft::VARIANT_ID.to_owned(),
+        seed_evidence: 77,
+        commands: vec![ReplayCommand {
+            actor: SecretDraftSeat::Seat0.as_str().to_owned(),
+            path: vec![commit_segment(DraftItemId::Ember4)],
+        }],
+    };
+    let driver = SeatPrivateExportV1Driver::new("secret_draft");
+    let artifact = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("seat-private"),
+        "secret_draft",
+        &[
+            "viewer_seat",
+            "viewer_seat_version",
+            "export_steps",
+            "pairwise_no_leak",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, SEAT_PRIVATE_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "seat-private");
+    assert_eq!(report.validator_owner, "secret_draft");
+
+    for seat in ["seat_0", "seat_1"] {
+        let export = export_public_replay(
+            &trace,
+            &Viewer {
+                seat_id: Some(SeatId(seat.to_owned())),
+            },
+        );
+        let export_hash = driver
+            .validate_with(&artifact, |_| export.stable_hash())
+            .expect("profile delegates to viewer-scoped export validator");
+        assert_eq!(export_hash, export.stable_hash());
+        assert_eq!(export.viewer, seat);
+
+        let export_json = export.to_json();
+        assert!(export_json.contains("commit_redacted"));
+        assert!(!export_json.contains("ember_4"));
+        assert!(!export_json.contains("commit/ember_4"));
+        assert!(!export_json.contains("seed"));
+        assert!(!export_json.contains("77"));
+    }
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile = seat_private_export_profile_artifact(
+        "public-export-v1",
+        Some("seat-private"),
+        "secret_draft",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("seat-private"),
+        "other",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("public"),
+        "secret_draft",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("seat-private"),
+        "secret_draft",
+        &["export_steps", "commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
 fn replay_command_profile_artifact<'a>(
     profile_id: &'a str,
     validator_owner: &'a str,
@@ -329,6 +444,26 @@ fn replay_command_profile_artifact<'a>(
 }
 
 fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn seat_private_export_profile_artifact<'a>(
     profile_id: &'a str,
     visibility_class: Option<&'a str>,
     validator_owner: &'a str,
