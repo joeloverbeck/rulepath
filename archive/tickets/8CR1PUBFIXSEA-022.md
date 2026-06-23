@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-022: Directional Flip C-03 exact seat-count validation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/directional_flip` (`src/setup.rs`); diagnostic bytes and setup state byte-identical
@@ -70,3 +70,18 @@ Replace the hand-written `seats.len() != …` predicate with `SeatCountRange::in
 1. `cargo test -p directional_flip`
 2. `cargo run -p replay-check -- --game directional_flip --all`
 3. The per-game setup tests plus replay-check are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- `games/directional_flip/src/setup.rs::setup_match` now validates the fixed two-seat range with `SeatCountRange::inclusive(...).validate(...)`.
+- The game-owned `invalid_seat_count` diagnostic mapping remains unchanged, and the focused wrong-count test now pins both diagnostic code and message.
+- The typed `DirectionalFlipSeat::other()` mapping and setup ordering/state construction were left unchanged.
+
+Verification:
+
+- `cargo fmt --all -- --check`
+- `cargo test -p directional_flip`
+- `cargo run -p replay-check -- --game directional_flip --all`
+- `bash scripts/boundary-check.sh`
