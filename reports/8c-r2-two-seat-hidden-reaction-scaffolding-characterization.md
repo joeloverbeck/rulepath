@@ -458,6 +458,64 @@ Evidence:
 - `node scripts/check-doc-links.mjs` passed after ticket archival.
 - `cargo test --workspace --all-targets` passed after ticket archival.
 
+### UNI8CR2TWOSEA-046 - R2 acceptance run and Done status flip
+
+Selected surface: `specs/README.md` 8C-R2 tracker row plus final R2 acceptance
+evidence.
+
+Before state: `specs/README.md` still listed `8C-R2` as `Not started` with a
+seed placeholder even though all implementation and receipt tickets had landed.
+
+After state: only the `8C-R2` row is flipped to `Done` with the live spec link,
+completion date, outcome summary, and explicit note that `8C-R3`, `8C-R4`, and
+Gate 18 remain pending. No code, schema, trace, fixture, golden, or threshold
+change was made.
+
+Changed-file inventory:
+
+- Authorized capstone docs only: `specs/README.md`, this report, and the
+  archived ticket.
+- Golden/fixture diff inventory: `git diff --name-only --
+  'games/*/tests/golden_traces/**' 'games/*/data/fixtures/**'` printed no
+  paths.
+- Unrelated pre-existing worktree change left untouched:
+  `.claude/skills/spec-to-tickets/references/decomposition-patterns.md`.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p engine-core` passed.
+- `cargo test -p game-stdlib` passed.
+- `cargo test -p game-test-support` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo test -p poker_lite` passed.
+- `cargo test -p masked_claims` passed.
+- `cargo test -p replay-check` passed.
+- `cargo test -p fixture-check` passed.
+- `cargo test --workspace --all-targets` exited 0. The command includes bench
+  binaries that print benchmark JSON; some historical per-operation benchmark
+  rows reported `pass:false`, but those rows did not fail the command and no
+  benchmark threshold was changed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; the existing
+  Poker Lite bot-action trace remains a not-applicable trace accepted by the
+  tool.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; current
+  Masked Claims traces remain accepted through the not-applicable baseline
+  path.
+- `cargo run -p fixture-check -- --game high_card_duel` passed.
+- `cargo run -p fixture-check -- --game secret_draft` passed.
+- `cargo run -p fixture-check -- --game poker_lite` passed.
+- `cargo run -p fixture-check -- --game masked_claims` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `cargo tree --workspace -e normal --invert game-test-support` printed only
+  `game-test-support`, confirming no normal reverse dependency.
+- `node scripts/check-doc-links.mjs` passed.
+- `node scripts/check-catalog-docs.mjs` passed.
+
 ### UNI8CR2TWOSEA-019 - Poker Lite parallel action-tree v1 bytes/hash
 
 Selected surface: `games/poker_lite/src/replay_support.rs` additive

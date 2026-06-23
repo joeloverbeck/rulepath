@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-046: R2 acceptance run and Done status flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — verification + status-only capstone: runs the full §7 acceptance command set and flips the `8C-R2` row in `specs/README.md`; no code, schema, or trace change
@@ -73,3 +73,49 @@ In `specs/README.md`, flip only the `8C-R2` row to `Done` with date and outcome;
 1. `cargo test --workspace --all-targets`
 2. `cargo run -p replay-check -- --game high_card_duel --all` (and `secret_draft`/`poker_lite`/`masked_claims`); `cargo run -p fixture-check -- --game high_card_duel` (and the other three)
 3. `bash scripts/boundary-check.sh && cargo tree --workspace -e normal --invert game-test-support && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs`
+
+## Outcome
+
+Completed: 2026-06-23
+
+The full R2 acceptance command set passed, and only the `8C-R2` row in
+`specs/README.md` was flipped to `Done`. The row now links to the live R2 spec,
+records the completion date and outcome, and explicitly leaves `8C-R3`,
+`8C-R4`, and Gate 18 pending.
+
+The characterization report now includes the capstone acceptance ledger,
+changed-file inventory, no unauthorized golden/fixture diff proof, and the
+narrowed replay-check notes for Poker Lite and Masked Claims not-applicable
+trace handling. No code, schema, trace, fixture, golden, benchmark threshold,
+or runtime behavior changed.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p engine-core`, `cargo test -p game-stdlib`,
+  `cargo test -p game-test-support`, and `cargo test -p wasm-api` passed.
+- `cargo test -p high_card_duel`, `cargo test -p secret_draft`,
+  `cargo test -p poker_lite`, and `cargo test -p masked_claims` passed.
+- `cargo test -p replay-check` and `cargo test -p fixture-check` passed.
+- `cargo test --workspace --all-targets` exited 0. The command includes bench
+  binaries that print benchmark JSON; some historical per-operation benchmark
+  rows reported `pass:false`, but those rows did not fail the command and no
+  benchmark threshold was changed.
+- `cargo run -p replay-check -- --game high_card_duel --all`,
+  `cargo run -p replay-check -- --game secret_draft --all`,
+  `cargo run -p replay-check -- --game poker_lite --all`, and
+  `cargo run -p replay-check -- --game masked_claims --all` passed.
+- `cargo run -p fixture-check -- --game high_card_duel`,
+  `cargo run -p fixture-check -- --game secret_draft`,
+  `cargo run -p fixture-check -- --game poker_lite`, and
+  `cargo run -p fixture-check -- --game masked_claims` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `cargo tree --workspace -e normal --invert game-test-support` printed only
+  `game-test-support`.
+- `node scripts/check-doc-links.mjs` and `node scripts/check-catalog-docs.mjs`
+  passed.
+- `git diff --name-only -- 'games/*/tests/golden_traces/**' 'games/*/data/fixtures/**'` printed no paths.
+
+Deviation from the original files-to-touch list: the characterization report
+was also updated to record the final acceptance ledger required by spec §7.1
+and ticket evidence ownership.
