@@ -1,3 +1,4 @@
+use engine_core::SeatId;
 use game_stdlib::board_space::{Coord, Dimensions};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -37,11 +38,11 @@ impl ColumnFourSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            _ => None,
-        }
+        let index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()?;
+        Self::from_index(index as usize)
     }
 }
 
@@ -294,6 +295,22 @@ pub const VARIANT_ID: &str = "column_four_standard";
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn seat_ids_parse_only_canonical_bounded_ids() {
+        for seat in [ColumnFourSeat::Seat0, ColumnFourSeat::Seat1] {
+            assert_eq!(ColumnFourSeat::parse(seat.as_str()), Some(seat));
+        }
+    }
+
+    #[test]
+    fn seat_ids_reject_non_canonical_and_out_of_range_ids() {
+        for value in [
+            "seat_00", "seat_01", "seat_１", "seat-0", "seat-a", "seat_2",
+        ] {
+            assert_eq!(ColumnFourSeat::parse(value), None, "{value}");
+        }
+    }
 
     #[test]
     fn cell_ids_round_trip_through_board_space_coords() {

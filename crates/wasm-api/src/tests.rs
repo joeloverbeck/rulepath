@@ -407,11 +407,21 @@ fn three_marks_surface_drives_operation_group() {
     let exported = export_replay(&match_id).expect("replay exported");
     assert!(exported.contains("\"game_id\":\"three_marks\""));
     assert!(exported.contains("\"expected_replay_hashes\""));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(exported.contains("\"private_view_hashes\":\"three_marks has no private-view API.\""));
 
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"three_marks\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen three marks export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"three_marks\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
@@ -456,11 +466,21 @@ fn column_four_surface_drives_operation_group() {
     assert!(exported.contains("\"game_id\":\"column_four\""));
     assert!(exported.contains("\"rules_version\":\"column_four-rules-v1\""));
     assert!(exported.contains("\"expected_replay_hashes\""));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(exported.contains("\"private_view_hashes\":\"column_four has no private-view API.\""));
 
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"column_four\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen column four export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"column_four\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
@@ -515,6 +535,9 @@ fn directional_flip_surface_drives_operation_group() {
     assert!(exported.contains("\"game_id\":\"directional_flip\""));
     assert!(exported.contains("\"rules_version\":\"directional_flip-rules-v1\""));
     assert!(exported.contains("\"expected_replay_hashes\""));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(
         exported.contains("\"private_view_hashes\":\"directional_flip has no private-view API.\"")
     );
@@ -523,6 +546,13 @@ fn directional_flip_surface_drives_operation_group() {
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"directional_flip\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen directional export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"directional_flip\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
@@ -573,12 +603,22 @@ fn draughts_lite_surface_preserves_multi_segment_paths() {
     assert!(exported.contains("\"rules_version\":\"draughts_lite-rules-v1\""));
     assert!(exported.contains("\"expected_replay_hashes\""));
     assert!(exported.contains("\"action_path\":[\"from/r3c2\",\"to/r4c1\"]"));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(exported.contains("\"private_view_hashes\":\"draughts_lite has no private-view API.\""));
     assert!(!exported.contains("initial_snapshot"));
 
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"draughts_lite\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen draughts export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"draughts_lite\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
@@ -755,6 +795,9 @@ fn token_bazaar_surface_drives_public_accounting_group() {
     assert!(exported.contains("\"game_id\":\"token_bazaar\""));
     assert!(exported.contains("\"rules_version\":\"token-bazaar-rules-v1\""));
     assert!(exported.contains("\"expected_public_export_hashes\""));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(!exported.contains("\"state\":"));
     assert!(!exported.contains("candidate"));
     assert!(!exported.contains("debug"));
@@ -762,6 +805,13 @@ fn token_bazaar_surface_drives_public_accounting_group() {
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"token_bazaar\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen token bazaar export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"token_bazaar\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
@@ -1484,6 +1534,9 @@ fn replay_round_trip_reproduces_hashes() {
     apply_action(&match_id, "seat_1", "add-2", 1).expect("second action applies");
 
     let exported = export_replay(&match_id).expect("replay exported");
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     let expected = race_replay_commands(21, &["add-1".to_owned(), "add-2".to_owned()]);
     assert!(exported.contains(&format!(
         "\"expected_state_hashes\":{{\"final\":{}}}",
@@ -1500,6 +1553,12 @@ fn replay_round_trip_reproduces_hashes() {
     assert!(stepped.contains("\"cursor\":2"));
     assert!(stepped.contains("\"counter\":3"));
     assert!(stepped.contains("\"done\":true"));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported = import_replay(&legacy_exported).expect("legacy hyphen export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"race_to_n\""));
 }
 
 #[test]

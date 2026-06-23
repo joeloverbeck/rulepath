@@ -244,7 +244,7 @@ fn install_canaries(state: &mut vow_tide::state::VowTideState) {
     for (seat, card) in VowTideSeat::ALL
         .into_iter()
         .take(state.seat_count())
-        .zip(canaries.into_iter())
+        .zip(canaries)
     {
         *state.hand_for_internal_mut(seat).expect("hand exists") = vec![card];
     }

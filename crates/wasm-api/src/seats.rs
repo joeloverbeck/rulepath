@@ -223,6 +223,10 @@ pub(crate) fn trace_river_seat(seat: RiverLedgerSeat) -> String {
     seat.as_str()
 }
 
+pub(crate) fn canonical_trace_seat_id(index: u32) -> String {
+    SeatId::from_zero_based_index(index).0
+}
+
 // Seat-roster builders: construct the ordered SeatId list for a match of a
 // given size. Hyphen vs. underscore seat-id spelling is per game.
 pub(crate) fn seats() -> Vec<SeatId> {
@@ -232,6 +236,12 @@ pub(crate) fn seats() -> Vec<SeatId> {
 pub(crate) fn seats_for_count(seat_count: usize) -> Vec<SeatId> {
     (0..seat_count)
         .map(|index| SeatId(format!("seat-{index}")))
+        .collect()
+}
+
+pub(crate) fn canonical_seats_for_count(seat_count: usize) -> Vec<SeatId> {
+    (0..seat_count)
+        .map(|index| SeatId::from_zero_based_index(index as u32))
         .collect()
 }
 
@@ -288,6 +298,43 @@ fn underscore_seats_for_count(seat_count: usize) -> Vec<SeatId> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_output_helpers_emit_underscore_seat_ids() {
+        assert_eq!(canonical_trace_seat_id(0), "seat_0");
+        assert_eq!(canonical_trace_seat_id(12), "seat_12");
+        assert_eq!(
+            canonical_seats_for_count(4),
+            vec![
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+                SeatId("seat_2".to_owned()),
+                SeatId("seat_3".to_owned()),
+            ]
+        );
+    }
+
+    #[test]
+    fn existing_trace_and_roster_helpers_keep_legacy_outputs() {
+        assert_eq!(trace_race_seat(RaceSeat::Seat0), "seat-0");
+        assert_eq!(trace_three_seat(ThreeMarksSeat::Seat1), "seat-1");
+        assert_eq!(trace_column_seat(ColumnFourSeat::Seat0), "seat-0");
+        assert_eq!(trace_directional_seat(DirectionalFlipSeat::Seat1), "seat-1");
+        assert_eq!(trace_draughts_seat(DraughtsLiteSeat::Seat0), "seat-0");
+        assert_eq!(trace_token_seat(TokenBazaarSeat::Seat1), "seat_1");
+        assert_eq!(
+            seats_for_count(3),
+            vec![
+                SeatId("seat-0".to_owned()),
+                SeatId("seat-1".to_owned()),
+                SeatId("seat-2".to_owned()),
+            ]
+        );
+        assert_eq!(
+            plain_seats_for_count(2),
+            vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+        );
+    }
 
     #[test]
     fn import_adapter_accepts_canonical_hyphen_and_symbolic_aliases() {

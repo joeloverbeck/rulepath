@@ -2,6 +2,11 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, Seed,
     StableSerialize, Viewer,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, PublicExportV1Driver, ReplayCommandV1Driver,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
+    SETUP_EVIDENCE_V1,
+};
 use token_bazaar::{
     action_tree_hash, apply_action, default_seats, determine_terminal_outcome, effect_hash,
     export_public_replay, import_public_export, legal_action_tree, project_view, setup_match,
@@ -9,6 +14,57 @@ use token_bazaar::{
     TokenBazaarLevel1Bot, TokenBazaarSeat, TokenBazaarState, GAME_ID, LEVEL1_POLICY_ID,
     RULES_VERSION_LABEL, VARIANT_ID,
 };
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+];
+
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -69,6 +125,128 @@ fn golden_traces_replay_hashes_diagnostics_exports_and_no_leak_surfaces() {
     for input in fixtures {
         assert_public_safe_trace_surface(input);
         assert_trace_fixture(parse_trace_fixture(input));
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_replays_shortest_normal_fixture() {
+    let fixture_json = include_str!("golden_traces/shortest-normal.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    assert!(!fixture_json.contains("\"canonical_byte_authority\""));
+    let fixture = parse_trace_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_trace_fixture(parse_trace_fixture(fixture_json))
+        })
+        .expect("replay-command-v1 driver accepts shortest-normal profile");
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_standard_setup_fixture() {
+    let setup_fixture = include_str!("../data/fixtures/token_bazaar_standard.fixture.json");
+    assert!(!setup_fixture.contains("\"profile_id\""));
+    assert!(!setup_fixture.contains("\"profile_version\""));
+    assert!(!setup_fixture.contains("\"canonical_byte_authority\""));
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_standard_setup_fixture_metadata(setup_fixture)
+        })
+        .expect("setup-evidence-v1 driver accepts Token Bazaar setup fixture");
+}
+
+#[test]
+fn public_export_v1_driver_round_trips_public_export_fixture() {
+    let fixture_json = include_str!("golden_traces/wasm-exported.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    let driver = PublicExportV1Driver::new("token_bazaar::replay_support");
+    let profile = public_export_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            let fixture = parse_trace_fixture(fixture_json);
+            let applied_paths = applied_paths(&fixture);
+            let export = export_public_replay(fixture.seed, &applied_paths);
+            let timeline = import_public_export(&export);
+            let json = export.to_json();
+
+            assert_eq!(timeline.game_id, GAME_ID);
+            assert_eq!(timeline.variant, VARIANT_ID);
+            assert_eq!(timeline.steps.len(), applied_paths.len() + 1);
+            assert_eq!(
+                export.stable_hash(),
+                HashValue(fixture.expected_public_export_hash)
+            );
+            assert_eq!(export.export_class, "token_bazaar_public_replay_v1");
+            assert!(!json.contains("debug"));
+            assert!(!json.contains("candidate"));
+            assert!(!json.contains("internal"));
+            assert_trace_fixture(fixture);
+        })
+        .expect("public-export-v1 driver accepts Token Bazaar public export");
+}
+
+fn public_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: PUBLIC_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "token_bazaar::replay_support",
+            canonical_byte_authority: "token_bazaar::replay_support",
+            migration_update_note: Some("Token Bazaar public-export profile classification"),
+        },
+        fields: PUBLIC_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: true,
+    }
+}
+
+fn setup_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("Token Bazaar setup-evidence profile classification"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_standard_setup_fixture_metadata(fixture: &str) {
+    assert!(fixture.contains("\"fixture_id\": \"token_bazaar_standard_gate9\""));
+    assert_eq!(string_field(fixture, "game_id"), GAME_ID);
+    assert_eq!(string_field(fixture, "variant"), VARIANT_ID);
+    assert_eq!(string_field(fixture, "rules_version"), RULES_VERSION_LABEL);
+    assert_eq!(number_field(fixture, "trace_schema_version"), 1);
+    assert!(fixture.contains("\"fixture_kinds\""));
+    assert!(fixture.contains("\"public-export\""));
+    assert!(!fixture.contains("private"));
+    assert!(!fixture.contains("debug"));
+}
+
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "token_bazaar::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
     }
 }
 

@@ -13,13 +13,13 @@
   "variant": "race_to_21",
   "options": {},
   "seats": [
-    { "seat_id": "seat-0", "player_id": "player-0" },
-    { "seat_id": "seat-1", "player_id": "player-1" }
+    { "seat_id": "seat_0", "player_id": "player-0" },
+    { "seat_id": "seat_1", "player_id": "player-1" }
   ],
   "commands": [
     {
       "index": 0,
-      "actor_seat": "seat-0",
+      "actor_seat": "seat_0",
       "action_path": ["add-1"],
       "freshness_token": "0",
       "expect": "applied"

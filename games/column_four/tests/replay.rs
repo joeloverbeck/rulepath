@@ -1,12 +1,35 @@
-use column_four::replay_support::{replay_commands, ColumnFourReplayJson};
+use column_four::replay_support::{
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, replay_commands,
+    ColumnFourReplayJson,
+};
 use column_four::{
-    apply_action, setup_match, validate_command, ColumnFourSeat, ColumnId, RowId, SetupOptions,
-    TerminalOutcome, WinningLine,
+    apply_action, legal_action_tree, setup_match, validate_command, ColumnFourSeat, ColumnId,
+    RowId, SetupOptions, TerminalOutcome, WinningLine,
 };
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionPath, ActionTreeEncodingVersion, Actor, CommandEnvelope, FreshnessToken, HashValue,
+    RulesVersion, SeatId, Seed, StableSerialize,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -102,6 +125,73 @@ fn replay_json_stable_serialization_rejects_unknown_fields() {
     assert_eq!(json.as_bytes(), replay.stable_bytes());
     assert_eq!(ColumnFourReplayJson::from_json(&json).unwrap(), replay);
     assert!(ColumnFourReplayJson::from_json("{\"debug\":\"nope\"}").is_err());
+}
+
+#[test]
+fn action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
+    let state = setup_match(Seed(9), &seats, &SetupOptions::default()).unwrap();
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_hash(&tree), HashValue(7484632560849494922));
+    assert_eq!(v1_bytes, tree.stable_bytes(ActionTreeEncodingVersion::V1));
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        tree.stable_hash(ActionTreeEncodingVersion::V1)
+    );
+    assert_eq!(action_tree_v1_hash(&tree), HashValue(15281910465327785429));
+    assert_eq!(v1_bytes.len(), 1324);
+    assert!(v1_bytes.starts_with(b"RPSB"));
+    assert!(v1_bytes
+        .windows(b"action_tree".len())
+        .any(|window| window == b"action_tree"));
+    assert!(byte_offset(&v1_bytes, b"drop/c1") < byte_offset(&v1_bytes, b"drop/c2"));
+    assert!(byte_offset(&v1_bytes, b"drop/c2") < byte_offset(&v1_bytes, b"drop/c3"));
+    assert!(byte_offset(&v1_bytes, b"drop/c6") < byte_offset(&v1_bytes, b"drop/c7"));
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+        .expect("needle appears in v1 bytes")
+}
+
+#[test]
+fn replay_command_v1_driver_replays_shortest_normal_win_fixture() {
+    let fixture_json = include_str!("golden_traces/shortest-normal-win.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    assert!(!fixture_json.contains("\"canonical_byte_authority\""));
+    let fixture = parse_trace_schema_v1_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_fixture(parse_trace_schema_v1_fixture(fixture_json))
+        })
+        .expect("replay-command-v1 driver accepts shortest-normal-win profile");
+}
+
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "column_four::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
+    }
 }
 
 #[test]

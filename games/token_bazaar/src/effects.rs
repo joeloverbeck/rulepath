@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, StableSerialize, VisibilityScope};
+use engine_core::{EffectEnvelope, StableSerialize};
 
 use crate::{
     ids::{CollectBundleId, ContractId, ResourceId, TokenBazaarSeat, TokenBazaarSlot},
@@ -188,10 +188,7 @@ impl StableSerialize for TokenBazaarEffect {
 }
 
 pub fn public_effect(payload: TokenBazaarEffect) -> EffectEnvelope<TokenBazaarEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 fn counts_summary(counts: ResourceCounts) -> String {
@@ -215,15 +212,17 @@ mod tests {
 
     #[test]
     fn effects_are_public_and_stably_serialized() {
-        let effect = public_effect(TokenBazaarEffect::ResourceCollected {
+        let payload = TokenBazaarEffect::ResourceCollected {
             seat: TokenBazaarSeat::Seat0,
             bundle: CollectBundleId::AmberJade,
             gain: ResourceCounts::new(1, 1, 0),
             inventory_after: ResourceCounts::new(2, 2, 1),
             supply_after: ResourceCounts::new(13, 13, 14),
-        });
+        };
+        let effect = public_effect(payload.clone());
 
         assert_eq!(effect.visibility, VisibilityScope::Public);
+        assert_eq!(effect.payload, payload);
         assert_eq!(effect.payload.kind(), "tb_resource_collected");
         assert_eq!(
             effect.payload.stable_summary(),

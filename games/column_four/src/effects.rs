@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::{
     ids::{CellId, ColumnFourSeat, ColumnId, RowId},
@@ -48,10 +48,7 @@ pub enum ColumnFourEffect {
 }
 
 pub fn public_effect(payload: ColumnFourEffect) -> EffectEnvelope<ColumnFourEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn bot_chose_action_effect(
@@ -91,6 +88,20 @@ mod tests {
     fn state() -> ColumnFourState {
         let seats = vec![SeatId("seat-0".to_owned()), SeatId("seat-1".to_owned())];
         setup_match(Seed(1), &seats, &Default::default()).expect("setup succeeds")
+    }
+
+    #[test]
+    fn public_effect_uses_public_visibility_and_preserves_payload() {
+        let payload = ColumnFourEffect::DropAccepted {
+            seat: ColumnFourSeat::Seat0,
+            column: ColumnId::C4,
+            ply: 1,
+        };
+
+        let effect = public_effect(payload.clone());
+
+        assert_eq!(effect.visibility, VisibilityScope::Public);
+        assert_eq!(effect.payload, payload);
     }
 
     #[test]

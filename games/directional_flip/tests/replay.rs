@@ -1,3 +1,6 @@
+use directional_flip::replay_support::{
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash,
+};
 use directional_flip::{
     apply_action, legal_action_tree, replay_commands, replay_from_state, setup_match,
     validate_command, CellId, CellOccupancy, ColumnId, DirectionalFlipLevel2Bot,
@@ -5,9 +8,47 @@ use directional_flip::{
     Manifest, RowId, SetupOptions, TerminalOutcome, VariantCatalog,
 };
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize,
+    ActionChoice, ActionNode, ActionPath, ActionPreview, ActionTreeEncodingVersion, Actor,
+    CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, SetupEvidenceV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+};
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -60,6 +101,57 @@ fn df_replay_001_replay_export_import_step_reset_hashes_are_deterministic() {
 }
 
 #[test]
+fn setup_evidence_v1_driver_validates_standard_setup_fixture() {
+    let setup_fixture = include_str!("../data/fixtures/directional_flip_standard.fixture.json");
+    assert!(!setup_fixture.contains("\"profile_id\""));
+    assert!(!setup_fixture.contains("\"profile_version\""));
+    assert!(!setup_fixture.contains("\"canonical_byte_authority\""));
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_standard_setup_fixture_metadata(setup_fixture)
+        })
+        .expect("setup-evidence-v1 driver accepts Directional Flip setup fixture");
+}
+
+fn setup_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("Directional Flip setup-evidence profile classification"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_standard_setup_fixture_metadata(fixture: &str) {
+    assert_eq!(
+        string_field(fixture, "fixture_id"),
+        "directional_flip_standard_gate6"
+    );
+    assert_eq!(string_field(fixture, "game_id"), "directional_flip");
+    assert_eq!(
+        string_field(fixture, "variant"),
+        "directional_flip_standard"
+    );
+    assert_eq!(
+        string_field(fixture, "rules_version"),
+        "directional_flip-rules-v1"
+    );
+    assert_eq!(number_field(fixture, "trace_schema_version"), 1);
+    assert!(fixture.contains("\"fixture_kinds\""));
+    assert!(!fixture.contains("private"));
+    assert!(!fixture.contains("debug"));
+}
+
+#[test]
 fn golden_traces_match_expected_replay_hashes_diagnostics_and_bot_choices() {
     let fixtures = [
         include_str!("golden_traces/opening-legal-move.trace.json"),
@@ -82,6 +174,38 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_bot_choices() {
     for fixture in fixtures {
         assert_no_behavior_keys(fixture);
         assert_fixture(parse_trace_schema_v1_fixture(fixture));
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_replays_opening_legal_move_fixture() {
+    let fixture_json = include_str!("golden_traces/opening-legal-move.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    assert!(!fixture_json.contains("\"canonical_byte_authority\""));
+    let fixture = parse_trace_schema_v1_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_fixture(parse_trace_schema_v1_fixture(fixture_json))
+        })
+        .expect("replay-command-v1 driver accepts opening-legal-move profile");
+}
+
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "directional_flip::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
     }
 }
 
@@ -129,6 +253,97 @@ fn df_ser_001_replay_json_rejects_unknown_fields_and_round_trips() {
     let json = replay.to_json();
     assert_eq!(DirectionalFlipReplayJson::from_json(&json).unwrap(), replay);
     assert!(DirectionalFlipReplayJson::from_json("{\"debug\":\"nope\"}").is_err());
+}
+
+#[test]
+fn action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let state = setup_match(Seed(9), &seats(), &SetupOptions::default()).unwrap();
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_hash(&tree), HashValue(17097613169116532881));
+    assert_eq!(v1_bytes, tree.stable_bytes(ActionTreeEncodingVersion::V1));
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        tree.stable_hash(ActionTreeEncodingVersion::V1)
+    );
+    assert_eq!(action_tree_v1_hash(&tree), HashValue(15334878763169959513));
+    assert_eq!(v1_bytes.len(), 2092);
+    assert!(v1_bytes.starts_with(b"RPSB"));
+    assert!(v1_bytes
+        .windows(b"action_tree".len())
+        .any(|window| window == b"action_tree"));
+    assert!(byte_offset(&v1_bytes, b"place/r3c4") < byte_offset(&v1_bytes, b"place/r4c3"));
+    assert!(byte_offset(&v1_bytes, b"place/r4c3") < byte_offset(&v1_bytes, b"place/r5c6"));
+    assert!(byte_offset(&v1_bytes, b"place/r5c6") < byte_offset(&v1_bytes, b"place/r6c5"));
+    assert!(
+        byte_offset(&v1_bytes, b"Place at r3c4")
+            < byte_offset(&v1_bytes, b"Place at r3c4, flipping 1 disc")
+    );
+    assert!(
+        byte_offset(&v1_bytes, b"action_kind") < byte_offset(&v1_bytes, b"cell_id")
+            && byte_offset(&v1_bytes, b"cell_id") < byte_offset(&v1_bytes, b"row")
+            && byte_offset(&v1_bytes, b"row") < byte_offset(&v1_bytes, b"column")
+            && byte_offset(&v1_bytes, b"column") < byte_offset(&v1_bytes, b"preview_id")
+            && byte_offset(&v1_bytes, b"preview_id")
+                < byte_offset(&v1_bytes, b"ordered_flip_cells")
+            && byte_offset(&v1_bytes, b"ordered_flip_cells")
+                < byte_offset(&v1_bytes, b"direction_groups")
+            && byte_offset(&v1_bytes, b"direction_groups") < byte_offset(&v1_bytes, b"explanation")
+    );
+    let flat_tag = byte_offset(&v1_bytes, b"flat");
+    let placement_tag = byte_offset_after(&v1_bytes, b"placement", flat_tag);
+    let cell_tag = byte_offset_after(&v1_bytes, b"cell", placement_tag);
+    let preview_tag = byte_offset_after(&v1_bytes, b"preview", cell_tag);
+    assert!(flat_tag < placement_tag && placement_tag < cell_tag && cell_tag < preview_tag);
+    assert!(tree
+        .root
+        .choices
+        .iter()
+        .all(|choice| choice.preview == ActionPreview::Available && choice.next.is_none()));
+    let mut freshness_changed = tree.clone();
+    freshness_changed.freshness_token = FreshnessToken(tree.freshness_token.0 + 1);
+    assert_ne!(
+        action_tree_v1_hash(&tree),
+        action_tree_v1_hash(&freshness_changed)
+    );
+    let mut preview_changed = tree.clone();
+    preview_changed.root.choices[0].preview = ActionPreview::Unavailable;
+    assert_ne!(
+        action_tree_v1_hash(&tree),
+        action_tree_v1_hash(&preview_changed)
+    );
+    let mut child_changed = tree.clone();
+    child_changed.root.choices[0].next = Some(Box::new(ActionNode {
+        choices: vec![ActionChoice::leaf(
+            "confirm",
+            "Confirm",
+            "Confirm placement",
+        )],
+    }));
+    assert_ne!(
+        action_tree_v1_hash(&tree),
+        action_tree_v1_hash(&child_changed)
+    );
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+        .expect("needle appears in v1 bytes")
+}
+
+fn byte_offset_after(haystack: &[u8], needle: &[u8], offset: usize) -> usize {
+    offset
+        + haystack[offset..]
+            .windows(needle.len())
+            .position(|window| window == needle)
+            .expect("needle appears in v1 bytes after offset")
 }
 
 #[test]

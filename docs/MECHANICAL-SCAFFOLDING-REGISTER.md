@@ -113,6 +113,17 @@ mechanical scaffolding.
 - Next review trigger: C-11 game audits if additional games need effect-envelope
   migration.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `race_to_n` | public effect envelope constructor | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | no R1 byte/hash/visibility change | N/A | C-11 game audit if effect surfaces expand |
+| `draughts_lite` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-002.md` | effect order, payload, visibility, and hashes unchanged | restore local literal constructor | C-11 game audit or effect-surface migration |
+| `three_marks` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-003.md` | effect order, payload, visibility, and hashes unchanged | restore local literal constructor | C-11 game audit or effect-surface migration |
+| `column_four` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-004.md` | effect order, payload, visibility, and hashes unchanged | restore local literal constructor | C-11 game audit or effect-surface migration |
+| `directional_flip` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-005.md` | effect order, payload, visibility, and hashes unchanged | restore local literal constructor | C-11 game audit or effect-surface migration |
+| `token_bazaar` | public effect envelope constructor | migrated | `archive/tickets/8CR1PUBFIXSEA-006.md` | effect order, payload, visibility, hashes, and public export effect bytes unchanged | restore local literal constructor | C-11 game audit or effect/export-surface migration |
+
 ### MSC-8C-002 - Canonical seat-ID grammar plus import aliases
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-02.
@@ -151,6 +162,24 @@ mechanical scaffolding.
 - Next review trigger: named ADR-0009 seat-string migrations or C-11 game
   audits if additional games adopt canonical helpers.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `draughts_lite` | typed strict canonical parser | migrated | `archive/tickets/8CR1PUBFIXSEA-007.md` | no hash/visibility change; non-canonical imports still rejected outside WASM adapter | restore local parser branch | C-11 game audit or native seat-surface migration |
+| `three_marks` | typed strict canonical parser | migrated | `archive/tickets/8CR1PUBFIXSEA-008.md` | no hash/visibility change; non-canonical imports still rejected outside WASM adapter | restore local parser branch | C-11 game audit or native seat-surface migration |
+| `column_four` | typed strict canonical parser | migrated | `archive/tickets/8CR1PUBFIXSEA-009.md` | no hash/visibility change; non-canonical imports still rejected outside WASM adapter | restore local parser branch | C-11 game audit or native seat-surface migration |
+| `directional_flip` | typed strict canonical parser | migrated | `archive/tickets/8CR1PUBFIXSEA-010.md` | no hash/visibility change; non-canonical imports still rejected outside WASM adapter | restore local parser branch | C-11 game audit or native seat-surface migration |
+| `token_bazaar` | typed strict canonical parser | migrated | `archive/tickets/8CR1PUBFIXSEA-011.md` | no hash/visibility change; non-canonical imports still rejected outside WASM adapter | restore local parser branch | C-11 game audit or native seat-surface migration |
+| R1 wave | output-only canonical roster helper | migrated | `archive/tickets/8CR1PUBFIXSEA-012.md` | helper only formats caller-supplied seat ids; no visibility authority | restore local formatting at output sites | next WASM/export seat-surface migration |
+| `race_to_n` | selected WASM trace roster/actor output | migrated | `archive/tickets/8CR1PUBFIXSEA-013.md`; `reports/8c-r1-public-fixed-seat-scaffolding-characterization.md` | selected WASM export seat bytes changed from legacy hyphen to canonical underscore; winner unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
+| `draughts_lite` | selected WASM trace roster/actor output | migrated | `archive/tickets/8CR1PUBFIXSEA-014.md`; report after-receipt | selected WASM export seat bytes changed from legacy hyphen to canonical underscore; winner unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
+| `three_marks` | selected WASM trace roster/actor output | migrated | `archive/tickets/8CR1PUBFIXSEA-015.md`; report after-receipt | selected WASM export seat bytes changed from legacy hyphen to canonical underscore; winner unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
+| `column_four` | selected WASM trace roster output | migrated | `archive/tickets/8CR1PUBFIXSEA-016.md`; report after-receipt | selected WASM export roster bytes changed to canonical underscore; actor/winner unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
+| `directional_flip` | selected WASM trace roster output | migrated | `archive/tickets/8CR1PUBFIXSEA-017.md`; report after-receipt | selected WASM export roster bytes changed to canonical underscore only; actor/action/winner unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
+| `token_bazaar` | selected WASM trace roster output | migrated | `archive/tickets/8CR1PUBFIXSEA-018.md`; report after-receipt | selected WASM export roster bytes changed to canonical underscore only; actor/winner/public-export hash authority unchanged; visibility unchanged | restore selected golden trace and WASM output spelling | named native replay/trace or WASM seat-surface migration |
+| R1 wave | native `default_seats` and non-WASM legacy trace seats | accepted exception | characterization report accepted-exception table | mixed spelling remains outside selected WASM exports; no visibility change | no R1 change to roll back | separately admitted native replay/trace seat-surface migration |
+
 ### MSC-8C-003 - Seat-count validation and ring-index arithmetic
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-03.
@@ -182,6 +211,18 @@ mechanical scaffolding.
 - Rejection rationale: not applicable; accepted with behavior exclusions above.
 - Next review trigger: C-11 audits if additional games adopt seat-count or ring
   helpers.
+
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `race_to_n` | exact two-seat validation | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | no R1 byte/hash/visibility change | N/A | C-11 game audit if setup surfaces expand |
+| `draughts_lite` | exact two-seat validation | migrated | `archive/tickets/8CR1PUBFIXSEA-019.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate | C-11 game audit or setup-surface migration |
+| `three_marks` | exact two-seat validation | migrated | `archive/tickets/8CR1PUBFIXSEA-020.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate | C-11 game audit or setup-surface migration |
+| `column_four` | exact two-seat validation | migrated | `archive/tickets/8CR1PUBFIXSEA-021.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate | C-11 game audit or setup-surface migration |
+| `directional_flip` | exact two-seat validation | migrated | `archive/tickets/8CR1PUBFIXSEA-022.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate | C-11 game audit or setup-surface migration |
+| `token_bazaar` | exact two-seat validation plus normal `game-stdlib` dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-023.md` | setup diagnostics, state, replay, and visibility unchanged | restore local exact-count predicate and remove normal dependency | C-11 game audit or setup-surface migration |
+| R1 wave | ring/index geometry | not applicable | characterization report C-03 matrix | typed two-seat `other()` mappings remain game-local; no visibility/hash change | no R1 change to roll back | future ring/index helper adoption in a game with ring geometry |
 
 ### MSC-8C-004 - Action-tree encoding/hash v1
 
@@ -220,6 +261,18 @@ mechanical scaffolding.
 - Next review trigger: Race/Draughts old-vs-v1 hash receipts and
   replay-check/fixture-check evidence from UNI8CMECSCA-014/015.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `race_to_n` | action-tree v1 wrappers/hash | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | legacy hash authority unchanged; v1 parallel surface only | N/A | future authority flip with ADR-0009 packet |
+| `draughts_lite` | action-tree v1 wrappers/hash | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | legacy hash authority unchanged; v1 parallel surface only | N/A | future authority flip with ADR-0009 packet |
+| `three_marks` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR1PUBFIXSEA-024.md` | legacy `action_tree_hash` unchanged and authoritative; v1 hash is parallel viewer-safe evidence | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `column_four` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR1PUBFIXSEA-025.md` | legacy `action_tree_hash` unchanged and authoritative; v1 hash is parallel viewer-safe evidence | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `directional_flip` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR1PUBFIXSEA-026.md` | legacy `action_tree_hash` unchanged and authoritative; v1 hash is parallel viewer-safe evidence | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `token_bazaar` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR1PUBFIXSEA-027.md` | legacy `action_tree_hash` unchanged and authoritative; v1 hash is parallel viewer-safe evidence | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| R1 wave | legacy Trace Schema v1 action-tree hash | accepted exception | characterization report accepted-exception table | compatibility preserved by keeping legacy hash authority unchanged | remove no code; exception-only receipt | future authority flip with ADR-0009 packet |
+
 ### MSC-8C-005 - Stable-byte writer v1
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-05.
@@ -257,6 +310,22 @@ mechanical scaffolding.
 - Next review trigger: first game/hash-surface migration evidence in
   UNI8CMECSCA-013 through UNI8CMECSCA-015.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `race_to_n` | action-tree v1 writer use | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | v1 action-tree bytes only; adjacent surfaces unchanged | N/A | future named stable-byte surface migration |
+| `draughts_lite` | action-tree v1 writer use | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | v1 action-tree bytes only; adjacent surfaces unchanged | N/A | future named stable-byte surface migration |
+| `three_marks` | action-tree v1 writer use | migrated | `archive/tickets/8CR1PUBFIXSEA-024.md` | v1 action-tree bytes only; state/effect/view/replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| `column_four` | action-tree v1 writer use | migrated | `archive/tickets/8CR1PUBFIXSEA-025.md` | v1 action-tree bytes only; state/effect/view/replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| `directional_flip` | action-tree v1 writer use | migrated | `archive/tickets/8CR1PUBFIXSEA-026.md` | v1 action-tree bytes only; state/effect/view/replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| `token_bazaar` | action-tree v1 writer use | migrated | `archive/tickets/8CR1PUBFIXSEA-027.md` | v1 action-tree bytes only; state/effect/view/replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
+| R1 wave | state snapshot bytes/hash | accepted exception | characterization report C-05 exception table | no R1 state byte/hash change | no R1 change to roll back | dedicated state-surface migration |
+| R1 wave | effect bytes/hash | accepted exception | characterization report C-05 exception table | no R1 effect byte/hash change; C-01 proved constructor parity | restore per-game C-01 constructor if parity failed | dedicated effect-surface migration |
+| R1 wave | public-view bytes/hash | accepted exception | characterization report C-05 exception table | no R1 public-view byte/hash or visibility change | no R1 change to roll back | dedicated public-view migration |
+| R1 wave | replay/export bytes/hash outside selected WASM seat output | accepted exception | characterization report C-05 exception table | selected WASM seat bytes changed only under C-02 receipts; other replay/export bytes unchanged | restore selected WASM traces/output if needed | dedicated replay/export migration |
+| R1 wave | dedicated diagnostic bytes/hash | accepted exception or not applicable by game | characterization report C-05 exception table | no diagnostic byte/hash or visibility change | no R1 change to roll back | dedicated diagnostic-surface migration |
+
 ### MSC-8C-006 - Dev-only game test-support crate
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-06.
@@ -286,6 +355,18 @@ mechanical scaffolding.
 - Rejection rationale: not applicable.
 - Next review trigger: UNI8CMECSCA-019 no-leak implementation and
   UNI8CMECSCA-022 profile-driver implementation.
+
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `race_to_n` | `game-test-support` dev dependency | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile test | next profile-driver adoption |
+| `draughts_lite` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-028.md`; `archive/tickets/8CR1PUBFIXSEA-033.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile tests | next profile-driver adoption |
+| `three_marks` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-029.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile test | next profile-driver adoption |
+| `column_four` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-030.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile test | next profile-driver adoption |
+| `directional_flip` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-031.md`; `archive/tickets/8CR1PUBFIXSEA-034.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile tests | next profile-driver adoption |
+| `token_bazaar` | `game-test-support` dev dependency | migrated | `archive/tickets/8CR1PUBFIXSEA-032.md`; `archive/tickets/8CR1PUBFIXSEA-035.md`; `archive/tickets/8CR1PUBFIXSEA-036.md` | dev/test-only; no runtime hash/visibility impact | remove dev dependency and profile tests | next profile-driver adoption |
+| workspace | production/build reverse dependency edge | accepted proof: no production/build path | characterization report C-06 closeout; `cargo tree --workspace -e normal --invert game-test-support` | output shows only `game-test-support`; no runtime edge | boundary failure would require removing offending dependency | every profile-driver adoption and final closeout |
 
 ### MSC-8C-007 - Pairwise no-leak assertion geometry
 
@@ -324,6 +405,13 @@ mechanical scaffolding.
   betting/pot/showdown policy game-owned.
 - Rejection rationale: not applicable.
 - Next review trigger: broader hidden-information game migration under C-11.
+
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| R1 six-game wave | pairwise source-seat x viewer no-leak matrix | not applicable | characterization report C-07 closeout | games are public/perfect-information for this wave; no hidden source datum or unauthorized seat-private viewer pair introduced | no C-07 artifact added | future hidden-info/private-view surface |
+| R1 six-game wave | public visibility regressions | retained existing evidence | per-game migration tickets and existing visibility/replay suites | visibility surfaces unchanged except canonical public seat strings in selected WASM exports | restore offending migration if visibility drift appears | future hidden-info/private-view surface |
 
 ### MSC-8C-008 - Evidence-profile drivers
 
@@ -382,6 +470,23 @@ mechanical scaffolding.
 - Rejection rationale: not applicable.
 - Next review trigger: future C-08 pilot/output expansion under C-11.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `race_to_n` | `replay-command-v1` profile | already discharged by Unit 8C pilot | Unit 8C pilot receipts above | internal-dev evidence only; fixture bytes unchanged | remove profile wrapper test | next replay profile adoption |
+| `draughts_lite` | `replay-command-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-028.md` | internal-dev evidence only; golden trace bytes unchanged | remove profile wrapper test | next replay profile adoption |
+| `three_marks` | `replay-command-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-029.md` | internal-dev evidence only; golden trace bytes unchanged | remove profile wrapper test | next replay profile adoption |
+| `column_four` | `replay-command-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-030.md` | internal-dev evidence only; golden trace bytes unchanged | remove profile wrapper test | next replay profile adoption |
+| `directional_flip` | `replay-command-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-031.md` | internal-dev evidence only; golden trace bytes unchanged | remove profile wrapper test | next replay profile adoption |
+| `token_bazaar` | `replay-command-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-032.md` | internal-dev evidence only; golden trace bytes unchanged | remove profile wrapper test | next replay profile adoption |
+| `draughts_lite` | `setup-evidence-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-033.md` | internal-dev evidence only; setup fixture bytes unchanged; canonical-byte authority `none` | remove setup profile test | next setup-evidence profile adoption |
+| `directional_flip` | `setup-evidence-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-034.md` | internal-dev evidence only; setup fixture bytes unchanged; canonical-byte authority `none` | remove setup profile test | next setup-evidence profile adoption |
+| `token_bazaar` | `setup-evidence-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-035.md` | internal-dev evidence only; setup fixture bytes unchanged; canonical-byte authority `none` | remove setup profile test | next setup-evidence profile adoption |
+| `token_bazaar` | `public-export-v1` profile | migrated | `archive/tickets/8CR1PUBFIXSEA-036.md` | public export shape/hash authority checked; no private/internal/debug candidate fields admitted | remove public-export profile test | next public-export profile adoption |
+| R1 six-game wave | `seat-private-export-v1` profile | not applicable | characterization report C-08 matrix | observer and seat views are equivalent or no seat-private export in this wave; no visibility/hash change | no artifact added | future private-view/export surface |
+| R1 six-game wave | `domain-evidence-v1` profile | not applicable | characterization report C-08 matrix | no domain evidence fixture admitted in this wave; no visibility/hash change | no artifact added | future domain-evidence surface |
+
 ### MSC-8C-009 - Versioned bounded-index sampling
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-09.
@@ -417,6 +522,12 @@ mechanical scaffolding.
 - Rejection rationale: not applicable.
 - Next review trigger: future explicit RNG migrations outside Unit 8C, if any.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| R1 six-game wave | bounded-index RNG sampling | not applicable | characterization report C-09 closeout | no RNG helper/sampler migration; bot RNG, setup RNG, replay hashes, and vectors unchanged | no R1 change to roll back | separately admitted RNG migration packet |
+
 ### MSC-8C-010 - Behavioral-policy bundle on the Non-Promotion List - rejected / local-only
 
 - Entry id: 2026-06-22, status `rejected / local-only`, owner Unit 8C / C-10.
@@ -451,6 +562,12 @@ mechanical scaffolding.
 - Next review trigger: the next mechanic-ladder gate if a later game repeats
   one of these behavioral shapes.
 
+R1 public fixed-seat receipts, 2026-06-23:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| R1 six-game wave | deal/reveal/projection/scoring/outcome/bot/diagnostic policy bundle | rejected / local-only reaffirmed | characterization report C-10 closeout; `bash scripts/boundary-check.sh` | no behavior, legality, setup policy, projection, scoring, outcome, bot, diagnostic policy, TypeScript authority, YAML, DSL, or static behavior moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or any proposed behavioral extraction |
+
 ### Unit 8C closeout evidence - 2026-06-22
 
 - Final state: `MSC-8C-001`...`MSC-8C-009` are `accepted`; `MSC-8C-010` is
@@ -468,6 +585,25 @@ mechanical scaffolding.
 - Scope result: no production-code, test, byte, fixture, hash, WASM, atlas, or
   roadmap change was needed for closeout; the four 8C-R follow-on rows remain
   unimplemented and `Not started`.
+
+### Unit 8C-R1 closeout evidence - 2026-06-23
+
+- Final state: R1 public fixed-seat receipts are recorded under
+  `MSC-8C-001`...`MSC-8C-010` above. Migrated surfaces, not-applicable
+  decisions, accepted exceptions, rollback notes, and next-review triggers are
+  closed for `race_to_n`, `draughts_lite`, `three_marks`, `column_four`,
+  `directional_flip`, and `token_bazaar`.
+- Final validators: the full §7.1 command set in
+  `archive/specs/8c-r1-public-fixed-seat-scaffolding.md` passed, including focused
+  crates, `cargo test --workspace --all-targets`, six `replay-check --all`
+  runs, six `fixture-check` runs, `bash scripts/boundary-check.sh`,
+  `cargo tree --workspace -e normal --invert game-test-support`,
+  `node scripts/check-doc-links.mjs`, and
+  `node scripts/check-catalog-docs.mjs`.
+- Scope result: the golden/fixture diff audit from the pre-series base
+  `d8061fcf8e974a25fdad15a8bf044891476265b2` reported exactly the six
+  authorized `wasm-exported.trace.json` files and no fixture changes.
+  Successor rows `8C-R2`, `8C-R3`, `8C-R4`, and Gate 18 remain unimplemented.
 
 ## Review Checklist
 

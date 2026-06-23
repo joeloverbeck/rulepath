@@ -11,7 +11,7 @@ use crate::actors::three_actor_for_seat;
 use crate::commands::{command_record_json, single_segment_commands};
 use crate::constants::*;
 use crate::json::{diagnostic_json, escape_json};
-use crate::seats::{parse_three_seat, seats, trace_three_seat};
+use crate::seats::{canonical_seats_for_count, canonical_trace_seat_id, parse_three_seat, seats};
 use crate::{visibility_json, AppliedCommand};
 
 pub(crate) fn three_replay_to_cursor(
@@ -58,7 +58,19 @@ pub(crate) fn three_replay_document_json(
     let commands_json = commands
         .iter()
         .enumerate()
-        .map(|(index, command)| command_record_json(index, command))
+        .map(|(index, command)| three_command_record_json(index, command))
+        .collect::<Result<Vec<_>, _>>()?
+        .join(",");
+    let seats_json = canonical_seats_for_count(2)
+        .iter()
+        .enumerate()
+        .map(|(index, seat)| {
+            format!(
+                "{{\"seat_id\":\"{}\",\"player_id\":\"player-{}\"}}",
+                escape_json(&seat.0),
+                index
+            )
+        })
         .collect::<Vec<_>>()
         .join(",");
     let checkpoints = if commands.is_empty() {
@@ -77,7 +89,7 @@ pub(crate) fn three_replay_document_json(
             }
             three_marks::TerminalOutcome::Win { seat, line } => format!(
                 "{{\"terminal\":true,\"winner\":\"{}\",\"kind\":\"win\",\"line\":[\"{}\",\"{}\",\"{}\"]}}",
-                trace_three_seat(seat),
+                canonical_trace_seat_id(seat.index() as u32),
                 line.cells[0].as_str(),
                 line.cells[1].as_str(),
                 line.cells[2].as_str()
@@ -86,7 +98,7 @@ pub(crate) fn three_replay_document_json(
     );
 
     Ok(format!(
-        "{{\"schema_version\":{},\"trace_id\":\"{}\",\"fixture_kind\":\"commands\",\"purpose\":\"wasm_exported_replay\",\"note\":\"Replay exported by the Rulepath WASM API from the Rust command log.\",\"migration_update_note\":\"Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{{\"seat_id\":\"seat-0\",\"player_id\":\"player-0\"}},{{\"seat_id\":\"seat-1\",\"player_id\":\"player-1\"}}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_private_view_hashes\":{{\"not_applicable\":\"three_marks is perfect-information and has no private-view API.\"}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_outcome\":{},\"expected_terminal_state\":{},\"not_applicable\":{{\"hidden_information\":\"three_marks is perfect-information and has no hidden state to redact.\",\"stochastic_game_events\":\"three_marks game rules use no randomness; bot RNG is not replayed from exported documents because resolved commands are recorded.\",\"private_view_hashes\":\"three_marks has no private-view API.\",\"preview_hashes\":\"three_marks has no Rust preview surface in Gate 4.\"}}}}",
+        "{{\"schema_version\":{},\"trace_id\":\"{}\",\"fixture_kind\":\"commands\",\"purpose\":\"wasm_exported_replay\",\"note\":\"Replay exported by the Rulepath WASM API from the Rust command log.\",\"migration_update_note\":\"Updated public view hash for VICEXPSHASUR-004 outcome rationale projection.\",\"game_id\":\"{}\",\"rules_version\":\"{}\",\"engine_version\":\"{}\",\"data_version\":\"{}\",\"seed\":{},\"variant\":\"{}\",\"options\":{{}},\"seats\":[{}],\"commands\":[{}],\"checkpoints\":{},\"expected_state_hashes\":{{\"final\":{}}},\"expected_effect_hashes\":{{\"final\":{}}},\"expected_action_tree_hashes\":{{\"final\":{}}},\"expected_public_view_hashes\":{{\"all\":{}}},\"expected_private_view_hashes\":{{\"not_applicable\":\"three_marks is perfect-information and has no private-view API.\"}},\"expected_replay_hashes\":{{\"final\":{}}},\"expected_outcome\":{},\"expected_terminal_state\":{},\"not_applicable\":{{\"hidden_information\":\"three_marks is perfect-information and has no hidden state to redact.\",\"stochastic_game_events\":\"three_marks game rules use no randomness; bot RNG is not replayed from exported documents because resolved commands are recorded.\",\"private_view_hashes\":\"three_marks has no private-view API.\",\"preview_hashes\":\"three_marks has no Rust preview surface in Gate 4.\"}}}}",
         SCHEMA_VERSION,
         escape_json(trace_id),
         escape_json(GAME_THREE_MARKS),
@@ -95,6 +107,7 @@ pub(crate) fn three_replay_document_json(
         escape_json(DATA_VERSION),
         seed,
         escape_json(VARIANT_THREE_MARKS_STANDARD),
+        seats_json,
         commands_json,
         checkpoints,
         hashes.state_hash.0,
@@ -104,6 +117,18 @@ pub(crate) fn three_replay_document_json(
         hashes.replay_hash.0,
         outcome,
         outcome
+    ))
+}
+
+fn three_command_record_json(index: usize, command: &AppliedCommand) -> Result<String, String> {
+    let seat = parse_three_seat(&command.actor_seat)?;
+    Ok(command_record_json(
+        index,
+        &AppliedCommand {
+            actor_seat: canonical_trace_seat_id(seat.index() as u32),
+            action_path: command.action_path.clone(),
+            freshness_token: command.freshness_token,
+        },
     ))
 }
 
