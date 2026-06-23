@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-019: Poker Lite — parallel action-tree v1 bytes/hash
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/src/replay_support.rs`; adds a parallel `ActionTreeEncodingVersion::V1` byte/hash surface alongside the retained legacy `action_tree_hash`
@@ -72,3 +72,20 @@ Add v1 byte/hash vectors across pledge phases to `tests/replay.rs` and a legacy-
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added an additive, version-explicit `ActionTreeEncodingVersion::V1` byte/hash
+surface in `games/poker_lite/src/replay_support.rs` while leaving the legacy
+`action_tree_hash` string encoder unchanged. Added replay vectors across the
+opening pledge, outstanding response, and second-round pledge trees. The test
+pins legal choice ordering plus the legacy hash, v1 byte length, and v1 hash
+for each surface, without changing pledge legality or any golden trace bytes.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p poker_lite`
+3. `cargo run -p replay-check -- --game poker_lite --all`

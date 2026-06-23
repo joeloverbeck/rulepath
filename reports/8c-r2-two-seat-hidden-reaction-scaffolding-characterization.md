@@ -397,6 +397,37 @@ Evidence:
 - `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
   checked and `replay-check: all traces passed`.
 
+### UNI8CR2TWOSEA-019 - Poker Lite parallel action-tree v1 bytes/hash
+
+Selected surface: `games/poker_lite/src/replay_support.rs` additive
+action-tree v1 adapter alongside the retained legacy `action_tree_hash`.
+
+Before state: Poker Lite had a local legacy string encoder `action_tree_hash`
+used by replay evidence, but no version-pinned v1 byte/hash surface.
+
+After state: `action_tree_v1_bytes` and `action_tree_v1_hash` expose
+`ActionTreeEncodingVersion::V1` bytes/hash for existing legal action trees.
+The legacy `action_tree_hash` function remains intact.
+
+ADR-0009 classification: `parallel-new-surface` with legacy `exception`. This
+adds explicit v1 action-tree evidence for opening pledge, outstanding response,
+and second-round pledge trees without reinterpreting the legacy hash, changing
+legal choices, or altering trace bytes.
+
+Evidence:
+
+- `games/poker_lite/tests/replay.rs::action_tree_v1_bytes_and_hashes_are_pinned_across_pledge_phases`
+  pins opening pledge choices `hold, press` with legacy/v1 values
+  `2134463419946389911` / `1144` / `4146366381206085604`,
+  outstanding response choices `lift, match, yield` with legacy/v1 values
+  `5240408035218415049` / `1715` / `15898457577120528969`, and
+  second-round pledge choices `hold, press` with legacy/v1 values
+  `10376176577096665250` / `1142` / `12557641340017326258`.
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
+  Lite traces passed, including the public export fixture.
+
 ### UNI8CR2TWOSEA-005 - Poker Lite public effect constructor
 
 Selected surface: `games/poker_lite/src/effects.rs::public_effect`.

@@ -5,8 +5,9 @@ use engine_core::{
 use poker_lite::{
     apply_action, legal_action_tree,
     replay_support::{
-        action_tree_hash, effect_hash, export_public_replay, import_public_export, state_hash,
-        trace_from_commands, view_hash, PokerLiteInternalTrace, ReplayCommand,
+        action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, effect_hash,
+        export_public_replay, import_public_export, state_hash, trace_from_commands, view_hash,
+        PokerLiteInternalTrace, ReplayCommand,
     },
     setup_effects, setup_match, validate_command, Phase, PokerLiteSeat, PokerLiteState,
     SetupOptions, TerminalOutcome, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID,
@@ -152,6 +153,66 @@ fn yield_terminal_public_export_cannot_reconstruct_folded_private_cards() {
     assert_no_private_cards(&json, &state);
     assert!(!json.contains("seed_evidence"));
     assert!(!json.contains("\"seed\""));
+}
+
+#[test]
+fn action_tree_v1_bytes_and_hashes_are_pinned_across_pledge_phases() {
+    let mut state = setup_state(11);
+    let seat_0_actor = Actor {
+        seat_id: state.seats[PokerLiteSeat::Seat0.index()].clone(),
+    };
+    let opening_tree = legal_action_tree(&state, &seat_0_actor);
+
+    assert_eq!(choice_segments(&opening_tree), vec!["hold", "press"]);
+    assert_eq!(
+        action_tree_hash(&opening_tree),
+        HashValue(2134463419946389911)
+    );
+    assert_eq!(action_tree_v1_bytes(&opening_tree).len(), 1144);
+    assert_eq!(
+        action_tree_v1_hash(&opening_tree),
+        HashValue(4146366381206085604)
+    );
+
+    let press = command_envelope_for_action(&state, PokerLiteSeat::Seat0, "press");
+    let action = validate_command(&state, &press).expect("press validates");
+    apply_action(&mut state, action).expect("press applies");
+
+    let seat_1_actor = Actor {
+        seat_id: state.seats[PokerLiteSeat::Seat1.index()].clone(),
+    };
+    let response_tree = legal_action_tree(&state, &seat_1_actor);
+
+    assert_eq!(
+        choice_segments(&response_tree),
+        vec!["lift", "match", "yield"]
+    );
+    assert_eq!(
+        action_tree_hash(&response_tree),
+        HashValue(5240408035218415049)
+    );
+    assert_eq!(action_tree_v1_bytes(&response_tree).len(), 1715);
+    assert_eq!(
+        action_tree_v1_hash(&response_tree),
+        HashValue(15898457577120528969)
+    );
+
+    let response = command_envelope_for_action(&state, PokerLiteSeat::Seat1, "match");
+    let action = validate_command(&state, &response).expect("match validates");
+    apply_action(&mut state, action).expect("match applies");
+
+    let round_two_tree = legal_action_tree(&state, &seat_1_actor);
+
+    assert_eq!(choice_segments(&round_two_tree), vec!["hold", "press"]);
+    assert_eq!(
+        action_tree_hash(&round_two_tree),
+        HashValue(10376176577096665250)
+    );
+    assert_eq!(action_tree_v1_bytes(&round_two_tree).len(), 1142);
+    assert_eq!(
+        action_tree_v1_hash(&round_two_tree),
+        HashValue(12557641340017326258)
+    );
 }
 
 fn assert_trace_fixture(fixture: &TraceFixture) {
@@ -372,6 +433,31 @@ fn command_envelope(state: &PokerLiteState, command: &TraceCommand) -> CommandEn
         freshness_token: FreshnessToken(command.freshness_token),
         rules_version: RulesVersion(1),
     }
+}
+
+fn command_envelope_for_action(
+    state: &PokerLiteState,
+    seat: PokerLiteSeat,
+    segment: &str,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: vec![segment.to_owned()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn choice_segments(tree: &engine_core::ActionTree) -> Vec<&str> {
+    tree.root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect()
 }
 
 fn combined_action_tree_hash(state: &PokerLiteState) -> HashValue {
