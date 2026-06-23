@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-005: Poker Lite — public effect-envelope constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/src/effects.rs`; adopts `engine-core` `EffectEnvelope::public`
@@ -66,3 +66,31 @@ Replace the local public-envelope literal in `public_effect` with `EffectEnvelop
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed: 2026-06-23
+
+Replaced `games/poker_lite/src/effects.rs::public_effect`'s local public
+envelope literal with `EffectEnvelope::public(payload)`. The change is limited
+to public effect-envelope construction; payload formation, private envelope
+construction, reveal timing, pledge/pot/showdown policy, diagnostics, and
+filtering remain game-owned.
+
+Added
+`games/poker_lite/tests/serialization.rs::public_effect_constructor_preserves_public_scope_and_payload`
+to pin the public visibility scope and exact representative payload
+preservation. The characterization report now records this migration as
+ADR-0009 `unchanged`.
+
+Deviations: `cargo fmt --all --check` initially reported only import ordering
+in the new Poker serialization test; `cargo fmt --all` was applied and the
+format check then passed.
+
+Verification:
+
+- `cargo fmt --all --check` passed after rustfmt.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; output
+  included one `not-applicable trace accepted` and one public-export fixture
+  acceptance before `replay-check: all traces passed`.

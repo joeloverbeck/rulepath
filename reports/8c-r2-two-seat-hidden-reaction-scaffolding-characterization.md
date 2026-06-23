@@ -396,3 +396,29 @@ Evidence:
 - `cargo test -p secret_draft` passed.
 - `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
   checked and `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-005 - Poker Lite public effect constructor
+
+Selected surface: `games/poker_lite/src/effects.rs::public_effect`.
+
+Before state: local literal constructor
+`EffectEnvelope { visibility: VisibilityScope::Public, payload }`.
+
+After state: `EffectEnvelope::public(payload)`.
+
+ADR-0009 classification: `unchanged`. This changes only generic public
+envelope construction and preserves payload formation, reveal timing, pot and
+showdown policy, public effect bytes, replay hashes, and viewer filtering.
+Poker's private effect constructor is unchanged and remains ticket 006's
+surface.
+
+Evidence:
+
+- `games/poker_lite/tests/serialization.rs::public_effect_constructor_preserves_public_scope_and_payload`
+  pins public scope and exact representative payload preservation.
+- `cargo fmt --all --check` passed after rustfmt adjusted import ordering.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; output
+  included `bot-action.trace.json ... not-applicable trace accepted` and
+  `wasm-exported.trace.json: public export fixture accepted`, then
+  `replay-check: all traces passed`.

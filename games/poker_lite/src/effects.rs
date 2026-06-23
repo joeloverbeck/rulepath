@@ -89,10 +89,7 @@ pub enum LedgerAllocation {
 }
 
 pub fn public_effect(payload: PokerLiteEffect) -> EffectEnvelope<PokerLiteEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(

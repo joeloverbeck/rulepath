@@ -1,12 +1,12 @@
-use engine_core::{SeatId, StableSerialize, Viewer};
+use engine_core::{SeatId, StableSerialize, Viewer, VisibilityScope};
 use poker_lite::{
-    load_manifest, load_standard_fixture, load_variants,
+    load_manifest, load_standard_fixture, load_variants, public_effect,
     replay_support::{
         export_public_replay, generate_internal_full_trace, PokerLiteInternalTrace,
         PublicReplayExport,
     },
-    setup_match, Fixture, Manifest, SetupOptions, VariantCatalog, GAME_ID, RULES_VERSION_LABEL,
-    VARIANT_ID,
+    setup_match, Fixture, Manifest, PokerLiteEffect, SetupOptions, VariantCatalog, GAME_ID,
+    RULES_VERSION_LABEL, VARIANT_ID,
 };
 
 #[test]
@@ -79,6 +79,18 @@ fn public_export_json_round_trips_stably_and_rejects_unknown_fields() {
         &json.replace("\"step_index\"", "\"formula\":\"bad\",\"step_index\"")
     )
     .is_err());
+}
+
+#[test]
+fn public_effect_constructor_preserves_public_scope_and_payload() {
+    let payload = PokerLiteEffect::OpeningPoolSet {
+        contributions: [1, 1],
+        shared_pool: 2,
+    };
+    let effect = public_effect(payload.clone());
+
+    assert_eq!(effect.visibility, VisibilityScope::Public);
+    assert_eq!(effect.payload, payload);
 }
 
 #[test]
