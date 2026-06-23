@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-004: Secret Draft — public effect-envelope constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/src/effects.rs`; adopts `engine-core` `EffectEnvelope::public`
@@ -67,3 +67,30 @@ Replace the local public-envelope literal in `public_effect` with `EffectEnvelop
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
+
+## Outcome
+
+Completed: 2026-06-23
+
+Replaced `games/secret_draft/src/effects.rs::public_effect`'s local public
+envelope literal with `engine_core::EffectEnvelope::public(payload)`. The
+change is limited to public effect-envelope construction; payload formation,
+commitment/reveal timing, redaction policy, diagnostics, and filtering remain
+game-owned. No private effect constructor was added.
+
+Added
+`games/secret_draft/src/effects.rs::public_effect_constructor_preserves_public_scope_and_redacted_payload`
+to pin public scope and confirm pre-reveal public effect payloads still omit
+every `DraftItemId`. The characterization report now records this migration as
+ADR-0009 `unchanged`.
+
+Deviations: the focused constructor test was added inside `src/effects.rs`
+instead of `tests/serialization.rs` because `public_effect` is not part of the
+crate's public re-export surface.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.

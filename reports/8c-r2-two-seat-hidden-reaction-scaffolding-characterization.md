@@ -371,3 +371,28 @@ Evidence:
 - `cargo test -p high_card_duel` passed.
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-004 - Secret Draft public effect constructor
+
+Selected surface: `games/secret_draft/src/effects.rs::public_effect`.
+
+Before state: local literal constructor
+`engine_core::EffectEnvelope { visibility: engine_core::VisibilityScope::Public, payload }`.
+
+After state: `engine_core::EffectEnvelope::public(payload)`.
+
+ADR-0009 classification: `unchanged`. This changes only generic public
+envelope construction and preserves payload formation, commitment/reveal
+policy, redaction, stable public effect strings, replay hashes, and viewer
+filtering. Secret Draft has no seat-private effect constructor at this
+baseline; that N/A remains a report/register receipt, not synthetic code.
+
+Evidence:
+
+- `games/secret_draft/src/effects.rs::public_effect_constructor_preserves_public_scope_and_redacted_payload`
+  pins public scope and confirms pre-reveal public effect payloads omit every
+  `DraftItemId`.
+- `cargo fmt --all --check` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.

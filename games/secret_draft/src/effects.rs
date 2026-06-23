@@ -76,10 +76,7 @@ pub struct TieBreakSummary {
 }
 
 pub fn public_effect(payload: SecretDraftEffect) -> engine_core::EffectEnvelope<SecretDraftEffect> {
-    engine_core::EffectEnvelope {
-        visibility: engine_core::VisibilityScope::Public,
-        payload,
-    }
+    engine_core::EffectEnvelope::public(payload)
 }
 
 #[cfg(test)]
@@ -105,6 +102,20 @@ mod tests {
         ];
 
         let text = format!("{effects:?}");
+        for item in DraftItemId::ALL {
+            assert!(!text.contains(item.as_str()));
+        }
+    }
+
+    #[test]
+    fn public_effect_constructor_preserves_public_scope_and_redacted_payload() {
+        let effect = public_effect(SecretDraftEffect::OwnCommitAccepted {
+            seat: SecretDraftSeat::Seat0,
+            round: 1,
+        });
+
+        assert_eq!(effect.visibility, engine_core::VisibilityScope::Public);
+        let text = format!("{:?}", effect.payload);
         for item in DraftItemId::ALL {
             assert!(!text.contains(item.as_str()));
         }
