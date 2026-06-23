@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-034: Poker Lite — setup-evidence-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/tests/serialization.rs`; adopts `game-test-support` `SetupEvidenceV1Driver`; fixture read-only
@@ -66,3 +66,22 @@ In `tests/serialization.rs`, invoke `SetupEvidenceV1Driver` over the existing fi
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p fixture-check -- --game poker_lite`
+
+## Outcome
+
+Implemented in `games/poker_lite/tests/serialization.rs` with
+`setup_evidence_v1_profile_driver_wraps_deck_fixture_metadata`. The test
+validates `setup-evidence-v1` metadata for `poker_lite`, delegates through
+`SetupEvidenceV1Driver::validate_with` to the existing read-only fixture bytes,
+and confirms the driver makes no canonical byte claim.
+
+The fixture remains deck/setup metadata only: `private_cards` stays
+`hidden_by_setup`, center status stays hidden, and no seat-private hand field is
+exported. The driver rejects wrong profile id, wrong validator owner, wrong
+visibility, and an illegal profile field.
+
+Verification passed:
+
+1. `cargo test -p poker_lite setup_evidence_v1_profile_driver_wraps_deck_fixture_metadata -- --nocapture`
+2. `cargo test -p poker_lite`
+3. `cargo run -p fixture-check -- --game poker_lite`

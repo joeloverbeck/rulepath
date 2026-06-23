@@ -954,6 +954,40 @@ Evidence:
 - `cargo run -p fixture-check -- --game secret_draft` passed with
   `fixture-check: all fixtures passed`.
 
+### UNI8CR2TWOSEA-034 - Poker Lite setup-evidence-v1 profile driver
+
+Selected surface: `games/poker_lite/tests/serialization.rs` setup-evidence
+profile-driver test over the existing read-only fixture metadata.
+
+Before state: Poker Lite had public setup fixture parsing and deck/setup
+metadata assertions, but no `SetupEvidenceV1Driver` receipt for public setup
+evidence.
+
+After state:
+`setup_evidence_v1_profile_driver_wraps_deck_fixture_metadata` validates the
+`setup-evidence-v1` metadata (`v1`, `public`,
+`validator_owner = poker_lite`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing fixture bytes.
+
+ADR-0009 classification: `unchanged`. This adds typed setup-profile evidence
+only. The fixture remains read-only, dealt private cards stay internal-dev, no
+canonical byte claim is made, and no fixture artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `setup-evidence-v1`, `v1`, `public`, and
+  `poker_lite`.
+- The fixture still contains public fixture id, game, variant, rules version,
+  deck-order metadata, `private_cards = hidden_by_setup`, and hidden center
+  status.
+- The fixture contains no seat-private hand field such as `seat_0_private`,
+  `seat_1_private`, or `private_hand`.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p fixture-check -- --game poker_lite` passed with
+  `fixture-check: all fixtures passed`.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal
