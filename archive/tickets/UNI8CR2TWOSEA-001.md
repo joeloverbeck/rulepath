@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-001: Characterization baseline and locked determination
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new governance/characterization report (`reports/8c-r2-two-seat-hidden-reaction-scaffolding-characterization.md`); no code, schema, or trace change
@@ -78,3 +78,36 @@ Record C-06/C-07/C-09/C-10 applicability conclusions and every accepted-exceptio
 1. `cargo run -p replay-check -- --game high_card_duel --all` (representative anchor re-read).
 2. `cargo test --workspace --all-targets` (full-pipeline baseline-green proof).
 3. A per-game `replay-check` is the correct boundary for hash anchoring; the workspace run proves the baseline is globally green before migrations start.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Created `reports/8c-r2-two-seat-hidden-reaction-scaffolding-characterization.md`
+as the pre-migration baseline for the R2 four-game wave. The report records the
+locked determination, every game/helper verdict, owner paths and symbols, C-01
+through C-10 applicability, C-02 compatibility exceptions, C-07 no-leak
+matrices, C-08 profile classes, C-09 checkpoint expectations, accepted
+exception rows, and SHA-256 anchors for all current R2 fixture/golden-trace
+files.
+
+Deviations: the report records all four per-game replay checks, not just the
+representative High Card command named in the ticket's command list, because the
+acceptance criteria require the four-game baseline. `cargo test --workspace
+--all-targets` also ran benchmark target binaries as part of the all-targets
+test surface; benchmark rows with `pass=false` are recorded as benchmark data,
+not Rust test failures.
+
+Verification:
+
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; Poker's output
+  included one `not-applicable trace accepted` and one public-export fixture
+  acceptance before `replay-check: all traces passed`.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; 17 traces
+  were accepted through the current not-applicable trace path before
+  `replay-check: all traces passed`.
+- `cargo test --workspace --all-targets` passed with cargo exit 0.
