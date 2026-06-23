@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-012: C-02 output-only canonical seat/roster helper
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `wasm-api` (`src/seats.rs` new output formatter + local tests); no game document flips, no golden change
@@ -74,3 +74,26 @@ Add focused unit tests proving the formatter's canonical output and that no exis
 1. `cargo test -p wasm-api`
 2. `cargo test --workspace --all-targets`
 3. The `wasm-api` unit tests are the correct boundary: this is a transport-layer formatter with no game-document consumer yet.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Changes:
+
+- Added output-only `canonical_trace_seat_id` and `canonical_seats_for_count` helpers in `crates/wasm-api/src/seats.rs`, deriving canonical `seat_<n>` strings through `engine_core::SeatId::from_zero_based_index`.
+- Added focused `wasm-api` tests proving the new helpers emit canonical underscore IDs and existing trace/roster helpers retain their legacy outputs.
+- Added narrow `#[allow(dead_code)]` attributes to the two additive helpers because their consumers are intentionally staged in follow-up output-flip tickets.
+
+Deviations:
+
+- `cargo fmt --all -- --check` initially failed on rustfmt wrapping in the new tests; `cargo fmt --all` was run and the final format check passed.
+- `cargo test --workspace --all-targets` exits 0, but local bench binaries inside that command still print some `pass:false` benchmark rows for existing thresholded smoke output; no test binary failed.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p wasm-api` passed, including `seats::tests::canonical_output_helpers_emit_underscore_seat_ids` and `seats::tests::existing_trace_and_roster_helpers_keep_legacy_outputs`.
+- `cargo test --workspace --all-targets` passed with exit 0.
+- `bash scripts/boundary-check.sh` passed.
+- `git diff --name-only games | rg 'games/.*/tests/golden_traces/wasm-exported\.trace\.json'` produced no matches, confirming no game document/golden flip happened in this ticket.
