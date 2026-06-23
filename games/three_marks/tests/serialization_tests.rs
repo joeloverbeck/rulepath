@@ -1,10 +1,13 @@
 use engine_core::{
-    ActionPath, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, StableSerialize,
-    Viewer,
+    ActionPath, ActionTreeEncodingVersion, Actor, CommandEnvelope, FreshnessToken, HashValue,
+    RulesVersion, SeatId, Seed, StableSerialize, Viewer,
 };
 use three_marks::{
-    project_view, replay_support::ThreeMarksReplayJson, setup_match, PublicView, SetupOptions,
-    ThreeMarksSnapshot,
+    legal_action_tree, project_view,
+    replay_support::{
+        action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, ThreeMarksReplayJson,
+    },
+    setup_match, PublicView, SetupOptions, ThreeMarksSnapshot,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -100,4 +103,38 @@ fn command_envelope_shape_remains_replay_ready() {
 
     assert_eq!(command.action_path.segments, vec!["place/r1c1"]);
     assert_eq!(command.rules_version, RulesVersion(1));
+}
+
+#[test]
+fn action_tree_legacy_and_v1_surfaces_are_pinned_in_parallel() {
+    let state = setup_match(Seed(9), &seats(), &SetupOptions::default()).unwrap();
+    let actor = Actor {
+        seat_id: SeatId("seat-0".to_owned()),
+    };
+    let tree = legal_action_tree(&state, &actor);
+    let v1_bytes = action_tree_v1_bytes(&tree);
+
+    assert_eq!(action_tree_hash(&tree), HashValue(13806809087344075404));
+    assert_eq!(v1_bytes, tree.stable_bytes(ActionTreeEncodingVersion::V1));
+    assert_eq!(
+        action_tree_v1_hash(&tree),
+        tree.stable_hash(ActionTreeEncodingVersion::V1)
+    );
+    assert_eq!(action_tree_v1_hash(&tree), HashValue(14722719209259889047));
+    assert_eq!(v1_bytes.len(), 1729);
+    assert!(v1_bytes.starts_with(b"RPSB"));
+    assert!(v1_bytes
+        .windows(b"action_tree".len())
+        .any(|window| window == b"action_tree"));
+    assert!(byte_offset(&v1_bytes, b"place/r1c1") < byte_offset(&v1_bytes, b"place/r1c2"));
+    assert!(byte_offset(&v1_bytes, b"place/r1c2") < byte_offset(&v1_bytes, b"place/r1c3"));
+    assert!(byte_offset(&v1_bytes, b"place/r3c2") < byte_offset(&v1_bytes, b"place/r3c3"));
+    assert_ne!(action_tree_hash(&tree), action_tree_v1_hash(&tree));
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+        .expect("needle appears in v1 bytes")
 }

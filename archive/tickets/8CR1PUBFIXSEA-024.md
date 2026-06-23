@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-024: Three Marks C-04/C-05 parallel action-tree v1 surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/three_marks` (`src/replay_support.rs`, `tests/serialization_tests.rs`); legacy hash retained
@@ -75,3 +75,19 @@ In `games/three_marks/tests/serialization_tests.rs`, pin the representative lega
 1. `cargo test -p three_marks`
 2. `cargo run -p replay-check -- --game three_marks --all`
 3. The per-game serialization test plus replay-check are the correct boundary: this is a game-local parallel hash surface delegating to a kernel encoder.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- Added additive `action_tree_v1_bytes` and `action_tree_v1_hash` wrappers in `games/three_marks/src/replay_support.rs`.
+- The wrappers delegate directly to `ActionTree::stable_bytes/stable_hash(ActionTreeEncodingVersion::V1)`; legacy `action_tree_hash` and `ReplayHashes.action_tree_hash` remain unchanged.
+- Added a focused serialization receipt pinning the opening action tree legacy hash `13806809087344075404`, v1 hash `14722719209259889047`, v1 byte length `1729`, RPSB/domain markers, and representative action segment order.
+- Existing committed traces remained unchanged; `replay-check` continued to pass.
+
+Verification:
+
+- `cargo fmt --all -- --check`
+- `cargo test -p three_marks`
+- `cargo run -p replay-check -- --game three_marks --all`
+- `rg -n "stable_bytes\\(ActionTreeEncodingVersion::V1\\)|stable_hash\\(ActionTreeEncodingVersion::V1\\)|fn action_tree_v1" games/three_marks/src/replay_support.rs`
