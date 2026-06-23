@@ -1,0 +1,69 @@
+# UNI8CR2TWOSEA-040: Secret Draft — seat-private-export-v1 profile driver
+
+**Status**: PENDING
+**Priority**: HIGH
+**Effort**: Medium
+**Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/tests/{replay,visibility}.rs`; adopts `game-test-support` `SeatPrivateExportV1Driver` over `seat_0`/`seat_1` viewers
+**Deps**: 037
+
+## Problem
+
+Spec §3.9 / task `8C-R2-631`: add a `seat-private-export-v1` profile driver for Secret Draft, invoking `export_public_replay` with `Viewer(seat_0)` and `Viewer(seat_1)`. The pre-reveal choice remains absent even for the owner and the viewer label is explicit. Current export bytes remain the authority (`canonical_byte_authority: none`); no new exporter is created. Shares the export/test surface with `-037` (hence `Deps: 037`).
+
+## Assumption Reassessment (2026-06-23)
+
+1. `games/secret_draft/src/replay_support.rs::export_public_replay(trace, viewer)` accepts a `Viewer` (confirmed line ~308); `SeatPrivateExportV1Driver` (`profiles.rs:104`) and `SEAT_PRIVATE_EXPORT_V1` = `"seat-private-export-v1"` exist.
+2. Spec §3.9/§12.2 + ADR-0004: cover `seat_0` and `seat_1`; preserve pre-reveal redaction; do not introduce a new exporter to force applicability.
+3. Cross-crate boundary under audit: `game-test-support::profiles::SeatPrivateExportV1Driver` — validates metadata and delegates to the existing viewer-scoped exporter; the game owns the export bytes; the viewer label is explicit (ADR-0004).
+4. Determinism / no-leak: the driver validates each seat's export with byte equality to the `-001` baseline; the pre-reveal committed choice is absent even for its owner and the export never reconstructs omniscient state (§11, ADR-0004).
+
+## Architecture Check
+
+1. A thin seat-private-export driver over the existing viewer-scoped exporter adds typed per-seat evidence without a new exporter or canonical-byte authority — ADR-0004-faithful.
+2. No backwards-compat alias; no export rewrite; no new exporter invented.
+3. `engine-core` untouched; the driver is dev-only `game-test-support`.
+
+## Verification Layers
+
+1. Driver validates `seat_0`/`seat_1` exports, rejects wrong id/owner/visibility/fields -> profile driver test (`cargo test -p secret_draft`).
+2. Pre-reveal choice absent even for owner; explicit viewer label -> no-leak visibility test (`tests/visibility.rs`).
+3. Export bytes/hash unchanged -> deterministic replay-hash check (`replay-check --game secret_draft --all`).
+
+## What to Change
+
+### 1. Add the seat-private-export-v1 driver test
+
+In `tests/replay.rs` (with no-leak assertions in `tests/visibility.rs`), invoke `SeatPrivateExportV1Driver` over `export_public_replay` for `Viewer(seat_0)` and `Viewer(seat_1)`, asserting valid metadata, explicit viewer labelling, and wrong-profile/owner/field rejection.
+
+## Files to Touch
+
+- `games/secret_draft/tests/replay.rs` (modify)
+- `games/secret_draft/tests/visibility.rs` (modify)
+
+## Out of Scope
+
+- Creating a new seat-private exporter; any export byte rewrite.
+- The public-export profile (`-037`).
+
+## Acceptance Criteria
+
+### Tests That Must Pass
+
+1. `cargo test -p secret_draft` green, including the seat-private-export driver test for both seats.
+2. `cargo run -p replay-check -- --game secret_draft --all` — export bytes/hash byte-identical to baseline.
+
+### Invariants
+
+1. The pre-reveal committed choice is absent even for its owner; the viewer label is explicit; no omniscient state is reconstructed.
+2. The driver claims no new canonical bytes; no new exporter is added.
+
+## Test Plan
+
+### New/Modified Tests
+
+1. `games/secret_draft/tests/replay.rs` — `seat-private-export-v1` driver test over `seat_0`/`seat_1`; no-leak assertion in `tests/visibility.rs`.
+
+### Commands
+
+1. `cargo test -p secret_draft`
+2. `cargo run -p replay-check -- --game secret_draft --all`

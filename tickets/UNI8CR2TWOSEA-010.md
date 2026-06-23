@@ -1,0 +1,72 @@
+# UNI8CR2TWOSEA-010: Poker Lite — canonical seat parser adoption
+
+**Status**: PENDING
+**Priority**: MEDIUM
+**Effort**: Small
+**Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/src/ids.rs`; delegates canonical acceptance to `engine-core` `SeatId::parse_canonical`
+**Deps**: 001
+
+## Problem
+
+Spec §3.5 / task `8C-R2-203`: `PokerLiteSeat::parse` manually matches `seat_0`/`seat_1`. R2 migrates only canonical acceptance to `SeatId::parse_canonical`, then maps indices 0/1 to the typed enum. The parser must keep rejecting `seat-0`, symbolic aliases, ambiguous labels, out-of-range IDs, leading-zero variants, Unicode lookalikes, and role names. Legacy aliases remain accepted only by the `wasm-api` import adapter.
+
+## Assumption Reassessment (2026-06-23)
+
+1. `games/poker_lite/src/ids.rs::PokerLiteSeat::parse` exists (confirmed ~line 56) and currently matches `"seat_0"`/`"seat_1"` manually.
+2. Spec §3.5: parser `migrate`; the WASM import adapter already ships; the legacy roster is an accepted `exception`; §9 forbids a parser-task roster change or output flip.
+3. Cross-crate boundary under audit: `engine-core::SeatId::parse_canonical` (`crates/engine-core/src/lib.rs:58`) — canonical acceptance authority; index→enum mapping stays game-local.
+4. Determinism / §2 authority: TypeScript never normalizes a seat ID; the canonical accept/reject set is unchanged and no existing trace/golden byte changes.
+
+## Architecture Check
+
+1. Delegating canonical acceptance to the `engine-core` authority removes duplicated manual matching while keeping the typed enum mapping local — consistent across the four parsers.
+2. No backwards-compat alias; the manual match is replaced, and legacy aliases stay only in the `wasm-api` adapter.
+3. `engine-core` stays noun-free; no `game-stdlib` change.
+
+## Verification Layers
+
+1. Canonical-acceptance + strict-rejection vectors -> `cargo test -p poker_lite` (parser unit tests).
+2. No existing trace/golden diff -> deterministic replay-hash check (`replay-check --game poker_lite --all`).
+3. `SeatId::parse_canonical` adoption -> codebase grep-proof in `ids.rs`.
+
+## What to Change
+
+### 1. Delegate canonical acceptance
+
+Replace the manual `seat_0`/`seat_1` match with a delegation to `SeatId::parse_canonical`, then map index 0/1 to `PokerLiteSeat`.
+
+### 2. Add rejection-vector tests
+
+Add canonical, out-of-range, leading-zero, alias, Unicode-lookalike, and role-label cases to the parser's unit tests.
+
+## Files to Touch
+
+- `games/poker_lite/src/ids.rs` (modify)
+
+## Out of Scope
+
+- The WASM import adapter / legacy runtime roster (that is `-012`); no output flip.
+- Any trace/golden change.
+
+## Acceptance Criteria
+
+### Tests That Must Pass
+
+1. `cargo test -p poker_lite` green, with the new accept/reject vectors.
+2. `cargo run -p replay-check -- --game poker_lite --all` — no trace/golden diff.
+
+### Invariants
+
+1. The parser rejects `seat-0`, symbolic aliases, ambiguous/out-of-range/leading-zero IDs, Unicode lookalikes, and role names.
+2. Legacy aliases are accepted only by the `wasm-api` import adapter, never inside the game crate.
+
+## Test Plan
+
+### New/Modified Tests
+
+1. `games/poker_lite/src/ids.rs` — unit tests for canonical acceptance and strict rejection vectors.
+
+### Commands
+
+1. `cargo test -p poker_lite`
+2. `cargo run -p replay-check -- --game poker_lite --all`
