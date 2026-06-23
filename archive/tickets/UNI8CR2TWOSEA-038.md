@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-038: Poker Lite — public-export-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/tests/{replay,visibility}.rs`; adopts `game-test-support` `PublicExportV1Driver` (observer)
@@ -67,3 +67,24 @@ In `tests/replay.rs` (with no-leak assertions in `tests/visibility.rs`), invoke 
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Implemented in `games/poker_lite/tests/replay.rs` with
+`public_export_v1_profile_driver_wraps_observer_export_validator`. The test
+validates `public-export-v1` metadata for `poker_lite`, delegates through
+`PublicExportV1Driver::validate_with` to the existing yield-terminal observer
+export hash, and confirms the driver makes no canonical byte claim.
+
+The export path is unchanged and preserves the no-showdown yield policy: public
+export omits private crests and seed material. The test rejects wrong profile
+id, wrong validator owner, wrong visibility, and an illegal profile field.
+`games/poker_lite/tests/visibility.rs` now explicitly checks the yield public
+export for loser-crest and seed redaction.
+
+Verification passed:
+
+1. `cargo test -p poker_lite public_export_v1_profile_driver_wraps_observer_export_validator -- --nocapture`
+2. `cargo test -p poker_lite showdown_view_reveals_both_private_crests_and_yield_does_not -- --nocapture`
+3. `cargo test -p poker_lite`
+4. `cargo run -p replay-check -- --game poker_lite --all`

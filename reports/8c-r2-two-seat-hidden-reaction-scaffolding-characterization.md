@@ -1092,6 +1092,42 @@ Evidence:
 - `cargo run -p replay-check -- --game secret_draft --all` passed; all Secret
   Draft traces passed.
 
+### UNI8CR2TWOSEA-038 - Poker Lite public-export-v1 profile driver
+
+Selected surface: `games/poker_lite/tests/replay.rs` profile-driver test over
+the existing observer public replay export, plus the existing yield no-reveal
+surface in `games/poker_lite/tests/visibility.rs`.
+
+Before state: Poker Lite had observer public export round-trip, yield
+non-reveal, and private-crest redaction tests, but no `PublicExportV1Driver`
+receipt for the public export profile.
+
+After state:
+`public_export_v1_profile_driver_wraps_observer_export_validator` validates the
+`public-export-v1` metadata (`v1`, `public`,
+`validator_owner = poker_lite`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing yield-terminal observer
+export hash.
+
+ADR-0009 classification: `unchanged`. This adds typed public-export profile
+evidence only. The observer export path remains unchanged, existing export
+bytes remain authoritative, no canonical byte claim is made, and no export
+artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `public-export-v1`, `v1`, `public`, and
+  `poker_lite`.
+- `validate_with` returns the existing yield-terminal observer export stable
+  hash `12011531955662310238`.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- The yield observer export still omits private crests, loser crest label, and
+  seed material.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
+  Lite traces passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

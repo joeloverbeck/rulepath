@@ -449,6 +449,20 @@ fn showdown_view_reveals_both_private_crests_and_yield_does_not() {
     for card in yielded.private_cards_internal() {
         assert!(!yield_text.contains(card.as_str()));
     }
+
+    let yielded_loser = yielded.private_card_for_internal(PokerLiteSeat::Seat1);
+    let trace = trace_from_commands(
+        11,
+        &[
+            (PokerLiteSeat::Seat0, "press"),
+            (PokerLiteSeat::Seat1, "yield"),
+        ],
+    );
+    let export_json = export_public_replay(&trace, &Viewer { seat_id: None }).to_json();
+    assert!(!export_json.contains(yielded_loser.as_str()));
+    assert!(!export_json.contains(&yielded_loser.label()));
+    assert!(!export_json.contains("seed_evidence"));
+    assert!(!export_json.contains("\"seed\""));
 }
 
 #[test]

@@ -3,8 +3,8 @@ use engine_core::{
     StableSerialize, Viewer,
 };
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
 };
 use poker_lite::{
     apply_action, legal_action_tree,
@@ -175,6 +175,103 @@ fn replay_command_v1_profile_driver_wraps_internal_trace_validator() {
     );
 }
 
+#[test]
+fn public_export_v1_profile_driver_wraps_observer_export_validator() {
+    let trace = trace_from_commands(
+        11,
+        &[
+            (PokerLiteSeat::Seat0, "press"),
+            (PokerLiteSeat::Seat1, "yield"),
+        ],
+    );
+    let state = setup_state(trace.seed_evidence);
+    let public_export = export_public_replay(&trace, &Viewer { seat_id: None });
+    let driver = PublicExportV1Driver::new("poker_lite");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "poker_lite",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "poker_lite");
+
+    let export_hash = driver
+        .validate_with(&artifact, |_| public_export.stable_hash())
+        .expect("profile delegates to observer export validator");
+    assert_eq!(export_hash, HashValue(12011531955662310238));
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let export_json = public_export.to_json();
+    assert_eq!(public_export.viewer, "observer");
+    assert_no_private_cards(&export_json, &state);
+    assert!(!export_json.contains("seed_evidence"));
+    assert!(!export_json.contains("\"seed\""));
+
+    let wrong_profile = public_export_profile_artifact(
+        "replay-command-v1",
+        Some("public"),
+        "poker_lite",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "other",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("seat-private"),
+        "poker_lite",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "poker_lite",
+        &["export_steps", "commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
 fn replay_command_profile_artifact<'a>(
     profile_id: &'a str,
     validator_owner: &'a str,
@@ -185,6 +282,26 @@ fn replay_command_profile_artifact<'a>(
             profile_id,
             profile_version: PROFILE_VERSION_V1,
             visibility_class: Some("internal-dev"),
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
             validator_owner,
             canonical_byte_authority: "none",
             migration_update_note: Some("profile migration reviewed"),
