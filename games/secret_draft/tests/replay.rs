@@ -6,8 +6,9 @@ use secret_draft::{
     apply_action,
     ids::DraftItemId,
     replay_support::{
-        action_tree_hash, effect_hash, export_public_replay, import_public_export, state_hash,
-        view_hash, ReplayCommand, SecretDraftInternalTrace,
+        action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, effect_hash,
+        export_public_replay, import_public_export, state_hash, view_hash, ReplayCommand,
+        SecretDraftInternalTrace,
     },
     setup_match, Phase, SecretDraftSeat, SecretDraftState, SetupOptions, TerminalOutcome, GAME_ID,
     RULES_VERSION_LABEL,
@@ -89,6 +90,56 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_no_leak_surfaces()
         let fixture = parse_trace_fixture(input);
         assert_trace_fixture(&fixture);
     }
+}
+
+#[test]
+fn action_tree_v1_bytes_and_hashes_are_pinned_alongside_legacy_hashes() {
+    let mut state = setup_state();
+    let seat_0_actor = Actor {
+        seat_id: state.seats[SecretDraftSeat::Seat0.index()].clone(),
+    };
+    let first_commit_tree = secret_draft::legal_action_tree(&state, &seat_0_actor);
+
+    assert_eq!(first_commit_tree.root.choices.len(), 12);
+    assert_eq!(
+        action_tree_hash(&first_commit_tree),
+        HashValue(11109919055145097380)
+    );
+    assert_eq!(action_tree_v1_bytes(&first_commit_tree).len(), 7507);
+    assert_eq!(
+        action_tree_v1_hash(&first_commit_tree),
+        HashValue(4430331744477066435)
+    );
+
+    let command = CommandEnvelope {
+        actor: seat_0_actor,
+        action_path: ActionPath {
+            segments: vec![first_commit_tree.root.choices[0].segment.clone()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    };
+    let action = validate_command(&state, &command).expect("first commit validates");
+    apply_action(&mut state, action).expect("first commit applies");
+
+    let seat_1_actor = Actor {
+        seat_id: state.seats[SecretDraftSeat::Seat1.index()].clone(),
+    };
+    let pending_second_commit_tree = secret_draft::legal_action_tree(&state, &seat_1_actor);
+
+    assert_eq!(pending_second_commit_tree.root.choices.len(), 12);
+    assert_eq!(
+        action_tree_hash(&pending_second_commit_tree),
+        HashValue(8995662196078409061)
+    );
+    assert_eq!(
+        action_tree_v1_bytes(&pending_second_commit_tree).len(),
+        7507
+    );
+    assert_eq!(
+        action_tree_v1_hash(&pending_second_commit_tree),
+        HashValue(4781253235714578176)
+    );
 }
 
 fn assert_trace_fixture(fixture: &TraceFixture) {

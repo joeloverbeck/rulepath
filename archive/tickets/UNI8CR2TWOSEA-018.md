@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-018: Secret Draft — parallel action-tree v1 bytes/hash
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/src/replay_support.rs`; adds a parallel `ActionTreeEncodingVersion::V1` byte/hash surface alongside the retained legacy `action_tree_hash`
@@ -72,3 +72,21 @@ Add v1 byte/hash vectors to `tests/replay.rs` and a legacy-hash-equality guard, 
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
+
+## Outcome
+
+Completed on 2026-06-23. Added additive, version-explicit
+`action_tree_v1_bytes` and `action_tree_v1_hash` adapters alongside the
+retained legacy `action_tree_hash`. Re-exported the helpers for integration
+tests. The legacy hash function remains unchanged and reveal/commit policy was
+not modified.
+
+Added replay tests pinning first-commit and pending-second-commit legacy hashes
+plus v1 byte lengths/hashes, while confirming legal choice ordering/counts stay
+unchanged.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p secret_draft`
+3. `cargo run -p replay-check -- --game secret_draft --all`

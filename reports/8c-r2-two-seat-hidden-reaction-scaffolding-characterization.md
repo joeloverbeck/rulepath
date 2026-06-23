@@ -764,3 +764,32 @@ Evidence:
 - `cargo test -p high_card_duel` passed.
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
   checked and `replay-check: all traces passed`.
+
+### UNI8CR2TWOSEA-018 - Secret Draft parallel action-tree v1 bytes/hash
+
+Selected surface: `games/secret_draft/src/replay_support.rs` additive
+action-tree v1 adapter alongside the retained legacy `action_tree_hash`.
+
+Before state: Secret Draft had a local legacy string encoder
+`action_tree_hash` used by replay evidence, but no version-pinned v1 byte/hash
+surface.
+
+After state: `action_tree_v1_bytes` and `action_tree_v1_hash` expose
+`ActionTreeEncodingVersion::V1` bytes/hash for existing legal action trees.
+The legacy `action_tree_hash` function remains intact.
+
+ADR-0009 classification: `parallel-new-surface` with legacy `exception`. This
+adds explicit v1 action-tree evidence for first-commit and pending-second-commit
+trees without reinterpreting the legacy hash, changing legal choices, or
+altering reveal timing.
+
+Evidence:
+
+- `games/secret_draft/tests/replay.rs::action_tree_v1_bytes_and_hashes_are_pinned_alongside_legacy_hashes`
+  pins first-commit legacy/v1 values `11109919055145097380` /
+  `7507` / `4430331744477066435` and pending-second legacy/v1 values
+  `8995662196078409061` / `7507` / `4781253235714578176`.
+- `cargo fmt --all --check` passed.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
