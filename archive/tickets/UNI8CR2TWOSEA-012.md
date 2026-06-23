@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-012: WASM seat-compatibility audit and legacy-roster exception receipt
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (compatibility evidence) — `crates/wasm-api/src/seats.rs` and `crates/wasm-api/src/games/{high_card,secret,poker,masked}.rs`; verification/tests only, no output flip
@@ -74,3 +74,24 @@ Capture the exception owner, compatibility window, rollback boundary, and next t
 
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Completed on 2026-06-23. Added focused `wasm-api` seat tests proving the
+bounded import adapter remains the only legacy alias surface for the four Unit
+8C games, Masked Claims output helpers emit canonical underscore IDs, and the
+existing legacy roster/trace helper spellings are guarded without any output
+flip.
+
+The HCD/Secret/Poker runtime roster exception remains owned by `wasm-api`; the
+next trigger is a dedicated WASM runtime-seat migration because changing those
+`SeatId` bytes would affect state/effect visibility and replay hashes.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p wasm-api`
+3. `cargo run -p replay-check -- --game high_card_duel --all`
+4. `cargo run -p replay-check -- --game secret_draft --all`
+5. `cargo run -p replay-check -- --game poker_lite --all`
+6. `cargo run -p replay-check -- --game masked_claims --all`

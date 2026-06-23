@@ -580,3 +580,42 @@ Evidence:
 - `cargo run -p replay-check -- --game masked_claims --all` passed; output
   included `public-observer-no-leak.trace.json`, `claim-pending-window.trace.json`,
   and `public-replay-export-import.trace.json`, then all traces passed.
+
+### UNI8CR2TWOSEA-012 - WASM seat compatibility receipt
+
+Selected surface: `crates/wasm-api/src/seats.rs` import adapter and roster
+helpers.
+
+Before state: bounded import adapter already accepted canonical underscore,
+legacy hyphen, and symbolic aliases, while game crates remained canonical-only.
+HCD/Secret/Poker replay cursors used the legacy hyphen roster and Masked Claims
+already emitted canonical underscore IDs.
+
+After state: added focused receipt tests only. No runtime roster, trace helper,
+state, effect, view, export, or hash byte changed.
+
+ADR-0009 classification: `unchanged`. The HCD/Secret/Poker runtime roster
+exception remains owned by `wasm-api`, preserved through C-11, with the next
+trigger set to a dedicated WASM runtime-seat migration. Masked Claims remains
+canonical on output.
+
+Evidence:
+
+- `crates/wasm-api/src/seats.rs::import_adapter_accepts_canonical_hyphen_and_symbolic_aliases`
+  covers HCD, Secret Draft, Poker Lite, and Masked Claims alias imports.
+- `crates/wasm-api/src/seats.rs::masked_output_helpers_emit_canonical_seat_ids`
+  pins Masked Claims canonical output helpers.
+- `crates/wasm-api/src/seats.rs::existing_trace_and_roster_helpers_keep_legacy_outputs`
+  guards the legacy roster/trace spelling exception.
+- `cargo fmt --all --check` passed.
+- `cargo test -p wasm-api` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; 14 traces
+  checked and `replay-check: all traces passed`.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; output
+  included `wasm-exported.trace.json: public export fixture accepted`, then
+  `replay-check: all traces passed`.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; output
+  included `public-observer-no-leak.trace.json` and
+  `public-replay-export-import.trace.json`, then all traces passed.
