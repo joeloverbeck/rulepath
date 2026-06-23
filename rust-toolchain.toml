@@ -1,0 +1,7 @@
+[toolchain]
+# Pin the Rust toolchain so local development and CI use identical compiler and
+# clippy versions. Floating `stable` drifts: a newer clippy on the CI runner can
+# reject code that a developer's older local stable accepts (and vice versa).
+# Bump this version deliberately in its own PR and fix any new lints there.
+channel = "1.96.0"
+components = ["rustfmt", "clippy"]
