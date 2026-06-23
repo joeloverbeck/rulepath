@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-038: Consolidated verification and 8C-R1 tracker closeout (capstone)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs/status-only (`specs/README.md`, spec Status, register/report closeout); verification-only
@@ -77,3 +77,22 @@ After every exit criterion passes, flip the `specs/README.md` `8C-R1` row to `Do
 1. `cargo test --workspace --all-targets`
 2. `cargo run -p replay-check -- --game token_bazaar --all` (representative; run all six per §7.1) and `node scripts/check-catalog-docs.mjs`
 3. The full §7.1 command set is the correct boundary: this capstone's scope IS the spec's exit criteria, exercised end-to-end with no new production logic.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- Ran the full §7.1 verification command set from repository root. Every
+  command exited 0, including focused package tests, all six game crate tests,
+  `cargo test --workspace --all-targets`, all six `replay-check --all` runs,
+  all six `fixture-check` runs, boundary/dependency proof, and doc/catalog
+  checks.
+- Audited the golden/fixture diff from pre-series base
+  `d8061fcf8e974a25fdad15a8bf044891476265b2`; exactly the six authorized
+  `wasm-exported.trace.json` files changed and no fixture file changed.
+- Set `specs/8c-r1-public-fixed-seat-scaffolding.md` Status to `Done`, flipped
+  only the `8C-R1` tracker row in `specs/README.md` to `Done`, and recorded
+  capstone closeout in the mechanical-scaffolding register and characterization
+  report.
+- No production code, hash, seat, visibility, or successor-status change was
+  made in this ticket.

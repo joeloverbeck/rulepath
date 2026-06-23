@@ -3,7 +3,7 @@
 - Spec ID: `8c-r1-public-fixed-seat-scaffolding`
 - Roadmap stage: Public scaling phase — C-11 follow-on retrofit lane
 - Roadmap build gate: 8C-R1 (precedes 8C-R2…R4 and Gate 18)
-- Status: Planned
+- Status: Done
 - Date: 2026-06-23
 - Owner: Rulepath maintainers; implementation delegated through bounded `AGENT-TASK` packets
 
@@ -722,6 +722,17 @@ The accepted form must answer **yes** to every item:
 - Is `apps/web/README.md` explicitly `not applicable`?
 - Is the artifact framed for `/reassess-spec` → `/spec-to-tickets` rather than execution?
 - Do EC-28/EC-30 and successor sequencing remain intact?
+
+## 13. Outcome
+
+Completed on 2026-06-23.
+
+All `8C-R1` tickets are archived. The full §7.1 command set passed, the
+golden/fixture diff audit found exactly the six authorized
+`wasm-exported.trace.json` files changed, and the C-06/C-07/C-09/C-10
+checkpoint conclusions are recorded in the characterization report and
+mechanical-scaffolding register. No successor `8C-R2`/`8C-R3`/`8C-R4` or Gate
+18 status was changed.
 
 [^ext-rfc8949]: IETF, *RFC 8949 — Concise Binary Object Representation (CBOR)*, deterministic encoding requirements: https://www.rfc-editor.org/rfc/rfc8949.html
 [^ext-protobuf]: Protocol Buffers documentation, *Proto Serialization Is Not Canonical*: https://protobuf.dev/programming-guides/serialization-not-canonical/

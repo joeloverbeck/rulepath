@@ -586,6 +586,25 @@ R1 public fixed-seat receipts, 2026-06-23:
   roadmap change was needed for closeout; the four 8C-R follow-on rows remain
   unimplemented and `Not started`.
 
+### Unit 8C-R1 closeout evidence - 2026-06-23
+
+- Final state: R1 public fixed-seat receipts are recorded under
+  `MSC-8C-001`...`MSC-8C-010` above. Migrated surfaces, not-applicable
+  decisions, accepted exceptions, rollback notes, and next-review triggers are
+  closed for `race_to_n`, `draughts_lite`, `three_marks`, `column_four`,
+  `directional_flip`, and `token_bazaar`.
+- Final validators: the full §7.1 command set in
+  `specs/8c-r1-public-fixed-seat-scaffolding.md` passed, including focused
+  crates, `cargo test --workspace --all-targets`, six `replay-check --all`
+  runs, six `fixture-check` runs, `bash scripts/boundary-check.sh`,
+  `cargo tree --workspace -e normal --invert game-test-support`,
+  `node scripts/check-doc-links.mjs`, and
+  `node scripts/check-catalog-docs.mjs`.
+- Scope result: the golden/fixture diff audit from the pre-series base
+  `d8061fcf8e974a25fdad15a8bf044891476265b2` reported exactly the six
+  authorized `wasm-exported.trace.json` files and no fixture changes.
+  Successor rows `8C-R2`, `8C-R3`, `8C-R4`, and Gate 18 remain unimplemented.
+
 ## Review Checklist
 
 Before accepting a register entry, verify:

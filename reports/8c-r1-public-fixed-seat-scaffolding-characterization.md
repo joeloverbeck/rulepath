@@ -280,6 +280,59 @@ Commands were run from repository root on 2026-06-23.
 | `cargo tree --workspace -e normal --invert game-test-support` | passed, exit 0 | R1 closeout proof for C-06; output listed only the `game-test-support` package, so no production/build reverse dependency path exists. |
 | `bash scripts/boundary-check.sh` | passed, exit 0 | R1 closeout proof for C-10; engine-core noun-free boundary and game-test-support dev-only boundary both passed. |
 
-Ticket `8CR1PUBFIXSEA-001` did not run the full §7 final command set because
-the unit has not migrated code yet. Those commands remain required at the
-consolidated verification ticket and final spec closeout.
+## Consolidated Verification Transcript
+
+Commands were run from repository root on 2026-06-23 after all migration and
+register receipts landed. Every command exited 0.
+
+| Command | Transcript result |
+|---|---|
+| `cargo fmt --all -- --check` | Passed with no formatting diff. |
+| `cargo test -p engine-core` | Passed: 34 unit tests, 0 doc tests. |
+| `cargo test -p game-stdlib` | Passed: 28 unit tests, 0 doc tests. |
+| `cargo test -p game-test-support` | Passed: 21 unit tests, 0 doc tests. |
+| `cargo test -p wasm-api` | Passed: 51 unit tests, 1 API-surface test, 0 doc tests. |
+| `cargo test -p race_to_n` | Passed: unit, bot, property, replay, rule, serialization, and doc-test targets. |
+| `cargo test -p draughts_lite` | Passed: unit, bot, property, replay, rule, visibility, and doc-test targets. |
+| `cargo test -p three_marks` | Passed: unit, bot, property, replay, rule, serialization, visibility, and doc-test targets. |
+| `cargo test -p column_four` | Passed: unit, bot, property, replay, rule, visibility, and doc-test targets. |
+| `cargo test -p directional_flip` | Passed: unit, bot, property, replay, rule, visibility, and doc-test targets. |
+| `cargo test -p token_bazaar` | Passed: unit, bot, property, replay, rule, serialization, visibility, and doc-test targets. |
+| `cargo test --workspace --all-targets` | Passed. Benchmark harness binaries printed local threshold rows as part of all-target test execution; the command exited 0. |
+| `cargo run -p replay-check -- --game race_to_n --all` | Passed; all traces passed and the not-applicable trace was accepted. |
+| `cargo run -p replay-check -- --game draughts_lite --all` | Passed; all traces passed. |
+| `cargo run -p replay-check -- --game three_marks --all` | Passed; all traces passed and the not-applicable trace was accepted. |
+| `cargo run -p replay-check -- --game column_four --all` | Passed; all traces passed. |
+| `cargo run -p replay-check -- --game directional_flip --all` | Passed; all traces passed. |
+| `cargo run -p replay-check -- --game token_bazaar --all` | Passed; all traces passed. |
+| `cargo run -p fixture-check -- --game race_to_n` | Passed; tool output was `fixture-check: all fixtures passed`. Setup-evidence profile remains N/A per the C-08 matrix and Race's replay-profile pilot evidence. |
+| `cargo run -p fixture-check -- --game draughts_lite` | Passed; tool output was `fixture-check: all fixtures passed`. |
+| `cargo run -p fixture-check -- --game three_marks` | Passed; tool output was `fixture-check: all fixtures passed`. Setup-evidence profile remains N/A per the C-08 matrix and the replay-profile driver test. |
+| `cargo run -p fixture-check -- --game column_four` | Passed; tool output was `fixture-check: all fixtures passed`. Setup-evidence profile remains N/A because the current fixture is command/terminal/diagnostic/bot evidence, not setup evidence. |
+| `cargo run -p fixture-check -- --game directional_flip` | Passed; tool output was `fixture-check: all fixtures passed`. |
+| `cargo run -p fixture-check -- --game token_bazaar` | Passed; tool output was `fixture-check: all fixtures passed`. |
+| `bash scripts/boundary-check.sh` | Passed; engine-core boundary and game-test-support dev-only boundary checks passed. |
+| `cargo tree --workspace -e normal --invert game-test-support` | Passed; output listed only `game-test-support`, proving no normal/build reverse dependency path. |
+| `node scripts/check-doc-links.mjs` | Passed; checked 31 markdown files. |
+| `node scripts/check-catalog-docs.mjs` | Passed; 17 games reflected in intro, root, and smoke surfaces. |
+
+## Byte-Diff Audit
+
+The audit compared the completed series against the pre-series base
+`d8061fcf8e974a25fdad15a8bf044891476265b2` using:
+
+```text
+git diff --name-only 1db875c^..HEAD -- games/race_to_n/tests/golden_traces games/draughts_lite/tests/golden_traces games/three_marks/tests/golden_traces games/column_four/tests/golden_traces games/directional_flip/tests/golden_traces games/token_bazaar/tests/golden_traces games/race_to_n/data/fixtures games/draughts_lite/data/fixtures games/three_marks/data/fixtures games/column_four/data/fixtures games/directional_flip/data/fixtures games/token_bazaar/data/fixtures
+```
+
+Result: exactly the six authorized selected WASM exports changed, all as
+modified files, and no fixture file changed:
+
+```text
+games/column_four/tests/golden_traces/wasm-exported.trace.json
+games/directional_flip/tests/golden_traces/wasm-exported.trace.json
+games/draughts_lite/tests/golden_traces/wasm-exported.trace.json
+games/race_to_n/tests/golden_traces/wasm-exported.trace.json
+games/three_marks/tests/golden_traces/wasm-exported.trace.json
+games/token_bazaar/tests/golden_traces/wasm-exported.trace.json
+```
