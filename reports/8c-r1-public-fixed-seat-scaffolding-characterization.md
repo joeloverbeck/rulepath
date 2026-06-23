@@ -240,6 +240,18 @@ Current dependency observation: only `games/race_to_n/Cargo.toml` contains
 | C-09 unbiased RNG | Not applicable for R1. No selected game-rule bounded-index sampling surface is admitted for migration; bot RNG and existing RNG consumption remain unchanged. |
 | C-10 non-promotion | Every planned change is behavior-free scaffolding adoption or evidence classification. No legality, setup policy, reveal, projection, scoring, outcome, bot, diagnostic policy, TypeScript authority, YAML, DSL, or static behavior moves into shared code. |
 
+## R1 Checkpoint Closeout
+
+Completed on 2026-06-23 after the migration receipts were added to
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`.
+
+| Checkpoint | Closeout conclusion | Evidence |
+|---|---|---|
+| C-06 dev-only test-support crate | Closed. The R1 wave uses `game-test-support` only through dev/test profile evidence; no production or build reverse dependency path exists. | `cargo tree --workspace -e normal --invert game-test-support` printed only `game-test-support v0.1.0 (/home/joeloverbeck/projects/rulepath/crates/game-test-support)` and exited 0. |
+| C-07 no-leak geometry | Closed as not applicable for this public/perfect-information six-game wave. No hidden source datum, unauthorized seat-private viewer pair, private export, or canary-bearing private surface was introduced. Existing visibility and replay checks remain the regression evidence for public-surface stability. | Register receipt under MSC-8C-007; migration tickets introduced no private-view/no-leak harness artifact. |
+| C-09 unbiased RNG | Closed as not applicable. No bounded-index sampler, RNG helper, setup RNG consumption, bot RNG consumption, RNG vector, replay hash, or fixture byte changed in this R1 wave. | Register receipt under MSC-8C-009; no RNG files or RNG vectors are in the migration receipts. |
+| C-10 non-promotion | Closed. The wave adopted effect-envelope constructors, canonical seat grammar/output, exact seat-count validation, action-tree v1 wrappers, profile-driver tests, and governance receipts only. Legality, setup policy, reveal/projection policy, scoring, outcome, bot behavior, diagnostic policy, TypeScript authority, YAML, DSL, and static behavior remained game-owned or rejected/local-only. | `bash scripts/boundary-check.sh` exited 0 and printed `engine-core boundary check passed` plus `game-test-support dev-only boundary check passed`. |
+
 ## Accepted Exceptions And Review Triggers
 
 | Exception | Owner | Risk | Compatibility window | Rollback | Next trigger |
@@ -265,6 +277,8 @@ Commands were run from repository root on 2026-06-23.
 | `cargo run -p replay-check -- --game token_bazaar --all` | passed, exit 0 | All Token Bazaar traces passed. |
 | `sha256sum .../wasm-exported.trace.json` | passed, exit 0 | Selected before-digests recorded above. |
 | `find ... golden_traces ... | sort | xargs sha256sum` | passed, exit 0 | Full before inventory captured for later non-selected trace byte comparisons. |
+| `cargo tree --workspace -e normal --invert game-test-support` | passed, exit 0 | R1 closeout proof for C-06; output listed only the `game-test-support` package, so no production/build reverse dependency path exists. |
+| `bash scripts/boundary-check.sh` | passed, exit 0 | R1 closeout proof for C-10; engine-core noun-free boundary and game-test-support dev-only boundary both passed. |
 
 Ticket `8CR1PUBFIXSEA-001` did not run the full §7 final command set because
 the unit has not migrated code yet. Those commands remain required at the

@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-037: Register receipts and C-06/C-07/C-09/C-10 checkpoints
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance docs (`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, characterization report); no code/hash/visibility change
@@ -76,3 +76,28 @@ In the characterization report, record the C-06 dependency proof, C-07 not-appli
 1. `cargo tree --workspace -e normal --invert game-test-support`
 2. `bash scripts/boundary-check.sh`
 3. These two commands are the correct boundary: C-06 is a dependency-graph proof and C-10 is a boundary proof; no new test artifact is produced.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- Added bounded R1 adoption receipts under `MSC-8C-001` through
+  `MSC-8C-010` in `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, covering the
+  landed migrations, not-applicability decisions, and accepted exceptions for
+  C-02, C-04, and C-05 with evidence links, hash/visibility impact, rollback,
+  and next-review triggers.
+- Added the append-only R1 checkpoint closeout to
+  `reports/8c-r1-public-fixed-seat-scaffolding-characterization.md` for C-06,
+  C-07, C-09, and C-10, including command evidence for the dependency and
+  boundary proofs.
+- No code, fixture, trace, hash, seat, or visibility bytes changed.
+
+Verification:
+
+- `cargo tree --workspace -e normal --invert game-test-support` passed and
+  printed only the `game-test-support` package, proving no production/build
+  reverse dependency path.
+- `bash scripts/boundary-check.sh` passed, including the engine-core boundary
+  and game-test-support dev-only boundary checks.
+- `rg -n "remaining cleanup|TODO|TBD|unresolved" docs/MECHANICAL-SCAFFOLDING-REGISTER.md reports/8c-r1-public-fixed-seat-scaffolding-characterization.md`
+  returned no matches.
