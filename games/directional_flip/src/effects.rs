@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::{
     ids::{CellId, DirectionalFlipSeat},
@@ -76,10 +76,7 @@ impl TerminalReason {
 }
 
 pub fn public_effect(payload: DirectionalFlipEffect) -> EffectEnvelope<DirectionalFlipEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn bot_chose_action_effect(
@@ -103,7 +100,22 @@ pub fn display_to_anchor(cell: CellId) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ids::{ColumnId, RowId};
     use engine_core::VisibilityScope;
+
+    #[test]
+    fn public_effect_uses_public_visibility_and_preserves_payload() {
+        let payload = DirectionalFlipEffect::PlacementAccepted {
+            seat: DirectionalFlipSeat::Seat0,
+            cell: CellId::new(RowId::R3, ColumnId::C4),
+            ply: 1,
+        };
+
+        let effect = public_effect(payload.clone());
+
+        assert_eq!(effect.visibility, VisibilityScope::Public);
+        assert_eq!(effect.payload, payload);
+    }
 
     #[test]
     fn bot_chose_action_effect_is_public_safe_prose() {
