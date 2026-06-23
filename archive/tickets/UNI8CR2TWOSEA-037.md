@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-037: Secret Draft — public-export-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/tests/{replay,visibility}.rs`; adopts `game-test-support` `PublicExportV1Driver` (observer)
@@ -67,3 +67,24 @@ In `tests/replay.rs` (with no-leak assertions in `tests/visibility.rs`), invoke 
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p replay-check -- --game secret_draft --all`
+
+## Outcome
+
+Implemented in `games/secret_draft/tests/replay.rs` with
+`public_export_v1_profile_driver_wraps_observer_export_validator`. The test
+validates `public-export-v1` metadata for `secret_draft`, delegates through
+`PublicExportV1Driver::validate_with` to the existing observer pre-reveal
+export hash, and confirms the driver makes no canonical byte claim.
+
+The observer export path is unchanged and continues to redact the committed
+item path and seed material. The test rejects wrong profile id, wrong validator
+owner, wrong visibility, and an illegal profile field.
+`games/secret_draft/tests/visibility.rs` now explicitly asserts pre-reveal
+public export seed redaction alongside committed-item redaction.
+
+Verification passed:
+
+1. `cargo test -p secret_draft public_export_v1_profile_driver_wraps_observer_export_validator -- --nocapture`
+2. `cargo test -p secret_draft pending_effects_diagnostics_and_public_export_redact_committed_item -- --nocapture`
+3. `cargo test -p secret_draft`
+4. `cargo run -p replay-check -- --game secret_draft --all`

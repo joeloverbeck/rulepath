@@ -396,6 +396,8 @@ fn pending_effects_diagnostics_and_public_export_redact_committed_item() {
 
     assert!(export_json.contains("commit_redacted"));
     assert_no_hidden("public export json", &export_json, hidden);
+    assert!(!export_json.contains("seed"));
+    assert!(!export_json.contains("44"));
     assert_no_hidden("public import timeline", &format!("{imported:?}"), hidden);
     assert_no_hidden(
         "public export reparsed",

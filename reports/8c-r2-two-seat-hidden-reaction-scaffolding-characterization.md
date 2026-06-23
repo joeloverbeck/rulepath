@@ -1056,6 +1056,42 @@ Evidence:
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; all HCD
   traces passed.
 
+### UNI8CR2TWOSEA-037 - Secret Draft public-export-v1 profile driver
+
+Selected surface: `games/secret_draft/tests/replay.rs` profile-driver test
+over the existing observer public replay export, plus the existing pre-reveal
+redaction surface in `games/secret_draft/tests/visibility.rs`.
+
+Before state: Secret Draft had observer public export round-trip and pre-reveal
+redaction tests, but no `PublicExportV1Driver` receipt for the public export
+profile.
+
+After state:
+`public_export_v1_profile_driver_wraps_observer_export_validator` validates the
+`public-export-v1` metadata (`v1`, `public`,
+`validator_owner = secret_draft`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing pre-reveal observer export
+hash.
+
+ADR-0009 classification: `unchanged`. This adds typed public-export profile
+evidence only. The observer export path remains unchanged, existing export
+bytes remain authoritative, no canonical byte claim is made, and no export
+artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `public-export-v1`, `v1`, `public`, and
+  `secret_draft`.
+- `validate_with` returns the existing pre-reveal observer export stable hash
+  `5995340232186846963`.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- The observer export still emits `commit_redacted` and omits the committed
+  item id/path plus seed material.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p replay-check -- --game secret_draft --all` passed; all Secret
+  Draft traces passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal
