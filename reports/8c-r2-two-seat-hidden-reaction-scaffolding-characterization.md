@@ -857,6 +857,37 @@ Evidence:
 - `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
   Lite traces passed.
 
+### UNI8CR2TWOSEA-031 - Masked Claims replay-command-v1 profile driver
+
+Selected surface: `games/masked_claims/tests/replay.rs` profile-driver test
+over the existing deterministic rule/replay evidence builder.
+
+Before state: Masked Claims had deterministic replay evidence through
+`replay_run` and golden trace presence/no-leak checks, but no
+`ReplayCommandV1Driver` receipt.
+
+After state:
+`replay_command_v1_profile_driver_wraps_rule_replay_evidence` validates the
+`replay-command-v1` metadata (`v1`, `internal-dev`,
+`validator_owner = masked_claims`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing rule/replay evidence builder.
+
+ADR-0009 classification: `unchanged`. This adds typed profile evidence only.
+Masked Claims keeps its existing rule/replay construction, no omniscient export
+is introduced, no canonical byte claim is made, and no artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `replay-command-v1`, `v1`, `internal-dev`,
+  and `masked_claims`.
+- `validate_with` returns a deterministic hash of the existing `replay_run`
+  evidence for seed 31.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p masked_claims` passed.
+- `cargo run -p replay-check -- --game masked_claims --all` passed; all
+  Masked Claims traces were accepted under the current not-applicable baseline.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

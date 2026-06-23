@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-031: Masked Claims — replay-command-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/tests/replay.rs`, `games/masked_claims/src/replay_support.rs`; adopts `game-test-support` `ReplayCommandV1Driver` (internal-dev)
@@ -67,3 +67,22 @@ In `tests/replay.rs`, invoke `ReplayCommandV1Driver` over the existing rule/repl
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Implemented in `games/masked_claims/tests/replay.rs` with
+`replay_command_v1_profile_driver_wraps_rule_replay_evidence`. The test
+validates `replay-command-v1` metadata for `masked_claims`, delegates through
+`ReplayCommandV1Driver::validate_with` to the existing deterministic
+rule/replay evidence builder, and confirms the driver makes no canonical byte
+claim.
+
+The driver rejects wrong profile id, wrong validator owner, wrong visibility,
+and an illegal profile field. No omniscient export, trace fixture rewrite, or
+`replay_support.rs` behavior change was introduced.
+
+Verification passed:
+
+1. `cargo test -p masked_claims replay_command_v1_profile_driver_wraps_rule_replay_evidence -- --nocapture`
+2. `cargo test -p masked_claims`
+3. `cargo run -p replay-check -- --game masked_claims --all`

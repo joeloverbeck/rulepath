@@ -1,4 +1,8 @@
 use engine_core::{ActionPath, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, Viewer};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use masked_claims::{
     actor_for_seat, apply_action, legal_action_tree, project_view,
     replay_support::{action_tree_v1_bytes, action_tree_v1_hash},
@@ -112,6 +116,88 @@ fn same_seed_and_bot_stream_reproduce_replay_surfaces() {
     assert_eq!(left, right);
     assert!(left.export_json.contains("claim/grade-"));
     assert!(!left.export_json.contains("claim/mask_g"));
+}
+
+#[test]
+fn replay_command_v1_profile_driver_wraps_rule_replay_evidence() {
+    let driver = ReplayCommandV1Driver::new("masked_claims");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("internal-dev"),
+        "masked_claims",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "masked_claims");
+
+    let replay_hash = driver
+        .validate_with(&artifact, |_| replay_run_profile_hash(31))
+        .expect("profile delegates to existing rule replay evidence");
+    assert_eq!(replay_hash, replay_run_profile_hash(31));
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile = replay_command_profile_artifact(
+        "public-export-v1",
+        Some("internal-dev"),
+        "masked_claims",
+        &["commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("internal-dev"),
+        "other",
+        &["commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("viewer-scoped"),
+        "masked_claims",
+        &["commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("internal-dev"),
+        "masked_claims",
+        &["commands", "export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
 }
 
 #[test]
@@ -262,6 +348,31 @@ fn replay_run(seed: u64) -> ReplayRun {
         action_tree_hashes,
         view_hashes,
         export_json,
+    }
+}
+
+fn replay_run_profile_hash(seed: u64) -> HashValue {
+    let run = replay_run(seed);
+    HashValue::from_stable_bytes(format!("{run:?}").as_bytes())
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
     }
 }
 
