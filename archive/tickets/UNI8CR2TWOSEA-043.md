@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-043: Poker Lite — unbiased bounded-index adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/src/setup.rs`; replaces the local rejection sampler call with `engine-core` `DeterministicRng::next_index_unbiased_v1`
@@ -66,3 +66,27 @@ Replace the local rejection-sampler call site in `setup.rs` with `DeterministicR
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Completed: 2026-06-23
+
+Poker Lite now calls `DeterministicRng::next_index_unbiased_v1(index + 1)`
+directly from `games/poker_lite/src/setup.rs::shuffle_deck`. The duplicated
+local `next_bounded_index_unbiased` helper was removed. Local setup tests now
+exercise the shared sampler with the fixed high-residue vector and draw-count
+checks: bound `3` still rejects once then returns index `1`, and zero-bound
+sampling returns `None` without drawing.
+
+No loop bounds, shuffle order, deal order, seed meaning, private-hand policy,
+showdown/yield behavior, or replay/export artifacts were changed. ADR-0009
+classification remains `unchanged`.
+
+Verification:
+
+- `cargo test -p poker_lite bounded_index_rejects_high_residue_band -- --nocapture` passed.
+- `cargo test -p poker_lite bounded_index_rejects_empty_bound -- --nocapture` passed.
+- `rg -n "next_bounded_index_unbiased|next_index_unbiased_v1" games/poker_lite/src/setup.rs games/poker_lite/tests` shows only `next_index_unbiased_v1` in the shuffle call and setup tests.
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker Lite traces passed, including private/no-leak, showdown/yield, public export/import, and wasm-exported fixture surfaces.

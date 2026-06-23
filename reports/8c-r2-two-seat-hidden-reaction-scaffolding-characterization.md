@@ -1260,6 +1260,35 @@ Evidence:
 - `cargo run -p replay-check -- --game high_card_duel --all` passed; all HCD
   traces passed.
 
+### UNI8CR2TWOSEA-043 - Poker Lite unbiased bounded-index adoption
+
+Selected surface: `games/poker_lite/src/setup.rs::shuffle_deck`.
+
+Before state: Poker Lite duplicated the v1 unbiased rejection sampler in a
+local `next_bounded_index_unbiased` helper and called that helper from
+`shuffle_deck`.
+
+After state: `shuffle_deck` calls
+`DeterministicRng::next_index_unbiased_v1(index + 1)` directly. The duplicated
+local helper was removed, and setup tests now exercise the shared engine-core
+sampler.
+
+ADR-0009 classification: `unchanged`. This is a byte-neutral migration to the
+already-shipped generic sampler. Shuffle bounds, draw order, seed meaning, deal
+order, game policy, private-hand handling, showdown/yield behavior, and
+hidden-information surfaces are unchanged.
+
+Evidence:
+
+- Fixed high-residue vector still returns index `1` for bound `3`.
+- Rejection draw count remains `2`; zero-bound draw count remains `0`.
+- Poker Lite setup grep now shows `next_index_unbiased_v1` and no local
+  `next_bounded_index_unbiased` helper.
+- `cargo fmt --all --check` passed.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
+  Lite traces passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal
