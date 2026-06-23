@@ -841,6 +841,28 @@ Evidence:
   included `public-observer-no-leak.trace.json`, `claim-pending-window.trace.json`,
   and `public-replay-export-import.trace.json`, then all traces passed.
 
+### UNI8CR2TWOSEA-023 - Masked Claims game-test-support dev-only dependency
+
+Selected surface: `games/masked_claims/Cargo.toml` `[dev-dependencies]` and
+the corresponding `Cargo.lock` package dependency list.
+
+Before state: Masked Claims had no `game-test-support` dependency.
+
+After state: Masked Claims lists `game-test-support` only under
+`[dev-dependencies]`; the lockfile records the package dependency edge.
+
+ADR-0009 classification: `unchanged`. This is a dev-only test-infrastructure
+edge for later no-leak/profile harness use. No normal/build/WASM/tool edge was
+added, and no production code or runtime behavior changed.
+
+Evidence:
+
+- `cargo tree --workspace -e normal --invert game-test-support` output showed
+  only `game-test-support v0.1.0`, with no `masked_claims` normal edge.
+- `bash scripts/boundary-check.sh` passed and reported
+  `game-test-support dev-only boundary check passed`.
+- `cargo test -p masked_claims` passed.
+
 ### UNI8CR2TWOSEA-017 - High Card Duel parallel action-tree v1 bytes/hash
 
 Selected surface: `games/high_card_duel/src/replay_support.rs` additive

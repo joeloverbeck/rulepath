@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-023: Masked Claims — game-test-support dev-only dependency
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/masked_claims/Cargo.toml` `[dev-dependencies]`
@@ -38,6 +38,7 @@ Add `game-test-support` under `[dev-dependencies]` in `games/masked_claims/Cargo
 ## Files to Touch
 
 - `games/masked_claims/Cargo.toml` (modify; serialized after `-016`)
+- `Cargo.lock` (modify; records the dev-dependency edge)
 
 ## Out of Scope
 
@@ -66,3 +67,19 @@ Add `game-test-support` under `[dev-dependencies]` in `games/masked_claims/Cargo
 
 1. `cargo tree --workspace -e normal --invert game-test-support`
 2. `cargo test -p masked_claims`
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `game-test-support` under `games/masked_claims/Cargo.toml`
+`[dev-dependencies]` only, with the corresponding `Cargo.lock` package edge.
+No normal/build/WASM/tool dependency edge was added, and no harness-using tests
+were added in this ticket.
+
+Verification passed:
+
+1. `cargo tree --workspace -e normal --invert game-test-support` showed only
+   the `game-test-support` package itself, with no `masked_claims` normal edge.
+2. `bash scripts/boundary-check.sh`
+3. `cargo test -p masked_claims`
