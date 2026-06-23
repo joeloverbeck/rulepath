@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-033: Secret Draft — setup-evidence-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/secret_draft/tests/serialization.rs`; adopts `game-test-support` `SetupEvidenceV1Driver`; fixture read-only
@@ -66,3 +66,22 @@ In `tests/serialization.rs`, invoke `SetupEvidenceV1Driver` over the existing fi
 
 1. `cargo test -p secret_draft`
 2. `cargo run -p fixture-check -- --game secret_draft`
+
+## Outcome
+
+Implemented in `games/secret_draft/tests/serialization.rs` with
+`setup_evidence_v1_profile_driver_wraps_public_fixture_metadata`. The test
+validates `setup-evidence-v1` metadata for `secret_draft`, delegates through
+`SetupEvidenceV1Driver::validate_with` to the existing read-only fixture bytes,
+and confirms the driver makes no canonical byte claim.
+
+The fixture remains public setup metadata with the full visible pool and empty
+commitments. The test asserts no selector, trigger, or reveal behavior appears
+in the fixture. The driver rejects wrong profile id, wrong validator owner,
+wrong visibility, and an illegal profile field.
+
+Verification passed:
+
+1. `cargo test -p secret_draft setup_evidence_v1_profile_driver_wraps_public_fixture_metadata -- --nocapture`
+2. `cargo test -p secret_draft`
+3. `cargo run -p fixture-check -- --game secret_draft`

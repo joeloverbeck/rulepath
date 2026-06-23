@@ -920,6 +920,40 @@ Evidence:
 - `cargo run -p fixture-check -- --game high_card_duel` passed with
   `fixture-check: all fixtures passed`.
 
+### UNI8CR2TWOSEA-033 - Secret Draft setup-evidence-v1 profile driver
+
+Selected surface: `games/secret_draft/tests/serialization.rs` setup-evidence
+profile-driver test over the existing read-only fixture metadata.
+
+Before state: Secret Draft had public setup fixture parsing and empty
+commitment assertions, but no `SetupEvidenceV1Driver` receipt for public setup
+evidence.
+
+After state:
+`setup_evidence_v1_profile_driver_wraps_public_fixture_metadata` validates the
+`setup-evidence-v1` metadata (`v1`, `public`,
+`validator_owner = secret_draft`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing fixture bytes.
+
+ADR-0009 classification: `unchanged`. This adds typed setup-profile evidence
+only. The fixture remains read-only, commitments remain empty, no reveal
+behavior is encoded in data, no canonical byte claim is made, and no fixture
+artifact is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `setup-evidence-v1`, `v1`, `public`, and
+  `secret_draft`.
+- The fixture still contains public fixture id, game, variant, rules version,
+  visible-pool metadata, and `seat_0_commitment` / `seat_1_commitment` set to
+  `none`.
+- The fixture contains no selector, trigger, or reveal behavior field.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p secret_draft` passed.
+- `cargo run -p fixture-check -- --game secret_draft` passed with
+  `fixture-check: all fixtures passed`.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal
