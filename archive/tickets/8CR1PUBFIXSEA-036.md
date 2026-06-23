@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-036: Token Bazaar C-08 public-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/token_bazaar` (`tests/replay.rs`); export bytes unchanged
@@ -70,3 +70,28 @@ In `games/token_bazaar/tests/replay.rs`, build a `PublicExportV1Driver` with pub
 1. `cargo test -p token_bazaar`
 2. `cargo run -p replay-check -- --game token_bazaar --all`
 3. The per-game export round trip plus replay-check are the correct boundary: this is the game's public-export projection, byte-owned by C-02.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `public_export_v1_driver_round_trips_public_export_fixture` in
+`games/token_bazaar/tests/replay.rs`. The test builds a typed
+`ProfileArtifact` with `public-export-v1` / `v1`, public visibility,
+`token_bazaar::replay_support` validator ownership, and
+`token_bazaar::replay_support` canonical byte authority, then validates with
+`PublicExportV1Driver::new("token_bazaar::replay_support")` before
+regenerating the public export from `wasm-exported.trace.json`, importing it,
+checking the pinned public-export hash, checking hidden/debug/internal absence,
+and delegating to the existing fixture replay/export assertions.
+
+No `PublicReplayExport` format, export seat bytes, golden trace bytes, or
+`replay_support` bytes changed.
+
+Verification:
+
+1. `cargo test -p token_bazaar public_export_v1_driver_round_trips_public_export_fixture -- --exact`
+2. `cargo test -p token_bazaar`
+3. `cargo run -p replay-check -- --game token_bazaar --all`
+4. `cargo fmt --all -- --check`
+5. `git diff --name-only -- games/token_bazaar/tests/golden_traces games/token_bazaar/src/replay_support.rs`

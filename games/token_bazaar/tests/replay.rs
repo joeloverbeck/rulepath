@@ -3,8 +3,9 @@ use engine_core::{
     StableSerialize, Viewer,
 };
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, SetupEvidenceV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+    ProfileArtifact, ProfileMetadata, PublicExportV1Driver, ReplayCommandV1Driver,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
+    SETUP_EVIDENCE_V1,
 };
 use token_bazaar::{
     action_tree_hash, apply_action, default_seats, determine_terminal_outcome, effect_hash,
@@ -46,6 +47,23 @@ const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
     "seat_grammar_version",
     "setup_options",
     "expected_setup",
+];
+
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
 ];
 
 #[derive(Debug)]
@@ -141,6 +159,53 @@ fn setup_evidence_v1_driver_validates_standard_setup_fixture() {
             assert_standard_setup_fixture_metadata(setup_fixture)
         })
         .expect("setup-evidence-v1 driver accepts Token Bazaar setup fixture");
+}
+
+#[test]
+fn public_export_v1_driver_round_trips_public_export_fixture() {
+    let fixture_json = include_str!("golden_traces/wasm-exported.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    let driver = PublicExportV1Driver::new("token_bazaar::replay_support");
+    let profile = public_export_profile_artifact();
+
+    driver
+        .validate_with(&profile, |_| {
+            let fixture = parse_trace_fixture(fixture_json);
+            let applied_paths = applied_paths(&fixture);
+            let export = export_public_replay(fixture.seed, &applied_paths);
+            let timeline = import_public_export(&export);
+            let json = export.to_json();
+
+            assert_eq!(timeline.game_id, GAME_ID);
+            assert_eq!(timeline.variant, VARIANT_ID);
+            assert_eq!(timeline.steps.len(), applied_paths.len() + 1);
+            assert_eq!(
+                export.stable_hash(),
+                HashValue(fixture.expected_public_export_hash)
+            );
+            assert_eq!(export.export_class, "token_bazaar_public_replay_v1");
+            assert!(!json.contains("debug"));
+            assert!(!json.contains("candidate"));
+            assert!(!json.contains("internal"));
+            assert_trace_fixture(fixture);
+        })
+        .expect("public-export-v1 driver accepts Token Bazaar public export");
+}
+
+fn public_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: PUBLIC_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "token_bazaar::replay_support",
+            canonical_byte_authority: "token_bazaar::replay_support",
+            migration_update_note: Some("Token Bazaar public-export profile classification"),
+        },
+        fields: PUBLIC_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: true,
+    }
 }
 
 fn setup_profile_artifact() -> ProfileArtifact<'static> {
