@@ -68,7 +68,11 @@ defaults the user can override, not as open questions.
 When a prior brief/report cycle on the same subject has already been **implemented**, state
 the implemented baseline here and lock a decision that Session 2 must **not re-recommend
 already-shipped work as if missing** — build on it, improve where it falls short, do not
-rebuild. This is the sharp-delta sub-case of framing the task as a delta (SKILL Step 2).
+rebuild. The same applies to a **predecessor / sibling unit in a serial lane** (wave N→N+1,
+sequential gates — e.g. the `8C-R*` waves) even when no same-subject prior brief exists: its
+shipped surfaces (the named pilots / receipts in the relevant register) are the implemented
+baseline to build on, not re-propose. This is the sharp-delta sub-case of framing the task as a
+delta (SKILL Step 2); §B recognizes this serial-unit class for the read-set.
 
 ### 4. The task
 
