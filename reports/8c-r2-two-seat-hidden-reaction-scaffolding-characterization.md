@@ -1198,6 +1198,41 @@ Evidence:
 - `cargo run -p replay-check -- --game secret_draft --all` passed; all Secret
   Draft traces passed.
 
+### UNI8CR2TWOSEA-041 - Poker Lite seat-private-export-v1 profile driver
+
+Selected surface: `games/poker_lite/tests/replay.rs` profile-driver test over
+existing viewer-scoped `export_public_replay` calls for `seat_0` and `seat_1`,
+plus the own-private-view surface in `games/poker_lite/tests/visibility.rs`.
+
+Before state: Poker Lite had viewer-scoped export support and own-private
+view/no-leak tests, but no `SeatPrivateExportV1Driver` receipt for
+seat-private export profile metadata.
+
+After state:
+`seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports` validates
+the `seat-private-export-v1` metadata (`v1`, `seat-private`,
+`validator_owner = poker_lite`, `canonical_byte_authority = none`) and
+delegates through `validate_with` to the existing viewer-scoped export bytes
+for both seats.
+
+ADR-0009 classification: `unchanged`. This adds typed seat-private export
+profile evidence only. The existing export path remains unchanged, no new
+exporter is introduced, no canonical byte claim is made, and no export artifact
+is rewritten.
+
+Evidence:
+
+- Valid profile metadata reports `seat-private-export-v1`, `v1`,
+  `seat-private`, and `poker_lite`.
+- Viewer labels are explicit as `seat_0` and `seat_1`.
+- Each seat-private export contains the viewer-owned crest and omits the
+  opponent crest plus seed material.
+- Wrong profile id, wrong validator owner, wrong visibility class, and illegal
+  profile field are rejected.
+- `cargo test -p poker_lite` passed.
+- `cargo run -p replay-check -- --game poker_lite --all` passed; all Poker
+  Lite traces passed.
+
 ### UNI8CR2TWOSEA-015 - Poker Lite exact-two-seat structural validation
 
 Selected surface: `games/poker_lite/src/setup.rs::setup_match` and the normal

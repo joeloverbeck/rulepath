@@ -395,6 +395,33 @@ fn seat_view_gets_only_own_private_strength_bucket() {
         !format!("{:?}", project_view(&state, &viewer(Some("seat_1"))))
             .contains(private.own_strength_bucket.as_deref().expect("bucket"))
     );
+
+    let export_state = standard_state();
+    let trace = trace_from_commands(11, &[]);
+    for (seat, own, opponent) in [
+        (
+            "seat_0",
+            export_state.private_card_for_internal(PokerLiteSeat::Seat0),
+            export_state.private_card_for_internal(PokerLiteSeat::Seat1),
+        ),
+        (
+            "seat_1",
+            export_state.private_card_for_internal(PokerLiteSeat::Seat1),
+            export_state.private_card_for_internal(PokerLiteSeat::Seat0),
+        ),
+    ] {
+        let export_json = export_public_replay(
+            &trace,
+            &Viewer {
+                seat_id: Some(SeatId(seat.to_owned())),
+            },
+        )
+        .to_json();
+        assert!(export_json.contains(own.as_str()));
+        assert!(!export_json.contains(opponent.as_str()));
+        assert!(!export_json.contains("seed_evidence"));
+        assert!(!export_json.contains("\"seed\""));
+    }
 }
 
 #[test]

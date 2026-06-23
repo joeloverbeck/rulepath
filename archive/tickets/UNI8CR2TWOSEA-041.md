@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-041: Poker Lite — seat-private-export-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/tests/{replay,visibility}.rs`; adopts `game-test-support` `SeatPrivateExportV1Driver` over `seat_0`/`seat_1` viewers
@@ -67,3 +67,25 @@ In `tests/replay.rs` (with no-leak assertions in `tests/visibility.rs`), invoke 
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Implemented in `games/poker_lite/tests/replay.rs` with
+`seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports`. The test
+validates `seat-private-export-v1` metadata for `poker_lite`, delegates through
+`SeatPrivateExportV1Driver::validate_with` to the existing
+`export_public_replay` path for `seat_0` and `seat_1`, and confirms the driver
+makes no canonical byte claim.
+
+Each viewer label is explicit and each seat-private export contains only the
+viewer-owned private crest while omitting the opponent crest and seed material.
+No new exporter or export rewrite was introduced. The test rejects wrong
+profile id, wrong validator owner, wrong visibility, and an illegal profile
+field.
+
+Verification passed:
+
+1. `cargo test -p poker_lite seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports -- --nocapture`
+2. `cargo test -p poker_lite seat_view_gets_only_own_private_strength_bucket -- --nocapture`
+3. `cargo test -p poker_lite`
+4. `cargo run -p replay-check -- --game poker_lite --all`
