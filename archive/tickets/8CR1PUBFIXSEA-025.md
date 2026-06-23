@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-025: Column Four C-04/C-05 parallel action-tree v1 surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/column_four` (`src/replay_support.rs`, `tests/replay.rs`); legacy hash retained
@@ -75,3 +75,19 @@ In `games/column_four/tests/replay.rs`, pin the representative legacy hash senti
 1. `cargo test -p column_four`
 2. `cargo run -p replay-check -- --game column_four --all`
 3. The per-game serialization test plus replay-check are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+- Added additive `action_tree_v1_bytes` and `action_tree_v1_hash` wrappers in `games/column_four/src/replay_support.rs`.
+- The wrappers delegate directly to `ActionTree::stable_bytes/stable_hash(ActionTreeEncodingVersion::V1)`; legacy `action_tree_hash` and `ReplayHashes.action_tree_hash` remain unchanged.
+- Added a focused replay receipt pinning the opening action tree legacy hash `7484632560849494922`, v1 hash `15281910465327785429`, v1 byte length `1324`, RPSB/domain markers, and representative action segment order.
+- Existing committed traces remained unchanged; `replay-check` continued to pass.
+
+Verification:
+
+- `cargo fmt --all -- --check`
+- `cargo test -p column_four`
+- `cargo run -p replay-check -- --game column_four --all`
+- `rg -n "stable_bytes\\(ActionTreeEncodingVersion::V1\\)|stable_hash\\(ActionTreeEncodingVersion::V1\\)|fn action_tree_v1" games/column_four/src/replay_support.rs`
