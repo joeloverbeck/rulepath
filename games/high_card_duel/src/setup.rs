@@ -1,4 +1,5 @@
 use engine_core::{DeterministicRng, Diagnostic, FreshnessToken, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     ids::{canonical_deck, CardId, HighCardDuelSeat},
@@ -24,7 +25,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<HighCardDuelState, Diagnostic> {
-    if seats.len() != options.variant.seat_count as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(options.variant.seat_count as usize) {
         return Err(Diagnostic {
             code: "invalid_seat_count".to_owned(),
             message: "high_card_duel requires exactly two seats".to_owned(),
@@ -109,6 +110,39 @@ mod tests {
     impl DeterministicRng for FixedRng {
         fn next_u64(&mut self) -> u64 {
             self.values.remove(0)
+        }
+    }
+
+    fn seat_ids(count: usize) -> Vec<SeatId> {
+        (0..count)
+            .map(|index| SeatId(format!("seat_{index}")))
+            .collect()
+    }
+
+    fn invalid_seat_count_diagnostic() -> Diagnostic {
+        Diagnostic {
+            code: "invalid_seat_count".to_owned(),
+            message: "high_card_duel requires exactly two seats".to_owned(),
+        }
+    }
+
+    #[test]
+    fn setup_accepts_exact_variant_seat_count() {
+        let seats = seat_ids(2);
+        let state =
+            setup_match(Seed(11), &seats, &SetupOptions::default()).expect("setup succeeds");
+
+        assert_eq!(state.seats, [seats[0].clone(), seats[1].clone()]);
+    }
+
+    #[test]
+    fn setup_rejects_non_two_seat_counts_with_exact_diagnostic() {
+        for count in [0, 1, 3] {
+            assert_eq!(
+                setup_match(Seed(11), &seat_ids(count), &SetupOptions::default()),
+                Err(invalid_seat_count_diagnostic()),
+                "{count}"
+            );
         }
     }
 

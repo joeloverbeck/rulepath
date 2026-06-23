@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-013: High Card Duel — exact-two-seat structural validation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/high_card_duel/src/setup.rs`; adopts `game-stdlib` `SeatCount`
@@ -66,3 +66,19 @@ Replace the hand-written length predicate with a structural `SeatCount` check; k
 
 1. `cargo test -p high_card_duel`
 2. `cargo run -p replay-check -- --game high_card_duel --all`
+
+## Outcome
+
+Completed on 2026-06-23. `setup_match` now validates nonzero seat structure
+through `SeatCount` and preserves the variant-owned expected count comparison
+against `options.variant.seat_count`. The exact `invalid_seat_count`
+diagnostic code/message is unchanged, and no ring helper was adopted.
+
+Added setup tests for accepted two-seat setup and rejected 0/1/3 seat counts
+with the exact diagnostic.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p high_card_duel`
+3. `cargo run -p replay-check -- --game high_card_duel --all`

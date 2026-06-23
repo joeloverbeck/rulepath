@@ -619,3 +619,29 @@ Evidence:
 - `cargo run -p replay-check -- --game masked_claims --all` passed; output
   included `public-observer-no-leak.trace.json` and
   `public-replay-export-import.trace.json`, then all traces passed.
+
+### UNI8CR2TWOSEA-013 - High Card Duel exact-two-seat structural validation
+
+Selected surface: `games/high_card_duel/src/setup.rs::setup_match`.
+
+Before state: local predicate compared `seats.len()` directly against
+`options.variant.seat_count`.
+
+After state: `SeatCount::new(seats.len())` validates nonzero structure and the
+resulting count is compared against the game-owned variant expected count.
+
+ADR-0009 classification: `unchanged`. This changes only the structural count
+helper used by setup validation and preserves the exact diagnostic
+code/message, variant expected-count policy, setup shuffle/deal behavior, state
+bytes, and replay hashes. `SeatCount::next_ring_index` remains not applicable.
+
+Evidence:
+
+- `games/high_card_duel/src/setup.rs::setup_accepts_exact_variant_seat_count`
+  pins accepted two-seat setup.
+- `games/high_card_duel/src/setup.rs::setup_rejects_non_two_seat_counts_with_exact_diagnostic`
+  pins 0/1/3 rejection with the exact diagnostic.
+- `cargo fmt --all --check` passed.
+- `cargo test -p high_card_duel` passed.
+- `cargo run -p replay-check -- --game high_card_duel --all` passed; 10 traces
+  checked and `replay-check: all traces passed`.
