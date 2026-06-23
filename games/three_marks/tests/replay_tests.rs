@@ -1,10 +1,30 @@
 use engine_core::HashValue;
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ReplayCommandV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use three_marks::{
     replay_support::{
         replay_bot_action, replay_commands, replay_diagnostic, replay_stale, ReplayHashes,
     },
     CellId, TerminalOutcome, ThreeMarksSeat, WinningLine,
 };
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 #[derive(Debug)]
 struct TraceFixture {
@@ -163,6 +183,38 @@ fn replay_reproduces_hashes_outcome_and_board_projection_for_same_inputs() {
         .effects
         .iter()
         .any(|effect| effect.starts_with("LineCompleted:seat_0")));
+}
+
+#[test]
+fn replay_command_v1_driver_replays_shortest_normal_fixture() {
+    let fixture_json = include_str!("golden_traces/shortest-normal.trace.json");
+    assert!(!fixture_json.contains("\"profile_id\""));
+    assert!(!fixture_json.contains("\"profile_version\""));
+    assert!(!fixture_json.contains("\"canonical_byte_authority\""));
+    let fixture = parse_trace_schema_v1_fixture(fixture_json);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact(&fixture);
+
+    driver
+        .validate_with(&profile, |_| {
+            assert_fixture(parse_trace_schema_v1_fixture(fixture_json))
+        })
+        .expect("replay-command-v1 driver accepts shortest-normal profile");
+}
+
+fn replay_command_profile_artifact(fixture: &TraceFixture) -> ProfileArtifact<'_> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "three_marks::replay_support",
+            migration_update_note: Some(&fixture.migration_update_note),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: true,
+    }
 }
 
 #[test]

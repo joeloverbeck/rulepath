@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-029: Three Marks C-08 replay-command profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/three_marks` (`Cargo.toml` dev-dep + `tests/replay_tests.rs`); trace bytes unchanged
@@ -76,3 +76,30 @@ In `games/three_marks/tests/replay_tests.rs`, build a `ProfileArtifact` from the
 1. `cargo test -p three_marks`
 2. `cargo tree -p three_marks -e normal`
 3. The per-game test plus the `cargo tree` dev-only proof are the correct boundary.
+
+## Outcome
+
+Completed on 2026-06-23.
+
+Added `game-test-support` as a Three Marks dev-dependency and recorded the
+corresponding `Cargo.lock` package dependency entry. No normal dependency path
+was introduced: `cargo tree -p three_marks -e normal` lists only `ai-core`,
+`engine-core`, and `game-stdlib`.
+
+Added `replay_command_v1_driver_replays_shortest_normal_fixture` in
+`games/three_marks/tests/replay_tests.rs`. The test builds a typed
+`ProfileArtifact` with `replay-command-v1` / `v1`, `internal-dev` visibility,
+`replay-check` validator ownership, and `three_marks::replay_support`
+canonical byte authority, then validates with
+`ReplayCommandV1Driver::new("replay-check")` before delegating to the existing
+fixture replay/hash assertions. The committed trace JSON remains profile-free
+and byte-unchanged.
+
+Verification:
+
+1. `cargo test -p three_marks replay_command_v1_driver_replays_shortest_normal_fixture -- --exact`
+2. `cargo test -p three_marks`
+3. `cargo tree -p three_marks -e normal`
+4. `cargo run -p replay-check -- --game three_marks --all`
+5. `cargo fmt --all -- --check`
+6. `git diff --name-only -- games/three_marks/tests/golden_traces`
