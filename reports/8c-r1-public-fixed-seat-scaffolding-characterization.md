@@ -177,6 +177,20 @@ seat-bearing field deltas one game at a time.
   `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
   reported only `games/column_four/tests/golden_traces/wasm-exported.trace.json`.
 
+### 8CR1PUBFIXSEA-017 Directional Flip after receipt
+
+- File: `games/directional_flip/tests/golden_traces/wasm-exported.trace.json`
+- Before SHA-256: `d9f7339044c2e4a6e78d433666fddacfda364a6260dd13444510cc67f11fdc36`
+- After SHA-256: `337e2e294cd116bc117f65c68cb927f7470cd4ec5da97c88e356639c2aed9807`
+- Seat-bearing delta: roster `seat-0` / `seat-1` -> `seat_0` / `seat_1`;
+  command actors remained canonical `seat_0` / `seat_1`; winner remains `null`.
+- Incidental-token proof: the golden trace diff changed only the two roster
+  `seat_id` fields; action paths and existing non-seat `seat_<n>` tokens were
+  unchanged.
+- Verification: `cargo test -p wasm-api`; `cargo run -p replay-check -- --game directional_flip --all`;
+  `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
+  reported only `games/directional_flip/tests/golden_traces/wasm-exported.trace.json`.
+
 Baseline command for full trace digest inventory:
 
 ```text

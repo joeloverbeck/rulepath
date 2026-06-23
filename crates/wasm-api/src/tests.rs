@@ -535,6 +535,9 @@ fn directional_flip_surface_drives_operation_group() {
     assert!(exported.contains("\"game_id\":\"directional_flip\""));
     assert!(exported.contains("\"rules_version\":\"directional_flip-rules-v1\""));
     assert!(exported.contains("\"expected_replay_hashes\""));
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     assert!(
         exported.contains("\"private_view_hashes\":\"directional_flip has no private-view API.\"")
     );
@@ -543,6 +546,13 @@ fn directional_flip_surface_drives_operation_group() {
     let imported = import_replay(&exported).expect("replay imported");
     let replay_id = extract_replay_id(&imported);
     assert!(imported.contains("\"game_id\":\"directional_flip\""));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported =
+        import_replay(&legacy_exported).expect("legacy hyphen directional export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"directional_flip\""));
 
     let reset = replay_reset(&replay_id).expect("replay reset returned");
     assert!(reset.contains("\"cursor\":0"));
