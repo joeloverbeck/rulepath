@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-030: Poker Lite — replay-command-v1 profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/poker_lite/tests/replay.rs`, `games/poker_lite/src/replay_support.rs`; adopts `game-test-support` `ReplayCommandV1Driver` (internal-dev)
@@ -67,3 +67,23 @@ In `tests/replay.rs`, invoke `ReplayCommandV1Driver` over the existing internal 
 
 1. `cargo test -p poker_lite`
 2. `cargo run -p replay-check -- --game poker_lite --all`
+
+## Outcome
+
+Implemented in `games/poker_lite/tests/replay.rs` with a
+`replay_command_v1_profile_driver_wraps_internal_trace_validator` test. The
+test validates `replay-command-v1` metadata for `poker_lite`, delegates through
+`ReplayCommandV1Driver::validate_with` to the existing internal trace replay
+validator, confirms the returned hash is the trace stable hash, and asserts no
+canonical byte claim is made.
+
+The driver rejects wrong profile id, wrong validator owner, and an illegal
+profile field. No trace bytes, fixtures, public exports, or `replay_support.rs`
+behavior were changed because Poker Lite already exposed the required internal
+trace generator and validator.
+
+Verification passed:
+
+1. `cargo test -p poker_lite replay_command_v1_profile_driver_wraps_internal_trace_validator -- --nocapture`
+2. `cargo test -p poker_lite`
+3. `cargo run -p replay-check -- --game poker_lite --all`

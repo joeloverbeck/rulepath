@@ -2,11 +2,16 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId,
     StableSerialize, Viewer,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use poker_lite::{
     apply_action, legal_action_tree,
     replay_support::{
         action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, effect_hash,
-        export_public_replay, import_public_export, state_hash, trace_from_commands, view_hash,
+        export_public_replay, generate_internal_full_trace, import_public_export,
+        replay_internal_full_trace, state_hash, trace_from_commands, view_hash,
         PokerLiteInternalTrace, ReplayCommand,
     },
     setup_effects, setup_match, validate_command, Phase, PokerLiteSeat, PokerLiteState,
@@ -98,8 +103,8 @@ fn internal_trace_replays_to_the_same_hashes_and_terminal() {
             (PokerLiteSeat::Seat0, "hold"),
         ],
     );
-    let first = poker_lite::replay_support::replay_internal_full_trace(&trace);
-    let second = poker_lite::replay_support::replay_internal_full_trace(&trace);
+    let first = replay_internal_full_trace(&trace);
+    let second = replay_internal_full_trace(&trace);
 
     assert_eq!(first.trace_hash, second.trace_hash);
     assert_eq!(first.state_hash, second.state_hash);
@@ -107,6 +112,86 @@ fn internal_trace_replays_to_the_same_hashes_and_terminal() {
     assert_eq!(first.view_hash, second.view_hash);
     assert_eq!(first.action_tree_hashes, second.action_tree_hashes);
     assert_eq!(first.final_state.phase, Phase::Terminal);
+}
+
+#[test]
+fn replay_command_v1_profile_driver_wraps_internal_trace_validator() {
+    let trace = generate_internal_full_trace();
+    let driver = ReplayCommandV1Driver::new("poker_lite");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        "poker_lite",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "poker_lite");
+
+    let replay_hash = driver
+        .validate_with(&artifact, |_| {
+            let replay = replay_internal_full_trace(&trace);
+            replay.trace_hash
+        })
+        .expect("profile delegates to internal trace validator");
+    assert_eq!(replay_hash, trace.stable_hash());
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile =
+        replay_command_profile_artifact("public-export-v1", "poker_lite", &["commands"]);
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = replay_command_profile_artifact(REPLAY_COMMAND_V1, "other", &["commands"]);
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_field = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        "poker_lite",
+        &["commands", "export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
 }
 
 #[test]
