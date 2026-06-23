@@ -1,6 +1,6 @@
 # BENCHJSON-002: Catch benchmark JSON schema drift on the PR lane (schema-only validation)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `tools/bench-report` (new `--schema-only` mode), `.github/workflows/gate-2-benchmarks.yml` (PR `bench-smoke` job), and a clarifying amendment to `docs/adr/0002-ci-benchmark-gating-lanes.md` (no `engine-core`/`game-stdlib`/rules changes)
@@ -93,3 +93,29 @@ Add a short carve-out to the Decision (and a Consequences note): the PR lane MAY
 1. `cargo test -p bench-report`
 2. `cargo run -p bench-report -- --schema-only --input games/.../<a captured conforming report>.txt`
 3. The unit/integration test in `bench-report` is the correct primary boundary because it can assert both accept and reject paths deterministically without running benchmarks; the workflow edit is verified end-to-end on a draft PR.
+
+## Outcome
+
+Completed: 2026-06-23
+
+What changed:
+
+- `tools/bench-report/src/main.rs` now supports `--schema-only`, which parses benchmark report JSON, validates report-side schema/provenance metadata, requires a non-empty `operations` array with `current_value`, prints `bench-report: schema OK for <game_id> (N operations)`, and exits without loading thresholds.
+- `bench-report` tests now cover schema-only positive behavior with no `--thresholds` and negative drift cases for missing `build_profile`, missing `operations`, and missing `current_value`.
+- `.github/workflows/gate-2-benchmarks.yml` now pipes every PR `bench-smoke` command through `bench-report --schema-only` while leaving the non-PR `bench-gate` threshold lane unchanged.
+- `docs/adr/0002-ci-benchmark-gating-lanes.md` now permits schema-only PR validation and still forbids threshold comparison on the PR lane.
+
+Deviations:
+
+- The ticket asked to surface the ADR 0002 carve-out for sign-off before implementation. The active user objective explicitly requested implementing the BENCHJSON series, so the minimal carve-out was treated as authorized for this bounded ticket.
+- The workflow was verified locally by replaying the PR-lane smoke command list instead of running GitHub Actions `act` or opening a draft PR.
+
+Verification:
+
+- `cargo test -p bench-report` passed; 12 tests passed, including schema-only accept/reject coverage.
+- `cargo run -p bench-report -- --schema-only --input /tmp/race_to_n-bench-smoke.txt` passed; `bench-report: schema OK for race_to_n (1 operations)`.
+- `sed '/"build_profile"/d' /tmp/race_to_n-bench-smoke.txt > /tmp/race_to_n-bench-smoke-missing-build-profile.txt && cargo run -p bench-report -- --schema-only --input /tmp/race_to_n-bench-smoke-missing-build-profile.txt` failed as intended with `report: missing field build_profile`.
+- Local PR-lane schema-only smoke sweep passed for all 15 workflow games using the workflow filters: `race_to_n`, `three_marks`, `column_four`, `directional_flip`, `draughts_lite`, `high_card_duel`, `masked_claims`, `flood_watch`, `frontier_control`, `event_frontier`, `token_bazaar`, `secret_draft`, `poker_lite`, `plain_tricks`, and `briar_circuit`.
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.

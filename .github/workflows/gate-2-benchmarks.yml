@@ -1,8 +1,9 @@
 name: Gate 2 benchmarks
 
 # Benchmark lanes (see docs/adr/0002-ci-benchmark-gating-lanes.md):
-# - pull_request runs a non-gating bench smoke (compile + run, no thresholds),
-#   because shared GitHub runners are not a valid throughput-gating environment.
+# - pull_request runs a non-gating bench smoke (compile + run, no thresholds)
+#   plus schema-only report validation, because shared GitHub runners are not a
+#   valid throughput-gating environment.
 # - schedule / workflow_dispatch / push-to-main run the hard-failing threshold
 #   gate via bench-report against each game threshold file.
 on:
@@ -24,49 +25,94 @@ jobs:
         uses: actions/checkout@v5
 
       - name: race_to_n bench smoke
-        run: cargo bench -p race_to_n -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p race_to_n -- legal_actions | tee /tmp/race_to_n-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/race_to_n-bench-smoke.txt
 
       - name: three_marks bench smoke
-        run: cargo bench -p three_marks -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p three_marks -- legal_actions | tee /tmp/three_marks-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/three_marks-bench-smoke.txt
 
       - name: column_four bench smoke
-        run: cargo bench -p column_four -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p column_four -- legal_actions | tee /tmp/column_four-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/column_four-bench-smoke.txt
 
       - name: directional_flip bench smoke
-        run: cargo bench -p directional_flip -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p directional_flip -- legal_actions | tee /tmp/directional_flip-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/directional_flip-bench-smoke.txt
 
       - name: draughts_lite bench smoke
-        run: cargo bench -p draughts_lite -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p draughts_lite -- legal_actions | tee /tmp/draughts_lite-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/draughts_lite-bench-smoke.txt
 
       - name: high_card_duel bench smoke
-        run: cargo bench -p high_card_duel -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p high_card_duel -- legal_actions | tee /tmp/high_card_duel-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/high_card_duel-bench-smoke.txt
 
       - name: masked_claims bench smoke
-        run: cargo bench -p masked_claims -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p masked_claims -- legal_actions | tee /tmp/masked_claims-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/masked_claims-bench-smoke.txt
 
       - name: flood_watch bench smoke
-        run: cargo bench -p flood_watch -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p flood_watch -- legal_actions | tee /tmp/flood_watch-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/flood_watch-bench-smoke.txt
 
       - name: frontier_control bench smoke
-        run: cargo bench -p frontier_control -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p frontier_control -- legal_actions | tee /tmp/frontier_control-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/frontier_control-bench-smoke.txt
 
       - name: event_frontier bench smoke
-        run: cargo bench -p event_frontier -- legal_tree
+        run: |
+          set -euo pipefail
+          cargo bench -p event_frontier -- legal_tree | tee /tmp/event_frontier-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/event_frontier-bench-smoke.txt
 
       - name: token_bazaar bench smoke
-        run: cargo bench -p token_bazaar -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p token_bazaar -- legal_actions | tee /tmp/token_bazaar-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/token_bazaar-bench-smoke.txt
 
       - name: secret_draft bench smoke
-        run: cargo bench -p secret_draft -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p secret_draft -- legal_actions | tee /tmp/secret_draft-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/secret_draft-bench-smoke.txt
 
       - name: poker_lite bench smoke
-        run: cargo bench -p poker_lite -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p poker_lite -- legal_actions | tee /tmp/poker_lite-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/poker_lite-bench-smoke.txt
 
       - name: plain_tricks bench smoke
-        run: cargo bench -p plain_tricks -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p plain_tricks -- legal_actions | tee /tmp/plain_tricks-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/plain_tricks-bench-smoke.txt
 
       - name: briar_circuit bench smoke
-        run: cargo bench -p briar_circuit -- legal_actions
+        run: |
+          set -euo pipefail
+          cargo bench -p briar_circuit -- legal_actions | tee /tmp/briar_circuit-bench-smoke.txt
+          cargo run -p bench-report -- --schema-only --input /tmp/briar_circuit-bench-smoke.txt
 
   bench-gate:
     name: Benchmark threshold gate
