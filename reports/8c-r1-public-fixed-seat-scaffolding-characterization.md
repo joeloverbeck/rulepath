@@ -133,6 +133,17 @@ seat-bearing field deltas one game at a time.
 | `directional_flip` | `games/directional_flip/tests/golden_traces/wasm-exported.trace.json` | `d9f7339044c2e4a6e78d433666fddacfda364a6260dd13444510cc67f11fdc36` |
 | `token_bazaar` | `games/token_bazaar/tests/golden_traces/wasm-exported.trace.json` | `bad018e566306a9e80fabc6446b1897401378b9c1c64062a46949c044d1d0bd0` |
 
+### 8CR1PUBFIXSEA-013 Race to N after receipt
+
+- File: `games/race_to_n/tests/golden_traces/wasm-exported.trace.json`
+- Before SHA-256: `cad1053c0d77115d92b14cfb224f4561c9ad69e8973b47df2062cbd742755314`
+- After SHA-256: `f6d764e610436e3f29ac0dbb902ef6f05da10fb46fc762c9fd5b7c2b26c5bdce`
+- Seat-bearing delta: roster `seat-0` / `seat-1` -> `seat_0` / `seat_1`;
+  command actor `seat-0` -> `seat_0`; winner remains `null`.
+- Verification: `cargo test -p wasm-api`; `cargo run -p replay-check -- --game race_to_n --all`;
+  `git diff --name-only -- games/*/tests/golden_traces/wasm-exported.trace.json`
+  reported only `games/race_to_n/tests/golden_traces/wasm-exported.trace.json`.
+
 Baseline command for full trace digest inventory:
 
 ```text

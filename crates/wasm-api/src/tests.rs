@@ -1484,6 +1484,9 @@ fn replay_round_trip_reproduces_hashes() {
     apply_action(&match_id, "seat_1", "add-2", 1).expect("second action applies");
 
     let exported = export_replay(&match_id).expect("replay exported");
+    assert!(exported.contains("\"seat_id\":\"seat_0\""));
+    assert!(exported.contains("\"actor_seat\":\"seat_0\""));
+    assert!(!exported.contains("seat-0"));
     let expected = race_replay_commands(21, &["add-1".to_owned(), "add-2".to_owned()]);
     assert!(exported.contains(&format!(
         "\"expected_state_hashes\":{{\"final\":{}}}",
@@ -1500,6 +1503,12 @@ fn replay_round_trip_reproduces_hashes() {
     assert!(stepped.contains("\"cursor\":2"));
     assert!(stepped.contains("\"counter\":3"));
     assert!(stepped.contains("\"done\":true"));
+
+    let legacy_exported = exported
+        .replace("seat_0", "seat-0")
+        .replace("seat_1", "seat-1");
+    let legacy_imported = import_replay(&legacy_exported).expect("legacy hyphen export imports");
+    assert!(legacy_imported.contains("\"game_id\":\"race_to_n\""));
 }
 
 #[test]

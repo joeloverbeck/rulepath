@@ -223,7 +223,6 @@ pub(crate) fn trace_river_seat(seat: RiverLedgerSeat) -> String {
     seat.as_str()
 }
 
-#[allow(dead_code)]
 pub(crate) fn canonical_trace_seat_id(index: u32) -> String {
     SeatId::from_zero_based_index(index).0
 }
@@ -240,7 +239,6 @@ pub(crate) fn seats_for_count(seat_count: usize) -> Vec<SeatId> {
         .collect()
 }
 
-#[allow(dead_code)]
 pub(crate) fn canonical_seats_for_count(seat_count: usize) -> Vec<SeatId> {
     (0..seat_count)
         .map(|index| SeatId::from_zero_based_index(index as u32))
