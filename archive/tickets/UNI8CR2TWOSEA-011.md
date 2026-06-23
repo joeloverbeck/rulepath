@@ -1,6 +1,6 @@
 # UNI8CR2TWOSEA-011: Masked Claims — canonical seat parser adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/masked_claims/src/ids.rs`; delegates canonical acceptance to `engine-core` `SeatId::parse_canonical`
@@ -70,3 +70,20 @@ Add canonical, out-of-range, leading-zero, alias, Unicode-lookalike, and role-la
 
 1. `cargo test -p masked_claims`
 2. `cargo run -p replay-check -- --game masked_claims --all`
+
+## Outcome
+
+Completed on 2026-06-23. `MaskedClaimsSeat::parse` now delegates canonical
+seat grammar acceptance to `SeatId::parse_canonical`, then maps the parsed
+zero-based index to the local two-seat enum. Masked Claims' WASM adapter/output
+remain unchanged and already canonical.
+
+Added parser coverage for canonical `seat_0`/`seat_1` acceptance plus
+out-of-range, leading-zero, hyphen, symbolic alias, Unicode lookalike, and role
+label rejection.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p masked_claims`
+3. `cargo run -p replay-check -- --game masked_claims --all`
