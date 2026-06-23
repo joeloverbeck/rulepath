@@ -1,6 +1,6 @@
 # 8CR1PUBFIXSEA-006: Token Bazaar C-01 public-envelope constructor adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/token_bazaar` (`src/effects.rs`); effect bytes, visibility, and public-export effect bytes byte-identical
@@ -71,3 +71,26 @@ In `public_effect`, replace the `EffectEnvelope { visibility: VisibilityScope::P
 1. `cargo test -p token_bazaar`
 2. `cargo run -p replay-check -- --game token_bazaar --all`
 3. The per-game replay-check plus the existing export round-trip is the correct boundary: this surface is game-local effect serialization and its public-export projection.
+
+## Outcome
+
+Completed: 2026-06-23
+
+Implemented the C-01 Token Bazaar public-envelope constructor adoption by
+replacing the local `EffectEnvelope { visibility: VisibilityScope::Public,
+payload }` literal in `games/token_bazaar/src/effects.rs::public_effect` with
+`EffectEnvelope::public(payload)`. Strengthened the existing effect test to
+assert public visibility, payload preservation, and stable serialization.
+
+Deviations from the original plan:
+
+- None.
+
+Verification:
+
+- `cargo fmt --all -- --check` passed.
+- `cargo test -p token_bazaar` passed, including the existing
+  `public_export_import_is_lossless_and_public_safe` test.
+- `cargo run -p replay-check -- --game token_bazaar --all` passed.
+- `bash scripts/boundary-check.sh` passed.
+- `rg -n "EffectEnvelope::public|EffectEnvelope \\{|VisibilityScope::Public" games/token_bazaar/src/effects.rs` confirmed the public helper now calls `EffectEnvelope::public`, with `VisibilityScope::Public` only in the focused test.
