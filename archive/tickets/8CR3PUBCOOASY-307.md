@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-307: C-03 Event Frontier roster count
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/event_frontier/src/setup.rs`
@@ -91,3 +91,23 @@ policy.
 2. `cargo run -p replay-check -- --game event_frontier --all`
 3. A per-game test + replay-check is the correct boundary: only the Event roster
    predicate changes.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/event_frontier/src/setup.rs::setup_match` to wrap the roster
+length with `SeatCount::new(seats.len()).map(SeatCount::get)` before comparing
+to the game-owned `STANDARD_SEAT_COUNT`. The change is predicate-only; variant
+seat count, faction identity/order, event/resource setup, diagnostics,
+asymmetric two-seat policy, replay/export bytes, and fixtures were otherwise
+untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p event_frontier` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.
+- `cargo run -p fixture-check -- --game event_frontier` passed.
+- No golden trace, fixture, export, or variant policy file changed.

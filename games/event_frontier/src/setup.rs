@@ -3,6 +3,7 @@
 use std::collections::{BTreeSet, VecDeque};
 
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     cards::{CardCatalog, CardId},
@@ -54,7 +55,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<EventFrontierState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(STANDARD_SEAT_COUNT as usize) {
         return Err(diagnostic(
             "invalid_seat_count",
             "event_frontier requires exactly two seats",
@@ -309,12 +310,35 @@ mod tests {
 
     #[test]
     fn setup_rejects_wrong_seat_count() {
-        assert!(setup_match(
-            Seed(0),
-            &[SeatId("seat_0".to_owned())],
-            &SetupOptions::default()
-        )
-        .is_err());
+        let expected = diagnostic(
+            "invalid_seat_count",
+            "event_frontier requires exactly two seats",
+        );
+
+        assert_eq!(
+            setup_match(Seed(0), &[], &SetupOptions::default()),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                Seed(0),
+                &[SeatId("seat_0".to_owned())],
+                &SetupOptions::default(),
+            ),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                Seed(0),
+                &[
+                    SeatId("seat_0".to_owned()),
+                    SeatId("seat_1".to_owned()),
+                    SeatId("seat_2".to_owned()),
+                ],
+                &SetupOptions::default(),
+            ),
+            Err(expected)
+        );
     }
 
     #[test]

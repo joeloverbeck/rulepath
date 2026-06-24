@@ -593,3 +593,26 @@ Completed: 2026-06-24
     Frontier Control traces were accepted.
   - `cargo run -p fixture-check -- --game frontier_control` passed.
   - No golden trace, fixture, export, or variant policy file changed.
+
+### 8CR3PUBCOOASY-307 - Event Frontier roster count
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/src/setup.rs::setup_match` roster
+  predicate.
+- Change: replaced the bare `seats.len()` comparison with
+  `SeatCount::new(seats.len()).map(SeatCount::get)` compared against the
+  game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; accepted/rejected counts, diagnostics,
+  deck setup, replay hashes, fixtures, and exports were not intentionally
+  migrated.
+- Compatibility / rollback: restore only the bare roster-length predicate.
+  Variant seat count, faction identity/order, event/resource setup, and
+  asymmetric two-seat policy stay game-owned.
+- Verification:
+  - `cargo test -p event_frontier` passed, including exact diagnostic checks for
+    0, 1, and 3 seats.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces were accepted.
+  - `cargo run -p fixture-check -- --game event_frontier` passed.
+  - No golden trace, fixture, export, or variant policy file changed.
