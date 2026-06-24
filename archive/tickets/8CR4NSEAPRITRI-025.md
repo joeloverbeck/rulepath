@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-025: River Ledger C-08 replay-command profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/river_ledger/tests/replay.rs`; trace bytes/schema unchanged
@@ -70,3 +70,22 @@ In `games/river_ledger/tests/replay.rs`, add a virtual `ReplayCommandV1Driver` a
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The per-game replay test is the correct boundary: the profile is a dev-only evidence adapter over existing traces.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `replay-command-v1` profile adapter test in River replay coverage using `ReplayCommandV1Driver`.
+2. Validated accept/delegation behavior over an internal command trace and selected Gate 15.1 golden traces while asserting profile metadata is not embedded into those trace files.
+3. Added reject coverage for wrong profile id, wrong profile version, unknown field, and illegal canonical-byte claim.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p river_ledger` - passed.
+3. `cargo run -p replay-check -- --game river_ledger --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.

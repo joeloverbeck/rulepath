@@ -1,7 +1,8 @@
 use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, SetupEvidenceV1Driver, PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use river_ledger::{
     replay_support::{
@@ -26,6 +27,23 @@ const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
     "seat_grammar_version",
     "setup_options",
     "expected_setup",
+];
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
 ];
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
@@ -229,6 +247,21 @@ fn setup_profile_artifact() -> ProfileArtifact<'static> {
     }
 }
 
+fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-025 virtual replay-command profile"),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
 fn fixture_string_field(input: &str, key: &str) -> String {
     let needle = format!("\"{key}\":");
     let start = input
@@ -329,6 +362,96 @@ fn setup_evidence_v1_driver_validates_standard_3p_setup_fixture() {
             assert_standard_3p_setup_fixture(setup_fixture)
         })
         .expect("setup-evidence-v1 driver accepts River setup fixture");
+}
+
+#[test]
+fn replay_command_v1_driver_validates_river_internal_command_traces() {
+    let trace = trace_from_commands(21, 4, FOUR_PLAYER_CHECKDOWN);
+    let result = replay_internal_full_trace(&trace);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact();
+
+    let delegated = driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+            assert_eq!(report.visibility_class, "internal-dev");
+            assert_eq!(
+                result.trace_hash,
+                replay_internal_full_trace(&trace).trace_hash
+            );
+            format!("{}:river-ledger", report.profile_id)
+        })
+        .expect("replay-command-v1 driver accepts River internal trace adapter");
+
+    assert_eq!(delegated, "replay-command-v1:river-ledger");
+
+    for file_name in [
+        "all-all-in-runout.trace.json",
+        "three-way-main-two-side-pots.trace.json",
+        "seat-private-multipot-no-leak.trace.json",
+    ] {
+        let contents = read_golden_trace(file_name);
+        assert!(
+            !contents.contains("\"profile_id\""),
+            "{file_name} must not be rewritten with profile metadata"
+        );
+        assert!(
+            !contents.contains("\"canonical_byte_authority\""),
+            "{file_name} must keep legacy replay trace bytes authoritative"
+        );
+        driver
+            .validate_with(&profile, |_| {
+                assert!(contents.contains("\"schema_version\": 1"));
+                assert!(contents.contains("\"rules_version\""));
+            })
+            .expect("virtual replay-command profile validates selected golden trace");
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_rejects_wrong_metadata_without_reading_commands() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let valid = replay_command_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid.clone();
+    unknown_field.fields = &["profile_id", "commands", "procedural_setup"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+
+    let mut byte_claim = valid;
+    byte_claim.canonical_byte_claim = true;
+    assert_eq!(
+        driver
+            .validate(&byte_claim)
+            .expect_err("canonical byte claim")
+            .kind,
+        ProfileValidationErrorKind::IllegalCanonicalByteClaim
+    );
 }
 
 #[test]
