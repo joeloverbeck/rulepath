@@ -318,6 +318,10 @@ fn matrix_expectation(
     }
 }
 
+// `&String` is required: this is passed as the `ContainsFn` callback to
+// `assert_pairwise_no_leak`, whose `FnMut(&Snapshot, _)` bound pins `Snapshot`
+// to `String` (the `matrix_snapshot` return type). `&str` fails to satisfy it.
+#[allow(clippy::ptr_arg)]
 fn snapshot_contains_card(snapshot: &String, card: &CrestCardId) -> bool {
     snapshot.contains(card.as_str()) || snapshot.contains(&card.label())
 }

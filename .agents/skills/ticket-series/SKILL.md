@@ -278,6 +278,15 @@ ticket or reference `Outcome`, or explicitly record the skipped evidence with a
 reason. Do not silently substitute browser smoke commands for requested visual
 evidence.
 
+If final gates pass and only docs/archive/tracker closeout files change
+afterward, do not treat the earlier heavy gate as stale by default. Re-run
+lightweight truth checks such as `git diff --check`, doc-link/catalog checks
+when those surfaces changed, and the closeout audit; record that no source,
+test, fixture, golden, or active behavior-authority file changed after the
+heavy gate. If source, tests, fixtures, golden traces, generated behavior
+artifacts, or active authority docs change after a gate, rerun the affected gate
+or mark the earlier result as preliminary.
+
 3. Update the reference artifact following `docs/archival-workflow.md`:
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
@@ -369,6 +378,13 @@ Goal completion gate:
    `git diff --cached --name-status` is empty.
 6. Call `update_goal` only after all checks above are true.
 
+If a resumed continuation finds that implementation, archival, reference repair,
+verification, and commits are already complete, switch to an audit-only
+completion pass: re-run the live closeout audit, confirm no active ticket or
+reference path remains unexpectedly, check the staged index and worktree, and
+avoid edits unless the audit exposes a real closeout defect. When that pass is
+green, call `update_goal` without reopening completed tickets.
+
 If a final gate uncovers a stale test assertion, proof fixture, or small defect
 owned by an earlier archived ticket, fix it before closeout. Record the fix in
 the current ticket or reference `Outcome`. Amend the earlier archived ticket
@@ -458,6 +474,12 @@ surfaces, then inspect its output and run any repo-specific checks that the
 helper cannot infer. For non-contiguous or unusual series where the helper
 cannot express the expected set cleanly, run the manual audit commands below
 and explain why the helper was skipped.
+
+For second-pass reruns after a passing final commit, prefer
+`--ledger-format compact`, inspect failures and key `OK` surfaces first, and
+summarize the rerun result instead of re-printing every archived-ticket or
+stale-path row into the final response. Expand the output only when a mismatch
+or unusual series shape needs detailed evidence.
 
 ```sh
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md
