@@ -950,3 +950,26 @@ Completed: 2026-06-24
     Event Frontier traces were accepted.
   - `rg -n "R3_EVENT_NOLEAK_CANARY" games/event_frontier/tests/golden_traces`
     returned no matches.
+
+### 8CR3PUBCOOASY-601 - Plain Tricks replay-command profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/tests/replay.rs`.
+- Change: added a dev-only `ReplayCommandV1Driver` wrapper test for Plain
+  Tricks replay-command evidence. The test validates `replay-command-v1` / `v1`
+  / `internal-dev` metadata with owner `plain_tricks`, canonical byte authority
+  `none`, and fields `commands`, `checkpoints`, and `expected_hashes`, then
+  delegates to the existing native golden-trace replay assertions.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No golden
+  trace bytes, replay hashes, command semantics, production replay support, or
+  game behavior changed.
+- Compatibility / rollback: remove the profile-wrapper test/helper only; the
+  existing native replay tests and `replay-check` path remain.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new replay-command-v1
+    profile driver wrapper.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces were accepted.

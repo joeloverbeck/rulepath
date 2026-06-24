@@ -5,6 +5,10 @@ use engine_core::{
 use game_test_support::no_leak::{
     assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use plain_tricks::{
     apply_action, legal_action_tree,
     replay_support::{
@@ -88,6 +92,93 @@ fn golden_traces_match_expected_replay_hashes_diagnostics_and_no_leak_surfaces()
         let fixture = parse_trace_fixture(input);
         assert_trace_fixture(&fixture);
     }
+}
+
+#[test]
+fn replay_command_v1_profile_driver_wraps_native_replay_validator() {
+    let driver = ReplayCommandV1Driver::new("plain_tricks");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "plain_tricks",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "plain_tricks");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let checked = driver
+        .validate_with(&artifact, |_| {
+            GOLDEN_TRACE_INPUTS
+                .iter()
+                .map(|input| {
+                    let fixture = parse_trace_fixture(input);
+                    assert_trace_fixture(&fixture);
+                    fixture.id
+                })
+                .collect::<Vec<_>>()
+        })
+        .expect("profile delegates to native replay validator");
+    assert_eq!(checked.len(), GOLDEN_TRACE_INPUTS.len());
+
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            "public-export-v1",
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "plain_tricks",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            "v2",
+            Some("internal-dev"),
+            "plain_tricks",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("seat-private"),
+            "plain_tricks",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "replay-check",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "plain_tricks",
+            &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
 }
 
 #[test]
@@ -362,6 +453,41 @@ fn assert_trace_fixture(fixture: &TraceFixture) {
         assert_eq!(imported.viewer, "observer");
         assert_eq!(imported.steps, export.steps);
     }
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_replay_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = ReplayCommandV1Driver::new("plain_tricks");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid replay-command-v1 metadata rejects")
+            .kind,
+        expected
+    );
 }
 
 fn visible_hand_for_export_probe(

@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-601: C-08 Plain Tricks replay-command profile driver
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (dev-only profile adapter) — `games/plain_tricks/tests/replay.rs`, `games/plain_tricks/src/replay_support.rs`
@@ -99,3 +99,20 @@ the existing native validator. Add the wrong-metadata rejection cases. Touch
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side and read-only over existing artifacts.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a test-local `ReplayCommandV1Driver` wrapper in
+  `games/plain_tricks/tests/replay.rs`.
+- The wrapper validates `replay-command-v1` / `v1` / `internal-dev` metadata
+  for owner `plain_tricks`, canonical byte authority `none`, and the
+  `commands`, `checkpoints`, and `expected_hashes` fields, then delegates to the
+  existing native golden-trace replay assertions.
+- Wrong profile, version, visibility, owner, and field metadata reject
+  fail-closed. No production replay support, golden trace bytes, command
+  semantics, or replay hashes changed.
+- Verification:
+  - `cargo test -p plain_tricks`
+  - `cargo run -p replay-check -- --game plain_tricks --all`
