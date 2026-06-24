@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-001: ADR 0008 append-only forward-obligation extension
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance/law doc edit (`docs/adr/0008-mechanical-scaffolding-governance.md`)
@@ -80,3 +80,31 @@ Append the plan §7.5 rows to the existing `Migration matrix:` table.
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/adr/0008-mechanical-scaffolding-governance.md` (review: original blocks untouched, additions dated)
 3. Source comparison of the third-use hard-gate sentence against `docs/MECHANIC-ATLAS.md` §4 L73 — the narrower correct boundary, since this ticket only appends to the ADR.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/adr/0008-mechanical-scaffolding-governance.md` with the Unit 8F
+append-only forward-obligation extension:
+
+- added the dated status-note paragraph for the 2026-06-25 forward obligation;
+- expanded related documents and replaced the affected foundation/governed
+  sections field with the Unit 8F authority set;
+- appended the Unit 8F migration-matrix rows;
+- inserted `Forward per-new-game obligation extension - 2026-06-25` inside
+  `## Decision`, before `## Alternatives considered`.
+
+Deviation: the pre-existing ADR quote and `MECHANIC-ATLAS.md` §4 table row are
+not byte-identical text. The ticket acceptance was satisfied by the narrower
+truthful boundary: the ADR's original quoted behavioral third-use gate remains
+unchanged in place, the atlas file was not edited by this ticket, and the new
+extension explicitly preserves the behavioral third-use gate rather than
+rewriting it.
+
+Verification:
+
+- `rg -n "## Decision|Forward per-new-game obligation extension|## Alternatives considered|third official use: hard gate" docs/adr/0008-mechanical-scaffolding-governance.md docs/MECHANIC-ATLAS.md` showed the new subsection between `## Decision` and `## Alternatives considered` and the original ADR quote still present.
+- `rg -n "third official use|hard gate|primitive-pressure ledger" docs/MECHANIC-ATLAS.md` confirmed the atlas hard-gate row was still present and untouched.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
