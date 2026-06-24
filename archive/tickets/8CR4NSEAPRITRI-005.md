@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-005: Briar Circuit C-02 canonical seat parser adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/briar_circuit` (`src/ids.rs`); accepted/rejected seat inputs and enum mapping unchanged
@@ -70,3 +70,20 @@ In `BriarCircuitSeat::parse`, parse the input via `SeatId::parse_canonical`, the
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game test is the correct boundary: seat parsing is game-local ID grammar over a kernel helper.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- `BriarCircuitSeat::parse` now delegates strict seat-string parsing to `SeatId::parse_canonical`, extracts the canonical zero-based index, and maps the bounded index through the existing enum conversion.
+- Added a focused table-driven test covering canonical `seat_0` through `seat_3` acceptance plus malformed and out-of-range rejection.
+
+Deviations:
+- None. Formatter/roster adoption and WASM alias adapter work remain owned by `8CR4NSEAPRITRI-006` and `8CR4NSEAPRITRI-007`.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p briar_circuit`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `bash scripts/boundary-check.sh`

@@ -62,13 +62,11 @@ impl BriarCircuitSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            "seat_2" => Some(Self::Seat2),
-            "seat_3" => Some(Self::Seat3),
-            _ => None,
-        }
+        let raw_index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()? as usize;
+        Self::from_index(raw_index)
     }
 
     pub const fn next_clockwise(self) -> Self {
@@ -114,4 +112,28 @@ pub fn canonical_seat_ids() -> [SeatId; 4] {
         seat_id_for_index(2),
         seat_id_for_index(3),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn seat_parser_accepts_only_bounded_canonical_ids() {
+        let accepted = [
+            ("seat_0", BriarCircuitSeat::Seat0),
+            ("seat_1", BriarCircuitSeat::Seat1),
+            ("seat_2", BriarCircuitSeat::Seat2),
+            ("seat_3", BriarCircuitSeat::Seat3),
+        ];
+        for (input, expected) in accepted {
+            assert_eq!(BriarCircuitSeat::parse(input), Some(expected));
+        }
+
+        for rejected in [
+            "seat_4", "seat-0", "seat-a", "seat_", "seat_01", "seat_0 ", " seat_0", "Seat_0", "",
+        ] {
+            assert_eq!(BriarCircuitSeat::parse(rejected), None, "{rejected}");
+        }
+    }
 }
