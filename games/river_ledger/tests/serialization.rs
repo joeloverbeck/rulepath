@@ -1,9 +1,11 @@
-use engine_core::StableSerialize;
+use engine_core::{Actor, SeatId, StableSerialize};
 use river_ledger::replay_support::{
-    export_public_replay, replay_internal_full_trace, trace_from_commands,
+    command_for_state, export_public_replay, legal_action_tree_v1_encoding,
+    replay_internal_full_trace, trace_from_commands,
 };
 use river_ledger::{
     apply_action, project_view, setup_match, validate_command, RiverLedgerSeat, SetupOptions,
+    STANDARD_STARTING_STACK,
 };
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
@@ -201,4 +203,129 @@ fn all_in_side_pot_state_and_view_hashes_are_deterministic_for_same_canonical_in
     assert_eq!(first.ledger.seats[0].remaining_stack, 5);
     assert_eq!(first.ledger.seats[0].total_contribution, 3);
     assert!(summary.contains("terminal=showdown"));
+}
+
+#[test]
+fn richer_all_in_side_pot_action_tree_v1_vectors_are_deterministic() {
+    let short_small_blind = include_str!("golden_traces/short-small-blind-all-in.trace.json");
+    assert!(short_small_blind.contains("\"trace_id\": \"river-ledger-short-small-blind-all-in\""));
+    let short_small_state = setup_with_stacks(1512, vec![8, 1, 24]);
+    assert_action_tree_v1_fixture(
+        "short-small-blind-all-in",
+        &short_small_state,
+        8459325685730745957,
+    );
+
+    let short_raise = include_str!("golden_traces/short-raise-all-in.trace.json");
+    assert!(short_raise.contains("\"trace_id\": \"river-ledger-short-raise-all-in\""));
+    let short_raise_state = setup_with_stacks(1517, vec![3, 16, 24]);
+    assert_action_tree_v1_fixture(
+        "short-raise-all-in",
+        &short_raise_state,
+        17769399973547313107,
+    );
+
+    let cumulative = include_str!("golden_traces/cumulative-reopen.trace.json");
+    assert!(cumulative.contains("\"trace_id\": \"river-ledger-cumulative-reopen\""));
+    let mut cumulative_state = flop_state_with_remaining([STANDARD_STARTING_STACK, 20, 20, 3]);
+    for (seat, segment) in [
+        ("seat_1", "bet"),
+        ("seat_2", "call"),
+        ("seat_3", "raise"),
+        ("seat_0", "raise"),
+    ] {
+        apply_segment(&mut cumulative_state, seat, segment);
+    }
+    assert_action_tree_v1_fixture("cumulative-reopen", &cumulative_state, 16754997844699440739);
+
+    let all_runout = include_str!("golden_traces/all-all-in-runout.trace.json");
+    assert!(all_runout.contains("\"trace_id\": \"river-ledger-all-all-in-runout\""));
+    let mut all_runout_state = setup_with_stacks(1528, vec![4, 4, 2]);
+    for (seat, segment) in [("seat_0", "raise"), ("seat_1", "call")] {
+        apply_segment(&mut all_runout_state, seat, segment);
+    }
+    assert_action_tree_v1_fixture("all-all-in-runout", &all_runout_state, 1933656550434207641);
+
+    let three_way = include_str!("golden_traces/three-way-main-two-side-pots.trace.json");
+    assert!(three_way.contains("\"trace_id\": \"river-ledger-three-way-main-two-side-pots\""));
+    let three_way_state = setup_with_stacks(1521, vec![2, 5, 9]);
+    assert_action_tree_v1_fixture(
+        "three-way-main-two-side-pots",
+        &three_way_state,
+        11683784456165567154,
+    );
+}
+
+fn setup_with_stacks(seed: u64, starting_stacks: Vec<u16>) -> river_ledger::RiverLedgerState {
+    setup_match(
+        engine_core::Seed(seed),
+        &(0..starting_stacks.len())
+            .map(|index| SeatId(format!("seat_{index}")))
+            .collect::<Vec<_>>(),
+        &SetupOptions {
+            starting_stacks: Some(starting_stacks),
+            ..SetupOptions::default()
+        },
+    )
+    .expect("setup")
+}
+
+fn flop_state_with_remaining(remaining: [u16; 4]) -> river_ledger::RiverLedgerState {
+    let mut state = setup_with_stacks(21, vec![STANDARD_STARTING_STACK; 4]);
+    state.phase = river_ledger::Phase::Betting {
+        street: river_ledger::Street::Flop,
+    };
+    state.active_seat = RiverLedgerSeat::from_index(1);
+    for (index, seat_ledger) in state.ledger.seats.iter_mut().enumerate() {
+        seat_ledger.street_contribution = 0;
+        seat_ledger.remaining_stack = remaining[index];
+        seat_ledger.starting_stack = seat_ledger.total_contribution + remaining[index];
+        seat_ledger.status = if remaining[index] == 0 {
+            river_ledger::SeatStatus::AllIn
+        } else {
+            river_ledger::SeatStatus::Live
+        };
+    }
+    state.betting = river_ledger::BettingRoundState::for_street(
+        river_ledger::Street::Flop,
+        vec![
+            RiverLedgerSeat::from_index(1).expect("seat 1"),
+            RiverLedgerSeat::from_index(2).expect("seat 2"),
+            RiverLedgerSeat::from_index(3).expect("seat 3"),
+            RiverLedgerSeat::from_index(0).expect("seat 0"),
+        ],
+    );
+    state
+}
+
+fn apply_segment(state: &mut river_ledger::RiverLedgerState, seat: &str, segment: &str) {
+    let command = command_for_state(state, seat, vec![segment.to_owned()]);
+    let action = validate_command(state, &command).expect("valid command");
+    apply_action(state, action).expect("action applies");
+}
+
+fn assert_action_tree_v1_fixture(
+    label: &str,
+    state: &river_ledger::RiverLedgerState,
+    expected_hash: u64,
+) {
+    let actor = state
+        .active_seat
+        .map(|seat| SeatId(seat.as_str()))
+        .unwrap_or_else(|| SeatId("seat_0".to_owned()));
+    let actor = Actor { seat_id: actor };
+    let encoding = legal_action_tree_v1_encoding(state, &actor);
+    let repeated = legal_action_tree_v1_encoding(state, &actor);
+
+    assert_eq!(encoding, repeated, "{label} v1 encoding is deterministic");
+    assert_eq!(
+        encoding.stable_hash,
+        engine_core::HashValue::from_stable_bytes(&encoding.stable_bytes),
+        "{label} v1 hash matches bytes"
+    );
+    assert_eq!(
+        encoding.stable_hash,
+        engine_core::HashValue(expected_hash),
+        "{label} v1 hash sentinel"
+    );
 }

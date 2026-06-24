@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-015: River Ledger C-05 all-in/side-pot action-tree v1 vectors
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/river_ledger` (focused tests only); deterministic parallel-new v1 vectors, no golden rewrite
@@ -70,3 +70,21 @@ In focused River rules/serialization tests, add parallel-v1 expected byte/hash v
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The per-game test plus replay-check are the correct boundary: these are game-local action-tree-v1 test states.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added richer River action-tree v1 hash vectors in serialization tests for short small-blind all-in, short raise all-in, cumulative reopen, all-all-in runout, and three-way main/two-side-pot fixture scenarios.
+- The selected golden trace files are read as provenance inputs only; no fixture or golden trace bytes were rewritten.
+- The vectors exercise the `8CR4NSEAPRITRI-014` adapter and assert deterministic v1 bytes-to-hash consistency plus expected hash sentinels.
+
+Deviations:
+- None. No betting, all-in, reopen, pot/side-pot, evaluator, showdown, allocation, production source, or legacy hash logic changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `bash scripts/boundary-check.sh`
