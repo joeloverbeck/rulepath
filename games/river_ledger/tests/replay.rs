@@ -1,8 +1,9 @@
 use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use river_ledger::{
     replay_support::{
@@ -44,6 +45,23 @@ const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
     "commands",
     "checkpoints",
     "expected_hashes",
+];
+
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
 ];
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
@@ -262,6 +280,21 @@ fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
     }
 }
 
+fn public_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: PUBLIC_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-026 virtual public-export profile"),
+        },
+        fields: PUBLIC_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
 fn fixture_string_field(input: &str, key: &str) -> String {
     let needle = format!("\"{key}\":");
     let start = input
@@ -451,6 +484,91 @@ fn replay_command_v1_driver_rejects_wrong_metadata_without_reading_commands() {
             .expect_err("canonical byte claim")
             .kind,
         ProfileValidationErrorKind::IllegalCanonicalByteClaim
+    );
+}
+
+#[test]
+fn public_export_v1_driver_validates_observer_round_trip_and_no_leak() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let profile = public_export_profile_artifact();
+    let cases = [
+        (
+            "public-replay-export-import.trace.json",
+            trace_from_commands(21, 4, &[(3, "call"), (0, "call")]),
+            21,
+            4,
+        ),
+        (
+            "three-way-main-two-side-pots.trace.json",
+            trace_from_commands(1521, 3, &[]),
+            1521,
+            3,
+        ),
+    ];
+
+    for (file_name, trace, seed, seat_count) in cases {
+        let fixture = read_golden_trace(file_name);
+        assert!(
+            !fixture.contains("\"profile_id\""),
+            "{file_name} must not embed public-export profile metadata"
+        );
+        let delegated_hash = driver
+            .validate_with(&profile, |report| {
+                assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+                assert_eq!(report.visibility_class, "public");
+
+                let export = export_public_replay(&trace, &Viewer { seat_id: None });
+                let imported = import_public_export(&export);
+                assert_eq!(imported.viewer, "observer");
+                assert_eq!(imported.steps, export.steps);
+
+                let json = export.to_json();
+                for hidden in hidden_ids(seed, seat_count) {
+                    assert!(!json.contains(&hidden), "{file_name} leaked {hidden}");
+                }
+                assert!(!json.contains("seed_evidence"));
+                assert!(!json.contains("\"seed\""));
+                export.stable_hash()
+            })
+            .expect("public-export-v1 driver accepts River observer export adapter");
+
+        assert_eq!(
+            delegated_hash,
+            export_public_replay(&trace, &Viewer { seat_id: None }).stable_hash()
+        );
+    }
+}
+
+#[test]
+fn public_export_v1_driver_rejects_wrong_metadata() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let valid = public_export_profile_artifact();
+
+    let mut wrong_owner = valid.clone();
+    wrong_owner.metadata.validator_owner = "replay-check";
+    assert_eq!(
+        driver.validate(&wrong_owner).expect_err("wrong owner").kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("seat-private");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "viewer_seat"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
     );
 }
 
