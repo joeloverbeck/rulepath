@@ -1,10 +1,12 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
+    ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
+    Viewer,
 };
 use flood_watch::{
-    apply_command, export_public_replay, import_public_export, public_replay_step, setup_match,
-    DistrictId, EventCard, EventKind, FloodWatchState, ScenarioVariant, SetupOptions,
-    ACTION_END_TURN,
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
+    export_public_replay, import_public_export, legal_action_tree, public_replay_step, setup_match,
+    DistrictId, EventCard, EventKind, FloodWatchState, Phase, ScenarioVariant, SetupOptions,
+    ACTION_END_TURN, ACTION_REINFORCE,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -128,4 +130,229 @@ fn public_export_import_redacts_undrawn_deck_after_terminal() {
     assert!(!rendered.contains("storm_surge/district_gardens#1"));
     assert!(!rendered.contains("full_deck_order"));
     assert!(!rendered.contains("deck_order"));
+}
+
+#[test]
+fn action_tree_v1_parallel_vectors_cover_representative_trees() {
+    let vectors = action_tree_v1_vectors();
+    let missing = vectors
+        .iter()
+        .filter(|vector| vector.expected_hash == HashValue(0))
+        .map(|vector| {
+            format!(
+                "{} bytes={} hash={} local_hash={} paths={:?}",
+                vector.name,
+                vector.bytes.len(),
+                vector.hash.0,
+                vector.local_hash.0,
+                vector.paths
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(missing.is_empty(), "populate v1 vectors:\n{}", missing.join("\n"));
+
+    for vector in vectors {
+        assert_eq!(vector.hash, vector.expected_hash, "{} hash", vector.name);
+        assert_eq!(
+            vector.bytes.len(),
+            vector.expected_bytes_len,
+            "{} bytes length",
+            vector.name
+        );
+        assert_eq!(
+            HashValue::from_stable_bytes(&vector.bytes),
+            vector.hash,
+            "{} hash derives from bytes",
+            vector.name
+        );
+        assert_eq!(
+            vector.local_hash, vector.expected_local_hash,
+            "{} local hash",
+            vector.name
+        );
+        assert_eq!(
+            vector.paths, vector.expected_paths,
+            "{} legal paths",
+            vector.name
+        );
+    }
+}
+
+struct ActionTreeV1Vector {
+    name: &'static str,
+    bytes: Vec<u8>,
+    hash: HashValue,
+    local_hash: HashValue,
+    paths: Vec<Vec<String>>,
+    expected_bytes_len: usize,
+    expected_hash: HashValue,
+    expected_local_hash: HashValue,
+    expected_paths: Vec<Vec<String>>,
+}
+
+fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
+    let bail_and_levee = setup_match(Seed(18), &seats(), &SetupOptions::default()).unwrap();
+
+    let mut role_power = setup_match(Seed(18), &seats(), &SetupOptions::default()).unwrap();
+    role_power.active_seat = SeatId("seat_1".to_owned());
+
+    let early_end = state_after_commands(18, &[vec![ACTION_END_TURN.to_owned()]]);
+
+    let budget_exhausted = state_after_commands(
+        19,
+        &[vec![
+            ACTION_REINFORCE.to_owned(),
+            DistrictId::Riverside.as_str().to_owned(),
+        ]],
+    );
+
+    let terminal = terminal_state();
+
+    vec![
+        vector(
+            "bail_and_place_levee",
+            &bail_and_levee,
+            "seat_0",
+            3920,
+            HashValue(2247660004428458771),
+            HashValue(4425850002041434203),
+            vec![
+                vec!["bail/district_old_docks".to_owned()],
+                vec!["bail/district_terraces".to_owned()],
+                vec!["reinforce/district_riverside".to_owned()],
+                vec!["reinforce/district_old_docks".to_owned()],
+                vec!["reinforce/district_market".to_owned()],
+                vec!["reinforce/district_terraces".to_owned()],
+                vec!["reinforce/district_gardens".to_owned()],
+                vec!["forecast".to_owned()],
+                vec!["end_turn".to_owned()],
+            ],
+        ),
+        vector(
+            "role_power_levee_warden",
+            &role_power,
+            "seat_1",
+            3920,
+            HashValue(4532944654053335564),
+            HashValue(8946559128574054524),
+            vec![
+                vec!["bail/district_old_docks".to_owned()],
+                vec!["bail/district_terraces".to_owned()],
+                vec!["reinforce/district_riverside".to_owned()],
+                vec!["reinforce/district_old_docks".to_owned()],
+                vec!["reinforce/district_market".to_owned()],
+                vec!["reinforce/district_terraces".to_owned()],
+                vec!["reinforce/district_gardens".to_owned()],
+                vec!["forecast".to_owned()],
+                vec!["end_turn".to_owned()],
+            ],
+        ),
+        vector(
+            "early_end_next_turn",
+            &early_end,
+            "seat_1",
+            4375,
+            HashValue(6356390137971522057),
+            HashValue(13133754107875012264),
+            vec![
+                vec!["bail/district_old_docks".to_owned()],
+                vec!["bail/district_terraces".to_owned()],
+                vec!["bail/district_gardens".to_owned()],
+                vec!["reinforce/district_riverside".to_owned()],
+                vec!["reinforce/district_old_docks".to_owned()],
+                vec!["reinforce/district_market".to_owned()],
+                vec!["reinforce/district_terraces".to_owned()],
+                vec!["reinforce/district_gardens".to_owned()],
+                vec!["forecast".to_owned()],
+                vec!["end_turn".to_owned()],
+            ],
+        ),
+        vector(
+            "budget_exhausted_auto_environment",
+            &budget_exhausted,
+            "seat_1",
+            64,
+            HashValue(828296343441045014),
+            HashValue(9791162161922510910),
+            Vec::new(),
+        ),
+        vector(
+            "terminal_empty_tree",
+            &terminal,
+            "seat_0",
+            64,
+            HashValue(828296343441045014),
+            HashValue(9791162161922510910),
+            Vec::new(),
+        ),
+    ]
+}
+
+fn vector(
+    name: &'static str,
+    state: &FloodWatchState,
+    seat: &str,
+    expected_bytes_len: usize,
+    expected_hash: HashValue,
+    expected_local_hash: HashValue,
+    expected_paths: Vec<Vec<String>>,
+) -> ActionTreeV1Vector {
+    let tree = legal_action_tree(state, &actor(seat));
+    let bytes = action_tree_v1_bytes(&tree);
+    ActionTreeV1Vector {
+        name,
+        hash: action_tree_v1_hash(&tree),
+        local_hash: action_tree_hash(&tree),
+        paths: action_paths(&tree.root.choices),
+        bytes,
+        expected_bytes_len,
+        expected_hash,
+        expected_local_hash,
+        expected_paths,
+    }
+}
+
+fn actor(seat: &str) -> Actor {
+    Actor {
+        seat_id: SeatId(seat.to_owned()),
+    }
+}
+
+fn state_after_commands(seed: u64, commands: &[Vec<String>]) -> FloodWatchState {
+    let mut state = setup_match(Seed(seed), &seats(), &SetupOptions::default()).unwrap();
+    for segments in commands {
+        let command = CommandEnvelope {
+            actor: Actor {
+                seat_id: state.active_seat.clone(),
+            },
+            action_path: ActionPath {
+                segments: segments.clone(),
+            },
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(1),
+        };
+        apply_command(&mut state, &command).expect("test command applies");
+    }
+    state
+}
+
+fn terminal_state() -> FloodWatchState {
+    let deck = vec![card(
+        EventKind::StormSurge {
+            district: DistrictId::OldDocks,
+        },
+        1,
+    )];
+    let mut state = FloodWatchState::new_after_setup(ScenarioVariant::standard(), seats(), deck);
+    let command = end_turn_command(&state);
+    apply_command(&mut state, &command).expect("terminal command applies");
+    assert_eq!(state.phase, Phase::Terminal);
+    state
+}
+
+fn action_paths(choices: &[engine_core::ActionChoice]) -> Vec<Vec<String>> {
+    choices
+        .iter()
+        .map(|choice| vec![choice.segment.clone()])
+        .collect()
 }

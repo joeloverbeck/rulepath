@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-402: C-04/C-05 Flood Watch action-tree v1 parallel surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/flood_watch/src/visibility.rs`
@@ -99,3 +99,29 @@ for the named trees.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game test + replay-check is the correct boundary: the v1 surface is
    game-local and additive; adjacency is asserted unchanged.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Added parallel `ActionTreeEncodingVersion::V1` helpers in
+`games/flood_watch/src/visibility.rs`, re-exported them from
+`games/flood_watch/src/lib.rs`, and added representative v1 vectors in
+`games/flood_watch/tests/replay.rs` for bail/place-levee, role power, early end,
+budget-exhausted/automatic-environment, and terminal empty trees. The existing
+debug-derived `action_tree_hash` is retained and asserted unchanged. The change
+is additive; legal choices, labels, metadata, branch order, state/effect/view
+hashes, replay/export bytes, fixtures, and golden traces were otherwise
+untouched.
+
+Deviations: the test pins v1 byte length plus v1 hash derived from the actual
+bytes rather than embedding full byte hex for each vector, matching the
+maintainable approach used for 401.
+
+Verification:
+
+- `cargo test -p flood_watch` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `cargo run -p fixture-check -- --game flood_watch` passed.
+- No golden trace, fixture, export, state/effect/view hash, or local
+  action-tree hash surface changed.

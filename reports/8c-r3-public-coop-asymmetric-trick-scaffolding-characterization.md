@@ -670,3 +670,35 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game plain_tricks` passed.
   - No golden trace, fixture, export, state/effect/view hash, or local
     action-tree hash surface changed.
+
+### 8CR3PUBCOOASY-402 - Flood Watch action-tree v1 parallel surface
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/flood_watch/src/visibility.rs`,
+  `games/flood_watch/src/lib.rs`, and `games/flood_watch/tests/replay.rs`.
+- Change: added parallel `action_tree_v1_bytes` and `action_tree_v1_hash`
+  helpers using `ActionTreeEncodingVersion::V1`, while retaining the existing
+  debug-derived local `action_tree_hash` unchanged. Added representative v1
+  vectors for bail/place-levee, Levee Warden role-power tree, early end next
+  turn, budget-exhausted/automatic-environment empty tree, and terminal empty
+  tree.
+- ADR-0009 classification: `unchanged` for existing surfaces; the v1
+  action-tree bytes/hash are additive. Local action-tree hash, state/effect/view
+  hashes, traces, fixtures, exports, legal choices, metadata, labels, and
+  branch order were not intentionally migrated.
+- Compatibility / rollback: remove only the v1 helper functions, re-export, and
+  replay vector test. Existing local hash and all replay/export consumers remain
+  unchanged.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new v1 vectors:
+    bail/levee `(bytes=3920, hash=2247660004428458771, local=4425850002041434203)`,
+    role-power `(bytes=3920, hash=4532944654053335564, local=8946559128574054524)`,
+    early-end `(bytes=4375, hash=6356390137971522057, local=13133754107875012264)`,
+    budget-empty `(bytes=64, hash=828296343441045014, local=9791162161922510910)`,
+    terminal-empty `(bytes=64, hash=828296343441045014, local=9791162161922510910)`.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.
+  - `cargo run -p fixture-check -- --game flood_watch` passed.
+  - No golden trace, fixture, export, state/effect/view hash, or local
+    action-tree hash surface changed.

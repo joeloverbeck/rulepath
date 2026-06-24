@@ -1,7 +1,8 @@
 //! Public projection and no-leak helpers for Flood Watch.
 
 use engine_core::{
-    ActionTree, Diagnostic, EffectEnvelope, HashValue, StableSerialize, Viewer, VisibilityScope,
+    ActionTree, ActionTreeEncodingVersion, Diagnostic, EffectEnvelope, HashValue, StableSerialize,
+    Viewer, VisibilityScope,
 };
 
 use crate::{
@@ -192,6 +193,14 @@ pub fn contains_hidden_event_identity<T: std::fmt::Debug>(
 
 pub fn action_tree_hash(tree: &ActionTree) -> HashValue {
     HashValue::from_stable_bytes(format!("{tree:?}").as_bytes())
+}
+
+pub fn action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    tree.stable_bytes(ActionTreeEncodingVersion::V1)
+}
+
+pub fn action_tree_v1_hash(tree: &ActionTree) -> HashValue {
+    tree.stable_hash(ActionTreeEncodingVersion::V1)
 }
 
 pub fn diagnostic_hash(diagnostic: &Diagnostic) -> HashValue {
