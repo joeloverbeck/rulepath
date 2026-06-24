@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-641: C-08 Plain Tricks seat-private export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (dev-only profile adapter) — `games/plain_tricks/tests/replay.rs`
@@ -97,3 +97,21 @@ round-trip if supported. Add wrong-metadata rejection cases.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side over the existing viewer-scoped exporter.
+
+## Outcome
+
+- Added a dev-only `SeatPrivateExportV1Driver` wrapper in
+  `games/plain_tricks/tests/replay.rs` for `seat-private-export-v1` / `v1`
+  with `seat-private` visibility, owner `plain_tricks`, canonical byte
+  authority `none`, and fields `viewer_seat`, `viewer_seat_version`,
+  `export_steps`, and `pairwise_no_leak`.
+- The wrapper delegates to Plain Tricks' existing viewer-scoped exporter for
+  both labelled viewers, asserting each viewer sees its own hand, the opponent
+  hand and tail are absent, and import round-trip is preserved. No exporter,
+  fixture bytes, production code, or viewer visibility behavior changed.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field.
+- Verification passed:
+  - `cargo test -p plain_tricks`
+  - `cargo run -p replay-check -- --game plain_tricks --all`
+  - `git diff --check`

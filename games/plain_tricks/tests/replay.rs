@@ -5,8 +5,9 @@ use engine_core::{
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
     DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
-    PublicExportV1Driver, ReplayCommandV1Driver, SetupEvidenceV1Driver, DOMAIN_EVIDENCE_V1,
-    PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+    PublicExportV1Driver, ReplayCommandV1Driver, SeatPrivateExportV1Driver, SetupEvidenceV1Driver,
+    DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
+    SEAT_PRIVATE_EXPORT_V1, SETUP_EVIDENCE_V1,
 };
 use plain_tricks::{
     apply_action, legal_action_tree, load_standard_fixture,
@@ -73,6 +74,14 @@ struct PublicExportProfileSummary {
     public_export_hash: HashValue,
     imported_step_count: usize,
     hidden_absence_tokens_checked: usize,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SeatPrivateExportProfileSummary {
+    viewer_count: usize,
+    own_hand_cards_visible: usize,
+    hidden_cards_absent: usize,
+    imported_step_count: usize,
 }
 
 const GOLDEN_TRACE_INPUTS: [&str; 16] = [
@@ -265,6 +274,92 @@ fn public_export_v1_profile_driver_wraps_plain_tricks_public_exporter() {
             Some("public"),
             "plain_tricks",
             &["export_steps", "commands"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
+fn seat_private_export_v1_profile_driver_wraps_plain_tricks_viewer_scoped_exporter() {
+    let driver = SeatPrivateExportV1Driver::new("plain_tricks");
+    let artifact = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        PROFILE_VERSION_V1,
+        Some("seat-private"),
+        "plain_tricks",
+        &[
+            "viewer_seat",
+            "viewer_seat_version",
+            "export_steps",
+            "pairwise_no_leak",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("seat-private export metadata validates");
+    assert_eq!(report.profile_id, SEAT_PRIVATE_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "seat-private");
+    assert_eq!(report.validator_owner, "plain_tricks");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_seat_private_export_profile())
+        .expect("profile delegates to Plain Tricks viewer-scoped exporter");
+    assert_eq!(summary.viewer_count, 2);
+    assert_eq!(summary.own_hand_cards_visible, 12);
+    assert_eq!(summary.hidden_cards_absent, 24);
+    assert!(summary.imported_step_count > 0);
+
+    assert_seat_private_export_profile_rejects(
+        seat_private_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("seat-private"),
+            "plain_tricks",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_seat_private_export_profile_rejects(
+        seat_private_export_profile_artifact(
+            SEAT_PRIVATE_EXPORT_V1,
+            "v2",
+            Some("seat-private"),
+            "plain_tricks",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_seat_private_export_profile_rejects(
+        seat_private_export_profile_artifact(
+            SEAT_PRIVATE_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "plain_tricks",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_seat_private_export_profile_rejects(
+        seat_private_export_profile_artifact(
+            SEAT_PRIVATE_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("seat-private"),
+            "replay-check",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_seat_private_export_profile_rejects(
+        seat_private_export_profile_artifact(
+            SEAT_PRIVATE_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("seat-private"),
+            "plain_tricks",
+            &["export_steps", "hidden_absence_tokens"],
         ),
         ProfileValidationErrorKind::UnknownField,
     );
@@ -820,6 +915,99 @@ fn validate_public_export_profile() -> PublicExportProfileSummary {
         public_export_hash: export.stable_hash(),
         imported_step_count: imported.steps.len(),
         hidden_absence_tokens_checked: TrickCardId::ALL.len(),
+    }
+}
+
+fn seat_private_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_seat_private_export_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = SeatPrivateExportV1Driver::new("plain_tricks");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid seat-private-export-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_seat_private_export_profile() -> SeatPrivateExportProfileSummary {
+    let state = setup_state(0);
+    let trace = PlainTricksInternalTrace {
+        schema_version: 1,
+        game_id: GAME_ID.to_owned(),
+        rules_version: RULES_VERSION_LABEL.to_owned(),
+        variant: VARIANT_ID.to_owned(),
+        seed_evidence: 0,
+        commands: Vec::new(),
+    };
+
+    let mut own_hand_cards_visible = 0;
+    let mut hidden_cards_absent = 0;
+    let mut imported_step_count = 0;
+    for (viewer_seat, opponent_seat) in [
+        (PlainTricksSeat::Seat0, PlainTricksSeat::Seat1),
+        (PlainTricksSeat::Seat1, PlainTricksSeat::Seat0),
+    ] {
+        let viewer = Viewer {
+            seat_id: Some(state.seats[viewer_seat.index()].clone()),
+        };
+        let export = export_public_replay(&trace, &viewer);
+        let imported = import_public_export(&export);
+        let json = export.to_json();
+
+        assert_eq!(export.viewer, state.seats[viewer_seat.index()].0);
+        assert_eq!(imported.viewer, export.viewer);
+        assert_eq!(imported.steps, export.steps);
+        assert_eq!(
+            plain_tricks::replay_support::PublicReplayExport::from_json(&json)
+                .expect("export parses"),
+            export
+        );
+
+        for card in visible_hand_for_export_probe(&state, viewer_seat) {
+            assert!(export_contains_card(&json, card), "{json}");
+            own_hand_cards_visible += 1;
+        }
+        for card in visible_hand_for_export_probe(&state, opponent_seat) {
+            assert!(!export_contains_card(&json, card), "{json}");
+            hidden_cards_absent += 1;
+        }
+        for card in tail_cards(&state) {
+            assert!(!export_contains_card(&json, card), "{json}");
+            hidden_cards_absent += 1;
+        }
+
+        imported_step_count += imported.steps.len();
+    }
+
+    SeatPrivateExportProfileSummary {
+        viewer_count: 2,
+        own_hand_cards_visible,
+        hidden_cards_absent,
+        imported_step_count,
     }
 }
 

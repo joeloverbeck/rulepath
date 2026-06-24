@@ -1405,3 +1405,32 @@ Completed: 2026-06-24
   - `cargo run -p replay-check -- --game event_frontier --all` passed; all
     Event Frontier traces passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-641 - Plain Tricks seat-private export profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/tests/replay.rs`.
+- Change: added a dev-only `SeatPrivateExportV1Driver` wrapper test for Plain
+  Tricks seat-private export evidence. The test validates
+  `seat-private-export-v1` / `v1` / `seat-private` metadata with owner
+  `plain_tricks`, canonical byte authority `none`, and fields `viewer_seat`,
+  `viewer_seat_version`, `export_steps`, and `pairwise_no_leak`, then delegates
+  to the existing viewer-scoped exporter.
+- Delegated evidence: the wrapper runs `export_public_replay` for
+  `Viewer(seat_0)` and `Viewer(seat_1)`, asserting own-hand presence,
+  opponent-hand absence, hidden-tail absence, and import round-trip for both
+  labelled viewers.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, exporter code, replay behavior, or viewer visibility behavior changed.
+- Compatibility / rollback: remove the seat-private profile-wrapper
+  test/helper only; the existing viewer-scoped export, no-leak, and
+  replay-check paths remain.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new
+    seat-private-export-v1 profile driver wrapper.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed.
+  - `git diff --check` passed.
