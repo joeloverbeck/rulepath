@@ -1,12 +1,33 @@
 use engine_core::{Actor, SeatId, StableSerialize};
+use game_test_support::profiles::{
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1,
+};
 use river_ledger::replay_support::{
     command_for_state, export_public_replay, legal_action_tree_v1_encoding,
     replay_internal_full_trace, trace_from_commands,
 };
 use river_ledger::{
-    apply_action, project_view, setup_match, validate_command, RiverLedgerSeat, SetupOptions,
-    STANDARD_STARTING_STACK,
+    apply_action, project_view, setup_match, validate_command, PotShare, RiverLedgerSeat,
+    SeatLedger, SeatStatus, SetupOptions, STANDARD_STARTING_STACK,
 };
+
+const DOMAIN_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "domain_schema_version",
+    "domain_input",
+    "expected_domain",
+];
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
     (3, "call"),
@@ -26,6 +47,50 @@ const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
     (3, "check"),
     (0, "check"),
 ];
+
+fn domain_evidence_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: DOMAIN_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "river_ledger",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-028 virtual domain-evidence profile"),
+        },
+        fields: DOMAIN_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn uncalled_return_ledgers() -> Vec<SeatLedger> {
+    vec![
+        SeatLedger {
+            seat: RiverLedgerSeat::from_index(0).unwrap(),
+            status: SeatStatus::Live,
+            starting_stack: 10,
+            remaining_stack: 4,
+            street_contribution: 6,
+            total_contribution: 6,
+        },
+        SeatLedger {
+            seat: RiverLedgerSeat::from_index(1).unwrap(),
+            status: SeatStatus::Live,
+            starting_stack: 10,
+            remaining_stack: 6,
+            street_contribution: 4,
+            total_contribution: 4,
+        },
+        SeatLedger {
+            seat: RiverLedgerSeat::from_index(2).unwrap(),
+            status: SeatStatus::Folded,
+            starting_stack: 10,
+            remaining_stack: 6,
+            street_contribution: 4,
+            total_contribution: 4,
+        },
+    ]
+}
 
 #[test]
 fn public_replay_export_json_order_is_stable() {
@@ -51,6 +116,122 @@ fn internal_trace_json_order_is_stable() {
         "{\"schema_version\":1,\"game_id\":\"river_ledger\",\"rules_version\":\"river-ledger-rules-v2\""
     ));
     assert!(json.contains("\"commands\":[{\"actor\":\"seat_3\",\"path\":[\"call\"]},{\"actor\":\"seat_0\",\"path\":[\"call\"]}]"));
+}
+
+#[test]
+fn domain_evidence_v1_driver_delegates_side_pot_semantics_to_river() {
+    let driver = DomainEvidenceV1Driver::new("river_ledger");
+    let profile = domain_evidence_profile_artifact();
+
+    for file_name in [
+        "three-way-main-two-side-pots.trace.json",
+        "uncalled-return.trace.json",
+        "per-pot-remainder-button-order.trace.json",
+    ] {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/golden_traces")
+            .join(file_name);
+        let fixture = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        assert!(!fixture.contains("\"profile_id\""));
+        assert!(!fixture.contains("\"canonical_byte_authority\""));
+    }
+
+    driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+            assert_eq!(report.validator_owner, "river_ledger");
+
+            let mut three_way_state = setup_with_stacks(12, vec![8, 3, 2]);
+            for (seat, segment) in [("seat_0", "raise"), ("seat_1", "call")] {
+                apply_segment(&mut three_way_state, seat, segment);
+            }
+            let three_way_view =
+                project_view(&three_way_state, &engine_core::Viewer { seat_id: None });
+            let summary = three_way_view.stable_summary();
+            assert!(summary.contains("main_pot:6"));
+            assert!(summary.contains("side_pot_1:2"));
+
+            let uncalled_layers =
+                river_ledger::pot::construct_contribution_layers(&uncalled_return_ledgers());
+            assert_eq!(uncalled_layers.returns.len(), 1);
+            assert_eq!(
+                uncalled_layers.returns[0].seat,
+                RiverLedgerSeat::from_index(0).unwrap()
+            );
+            assert_eq!(uncalled_layers.returns[0].amount, 2);
+
+            let remainder = river_ledger::pot::allocate_single_pot(
+                11,
+                &[
+                    RiverLedgerSeat::from_index(0).unwrap(),
+                    RiverLedgerSeat::from_index(2).unwrap(),
+                    RiverLedgerSeat::from_index(3).unwrap(),
+                ],
+                RiverLedgerSeat::from_index(2).unwrap(),
+                4,
+            );
+            assert_eq!(remainder.remainder, 2);
+            assert_eq!(
+                remainder.remainder_order,
+                vec![
+                    RiverLedgerSeat::from_index(2).unwrap(),
+                    RiverLedgerSeat::from_index(3).unwrap(),
+                    RiverLedgerSeat::from_index(0).unwrap(),
+                ]
+            );
+            assert_eq!(
+                remainder.shares,
+                vec![
+                    PotShare {
+                        seat: RiverLedgerSeat::from_index(0).unwrap(),
+                        amount: 3,
+                    },
+                    PotShare {
+                        seat: RiverLedgerSeat::from_index(2).unwrap(),
+                        amount: 4,
+                    },
+                    PotShare {
+                        seat: RiverLedgerSeat::from_index(3).unwrap(),
+                        amount: 4,
+                    },
+                ]
+            );
+        })
+        .expect("domain-evidence-v1 driver accepts River side-pot evidence adapter");
+}
+
+#[test]
+fn domain_evidence_v1_driver_rejects_wrong_metadata() {
+    let driver = DomainEvidenceV1Driver::new("river_ledger");
+    let valid = domain_evidence_profile_artifact();
+
+    let mut wrong_owner = valid.clone();
+    wrong_owner.metadata.validator_owner = "fixture-check";
+    assert_eq!(
+        driver.validate(&wrong_owner).expect_err("wrong owner").kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut byte_claim = valid;
+    byte_claim.canonical_byte_claim = true;
+    assert_eq!(
+        driver
+            .validate(&byte_claim)
+            .expect_err("canonical byte claim")
+            .kind,
+        ProfileValidationErrorKind::IllegalCanonicalByteClaim
+    );
 }
 
 #[test]

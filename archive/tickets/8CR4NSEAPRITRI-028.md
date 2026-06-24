@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-028: River Ledger C-08 side-pot domain-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/river_ledger/tests/`; allocation/explanation owned by River
@@ -70,3 +70,23 @@ In `games/river_ledger/tests/` (fixture/replay/rule modules), add a `DomainEvide
 1. `cargo test -p river_ledger`
 2. `cargo run -p fixture-check -- --game river_ledger`
 3. The per-game fixture/rule test is the correct boundary: domain evidence delegates to the game allocator.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `domain-evidence-v1` profile adapter test for River side-pot evidence using `DomainEvidenceV1Driver`.
+2. Delegated side-pot, uncalled-return, and per-pot remainder assertions to River-owned state/pot logic while checking selected evidence fixtures remain profile-metadata-free.
+3. Added reject coverage for wrong validator owner, wrong profile version, and illegal canonical-byte claim with `canonical_byte_authority = none`.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p river_ledger` - passed.
+3. `cargo run -p fixture-check -- --game river_ledger` - passed.
+4. `cargo run -p replay-check -- --game river_ledger --all` - passed.
+5. `bash scripts/boundary-check.sh` - passed.
