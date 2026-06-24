@@ -2,19 +2,18 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
     Viewer,
 };
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
-use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
-};
 use flood_watch::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, generate_internal_full_trace, import_public_export, legal_action_tree,
     load_deluge_fixture, load_standard_fixture, public_replay_step, setup_match, DistrictId,
     EventCard, EventKind, FloodWatchRole, FloodWatchState, Phase, ScenarioVariant, SetupOptions,
     ACTION_END_TURN, ACTION_REINFORCE, GAME_ID, RULES_VERSION_LABEL,
+};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -46,6 +45,14 @@ fn seat_viewer(seat: &str) -> Viewer {
     Viewer {
         seat_id: Some(SeatId(seat.to_owned())),
     }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct PublicExportProfileSummary {
+    viewer: String,
+    step_count: usize,
+    public_export_hash: HashValue,
+    hidden_future_cards_checked: usize,
 }
 
 #[test]
@@ -181,6 +188,87 @@ fn replay_command_v1_profile_driver_wraps_native_replay_evidence() {
 }
 
 #[test]
+fn public_export_v1_profile_driver_wraps_flood_watch_public_exporter() {
+    let driver = PublicExportV1Driver::new("flood_watch");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        PROFILE_VERSION_V1,
+        Some("public"),
+        "flood_watch",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("public export metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "flood_watch");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_public_export_profile())
+        .expect("profile delegates to Flood Watch public exporter");
+    assert_eq!(summary.viewer, "observer");
+    assert_eq!(summary.step_count, 1);
+    assert_ne!(summary.public_export_hash.0, 0);
+    assert!(summary.hidden_future_cards_checked > 0);
+
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "flood_watch",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            "v2",
+            Some("public"),
+            "flood_watch",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "flood_watch",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "replay-check",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "flood_watch",
+            &["export_steps", "commands"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
 fn setup_evidence_v1_profile_driver_wraps_standard_and_deluge_fixtures() {
     let driver = SetupEvidenceV1Driver::new("fixture-check");
     let artifact = setup_evidence_profile_artifact(
@@ -188,11 +276,7 @@ fn setup_evidence_v1_profile_driver_wraps_standard_and_deluge_fixtures() {
         PROFILE_VERSION_V1,
         Some("public"),
         "fixture-check",
-        &[
-            "seat_grammar_version",
-            "setup_options",
-            "expected_setup",
-        ],
+        &["seat_grammar_version", "setup_options", "expected_setup"],
     );
 
     let report = driver
@@ -349,7 +433,11 @@ fn action_tree_v1_parallel_vectors_cover_representative_trees() {
             )
         })
         .collect::<Vec<_>>();
-    assert!(missing.is_empty(), "populate v1 vectors:\n{}", missing.join("\n"));
+    assert!(
+        missing.is_empty(),
+        "populate v1 vectors:\n{}",
+        missing.join("\n")
+    );
 
     for vector in vectors {
         assert_eq!(vector.hash, vector.expected_hash, "{} hash", vector.name);
@@ -429,6 +517,69 @@ fn assert_replay_profile_rejects(
             .kind,
         expected
     );
+}
+
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_public_export_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = PublicExportV1Driver::new("flood_watch");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid public-export-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_public_export_profile() -> PublicExportProfileSummary {
+    let mut state = setup_match(Seed(91), &seats(), &SetupOptions::default()).unwrap();
+    let command = end_turn_command(&state);
+    let applied = apply_command(&mut state, &command).expect("profile command applies");
+    let step = public_replay_step(0, &state, &command, &applied.effects, &observer());
+    let hidden_future = hidden_future_probes(&state);
+    let export = export_public_replay(state.variant.id.clone(), &observer(), vec![step]);
+    let imported = import_public_export(&export);
+    let json = export.to_json();
+
+    assert_eq!(export.viewer, "observer");
+    assert!(json.contains("forecast"));
+    assert_eq!(imported.raw_json, json);
+    assert!(!json.contains("full_deck_order"));
+    assert!(!json.contains("deck_order"));
+    for probe in &hidden_future {
+        assert!(!snapshot_contains_event(&json, &probe.canary), "{json}");
+    }
+    let public_export_hash = export.stable_hash();
+
+    PublicExportProfileSummary {
+        viewer: export.viewer,
+        step_count: export.steps.len(),
+        public_export_hash,
+        hidden_future_cards_checked: hidden_future.len(),
+    }
 }
 
 fn native_replay_profile_hashes() -> Vec<HashValue> {
@@ -523,7 +674,12 @@ fn validate_setup_fixtures() -> SetupEvidenceSummary {
         assert_eq!(state.seats, seats());
         assert_eq!(state.roles, variant.role_order);
         assert_eq!(state.active_seat, SeatId("seat_0".to_owned()));
-        assert_eq!(state.phase, Phase::Action { budget_remaining: 3 });
+        assert_eq!(
+            state.phase,
+            Phase::Action {
+                budget_remaining: 3
+            }
+        );
         assert_eq!(
             state
                 .districts

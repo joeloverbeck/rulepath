@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-632: C-08 Flood Watch public-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/flood_watch/tests/replay.rs`
@@ -91,3 +91,21 @@ wrong-metadata rejection cases.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side over the existing exporter.
+
+## Outcome
+
+- Added a dev-only `PublicExportV1Driver` wrapper in
+  `games/flood_watch/tests/replay.rs` for `public-export-v1` / `v1` with
+  `public` visibility, owner `flood_watch`, canonical byte authority `none`,
+  and fields `export_steps`, `import_round_trip`, and
+  `hidden_absence_tokens`.
+- The wrapper delegates to Flood Watch's existing public exporter and asserts
+  observer export/import shape, public forecast evidence, and absence of hidden
+  future-deck tokens. No exporter, fixture bytes, production code, replay
+  behavior, or observer visibility behavior changed.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field.
+- Verification passed:
+  - `cargo test -p flood_watch`
+  - `cargo run -p replay-check -- --game flood_watch --all`
+  - `git diff --check`

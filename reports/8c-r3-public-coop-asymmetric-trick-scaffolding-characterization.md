@@ -1317,3 +1317,32 @@ Completed: 2026-06-24
   - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
     Tricks traces passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-632 - Flood Watch public-export profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/tests/replay.rs`.
+- Change: added a dev-only `PublicExportV1Driver` wrapper test for Flood Watch
+  public export evidence. The test validates `public-export-v1` / `v1` /
+  `public` metadata with owner `flood_watch`, canonical byte authority `none`,
+  and fields `export_steps`, `import_round_trip`, and
+  `hidden_absence_tokens`, then delegates to the existing game-owned public
+  exporter.
+- Delegated evidence: the wrapper drives the existing public replay step and
+  exporter, asserting observer export/import shape, public forecast evidence,
+  and absence of hidden future-deck tokens or full deck order fields.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, exporter code, replay behavior, or observer visibility behavior
+  changed.
+- Compatibility / rollback: remove the public export profile-wrapper
+  test/helper only; the existing replay, export/import, no-leak, and
+  replay-check paths remain.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new public-export-v1
+    profile driver wrapper.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces passed.
+  - `git diff --check` passed.
