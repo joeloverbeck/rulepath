@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-102: C-01 Plain Tricks seat-private effect constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/plain_tricks/src/effects.rs`
@@ -101,3 +101,23 @@ and dealt cards.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game `replay-check` plus the visibility suite is the correct boundary:
    only `plain_tricks` private effects change.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/plain_tricks/src/effects.rs::private_effect` to construct
+seat-private effect envelopes via
+`EffectEnvelope::private_to(owner_seat_id, payload)`. The change is
+constructor-only: `hand_dealt_effect` still chooses the same owner `SeatId` and
+dealt-card payload, and filtering/reveal/export policy remains game-owned.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p plain_tricks` passed, including seat-private visibility and
+  effect-scope tests.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- `cargo run -p fixture-check -- --game plain_tricks` passed.
+- No golden trace, fixture, export, or test file changed.

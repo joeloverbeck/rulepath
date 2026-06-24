@@ -327,3 +327,24 @@ Completed: 2026-06-24
     Plain Tricks traces passed with existing expected hashes.
   - `cargo run -p fixture-check -- --game plain_tricks` passed.
   - No golden trace, fixture, export, or test file changed.
+
+### 8CR3PUBCOOASY-102 - Plain Tricks seat-private effect constructor
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/src/effects.rs::private_effect`.
+- Change: replaced the local seat-private envelope literal with
+  `EffectEnvelope::private_to(owner_seat_id, payload)`.
+- ADR-0009 classification: `unchanged`; no trace, fixture, export, hash,
+  schema, seat spelling, RNG, or visibility byte was intentionally migrated.
+- Compatibility / rollback: restore only the local private literal constructor.
+  `hand_dealt_effect` still supplies the owner `SeatId` and the exact
+  `HandDealt` payload; public effects, filtering, reveal policy, effect order,
+  and export policy were untouched.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the seat-private visibility
+    and effect-scope tests.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all
+    Plain Tricks traces passed with existing expected hashes.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed.
+  - No golden trace, fixture, export, or test file changed.
