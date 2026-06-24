@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-305: C-03 Frontier Control roster count + game-stdlib edge
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/frontier_control/Cargo.toml`, `games/frontier_control/src/setup.rs`
@@ -98,3 +98,25 @@ policy.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. `bash scripts/boundary-check.sh` is included because this ticket adds a new
    crate dependency edge.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Added a normal `game-stdlib` dependency to
+`games/frontier_control/Cargo.toml` and changed
+`games/frontier_control/src/setup.rs::setup_match` to wrap the roster length
+with `SeatCount::new(seats.len()).map(SeatCount::get)` before comparing to the
+game-owned `STANDARD_SEAT_COUNT`. The change is predicate/dependency-only;
+variant seat count, faction identity/order, graph setup, diagnostics,
+asymmetric two-seat policy, replay/export bytes, and fixtures were otherwise
+untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p frontier_control` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` passed.
+- `bash scripts/boundary-check.sh` passed.
+- No golden trace, fixture, export, or variant policy file changed.

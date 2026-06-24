@@ -544,3 +544,29 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game flood_watch` passed.
   - No golden trace, fixture, export, role policy, or variant policy file
     changed.
+
+### 8CR3PUBCOOASY-305 - Frontier Control roster count and game-stdlib edge
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/frontier_control/Cargo.toml` and
+  `games/frontier_control/src/setup.rs::setup_match` roster predicate.
+- Change: added a normal `game-stdlib` dependency and replaced the bare
+  `seats.len()` comparison with
+  `SeatCount::new(seats.len()).map(SeatCount::get)` compared against the
+  game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; accepted/rejected counts, diagnostics,
+  setup state, replay hashes, fixtures, and exports were not intentionally
+  migrated.
+- Compatibility / rollback: remove only the `game-stdlib` edge if no later
+  Frontier R3 task needs it and restore only the bare roster-length predicate.
+  Variant seat count, faction identity/order, graph setup, and asymmetric
+  two-seat policy stay game-owned.
+- Verification:
+  - `cargo test -p frontier_control` passed, including exact diagnostic checks
+    for 0, 1, and 3 seats.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces were accepted.
+  - `bash scripts/boundary-check.sh` passed; `engine-core` stayed noun-free and
+    `game-test-support` stayed dev-only.
+  - No golden trace, fixture, export, or variant policy file changed.
