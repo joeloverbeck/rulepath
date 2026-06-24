@@ -2,6 +2,9 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
     Viewer,
 };
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use flood_watch::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, import_public_export, legal_action_tree, public_replay_step, setup_match,
@@ -32,6 +35,12 @@ fn card(kind: EventKind, copy_index: u8) -> EventCard {
 
 fn observer() -> Viewer {
     Viewer { seat_id: None }
+}
+
+fn seat_viewer(seat: &str) -> Viewer {
+    Viewer {
+        seat_id: Some(SeatId(seat.to_owned())),
+    }
 }
 
 #[test]
@@ -133,6 +142,31 @@ fn public_export_import_redacts_undrawn_deck_after_terminal() {
 }
 
 #[test]
+fn public_exports_pairwise_omit_hidden_future_deck_cards() {
+    let mut state = setup_match(Seed(91), &seats(), &SetupOptions::default()).unwrap();
+    let command = end_turn_command(&state);
+    let applied = apply_command(&mut state, &command).unwrap();
+    let step = public_replay_step(0, &state, &command, &applied.effects, &observer());
+    let probes = hidden_future_probes(&state);
+
+    assert_pairwise_no_leak(
+        [observer(), seat_viewer("seat_0"), seat_viewer("seat_1")],
+        ["public_export_json"],
+        probes,
+        |viewer, _surface| {
+            export_public_replay(state.variant.id.clone(), viewer, vec![step.clone()]).to_json()
+        },
+        |_source, _viewer, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
+        |snapshot, card| snapshot_contains_event(snapshot, card),
+    )
+    .expect("Flood Watch export no-leak matrix has no failures");
+
+    let canary = ["R3", "FLOOD", "NOLEAK", "CANARY"].join("_");
+    let export = export_public_replay(state.variant.id.clone(), &observer(), vec![step]).to_json();
+    assert!(!export.contains(&canary), "{export}");
+}
+
+#[test]
 fn action_tree_v1_parallel_vectors_cover_representative_trees() {
     let vectors = action_tree_v1_vectors();
     let missing = vectors
@@ -176,6 +210,24 @@ fn action_tree_v1_parallel_vectors_cover_representative_trees() {
             vector.name
         );
     }
+}
+
+fn hidden_future_probes(state: &FloodWatchState) -> Vec<LeakProbe<usize, String, EventCard>> {
+    state
+        .event_deck_internal()
+        .iter()
+        .enumerate()
+        .filter(|(_, card)| state.forecast.as_ref() != Some(*card))
+        .map(|(index, card)| LeakProbe {
+            source_seat: index,
+            canary_id: card.stable_id(),
+            canary: card.clone(),
+        })
+        .collect()
+}
+
+fn snapshot_contains_event(snapshot: &str, card: &EventCard) -> bool {
+    snapshot.contains(&card.stable_id()) || snapshot.contains(&format!("{card:?}"))
 }
 
 struct ActionTreeV1Vector {

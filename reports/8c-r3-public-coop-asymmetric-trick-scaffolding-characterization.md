@@ -879,3 +879,26 @@ Completed: 2026-06-24
     Tricks traces passed with existing expected hashes.
   - `rg -n "R3_PLAIN_NOLEAK_CANARY" games/plain_tricks/tests/golden_traces reports archive specs tickets docs`
     returned no matches.
+
+### 8CR3PUBCOOASY-512 - Flood Watch hidden-future-deck no-leak matrix
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/flood_watch/tests/visibility.rs`,
+  `games/flood_watch/tests/bots.rs`, and
+  `games/flood_watch/tests/replay.rs`.
+- Change: added game-owned pairwise no-leak probes via
+  `game_test_support::no_leak::assert_pairwise_no_leak` for hidden future deck
+  cards across public views, action trees, diagnostics, effects, Level1 bot
+  input/decision/rationale, and viewer-scoped public replay exports.
+- ADR-0009 classification: `unchanged`; tests only. No production behavior,
+  replay bytes, fixtures, exports, legal choices, or bot policy were migrated.
+- Compatibility / rollback: remove the added matrix tests only; existing
+  forecast/event, bot, replay, and visibility tests remain intact.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new hidden-future
+    visibility, bot, and replay no-leak matrices.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.
+  - `rg -n "R3_FLOOD_NOLEAK_CANARY" games/flood_watch/tests/golden_traces reports archive specs tickets docs`
+    returned no matches.

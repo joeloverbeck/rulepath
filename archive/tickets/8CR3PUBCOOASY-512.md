@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-512: C-07 Flood Watch hidden-future-deck no-leak matrix
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/flood_watch/tests/{visibility,bots,replay}.rs`
@@ -104,3 +104,19 @@ unless the game authorizes a public reveal. Add export/bot coverage in
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game test + replay-check is the correct boundary: the matrix is
    game-owned and test-side.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a Flood-owned hidden-future deck no-leak matrix in
+  `games/flood_watch/tests/visibility.rs` over observer/seat viewers and public
+  view/action-tree/diagnostic/effect surfaces.
+- Added `games/flood_watch/tests/bots.rs` Level1 bot input/decision/rationale
+  coverage for hidden future deck identities.
+- Added `games/flood_watch/tests/replay.rs` public export coverage for
+  observer and seat-scoped exports, plus an in-memory canary check.
+- Verified `cargo test -p flood_watch`,
+  `cargo run -p replay-check -- --game flood_watch --all`, and
+  `rg -n "R3_FLOOD_NOLEAK_CANARY" games/flood_watch/tests/golden_traces reports archive specs tickets docs`
+  with no matches.

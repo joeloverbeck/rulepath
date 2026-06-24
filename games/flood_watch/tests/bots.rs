@@ -1,4 +1,7 @@
 use engine_core::{SeatId, Seed};
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use flood_watch::{
     setup_match, validate_bot_decision, DistrictId, EventCard, EventKind, FloodWatchLevel1Bot,
     FloodWatchRandomBot, FloodWatchState, Phase, ScenarioVariant, SetupOptions, ACTION_BAIL,
@@ -11,6 +14,61 @@ fn seats() -> [SeatId; 2] {
 
 fn card(kind: EventKind, copy_index: u8) -> EventCard {
     EventCard { kind, copy_index }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BotSurface {
+    InputDebug,
+    DecisionDebug,
+    Rationale,
+}
+
+#[test]
+fn level1_bot_surfaces_do_not_leak_hidden_future_deck_cards() {
+    let state = setup_match(Seed(12), &seats(), &SetupOptions::default()).unwrap();
+    let probes = state
+        .event_deck_internal()
+        .iter()
+        .enumerate()
+        .skip(1)
+        .map(|(index, card)| LeakProbe {
+            source_seat: index,
+            canary_id: card.stable_id(),
+            canary: card.clone(),
+        })
+        .collect::<Vec<_>>();
+
+    assert_pairwise_no_leak(
+        [state.active_seat.clone()],
+        [BotSurface::InputDebug, BotSurface::DecisionDebug, BotSurface::Rationale],
+        probes,
+        |seat, surface| bot_surface_text(&state, seat, *surface),
+        |_source, _seat, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
+        |snapshot, card| snapshot_contains_event(snapshot, card),
+    )
+    .expect("Flood Watch bot no-leak matrix has no failures");
+}
+
+fn bot_surface_text(state: &FloodWatchState, seat: &SeatId, surface: BotSurface) -> String {
+    match surface {
+        BotSurface::InputDebug => format!("{:?}", FloodWatchLevel1Bot::input_for(state, seat)),
+        BotSurface::DecisionDebug => format!(
+            "{:?}",
+            FloodWatchLevel1Bot::new(Seed(23))
+                .select_decision(state, seat)
+                .expect("level1 decision")
+        ),
+        BotSurface::Rationale => FloodWatchLevel1Bot::new(Seed(23))
+            .select_decision(state, seat)
+            .expect("level1 decision")
+            .rationale,
+    }
+}
+
+fn snapshot_contains_event(snapshot: &str, card: &EventCard) -> bool {
+    snapshot.contains(&card.stable_id())
+        || (!matches!(card.kind, EventKind::Reprieve) && snapshot.contains(&card.kind.id()))
+        || snapshot.contains(&format!("{:?}", card.kind))
 }
 
 #[test]

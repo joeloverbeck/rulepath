@@ -1,6 +1,9 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
 };
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use flood_watch::{
     action_tree_hash, apply_command, contains_hidden_event_identity, diagnostic_hash, effect_hash,
     filter_effects_for_viewer, legal_action_tree, project_view, public_effect_text, setup_match,
@@ -37,6 +40,105 @@ fn end_turn_command(state: &flood_watch::FloodWatchState) -> CommandEnvelope {
 
 fn card(kind: EventKind, copy_index: u8) -> EventCard {
     EventCard { kind, copy_index }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl MatrixViewer {
+    fn viewer(self) -> Viewer {
+        match self {
+            Self::Observer => viewer(None),
+            Self::Seat0 => viewer(Some("seat_0")),
+            Self::Seat1 => viewer(Some("seat_1")),
+        }
+    }
+
+    fn actor(self) -> Actor {
+        match self {
+            Self::Observer | Self::Seat0 => actor("seat_0"),
+            Self::Seat1 => actor("seat_1"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixSurface {
+    View,
+    ActionTree,
+    StaleDiagnostic,
+    Effects,
+}
+
+#[test]
+fn pairwise_hidden_future_deck_matrix_covers_public_surfaces() {
+    let state = setup_match(Seed(11), &seats(), &SetupOptions::default()).unwrap();
+    let probes = hidden_future_probes(&state);
+
+    assert_pairwise_no_leak(
+        [MatrixViewer::Observer, MatrixViewer::Seat0, MatrixViewer::Seat1],
+        [
+            MatrixSurface::View,
+            MatrixSurface::ActionTree,
+            MatrixSurface::StaleDiagnostic,
+            MatrixSurface::Effects,
+        ],
+        probes,
+        |viewer, surface| matrix_snapshot(&state, *viewer, *surface),
+        |_source, _viewer, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
+        |snapshot, card| snapshot_contains_event_card(snapshot, card),
+    )
+    .expect("Flood Watch hidden-future matrix has no failures");
+}
+
+fn hidden_future_probes(
+    state: &FloodWatchState,
+) -> Vec<LeakProbe<usize, String, EventCard>> {
+    state
+        .event_deck_internal()
+        .iter()
+        .enumerate()
+        .skip(1)
+        .map(|(index, card)| LeakProbe {
+            source_seat: index,
+            canary_id: card.stable_id(),
+            canary: card.clone(),
+        })
+        .collect()
+}
+
+fn matrix_snapshot(
+    state: &FloodWatchState,
+    viewer_case: MatrixViewer,
+    surface: MatrixSurface,
+) -> String {
+    match surface {
+        MatrixSurface::View => format!("{:?}", project_view(state, &viewer_case.viewer())),
+        MatrixSurface::ActionTree => {
+            format!("{:?}", legal_action_tree(state, &viewer_case.actor()))
+        }
+        MatrixSurface::StaleDiagnostic => {
+            let mut stale = end_turn_command(state);
+            stale.freshness_token = engine_core::FreshnessToken(99);
+            format!(
+                "{:?}",
+                apply_command(&mut state.clone(), &stale).expect_err("stale command rejects")
+            )
+        }
+        MatrixSurface::Effects => {
+            format!("{:?}", filter_effects_for_viewer(&[], &viewer_case.viewer()))
+        }
+    }
+}
+
+fn snapshot_contains_event_card(snapshot: &str, card: &EventCard) -> bool {
+    snapshot.contains(&card.stable_id())
+        || (!matches!(card.kind, EventKind::Reprieve) && snapshot.contains(&card.kind.id()))
+        || snapshot.contains(&format!("{:?}", card.kind))
 }
 
 #[test]
