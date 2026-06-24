@@ -1134,3 +1134,33 @@ Completed: 2026-06-24
     setup-evidence-v1 profile driver wrapper.
   - `cargo run -p fixture-check -- --game frontier_control` passed; all
     Frontier Control fixtures passed.
+
+### 8CR3PUBCOOASY-614 - Event Frontier setup-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/tests/replay.rs`.
+- Change: added a dev-only `SetupEvidenceV1Driver` wrapper test for the
+  existing standard, hard-winter, and land-rush Event Frontier setup fixtures.
+  The test validates `setup-evidence-v1` / `v1` / `internal-dev` metadata with
+  owner `fixture-check`, canonical byte authority `none`, and fields
+  `seat_grammar_version`, `setup_options`, and `expected_setup`, then delegates
+  to a game-owned setup fixture validator.
+- Delegated evidence: fixtures remain read-only and are checked against Rust
+  setup output for game id, rules version, phase, seats, faction order,
+  eligibility, reckoning count, current/next/deeper deck order, discard,
+  active-edict absence, scores, and graph edges. Resource, threshold, and
+  site-state fixture fields are shape/bounds checked because this ticket does
+  not edit fixture bytes.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, setup behavior, hidden deck generation, event/edict/resource semantics,
+  or production code changed.
+- Compatibility / rollback: remove the setup profile-wrapper test/helper only;
+  the existing fixtures, serialization tests, and `fixture-check` path remain.
+- Verification:
+  - `cargo test -p event_frontier` passed, including the new setup-evidence-v1
+    profile driver wrapper.
+  - `cargo run -p fixture-check -- --game event_frontier` passed; all Event
+    Frontier fixtures passed.

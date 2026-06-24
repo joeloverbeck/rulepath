@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-614: C-08 Event Frontier setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/event_frontier/tests/replay.rs`
@@ -95,3 +95,27 @@ meaning to the game-owned setup adapter. Add wrong-metadata rejection cases.
 2. `cargo run -p fixture-check -- --game event_frontier`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over existing fixtures.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a test-local `SetupEvidenceV1Driver` wrapper in
+  `games/event_frontier/tests/replay.rs`.
+- The wrapper validates `setup-evidence-v1` / `v1` / `internal-dev` metadata
+  for owner `fixture-check`, canonical byte authority `none`, and the
+  `seat_grammar_version`, `setup_options`, and `expected_setup` fields, then
+  delegates to a game-owned setup fixture validator for standard, hard-winter,
+  and land-rush fixtures.
+- The delegated validator reads the fixtures unchanged and checks them against
+  Rust setup output for game id, rules version, phase, seats, factions,
+  eligibility, reckoning count, current/next/deeper deck order, discard,
+  active-edict absence, scores, and graph edges. Resource, threshold, and
+  site-state fields are shape/bounds checked because fixture bytes are read-only
+  in this ticket.
+- Wrong profile, version, visibility, owner, and field metadata reject
+  fail-closed. No fixture bytes, production setup behavior, hidden deck
+  generation, or event/edict/resource semantics changed.
+- Verification:
+  - `cargo test -p event_frontier`
+  - `cargo run -p fixture-check -- --game event_frontier`

@@ -7,15 +7,15 @@ use game_test_support::no_leak::{
 };
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use event_frontier::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, generate_internal_full_trace, import_public_export,
     import_public_export_json, legal_action_tree, project_view, public_replay_step,
     resolve_reckoning, setup_match, ActiveEdict, CardId, CardPhase, EventFrontierState, FactionId,
-    FirstChoice, SetupOptions, SiteId, ACTION_OPERATION, ACTION_PASS, TRACE_HIDDEN_SURFACE,
-    TRACE_STOCHASTIC_SURFACE,
+    FirstChoice, SetupOptions, SiteId, ACTION_OPERATION, ACTION_PASS, GAME_ID,
+    RULES_VERSION_LABEL, TRACE_HIDDEN_SURFACE, TRACE_STOCHASTIC_SURFACE,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -323,6 +323,89 @@ fn replay_command_v1_profile_driver_wraps_internal_native_replay_evidence() {
 }
 
 #[test]
+fn setup_evidence_v1_profile_driver_wraps_variant_setup_fixtures() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let artifact = setup_evidence_profile_artifact(
+        SETUP_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "fixture-check",
+        &[
+            "seat_grammar_version",
+            "setup_options",
+            "expected_setup",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("setup metadata validates");
+    assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "fixture-check");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_setup_fixtures())
+        .expect("profile delegates to setup fixture validator");
+    assert_eq!(summary.fixture_count, 3);
+    assert_eq!(summary.hidden_deck_fixture_count, 3);
+
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            "v2",
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("private-source"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "event_frontier",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_setup", "domain_input"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
 fn internal_trace_marks_hidden_and_stochastic_surfaces() {
     let seats = seats();
     let state = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup");
@@ -455,6 +538,238 @@ fn native_replay_profile_hashes() -> Vec<HashValue> {
         action_tree_hash(&tree),
         export.stable_hash(),
     ]
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SetupEvidenceSummary {
+    fixture_count: usize,
+    hidden_deck_fixture_count: usize,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct EventSetupFixture {
+    game_id: String,
+    variant: String,
+    rules_version: String,
+    seed: u64,
+    phase: String,
+    seats: String,
+    factions: String,
+    resources: String,
+    resource_cap: u64,
+    thresholds: String,
+    eligibility: String,
+    reckoning_count: u64,
+    current_card: String,
+    next_public_card: String,
+    undrawn_deck_order: String,
+    discard: String,
+    active_edicts: String,
+    scores: String,
+    site_states: String,
+    edges: String,
+    terminal_outcome: String,
+}
+
+fn setup_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_setup_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid setup-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_setup_fixtures() -> SetupEvidenceSummary {
+    let fixtures = [
+        parse_event_setup_fixture(include_str!(
+            "../data/fixtures/event_frontier_standard.fixture.json"
+        )),
+        parse_event_setup_fixture(include_str!(
+            "../data/fixtures/event_frontier_hard_winter.fixture.json"
+        )),
+        parse_event_setup_fixture(include_str!(
+            "../data/fixtures/event_frontier_land_rush.fixture.json"
+        )),
+    ];
+
+    for fixture in &fixtures {
+        let options = SetupOptions {
+            variant: event_frontier::ScenarioVariant::resolve(&fixture.variant)
+                .expect("fixture variant resolves"),
+        };
+        let state = setup_match(Seed(fixture.seed), &seats(), &options).expect("setup");
+
+        assert_eq!(fixture.game_id, GAME_ID);
+        assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+        assert_eq!(fixture.phase, state.card_phase.stable_summary());
+        assert_eq!(fixture.seats, join_seats(&state.seats));
+        assert_eq!(fixture.factions, join_factions(&state.factions));
+        assert!(fixture.resources.starts_with("funds:"));
+        assert!(fixture.resources.contains(",provisions:"));
+        assert!(state.resources.funds <= state.variant.resource_cap);
+        assert!(state.resources.provisions <= state.variant.resource_cap);
+        assert_eq!(fixture.resource_cap, u64::from(state.variant.resource_cap));
+        assert!(fixture.thresholds.starts_with("charter_sites:"));
+        assert!(fixture.thresholds.contains(",freeholder_caches:"));
+        assert!(state.variant.charter_site_threshold > 0);
+        assert!(state.variant.freeholder_cache_threshold > 0);
+        assert_eq!(fixture.eligibility, eligibility_summary(&state));
+        assert_eq!(fixture.reckoning_count, u64::from(state.reckoning_count));
+        assert_eq!(fixture.current_card, optional_card_id(state.deck.current));
+        assert_eq!(fixture.next_public_card, optional_card_id(state.deck.next_public));
+        assert_eq!(fixture.undrawn_deck_order, join_cards(&state.deck.undrawn));
+        assert_eq!(fixture.discard, join_cards(&state.deck.discard));
+        assert_eq!(fixture.active_edicts, "");
+        assert_eq!(fixture.scores, "charter:0,freeholders:0");
+        for site in SiteId::ALL {
+            assert!(fixture.site_states.contains(site.as_str()));
+        }
+        assert_eq!(fixture.edges, edge_summary(&state.variant.edges));
+        assert_eq!(fixture.terminal_outcome, "none");
+    }
+
+    SetupEvidenceSummary {
+        fixture_count: fixtures.len(),
+        hidden_deck_fixture_count: fixtures
+            .iter()
+            .filter(|fixture| !fixture.undrawn_deck_order.is_empty())
+            .count(),
+    }
+}
+
+fn parse_event_setup_fixture(input: &str) -> EventSetupFixture {
+    EventSetupFixture {
+        game_id: string_field(input, "game_id"),
+        variant: string_field(input, "variant"),
+        rules_version: string_field(input, "rules_version"),
+        seed: number_field(input, "seed"),
+        phase: string_field(input, "phase"),
+        seats: string_field(input, "seats"),
+        factions: string_field(input, "factions"),
+        resources: string_field(input, "resources"),
+        resource_cap: number_field(input, "resource_cap"),
+        thresholds: string_field(input, "thresholds"),
+        eligibility: string_field(input, "eligibility"),
+        reckoning_count: number_field(input, "reckoning_count"),
+        current_card: string_field(input, "current_card"),
+        next_public_card: string_field(input, "next_public_card"),
+        undrawn_deck_order: string_field(input, "undrawn_deck_order"),
+        discard: string_field(input, "discard"),
+        active_edicts: string_field(input, "active_edicts"),
+        scores: string_field(input, "scores"),
+        site_states: string_field(input, "site_states"),
+        edges: string_field(input, "edges"),
+        terminal_outcome: string_field(input, "terminal_outcome"),
+    }
+}
+
+fn string_field(input: &str, key: &str) -> String {
+    let marker = format!("\"{key}\":");
+    let start = input
+        .find(&marker)
+        .unwrap_or_else(|| panic!("missing string field `{key}`"))
+        + marker.len();
+    let rest = input[start..].trim_start();
+    let value = rest
+        .strip_prefix('"')
+        .unwrap_or_else(|| panic!("string field `{key}` must start with quote"));
+    let end = value
+        .find('"')
+        .unwrap_or_else(|| panic!("string field `{key}` must end with quote"));
+    value[..end].to_owned()
+}
+
+fn number_field(input: &str, key: &str) -> u64 {
+    let marker = format!("\"{key}\":");
+    let start = input
+        .find(&marker)
+        .unwrap_or_else(|| panic!("missing number field `{key}`"))
+        + marker.len();
+    let rest = input[start..].trim_start();
+    let end = rest
+        .find(|ch: char| !ch.is_ascii_digit())
+        .unwrap_or(rest.len());
+    rest[..end]
+        .parse()
+        .unwrap_or_else(|_| panic!("number field `{key}` must parse"))
+}
+
+fn join_seats(seats: &[SeatId; 2]) -> String {
+    seats
+        .iter()
+        .map(|seat| seat.0.as_str())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn join_factions(factions: &[FactionId; 2]) -> String {
+    factions
+        .iter()
+        .map(|faction| faction.as_str())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn optional_card_id(card: Option<CardId>) -> String {
+    card.map(|card| card.as_str().to_owned()).unwrap_or_default()
+}
+
+fn join_cards(cards: &[CardId]) -> String {
+    cards
+        .iter()
+        .map(|card| card.as_str())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn eligibility_summary(state: &EventFrontierState) -> String {
+    state
+        .factions
+        .iter()
+        .map(|faction| {
+            format!(
+                "{}:{}",
+                faction.as_str(),
+                state.eligibility_for(*faction).as_str()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn edge_summary(edges: &[(SiteId, SiteId)]) -> String {
+    edges
+        .iter()
+        .map(|(left, right)| format!("{}-{}", left.as_str(), right.as_str()))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
