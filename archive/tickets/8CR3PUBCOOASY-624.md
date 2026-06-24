@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-624: C-08 Event Frontier domain-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (dev-only profile adapter) — `games/event_frontier/tests/{rules,replay}.rs`
@@ -97,3 +97,23 @@ adapter. Add wrong-metadata rejection cases.
 2. `cargo run -p fixture-check -- --game event_frontier`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over existing fixtures.
+
+## Outcome
+
+- Added a dev-only `DomainEvidenceV1Driver` wrapper in
+  `games/event_frontier/tests/rules.rs` for `domain-evidence-v1` / `v1` with
+  `internal-dev` visibility, owner `event_frontier`, canonical byte authority
+  `none`, and fields `domain_schema_version`, `domain_input`, and
+  `expected_domain`.
+- The wrapper delegates to Event Frontier-owned Rust validation over the
+  standard, hard-winter, and land-rush fixtures plus event/edict resolution,
+  eligibility/pass flow, operation funding/bounds, Reckoning income, and
+  terminal scoring. No fixture bytes, production code, event/resource/scoring
+  DSL, or shared domain helper changed.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field.
+- Verification passed:
+  - `cargo test -p event_frontier`
+  - `cargo run -p fixture-check -- --game event_frontier`
+  - `cargo run -p rule-coverage -- --game event_frontier`
+  - `git diff --check`

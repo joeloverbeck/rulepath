@@ -7,10 +7,15 @@ use event_frontier::{
     cards::{expire_all_edicts, resolve_event_card, EdictKind},
     legal_action_metadata, legal_action_tree,
     rules::advance_to_next_card,
-    setup_match, validate_command, CardPhase, Eligibility, EventFrontierEffect, FactionId,
-    FirstChoice, SetupOptions,
+    setup_match, validate_command, CardId, CardPhase, Eligibility, EventFrontierEffect,
+    EventFrontierState, FactionId, FirstChoice, ScenarioVariant, SetupOptions, SiteId, GAME_ID,
+    RULES_VERSION_LABEL,
 };
 use event_frontier::{resolve_reckoning, FactionScores, TerminalOutcome, VictoryType};
+use game_test_support::profiles::{
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
+};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -40,6 +45,17 @@ fn segments_for(seat: &str, state: &event_frontier::EventFrontierState) -> Vec<S
         .iter()
         .map(|choice| choice.segment.clone())
         .collect()
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct DomainEvidenceSummary {
+    fixture_count: usize,
+    fixture_edge_count: usize,
+    ordinary_event_count: usize,
+    edict_count: usize,
+    survey_funds_after: u8,
+    reckoning_income: (u8, u8),
+    terminal_winner: Option<FactionId>,
 }
 
 #[test]
@@ -74,6 +90,95 @@ fn first_operation_constrains_second_to_event_limited_operation_or_pass() {
             ACTION_LIMITED_OPERATION.to_owned(),
             ACTION_PASS.to_owned()
         ]
+    );
+}
+
+#[test]
+fn domain_evidence_v1_profile_driver_wraps_event_frontier_domain_validator() {
+    let driver = DomainEvidenceV1Driver::new("event_frontier");
+    let artifact = domain_evidence_profile_artifact(
+        DOMAIN_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "event_frontier",
+        &["domain_schema_version", "domain_input", "expected_domain"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("domain metadata validates");
+    assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "event_frontier");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_event_frontier_domain_evidence())
+        .expect("profile delegates to Event Frontier domain validator");
+    assert_eq!(
+        summary,
+        DomainEvidenceSummary {
+            fixture_count: 3,
+            fixture_edge_count: 8,
+            ordinary_event_count: 14,
+            edict_count: 4,
+            survey_funds_after: 1,
+            reckoning_income: (4, 6),
+            terminal_winner: Some(FactionId::Freeholders),
+        }
+    );
+
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "event_frontier",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            "v2",
+            Some("internal-dev"),
+            "event_frontier",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("unsupported"),
+            "event_frontier",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "event_frontier",
+            &["expected_domain", "setup_options"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
     );
 }
 
@@ -773,4 +878,300 @@ fn assert_terminal(
             ..
         }) if winner == faction && actual_type == victory_type && actual_rule == decisive_rule
     ));
+}
+
+fn domain_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_domain_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = DomainEvidenceV1Driver::new("event_frontier");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid domain-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_event_frontier_domain_evidence() -> DomainEvidenceSummary {
+    let fixtures = [
+        parse_event_domain_fixture(include_str!(
+            "../data/fixtures/event_frontier_standard.fixture.json"
+        )),
+        parse_event_domain_fixture(include_str!(
+            "../data/fixtures/event_frontier_hard_winter.fixture.json"
+        )),
+        parse_event_domain_fixture(include_str!(
+            "../data/fixtures/event_frontier_land_rush.fixture.json"
+        )),
+    ];
+
+    let mut fixture_edge_count = None;
+    for fixture in &fixtures {
+        let variant = ScenarioVariant::resolve(&fixture.variant).expect("variant resolves");
+        let state = setup_match(Seed(fixture.seed), &seats(), &SetupOptions { variant })
+            .expect("fixture setup");
+
+        assert_eq!(fixture.game_id, GAME_ID);
+        assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+        assert_eq!(fixture.phase, state.card_phase.stable_summary());
+        assert_eq!(fixture.eligibility, eligibility_summary(&state));
+        assert_eq!(fixture.edges, edge_summary(&state.variant.edges));
+        assert_eq!(fixture.current_card, optional_card_id(state.deck.current));
+        assert_eq!(
+            fixture.next_public_card,
+            optional_card_id(state.deck.next_public)
+        );
+        assert_eq!(fixture.terminal_outcome, "none");
+        assert!(state.resources.funds <= state.variant.resource_cap);
+        assert!(state.resources.provisions <= state.variant.resource_cap);
+        assert!(fixture.resources.contains("funds:"));
+        assert!(fixture.thresholds.contains("charter_sites:"));
+        assert!(fixture.site_states.contains(SiteId::Landing.as_str()));
+
+        let edge_count = state.variant.edges.len();
+        assert_eq!(*fixture_edge_count.get_or_insert(edge_count), edge_count);
+    }
+
+    let ordinary_event_count = validate_event_cards();
+    let (edict_count, survey_funds_after) = validate_edicts_and_operations();
+    let reckoning_income = validate_reckoning_income();
+    let terminal_winner = validate_terminal_scoring();
+
+    DomainEvidenceSummary {
+        fixture_count: fixtures.len(),
+        fixture_edge_count: fixture_edge_count.expect("fixture edge count"),
+        ordinary_event_count,
+        edict_count,
+        survey_funds_after,
+        reckoning_income,
+        terminal_winner,
+    }
+}
+
+fn validate_event_cards() -> usize {
+    let ordinary = [
+        CardId::BorderSurvey,
+        CardId::RiverMists,
+        CardId::StorehouseFire,
+        CardId::HighMeadowFair,
+        CardId::DepotGrants,
+        CardId::TrailWashout,
+        CardId::CharterAudit,
+        CardId::FreeholderMoot,
+        CardId::OldMillStrike,
+        CardId::CrossingMarket,
+        CardId::GranitePassSnows,
+        CardId::CacheBoom,
+        CardId::AgentsRecall,
+        CardId::LastLight,
+    ];
+
+    for card in ordinary {
+        let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+        let effects = resolve_event_card(&mut state, card);
+        assert!(effects.iter().any(|effect| matches!(
+            effect.payload,
+            EventFrontierEffect::EventResolved {
+                card: resolved,
+                ..
+            } if resolved == card
+        )));
+    }
+
+    ordinary.len()
+}
+
+fn validate_edicts_and_operations() -> (usize, u8) {
+    let edicts = [
+        (CardId::TollRoads, EdictKind::TollRoads),
+        (CardId::SurveyBan, EdictKind::SurveyBan),
+        (CardId::LongSeason, EdictKind::LongSeason),
+        (CardId::Requisition, EdictKind::Requisition),
+    ];
+
+    for (card, kind) in edicts {
+        let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+        resolve_event_card(&mut state, card);
+        assert_eq!(state.active_edicts[0].kind, kind);
+    }
+
+    let mut survey = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let freshness = survey.freshness_token;
+    apply_command(&mut survey, &command("seat_1", ACTION_PASS, freshness)).expect("pass");
+    let freshness = survey.freshness_token;
+    apply_command(
+        &mut survey,
+        &command("seat_0", "operation/survey/site_granite_pass", freshness),
+    )
+    .expect("survey");
+    assert_eq!(survey.site(SiteId::GranitePass).expect("site").agents, 1);
+
+    let mut cache = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let freshness = cache.freshness_token;
+    apply_command(
+        &mut cache,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect("cache");
+    assert_eq!(cache.site(SiteId::Landing).expect("landing").cache_count, 2);
+
+    let mut limited = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let freshness = limited.freshness_token;
+    apply_command(
+        &mut limited,
+        &command("seat_1", "operation/cache/site_landing", freshness),
+    )
+    .expect("first op");
+    let freshness = limited.freshness_token;
+    let diagnostic = apply_command(
+        &mut limited,
+        &command(
+            "seat_0",
+            "limited_operation/survey/site_crossing,site_granite_pass",
+            freshness,
+        ),
+    )
+    .expect_err("limited op bound");
+    assert_eq!(diagnostic.code, "operation_site_bound_exceeded");
+
+    (edicts.len(), survey.resources.funds)
+}
+
+fn validate_reckoning_income() -> (u8, u8) {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    resolve_event_card(&mut state, CardId::TollRoads);
+    state.set_eligibility(FactionId::Charter, Eligibility::Ineligible);
+    state.set_eligibility(FactionId::Freeholders, Eligibility::Ineligible);
+    state.deck.current = Some(CardId::ReckoningOne);
+    state.card_phase = CardPhase::Reckoning;
+
+    resolve_reckoning(&mut state).expect("reckoning");
+
+    assert_eq!(state.scores.charter, 1);
+    assert_eq!(state.scores.freeholders, 2);
+    assert!(state.active_edicts.is_empty());
+    assert_eq!(
+        state.eligibility_for(FactionId::Charter),
+        Eligibility::Eligible
+    );
+    (state.resources.funds, state.resources.provisions)
+}
+
+fn validate_terminal_scoring() -> Option<FactionId> {
+    let mut state = reckoning_state();
+    set_caches(&mut state, 8);
+    resolve_reckoning(&mut state).expect("terminal");
+
+    match state.terminal_outcome {
+        Some(TerminalOutcome::Winner {
+            faction,
+            victory_type: VictoryType::FreeholderInstant,
+            decisive_rule: "EF-END-002",
+            ..
+        }) => Some(faction),
+        _ => panic!("expected Freeholder instant terminal"),
+    }
+}
+
+#[derive(Debug)]
+struct EventDomainFixture {
+    game_id: String,
+    variant: String,
+    rules_version: String,
+    seed: u64,
+    phase: String,
+    resources: String,
+    thresholds: String,
+    eligibility: String,
+    current_card: String,
+    next_public_card: String,
+    edges: String,
+    site_states: String,
+    terminal_outcome: String,
+}
+
+fn parse_event_domain_fixture(input: &str) -> EventDomainFixture {
+    EventDomainFixture {
+        game_id: string_field(input, "game_id"),
+        variant: string_field(input, "variant"),
+        rules_version: string_field(input, "rules_version"),
+        seed: number_field(input, "seed"),
+        phase: string_field(input, "phase"),
+        resources: string_field(input, "resources"),
+        thresholds: string_field(input, "thresholds"),
+        eligibility: string_field(input, "eligibility"),
+        current_card: string_field(input, "current_card"),
+        next_public_card: string_field(input, "next_public_card"),
+        edges: string_field(input, "edges"),
+        site_states: string_field(input, "site_states"),
+        terminal_outcome: string_field(input, "terminal_outcome"),
+    }
+}
+
+fn string_field(input: &str, key: &str) -> String {
+    let needle = format!("\"{key}\": \"");
+    let start = input.find(&needle).expect("field") + needle.len();
+    let tail = &input[start..];
+    let end = tail.find('"').expect("field terminator");
+    tail[..end].to_owned()
+}
+
+fn number_field(input: &str, key: &str) -> u64 {
+    let needle = format!("\"{key}\": ");
+    let start = input.find(&needle).expect("number field") + needle.len();
+    let tail = &input[start..];
+    let end = tail
+        .find(|ch: char| !ch.is_ascii_digit())
+        .expect("number terminator");
+    tail[..end].parse().expect("number parses")
+}
+
+fn optional_card_id(card: Option<CardId>) -> String {
+    card.map(CardId::as_str).unwrap_or_default().to_owned()
+}
+
+fn eligibility_summary(state: &EventFrontierState) -> String {
+    state
+        .factions
+        .iter()
+        .map(|faction| {
+            format!(
+                "{}:{}",
+                faction.as_str(),
+                state.eligibility_for(*faction).as_str()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn edge_summary(edges: &[(SiteId, SiteId)]) -> String {
+    edges
+        .iter()
+        .map(|(left, right)| format!("{}-{}", left.as_str(), right.as_str()))
+        .collect::<Vec<_>>()
+        .join(",")
 }
