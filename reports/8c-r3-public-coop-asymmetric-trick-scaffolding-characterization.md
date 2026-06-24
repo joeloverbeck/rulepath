@@ -386,3 +386,22 @@ Completed: 2026-06-24
     Frontier Control traces were accepted.
   - `cargo run -p fixture-check -- --game frontier_control` passed.
   - No golden trace, fixture, export, or test file changed.
+
+### 8CR3PUBCOOASY-105 - Event Frontier public effect constructor
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/src/effects.rs::public_effect`.
+- Change: replaced the local public envelope literal with
+  `EffectEnvelope::public(payload)`.
+- ADR-0009 classification: `unchanged`; no trace, fixture, export, hash,
+  schema, seat spelling, RNG, or visibility byte was intentionally migrated.
+- Compatibility / rollback: restore only the local public literal constructor.
+  Current/next card reveal payloads, hidden-tail redaction, event/edict payload
+  formation, effect order, and export policy were untouched.
+- Verification:
+  - `cargo test -p event_frontier` passed.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces were accepted.
+  - `cargo run -p fixture-check -- --game event_frontier` passed.
+  - No golden trace, fixture, export, or test file changed.

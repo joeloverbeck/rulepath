@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-105: C-01 Event Frontier public effect constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/event_frontier/src/effects.rs`
@@ -93,3 +93,22 @@ exact payload, rendering, and effect order.
 2. `cargo run -p replay-check -- --game event_frontier --all`
 3. A per-game `replay-check` is the correct boundary: only `event_frontier`
    public effects change.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/event_frontier/src/effects.rs::public_effect` to construct
+public effect envelopes via `EffectEnvelope::public(payload)`. The change is
+constructor-only; current/next card reveal payloads, hidden-tail redaction,
+event/edict payloads, public visibility policy, effect order, replay/export
+bytes, and tests were otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p event_frontier` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.
+- `cargo run -p fixture-check -- --game event_frontier` passed.
+- No golden trace, fixture, export, or test file changed.
