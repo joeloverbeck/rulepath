@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-024: Vow Tide C-07 bid/trick/export/bot pairwise no-leak matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/vow_tide/tests/`; public bid/trump/play stay public, private IDs absent
@@ -71,3 +71,22 @@ In `games/vow_tide/tests/visibility.rs` (and the replay/bot test modules as need
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game visibility/bot test is the correct boundary: bid/trick/export/bot no-leak is a game-local projection property.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a shared bid/trick/export/bot no-leak matrix for Vow across seat counts 3 through 7, each source seat, observer, and every declared seat viewer.
+2. Covered view, viewer export, bot input, bot rationale, and candidate rendering for bidding and trick-phase states.
+3. Pinned private hand and stock canaries absent from unauthorized surfaces while public trump and played-card facts remain visible where Vow currently exposes them.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p vow_tide` - passed.
+3. `cargo run -p replay-check -- --game vow_tide --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.
