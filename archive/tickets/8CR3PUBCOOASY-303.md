@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-303: C-03 Flood Watch variant seat-count predicate
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/flood_watch/src/setup.rs`
@@ -86,3 +86,23 @@ all setup semantics.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game test + replay-check is the correct boundary: only the variant
    count predicate changes.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/flood_watch/src/setup.rs::validate_variant` to wrap
+`variant.seat_count` with `SeatCount::new(variant.seat_count as usize).map(SeatCount::get)`
+before comparing to the game-owned `STANDARD_SEAT_COUNT`. The change is
+predicate-only; roster validation, role-order validation, variant policy,
+event-deck setup, diagnostics, replay/export bytes, and fixtures were otherwise
+untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p flood_watch` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `cargo run -p fixture-check -- --game flood_watch` passed.
+- No golden trace, fixture, export, or variant policy file changed.

@@ -499,3 +499,25 @@ Completed: 2026-06-24
   - `bash scripts/boundary-check.sh` passed; `engine-core` stayed noun-free and
     `game-test-support` stayed dev-only.
   - No golden trace, fixture, export, or variant policy file changed.
+
+### 8CR3PUBCOOASY-303 - Flood Watch variant seat-count predicate
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/src/setup.rs::validate_variant`
+  `variant.seat_count` predicate.
+- Change: replaced the bare variant seat-count comparison with
+  `SeatCount::new(variant.seat_count as usize).map(SeatCount::get)` compared
+  against the game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; variant acceptance/diagnostic, setup
+  state, replay hashes, fixtures, and exports were not intentionally migrated.
+- Compatibility / rollback: restore only the bare `variant.seat_count`
+  comparison. Roster validation, role-order validation, variant policy, and
+  event-deck setup stay game-owned.
+- Verification:
+  - `cargo test -p flood_watch` passed, including exact diagnostic checks for
+    variant seat counts 0, 1, and 3.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.
+  - `cargo run -p fixture-check -- --game flood_watch` passed.
+  - No golden trace, fixture, export, or variant policy file changed.

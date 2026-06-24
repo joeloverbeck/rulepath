@@ -82,7 +82,9 @@ pub fn shuffle_event_deck<R: DeterministicRng>(cards: &mut [EventCard], rng: &mu
 }
 
 fn validate_variant(variant: &ScenarioVariant) -> Result<(), Diagnostic> {
-    if variant.seat_count != STANDARD_SEAT_COUNT {
+    if SeatCount::new(variant.seat_count as usize).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(Diagnostic {
             code: "invalid_variant_seat_count".to_owned(),
             message: "flood_watch variants require exactly two seats".to_owned(),
@@ -182,6 +184,21 @@ mod tests {
             ),
             Err(expected)
         );
+    }
+
+    #[test]
+    fn setup_rejects_wrong_variant_seat_count() {
+        let expected = Diagnostic {
+            code: "invalid_variant_seat_count".to_owned(),
+            message: "flood_watch variants require exactly two seats".to_owned(),
+        };
+
+        for seat_count in [0, 1, 3] {
+            let mut options = SetupOptions::default();
+            options.variant.seat_count = seat_count;
+
+            assert_eq!(setup_match(Seed(0), &seats(), &options), Err(expected.clone()));
+        }
     }
 
     #[test]
