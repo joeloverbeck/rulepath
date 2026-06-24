@@ -702,3 +702,37 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game flood_watch` passed.
   - No golden trace, fixture, export, state/effect/view hash, or local
     action-tree hash surface changed.
+
+### 8CR3PUBCOOASY-403 - Frontier Control action-tree v1 parallel surface
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/frontier_control/src/visibility.rs`,
+  `games/frontier_control/src/lib.rs`, and
+  `games/frontier_control/tests/replay.rs`.
+- Change: added parallel `action_tree_v1_bytes` and `action_tree_v1_hash`
+  helpers using `ActionTreeEncodingVersion::V1`, while retaining the existing
+  debug-derived local `action_tree_hash` unchanged. Added representative v1
+  vectors for opening moves, move/clash branch with muster and stake,
+  stake-available tree, dismantle/reinforce tree, early end next turn, and
+  terminal empty tree.
+- ADR-0009 classification: `unchanged` for existing surfaces; the v1
+  action-tree bytes/hash are additive. Local action-tree hash, state/effect/view
+  hashes, traces, fixtures, exports, legal choices, metadata, labels, and
+  branch order were not intentionally migrated.
+- Compatibility / rollback: remove only the v1 helper functions, re-export, and
+  replay vector test. Existing local hash and all replay/export consumers remain
+  unchanged.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the new v1 vectors:
+    opening `(bytes=1291, hash=14934942909345403747, local=16277890795749786444)`,
+    move/clash `(bytes=3310, hash=4769522588459725601, local=8239912348712405228)`,
+    stake `(bytes=2601, hash=12908324649299837008, local=11013731039854121046)`,
+    dismantle `(bytes=5890, hash=4031145394212002295, local=26708586450493490)`,
+    early-end `(bytes=4092, hash=480402586032591446, local=16861215057075239797)`,
+    terminal-empty `(bytes=64, hash=17387353871007407771, local=10022657772393329959)`.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces were accepted.
+  - `cargo run -p fixture-check -- --game frontier_control` passed.
+  - No golden trace, fixture, export, state/effect/view hash, or local
+    action-tree hash surface changed.

@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-403: C-04/C-05 Frontier Control action-tree v1 parallel surface
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/frontier_control/src/visibility.rs`
@@ -100,3 +100,20 @@ alongside the retained local `action_tree_hash`. Add representative v1 vectors.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. A per-game test + replay-check is the correct boundary: the v1 surface is
    game-local and additive; adjacency is asserted unchanged.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added additive `action_tree_v1_bytes` and `action_tree_v1_hash` helpers in
+  `games/frontier_control/src/visibility.rs`, re-exported them from `lib.rs`,
+  and retained the existing debug-derived local `action_tree_hash` unchanged.
+- Added replay vectors covering opening moves, move/clash branch with muster and
+  stake, stake-available tree, dismantle/reinforce tree, early end next turn,
+  and terminal empty tree. As with 401/402, vectors pin byte length plus v1 hash
+  derived from actual bytes rather than embedding full byte hex.
+- Verified `cargo test -p frontier_control`,
+  `cargo run -p replay-check -- --game frontier_control --all`, and
+  `cargo run -p fixture-check -- --game frontier_control`.
+- No golden trace, fixture, export, state/effect/view hash, local action-tree
+  hash, legal path order, label, metadata, or branch-order surface changed.
