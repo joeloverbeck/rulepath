@@ -1,6 +1,6 @@
 //! Semantic effects for Flood Watch.
 
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::ids::{DistrictId, EventKind};
 
@@ -56,8 +56,5 @@ pub enum FloodWatchEffect {
 pub type FloodWatchEffectEnvelope = EffectEnvelope<FloodWatchEffect>;
 
 pub fn public_effect(payload: FloodWatchEffect) -> FloodWatchEffectEnvelope {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }

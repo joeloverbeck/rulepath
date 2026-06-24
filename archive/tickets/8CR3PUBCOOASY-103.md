@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-103: C-01 Flood Watch public effect constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/flood_watch/src/effects.rs`
@@ -94,3 +94,22 @@ exact payload, rendering, and effect order.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game `replay-check` is the correct boundary: only `flood_watch` public
    effects change.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/flood_watch/src/effects.rs::public_effect` to construct public
+effect envelopes via `EffectEnvelope::public(payload)`. The change is
+constructor-only; forecast/event/levee payloads, visibility policy, hidden
+future-deck redaction, effect order, replay/export bytes, and tests were
+otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p flood_watch` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `cargo run -p fixture-check -- --game flood_watch` passed.
+- No golden trace, fixture, export, or test file changed.

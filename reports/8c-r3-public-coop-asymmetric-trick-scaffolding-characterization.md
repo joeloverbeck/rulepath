@@ -348,3 +348,22 @@ Completed: 2026-06-24
     Plain Tricks traces passed with existing expected hashes.
   - `cargo run -p fixture-check -- --game plain_tricks` passed.
   - No golden trace, fixture, export, or test file changed.
+
+### 8CR3PUBCOOASY-103 - Flood Watch public effect constructor
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/src/effects.rs::public_effect`.
+- Change: replaced the local public envelope literal with
+  `EffectEnvelope::public(payload)`.
+- ADR-0009 classification: `unchanged`; no trace, fixture, export, hash,
+  schema, seat spelling, RNG, or visibility byte was intentionally migrated.
+- Compatibility / rollback: restore only the local public literal constructor.
+  Forecast/event/levee payload formation, public visibility policy, hidden
+  future-deck redaction, effect order, and export policy were untouched.
+- Verification:
+  - `cargo test -p flood_watch` passed.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.
+  - `cargo run -p fixture-check -- --game flood_watch` passed.
+  - No golden trace, fixture, export, or test file changed.
