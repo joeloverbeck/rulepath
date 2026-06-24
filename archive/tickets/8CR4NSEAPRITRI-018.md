@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-018: Vow Tide C-04/05 parallel action-tree v1 bytes/hash
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/vow_tide` (`src/replay_support.rs` new parallel-v1 function; `src/actions.rs` read-only); legacy Debug-derived hashes + view/export bytes unchanged
@@ -70,3 +70,24 @@ Add a clearly-named parallel-v1 function in `games/vow_tide/src/replay_support.r
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game test plus replay-check are the correct boundary: the v1 hash is a game-local surface over the kernel encoder.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added `games/vow_tide/src/replay_support.rs::action_tree_v1_encoding`, an additive parallel v1 bytes/hash surface over the existing typed `actions::legal_action_tree`.
+2. Added deterministic v1 vectors for opening bid trees across 3–7 seats, wrong/unknown actor empty trees, dealer-hook-constrained bidding, and follow-suit play.
+3. Left `replay_support::snapshot`, legacy `Debug`-derived action hashes, and all view/export bytes unchanged.
+
+Deviations:
+
+1. None.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p vow_tide` — passed.
+3. `cargo run -p replay-check -- --game vow_tide --all` — passed.
+4. `bash scripts/boundary-check.sh` — passed.
