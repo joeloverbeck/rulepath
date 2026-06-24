@@ -72,7 +72,7 @@ pub(crate) fn create_briar_circuit_match(
     seed: u64,
     seat_count: usize,
 ) -> Result<BriarCircuitState, String> {
-    if seat_count != briar_circuit::STANDARD_SEAT_COUNT as usize {
+    if briar_circuit::setup::validate_standard_seat_count(seat_count).is_err() {
         return Err(format!(
             "{{\"code\":\"unsupported_seat_count\",\"message\":\"briar_circuit requires exactly {} seats\"}}",
             briar_circuit::STANDARD_SEAT_COUNT

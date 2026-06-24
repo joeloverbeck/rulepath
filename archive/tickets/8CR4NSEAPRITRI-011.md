@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-011: Briar Circuit C-03 exact-four structural validation via SeatCountRange
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/briar_circuit` (`src/setup.rs`), `crates/wasm-api` (`src/games/briar.rs`); diagnostic bytes unchanged
@@ -71,3 +71,22 @@ In `setup_match`, validate the seat count via `SeatCountRange::inclusive(4, 4).v
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game test plus bridge test are the correct boundary: count validation is game-local structure over a stdlib helper.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added `validate_standard_seat_count` in Briar setup, backed by `SeatCountRange::inclusive(4, 4).validate` and mapped back to the existing `BC_UNSUPPORTED_SEAT_COUNT` diagnostic.
+- Routed `setup_match` and the WASM bridge precheck through the game-owned structural validator while preserving the bridge diagnostic JSON.
+- Strengthened the Briar invalid-count test to assert exact diagnostic message bytes for every non-four count in the table.
+
+Deviations:
+- None. Pass direction, dealer, partnership, and trick policy remain game-local and unchanged.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p briar_circuit`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `bash scripts/boundary-check.sh`
