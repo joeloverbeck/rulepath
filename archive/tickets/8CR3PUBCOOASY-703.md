@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-703: C-09 Event Frontier unbiased-index migration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/event_frontier/src/setup.rs`
@@ -102,3 +102,18 @@ per-epoch order.
 2. `cargo run -p replay-check -- --game event_frontier --all`
 3. A per-game test + replay-check is the correct boundary: RNG identity and
    downstream hashes are the surfaces this migration must preserve.
+
+## Outcome
+
+- Replaced Event Frontier's local `next_bounded_index_unbiased` calls inside
+  `shuffle_epoch` and the non-Reckoning first-card swap in `build_seeded_deck`
+  with `DeterministicRng::next_index_unbiased_v1`, then removed the now-unused
+  local helper.
+- Existing epoch/deck-order, no-leak, replay, fixture, and export gates
+  preserved the per-epoch order, current/next window, deeper-tail privacy, and
+  downstream hashes.
+- Verification passed:
+  - `cargo test -p event_frontier`
+  - `cargo run -p replay-check -- --game event_frontier --all`
+  - `cargo run -p fixture-check -- --game event_frontier`
+  - `git diff --check`

@@ -1484,3 +1484,28 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
     fixtures passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-703 - Event Frontier unbiased-index migration
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/src/setup.rs`.
+- Change: replaced the local `next_bounded_index_unbiased` calls inside
+  `shuffle_epoch` and the non-Reckoning first-card swap in `build_seeded_deck`
+  with `DeterministicRng::next_index_unbiased_v1`, then removed the now-unused
+  local helper.
+- Determinism evidence: the Event crate tests, replay-check golden traces, and
+  fixture-check preserved per-epoch deck order, current/next window,
+  deeper-tail privacy, replay, export, and fixture surfaces.
+- ADR-0009 classification: `unchanged`; behavior-neutral adoption of the
+  shipped engine RNG helper. No epoch partitioning, deck policy, seed handling,
+  game rule, fixture bytes, replay hash, or export behavior changed.
+- Compatibility / rollback: restore the local helper and its two setup call
+  sites if any downstream identity gate fails.
+- Verification:
+  - `cargo test -p event_frontier` passed.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces passed.
+  - `cargo run -p fixture-check -- --game event_frontier` passed; all Event
+    Frontier fixtures passed.
+  - `git diff --check` passed.

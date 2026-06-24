@@ -136,7 +136,8 @@ pub fn build_seeded_deck(seed: Seed, catalog: &CardCatalog) -> Result<Vec<CardId
 
         shuffle_epoch(&mut cards, &mut rng);
         if cards.first().is_some_and(|card| is_reckoning(*card)) {
-            let swap_index = next_bounded_index_unbiased(&mut rng, cards.len() - 1)
+            let swap_index = rng
+                .next_index_unbiased_v1(cards.len() - 1)
                 .expect("epoch has non-Reckoning slots")
                 + 1;
             cards.swap(0, swap_index);
@@ -149,8 +150,9 @@ pub fn build_seeded_deck(seed: Seed, catalog: &CardCatalog) -> Result<Vec<CardId
 
 pub fn shuffle_epoch<R: DeterministicRng>(cards: &mut [CardId], rng: &mut R) {
     for index in (1..cards.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         cards.swap(index, swap_index);
     }
 }
@@ -266,26 +268,6 @@ fn ensure_unique_sites_with_counts(counts: &[(SiteId, u8)], label: &str) -> Resu
     ensure_unique_sites(&sites, label)
 }
 
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
-    }
-}
-
 fn diagnostic(code: &str, message: &str) -> Diagnostic {
     Diagnostic {
         code: code.to_owned(),
@@ -354,7 +336,10 @@ mod tests {
             let mut options = SetupOptions::default();
             options.variant.seat_count = seat_count;
 
-            assert_eq!(setup_match(Seed(0), &seats(), &options), Err(expected.clone()));
+            assert_eq!(
+                setup_match(Seed(0), &seats(), &options),
+                Err(expected.clone())
+            );
         }
     }
 
