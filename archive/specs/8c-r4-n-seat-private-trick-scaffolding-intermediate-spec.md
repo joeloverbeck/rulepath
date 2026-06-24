@@ -6,7 +6,7 @@
 | Artifact slug | `8c-r4-n-seat-private-trick-scaffolding` |
 | Roadmap stage | Public scaling phase — C-11 follow-on retrofit lane |
 | Roadmap build gate | `8C-R4` — final C-11 wave; precedes Gate 18 |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-24 |
 | Owner | Rulepath maintainers; implementation delegated through bounded `AGENT-TASK` packets using profile `scaffold-refactor` |
 | Analysis baseline | Grounded against the repository working tree at commit `0d01901c24b21c6d4620b1d5a6c19d2e84fb4e6a` (HEAD at reassessment). |
@@ -1227,6 +1227,64 @@ repository file contents.
       present.
 - [x] This remains an intermediate artifact for `/reassess-spec` then
       `/spec-to-tickets`, not a claim that code has shipped.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Completed tickets: `8CR4NSEAPRITRI-001` through `8CR4NSEAPRITRI-037`, all
+archived under `archive/tickets/` with `COMPLETED` status and `## Outcome`.
+
+Implementation summary:
+
+- River Ledger, Briar Circuit, and Vow Tide closed the R4 C-01...C-10
+  residual audit/migration wave without promoting betting, trick, bidding,
+  scoring, projection, bot, YAML, DSL, or static behavior into shared
+  scaffolding.
+- Briar and Vow adopted the selected canonical seat, range, and import surfaces;
+  River, Briar, and Vow added parallel action-tree/profile/no-leak evidence
+  where the tickets named that surface.
+- C-06 stable-byte-adjacent surfaces, C-09 Briar/Vow RNG substitutions, and
+  C-10 behavior extraction remain explicitly not applicable, accepted-excepted,
+  or rejected/local-only as recorded in the characterization report and
+  mechanical-scaffolding register.
+- `specs/README.md` now marks `8C-R4` as `Done`; Gate 18 remains `Not started`.
+
+Verification evidence:
+
+- Rust hygiene and tests: `cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets -- -D warnings`, focused crate tests
+  for `engine-core`, `game-stdlib`, `game-test-support`, `wasm-api`,
+  `river_ledger`, `briar_circuit`, `vow_tide`, `replay-check`,
+  `fixture-check`, and `rule-coverage`, plus `cargo test --workspace`.
+- Per-game evidence: `cargo run -p replay-check -- --game river_ledger --all`,
+  `briar_circuit --all`, and `vow_tide --all`; `cargo run -p fixture-check`
+  for all three games; and `cargo run -p rule-coverage` for all three games.
+- Boundary/docs evidence: `bash scripts/boundary-check.sh`,
+  `cargo tree --workspace -e normal --invert game-test-support`,
+  `cargo tree --workspace -e normal,build --invert game-test-support`,
+  `node scripts/check-doc-links.mjs`, and
+  `node scripts/check-catalog-docs.mjs`.
+- Diff evidence: baseline changed-path inventory, stat, and whitespace checks
+  against `9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`; no unauthorized
+  golden, fixture, export, behavior-promotion, or static-behavior path class
+  was introduced.
+
+Manual/non-command evidence: no screenshot, browser, focus, contrast, or other
+visual evidence was required; this unit had no web/UI deliverable.
+
+Archive truthing:
+
+- The active ticket glob `tickets/8CR4NSEAPRITRI-*.md` is empty.
+- The archived ticket count is 37 and the archived ticket names match
+  `8CR4NSEAPRITRI-001` through `8CR4NSEAPRITRI-037`.
+- The active spec path
+  `specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md` is gone
+  and this archived spec has status `Done` plus this `## Outcome`.
+- The active tracker points at this archived spec and leaves Gate 18
+  `Not started`.
+- Unrelated pre-existing edits under
+  `.claude/skills/spec-to-tickets/references/` were left untouched.
 
 [docs-readme]: ../docs/README.md
 [foundations]: ../docs/FOUNDATIONS.md
