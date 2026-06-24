@@ -941,6 +941,40 @@ R4 N-seat/private/trick receipts, 2026-06-24:
 - Final tracker flip, final command evidence, and the Unit 8C-R4 final closeout
   block remain owned by `8CR4NSEAPRITRI-037`.
 
+### Unit 8C-R4 closeout evidence - 2026-06-24
+
+- Final state: R4 N-seat/private/trick receipts are recorded under
+  `MSC-8C-001`...`MSC-8C-010` above for `river_ledger`, `briar_circuit`, and
+  `vow_tide`. Migrated surfaces, pilot-credit rows, not-applicable decisions,
+  accepted exceptions, rollback notes, and next-review triggers are closed for
+  the R4 wave.
+- C-06 checkpoint: `game-test-support` remains dev-only; both inverse
+  dependency checks reported only `game-test-support` itself, and
+  `bash scripts/boundary-check.sh` passed.
+- C-09 checkpoint: River remains pilot-discharged through the unbiased sampler
+  receipt. Briar and Vow retain legacy modulo sampler semantics and are closed
+  as not applicable to in-wave substitution; a separately accepted ADR-0009 RNG
+  algorithm migration remains the next-review trigger.
+- C-10 checkpoint: every behavior-bearing extraction remains rejected /
+  local-only. No `MSC-8C-*` helper was broadened, no new helper entry was
+  created, and `game-stdlib::trick_taking` was not reclassified as mechanical
+  scaffolding.
+- Artifact-diff result: existing golden traces, data fixtures, committed export
+  artifacts, legacy hashes, visibility authority, seat authority, and RNG
+  output authorities remain unchanged. R4 additions are migrated helper calls,
+  parallel action-tree v1 vectors, test-only profile/no-leak adapters, and
+  documentation/tracker receipts. Unauthorized artifact changes: zero.
+- Final validators: `cargo fmt --all --check`, `cargo clippy --workspace
+  --all-targets -- -D warnings`, focused crate/game/tool tests,
+  `cargo test --workspace`, River/Briar/Vow `replay-check`, `fixture-check`,
+  and `rule-coverage`, `bash scripts/boundary-check.sh`, both inverse
+  `cargo tree` checks, `node scripts/check-doc-links.mjs`, and
+  `node scripts/check-catalog-docs.mjs` all passed for `8CR4NSEAPRITRI-037`.
+- Tracker/interlock result: `specs/README.md` flips only `8C-R4` to `Done`.
+  All four C-11 follow-on waves are now closed or explicitly disposed, clearing
+  the final C-11 Gate 18 admission interlock. Gate 18 remains unstarted and
+  unauthored.
+
 ## Review Checklist
 
 Before accepting a register entry, verify:

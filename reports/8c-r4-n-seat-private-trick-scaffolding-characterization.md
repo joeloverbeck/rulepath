@@ -1,16 +1,16 @@
 # Unit 8C-R4 Characterization Report
 
-Status: after-receipt checkpoint for `8CR4NSEAPRITRI-036`; final command/diff
-audit, tracker flip, and final closeout are owned by `8CR4NSEAPRITRI-037`.
+Status: final closeout for `8CR4NSEAPRITRI-037`.
 
 ## Evidence Basis
 
 - Repository: `/home/joeloverbeck/projects/rulepath`.
 - Baseline commit: `9c5b4c8730fc917af88aefdfae7e641c258e94d5`.
 - Reference spec:
-  `specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md`.
+  `archive/specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md`.
 - Baseline ticket: `archive/tickets/8CR4NSEAPRITRI-001.md`.
-- Current receipt ticket: `archive/tickets/8CR4NSEAPRITRI-036.md`.
+- Receipt ticket: `archive/tickets/8CR4NSEAPRITRI-036.md`.
+- Closeout ticket: `archive/tickets/8CR4NSEAPRITRI-037.md`.
 - Foundation authority: `docs/FOUNDATIONS.md`, `docs/ARCHITECTURE.md`,
   `docs/ENGINE-GAME-DATA-BOUNDARY.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`,
   `docs/TRACE-SCHEMA-v1.md`, `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`,
@@ -303,6 +303,76 @@ Commands run for ticket 036:
 - `bash scripts/boundary-check.sh` - passed; `engine-core` and
   `game-test-support` boundary checks passed.
 - `node scripts/check-doc-links.mjs` - passed; checked 31 markdown files.
+
+## Final Verification
+
+Commands run for ticket 037:
+
+- `cargo fmt --all --check` - passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` - passed.
+- `cargo test -p engine-core` - passed.
+- `cargo test -p game-stdlib` - passed.
+- `cargo test -p game-test-support` - passed.
+- `cargo test -p wasm-api` - passed.
+- `cargo test -p river_ledger` - passed.
+- `cargo test -p briar_circuit` - passed.
+- `cargo test -p vow_tide` - passed.
+- `cargo test -p replay-check` - passed.
+- `cargo test -p fixture-check` - passed.
+- `cargo test -p rule-coverage` - passed.
+- `cargo test --workspace` - passed.
+- `cargo run -p replay-check -- --game river_ledger --all` - passed.
+- `cargo run -p replay-check -- --game briar_circuit --all` - passed.
+- `cargo run -p replay-check -- --game vow_tide --all` - passed.
+- `cargo run -p fixture-check -- --game river_ledger` - passed.
+- `cargo run -p fixture-check -- --game briar_circuit` - passed.
+- `cargo run -p fixture-check -- --game vow_tide` - passed.
+- `cargo run -p rule-coverage -- --game river_ledger` - passed.
+- `cargo run -p rule-coverage -- --game briar_circuit` - passed.
+- `cargo run -p rule-coverage -- --game vow_tide` - passed.
+- `bash scripts/boundary-check.sh` - passed.
+- `cargo tree --workspace -e normal --invert game-test-support` - passed; only
+  `game-test-support` itself appears.
+- `cargo tree --workspace -e normal,build --invert game-test-support` - passed;
+  only `game-test-support` itself appears.
+- `node scripts/check-doc-links.mjs` - passed; checked 31 markdown files.
+- `node scripts/check-catalog-docs.mjs` - passed; 17 games reflected in the
+  catalog docs surfaces.
+
+## Final Artifact Diff Inventory
+
+Diff baseline:
+`9c5b4c8730fc917af88aefdfae7e641c258e94d5`.
+
+Audit commands:
+
+- `git diff --name-only 9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`
+- `git diff --stat 9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`
+- `git diff --check 9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`
+
+Results:
+
+- Archived tickets `8CR4NSEAPRITRI-001` through `8CR4NSEAPRITRI-037`:
+  documentation-only ticket closeout and archive moves.
+- `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `specs/README.md`,
+  `archive/specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md`,
+  and this report: documentation-only register/report/spec/tracker closeout.
+- `crates/wasm-api/src/games/{briar,vow}.rs` and `crates/wasm-api/src/seats.rs`:
+  C-01/C-02 import/constructor routing; no export fixture byte authority
+  changed.
+- `games/river_ledger`, `games/briar_circuit`, and `games/vow_tide` source/test
+  changes: migrated helper calls, parallel action-tree v1 adapters, profile
+  adapters, no-leak matrices, and focused characterization tests owned by
+  tickets `002` through `035`.
+- Existing golden trace bytes: unchanged; no
+  `games/*/tests/golden_traces/*` path appears in the final diff.
+- Existing fixture bytes: unchanged; no `games/*/data/fixtures/*` path appears
+  in the final diff.
+- Existing public/seat-private export artifact bytes and legacy expected hashes:
+  unchanged unless represented only by parallel-new test vectors/adapters.
+- New v1/profile/no-leak evidence surfaces: classified as `parallel-new`.
+- Unauthorized artifact changes: zero.
+- `git diff --check` from the baseline passed.
 
 ## Rollback Map
 

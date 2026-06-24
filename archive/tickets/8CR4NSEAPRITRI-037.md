@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-037: R4 verification, artifact-diff audit, and closeout/tracker flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — verification + status-flip capstone (`specs/README.md`, register closeout block, characterization report); no code/byte change
@@ -76,3 +76,48 @@ Add the Unit 8C-R4 closeout block to `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` a
 1. `cargo test --workspace`
 2. `cargo run -p replay-check -- --game river_ledger --all && cargo run -p replay-check -- --game briar_circuit --all && cargo run -p replay-check -- --game vow_tide --all`
 3. `git diff --stat <r4-baseline>...HEAD` (artifact-diff audit) — the narrower correctness boundary that proves no unauthorized byte changed.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Ran the full §7.1 capstone command set and recorded final command evidence in the characterization report.
+- Recorded the final artifact-diff audit from baseline `9c5b4c8730fc917af88aefdfae7e641c258e94d5`, with existing golden/fixture/export/legacy hash bytes unchanged and unauthorized artifact changes at zero.
+- Added the Unit 8C-R4 final closeout block to the mechanical scaffolding register, flipped only the `8C-R4` tracker row to `Done`, and archived the completed R4 spec.
+- Stated that all four C-11 follow-on waves are closed or explicitly disposed, clearing the final C-11 Gate 18 admission interlock while Gate 18 remains unstarted.
+
+Deviations:
+- None.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test -p engine-core`
+- `cargo test -p game-stdlib`
+- `cargo test -p game-test-support`
+- `cargo test -p wasm-api`
+- `cargo test -p river_ledger`
+- `cargo test -p briar_circuit`
+- `cargo test -p vow_tide`
+- `cargo test -p replay-check`
+- `cargo test -p fixture-check`
+- `cargo test -p rule-coverage`
+- `cargo test --workspace`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `cargo run -p fixture-check -- --game river_ledger`
+- `cargo run -p fixture-check -- --game briar_circuit`
+- `cargo run -p fixture-check -- --game vow_tide`
+- `cargo run -p rule-coverage -- --game river_ledger`
+- `cargo run -p rule-coverage -- --game briar_circuit`
+- `cargo run -p rule-coverage -- --game vow_tide`
+- `bash scripts/boundary-check.sh`
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `git diff --name-only 9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`
+- `git diff --stat 9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`
+- `git diff --check 9c5b4c8730fc917af88aefdfae7e641c258e94d5...HEAD`
