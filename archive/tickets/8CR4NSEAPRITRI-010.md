@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-010: Vow Tide C-02 WASM import-alias adapter
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (`src/seats.rs`, `src/games/vow.rs`); import aliases accepted, canonical output unchanged
@@ -71,3 +71,21 @@ Add a bounded Vow adapter over `crates/wasm-api/src/seats.rs::{parse_seat_import
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The `wasm-api` test is the correct boundary: legacy alias acceptance is a WASM-import concern, not a game-rule one.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added `parse_vow_tide_seat` in the shared WASM seat adapter, bounded to seven seats and backed by `parse_seat_enum`.
+- Replaced `crates/wasm-api/src/games/vow.rs::parse_vow_seat`'s local `seat-{n}` search with the shared adapter.
+- Added a focused import-boundary test covering canonical and hyphen inputs for seats 0 through 6, malformed/out-of-range rejection, and underscore canonical output.
+
+Deviations:
+- None. Game-level parser/formatter migrations remain in `8CR4NSEAPRITRI-008` and `8CR4NSEAPRITRI-009`; no TypeScript repair or output alias was added.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`

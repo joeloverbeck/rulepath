@@ -20,14 +20,12 @@ use crate::constants::*;
 use crate::json::{diagnostic_json, diagnostic_string, escape_json};
 use crate::json_parse::{string_field, validate_json_object};
 use crate::replay::{PublicTimelineReplay, PublicTimelineStep};
+use crate::seats::parse_vow_tide_seat;
 use crate::store::{next_replay_id, REPLAYS};
 use crate::{visibility_json, AppliedCommand, ReplayRecord};
 
 pub(crate) fn parse_vow_seat(value: &str) -> Result<VowTideSeat, String> {
-    VowTideSeat::ALL
-        .into_iter()
-        .find(|seat| seat.as_str() == value || value == format!("seat-{}", seat.index()))
-        .ok_or_else(|| diagnostic_string("unknown_seat", &format!("unknown seat: {value}")))
+    parse_vow_tide_seat(value)
 }
 
 pub(crate) fn trace_vow_seat(seat: VowTideSeat) -> &'static str {

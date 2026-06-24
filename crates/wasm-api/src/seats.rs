@@ -22,6 +22,7 @@ use river_ledger::RiverLedgerSeat;
 use secret_draft::SecretDraftSeat;
 use three_marks::ThreeMarksSeat;
 use token_bazaar::TokenBazaarSeat;
+use vow_tide::ids::VowTideSeat;
 
 const TWO_SEAT_SYMBOLIC_ALIASES: &[(&str, u32)] = &[("seat-a", 0), ("seat-b", 1)];
 const SIX_SEAT_SYMBOLIC_ALIASES: &[(&str, u32)] = &[
@@ -228,6 +229,10 @@ pub(crate) fn parse_briar_circuit_seat(value: &str) -> Result<BriarCircuitSeat, 
     parse_seat_enum(value, 4, &[], BriarCircuitSeat::parse)
 }
 
+pub(crate) fn parse_vow_tide_seat(value: &str) -> Result<VowTideSeat, String> {
+    parse_seat_enum(value, 7, &[], VowTideSeat::parse)
+}
+
 pub(crate) fn canonical_trace_seat_id(index: u32) -> String {
     SeatId::from_zero_based_index(index).0
 }
@@ -423,6 +428,30 @@ mod tests {
                 parse_briar_circuit_seat(invalid),
                 Err(unknown_seat(invalid))
             );
+        }
+    }
+
+    #[test]
+    fn vow_import_adapter_accepts_bounded_hyphen_aliases_and_emits_canonical_seats() {
+        for (canonical, hyphen, expected) in [
+            ("seat_0", "seat-0", VowTideSeat::Seat0),
+            ("seat_1", "seat-1", VowTideSeat::Seat1),
+            ("seat_2", "seat-2", VowTideSeat::Seat2),
+            ("seat_3", "seat-3", VowTideSeat::Seat3),
+            ("seat_4", "seat-4", VowTideSeat::Seat4),
+            ("seat_5", "seat-5", VowTideSeat::Seat5),
+            ("seat_6", "seat-6", VowTideSeat::Seat6),
+        ] {
+            assert_eq!(parse_vow_tide_seat(canonical), Ok(expected));
+            assert_eq!(parse_vow_tide_seat(hyphen), Ok(expected));
+            assert_eq!(expected.as_str(), canonical);
+        }
+
+        for invalid in [
+            "", "0", "player_0", "seat_", "seat_01", "seat_+1", "seat_-1", " seat_0", "seat_0 ",
+            "seat_7", "seat-7", "seat-a",
+        ] {
+            assert_eq!(parse_vow_tide_seat(invalid), Err(unknown_seat(invalid)));
         }
     }
 
