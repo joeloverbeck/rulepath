@@ -1434,3 +1434,28 @@ Completed: 2026-06-24
   - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
     Tricks traces passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-701 - Plain Tricks unbiased-index migration
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/src/setup.rs`.
+- Change: replaced the local `next_bounded_index_unbiased` call inside
+  `shuffle_deck` with `DeterministicRng::next_index_unbiased_v1` and removed
+  the now-unused local helper.
+- Determinism evidence: the existing setup rejection-vector tests now exercise
+  the shared RNG method directly, while the Plain crate tests, replay-check
+  golden traces, and fixture-check preserved shuffle/deal, private hand/tail,
+  replay, export, and fixture surfaces.
+- ADR-0009 classification: `unchanged`; behavior-neutral adoption of the
+  shipped engine RNG helper. No shuffle/deal policy, seed handling, game rule,
+  fixture bytes, replay hash, or export behavior changed.
+- Compatibility / rollback: restore the local helper and its single
+  `shuffle_deck` call if any downstream identity gate fails.
+- Verification:
+  - `cargo test -p plain_tricks` passed.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
+    Tricks fixtures passed.
+  - `git diff --check` passed.

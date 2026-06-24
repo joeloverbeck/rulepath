@@ -78,8 +78,9 @@ pub(crate) fn deal_round<R: DeterministicRng>(
 
 pub fn shuffle_deck<R: DeterministicRng>(deck: &mut [TrickCardId], rng: &mut R) {
     for index in (1..deck.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         deck.swap(index, swap_index);
     }
 }
@@ -96,26 +97,6 @@ fn setup_deck_exhausted() -> Diagnostic {
     Diagnostic {
         code: "invalid_deck_exhausted".to_owned(),
         message: "plain_tricks setup deck exhausted during round deal".to_owned(),
-    }
-}
-
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
     }
 }
 
@@ -239,13 +220,13 @@ mod tests {
         let rejected = accepted_zone_for_three as u64;
         let mut rng = FixedRng::new(vec![rejected, 4]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+        assert_eq!(rng.next_index_unbiased_v1(3), Some(1));
     }
 
     #[test]
     fn bounded_index_rejects_empty_bound() {
         let mut rng = FixedRng::new(vec![0]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 0), None);
+        assert_eq!(rng.next_index_unbiased_v1(0), None);
     }
 }

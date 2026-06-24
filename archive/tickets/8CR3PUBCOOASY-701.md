@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-701: C-09 Plain Tricks unbiased-index migration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/plain_tricks/src/setup.rs`
@@ -102,3 +102,18 @@ seed handling, RNG consumption, rejection behavior, and shuffle/deal order.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: RNG identity and
    downstream hashes are the surfaces this migration must preserve.
+
+## Outcome
+
+- Replaced Plain Tricks' local `next_bounded_index_unbiased` call inside
+  `shuffle_deck` with `DeterministicRng::next_index_unbiased_v1` and removed
+  the now-unused local helper.
+- Retargeted the existing setup rejection-vector tests to the shared RNG
+  method, preserving zero-bound and high-residue rejection coverage. Shuffle,
+  deal, replay, fixture, and export surfaces remained byte-identical under the
+  existing gates.
+- Verification passed:
+  - `cargo test -p plain_tricks`
+  - `cargo run -p replay-check -- --game plain_tricks --all`
+  - `cargo run -p fixture-check -- --game plain_tricks`
+  - `git diff --check`
