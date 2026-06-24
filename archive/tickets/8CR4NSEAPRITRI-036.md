@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-036: R4 register receipts and C-05/C-06/C-09/C-10 checkpoints
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — register receipts + governance checkpoints (`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, characterization report); no code/byte change
@@ -75,3 +75,22 @@ Record the C-06 reverse-edge proof, the Briar/Vow C-09 legacy-modulo divergence 
 1. `cargo tree --workspace -e normal --invert game-test-support`
 2. `cargo test --workspace`
 3. `node scripts/check-doc-links.mjs` (register/report links resolve); manual receipt-completeness review is the narrower correctness boundary.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added R4 receipt rows under existing `MSC-8C-001` through `MSC-8C-010` register entries, covering migrated surfaces, pilot-credit rows, N/A dispositions, exceptions, rollback notes, and next-review triggers.
+- Updated the characterization report with the consolidated R4 after-receipt inventory plus C-05 adjacent-byte, C-06 reverse-edge, C-09 sampler, and C-10 local-behavior checkpoint conclusions.
+- Confirmed no new helper entry was introduced and no `MSC-8C-*` helper contract was broadened.
+
+Deviations:
+- None.
+
+Verification:
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `cargo test --workspace`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-doc-links.mjs`

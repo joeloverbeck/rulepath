@@ -1,7 +1,7 @@
 # Unit 8C-R4 Characterization Report
 
-Status: baseline for `8CR4NSEAPRITRI-001`; migration receipts and final
-closeout are owned by later tickets in the series.
+Status: after-receipt checkpoint for `8CR4NSEAPRITRI-036`; final command/diff
+audit, tracker flip, and final closeout are owned by `8CR4NSEAPRITRI-037`.
 
 ## Evidence Basis
 
@@ -9,7 +9,8 @@ closeout are owned by later tickets in the series.
 - Baseline commit: `9c5b4c8730fc917af88aefdfae7e641c258e94d5`.
 - Reference spec:
   `specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md`.
-- Active ticket: `tickets/8CR4NSEAPRITRI-001.md`.
+- Baseline ticket: `archive/tickets/8CR4NSEAPRITRI-001.md`.
+- Current receipt ticket: `archive/tickets/8CR4NSEAPRITRI-036.md`.
 - Foundation authority: `docs/FOUNDATIONS.md`, `docs/ARCHITECTURE.md`,
   `docs/ENGINE-GAME-DATA-BOUNDARY.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`,
   `docs/TRACE-SCHEMA-v1.md`, `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`,
@@ -65,6 +66,26 @@ Grounded corrections carried forward from the spec:
 | `briar_circuit` | C-08 domain-evidence profile | already-discharged-by-8C-pilot | `MSC-8C-008` | `archive/tickets/UNI8CMECSCA-026.md` |
 | `vow_tide` | C-06 dev-only support | already-discharged-by-8C-pilot | `MSC-8C-006` | `archive/tickets/UNI8CMECSCA-025.md` |
 | `vow_tide` | C-08 public/seat-private export profiles | already-discharged-by-8C-pilot | `MSC-8C-008` | `archive/tickets/UNI8CMECSCA-025.md` |
+
+## R4 After-Receipt Inventory
+
+The receipt ticket records the post-migration disposition for every aggregate
+cell and listed sub-surface under existing register entries `MSC-8C-001` through
+`MSC-8C-010`. No new helper entry is introduced and no helper contract is
+broadened.
+
+| Register entry | River receipt | Briar receipt | Vow receipt |
+|---|---|---|---|
+| `MSC-8C-001` C-01 envelopes | pilot credit from Unit 8C C-01 | public/private migrated by `archive/tickets/8CR4NSEAPRITRI-002.md` and `archive/tickets/8CR4NSEAPRITRI-003.md` | public migrated by `archive/tickets/8CR4NSEAPRITRI-004.md`; private not applicable |
+| `MSC-8C-002` C-02 seats | pilot credit `archive/tickets/UNI8CMECSCA-009.md` | parser/roster/WASM import migrated by `archive/tickets/8CR4NSEAPRITRI-005.md`...`archive/tickets/8CR4NSEAPRITRI-007.md` | parser/roster/WASM import migrated by `archive/tickets/8CR4NSEAPRITRI-008.md`...`archive/tickets/8CR4NSEAPRITRI-010.md` |
+| `MSC-8C-003` C-03 count/ring | pilot credit `archive/tickets/UNI8CMECSCA-011.md`; stack-vector cardinality N/A | exact-four migrated by `archive/tickets/8CR4NSEAPRITRI-011.md`; pass/dealer topology exception | 3-7 range and ring step migrated by `archive/tickets/8CR4NSEAPRITRI-012.md` and `archive/tickets/8CR4NSEAPRITRI-013.md`; schedule/deal exception |
+| `MSC-8C-004` C-04 action tree | v1 adapter and all-in vectors migrated by `archive/tickets/8CR4NSEAPRITRI-014.md` and `archive/tickets/8CR4NSEAPRITRI-015.md` | typed adapter and v1 vectors migrated by `archive/tickets/8CR4NSEAPRITRI-016.md` and `archive/tickets/8CR4NSEAPRITRI-017.md` | v1 vectors migrated by `archive/tickets/8CR4NSEAPRITRI-018.md` |
+| `MSC-8C-005` C-05 stable bytes | action-tree v1 only; adjacent byte authorities excepted | action-tree v1 only; adjacent byte authorities excepted | action-tree v1 only; adjacent byte authorities excepted |
+| `MSC-8C-006` C-06 dev-only support | pilot dev-only edge retained | pilot dev-only edge retained | pilot dev-only edge retained |
+| `MSC-8C-007` C-07 no-leak | residual lifecycle/export matrices in `archive/tickets/8CR4NSEAPRITRI-019.md` and `archive/tickets/8CR4NSEAPRITRI-020.md` | pass/play matrices in `archive/tickets/8CR4NSEAPRITRI-021.md` and `archive/tickets/8CR4NSEAPRITRI-022.md` | hand/stock and bid/trick matrices in `archive/tickets/8CR4NSEAPRITRI-023.md` and `archive/tickets/8CR4NSEAPRITRI-024.md` |
+| `MSC-8C-008` C-08 profiles | replay/public/seat-private/domain migrated by `archive/tickets/8CR4NSEAPRITRI-025.md`...`archive/tickets/8CR4NSEAPRITRI-028.md`; setup pilot credit | replay/setup/public/seat-private migrated by `archive/tickets/8CR4NSEAPRITRI-029.md`...`archive/tickets/8CR4NSEAPRITRI-032.md`; domain pilot credit | replay/setup/domain migrated by `archive/tickets/8CR4NSEAPRITRI-033.md`...`archive/tickets/8CR4NSEAPRITRI-035.md`; export profiles pilot credit |
+| `MSC-8C-009` C-09 bounded index | pilot credit `archive/tickets/UNI8CMECSCA-017.md` | not applicable to in-wave substitution; legacy modulo sampler retained | not applicable to in-wave substitution; legacy modulo sampler retained |
+| `MSC-8C-010` C-10 behavior bundle | local-only behavior bundle reaffirmed | local-only behavior bundle reaffirmed | local-only behavior bundle reaffirmed |
 
 ## Aggregate Verdict Matrix
 
@@ -179,6 +200,51 @@ interpret side pots, decide tricks, or score outcomes from data.
 | Briar | `DeterministicRng::next_index(index + 1)` | not-applicable to in-wave substitution | legacy modulo semantics stay current; any unbiased migration needs a separate ADR-0009 packet. |
 | Vow | `DeterministicRng::next_index(index + 1)` | not-applicable to in-wave substitution | legacy modulo semantics stay current; any unbiased migration needs a separate ADR-0009 packet. |
 
+## R4 Receipt Checkpoints
+
+### C-05 Adjacent Stable Bytes
+
+Only the selected action-tree v1 surfaces moved to a parallel stable-byte
+encoding. Legacy action-tree/debug hashes, state bytes/hashes, effect
+bytes/hashes, public and seat-private view bytes/hashes, replay-command bytes,
+public and seat-private export bytes, fixture bytes, and diagnostic bytes remain
+owned by their existing game/tool surfaces. Any future authority flip requires a
+dedicated ADR-0009 migration packet.
+
+### C-06 Reverse Dependency Proof
+
+The R4 games retain `game-test-support` only as a dev dependency. The 036
+verification set must include both inverse dependency checks:
+
+- `cargo tree --workspace -e normal --invert game-test-support`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+
+Both checks are expected to show no production or build reverse edge beyond the
+test-support package itself. `bash scripts/boundary-check.sh` remains the
+scripted guard for this invariant.
+
+### C-09 Sampler Disposition
+
+River remains pilot-discharged through `UNI8CMECSCA-017` and keeps
+`next_index_unbiased_v1` at `games/river_ledger/src/setup.rs::shuffle_deck`.
+Briar and Vow remain reviewed N/A for R4 because both current setup shuffles
+use legacy modulo `DeterministicRng::next_index(index + 1)`. No RNG algorithm,
+draw count, deck order, deal order, replay, fixture, or visibility byte is
+changed by the receipt ticket. Their next-review trigger is a separately
+accepted ADR-0009 RNG algorithm migration.
+
+### C-10 Local-Only Behavior Bundles
+
+River betting/all-in/reopen, stack/contribution, pot/side-pot, allocation,
+uncalled-return, showdown/evaluator, projection, scoring, and bot behavior
+remain River-owned. Briar deal/pass/exchange, follow-suit, first-trick
+exception, hearts-broken, trick winner/leader, moon/scoring, projection, and
+bot behavior remain Briar-owned. Vow dealer rotation, hand schedule,
+deal/stock/trump, bidding/contract/hook, follow-suit, trick winner/leader,
+exact-bid scoring, projection, and bot behavior remain Vow-owned. The existing
+`game-stdlib::trick_taking` helper is neither broadened nor reclassified as
+mechanical scaffolding by R4.
+
 ## N/A And Exception Ledger
 
 | Surface | Owner | Disposition | Compatibility and next review trigger |
@@ -223,6 +289,20 @@ Commands run for ticket 001:
   traces accepted.
 - `cargo test --workspace` - passed; workspace tests and doc-tests completed
   successfully.
+
+## Receipt Verification
+
+Commands run for ticket 036:
+
+- `cargo tree --workspace -e normal --invert game-test-support` - passed; only
+  `game-test-support` itself appears.
+- `cargo tree --workspace -e normal,build --invert game-test-support` - passed;
+  only `game-test-support` itself appears.
+- `cargo test --workspace` - passed; workspace tests and doc-tests completed
+  successfully.
+- `bash scripts/boundary-check.sh` - passed; `engine-core` and
+  `game-test-support` boundary checks passed.
+- `node scripts/check-doc-links.mjs` - passed; checked 31 markdown files.
 
 ## Rollback Map
 
