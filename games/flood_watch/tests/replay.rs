@@ -7,13 +7,14 @@ use game_test_support::no_leak::{
 };
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use flood_watch::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, generate_internal_full_trace, import_public_export, legal_action_tree,
-    public_replay_step, setup_match, DistrictId, EventCard, EventKind, FloodWatchState, Phase,
-    ScenarioVariant, SetupOptions, ACTION_END_TURN, ACTION_REINFORCE,
+    load_deluge_fixture, load_standard_fixture, public_replay_step, setup_match, DistrictId,
+    EventCard, EventKind, FloodWatchRole, FloodWatchState, Phase, ScenarioVariant, SetupOptions,
+    ACTION_END_TURN, ACTION_REINFORCE, GAME_ID, RULES_VERSION_LABEL,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -174,6 +175,89 @@ fn replay_command_v1_profile_driver_wraps_native_replay_evidence() {
             Some("internal-dev"),
             "flood_watch",
             &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
+fn setup_evidence_v1_profile_driver_wraps_standard_and_deluge_fixtures() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let artifact = setup_evidence_profile_artifact(
+        SETUP_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("public"),
+        "fixture-check",
+        &[
+            "seat_grammar_version",
+            "setup_options",
+            "expected_setup",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("setup metadata validates");
+    assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "fixture-check");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_setup_fixtures())
+        .expect("profile delegates to setup fixture validator");
+    assert_eq!(summary.fixture_count, 2);
+    assert_eq!(summary.role_order_count, 2);
+
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            "v2",
+            Some("public"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("private-source"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "flood_watch",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "fixture-check",
+            &["expected_setup", "domain_input"],
         ),
         ProfileValidationErrorKind::UnknownField,
     );
@@ -363,6 +447,101 @@ fn native_replay_profile_hashes() -> Vec<HashValue> {
         action_tree_hash(&tree),
         export.stable_hash(),
     ]
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SetupEvidenceSummary {
+    fixture_count: usize,
+    role_order_count: usize,
+}
+
+fn setup_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_setup_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid setup-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_setup_fixtures() -> SetupEvidenceSummary {
+    let fixtures = [
+        load_standard_fixture().expect("standard fixture parses"),
+        load_deluge_fixture().expect("deluge fixture parses"),
+    ];
+
+    for fixture in fixtures {
+        let variant = ScenarioVariant::resolve(&fixture.variant).expect("fixture variant resolves");
+        let state = setup_match(
+            Seed(11),
+            &seats(),
+            &SetupOptions {
+                variant: variant.clone(),
+            },
+        )
+        .expect("fixture setup succeeds");
+
+        assert_eq!(fixture.game_id, GAME_ID);
+        assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+        assert_eq!(fixture.phase, "action");
+        assert_eq!(fixture.active_seat, "seat_0");
+        assert_eq!(fixture.action_budget, variant.action_budget);
+        assert_eq!(fixture.draws_per_phase, variant.draws_per_phase);
+        assert_eq!(fixture.levee_cap, variant.levee_cap);
+        assert_eq!(fixture.max_flood_level, variant.max_flood_level);
+        assert_eq!(fixture.starting_levels, variant.starting_levels);
+        assert_eq!(fixture.event_composition, variant.event_composition);
+        assert_eq!(fixture.event_deck_order_status, "computed_from_seed");
+        assert_eq!(fixture.terminal_outcome, "none");
+        assert_eq!(state.variant.id, fixture.variant);
+        assert_eq!(state.seats, seats());
+        assert_eq!(state.roles, variant.role_order);
+        assert_eq!(state.active_seat, SeatId("seat_0".to_owned()));
+        assert_eq!(state.phase, Phase::Action { budget_remaining: 3 });
+        assert_eq!(
+            state
+                .districts
+                .iter()
+                .map(|district| district.flood_level)
+                .collect::<Vec<_>>(),
+            fixture.starting_levels
+        );
+        assert_eq!(
+            state.roles,
+            [FloodWatchRole::Pumpwright, FloodWatchRole::LeveeWarden]
+        );
+    }
+
+    SetupEvidenceSummary {
+        fixture_count: 2,
+        role_order_count: FloodWatchRole::ALL.len(),
+    }
 }
 
 struct ActionTreeV1Vector {

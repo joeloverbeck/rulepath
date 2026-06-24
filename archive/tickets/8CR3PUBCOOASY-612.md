@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-612: C-08 Flood Watch setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/flood_watch/tests/replay.rs`
@@ -93,3 +93,25 @@ wrong-metadata rejection cases.
 2. `cargo run -p fixture-check -- --game flood_watch`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over existing fixtures.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a test-local `SetupEvidenceV1Driver` wrapper in
+  `games/flood_watch/tests/replay.rs`.
+- The wrapper validates `setup-evidence-v1` / `v1` / `public` metadata for
+  owner `fixture-check`, canonical byte authority `none`, and the
+  `seat_grammar_version`, `setup_options`, and `expected_setup` fields, then
+  delegates to a game-owned setup fixture validator for the standard and deluge
+  fixtures.
+- The delegated validator reads the fixtures unchanged and checks them against
+  Rust setup output for game id, variant, rules version, scenario constants,
+  role order, seats, active seat, action phase/budget, starting flood levels,
+  event composition, terminal status, and non-authored deck order.
+- Wrong profile, version, visibility, owner, and field metadata reject
+  fail-closed. No fixture bytes, production setup behavior, role/scenario
+  semantics, or event-deck generation changed.
+- Verification:
+  - `cargo test -p flood_watch`
+  - `cargo run -p fixture-check -- --game flood_watch`

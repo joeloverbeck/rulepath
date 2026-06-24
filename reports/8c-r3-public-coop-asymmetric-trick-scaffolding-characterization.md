@@ -1076,3 +1076,32 @@ Completed: 2026-06-24
     profile driver wrapper.
   - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
     Tricks fixtures passed.
+
+### 8CR3PUBCOOASY-612 - Flood Watch setup-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/tests/replay.rs`.
+- Change: added a dev-only `SetupEvidenceV1Driver` wrapper test for the
+  existing standard and deluge Flood Watch setup fixtures. The test validates
+  `setup-evidence-v1` / `v1` / `public` metadata with owner `fixture-check`,
+  canonical byte authority `none`, and fields `seat_grammar_version`,
+  `setup_options`, and `expected_setup`, then delegates to a game-owned setup
+  fixture validator.
+- Delegated evidence: both fixtures remain read-only and are checked against
+  Rust setup output for game id, variant, rules version, scenario constants,
+  role order, standard seats, active seat, action phase/budget, starting flood
+  levels, event composition, terminal status, and the absence of authored deck
+  order.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, setup behavior, scenario/role semantics, event-deck generation, or
+  production code changed.
+- Compatibility / rollback: remove the setup profile-wrapper test/helper only;
+  the existing fixtures, serialization tests, and `fixture-check` path remain.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new setup-evidence-v1
+    profile driver wrapper.
+  - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
+    fixtures passed.
