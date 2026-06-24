@@ -367,3 +367,22 @@ Completed: 2026-06-24
     Watch traces were accepted.
   - `cargo run -p fixture-check -- --game flood_watch` passed.
   - No golden trace, fixture, export, or test file changed.
+
+### 8CR3PUBCOOASY-104 - Frontier Control public effect constructor
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/src/effects.rs::public_effect`.
+- Change: replaced the local public envelope literal with
+  `EffectEnvelope::public(payload)`.
+- ADR-0009 classification: `unchanged`; no trace, fixture, export, hash,
+  schema, seat spelling, RNG, or visibility byte was intentionally migrated.
+- Compatibility / rollback: restore only the local public literal constructor.
+  Graph/clash/scoring payload formation, public visibility policy, effect
+  order, and export policy were untouched.
+- Verification:
+  - `cargo test -p frontier_control` passed.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces were accepted.
+  - `cargo run -p fixture-check -- --game frontier_control` passed.
+  - No golden trace, fixture, export, or test file changed.

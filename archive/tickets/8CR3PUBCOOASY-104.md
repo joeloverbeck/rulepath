@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-104: C-01 Frontier Control public effect constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/frontier_control/src/effects.rs`
@@ -92,3 +92,21 @@ exact payload, rendering, and effect order.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. A per-game `replay-check` is the correct boundary: only `frontier_control`
    public effects change.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/frontier_control/src/effects.rs::public_effect` to construct
+public effect envelopes via `EffectEnvelope::public(payload)`. The change is
+constructor-only; graph/clash/scoring payloads, public visibility policy,
+effect order, replay/export bytes, and tests were otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p frontier_control` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` passed.
+- `cargo run -p fixture-check -- --game frontier_control` passed.
+- No golden trace, fixture, export, or test file changed.

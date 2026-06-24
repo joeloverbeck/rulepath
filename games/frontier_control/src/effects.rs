@@ -1,6 +1,6 @@
 //! Semantic effects for Frontier Control.
 
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::ids::{FactionId, SiteId};
 
@@ -72,8 +72,5 @@ pub enum FrontierControlEffect {
 pub type FrontierControlEffectEnvelope = EffectEnvelope<FrontierControlEffect>;
 
 pub fn public_effect(payload: FrontierControlEffect) -> FrontierControlEffectEnvelope {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
