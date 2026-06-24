@@ -902,3 +902,25 @@ Completed: 2026-06-24
     Watch traces were accepted.
   - `rg -n "R3_FLOOD_NOLEAK_CANARY" games/flood_watch/tests/golden_traces reports archive specs tickets docs`
     returned no matches.
+
+### 8CR3PUBCOOASY-513 - Frontier Control C-07 N/A equality receipt
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/tests/visibility.rs`.
+- Change: retained the focused observer/seat equality tests and added an
+  explicit C-07 N/A receipt proving repeated setup equality, equal projections
+  for observer/seat0/seat1, and identical filtering for public effects. No
+  pairwise hidden-fact matrix or artificial secret was added.
+- ADR-0009 classification: `unchanged`; tests only. No production behavior,
+  replay bytes, fixtures, exports, legal choices, bot policy, or visibility
+  rules were migrated.
+- Compatibility / rollback: remove the added N/A receipt test only; existing
+  fully public projection/effect tests remain.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the C-07 N/A receipt
+    test.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces were accepted.
+  - `rg -n "CANARY|NOLEAK_CANARY|ARTIFICIAL_SECRET" games/frontier_control/tests games/frontier_control/src`
+    returned no matches.

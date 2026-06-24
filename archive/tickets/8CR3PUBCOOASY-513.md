@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-513: C-07 Frontier Control no-leak N/A + equality receipt
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (no-leak test geometry) — `games/frontier_control/tests/visibility.rs`
@@ -102,3 +102,18 @@ or any artificial secret.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. A per-game test + replay-check is the correct boundary: the equality tests
    are game-owned; the N/A is evidence-only.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added an explicit C-07 N/A receipt test in
+  `games/frontier_control/tests/visibility.rs` that verifies repeated setup
+  equality, observer/seat projection equality, and identical public-effect
+  filtering for all viewers.
+- Did not add a pairwise hidden-fact matrix, seat-private export, or artificial
+  secret/canary; Frontier Control remains fully public.
+- Verified `cargo test -p frontier_control`,
+  `cargo run -p replay-check -- --game frontier_control --all`, and
+  `rg -n "CANARY|NOLEAK_CANARY|ARTIFICIAL_SECRET" games/frontier_control/tests games/frontier_control/src`
+  with no matches.
