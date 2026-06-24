@@ -425,3 +425,28 @@ Completed: 2026-06-24
   - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
     Tricks traces passed with existing expected hashes.
   - No golden trace, fixture, export, or non-seat ID parser changed.
+
+### 8CR3PUBCOOASY-202 - WASM seat boundary conformance
+
+Completed: 2026-06-24
+
+- Selected surface: `crates/wasm-api/src/seats.rs` inline conformance tests.
+- Change: added R3 seat-boundary vectors for Plain Tricks, Flood Watch,
+  Frontier Control, and Event Frontier covering canonical input, retained
+  import aliases, malformed/out-of-game rejection, and canonical output
+  spelling.
+- ADR-0009 classification: `unchanged`; no production seat adapter, canonical
+  output, trace, replay hash, or TypeScript behavior was intentionally migrated.
+- Compatibility / rollback: remove only the R3 conformance tests. Existing
+  import aliases, canonical Rust output helpers, and game parsers remain
+  unchanged.
+- Verification:
+  - `cargo test -p wasm-api` passed.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed.
+  - Targeted TypeScript grep
+    `rg -n "normalizeSeat|parseSeat|parse_seat|repairSeat|canonicalSeat|seatId.*replace|replace\\([^)]*seat-" apps/web --glob '*.{ts,tsx,js,jsx}'`
+    returned no matches; no TypeScript seat normalization/repair path was
+    found.

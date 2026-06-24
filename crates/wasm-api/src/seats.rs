@@ -398,6 +398,82 @@ mod tests {
     }
 
     #[test]
+    fn r3_games_accept_import_aliases_and_emit_canonical_seats() {
+        assert_eq!(parse_plain_seat("seat_0"), Ok(PlainTricksSeat::Seat0));
+        assert_eq!(parse_plain_seat("seat-1"), Ok(PlainTricksSeat::Seat1));
+        assert_eq!(parse_plain_seat("seat-a"), Ok(PlainTricksSeat::Seat0));
+        assert_eq!(parse_plain_seat("seat-b"), Ok(PlainTricksSeat::Seat1));
+
+        for (parse, canonical_zero, canonical_one) in [
+            (
+                parse_flood_seat as fn(&str) -> Result<SeatId, String>,
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+            ),
+            (
+                parse_frontier_seat as fn(&str) -> Result<SeatId, String>,
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+            ),
+            (
+                parse_event_frontier_seat as fn(&str) -> Result<SeatId, String>,
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+            ),
+        ] {
+            assert_eq!(parse("seat_0"), Ok(canonical_zero.clone()));
+            assert_eq!(parse("seat-0"), Ok(canonical_zero.clone()));
+            assert_eq!(parse("seat-a"), Ok(canonical_zero));
+            assert_eq!(parse("seat_1"), Ok(canonical_one.clone()));
+            assert_eq!(parse("seat-1"), Ok(canonical_one.clone()));
+            assert_eq!(parse("seat-b"), Ok(canonical_one));
+        }
+
+        let canonical_two = vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())];
+        assert_eq!(plain_seats(), canonical_two);
+        assert_eq!(
+            flood_seats(),
+            vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+        );
+        assert_eq!(
+            frontier_seats(),
+            vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+        );
+        assert_eq!(
+            event_frontier_seats(),
+            vec![SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+        );
+    }
+
+    #[test]
+    fn r3_games_reject_malformed_and_out_of_game_seats() {
+        for invalid in [
+            "",
+            "0",
+            "player_0",
+            "seat_",
+            "seat_01",
+            "seat_+1",
+            "seat_-1",
+            " seat_0",
+            "seat_0 ",
+            "seat_\u{0661}",
+            "seat_4294967296",
+            "seat_2",
+            "seat-2",
+            "seat-c",
+        ] {
+            assert_eq!(parse_plain_seat(invalid), Err(unknown_seat(invalid)));
+            assert_eq!(parse_flood_seat(invalid), Err(unknown_seat(invalid)));
+            assert_eq!(parse_frontier_seat(invalid), Err(unknown_seat(invalid)));
+            assert_eq!(
+                parse_event_frontier_seat(invalid),
+                Err(unknown_seat(invalid))
+            );
+        }
+    }
+
+    #[test]
     fn import_adapter_rejects_unknown_out_of_range_and_ambiguous_labels() {
         assert_eq!(parse_race_seat("seat_2"), Err(unknown_seat("seat_2")));
         assert_eq!(parse_race_seat("seat-2"), Err(unknown_seat("seat-2")));

@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-202: C-02 WASM seat boundary conformance
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (compatibility evidence) — `crates/wasm-api/src/seats.rs`
@@ -103,3 +103,27 @@ behavior or output spelling changes.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. `cargo test -p wasm-api` plus per-game replay-check is the correct boundary:
    the surface is the shared seat adapter and the four games' canonical output.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Added R3 conformance vectors in `crates/wasm-api/src/seats.rs` for Plain
+Tricks, Flood Watch, Frontier Control, and Event Frontier. The tests cover
+canonical input, retained legacy import aliases, malformed/out-of-game
+rejection, and canonical output spelling. The change is test-only; production
+seat parsing, canonical output, TypeScript behavior, replay/export bytes, and
+game parsers were otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p wasm-api` passed.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.
+- Targeted TypeScript grep
+  `rg -n "normalizeSeat|parseSeat|parse_seat|repairSeat|canonicalSeat|seatId.*replace|replace\\([^)]*seat-" apps/web --glob '*.{ts,tsx,js,jsx}'`
+  returned no matches.
