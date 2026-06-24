@@ -2,6 +2,9 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId,
     StableSerialize, Viewer,
 };
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use plain_tricks::{
     apply_action, legal_action_tree,
     replay_support::{
@@ -134,6 +137,75 @@ fn terminal_public_export_cannot_reconstruct_tail_or_seed() {
     assert!(!json.contains("tail="));
     assert!(!json.contains("tail_cards"));
     assert!(!json.contains("tail_ids"));
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ExportViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl ExportViewer {
+    fn viewer(self) -> Viewer {
+        match self {
+            Self::Observer => Viewer { seat_id: None },
+            Self::Seat0 => Viewer {
+                seat_id: Some(SeatId("seat_0".to_owned())),
+            },
+            Self::Seat1 => Viewer {
+                seat_id: Some(SeatId("seat_1".to_owned())),
+            },
+        }
+    }
+}
+
+#[test]
+fn replay_exports_pairwise_private_cards_only_to_authorized_viewer() {
+    let state = setup_state(0);
+    let probes = PlainTricksSeat::ALL
+        .into_iter()
+        .flat_map(|source_seat| {
+            visible_hand_for_export_probe(&state, source_seat)
+                .into_iter()
+                .map(move |card| LeakProbe {
+                    source_seat,
+                    canary_id: card.as_str(),
+                    canary: card,
+                })
+        })
+        .collect::<Vec<_>>();
+    let trace = PlainTricksInternalTrace {
+        schema_version: 1,
+        game_id: GAME_ID.to_owned(),
+        rules_version: RULES_VERSION_LABEL.to_owned(),
+        variant: VARIANT_ID.to_owned(),
+        seed_evidence: 0,
+        commands: Vec::new(),
+    };
+
+    assert_pairwise_no_leak(
+        [ExportViewer::Observer, ExportViewer::Seat0, ExportViewer::Seat1],
+        ["public_export_json"],
+        probes,
+        |viewer, _surface| export_public_replay(&trace, &viewer.viewer()).to_json(),
+        |source_seat, viewer, _surface, _canary_id| match (source_seat, viewer) {
+            (PlainTricksSeat::Seat0, ExportViewer::Seat0)
+            | (PlainTricksSeat::Seat1, ExportViewer::Seat1) => ExposureExpectation::MustBePresent,
+            _ => ExposureExpectation::MustBeAbsent,
+        },
+        |snapshot, card| export_contains_card(snapshot, *card),
+    )
+    .expect("export pairwise no-leak matrix has no failures");
+
+    let canary = ["R3", "PLAIN", "NOLEAK", "CANARY"].join("_");
+    for viewer in [ExportViewer::Observer, ExportViewer::Seat0, ExportViewer::Seat1] {
+        let json = export_public_replay(&trace, &viewer.viewer()).to_json();
+        assert!(!json.contains(&canary), "{json}");
+        for tail in tail_cards(&state) {
+            assert!(!export_contains_card(&json, tail), "{json}");
+        }
+    }
 }
 
 #[test]
@@ -290,6 +362,32 @@ fn assert_trace_fixture(fixture: &TraceFixture) {
         assert_eq!(imported.viewer, "observer");
         assert_eq!(imported.steps, export.steps);
     }
+}
+
+fn visible_hand_for_export_probe(
+    state: &PlainTricksState,
+    seat: PlainTricksSeat,
+) -> Vec<TrickCardId> {
+    let view = plain_tricks::project_view(
+        state,
+        &Viewer {
+            seat_id: Some(state.seats[seat.index()].clone()),
+        },
+    );
+    let plain_tricks::PrivateView::Seat(private) = view.private_view else {
+        panic!("seat viewer gets private view");
+    };
+    private
+        .own_hand
+        .iter()
+        .map(|card| TrickCardId::parse(&card.card_id).expect("known card"))
+        .collect()
+}
+
+fn export_contains_card(text: &str, card: TrickCardId) -> bool {
+    text.contains(card.as_str())
+        || text.contains(&card.label())
+        || text.contains(&format!("{card:?}"))
 }
 
 struct ActionTreeV1Vector {

@@ -1,6 +1,9 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, Viewer,
 };
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use plain_tricks::{
     apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
     setup_match, CardView, PlainTricksSeat, PrivateView, SetupOptions, TrickCardId,
@@ -115,6 +118,145 @@ fn first_legal_card(state: &plain_tricks::PlainTricksState, seat_id: &str) -> Tr
         .map(|choice| choice.segment.as_str())
         .expect("legal card choice exists");
     TrickCardId::parse(card_segment).expect("legal choice is a known card")
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixSeat {
+    Seat0,
+    Seat1,
+}
+
+impl MatrixSeat {
+    fn seat_id(self) -> &'static str {
+        match self {
+            Self::Seat0 => "seat_0",
+            Self::Seat1 => "seat_1",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl MatrixViewer {
+    fn viewer(self) -> Viewer {
+        match self {
+            Self::Observer => observer(),
+            Self::Seat0 => seat_viewer("seat_0"),
+            Self::Seat1 => seat_viewer("seat_1"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixSurface {
+    View,
+    ActiveTree,
+    WaitingTree,
+    SetupEffects,
+    WrongSeatDiagnostic,
+}
+
+#[test]
+fn pairwise_seat_private_matrix_covers_views_trees_effects_and_diagnostics() {
+    let state = setup_match(
+        Seed(41),
+        &[seat_id("seat_0"), seat_id("seat_1")],
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    let probes = [
+        MatrixSeat::Seat0,
+        MatrixSeat::Seat1,
+    ]
+    .into_iter()
+    .flat_map(|source_seat| {
+        own_hand(&state, source_seat.seat_id())
+            .into_iter()
+            .map(move |card| LeakProbe {
+                source_seat,
+                canary_id: card.as_str(),
+                canary: card,
+            })
+    })
+    .collect::<Vec<_>>();
+
+    assert_pairwise_no_leak(
+        [MatrixViewer::Observer, MatrixViewer::Seat0, MatrixViewer::Seat1],
+        [
+            MatrixSurface::View,
+            MatrixSurface::ActiveTree,
+            MatrixSurface::WaitingTree,
+            MatrixSurface::SetupEffects,
+            MatrixSurface::WrongSeatDiagnostic,
+        ],
+        probes,
+        |viewer, surface| matrix_snapshot(&state, *viewer, *surface),
+        matrix_expectation,
+        |snapshot, card| contains_card(snapshot, *card),
+    )
+    .expect("pairwise no-leak matrix has no failures");
+}
+
+fn matrix_snapshot(
+    state: &plain_tricks::PlainTricksState,
+    viewer: MatrixViewer,
+    surface: MatrixSurface,
+) -> String {
+    match surface {
+        MatrixSurface::View => format!("{:?}", project_view(state, &viewer.viewer())),
+        MatrixSurface::ActiveTree => {
+            format!("{:?}", legal_action_tree(state, &actor("seat_0")))
+        }
+        MatrixSurface::WaitingTree => {
+            format!("{:?}", legal_action_tree(state, &actor("seat_1")))
+        }
+        MatrixSurface::SetupEffects => {
+            format!("{:?}", filter_effects_for_viewer(&setup_effects(state), &viewer.viewer()))
+        }
+        MatrixSurface::WrongSeatDiagnostic => format!(
+            "{:?}",
+            plain_tricks::validate_command(
+                state,
+                &command(state.freshness_token, "seat_1", TrickCardId::Gale1),
+            )
+            .expect_err("non-actor command rejects")
+        ),
+    }
+}
+
+fn matrix_expectation(
+    source_seat: &MatrixSeat,
+    viewer: &MatrixViewer,
+    surface: &MatrixSurface,
+    _canary_id: &&'static str,
+) -> ExposureExpectation {
+    match surface {
+        MatrixSurface::View | MatrixSurface::SetupEffects
+            if (*source_seat == MatrixSeat::Seat0 && *viewer == MatrixViewer::Seat0)
+                || (*source_seat == MatrixSeat::Seat1 && *viewer == MatrixViewer::Seat1) =>
+        {
+            ExposureExpectation::MustBePresent
+        }
+        MatrixSurface::ActiveTree if *source_seat == MatrixSeat::Seat0 => {
+            ExposureExpectation::MustBePresent
+        }
+        MatrixSurface::View
+        | MatrixSurface::ActiveTree
+        | MatrixSurface::WaitingTree
+        | MatrixSurface::SetupEffects
+        | MatrixSurface::WrongSeatDiagnostic => ExposureExpectation::MustBeAbsent,
+    }
+}
+
+fn contains_card(text: &str, card: TrickCardId) -> bool {
+    text.contains(card.as_str())
+        || text.contains(&card.label())
+        || text.contains(&format!("{card:?}"))
 }
 
 #[test]

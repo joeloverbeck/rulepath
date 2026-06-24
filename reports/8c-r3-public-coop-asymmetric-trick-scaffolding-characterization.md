@@ -855,3 +855,27 @@ Completed: 2026-06-24
   - `cargo build -p event_frontier` passed.
   - `bash scripts/boundary-check.sh` passed, including
     `game-test-support dev-only boundary check passed`.
+
+### 8CR3PUBCOOASY-511 - Plain Tricks pairwise no-leak matrix
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/plain_tricks/tests/visibility.rs`,
+  `games/plain_tricks/tests/bots.rs`, and
+  `games/plain_tricks/tests/replay.rs`.
+- Change: added game-owned pairwise no-leak probes via
+  `game_test_support::no_leak::assert_pairwise_no_leak` for seat-private view,
+  action tree, setup effects, diagnostics, Level2 bot input/decision/effects,
+  and viewer-scoped replay exports. The helper owns enumeration only; Plain
+  Tricks owns viewers, surfaces, facts, and reveal expectations.
+- ADR-0009 classification: `unchanged`; tests only. No production behavior,
+  replay bytes, fixtures, exports, legal choices, or bot policy were migrated.
+- Compatibility / rollback: remove the added matrix tests only; existing
+  specific no-leak, bot, replay, and visibility tests remain intact.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new visibility, bot, and
+    replay pairwise no-leak matrices.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed with existing expected hashes.
+  - `rg -n "R3_PLAIN_NOLEAK_CANARY" games/plain_tricks/tests/golden_traces reports archive specs tickets docs`
+    returned no matches.

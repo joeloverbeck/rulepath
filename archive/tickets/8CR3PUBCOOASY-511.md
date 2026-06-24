@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-511: C-07 Plain Tricks pairwise no-leak matrix
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/plain_tricks/tests/{visibility,bots,replay}.rs`
@@ -110,3 +110,22 @@ in `tests/bots.rs` and `tests/replay.rs`. Retain all existing specific tests.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: the matrix is
    game-owned and test-side; byte neutrality is asserted by replay-check.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a Plain-owned pairwise no-leak matrix in
+  `games/plain_tricks/tests/visibility.rs` over source seats,
+  observer/seat viewers, and view/action-tree/setup-effect/diagnostic surfaces.
+  Authorized owner private views and owner setup effects are expected present;
+  opponent/observer and waiting-tree/diagnostic surfaces are expected absent.
+- Added `games/plain_tricks/tests/bots.rs` coverage for Level2 bot input,
+  decision debug text, and public bot effects at both Seat0 and Seat1 decision
+  points. Opponent hand and hidden unseen cards remain absent.
+- Added `games/plain_tricks/tests/replay.rs` export coverage for observer and
+  seat-scoped replay exports, plus an in-memory canary check.
+- Verified `cargo test -p plain_tricks`,
+  `cargo run -p replay-check -- --game plain_tricks --all`, and
+  `rg -n "R3_PLAIN_NOLEAK_CANARY" games/plain_tricks/tests/golden_traces reports archive specs tickets docs`
+  with no matches.
