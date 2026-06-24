@@ -1228,3 +1228,33 @@ Completed: 2026-06-24
     fixtures passed.
   - `cargo run -p rule-coverage -- --game flood_watch` passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-623 - Frontier Control domain-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/tests/rules.rs`.
+- Change: added a dev-only `DomainEvidenceV1Driver` wrapper test for Frontier
+  Control domain evidence. The test validates `domain-evidence-v1` / `v1` /
+  `public` metadata with owner `frontier_control`, canonical byte authority
+  `none`, and fields `domain_schema_version`, `domain_input`, and
+  `expected_domain`, then delegates to a game-owned domain validator.
+- Delegated evidence: the standard and highlands fixtures remain read-only and
+  are checked through existing Rust-owned fixture loading, setup, adjacency,
+  command validation, movement/clash, supply, scoring, and terminal-outcome
+  paths for site/edge inputs, adjacency, clash/start composition,
+  supply/connectivity, and round/final scoring evidence.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, production code, graph/scoring helper, replay hash, or domain behavior
+  changed.
+- Compatibility / rollback: remove the domain profile-wrapper test/helper only;
+  the existing setup, rules, fixture-check, and rule-coverage paths remain.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the new
+    domain-evidence-v1 profile driver wrapper.
+  - `cargo run -p fixture-check -- --game frontier_control` passed; all
+    Frontier Control fixtures passed.
+  - `cargo run -p rule-coverage -- --game frontier_control` passed.
+  - `git diff --check` passed.

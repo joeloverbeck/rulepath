@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-623: C-08 Frontier Control domain-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (dev-only profile adapter) — `games/frontier_control/tests/{rules,replay}.rs`
@@ -100,3 +100,27 @@ wrong-metadata rejection cases.
 2. `cargo run -p fixture-check -- --game frontier_control`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over existing fixtures.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a dev-only `DomainEvidenceV1Driver` wrapper in
+  `games/frontier_control/tests/rules.rs` for Frontier Control
+  `domain-evidence-v1` metadata. The test validates `v1` / `public` metadata
+  with owner `frontier_control`, canonical byte authority `none`, and fields
+  `domain_schema_version`, `domain_input`, and `expected_domain`.
+- The driver delegates to a Frontier Control-owned domain validator after
+  metadata succeeds. That validator uses existing Rust fixture loading, setup,
+  adjacency, command validation, movement/clash, supply, scoring, and terminal
+  outcome paths over the standard and highlands fixtures.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field. No fixture bytes, production code,
+  graph/scoring helper, replay hash, or domain behavior changed.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the new
+    domain-evidence-v1 wrapper.
+  - `cargo run -p fixture-check -- --game frontier_control` passed; all
+    Frontier Control fixtures passed.
+  - `cargo run -p rule-coverage -- --game frontier_control` passed.
+  - `git diff --check` passed.
