@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-035: Vow Tide C-08 domain-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/vow_tide/tests/`; bid legality/scoring owned by Vow
@@ -70,3 +70,22 @@ In `games/vow_tide/tests/` (rule/scoring module), add a `DomainEvidenceV1Driver`
 1. `cargo test -p vow_tide`
 2. `cargo run -p fixture-check -- --game vow_tide`
 3. The per-game fixture/rule test is the correct boundary: domain evidence delegates to Vow bid/scoring.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added a virtual `domain-evidence-v1` profile artifact and driver tests in `games/vow_tide/tests/serialization.rs`.
+- Validated the existing hook fixture through Vow bid validation and the existing terminal-tie fixture through Vow competition-ranking scoring.
+- Added reject coverage for wrong profile id, wrong profile version, and unknown profile fields.
+
+Deviations:
+- None.
+
+Verification:
+- `cargo test -p vow_tide domain_evidence_v1_driver -- --nocapture`
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p fixture-check -- --game vow_tide`
+- `bash scripts/boundary-check.sh`
