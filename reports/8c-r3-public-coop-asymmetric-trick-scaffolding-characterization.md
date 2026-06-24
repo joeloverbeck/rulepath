@@ -1509,3 +1509,25 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game event_frontier` passed; all Event
     Frontier fixtures passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-802 - R3 register receipts and checkpoint matrix
+
+Completed: 2026-06-24
+
+- Selected surface: `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`.
+- Change: appended R3 receipt tables under `MSC-8C-001` through `MSC-8C-010`
+  while preserving existing R1/R2 receipt rows and decisions.
+- Recorded evidence: R3 migrations, accepted exceptions, and not-applicable
+  decisions for C-01 through C-10, including the C-06 dev-only dependency
+  checkpoint, C-08 seat-private N/As, C-09 Frontier Control RNG N/A, and C-10
+  rejected/local-only behavioral-policy receipts.
+- Non-promotion preserved: the Unit 8C-R3 closeout note confirms C-10 remains
+  rejected/local-only and `docs/MECHANIC-ATLAS.md` section 10A remains
+  `Current debt: _None_`.
+- Verification:
+  - `node scripts/check-doc-links.mjs` passed.
+  - `grep -nE "MSC-8C-0(0[1-9]|10)" docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+    passed.
+  - `rg -n "R3 public cooperative/asymmetric trick receipts|Unit 8C-R3 closeout evidence|Current debt: _None_" docs/MECHANICAL-SCAFFOLDING-REGISTER.md docs/MECHANIC-ATLAS.md`
+    passed.
+  - `git diff --check` passed.

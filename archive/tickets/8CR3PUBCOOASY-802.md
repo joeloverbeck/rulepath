@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-802: R3 register receipts and checkpoint matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None (governance/register — `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`)
@@ -106,3 +106,19 @@ tables.
 2. `grep -nE "MSC-8C-0(0[1-9]|10)" docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
 3. Doc-link + grep review is the correct boundary: this ticket ships only
    register prose recording evidence produced by the migration tickets.
+
+## Outcome
+
+- Appended R3 receipt tables under `MSC-8C-001` through `MSC-8C-010` in
+  `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, preserving the existing R1/R2
+  receipt rows and decisions.
+- Recorded R3 migrations, exceptions, and N/A decisions, including C-06
+  dev-only dependency receipts, C-08 seat-private N/As, C-09 Frontier Control
+  RNG N/A, and C-10 rejected/local-only behavioral-policy receipts.
+- Added a Unit 8C-R3 closeout note with the C-06/C-09/C-10 checkpoint matrix and
+  confirmed `docs/MECHANIC-ATLAS.md` section 10A remains `Current debt: _None_`.
+- Verification passed:
+  - `node scripts/check-doc-links.mjs`
+  - `grep -nE "MSC-8C-0(0[1-9]|10)" docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+  - `rg -n "R3 public cooperative/asymmetric trick receipts|Unit 8C-R3 closeout evidence|Current debt: _None_" docs/MECHANICAL-SCAFFOLDING-REGISTER.md docs/MECHANIC-ATLAS.md`
+  - `git diff --check`
