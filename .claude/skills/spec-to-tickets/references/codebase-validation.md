@@ -33,7 +33,7 @@ Present Issues to the user before Step 3. For each, obtain one of five dispositi
 
 If `/reassess-spec` was run on this spec in the current session and all findings were resolved, Step 2 may be abbreviated to a targeted spot-check (3–5 greps). Verify at least:
 
-- **(a) Primary references** — the spec's primary crate / doc / type references still exist at the stated paths.
+- **(a) Primary references** — the spec's primary crate / doc / type references still exist at the stated paths. (This validates *source/symbol* references, not test-file existence — an in-session `/reassess-spec` does not check every `tests/*.rs` path, so the Step-5 per-`(modify)` `test -f` sweep stays mandatory for test-file paths so `(modify)` vs `(new)` is classified correctly.)
 - **(b) Schema version** — if the spec modifies a structured schema/contract (action-tree fields, command/effect-envelope fields, public/private view shape, static-data manifest entry), verify it hasn't drifted since reassessment.
 - **(c) Sibling specs** — no new specs under `specs/` reference the same surfaces.
 - **(d) Additive extension** — for specs extending an existing schema/contract, consumers have been updated, or the extension is additive-only (new optional field with a default).
