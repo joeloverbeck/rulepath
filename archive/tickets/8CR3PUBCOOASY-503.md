@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-503: C-06 Frontier Control dev-only support edge
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only dependency) — `games/frontier_control/Cargo.toml`
@@ -88,3 +88,16 @@ In `games/frontier_control/Cargo.toml`, add
 2. `cargo build -p frontier_control && bash scripts/boundary-check.sh`
 3. The inverse `cargo tree` is the correct boundary: it proves the dev-only edge
    invariant directly.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added `game-test-support = { path = "../../crates/game-test-support" }` only
+  under `[dev-dependencies]` in `games/frontier_control/Cargo.toml`.
+- Included the corresponding `Cargo.lock` package dependency edge for
+  `frontier_control`; no normal/build dependency edge was added.
+- Verified `cargo build -p frontier_control`,
+  `cargo tree --workspace -e normal --invert game-test-support`, and
+  `bash scripts/boundary-check.sh`. The inverse normal graph printed only the
+  `game-test-support` root package.

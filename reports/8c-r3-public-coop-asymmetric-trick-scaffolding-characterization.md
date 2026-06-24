@@ -813,3 +813,24 @@ Completed: 2026-06-24
   - `cargo build -p flood_watch` passed.
   - `bash scripts/boundary-check.sh` passed, including
     `game-test-support dev-only boundary check passed`.
+
+### 8CR3PUBCOOASY-503 - Frontier Control dev-only support edge
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/frontier_control/Cargo.toml` and `Cargo.lock`.
+- Change: added `game-test-support` only under `[dev-dependencies]` for
+  `frontier_control`; `Cargo.lock` records the corresponding package dependency
+  edge.
+- ADR-0009 classification: `unchanged`; no production source, behavior, replay,
+  fixture, export, or normal dependency graph surface was intentionally
+  migrated.
+- Compatibility / rollback: remove the `frontier_control` dev-dependency entry
+  and corresponding lockfile edge. Production dependencies stay unchanged.
+- Verification:
+  - Before and after, `cargo tree --workspace -e normal --invert game-test-support`
+    printed only `game-test-support v0.1.0 (...)`, proving no normal reverse
+    dependency from `frontier_control` or any production target.
+  - `cargo build -p frontier_control` passed.
+  - `bash scripts/boundary-check.sh` passed, including
+    `game-test-support dev-only boundary check passed`.
