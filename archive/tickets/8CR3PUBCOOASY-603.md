@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-603: C-08 Frontier Control replay-command profile driver
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/frontier_control/tests/replay.rs`, `games/frontier_control/src/replay_support.rs`
@@ -97,3 +97,23 @@ cases. Touch `src/replay_support.rs` only if a thin adapter seam is required.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side and read-only over existing artifacts.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a test-local `ReplayCommandV1Driver` wrapper in
+  `games/frontier_control/tests/replay.rs`.
+- The wrapper validates `replay-command-v1` / `v1` / `public` metadata for
+  owner `frontier_control`, canonical byte authority `none`, and the
+  `commands`, `checkpoints`, and `expected_hashes` fields, then delegates to
+  native public command, state, action-tree, effect, and public-export hash
+  evidence.
+- The `public` visibility class follows the 001 characterization: Frontier
+  Control has fully public native command evidence and RNG-free setup.
+- Wrong profile, version, visibility, owner, and field metadata reject
+  fail-closed. No production replay support, golden trace bytes,
+  graph/clash/scoring semantics, or replay hashes changed.
+- Verification:
+  - `cargo test -p frontier_control`
+  - `cargo run -p replay-check -- --game frontier_control --all`

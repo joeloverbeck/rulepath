@@ -997,3 +997,29 @@ Completed: 2026-06-24
     profile driver wrapper.
   - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
     Watch traces were accepted.
+
+### 8CR3PUBCOOASY-603 - Frontier Control replay-command profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/tests/replay.rs`.
+- Change: added a dev-only `ReplayCommandV1Driver` wrapper test for Frontier
+  Control replay-command evidence. The test validates `replay-command-v1` /
+  `v1` / `public` metadata with owner `frontier_control`, canonical byte
+  authority `none`, and fields `commands`, `checkpoints`, and
+  `expected_hashes`, then delegates to native public command, state,
+  action-tree, effect, and public-export hash evidence.
+- Visibility: `public`, matching the 001 characterization that Frontier Control
+  replay-command evidence is fully public and setup is RNG-free.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No golden
+  trace bytes, replay hashes, command semantics, production replay support,
+  graph/clash/scoring rules, or game behavior changed.
+- Compatibility / rollback: remove the profile-wrapper test/helper only; the
+  existing native replay tests and `replay-check` path remain.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the new
+    replay-command-v1 profile driver wrapper.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces were accepted.
