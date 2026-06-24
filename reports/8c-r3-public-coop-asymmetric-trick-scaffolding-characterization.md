@@ -405,3 +405,23 @@ Completed: 2026-06-24
     Event Frontier traces were accepted.
   - `cargo run -p fixture-check -- --game event_frontier` passed.
   - No golden trace, fixture, export, or test file changed.
+
+### 8CR3PUBCOOASY-201 - Plain Tricks typed seat parser
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/src/ids.rs::PlainTricksSeat::parse`.
+- Change: replaced the game-local two-string parser with delegation to
+  `SeatId::parse_canonical`, then mapped the canonical zero-based index through
+  `PlainTricksSeat::from_index`.
+- ADR-0009 classification: `unchanged`; accepted output spellings, trace bytes,
+  replay hashes, and public/private exports were not intentionally migrated.
+- Compatibility / rollback: restore only the manual `"seat_0"` / `"seat_1"`
+  parser. `from_index`, `as_str`, trace spellings, non-seat ID parsers, and the
+  WASM import-alias boundary were untouched.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including canonical acceptance,
+    malformed grammar, overflow, and out-of-game index parser cases.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed with existing expected hashes.
+  - No golden trace, fixture, export, or non-seat ID parser changed.

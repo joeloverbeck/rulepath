@@ -1,3 +1,5 @@
+use engine_core::SeatId;
+
 pub const GAME_ID: &str = "plain_tricks";
 pub const VARIANT_ID: &str = "plain_tricks_standard";
 pub const RULES_VERSION_LABEL: &str = "plain-tricks-rules-v1";
@@ -53,11 +55,8 @@ impl PlainTricksSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            _ => None,
-        }
+        let seat_id = SeatId::parse_canonical(value).ok()?;
+        Self::from_index(seat_id.canonical_zero_based_index().ok()? as usize)
     }
 }
 
@@ -299,6 +298,27 @@ mod tests {
             PlainTricksSeat::parse("seat_0"),
             Some(PlainTricksSeat::Seat0)
         );
+        assert_eq!(
+            PlainTricksSeat::parse("seat_1"),
+            Some(PlainTricksSeat::Seat1)
+        );
+
+        for invalid in [
+            "",
+            "0",
+            "player_0",
+            "seat_",
+            "seat_01",
+            "seat_+1",
+            "seat_-1",
+            " seat_0",
+            "seat_0 ",
+            "seat_\u{0661}",
+            "seat_4294967296",
+            "seat_2",
+        ] {
+            assert_eq!(PlainTricksSeat::parse(invalid), None, "{invalid}");
+        }
     }
 
     #[test]

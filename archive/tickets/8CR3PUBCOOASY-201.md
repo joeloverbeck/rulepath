@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-201: C-02 Plain Tricks typed seat parser
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/plain_tricks/src/ids.rs`
@@ -97,3 +97,21 @@ tests to cover the full canonical accept/reject vector set.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: only the Plain seat
    parser changes; output spellings are asserted unchanged.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/plain_tricks/src/ids.rs::PlainTricksSeat::parse` to delegate
+canonical grammar to `SeatId::parse_canonical`, then map the canonical
+zero-based index through `PlainTricksSeat::from_index`. The change is
+seat-parser-only; `as_str()` output, trace spellings, non-seat ID parsers,
+WASM import aliases, replay/export bytes, and tests were otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p plain_tricks` passed.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- No golden trace, fixture, export, or non-seat ID parser changed.
