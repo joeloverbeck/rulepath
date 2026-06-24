@@ -1023,3 +1023,29 @@ Completed: 2026-06-24
     replay-command-v1 profile driver wrapper.
   - `cargo run -p replay-check -- --game frontier_control --all` passed; all
     Frontier Control traces were accepted.
+
+### 8CR3PUBCOOASY-604 - Event Frontier replay-command profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/tests/replay.rs`.
+- Change: added a dev-only `ReplayCommandV1Driver` wrapper test for Event
+  Frontier replay-command evidence. The test validates `replay-command-v1` /
+  `v1` / `internal-dev` metadata with owner `event_frontier`, canonical byte
+  authority `none`, and fields `commands`, `checkpoints`, and
+  `expected_hashes`, then delegates to native hidden-deck trace, command, state,
+  action-tree, effect, and public-export hash evidence.
+- Visibility: `internal-dev`, matching the 001 characterization that Event
+  Frontier native command evidence may contain hidden deck order.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No golden
+  trace bytes, replay hashes, command semantics, production replay support,
+  event/edict/resource rules, or game behavior changed.
+- Compatibility / rollback: remove the profile-wrapper test/helper only; the
+  existing native replay tests and `replay-check` path remain.
+- Verification:
+  - `cargo test -p event_frontier` passed, including the new replay-command-v1
+    profile driver wrapper.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces were accepted.

@@ -5,6 +5,10 @@ use engine_core::{
 use game_test_support::no_leak::{
     assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use event_frontier::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, generate_internal_full_trace, import_public_export,
@@ -241,6 +245,84 @@ fn replaying_same_seed_scenario_and_command_stream_reproduces_public_hashes() {
 }
 
 #[test]
+fn replay_command_v1_profile_driver_wraps_internal_native_replay_evidence() {
+    let driver = ReplayCommandV1Driver::new("event_frontier");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "event_frontier",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "event_frontier");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let hashes = driver
+        .validate_with(&artifact, |_| native_replay_profile_hashes())
+        .expect("profile delegates to native replay evidence");
+    assert_eq!(hashes.len(), 5);
+
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            "public-export-v1",
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "event_frontier",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            "v2",
+            Some("internal-dev"),
+            "event_frontier",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("seat-private"),
+            "event_frontier",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "replay-check",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "event_frontier",
+            &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
 fn internal_trace_marks_hidden_and_stochastic_surfaces() {
     let seats = seats();
     let state = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup");
@@ -320,6 +402,59 @@ struct ActionTreeV1Vector {
     expected_hash: HashValue,
     expected_local_hash: HashValue,
     expected_paths: Vec<Vec<String>>,
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_replay_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = ReplayCommandV1Driver::new("event_frontier");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid replay-command-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn native_replay_profile_hashes() -> Vec<HashValue> {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let trace = generate_internal_full_trace(1, &state);
+    let command = pass_command("seat_1", &state);
+    let applied = apply_command(&mut state, &command).expect("profile command applies");
+    let tree = legal_action_tree(&state, &actor("seat_0"));
+    let step = public_replay_step(0, &state, &command, &applied.effects, &observer());
+    let export = export_public_replay(state.variant.id.clone(), &observer(), vec![step]);
+
+    vec![
+        trace.stable_hash(),
+        state.stable_hash(),
+        debug_hash(&applied.effects),
+        action_tree_hash(&tree),
+        export.stable_hash(),
+    ]
 }
 
 fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
