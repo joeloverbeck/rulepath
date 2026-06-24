@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-023: Vow Tide C-07 hand/stock pairwise no-leak matrix (3–7)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/vow_tide/tests/visibility.rs`; own-hand/stock rules unchanged
@@ -70,3 +70,22 @@ In `games/vow_tide/tests/visibility.rs`, wrap the hand/stock no-leak coverage in
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game visibility test is the correct boundary: hand/stock no-leak is a game-local projection property.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a shared pairwise no-leak matrix for Vow hand and stock canaries across seat counts 3 through 7, each source seat, observer, and every declared seat viewer.
+2. Covered view, action tree, diagnostic, and effect surfaces while retaining the existing exhaustive seat-pair no-leak assertions.
+3. Kept hand, stock, deal, trump, and projection policy unchanged; the change is test-only.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p vow_tide` - passed.
+3. `cargo run -p replay-check -- --game vow_tide --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.

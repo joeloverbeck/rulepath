@@ -1,11 +1,154 @@
-use engine_core::{SeatId, Seed, StableSerialize, Viewer};
+use engine_core::{Actor, SeatId, Seed, StableSerialize, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use vow_tide::{
+    actions::legal_action_tree,
     cards::{Card, Rank, Suit},
     effects::VowTideEffect,
     ids::{canonical_seat_ids, VowTideSeat},
+    rules,
     setup::{setup_match, SetupOptions},
+    state::{CurrentTrick, Phase, PlayingTrickState},
     visibility::{filter_effects_for_viewer, project_view, PrivateView},
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixViewer {
+    Observer,
+    Seat(VowTideSeat),
+}
+
+impl MatrixViewer {
+    fn as_viewer(self) -> Viewer {
+        match self {
+            Self::Observer => Viewer { seat_id: None },
+            Self::Seat(seat) => Viewer {
+                seat_id: Some(SeatId(seat.as_str().to_owned())),
+            },
+        }
+    }
+
+    const fn seat(self) -> Option<VowTideSeat> {
+        match self {
+            Self::Observer => None,
+            Self::Seat(seat) => Some(seat),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum HandStockSurface {
+    View,
+    ActionTree,
+    Diagnostic,
+    Effect,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum HandStockCanary {
+    Hand,
+    Stock,
+}
+
+fn matrix_viewers(seat_count: usize) -> Vec<MatrixViewer> {
+    let mut viewers = vec![MatrixViewer::Observer];
+    viewers.extend(
+        VowTideSeat::ALL
+            .into_iter()
+            .take(seat_count)
+            .map(MatrixViewer::Seat),
+    );
+    viewers
+}
+
+fn hand_stock_surfaces() -> Vec<HandStockSurface> {
+    vec![
+        HandStockSurface::View,
+        HandStockSurface::ActionTree,
+        HandStockSurface::Diagnostic,
+        HandStockSurface::Effect,
+    ]
+}
+
+fn hand_stock_matrix_state(
+    seat_count: usize,
+    source: VowTideSeat,
+) -> vow_tide::state::VowTideState {
+    let mut state = setup_match(
+        Seed(20260621),
+        &canonical_seat_ids(seat_count),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    install_canary_hands_and_stock(&mut state);
+    state.phase = Phase::PlayingTrick(PlayingTrickState {
+        trick_index: 0,
+        leader: source,
+        active_seat: source,
+        current_trick: CurrentTrick::new(source),
+    });
+    state
+}
+
+fn hand_stock_snapshot(
+    state: &vow_tide::state::VowTideState,
+    viewer: &MatrixViewer,
+    surface: &HandStockSurface,
+) -> String {
+    match surface {
+        HandStockSurface::View => project_view(state, &viewer.as_viewer()).stable_summary(),
+        HandStockSurface::ActionTree => viewer
+            .seat()
+            .map(|seat| {
+                format!(
+                    "{:?}",
+                    legal_action_tree(
+                        state,
+                        &Actor {
+                            seat_id: SeatId(seat.as_str().to_owned()),
+                        },
+                    )
+                )
+            })
+            .unwrap_or_default(),
+        HandStockSurface::Diagnostic => format!("{:?}", rules::wrong_phase_diagnostic()),
+        HandStockSurface::Effect => {
+            let effects = vec![
+                VowTideEffect::BidAccepted {
+                    seat: VowTideSeat::Seat0,
+                    bid: 1,
+                    public_total: 1,
+                },
+                VowTideEffect::BiddingCompleted {
+                    first_leader: VowTideSeat::Seat0,
+                },
+            ];
+            format!(
+                "{:?}",
+                filter_effects_for_viewer(&effects, &viewer.as_viewer())
+            )
+        }
+    }
+}
+
+fn hand_stock_expectation(
+    source: &VowTideSeat,
+    viewer: &MatrixViewer,
+    surface: &HandStockSurface,
+    canary: &HandStockCanary,
+) -> ExposureExpectation {
+    match canary {
+        HandStockCanary::Hand
+            if viewer.seat() == Some(*source)
+                && matches!(
+                    surface,
+                    HandStockSurface::View | HandStockSurface::ActionTree
+                ) =>
+        {
+            ExposureExpectation::MustBePresent
+        }
+        _ => ExposureExpectation::MustBeAbsent,
+    }
+}
 
 #[test]
 fn exhaustive_seat_pair_no_leak_for_three_to_seven_players() {
@@ -55,6 +198,41 @@ fn exhaustive_seat_pair_no_leak_for_three_to_seven_players() {
                     );
                 }
             }
+        }
+    }
+}
+
+#[test]
+fn shared_geometry_hand_and_stock_no_leak_for_three_to_seven_players() {
+    for seat_count in 3..=7 {
+        for source in VowTideSeat::ALL.into_iter().take(seat_count) {
+            let state = hand_stock_matrix_state(seat_count, source);
+            let hand_canary = state.hand_for_internal(source)[0].as_str();
+            let stock_canary = state.hidden_stock[0].as_str();
+            assert_pairwise_no_leak(
+                matrix_viewers(seat_count),
+                hand_stock_surfaces(),
+                [
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: HandStockCanary::Hand,
+                        canary: hand_canary,
+                    },
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: HandStockCanary::Stock,
+                        canary: stock_canary,
+                    },
+                ],
+                |viewer, surface| hand_stock_snapshot(&state, viewer, surface),
+                hand_stock_expectation,
+                |snapshot, canary| snapshot.contains(canary),
+            )
+            .unwrap_or_else(|failures| {
+                panic!(
+                    "Vow Tide hand/stock no-leak matrix count {seat_count} source {source:?}: {failures}"
+                )
+            });
         }
     }
 }
