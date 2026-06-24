@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-001: R4 characterization baseline, pilot-credit inventory, and locked determination
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — new governance/characterization report (`reports/8c-r4-n-seat-private-trick-scaffolding-characterization.md`); no code, schema, or trace change
@@ -79,3 +79,29 @@ Record current constructor shapes; canonical/accepted/rejected seat strings for 
 1. `cargo run -p replay-check -- --game vow_tide --all` (representative widest-matrix sentinel re-read).
 2. `cargo test --workspace` (full-pipeline baseline-green proof).
 3. A per-game `replay-check` is the correct boundary for sentinel pinning; the workspace run proves the baseline is globally green before migrations start.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added `reports/8c-r4-n-seat-private-trick-scaffolding-characterization.md`
+  as the report-first baseline for Unit 8C-R4.
+- Recorded the locked three-game scope, Gate 18 interlock boundary, grounded
+  corrections, pilot receipt inventory, aggregate and sub-surface verdicts,
+  current seams, seat/viewer enumeration counts, RNG baseline, N/A/exception
+  ledger, and artifact diff inventory.
+- Recorded legacy replay/hash/profile sentinels without changing code,
+  fixtures, golden traces, canonical bytes, seat IDs, visibility policy, or RNG
+  algorithms.
+
+Deviations:
+- The ticket command list named Vow as the representative replay-check, but the
+  acceptance criteria required per-game sentinel pinning. River Ledger, Briar
+  Circuit, and Vow Tide replay-checks were all run and recorded.
+
+Verification:
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `cargo test --workspace`
