@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
+use river_ledger::replay_support::{action_tree_hash, legal_action_tree_v1_encoding};
 use river_ledger::state::SeatRoles;
 use river_ledger::{
     apply_action, canonical_deck, legal_action_tree, setup_match, validate_command,
@@ -594,6 +595,45 @@ fn legal_action_generation_uses_active_seat_call_price_and_cap_state() {
         .metadata
         .iter()
         .any(|entry| entry.key == "cap_remaining" && entry.value == "0")));
+}
+
+#[test]
+fn action_tree_v1_adapter_is_parallel_and_deterministic_for_key_betting_states() {
+    let preflop = standard_state(4);
+    assert_action_tree_v1_case(
+        "preflop-call-price",
+        &preflop,
+        "seat_3",
+        &["fold", "call", "raise"],
+        2511922608952204718,
+    );
+
+    let flop = advance_four_player_hand_to_flop();
+    assert_action_tree_v1_case(
+        "flop-open",
+        &flop,
+        "seat_1",
+        &["check", "bet"],
+        10786077759705413877,
+    );
+
+    let short_call = state_with_stacks(vec![1, 16, STANDARD_STARTING_STACK]);
+    assert_action_tree_v1_case(
+        "short-call-all-in",
+        &short_call,
+        "seat_0",
+        &["fold", "call"],
+        9871004230217579170,
+    );
+
+    let short_raise = state_with_stacks(vec![3, 16, STANDARD_STARTING_STACK]);
+    assert_action_tree_v1_case(
+        "short-raise-all-in",
+        &short_raise,
+        "seat_0",
+        &["fold", "call", "raise"],
+        17769399973547313107,
+    );
 }
 
 #[test]
@@ -1734,4 +1774,45 @@ fn metadata_value<'a>(choice: &'a engine_core::ActionChoice, key: &str) -> Optio
         .iter()
         .find(|entry| entry.key == key)
         .map(|entry| entry.value.as_str())
+}
+
+fn assert_action_tree_v1_case(
+    label: &str,
+    state: &river_ledger::RiverLedgerState,
+    actor_seat: &str,
+    expected_segments: &[&str],
+    expected_hash: u64,
+) {
+    let actor = actor(actor_seat);
+    let tree = legal_action_tree(state, &actor);
+    let segments = tree
+        .root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(segments, expected_segments, "{label} segments");
+
+    let encoding = legal_action_tree_v1_encoding(state, &actor);
+    let repeated = legal_action_tree_v1_encoding(state, &actor);
+    assert_eq!(encoding, repeated, "{label} v1 encoding is deterministic");
+    assert_eq!(
+        encoding.stable_hash,
+        engine_core::HashValue::from_stable_bytes(&encoding.stable_bytes),
+        "{label} v1 hash matches v1 bytes"
+    );
+    assert_eq!(
+        encoding.stable_hash,
+        engine_core::HashValue(expected_hash),
+        "{label} v1 hash sentinel"
+    );
+    assert_ne!(
+        encoding.stable_hash,
+        action_tree_hash(&tree),
+        "{label} v1 hash is parallel to the legacy debug hash"
+    );
+    assert!(
+        !encoding.stable_bytes.is_empty(),
+        "{label} v1 bytes are present"
+    );
 }

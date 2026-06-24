@@ -1,5 +1,6 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, StableSerialize, Viewer,
+    ActionPath, ActionTreeEncodingVersion, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId,
+    StableSerialize, Viewer,
 };
 
 use crate::{
@@ -41,6 +42,12 @@ pub struct ReplayResult {
 pub struct ReplayImportDiagnostic {
     pub code: String,
     pub message: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionTreeV1Encoding {
+    pub stable_bytes: Vec<u8>,
+    pub stable_hash: HashValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -308,6 +315,17 @@ pub fn state_hash(state: &RiverLedgerState) -> HashValue {
 
 pub fn action_tree_hash(tree: &engine_core::ActionTree) -> HashValue {
     HashValue::from_stable_bytes(format!("{tree:?}").as_bytes())
+}
+
+pub fn legal_action_tree_v1_encoding(
+    state: &RiverLedgerState,
+    actor: &Actor,
+) -> ActionTreeV1Encoding {
+    let tree = legal_action_tree(state, actor);
+    ActionTreeV1Encoding {
+        stable_bytes: tree.stable_bytes(ActionTreeEncodingVersion::V1),
+        stable_hash: tree.stable_hash(ActionTreeEncodingVersion::V1),
+    }
 }
 
 pub fn effect_hash(effects: &[engine_core::EffectEnvelope<crate::RiverLedgerEffect>]) -> HashValue {

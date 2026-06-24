@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-014: River Ledger C-04/05 parallel action-tree v1 adapter
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/river_ledger` (`src/replay_support.rs` new parallel-v1 function; `src/actions.rs` read-only); legacy `action_tree_hash` authority unchanged
@@ -70,3 +70,21 @@ Add a clearly-named parallel-v1 function in `games/river_ledger/src/replay_suppo
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The per-game test plus replay-check are the correct boundary: action-tree encoding is game-local over a kernel contract.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added `ActionTreeV1Encoding` and `legal_action_tree_v1_encoding` in River replay support as a parallel surface over `actions::legal_action_tree`.
+- The new adapter calls `ActionTree::{stable_bytes, stable_hash}(ActionTreeEncodingVersion::V1)` and leaves the legacy `action_tree_hash` implementation unchanged.
+- Added focused v1 hash sentinels for preflop fold/call/raise, flop check/bet, short call all-in, and short raise all-in states.
+
+Deviations:
+- None. Betting, all-in, pot, side-pot, evaluator, showdown, allocation, and legacy hash authority are unchanged.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p river_ledger`
+- `cargo run -p replay-check -- --game river_ledger --all`
+- `bash scripts/boundary-check.sh`
