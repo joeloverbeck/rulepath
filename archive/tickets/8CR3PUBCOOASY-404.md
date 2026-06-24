@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-404: C-04/C-05 Event Frontier action-tree v1 parallel surface
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/event_frontier/src/visibility.rs`
@@ -100,3 +100,23 @@ alongside the retained local `action_tree_hash`. Add representative v1 vectors.
 2. `cargo run -p replay-check -- --game event_frontier --all`
 3. A per-game test + replay-check is the correct boundary: the v1 surface is
    game-local and additive; adjacency and no-leak are asserted.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added additive `action_tree_v1_bytes` and `action_tree_v1_hash` helpers in
+  `games/event_frontier/src/visibility.rs`, re-exported them from `lib.rs`, and
+  retained the existing debug-derived local `action_tree_hash` unchanged.
+- Added replay vectors covering full multi-site operation, limited second-choice
+  operation, event choice, pass-after-event, Survey Ban blocked branch,
+  Reckoning empty tree, and terminal empty tree. The vector test also asserts
+  v1 bytes do not contain hidden undrawn deck card ids. As with 401-403,
+  vectors pin byte length plus v1 hash derived from actual bytes rather than
+  embedding full byte hex.
+- Verified `cargo test -p event_frontier`,
+  `cargo run -p replay-check -- --game event_frontier --all`, and
+  `cargo run -p fixture-check -- --game event_frontier`.
+- No golden trace, fixture, export, state/effect/view hash, local action-tree
+  hash, legal path order, label, metadata, branch-order, or hidden deck-order
+  surface changed.

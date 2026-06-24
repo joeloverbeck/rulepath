@@ -1,12 +1,14 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, StableSerialize,
-    Viewer,
+    ActionChoice, ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed,
+    StableSerialize, Viewer,
 };
 use event_frontier::{
-    apply_command, export_public_replay, generate_internal_full_trace, import_public_export,
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
+    export_public_replay, generate_internal_full_trace, import_public_export,
     import_public_export_json, legal_action_tree, project_view, public_replay_step,
-    resolve_reckoning, setup_match, CardId, CardPhase, SetupOptions, ACTION_PASS,
-    TRACE_HIDDEN_SURFACE, TRACE_STOCHASTIC_SURFACE,
+    resolve_reckoning, setup_match, ActiveEdict, CardId, CardPhase, EventFrontierState, FactionId,
+    FirstChoice, SetupOptions, SiteId, ACTION_OPERATION, ACTION_PASS, TRACE_HIDDEN_SURFACE,
+    TRACE_STOCHASTIC_SURFACE,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -36,6 +38,21 @@ fn pass_command(seat: &str, state: &event_frontier::EventFrontierState) -> Comma
 
 fn debug_hash<T: std::fmt::Debug>(value: &T) -> HashValue {
     HashValue::from_stable_bytes(format!("{value:?}").as_bytes())
+}
+
+fn command_segments(
+    seat: &str,
+    state: &EventFrontierState,
+    segments: Vec<&str>,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: actor(seat),
+        action_path: ActionPath {
+            segments: segments.into_iter().map(str::to_owned).collect(),
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
 }
 
 fn scenario_options() -> [SetupOptions; 3] {
@@ -172,4 +189,337 @@ fn internal_trace_marks_hidden_and_stochastic_surfaces() {
     assert_eq!(trace.stochastic_surface, TRACE_STOCHASTIC_SURFACE);
     assert_eq!(trace.per_seat_hidden_surface, "not_applicable");
     assert!(trace.full_deck_order.iter().any(|card| card == hidden));
+}
+
+#[test]
+fn action_tree_v1_parallel_vectors_cover_representative_trees_without_hidden_deck_order() {
+    let vectors = action_tree_v1_vectors();
+    let missing = vectors
+        .iter()
+        .filter(|vector| vector.expected_hash == HashValue(0))
+        .map(|vector| {
+            format!(
+                "{} bytes={} hash={} local_hash={} paths={:?}",
+                vector.name,
+                vector.bytes.len(),
+                vector.hash.0,
+                vector.local_hash.0,
+                vector.paths
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        missing.is_empty(),
+        "populate v1 vectors:\n{}",
+        missing.join("\n")
+    );
+
+    for vector in vectors {
+        assert_eq!(vector.hash, vector.expected_hash, "{} hash", vector.name);
+        assert_eq!(
+            vector.bytes.len(),
+            vector.expected_bytes_len,
+            "{} bytes length",
+            vector.name
+        );
+        assert_eq!(
+            HashValue::from_stable_bytes(&vector.bytes),
+            vector.hash,
+            "{} hash derives from bytes",
+            vector.name
+        );
+        assert_eq!(
+            vector.local_hash, vector.expected_local_hash,
+            "{} local hash",
+            vector.name
+        );
+        assert_eq!(
+            vector.paths, vector.expected_paths,
+            "{} legal paths",
+            vector.name
+        );
+        assert!(
+            !vector.contains_hidden_undrawn_card,
+            "{} hidden deck order",
+            vector.name
+        );
+    }
+}
+
+struct ActionTreeV1Vector {
+    name: &'static str,
+    bytes: Vec<u8>,
+    hash: HashValue,
+    local_hash: HashValue,
+    paths: Vec<Vec<String>>,
+    contains_hidden_undrawn_card: bool,
+    expected_bytes_len: usize,
+    expected_hash: HashValue,
+    expected_local_hash: HashValue,
+    expected_paths: Vec<Vec<String>>,
+}
+
+fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
+    let full_operation =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup full operation");
+
+    let mut limited_operation =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup limited operation");
+    let full_op = command_segments(
+        "seat_1",
+        &limited_operation,
+        vec![
+            ACTION_OPERATION,
+            "cache",
+            SiteId::Landing.as_str(),
+        ],
+    );
+    apply_command(&mut limited_operation, &full_op).expect("full op");
+
+    let mut event_choice =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup event choice");
+    event_choice.card_phase = CardPhase::AwaitingFirstChoice {
+        faction: FactionId::Charter,
+    };
+
+    let mut pass_choice =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup pass choice");
+    pass_choice.card_phase = CardPhase::AwaitingSecondChoice {
+        first_faction: FactionId::Charter,
+        second_faction: FactionId::Freeholders,
+        first_choice: FirstChoice::Event,
+    };
+
+    let mut edict_blocked = setup_match(Seed(1), &seats(), &SetupOptions::hard_winter())
+        .expect("setup edict blocked");
+    edict_blocked.card_phase = CardPhase::AwaitingFirstChoice {
+        faction: FactionId::Freeholders,
+    };
+    edict_blocked
+        .site_mut(SiteId::Landing)
+        .expect("landing exists")
+        .agents = 1;
+    edict_blocked.active_edicts = vec![ActiveEdict {
+        kind: event_frontier::cards::EdictKind::SurveyBan,
+        card: CardId::SurveyBan,
+        activation_index: 0,
+        expires_at_reckoning: 1,
+    }];
+
+    let mut reckoning =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup reckoning");
+    reckoning.card_phase = CardPhase::Reckoning;
+
+    let mut terminal =
+        setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup terminal");
+    terminal.card_phase = CardPhase::Terminal;
+
+    vec![
+        vector(
+            "full_operation_multi_site",
+            &full_operation,
+            "seat_1",
+            5724,
+            HashValue(12263323764607805373),
+            HashValue(12025048674674442718),
+            path_strings(&[
+                &["event"],
+                &["operation", "trek", "operation/trek/site_landing>site_crossing"],
+                &["operation", "trek", "operation/trek/site_landing>site_high_meadow"],
+                &["operation", "trek", "operation/trek/site_high_meadow>site_old_mill"],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_crossing,site_high_meadow>site_old_mill",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_high_meadow,site_high_meadow>site_old_mill",
+                ],
+                &["operation", "cache", "operation/cache/site_landing"],
+                &["operation", "cache", "operation/cache/site_high_meadow"],
+                &["operation", "cache", "operation/cache/site_landing,site_high_meadow"],
+                &["operation", "rally", "operation/rally/site_high_meadow"],
+                &["pass"],
+            ]),
+        ),
+        vector(
+            "limited_operation_second_choice",
+            &limited_operation,
+            "seat_0",
+            2688,
+            HashValue(5287035841278219952),
+            HashValue(1262519681689202196),
+            path_strings(&[
+                &["event"],
+                &[
+                    "limited_operation",
+                    "survey",
+                    "limited_operation/survey/site_charterhouse",
+                ],
+                &[
+                    "limited_operation",
+                    "survey",
+                    "limited_operation/survey/site_crossing",
+                ],
+                &[
+                    "limited_operation",
+                    "survey",
+                    "limited_operation/survey/site_granite_pass",
+                ],
+                &["pass"],
+            ]),
+        ),
+        vector(
+            "event_choice_charter",
+            &event_choice,
+            "seat_0",
+            3776,
+            HashValue(6239437208328345357),
+            HashValue(12651858397689234283),
+            path_strings(&[
+                &["event"],
+                &["operation", "survey", "operation/survey/site_charterhouse"],
+                &["operation", "survey", "operation/survey/site_crossing"],
+                &["operation", "survey", "operation/survey/site_granite_pass"],
+                &[
+                    "operation",
+                    "survey",
+                    "operation/survey/site_charterhouse,site_crossing",
+                ],
+                &[
+                    "operation",
+                    "survey",
+                    "operation/survey/site_charterhouse,site_granite_pass",
+                ],
+                &[
+                    "operation",
+                    "survey",
+                    "operation/survey/site_crossing,site_granite_pass",
+                ],
+                &["pass"],
+            ]),
+        ),
+        vector(
+            "pass_after_event",
+            &pass_choice,
+            "seat_1",
+            5418,
+            HashValue(18107612798635470515),
+            HashValue(9761797406534023113),
+            path_strings(&[
+                &["operation", "trek", "operation/trek/site_landing>site_crossing"],
+                &["operation", "trek", "operation/trek/site_landing>site_high_meadow"],
+                &["operation", "trek", "operation/trek/site_high_meadow>site_old_mill"],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_crossing,site_high_meadow>site_old_mill",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_high_meadow,site_high_meadow>site_old_mill",
+                ],
+                &["operation", "cache", "operation/cache/site_landing"],
+                &["operation", "cache", "operation/cache/site_high_meadow"],
+                &["operation", "cache", "operation/cache/site_landing,site_high_meadow"],
+                &["operation", "rally", "operation/rally/site_high_meadow"],
+                &["pass"],
+            ]),
+        ),
+        vector(
+            "edict_blocked_survey",
+            &edict_blocked,
+            "seat_1",
+            2924,
+            HashValue(17452768486966187756),
+            HashValue(16133410113579192678),
+            path_strings(&[
+                &["event"],
+                &["operation", "trek", "operation/trek/site_landing>site_crossing"],
+                &["operation", "trek", "operation/trek/site_landing>site_high_meadow"],
+                &["operation", "cache", "operation/cache/site_landing"],
+                &["pass"],
+            ]),
+        ),
+        vector(
+            "reckoning_empty_tree",
+            &reckoning,
+            "seat_0",
+            64,
+            HashValue(17387353871007407771),
+            HashValue(10022657772393329959),
+            Vec::new(),
+        ),
+        vector(
+            "terminal_empty_tree",
+            &terminal,
+            "seat_0",
+            64,
+            HashValue(17387353871007407771),
+            HashValue(10022657772393329959),
+            Vec::new(),
+        ),
+    ]
+}
+
+fn vector(
+    name: &'static str,
+    state: &EventFrontierState,
+    seat: &str,
+    expected_bytes_len: usize,
+    expected_hash: HashValue,
+    expected_local_hash: HashValue,
+    expected_paths: Vec<Vec<String>>,
+) -> ActionTreeV1Vector {
+    let tree = legal_action_tree(state, &actor(seat));
+    let bytes = action_tree_v1_bytes(&tree);
+    ActionTreeV1Vector {
+        name,
+        hash: action_tree_v1_hash(&tree),
+        local_hash: action_tree_hash(&tree),
+        paths: action_paths(&tree.root.choices),
+        contains_hidden_undrawn_card: state
+            .deck
+            .undrawn
+            .iter()
+            .any(|card| bytes.windows(card.as_str().len()).any(|w| w == card.as_str().as_bytes())),
+        bytes,
+        expected_bytes_len,
+        expected_hash,
+        expected_local_hash,
+        expected_paths,
+    }
+}
+
+fn action_paths(choices: &[ActionChoice]) -> Vec<Vec<String>> {
+    let mut paths = Vec::new();
+    for choice in choices {
+        collect_action_paths(choice, Vec::new(), &mut paths);
+    }
+    paths
+}
+
+fn path_strings(paths: &[&[&str]]) -> Vec<Vec<String>> {
+    paths
+        .iter()
+        .map(|path| path.iter().map(|segment| (*segment).to_owned()).collect())
+        .collect()
+}
+
+fn collect_action_paths(
+    choice: &ActionChoice,
+    mut prefix: Vec<String>,
+    paths: &mut Vec<Vec<String>>,
+) {
+    prefix.push(choice.segment.clone());
+    if let Some(next) = &choice.next {
+        for child in &next.choices {
+            collect_action_paths(child, prefix.clone(), paths);
+        }
+    } else {
+        paths.push(prefix);
+    }
 }

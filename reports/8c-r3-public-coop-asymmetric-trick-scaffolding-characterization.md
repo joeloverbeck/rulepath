@@ -736,3 +736,38 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game frontier_control` passed.
   - No golden trace, fixture, export, state/effect/view hash, or local
     action-tree hash surface changed.
+
+### 8CR3PUBCOOASY-404 - Event Frontier action-tree v1 parallel surface
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/event_frontier/src/visibility.rs`,
+  `games/event_frontier/src/lib.rs`, and
+  `games/event_frontier/tests/replay.rs`.
+- Change: added parallel `action_tree_v1_bytes` and `action_tree_v1_hash`
+  helpers using `ActionTreeEncodingVersion::V1`, while retaining the existing
+  debug-derived local `action_tree_hash` unchanged. Added representative v1
+  vectors for full multi-site operation, limited second-choice operation, event
+  choice, pass-after-event, Survey Ban blocked branch, Reckoning empty tree, and
+  terminal empty tree.
+- ADR-0009 classification: `unchanged` for existing surfaces; the v1
+  action-tree bytes/hash are additive. Local action-tree hash, state/effect/view
+  hashes, traces, fixtures, exports, legal choices, metadata, labels, branch
+  order, and hidden deck-order surfaces were not intentionally migrated.
+- Compatibility / rollback: remove only the v1 helper functions, re-export, and
+  replay vector test. Existing local hash and all replay/export consumers remain
+  unchanged.
+- Verification:
+  - `cargo test -p event_frontier` passed, including the new v1/no-hidden-deck
+    vectors: full-operation `(bytes=5724, hash=12263323764607805373, local=12025048674674442718)`,
+    limited-operation `(bytes=2688, hash=5287035841278219952, local=1262519681689202196)`,
+    event-choice `(bytes=3776, hash=6239437208328345357, local=12651858397689234283)`,
+    pass `(bytes=5418, hash=18107612798635470515, local=9761797406534023113)`,
+    edict-blocked `(bytes=2924, hash=17452768486966187756, local=16133410113579192678)`,
+    reckoning-empty `(bytes=64, hash=17387353871007407771, local=10022657772393329959)`,
+    terminal-empty `(bytes=64, hash=17387353871007407771, local=10022657772393329959)`.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces were accepted.
+  - `cargo run -p fixture-check -- --game event_frontier` passed.
+  - No golden trace, fixture, export, state/effect/view hash, local action-tree
+    hash, or hidden deck-order surface changed.
