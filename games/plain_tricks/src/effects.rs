@@ -60,10 +60,7 @@ pub enum PlainTricksEffect {
 }
 
 pub fn public_effect(payload: PlainTricksEffect) -> EffectEnvelope<PlainTricksEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(

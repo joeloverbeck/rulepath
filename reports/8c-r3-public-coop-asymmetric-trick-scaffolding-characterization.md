@@ -306,3 +306,24 @@ Authorized ticket 001 change: this report only. Existing production code,
 tests, fixtures, traces, snapshots, exports, specs, and register entries remain
 unchanged until their own ticket. The default authorized changes to existing
 golden traces, fixtures, snapshots, or export bytes are none.
+
+## Migration Receipts
+
+### 8CR3PUBCOOASY-101 - Plain Tricks public effect constructor
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/src/effects.rs::public_effect`.
+- Change: replaced the local public envelope literal with
+  `EffectEnvelope::public(payload)`.
+- ADR-0009 classification: `unchanged`; no trace, fixture, export, hash,
+  schema, seat spelling, RNG, or visibility byte was intentionally migrated.
+- Compatibility / rollback: restore only the local public literal constructor.
+  `private_effect`, `hand_dealt_effect`, recipient selection, payload
+  formation, effect order, filtering, and reveal policy were untouched.
+- Verification:
+  - `cargo test -p plain_tricks` passed.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all
+    Plain Tricks traces passed with existing expected hashes.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed.
+  - No golden trace, fixture, export, or test file changed.

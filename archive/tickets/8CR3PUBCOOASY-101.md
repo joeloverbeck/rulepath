@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-101: C-01 Plain Tricks public effect constructor
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/plain_tricks/src/effects.rs`
@@ -98,3 +98,22 @@ exact payload, debug/stable rendering, and effect order.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game `replay-check` is the correct boundary: only `plain_tricks`
    public effects change, so workspace-wide replay is unnecessary here.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/plain_tricks/src/effects.rs::public_effect` to construct public
+effect envelopes via `EffectEnvelope::public(payload)`. The change is
+constructor-only; effect payloads, ordering, private effects, recipient
+selection, filtering, reveal policy, replay/export bytes, and tests were
+otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p plain_tricks` passed.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- `cargo run -p fixture-check -- --game plain_tricks` passed.
+- No golden trace, fixture, export, or test file changed.
