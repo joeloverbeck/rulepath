@@ -6,7 +6,7 @@
 | Artifact slug | `8c-r3-public-coop-asymmetric-trick-scaffolding` |
 | Roadmap stage | Public scaling phase — C-11 follow-on retrofit lane |
 | Roadmap build gate | `8C-R3` (precedes `8C-R4` and Gate 18) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-24 |
 | Owner | Rulepath maintainers; implementation delegated through bounded `AGENT-TASK` packets using profile `scaffold-refactor` |
 | Analysis baseline | Grounded against the repository working tree at commit `be1af6f` (HEAD at authoring). |
@@ -1293,6 +1293,16 @@ show complete accepted results; all §7 commands must have been rerun on the
 final tree; the changed-file inventory must show no unauthorized artifact
 diff; and human review must accept every N/A/exception and C-10 rejection. Only
 then may `specs/README.md` change R3 to `Done`.
+
+## Outcome
+
+Completed on 2026-06-24.
+
+All `8CR3PUBCOOASY` tickets are archived. The full §7.1 command set passed on
+the final tree, the changed-file audit found zero unauthorized
+golden/fixture/export diffs, and the C-01...C-10 receipts are recorded in the
+characterization report and mechanical-scaffolding register. `8C-R4` and Gate
+18 remain pending successor work.
 
 ## 12. Assumptions
 

@@ -3,7 +3,7 @@
 Date: 2026-06-24
 Baseline commit: `b0be7a4157f8`
 Ticket: `archive/tickets/8CR3PUBCOOASY-001.md`
-Reference: `specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md`
+Reference: `archive/specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md`
 
 This report is the pre-migration baseline for Unit 8C-R3. It records current
 surfaces only. It does not authorize any code, byte, hash, visibility, seat-ID,
