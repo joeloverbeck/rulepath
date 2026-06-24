@@ -4,6 +4,42 @@ use briar_circuit::{
     TRACE_SCHEMA_VERSION, VARIANT_ID, VIEWER_EXPORT_VERSION,
 };
 use engine_core::{SeatId, Seed};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, SetupEvidenceV1Driver,
+    PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
+};
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+];
+
+fn setup_evidence_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-030 virtual setup-evidence profile"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
 
 #[test]
 fn static_data_matches_constants_and_rejects_unknown_fields() {
@@ -57,6 +93,73 @@ fn setup_state_summary_is_deterministic_for_same_inputs() {
     assert_eq!(
         first.stable_internal_summary(),
         second.stable_internal_summary()
+    );
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_standard_fixture_and_deterministic_deal() {
+    let fixture = include_str!("../data/fixtures/briar_circuit_standard.fixture.json");
+    assert!(!fixture.contains("\"profile_id\""));
+    assert!(!fixture.contains("\"canonical_byte_authority\""));
+    assert!(fixture.contains("\"fixture_kind\": \"setup\""));
+    assert!(fixture.contains("\"trace_id\": \"briar_circuit_standard\""));
+    assert!(fixture.contains("\"seats\": [\"seat_0\", \"seat_1\", \"seat_2\", \"seat_3\"]"));
+
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    driver
+        .validate_with(&setup_evidence_profile_artifact(), |report| {
+            assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+            assert_eq!(report.visibility_class, "public");
+
+            let seats = canonical_seat_ids();
+            let first = setup_match(Seed(1600), &seats, &SetupOptions::default()).expect("setup");
+            let second = setup_match(Seed(1600), &seats, &SetupOptions::default()).expect("setup");
+            assert_eq!(
+                first.stable_internal_summary(),
+                second.stable_internal_summary()
+            );
+            assert_eq!(first.seats, seats);
+            assert_eq!(
+                first
+                    .hand_for_internal(briar_circuit::BriarCircuitSeat::Seat0)
+                    .len(),
+                13
+            );
+            assert_eq!(first.pass_direction().as_str(), "left");
+        })
+        .expect("setup-evidence-v1 driver accepts Briar standard setup adapter");
+}
+
+#[test]
+fn setup_evidence_v1_driver_rejects_briar_wrong_metadata() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let valid = setup_evidence_profile_artifact();
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut wrong_owner = valid.clone();
+    wrong_owner.metadata.validator_owner = "replay-check";
+    assert_eq!(
+        driver.validate(&wrong_owner).expect_err("wrong owner").kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "deal_formula"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
     );
 }
 

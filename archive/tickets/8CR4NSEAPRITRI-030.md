@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-030: Briar Circuit C-08 setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/briar_circuit/tests/`; fixture bytes + deal policy unchanged
@@ -70,3 +70,22 @@ In `games/briar_circuit/tests/` (setup/serialization module), add a `SetupEviden
 1. `cargo test -p briar_circuit`
 2. `cargo run -p fixture-check -- --game briar_circuit`
 3. The per-game fixture/setup test is the correct boundary: setup evidence delegates to the game setup owner.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `setup-evidence-v1` profile adapter test for `briar_circuit_standard.fixture.json` using `SetupEvidenceV1Driver`.
+2. Validated the standard fixture remains profile-metadata-free and delegated deterministic four-seat setup/deal checks to Briar setup code.
+3. Added reject coverage for wrong profile version, wrong validator owner, and unknown profile fields.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p briar_circuit` - passed.
+3. `cargo run -p fixture-check -- --game briar_circuit` - passed.
+4. `bash scripts/boundary-check.sh` - passed.
