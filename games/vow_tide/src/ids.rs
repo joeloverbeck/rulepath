@@ -85,16 +85,11 @@ impl VowTideSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            "seat_2" => Some(Self::Seat2),
-            "seat_3" => Some(Self::Seat3),
-            "seat_4" => Some(Self::Seat4),
-            "seat_5" => Some(Self::Seat5),
-            "seat_6" => Some(Self::Seat6),
-            _ => None,
-        }
+        let raw_index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()? as usize;
+        Self::from_index(raw_index)
     }
 
     pub fn next_clockwise(self, seat_count: usize) -> Self {
@@ -136,4 +131,31 @@ pub fn hand_schedule_for_seats(seat_count: usize) -> Option<Vec<u8>> {
         schedule.push(hand_size);
     }
     Some(schedule)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn seat_parser_accepts_only_bounded_canonical_ids() {
+        let accepted = [
+            ("seat_0", VowTideSeat::Seat0),
+            ("seat_1", VowTideSeat::Seat1),
+            ("seat_2", VowTideSeat::Seat2),
+            ("seat_3", VowTideSeat::Seat3),
+            ("seat_4", VowTideSeat::Seat4),
+            ("seat_5", VowTideSeat::Seat5),
+            ("seat_6", VowTideSeat::Seat6),
+        ];
+        for (input, expected) in accepted {
+            assert_eq!(VowTideSeat::parse(input), Some(expected));
+        }
+
+        for rejected in [
+            "seat_7", "seat-0", "seat-a", "seat_", "seat_01", "seat_0 ", " seat_0", "Seat_0", "",
+        ] {
+            assert_eq!(VowTideSeat::parse(rejected), None, "{rejected}");
+        }
+    }
 }

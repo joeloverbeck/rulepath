@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-008: Vow Tide C-02 canonical seat parser adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/vow_tide` (`src/ids.rs`); accepted/rejected seat inputs and enum mapping unchanged
@@ -70,3 +70,20 @@ In `VowTideSeat::parse`, parse via `SeatId::parse_canonical`, then map the bound
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game test is the correct boundary: seat parsing is game-local ID grammar over a kernel helper.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- `VowTideSeat::parse` now delegates strict seat-string parsing to `SeatId::parse_canonical`, extracts the canonical zero-based index, and maps it through the existing bounded enum conversion.
+- Added a focused table-driven test covering canonical `seat_0` through `seat_6` acceptance plus malformed and out-of-range rejection.
+
+Deviations:
+- None. Formatter/roster adoption and WASM alias adapter work remain owned by `8CR4NSEAPRITRI-009` and `8CR4NSEAPRITRI-010`.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`
