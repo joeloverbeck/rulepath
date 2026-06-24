@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-007: Briar Circuit C-02 WASM import-alias adapter
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (`src/seats.rs`, `src/games/briar.rs`); import aliases accepted, canonical output unchanged
@@ -71,3 +71,21 @@ Add a bounded Briar adapter over `crates/wasm-api/src/seats.rs::{parse_seat_impo
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The `wasm-api` test is the correct boundary: legacy alias acceptance is a WASM-import concern, not a game-rule one.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added `parse_briar_circuit_seat` in the shared WASM seat adapter, bounded to four seats and backed by `parse_seat_enum`.
+- Replaced `crates/wasm-api/src/games/briar.rs::parse_briar_seat`'s local `seat-0` through `seat-3` match with the shared adapter.
+- Added a focused import-boundary test covering canonical and hyphen inputs for seats 0 through 3, malformed/out-of-range rejection, and underscore canonical output.
+
+Deviations:
+- None. Game-level parser/formatter migrations remain in `8CR4NSEAPRITRI-005` and `8CR4NSEAPRITRI-006`; no TypeScript repair or output alias was added.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `bash scripts/boundary-check.sh`

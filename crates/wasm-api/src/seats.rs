@@ -9,6 +9,7 @@ use engine_core::SeatId;
 use crate::constants::DEFAULT_SEAT_COUNT;
 use crate::json::escape_json;
 
+use briar_circuit::BriarCircuitSeat;
 use column_four::ColumnFourSeat;
 use directional_flip::DirectionalFlipSeat;
 use draughts_lite::DraughtsLiteSeat;
@@ -223,6 +224,10 @@ pub(crate) fn trace_river_seat(seat: RiverLedgerSeat) -> String {
     seat.as_str()
 }
 
+pub(crate) fn parse_briar_circuit_seat(value: &str) -> Result<BriarCircuitSeat, String> {
+    parse_seat_enum(value, 4, &[], BriarCircuitSeat::parse)
+}
+
 pub(crate) fn canonical_trace_seat_id(index: u32) -> String {
     SeatId::from_zero_based_index(index).0
 }
@@ -395,6 +400,30 @@ mod tests {
             parse_river_seat("seat-f"),
             RiverLedgerSeat::from_index(5).ok_or_else(|| unknown_seat("seat-f"))
         );
+    }
+
+    #[test]
+    fn briar_import_adapter_accepts_bounded_hyphen_aliases_and_emits_canonical_seats() {
+        for (canonical, hyphen, expected) in [
+            ("seat_0", "seat-0", BriarCircuitSeat::Seat0),
+            ("seat_1", "seat-1", BriarCircuitSeat::Seat1),
+            ("seat_2", "seat-2", BriarCircuitSeat::Seat2),
+            ("seat_3", "seat-3", BriarCircuitSeat::Seat3),
+        ] {
+            assert_eq!(parse_briar_circuit_seat(canonical), Ok(expected));
+            assert_eq!(parse_briar_circuit_seat(hyphen), Ok(expected));
+            assert_eq!(expected.as_str(), canonical);
+        }
+
+        for invalid in [
+            "", "0", "player_0", "seat_", "seat_01", "seat_+1", "seat_-1", " seat_0", "seat_0 ",
+            "seat_4", "seat-4", "seat-a",
+        ] {
+            assert_eq!(
+                parse_briar_circuit_seat(invalid),
+                Err(unknown_seat(invalid))
+            );
+        }
     }
 
     #[test]

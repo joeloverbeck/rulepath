@@ -14,22 +14,12 @@ use crate::constants::*;
 use crate::json::{diagnostic_json, escape_json};
 use crate::json_parse::{string_field, validate_json_object};
 use crate::replay::{parse_public_replay_steps, PublicTimelineReplay};
+use crate::seats::parse_briar_circuit_seat;
 use crate::store::{next_replay_id, REPLAYS};
 use crate::{option_bool_json, visibility_json, AppliedCommand, ReplayRecord};
 
 pub(crate) fn parse_briar_seat(value: &str) -> Result<BriarCircuitSeat, String> {
-    match value {
-        "seat-0" => Ok(BriarCircuitSeat::Seat0),
-        "seat-1" => Ok(BriarCircuitSeat::Seat1),
-        "seat-2" => Ok(BriarCircuitSeat::Seat2),
-        "seat-3" => Ok(BriarCircuitSeat::Seat3),
-        _ => BriarCircuitSeat::parse(value).ok_or_else(|| {
-            format!(
-                "{{\"code\":\"unknown_seat\",\"message\":\"unknown seat: {}\"}}",
-                escape_json(value)
-            )
-        }),
-    }
+    parse_briar_circuit_seat(value)
 }
 
 pub(crate) fn trace_briar_seat(seat: BriarCircuitSeat) -> &'static str {
