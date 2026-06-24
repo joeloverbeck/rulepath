@@ -1,14 +1,19 @@
 use briar_circuit::{
-    canonical_seat_ids, export_viewer_timeline, import_viewer_timeline, replay_bot_match,
-    replay_hash_snapshot, score_completed_hand,
+    apply_pass_action, canonical_seat_ids, export_viewer_timeline, import_viewer_timeline,
+    replay_bot_match, replay_hash_snapshot,
+    replay_support::{action_tree_v1_encoding, replay_action_tree_v1_snapshot},
+    score_completed_hand,
     setup::{deal_hand, next_dealer},
-    setup_match, BriarCircuitSeat, CapturedTrick, Card, CardId, CurrentTrick, PassDirection, Phase,
-    PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay, ViewerExportClass,
+    setup_match, BriarCircuitSeat, CapturedTrick, Card, CardId, CurrentTrick, PassAction,
+    PassDirection, Phase, PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay,
+    ViewerExportClass,
 };
-use engine_core::{FreshnessToken, HashValue, Seed, SeededRng};
+use engine_core::{FreshnessToken, HashValue, SeatId, Seed, SeededRng, Viewer};
 use game_test_support::profiles::{
-    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, DOMAIN_EVIDENCE_V1,
-    PROFILE_VERSION_V1,
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    PublicExportV1Driver, ReplayCommandV1Driver, SeatPrivateExportV1Driver, DOMAIN_EVIDENCE_V1,
+    PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1,
+    SETUP_EVIDENCE_V1,
 };
 
 const REQUIRED_TRACES: &[&str] = &[
@@ -66,6 +71,58 @@ const DOMAIN_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
     "expected_domain",
 ];
 
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
+
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
+];
+
+const SEAT_PRIVATE_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "viewer_seat",
+    "viewer_seat_version",
+    "export_steps",
+    "pairwise_no_leak",
+];
+
 fn domain_evidence_profile_artifact<'a>(
     visibility_class: &'a str,
     canonical_byte_claim: bool,
@@ -86,8 +143,81 @@ fn domain_evidence_profile_artifact<'a>(
     }
 }
 
+fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-029 virtual replay-command profile"),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: PUBLIC_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-031 virtual public-export profile"),
+        },
+        fields: PUBLIC_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn seat_private_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SEAT_PRIVATE_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("seat-private"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-032 virtual seat-private-export profile"),
+        },
+        fields: SEAT_PRIVATE_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
 fn card(rank: Rank, suit: Suit) -> CardId {
     Card::new(rank, suit).id()
+}
+
+fn viewer(seat: Option<BriarCircuitSeat>) -> Viewer {
+    Viewer {
+        seat_id: seat.map(|seat| SeatId(seat.as_str().to_owned())),
+    }
+}
+
+fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack
+        .windows(needle.len())
+        .any(|candidate| candidate == needle)
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|candidate| candidate == needle)
+        .expect("needle appears in v1 bytes")
+}
+
+fn commit_standard_pass(state: &mut briar_circuit::BriarCircuitState, seat: BriarCircuitSeat) {
+    let cards =
+        state.hand_for_internal(seat)[..briar_circuit::STANDARD_PASS_SIZE as usize].to_vec();
+    for card in cards {
+        apply_pass_action(state, seat, PassAction::Select(card)).expect("select pass card");
+    }
+    apply_pass_action(state, seat, PassAction::Confirm).expect("confirm pass");
 }
 
 fn captured_trick(winner: BriarCircuitSeat, cards: Vec<CardId>) -> CapturedTrick {
@@ -104,6 +234,167 @@ fn captured_trick(winner: BriarCircuitSeat, cards: Vec<CardId>) -> CapturedTrick
                 card,
             })
             .collect(),
+    }
+}
+
+#[test]
+fn action_tree_v1_parallel_surface_is_deterministic_and_viewer_scoped() {
+    let mut state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    assert_action_tree_v1_case(
+        "observer-pass",
+        &state,
+        None,
+        17387353871007407771,
+        64,
+        &[],
+        &[],
+    );
+    let seat0_hand = state.hand_for_internal(BriarCircuitSeat::Seat0).to_vec();
+    assert_action_tree_v1_case(
+        "seat0-pass-select",
+        &state,
+        Some(BriarCircuitSeat::Seat0),
+        5009386235525238101,
+        4825,
+        &[
+            b"pass".as_slice(),
+            b"select".as_slice(),
+            seat0_hand[0].as_str().as_bytes(),
+            seat0_hand[1].as_str().as_bytes(),
+        ],
+        &[b"unselect".as_slice()],
+    );
+
+    for card in seat0_hand[..briar_circuit::STANDARD_PASS_SIZE as usize]
+        .iter()
+        .copied()
+    {
+        apply_pass_action(
+            &mut state,
+            BriarCircuitSeat::Seat0,
+            PassAction::Select(card),
+        )
+        .expect("select pass card");
+    }
+    assert_action_tree_v1_case(
+        "seat0-pass-confirm",
+        &state,
+        Some(BriarCircuitSeat::Seat0),
+        4031711539671785757,
+        291,
+        &[b"pass".as_slice(), b"confirm".as_slice()],
+        &[b"unselect".as_slice()],
+    );
+
+    let mut play_state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    for seat in BriarCircuitSeat::ALL {
+        commit_standard_pass(&mut play_state, seat);
+    }
+    let active = play_state
+        .playing_state()
+        .expect("playing phase")
+        .active_seat;
+    assert_action_tree_v1_case(
+        "active-play",
+        &play_state,
+        Some(active),
+        3978888525668030180,
+        301,
+        &[b"play".as_slice()],
+        &[b"pass".as_slice(), b"unselect".as_slice()],
+    );
+}
+
+#[test]
+fn action_tree_v1_snapshot_covers_observer_and_all_seat_viewers_without_cross_seat_leak() {
+    let state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    let snapshot = replay_action_tree_v1_snapshot(&state);
+
+    assert_eq!(
+        snapshot.public_action_tree,
+        action_tree_v1_encoding(&state, &viewer(None))
+    );
+    assert_eq!(
+        snapshot.private_action_trees.len(),
+        BriarCircuitSeat::ALL.len()
+    );
+    for seat in BriarCircuitSeat::ALL {
+        assert!(snapshot
+            .private_action_trees
+            .iter()
+            .any(|(candidate, _)| *candidate == seat));
+    }
+
+    let seat0_hidden_card = state.hand_for_internal(BriarCircuitSeat::Seat0)[0].as_str();
+    assert!(!contains_bytes(
+        &snapshot.public_action_tree.stable_bytes,
+        seat0_hidden_card.as_bytes()
+    ));
+    for (seat, encoding) in &snapshot.private_action_trees {
+        if *seat != BriarCircuitSeat::Seat0 {
+            assert!(
+                !contains_bytes(&encoding.stable_bytes, seat0_hidden_card.as_bytes()),
+                "{seat:?} v1 bytes must not include Seat0 private card {seat0_hidden_card}"
+            );
+        }
+    }
+}
+
+fn assert_action_tree_v1_case(
+    label: &str,
+    state: &briar_circuit::BriarCircuitState,
+    seat: Option<BriarCircuitSeat>,
+    expected_hash: u64,
+    expected_len: usize,
+    required_needles: &[&[u8]],
+    forbidden_needles: &[&[u8]],
+) {
+    let encoding = action_tree_v1_encoding(state, &viewer(seat));
+    let repeated = action_tree_v1_encoding(state, &viewer(seat));
+
+    assert_eq!(encoding, repeated, "{label} v1 encoding is deterministic");
+    assert_eq!(
+        encoding.stable_hash,
+        HashValue::from_stable_bytes(&encoding.stable_bytes),
+        "{label} v1 hash matches bytes"
+    );
+    assert_eq!(
+        encoding.stable_hash,
+        HashValue(expected_hash),
+        "{label} v1 hash sentinel"
+    );
+    assert_eq!(
+        encoding.stable_bytes.len(),
+        expected_len,
+        "{label} byte len"
+    );
+    assert!(
+        encoding.stable_bytes.starts_with(b"RPSB"),
+        "{label} v1 bytes use stable-bytes header"
+    );
+    for needle in required_needles {
+        assert!(
+            contains_bytes(&encoding.stable_bytes, needle),
+            "{label} v1 bytes contain {}",
+            String::from_utf8_lossy(needle)
+        );
+    }
+    for needle in forbidden_needles {
+        assert!(
+            !contains_bytes(&encoding.stable_bytes, needle),
+            "{label} v1 bytes omit {}",
+            String::from_utf8_lossy(needle)
+        );
+    }
+    for pair in required_needles.windows(2) {
+        assert!(
+            byte_offset(&encoding.stable_bytes, pair[0])
+                < byte_offset(&encoding.stable_bytes, pair[1]),
+            "{label} preserves required needle order"
+        );
     }
 }
 
@@ -246,6 +537,267 @@ fn characterization_domain_fixture_artifacts_are_pinned() {
         .contains("\"trace_id\": \"briar_circuit_first_trick_exception\""));
     assert!(!moon_fixture.contains("selector"));
     assert!(!first_trick_exception_fixture.contains("selector"));
+}
+
+#[test]
+fn replay_command_v1_driver_validates_briar_pass_and_play_trace_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact();
+    let trace_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("golden_traces");
+
+    let delegated = driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+            assert_eq!(report.visibility_class, "internal-dev");
+
+            let mut state =
+                setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default())
+                    .expect("setup");
+            let setup_snapshot = replay_hash_snapshot(&state);
+            for seat in BriarCircuitSeat::ALL {
+                commit_standard_pass(&mut state, seat);
+            }
+            let play_snapshot = replay_hash_snapshot(&state);
+            assert_ne!(setup_snapshot.state_hash, play_snapshot.state_hash);
+            format!("{}:briar-circuit", report.profile_id)
+        })
+        .expect("replay-command-v1 driver accepts Briar virtual adapter");
+
+    assert_eq!(delegated, "replay-command-v1:briar-circuit");
+
+    for file_name in [
+        "pass-left-atomic-exchange.trace.json",
+        "pass-choice-in-flight-no-leak.trace.json",
+        "follow-suit-forced.trace.json",
+        "trick-winner-leads-next.trace.json",
+    ] {
+        let path = trace_dir.join(file_name);
+        let payload = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        assert!(
+            !payload.contains("\"profile_id\""),
+            "{file_name} must not be rewritten with profile metadata"
+        );
+        assert!(
+            !payload.contains("\"canonical_byte_authority\""),
+            "{file_name} must keep legacy trace bytes authoritative"
+        );
+        driver
+            .validate_with(&profile, |_| {
+                assert!(
+                    payload.contains("\"schema_version\":1")
+                        || payload.contains("\"schema_version\": 1")
+                );
+                assert!(
+                    payload.contains("\"game_id\":\"briar_circuit\"")
+                        || payload.contains("\"game_id\": \"briar_circuit\"")
+                );
+            })
+            .expect("virtual replay-command profile validates selected Briar trace");
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_rejects_briar_wrong_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let valid = replay_command_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "pass_policy"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn public_export_v1_driver_validates_briar_public_timeline_round_trip_and_no_leak() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let profile = public_export_profile_artifact();
+
+    driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+            assert_eq!(report.visibility_class, "public");
+
+            let mut state =
+                setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default())
+                    .expect("setup");
+            let hidden_cards = BriarCircuitSeat::ALL
+                .into_iter()
+                .flat_map(|seat| state.hand_for_internal(seat).to_vec())
+                .collect::<Vec<_>>();
+            let selected = state.hand_for_internal(BriarCircuitSeat::Seat0)[0];
+            apply_pass_action(
+                &mut state,
+                BriarCircuitSeat::Seat0,
+                PassAction::Select(selected),
+            )
+            .expect("select pass card");
+
+            let export = export_viewer_timeline(&state, ViewerExportClass::Public);
+            let imported = import_viewer_timeline(&export).expect("public export imports");
+            assert_eq!(imported, export);
+            assert_eq!(export.class, ViewerExportClass::Public);
+            assert_eq!(export.viewer_label, "public");
+
+            let payload = format!("{export:?}");
+            for card in hidden_cards {
+                assert!(
+                    !payload.contains(&card.as_str()),
+                    "public export leaked {card:?}"
+                );
+            }
+            assert!(!payload.contains(&selected.as_str()));
+        })
+        .expect("public-export-v1 driver accepts Briar public timeline adapter");
+}
+
+#[test]
+fn public_export_v1_driver_rejects_briar_wrong_metadata() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let valid = public_export_profile_artifact();
+
+    let mut wrong_owner = valid.clone();
+    wrong_owner.metadata.validator_owner = "replay-check";
+    assert_eq!(
+        driver.validate(&wrong_owner).expect_err("wrong owner").kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("seat-private");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "viewer_seat"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn seat_private_export_v1_driver_validates_briar_all_seat_timelines_and_no_leak() {
+    let driver = SeatPrivateExportV1Driver::new("wasm-export");
+    let profile = seat_private_export_profile_artifact();
+    let mut state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    let first_cards = BriarCircuitSeat::ALL
+        .into_iter()
+        .map(|seat| (seat, state.hand_for_internal(seat)[0]))
+        .collect::<Vec<_>>();
+    let selected = first_cards
+        .iter()
+        .find(|(seat, _)| *seat == BriarCircuitSeat::Seat0)
+        .map(|(_, card)| *card)
+        .expect("seat0 card");
+    apply_pass_action(
+        &mut state,
+        BriarCircuitSeat::Seat0,
+        PassAction::Select(selected),
+    )
+    .expect("select pass card");
+
+    for viewer_seat in BriarCircuitSeat::ALL {
+        driver
+            .validate_with(&profile, |report| {
+                assert_eq!(report.profile_id, SEAT_PRIVATE_EXPORT_V1);
+                assert_eq!(report.visibility_class, "seat-private");
+
+                let export =
+                    export_viewer_timeline(&state, ViewerExportClass::SeatPrivate(viewer_seat));
+                let imported = import_viewer_timeline(&export).expect("seat export imports");
+                assert_eq!(imported, export);
+                assert_eq!(export.class, ViewerExportClass::SeatPrivate(viewer_seat));
+                assert_eq!(export.viewer_label, viewer_seat.as_str());
+
+                let payload = format!("{export:?}");
+                for (source, card) in &first_cards {
+                    let contains = payload.contains(&format!("{card:?}"));
+                    assert_eq!(
+                        contains,
+                        *source == viewer_seat,
+                        "viewer {viewer_seat:?} export card boundary for {source:?}"
+                    );
+                }
+                assert_eq!(
+                    payload.contains(&format!("{selected:?}")),
+                    viewer_seat == BriarCircuitSeat::Seat0
+                );
+            })
+            .expect("seat-private-export-v1 driver accepts Briar seat timeline adapter");
+    }
+}
+
+#[test]
+fn seat_private_export_v1_driver_rejects_briar_wrong_metadata() {
+    let driver = SeatPrivateExportV1Driver::new("wasm-export");
+    let valid = seat_private_export_profile_artifact();
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("public");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut missing_visibility = valid.clone();
+    missing_visibility.metadata.visibility_class = None;
+    assert_eq!(
+        driver
+            .validate(&missing_visibility)
+            .expect_err("missing visibility")
+            .kind,
+        ProfileValidationErrorKind::MissingVisibility
+    );
+
+    let mut byte_claim = valid;
+    byte_claim.canonical_byte_claim = true;
+    assert_eq!(
+        driver
+            .validate(&byte_claim)
+            .expect_err("canonical byte claim")
+            .kind,
+        ProfileValidationErrorKind::IllegalCanonicalByteClaim
+    );
 }
 
 #[test]

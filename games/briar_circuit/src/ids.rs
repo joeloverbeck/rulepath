@@ -1,4 +1,5 @@
 use engine_core::SeatId;
+use std::sync::LazyLock;
 
 pub const GAME_ID: &str = "briar_circuit";
 pub const VARIANT_ID: &str = "briar_circuit_standard";
@@ -21,6 +22,15 @@ pub const ACTION_PASS_SELECT: &str = "select";
 pub const ACTION_PASS_UNSELECT: &str = "unselect";
 pub const ACTION_PASS_CONFIRM: &str = "confirm";
 pub const ACTION_PLAY: &str = "play";
+
+static CANONICAL_BRIAR_SEAT_IDS: LazyLock<[SeatId; 4]> = LazyLock::new(|| {
+    [
+        SeatId::from_zero_based_index(0),
+        SeatId::from_zero_based_index(1),
+        SeatId::from_zero_based_index(2),
+        SeatId::from_zero_based_index(3),
+    ]
+});
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum BriarCircuitSeat {
@@ -52,23 +62,16 @@ impl BriarCircuitSeat {
         }
     }
 
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Seat0 => "seat_0",
-            Self::Seat1 => "seat_1",
-            Self::Seat2 => "seat_2",
-            Self::Seat3 => "seat_3",
-        }
+    pub fn as_str(self) -> &'static str {
+        &CANONICAL_BRIAR_SEAT_IDS[self.index()].0
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            "seat_2" => Some(Self::Seat2),
-            "seat_3" => Some(Self::Seat3),
-            _ => None,
-        }
+        let raw_index = SeatId::parse_canonical(value)
+            .ok()?
+            .canonical_zero_based_index()
+            .ok()? as usize;
+        Self::from_index(raw_index)
     }
 
     pub const fn next_clockwise(self) -> Self {
@@ -104,14 +107,56 @@ impl BriarCircuitSeat {
 }
 
 pub fn seat_id_for_index(index: usize) -> SeatId {
-    SeatId(format!("seat_{index}"))
+    SeatId::from_zero_based_index(index.try_into().expect("seat index must fit u32"))
 }
 
 pub fn canonical_seat_ids() -> [SeatId; 4] {
-    [
-        seat_id_for_index(0),
-        seat_id_for_index(1),
-        seat_id_for_index(2),
-        seat_id_for_index(3),
-    ]
+    CANONICAL_BRIAR_SEAT_IDS.clone()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn seat_parser_accepts_only_bounded_canonical_ids() {
+        let accepted = [
+            ("seat_0", BriarCircuitSeat::Seat0),
+            ("seat_1", BriarCircuitSeat::Seat1),
+            ("seat_2", BriarCircuitSeat::Seat2),
+            ("seat_3", BriarCircuitSeat::Seat3),
+        ];
+        for (input, expected) in accepted {
+            assert_eq!(BriarCircuitSeat::parse(input), Some(expected));
+        }
+
+        for rejected in [
+            "seat_4", "seat-0", "seat-a", "seat_", "seat_01", "seat_0 ", " seat_0", "Seat_0", "",
+        ] {
+            assert_eq!(BriarCircuitSeat::parse(rejected), None, "{rejected}");
+        }
+    }
+
+    #[test]
+    fn seat_formatters_emit_baseline_canonical_roster() {
+        let expected = ["seat_0", "seat_1", "seat_2", "seat_3"];
+
+        assert_eq!(
+            BriarCircuitSeat::ALL.map(BriarCircuitSeat::as_str),
+            expected
+        );
+        assert_eq!(
+            [
+                seat_id_for_index(0),
+                seat_id_for_index(1),
+                seat_id_for_index(2),
+                seat_id_for_index(3)
+            ],
+            expected.map(|seat| SeatId(seat.to_owned()))
+        );
+        assert_eq!(
+            canonical_seat_ids(),
+            expected.map(|seat| SeatId(seat.to_owned()))
+        );
+    }
 }

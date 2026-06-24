@@ -6,8 +6,9 @@ use river_ledger::replay_support::{export_public_replay, trace_from_commands};
 use river_ledger::state::SeatRoles;
 use river_ledger::{
     apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
-    setup_match, validate_command, Card, Rank, RiverLedgerEffect, RiverLedgerLevel1Bot,
-    RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Suit, TerminalOutcome, Variant,
+    setup_match, validate_command, BettingRoundState, Card, Rank, RiverLedgerEffect,
+    RiverLedgerLevel1Bot, RiverLedgerSeat, SeatLedger, SeatStatus, SetupOptions, Street, Suit,
+    TerminalOutcome, Variant,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -257,6 +258,16 @@ enum MatrixSurface {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum LifecycleSurface {
+    View,
+    SetupEffect,
+    ActionTree,
+    Diagnostic,
+    BotInput,
+    BotExplanation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 enum CanaryId {
     PrivateHand,
     FutureCard,
@@ -279,6 +290,17 @@ fn matrix_surfaces() -> Vec<MatrixSurface> {
         MatrixSurface::ShowdownView,
         MatrixSurface::BotInput,
         MatrixSurface::BotExplanation,
+    ]
+}
+
+fn lifecycle_surfaces() -> Vec<LifecycleSurface> {
+    vec![
+        LifecycleSurface::View,
+        LifecycleSurface::SetupEffect,
+        LifecycleSurface::ActionTree,
+        LifecycleSurface::Diagnostic,
+        LifecycleSurface::BotInput,
+        LifecycleSurface::BotExplanation,
     ]
 }
 
@@ -465,6 +487,205 @@ fn no_leak_expectation(
     }
 }
 
+fn setup_with_stacks(
+    seed: u64,
+    count: usize,
+    starting_stacks: Vec<u16>,
+) -> river_ledger::RiverLedgerState {
+    setup_match(
+        Seed(seed),
+        &seats(count),
+        &SetupOptions {
+            starting_stacks: Some(starting_stacks),
+            ..SetupOptions::default()
+        },
+    )
+    .expect("setup")
+}
+
+fn stacks_with_overrides(count: usize, overrides: &[(usize, u16)]) -> Vec<u16> {
+    let mut stacks = vec![river_ledger::STANDARD_STARTING_STACK; count];
+    for (index, stack) in overrides {
+        if *index < count {
+            stacks[*index] = *stack;
+        }
+    }
+    stacks
+}
+
+fn flop_lifecycle_state(
+    count: usize,
+    remaining_overrides: &[(usize, u16)],
+) -> river_ledger::RiverLedgerState {
+    let mut state = setup_with_stacks(
+        21,
+        count,
+        vec![river_ledger::STANDARD_STARTING_STACK; count],
+    );
+    state.phase = river_ledger::Phase::Betting {
+        street: Street::Flop,
+    };
+    state.active_seat = Some(seat(1));
+    let remaining = stacks_with_overrides(count, remaining_overrides);
+    for (index, seat_ledger) in state.ledger.seats.iter_mut().enumerate() {
+        seat_ledger.street_contribution = 0;
+        seat_ledger.remaining_stack = remaining[index];
+        seat_ledger.starting_stack = seat_ledger.total_contribution + remaining[index];
+        seat_ledger.status = if remaining[index] == 0 {
+            SeatStatus::AllIn
+        } else {
+            SeatStatus::Live
+        };
+    }
+    let mut actors = (1..count).map(seat).collect::<Vec<_>>();
+    actors.push(seat(0));
+    state.betting = BettingRoundState::for_street(Street::Flop, actors);
+    state
+}
+
+fn lifecycle_states(count: usize) -> Vec<(&'static str, river_ledger::RiverLedgerState)> {
+    let mut states = vec![
+        (
+            "short-small-blind-all-in",
+            setup_with_stacks(1512, count, stacks_with_overrides(count, &[(1, 1)])),
+        ),
+        (
+            "short-call-all-in",
+            setup_with_stacks(
+                1513,
+                count,
+                stacks_with_overrides(count, &[(0, 1), (1, 16)]),
+            ),
+        ),
+        (
+            "short-raise-all-in",
+            setup_with_stacks(
+                1517,
+                count,
+                stacks_with_overrides(count, &[(0, 3), (1, 16)]),
+            ),
+        ),
+        (
+            "short-open-bet-all-in",
+            flop_lifecycle_state(count, &[(1, 2)]),
+        ),
+    ];
+
+    let mut cumulative = if count == 3 {
+        flop_lifecycle_state(count, &[(0, 4), (1, 20), (2, 3)])
+    } else {
+        flop_lifecycle_state(count, &[(0, 4), (1, 20), (2, 20), (3, 3)])
+    };
+    if count == 3 {
+        for (seat, segment) in [(1, "bet"), (2, "raise"), (0, "raise")] {
+            apply_segment(&mut cumulative, seat, segment);
+        }
+    } else {
+        for (seat, segment) in [(1, "bet"), (2, "call"), (3, "raise")] {
+            apply_segment(&mut cumulative, seat, segment);
+        }
+        for seat in 4..count {
+            apply_segment(&mut cumulative, seat, "call");
+        }
+        apply_segment(&mut cumulative, 0, "raise");
+    }
+    states.push(("cumulative-reopen", cumulative));
+    states
+}
+
+fn lifecycle_probes(
+    state: &river_ledger::RiverLedgerState,
+) -> Vec<LeakProbe<usize, CanaryId, String>> {
+    (0..state.seats.len())
+        .map(|source| LeakProbe {
+            source_seat: source,
+            canary_id: CanaryId::PrivateHand,
+            canary: private_ids_for(state, source)
+                .first()
+                .cloned()
+                .expect("source has private card"),
+        })
+        .collect()
+}
+
+fn lifecycle_snapshot(
+    state: &river_ledger::RiverLedgerState,
+    matrix_viewer: &MatrixViewer,
+    surface: &LifecycleSurface,
+) -> String {
+    match surface {
+        LifecycleSurface::View => project_view(state, &matrix_viewer.as_viewer()).stable_summary(),
+        LifecycleSurface::SetupEffect => visible_setup_effect_card_ids(state, matrix_viewer),
+        LifecycleSurface::ActionTree => match matrix_viewer.seat() {
+            Some(index) => format!("{:?}", legal_action_tree(state, &actor(index))),
+            None => String::new(),
+        },
+        LifecycleSurface::Diagnostic => {
+            let count = state.seats.len();
+            let active = state.active_seat.unwrap_or_else(|| seat(0)).index();
+            let wrong = (active + 1) % count;
+            format!(
+                "{:?}",
+                validate_command(state, &command(state, wrong, "call"))
+            )
+        }
+        LifecycleSurface::BotInput => match matrix_viewer.seat() {
+            Some(index) => {
+                river_ledger::RiverLedgerLevel2Bot::input_for(state, seat(index)).stable_summary()
+            }
+            None => String::new(),
+        },
+        LifecycleSurface::BotExplanation => state
+            .active_seat
+            .and_then(|active| {
+                RiverLedgerLevel1Bot::new(Seed(17))
+                    .select_decision(state, active)
+                    .ok()
+            })
+            .map(|decision| format!("{decision:?}"))
+            .unwrap_or_default(),
+    }
+}
+
+fn lifecycle_expectation(
+    source: &usize,
+    matrix_viewer: &MatrixViewer,
+    surface: &LifecycleSurface,
+    _canary_id: &CanaryId,
+) -> ExposureExpectation {
+    match surface {
+        LifecycleSurface::View | LifecycleSurface::SetupEffect => {
+            if matrix_viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+        LifecycleSurface::ActionTree
+        | LifecycleSurface::Diagnostic
+        | LifecycleSurface::BotInput
+        | LifecycleSurface::BotExplanation => ExposureExpectation::MustBeAbsent,
+    }
+}
+
+fn assert_lifecycle_pairwise_no_leak(
+    count: usize,
+    label: &str,
+    state: &river_ledger::RiverLedgerState,
+) {
+    assert_pairwise_no_leak(
+        matrix_viewers(count),
+        lifecycle_surfaces(),
+        lifecycle_probes(state),
+        |matrix_viewer, surface| lifecycle_snapshot(state, matrix_viewer, surface),
+        lifecycle_expectation,
+        |snapshot, canary| snapshot.contains(canary),
+    )
+    .unwrap_or_else(|failures| {
+        panic!("{count}-seat River Ledger lifecycle no-leak matrix {label}: {failures}")
+    });
+}
+
 #[test]
 fn no_leak_harness_covers_full_n_seat_river_matrix() {
     for count in 3..=6 {
@@ -520,6 +741,10 @@ fn pairwise_seat_views_and_effects_hide_other_seats_private_cards_for_all_counts
 #[test]
 fn visibility_stack_pot_pairwise_matrix_hides_private_data_across_lifecycle_states() {
     for count in 3..=6 {
+        for (label, state) in lifecycle_states(count) {
+            assert_lifecycle_pairwise_no_leak(count, label, &state);
+        }
+
         let mut waiting = setup_match(
             Seed(900 + count as u64),
             &seats(count),

@@ -1,17 +1,287 @@
 use std::collections::BTreeSet;
 
-use engine_core::Seed;
 use engine_core::StableSerialize;
+use engine_core::{ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed};
+use game_test_support::profiles::{
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    SetupEvidenceV1Driver, DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    SETUP_EVIDENCE_V1,
+};
 use vow_tide::{
     cards::{canonical_deck, Card, CardId, Rank, Suit},
-    ids::{canonical_seat_ids, STANDARD_CARD_COUNT},
+    ids::{canonical_seat_ids, hand_schedule_for_seats, VowTideSeat, STANDARD_CARD_COUNT},
     replay_support::{export_for_viewer, import_viewer_export, observer},
+    rules::{apply_bid, validate_bid_command},
     scoring::terminal_outcome,
     setup::{setup_match, SetupOptions},
     variants::{
         expected_manifest, load_manifest, load_variants, Manifest, Variant, VariantCatalog,
     },
 };
+
+const DOMAIN_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "domain_schema_version",
+    "domain_input",
+    "expected_domain",
+];
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+];
+
+fn domain_evidence_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: DOMAIN_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "vow_tide",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-035 virtual domain-evidence profile"),
+        },
+        fields: DOMAIN_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn setup_evidence_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-034 virtual setup-evidence profile"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn fixture_string_field(input: &str, key: &str) -> String {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let tail = input[start..].trim_start();
+    let tail = tail
+        .strip_prefix('"')
+        .unwrap_or_else(|| panic!("field `{key}` must be a string"));
+    let end = tail
+        .find('"')
+        .unwrap_or_else(|| panic!("field `{key}` string must close"));
+    tail[..end].to_owned()
+}
+
+fn fixture_string_array_field(input: &str, key: &str) -> Vec<String> {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let tail = input[start..].trim_start();
+    let tail = tail
+        .strip_prefix('[')
+        .unwrap_or_else(|| panic!("field `{key}` must be an array"));
+    let end = tail
+        .find(']')
+        .unwrap_or_else(|| panic!("field `{key}` array must close"));
+    tail[..end]
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(|entry| {
+            entry
+                .strip_prefix('"')
+                .and_then(|value| value.strip_suffix('"'))
+                .unwrap_or_else(|| panic!("field `{key}` array entry must be a string"))
+                .to_owned()
+        })
+        .collect()
+}
+
+fn fixture_number_field(input: &str, key: &str) -> usize {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let digits = input[start..]
+        .trim_start()
+        .chars()
+        .take_while(|ch| ch.is_ascii_digit())
+        .collect::<String>();
+    digits
+        .parse()
+        .unwrap_or_else(|error| panic!("field `{key}` must be a number: {error}"))
+}
+
+fn assert_standard_setup_fixture(input: &str, trace_id: &str, expected_seat_count: usize) {
+    assert_eq!(fixture_string_field(input, "trace_id"), trace_id);
+    assert_eq!(fixture_string_field(input, "fixture_kind"), "setup");
+    assert_eq!(fixture_string_field(input, "game_id"), "vow_tide");
+    assert_eq!(
+        fixture_string_field(input, "rules_version"),
+        "vow-tide-rules-v1"
+    );
+    assert_eq!(fixture_string_field(input, "variant"), "vow_tide_standard");
+    assert_eq!(
+        fixture_number_field(input, "seat_count"),
+        expected_seat_count
+    );
+    assert!(input.contains("\"expected_trump_public\": true"));
+
+    let seed = fixture_number_field(input, "seed") as u64;
+    let seats = canonical_seat_ids(expected_seat_count);
+    let state = setup_match(Seed(seed), &seats, &SetupOptions::default()).expect("setup succeeds");
+    let schedule = hand_schedule_for_seats(expected_seat_count).expect("schedule exists");
+    let expected_dealer =
+        VowTideSeat::parse(&fixture_string_field(input, "expected_dealer")).expect("dealer");
+    let expected_first_leader =
+        VowTideSeat::parse(&fixture_string_field(input, "expected_first_leader"))
+            .expect("first leader");
+
+    assert_eq!(state.seat_count(), expected_seat_count);
+    assert_eq!(state.hand_schedule, schedule);
+    assert_eq!(state.dealer, expected_dealer);
+    assert_eq!(state.active_seat(), Some(expected_first_leader));
+    assert_eq!(
+        state.current_hand_size(),
+        Some(fixture_number_field(input, "expected_hand_size") as u8)
+    );
+    assert_eq!(
+        state.hand_schedule.len(),
+        fixture_number_field(input, "expected_hand_count")
+    );
+    assert_eq!(
+        state.hidden_stock_internal().len(),
+        fixture_number_field(input, "expected_hidden_stock_count")
+    );
+    assert_eq!(state.private_hands.len(), expected_seat_count);
+    assert!(state
+        .private_hands
+        .iter()
+        .all(|(_, hand)| hand.len() == state.current_hand_size().expect("hand size") as usize));
+    assert_eq!(
+        state.deal_order.first().copied(),
+        Some(expected_first_leader)
+    );
+}
+
+fn assert_hook_domain_fixture(input: &str) {
+    assert_eq!(fixture_string_field(input, "trace_id"), "vow_tide_hook");
+    assert_eq!(fixture_string_field(input, "fixture_kind"), "bidding_hook");
+    assert_eq!(fixture_string_field(input, "game_id"), "vow_tide");
+    assert_eq!(fixture_number_field(input, "seat_count"), 4);
+
+    let seed = fixture_number_field(input, "seed") as u64;
+    let mut state = setup_match(Seed(seed), &canonical_seat_ids(4), &SetupOptions::default())
+        .expect("setup succeeds");
+    for (seat, value) in [
+        (VowTideSeat::Seat1, 3),
+        (VowTideSeat::Seat2, 3),
+        (VowTideSeat::Seat3, 3),
+    ] {
+        let bid = validate_bid_command(&state, &bid_command_for_state(&state, seat, value))
+            .expect("prefix bid validates");
+        apply_bid(&mut state, bid).expect("prefix bid applies");
+    }
+
+    assert_eq!(
+        state.bidding_state().expect("bidding").accepted_bid_total() as usize,
+        fixture_number_field(input, "expected_hook_prefix_total")
+    );
+    let forbidden = fixture_number_field(input, "expected_hook_forbidden_bid") as u8;
+    let diagnostic = validate_bid_command(
+        &state,
+        &bid_command_for_state(&state, VowTideSeat::Seat0, forbidden),
+    )
+    .expect_err("hook bid rejected");
+    assert_eq!(diagnostic.code, "VT_BID_HOOK_FORBIDDEN");
+}
+
+fn assert_terminal_tie_domain_fixture(input: &str) {
+    assert_eq!(
+        fixture_string_field(input, "trace_id"),
+        "vow_tide_terminal_tie"
+    );
+    assert_eq!(fixture_string_field(input, "fixture_kind"), "terminal_tie");
+    assert_eq!(fixture_string_field(input, "game_id"), "vow_tide");
+    assert_eq!(fixture_number_field(input, "seat_count"), 4);
+
+    let seed = fixture_number_field(input, "seed") as u64;
+    let mut state = setup_match(Seed(seed), &canonical_seat_ids(4), &SetupOptions::default())
+        .expect("setup succeeds");
+    state.cumulative_scores = vec![
+        (VowTideSeat::Seat0, 10),
+        (VowTideSeat::Seat1, 30),
+        (VowTideSeat::Seat2, 30),
+        (VowTideSeat::Seat3, 0),
+    ];
+    let outcome = terminal_outcome(&state);
+
+    let winners = outcome
+        .winners
+        .iter()
+        .map(|seat| seat.as_str().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        winners,
+        fixture_string_array_field(input, "expected_terminal_winners")
+    );
+    let ranks = outcome
+        .standings
+        .iter()
+        .map(|standing| format!("{}:{}", standing.seat.as_str(), standing.rank))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        ranks,
+        fixture_string_array_field(input, "expected_competition_ranks")
+    );
+}
+
+fn bid_command_for_state(
+    state: &vow_tide::state::VowTideState,
+    seat: VowTideSeat,
+    value: u8,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: SeatId(seat.as_str().to_owned()),
+        },
+        action_path: ActionPath {
+            segments: vec!["bid".to_owned(), value.to_string()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
 
 #[test]
 fn canonical_deck_order_is_complete_and_stable() {
@@ -35,6 +305,134 @@ fn canonical_deck_order_is_complete_and_stable() {
         assert_eq!(card_id.index(), index as u8);
         assert_eq!(CardId::parse(&card_id.as_str()), Some(*card_id));
     }
+}
+
+#[test]
+fn domain_evidence_v1_driver_validates_hook_and_terminal_tie_fixtures() {
+    let driver = DomainEvidenceV1Driver::new("vow_tide");
+    let profile = domain_evidence_profile_artifact();
+
+    for (fixture, assert_domain) in [
+        (
+            include_str!("../data/fixtures/vow_tide_hook.fixture.json"),
+            assert_hook_domain_fixture as fn(&str),
+        ),
+        (
+            include_str!("../data/fixtures/vow_tide_terminal_tie.fixture.json"),
+            assert_terminal_tie_domain_fixture as fn(&str),
+        ),
+    ] {
+        assert!(!fixture.contains("\"profile_id\""));
+        assert!(!fixture.contains("\"canonical_byte_authority\""));
+        driver
+            .validate_with(&profile, |report| {
+                assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+                assert_eq!(report.visibility_class, "internal-dev");
+                assert_domain(fixture);
+            })
+            .expect("domain-evidence-v1 driver accepts Vow domain fixture adapter");
+    }
+}
+
+#[test]
+fn domain_evidence_v1_driver_rejects_vow_wrong_metadata() {
+    let driver = DomainEvidenceV1Driver::new("vow_tide");
+    let valid = domain_evidence_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "scoring_formula"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_three_and_seven_seat_fixtures() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_evidence_profile_artifact();
+
+    for (fixture, trace_id, seat_count) in [
+        (
+            include_str!("../data/fixtures/vow_tide_3p_standard.fixture.json"),
+            "vow_tide_3p_standard",
+            3,
+        ),
+        (
+            include_str!("../data/fixtures/vow_tide_7p_standard.fixture.json"),
+            "vow_tide_7p_standard",
+            7,
+        ),
+    ] {
+        assert!(!fixture.contains("\"profile_id\""));
+        assert!(!fixture.contains("\"canonical_byte_authority\""));
+        driver
+            .validate_with(&profile, |report| {
+                assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+                assert_eq!(report.visibility_class, "public");
+                assert_standard_setup_fixture(fixture, trace_id, seat_count);
+            })
+            .expect("setup-evidence-v1 driver accepts Vow setup fixture adapter");
+    }
+}
+
+#[test]
+fn setup_evidence_v1_driver_rejects_vow_wrong_metadata() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let valid = setup_evidence_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = PUBLIC_EXPORT_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "setup_formula"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
 }
 
 #[test]

@@ -1,11 +1,305 @@
-use engine_core::{SeatId, Seed, StableSerialize, Viewer};
+use engine_core::{Actor, SeatId, Seed, StableSerialize, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use vow_tide::{
+    actions::legal_action_tree,
+    bots::{bot_input_for, legal_action_paths, VowTideL1Bot},
     cards::{Card, Rank, Suit},
     effects::VowTideEffect,
     ids::{canonical_seat_ids, VowTideSeat},
+    replay_support::export_for_viewer,
+    rules,
     setup::{setup_match, SetupOptions},
+    state::{CurrentTrick, Phase, PlayingTrickState, TrickPlay},
     visibility::{filter_effects_for_viewer, project_view, PrivateView},
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum MatrixViewer {
+    Observer,
+    Seat(VowTideSeat),
+}
+
+impl MatrixViewer {
+    fn as_viewer(self) -> Viewer {
+        match self {
+            Self::Observer => Viewer { seat_id: None },
+            Self::Seat(seat) => Viewer {
+                seat_id: Some(SeatId(seat.as_str().to_owned())),
+            },
+        }
+    }
+
+    const fn seat(self) -> Option<VowTideSeat> {
+        match self {
+            Self::Observer => None,
+            Self::Seat(seat) => Some(seat),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum HandStockSurface {
+    View,
+    ActionTree,
+    Diagnostic,
+    Effect,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum HandStockCanary {
+    Hand,
+    Stock,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum BidTrickCase {
+    Bidding,
+    Trick,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum BidTrickSurface {
+    View,
+    Export,
+    BotInput,
+    BotRationale,
+    CandidateRendering,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum BidTrickCanary {
+    PrivateHand,
+    Stock,
+    PublicTrump,
+    PublicPlayed,
+}
+
+fn matrix_viewers(seat_count: usize) -> Vec<MatrixViewer> {
+    let mut viewers = vec![MatrixViewer::Observer];
+    viewers.extend(
+        VowTideSeat::ALL
+            .into_iter()
+            .take(seat_count)
+            .map(MatrixViewer::Seat),
+    );
+    viewers
+}
+
+fn bid_trick_surfaces() -> Vec<BidTrickSurface> {
+    vec![
+        BidTrickSurface::View,
+        BidTrickSurface::Export,
+        BidTrickSurface::BotInput,
+        BidTrickSurface::BotRationale,
+        BidTrickSurface::CandidateRendering,
+    ]
+}
+
+fn hand_stock_surfaces() -> Vec<HandStockSurface> {
+    vec![
+        HandStockSurface::View,
+        HandStockSurface::ActionTree,
+        HandStockSurface::Diagnostic,
+        HandStockSurface::Effect,
+    ]
+}
+
+fn hand_stock_matrix_state(
+    seat_count: usize,
+    source: VowTideSeat,
+) -> vow_tide::state::VowTideState {
+    let mut state = setup_match(
+        Seed(20260621),
+        &canonical_seat_ids(seat_count),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    install_canary_hands_and_stock(&mut state);
+    state.phase = Phase::PlayingTrick(PlayingTrickState {
+        trick_index: 0,
+        leader: source,
+        active_seat: source,
+        current_trick: CurrentTrick::new(source),
+    });
+    state
+}
+
+fn bid_trick_matrix_state(
+    seat_count: usize,
+    source: VowTideSeat,
+    case: BidTrickCase,
+) -> (vow_tide::state::VowTideState, Vec<VowTideEffect>) {
+    let mut state = setup_match(
+        Seed(20260621),
+        &canonical_seat_ids(seat_count),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    install_canary_hands_and_stock(&mut state);
+    let mut effects = vec![VowTideEffect::HandAdvanced {
+        hand_index: state.hand_index,
+        dealer: state.dealer,
+        hand_size: state.current_hand_size().expect("hand size"),
+        trump_indicator: state.trump_indicator,
+    }];
+
+    if case == BidTrickCase::Trick {
+        let played = public_play_canary();
+        let active = source.next_clockwise(seat_count);
+        state.phase = Phase::PlayingTrick(PlayingTrickState {
+            trick_index: 0,
+            leader: source,
+            active_seat: active,
+            current_trick: CurrentTrick {
+                leader: source,
+                plays: vec![TrickPlay {
+                    seat: source,
+                    card: played,
+                }],
+            },
+        });
+        effects.push(VowTideEffect::CardPlayed {
+            seat: source,
+            card: played,
+            trick_index: 0,
+        });
+    }
+
+    (state, effects)
+}
+
+fn hand_stock_snapshot(
+    state: &vow_tide::state::VowTideState,
+    viewer: &MatrixViewer,
+    surface: &HandStockSurface,
+) -> String {
+    match surface {
+        HandStockSurface::View => project_view(state, &viewer.as_viewer()).stable_summary(),
+        HandStockSurface::ActionTree => viewer
+            .seat()
+            .map(|seat| {
+                format!(
+                    "{:?}",
+                    legal_action_tree(
+                        state,
+                        &Actor {
+                            seat_id: SeatId(seat.as_str().to_owned()),
+                        },
+                    )
+                )
+            })
+            .unwrap_or_default(),
+        HandStockSurface::Diagnostic => format!("{:?}", rules::wrong_phase_diagnostic()),
+        HandStockSurface::Effect => {
+            let effects = vec![
+                VowTideEffect::BidAccepted {
+                    seat: VowTideSeat::Seat0,
+                    bid: 1,
+                    public_total: 1,
+                },
+                VowTideEffect::BiddingCompleted {
+                    first_leader: VowTideSeat::Seat0,
+                },
+            ];
+            format!(
+                "{:?}",
+                filter_effects_for_viewer(&effects, &viewer.as_viewer())
+            )
+        }
+    }
+}
+
+fn bid_trick_snapshot(
+    state: &vow_tide::state::VowTideState,
+    effects: &[VowTideEffect],
+    viewer: &MatrixViewer,
+    surface: &BidTrickSurface,
+) -> String {
+    match surface {
+        BidTrickSurface::View => project_view(state, &viewer.as_viewer()).stable_summary(),
+        BidTrickSurface::Export => {
+            export_for_viewer(state, effects, &viewer.as_viewer()).stable_summary()
+        }
+        BidTrickSurface::BotInput => viewer
+            .seat()
+            .map(|seat| bot_input_for(state, seat).stable_summary())
+            .unwrap_or_default(),
+        BidTrickSurface::BotRationale => viewer
+            .seat()
+            .and_then(|seat| {
+                VowTideL1Bot::new(Seed(20260621))
+                    .select_decision(state, seat)
+                    .ok()
+                    .map(|decision| decision.rationale)
+            })
+            .unwrap_or_default(),
+        BidTrickSurface::CandidateRendering => viewer
+            .seat()
+            .map(|seat| {
+                format!(
+                    "{:?}",
+                    legal_action_paths(&bot_input_for(state, seat).legal_action_tree)
+                )
+            })
+            .unwrap_or_default(),
+    }
+}
+
+fn hand_stock_expectation(
+    source: &VowTideSeat,
+    viewer: &MatrixViewer,
+    surface: &HandStockSurface,
+    canary: &HandStockCanary,
+) -> ExposureExpectation {
+    match canary {
+        HandStockCanary::Hand
+            if viewer.seat() == Some(*source)
+                && matches!(
+                    surface,
+                    HandStockSurface::View | HandStockSurface::ActionTree
+                ) =>
+        {
+            ExposureExpectation::MustBePresent
+        }
+        _ => ExposureExpectation::MustBeAbsent,
+    }
+}
+
+fn bid_trick_expectation(
+    source: &VowTideSeat,
+    viewer: &MatrixViewer,
+    surface: &BidTrickSurface,
+    canary: &BidTrickCanary,
+) -> ExposureExpectation {
+    match canary {
+        BidTrickCanary::PrivateHand
+            if viewer.seat() == Some(*source)
+                && matches!(
+                    surface,
+                    BidTrickSurface::View | BidTrickSurface::Export | BidTrickSurface::BotInput
+                ) =>
+        {
+            ExposureExpectation::MustBePresent
+        }
+        BidTrickCanary::PublicTrump
+            if matches!(
+                surface,
+                BidTrickSurface::View | BidTrickSurface::Export | BidTrickSurface::BotInput
+            ) && (viewer.seat().is_some() || *surface != BidTrickSurface::BotInput) =>
+        {
+            ExposureExpectation::MustBePresent
+        }
+        BidTrickCanary::PublicPlayed
+            if matches!(
+                surface,
+                BidTrickSurface::View | BidTrickSurface::Export | BidTrickSurface::BotInput
+            ) && (viewer.seat().is_some() || *surface != BidTrickSurface::BotInput) =>
+        {
+            ExposureExpectation::MustBePresent
+        }
+        _ => ExposureExpectation::MustBeAbsent,
+    }
+}
 
 #[test]
 fn exhaustive_seat_pair_no_leak_for_three_to_seven_players() {
@@ -54,6 +348,90 @@ fn exhaustive_seat_pair_no_leak_for_three_to_seven_players() {
                         source_seat.as_str()
                     );
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn shared_geometry_hand_and_stock_no_leak_for_three_to_seven_players() {
+    for seat_count in 3..=7 {
+        for source in VowTideSeat::ALL.into_iter().take(seat_count) {
+            let state = hand_stock_matrix_state(seat_count, source);
+            let hand_canary = state.hand_for_internal(source)[0].as_str();
+            let stock_canary = state.hidden_stock[0].as_str();
+            assert_pairwise_no_leak(
+                matrix_viewers(seat_count),
+                hand_stock_surfaces(),
+                [
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: HandStockCanary::Hand,
+                        canary: hand_canary,
+                    },
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: HandStockCanary::Stock,
+                        canary: stock_canary,
+                    },
+                ],
+                |viewer, surface| hand_stock_snapshot(&state, viewer, surface),
+                hand_stock_expectation,
+                |snapshot, canary| snapshot.contains(canary),
+            )
+            .unwrap_or_else(|failures| {
+                panic!(
+                    "Vow Tide hand/stock no-leak matrix count {seat_count} source {source:?}: {failures}"
+                )
+            });
+        }
+    }
+}
+
+#[test]
+fn bid_trick_export_and_bot_no_leak_matrix_covers_public_and_private_facts() {
+    for seat_count in 3..=7 {
+        for source in VowTideSeat::ALL.into_iter().take(seat_count) {
+            for case in [BidTrickCase::Bidding, BidTrickCase::Trick] {
+                let (state, effects) = bid_trick_matrix_state(seat_count, source, case);
+                let mut probes = vec![
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: BidTrickCanary::PrivateHand,
+                        canary: state.hand_for_internal(source)[0].as_str(),
+                    },
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: BidTrickCanary::Stock,
+                        canary: state.hidden_stock[0].as_str(),
+                    },
+                    LeakProbe {
+                        source_seat: source,
+                        canary_id: BidTrickCanary::PublicTrump,
+                        canary: state.trump_indicator.as_str(),
+                    },
+                ];
+                if case == BidTrickCase::Trick {
+                    probes.push(LeakProbe {
+                        source_seat: source,
+                        canary_id: BidTrickCanary::PublicPlayed,
+                        canary: public_play_canary().as_str(),
+                    });
+                }
+
+                assert_pairwise_no_leak(
+                    matrix_viewers(seat_count),
+                    bid_trick_surfaces(),
+                    probes,
+                    |viewer, surface| bid_trick_snapshot(&state, &effects, viewer, surface),
+                    bid_trick_expectation,
+                    |snapshot, canary| snapshot.contains(canary),
+                )
+                .unwrap_or_else(|failures| {
+                    panic!(
+                        "Vow Tide bid/trick/export/bot no-leak matrix count {seat_count} source {source:?} case {case:?}: {failures}"
+                    )
+                });
             }
         }
     }
@@ -131,4 +509,8 @@ fn install_canary_hands_and_stock(state: &mut vow_tide::state::VowTideState) {
     }
     state.trump_indicator = Card::new(Rank::Ace, Suit::Spades).id();
     state.hidden_stock = vec![Card::new(Rank::King, Suit::Clubs).id()];
+}
+
+fn public_play_canary() -> vow_tide::cards::CardId {
+    Card::new(Rank::Queen, Suit::Hearts).id()
 }

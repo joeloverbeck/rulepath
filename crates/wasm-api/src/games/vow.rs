@@ -1,8 +1,6 @@
 //! Browser-bridge helpers for `vow_tide`.
 
-use engine_core::{
-    ActionPath, Actor, CommandEnvelope, EffectEnvelope, RulesVersion, Seed, Viewer, VisibilityScope,
-};
+use engine_core::{ActionPath, Actor, CommandEnvelope, EffectEnvelope, RulesVersion, Seed, Viewer};
 use vow_tide::{
     actions::legal_action_tree as vow_legal_action_tree,
     bots::{VowTideL0Bot, VowTideL1Bot},
@@ -22,14 +20,12 @@ use crate::constants::*;
 use crate::json::{diagnostic_json, diagnostic_string, escape_json};
 use crate::json_parse::{string_field, validate_json_object};
 use crate::replay::{PublicTimelineReplay, PublicTimelineStep};
+use crate::seats::parse_vow_tide_seat;
 use crate::store::{next_replay_id, REPLAYS};
 use crate::{visibility_json, AppliedCommand, ReplayRecord};
 
 pub(crate) fn parse_vow_seat(value: &str) -> Result<VowTideSeat, String> {
-    VowTideSeat::ALL
-        .into_iter()
-        .find(|seat| seat.as_str() == value || value == format!("seat-{}", seat.index()))
-        .ok_or_else(|| diagnostic_string("unknown_seat", &format!("unknown seat: {value}")))
+    parse_vow_tide_seat(value)
 }
 
 pub(crate) fn trace_vow_seat(seat: VowTideSeat) -> &'static str {
@@ -86,7 +82,7 @@ pub(crate) fn vow_viewer_authorizes_actor(
 }
 
 pub(crate) fn create_vow_tide_match(seed: u64, seat_count: usize) -> Result<VowTideState, String> {
-    if !(3..=7).contains(&seat_count) {
+    if !vow_tide::ids::supported_seat_count(seat_count) {
         return Err(diagnostic_string(
             "unsupported_seat_count",
             "vow_tide requires 3, 4, 5, 6, or 7 seats",
@@ -151,13 +147,7 @@ pub(crate) fn vow_apply_command(
             ))
         }
     };
-    Ok(effects
-        .into_iter()
-        .map(|payload| EffectEnvelope {
-            visibility: VisibilityScope::Public,
-            payload,
-        })
-        .collect())
+    Ok(effects.into_iter().map(EffectEnvelope::public).collect())
 }
 
 pub(crate) fn vow_action_tree_json(
@@ -624,6 +614,34 @@ fn vow_effect_kind(effect: &VowTideEffect) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use engine_core::{SeatId, VisibilityScope};
+
+    #[test]
+    fn apply_command_wraps_vow_effects_as_public_envelopes() {
+        let mut state = create_vow_tide_match(20260624, 4).unwrap();
+        let effects = vow_apply_command(
+            &mut state,
+            VowTideSeat::Seat1,
+            ActionPath {
+                segments: vec![vow_tide::ids::ACTION_BID.to_owned(), "2".to_owned()],
+            },
+            0,
+        )
+        .expect("valid opening bid applies");
+
+        assert!(!effects.is_empty());
+        for effect in &effects {
+            assert!(matches!(effect.visibility, VisibilityScope::Public));
+        }
+        let logged_json = vow_effects_json(
+            &effects,
+            &Viewer {
+                seat_id: Some(SeatId(VowTideSeat::Seat1.as_str().to_owned())),
+            },
+        );
+        assert!(logged_json.contains("\"visibility\":\"public\""));
+        assert!(logged_json.contains("\"kind\":\"bid_accepted\""));
+    }
 
     #[test]
     fn projected_views_do_not_leak_other_hands_or_hidden_stock() {

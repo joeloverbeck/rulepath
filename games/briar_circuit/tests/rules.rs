@@ -110,10 +110,9 @@ fn setup_rejects_every_non_four_count_with_stable_diagnostic() {
             .expect_err("unsupported seat count rejects");
 
         assert_eq!(err.code, "BC_UNSUPPORTED_SEAT_COUNT");
-        assert!(
-            err.message.contains("requires exactly four seats"),
-            "unexpected diagnostic for count {count}: {}",
-            err.message
+        assert_eq!(
+            err.message,
+            format!("briar_circuit requires exactly four seats; received {count}")
         );
     }
 }

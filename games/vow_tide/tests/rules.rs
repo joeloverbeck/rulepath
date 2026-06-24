@@ -10,7 +10,7 @@ use vow_tide::{
     },
     rules::{apply_bid, apply_play},
     scoring::{resolve_completed_hand, score_current_hand},
-    setup::{setup_match, SetupOptions},
+    setup::{deal_order_after, setup_match, SetupOptions},
     state::Phase,
 };
 
@@ -54,7 +54,10 @@ fn setup_rejects_unsupported_seat_counts_with_stable_diagnostic() {
             setup_match(Seed(0), &seats, &options).expect_err("unsupported count is rejected");
 
         assert_eq!(diagnostic.code, "VT_INVALID_SEAT_COUNT");
-        assert!(diagnostic.message.contains(&seat_count.to_string()));
+        assert_eq!(
+            diagnostic.message,
+            format!("vow_tide supports 3 to 7 seats; received {seat_count}")
+        );
     }
 }
 
@@ -104,6 +107,31 @@ fn bidding_starts_left_of_dealer_and_advances_clockwise_to_dealer() {
     apply_bid_value(&mut state, VowTideSeat::Seat0, 0);
     assert!(matches!(state.phase, Phase::PlayingTrick(_)));
     assert_eq!(state.active_seat(), Some(VowTideSeat::Seat1));
+}
+
+#[test]
+fn ring_step_and_deal_order_wrap_across_supported_counts() {
+    for seat_count in STANDARD_MIN_SEATS as usize..=STANDARD_MAX_SEATS as usize {
+        for current_index in 0..seat_count {
+            let current = VowTideSeat::from_index(current_index).expect("seat in range");
+            let expected = VowTideSeat::from_index((current_index + 1) % seat_count)
+                .expect("next seat in range");
+
+            assert_eq!(current.next_clockwise(seat_count), expected);
+        }
+
+        for dealer_index in 0..seat_count {
+            let dealer = VowTideSeat::from_index(dealer_index).expect("dealer in range");
+            let expected = (1..=seat_count)
+                .map(|offset| {
+                    VowTideSeat::from_index((dealer_index + offset) % seat_count)
+                        .expect("deal-order seat in range")
+                })
+                .collect::<Vec<_>>();
+
+            assert_eq!(deal_order_after(dealer, seat_count), expected);
+        }
+    }
 }
 
 #[test]

@@ -1,4 +1,5 @@
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCountRange;
 
 use crate::{
     cards::{canonical_deck, CardId},
@@ -25,9 +26,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<BriarCircuitState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
-        return Err(invalid_seat_count_diagnostic(seats.len()));
-    }
+    validate_standard_seat_count(seats.len())?;
 
     let dealer = BriarCircuitSeat::Seat0;
     let deal = deal_for_hand(seed, dealer, 0)?;
@@ -64,6 +63,14 @@ pub fn deal_for_hand(
 ) -> Result<HandDeal, Diagnostic> {
     let mut rng = SeededRng::from_seed(seed_for_hand(match_seed, hand_index));
     deal_hand(&mut rng, dealer, hand_index)
+}
+
+pub fn validate_standard_seat_count(actual: usize) -> Result<(), Diagnostic> {
+    SeatCountRange::inclusive(STANDARD_SEAT_COUNT as usize, STANDARD_SEAT_COUNT as usize)
+        .expect("standard Briar seat count range is valid")
+        .validate(actual)
+        .map(|_| ())
+        .map_err(|_| invalid_seat_count_diagnostic(actual))
 }
 
 pub fn invalid_seat_count_diagnostic(actual: usize) -> Diagnostic {

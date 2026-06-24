@@ -167,10 +167,7 @@ pub fn effect_envelopes(effect: BriarCircuitEffect) -> Vec<EffectEnvelope<BriarC
                 received_cards,
             },
         ),
-        public => vec![EffectEnvelope {
-            visibility: VisibilityScope::Public,
-            payload: public,
-        }],
+        public => vec![EffectEnvelope::public(public)],
     }
 }
 
@@ -212,8 +209,8 @@ fn private_effect(
     seat: BriarCircuitSeat,
     payload: BriarCircuitEffect,
 ) -> Vec<EffectEnvelope<BriarCircuitEffect>> {
-    vec![EffectEnvelope {
-        visibility: VisibilityScope::PrivateToSeat(SeatId(seat.as_str().to_owned())),
+    vec![EffectEnvelope::private_to(
+        SeatId(seat.as_str().to_owned()),
         payload,
-    }]
+    )]
 }

@@ -1,6 +1,9 @@
 use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, SetupEvidenceV1Driver, PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SeatPrivateExportV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1,
+    PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1, SETUP_EVIDENCE_V1,
 };
 use river_ledger::{
     replay_support::{
@@ -25,6 +28,58 @@ const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
     "seat_grammar_version",
     "setup_options",
     "expected_setup",
+];
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
+
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
+];
+
+const SEAT_PRIVATE_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "viewer_seat",
+    "viewer_seat_version",
+    "export_steps",
+    "pairwise_no_leak",
 ];
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
@@ -87,6 +142,33 @@ fn hidden_ids(seed: u64, seat_count: usize) -> Vec<String> {
         .collect()
 }
 
+fn private_ids_by_seat(seed: u64, seat_count: usize) -> Vec<Vec<String>> {
+    let seats = (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect::<Vec<_>>();
+    let state =
+        setup_match(engine_core::Seed(seed), &seats, &SetupOptions::default()).expect("setup");
+    state
+        .private_hands_internal()
+        .iter()
+        .map(|hand| hand.iter().map(|card| card.id()).collect())
+        .collect()
+}
+
+fn future_ids(seed: u64, seat_count: usize) -> Vec<String> {
+    let seats = (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect::<Vec<_>>();
+    let state =
+        setup_match(engine_core::Seed(seed), &seats, &SetupOptions::default()).expect("setup");
+    state
+        .community_deck_internal()
+        .iter()
+        .chain(state.deck_tail_internal().iter())
+        .map(|card| card.id())
+        .collect()
+}
+
 fn read_golden_trace(file_name: &str) -> String {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/golden_traces")
@@ -104,6 +186,88 @@ fn expected_trace_id(file_name: &str) -> String {
     )
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum ExportViewer {
+    Observer,
+    Seat(usize),
+}
+
+impl ExportViewer {
+    fn as_viewer(self) -> Viewer {
+        match self {
+            ExportViewer::Observer => Viewer { seat_id: None },
+            ExportViewer::Seat(index) => Viewer {
+                seat_id: Some(SeatId(format!("seat_{index}"))),
+            },
+        }
+    }
+
+    const fn seat(self) -> Option<usize> {
+        match self {
+            ExportViewer::Observer => None,
+            ExportViewer::Seat(index) => Some(index),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum ExportSurface {
+    PublicReplayExport,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum ExportCanary {
+    PrivateHand,
+    FutureCard,
+}
+
+fn export_viewers(seat_count: usize) -> Vec<ExportViewer> {
+    let mut viewers = vec![ExportViewer::Observer];
+    viewers.extend((0..seat_count).map(ExportViewer::Seat));
+    viewers
+}
+
+fn export_probes(seed: u64, seat_count: usize) -> Vec<LeakProbe<usize, ExportCanary, String>> {
+    let mut probes = Vec::new();
+    for (source, private_ids) in private_ids_by_seat(seed, seat_count)
+        .into_iter()
+        .enumerate()
+    {
+        probes.push(LeakProbe {
+            source_seat: source,
+            canary_id: ExportCanary::PrivateHand,
+            canary: private_ids.first().cloned().expect("private card"),
+        });
+    }
+    probes.push(LeakProbe {
+        source_seat: 0,
+        canary_id: ExportCanary::FutureCard,
+        canary: future_ids(seed, seat_count)
+            .first()
+            .cloned()
+            .expect("future card"),
+    });
+    probes
+}
+
+fn export_expectation(
+    source: &usize,
+    viewer: &ExportViewer,
+    _surface: &ExportSurface,
+    canary: &ExportCanary,
+) -> ExposureExpectation {
+    match canary {
+        ExportCanary::FutureCard => ExposureExpectation::MustBeAbsent,
+        ExportCanary::PrivateHand => {
+            if viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+    }
+}
+
 fn setup_profile_artifact() -> ProfileArtifact<'static> {
     ProfileArtifact {
         metadata: ProfileMetadata {
@@ -115,6 +279,51 @@ fn setup_profile_artifact() -> ProfileArtifact<'static> {
             migration_update_note: Some("UNI8CMECSCA-024 virtual setup-evidence classification"),
         },
         fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-025 virtual replay-command profile"),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: PUBLIC_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-026 virtual public-export profile"),
+        },
+        fields: PUBLIC_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn seat_private_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SEAT_PRIVATE_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("seat-private"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-027 virtual seat-private-export profile"),
+        },
+        fields: SEAT_PRIVATE_EXPORT_PROFILE_FIELDS,
         canonical_byte_claim: false,
     }
 }
@@ -219,6 +428,272 @@ fn setup_evidence_v1_driver_validates_standard_3p_setup_fixture() {
             assert_standard_3p_setup_fixture(setup_fixture)
         })
         .expect("setup-evidence-v1 driver accepts River setup fixture");
+}
+
+#[test]
+fn replay_command_v1_driver_validates_river_internal_command_traces() {
+    let trace = trace_from_commands(21, 4, FOUR_PLAYER_CHECKDOWN);
+    let result = replay_internal_full_trace(&trace);
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact();
+
+    let delegated = driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+            assert_eq!(report.visibility_class, "internal-dev");
+            assert_eq!(
+                result.trace_hash,
+                replay_internal_full_trace(&trace).trace_hash
+            );
+            format!("{}:river-ledger", report.profile_id)
+        })
+        .expect("replay-command-v1 driver accepts River internal trace adapter");
+
+    assert_eq!(delegated, "replay-command-v1:river-ledger");
+
+    for file_name in [
+        "all-all-in-runout.trace.json",
+        "three-way-main-two-side-pots.trace.json",
+        "seat-private-multipot-no-leak.trace.json",
+    ] {
+        let contents = read_golden_trace(file_name);
+        assert!(
+            !contents.contains("\"profile_id\""),
+            "{file_name} must not be rewritten with profile metadata"
+        );
+        assert!(
+            !contents.contains("\"canonical_byte_authority\""),
+            "{file_name} must keep legacy replay trace bytes authoritative"
+        );
+        driver
+            .validate_with(&profile, |_| {
+                assert!(contents.contains("\"schema_version\": 1"));
+                assert!(contents.contains("\"rules_version\""));
+            })
+            .expect("virtual replay-command profile validates selected golden trace");
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_rejects_wrong_metadata_without_reading_commands() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let valid = replay_command_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid.clone();
+    unknown_field.fields = &["profile_id", "commands", "procedural_setup"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+
+    let mut byte_claim = valid;
+    byte_claim.canonical_byte_claim = true;
+    assert_eq!(
+        driver
+            .validate(&byte_claim)
+            .expect_err("canonical byte claim")
+            .kind,
+        ProfileValidationErrorKind::IllegalCanonicalByteClaim
+    );
+}
+
+#[test]
+fn public_export_v1_driver_validates_observer_round_trip_and_no_leak() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let profile = public_export_profile_artifact();
+    let cases = [
+        (
+            "public-replay-export-import.trace.json",
+            trace_from_commands(21, 4, &[(3, "call"), (0, "call")]),
+            21,
+            4,
+        ),
+        (
+            "three-way-main-two-side-pots.trace.json",
+            trace_from_commands(1521, 3, &[]),
+            1521,
+            3,
+        ),
+    ];
+
+    for (file_name, trace, seed, seat_count) in cases {
+        let fixture = read_golden_trace(file_name);
+        assert!(
+            !fixture.contains("\"profile_id\""),
+            "{file_name} must not embed public-export profile metadata"
+        );
+        let delegated_hash = driver
+            .validate_with(&profile, |report| {
+                assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+                assert_eq!(report.visibility_class, "public");
+
+                let export = export_public_replay(&trace, &Viewer { seat_id: None });
+                let imported = import_public_export(&export);
+                assert_eq!(imported.viewer, "observer");
+                assert_eq!(imported.steps, export.steps);
+
+                let json = export.to_json();
+                for hidden in hidden_ids(seed, seat_count) {
+                    assert!(!json.contains(&hidden), "{file_name} leaked {hidden}");
+                }
+                assert!(!json.contains("seed_evidence"));
+                assert!(!json.contains("\"seed\""));
+                export.stable_hash()
+            })
+            .expect("public-export-v1 driver accepts River observer export adapter");
+
+        assert_eq!(
+            delegated_hash,
+            export_public_replay(&trace, &Viewer { seat_id: None }).stable_hash()
+        );
+    }
+}
+
+#[test]
+fn public_export_v1_driver_rejects_wrong_metadata() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let valid = public_export_profile_artifact();
+
+    let mut wrong_owner = valid.clone();
+    wrong_owner.metadata.validator_owner = "replay-check";
+    assert_eq!(
+        driver.validate(&wrong_owner).expect_err("wrong owner").kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("seat-private");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "viewer_seat"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn seat_private_export_v1_driver_validates_all_viewers_and_no_leak() {
+    let driver = SeatPrivateExportV1Driver::new("wasm-export");
+    let profile = seat_private_export_profile_artifact();
+
+    for seat_count in 3..=6 {
+        let seed = 2100 + seat_count as u64;
+        let trace = trace_from_commands(seed, seat_count, &[]);
+        for viewer_index in 0..seat_count {
+            driver
+                .validate_with(&profile, |report| {
+                    assert_eq!(report.profile_id, SEAT_PRIVATE_EXPORT_V1);
+                    assert_eq!(report.visibility_class, "seat-private");
+                    let viewer = ExportViewer::Seat(viewer_index);
+                    let export = export_public_replay(&trace, &viewer.as_viewer());
+                    let imported = import_public_export(&export);
+                    assert_eq!(imported.viewer, format!("seat_{viewer_index}"));
+                    assert_eq!(imported.steps, export.steps);
+                })
+                .expect("seat-private-export-v1 driver accepts River viewer export adapter");
+        }
+
+        assert_pairwise_no_leak(
+            export_viewers(seat_count),
+            [ExportSurface::PublicReplayExport],
+            export_probes(seed, seat_count),
+            |viewer, _surface| export_public_replay(&trace, &viewer.as_viewer()).to_json(),
+            export_expectation,
+            |snapshot, canary| snapshot.contains(canary),
+        )
+        .unwrap_or_else(|failures| {
+            panic!("River Ledger seat-private export profile count {seat_count}: {failures}")
+        });
+    }
+
+    let multipot_trace = trace_from_commands(1521, 3, &[]);
+    let fixture = read_golden_trace("seat-private-multipot-no-leak.trace.json");
+    assert!(!fixture.contains("\"profile_id\""));
+    driver
+        .validate_with(&profile, |_| {
+            assert_pairwise_no_leak(
+                export_viewers(3),
+                [ExportSurface::PublicReplayExport],
+                export_probes(1521, 3),
+                |viewer, _surface| {
+                    export_public_replay(&multipot_trace, &viewer.as_viewer()).to_json()
+                },
+                export_expectation,
+                |snapshot, canary| snapshot.contains(canary),
+            )
+            .expect("multipot seat-private export stays viewer scoped");
+        })
+        .expect("seat-private-export-v1 driver accepts multipot adapter");
+}
+
+#[test]
+fn seat_private_export_v1_driver_rejects_wrong_metadata() {
+    let driver = SeatPrivateExportV1Driver::new("wasm-export");
+    let valid = seat_private_export_profile_artifact();
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("public");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut missing_visibility = valid.clone();
+    missing_visibility.metadata.visibility_class = None;
+    assert_eq!(
+        driver
+            .validate(&missing_visibility)
+            .expect_err("missing visibility")
+            .kind,
+        ProfileValidationErrorKind::MissingVisibility
+    );
+
+    let mut byte_claim = valid;
+    byte_claim.canonical_byte_claim = true;
+    assert_eq!(
+        driver
+            .validate(&byte_claim)
+            .expect_err("canonical byte claim")
+            .kind,
+        ProfileValidationErrorKind::IllegalCanonicalByteClaim
+    );
 }
 
 #[test]
@@ -387,6 +862,71 @@ fn observer_public_export_omits_hidden_facts_and_seed() {
     }
     assert!(!json.contains("seed_evidence"));
     assert!(!json.contains("\"seed\""));
+}
+
+#[test]
+fn runout_and_multipot_exports_hide_future_and_cross_seat_cards() {
+    let cases = [
+        (
+            "all-all-in-runout.trace.json",
+            1528,
+            3,
+            vec![(0, "raise"), (1, "call")],
+        ),
+        (
+            "three-way-main-two-side-pots.trace.json",
+            1521,
+            3,
+            Vec::new(),
+        ),
+        (
+            "uncalled-return.trace.json",
+            1523,
+            3,
+            vec![(0, "raise"), (1, "call")],
+        ),
+        (
+            "public-observer-multipot-no-leak.trace.json",
+            1530,
+            3,
+            Vec::new(),
+        ),
+        (
+            "seat-private-multipot-no-leak.trace.json",
+            1530,
+            3,
+            Vec::new(),
+        ),
+    ];
+
+    for (file_name, seed, seat_count, commands) in cases {
+        let fixture = read_golden_trace(file_name);
+        assert!(fixture.contains(&format!(
+            "\"trace_id\": \"{}\"",
+            expected_trace_id(file_name)
+        )));
+        let trace = trace_from_commands(seed, seat_count, &commands);
+
+        assert_pairwise_no_leak(
+            export_viewers(seat_count),
+            [ExportSurface::PublicReplayExport],
+            export_probes(seed, seat_count),
+            |viewer, _surface| export_public_replay(&trace, &viewer.as_viewer()).to_json(),
+            export_expectation,
+            |snapshot, canary| snapshot.contains(canary),
+        )
+        .unwrap_or_else(|failures| {
+            panic!("{file_name} River Ledger export no-leak matrix: {failures}")
+        });
+
+        let observer_json = export_public_replay(&trace, &Viewer { seat_id: None }).to_json();
+        assert!(
+            observer_json.contains("pot")
+                || observer_json.contains("setup")
+                || observer_json.contains("showdown"),
+            "{file_name} keeps public accounting/export steps visible"
+        );
+    }
 }
 
 #[test]

@@ -19,6 +19,7 @@ const expectedTicketRange = args["expected-ticket-range"];
 const expectedTicketList = args["expected-ticket-list"];
 const ledgerFormat = args["ledger-format"];
 const referenceOnly = args["reference-only"] === true;
+const summary = args.summary === true;
 
 if (!prefix && !referenceOnly) {
   printUsage(console.error);
@@ -68,10 +69,12 @@ function printUsage(write = console.log) {
       "[--expected-count N] " +
       "[--expected-ticket-list FILE] " +
       "[--expected-ticket-range PREFIX-001..020] " +
+      "[--summary] " +
       "[--ledger-format compact]\n" +
       "       audit-series-closeout.mjs --reference-only " +
       "[--active-reference specs/name.md] " +
-      "--archived-reference archive/specs/name.md",
+      "--archived-reference archive/specs/name.md " +
+      "[--summary]",
   );
 }
 
@@ -82,7 +85,7 @@ function run(cmd, cmdArgs, options = {}) {
     encoding: "utf8",
     shell: false,
   });
-  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stdout && !options.quietStdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   if (!options.allowExitCodes?.includes(result.status ?? 0) && result.status !== 0) {
     fail(`${cmd} exited ${result.status}`);
@@ -112,7 +115,7 @@ function reportStatusOutcome(file) {
   const lines = readLines(file);
   if (!lines) {
     fail(`${file} is missing`);
-    return;
+    return false;
   }
 
   const matches = [];
@@ -134,24 +137,28 @@ function reportStatusOutcome(file) {
   });
   if (matches.length === 0) {
     fail(`${file} has no status or outcome lines`);
-  } else {
+  } else if (!summary) {
     console.log(matches.join("\n"));
   }
   if (!hasValidStatus) fail(`${file} has no valid archival status line`);
   if (!hasOutcome) fail(`${file} has no ## Outcome`);
   if (informal) fail(`${file} contains informal status syntax`);
+  const ok = matches.length > 0 && hasValidStatus && hasOutcome && !informal;
+  if (!ok && summary && matches.length > 0) console.log(matches.join("\n"));
+  return ok;
 }
 
 function reportArchivedReference(file) {
   const lines = readLines(file);
   if (!lines) {
     fail(`${file} is missing`);
-    return;
+    return false;
   }
 
   const validStatus = /^\*\*Status\*\*: .*?(COMPLETED|REJECTED|DEFERRED|NOT IMPLEMENTED)$|^\| Status \| `?Done`? \|/;
   const informalStatus = /^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*/;
   const boldSpecStatus = /^\| \*\*Status\*\* \| `?Done`? \|/;
+  const matches = [];
   let hasValidStatus = false;
   let hasOutcome = false;
   let informal = false;
@@ -159,7 +166,7 @@ function reportArchivedReference(file) {
 
   lines.forEach((line, index) => {
     if (validStatus.test(line) || /^## Outcome/.test(line)) {
-      console.log(`${file}:${index + 1}:${line}`);
+      matches.push(`${file}:${index + 1}:${line}`);
     }
     if (validStatus.test(line)) hasValidStatus = true;
     if (/^## Outcome/.test(line)) hasOutcome = true;
@@ -173,6 +180,7 @@ function reportArchivedReference(file) {
     }
   });
 
+  if (!summary && matches.length > 0) console.log(matches.join("\n"));
   if (!hasValidStatus) fail(`${file} has no valid archival status line`);
   if (!hasOutcome) fail(`${file} has no ## Outcome`);
   if (informal) fail(`${file} contains informal status syntax`);
@@ -181,11 +189,20 @@ function reportArchivedReference(file) {
       `${file} uses a bolded spec status label; use exact row: | Status | \`Done\` |`,
     );
   }
+  const referenceOk = hasValidStatus && hasOutcome && !informal && !nearMiss;
+  if (summary) {
+    if (referenceOk) {
+      ok(`archived reference status/outcome present for ${file}`);
+    } else if (matches.length > 0) {
+      console.log(matches.join("\n"));
+    }
+  }
+  return referenceOk;
 }
 
 function parseArgs(argv) {
   const parsed = {};
-  const flagArgs = new Set(["reference-only"]);
+  const flagArgs = new Set(["reference-only", "summary"]);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (!arg.startsWith("--")) {
@@ -265,7 +282,12 @@ if (!referenceOnly) {
 
   section("Archived Tickets");
   const archivedTickets = listArchivedTickets();
-  archivedTickets.forEach((file) => console.log(file));
+  if (summary && archivedTickets.length > 0) {
+    console.log(`first=${archivedTickets[0]}`);
+    console.log(`last=${archivedTickets[archivedTickets.length - 1]}`);
+  } else {
+    archivedTickets.forEach((file) => console.log(file));
+  }
   console.log(`count=${archivedTickets.length}`);
   if (archivedTickets.length === 0) fail(`no archived tickets found for ${prefix}`);
   if (expectedCount !== undefined) {
@@ -291,7 +313,10 @@ if (!referenceOnly) {
   }
 
   section("Archived Ticket Status And Outcome");
-  archivedTickets.forEach(reportStatusOutcome);
+  const validArchivedTicketCount = archivedTickets.filter(reportStatusOutcome).length;
+  if (summary && archivedTickets.length > 0 && validArchivedTicketCount === archivedTickets.length) {
+    ok(`${validArchivedTicketCount}/${archivedTickets.length} archived tickets have valid status/outcome`);
+  }
 }
 
 section("Reference Paths");
@@ -318,9 +343,10 @@ if (livePatterns.length > 0) {
   const staleSweep = run(
     "rg",
     ["-n", "-P", livePatterns.join("|"), "specs", "tickets", "docs", "apps", "games", "scripts"],
-    { allowExitCodes: [0, 1, 2] },
+    { allowExitCodes: [0, 1, 2], quietStdout: summary },
   );
   if (staleSweep.status === 0) fail("stale live-path references were found");
+  if (summary && staleSweep.stdout) process.stdout.write(staleSweep.stdout);
 } else {
   console.log("SKIP: no --active-reference or --ticket-prefix provided");
 }
@@ -329,11 +355,15 @@ if (!referenceOnly) {
   section("Archive Reference Sweep");
   const archivePatterns = [`archive/tickets/${escapeRegex(prefix)}`];
   if (archivedReference) archivePatterns.push(escapeRegex(archivedReference));
-  run(
+  const archiveSweep = run(
     "rg",
     ["-n", "-P", archivePatterns.join("|"), "specs", "docs", "apps", "games", "scripts"],
-    { allowExitCodes: [0, 1, 2] },
+    { allowExitCodes: [0, 1, 2], quietStdout: summary },
   );
+  if (summary) {
+    const count = (archiveSweep.stdout ?? "").trim().split(/\r?\n/).filter(Boolean).length;
+    console.log(`matches=${count}`);
+  }
 
   section("Commit Ledger");
   const commitLedger = run("git", ["log", "--oneline", `--grep=${prefix}`, "--all"], {

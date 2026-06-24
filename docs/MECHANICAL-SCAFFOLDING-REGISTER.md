@@ -147,6 +147,16 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `event_frontier` | public effect-envelope constructor | migrated | `archive/tickets/8CR3PUBCOOASY-105.md`; characterization report | event/edict/operation/reckoning effect payloads and visibility unchanged | restore local literal constructor | C-11 effect-surface migration |
 | R3 non-Plain games | private effect constructor | not applicable | characterization report C-01 private N/A rows | no local private-effect constructor exists; no synthetic private class added | no R3 change to roll back | first real private-effect constructor in those games |
 
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | public and seat-private effect-envelope constructors | already discharged by Unit 8C pilot | Unit 8C C-01 pilot receipts above; characterization report | no R4 byte/hash/visibility change | N/A | C-11 game audit if River effect surfaces expand |
+| `briar_circuit` | public effect-envelope constructor | migrated | `archive/tickets/8CR4NSEAPRITRI-002.md`; characterization report | public effect payloads, ordering, scopes, and hashes unchanged | restore local public literal | C-11 effect-surface migration |
+| `briar_circuit` | seat-private effect-envelope constructor | migrated | `archive/tickets/8CR4NSEAPRITRI-003.md`; characterization report | owner scopes, pass-reveal payloads, visibility, and hashes unchanged | restore local private literal | C-11 private-effect migration |
+| `vow_tide` | public effect-envelope constructor | migrated | `archive/tickets/8CR4NSEAPRITRI-004.md`; characterization report | public Vow WASM effect envelope output unchanged; no private effect class added | restore local public literal map | C-11 effect-surface migration |
+| `vow_tide` | private effect-envelope constructor | not applicable | characterization report C-01 private N/A row | Vow private facts remain in views/exports, not effects; no visibility/hash change | no R4 code rollback | first intentional Vow private effect class |
+
 ### MSC-8C-002 - Canonical seat-ID grammar plus import aliases
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-02.
@@ -221,6 +231,19 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `plain_tricks` | typed strict canonical parser | migrated | `archive/tickets/8CR3PUBCOOASY-201.md`; characterization report | canonical seats accepted and malformed/out-of-range labels rejected; trace/export visibility unchanged | restore local parser branch | C-11 native seat-surface migration |
 | R3 WASM/import boundary | legacy import aliases for Plain, Flood, Frontier, and Event | accepted exception | `archive/tickets/8CR3PUBCOOASY-202.md`; characterization report | aliases remain import-only/read-compatibility; no TypeScript normalization or output authority change | remove adapter exception only under named seat-string migration | named ADR-0009 seat-string migration |
 
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | game parser/formatter/roster | already discharged by Unit 8C pilot | `archive/tickets/UNI8CMECSCA-009.md`; characterization report | no R4 seat byte/hash/visibility change | N/A | named native replay/trace or seat-surface migration |
+| `briar_circuit` | typed strict canonical parser | migrated | `archive/tickets/8CR4NSEAPRITRI-005.md`; characterization report | canonical seats accepted and malformed/out-of-range labels rejected; replay/export visibility unchanged | restore local parser branch | C-11 native seat-surface migration |
+| `briar_circuit` | canonical roster/formatter | migrated | `archive/tickets/8CR4NSEAPRITRI-006.md`; characterization report | output-only helper formats caller-owned seats; no visibility authority | restore local formatting | next WASM/export seat-surface migration |
+| `briar_circuit` | WASM import legacy aliases | migrated | `archive/tickets/8CR4NSEAPRITRI-007.md`; characterization report | aliases remain import-only/read-compatibility; no TypeScript normalization | restore local import branch | named ADR-0009 seat-string migration |
+| `vow_tide` | typed strict canonical parser | migrated | `archive/tickets/8CR4NSEAPRITRI-008.md`; characterization report | canonical seats accepted and malformed/out-of-range labels rejected; replay/export visibility unchanged | restore local parser branch | C-11 native seat-surface migration |
+| `vow_tide` | canonical roster/formatter | migrated | `archive/tickets/8CR4NSEAPRITRI-009.md`; characterization report | output-only helper formats caller-owned seats for 3-7 seats; no visibility authority | restore local formatting | next WASM/export seat-surface migration |
+| `vow_tide` | WASM import legacy aliases | migrated | `archive/tickets/8CR4NSEAPRITRI-010.md`; characterization report | aliases remain import-only/read-compatibility; no TypeScript normalization | restore local import branch | named ADR-0009 seat-string migration |
+| R4 wave | non-seat IDs | not applicable | characterization report N/A ledger | card, trick, pot, contract, and hand identifiers remain game-owned | no R4 code rollback | first proposal to route non-seat IDs through a seat helper |
+
 ### MSC-8C-003 - Seat-count validation and ring-index arithmetic
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-03.
@@ -285,6 +308,18 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `frontier_control` | roster and variant seat-count predicates | migrated | `archive/tickets/8CR3PUBCOOASY-305.md`; `archive/tickets/8CR3PUBCOOASY-306.md`; characterization report | diagnostics, graph/faction setup, replay, fixture, and visibility unchanged | restore local predicates | C-11 setup-surface migration |
 | `event_frontier` | roster, variant seat-count, and faction-order predicates | migrated / exception | `archive/tickets/8CR3PUBCOOASY-307.md`; `archive/tickets/8CR3PUBCOOASY-308.md`; characterization report | count diagnostics unchanged; Charter/Freeholders order remains game-owned | restore local predicates | C-11 setup-surface migration or faction-order review |
 | R3 wave | range/ring helpers and unowned faction/role policy | not applicable / exception | characterization report C-03 matrix | no game admits range or ring migration; rotation/order policy stays local | no R3 change to roll back | first true range/ring helper use or explicit faction/role order migration |
+
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | 3-6 range and ring index | already discharged by Unit 8C pilot | `archive/tickets/UNI8CMECSCA-011.md`; characterization report | no R4 setup/replay/visibility change | N/A | C-11 setup-surface migration if River topology expands |
+| `river_ledger` | stack-vector cardinality | not applicable | characterization report C-03 N/A row | resource vector cardinality remains River setup policy | no R4 code rollback | first behavior-free cardinality helper proposal |
+| `briar_circuit` | exact-four setup admission | migrated | `archive/tickets/8CR4NSEAPRITRI-011.md`; characterization report | setup diagnostic, replay, fixture, and visibility unchanged | restore local length comparison | C-11 setup-surface migration |
+| `briar_circuit` | pass/dealer topology | accepted exception | characterization report C-03 exception row | ring arithmetic call preserves Briar pass/deal semantics; no helper owns topology | restore local topology arithmetic if parity fails | named pass/dealer topology migration |
+| `vow_tide` | 3-7 range admission | migrated | `archive/tickets/8CR4NSEAPRITRI-012.md`; characterization report | setup diagnostics, schedule, replay, fixture, and visibility unchanged | restore local range predicate | C-11 setup-surface migration |
+| `vow_tide` | checked ring step | migrated | `archive/tickets/8CR4NSEAPRITRI-013.md`; characterization report | dealer rotation and deal order unchanged; helper supplies checked arithmetic only | restore local modulo step | C-11 ring/topology migration |
+| `vow_tide` | hand schedule/deal capacity | accepted exception | characterization report C-03 exception row | schedule/deal capacity remains Vow game policy | no R4 code rollback | separately reviewed behavior-free schedule/deal proposal |
 
 ### MSC-8C-004 - Action-tree encoding/hash v1
 
@@ -352,6 +387,14 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `flood_watch` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR3PUBCOOASY-402.md`; characterization report | v1 bytes/hash added as parallel surface; budget/forecast legality and hidden deck unchanged | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
 | `frontier_control` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR3PUBCOOASY-403.md`; characterization report | v1 bytes/hash added as parallel surface; graph legality and public visibility unchanged | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
 | `event_frontier` | action-tree v1 wrappers/hash | migrated | `archive/tickets/8CR3PUBCOOASY-404.md`; characterization report | v1 bytes/hash added as parallel surface; event/operation legality and hidden deeper deck unchanged | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | action-tree v1 adapter, base and richer all-in vectors | migrated | `archive/tickets/8CR4NSEAPRITRI-014.md`; `archive/tickets/8CR4NSEAPRITRI-015.md`; characterization report | v1 bytes/hash added as parallel surface; River command legality, all-in metadata, and legacy hash authority unchanged | remove v1 wrappers/tests | future authority flip with ADR-0009 packet |
+| `briar_circuit` | typed action-tree adapter and v1 vectors | migrated | `archive/tickets/8CR4NSEAPRITRI-016.md`; `archive/tickets/8CR4NSEAPRITRI-017.md`; characterization report | v1 bytes/hash added as parallel surface; browser parity, pass/play legality, and legacy hashes unchanged | remove typed/v1 adapter tests | future authority flip with ADR-0009 packet |
+| `vow_tide` | action-tree v1 vectors for bid/play and 3-7 seats | migrated | `archive/tickets/8CR4NSEAPRITRI-018.md`; characterization report | v1 bytes/hash added as parallel surface; bid/play legality and legacy Debug-derived hashes unchanged | remove v1 wrapper/tests | future authority flip with ADR-0009 packet |
 
 ### MSC-8C-005 - Stable-byte writer v1
 
@@ -423,6 +466,13 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | R3 action-tree v1 surfaces | StableBytesWriter use via `action_tree_v1_bytes` | migrated | `archive/tickets/8CR3PUBCOOASY-401.md`...`archive/tickets/8CR3PUBCOOASY-404.md`; characterization report | v1 parallel bytes/hashes added; legacy hash authorities and adjacent replay/export bytes unchanged | remove v1 wrappers/tests | future named stable-byte surface migration |
 | R3 adjacent legacy surfaces | replay/export/fixture/domain bytes outside v1 action-tree | accepted exception | characterization report C-05 matrix | existing byte authorities remain game-owned and unchanged | no code rollback; exception-only receipt | named ADR-0009 stable-byte migration |
 
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| R4 action-tree v1 surfaces | StableBytesWriter use via `action_tree_v1_encoding` / typed action-tree adapters | migrated | `archive/tickets/8CR4NSEAPRITRI-014.md`...`archive/tickets/8CR4NSEAPRITRI-018.md`; characterization report | v1 parallel bytes/hashes added only; no legacy action-tree/debug authority changed | remove v1 wrappers/tests | future named stable-byte surface migration |
+| R4 adjacent state/effect/view/replay/export/diagnostic surfaces | stable-byte authority outside selected action-tree v1 | accepted exception / not applicable by surface | characterization report C-05 exception ledger; `archive/tickets/8CR4NSEAPRITRI-036.md` | state, effect, public/seat-private view, replay command, public/seat-private export, fixture, and diagnostic bytes remain game-owned and unchanged unless a ticket already named a parallel profile adapter | no code rollback; exception-only receipt | dedicated ADR-0009 stable-byte migration per surface |
+
 ### MSC-8C-006 - Dev-only game test-support crate
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-06.
@@ -484,6 +534,15 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `frontier_control` | dev-only `game-test-support` edge | migrated | `archive/tickets/8CR3PUBCOOASY-503.md`; characterization report | dev/test-only dependency; production dependency graph unchanged | remove dev-dependency and tests using it | next dev-only profile/no-leak surface |
 | `event_frontier` | dev-only `game-test-support` edge | migrated | `archive/tickets/8CR3PUBCOOASY-504.md`; characterization report | dev/test-only dependency; production dependency graph unchanged | remove dev-dependency and tests using it | next dev-only profile/no-leak surface |
 | Workspace | production inverse-edge proof | migrated | characterization report; `cargo tree --workspace -e normal --invert game-test-support` | `game-test-support` remains absent from normal dependency graph | remove offending normal dependency | every dependency edit touching game-test-support |
+
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | existing `game-test-support` dev-only edge | retained pilot dependency | `archive/tickets/UNI8CMECSCA-021.md`; characterization report | dev/test-only dependency; production/build dependency graph unchanged | remove dev dependency and tests if no longer used | next dev-only profile/no-leak surface |
+| `briar_circuit` | existing `game-test-support` dev-only edge | retained pilot dependency | `archive/tickets/UNI8CMECSCA-026.md`; characterization report | dev/test-only dependency; production/build dependency graph unchanged | remove dev dependency and tests if no longer used | next dev-only profile/no-leak surface |
+| `vow_tide` | existing `game-test-support` dev-only edge | retained pilot dependency | `archive/tickets/UNI8CMECSCA-025.md`; characterization report | dev/test-only dependency; production/build dependency graph unchanged | remove dev dependency and tests if no longer used | next dev-only profile/no-leak surface |
+| Workspace | production/build reverse dependency proof | accepted proof: no production/build path | `archive/tickets/8CR4NSEAPRITRI-036.md`; characterization report | inverse tree checks and boundary check confirm no runtime or build edge to `game-test-support` | remove offending normal/build dependency if detected | every profile/no-leak adoption and final closeout |
 
 ### MSC-8C-007 - Pairwise no-leak assertion geometry
 
@@ -549,6 +608,15 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `frontier_control` | C-07 N/A equality receipt | not applicable | `archive/tickets/8CR3PUBCOOASY-513.md`; characterization report | no hidden source; observer and seat projections remain equivalent | remove N/A receipt test only | first real hidden/private source |
 | `event_frontier` | hidden deeper-deck no-leak matrix | migrated | `archive/tickets/8CR3PUBCOOASY-514.md`; characterization report | current/next/history visibility unchanged; deeper deck absent from public/export/bot surfaces | remove no-leak tests only | next hidden deeper-deck surface |
 | R3 wave | canary hygiene | migrated | characterization report C-07 canary proof | in-memory canaries only; no persistent artificial secret tokens | remove offending persistent canary | every no-leak test addition |
+
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | residual all-in lifecycle and export no-leak matrices | migrated | `archive/tickets/8CR4NSEAPRITRI-019.md`; `archive/tickets/8CR4NSEAPRITRI-020.md`; characterization report | stack/pot/multipot lifecycle and export surfaces keep hidden cards absent from unauthorized viewers | remove residual matrix tests only | next River hidden-info/accounting surface |
+| `briar_circuit` | pass and play no-leak matrices | migrated | `archive/tickets/8CR4NSEAPRITRI-021.md`; `archive/tickets/8CR4NSEAPRITRI-022.md`; characterization report | private hands/pass selections/trick reveal timing remain scoped; no persistent canary artifacts | remove matrix tests only | next Briar private/trick visibility surface |
+| `vow_tide` | hand/stock and bid/trick no-leak matrices | migrated | `archive/tickets/8CR4NSEAPRITRI-023.md`; `archive/tickets/8CR4NSEAPRITRI-024.md`; characterization report | private hands, hidden stock, bids/tricks, exports, and bots remain scoped across 3-7 seats | remove matrix tests only | next Vow private/trick visibility surface |
+| R4 wave | canary hygiene | accepted proof | characterization report C-07 checkpoint | in-memory canaries only; no trace, fixture, export, DOM, storage, log, snapshot, or test identifier leak | remove offending persistent canary | every no-leak test addition |
 
 ### MSC-8C-008 - Evidence-profile drivers
 
@@ -655,6 +723,14 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `frontier_control` | replay/setup/domain/public-export profiles; seat-private N/A | migrated / not applicable | `archive/tickets/8CR3PUBCOOASY-603.md`; `archive/tickets/8CR3PUBCOOASY-613.md`; `archive/tickets/8CR3PUBCOOASY-623.md`; `archive/tickets/8CR3PUBCOOASY-633.md`; characterization report | wrappers are dev-only; fully public exporter unchanged; no private timeline exists | remove profile wrappers; no N/A code rollback | next profile adoption or real private timeline |
 | `event_frontier` | replay/setup/domain/public-export profiles; seat-private N/A | migrated / not applicable | `archive/tickets/8CR3PUBCOOASY-604.md`; `archive/tickets/8CR3PUBCOOASY-614.md`; `archive/tickets/8CR3PUBCOOASY-624.md`; `archive/tickets/8CR3PUBCOOASY-634.md`; characterization report | wrappers are dev-only; hidden deeper deck remains absent from public export; no per-seat private timeline exists | remove profile wrappers; no N/A code rollback | next profile adoption or real seat-private export |
 
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | replay/public-export/seat-private/domain profiles; setup pilot credit | migrated / already discharged | `archive/tickets/8CR4NSEAPRITRI-025.md`; `archive/tickets/8CR4NSEAPRITRI-026.md`; `archive/tickets/8CR4NSEAPRITRI-027.md`; `archive/tickets/8CR4NSEAPRITRI-028.md`; `archive/tickets/UNI8CMECSCA-024.md`; characterization report | wrappers are dev-only; command/export/domain behavior delegates to River; golden/fixture bytes unchanged | remove profile wrapper tests only | next River profile adoption |
+| `briar_circuit` | replay/setup/public-export/seat-private profiles; domain pilot credit | migrated / already discharged | `archive/tickets/8CR4NSEAPRITRI-029.md`; `archive/tickets/8CR4NSEAPRITRI-030.md`; `archive/tickets/8CR4NSEAPRITRI-031.md`; `archive/tickets/8CR4NSEAPRITRI-032.md`; `archive/tickets/UNI8CMECSCA-026.md`; characterization report | wrappers are dev-only; setup/export/replay behavior delegates to Briar; golden/fixture bytes unchanged | remove profile wrapper tests only | next Briar profile adoption |
+| `vow_tide` | replay/setup/domain profiles; public/seat-private export pilot credit | migrated / already discharged | `archive/tickets/8CR4NSEAPRITRI-033.md`; `archive/tickets/8CR4NSEAPRITRI-034.md`; `archive/tickets/8CR4NSEAPRITRI-035.md`; `archive/tickets/UNI8CMECSCA-025.md`; characterization report | wrappers are dev-only; bid/play/setup/domain behavior delegates to Vow; golden/fixture bytes unchanged | remove profile wrapper tests only | next Vow profile adoption |
+
 ### MSC-8C-009 - Versioned bounded-index sampling
 
 - Entry id: 2026-06-22, status `accepted`, owner Unit 8C / C-09.
@@ -714,6 +790,14 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `event_frontier` | epoch shuffle and non-Reckoning swap bounded-index sampler | migrated | `archive/tickets/8CR3PUBCOOASY-703.md`; characterization report | fixed words, rejection counts, per-epoch order, current/next/deeper-tail privacy, replay, export, fixture, and visibility unchanged | restore local helper and setup call sites | future explicit RNG migration |
 | `frontier_control` | bounded-index sampler | not applicable | characterization report C-09 matrix | setup is RNG-free; no RNG/hash/visibility change | no R3 change to roll back | first Frontier RNG-consuming setup surface |
 
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | setup shuffle bounded-index sampler | already discharged by Unit 8C pilot | `archive/tickets/UNI8CMECSCA-017.md`; characterization report | River continues to use `next_index_unbiased_v1`; setup/replay/fixture/no-leak evidence remains pilot-owned | N/A | future explicit RNG migration |
+| `briar_circuit` | setup shuffle bounded-index sampler | not applicable to in-wave substitution | characterization report C-09 checkpoint; `archive/tickets/8CR4NSEAPRITRI-036.md` | legacy modulo `next_index(index + 1)` semantics, draw count, deck/deal bytes, replay, fixture, and visibility unchanged | no R4 code rollback | separately accepted ADR-0009 RNG algorithm migration |
+| `vow_tide` | setup shuffle bounded-index sampler | not applicable to in-wave substitution | characterization report C-09 checkpoint; `archive/tickets/8CR4NSEAPRITRI-036.md` | legacy modulo `next_index(index + 1)` semantics, draw count, deck/deal bytes, replay, fixture, and visibility unchanged | no R4 code rollback | separately accepted ADR-0009 RNG algorithm migration |
+
 ### MSC-8C-010 - Behavioral-policy bundle on the Non-Promotion List - rejected / local-only
 
 - Entry id: 2026-06-22, status `rejected / local-only`, owner Unit 8C / C-10.
@@ -772,6 +856,14 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 | `frontier_control` | factions, graph/topology, adjacency/movement, clash, caps, connectivity, scoring, projection, bot, and diagnostic policy | rejected / local-only reaffirmed | characterization report C-10 matrix | no graph, legality, connectivity, scoring, or faction policy moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or Frontier behavioral extraction proposal |
 | `event_frontier` | factions, graph/trails, events/edicts, eligibility, funding/pass/Reckoning income, caps, scoring, projection, bot, and diagnostic policy | rejected / local-only reaffirmed | characterization report C-10 matrix | no event, resource, graph, eligibility, scoring, or hidden-deck policy moved to shared code | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or Event behavioral extraction proposal |
 
+R4 N-seat/private/trick receipts, 2026-06-24:
+
+| Game/scope | Surface | Decision state | Evidence link | Hash/visibility impact | Rollback | Next review trigger |
+|---|---|---|---|---|---|---|
+| `river_ledger` | betting/all-in/reopen, stacks/contributions, pots/side pots, allocation, uncalled returns, showdown/evaluator, projection, scoring, and bots | rejected / local-only reaffirmed | characterization report C-10 checkpoint; `archive/tickets/8CR4NSEAPRITRI-036.md` | no behavior, legality, accounting, evaluator, projection, scoring, outcome, bot, YAML, DSL, or static behavior moved to shared scaffolding | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or River behavioral extraction proposal |
+| `briar_circuit` | deal/pass/exchange, follow suit, first-trick exception, hearts-broken, trick winner/leader, moon/scoring, projection, and bots | rejected / local-only reaffirmed | characterization report C-10 checkpoint; `archive/tickets/8CR4NSEAPRITRI-036.md` | no trick, pass, deal, scoring, projection, bot, YAML, DSL, or static behavior moved to shared scaffolding; existing `game-stdlib::trick_taking` helper not broadened | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or Briar behavioral extraction proposal |
+| `vow_tide` | dealer rotation, hand schedule, deal/stock/trump, bidding/contract/hook, follow suit, trick winner/leader, exact-bid scoring, projection, and bots | rejected / local-only reaffirmed | characterization report C-10 checkpoint; `archive/tickets/8CR4NSEAPRITRI-036.md` | no schedule, deal, bidding, trick, scoring, projection, bot, YAML, DSL, or static behavior moved to shared scaffolding; existing `game-stdlib::trick_taking` helper not broadened | revert offending promotion and route through mechanic atlas/ADR | next mechanic-ladder gate or Vow behavioral extraction proposal |
+
 ### Unit 8C closeout evidence - 2026-06-22
 
 - Final state: `MSC-8C-001`...`MSC-8C-009` are `accepted`; `MSC-8C-010` is
@@ -827,6 +919,61 @@ R3 public cooperative/asymmetric trick receipts, 2026-06-24:
 - Final validators for the register receipt ticket: `node
   scripts/check-doc-links.mjs`, grep review for `MSC-8C-001`...`MSC-8C-010`,
   and `git diff --check`.
+
+### Unit 8C-R4 receipt checkpoint evidence - 2026-06-24
+
+- Receipt state: R4 N-seat/private/trick receipts are recorded under
+  `MSC-8C-001`...`MSC-8C-010` above for `river_ledger`, `briar_circuit`, and
+  `vow_tide`. Migrated surfaces, pilot-credit rows, not-applicable decisions,
+  accepted exceptions, rollback notes, and next-review triggers are present for
+  the register receipt checkpoint.
+- C-06 checkpoint: all three R4 games keep `game-test-support` as a dev-only
+  dependency; normal and normal/build inverse dependency checks are required
+  evidence for `8CR4NSEAPRITRI-036`.
+- C-09 checkpoint: River keeps the Unit 8C unbiased-sampler pilot receipt.
+  Briar and Vow keep legacy modulo `next_index(index + 1)` semantics and close
+  R4 as not applicable to in-wave substitution; a separate ADR-0009 RNG
+  migration is the next-review trigger.
+- C-10 checkpoint: River, Briar, and Vow behavior bundles remain rejected /
+  local-only. No `MSC-8C-*` helper contract is broadened, no new helper entry
+  is created, and the existing `game-stdlib::trick_taking` helper is not
+  reclassified by this register.
+- Final tracker flip, final command evidence, and the Unit 8C-R4 final closeout
+  block remain owned by `8CR4NSEAPRITRI-037`.
+
+### Unit 8C-R4 closeout evidence - 2026-06-24
+
+- Final state: R4 N-seat/private/trick receipts are recorded under
+  `MSC-8C-001`...`MSC-8C-010` above for `river_ledger`, `briar_circuit`, and
+  `vow_tide`. Migrated surfaces, pilot-credit rows, not-applicable decisions,
+  accepted exceptions, rollback notes, and next-review triggers are closed for
+  the R4 wave.
+- C-06 checkpoint: `game-test-support` remains dev-only; both inverse
+  dependency checks reported only `game-test-support` itself, and
+  `bash scripts/boundary-check.sh` passed.
+- C-09 checkpoint: River remains pilot-discharged through the unbiased sampler
+  receipt. Briar and Vow retain legacy modulo sampler semantics and are closed
+  as not applicable to in-wave substitution; a separately accepted ADR-0009 RNG
+  algorithm migration remains the next-review trigger.
+- C-10 checkpoint: every behavior-bearing extraction remains rejected /
+  local-only. No `MSC-8C-*` helper was broadened, no new helper entry was
+  created, and `game-stdlib::trick_taking` was not reclassified as mechanical
+  scaffolding.
+- Artifact-diff result: existing golden traces, data fixtures, committed export
+  artifacts, legacy hashes, visibility authority, seat authority, and RNG
+  output authorities remain unchanged. R4 additions are migrated helper calls,
+  parallel action-tree v1 vectors, test-only profile/no-leak adapters, and
+  documentation/tracker receipts. Unauthorized artifact changes: zero.
+- Final validators: `cargo fmt --all --check`, `cargo clippy --workspace
+  --all-targets -- -D warnings`, focused crate/game/tool tests,
+  `cargo test --workspace`, River/Briar/Vow `replay-check`, `fixture-check`,
+  and `rule-coverage`, `bash scripts/boundary-check.sh`, both inverse
+  `cargo tree` checks, `node scripts/check-doc-links.mjs`, and
+  `node scripts/check-catalog-docs.mjs` all passed for `8CR4NSEAPRITRI-037`.
+- Tracker/interlock result: `specs/README.md` flips only `8C-R4` to `Done`.
+  All four C-11 follow-on waves are now closed or explicitly disposed, clearing
+  the final C-11 Gate 18 admission interlock. Gate 18 remains unstarted and
+  unauthored.
 
 ## Review Checklist
 

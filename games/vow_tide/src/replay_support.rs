@@ -1,4 +1,4 @@
-use engine_core::{Actor, SeatId, StableSerialize, Viewer};
+use engine_core::{ActionTreeEncodingVersion, Actor, HashValue, SeatId, StableSerialize, Viewer};
 
 use crate::{
     actions::legal_action_tree,
@@ -18,6 +18,12 @@ pub struct ReplaySnapshot {
     pub seat_view_hashes: Vec<(String, u64)>,
     pub action_tree_hashes: Vec<(String, u64)>,
     pub effect_hash: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionTreeV1Encoding {
+    pub stable_bytes: Vec<u8>,
+    pub stable_hash: HashValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -83,6 +89,14 @@ pub fn snapshot(state: &VowTideState, effects: &[VowTideEffect]) -> ReplaySnapsh
             })
             .collect(),
         effect_hash: stable_hash(format!("{effects:?}").as_bytes()),
+    }
+}
+
+pub fn action_tree_v1_encoding(state: &VowTideState, actor: &Actor) -> ActionTreeV1Encoding {
+    let tree = legal_action_tree(state, actor);
+    ActionTreeV1Encoding {
+        stable_bytes: tree.stable_bytes(ActionTreeEncodingVersion::V1),
+        stable_hash: tree.stable_hash(ActionTreeEncodingVersion::V1),
     }
 }
 

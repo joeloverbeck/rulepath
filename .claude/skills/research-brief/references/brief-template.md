@@ -87,6 +87,15 @@ Authorize depth explicitly:
 > as deeply as needed — similar implementations, research papers, prior art — wherever it
 > sharpens the deliverable. Cite sources for any external claim that shapes a decision.
 
+**Calibrate the depth to the target.** The stock block above suits targets (new game gates,
+novel mechanics) where external prior art genuinely shapes the design. For a behavior-free
+infra / scaffolding / plumbing target governed by already-accepted ADRs, append a calibration
+sentence telling Session 2 that external prior art is a *sharpening aid, not the crux* — name
+the optional angles (e.g. characterization-testing discipline, canonical/versioned
+serialization, dev-only test scaffolding, information-flow/no-leak geometry) and instruct it not
+to let online research expand the locked scope — so research effort matches the target rather
+than over-authorizing a literal open-ended sweep.
+
 ### 6. Doctrine & constraints
 
 Pointers Session 2 must honor — trim to the constraints the target actually engages:

@@ -1,16 +1,37 @@
-use engine_core::{Seed, StableSerialize};
+use engine_core::{Actor, HashValue, SeatId, Seed, StableSerialize};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, PublicExportV1Driver, SeatPrivateExportV1Driver,
-    PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, SEAT_PRIVATE_EXPORT_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SeatPrivateExportV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1, SETUP_EVIDENCE_V1,
 };
 use vow_tide::{
+    actions::{legal_cards, ValidatedBid, ValidatedPlay, ACTION_PLAY},
     cards::{Card, CardId, Rank, Suit},
-    ids::{canonical_seat_ids, VowTideSeat},
+    ids::{canonical_seat_ids, VowTideSeat, ACTION_BID},
     replay_support::{
-        export_for_viewer, import_viewer_export, observer, seat_viewer, snapshot, stable_hash,
+        action_tree_v1_encoding, export_for_viewer, import_viewer_export, observer, seat_viewer,
+        snapshot, stable_hash,
     },
+    rules::{apply_bid, apply_play},
     setup::{setup_match, SetupOptions},
 };
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
     "profile_id",
@@ -46,6 +67,21 @@ const SEAT_PRIVATE_EXPORT_PROFILE_FIELDS: &[&str] = &[
     "export_steps",
     "pairwise_no_leak",
 ];
+
+fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "vow_tide::golden_traces",
+            migration_update_note: Some("8CR4NSEAPRITRI-033 virtual replay-command profile"),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
 
 fn public_export_profile_artifact() -> ProfileArtifact<'static> {
     ProfileArtifact {
@@ -91,6 +127,179 @@ fn seven_seat_canary_ids() -> Vec<CardId> {
     ]
 }
 
+fn actor(state: &vow_tide::state::VowTideState, seat: VowTideSeat) -> Actor {
+    Actor {
+        seat_id: state.seats[seat.index()].clone(),
+    }
+}
+
+fn wrong_actor() -> Actor {
+    Actor {
+        seat_id: SeatId("seat_99".to_owned()),
+    }
+}
+
+fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack
+        .windows(needle.len())
+        .any(|candidate| candidate == needle)
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|candidate| candidate == needle)
+        .expect("needle appears in v1 bytes")
+}
+
+fn apply_bid_value(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat, value: u8) {
+    let bid = ValidatedBid {
+        actor: seat,
+        value,
+        hand_index: state.hand_index,
+        hand_size: state.current_hand_size().expect("hand size"),
+    };
+    apply_bid(state, bid).expect("bid applies");
+}
+
+fn apply_play_card(state: &mut vow_tide::state::VowTideState, seat: VowTideSeat, card: CardId) {
+    let play = ValidatedPlay {
+        actor: seat,
+        card,
+        hand_index: state.hand_index,
+        trick_index: state.playing_state().expect("playing").trick_index,
+    };
+    apply_play(state, play).expect("play applies");
+}
+
+fn enter_four_seat_play_state() -> vow_tide::state::VowTideState {
+    let mut state = setup_match(
+        Seed(20260621),
+        &canonical_seat_ids(4),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    apply_bid_value(&mut state, VowTideSeat::Seat1, 0);
+    apply_bid_value(&mut state, VowTideSeat::Seat2, 0);
+    apply_bid_value(&mut state, VowTideSeat::Seat3, 0);
+    apply_bid_value(&mut state, VowTideSeat::Seat0, 1);
+    *state
+        .hand_for_internal_mut(VowTideSeat::Seat1)
+        .expect("seat 1 hand") = vec![Card::new(Rank::Two, Suit::Clubs).id()];
+    *state
+        .hand_for_internal_mut(VowTideSeat::Seat2)
+        .expect("seat 2 hand") = vec![
+        Card::new(Rank::Three, Suit::Clubs).id(),
+        Card::new(Rank::Ace, Suit::Hearts).id(),
+    ];
+    state
+}
+
+#[test]
+fn replay_command_v1_driver_validates_vow_bid_play_trace_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact();
+    let trace_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("golden_traces");
+
+    let delegated = driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+            assert_eq!(report.visibility_class, "internal-dev");
+
+            let mut state = setup_match(
+                Seed(20260621),
+                &canonical_seat_ids(3),
+                &SetupOptions::default(),
+            )
+            .expect("setup succeeds");
+            let setup_snapshot = snapshot(&state, &[]);
+            apply_bid_value(&mut state, VowTideSeat::Seat1, 1);
+            apply_bid_value(&mut state, VowTideSeat::Seat2, 0);
+            apply_bid_value(&mut state, VowTideSeat::Seat0, 0);
+            let play_card = state.hand_for_internal(VowTideSeat::Seat1)[0];
+            apply_play_card(&mut state, VowTideSeat::Seat1, play_card);
+            let play_snapshot = snapshot(&state, &[]);
+            assert_ne!(setup_snapshot.state_hash, play_snapshot.state_hash);
+
+            format!("{}:vow-tide", report.profile_id)
+        })
+        .expect("replay-command-v1 driver accepts Vow virtual adapter");
+
+    assert_eq!(delegated, "replay-command-v1:vow-tide");
+
+    for file_name in [
+        "l0-bid-and-play.trace.json",
+        "l1-contract-relative-bid-and-play.trace.json",
+        "public-observer-no-leak-3p.trace.json",
+        "seat-private-pairwise-no-leak-7p.trace.json",
+    ] {
+        let path = trace_dir.join(file_name);
+        let payload = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        assert!(
+            !payload.contains("\"profile_id\""),
+            "{file_name} must not be rewritten with profile metadata"
+        );
+        assert!(
+            !payload.contains("\"canonical_byte_authority\""),
+            "{file_name} must keep legacy trace bytes authoritative"
+        );
+        driver
+            .validate_with(&profile, |_| {
+                assert!(
+                    payload.contains("\"trace_id\""),
+                    "{file_name} remains an existing Vow golden trace"
+                );
+                assert!(
+                    payload.contains("bid")
+                        || payload.contains("play")
+                        || payload.contains("\"seat_count\": 3")
+                        || payload.contains("\"seat_count\": 7"),
+                    "{file_name} remains in the selected bid/play 3p/7p evidence set"
+                );
+            })
+            .expect("virtual replay-command profile validates selected Vow trace");
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_rejects_vow_wrong_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let valid = replay_command_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "commands", "bid_policy"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
 #[test]
 fn identical_setup_reproduces_snapshot_hashes() {
     let seats = canonical_seat_ids(4);
@@ -98,6 +307,156 @@ fn identical_setup_reproduces_snapshot_hashes() {
     let second = setup_match(Seed(77), &seats, &SetupOptions::default()).expect("setup succeeds");
 
     assert_eq!(snapshot(&first, &[]), snapshot(&second, &[]));
+}
+
+#[test]
+fn action_tree_v1_parallel_vectors_cover_vow_bid_play_and_empty_trees() {
+    let initial =
+        setup_match(Seed(77), &canonical_seat_ids(4), &SetupOptions::default()).expect("setup");
+    assert_action_tree_v1_case(
+        "initial-bid",
+        &initial,
+        &actor(&initial, VowTideSeat::Seat1),
+        10036829592919351680,
+        3961,
+        &[ACTION_BID.as_bytes(), b"Bid 0", b"Bid 1", b"Bid 10"],
+        &[],
+    );
+    assert_action_tree_v1_case(
+        "wrong-actor-empty",
+        &initial,
+        &actor(&initial, VowTideSeat::Seat2),
+        17387353871007407771,
+        64,
+        &[],
+        &[ACTION_BID.as_bytes(), ACTION_PLAY.as_bytes()],
+    );
+    assert_action_tree_v1_case(
+        "unknown-actor-empty",
+        &initial,
+        &wrong_actor(),
+        17387353871007407771,
+        64,
+        &[],
+        &[ACTION_BID.as_bytes(), ACTION_PLAY.as_bytes()],
+    );
+
+    let mut hook = initial.clone();
+    apply_bid_value(&mut hook, VowTideSeat::Seat1, 3);
+    apply_bid_value(&mut hook, VowTideSeat::Seat2, 3);
+    apply_bid_value(&mut hook, VowTideSeat::Seat3, 3);
+    assert_action_tree_v1_case(
+        "dealer-hook-excludes-one",
+        &hook,
+        &actor(&hook, VowTideSeat::Seat0),
+        8783003300598144511,
+        4077,
+        &[b"hook_forbidden_bid", b"Bid 0", b"Bid 2", b"Bid 10"],
+        &[],
+    );
+
+    let mut play = enter_four_seat_play_state();
+    let lead = Card::new(Rank::Two, Suit::Clubs).id();
+    let follow = Card::new(Rank::Three, Suit::Clubs).id();
+    let off_suit = Card::new(Rank::Ace, Suit::Hearts).id();
+    apply_play_card(&mut play, VowTideSeat::Seat1, lead);
+    assert_eq!(legal_cards(&play, VowTideSeat::Seat2), vec![follow]);
+    assert_action_tree_v1_case(
+        "follow-suit-play",
+        &play,
+        &actor(&play, VowTideSeat::Seat2),
+        17656755402989445629,
+        877,
+        &[
+            ACTION_PLAY.as_bytes(),
+            b"led_suit",
+            follow.as_str().as_bytes(),
+        ],
+        &[off_suit.as_str().as_bytes()],
+    );
+}
+
+#[test]
+fn action_tree_v1_parallel_vectors_cover_three_to_seven_seat_bidding() {
+    let expected = [
+        (3, 10036829592919351680, 3961),
+        (4, 10036829592919351680, 3961),
+        (5, 10036829592919351680, 3961),
+        (6, 7483680400442474840, 3299),
+        (7, 6848199286201512187, 2976),
+    ];
+    for (seat_count, expected_hash, expected_len) in expected {
+        let state = setup_match(
+            Seed(20260621 + seat_count as u64),
+            &canonical_seat_ids(seat_count),
+            &SetupOptions::default(),
+        )
+        .expect("setup succeeds");
+        assert_action_tree_v1_case(
+            &format!("{seat_count}-seat-opening-bid"),
+            &state,
+            &actor(&state, VowTideSeat::Seat1),
+            expected_hash,
+            expected_len,
+            &[ACTION_BID.as_bytes(), b"Bid 0"],
+            &[],
+        );
+    }
+}
+
+fn assert_action_tree_v1_case(
+    label: &str,
+    state: &vow_tide::state::VowTideState,
+    actor: &Actor,
+    expected_hash: u64,
+    expected_len: usize,
+    required_needles: &[&[u8]],
+    forbidden_needles: &[&[u8]],
+) {
+    let encoding = action_tree_v1_encoding(state, actor);
+    let repeated = action_tree_v1_encoding(state, actor);
+
+    assert_eq!(encoding, repeated, "{label} v1 encoding is deterministic");
+    assert_eq!(
+        encoding.stable_hash,
+        HashValue::from_stable_bytes(&encoding.stable_bytes),
+        "{label} v1 hash matches bytes"
+    );
+    assert_eq!(
+        encoding.stable_hash,
+        HashValue(expected_hash),
+        "{label} v1 hash sentinel"
+    );
+    assert_eq!(
+        encoding.stable_bytes.len(),
+        expected_len,
+        "{label} byte len"
+    );
+    assert!(
+        encoding.stable_bytes.starts_with(b"RPSB"),
+        "{label} v1 bytes use stable-bytes header"
+    );
+    for needle in required_needles {
+        assert!(
+            contains_bytes(&encoding.stable_bytes, needle),
+            "{label} v1 bytes contain {}",
+            String::from_utf8_lossy(needle)
+        );
+    }
+    for needle in forbidden_needles {
+        assert!(
+            !contains_bytes(&encoding.stable_bytes, needle),
+            "{label} v1 bytes omit {}",
+            String::from_utf8_lossy(needle)
+        );
+    }
+    for pair in required_needles.windows(2) {
+        assert!(
+            byte_offset(&encoding.stable_bytes, pair[0])
+                < byte_offset(&encoding.stable_bytes, pair[1]),
+            "{label} preserves required needle order"
+        );
+    }
 }
 
 #[test]

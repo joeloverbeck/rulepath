@@ -1,7 +1,7 @@
-use engine_core::{Diagnostic, HashValue, SeatId, Seed, Viewer};
+use engine_core::{ActionTreeEncodingVersion, Actor, Diagnostic, HashValue, SeatId, Seed, Viewer};
 
 use crate::{
-    actions::{apply_pass_action, apply_play_action},
+    actions::{apply_pass_action, apply_play_action, legal_action_tree},
     bots::{BriarCircuitBotAction, BriarCircuitL1Bot},
     effects::BriarCircuitEffect,
     ids::{canonical_seat_ids, BriarCircuitSeat, GAME_ID, RULES_VERSION_LABEL},
@@ -21,6 +21,18 @@ pub struct ReplayHashSnapshot {
     pub private_view_hashes: Vec<(BriarCircuitSeat, HashValue)>,
     pub public_action_hash: HashValue,
     pub private_action_hashes: Vec<(BriarCircuitSeat, HashValue)>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionTreeV1Encoding {
+    pub stable_bytes: Vec<u8>,
+    pub stable_hash: HashValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReplayActionTreeV1Snapshot {
+    pub public_action_tree: ActionTreeV1Encoding,
+    pub private_action_trees: Vec<(BriarCircuitSeat, ActionTreeV1Encoding)>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -182,12 +194,46 @@ pub fn replay_hash_snapshot(state: &BriarCircuitState) -> ReplayHashSnapshot {
     }
 }
 
+pub fn replay_action_tree_v1_snapshot(state: &BriarCircuitState) -> ReplayActionTreeV1Snapshot {
+    ReplayActionTreeV1Snapshot {
+        public_action_tree: action_tree_v1_encoding(state, &Viewer { seat_id: None }),
+        private_action_trees: BriarCircuitSeat::ALL
+            .into_iter()
+            .map(|seat| {
+                (
+                    seat,
+                    action_tree_v1_encoding(
+                        state,
+                        &Viewer {
+                            seat_id: Some(SeatId(seat.as_str().to_owned())),
+                        },
+                    ),
+                )
+            })
+            .collect(),
+    }
+}
+
 pub fn view_hash(state: &BriarCircuitState, viewer: &Viewer) -> HashValue {
     hash_debug(&project_view(state, viewer))
 }
 
 pub fn action_hash(state: &BriarCircuitState, viewer: &Viewer) -> HashValue {
     hash_debug(&project_action_previews(state, viewer))
+}
+
+pub fn action_tree_v1_encoding(state: &BriarCircuitState, viewer: &Viewer) -> ActionTreeV1Encoding {
+    let actor = Actor {
+        seat_id: viewer
+            .seat_id
+            .clone()
+            .unwrap_or_else(|| SeatId("__observer__".to_owned())),
+    };
+    let tree = legal_action_tree(state, &actor);
+    ActionTreeV1Encoding {
+        stable_bytes: tree.stable_bytes(ActionTreeEncodingVersion::V1),
+        stable_hash: tree.stable_hash(ActionTreeEncodingVersion::V1),
+    }
 }
 
 pub fn effect_hash(effects: &[BriarCircuitEffect], viewer: &Viewer) -> HashValue {

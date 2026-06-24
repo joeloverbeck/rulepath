@@ -22,7 +22,9 @@ foundation docs.
   commit ledger, and git status. Use it as directed in Completion Audit. It
   also supports `--reference-only` for focused archived-reference truthing and
   `--expected-ticket-list <file>` for non-contiguous ticket families, plus
-  `--ledger-format compact` for final-report-ready commit ledgers.
+  `--ledger-format compact` for final-report-ready commit ledgers and
+  `--summary` for low-noise successful long-series audits that still print
+  exact failure lines.
 - `agents/openai.yaml` is an OpenAI-facing skill manifest and prompt stub. It
   does not change the main workflow and does not authorize skipping the
   `SKILL.md` instructions.
@@ -363,11 +365,12 @@ or mark the earlier result as preliminary.
    This is a hard stop: execute the concrete completion-audit commands from the
    next section against the live checkout before any final response or
    `update_goal` call. A mental checklist is not enough for final reference
-   truthing. When you need a narrow pre-commit check for just the archived
-   reference shape, run:
+   truthing. For every spec or reference closeout commit, run the focused
+   archived-reference helper after the reference status/outcome edits and
+   before staging or committing the reference closeout:
 
 ```sh
-node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --summary
 ```
 7. Run a final status/diff check and commit the reference archive/truthing work.
    Run all git index-mutating commands serially during this closeout, including
@@ -485,17 +488,17 @@ helper cannot infer. For non-contiguous or unusual series where the helper
 cannot express the expected set cleanly, run the manual audit commands below
 and explain why the helper was skipped.
 
-For second-pass reruns after a passing final commit, prefer
+For second-pass reruns after a passing final commit, prefer `--summary` with
 `--ledger-format compact`, inspect failures and key `OK` surfaces first, and
 summarize the rerun result instead of re-printing every archived-ticket or
 stale-path row into the final response. Expand the output only when a mismatch
 or unusual series shape needs detailed evidence.
 
 ```sh
-node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --summary
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-count N
-node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-list /tmp/expected-tickets.txt --ledger-format compact
-node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-list /tmp/expected-tickets.txt --ledger-format compact --summary
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact --summary
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
