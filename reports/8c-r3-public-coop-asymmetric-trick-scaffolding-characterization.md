@@ -792,3 +792,24 @@ Completed: 2026-06-24
   - `cargo build -p plain_tricks` passed.
   - `bash scripts/boundary-check.sh` passed, including
     `game-test-support dev-only boundary check passed`.
+
+### 8CR3PUBCOOASY-502 - Flood Watch dev-only support edge
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/flood_watch/Cargo.toml` and `Cargo.lock`.
+- Change: added `game-test-support` only under `[dev-dependencies]` for
+  `flood_watch`; `Cargo.lock` records the corresponding package dependency
+  edge.
+- ADR-0009 classification: `unchanged`; no production source, behavior, replay,
+  fixture, export, or normal dependency graph surface was intentionally
+  migrated.
+- Compatibility / rollback: remove the `flood_watch` dev-dependency entry and
+  corresponding lockfile edge. Production dependencies stay unchanged.
+- Verification:
+  - Before and after, `cargo tree --workspace -e normal --invert game-test-support`
+    printed only `game-test-support v0.1.0 (...)`, proving no normal reverse
+    dependency from `flood_watch` or any production target.
+  - `cargo build -p flood_watch` passed.
+  - `bash scripts/boundary-check.sh` passed, including
+    `game-test-support dev-only boundary check passed`.

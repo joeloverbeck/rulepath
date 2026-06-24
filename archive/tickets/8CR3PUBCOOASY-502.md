@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-502: C-06 Flood Watch dev-only support edge
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only dependency) — `games/flood_watch/Cargo.toml`
@@ -86,3 +86,16 @@ In `games/flood_watch/Cargo.toml`, add
 2. `cargo build -p flood_watch && bash scripts/boundary-check.sh`
 3. The inverse `cargo tree` is the correct boundary: it proves the dev-only edge
    invariant directly.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added `game-test-support = { path = "../../crates/game-test-support" }` only
+  under `[dev-dependencies]` in `games/flood_watch/Cargo.toml`.
+- Included the corresponding `Cargo.lock` package dependency edge for
+  `flood_watch`; no normal/build dependency edge was added.
+- Verified `cargo build -p flood_watch`,
+  `cargo tree --workspace -e normal --invert game-test-support`, and
+  `bash scripts/boundary-check.sh`. The inverse normal graph printed only the
+  `game-test-support` root package.
