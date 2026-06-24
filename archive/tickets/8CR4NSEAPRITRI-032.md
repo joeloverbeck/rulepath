@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-032: Briar Circuit C-08 seat-private-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/briar_circuit/tests/replay.rs`; export bytes/class unchanged
@@ -70,3 +70,22 @@ In `games/briar_circuit/tests/replay.rs`, add a `SeatPrivateExportV1Driver` adap
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game replay test is the correct boundary: the profile is a dev-only evidence adapter over the existing seat-private export.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `seat-private-export-v1` profile adapter test for all four Briar seat-private viewer timelines using `SeatPrivateExportV1Driver`.
+2. Covered per-seat round-trip through `import_viewer_timeline` and asserted each export carries only that viewer's hand/pass data.
+3. Added reject coverage for wrong visibility, missing visibility, and illegal canonical-byte claim.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p briar_circuit` - passed.
+3. `cargo run -p replay-check -- --game briar_circuit --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.
