@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-302: C-03 Flood Watch roster count + game-stdlib edge
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/flood_watch/Cargo.toml`, `games/flood_watch/src/setup.rs`
@@ -102,3 +102,24 @@ to `STANDARD_SEAT_COUNT`. Preserve the exact diagnostic and two-seat policy.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. `bash scripts/boundary-check.sh` is included because this ticket adds a new
    crate dependency edge; it confirms the boundary stays clean.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Added a normal `game-stdlib` dependency to `games/flood_watch/Cargo.toml` and
+changed `games/flood_watch/src/setup.rs::setup_match` to wrap the roster length
+with `SeatCount::new(seats.len()).map(SeatCount::get)` before comparing to the
+game-owned `STANDARD_SEAT_COUNT`. The change is predicate/dependency-only;
+variant seat count, role order, deck setup, RNG sampling, diagnostics,
+cooperative two-seat policy, replay/export bytes, and fixtures were otherwise
+untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p flood_watch` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `bash scripts/boundary-check.sh` passed.
+- No golden trace, fixture, export, or variant policy file changed.

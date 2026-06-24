@@ -473,3 +473,29 @@ Completed: 2026-06-24
     Tricks traces passed with existing expected hashes.
   - `cargo run -p fixture-check -- --game plain_tricks` passed.
   - No golden trace, fixture, export, or setup policy file changed.
+
+### 8CR3PUBCOOASY-302 - Flood Watch roster count and game-stdlib edge
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/flood_watch/Cargo.toml` and
+  `games/flood_watch/src/setup.rs::setup_match` roster predicate.
+- Change: added a normal `game-stdlib` dependency and replaced the bare
+  `seats.len()` comparison with
+  `SeatCount::new(seats.len()).map(SeatCount::get)` compared against the
+  game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; accepted/rejected counts, diagnostics,
+  setup/deck state, replay hashes, fixtures, and exports were not intentionally
+  migrated.
+- Compatibility / rollback: remove only the `game-stdlib` edge if no later
+  Flood R3 task needs it and restore only the bare roster-length predicate.
+  Variant seat count, role order, deck setup, RNG sampling, and cooperative
+  two-seat policy stay game-owned.
+- Verification:
+  - `cargo test -p flood_watch` passed, including exact diagnostic checks for
+    0, 1, and 3 seats.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.
+  - `bash scripts/boundary-check.sh` passed; `engine-core` stayed noun-free and
+    `game-test-support` stayed dev-only.
+  - No golden trace, fixture, export, or variant policy file changed.

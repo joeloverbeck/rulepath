@@ -1,6 +1,7 @@
 //! Deterministic setup for Flood Watch.
 
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     ids::{DistrictId, EventKind, STANDARD_SEAT_COUNT},
@@ -26,7 +27,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<FloodWatchState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(STANDARD_SEAT_COUNT as usize) {
         return Err(Diagnostic {
             code: "invalid_seat_count".to_owned(),
             message: "flood_watch requires exactly two seats".to_owned(),
@@ -159,8 +160,28 @@ mod tests {
     #[test]
     fn setup_rejects_wrong_seat_count() {
         let options = SetupOptions::default();
+        let expected = Diagnostic {
+            code: "invalid_seat_count".to_owned(),
+            message: "flood_watch requires exactly two seats".to_owned(),
+        };
 
-        assert!(setup_match(Seed(0), &[SeatId("seat_0".to_owned())], &options).is_err());
+        assert_eq!(setup_match(Seed(0), &[], &options), Err(expected.clone()));
+        assert_eq!(
+            setup_match(Seed(0), &[SeatId("seat_0".to_owned())], &options),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                Seed(0),
+                &[
+                    SeatId("seat_0".to_owned()),
+                    SeatId("seat_1".to_owned()),
+                    SeatId("seat_2".to_owned()),
+                ],
+                &options,
+            ),
+            Err(expected)
+        );
     }
 
     #[test]
