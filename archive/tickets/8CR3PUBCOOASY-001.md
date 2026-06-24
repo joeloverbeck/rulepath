@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-001: Characterization baseline and verdict matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None (characterization report — `reports/8c-r3-public-coop-asymmetric-trick-scaffolding-characterization.md`)
@@ -125,3 +125,26 @@ reconcile against.
 1. `cargo test --workspace`
 2. `cargo run -p replay-check -- --game plain_tricks --all && cargo run -p replay-check -- --game flood_watch --all && cargo run -p replay-check -- --game frontier_control --all && cargo run -p replay-check -- --game event_frontier --all`
 3. Narrower per-game `replay-check`/`fixture-check` runs are the correct boundary because R3 touches only these four games; workspace test confirms no incidental drift.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Created `reports/8c-r3-public-coop-asymmetric-trick-scaffolding-characterization.md`
+as the admission baseline for the four locked R3 games. The report records the
+baseline commit, locked determination, manifest pre-state, C-01...C-10 owner
+inventory, verdict matrix, C-02/C-03/C-07/C-08/C-09 classifications, non-promotion
+guardrails, and SHA-256 digests for every named R3 fixture and golden trace.
+
+Deviations: none. This ticket remained evidence-only; no production code,
+tests, fixtures, traces, exports, specs, or register entries were changed.
+
+Verification:
+
+- `cargo test --workspace` passed.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` passed.
+- `cargo run -p replay-check -- --game event_frontier --all` passed.
+- `git status --short` before archival showed only the new characterization
+  report, matching the ticket's evidence-only scope.
