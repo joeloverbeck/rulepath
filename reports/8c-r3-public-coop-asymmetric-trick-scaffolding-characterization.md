@@ -834,3 +834,24 @@ Completed: 2026-06-24
   - `cargo build -p frontier_control` passed.
   - `bash scripts/boundary-check.sh` passed, including
     `game-test-support dev-only boundary check passed`.
+
+### 8CR3PUBCOOASY-504 - Event Frontier dev-only support edge
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/event_frontier/Cargo.toml` and `Cargo.lock`.
+- Change: added `game-test-support` only under `[dev-dependencies]` for
+  `event_frontier`; `Cargo.lock` records the corresponding package dependency
+  edge.
+- ADR-0009 classification: `unchanged`; no production source, behavior, replay,
+  fixture, export, or normal dependency graph surface was intentionally
+  migrated.
+- Compatibility / rollback: remove the `event_frontier` dev-dependency entry
+  and corresponding lockfile edge. Production dependencies stay unchanged.
+- Verification:
+  - Before and after, `cargo tree --workspace -e normal --invert game-test-support`
+    printed only `game-test-support v0.1.0 (...)`, proving no normal reverse
+    dependency from `event_frontier` or any production target.
+  - `cargo build -p event_frontier` passed.
+  - `bash scripts/boundary-check.sh` passed, including
+    `game-test-support dev-only boundary check passed`.
