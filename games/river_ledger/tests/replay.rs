@@ -1,4 +1,5 @@
 use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, SetupEvidenceV1Driver, PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
 };
@@ -87,6 +88,33 @@ fn hidden_ids(seed: u64, seat_count: usize) -> Vec<String> {
         .collect()
 }
 
+fn private_ids_by_seat(seed: u64, seat_count: usize) -> Vec<Vec<String>> {
+    let seats = (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect::<Vec<_>>();
+    let state =
+        setup_match(engine_core::Seed(seed), &seats, &SetupOptions::default()).expect("setup");
+    state
+        .private_hands_internal()
+        .iter()
+        .map(|hand| hand.iter().map(|card| card.id()).collect())
+        .collect()
+}
+
+fn future_ids(seed: u64, seat_count: usize) -> Vec<String> {
+    let seats = (0..seat_count)
+        .map(|index| SeatId(format!("seat_{index}")))
+        .collect::<Vec<_>>();
+    let state =
+        setup_match(engine_core::Seed(seed), &seats, &SetupOptions::default()).expect("setup");
+    state
+        .community_deck_internal()
+        .iter()
+        .chain(state.deck_tail_internal().iter())
+        .map(|card| card.id())
+        .collect()
+}
+
 fn read_golden_trace(file_name: &str) -> String {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/golden_traces")
@@ -102,6 +130,88 @@ fn expected_trace_id(file_name: &str) -> String {
             .strip_suffix(".trace.json")
             .expect("golden trace suffix")
     )
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum ExportViewer {
+    Observer,
+    Seat(usize),
+}
+
+impl ExportViewer {
+    fn as_viewer(self) -> Viewer {
+        match self {
+            ExportViewer::Observer => Viewer { seat_id: None },
+            ExportViewer::Seat(index) => Viewer {
+                seat_id: Some(SeatId(format!("seat_{index}"))),
+            },
+        }
+    }
+
+    const fn seat(self) -> Option<usize> {
+        match self {
+            ExportViewer::Observer => None,
+            ExportViewer::Seat(index) => Some(index),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum ExportSurface {
+    PublicReplayExport,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum ExportCanary {
+    PrivateHand,
+    FutureCard,
+}
+
+fn export_viewers(seat_count: usize) -> Vec<ExportViewer> {
+    let mut viewers = vec![ExportViewer::Observer];
+    viewers.extend((0..seat_count).map(ExportViewer::Seat));
+    viewers
+}
+
+fn export_probes(seed: u64, seat_count: usize) -> Vec<LeakProbe<usize, ExportCanary, String>> {
+    let mut probes = Vec::new();
+    for (source, private_ids) in private_ids_by_seat(seed, seat_count)
+        .into_iter()
+        .enumerate()
+    {
+        probes.push(LeakProbe {
+            source_seat: source,
+            canary_id: ExportCanary::PrivateHand,
+            canary: private_ids.first().cloned().expect("private card"),
+        });
+    }
+    probes.push(LeakProbe {
+        source_seat: 0,
+        canary_id: ExportCanary::FutureCard,
+        canary: future_ids(seed, seat_count)
+            .first()
+            .cloned()
+            .expect("future card"),
+    });
+    probes
+}
+
+fn export_expectation(
+    source: &usize,
+    viewer: &ExportViewer,
+    _surface: &ExportSurface,
+    canary: &ExportCanary,
+) -> ExposureExpectation {
+    match canary {
+        ExportCanary::FutureCard => ExposureExpectation::MustBeAbsent,
+        ExportCanary::PrivateHand => {
+            if viewer.seat() == Some(*source) {
+                ExposureExpectation::MustBePresent
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        }
+    }
 }
 
 fn setup_profile_artifact() -> ProfileArtifact<'static> {
@@ -387,6 +497,71 @@ fn observer_public_export_omits_hidden_facts_and_seed() {
     }
     assert!(!json.contains("seed_evidence"));
     assert!(!json.contains("\"seed\""));
+}
+
+#[test]
+fn runout_and_multipot_exports_hide_future_and_cross_seat_cards() {
+    let cases = [
+        (
+            "all-all-in-runout.trace.json",
+            1528,
+            3,
+            vec![(0, "raise"), (1, "call")],
+        ),
+        (
+            "three-way-main-two-side-pots.trace.json",
+            1521,
+            3,
+            Vec::new(),
+        ),
+        (
+            "uncalled-return.trace.json",
+            1523,
+            3,
+            vec![(0, "raise"), (1, "call")],
+        ),
+        (
+            "public-observer-multipot-no-leak.trace.json",
+            1530,
+            3,
+            Vec::new(),
+        ),
+        (
+            "seat-private-multipot-no-leak.trace.json",
+            1530,
+            3,
+            Vec::new(),
+        ),
+    ];
+
+    for (file_name, seed, seat_count, commands) in cases {
+        let fixture = read_golden_trace(file_name);
+        assert!(fixture.contains(&format!(
+            "\"trace_id\": \"{}\"",
+            expected_trace_id(file_name)
+        )));
+        let trace = trace_from_commands(seed, seat_count, &commands);
+
+        assert_pairwise_no_leak(
+            export_viewers(seat_count),
+            [ExportSurface::PublicReplayExport],
+            export_probes(seed, seat_count),
+            |viewer, _surface| export_public_replay(&trace, &viewer.as_viewer()).to_json(),
+            export_expectation,
+            |snapshot, canary| snapshot.contains(canary),
+        )
+        .unwrap_or_else(|failures| {
+            panic!("{file_name} River Ledger export no-leak matrix: {failures}")
+        });
+
+        let observer_json = export_public_replay(&trace, &Viewer { seat_id: None }).to_json();
+        assert!(
+            observer_json.contains("pot")
+                || observer_json.contains("setup")
+                || observer_json.contains("showdown"),
+            "{file_name} keeps public accounting/export steps visible"
+        );
+    }
 }
 
 #[test]

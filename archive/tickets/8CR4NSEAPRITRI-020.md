@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-020: River Ledger C-07 runout/multipot export no-leak matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/river_ledger/tests/`; reveal/allocation policy unchanged
@@ -71,3 +71,24 @@ In `games/river_ledger/tests/visibility.rs` (and `tests/replay.rs` or a narrowly
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The per-game visibility/replay test is the correct boundary: export no-leak is a game-local projection property.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a River replay-export no-leak matrix using `assert_pairwise_no_leak` over observer plus every seat viewer.
+2. Pinned the named runout/multipot fixture files and exercised the current `export_public_replay` authority for all-all-in runout, three-way side-pot, uncalled-return, public-observer multipot, and seat-private multipot surfaces.
+3. Asserted future cards are absent for every viewer, private cards are present only for the owning seat viewer, and public accounting/export steps remain visible.
+
+Deviations:
+
+1. `export_public_replay` currently accepts replay seed/count/commands, not the placeholder fixture `setup_options`; the named fixture files are pinned as reviewed inputs, while the pairwise matrix uses the same seed/count/command surfaces supported by the current exporter.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p river_ledger` — passed.
+3. `cargo run -p replay-check -- --game river_ledger --all` — passed.
+4. `bash scripts/boundary-check.sh` — passed.
