@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-021: Briar Circuit C-07 pass-phase pairwise no-leak matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/briar_circuit/tests/visibility.rs`; pass target/reveal/exchange policy unchanged
@@ -70,3 +70,22 @@ In `games/briar_circuit/tests/visibility.rs`, for each source seat `seat_0…sea
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game visibility test is the correct boundary: pass no-leak is a game-local projection property through the shared harness.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a shared pairwise no-leak matrix for Briar pass-phase selected, committed, and exchanged card canaries over observer plus all four seat viewers.
+2. Covered view, pass view, filtered effects, action previews, and viewer export where each surface applies; exchange allows sender/receiver effects and target post-exchange ownership only.
+3. Retained the existing focused pass visibility tests and left pass target, reveal, and exchange policy unchanged.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p briar_circuit` - passed.
+3. `cargo run -p replay-check -- --game briar_circuit --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.
