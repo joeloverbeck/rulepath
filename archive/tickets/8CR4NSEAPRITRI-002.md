@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-002: Briar Circuit C-01 public-envelope constructor adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/briar_circuit` (`src/visibility.rs`); effect bytes, order, and visibility byte-identical
@@ -70,3 +70,26 @@ In `effect_envelopes`, replace the public `EffectEnvelope { visibility: Visibili
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game replay-check is the correct boundary: this surface is game-local effect serialization.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Replaced the Briar Circuit public `EffectEnvelope { visibility:
+  VisibilityScope::Public, payload }` literal in
+  `games/briar_circuit/src/visibility.rs::effect_envelopes` with
+  `EffectEnvelope::public(payload)`.
+- Strengthened the focused visibility test to assert the public arm yields
+  exactly one `VisibilityScope::Public` envelope with the unchanged
+  `CardPlayed` payload before checking observer filtering.
+
+Deviations:
+- None. The owner-private `private_effect` surface remains untouched for
+  `8CR4NSEAPRITRI-003`.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p briar_circuit`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `bash scripts/boundary-check.sh`

@@ -167,10 +167,7 @@ pub fn effect_envelopes(effect: BriarCircuitEffect) -> Vec<EffectEnvelope<BriarC
                 received_cards,
             },
         ),
-        public => vec![EffectEnvelope {
-            visibility: VisibilityScope::Public,
-            payload: public,
-        }],
+        public => vec![EffectEnvelope::public(public)],
     }
 }
 

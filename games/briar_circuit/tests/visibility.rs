@@ -4,7 +4,7 @@ use briar_circuit::{
     CurrentTrick, PassAction, PassDirection, PassState, Phase, PlayingTrickState, Rank,
     SetupOptions, Suit, TrickPlay,
 };
-use engine_core::{SeatId, Seed, Viewer};
+use engine_core::{SeatId, Seed, Viewer, VisibilityScope};
 
 fn viewer(seat: Option<BriarCircuitSeat>) -> Viewer {
     Viewer {
@@ -270,6 +270,18 @@ fn played_card_identity_is_public_without_pass_provenance() {
         seat: BriarCircuitSeat::Seat3,
         card: played,
     });
+    assert_eq!(public_effects.len(), 1);
+    assert!(matches!(
+        public_effects[0].visibility,
+        VisibilityScope::Public
+    ));
+    assert_eq!(
+        public_effects[0].payload,
+        BriarCircuitEffect::CardPlayed {
+            seat: BriarCircuitSeat::Seat3,
+            card: played,
+        }
+    );
     let payload = format!(
         "{:?}",
         filter_effects_for_viewer(&public_effects, &viewer(None))
