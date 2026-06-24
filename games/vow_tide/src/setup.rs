@@ -1,4 +1,5 @@
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     cards::{canonical_deck, CardId},
@@ -165,11 +166,17 @@ pub fn shuffle_deck<R: DeterministicRng>(deck: &mut [CardId], rng: &mut R) {
 }
 
 pub fn deal_order_after(dealer: VowTideSeat, seat_count: usize) -> Vec<VowTideSeat> {
+    let count = SeatCount::new(seat_count).expect("validated seat count is nonzero");
     let mut order = Vec::with_capacity(seat_count);
-    let mut seat = dealer.next_clockwise(seat_count);
+    let mut index = count
+        .next_ring_index(dealer.index())
+        .expect("validated dealer is in range");
     for _ in 0..seat_count {
+        let seat = VowTideSeat::from_index(index).expect("validated ring index maps to a seat");
         order.push(seat);
-        seat = seat.next_clockwise(seat_count);
+        index = count
+            .next_ring_index(index)
+            .expect("validated ring index remains in range");
     }
     order
 }

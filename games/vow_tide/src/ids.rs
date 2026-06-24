@@ -1,5 +1,5 @@
 use engine_core::SeatId;
-use game_stdlib::SeatCountRange;
+use game_stdlib::{SeatCount, SeatCountRange};
 use std::sync::LazyLock;
 
 pub const GAME_ID: &str = "vow_tide";
@@ -105,7 +105,10 @@ impl VowTideSeat {
 
     pub fn next_clockwise(self, seat_count: usize) -> Self {
         debug_assert!(supported_seat_count(seat_count));
-        let next = (self.index() + 1) % seat_count;
+        let count = SeatCount::new(seat_count).expect("validated seat count is nonzero");
+        let next = count
+            .next_ring_index(self.index())
+            .expect("validated current seat is in range");
         Self::from_index(next).expect("validated seat count keeps next seat in range")
     }
 }

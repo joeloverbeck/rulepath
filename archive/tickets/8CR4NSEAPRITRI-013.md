@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-013: Vow Tide C-03 checked ring-index step via SeatCount::next_ring_index
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/vow_tide` (`src/ids.rs`, `src/setup.rs`); ring order and RNG consumption unchanged
@@ -71,3 +71,21 @@ In `VowTideSeat::next_clockwise` and `setup.rs::deal_order_after`, compute the o
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game test plus replay-check are the correct boundary: ring stepping is game-local structure over a checked stdlib helper.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Routed `VowTideSeat::next_clockwise` through `SeatCount::next_ring_index`.
+- Routed `deal_order_after` through `SeatCount::next_ring_index` for each structural step while preserving dealer-owned ordering.
+- Added a focused ring-step and deal-order wrap test across every supported count and current/dealer index.
+
+Deviations:
+- None. Dealer, first-bidder, contract, leader, RNG, shuffle, and schedule policy remain game-local and unchanged.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`
