@@ -1,11 +1,14 @@
 use briar_circuit::{
-    canonical_seat_ids, export_viewer_timeline, import_viewer_timeline, replay_bot_match,
-    replay_hash_snapshot, score_completed_hand,
+    apply_pass_action, canonical_seat_ids, export_viewer_timeline, import_viewer_timeline,
+    replay_bot_match, replay_hash_snapshot,
+    replay_support::{action_tree_v1_encoding, replay_action_tree_v1_snapshot},
+    score_completed_hand,
     setup::{deal_hand, next_dealer},
-    setup_match, BriarCircuitSeat, CapturedTrick, Card, CardId, CurrentTrick, PassDirection, Phase,
-    PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay, ViewerExportClass,
+    setup_match, BriarCircuitSeat, CapturedTrick, Card, CardId, CurrentTrick, PassAction,
+    PassDirection, Phase, PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay,
+    ViewerExportClass,
 };
-use engine_core::{FreshnessToken, HashValue, Seed, SeededRng};
+use engine_core::{FreshnessToken, HashValue, SeatId, Seed, SeededRng, Viewer};
 use game_test_support::profiles::{
     DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, DOMAIN_EVIDENCE_V1,
     PROFILE_VERSION_V1,
@@ -90,6 +93,34 @@ fn card(rank: Rank, suit: Suit) -> CardId {
     Card::new(rank, suit).id()
 }
 
+fn viewer(seat: Option<BriarCircuitSeat>) -> Viewer {
+    Viewer {
+        seat_id: seat.map(|seat| SeatId(seat.as_str().to_owned())),
+    }
+}
+
+fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack
+        .windows(needle.len())
+        .any(|candidate| candidate == needle)
+}
+
+fn byte_offset(haystack: &[u8], needle: &[u8]) -> usize {
+    haystack
+        .windows(needle.len())
+        .position(|candidate| candidate == needle)
+        .expect("needle appears in v1 bytes")
+}
+
+fn commit_standard_pass(state: &mut briar_circuit::BriarCircuitState, seat: BriarCircuitSeat) {
+    let cards =
+        state.hand_for_internal(seat)[..briar_circuit::STANDARD_PASS_SIZE as usize].to_vec();
+    for card in cards {
+        apply_pass_action(state, seat, PassAction::Select(card)).expect("select pass card");
+    }
+    apply_pass_action(state, seat, PassAction::Confirm).expect("confirm pass");
+}
+
 fn captured_trick(winner: BriarCircuitSeat, cards: Vec<CardId>) -> CapturedTrick {
     CapturedTrick {
         hand_index: 0,
@@ -104,6 +135,167 @@ fn captured_trick(winner: BriarCircuitSeat, cards: Vec<CardId>) -> CapturedTrick
                 card,
             })
             .collect(),
+    }
+}
+
+#[test]
+fn action_tree_v1_parallel_surface_is_deterministic_and_viewer_scoped() {
+    let mut state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    assert_action_tree_v1_case(
+        "observer-pass",
+        &state,
+        None,
+        17387353871007407771,
+        64,
+        &[],
+        &[],
+    );
+    let seat0_hand = state.hand_for_internal(BriarCircuitSeat::Seat0).to_vec();
+    assert_action_tree_v1_case(
+        "seat0-pass-select",
+        &state,
+        Some(BriarCircuitSeat::Seat0),
+        5009386235525238101,
+        4825,
+        &[
+            b"pass".as_slice(),
+            b"select".as_slice(),
+            seat0_hand[0].as_str().as_bytes(),
+            seat0_hand[1].as_str().as_bytes(),
+        ],
+        &[b"unselect".as_slice()],
+    );
+
+    for card in seat0_hand[..briar_circuit::STANDARD_PASS_SIZE as usize]
+        .iter()
+        .copied()
+    {
+        apply_pass_action(
+            &mut state,
+            BriarCircuitSeat::Seat0,
+            PassAction::Select(card),
+        )
+        .expect("select pass card");
+    }
+    assert_action_tree_v1_case(
+        "seat0-pass-confirm",
+        &state,
+        Some(BriarCircuitSeat::Seat0),
+        4031711539671785757,
+        291,
+        &[b"pass".as_slice(), b"confirm".as_slice()],
+        &[b"unselect".as_slice()],
+    );
+
+    let mut play_state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    for seat in BriarCircuitSeat::ALL {
+        commit_standard_pass(&mut play_state, seat);
+    }
+    let active = play_state
+        .playing_state()
+        .expect("playing phase")
+        .active_seat;
+    assert_action_tree_v1_case(
+        "active-play",
+        &play_state,
+        Some(active),
+        3978888525668030180,
+        301,
+        &[b"play".as_slice()],
+        &[b"pass".as_slice(), b"unselect".as_slice()],
+    );
+}
+
+#[test]
+fn action_tree_v1_snapshot_covers_observer_and_all_seat_viewers_without_cross_seat_leak() {
+    let state =
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup");
+    let snapshot = replay_action_tree_v1_snapshot(&state);
+
+    assert_eq!(
+        snapshot.public_action_tree,
+        action_tree_v1_encoding(&state, &viewer(None))
+    );
+    assert_eq!(
+        snapshot.private_action_trees.len(),
+        BriarCircuitSeat::ALL.len()
+    );
+    for seat in BriarCircuitSeat::ALL {
+        assert!(snapshot
+            .private_action_trees
+            .iter()
+            .any(|(candidate, _)| *candidate == seat));
+    }
+
+    let seat0_hidden_card = state.hand_for_internal(BriarCircuitSeat::Seat0)[0].as_str();
+    assert!(!contains_bytes(
+        &snapshot.public_action_tree.stable_bytes,
+        seat0_hidden_card.as_bytes()
+    ));
+    for (seat, encoding) in &snapshot.private_action_trees {
+        if *seat != BriarCircuitSeat::Seat0 {
+            assert!(
+                !contains_bytes(&encoding.stable_bytes, seat0_hidden_card.as_bytes()),
+                "{seat:?} v1 bytes must not include Seat0 private card {seat0_hidden_card}"
+            );
+        }
+    }
+}
+
+fn assert_action_tree_v1_case(
+    label: &str,
+    state: &briar_circuit::BriarCircuitState,
+    seat: Option<BriarCircuitSeat>,
+    expected_hash: u64,
+    expected_len: usize,
+    required_needles: &[&[u8]],
+    forbidden_needles: &[&[u8]],
+) {
+    let encoding = action_tree_v1_encoding(state, &viewer(seat));
+    let repeated = action_tree_v1_encoding(state, &viewer(seat));
+
+    assert_eq!(encoding, repeated, "{label} v1 encoding is deterministic");
+    assert_eq!(
+        encoding.stable_hash,
+        HashValue::from_stable_bytes(&encoding.stable_bytes),
+        "{label} v1 hash matches bytes"
+    );
+    assert_eq!(
+        encoding.stable_hash,
+        HashValue(expected_hash),
+        "{label} v1 hash sentinel"
+    );
+    assert_eq!(
+        encoding.stable_bytes.len(),
+        expected_len,
+        "{label} byte len"
+    );
+    assert!(
+        encoding.stable_bytes.starts_with(b"RPSB"),
+        "{label} v1 bytes use stable-bytes header"
+    );
+    for needle in required_needles {
+        assert!(
+            contains_bytes(&encoding.stable_bytes, needle),
+            "{label} v1 bytes contain {}",
+            String::from_utf8_lossy(needle)
+        );
+    }
+    for needle in forbidden_needles {
+        assert!(
+            !contains_bytes(&encoding.stable_bytes, needle),
+            "{label} v1 bytes omit {}",
+            String::from_utf8_lossy(needle)
+        );
+    }
+    for pair in required_needles.windows(2) {
+        assert!(
+            byte_offset(&encoding.stable_bytes, pair[0])
+                < byte_offset(&encoding.stable_bytes, pair[1]),
+            "{label} preserves required needle order"
+        );
     }
 }
 

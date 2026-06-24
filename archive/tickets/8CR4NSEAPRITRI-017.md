@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-017: Briar Circuit C-05 parallel action-tree v1 bytes/hash
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/briar_circuit` (`src/replay_support.rs` new parallel-v1 fields/function); legacy preview hashes + browser JSON unchanged
@@ -70,3 +70,24 @@ Add new parallel-v1 fields/function in `games/briar_circuit/src/replay_support.r
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game test plus replay-check are the correct boundary: the v1 hash is a game-local surface over the kernel encoder.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added additive Briar `ActionTreeV1Encoding` and `ReplayActionTreeV1Snapshot` surfaces in `games/briar_circuit/src/replay_support.rs`.
+2. Added `action_tree_v1_encoding` and `replay_action_tree_v1_snapshot` helpers that derive v1 bytes/hashes from the typed `legal_action_tree` adapter for observer and all seat viewers.
+3. Added replay tests pinning deterministic v1 hash/byte-length vectors for observer pass, Seat0 pass-select, Seat0 pass-confirm, and active legal play, plus no-leak coverage for observer and non-owner seat viewers.
+
+Deviations:
+
+1. Current Briar browser choices are sourced from `legal_bot_actions`, which does not emit unselect choices; the v1 vectors preserve that rendered baseline and assert `unselect` is absent instead of introducing a new browser-visible action.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p briar_circuit` — passed.
+3. `cargo run -p replay-check -- --game briar_circuit --all` — passed.
+4. `bash scripts/boundary-check.sh` — passed.
