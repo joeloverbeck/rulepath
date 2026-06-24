@@ -2,8 +2,8 @@ use engine_core::{HashValue, SeatId, StableSerialize, Viewer};
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
-    ReplayCommandV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
-    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+    ReplayCommandV1Driver, SeatPrivateExportV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1,
+    PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1, SETUP_EVIDENCE_V1,
 };
 use river_ledger::{
     replay_support::{
@@ -62,6 +62,24 @@ const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
     "export_steps",
     "import_round_trip",
     "hidden_absence_tokens",
+];
+
+const SEAT_PRIVATE_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "viewer_seat",
+    "viewer_seat_version",
+    "export_steps",
+    "pairwise_no_leak",
 ];
 
 const FOUR_PLAYER_CHECKDOWN: &[(usize, &str)] = &[
@@ -291,6 +309,21 @@ fn public_export_profile_artifact() -> ProfileArtifact<'static> {
             migration_update_note: Some("8CR4NSEAPRITRI-026 virtual public-export profile"),
         },
         fields: PUBLIC_EXPORT_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn seat_private_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SEAT_PRIVATE_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("seat-private"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-027 virtual seat-private-export profile"),
+        },
+        fields: SEAT_PRIVATE_EXPORT_PROFILE_FIELDS,
         canonical_byte_claim: false,
     }
 }
@@ -569,6 +602,97 @@ fn public_export_v1_driver_rejects_wrong_metadata() {
             .expect_err("unknown field")
             .kind,
         ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn seat_private_export_v1_driver_validates_all_viewers_and_no_leak() {
+    let driver = SeatPrivateExportV1Driver::new("wasm-export");
+    let profile = seat_private_export_profile_artifact();
+
+    for seat_count in 3..=6 {
+        let seed = 2100 + seat_count as u64;
+        let trace = trace_from_commands(seed, seat_count, &[]);
+        for viewer_index in 0..seat_count {
+            driver
+                .validate_with(&profile, |report| {
+                    assert_eq!(report.profile_id, SEAT_PRIVATE_EXPORT_V1);
+                    assert_eq!(report.visibility_class, "seat-private");
+                    let viewer = ExportViewer::Seat(viewer_index);
+                    let export = export_public_replay(&trace, &viewer.as_viewer());
+                    let imported = import_public_export(&export);
+                    assert_eq!(imported.viewer, format!("seat_{viewer_index}"));
+                    assert_eq!(imported.steps, export.steps);
+                })
+                .expect("seat-private-export-v1 driver accepts River viewer export adapter");
+        }
+
+        assert_pairwise_no_leak(
+            export_viewers(seat_count),
+            [ExportSurface::PublicReplayExport],
+            export_probes(seed, seat_count),
+            |viewer, _surface| export_public_replay(&trace, &viewer.as_viewer()).to_json(),
+            export_expectation,
+            |snapshot, canary| snapshot.contains(canary),
+        )
+        .unwrap_or_else(|failures| {
+            panic!("River Ledger seat-private export profile count {seat_count}: {failures}")
+        });
+    }
+
+    let multipot_trace = trace_from_commands(1521, 3, &[]);
+    let fixture = read_golden_trace("seat-private-multipot-no-leak.trace.json");
+    assert!(!fixture.contains("\"profile_id\""));
+    driver
+        .validate_with(&profile, |_| {
+            assert_pairwise_no_leak(
+                export_viewers(3),
+                [ExportSurface::PublicReplayExport],
+                export_probes(1521, 3),
+                |viewer, _surface| {
+                    export_public_replay(&multipot_trace, &viewer.as_viewer()).to_json()
+                },
+                export_expectation,
+                |snapshot, canary| snapshot.contains(canary),
+            )
+            .expect("multipot seat-private export stays viewer scoped");
+        })
+        .expect("seat-private-export-v1 driver accepts multipot adapter");
+}
+
+#[test]
+fn seat_private_export_v1_driver_rejects_wrong_metadata() {
+    let driver = SeatPrivateExportV1Driver::new("wasm-export");
+    let valid = seat_private_export_profile_artifact();
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("public");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut missing_visibility = valid.clone();
+    missing_visibility.metadata.visibility_class = None;
+    assert_eq!(
+        driver
+            .validate(&missing_visibility)
+            .expect_err("missing visibility")
+            .kind,
+        ProfileValidationErrorKind::MissingVisibility
+    );
+
+    let mut byte_claim = valid;
+    byte_claim.canonical_byte_claim = true;
+    assert_eq!(
+        driver
+            .validate(&byte_claim)
+            .expect_err("canonical byte claim")
+            .kind,
+        ProfileValidationErrorKind::IllegalCanonicalByteClaim
     );
 }
 

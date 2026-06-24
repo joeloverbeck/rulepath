@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-027: River Ledger C-08 seat-private-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/river_ledger/tests/`; export encoding authority unchanged
@@ -70,3 +70,22 @@ In `games/river_ledger/tests/replay.rs` (and `tests/visibility.rs` as needed), a
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The per-game replay/visibility test is the correct boundary: the profile is a dev-only evidence adapter over the existing seat-private export.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `seat-private-export-v1` profile adapter test over River seat-private exports using `SeatPrivateExportV1Driver`.
+2. Covered every declared viewer for seat counts 3 through 6 and a selected multipot path through the existing pairwise export no-leak geometry.
+3. Added reject coverage for wrong visibility, missing visibility, and illegal canonical-byte claim while leaving export encoding unchanged.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p river_ledger` - passed.
+3. `cargo run -p replay-check -- --game river_ledger --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.
