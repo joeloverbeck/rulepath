@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-006: Briar Circuit C-02 canonical formatter/roster adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/briar_circuit` (`src/ids.rs`); emitted seat strings and roster order unchanged
@@ -70,3 +70,20 @@ In `as_str`, `seat_id_for_index`, and `canonical_seat_ids`, construct canonical 
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game replay-check is the correct boundary: canonical seat output is exercised by the game's traces.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added a fixed Briar canonical-seat roster built with `SeatId::from_zero_based_index`, and routed `BriarCircuitSeat::as_str`, `seat_id_for_index`, and `canonical_seat_ids` through that helper-backed output.
+- Added a focused formatter/roster test asserting baseline `seat_0` through `seat_3` strings and fixed-four roster order.
+
+Deviations:
+- None. Parser work was already completed in `8CR4NSEAPRITRI-005`; WASM import aliases remain owned by `8CR4NSEAPRITRI-007`.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p briar_circuit`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `bash scripts/boundary-check.sh`
