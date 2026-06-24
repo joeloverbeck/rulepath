@@ -973,3 +973,27 @@ Completed: 2026-06-24
     profile driver wrapper.
   - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
     Tricks traces were accepted.
+
+### 8CR3PUBCOOASY-602 - Flood Watch replay-command profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/tests/replay.rs`.
+- Change: added a dev-only `ReplayCommandV1Driver` wrapper test for Flood Watch
+  replay-command evidence. The test validates `replay-command-v1` / `v1` /
+  `internal-dev` metadata with owner `flood_watch`, canonical byte authority
+  `none`, and fields `commands`, `checkpoints`, and `expected_hashes`, then
+  delegates to native setup, command, event-deck trace, action-tree, effect, and
+  public-export hash evidence.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No golden
+  trace bytes, replay hashes, command semantics, production replay support,
+  event/forecast rules, or game behavior changed.
+- Compatibility / rollback: remove the profile-wrapper test/helper only; the
+  existing native replay tests and `replay-check` path remain.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new replay-command-v1
+    profile driver wrapper.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.

@@ -5,11 +5,15 @@ use engine_core::{
 use game_test_support::no_leak::{
     assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
+    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+};
 use flood_watch::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
-    export_public_replay, import_public_export, legal_action_tree, public_replay_step, setup_match,
-    DistrictId, EventCard, EventKind, FloodWatchState, Phase, ScenarioVariant, SetupOptions,
-    ACTION_END_TURN, ACTION_REINFORCE,
+    export_public_replay, generate_internal_full_trace, import_public_export, legal_action_tree,
+    public_replay_step, setup_match, DistrictId, EventCard, EventKind, FloodWatchState, Phase,
+    ScenarioVariant, SetupOptions, ACTION_END_TURN, ACTION_REINFORCE,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -95,6 +99,84 @@ fn setup_state_hash_changes_with_seed_or_scenario() {
     );
     assert_ne!(standard.stable_hash(), other_seed.stable_hash());
     assert_ne!(standard.stable_hash(), deluge.stable_hash());
+}
+
+#[test]
+fn replay_command_v1_profile_driver_wraps_native_replay_evidence() {
+    let driver = ReplayCommandV1Driver::new("flood_watch");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "flood_watch",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "flood_watch");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let hashes = driver
+        .validate_with(&artifact, |_| native_replay_profile_hashes())
+        .expect("profile delegates to native replay evidence");
+    assert_eq!(hashes.len(), 5);
+
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            "public-export-v1",
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "flood_watch",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            "v2",
+            Some("internal-dev"),
+            "flood_watch",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("seat-private"),
+            "flood_watch",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "replay-check",
+            &["commands"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_replay_profile_rejects(
+        replay_command_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "flood_watch",
+            &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
 }
 
 #[test]
@@ -228,6 +310,59 @@ fn hidden_future_probes(state: &FloodWatchState) -> Vec<LeakProbe<usize, String,
 
 fn snapshot_contains_event(snapshot: &str, card: &EventCard) -> bool {
     snapshot.contains(&card.stable_id()) || snapshot.contains(&format!("{card:?}"))
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_replay_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = ReplayCommandV1Driver::new("flood_watch");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid replay-command-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn native_replay_profile_hashes() -> Vec<HashValue> {
+    let mut state = setup_match(Seed(91), &seats(), &SetupOptions::default()).unwrap();
+    let trace = generate_internal_full_trace(91, &state);
+    let command = end_turn_command(&state);
+    let applied = apply_command(&mut state, &command).expect("profile command applies");
+    let tree = legal_action_tree(&state, &actor("seat_1"));
+    let step = public_replay_step(0, &state, &command, &applied.effects, &observer());
+    let export = export_public_replay(state.variant.id.clone(), &observer(), vec![step]);
+
+    vec![
+        trace.stable_hash(),
+        state.stable_hash(),
+        HashValue::from_stable_bytes(format!("{:?}", applied.effects).as_bytes()),
+        action_tree_hash(&tree),
+        export.stable_hash(),
+    ]
 }
 
 struct ActionTreeV1Vector {

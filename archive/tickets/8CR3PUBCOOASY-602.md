@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-602: C-08 Flood Watch replay-command profile driver
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/flood_watch/tests/replay.rs`, `games/flood_watch/src/replay_support.rs`
@@ -91,3 +91,21 @@ native validator, and add wrong-metadata rejection cases. Touch
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side and read-only over existing artifacts.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a test-local `ReplayCommandV1Driver` wrapper in
+  `games/flood_watch/tests/replay.rs`.
+- The wrapper validates `replay-command-v1` / `v1` / `internal-dev` metadata
+  for owner `flood_watch`, canonical byte authority `none`, and the `commands`,
+  `checkpoints`, and `expected_hashes` fields, then delegates to native setup,
+  command, event-deck trace, action-tree, effect, and public-export hash
+  evidence.
+- Wrong profile, version, visibility, owner, and field metadata reject
+  fail-closed. No production replay support, golden trace bytes, event/forecast
+  semantics, or replay hashes changed.
+- Verification:
+  - `cargo test -p flood_watch`
+  - `cargo run -p replay-check -- --game flood_watch --all`
