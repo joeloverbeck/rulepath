@@ -135,7 +135,10 @@ Exactly what Session 2 outputs — leave no ambiguity:
   does **not** convert a `reports/` draft, so name `specs/<gate>-<slug>.md` as the save target,
   not `reports/`.) For an intermediate artifact, name the eventual target path but state plainly
   that the deliverable is **not yet final** — so Session 2 doesn't present a ready-to-decompose
-  file and skip the reassess step;
+  file and skip the reassess step. Name the artifact's **own** emitted filename with a kebab-case
+  stem that mirrors the brief's `<topic>-research-brief.md` slug — e.g. `<topic>-change-plan.md`
+  for an advisory change-plan — so the brief and the deliverable it commissions share a stem and
+  don't drift into ad-hoc or all-caps names;
 - for replacements, name the file being replaced and what must be preserved vs. changed;
 - the **locked / no-questions** instruction, verbatim intent:
 
