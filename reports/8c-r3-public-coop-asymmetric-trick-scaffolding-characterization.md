@@ -616,3 +616,26 @@ Completed: 2026-06-24
     Event Frontier traces were accepted.
   - `cargo run -p fixture-check -- --game event_frontier` passed.
   - No golden trace, fixture, export, or variant policy file changed.
+
+### 8CR3PUBCOOASY-308 - Event Frontier variant seat-count predicate
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/src/setup.rs::validate_variant`
+  `variant.seat_count` predicate.
+- Change: replaced the bare variant seat-count comparison with
+  `SeatCount::new(variant.seat_count as usize).map(SeatCount::get)` compared
+  against the game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; variant acceptance/diagnostic, faction
+  identity/order, event/resource setup, replay hashes, fixtures, and exports
+  were not intentionally migrated.
+- Compatibility / rollback: restore only the bare `variant.seat_count`
+  comparison. Roster validation, faction identity/order, event/resource setup,
+  and deck setup stay game-owned.
+- Verification:
+  - `cargo test -p event_frontier` passed, including exact diagnostic checks for
+    variant seat counts 0, 1, and 3.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces were accepted.
+  - `cargo run -p fixture-check -- --game event_frontier` passed.
+  - No golden trace, fixture, export, or variant policy file changed.

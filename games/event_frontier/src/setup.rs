@@ -78,7 +78,9 @@ pub fn setup_match(
 }
 
 pub fn validate_variant(variant: &ScenarioVariant) -> Result<Vec<AdjacencyEntry>, Diagnostic> {
-    if variant.seat_count != STANDARD_SEAT_COUNT {
+    if SeatCount::new(variant.seat_count as usize).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(diagnostic(
             "invalid_variant_seat_count",
             "event_frontier variants require exactly two seats",
@@ -339,6 +341,21 @@ mod tests {
             ),
             Err(expected)
         );
+    }
+
+    #[test]
+    fn setup_rejects_wrong_variant_seat_count() {
+        let expected = diagnostic(
+            "invalid_variant_seat_count",
+            "event_frontier variants require exactly two seats",
+        );
+
+        for seat_count in [0, 1, 3] {
+            let mut options = SetupOptions::default();
+            options.variant.seat_count = seat_count;
+
+            assert_eq!(setup_match(Seed(0), &seats(), &options), Err(expected.clone()));
+        }
     }
 
     #[test]
