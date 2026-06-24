@@ -1,8 +1,6 @@
 //! Browser-bridge helpers for `vow_tide`.
 
-use engine_core::{
-    ActionPath, Actor, CommandEnvelope, EffectEnvelope, RulesVersion, Seed, Viewer, VisibilityScope,
-};
+use engine_core::{ActionPath, Actor, CommandEnvelope, EffectEnvelope, RulesVersion, Seed, Viewer};
 use vow_tide::{
     actions::legal_action_tree as vow_legal_action_tree,
     bots::{VowTideL0Bot, VowTideL1Bot},
@@ -151,13 +149,7 @@ pub(crate) fn vow_apply_command(
             ))
         }
     };
-    Ok(effects
-        .into_iter()
-        .map(|payload| EffectEnvelope {
-            visibility: VisibilityScope::Public,
-            payload,
-        })
-        .collect())
+    Ok(effects.into_iter().map(EffectEnvelope::public).collect())
 }
 
 pub(crate) fn vow_action_tree_json(
@@ -624,6 +616,34 @@ fn vow_effect_kind(effect: &VowTideEffect) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use engine_core::{SeatId, VisibilityScope};
+
+    #[test]
+    fn apply_command_wraps_vow_effects_as_public_envelopes() {
+        let mut state = create_vow_tide_match(20260624, 4).unwrap();
+        let effects = vow_apply_command(
+            &mut state,
+            VowTideSeat::Seat1,
+            ActionPath {
+                segments: vec![vow_tide::ids::ACTION_BID.to_owned(), "2".to_owned()],
+            },
+            0,
+        )
+        .expect("valid opening bid applies");
+
+        assert!(!effects.is_empty());
+        for effect in &effects {
+            assert!(matches!(effect.visibility, VisibilityScope::Public));
+        }
+        let logged_json = vow_effects_json(
+            &effects,
+            &Viewer {
+                seat_id: Some(SeatId(VowTideSeat::Seat1.as_str().to_owned())),
+            },
+        );
+        assert!(logged_json.contains("\"visibility\":\"public\""));
+        assert!(logged_json.contains("\"kind\":\"bid_accepted\""));
+    }
 
     #[test]
     fn projected_views_do_not_leak_other_hands_or_hidden_stock() {

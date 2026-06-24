@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-004: Vow Tide C-01 public-envelope constructor adoption (WASM)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (`src/games/vow.rs`); effect count/order/payload and logged JSON byte-identical
@@ -70,3 +70,24 @@ In `vow_apply_command`, replace the literal public-envelope map with `EffectEnve
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The `wasm-api` test plus per-game replay-check are the correct boundary: this surface is the WASM bridge's effect mapping for Vow.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Replaced the Vow Tide WASM bridge public envelope literal in
+  `crates/wasm-api/src/games/vow.rs::vow_apply_command` with
+  `EffectEnvelope::public`.
+- Added a focused Vow bridge test that applies a valid opening bid, confirms
+  every returned envelope is `VisibilityScope::Public`, and checks the logged
+  JSON still reports public `bid_accepted` effects.
+
+Deviations:
+- None to implementation scope. No private Vow effect class was introduced.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`
