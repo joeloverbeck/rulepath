@@ -11,8 +11,8 @@ use briar_circuit::{
 use engine_core::{FreshnessToken, HashValue, SeatId, Seed, SeededRng, Viewer};
 use game_test_support::profiles::{
     DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
-    ReplayCommandV1Driver, DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
-    SETUP_EVIDENCE_V1,
+    PublicExportV1Driver, ReplayCommandV1Driver, DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1,
+    PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 
 const REQUIRED_TRACES: &[&str] = &[
@@ -87,6 +87,23 @@ const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
     "expected_hashes",
 ];
 
+const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "export_steps",
+    "import_round_trip",
+    "hidden_absence_tokens",
+];
+
 fn domain_evidence_profile_artifact<'a>(
     visibility_class: &'a str,
     canonical_byte_claim: bool,
@@ -118,6 +135,21 @@ fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
             migration_update_note: Some("8CR4NSEAPRITRI-029 virtual replay-command profile"),
         },
         fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: PUBLIC_EXPORT_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "wasm-export",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-031 virtual public-export profile"),
+        },
+        fields: PUBLIC_EXPORT_PROFILE_FIELDS,
         canonical_byte_claim: false,
     }
 }
@@ -560,6 +592,82 @@ fn replay_command_v1_driver_rejects_briar_wrong_metadata() {
 
     let mut unknown_field = valid;
     unknown_field.fields = &["profile_id", "pass_policy"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn public_export_v1_driver_validates_briar_public_timeline_round_trip_and_no_leak() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let profile = public_export_profile_artifact();
+
+    driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+            assert_eq!(report.visibility_class, "public");
+
+            let mut state =
+                setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default())
+                    .expect("setup");
+            let hidden_cards = BriarCircuitSeat::ALL
+                .into_iter()
+                .flat_map(|seat| state.hand_for_internal(seat).to_vec())
+                .collect::<Vec<_>>();
+            let selected = state.hand_for_internal(BriarCircuitSeat::Seat0)[0];
+            apply_pass_action(
+                &mut state,
+                BriarCircuitSeat::Seat0,
+                PassAction::Select(selected),
+            )
+            .expect("select pass card");
+
+            let export = export_viewer_timeline(&state, ViewerExportClass::Public);
+            let imported = import_viewer_timeline(&export).expect("public export imports");
+            assert_eq!(imported, export);
+            assert_eq!(export.class, ViewerExportClass::Public);
+            assert_eq!(export.viewer_label, "public");
+
+            let payload = format!("{export:?}");
+            for card in hidden_cards {
+                assert!(
+                    !payload.contains(&card.as_str()),
+                    "public export leaked {card:?}"
+                );
+            }
+            assert!(!payload.contains(&selected.as_str()));
+        })
+        .expect("public-export-v1 driver accepts Briar public timeline adapter");
+}
+
+#[test]
+fn public_export_v1_driver_rejects_briar_wrong_metadata() {
+    let driver = PublicExportV1Driver::new("wasm-export");
+    let valid = public_export_profile_artifact();
+
+    let mut wrong_owner = valid.clone();
+    wrong_owner.metadata.validator_owner = "replay-check";
+    assert_eq!(
+        driver.validate(&wrong_owner).expect_err("wrong owner").kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let mut wrong_visibility = valid.clone();
+    wrong_visibility.metadata.visibility_class = Some("seat-private");
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "viewer_seat"];
     assert_eq!(
         driver
             .validate(&unknown_field)

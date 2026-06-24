@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-031: Briar Circuit C-08 public-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/briar_circuit/tests/replay.rs`; export bytes/class unchanged
@@ -70,3 +70,22 @@ In `games/briar_circuit/tests/replay.rs`, add a `PublicExportV1Driver` adapter o
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game replay test is the correct boundary: the profile is a dev-only evidence adapter over the existing export.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `public-export-v1` profile adapter test for Briar public viewer timelines using `PublicExportV1Driver`.
+2. Covered public timeline round-trip through `import_viewer_timeline` and asserted hidden hand/pass card ids are absent from the public export.
+3. Added reject coverage for wrong validator owner, wrong visibility, and unknown profile fields.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p briar_circuit` - passed.
+3. `cargo run -p replay-check -- --game briar_circuit --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.
