@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-304: C-03 Flood Watch role-order cardinality predicate
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/flood_watch/src/setup.rs`
@@ -92,3 +92,23 @@ ordering, assignment, powers, and cooperative policy.
 2. `cargo run -p replay-check -- --game flood_watch --all`
 3. A per-game test + replay-check is the correct boundary: only the role-order
    cardinality predicate changes.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/flood_watch/src/setup.rs::validate_variant` to wrap
+`variant.role_order.len()` with `SeatCount::new(variant.role_order.len()).map(SeatCount::get)`
+before comparing to the game-owned `STANDARD_SEAT_COUNT`. The change is
+predicate-only; role identities, ordering, assignment, powers, variant policy,
+event-deck setup, diagnostics, replay/export bytes, and fixtures were otherwise
+untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p flood_watch` passed.
+- `cargo run -p replay-check -- --game flood_watch --all` passed.
+- `cargo run -p fixture-check -- --game flood_watch` passed.
+- No golden trace, fixture, export, role policy, or variant policy file changed.

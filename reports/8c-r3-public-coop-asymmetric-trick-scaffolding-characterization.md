@@ -521,3 +521,26 @@ Completed: 2026-06-24
     Watch traces were accepted.
   - `cargo run -p fixture-check -- --game flood_watch` passed.
   - No golden trace, fixture, export, or variant policy file changed.
+
+### 8CR3PUBCOOASY-304 - Flood Watch role-order cardinality predicate
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/src/setup.rs::validate_variant`
+  `variant.role_order.len()` predicate.
+- Change: replaced the bare role-order length comparison with
+  `SeatCount::new(variant.role_order.len()).map(SeatCount::get)` compared
+  against the game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; role identities, order, powers,
+  assignment, setup hashes, replay hashes, fixtures, and exports were not
+  intentionally migrated.
+- Compatibility / rollback: restore only the bare `variant.role_order.len()`
+  comparison. Roster validation, variant seat-count validation, role
+  identities/order/powers, and event-deck setup stay game-owned.
+- Verification:
+  - `cargo test -p flood_watch` passed.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces were accepted.
+  - `cargo run -p fixture-check -- --game flood_watch` passed.
+  - No golden trace, fixture, export, role policy, or variant policy file
+    changed.

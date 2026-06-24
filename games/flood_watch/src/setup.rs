@@ -90,7 +90,9 @@ fn validate_variant(variant: &ScenarioVariant) -> Result<(), Diagnostic> {
             message: "flood_watch variants require exactly two seats".to_owned(),
         });
     }
-    if variant.role_order.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(variant.role_order.len()).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(Diagnostic {
             code: "invalid_variant_roles".to_owned(),
             message: "flood_watch variants require exactly two roles".to_owned(),
