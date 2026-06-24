@@ -1,5 +1,8 @@
 use engine_core::{SeatId, Viewer};
-use frontier_control::{project_view, setup_match, SetupOptions, SiteId, StakeSupplyStatus};
+use frontier_control::{
+    filter_effects_for_viewer, project_view, public_effect, setup_match, FrontierControlEffect,
+    SetupOptions, SiteId, StakeSupplyStatus,
+};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -24,6 +27,38 @@ fn public_view_is_output_equivalent_for_all_viewers() {
 
     assert_eq!(observer, seat_0);
     assert_eq!(observer, seat_1);
+}
+
+#[test]
+fn c07_no_leak_matrix_is_not_applicable_because_all_surfaces_are_public() {
+    let first = setup_match(&seats(), &SetupOptions::default()).unwrap();
+    let second = setup_match(&seats(), &SetupOptions::default()).unwrap();
+    assert_eq!(first, second);
+
+    let viewers = [
+        Viewer { seat_id: None },
+        Viewer {
+            seat_id: Some(SeatId("seat_0".to_owned())),
+        },
+        Viewer {
+            seat_id: Some(SeatId("seat_1".to_owned())),
+        },
+    ];
+    let projections = viewers
+        .iter()
+        .map(|viewer| project_view(&first, viewer))
+        .collect::<Vec<_>>();
+    assert!(projections.windows(2).all(|pair| pair[0] == pair[1]));
+
+    let effects = vec![public_effect(FrontierControlEffect::StakePlaced {
+        site: SiteId::Ford,
+    })];
+    let filtered = viewers
+        .iter()
+        .map(|viewer| filter_effects_for_viewer(&effects, viewer))
+        .collect::<Vec<_>>();
+    assert!(filtered.windows(2).all(|pair| pair[0] == pair[1]));
+    assert_eq!(filtered[0], effects);
 }
 
 #[test]

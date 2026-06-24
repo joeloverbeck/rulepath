@@ -41,9 +41,9 @@ pub use state::{
 pub use ui::{card_face, CardFaceView, CardPresentation, CardPresentationCatalog, UiMetadata};
 pub use variants::{EventComposition, Fixture, Manifest, ScenarioVariant, VariantCatalog};
 pub use visibility::{
-    action_tree_hash, contains_hidden_event_identity, diagnostic_hash, effect_hash,
-    filter_effects_for_viewer, project_view, public_effect_text, view_hash, CompositionView,
-    DistrictView, PhaseView, PublicView, RoleView, TerminalView,
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, contains_hidden_event_identity,
+    diagnostic_hash, effect_hash, filter_effects_for_viewer, project_view, public_effect_text,
+    view_hash, CompositionView, DistrictView, PhaseView, PublicView, RoleView, TerminalView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

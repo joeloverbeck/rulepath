@@ -21,6 +21,7 @@ foundation docs.
   audit surfaces for archived tickets, archived references, stale live paths,
   commit ledger, and git status. Use it as directed in Completion Audit. It
   also supports `--reference-only` for focused archived-reference truthing and
+  `--expected-ticket-list <file>` for non-contiguous ticket families, plus
   `--ledger-format compact` for final-report-ready commit ledgers.
 - `agents/openai.yaml` is an OpenAI-facing skill manifest and prompt stub. It
   does not change the main workflow and does not authorize skipping the
@@ -132,7 +133,10 @@ For each ticket:
    gates when the touched surface or ticket requires them. Prefer the narrowest
    truthful proof, but do not use unit tests as a substitute for replay,
    simulation, benchmark, browser, no-leak, or docs-link evidence when the ticket
-   requires those surfaces. When touching web play-surface files, run the
+   requires those surfaces. When a ticket changes Rust source or tests, run
+   `cargo fmt --all --check` and at least the relevant crate clippy/test lane
+   before archiving that ticket, unless the ticket records why a narrower proof
+   is sufficient. When touching web play-surface files, run the
    repo's guard scripts when present and avoid introducing guard-trigger
    vocabulary such as debug payload terms into helper names, visible-adjacent
    strings, comments, or tests unless the checker is intentionally updated with
@@ -333,6 +337,12 @@ or mark the earlier result as preliminary.
    when a spec was closed, and any active tickets, repo docs, per-game docs
    under `games/*/docs/`, app README tables, catalog/smoke lists, or scripts
    that referenced the live reference path.
+   For report artifacts, distinguish current evidence reports from historical
+   provenance reports. Retarget live-path references in active characterization
+   or acceptance reports that remain part of the closeout evidence. Historical
+   research briefs, archived-ticket notes, and provenance-only report text may
+   keep the original live path unless the active ticket/reference explicitly
+   requires repair.
    If capstone success makes a live checklist, status table, release note, or
    source/reference note false, update that closeout fact even when the ticket's
    local `Files to Touch` list is narrower. Record the extra closeout repair as
@@ -484,6 +494,7 @@ or unusual series shape needs detailed evidence.
 ```sh
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-count N
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-list /tmp/expected-tickets.txt --ledger-format compact
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
@@ -503,17 +514,21 @@ Compare the archived ticket name list and count against the concrete ticket
 paths resolved at startup. Compare the commit ledger output against the archived
 ticket list before the final response, and include every per-ticket commit ID
 when commits were made as part of the series. When using the helper, pass
-`--expected-count` or `--expected-ticket-range` when the startup ticket list is
-contiguous and known; still inspect the printed names for unusual or
-non-contiguous series. If the reference status grep finds no valid archival
-status line, or the informal-status guard finds `ACCEPTED`, a bullet-style
-status field, or `Done` in a non-spec archival status line, the reference is not
-truthy enough for completion. For archived specs using the table-style status
-header, accept `Done` only when `## Outcome` is present and the active progress
-index points at the archived spec. Historical `reports/` may contain
-provenance-only live paths; do not hard-fail those unless the active reference
-or ticket requires report repair, but do sweep active per-game docs under
-`games/*/docs/`.
+`--expected-count`, `--expected-ticket-range`, or `--expected-ticket-list` when
+the startup ticket list is known. Use `--expected-ticket-list` for
+non-contiguous series; the file may contain ticket IDs such as
+`TICKET_PREFIX-001`, basenames such as `TICKET_PREFIX-001.md`, or archive paths
+such as `archive/tickets/TICKET_PREFIX-001.md`, one per line, with blank lines
+and `#` comments ignored. Still inspect the printed names for unusual series.
+If the reference status grep finds no valid archival status line, or the
+informal-status guard finds `ACCEPTED`, a bullet-style status field, or `Done`
+in a non-spec archival status line, the reference is not truthy enough for
+completion. For archived specs using the table-style status header, accept
+`Done` only when `## Outcome` is present and the active progress index points at
+the archived spec. Historical `reports/` may contain provenance-only live paths;
+do not hard-fail those unless the active reference or ticket requires report
+repair, but do retarget active characterization/evidence reports that remain
+part of closeout evidence and sweep active per-game docs under `games/*/docs/`.
 
 ## Reporting
 

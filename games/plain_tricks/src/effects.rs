@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, SeatId, VisibilityScope};
+use engine_core::{EffectEnvelope, SeatId};
 
 use crate::{
     ids::{PlainTricksSeat, TrickCardId, ACTION_PLAY},
@@ -60,20 +60,14 @@ pub enum PlainTricksEffect {
 }
 
 pub fn public_effect(payload: PlainTricksEffect) -> EffectEnvelope<PlainTricksEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(
     owner_seat_id: SeatId,
     payload: PlainTricksEffect,
 ) -> EffectEnvelope<PlainTricksEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::PrivateToSeat(owner_seat_id),
-        payload,
-    }
+    EffectEnvelope::private_to(owner_seat_id, payload)
 }
 
 pub fn setup_effects(state: &PlainTricksState) -> Vec<EffectEnvelope<PlainTricksEffect>> {
@@ -222,7 +216,7 @@ pub fn decisive_cause(totals: TrickCounts) -> String {
 mod tests {
     use super::*;
     use crate::{setup_match, SetupOptions};
-    use engine_core::{SeatId, Seed};
+    use engine_core::{SeatId, Seed, VisibilityScope};
 
     #[test]
     fn private_deal_effects_are_scoped_to_owner_and_public_setup_has_counts_only() {

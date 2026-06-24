@@ -54,7 +54,10 @@ pub use ui::{
     ActionAffordanceTemplate, ActionAffordanceTemplateCatalog, CardFaceView, UiMetadata,
 };
 pub use variants::{Manifest, ScenarioVariant, VariantCatalog};
-pub use visibility::{filter_effects_for_viewer, project_view, PublicView, HIDDEN_SURFACE};
+pub use visibility::{
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, filter_effects_for_viewer,
+    project_view, PublicView, HIDDEN_SURFACE,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

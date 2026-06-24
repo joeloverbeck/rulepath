@@ -1,6 +1,7 @@
 //! Deterministic setup for Flood Watch.
 
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     ids::{DistrictId, EventKind, STANDARD_SEAT_COUNT},
@@ -26,7 +27,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<FloodWatchState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(STANDARD_SEAT_COUNT as usize) {
         return Err(Diagnostic {
             code: "invalid_seat_count".to_owned(),
             message: "flood_watch requires exactly two seats".to_owned(),
@@ -74,20 +75,25 @@ pub fn build_event_deck(variant: &ScenarioVariant) -> Vec<EventCard> {
 
 pub fn shuffle_event_deck<R: DeterministicRng>(cards: &mut [EventCard], rng: &mut R) {
     for index in (1..cards.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         cards.swap(index, swap_index);
     }
 }
 
 fn validate_variant(variant: &ScenarioVariant) -> Result<(), Diagnostic> {
-    if variant.seat_count != STANDARD_SEAT_COUNT {
+    if SeatCount::new(variant.seat_count as usize).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(Diagnostic {
             code: "invalid_variant_seat_count".to_owned(),
             message: "flood_watch variants require exactly two seats".to_owned(),
         });
     }
-    if variant.role_order.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(variant.role_order.len()).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(Diagnostic {
             code: "invalid_variant_roles".to_owned(),
             message: "flood_watch variants require exactly two roles".to_owned(),
@@ -109,26 +115,6 @@ fn validate_variant(variant: &ScenarioVariant) -> Result<(), Diagnostic> {
         });
     }
     Ok(())
-}
-
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
-    }
 }
 
 #[cfg(test)]
@@ -159,8 +145,46 @@ mod tests {
     #[test]
     fn setup_rejects_wrong_seat_count() {
         let options = SetupOptions::default();
+        let expected = Diagnostic {
+            code: "invalid_seat_count".to_owned(),
+            message: "flood_watch requires exactly two seats".to_owned(),
+        };
 
-        assert!(setup_match(Seed(0), &[SeatId("seat_0".to_owned())], &options).is_err());
+        assert_eq!(setup_match(Seed(0), &[], &options), Err(expected.clone()));
+        assert_eq!(
+            setup_match(Seed(0), &[SeatId("seat_0".to_owned())], &options),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                Seed(0),
+                &[
+                    SeatId("seat_0".to_owned()),
+                    SeatId("seat_1".to_owned()),
+                    SeatId("seat_2".to_owned()),
+                ],
+                &options,
+            ),
+            Err(expected)
+        );
+    }
+
+    #[test]
+    fn setup_rejects_wrong_variant_seat_count() {
+        let expected = Diagnostic {
+            code: "invalid_variant_seat_count".to_owned(),
+            message: "flood_watch variants require exactly two seats".to_owned(),
+        };
+
+        for seat_count in [0, 1, 3] {
+            let mut options = SetupOptions::default();
+            options.variant.seat_count = seat_count;
+
+            assert_eq!(
+                setup_match(Seed(0), &seats(), &options),
+                Err(expected.clone())
+            );
+        }
     }
 
     #[test]
@@ -241,6 +265,6 @@ mod tests {
         let rejected = accepted_zone_for_three as u64;
         let mut rng = FixedRng::new(vec![rejected, 4]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+        assert_eq!(rng.next_index_unbiased_v1(3), Some(1));
     }
 }

@@ -1,6 +1,6 @@
 //! Semantic effects for Event Frontier.
 
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::ids::SiteId;
 use crate::{cards::CardId, ids::FactionId};
@@ -101,8 +101,5 @@ pub enum EventFrontierEffect {
 pub type EventFrontierEffectEnvelope = EffectEnvelope<EventFrontierEffect>;
 
 pub fn public_effect(payload: EventFrontierEffect) -> EventFrontierEffectEnvelope {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }

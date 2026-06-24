@@ -3,6 +3,7 @@
 use std::collections::{BTreeSet, VecDeque};
 
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     cards::{CardCatalog, CardId},
@@ -54,7 +55,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<EventFrontierState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(STANDARD_SEAT_COUNT as usize) {
         return Err(diagnostic(
             "invalid_seat_count",
             "event_frontier requires exactly two seats",
@@ -77,7 +78,9 @@ pub fn setup_match(
 }
 
 pub fn validate_variant(variant: &ScenarioVariant) -> Result<Vec<AdjacencyEntry>, Diagnostic> {
-    if variant.seat_count != STANDARD_SEAT_COUNT {
+    if SeatCount::new(variant.seat_count as usize).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(diagnostic(
             "invalid_variant_seat_count",
             "event_frontier variants require exactly two seats",
@@ -133,7 +136,8 @@ pub fn build_seeded_deck(seed: Seed, catalog: &CardCatalog) -> Result<Vec<CardId
 
         shuffle_epoch(&mut cards, &mut rng);
         if cards.first().is_some_and(|card| is_reckoning(*card)) {
-            let swap_index = next_bounded_index_unbiased(&mut rng, cards.len() - 1)
+            let swap_index = rng
+                .next_index_unbiased_v1(cards.len() - 1)
                 .expect("epoch has non-Reckoning slots")
                 + 1;
             cards.swap(0, swap_index);
@@ -146,8 +150,9 @@ pub fn build_seeded_deck(seed: Seed, catalog: &CardCatalog) -> Result<Vec<CardId
 
 pub fn shuffle_epoch<R: DeterministicRng>(cards: &mut [CardId], rng: &mut R) {
     for index in (1..cards.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         cards.swap(index, swap_index);
     }
 }
@@ -263,26 +268,6 @@ fn ensure_unique_sites_with_counts(counts: &[(SiteId, u8)], label: &str) -> Resu
     ensure_unique_sites(&sites, label)
 }
 
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
-    }
-}
-
 fn diagnostic(code: &str, message: &str) -> Diagnostic {
     Diagnostic {
         code: code.to_owned(),
@@ -309,12 +294,53 @@ mod tests {
 
     #[test]
     fn setup_rejects_wrong_seat_count() {
-        assert!(setup_match(
-            Seed(0),
-            &[SeatId("seat_0".to_owned())],
-            &SetupOptions::default()
-        )
-        .is_err());
+        let expected = diagnostic(
+            "invalid_seat_count",
+            "event_frontier requires exactly two seats",
+        );
+
+        assert_eq!(
+            setup_match(Seed(0), &[], &SetupOptions::default()),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                Seed(0),
+                &[SeatId("seat_0".to_owned())],
+                &SetupOptions::default(),
+            ),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                Seed(0),
+                &[
+                    SeatId("seat_0".to_owned()),
+                    SeatId("seat_1".to_owned()),
+                    SeatId("seat_2".to_owned()),
+                ],
+                &SetupOptions::default(),
+            ),
+            Err(expected)
+        );
+    }
+
+    #[test]
+    fn setup_rejects_wrong_variant_seat_count() {
+        let expected = diagnostic(
+            "invalid_variant_seat_count",
+            "event_frontier variants require exactly two seats",
+        );
+
+        for seat_count in [0, 1, 3] {
+            let mut options = SetupOptions::default();
+            options.variant.seat_count = seat_count;
+
+            assert_eq!(
+                setup_match(Seed(0), &seats(), &options),
+                Err(expected.clone())
+            );
+        }
     }
 
     #[test]

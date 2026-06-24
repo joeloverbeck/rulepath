@@ -1,4 +1,5 @@
 use engine_core::{ActionPath, ActionTree, CommandEnvelope, RulesVersion, SeatId, Seed, Viewer};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use plain_tricks::{
     action_from_decision, actor_for_seat, apply_action, legal_action_tree, project_view,
     setup_match, validate_command, BotDecision, Phase, PlainTricksAction, PlainTricksLevel2Bot,
@@ -58,6 +59,107 @@ fn apply_path(state: &mut PlainTricksState, seat: PlainTricksSeat, action_path: 
     let envelope = command(state, seat, action_path);
     let validated = validate_command(state, &envelope).expect("command validates");
     apply_action(state, validated).expect("action applies");
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BotSurface {
+    InputSummary,
+    DecisionDebug,
+    PublicEffects,
+}
+
+#[test]
+fn level2_bot_pairwise_surfaces_do_not_leak_opponent_or_tail_cards() {
+    let mut follow_state = standard_state(0);
+    apply_path(
+        &mut follow_state,
+        PlainTricksSeat::Seat0,
+        ActionPath {
+            segments: vec![
+                ACTION_PLAY.to_owned(),
+                TrickCardId::Gale1.as_str().to_owned(),
+            ],
+        },
+    );
+
+    assert_level2_bot_no_leak_at_decision(&standard_state(0), PlainTricksSeat::Seat0);
+    assert_level2_bot_no_leak_at_decision(&follow_state, PlainTricksSeat::Seat1);
+}
+
+fn assert_level2_bot_no_leak_at_decision(state: &PlainTricksState, active_seat: PlainTricksSeat) {
+    let probes = PlainTricksSeat::ALL
+        .into_iter()
+        .flat_map(|source_seat| {
+            own_hand(state, source_seat)
+                .into_iter()
+                .map(move |card| LeakProbe {
+                    source_seat,
+                    canary_id: card.as_str(),
+                    canary: card,
+                })
+        })
+        .collect::<Vec<_>>();
+
+    assert_pairwise_no_leak(
+        [active_seat],
+        [
+            BotSurface::InputSummary,
+            BotSurface::DecisionDebug,
+            BotSurface::PublicEffects,
+        ],
+        probes,
+        |viewer_seat, surface| bot_surface_text(state, *viewer_seat, *surface),
+        |source_seat, viewer_seat, _surface, _canary_id| {
+            if source_seat == viewer_seat {
+                ExposureExpectation::NotApplicable
+            } else {
+                ExposureExpectation::MustBeAbsent
+            }
+        },
+        |snapshot, card| card_text_present(snapshot, *card),
+    )
+    .expect("bot pairwise no-leak matrix has no failures");
+
+    for surface in [
+        BotSurface::InputSummary,
+        BotSurface::DecisionDebug,
+        BotSurface::PublicEffects,
+    ] {
+        let text = bot_surface_text(state, active_seat, surface);
+        for card in hidden_unseen_cards(state) {
+            assert!(!card_text_present(&text, card), "{text}");
+        }
+    }
+}
+
+fn bot_surface_text(
+    state: &PlainTricksState,
+    seat: PlainTricksSeat,
+    surface: BotSurface,
+) -> String {
+    match surface {
+        BotSurface::InputSummary => PlainTricksLevel2Bot::input_for(state, seat).stable_summary(),
+        BotSurface::DecisionDebug => format!(
+            "{:?}",
+            PlainTricksLevel2Bot::new(Seed(1))
+                .select_decision(state, seat)
+                .expect("level2 decision")
+        ),
+        BotSurface::PublicEffects => format!(
+            "{:?}",
+            PlainTricksLevel2Bot::new(Seed(1))
+                .select_decision(state, seat)
+                .expect("level2 decision")
+                .effects
+        ),
+    }
+}
+
+fn card_text_present(text: &str, card: TrickCardId) -> bool {
+    text.contains(card.as_str())
+        || text.contains(&card.label())
+        || text.contains(&card.label().to_lowercase())
+        || text.contains(&format!("{card:?}"))
 }
 
 #[test]
@@ -239,6 +341,22 @@ fn tail_cards(state: &PlainTricksState) -> Vec<TrickCardId> {
     TrickCardId::ALL
         .into_iter()
         .filter(|card| !hands.contains(card))
+        .collect()
+}
+
+fn hidden_unseen_cards(state: &PlainTricksState) -> Vec<TrickCardId> {
+    let mut public = state
+        .current_trick
+        .plays
+        .iter()
+        .map(|play| play.card)
+        .collect::<Vec<_>>();
+    for trick in &state.completed_tricks {
+        public.extend(trick.plays.iter().map(|play| play.card));
+    }
+    tail_cards(state)
+        .into_iter()
+        .filter(|card| !public.contains(card))
         .collect()
 }
 

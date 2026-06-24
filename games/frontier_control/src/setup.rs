@@ -3,6 +3,7 @@
 use std::collections::{BTreeSet, VecDeque};
 
 use engine_core::{Diagnostic, SeatId};
+use game_stdlib::SeatCount;
 
 use crate::{
     ids::{FactionId, SiteId, STANDARD_SEAT_COUNT},
@@ -27,7 +28,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<FrontierControlState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(STANDARD_SEAT_COUNT as usize) {
         return Err(diagnostic(
             "invalid_seat_count",
             "frontier_control requires exactly two seats",
@@ -43,7 +44,9 @@ pub fn setup_match(
 }
 
 pub fn validate_variant(variant: &VariantMap) -> Result<Vec<AdjacencyEntry>, Diagnostic> {
-    if variant.seat_count != STANDARD_SEAT_COUNT {
+    if SeatCount::new(variant.seat_count as usize).map(SeatCount::get)
+        != Ok(STANDARD_SEAT_COUNT as usize)
+    {
         return Err(diagnostic(
             "invalid_variant_seat_count",
             "frontier_control variants require exactly two seats",
@@ -256,7 +259,45 @@ mod tests {
 
     #[test]
     fn setup_rejects_wrong_seat_count() {
-        assert!(setup_match(&[SeatId("seat_0".to_owned())], &SetupOptions::default()).is_err());
+        let expected = diagnostic(
+            "invalid_seat_count",
+            "frontier_control requires exactly two seats",
+        );
+
+        assert_eq!(
+            setup_match(&[], &SetupOptions::default()),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(&[SeatId("seat_0".to_owned())], &SetupOptions::default()),
+            Err(expected.clone())
+        );
+        assert_eq!(
+            setup_match(
+                &[
+                    SeatId("seat_0".to_owned()),
+                    SeatId("seat_1".to_owned()),
+                    SeatId("seat_2".to_owned()),
+                ],
+                &SetupOptions::default(),
+            ),
+            Err(expected)
+        );
+    }
+
+    #[test]
+    fn setup_rejects_wrong_variant_seat_count() {
+        let expected = diagnostic(
+            "invalid_variant_seat_count",
+            "frontier_control variants require exactly two seats",
+        );
+
+        for seat_count in [0, 1, 3] {
+            let mut options = SetupOptions::default();
+            options.variant.seat_count = seat_count;
+
+            assert_eq!(setup_match(&seats(), &options), Err(expected.clone()));
+        }
     }
 
     #[test]

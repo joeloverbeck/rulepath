@@ -16,6 +16,7 @@ const activeReference = args["active-reference"];
 const archivedReference = args["archived-reference"];
 const expectedCount = args["expected-count"];
 const expectedTicketRange = args["expected-ticket-range"];
+const expectedTicketList = args["expected-ticket-list"];
 const ledgerFormat = args["ledger-format"];
 const referenceOnly = args["reference-only"] === true;
 
@@ -36,6 +37,12 @@ if (referenceOnly && !archivedReference) {
 let expectedTicketNames = null;
 if (expectedTicketRange) {
   expectedTicketNames = expandTicketRange(expectedTicketRange);
+}
+if (expectedTicketList) {
+  const listNames = readExpectedTicketList(expectedTicketList);
+  expectedTicketNames = expectedTicketNames
+    ? [...new Set([...expectedTicketNames, ...listNames])]
+    : listNames;
 }
 
 let failures = 0;
@@ -59,6 +66,7 @@ function printUsage(write = console.log) {
       "[--active-reference specs/name.md] " +
       "[--archived-reference archive/specs/name.md] " +
       "[--expected-count N] " +
+      "[--expected-ticket-list FILE] " +
       "[--expected-ticket-range PREFIX-001..020] " +
       "[--ledger-format compact]\n" +
       "       audit-series-closeout.mjs --reference-only " +
@@ -221,6 +229,31 @@ function expandTicketRange(range) {
   });
 }
 
+function readExpectedTicketList(file) {
+  const lines = readLines(file);
+  if (!lines) {
+    console.error(`Missing --expected-ticket-list file: ${file}`);
+    process.exit(2);
+  }
+  const names = lines
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map(normalizeExpectedTicketName);
+  if (names.length === 0) {
+    console.error(`Empty --expected-ticket-list file: ${file}`);
+    process.exit(2);
+  }
+  return names;
+}
+
+function normalizeExpectedTicketName(value) {
+  if (value.startsWith("archive/tickets/") && value.endsWith(".md")) {
+    return value;
+  }
+  const basename = value.endsWith(".md") ? value : `${value}.md`;
+  return path.join("archive", "tickets", basename);
+}
+
 if (!referenceOnly) {
   section("Active Ticket References");
   const activeTicketRefs = run("rg", ["-n", prefix, "tickets"], { allowExitCodes: [0, 1] });
@@ -251,9 +284,9 @@ if (!referenceOnly) {
     const missing = expectedTicketNames.filter((file) => !actual.has(file));
     const unexpected = archivedTickets.filter((file) => !expected.has(file));
     missing.forEach((file) => fail(`expected archived ticket missing: ${file}`));
-    unexpected.forEach((file) => fail(`unexpected archived ticket for range: ${file}`));
+    unexpected.forEach((file) => fail(`unexpected archived ticket for expected set: ${file}`));
     if (missing.length === 0 && unexpected.length === 0) {
-      ok(`archived ticket names match expected range ${expectedTicketRange}`);
+      ok("archived ticket names match expected set");
     }
   }
 

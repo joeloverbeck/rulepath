@@ -45,9 +45,9 @@ pub use state::{
 };
 pub use variants::{Fixture, Manifest, SiteDefinition, StartUnits, VariantCatalog, VariantMap};
 pub use visibility::{
-    action_tree_hash, diagnostic_hash, effect_hash, filter_effects_for_viewer, project_view,
-    public_effect_text, view_hash, FactionView, PhaseView, PublicView, ScoreView, SiteView,
-    TerminalView,
+    action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, diagnostic_hash, effect_hash,
+    filter_effects_for_viewer, project_view, public_effect_text, view_hash, FactionView, PhaseView,
+    PublicView, ScoreView, SiteView, TerminalView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {
