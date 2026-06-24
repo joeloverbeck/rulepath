@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-016: Briar Circuit C-04 typed action-tree parity adapter
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/briar_circuit` (`src/actions.rs`); game-owned typed adapter, browser JSON authority unchanged
@@ -70,3 +70,25 @@ In `games/briar_circuit/src/actions.rs`, add a `legal_action_tree` adapter that 
 1. `cargo test -p briar_circuit`
 2. `cargo test -p wasm-api`
 3. The per-game parity test is the correct boundary: it proves Rust-owned/typed parity before any hash surface is added in `-017`.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added `games/briar_circuit/src/actions.rs::legal_action_tree`, a game-owned typed `ActionTree` adapter over the existing Briar `legal_bot_actions` source.
+2. Preserved the current browser-rendered path/order/root-label baseline for pass select, pass confirm, and legal play choices while leaving browser JSON authority unchanged.
+3. Added focused Briar action-tree tests covering pass select parity, pass confirm parity, legal play parity, and unknown actor rejection.
+
+Deviations:
+
+1. Current browser choices are sourced from `legal_bot_actions`, which does not emit unselect actions; this ticket preserves that rendered baseline instead of changing browser output.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p briar_circuit` — passed.
+3. `cargo test -p wasm-api` — passed.
+4. `cargo run -p replay-check -- --game briar_circuit --all` — passed.
+5. `bash scripts/boundary-check.sh` — passed.

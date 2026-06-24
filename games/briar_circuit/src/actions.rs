@@ -1,6 +1,7 @@
-use engine_core::{CommandEnvelope, Diagnostic};
+use engine_core::{ActionChoice, ActionNode, ActionTree, Actor, CommandEnvelope, Diagnostic};
 
 use crate::{
+    bots::{legal_bot_actions, BriarCircuitBotAction},
     cards::CardId,
     effects::{BriarCircuitEffect, PassCommitmentStatus},
     ids::{
@@ -27,6 +28,18 @@ pub struct PassActionResult {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum PlayAction {
     Play(CardId),
+}
+
+pub fn legal_action_tree(state: &BriarCircuitState, actor: &Actor) -> ActionTree {
+    let Some(seat) = BriarCircuitSeat::parse(&actor.seat_id.0) else {
+        return ActionTree::flat(state.freshness_token, Vec::new());
+    };
+    let choices = legal_bot_actions(state, seat)
+        .unwrap_or_default()
+        .into_iter()
+        .map(action_choice)
+        .collect();
+    ActionTree::flat(state.freshness_token, choices)
 }
 
 pub fn validate_pass_command(
@@ -206,6 +219,68 @@ pub fn apply_pass_action(
     }
 }
 
+fn action_choice(action: BriarCircuitBotAction) -> ActionChoice {
+    let path = action_path(action);
+    let label = action_label(action);
+    let mut choice = ActionChoice::leaf(
+        path.first().cloned().unwrap_or_default(),
+        label.clone(),
+        label,
+    );
+    choice.next = nested_action_node(&path[1..]);
+    choice
+}
+
+fn nested_action_node(path: &[String]) -> Option<Box<ActionNode>> {
+    let (segment, remaining) = path.split_first()?;
+    let label = segment.replace('_', " ");
+    let mut choice = ActionChoice::leaf(segment.clone(), label.clone(), label);
+    choice.next = nested_action_node(remaining);
+    Some(Box::new(ActionNode {
+        choices: vec![choice],
+    }))
+}
+
+fn action_path(action: BriarCircuitBotAction) -> Vec<String> {
+    match action {
+        BriarCircuitBotAction::Pass(PassAction::Select(card)) => {
+            vec![
+                ACTION_PASS.to_owned(),
+                ACTION_PASS_SELECT.to_owned(),
+                card.as_str(),
+            ]
+        }
+        BriarCircuitBotAction::Pass(PassAction::Unselect(card)) => {
+            vec![
+                ACTION_PASS.to_owned(),
+                ACTION_PASS_UNSELECT.to_owned(),
+                card.as_str(),
+            ]
+        }
+        BriarCircuitBotAction::Pass(PassAction::Confirm) => {
+            vec![ACTION_PASS.to_owned(), ACTION_PASS_CONFIRM.to_owned()]
+        }
+        BriarCircuitBotAction::Play(PlayAction::Play(card)) => {
+            vec![ACTION_PLAY.to_owned(), card.as_str()]
+        }
+    }
+}
+
+fn action_label(action: BriarCircuitBotAction) -> String {
+    match action {
+        BriarCircuitBotAction::Pass(PassAction::Select(card)) => {
+            format!("Select {}", card.as_str().replace('_', " "))
+        }
+        BriarCircuitBotAction::Pass(PassAction::Unselect(card)) => {
+            format!("Unselect {}", card.as_str().replace('_', " "))
+        }
+        BriarCircuitBotAction::Pass(PassAction::Confirm) => "Confirm pass".to_owned(),
+        BriarCircuitBotAction::Play(PlayAction::Play(card)) => {
+            format!("Play {}", card.as_str().replace('_', " "))
+        }
+    }
+}
+
 fn validate_pass_action(
     state: &BriarCircuitState,
     seat: BriarCircuitSeat,
@@ -343,4 +418,164 @@ fn diagnostic(code: &str, message: &str) -> Diagnostic {
 #[allow(dead_code)]
 fn _rules_version_label() -> &'static str {
     RULES_VERSION_LABEL
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use engine_core::{SeatId, Seed};
+
+    use crate::{
+        ids::canonical_seat_ids,
+        rules::legal_play_cards,
+        setup::{setup_match, SetupOptions},
+    };
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct BrowserChoiceParity {
+        root_label: String,
+        path: Vec<String>,
+    }
+
+    fn standard_state() -> BriarCircuitState {
+        setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default()).expect("setup")
+    }
+
+    fn actor(seat: BriarCircuitSeat) -> Actor {
+        Actor {
+            seat_id: SeatId(seat.as_str().to_owned()),
+        }
+    }
+
+    fn browser_choices(tree: &ActionTree) -> Vec<BrowserChoiceParity> {
+        let mut choices = Vec::new();
+        for choice in &tree.root.choices {
+            collect_browser_choices(choice, choice.label.clone(), Vec::new(), &mut choices, true);
+        }
+        choices
+    }
+
+    fn collect_browser_choices(
+        choice: &ActionChoice,
+        root_label: String,
+        mut path: Vec<String>,
+        choices: &mut Vec<BrowserChoiceParity>,
+        is_root: bool,
+    ) {
+        path.push(choice.segment.clone());
+        if let Some(next) = &choice.next {
+            if !is_root {
+                assert_eq!(
+                    choice.label,
+                    choice.segment.replace('_', " "),
+                    "nested choice labels must stay browser-compatible"
+                );
+            }
+            for next_choice in &next.choices {
+                collect_browser_choices(
+                    next_choice,
+                    root_label.clone(),
+                    path.clone(),
+                    choices,
+                    false,
+                );
+            }
+        } else {
+            choices.push(BrowserChoiceParity { root_label, path });
+        }
+    }
+
+    fn card_label(prefix: &str, card: CardId) -> String {
+        format!("{prefix} {}", card.as_str().replace('_', " "))
+    }
+
+    fn commit_standard_pass(state: &mut BriarCircuitState, seat: BriarCircuitSeat) {
+        let cards = state.hand_for_internal(seat)[..STANDARD_PASS_SIZE as usize].to_vec();
+        for card in cards {
+            apply_pass_action(state, seat, PassAction::Select(card)).expect("select pass card");
+        }
+        apply_pass_action(state, seat, PassAction::Confirm).expect("confirm pass");
+    }
+
+    #[test]
+    fn legal_action_tree_matches_browser_pass_select_choices() {
+        let state = standard_state();
+        let seat = BriarCircuitSeat::Seat0;
+        let expected = state
+            .hand_for_internal(seat)
+            .iter()
+            .copied()
+            .map(|card| BrowserChoiceParity {
+                root_label: card_label("Select", card),
+                path: vec![
+                    ACTION_PASS.to_owned(),
+                    ACTION_PASS_SELECT.to_owned(),
+                    card.as_str(),
+                ],
+            })
+            .collect::<Vec<_>>();
+
+        let tree = legal_action_tree(&state, &actor(seat));
+
+        assert_eq!(tree.freshness_token, state.freshness_token);
+        assert_eq!(browser_choices(&tree), expected);
+    }
+
+    #[test]
+    fn legal_action_tree_matches_browser_pass_confirm_choice() {
+        let mut state = standard_state();
+        let seat = BriarCircuitSeat::Seat0;
+        let cards = state.hand_for_internal(seat)[..STANDARD_PASS_SIZE as usize].to_vec();
+        for card in cards {
+            apply_pass_action(&mut state, seat, PassAction::Select(card)).expect("select card");
+        }
+
+        let tree = legal_action_tree(&state, &actor(seat));
+
+        assert_eq!(
+            browser_choices(&tree),
+            vec![BrowserChoiceParity {
+                root_label: "Confirm pass".to_owned(),
+                path: vec![ACTION_PASS.to_owned(), ACTION_PASS_CONFIRM.to_owned()],
+            }]
+        );
+        assert!(!browser_choices(&tree).iter().any(|choice| choice
+            .path
+            .iter()
+            .any(|segment| segment == ACTION_PASS_UNSELECT)));
+    }
+
+    #[test]
+    fn legal_action_tree_matches_browser_play_choices() {
+        let mut state = standard_state();
+        for seat in BriarCircuitSeat::ALL {
+            commit_standard_pass(&mut state, seat);
+        }
+        let active = state.playing_state().expect("playing phase").active_seat;
+        let expected = legal_play_cards(&state, active)
+            .expect("legal play cards")
+            .into_iter()
+            .map(|card| BrowserChoiceParity {
+                root_label: card_label("Play", card),
+                path: vec![ACTION_PLAY.to_owned(), card.as_str()],
+            })
+            .collect::<Vec<_>>();
+
+        let tree = legal_action_tree(&state, &actor(active));
+
+        assert_eq!(browser_choices(&tree), expected);
+    }
+
+    #[test]
+    fn legal_action_tree_rejects_unknown_actor_without_choices() {
+        let state = standard_state();
+        let actor = Actor {
+            seat_id: SeatId("seat_99".to_owned()),
+        };
+
+        let tree = legal_action_tree(&state, &actor);
+
+        assert_eq!(tree.freshness_token, state.freshness_token);
+        assert!(tree.root.choices.is_empty());
+    }
 }
