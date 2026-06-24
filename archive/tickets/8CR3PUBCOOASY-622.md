@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-622: C-08 Flood Watch domain-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (dev-only profile adapter) — `games/flood_watch/tests/{rules,replay}.rs`
@@ -97,3 +97,27 @@ wrong-metadata rejection cases.
 2. `cargo run -p fixture-check -- --game flood_watch`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over existing fixtures.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a dev-only `DomainEvidenceV1Driver` wrapper in
+  `games/flood_watch/tests/rules.rs` for Flood Watch `domain-evidence-v1`
+  metadata. The test validates `v1` / `internal-dev` metadata with owner
+  `flood_watch`, canonical byte authority `none`, and fields
+  `domain_schema_version`, `domain_input`, and `expected_domain`.
+- The driver delegates to a Flood Watch-owned domain validator after metadata
+  succeeds. That validator uses existing Rust fixture loading, setup, command
+  validation, state transition, effect, forecast, role-power, levee,
+  inundation, and terminal-outcome paths over the standard and deluge fixtures.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field. No fixture bytes, production code,
+  flood/levee/budget calculation, replay hash, or domain behavior changed.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new
+    domain-evidence-v1 wrapper.
+  - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
+    fixtures passed.
+  - `cargo run -p rule-coverage -- --game flood_watch` passed.
+  - `git diff --check` passed.

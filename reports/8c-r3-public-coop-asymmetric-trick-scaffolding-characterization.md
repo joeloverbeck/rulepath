@@ -1198,3 +1198,33 @@ Completed: 2026-06-24
   - `cargo fmt --all --check` was attempted and failed on pre-existing
     formatting drift outside this ticket's owned surface; only
     `games/plain_tricks/tests/replay.rs` was formatted with `rustfmt`.
+
+### 8CR3PUBCOOASY-622 - Flood Watch domain-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/tests/rules.rs`.
+- Change: added a dev-only `DomainEvidenceV1Driver` wrapper test for Flood
+  Watch domain evidence. The test validates `domain-evidence-v1` / `v1` /
+  `internal-dev` metadata with owner `flood_watch`, canonical byte authority
+  `none`, and fields `domain_schema_version`, `domain_input`, and
+  `expected_domain`, then delegates to a game-owned domain validator.
+- Delegated evidence: the standard and deluge fixtures remain read-only and
+  are checked through existing Rust-owned fixture loading, setup, command
+  validation, state transition, effect, forecast, role-power, levee,
+  inundation, and terminal-outcome paths for role/start-budget, forecast/event
+  pressure, levee absorption, flood rise/inundation, and win/loss evidence.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, production code, flood/levee/budget calculation, replay hash, or
+  domain behavior changed.
+- Compatibility / rollback: remove the domain profile-wrapper test/helper only;
+  the existing setup, rules, fixture-check, and rule-coverage paths remain.
+- Verification:
+  - `cargo test -p flood_watch` passed, including the new
+    domain-evidence-v1 profile driver wrapper.
+  - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
+    fixtures passed.
+  - `cargo run -p rule-coverage -- --game flood_watch` passed.
+  - `git diff --check` passed.

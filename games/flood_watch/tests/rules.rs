@@ -1,10 +1,15 @@
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use flood_watch::{
-    apply_command, legal_action_metadata, legal_action_tree, setup_match, DistrictId, EventCard,
-    EventKind, FloodWatchEffect, FloodWatchRole, FloodWatchState, Phase, ScenarioVariant,
-    SetupOptions, SharedOutcome, ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE,
+    apply_command, legal_action_metadata, legal_action_tree, load_deluge_fixture,
+    load_standard_fixture, setup_match, DistrictId, EventCard, EventKind, FloodWatchEffect,
+    FloodWatchRole, FloodWatchState, Phase, ScenarioVariant, SetupOptions, SharedOutcome,
+    ACTION_END_TURN, ACTION_FORECAST, ACTION_REINFORCE, GAME_ID, RULES_VERSION_LABEL,
     STANDARD_ACTION_BUDGET, STANDARD_DECK_SIZE, STANDARD_DRAWS_PER_PHASE, STANDARD_LEVEE_CAP,
     STANDARD_MAX_FLOOD_LEVEL,
+};
+use game_test_support::profiles::{
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1, SETUP_EVIDENCE_V1,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -38,6 +43,16 @@ fn card(kind: EventKind, copy_index: u8) -> EventCard {
 
 fn state_with_deck(deck: Vec<EventCard>) -> FloodWatchState {
     FloodWatchState::new_after_setup(ScenarioVariant::standard(), seats(), deck)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct DomainEvidenceSummary {
+    fixture_count: usize,
+    start_budget: u8,
+    forecast_budget_after: u8,
+    levee_absorbed: u8,
+    inundated_district: Option<DistrictId>,
+    win_outcome: Option<SharedOutcome>,
 }
 
 #[test]
@@ -115,6 +130,89 @@ fn deluge_setup_initializes_scenario_constants() {
         state.variant.event_composition.total_cards() as usize
     );
     assert_eq!(state.variant.event_composition.total_cards(), 27);
+}
+
+#[test]
+fn domain_evidence_v1_profile_driver_wraps_flood_watch_domain_validator() {
+    let driver = DomainEvidenceV1Driver::new("flood_watch");
+    let artifact = domain_evidence_profile_artifact(
+        DOMAIN_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "flood_watch",
+        &["domain_schema_version", "domain_input", "expected_domain"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("domain metadata validates");
+    assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "flood_watch");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_flood_watch_domain_evidence())
+        .expect("profile delegates to Flood Watch domain validator");
+    assert_eq!(summary.fixture_count, 2);
+    assert_eq!(summary.start_budget, STANDARD_ACTION_BUDGET);
+    assert_eq!(summary.forecast_budget_after, 2);
+    assert_eq!(summary.levee_absorbed, 1);
+    assert_eq!(summary.inundated_district, Some(DistrictId::Terraces));
+    assert_eq!(summary.win_outcome, Some(SharedOutcome::Won));
+
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "flood_watch",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            "v2",
+            Some("internal-dev"),
+            "flood_watch",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("unsupported"),
+            "flood_watch",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "flood_watch",
+            &["expected_domain", "setup_options"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
 }
 
 #[test]
@@ -608,4 +706,188 @@ fn terminal_win_effect_has_no_per_seat_winner() {
     assert!(!rendered.contains("winner"));
     assert!(!rendered.contains("seat_0"));
     assert!(!rendered.contains("seat_1"));
+}
+
+fn domain_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_domain_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = DomainEvidenceV1Driver::new("flood_watch");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid domain-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_flood_watch_domain_evidence() -> DomainEvidenceSummary {
+    let fixtures = [
+        load_standard_fixture().expect("standard fixture parses"),
+        load_deluge_fixture().expect("deluge fixture parses"),
+    ];
+
+    for fixture in &fixtures {
+        let variant = ScenarioVariant::resolve(&fixture.variant).expect("fixture variant resolves");
+        let state = setup_match(
+            Seed(11),
+            &seats(),
+            &SetupOptions {
+                variant: variant.clone(),
+            },
+        )
+        .expect("fixture setup succeeds");
+
+        assert_eq!(fixture.game_id, GAME_ID);
+        assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+        assert_eq!(fixture.action_budget, variant.action_budget);
+        assert_eq!(fixture.draws_per_phase, variant.draws_per_phase);
+        assert_eq!(fixture.levee_cap, variant.levee_cap);
+        assert_eq!(fixture.max_flood_level, variant.max_flood_level);
+        assert_eq!(fixture.starting_levels, variant.starting_levels);
+        assert_eq!(fixture.event_composition, variant.event_composition);
+        assert_eq!(fixture.terminal_outcome, "none");
+        assert_eq!(state.roles, variant.role_order);
+        assert_eq!(
+            state.phase,
+            Phase::Action {
+                budget_remaining: variant.action_budget
+            }
+        );
+    }
+
+    let mut forecast = setup_match(Seed(11), &seats(), &SetupOptions::default()).unwrap();
+    let top = forecast.top_undrawn_card().cloned().unwrap();
+    let cmd = command(&forecast, "seat_0", vec![ACTION_FORECAST]);
+    apply_command(&mut forecast, &cmd).expect("forecast applies");
+    assert_eq!(forecast.forecast, Some(top));
+    assert_eq!(forecast.undrawn_deck_len(), STANDARD_DECK_SIZE as usize);
+    assert_eq!(
+        forecast.phase,
+        Phase::Action {
+            budget_remaining: 2
+        }
+    );
+
+    let mut role_state = setup_match(Seed(9), &seats(), &SetupOptions::default()).unwrap();
+    let cmd = command(&role_state, "seat_0", vec!["bail", "district_old_docks"]);
+    apply_command(&mut role_state, &cmd).expect("bail applies");
+    assert_eq!(
+        role_state
+            .district(DistrictId::OldDocks)
+            .unwrap()
+            .flood_level,
+        0
+    );
+    role_state.active_seat = SeatId("seat_1".to_owned());
+    role_state.phase = Phase::Action {
+        budget_remaining: STANDARD_ACTION_BUDGET,
+    };
+    let cmd = command(
+        &role_state,
+        "seat_1",
+        vec![ACTION_REINFORCE, "district_riverside"],
+    );
+    apply_command(&mut role_state, &cmd).expect("reinforce applies");
+    assert_eq!(
+        role_state.district(DistrictId::Riverside).unwrap().levees,
+        2
+    );
+
+    let mut levee = state_with_deck(vec![
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Riverside,
+            },
+            1,
+        ),
+        card(EventKind::Reprieve, 1),
+        card(EventKind::Reprieve, 2),
+    ]);
+    levee
+        .district_mut(DistrictId::Riverside)
+        .expect("riverside district")
+        .levees = 1;
+    let cmd = command(&levee, "seat_0", vec![ACTION_END_TURN]);
+    let applied = apply_command(&mut levee, &cmd).expect("levee environment applies");
+    assert!(applied.effects.iter().any(|effect| {
+        effect.payload
+            == FloodWatchEffect::LeveeAbsorbed {
+                district: DistrictId::Riverside,
+                amount: 1,
+                remaining_levees: 0,
+            }
+    }));
+    assert_eq!(levee.district(DistrictId::Riverside).unwrap().levees, 0);
+    assert_eq!(
+        levee.district(DistrictId::Riverside).unwrap().flood_level,
+        1
+    );
+
+    let mut inundation = state_with_deck(vec![
+        card(
+            EventKind::StormSurge {
+                district: DistrictId::Terraces,
+            },
+            1,
+        ),
+        card(
+            EventKind::Downpour {
+                district: DistrictId::Market,
+            },
+            1,
+        ),
+        card(EventKind::Reprieve, 1),
+    ]);
+    let cmd = command(&inundation, "seat_0", vec![ACTION_END_TURN]);
+    apply_command(&mut inundation, &cmd).expect("inundation applies");
+    assert_eq!(inundation.drawn.len(), 1);
+    assert_eq!(
+        inundation.terminal_outcome,
+        Some(SharedOutcome::Lost {
+            district: DistrictId::Terraces,
+        })
+    );
+
+    let mut win = state_with_deck(vec![card(EventKind::Reprieve, 1)]);
+    let cmd = command(&win, "seat_0", vec![ACTION_END_TURN]);
+    apply_command(&mut win, &cmd).expect("win applies");
+    assert_eq!(win.terminal_outcome, Some(SharedOutcome::Won));
+
+    DomainEvidenceSummary {
+        fixture_count: fixtures.len(),
+        start_budget: STANDARD_ACTION_BUDGET,
+        forecast_budget_after: match forecast.phase {
+            Phase::Action { budget_remaining } => budget_remaining,
+            Phase::Terminal => 0,
+        },
+        levee_absorbed: 1,
+        inundated_district: match inundation.terminal_outcome {
+            Some(SharedOutcome::Lost { district }) => Some(district),
+            Some(SharedOutcome::Won) | None => None,
+        },
+        win_outcome: win.terminal_outcome,
+    }
 }
