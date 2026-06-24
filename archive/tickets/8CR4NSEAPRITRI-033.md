@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-033: Vow Tide C-08 replay-command profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/vow_tide/tests/replay.rs`; trace bytes/hash unchanged
@@ -70,3 +70,22 @@ In `games/vow_tide/tests/replay.rs`, add a `ReplayCommandV1Driver` adapter valid
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game replay test is the correct boundary: the profile is a dev-only evidence adapter over existing traces.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added a virtual `replay-command-v1` profile artifact and driver tests in `games/vow_tide/tests/replay.rs`.
+- Covered Vow's existing L0/L1 bid-play command fixtures plus representative 3-seat and 7-seat golden evidence without rewriting trace bytes.
+- Added reject coverage for wrong profile id, wrong profile version, and unknown profile fields.
+
+Deviations:
+- None.
+
+Verification:
+- `cargo test -p vow_tide replay_command_v1_driver -- --nocapture`
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`

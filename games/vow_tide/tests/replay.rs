@@ -1,7 +1,8 @@
 use engine_core::{Actor, HashValue, SeatId, Seed, StableSerialize};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, PublicExportV1Driver, SeatPrivateExportV1Driver,
-    PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, SEAT_PRIVATE_EXPORT_V1,
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SeatPrivateExportV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1, SETUP_EVIDENCE_V1,
 };
 use vow_tide::{
     actions::{legal_cards, ValidatedBid, ValidatedPlay, ACTION_PLAY},
@@ -14,6 +15,23 @@ use vow_tide::{
     rules::{apply_bid, apply_play},
     setup::{setup_match, SetupOptions},
 };
+
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
 
 const PUBLIC_EXPORT_PROFILE_FIELDS: &[&str] = &[
     "profile_id",
@@ -49,6 +67,21 @@ const SEAT_PRIVATE_EXPORT_PROFILE_FIELDS: &[&str] = &[
     "export_steps",
     "pairwise_no_leak",
 ];
+
+fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "vow_tide::golden_traces",
+            migration_update_note: Some("8CR4NSEAPRITRI-033 virtual replay-command profile"),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
 
 fn public_export_profile_artifact() -> ProfileArtifact<'static> {
     ProfileArtifact {
@@ -160,6 +193,111 @@ fn enter_four_seat_play_state() -> vow_tide::state::VowTideState {
         Card::new(Rank::Ace, Suit::Hearts).id(),
     ];
     state
+}
+
+#[test]
+fn replay_command_v1_driver_validates_vow_bid_play_trace_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact();
+    let trace_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("golden_traces");
+
+    let delegated = driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+            assert_eq!(report.visibility_class, "internal-dev");
+
+            let mut state = setup_match(
+                Seed(20260621),
+                &canonical_seat_ids(3),
+                &SetupOptions::default(),
+            )
+            .expect("setup succeeds");
+            let setup_snapshot = snapshot(&state, &[]);
+            apply_bid_value(&mut state, VowTideSeat::Seat1, 1);
+            apply_bid_value(&mut state, VowTideSeat::Seat2, 0);
+            apply_bid_value(&mut state, VowTideSeat::Seat0, 0);
+            let play_card = state.hand_for_internal(VowTideSeat::Seat1)[0];
+            apply_play_card(&mut state, VowTideSeat::Seat1, play_card);
+            let play_snapshot = snapshot(&state, &[]);
+            assert_ne!(setup_snapshot.state_hash, play_snapshot.state_hash);
+
+            format!("{}:vow-tide", report.profile_id)
+        })
+        .expect("replay-command-v1 driver accepts Vow virtual adapter");
+
+    assert_eq!(delegated, "replay-command-v1:vow-tide");
+
+    for file_name in [
+        "l0-bid-and-play.trace.json",
+        "l1-contract-relative-bid-and-play.trace.json",
+        "public-observer-no-leak-3p.trace.json",
+        "seat-private-pairwise-no-leak-7p.trace.json",
+    ] {
+        let path = trace_dir.join(file_name);
+        let payload = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        assert!(
+            !payload.contains("\"profile_id\""),
+            "{file_name} must not be rewritten with profile metadata"
+        );
+        assert!(
+            !payload.contains("\"canonical_byte_authority\""),
+            "{file_name} must keep legacy trace bytes authoritative"
+        );
+        driver
+            .validate_with(&profile, |_| {
+                assert!(
+                    payload.contains("\"trace_id\""),
+                    "{file_name} remains an existing Vow golden trace"
+                );
+                assert!(
+                    payload.contains("bid")
+                        || payload.contains("play")
+                        || payload.contains("\"seat_count\": 3")
+                        || payload.contains("\"seat_count\": 7"),
+                    "{file_name} remains in the selected bid/play 3p/7p evidence set"
+                );
+            })
+            .expect("virtual replay-command profile validates selected Vow trace");
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_rejects_vow_wrong_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let valid = replay_command_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "commands", "bid_policy"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
 }
 
 #[test]
