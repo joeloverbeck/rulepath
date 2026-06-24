@@ -54,7 +54,10 @@ fn setup_rejects_unsupported_seat_counts_with_stable_diagnostic() {
             setup_match(Seed(0), &seats, &options).expect_err("unsupported count is rejected");
 
         assert_eq!(diagnostic.code, "VT_INVALID_SEAT_COUNT");
-        assert!(diagnostic.message.contains(&seat_count.to_string()));
+        assert_eq!(
+            diagnostic.message,
+            format!("vow_tide supports 3 to 7 seats; received {seat_count}")
+        );
     }
 }
 

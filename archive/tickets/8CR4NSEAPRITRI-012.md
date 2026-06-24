@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-012: Vow Tide C-03 3–7 structural range validation via SeatCountRange
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/vow_tide` (`src/ids.rs`, `src/setup.rs`), `crates/wasm-api` (`src/games/vow.rs`); diagnostic bytes unchanged
@@ -72,3 +72,22 @@ Replace the duplicated local range checks in `supported_seat_count`, `setup.rs`,
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game test plus bridge test are the correct boundary: range validation is game-local structure over a stdlib helper.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Centralized Vow's structural 3-to-7 seat-count predicate through `SeatCountRange::inclusive(3, 7).validate` in `games/vow_tide/src/ids.rs`.
+- Routed the WASM match-creation precheck through the same game-owned predicate while preserving its bridge diagnostic JSON.
+- Strengthened the Vow invalid-count setup test to assert exact `VT_INVALID_SEAT_COUNT` message bytes.
+
+Deviations:
+- None. Hand schedule and deal-capacity predicates remain game-owned and unchanged.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`

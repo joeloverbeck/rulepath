@@ -82,7 +82,7 @@ pub(crate) fn vow_viewer_authorizes_actor(
 }
 
 pub(crate) fn create_vow_tide_match(seed: u64, seat_count: usize) -> Result<VowTideState, String> {
-    if !(3..=7).contains(&seat_count) {
+    if !vow_tide::ids::supported_seat_count(seat_count) {
         return Err(diagnostic_string(
             "unsupported_seat_count",
             "vow_tide requires 3, 4, 5, 6, or 7 seats",

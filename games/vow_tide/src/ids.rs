@@ -1,4 +1,5 @@
 use engine_core::SeatId;
+use game_stdlib::SeatCountRange;
 use std::sync::LazyLock;
 
 pub const GAME_ID: &str = "vow_tide";
@@ -24,6 +25,11 @@ static CANONICAL_VOW_SEAT_IDS: LazyLock<[SeatId; 7]> = LazyLock::new(|| {
         SeatId::from_zero_based_index(5),
         SeatId::from_zero_based_index(6),
     ]
+});
+
+static STANDARD_SEAT_COUNT_RANGE: LazyLock<SeatCountRange> = LazyLock::new(|| {
+    SeatCountRange::inclusive(STANDARD_MIN_SEATS as usize, STANDARD_MAX_SEATS as usize)
+        .expect("standard Vow Tide seat count range is valid")
 });
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
@@ -98,16 +104,14 @@ impl VowTideSeat {
     }
 
     pub fn next_clockwise(self, seat_count: usize) -> Self {
-        debug_assert!(
-            (STANDARD_MIN_SEATS as usize..=STANDARD_MAX_SEATS as usize).contains(&seat_count)
-        );
+        debug_assert!(supported_seat_count(seat_count));
         let next = (self.index() + 1) % seat_count;
         Self::from_index(next).expect("validated seat count keeps next seat in range")
     }
 }
 
 pub fn supported_seat_count(seat_count: usize) -> bool {
-    (STANDARD_MIN_SEATS as usize..=STANDARD_MAX_SEATS as usize).contains(&seat_count)
+    (*STANDARD_SEAT_COUNT_RANGE).validate(seat_count).is_ok()
 }
 
 pub fn seat_id_for_index(index: usize) -> SeatId {
