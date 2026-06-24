@@ -5,8 +5,8 @@ use engine_core::{
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
     DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
-    ReplayCommandV1Driver, SetupEvidenceV1Driver, DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1,
-    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+    PublicExportV1Driver, ReplayCommandV1Driver, SetupEvidenceV1Driver, DOMAIN_EVIDENCE_V1,
+    PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use plain_tricks::{
     apply_action, legal_action_tree, load_standard_fixture,
@@ -64,6 +64,15 @@ struct ReplayActual {
     terminal: bool,
     outcome: Option<TerminalOutcome>,
     export_json: String,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct PublicExportProfileSummary {
+    viewer: String,
+    step_count: usize,
+    public_export_hash: HashValue,
+    imported_step_count: usize,
+    hidden_absence_tokens_checked: usize,
 }
 
 const GOLDEN_TRACE_INPUTS: [&str; 16] = [
@@ -175,6 +184,87 @@ fn replay_command_v1_profile_driver_wraps_native_replay_validator() {
             Some("internal-dev"),
             "plain_tricks",
             &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
+fn public_export_v1_profile_driver_wraps_plain_tricks_public_exporter() {
+    let driver = PublicExportV1Driver::new("plain_tricks");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        PROFILE_VERSION_V1,
+        Some("public"),
+        "plain_tricks",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("public export metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "plain_tricks");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_public_export_profile())
+        .expect("profile delegates to Plain Tricks public exporter");
+    assert_eq!(summary.viewer, "observer");
+    assert_eq!(summary.step_count, summary.imported_step_count);
+    assert_eq!(summary.hidden_absence_tokens_checked, 18);
+    assert_ne!(summary.public_export_hash.0, 0);
+
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "plain_tricks",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            "v2",
+            Some("public"),
+            "plain_tricks",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "plain_tricks",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "replay-check",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "plain_tricks",
+            &["export_steps", "commands"],
         ),
         ProfileValidationErrorKind::UnknownField,
     );
@@ -658,6 +748,79 @@ fn assert_replay_profile_rejects(
             .kind,
         expected
     );
+}
+
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_public_export_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = PublicExportV1Driver::new("plain_tricks");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid public-export-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_public_export_profile() -> PublicExportProfileSummary {
+    let fixture = GOLDEN_TRACE_INPUTS
+        .iter()
+        .map(|input| parse_trace_fixture(input))
+        .find(|fixture| fixture.purpose == "public_replay_export_import")
+        .expect("public export fixture exists");
+    assert_trace_fixture(&fixture);
+
+    let trace = internal_trace_from_fixture(&fixture);
+    let export = export_public_replay(&trace, &Viewer { seat_id: None });
+    let imported = import_public_export(&export);
+    let initial_state = setup_state(fixture.seed);
+    let json = export.to_json();
+
+    assert_eq!(export.viewer, "observer");
+    assert_eq!(imported.viewer, export.viewer);
+    assert_eq!(imported.steps, export.steps);
+    assert_eq!(
+        plain_tricks::replay_support::PublicReplayExport::from_json(&json).expect("export parses"),
+        export
+    );
+    assert_eq!(
+        export.stable_hash(),
+        HashValue(fixture.expected_public_export_hash)
+    );
+    assert_no_unobserved_cards(&json, &initial_state, &fixture);
+    assert!(!json.contains("seed_evidence"));
+    assert!(!json.contains("\"seed\""));
+
+    PublicExportProfileSummary {
+        viewer: imported.viewer,
+        step_count: export.steps.len(),
+        public_export_hash: export.stable_hash(),
+        imported_step_count: imported.steps.len(),
+        hidden_absence_tokens_checked: TrickCardId::ALL.len(),
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]

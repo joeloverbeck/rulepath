@@ -1288,3 +1288,32 @@ Completed: 2026-06-24
     Frontier fixtures passed.
   - `cargo run -p rule-coverage -- --game event_frontier` passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-631 - Plain Tricks public-export profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/tests/replay.rs`.
+- Change: added a dev-only `PublicExportV1Driver` wrapper test for Plain
+  Tricks public export evidence. The test validates `public-export-v1` / `v1` /
+  `public` metadata with owner `plain_tricks`, canonical byte authority `none`,
+  and fields `export_steps`, `import_round_trip`, and
+  `hidden_absence_tokens`, then delegates to the existing game-owned public
+  exporter.
+- Delegated evidence: the wrapper uses the golden `public_replay_export_import`
+  trace and `export_public_replay`, asserting observer export/import
+  round-trip, expected public export hash, hidden hand/tail absence, and seed
+  evidence absence.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, exporter code, replay hash, or observer visibility behavior changed.
+- Compatibility / rollback: remove the public export profile-wrapper
+  test/helper only; the existing replay, export/import, no-leak, and
+  replay-check paths remain.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new public-export-v1
+    profile driver wrapper.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed.
+  - `git diff --check` passed.

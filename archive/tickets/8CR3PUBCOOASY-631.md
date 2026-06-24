@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-631: C-08 Plain Tricks public-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/plain_tricks/tests/replay.rs`
@@ -96,3 +96,22 @@ wrong-metadata rejection cases.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side over the existing exporter.
+
+## Outcome
+
+- Added a dev-only `PublicExportV1Driver` wrapper in
+  `games/plain_tricks/tests/replay.rs` for `public-export-v1` / `v1` with
+  `public` visibility, owner `plain_tricks`, canonical byte authority `none`,
+  and fields `export_steps`, `import_round_trip`, and
+  `hidden_absence_tokens`.
+- The wrapper delegates to Plain Tricks' existing `export_public_replay` and
+  the golden `public_replay_export_import` trace, asserting the observer export
+  round-trips, keeps its expected public export hash, and omits hidden
+  hand/tail and seed evidence. No exporter, fixture bytes, production code, or
+  observer visibility behavior changed.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field.
+- Verification passed:
+  - `cargo test -p plain_tricks`
+  - `cargo run -p replay-check -- --game plain_tricks --all`
+  - `git diff --check`
