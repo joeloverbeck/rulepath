@@ -1,6 +1,6 @@
 use engine_core::{
-    ActionPath, Actor, CommandEnvelope, EffectEnvelope, HashValue, RulesVersion, SeatId, Seed,
-    StableSerialize, Viewer, VisibilityScope,
+    ActionPath, ActionTree, ActionTreeEncodingVersion, Actor, CommandEnvelope, EffectEnvelope,
+    HashValue, RulesVersion, SeatId, Seed, StableSerialize, Viewer, VisibilityScope,
 };
 
 use crate::{
@@ -257,6 +257,14 @@ pub fn import_public_export(export: &PublicReplayExport) -> PublicReplayTimeline
 
 pub fn state_hash(state: &HighCardDuelState) -> HashValue {
     HashValue::from_stable_bytes(internal_state_summary(state).as_bytes())
+}
+
+pub fn action_tree_v1_bytes(tree: &ActionTree) -> Vec<u8> {
+    tree.stable_bytes(ActionTreeEncodingVersion::V1)
+}
+
+pub fn action_tree_v1_hash(tree: &ActionTree) -> HashValue {
+    tree.stable_hash(ActionTreeEncodingVersion::V1)
 }
 
 pub fn effect_hash(effects: &[EffectEnvelope<HighCardDuelEffect>]) -> HashValue {

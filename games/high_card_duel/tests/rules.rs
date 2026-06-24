@@ -1,10 +1,13 @@
 use std::collections::BTreeSet;
 
-use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
+use engine_core::{
+    ActionPath, Actor, CommandEnvelope, DeterministicRng, FreshnessToken, RulesVersion, SeatId,
+    Seed,
+};
 use high_card_duel::{
-    apply_action, canonical_deck, commit_segment, legal_action_tree, next_bounded_index_unbiased,
-    setup_match, validate_command, CardId, HighCardDuelEffect, HighCardDuelSeat, Phase,
-    SetupOptions, Sigil, TerminalOutcome, STANDARD_DECK_CARD_COUNT, STANDARD_HAND_SIZE,
+    apply_action, canonical_deck, commit_segment, legal_action_tree, setup_match, validate_command,
+    CardId, HighCardDuelEffect, HighCardDuelSeat, Phase, SetupOptions, Sigil, TerminalOutcome,
+    STANDARD_DECK_CARD_COUNT, STANDARD_HAND_SIZE,
 };
 
 fn seats() -> Vec<SeatId> {
@@ -111,10 +114,12 @@ fn setup_deals_private_hands_and_hides_deck() {
 fn setup_shuffle_uses_unbiased_bounded_index_or_documented_helper() {
     struct FixedRng {
         values: Vec<u64>,
+        draws: usize,
     }
 
     impl engine_core::DeterministicRng for FixedRng {
         fn next_u64(&mut self) -> u64 {
+            self.draws += 1;
             self.values.remove(0)
         }
     }
@@ -124,9 +129,11 @@ fn setup_shuffle_uses_unbiased_bounded_index_or_documented_helper() {
     let rejected = accepted_zone_for_three as u64;
     let mut rng = FixedRng {
         values: vec![rejected, 4],
+        draws: 0,
     };
 
-    assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+    assert_eq!(rng.next_index_unbiased_v1(3), Some(1));
+    assert_eq!(rng.draws, 2);
 }
 
 #[test]

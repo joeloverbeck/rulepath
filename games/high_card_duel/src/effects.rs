@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, SeatId, VisibilityScope};
+use engine_core::{EffectEnvelope, SeatId};
 
 use crate::{
     ids::{CardId, HighCardDuelSeat},
@@ -131,20 +131,14 @@ impl HighCardDuelEffect {
 }
 
 pub fn public_effect(payload: HighCardDuelEffect) -> EffectEnvelope<HighCardDuelEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(
     owner_seat_id: SeatId,
     payload: HighCardDuelEffect,
 ) -> EffectEnvelope<HighCardDuelEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::PrivateToSeat(owner_seat_id),
-        payload,
-    }
+    EffectEnvelope::private_to(owner_seat_id, payload)
 }
 
 pub fn deal_private_card_effect(

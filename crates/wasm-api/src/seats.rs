@@ -321,6 +321,7 @@ mod tests {
         assert_eq!(trace_column_seat(ColumnFourSeat::Seat0), "seat-0");
         assert_eq!(trace_directional_seat(DirectionalFlipSeat::Seat1), "seat-1");
         assert_eq!(trace_draughts_seat(DraughtsLiteSeat::Seat0), "seat-0");
+        assert_eq!(trace_high_card_seat(HighCardDuelSeat::Seat0), "seat-0");
         assert_eq!(trace_token_seat(TokenBazaarSeat::Seat1), "seat_1");
         assert_eq!(
             seats_for_count(3),
@@ -337,6 +338,20 @@ mod tests {
     }
 
     #[test]
+    fn masked_output_helpers_emit_canonical_seat_ids() {
+        assert_eq!(trace_masked_seat(MaskedClaimsSeat::Seat0), "seat_0");
+        assert_eq!(trace_masked_seat(MaskedClaimsSeat::Seat1), "seat_1");
+        assert_eq!(
+            masked_seats_for_count(3),
+            vec![
+                SeatId("seat_0".to_owned()),
+                SeatId("seat_1".to_owned()),
+                SeatId("seat_2".to_owned()),
+            ]
+        );
+    }
+
+    #[test]
     fn import_adapter_accepts_canonical_hyphen_and_symbolic_aliases() {
         assert_eq!(parse_race_seat("seat_0"), Ok(RaceSeat::Seat0));
         assert_eq!(parse_race_seat("seat-1"), Ok(RaceSeat::Seat1));
@@ -349,6 +364,18 @@ mod tests {
 
         assert_eq!(parse_high_card_seat("seat-0"), Ok(HighCardDuelSeat::Seat0));
         assert_eq!(parse_high_card_seat("seat-b"), Ok(HighCardDuelSeat::Seat1));
+
+        assert_eq!(parse_secret_seat("seat_0"), Ok(SecretDraftSeat::Seat0));
+        assert_eq!(parse_secret_seat("seat-1"), Ok(SecretDraftSeat::Seat1));
+        assert_eq!(parse_secret_seat("seat-a"), Ok(SecretDraftSeat::Seat0));
+
+        assert_eq!(parse_poker_seat("seat_0"), Ok(PokerLiteSeat::Seat0));
+        assert_eq!(parse_poker_seat("seat-1"), Ok(PokerLiteSeat::Seat1));
+        assert_eq!(parse_poker_seat("seat-b"), Ok(PokerLiteSeat::Seat1));
+
+        assert_eq!(parse_masked_seat("seat_0"), Ok(MaskedClaimsSeat::Seat0));
+        assert_eq!(parse_masked_seat("seat-1"), Ok(MaskedClaimsSeat::Seat1));
+        assert_eq!(parse_masked_seat("seat-a"), Ok(MaskedClaimsSeat::Seat0));
 
         assert_eq!(parse_flood_seat("seat-a"), Ok(SeatId("seat_0".to_owned())));
         assert_eq!(

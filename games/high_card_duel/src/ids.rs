@@ -1,3 +1,5 @@
+use engine_core::SeatId;
+
 pub const GAME_ID: &str = "high_card_duel";
 pub const VARIANT_ID: &str = "high_card_duel_standard";
 pub const RULES_VERSION_LABEL: &str = "high-card-duel-rules-v1";
@@ -120,11 +122,9 @@ impl HighCardDuelSeat {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "seat_0" => Some(Self::Seat0),
-            "seat_1" => Some(Self::Seat1),
-            _ => None,
-        }
+        let seat_id = SeatId::parse_canonical(value).ok()?;
+        let index = usize::try_from(seat_id.canonical_zero_based_index().ok()?).ok()?;
+        Self::from_index(index)
     }
 }
 
@@ -145,6 +145,38 @@ mod tests {
         assert_eq!(HighCardDuelSeat::from_index(2), None);
         assert_eq!(HighCardDuelSeat::Seat0.other(), HighCardDuelSeat::Seat1);
         assert_eq!(HighCardDuelSeat::Seat1.as_str(), "seat_1");
+        assert_eq!(
+            HighCardDuelSeat::parse("seat_0"),
+            Some(HighCardDuelSeat::Seat0)
+        );
+        assert_eq!(
+            HighCardDuelSeat::parse("seat_1"),
+            Some(HighCardDuelSeat::Seat1)
+        );
+    }
+
+    #[test]
+    fn seat_parser_rejects_non_canonical_and_out_of_range_ids() {
+        for rejected in [
+            "seat_2",
+            "seat_01",
+            "seat_001",
+            "seat-0",
+            "seat-a",
+            "seat-b",
+            "seat_a",
+            "seat_one",
+            "seat_１",
+            "ѕeat_0",
+            "Seat_0",
+            "player_0",
+            "dealer",
+            "leader",
+            "challenger",
+            "responder",
+        ] {
+            assert_eq!(HighCardDuelSeat::parse(rejected), None, "{rejected}");
+        }
     }
 
     #[test]

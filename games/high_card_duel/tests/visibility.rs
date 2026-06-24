@@ -4,13 +4,13 @@ use engine_core::{
 };
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use high_card_duel::{
-    apply_action, cards_revealed_effect, commit_face_down_effect, commit_segment,
-    deal_private_card_effect, export_public_observer_replay, generate_internal_full_trace,
-    hand_count_changed_effect, legal_action_tree, own_commit_confirmed_effect,
-    private_diagnostic_effect, project_view, public_diagnostic_effect, refill_started_effect,
-    round_scored_effect, setup_match, terminal_effect, validate_command, CardId,
-    HighCardDuelEffect, HighCardDuelRandomBot, HighCardDuelSeat, OutcomeRationaleView, Phase,
-    PrivateView, RoundOutcomeBreakdownView, Score, SetupOptions, Sigil, TerminalOutcome,
+    action_tree_v1_bytes, apply_action, cards_revealed_effect, commit_face_down_effect,
+    commit_segment, deal_private_card_effect, export_public_observer_replay,
+    generate_internal_full_trace, hand_count_changed_effect, legal_action_tree,
+    own_commit_confirmed_effect, private_diagnostic_effect, project_view, public_diagnostic_effect,
+    refill_started_effect, round_scored_effect, setup_match, terminal_effect, validate_command,
+    CardId, HighCardDuelEffect, HighCardDuelRandomBot, HighCardDuelSeat, OutcomeRationaleView,
+    Phase, PrivateView, RoundOutcomeBreakdownView, Score, SetupOptions, Sigil, TerminalOutcome,
     TerminalView,
 };
 
@@ -271,6 +271,107 @@ fn no_leak_harness_covers_public_seat_replay_effect_and_bot_surfaces() {
         |snapshot, canary| snapshot.contains(canary),
     )
     .expect("high card duel pairwise no-leak matrix passes");
+}
+
+#[test]
+fn residual_profile_tree_count_effect_and_rng_surfaces_keep_lead_commit_hidden() {
+    let mut state =
+        setup_match(Seed(7), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let lead_hand = state.hand_for(HighCardDuelSeat::Seat0).to_vec();
+    let reply_hand = state.hand_for(HighCardDuelSeat::Seat1).to_vec();
+    let lead_card = lead_hand[0];
+    let lead_id = lead_card.stable_id();
+    let effects = {
+        let command = command(0, lead_card, state.freshness_token);
+        let action = validate_command(&state, &command).expect("lead commit validates");
+        apply_action(&mut state, action)
+    };
+
+    let observer_view = project_view(&state, &viewer(None));
+    let owner_view = project_view(&state, &viewer(Some(0)));
+    let opponent_view = project_view(&state, &viewer(Some(1)));
+    assert_eq!(observer_view.hand_counts.seat_0, 2);
+    assert_eq!(observer_view.hand_counts.seat_1, 3);
+    assert_eq!(observer_view.deck_count, 18);
+    assert!(!observer_view.stable_summary().contains(&lead_id));
+    assert!(owner_view.stable_summary().contains(&lead_id));
+    assert!(!opponent_view.stable_summary().contains(&lead_id));
+
+    let reply_actor = Actor {
+        seat_id: seat_id(1),
+    };
+    let reply_tree = legal_action_tree(&state, &reply_actor);
+    let reply_tree_debug = format!("{reply_tree:?}");
+    let reply_tree_v1 = String::from_utf8_lossy(&action_tree_v1_bytes(&reply_tree)).into_owned();
+    for hidden in lead_hand.iter().chain(state.deck.iter()) {
+        let id = hidden.stable_id();
+        assert!(!reply_tree_debug.contains(&id));
+        assert!(!reply_tree_v1.contains(&id));
+    }
+    for card in &reply_hand {
+        let id = card.stable_id();
+        assert!(reply_tree_debug.contains(&id));
+        assert!(reply_tree_v1.contains(&id));
+    }
+
+    let mut log = EffectLog::new();
+    for effect in effects {
+        log.push(effect);
+    }
+    let observer_effects = filtered_private_card_ids(&log, &viewer(None));
+    let owner_effects = filtered_private_card_ids(&log, &viewer(Some(0)));
+    let opponent_effects = filtered_private_card_ids(&log, &viewer(Some(1)));
+    assert!(!observer_effects.contains(&lead_id));
+    assert!(owner_effects.contains(&lead_id));
+    assert!(!opponent_effects.contains(&lead_id));
+
+    let reply_input = HighCardDuelRandomBot::input_for(&state, HighCardDuelSeat::Seat1);
+    let reply_summary = reply_input.stable_summary();
+    assert!(!reply_summary.contains(&lead_id));
+    for card in &state.deck {
+        assert!(!reply_summary.contains(&card.stable_id()));
+    }
+    let decision = HighCardDuelRandomBot::new(Seed(99))
+        .select_decision(&state, HighCardDuelSeat::Seat1)
+        .expect("reply bot chooses legal private card");
+    let decision_debug = format!("{decision:?}");
+    assert!(!decision_debug.contains(&lead_id));
+    for card in &reply_hand {
+        assert!(reply_summary.contains(&card.stable_id()));
+    }
+
+    let trace = generate_internal_full_trace(7);
+    let replay = high_card_duel::replay_internal_full_trace(&trace);
+    let public_export = export_public_observer_replay(&trace);
+    let public_export_json = public_export.to_json();
+    assert_eq!(public_export.export_class, "public_observer_projection_v1");
+    assert_eq!(public_export.viewer, "observer");
+    assert!(!public_export_json.contains("\"seed\""));
+    assert!(!public_export_json.contains("commit/hcd:r"));
+    for hidden_card in replay.final_state.deck.iter() {
+        assert!(!public_export_json.contains(&hidden_card.stable_id()));
+    }
+}
+
+fn filtered_private_card_ids(log: &EffectLog<HighCardDuelEffect>, viewer: &Viewer) -> String {
+    log.since(EffectCursor(0), viewer)
+        .iter()
+        .filter_map(|entry| match &entry.envelope.payload {
+            HighCardDuelEffect::DealPrivateCard { card, .. }
+            | HighCardDuelEffect::OwnCommitConfirmed { card, .. } => Some(card.stable_id()),
+            HighCardDuelEffect::CardsRevealed {
+                seat_0_card,
+                seat_1_card,
+                ..
+            } => Some(format!(
+                "{}:{}",
+                seat_0_card.stable_id(),
+                seat_1_card.stable_id()
+            )),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("|")
 }
 
 #[test]

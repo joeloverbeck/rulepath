@@ -31,18 +31,18 @@ pub use ids::{
     STANDARD_ROUND_LIMIT, STANDARD_SIGILS_PER_RANK, VARIANT_ID,
 };
 pub use replay_support::{
-    actor_for_state, command_for_state, default_seats, effect_hash, effect_stable_string,
-    export_public_observer_replay, generate_internal_full_trace, import_public_export,
-    public_effect_stable_string, replay_internal_full_trace, state_hash, HighCardDuelInternalTrace,
-    InternalReplayResult, PublicReplayExport, PublicReplayStep, PublicReplayTimeline,
-    ReplayCommandPath,
+    action_tree_v1_bytes, action_tree_v1_hash, actor_for_state, command_for_state, default_seats,
+    effect_hash, effect_stable_string, export_public_observer_replay, generate_internal_full_trace,
+    import_public_export, public_effect_stable_string, replay_internal_full_trace, state_hash,
+    HighCardDuelInternalTrace, InternalReplayResult, PublicReplayExport, PublicReplayStep,
+    PublicReplayTimeline, ReplayCommandPath,
 };
 pub use rules::{
     apply_action, commitment_conflict_diagnostic, invalid_private_card_diagnostic, lead_for_round,
     round_winner, stale_action_diagnostic, validate_command, wrong_phase_diagnostic,
     wrong_seat_diagnostic, ValidatedAction,
 };
-pub use setup::{next_bounded_index_unbiased, setup_match, shuffle_deck, SetupOptions};
+pub use setup::{setup_match, shuffle_deck, SetupOptions};
 pub use state::{HighCardDuelState, Phase, RevealedRound, Score, TerminalOutcome};
 pub use ui::{
     card_accessibility_label, face_down_commitment_label, revealed_card_accessibility_label,

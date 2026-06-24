@@ -19,7 +19,7 @@ pub use ids::{
     DraftItemId, DraftThread, SecretDraftSeat, GAME_ID, RULES_VERSION_LABEL, STANDARD_ITEM_COUNT,
     STANDARD_ROUND_COUNT, STANDARD_SEAT_COUNT, VARIANT_ID,
 };
-pub use replay_support::{state_hash, ReplayResult};
+pub use replay_support::{action_tree_v1_bytes, action_tree_v1_hash, state_hash, ReplayResult};
 pub use rules::{
     apply_action, determine_terminal_outcome_from_summary, legal_actions,
     terminal_tie_break_summary, validate_action, ValidatedAction,

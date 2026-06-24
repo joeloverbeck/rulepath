@@ -1,4 +1,5 @@
 use engine_core::{DeterministicRng, Diagnostic, SeatId, Seed, SeededRng};
+use game_stdlib::SeatCount;
 
 use crate::{
     ids::{canonical_masks, MaskTileId, STANDARD_HAND_SIZE, STANDARD_SEAT_COUNT},
@@ -30,7 +31,7 @@ pub fn setup_match(
     seats: &[SeatId],
     options: &SetupOptions,
 ) -> Result<MaskedClaimsState, Diagnostic> {
-    if seats.len() != STANDARD_SEAT_COUNT as usize {
+    if SeatCount::new(seats.len()).map(SeatCount::get) != Ok(STANDARD_SEAT_COUNT as usize) {
         return Err(Diagnostic {
             code: "invalid_seat_count".to_owned(),
             message: "masked_claims requires exactly two seats".to_owned(),
@@ -70,8 +71,9 @@ pub(crate) fn deal_setup<R: DeterministicRng>(rng: &mut R) -> Result<SetupDeal, 
 
 pub fn shuffle_masks<R: DeterministicRng>(masks: &mut [MaskTileId], rng: &mut R) {
     for index in (1..masks.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         masks.swap(index, swap_index);
     }
 }
@@ -80,26 +82,6 @@ fn setup_masks_exhausted() -> Diagnostic {
     Diagnostic {
         code: "invalid_masks_exhausted".to_owned(),
         message: "masked_claims setup masks exhausted during deal".to_owned(),
-    }
-}
-
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
     }
 }
 
@@ -113,25 +95,55 @@ mod tests {
 
     struct FixedRng {
         values: Vec<u64>,
+        draws: usize,
     }
 
     impl FixedRng {
         fn new(values: Vec<u64>) -> Self {
-            Self { values }
+            Self { values, draws: 0 }
         }
     }
 
     impl DeterministicRng for FixedRng {
         fn next_u64(&mut self) -> u64 {
+            self.draws += 1;
             self.values.remove(0)
         }
     }
 
+    fn seat_ids(count: usize) -> Vec<SeatId> {
+        (0..count)
+            .map(|index| SeatId(format!("seat_{index}")))
+            .collect()
+    }
+
+    fn invalid_seat_count_diagnostic() -> Diagnostic {
+        Diagnostic {
+            code: "invalid_seat_count".to_owned(),
+            message: "masked_claims requires exactly two seats".to_owned(),
+        }
+    }
+
     #[test]
-    fn setup_rejects_wrong_seat_count() {
+    fn setup_rejects_wrong_seat_counts_with_exact_diagnostic() {
         let options = SetupOptions::default();
 
-        assert!(setup_match(Seed(0), &[SeatId("seat_0".to_owned())], &options).is_err());
+        for count in [0, 1, 3] {
+            assert_eq!(
+                setup_match(Seed(0), &seat_ids(count), &options),
+                Err(invalid_seat_count_diagnostic()),
+                "{count}"
+            );
+        }
+    }
+
+    #[test]
+    fn setup_accepts_exact_standard_seat_count() {
+        let options = SetupOptions::default();
+        let seats = seat_ids(2);
+        let state = setup_match(Seed(0), &seats, &options).expect("setup succeeds");
+
+        assert_eq!(state.seats, [seats[0].clone(), seats[1].clone()]);
     }
 
     #[test]
@@ -226,13 +238,15 @@ mod tests {
         let rejected = accepted_zone_for_three as u64;
         let mut rng = FixedRng::new(vec![rejected, 4]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+        assert_eq!(rng.next_index_unbiased_v1(3), Some(1));
+        assert_eq!(rng.draws, 2);
     }
 
     #[test]
     fn bounded_index_rejects_empty_bound() {
         let mut rng = FixedRng::new(vec![0]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 0), None);
+        assert_eq!(rng.next_index_unbiased_v1(0), None);
+        assert_eq!(rng.draws, 0);
     }
 }

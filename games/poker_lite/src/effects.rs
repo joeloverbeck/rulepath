@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, SeatId, VisibilityScope};
+use engine_core::{EffectEnvelope, SeatId};
 
 use crate::{
     ids::{CrestCardId, PokerLiteSeat},
@@ -89,20 +89,14 @@ pub enum LedgerAllocation {
 }
 
 pub fn public_effect(payload: PokerLiteEffect) -> EffectEnvelope<PokerLiteEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn private_effect(
     owner_seat_id: SeatId,
     payload: PokerLiteEffect,
 ) -> EffectEnvelope<PokerLiteEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::PrivateToSeat(owner_seat_id),
-        payload,
-    }
+    EffectEnvelope::private_to(owner_seat_id, payload)
 }
 
 pub fn setup_effects(state: &PokerLiteState) -> Vec<EffectEnvelope<PokerLiteEffect>> {
@@ -277,7 +271,7 @@ pub fn bot_chose_action_private_effect(
 mod tests {
     use super::*;
     use crate::{setup_match, SetupOptions};
-    use engine_core::{SeatId, Seed};
+    use engine_core::{SeatId, Seed, VisibilityScope};
 
     #[test]
     fn private_deal_effects_are_scoped_to_owner() {
@@ -305,6 +299,19 @@ mod tests {
             assert!(!public_text.contains(card.as_str()));
             assert!(!public_text.contains(card.rank().label()));
         }
+    }
+
+    #[test]
+    fn private_effect_constructor_preserves_owner_scope_and_payload() {
+        let owner = SeatId("seat_1".to_owned());
+        let payload = PokerLiteEffect::PrivateCrestDealt {
+            owner: PokerLiteSeat::Seat1,
+            card: CrestCardId::HighDusk,
+        };
+        let effect = private_effect(owner.clone(), payload.clone());
+
+        assert_eq!(effect.visibility, VisibilityScope::PrivateToSeat(owner));
+        assert_eq!(effect.payload, payload);
     }
 
     #[test]

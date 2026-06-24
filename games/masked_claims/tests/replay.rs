@@ -1,8 +1,14 @@
 use engine_core::{ActionPath, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed, Viewer};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, REPLAY_COMMAND_V1,
+};
 use masked_claims::{
-    actor_for_seat, apply_action, legal_action_tree, project_view, setup_match, validate_command,
-    MaskedClaimsLevel1Bot, MaskedClaimsSeat, Phase, PublicReplayExport, PublicReplayStep,
-    SetupOptions,
+    actor_for_seat, apply_action, legal_action_tree, project_view,
+    replay_support::{action_tree_v1_bytes, action_tree_v1_hash},
+    setup_match, validate_command, MaskedClaimsLevel1Bot, MaskedClaimsSeat, Phase,
+    PublicReplayExport, PublicReplayStep, SetupOptions, ACTION_CLAIM, ACTION_RESPOND_ACCEPT,
+    ACTION_RESPOND_CHALLENGE,
 };
 
 const GOLDEN_TRACES: [(&str, &str); 17] = [
@@ -113,6 +119,178 @@ fn same_seed_and_bot_stream_reproduce_replay_surfaces() {
 }
 
 #[test]
+fn replay_command_v1_profile_driver_wraps_rule_replay_evidence() {
+    let driver = ReplayCommandV1Driver::new("masked_claims");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("internal-dev"),
+        "masked_claims",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "masked_claims");
+
+    let replay_hash = driver
+        .validate_with(&artifact, |_| replay_run_profile_hash(31))
+        .expect("profile delegates to existing rule replay evidence");
+    assert_eq!(replay_hash, replay_run_profile_hash(31));
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile = replay_command_profile_artifact(
+        "public-export-v1",
+        Some("internal-dev"),
+        "masked_claims",
+        &["commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("internal-dev"),
+        "other",
+        &["commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("viewer-scoped"),
+        "masked_claims",
+        &["commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        Some("internal-dev"),
+        "masked_claims",
+        &["commands", "export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn public_export_v1_profile_driver_wraps_observer_export_validator() {
+    let run = replay_run(31);
+    let driver = PublicExportV1Driver::new("masked_claims");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "masked_claims",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "masked_claims");
+
+    let export_hash = driver
+        .validate_with(&artifact, |_| {
+            HashValue::from_stable_bytes(run.export_json.as_bytes())
+        })
+        .expect("profile delegates to observer export validator");
+    assert_eq!(
+        export_hash,
+        HashValue::from_stable_bytes(run.export_json.as_bytes())
+    );
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+    assert!(!run.export_json.contains("claim/mask_g"));
+    assert!(!run.export_json.contains("\"seed\""));
+
+    let wrong_profile = public_export_profile_artifact(
+        "replay-command-v1",
+        Some("public"),
+        "masked_claims",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "other",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("seat-private"),
+        "masked_claims",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "masked_claims",
+        &["export_steps", "commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
 fn challenge_reveal_appears_after_public_claim_effect() {
     let mut state =
         setup_match(Seed(32), &seats(), &SetupOptions::default()).expect("setup succeeds");
@@ -169,6 +347,40 @@ fn golden_traces_are_present_parseable_and_viewer_safe() {
             assert_trace_field(name, trace, "\"claim/grade-4\"");
         }
     }
+}
+
+#[test]
+fn action_tree_v1_bytes_and_hashes_are_pinned_for_claim_and_response_shapes() {
+    let mut state =
+        setup_match(Seed(31), &seats(), &SetupOptions::default()).expect("setup succeeds");
+    let claim_tree = legal_action_tree(&state, &actor_for_seat(&state, MaskedClaimsSeat::Seat0));
+
+    assert_eq!(choice_segments(&claim_tree), vec![ACTION_CLAIM]);
+    assert_eq!(action_tree_v1_bytes(&claim_tree).len(), 15326);
+    assert_eq!(
+        action_tree_v1_hash(&claim_tree),
+        HashValue(3772732430772540101)
+    );
+
+    let claim_path = first_claim_path(&claim_tree, "5");
+    let validated = validate_command(
+        &state,
+        &command(&state, MaskedClaimsSeat::Seat0, claim_path),
+    )
+    .expect("claim validates");
+    apply_action(&mut state, validated).expect("claim applies");
+
+    let response_tree = legal_action_tree(&state, &actor_for_seat(&state, MaskedClaimsSeat::Seat1));
+
+    assert_eq!(
+        choice_segments(&response_tree),
+        vec![ACTION_RESPOND_ACCEPT, ACTION_RESPOND_CHALLENGE]
+    );
+    assert_eq!(action_tree_v1_bytes(&response_tree).len(), 1100);
+    assert_eq!(
+        action_tree_v1_hash(&response_tree),
+        HashValue(689297409234037920)
+    );
 }
 
 fn replay_run(seed: u64) -> ReplayRun {
@@ -229,8 +441,78 @@ fn replay_run(seed: u64) -> ReplayRun {
     }
 }
 
+fn replay_run_profile_hash(seed: u64) -> HashValue {
+    let run = replay_run(seed);
+    HashValue::from_stable_bytes(format!("{run:?}").as_bytes())
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
 fn hash(value: &str) -> HashValue {
     HashValue::from_stable_bytes(value.as_bytes())
+}
+
+fn first_claim_path(tree: &engine_core::ActionTree, declared: &str) -> ActionPath {
+    let claim = tree
+        .root
+        .choices
+        .iter()
+        .find(|choice| choice.segment == ACTION_CLAIM)
+        .expect("claim family");
+    let tile = &claim.next.as_ref().expect("tile choices").choices[0];
+    ActionPath {
+        segments: vec![
+            ACTION_CLAIM.to_owned(),
+            tile.segment.clone(),
+            declared.to_owned(),
+        ],
+    }
+}
+
+fn choice_segments(tree: &engine_core::ActionTree) -> Vec<&str> {
+    tree.root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect()
 }
 
 fn assert_trace_field(name: &str, trace: &str, needle: &str) {

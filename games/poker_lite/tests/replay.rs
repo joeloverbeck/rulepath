@@ -2,11 +2,18 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId,
     StableSerialize, Viewer,
 };
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SeatPrivateExportV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SEAT_PRIVATE_EXPORT_V1,
+};
 use poker_lite::{
     apply_action, legal_action_tree,
     replay_support::{
-        action_tree_hash, effect_hash, export_public_replay, import_public_export, state_hash,
-        trace_from_commands, view_hash, PokerLiteInternalTrace, ReplayCommand,
+        action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, effect_hash,
+        export_public_replay, generate_internal_full_trace, import_public_export,
+        replay_internal_full_trace, state_hash, trace_from_commands, view_hash,
+        PokerLiteInternalTrace, ReplayCommand,
     },
     setup_effects, setup_match, validate_command, Phase, PokerLiteSeat, PokerLiteState,
     SetupOptions, TerminalOutcome, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID,
@@ -97,8 +104,8 @@ fn internal_trace_replays_to_the_same_hashes_and_terminal() {
             (PokerLiteSeat::Seat0, "hold"),
         ],
     );
-    let first = poker_lite::replay_support::replay_internal_full_trace(&trace);
-    let second = poker_lite::replay_support::replay_internal_full_trace(&trace);
+    let first = replay_internal_full_trace(&trace);
+    let second = replay_internal_full_trace(&trace);
 
     assert_eq!(first.trace_hash, second.trace_hash);
     assert_eq!(first.state_hash, second.state_hash);
@@ -106,6 +113,341 @@ fn internal_trace_replays_to_the_same_hashes_and_terminal() {
     assert_eq!(first.view_hash, second.view_hash);
     assert_eq!(first.action_tree_hashes, second.action_tree_hashes);
     assert_eq!(first.final_state.phase, Phase::Terminal);
+}
+
+#[test]
+fn replay_command_v1_profile_driver_wraps_internal_trace_validator() {
+    let trace = generate_internal_full_trace();
+    let driver = ReplayCommandV1Driver::new("poker_lite");
+    let artifact = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        "poker_lite",
+        &["commands", "checkpoints", "expected_hashes"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "poker_lite");
+
+    let replay_hash = driver
+        .validate_with(&artifact, |_| {
+            let replay = replay_internal_full_trace(&trace);
+            replay.trace_hash
+        })
+        .expect("profile delegates to internal trace validator");
+    assert_eq!(replay_hash, trace.stable_hash());
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile =
+        replay_command_profile_artifact("public-export-v1", "poker_lite", &["commands"]);
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = replay_command_profile_artifact(REPLAY_COMMAND_V1, "other", &["commands"]);
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_field = replay_command_profile_artifact(
+        REPLAY_COMMAND_V1,
+        "poker_lite",
+        &["commands", "export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn public_export_v1_profile_driver_wraps_observer_export_validator() {
+    let trace = trace_from_commands(
+        11,
+        &[
+            (PokerLiteSeat::Seat0, "press"),
+            (PokerLiteSeat::Seat1, "yield"),
+        ],
+    );
+    let state = setup_state(trace.seed_evidence);
+    let public_export = export_public_replay(&trace, &Viewer { seat_id: None });
+    let driver = PublicExportV1Driver::new("poker_lite");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "poker_lite",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "poker_lite");
+
+    let export_hash = driver
+        .validate_with(&artifact, |_| public_export.stable_hash())
+        .expect("profile delegates to observer export validator");
+    assert_eq!(export_hash, HashValue(12011531955662310238));
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let export_json = public_export.to_json();
+    assert_eq!(public_export.viewer, "observer");
+    assert_no_private_cards(&export_json, &state);
+    assert!(!export_json.contains("seed_evidence"));
+    assert!(!export_json.contains("\"seed\""));
+
+    let wrong_profile = public_export_profile_artifact(
+        "replay-command-v1",
+        Some("public"),
+        "poker_lite",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "other",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("seat-private"),
+        "poker_lite",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        Some("public"),
+        "poker_lite",
+        &["export_steps", "commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+#[test]
+fn seat_private_export_v1_profile_driver_wraps_viewer_scoped_exports() {
+    let trace = trace_from_commands(11, &[]);
+    let state = setup_state(trace.seed_evidence);
+    let driver = SeatPrivateExportV1Driver::new("poker_lite");
+    let artifact = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("seat-private"),
+        "poker_lite",
+        &[
+            "viewer_seat",
+            "viewer_seat_version",
+            "export_steps",
+            "pairwise_no_leak",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("profile metadata validates");
+    assert_eq!(report.profile_id, SEAT_PRIVATE_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "seat-private");
+    assert_eq!(report.validator_owner, "poker_lite");
+
+    for (seat, own, opponent) in [
+        (
+            "seat_0",
+            PokerLiteSeat::Seat0,
+            state.private_card_for_internal(PokerLiteSeat::Seat1),
+        ),
+        (
+            "seat_1",
+            PokerLiteSeat::Seat1,
+            state.private_card_for_internal(PokerLiteSeat::Seat0),
+        ),
+    ] {
+        let own_card = state.private_card_for_internal(own);
+        let export = export_public_replay(
+            &trace,
+            &Viewer {
+                seat_id: Some(SeatId(seat.to_owned())),
+            },
+        );
+        let export_hash = driver
+            .validate_with(&artifact, |_| export.stable_hash())
+            .expect("profile delegates to viewer-scoped export validator");
+        assert_eq!(export_hash, export.stable_hash());
+        assert_eq!(export.viewer, seat);
+
+        let export_json = export.to_json();
+        assert!(export_json.contains(own_card.as_str()));
+        assert!(export_json.contains(&own_card.label()));
+        assert!(!export_json.contains(opponent.as_str()));
+        assert!(!export_json.contains(&opponent.label()));
+        assert!(!export_json.contains("seed_evidence"));
+        assert!(!export_json.contains("\"seed\""));
+    }
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let wrong_profile = seat_private_export_profile_artifact(
+        "public-export-v1",
+        Some("seat-private"),
+        "poker_lite",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile id rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let wrong_owner = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("seat-private"),
+        "other",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_owner)
+            .expect_err("wrong owner rejects")
+            .kind,
+        ProfileValidationErrorKind::WrongValidatorOwner
+    );
+
+    let wrong_visibility = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("public"),
+        "poker_lite",
+        &["export_steps"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_visibility)
+            .expect_err("wrong visibility rejects")
+            .kind,
+        ProfileValidationErrorKind::InvalidVisibility
+    );
+
+    let wrong_field = seat_private_export_profile_artifact(
+        SEAT_PRIVATE_EXPORT_V1,
+        Some("seat-private"),
+        "poker_lite",
+        &["export_steps", "commands"],
+    );
+    assert_eq!(
+        driver
+            .validate(&wrong_field)
+            .expect_err("wrong field rejects")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
+}
+
+fn replay_command_profile_artifact<'a>(
+    profile_id: &'a str,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn seat_private_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
 }
 
 #[test]
@@ -152,6 +494,66 @@ fn yield_terminal_public_export_cannot_reconstruct_folded_private_cards() {
     assert_no_private_cards(&json, &state);
     assert!(!json.contains("seed_evidence"));
     assert!(!json.contains("\"seed\""));
+}
+
+#[test]
+fn action_tree_v1_bytes_and_hashes_are_pinned_across_pledge_phases() {
+    let mut state = setup_state(11);
+    let seat_0_actor = Actor {
+        seat_id: state.seats[PokerLiteSeat::Seat0.index()].clone(),
+    };
+    let opening_tree = legal_action_tree(&state, &seat_0_actor);
+
+    assert_eq!(choice_segments(&opening_tree), vec!["hold", "press"]);
+    assert_eq!(
+        action_tree_hash(&opening_tree),
+        HashValue(2134463419946389911)
+    );
+    assert_eq!(action_tree_v1_bytes(&opening_tree).len(), 1144);
+    assert_eq!(
+        action_tree_v1_hash(&opening_tree),
+        HashValue(4146366381206085604)
+    );
+
+    let press = command_envelope_for_action(&state, PokerLiteSeat::Seat0, "press");
+    let action = validate_command(&state, &press).expect("press validates");
+    apply_action(&mut state, action).expect("press applies");
+
+    let seat_1_actor = Actor {
+        seat_id: state.seats[PokerLiteSeat::Seat1.index()].clone(),
+    };
+    let response_tree = legal_action_tree(&state, &seat_1_actor);
+
+    assert_eq!(
+        choice_segments(&response_tree),
+        vec!["lift", "match", "yield"]
+    );
+    assert_eq!(
+        action_tree_hash(&response_tree),
+        HashValue(5240408035218415049)
+    );
+    assert_eq!(action_tree_v1_bytes(&response_tree).len(), 1715);
+    assert_eq!(
+        action_tree_v1_hash(&response_tree),
+        HashValue(15898457577120528969)
+    );
+
+    let response = command_envelope_for_action(&state, PokerLiteSeat::Seat1, "match");
+    let action = validate_command(&state, &response).expect("match validates");
+    apply_action(&mut state, action).expect("match applies");
+
+    let round_two_tree = legal_action_tree(&state, &seat_1_actor);
+
+    assert_eq!(choice_segments(&round_two_tree), vec!["hold", "press"]);
+    assert_eq!(
+        action_tree_hash(&round_two_tree),
+        HashValue(10376176577096665250)
+    );
+    assert_eq!(action_tree_v1_bytes(&round_two_tree).len(), 1142);
+    assert_eq!(
+        action_tree_v1_hash(&round_two_tree),
+        HashValue(12557641340017326258)
+    );
 }
 
 fn assert_trace_fixture(fixture: &TraceFixture) {
@@ -372,6 +774,31 @@ fn command_envelope(state: &PokerLiteState, command: &TraceCommand) -> CommandEn
         freshness_token: FreshnessToken(command.freshness_token),
         rules_version: RulesVersion(1),
     }
+}
+
+fn command_envelope_for_action(
+    state: &PokerLiteState,
+    seat: PokerLiteSeat,
+    segment: &str,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[seat.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: vec![segment.to_owned()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn choice_segments(tree: &engine_core::ActionTree) -> Vec<&str> {
+    tree.root
+        .choices
+        .iter()
+        .map(|choice| choice.segment.as_str())
+        .collect()
 }
 
 fn combined_action_tree_hash(state: &PokerLiteState) -> HashValue {

@@ -135,6 +135,8 @@ version = "0.1.0"
 dependencies = [
  "ai-core",
  "engine-core",
+ "game-stdlib",
+ "game-test-support",
 ]
 
 [[package]]
@@ -152,6 +154,8 @@ version = "0.1.0"
 dependencies = [
  "ai-core",
  "engine-core",
+ "game-stdlib",
+ "game-test-support",
 ]
 
 [[package]]
@@ -211,6 +215,8 @@ version = "0.1.0"
 dependencies = [
  "ai-core",
  "engine-core",
+ "game-stdlib",
+ "game-test-support",
 ]
 
 [[package]]

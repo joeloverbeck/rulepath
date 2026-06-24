@@ -1,4 +1,4 @@
-use engine_core::{EffectEnvelope, VisibilityScope};
+use engine_core::EffectEnvelope;
 
 use crate::{
     actions::ResponseChoice,
@@ -83,10 +83,7 @@ pub enum MaskedClaimsEffect {
 }
 
 pub fn public_effect(payload: MaskedClaimsEffect) -> EffectEnvelope<MaskedClaimsEffect> {
-    EffectEnvelope {
-        visibility: VisibilityScope::Public,
-        payload,
-    }
+    EffectEnvelope::public(payload)
 }
 
 pub fn claim_accepted_effect(
@@ -267,6 +264,21 @@ const fn display_turn(turn_index: u8) -> u8 {
 mod tests {
     use super::*;
     use crate::ids::MaskTileId;
+    use engine_core::VisibilityScope;
+
+    #[test]
+    fn public_effect_constructor_preserves_public_scope_and_payload() {
+        let payload = MaskedClaimsEffect::ClaimPlaced {
+            turn: 1,
+            claimant: MaskedClaimsSeat::Seat0,
+            declared_grade: Grade::Master,
+            log: "seat_0 placed a redacted claim.".to_owned(),
+        };
+        let effect = public_effect(payload.clone());
+
+        assert_eq!(effect.visibility, VisibilityScope::Public);
+        assert_eq!(effect.payload, payload);
+    }
 
     #[test]
     fn reaction_window_log_names_responder_choices_and_reason() {
