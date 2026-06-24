@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-019: River Ledger C-07 stack-lifecycle pairwise no-leak matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/river_ledger/tests/visibility.rs`; preserves ticket-021 pilot base
@@ -70,3 +70,24 @@ In `games/river_ledger/tests/visibility.rs`, wrap the selected short-blind/short
 1. `cargo test -p river_ledger`
 2. `cargo run -p replay-check -- --game river_ledger --all`
 3. The per-game visibility test is the correct boundary: no-leak is a game-local projection property exercised through the shared harness.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Wrapped River stack/all-in lifecycle states in the shared `assert_pairwise_no_leak` geometry for counts 3–6.
+2. Covered short small blind all-in, short call all-in, short raise all-in, short open-bet all-in, and cumulative reopen states over observer plus every seat viewer.
+3. Checked lifecycle view, setup effect, action tree, diagnostic, bot input, and bot explanation surfaces while retaining the existing ticket-021 base matrix and focused visibility assertions.
+
+Deviations:
+
+1. None.
+
+Verification:
+
+1. `cargo fmt --all --check` — passed.
+2. `cargo test -p river_ledger` — passed.
+3. `cargo run -p replay-check -- --game river_ledger --all` — passed.
+4. `bash scripts/boundary-check.sh` — passed.
