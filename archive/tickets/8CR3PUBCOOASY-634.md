@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-634: C-08 Event Frontier public-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/event_frontier/tests/replay.rs`
@@ -90,3 +90,22 @@ wrong-metadata rejection cases.
 2. `cargo run -p replay-check -- --game event_frontier --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side over the existing exporter.
+
+## Outcome
+
+- Added a dev-only `PublicExportV1Driver` wrapper in
+  `games/event_frontier/tests/replay.rs` for `public-export-v1` / `v1` with
+  `public` visibility, owner `event_frontier`, canonical byte authority
+  `none`, and fields `export_steps`, `import_round_trip`, and
+  `hidden_absence_tokens`.
+- The wrapper delegates to Event Frontier's existing public exporter, asserting
+  observer export/import round-trip, hidden surface/redaction metadata, and
+  absence of hidden deeper-deck cards from the export/import surfaces. No
+  exporter, fixture bytes, production code, replay behavior, or observer
+  visibility behavior changed.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field.
+- Verification passed:
+  - `cargo test -p event_frontier`
+  - `cargo run -p replay-check -- --game event_frontier --all`
+  - `git diff --check`

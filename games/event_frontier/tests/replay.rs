@@ -2,20 +2,19 @@ use engine_core::{
     ActionChoice, ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize, Viewer,
 };
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
-use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
-};
 use event_frontier::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, generate_internal_full_trace, import_public_export,
     import_public_export_json, legal_action_tree, project_view, public_replay_step,
     resolve_reckoning, setup_match, ActiveEdict, CardId, CardPhase, EventFrontierState, FactionId,
-    FirstChoice, SetupOptions, SiteId, ACTION_OPERATION, ACTION_PASS, GAME_ID,
-    RULES_VERSION_LABEL, TRACE_HIDDEN_SURFACE, TRACE_STOCHASTIC_SURFACE,
+    FirstChoice, SetupOptions, SiteId, ACTION_OPERATION, ACTION_PASS, GAME_ID, RULES_VERSION_LABEL,
+    TRACE_HIDDEN_SURFACE, TRACE_STOCHASTIC_SURFACE,
+};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -74,6 +73,14 @@ fn scenario_options() -> [SetupOptions; 3] {
         SetupOptions::hard_winter(),
         SetupOptions::land_rush(),
     ]
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct PublicExportProfileSummary {
+    viewer: String,
+    step_count: usize,
+    public_export_hash: HashValue,
+    hidden_deeper_cards_checked: usize,
 }
 
 #[test]
@@ -202,7 +209,11 @@ fn public_replay_exports_do_not_leak_hidden_deeper_deck_cards() {
     let canary = ["R3", "EVENT", "NOLEAK", "CANARY"].join("_");
 
     assert_pairwise_no_leak(
-        [ExportViewer::Observer, ExportViewer::Seat0, ExportViewer::Seat1],
+        [
+            ExportViewer::Observer,
+            ExportViewer::Seat0,
+            ExportViewer::Seat1,
+        ],
         ["public_export_json"],
         probes,
         |viewer_case, _surface| {
@@ -323,6 +334,87 @@ fn replay_command_v1_profile_driver_wraps_internal_native_replay_evidence() {
 }
 
 #[test]
+fn public_export_v1_profile_driver_wraps_event_frontier_public_exporter() {
+    let driver = PublicExportV1Driver::new("event_frontier");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        PROFILE_VERSION_V1,
+        Some("public"),
+        "event_frontier",
+        &["export_steps", "import_round_trip", "hidden_absence_tokens"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("public export metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "event_frontier");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_public_export_profile())
+        .expect("profile delegates to Event Frontier public exporter");
+    assert_eq!(summary.viewer, "observer");
+    assert_eq!(summary.step_count, 1);
+    assert_ne!(summary.public_export_hash.0, 0);
+    assert!(summary.hidden_deeper_cards_checked > 0);
+
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "event_frontier",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            "v2",
+            Some("public"),
+            "event_frontier",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "event_frontier",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "replay-check",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "event_frontier",
+            &["export_steps", "commands"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
 fn setup_evidence_v1_profile_driver_wraps_variant_setup_fixtures() {
     let driver = SetupEvidenceV1Driver::new("fixture-check");
     let artifact = setup_evidence_profile_artifact(
@@ -330,11 +422,7 @@ fn setup_evidence_v1_profile_driver_wraps_variant_setup_fixtures() {
         PROFILE_VERSION_V1,
         Some("internal-dev"),
         "fixture-check",
-        &[
-            "seat_grammar_version",
-            "setup_options",
-            "expected_setup",
-        ],
+        &["seat_grammar_version", "setup_options", "expected_setup"],
     );
 
     let report = driver
@@ -522,6 +610,85 @@ fn assert_replay_profile_rejects(
     );
 }
 
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_public_export_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = PublicExportV1Driver::new("event_frontier");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid public-export-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_public_export_profile() -> PublicExportProfileSummary {
+    let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let command = pass_command("seat_1", &state);
+    let applied = apply_command(&mut state, &command).expect("profile command applies");
+    let step = public_replay_step(0, &state, &command, &applied.effects, &observer());
+    let hidden_deeper_cards = state
+        .deck
+        .undrawn
+        .iter()
+        .filter(|card| Some(**card) != state.deck.current)
+        .filter(|card| Some(**card) != state.deck.next_public)
+        .copied()
+        .collect::<Vec<_>>();
+    let export = export_public_replay(state.variant.id.clone(), &observer(), vec![step]);
+    let imported_from_struct = import_public_export(&export);
+    let imported_from_json = import_public_export_json(&export.to_json()).expect("public import");
+    let json = export.to_json();
+
+    assert_eq!(export.viewer, "observer");
+    assert_eq!(export.hidden_information, TRACE_HIDDEN_SURFACE);
+    assert_eq!(
+        export.hidden_information_redaction,
+        "undrawn_order_redacted"
+    );
+    assert_eq!(
+        imported_from_struct.stable_hash(),
+        imported_from_json.stable_hash()
+    );
+    assert_eq!(imported_from_struct.raw_json, json);
+    assert_eq!(imported_from_json.raw_json, json);
+    for card in &hidden_deeper_cards {
+        assert!(!json.contains(card.as_str()), "{json}");
+        assert!(!imported_from_json.stable_summary().contains(card.as_str()));
+    }
+    let public_export_hash = export.stable_hash();
+
+    PublicExportProfileSummary {
+        viewer: export.viewer,
+        step_count: export.steps.len(),
+        public_export_hash,
+        hidden_deeper_cards_checked: hidden_deeper_cards.len(),
+    }
+}
+
 fn native_replay_profile_hashes() -> Vec<HashValue> {
     let mut state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
     let trace = generate_internal_full_trace(1, &state);
@@ -643,7 +810,10 @@ fn validate_setup_fixtures() -> SetupEvidenceSummary {
         assert_eq!(fixture.eligibility, eligibility_summary(&state));
         assert_eq!(fixture.reckoning_count, u64::from(state.reckoning_count));
         assert_eq!(fixture.current_card, optional_card_id(state.deck.current));
-        assert_eq!(fixture.next_public_card, optional_card_id(state.deck.next_public));
+        assert_eq!(
+            fixture.next_public_card,
+            optional_card_id(state.deck.next_public)
+        );
         assert_eq!(fixture.undrawn_deck_order, join_cards(&state.deck.undrawn));
         assert_eq!(fixture.discard, join_cards(&state.deck.discard));
         assert_eq!(fixture.active_edicts, "");
@@ -738,7 +908,8 @@ fn join_factions(factions: &[FactionId; 2]) -> String {
 }
 
 fn optional_card_id(card: Option<CardId>) -> String {
-    card.map(|card| card.as_str().to_owned()).unwrap_or_default()
+    card.map(|card| card.as_str().to_owned())
+        .unwrap_or_default()
 }
 
 fn join_cards(cards: &[CardId]) -> String {
@@ -781,11 +952,7 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
     let full_op = command_segments(
         "seat_1",
         &limited_operation,
-        vec![
-            ACTION_OPERATION,
-            "cache",
-            SiteId::Landing.as_str(),
-        ],
+        vec![ACTION_OPERATION, "cache", SiteId::Landing.as_str()],
     );
     apply_command(&mut limited_operation, &full_op).expect("full op");
 
@@ -803,8 +970,8 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
         first_choice: FirstChoice::Event,
     };
 
-    let mut edict_blocked = setup_match(Seed(1), &seats(), &SetupOptions::hard_winter())
-        .expect("setup edict blocked");
+    let mut edict_blocked =
+        setup_match(Seed(1), &seats(), &SetupOptions::hard_winter()).expect("setup edict blocked");
     edict_blocked.card_phase = CardPhase::AwaitingFirstChoice {
         faction: FactionId::Freeholders,
     };
@@ -837,9 +1004,21 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
             HashValue(12025048674674442718),
             path_strings(&[
                 &["event"],
-                &["operation", "trek", "operation/trek/site_landing>site_crossing"],
-                &["operation", "trek", "operation/trek/site_landing>site_high_meadow"],
-                &["operation", "trek", "operation/trek/site_high_meadow>site_old_mill"],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_crossing",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_high_meadow",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_high_meadow>site_old_mill",
+                ],
                 &[
                     "operation",
                     "trek",
@@ -852,7 +1031,11 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
                 ],
                 &["operation", "cache", "operation/cache/site_landing"],
                 &["operation", "cache", "operation/cache/site_high_meadow"],
-                &["operation", "cache", "operation/cache/site_landing,site_high_meadow"],
+                &[
+                    "operation",
+                    "cache",
+                    "operation/cache/site_landing,site_high_meadow",
+                ],
                 &["operation", "rally", "operation/rally/site_high_meadow"],
                 &["pass"],
             ]),
@@ -922,9 +1105,21 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
             HashValue(18107612798635470515),
             HashValue(9761797406534023113),
             path_strings(&[
-                &["operation", "trek", "operation/trek/site_landing>site_crossing"],
-                &["operation", "trek", "operation/trek/site_landing>site_high_meadow"],
-                &["operation", "trek", "operation/trek/site_high_meadow>site_old_mill"],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_crossing",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_high_meadow",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_high_meadow>site_old_mill",
+                ],
                 &[
                     "operation",
                     "trek",
@@ -937,7 +1132,11 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
                 ],
                 &["operation", "cache", "operation/cache/site_landing"],
                 &["operation", "cache", "operation/cache/site_high_meadow"],
-                &["operation", "cache", "operation/cache/site_landing,site_high_meadow"],
+                &[
+                    "operation",
+                    "cache",
+                    "operation/cache/site_landing,site_high_meadow",
+                ],
                 &["operation", "rally", "operation/rally/site_high_meadow"],
                 &["pass"],
             ]),
@@ -951,8 +1150,16 @@ fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
             HashValue(16133410113579192678),
             path_strings(&[
                 &["event"],
-                &["operation", "trek", "operation/trek/site_landing>site_crossing"],
-                &["operation", "trek", "operation/trek/site_landing>site_high_meadow"],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_crossing",
+                ],
+                &[
+                    "operation",
+                    "trek",
+                    "operation/trek/site_landing>site_high_meadow",
+                ],
                 &["operation", "cache", "operation/cache/site_landing"],
                 &["pass"],
             ]),
@@ -994,11 +1201,11 @@ fn vector(
         hash: action_tree_v1_hash(&tree),
         local_hash: action_tree_hash(&tree),
         paths: action_paths(&tree.root.choices),
-        contains_hidden_undrawn_card: state
-            .deck
-            .undrawn
-            .iter()
-            .any(|card| bytes.windows(card.as_str().len()).any(|w| w == card.as_str().as_bytes())),
+        contains_hidden_undrawn_card: state.deck.undrawn.iter().any(|card| {
+            bytes
+                .windows(card.as_str().len())
+                .any(|w| w == card.as_str().as_bytes())
+        }),
         bytes,
         expected_bytes_len,
         expected_hash,

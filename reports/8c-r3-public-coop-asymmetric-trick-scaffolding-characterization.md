@@ -1375,3 +1375,33 @@ Completed: 2026-06-24
   - `cargo run -p replay-check -- --game frontier_control --all` passed; all
     Frontier Control traces passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-634 - Event Frontier public-export profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/event_frontier/tests/replay.rs`.
+- Change: added a dev-only `PublicExportV1Driver` wrapper test for Event
+  Frontier public export evidence. The test validates `public-export-v1` / `v1`
+  / `public` metadata with owner `event_frontier`, canonical byte authority
+  `none`, and fields `export_steps`, `import_round_trip`, and
+  `hidden_absence_tokens`, then delegates to the existing game-owned public
+  exporter.
+- Delegated evidence: the wrapper drives the existing public replay step and
+  exporter, asserting observer export/import round-trip, hidden
+  surface/redaction metadata, and absence of hidden deeper-deck cards from the
+  export/import surfaces.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, exporter code, replay behavior, or observer visibility behavior
+  changed.
+- Compatibility / rollback: remove the public export profile-wrapper
+  test/helper only; the existing replay, export/import, no-leak, and
+  replay-check paths remain.
+- Verification:
+  - `cargo test -p event_frontier` passed, including the new public-export-v1
+    profile driver wrapper.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces passed.
+  - `git diff --check` passed.
