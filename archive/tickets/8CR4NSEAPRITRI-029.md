@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-029: Briar Circuit C-08 replay-command profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/briar_circuit/tests/replay.rs`; trace bytes/schema unchanged
@@ -70,3 +70,22 @@ In `games/briar_circuit/tests/replay.rs`, add a `ReplayCommandV1Driver` adapter 
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game replay test is the correct boundary: the profile is a dev-only evidence adapter over existing traces.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a virtual `replay-command-v1` profile adapter test for Briar pass/play evidence using `ReplayCommandV1Driver`.
+2. Validated selected pass and play golden traces remain free of embedded profile metadata while delegating behavior to Briar replay snapshots.
+3. Added reject coverage for wrong profile id, wrong profile version, and unknown profile fields.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p briar_circuit` - passed.
+3. `cargo run -p replay-check -- --game briar_circuit --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.

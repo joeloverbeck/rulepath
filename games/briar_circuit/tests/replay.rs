@@ -10,8 +10,9 @@ use briar_circuit::{
 };
 use engine_core::{FreshnessToken, HashValue, SeatId, Seed, SeededRng, Viewer};
 use game_test_support::profiles::{
-    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, DOMAIN_EVIDENCE_V1,
-    PROFILE_VERSION_V1,
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    ReplayCommandV1Driver, DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    SETUP_EVIDENCE_V1,
 };
 
 const REQUIRED_TRACES: &[&str] = &[
@@ -69,6 +70,23 @@ const DOMAIN_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
     "expected_domain",
 ];
 
+const REPLAY_COMMAND_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "commands",
+    "checkpoints",
+    "expected_hashes",
+];
+
 fn domain_evidence_profile_artifact<'a>(
     visibility_class: &'a str,
     canonical_byte_claim: bool,
@@ -86,6 +104,21 @@ fn domain_evidence_profile_artifact<'a>(
         },
         fields: DOMAIN_EVIDENCE_PROFILE_FIELDS,
         canonical_byte_claim,
+    }
+}
+
+fn replay_command_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: REPLAY_COMMAND_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("internal-dev"),
+            validator_owner: "replay-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-029 virtual replay-command profile"),
+        },
+        fields: REPLAY_COMMAND_PROFILE_FIELDS,
+        canonical_byte_claim: false,
     }
 }
 
@@ -438,6 +471,102 @@ fn characterization_domain_fixture_artifacts_are_pinned() {
         .contains("\"trace_id\": \"briar_circuit_first_trick_exception\""));
     assert!(!moon_fixture.contains("selector"));
     assert!(!first_trick_exception_fixture.contains("selector"));
+}
+
+#[test]
+fn replay_command_v1_driver_validates_briar_pass_and_play_trace_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let profile = replay_command_profile_artifact();
+    let trace_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("golden_traces");
+
+    let delegated = driver
+        .validate_with(&profile, |report| {
+            assert_eq!(report.profile_id, REPLAY_COMMAND_V1);
+            assert_eq!(report.visibility_class, "internal-dev");
+
+            let mut state =
+                setup_match(Seed(1600), &canonical_seat_ids(), &SetupOptions::default())
+                    .expect("setup");
+            let setup_snapshot = replay_hash_snapshot(&state);
+            for seat in BriarCircuitSeat::ALL {
+                commit_standard_pass(&mut state, seat);
+            }
+            let play_snapshot = replay_hash_snapshot(&state);
+            assert_ne!(setup_snapshot.state_hash, play_snapshot.state_hash);
+            format!("{}:briar-circuit", report.profile_id)
+        })
+        .expect("replay-command-v1 driver accepts Briar virtual adapter");
+
+    assert_eq!(delegated, "replay-command-v1:briar-circuit");
+
+    for file_name in [
+        "pass-left-atomic-exchange.trace.json",
+        "pass-choice-in-flight-no-leak.trace.json",
+        "follow-suit-forced.trace.json",
+        "trick-winner-leads-next.trace.json",
+    ] {
+        let path = trace_dir.join(file_name);
+        let payload = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        assert!(
+            !payload.contains("\"profile_id\""),
+            "{file_name} must not be rewritten with profile metadata"
+        );
+        assert!(
+            !payload.contains("\"canonical_byte_authority\""),
+            "{file_name} must keep legacy trace bytes authoritative"
+        );
+        driver
+            .validate_with(&profile, |_| {
+                assert!(
+                    payload.contains("\"schema_version\":1")
+                        || payload.contains("\"schema_version\": 1")
+                );
+                assert!(
+                    payload.contains("\"game_id\":\"briar_circuit\"")
+                        || payload.contains("\"game_id\": \"briar_circuit\"")
+                );
+            })
+            .expect("virtual replay-command profile validates selected Briar trace");
+    }
+}
+
+#[test]
+fn replay_command_v1_driver_rejects_briar_wrong_metadata() {
+    let driver = ReplayCommandV1Driver::new("replay-check");
+    let valid = replay_command_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = SETUP_EVIDENCE_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "pass_policy"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
 }
 
 #[test]
