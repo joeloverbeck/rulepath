@@ -7,10 +7,10 @@ use game_test_support::no_leak::{
 };
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use plain_tricks::{
-    apply_action, legal_action_tree,
+    apply_action, legal_action_tree, load_standard_fixture,
     replay_support::{
         action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, effect_hash,
         export_public_replay, import_public_export, state_hash,
@@ -176,6 +176,90 @@ fn replay_command_v1_profile_driver_wraps_native_replay_validator() {
             Some("internal-dev"),
             "plain_tricks",
             &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
+fn setup_evidence_v1_profile_driver_wraps_standard_fixture_validator() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let artifact = setup_evidence_profile_artifact(
+        SETUP_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "fixture-check",
+        &[
+            "seat_grammar_version",
+            "setup_options",
+            "expected_setup",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("setup metadata validates");
+    assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "fixture-check");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_standard_setup_fixture())
+        .expect("profile delegates to setup fixture validator");
+    assert_eq!(summary.variant, VARIANT_ID);
+    assert_eq!(summary.hand_count_per_seat, 6);
+    assert_eq!(summary.tail_count, 6);
+
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            "v2",
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("private-source"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "plain_tricks",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_setup", "domain_input"],
         ),
         ProfileValidationErrorKind::UnknownField,
     );
@@ -488,6 +572,76 @@ fn assert_replay_profile_rejects(
             .kind,
         expected
     );
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SetupEvidenceSummary {
+    variant: String,
+    hand_count_per_seat: usize,
+    tail_count: usize,
+}
+
+fn setup_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_setup_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid setup-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_standard_setup_fixture() -> SetupEvidenceSummary {
+    let fixture = load_standard_fixture().expect("fixture parses");
+    let state = setup_state(0);
+    let seat_0_hand = visible_hand_for_export_probe(&state, PlainTricksSeat::Seat0);
+    let seat_1_hand = visible_hand_for_export_probe(&state, PlainTricksSeat::Seat1);
+    let tail = tail_cards(&state);
+
+    assert_eq!(fixture.game_id, GAME_ID);
+    assert_eq!(fixture.variant, VARIANT_ID);
+    assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+    assert_eq!(fixture.deck_order, TrickCardId::ALL);
+    assert_eq!(fixture.hand_status, "hidden_by_setup");
+    assert_eq!(fixture.tail_status, "internal_only");
+    assert_eq!(state.seats, [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]);
+    assert_eq!(state.round_index, 0);
+    assert_eq!(state.trick_index, 0);
+    assert_eq!(state.active_seat, Some(PlainTricksSeat::Seat0));
+    assert_eq!(seat_0_hand.len(), 6);
+    assert_eq!(seat_1_hand.len(), 6);
+    assert_eq!(tail.len(), 6);
+
+    SetupEvidenceSummary {
+        variant: fixture.variant,
+        hand_count_per_seat: seat_0_hand.len(),
+        tail_count: tail.len(),
+    }
 }
 
 fn visible_hand_for_export_probe(

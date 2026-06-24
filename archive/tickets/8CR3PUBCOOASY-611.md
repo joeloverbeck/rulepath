@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-611: C-08 Plain Tricks setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/plain_tricks/tests/replay.rs`
@@ -96,3 +96,24 @@ cases.
 2. `cargo run -p fixture-check -- --game plain_tricks`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over the existing fixture.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a test-local `SetupEvidenceV1Driver` wrapper in
+  `games/plain_tricks/tests/replay.rs`.
+- The wrapper validates `setup-evidence-v1` / `v1` / `internal-dev` metadata
+  for owner `fixture-check`, canonical byte authority `none`, and the
+  `seat_grammar_version`, `setup_options`, and `expected_setup` fields, then
+  delegates to a game-owned setup fixture validator.
+- The delegated validator reads the existing fixture unchanged and checks it
+  against Rust setup output for game id, variant, rules version, deck order,
+  hidden hand/internal tail statuses, standard seats, initial round/trick/actor,
+  both hand counts, and tail count.
+- Wrong profile, version, visibility, owner, and field metadata reject
+  fail-closed. No fixture bytes, production setup behavior, or deck/deal
+  semantics changed.
+- Verification:
+  - `cargo test -p plain_tricks`
+  - `cargo run -p fixture-check -- --game plain_tricks`

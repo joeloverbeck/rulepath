@@ -1049,3 +1049,30 @@ Completed: 2026-06-24
     profile driver wrapper.
   - `cargo run -p replay-check -- --game event_frontier --all` passed; all
     Event Frontier traces were accepted.
+
+### 8CR3PUBCOOASY-611 - Plain Tricks setup-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/tests/replay.rs`.
+- Change: added a dev-only `SetupEvidenceV1Driver` wrapper test for the
+  existing `plain_tricks_standard` setup fixture. The test validates
+  `setup-evidence-v1` / `v1` / `internal-dev` metadata with owner
+  `fixture-check`, canonical byte authority `none`, and fields
+  `seat_grammar_version`, `setup_options`, and `expected_setup`, then delegates
+  to a game-owned setup fixture validator.
+- Delegated evidence: the fixture remains read-only and is checked against Rust
+  setup output for game id, variant, rules version, deck order, hidden hand
+  status, internal tail status, standard seats, initial round/trick/actor, both
+  hand counts, and tail count.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, setup behavior, deck/deal semantics, or production code changed.
+- Compatibility / rollback: remove the setup profile-wrapper test/helper only;
+  the existing fixture, serialization tests, and `fixture-check` path remain.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new setup-evidence-v1
+    profile driver wrapper.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
+    Tricks fixtures passed.
