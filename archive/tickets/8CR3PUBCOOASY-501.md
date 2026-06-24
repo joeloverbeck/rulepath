@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-501: C-06 Plain Tricks dev-only support edge
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only dependency) — `games/plain_tricks/Cargo.toml`
@@ -92,3 +92,16 @@ In `games/plain_tricks/Cargo.toml`, add
 2. `cargo build -p plain_tricks && bash scripts/boundary-check.sh`
 3. The inverse `cargo tree` is the correct boundary: it directly proves the
    dev-only edge invariant this ticket exists to establish.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added `game-test-support = { path = "../../crates/game-test-support" }` only
+  under `[dev-dependencies]` in `games/plain_tricks/Cargo.toml`.
+- Included the corresponding `Cargo.lock` package dependency edge for
+  `plain_tricks`; no normal/build dependency edge was added.
+- Verified `cargo build -p plain_tricks`,
+  `cargo tree --workspace -e normal --invert game-test-support`, and
+  `bash scripts/boundary-check.sh`. The inverse normal graph printed only the
+  `game-test-support` root package.

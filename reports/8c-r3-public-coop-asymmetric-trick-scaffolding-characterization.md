@@ -771,3 +771,24 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game event_frontier` passed.
   - No golden trace, fixture, export, state/effect/view hash, local action-tree
     hash, or hidden deck-order surface changed.
+
+### 8CR3PUBCOOASY-501 - Plain Tricks dev-only support edge
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/plain_tricks/Cargo.toml` and `Cargo.lock`.
+- Change: added `game-test-support` only under `[dev-dependencies]` for
+  `plain_tricks`; `Cargo.lock` records the corresponding package dependency
+  edge.
+- ADR-0009 classification: `unchanged`; no production source, behavior, replay,
+  fixture, export, or normal dependency graph surface was intentionally
+  migrated.
+- Compatibility / rollback: remove the `plain_tricks` dev-dependency entry and
+  corresponding lockfile edge. Production dependencies stay unchanged.
+- Verification:
+  - Before and after, `cargo tree --workspace -e normal --invert game-test-support`
+    printed only `game-test-support v0.1.0 (...)`, proving no normal reverse
+    dependency from `plain_tricks` or any production target.
+  - `cargo build -p plain_tricks` passed.
+  - `bash scripts/boundary-check.sh` passed, including
+    `game-test-support dev-only boundary check passed`.
