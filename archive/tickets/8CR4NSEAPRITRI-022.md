@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-022: Briar Circuit C-07 play/export/bot pairwise no-leak matrix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/briar_circuit/tests/`; reveal timing + bot policy unchanged
@@ -71,3 +71,22 @@ In `games/briar_circuit/tests/visibility.rs` (and the bot/replay test modules as
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game visibility/bot test is the correct boundary: no-leak across play/export/bot is a game-local projection property.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+
+1. Added a shared pairwise no-leak matrix for Briar play/export/bot surfaces over observer plus all four seat viewers.
+2. Covered private pre-play card canaries and public after-play card canaries across view, filtered effects, action previews, viewer export, diagnostics, bot legal choices, and bot explanations.
+3. Kept reveal timing, scoring, diagnostics, and bot strategy unchanged; the change is test-only.
+
+Deviations: None.
+
+Verification:
+
+1. `cargo fmt --all --check` - passed.
+2. `cargo test -p briar_circuit` - passed.
+3. `cargo run -p replay-check -- --game briar_circuit --all` - passed.
+4. `bash scripts/boundary-check.sh` - passed.

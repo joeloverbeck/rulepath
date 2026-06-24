@@ -1,9 +1,10 @@
 use briar_circuit::{
-    apply_pass_action, effect_envelopes, filter_effects_for_viewer, project_action_previews,
-    project_pass_view, project_view,
+    apply_pass_action, apply_play_action, effect_envelopes, filter_effects_for_viewer,
+    legal_bot_actions, project_action_previews, project_pass_view, project_view,
     replay_support::{export_viewer_timeline, ViewerExportClass},
-    setup_match, BriarCircuitEffect, BriarCircuitSeat, Card, CurrentTrick, PassAction,
-    PassDirection, PassState, Phase, PlayingTrickState, Rank, SetupOptions, Suit, TrickPlay,
+    setup_match, BriarCircuitEffect, BriarCircuitL1Bot, BriarCircuitSeat, Card, CurrentTrick,
+    PassAction, PassDirection, PassState, Phase, PlayAction, PlayingTrickState, Rank, SetupOptions,
+    Suit, TrickPlay,
 };
 use engine_core::{SeatId, Seed, Viewer, VisibilityScope};
 use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
@@ -56,6 +57,23 @@ enum PassMatrixSurface {
     ViewerExport,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum PlayMatrixCase {
+    PrivatePrePlay,
+    PublicAfterPlay,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum PlayMatrixSurface {
+    View,
+    FilteredEffects,
+    ActionPreviews,
+    ViewerExport,
+    Diagnostic,
+    BotLegalActions,
+    BotExplanation,
+}
+
 fn pass_matrix_viewers() -> Vec<PassMatrixViewer> {
     let mut viewers = vec![PassMatrixViewer::Observer];
     viewers.extend(BriarCircuitSeat::ALL.map(PassMatrixViewer::Seat));
@@ -77,6 +95,18 @@ fn pass_matrix_surfaces(case: PassMatrixCase) -> Vec<PassMatrixSurface> {
             PassMatrixSurface::ViewerExport,
         ],
     }
+}
+
+fn play_matrix_surfaces() -> Vec<PlayMatrixSurface> {
+    vec![
+        PlayMatrixSurface::View,
+        PlayMatrixSurface::FilteredEffects,
+        PlayMatrixSurface::ActionPreviews,
+        PlayMatrixSurface::ViewerExport,
+        PlayMatrixSurface::Diagnostic,
+        PlayMatrixSurface::BotLegalActions,
+        PlayMatrixSurface::BotExplanation,
+    ]
 }
 
 fn viewer_export_class(viewer: PassMatrixViewer) -> ViewerExportClass {
@@ -151,6 +181,52 @@ fn pass_matrix_state(
     (state, effects, canary)
 }
 
+fn play_matrix_state(
+    source: BriarCircuitSeat,
+    case: PlayMatrixCase,
+) -> (
+    briar_circuit::BriarCircuitState,
+    Vec<BriarCircuitEffect>,
+    briar_circuit::CardId,
+) {
+    let canaries = [
+        card(Rank::Ace, Suit::Clubs),
+        card(Rank::Ace, Suit::Diamonds),
+        card(Rank::Ace, Suit::Hearts),
+        card(Rank::Ace, Suit::Spades),
+    ];
+    let mut state = setup_match(
+        Seed(1614),
+        &briar_circuit::canonical_seat_ids(),
+        &SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    state.private_hands = BriarCircuitSeat::ALL
+        .into_iter()
+        .enumerate()
+        .map(|(index, seat)| (seat, vec![canaries[index]]))
+        .collect();
+    state.phase = Phase::PlayingTrick(PlayingTrickState {
+        hearts_broken: true,
+        trick_index: 4,
+        leader: source,
+        active_seat: source,
+        current_trick: CurrentTrick::new(source),
+    });
+
+    let canary = canaries[source.index()];
+    let effects = match case {
+        PlayMatrixCase::PrivatePrePlay => Vec::new(),
+        PlayMatrixCase::PublicAfterPlay => {
+            apply_play_action(&mut state, source, PlayAction::Play(canary))
+                .expect("play succeeds")
+                .effects
+        }
+    };
+
+    (state, effects, canary)
+}
+
 fn pass_matrix_snapshot(
     state: &briar_circuit::BriarCircuitState,
     effects: &[BriarCircuitEffect],
@@ -188,6 +264,61 @@ fn pass_matrix_snapshot(
     }
 }
 
+fn play_matrix_snapshot(
+    state: &briar_circuit::BriarCircuitState,
+    effects: &[BriarCircuitEffect],
+    matrix_viewer: &PassMatrixViewer,
+    surface: &PlayMatrixSurface,
+) -> String {
+    match surface {
+        PlayMatrixSurface::View => format!("{:?}", project_view(state, &matrix_viewer.as_viewer())),
+        PlayMatrixSurface::FilteredEffects => {
+            let envelopes = effects
+                .iter()
+                .cloned()
+                .flat_map(effect_envelopes)
+                .collect::<Vec<_>>();
+            format!(
+                "{:?}",
+                filter_effects_for_viewer(&envelopes, &matrix_viewer.as_viewer())
+            )
+        }
+        PlayMatrixSurface::ActionPreviews => {
+            format!(
+                "{:?}",
+                project_action_previews(state, &matrix_viewer.as_viewer())
+            )
+        }
+        PlayMatrixSurface::ViewerExport => {
+            format!(
+                "{:?}",
+                export_viewer_timeline(state, viewer_export_class(*matrix_viewer))
+            )
+        }
+        PlayMatrixSurface::Diagnostic => {
+            let seat = matrix_viewer.seat().unwrap_or(BriarCircuitSeat::Seat0);
+            let wrong_card = card(Rank::Two, Suit::Clubs);
+            format!(
+                "{:?}",
+                briar_circuit::validate_play_card(state, seat, wrong_card)
+            )
+        }
+        PlayMatrixSurface::BotLegalActions => matrix_viewer
+            .seat()
+            .map(|seat| format!("{:?}", legal_bot_actions(state, seat)))
+            .unwrap_or_default(),
+        PlayMatrixSurface::BotExplanation => matrix_viewer
+            .seat()
+            .and_then(|seat| {
+                BriarCircuitL1Bot::new(Seed(1614))
+                    .select_decision(state, seat)
+                    .ok()
+                    .map(|decision| decision.explanation)
+            })
+            .unwrap_or_default(),
+    }
+}
+
 fn pass_matrix_expectation(
     case: PassMatrixCase,
     source: BriarCircuitSeat,
@@ -215,6 +346,33 @@ fn pass_matrix_expectation(
             {
                 ExposureExpectation::MustBePresent
             }
+            _ => ExposureExpectation::MustBeAbsent,
+        },
+    }
+}
+
+fn play_matrix_expectation(
+    case: PlayMatrixCase,
+    source: BriarCircuitSeat,
+    viewer: &PassMatrixViewer,
+    surface: &PlayMatrixSurface,
+) -> ExposureExpectation {
+    match case {
+        PlayMatrixCase::PrivatePrePlay => match surface {
+            PlayMatrixSurface::View
+            | PlayMatrixSurface::ActionPreviews
+            | PlayMatrixSurface::ViewerExport
+            | PlayMatrixSurface::BotLegalActions
+                if viewer.seat() == Some(source) =>
+            {
+                ExposureExpectation::MustBePresent
+            }
+            _ => ExposureExpectation::MustBeAbsent,
+        },
+        PlayMatrixCase::PublicAfterPlay => match surface {
+            PlayMatrixSurface::View
+            | PlayMatrixSurface::FilteredEffects
+            | PlayMatrixSurface::ViewerExport => ExposureExpectation::MustBePresent,
             _ => ExposureExpectation::MustBeAbsent,
         },
     }
@@ -278,6 +436,38 @@ fn pass_phase_pairwise_no_leak_matrix_covers_selection_commit_and_exchange() {
             )
             .unwrap_or_else(|failures| {
                 panic!("Briar pass-phase no-leak matrix {source:?} {case:?}: {failures}")
+            });
+        }
+    }
+}
+
+#[test]
+fn play_export_and_bot_pairwise_no_leak_matrix_covers_private_and_public_cards() {
+    for source in BriarCircuitSeat::ALL {
+        for case in [
+            PlayMatrixCase::PrivatePrePlay,
+            PlayMatrixCase::PublicAfterPlay,
+        ] {
+            let (state, effects, canary) = play_matrix_state(source, case);
+            let canary = format!("{canary:?}");
+            assert_pairwise_no_leak(
+                pass_matrix_viewers(),
+                play_matrix_surfaces(),
+                [LeakProbe {
+                    source_seat: source,
+                    canary_id: case,
+                    canary,
+                }],
+                |matrix_viewer, surface| {
+                    play_matrix_snapshot(&state, &effects, matrix_viewer, surface)
+                },
+                |probe_source, matrix_viewer, surface, _case| {
+                    play_matrix_expectation(case, *probe_source, matrix_viewer, surface)
+                },
+                |snapshot, canary| snapshot.contains(canary),
+            )
+            .unwrap_or_else(|failures| {
+                panic!("Briar play/export/bot no-leak matrix {source:?} {case:?}: {failures}")
             });
         }
     }
