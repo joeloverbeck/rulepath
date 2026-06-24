@@ -2,9 +2,13 @@ use std::collections::BTreeSet;
 
 use engine_core::Seed;
 use engine_core::StableSerialize;
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, SetupEvidenceV1Driver,
+    PROFILE_VERSION_V1, PUBLIC_EXPORT_V1, SETUP_EVIDENCE_V1,
+};
 use vow_tide::{
     cards::{canonical_deck, Card, CardId, Rank, Suit},
-    ids::{canonical_seat_ids, STANDARD_CARD_COUNT},
+    ids::{canonical_seat_ids, hand_schedule_for_seats, VowTideSeat, STANDARD_CARD_COUNT},
     replay_support::{export_for_viewer, import_viewer_export, observer},
     scoring::terminal_outcome,
     setup::{setup_match, SetupOptions},
@@ -12,6 +16,122 @@ use vow_tide::{
         expected_manifest, load_manifest, load_variants, Manifest, Variant, VariantCatalog,
     },
 };
+
+const SETUP_EVIDENCE_PROFILE_FIELDS: &[&str] = &[
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "hash_surface_version",
+    "canonical_byte_authority",
+    "migration_update_note",
+    "not_applicable",
+    "seat_grammar_version",
+    "setup_options",
+    "expected_setup",
+];
+
+fn setup_evidence_profile_artifact() -> ProfileArtifact<'static> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id: SETUP_EVIDENCE_V1,
+            profile_version: PROFILE_VERSION_V1,
+            visibility_class: Some("public"),
+            validator_owner: "fixture-check",
+            canonical_byte_authority: "none",
+            migration_update_note: Some("8CR4NSEAPRITRI-034 virtual setup-evidence profile"),
+        },
+        fields: SETUP_EVIDENCE_PROFILE_FIELDS,
+        canonical_byte_claim: false,
+    }
+}
+
+fn fixture_string_field(input: &str, key: &str) -> String {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let tail = input[start..].trim_start();
+    let tail = tail
+        .strip_prefix('"')
+        .unwrap_or_else(|| panic!("field `{key}` must be a string"));
+    let end = tail
+        .find('"')
+        .unwrap_or_else(|| panic!("field `{key}` string must close"));
+    tail[..end].to_owned()
+}
+
+fn fixture_number_field(input: &str, key: &str) -> usize {
+    let needle = format!("\"{key}\":");
+    let start = input
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing `{key}`"))
+        + needle.len();
+    let digits = input[start..]
+        .trim_start()
+        .chars()
+        .take_while(|ch| ch.is_ascii_digit())
+        .collect::<String>();
+    digits
+        .parse()
+        .unwrap_or_else(|error| panic!("field `{key}` must be a number: {error}"))
+}
+
+fn assert_standard_setup_fixture(input: &str, trace_id: &str, expected_seat_count: usize) {
+    assert_eq!(fixture_string_field(input, "trace_id"), trace_id);
+    assert_eq!(fixture_string_field(input, "fixture_kind"), "setup");
+    assert_eq!(fixture_string_field(input, "game_id"), "vow_tide");
+    assert_eq!(
+        fixture_string_field(input, "rules_version"),
+        "vow-tide-rules-v1"
+    );
+    assert_eq!(fixture_string_field(input, "variant"), "vow_tide_standard");
+    assert_eq!(
+        fixture_number_field(input, "seat_count"),
+        expected_seat_count
+    );
+    assert!(input.contains("\"expected_trump_public\": true"));
+
+    let seed = fixture_number_field(input, "seed") as u64;
+    let seats = canonical_seat_ids(expected_seat_count);
+    let state = setup_match(Seed(seed), &seats, &SetupOptions::default()).expect("setup succeeds");
+    let schedule = hand_schedule_for_seats(expected_seat_count).expect("schedule exists");
+    let expected_dealer =
+        VowTideSeat::parse(&fixture_string_field(input, "expected_dealer")).expect("dealer");
+    let expected_first_leader =
+        VowTideSeat::parse(&fixture_string_field(input, "expected_first_leader"))
+            .expect("first leader");
+
+    assert_eq!(state.seat_count(), expected_seat_count);
+    assert_eq!(state.hand_schedule, schedule);
+    assert_eq!(state.dealer, expected_dealer);
+    assert_eq!(state.active_seat(), Some(expected_first_leader));
+    assert_eq!(
+        state.current_hand_size(),
+        Some(fixture_number_field(input, "expected_hand_size") as u8)
+    );
+    assert_eq!(
+        state.hand_schedule.len(),
+        fixture_number_field(input, "expected_hand_count")
+    );
+    assert_eq!(
+        state.hidden_stock_internal().len(),
+        fixture_number_field(input, "expected_hidden_stock_count")
+    );
+    assert_eq!(state.private_hands.len(), expected_seat_count);
+    assert!(state
+        .private_hands
+        .iter()
+        .all(|(_, hand)| hand.len() == state.current_hand_size().expect("hand size") as usize));
+    assert_eq!(
+        state.deal_order.first().copied(),
+        Some(expected_first_leader)
+    );
+}
 
 #[test]
 fn canonical_deck_order_is_complete_and_stable() {
@@ -35,6 +155,71 @@ fn canonical_deck_order_is_complete_and_stable() {
         assert_eq!(card_id.index(), index as u8);
         assert_eq!(CardId::parse(&card_id.as_str()), Some(*card_id));
     }
+}
+
+#[test]
+fn setup_evidence_v1_driver_validates_three_and_seven_seat_fixtures() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let profile = setup_evidence_profile_artifact();
+
+    for (fixture, trace_id, seat_count) in [
+        (
+            include_str!("../data/fixtures/vow_tide_3p_standard.fixture.json"),
+            "vow_tide_3p_standard",
+            3,
+        ),
+        (
+            include_str!("../data/fixtures/vow_tide_7p_standard.fixture.json"),
+            "vow_tide_7p_standard",
+            7,
+        ),
+    ] {
+        assert!(!fixture.contains("\"profile_id\""));
+        assert!(!fixture.contains("\"canonical_byte_authority\""));
+        driver
+            .validate_with(&profile, |report| {
+                assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+                assert_eq!(report.visibility_class, "public");
+                assert_standard_setup_fixture(fixture, trace_id, seat_count);
+            })
+            .expect("setup-evidence-v1 driver accepts Vow setup fixture adapter");
+    }
+}
+
+#[test]
+fn setup_evidence_v1_driver_rejects_vow_wrong_metadata() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let valid = setup_evidence_profile_artifact();
+
+    let mut wrong_profile = valid.clone();
+    wrong_profile.metadata.profile_id = PUBLIC_EXPORT_V1;
+    assert_eq!(
+        driver
+            .validate(&wrong_profile)
+            .expect_err("wrong profile")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileId
+    );
+
+    let mut wrong_version = valid.clone();
+    wrong_version.metadata.profile_version = "v2";
+    assert_eq!(
+        driver
+            .validate(&wrong_version)
+            .expect_err("wrong version")
+            .kind,
+        ProfileValidationErrorKind::WrongProfileVersion
+    );
+
+    let mut unknown_field = valid;
+    unknown_field.fields = &["profile_id", "setup_formula"];
+    assert_eq!(
+        driver
+            .validate(&unknown_field)
+            .expect_err("unknown field")
+            .kind,
+        ProfileValidationErrorKind::UnknownField
+    );
 }
 
 #[test]

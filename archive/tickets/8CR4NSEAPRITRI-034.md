@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-034: Vow Tide C-08 setup-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/vow_tide/tests/`; fixture bytes + schedule/deal policy unchanged
@@ -70,3 +70,22 @@ In `games/vow_tide/tests/` (setup test module), add a `SetupEvidenceV1Driver` ad
 1. `cargo test -p vow_tide`
 2. `cargo run -p fixture-check -- --game vow_tide`
 3. The per-game fixture/setup test is the correct boundary: setup evidence delegates to the game setup owner.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added a virtual `setup-evidence-v1` profile artifact and driver tests in `games/vow_tide/tests/serialization.rs`.
+- Validated the existing 3-seat and 7-seat setup fixtures against Vow-owned setup, schedule, dealer, first-leader, hand-size, hand-count, hidden-stock, and deal-order behavior.
+- Added reject coverage for wrong profile id, wrong profile version, and unknown profile fields.
+
+Deviations:
+- None.
+
+Verification:
+- `cargo test -p vow_tide setup_evidence_v1_driver -- --nocapture`
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p fixture-check -- --game vow_tide`
+- `bash scripts/boundary-check.sh`
