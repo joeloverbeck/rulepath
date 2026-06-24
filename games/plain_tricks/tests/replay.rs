@@ -2,12 +2,11 @@ use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, HashValue, RulesVersion, SeatId,
     StableSerialize, Viewer,
 };
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
+    DomainEvidenceV1Driver, ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind,
+    ReplayCommandV1Driver, SetupEvidenceV1Driver, DOMAIN_EVIDENCE_V1, PROFILE_VERSION_V1,
+    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use plain_tricks::{
     apply_action, legal_action_tree, load_standard_fixture,
@@ -189,11 +188,7 @@ fn setup_evidence_v1_profile_driver_wraps_standard_fixture_validator() {
         PROFILE_VERSION_V1,
         Some("internal-dev"),
         "fixture-check",
-        &[
-            "seat_grammar_version",
-            "setup_options",
-            "expected_setup",
-        ],
+        &["seat_grammar_version", "setup_options", "expected_setup"],
     );
 
     let report = driver
@@ -260,6 +255,89 @@ fn setup_evidence_v1_profile_driver_wraps_standard_fixture_validator() {
             Some("internal-dev"),
             "fixture-check",
             &["expected_setup", "domain_input"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
+fn domain_evidence_v1_profile_driver_wraps_plain_tricks_domain_validator() {
+    let driver = DomainEvidenceV1Driver::new("plain_tricks");
+    let artifact = domain_evidence_profile_artifact(
+        DOMAIN_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("internal-dev"),
+        "plain_tricks",
+        &["domain_schema_version", "domain_input", "expected_domain"],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("domain metadata validates");
+    assert_eq!(report.profile_id, DOMAIN_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "internal-dev");
+    assert_eq!(report.validator_owner, "plain_tricks");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_plain_tricks_domain_evidence())
+        .expect("profile delegates to Plain Tricks domain validator");
+    assert_eq!(summary.deck_size, 18);
+    assert_eq!(summary.hand_count_per_seat, 6);
+    assert_eq!(summary.tail_count, 6);
+    assert_eq!(summary.round_one_completed_tricks, 6);
+    assert_eq!(summary.terminal_winner, Some("seat_1"));
+    assert_eq!(summary.terminal_split_each, Some(6));
+
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "plain_tricks",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            "v2",
+            Some("internal-dev"),
+            "plain_tricks",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("unsupported"),
+            "plain_tricks",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "fixture-check",
+            &["expected_domain"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_domain_profile_rejects(
+        domain_evidence_profile_artifact(
+            DOMAIN_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "plain_tricks",
+            &["expected_domain", "setup_options"],
         ),
         ProfileValidationErrorKind::UnknownField,
     );
@@ -360,7 +438,11 @@ fn replay_exports_pairwise_private_cards_only_to_authorized_viewer() {
     };
 
     assert_pairwise_no_leak(
-        [ExportViewer::Observer, ExportViewer::Seat0, ExportViewer::Seat1],
+        [
+            ExportViewer::Observer,
+            ExportViewer::Seat0,
+            ExportViewer::Seat1,
+        ],
         ["public_export_json"],
         probes,
         |viewer, _surface| export_public_replay(&trace, &viewer.viewer()).to_json(),
@@ -374,7 +456,11 @@ fn replay_exports_pairwise_private_cards_only_to_authorized_viewer() {
     .expect("export pairwise no-leak matrix has no failures");
 
     let canary = ["R3", "PLAIN", "NOLEAK", "CANARY"].join("_");
-    for viewer in [ExportViewer::Observer, ExportViewer::Seat0, ExportViewer::Seat1] {
+    for viewer in [
+        ExportViewer::Observer,
+        ExportViewer::Seat0,
+        ExportViewer::Seat1,
+    ] {
         let json = export_public_replay(&trace, &viewer.viewer()).to_json();
         assert!(!json.contains(&canary), "{json}");
         for tail in tail_cards(&state) {
@@ -581,7 +667,38 @@ struct SetupEvidenceSummary {
     tail_count: usize,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+struct DomainEvidenceSummary {
+    deck_size: usize,
+    hand_count_per_seat: usize,
+    tail_count: usize,
+    round_one_completed_tricks: usize,
+    terminal_winner: Option<&'static str>,
+    terminal_split_each: Option<u8>,
+}
+
 fn setup_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn domain_evidence_profile_artifact<'a>(
     profile_id: &'a str,
     profile_version: &'a str,
     visibility_class: Option<&'a str>,
@@ -616,6 +733,20 @@ fn assert_setup_profile_rejects(
     );
 }
 
+fn assert_domain_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = DomainEvidenceV1Driver::new("plain_tricks");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid domain-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
 fn validate_standard_setup_fixture() -> SetupEvidenceSummary {
     let fixture = load_standard_fixture().expect("fixture parses");
     let state = setup_state(0);
@@ -629,7 +760,10 @@ fn validate_standard_setup_fixture() -> SetupEvidenceSummary {
     assert_eq!(fixture.deck_order, TrickCardId::ALL);
     assert_eq!(fixture.hand_status, "hidden_by_setup");
     assert_eq!(fixture.tail_status, "internal_only");
-    assert_eq!(state.seats, [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]);
+    assert_eq!(
+        state.seats,
+        [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
+    );
     assert_eq!(state.round_index, 0);
     assert_eq!(state.trick_index, 0);
     assert_eq!(state.active_seat, Some(PlainTricksSeat::Seat0));
@@ -642,6 +776,136 @@ fn validate_standard_setup_fixture() -> SetupEvidenceSummary {
         hand_count_per_seat: seat_0_hand.len(),
         tail_count: tail.len(),
     }
+}
+
+fn validate_plain_tricks_domain_evidence() -> DomainEvidenceSummary {
+    let fixture = load_standard_fixture().expect("fixture parses");
+    let initial = setup_state(0);
+    let seat_0_hand = visible_hand_for_export_probe(&initial, PlainTricksSeat::Seat0);
+    let seat_1_hand = visible_hand_for_export_probe(&initial, PlainTricksSeat::Seat1);
+    let tail = tail_cards(&initial);
+
+    assert_eq!(fixture.game_id, GAME_ID);
+    assert_eq!(fixture.variant, VARIANT_ID);
+    assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+    assert_eq!(fixture.deck_order, TrickCardId::ALL);
+    assert_eq!(fixture.hand_status, "hidden_by_setup");
+    assert_eq!(fixture.tail_status, "internal_only");
+    assert_eq!(seat_0_hand.len(), 6);
+    assert_eq!(seat_1_hand.len(), 6);
+    assert_eq!(tail.len(), 6);
+    assert_complete_deck_partition(&fixture.deck_order, &seat_0_hand, &seat_1_hand, &tail);
+
+    let first_trick = state_after_commands(
+        0,
+        &[
+            (PlainTricksSeat::Seat0, TrickCardId::Gale1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale2),
+        ],
+    );
+    let completed = first_trick.completed_tricks[0];
+    assert_eq!(completed.round_index, 0);
+    assert_eq!(completed.trick_index, 0);
+    assert_eq!(completed.leader, PlainTricksSeat::Seat0);
+    assert_eq!(completed.plays[0].card, TrickCardId::Gale1);
+    assert_eq!(completed.plays[1].card, TrickCardId::Gale2);
+    assert_eq!(completed.winner, PlainTricksSeat::Seat1);
+    assert_eq!(first_trick.current_leader, PlainTricksSeat::Seat1);
+    assert_eq!(first_trick.active_seat, Some(PlainTricksSeat::Seat1));
+    assert_eq!(first_trick.round_trick_counts.seat_0, 0);
+    assert_eq!(first_trick.round_trick_counts.seat_1, 1);
+
+    let round_close = state_after_commands(0, &round_one_terminal_commands());
+    assert_eq!(round_close.completed_tricks.len(), 6);
+    assert_eq!(round_close.round_index, 1);
+    assert_eq!(round_close.trick_index, 0);
+    assert_eq!(
+        round_close.phase,
+        Phase::Playing {
+            round_index: 1,
+            trick_index: 0,
+        }
+    );
+    assert_eq!(round_close.total_trick_counts.seat_0, 3);
+    assert_eq!(round_close.total_trick_counts.seat_1, 3);
+    assert_eq!(round_close.round_trick_counts.seat_0, 0);
+    assert_eq!(round_close.round_trick_counts.seat_1, 0);
+
+    let terminal_fixture = parse_trace_fixture(include_str!(
+        "golden_traces/terminal-most-points-win.trace.json"
+    ));
+    assert_trace_fixture(&terminal_fixture);
+    let terminal = state_after_trace_commands(&terminal_fixture);
+    assert_eq!(terminal.phase, Phase::Terminal);
+    assert_eq!(terminal.completed_tricks.len(), 12);
+    assert_eq!(
+        terminal.terminal_outcome,
+        Some(TerminalOutcome::TrickWin {
+            winner: PlainTricksSeat::Seat1,
+            totals: terminal.total_trick_counts,
+        })
+    );
+    assert!(terminal.total_trick_counts.seat_1 > terminal.total_trick_counts.seat_0);
+
+    let split_fixture = parse_trace_fixture(include_str!("golden_traces/tie-split.trace.json"));
+    assert_trace_fixture(&split_fixture);
+    let split = state_after_trace_commands(&split_fixture);
+    assert_eq!(
+        split.terminal_outcome,
+        Some(TerminalOutcome::Split {
+            each: 6,
+            totals: split.total_trick_counts,
+        })
+    );
+
+    DomainEvidenceSummary {
+        deck_size: fixture.deck_order.len(),
+        hand_count_per_seat: seat_0_hand.len(),
+        tail_count: tail.len(),
+        round_one_completed_tricks: round_close.completed_tricks.len(),
+        terminal_winner: winner(&terminal.terminal_outcome),
+        terminal_split_each: split_each(&split.terminal_outcome),
+    }
+}
+
+fn assert_complete_deck_partition(
+    deck_order: &[TrickCardId],
+    seat_0_hand: &[TrickCardId],
+    seat_1_hand: &[TrickCardId],
+    tail: &[TrickCardId],
+) {
+    let mut partition = Vec::new();
+    partition.extend_from_slice(seat_0_hand);
+    partition.extend_from_slice(seat_1_hand);
+    partition.extend_from_slice(tail);
+    assert_eq!(partition.len(), deck_order.len());
+    for card in deck_order {
+        assert_eq!(
+            partition
+                .iter()
+                .filter(|candidate| *candidate == card)
+                .count(),
+            1,
+            "{card:?} appears exactly once in the dealt partition"
+        );
+    }
+}
+
+fn round_one_terminal_commands() -> Vec<(PlainTricksSeat, TrickCardId)> {
+    vec![
+        (PlainTricksSeat::Seat0, TrickCardId::Gale1),
+        (PlainTricksSeat::Seat1, TrickCardId::Gale2),
+        (PlainTricksSeat::Seat1, TrickCardId::Ember3),
+        (PlainTricksSeat::Seat0, TrickCardId::Ember6),
+        (PlainTricksSeat::Seat0, TrickCardId::River3),
+        (PlainTricksSeat::Seat1, TrickCardId::River6),
+        (PlainTricksSeat::Seat1, TrickCardId::Gale3),
+        (PlainTricksSeat::Seat0, TrickCardId::River5),
+        (PlainTricksSeat::Seat1, TrickCardId::Ember2),
+        (PlainTricksSeat::Seat0, TrickCardId::Ember5),
+        (PlainTricksSeat::Seat0, TrickCardId::River1),
+        (PlainTricksSeat::Seat1, TrickCardId::Gale6),
+    ]
 }
 
 fn visible_hand_for_export_probe(
@@ -859,6 +1123,19 @@ fn state_after_commands(
         let command = command_for_state_for_test(&state, *seat, *card);
         let action = validate_command(&state, &command).expect("test command validates");
         apply_action(&mut state, action).expect("test command applies");
+    }
+    state
+}
+
+fn state_after_trace_commands(fixture: &TraceFixture) -> PlainTricksState {
+    let mut state = setup_state(fixture.seed);
+    for command in &fixture.commands {
+        if command.expect != "applied" {
+            continue;
+        }
+        let envelope = command_envelope(&state, command);
+        let action = validate_command(&state, &envelope).expect("fixture command validates");
+        apply_action(&mut state, action).expect("fixture command applies");
     }
     state
 }
@@ -1102,6 +1379,13 @@ fn winner(outcome: &Option<TerminalOutcome>) -> Option<&'static str> {
     match outcome {
         Some(TerminalOutcome::TrickWin { winner, .. }) => Some(winner.as_str()),
         Some(TerminalOutcome::Split { .. }) | None => None,
+    }
+}
+
+fn split_each(outcome: &Option<TerminalOutcome>) -> Option<u8> {
+    match outcome {
+        Some(TerminalOutcome::Split { each, .. }) => Some(*each),
+        Some(TerminalOutcome::TrickWin { .. }) | None => None,
     }
 }
 

@@ -1164,3 +1164,37 @@ Completed: 2026-06-24
     profile driver wrapper.
   - `cargo run -p fixture-check -- --game event_frontier` passed; all Event
     Frontier fixtures passed.
+
+### 8CR3PUBCOOASY-621 - Plain Tricks domain-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/tests/replay.rs`.
+- Change: added a dev-only `DomainEvidenceV1Driver` wrapper test for Plain
+  Tricks domain evidence. The test validates `domain-evidence-v1` / `v1` /
+  `internal-dev` metadata with owner `plain_tricks`, canonical byte authority
+  `none`, and fields `domain_schema_version`, `domain_input`, and
+  `expected_domain`, then delegates to a game-owned domain validator.
+- Delegated evidence: the standard fixture remains read-only and is checked
+  through existing Rust-owned setup, visibility, command validation, state
+  transition, completed-trick, golden-trace, and terminal-outcome paths for deck
+  partition, hand/tail counts, first-trick winner, round-close invariants,
+  terminal winner, and split outcome.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, production code, trick algorithm, replay hash, or domain behavior
+  changed.
+- Compatibility / rollback: remove the domain profile-wrapper test/helper only;
+  the existing setup, golden-trace, fixture-check, and rule-coverage paths
+  remain.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new
+    domain-evidence-v1 profile driver wrapper.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
+    Tricks fixtures passed.
+  - `cargo run -p rule-coverage -- --game plain_tricks` passed.
+  - `git diff --check` passed.
+  - `cargo fmt --all --check` was attempted and failed on pre-existing
+    formatting drift outside this ticket's owned surface; only
+    `games/plain_tricks/tests/replay.rs` was formatted with `rustfmt`.

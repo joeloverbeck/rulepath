@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-621: C-08 Plain Tricks domain-evidence profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (dev-only profile adapter) — `games/plain_tricks/tests/replay.rs`
@@ -101,3 +101,31 @@ adapter. Add wrong-metadata rejection cases.
 2. `cargo run -p fixture-check -- --game plain_tricks`
 3. A per-game test + fixture-check is the correct boundary: the driver is
    test-side and read-only over the existing fixture.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added a dev-only `DomainEvidenceV1Driver` wrapper in
+  `games/plain_tricks/tests/replay.rs` for Plain Tricks
+  `domain-evidence-v1` metadata. The test validates `v1` / `internal-dev`
+  metadata with owner `plain_tricks`, canonical byte authority `none`, and
+  fields `domain_schema_version`, `domain_input`, and `expected_domain`.
+- The driver delegates to a Plain Tricks-owned domain validator after metadata
+  succeeds. That validator uses existing Rust setup, visibility, command
+  validation, state transition, completed-trick, golden-trace, and terminal
+  outcome paths to cover the standard fixture deck partition, hand/tail counts,
+  first-trick winner, round-close invariants, terminal win, and split outcome.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field. No fixture bytes, production code,
+  trick algorithm, replay hash, or domain behavior changed.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new
+    domain-evidence-v1 wrapper.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
+    Tricks fixtures passed.
+  - `cargo run -p rule-coverage -- --game plain_tricks` passed.
+  - `git diff --check` passed.
+  - `cargo fmt --all --check` was attempted and failed on pre-existing
+    formatting drift outside this ticket's owned surface; only
+    `games/plain_tricks/tests/replay.rs` was formatted with `rustfmt`.
