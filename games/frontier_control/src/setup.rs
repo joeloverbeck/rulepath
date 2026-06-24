@@ -264,7 +264,10 @@ mod tests {
             "frontier_control requires exactly two seats",
         );
 
-        assert_eq!(setup_match(&[], &SetupOptions::default()), Err(expected.clone()));
+        assert_eq!(
+            setup_match(&[], &SetupOptions::default()),
+            Err(expected.clone())
+        );
         assert_eq!(
             setup_match(&[SeatId("seat_0".to_owned())], &SetupOptions::default()),
             Err(expected.clone())

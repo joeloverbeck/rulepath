@@ -1,15 +1,13 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed, StableSerialize, Viewer,
 };
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
 use flood_watch::{
     action_tree_hash, apply_command, contains_hidden_event_identity, diagnostic_hash, effect_hash,
     filter_effects_for_viewer, legal_action_tree, project_view, public_effect_text, setup_match,
     view_hash, EventCard, EventKind, FloodWatchEffect, FloodWatchState, ScenarioVariant,
     SetupOptions, ACTION_END_TURN,
 };
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -80,7 +78,11 @@ fn pairwise_hidden_future_deck_matrix_covers_public_surfaces() {
     let probes = hidden_future_probes(&state);
 
     assert_pairwise_no_leak(
-        [MatrixViewer::Observer, MatrixViewer::Seat0, MatrixViewer::Seat1],
+        [
+            MatrixViewer::Observer,
+            MatrixViewer::Seat0,
+            MatrixViewer::Seat1,
+        ],
         [
             MatrixSurface::View,
             MatrixSurface::ActionTree,
@@ -95,9 +97,7 @@ fn pairwise_hidden_future_deck_matrix_covers_public_surfaces() {
     .expect("Flood Watch hidden-future matrix has no failures");
 }
 
-fn hidden_future_probes(
-    state: &FloodWatchState,
-) -> Vec<LeakProbe<usize, String, EventCard>> {
+fn hidden_future_probes(state: &FloodWatchState) -> Vec<LeakProbe<usize, String, EventCard>> {
     state
         .event_deck_internal()
         .iter()
@@ -130,7 +130,10 @@ fn matrix_snapshot(
             )
         }
         MatrixSurface::Effects => {
-            format!("{:?}", filter_effects_for_viewer(&[], &viewer_case.viewer()))
+            format!(
+                "{:?}",
+                filter_effects_for_viewer(&[], &viewer_case.viewer())
+            )
         }
     }
 }

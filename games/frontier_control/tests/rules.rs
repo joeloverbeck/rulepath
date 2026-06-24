@@ -287,13 +287,10 @@ fn validate_frontier_control_domain_evidence() -> DomainEvidenceSummary {
                 budget_remaining: state.variant.action_budget,
             }
         );
-        assert_eq!(
-            state
-                .neighbors(SiteId::Gatehouse)
-                .expect("gatehouse neighbors")
-                .contains(&SiteId::Ford),
-            true
-        );
+        assert!(state
+            .neighbors(SiteId::Gatehouse)
+            .expect("gatehouse neighbors")
+            .contains(&SiteId::Ford));
     }
 
     let mut clash = setup_match(&seats(), &SetupOptions::default()).expect("setup");
@@ -383,9 +380,8 @@ fn validate_frontier_control_domain_evidence() -> DomainEvidenceSummary {
         highlands_edge_count: highlands_fixture.edges.len(),
         clash_site: SiteId::Gatehouse,
         disconnected_stake_site: SiteId::Goldfield,
-        terminal_winner: match scoring.terminal_outcome {
-            Some(TerminalOutcome::Winner { faction, .. }) => Some(faction),
-            None => None,
-        },
+        terminal_winner: scoring
+            .terminal_outcome
+            .map(|TerminalOutcome::Winner { faction, .. }| faction),
     }
 }

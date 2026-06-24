@@ -2,14 +2,12 @@ use engine_core::{
     ActionChoice, ActionNode, ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed,
     Viewer,
 };
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
 use event_frontier::{
     apply_command, export_public_replay, legal_action_tree, project_view, public_replay_step,
     setup_match, validate_command, EventFrontierEffect, SetupOptions, ACTION_OPERATION,
     ACTION_PASS,
 };
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -76,7 +74,11 @@ fn pairwise_hidden_deeper_deck_matrix_covers_public_surfaces() {
     let probes = hidden_deck_probes(&state);
 
     assert_pairwise_no_leak(
-        [MatrixViewer::Observer, MatrixViewer::Seat0, MatrixViewer::Seat1],
+        [
+            MatrixViewer::Observer,
+            MatrixViewer::Seat0,
+            MatrixViewer::Seat1,
+        ],
         [
             MatrixSurface::View,
             MatrixSurface::ActionTree,

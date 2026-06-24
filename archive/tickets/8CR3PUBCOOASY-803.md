@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-803: R3 acceptance evidence and status closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None (docs/status-only — `reports/8c-r3-public-coop-asymmetric-trick-scaffolding-characterization.md`, `specs/README.md`)
@@ -116,3 +116,43 @@ pending.
 1. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
 2. `cargo run -p replay-check -- --game plain_tricks --all && cargo run -p fixture-check -- --game plain_tricks && cargo run -p rule-coverage -- --game plain_tricks` (and flood_watch / frontier_control / event_frontier)
 3. `bash scripts/boundary-check.sh && cargo tree --workspace -e normal --invert game-test-support && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs` — the full §7.1 set is the correct boundary because the capstone's scope IS the spec's exit criteria.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Consolidated the R3 characterization report with the full §7.1 command
+  ledger, the changed-file inventory, and explicit status reconciliation for
+  `8C-R3`.
+- Flipped `specs/README.md` row `8C-R3` to `Done` with this report as the
+  evidence pointer; `8C-R4` and Gate 18 remain `Not started`.
+- Final-tree hygiene: `cargo fmt --all --check` initially exposed rustfmt drift
+  in R3-related Rust files and clippy exposed three warning-as-error cleanups in
+  R3 test/setup code. The closeout applied only rustfmt output plus narrow
+  `needless_borrow`, `bool_assert_comparison`, and `manual_map` fixes; no
+  fixture, golden-trace, export, replay-byte, hash, visibility, RNG-policy,
+  setup-policy, or production behavior migration was introduced.
+- Verification passed:
+  - `cargo fmt --all --check`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo build --workspace`
+  - `cargo test --workspace`
+  - `cargo run -p replay-check -- --game plain_tricks --all`
+  - `cargo run -p fixture-check -- --game plain_tricks`
+  - `cargo run -p rule-coverage -- --game plain_tricks`
+  - `cargo run -p replay-check -- --game flood_watch --all`
+  - `cargo run -p fixture-check -- --game flood_watch`
+  - `cargo run -p rule-coverage -- --game flood_watch`
+  - `cargo run -p replay-check -- --game frontier_control --all`
+  - `cargo run -p fixture-check -- --game frontier_control`
+  - `cargo run -p rule-coverage -- --game frontier_control`
+  - `cargo run -p replay-check -- --game event_frontier --all`
+  - `cargo run -p fixture-check -- --game event_frontier`
+  - `cargo run -p rule-coverage -- --game event_frontier`
+  - `bash scripts/boundary-check.sh`
+  - `cargo tree --workspace -e normal --invert game-test-support`
+  - `node scripts/check-doc-links.mjs`
+  - `node scripts/check-catalog-docs.mjs`
+  - `git diff --check`
+- Changed-file audit passed: `git diff --name-only -- games/*/tests/golden_traces games/*/data/fixtures apps/web public`
+  returned no paths, so there are zero unauthorized golden/fixture/export diffs.

@@ -1,12 +1,10 @@
 use engine_core::{SeatId, Seed};
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
 use flood_watch::{
     setup_match, validate_bot_decision, DistrictId, EventCard, EventKind, FloodWatchLevel1Bot,
     FloodWatchRandomBot, FloodWatchState, Phase, ScenarioVariant, SetupOptions, ACTION_BAIL,
     ACTION_REINFORCE,
 };
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -40,7 +38,11 @@ fn level1_bot_surfaces_do_not_leak_hidden_future_deck_cards() {
 
     assert_pairwise_no_leak(
         [state.active_seat.clone()],
-        [BotSurface::InputDebug, BotSurface::DecisionDebug, BotSurface::Rationale],
+        [
+            BotSurface::InputDebug,
+            BotSurface::DecisionDebug,
+            BotSurface::Rationale,
+        ],
         probes,
         |seat, surface| bot_surface_text(&state, seat, *surface),
         |_source, _seat, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
@@ -58,10 +60,12 @@ fn bot_surface_text(state: &FloodWatchState, seat: &SeatId, surface: BotSurface)
                 .select_decision(state, seat)
                 .expect("level1 decision")
         ),
-        BotSurface::Rationale => FloodWatchLevel1Bot::new(Seed(23))
-            .select_decision(state, seat)
-            .expect("level1 decision")
-            .rationale,
+        BotSurface::Rationale => {
+            FloodWatchLevel1Bot::new(Seed(23))
+                .select_decision(state, seat)
+                .expect("level1 decision")
+                .rationale
+        }
     }
 }
 

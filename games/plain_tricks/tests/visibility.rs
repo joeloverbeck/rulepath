@@ -1,9 +1,7 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed, Viewer,
 };
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use plain_tricks::{
     apply_action, filter_effects_for_viewer, legal_action_tree, project_view, setup_effects,
     setup_match, CardView, PlainTricksSeat, PrivateView, SetupOptions, TrickCardId,
@@ -169,24 +167,25 @@ fn pairwise_seat_private_matrix_covers_views_trees_effects_and_diagnostics() {
         &SetupOptions::default(),
     )
     .expect("setup succeeds");
-    let probes = [
-        MatrixSeat::Seat0,
-        MatrixSeat::Seat1,
-    ]
-    .into_iter()
-    .flat_map(|source_seat| {
-        own_hand(&state, source_seat.seat_id())
-            .into_iter()
-            .map(move |card| LeakProbe {
-                source_seat,
-                canary_id: card.as_str(),
-                canary: card,
-            })
-    })
-    .collect::<Vec<_>>();
+    let probes = [MatrixSeat::Seat0, MatrixSeat::Seat1]
+        .into_iter()
+        .flat_map(|source_seat| {
+            own_hand(&state, source_seat.seat_id())
+                .into_iter()
+                .map(move |card| LeakProbe {
+                    source_seat,
+                    canary_id: card.as_str(),
+                    canary: card,
+                })
+        })
+        .collect::<Vec<_>>();
 
     assert_pairwise_no_leak(
-        [MatrixViewer::Observer, MatrixViewer::Seat0, MatrixViewer::Seat1],
+        [
+            MatrixViewer::Observer,
+            MatrixViewer::Seat0,
+            MatrixViewer::Seat1,
+        ],
         [
             MatrixSurface::View,
             MatrixSurface::ActiveTree,
@@ -216,7 +215,10 @@ fn matrix_snapshot(
             format!("{:?}", legal_action_tree(state, &actor("seat_1")))
         }
         MatrixSurface::SetupEffects => {
-            format!("{:?}", filter_effects_for_viewer(&setup_effects(state), &viewer.viewer()))
+            format!(
+                "{:?}",
+                filter_effects_for_viewer(&setup_effects(state), &viewer.viewer())
+            )
         }
         MatrixSurface::WrongSeatDiagnostic => format!(
             "{:?}",

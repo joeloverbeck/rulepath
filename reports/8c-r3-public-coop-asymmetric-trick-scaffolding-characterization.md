@@ -1531,3 +1531,63 @@ Completed: 2026-06-24
   - `rg -n "R3 public cooperative/asymmetric trick receipts|Unit 8C-R3 closeout evidence|Current debt: _None_" docs/MECHANICAL-SCAFFOLDING-REGISTER.md docs/MECHANIC-ATLAS.md`
     passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-803 - R3 acceptance evidence and status closeout
+
+Completed: 2026-06-24
+
+- Selected surfaces: this characterization report plus `specs/README.md`.
+- Final-tree hygiene: `cargo fmt --all --check` initially exposed rustfmt drift
+  in R3-related Rust files, and the full workspace clippy gate exposed three
+  warning-as-error cleanups in R3 test/setup code. The closeout applied only
+  rustfmt output plus the narrow clippy fixes (`needless_borrow`,
+  `bool_assert_comparison`, and `manual_map`), with no fixture, golden-trace,
+  export, replay-byte, hash, visibility, RNG-policy, setup-policy, or
+  production behavior migration.
+- Full §7.1 command ledger:
+  - `cargo fmt --all --check` passed after final-tree rustfmt hygiene.
+  - `cargo clippy --workspace --all-targets -- -D warnings` passed after the
+    narrow R3 clippy cleanups.
+  - `cargo build --workspace` passed.
+  - `cargo test --workspace` passed.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
+    Tricks fixtures passed.
+  - `cargo run -p rule-coverage -- --game plain_tricks` passed.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces passed.
+  - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
+    fixtures passed.
+  - `cargo run -p rule-coverage -- --game flood_watch` passed.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces passed.
+  - `cargo run -p fixture-check -- --game frontier_control` passed; all
+    Frontier Control fixtures passed.
+  - `cargo run -p rule-coverage -- --game frontier_control` passed.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces passed.
+  - `cargo run -p fixture-check -- --game event_frontier` passed; all Event
+    Frontier fixtures passed.
+  - `cargo run -p rule-coverage -- --game event_frontier` passed.
+  - `bash scripts/boundary-check.sh` passed; `engine-core` boundary and
+    dev-only `game-test-support` boundary passed.
+  - `cargo tree --workspace -e normal --invert game-test-support` passed and
+    returned only the `game-test-support` crate, preserving the dev-only
+    dependency checkpoint.
+  - `node scripts/check-doc-links.mjs` passed; 31 markdown files checked.
+  - `node scripts/check-catalog-docs.mjs` passed; 17 games reflected in intro,
+    root, and smoke surfaces.
+  - `git diff --check` passed.
+- Changed-file audit:
+  - `git diff --name-only -- games/*/tests/golden_traces games/*/data/fixtures apps/web public`
+    returned no paths.
+  - No unauthorized golden trace, fixture, web export, public export, or catalog
+    byte diff exists in the final tree.
+  - The unrelated pre-existing worktree change at
+    `.claude/skills/spec-to-tickets/references/decomposition-patterns.md` was
+    not part of this closeout and remains unstaged.
+- Status reconciliation:
+  - `specs/README.md` row `8C-R3` now reads `Done` with this report as the
+    evidence pointer.
+  - `8C-R4` and Gate 18 remain `Not started`.

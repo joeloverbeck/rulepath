@@ -1,12 +1,10 @@
 use engine_core::{SeatId, Seed};
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
 use event_frontier::{setup_match, EventFrontierState};
 use event_frontier::{
     validate_bot_decision, CardId, CardPhase, EventCharterLevel1Bot, EventFreeholdersLevel1Bot,
     EventFrontierRandomBot, FactionId, SetupOptions, ACTION_EVENT, ACTION_OPERATION,
 };
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 
 fn seats() -> [SeatId; 2] {
     [SeatId("seat_0".to_owned()), SeatId("seat_1".to_owned())]
@@ -60,10 +58,12 @@ fn level1_bot_surfaces_do_not_leak_hidden_deeper_deck_cards() {
                     .select_decision(state, seat)
                     .expect("charter decision")
             ),
-            BotSurface::Rationale => EventCharterLevel1Bot::new(Seed(1))
-                .select_decision(state, seat)
-                .expect("charter decision")
-                .rationale,
+            BotSurface::Rationale => {
+                EventCharterLevel1Bot::new(Seed(1))
+                    .select_decision(state, seat)
+                    .expect("charter decision")
+                    .rationale
+            }
         },
     );
 
@@ -83,10 +83,12 @@ fn level1_bot_surfaces_do_not_leak_hidden_deeper_deck_cards() {
                     .select_decision(state, seat)
                     .expect("freeholder decision")
             ),
-            BotSurface::Rationale => EventFreeholdersLevel1Bot::new(Seed(1))
-                .select_decision(state, seat)
-                .expect("freeholder decision")
-                .rationale,
+            BotSurface::Rationale => {
+                EventFreeholdersLevel1Bot::new(Seed(1))
+                    .select_decision(state, seat)
+                    .expect("freeholder decision")
+                    .rationale
+            }
         },
     );
 }

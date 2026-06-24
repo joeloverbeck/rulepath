@@ -1,7 +1,5 @@
 use engine_core::{ActionPath, ActionTree, CommandEnvelope, RulesVersion, SeatId, Seed, Viewer};
-use game_test_support::no_leak::{
-    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
-};
+use game_test_support::no_leak::{assert_pairwise_no_leak, ExposureExpectation, LeakProbe};
 use plain_tricks::{
     action_from_decision, actor_for_seat, apply_action, legal_action_tree, project_view,
     setup_match, validate_command, BotDecision, Phase, PlainTricksAction, PlainTricksLevel2Bot,
@@ -92,7 +90,7 @@ fn assert_level2_bot_no_leak_at_decision(state: &PlainTricksState, active_seat: 
     let probes = PlainTricksSeat::ALL
         .into_iter()
         .flat_map(|source_seat| {
-            own_hand(&state, source_seat)
+            own_hand(state, source_seat)
                 .into_iter()
                 .map(move |card| LeakProbe {
                     source_seat,
@@ -110,7 +108,7 @@ fn assert_level2_bot_no_leak_at_decision(state: &PlainTricksState, active_seat: 
             BotSurface::PublicEffects,
         ],
         probes,
-        |viewer_seat, surface| bot_surface_text(&state, *viewer_seat, *surface),
+        |viewer_seat, surface| bot_surface_text(state, *viewer_seat, *surface),
         |source_seat, viewer_seat, _surface, _canary_id| {
             if source_seat == viewer_seat {
                 ExposureExpectation::NotApplicable
@@ -134,7 +132,11 @@ fn assert_level2_bot_no_leak_at_decision(state: &PlainTricksState, active_seat: 
     }
 }
 
-fn bot_surface_text(state: &PlainTricksState, seat: PlainTricksSeat, surface: BotSurface) -> String {
+fn bot_surface_text(
+    state: &PlainTricksState,
+    seat: PlainTricksSeat,
+    surface: BotSurface,
+) -> String {
     match surface {
         BotSurface::InputSummary => PlainTricksLevel2Bot::input_for(state, seat).stable_summary(),
         BotSurface::DecisionDebug => format!(
