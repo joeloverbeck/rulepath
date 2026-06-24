@@ -1,4 +1,5 @@
 use engine_core::SeatId;
+use std::sync::LazyLock;
 
 pub const GAME_ID: &str = "vow_tide";
 pub const VARIANT_ID: &str = "vow_tide_standard";
@@ -12,6 +13,18 @@ pub const STANDARD_RANK_COUNT: u8 = 13;
 pub const STANDARD_CARD_COUNT: u8 = STANDARD_SUIT_COUNT * STANDARD_RANK_COUNT;
 pub const STANDARD_MAX_HAND_SIZE: u8 = 10;
 pub const ACTION_BID: &str = "bid";
+
+static CANONICAL_VOW_SEAT_IDS: LazyLock<[SeatId; 7]> = LazyLock::new(|| {
+    [
+        SeatId::from_zero_based_index(0),
+        SeatId::from_zero_based_index(1),
+        SeatId::from_zero_based_index(2),
+        SeatId::from_zero_based_index(3),
+        SeatId::from_zero_based_index(4),
+        SeatId::from_zero_based_index(5),
+        SeatId::from_zero_based_index(6),
+    ]
+});
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum VowTideSeat {
@@ -60,16 +73,8 @@ impl VowTideSeat {
         }
     }
 
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Seat0 => "seat_0",
-            Self::Seat1 => "seat_1",
-            Self::Seat2 => "seat_2",
-            Self::Seat3 => "seat_3",
-            Self::Seat4 => "seat_4",
-            Self::Seat5 => "seat_5",
-            Self::Seat6 => "seat_6",
-        }
+    pub fn as_str(self) -> &'static str {
+        &CANONICAL_VOW_SEAT_IDS[self.index()].0
     }
 
     pub const fn fallback_label(self) -> &'static str {
@@ -106,7 +111,7 @@ pub fn supported_seat_count(seat_count: usize) -> bool {
 }
 
 pub fn seat_id_for_index(index: usize) -> SeatId {
-    SeatId(format!("seat_{index}"))
+    SeatId::from_zero_based_index(index.try_into().expect("seat index must fit u32"))
 }
 
 pub fn canonical_seat_ids(seat_count: usize) -> Vec<SeatId> {
@@ -156,6 +161,32 @@ mod tests {
             "seat_7", "seat-0", "seat-a", "seat_", "seat_01", "seat_0 ", " seat_0", "Seat_0", "",
         ] {
             assert_eq!(VowTideSeat::parse(rejected), None, "{rejected}");
+        }
+    }
+
+    #[test]
+    fn seat_formatters_emit_baseline_canonical_rosters() {
+        let expected_all = [
+            "seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5", "seat_6",
+        ];
+
+        assert_eq!(VowTideSeat::ALL.map(VowTideSeat::as_str), expected_all);
+        assert_eq!(
+            (0..expected_all.len())
+                .map(seat_id_for_index)
+                .collect::<Vec<_>>(),
+            expected_all
+                .iter()
+                .map(|seat| SeatId((*seat).to_owned()))
+                .collect::<Vec<_>>()
+        );
+
+        for seat_count in STANDARD_MIN_SEATS as usize..=STANDARD_MAX_SEATS as usize {
+            let expected = expected_all[..seat_count]
+                .iter()
+                .map(|seat| SeatId((*seat).to_owned()))
+                .collect::<Vec<_>>();
+            assert_eq!(canonical_seat_ids(seat_count), expected);
         }
     }
 }

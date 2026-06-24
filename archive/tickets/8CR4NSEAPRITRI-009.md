@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-009: Vow Tide C-02 canonical formatter/roster adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/vow_tide` (`src/ids.rs`); emitted seat strings and 3–7 roster order unchanged
@@ -70,3 +70,20 @@ In `as_str`, `seat_id_for_index`, and `canonical_seat_ids`, construct canonical 
 1. `cargo test -p vow_tide`
 2. `cargo run -p replay-check -- --game vow_tide --all`
 3. The per-game replay-check is the correct boundary: canonical seat output is exercised by the game's traces.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Added a Vow canonical-seat roster built with `SeatId::from_zero_based_index`, and routed `VowTideSeat::as_str` and `seat_id_for_index` through canonical helper-backed output.
+- Added a focused formatter/roster test asserting baseline `seat_0` through `seat_6` strings and the declared 3-through-7 roster order.
+
+Deviations:
+- None. Parser work was already completed in `8CR4NSEAPRITRI-008`; WASM import aliases remain owned by `8CR4NSEAPRITRI-010`.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p vow_tide`
+- `cargo run -p replay-check -- --game vow_tide --all`
+- `bash scripts/boundary-check.sh`
