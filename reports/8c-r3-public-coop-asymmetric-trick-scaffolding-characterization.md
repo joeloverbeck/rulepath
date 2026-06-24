@@ -570,3 +570,26 @@ Completed: 2026-06-24
   - `bash scripts/boundary-check.sh` passed; `engine-core` stayed noun-free and
     `game-test-support` stayed dev-only.
   - No golden trace, fixture, export, or variant policy file changed.
+
+### 8CR3PUBCOOASY-306 - Frontier Control variant seat-count predicate
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/src/setup.rs::validate_variant`
+  `variant.seat_count` predicate.
+- Change: replaced the bare variant seat-count comparison with
+  `SeatCount::new(variant.seat_count as usize).map(SeatCount::get)` compared
+  against the game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; variant acceptance/diagnostic, faction
+  identity/order, graph setup, replay hashes, fixtures, and exports were not
+  intentionally migrated.
+- Compatibility / rollback: restore only the bare `variant.seat_count`
+  comparison. Roster validation, faction identity/order, graph setup, and
+  scoring stay game-owned.
+- Verification:
+  - `cargo test -p frontier_control` passed, including exact diagnostic checks
+    for variant seat counts 0, 1, and 3.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces were accepted.
+  - `cargo run -p fixture-check -- --game frontier_control` passed.
+  - No golden trace, fixture, export, or variant policy file changed.

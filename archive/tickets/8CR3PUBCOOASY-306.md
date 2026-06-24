@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-306: C-03 Frontier Control variant seat-count predicate
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/frontier_control/src/setup.rs`
@@ -86,3 +86,22 @@ faction/graph setup.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. A per-game test + replay-check is the correct boundary: only the variant
    count predicate changes.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/frontier_control/src/setup.rs::validate_variant` to wrap
+`variant.seat_count` with `SeatCount::new(variant.seat_count as usize).map(SeatCount::get)`
+before comparing to the game-owned `STANDARD_SEAT_COUNT`. The change is
+predicate-only; roster validation, faction identity/order, graph setup,
+diagnostics, replay/export bytes, and fixtures were otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p frontier_control` passed.
+- `cargo run -p replay-check -- --game frontier_control --all` passed.
+- `cargo run -p fixture-check -- --game frontier_control` passed.
+- No golden trace, fixture, export, or variant policy file changed.
