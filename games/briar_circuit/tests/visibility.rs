@@ -234,6 +234,15 @@ fn private_effects_are_filtered_independently_from_views() {
     .into_iter()
     .flat_map(effect_envelopes)
     .collect();
+    let source_seat_id = SeatId(source.as_str().to_owned());
+    let private_scopes = envelopes
+        .iter()
+        .filter_map(|effect| match &effect.visibility {
+            VisibilityScope::PrivateToSeat(seat_id) => Some(seat_id),
+            VisibilityScope::Public => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(private_scopes, vec![&source_seat_id, &source_seat_id]);
     let selected_canary = format!("{selected:?}");
     let received_canary = format!("{received:?}");
 

@@ -1,6 +1,6 @@
 # 8CR4NSEAPRITRI-003: Briar Circuit C-01 owner-private-envelope constructor adoption
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `games/briar_circuit` (`src/visibility.rs`); owner-private bytes, scope, and reveal timing byte-identical
@@ -70,3 +70,25 @@ In `private_effect`, replace the hand-built `PrivateToSeat` envelope literal wit
 1. `cargo test -p briar_circuit`
 2. `cargo run -p replay-check -- --game briar_circuit --all`
 3. The per-game replay-check is the correct boundary: this surface is game-local effect serialization and visibility scoping.
+
+## Outcome
+
+Completed: 2026-06-24
+
+What changed:
+- Replaced the Briar Circuit owner-private envelope literal in
+  `games/briar_circuit/src/visibility.rs::private_effect` with
+  `EffectEnvelope::private_to(SeatId(seat.as_str().to_owned()), payload)`.
+- Strengthened the existing private-effect visibility test to assert both
+  private envelopes are scoped to the source seat before checking owner-only
+  filtering and observer/non-owner absence.
+
+Deviations:
+- None. Pass-target selection, atomic exchange, reveal timing, and public
+  effect construction were not changed.
+
+Verification:
+- `cargo fmt --all --check`
+- `cargo test -p briar_circuit`
+- `cargo run -p replay-check -- --game briar_circuit --all`
+- `bash scripts/boundary-check.sh`

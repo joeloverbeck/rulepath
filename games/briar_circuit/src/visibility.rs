@@ -209,8 +209,8 @@ fn private_effect(
     seat: BriarCircuitSeat,
     payload: BriarCircuitEffect,
 ) -> Vec<EffectEnvelope<BriarCircuitEffect>> {
-    vec![EffectEnvelope {
-        visibility: VisibilityScope::PrivateToSeat(SeatId(seat.as_str().to_owned())),
+    vec![EffectEnvelope::private_to(
+        SeatId(seat.as_str().to_owned()),
         payload,
-    }]
+    )]
 }
