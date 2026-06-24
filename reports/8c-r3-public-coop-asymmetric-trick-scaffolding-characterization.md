@@ -639,3 +639,34 @@ Completed: 2026-06-24
     Event Frontier traces were accepted.
   - `cargo run -p fixture-check -- --game event_frontier` passed.
   - No golden trace, fixture, export, or variant policy file changed.
+
+### 8CR3PUBCOOASY-401 - Plain Tricks action-tree v1 parallel surface
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/plain_tricks/src/replay_support.rs` and
+  `games/plain_tricks/tests/replay.rs`.
+- Change: added parallel `action_tree_v1_bytes` and `action_tree_v1_hash`
+  helpers using `ActionTreeEncodingVersion::V1`, while retaining the existing
+  local `action_tree_hash` unchanged. Added representative v1 vectors for
+  opening trick, forced follow-suit, void/free discard, final play, and terminal
+  empty tree.
+- ADR-0009 classification: `unchanged` for existing surfaces; the v1
+  action-tree bytes/hash are additive. Local action-tree hash, state/effect/view
+  hashes, traces, fixtures, exports, legal choices, metadata, labels, and
+  branch order were not intentionally migrated.
+- Compatibility / rollback: remove only the v1 helper functions and replay
+  vector test. Existing local hash and all replay/export consumers remain
+  unchanged.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including the new v1 vectors:
+    opening `(bytes=3209, hash=10760653848758353227, local=9608973152758876482)`,
+    forced-follow `(bytes=1850, hash=10249125325511701213, local=11988930228804901292)`,
+    void/free `(bytes=1874, hash=13864411618449214495, local=2830033628787621803)`,
+    final-play `(bytes=932, hash=10622526245863211658, local=12733681326737878192)`,
+    terminal-empty `(bytes=64, hash=17407510006563527667, local=117586594652395198)`.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed with existing expected hashes.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed.
+  - No golden trace, fixture, export, state/effect/view hash, or local
+    action-tree hash surface changed.

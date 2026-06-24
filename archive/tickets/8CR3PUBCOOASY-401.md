@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-401: C-04/C-05 Plain Tricks action-tree v1 parallel surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence) — `games/plain_tricks/src/replay_support.rs`
@@ -104,3 +104,27 @@ for the five named trees.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: the v1 surface is
    game-local and additive; adjacency is asserted unchanged.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Added parallel `ActionTreeEncodingVersion::V1` helpers in
+`games/plain_tricks/src/replay_support.rs` and representative v1 vectors in
+`games/plain_tricks/tests/replay.rs` for opening trick, forced follow-suit,
+void/free discard, final play, and terminal empty tree. The existing local
+`action_tree_hash` is retained and asserted unchanged. The change is additive;
+legal choices, labels, metadata, branch order, state/effect/view hashes,
+replay/export bytes, fixtures, and golden traces were otherwise untouched.
+
+Deviations: the test pins v1 byte length plus v1 hash derived from the actual
+bytes rather than embedding the full byte hex for each vector; this keeps the
+large opening vector maintainable while still detecting byte-surface drift.
+
+Verification:
+
+- `cargo test -p plain_tricks` passed.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- `cargo run -p fixture-check -- --game plain_tricks` passed.
+- No golden trace, fixture, export, state/effect/view hash, or local
+  action-tree hash surface changed.

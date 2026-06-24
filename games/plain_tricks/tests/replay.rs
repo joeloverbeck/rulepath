@@ -5,7 +5,8 @@ use engine_core::{
 use plain_tricks::{
     apply_action, legal_action_tree,
     replay_support::{
-        action_tree_hash, effect_hash, export_public_replay, import_public_export, state_hash,
+        action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, effect_hash,
+        export_public_replay, import_public_export, state_hash,
         trace_from_seeded_first_legal_playout, view_hash, PlainTricksInternalTrace, ReplayCommand,
     },
     setup_effects, setup_match, validate_command, Phase, PlainTricksSeat, PlainTricksState,
@@ -135,6 +136,36 @@ fn terminal_public_export_cannot_reconstruct_tail_or_seed() {
     assert!(!json.contains("tail_ids"));
 }
 
+#[test]
+fn action_tree_v1_parallel_vectors_cover_representative_trees() {
+    let vectors = action_tree_v1_vectors();
+    for vector in vectors {
+        assert_eq!(vector.hash, vector.expected_hash, "{} hash", vector.name);
+        assert_eq!(
+            vector.bytes.len(),
+            vector.expected_bytes_len,
+            "{} bytes length",
+            vector.name
+        );
+        assert_eq!(
+            HashValue::from_stable_bytes(&vector.bytes),
+            vector.hash,
+            "{} hash derives from bytes",
+            vector.name
+        );
+        assert_eq!(
+            vector.local_hash, vector.expected_local_hash,
+            "{} local hash",
+            vector.name
+        );
+        assert_eq!(
+            vector.paths, vector.expected_paths,
+            "{} legal paths",
+            vector.name
+        );
+    }
+}
+
 fn assert_trace_fixture(fixture: &TraceFixture) {
     let first = replay_fixture(fixture);
     let second = replay_fixture(fixture);
@@ -258,6 +289,238 @@ fn assert_trace_fixture(fixture: &TraceFixture) {
         let imported = import_public_export(&export);
         assert_eq!(imported.viewer, "observer");
         assert_eq!(imported.steps, export.steps);
+    }
+}
+
+struct ActionTreeV1Vector {
+    name: &'static str,
+    bytes: Vec<u8>,
+    hash: HashValue,
+    local_hash: HashValue,
+    paths: Vec<Vec<String>>,
+    expected_bytes_len: usize,
+    expected_hash: HashValue,
+    expected_local_hash: HashValue,
+    expected_paths: Vec<Vec<String>>,
+}
+
+fn action_tree_v1_vectors() -> Vec<ActionTreeV1Vector> {
+    let opening = setup_state(0);
+
+    let forced_follow = state_after_commands(0, &[(PlainTricksSeat::Seat0, TrickCardId::Gale1)]);
+
+    let void_free_discard = state_after_commands(
+        0,
+        &[
+            (PlainTricksSeat::Seat0, TrickCardId::Gale1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale2),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember3),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember6),
+            (PlainTricksSeat::Seat0, TrickCardId::River3),
+            (PlainTricksSeat::Seat1, TrickCardId::River6),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale3),
+        ],
+    );
+
+    let final_play = state_after_commands(
+        0,
+        &[
+            (PlainTricksSeat::Seat0, TrickCardId::Gale1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale2),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember3),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember6),
+            (PlainTricksSeat::Seat0, TrickCardId::River3),
+            (PlainTricksSeat::Seat1, TrickCardId::River6),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale3),
+            (PlainTricksSeat::Seat0, TrickCardId::River5),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember2),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember5),
+            (PlainTricksSeat::Seat0, TrickCardId::River1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale6),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember4),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember2),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale1),
+            (PlainTricksSeat::Seat0, TrickCardId::River5),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale6),
+            (PlainTricksSeat::Seat0, TrickCardId::River2),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember6),
+            (PlainTricksSeat::Seat0, TrickCardId::River3),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale3),
+            (PlainTricksSeat::Seat0, TrickCardId::River1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale5),
+        ],
+    );
+
+    let terminal = state_after_commands(
+        0,
+        &[
+            (PlainTricksSeat::Seat0, TrickCardId::Gale1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale2),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember3),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember6),
+            (PlainTricksSeat::Seat0, TrickCardId::River3),
+            (PlainTricksSeat::Seat1, TrickCardId::River6),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale3),
+            (PlainTricksSeat::Seat0, TrickCardId::River5),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember2),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember5),
+            (PlainTricksSeat::Seat0, TrickCardId::River1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale6),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember4),
+            (PlainTricksSeat::Seat0, TrickCardId::Ember2),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale1),
+            (PlainTricksSeat::Seat0, TrickCardId::River5),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale6),
+            (PlainTricksSeat::Seat0, TrickCardId::River2),
+            (PlainTricksSeat::Seat1, TrickCardId::Ember6),
+            (PlainTricksSeat::Seat0, TrickCardId::River3),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale3),
+            (PlainTricksSeat::Seat0, TrickCardId::River1),
+            (PlainTricksSeat::Seat1, TrickCardId::Gale5),
+            (PlainTricksSeat::Seat0, TrickCardId::River6),
+        ],
+    );
+
+    vec![
+        vector(
+            "opening_trick",
+            &opening,
+            PlainTricksSeat::Seat0,
+            3209,
+            HashValue(10760653848758353227),
+            HashValue(9608973152758876482),
+            vec![
+                vec!["play".to_owned(), "gale_1".to_owned()],
+                vec!["play".to_owned(), "river_3".to_owned()],
+                vec!["play".to_owned(), "river_5".to_owned()],
+                vec!["play".to_owned(), "river_1".to_owned()],
+                vec!["play".to_owned(), "ember_6".to_owned()],
+                vec!["play".to_owned(), "ember_5".to_owned()],
+            ],
+        ),
+        vector(
+            "forced_follow_suit",
+            &forced_follow,
+            PlainTricksSeat::Seat1,
+            1850,
+            HashValue(10249125325511701213),
+            HashValue(11988930228804901292),
+            vec![
+                vec!["play".to_owned(), "gale_2".to_owned()],
+                vec!["play".to_owned(), "gale_3".to_owned()],
+                vec!["play".to_owned(), "gale_6".to_owned()],
+            ],
+        ),
+        vector(
+            "void_free_discard",
+            &void_free_discard,
+            PlainTricksSeat::Seat0,
+            1874,
+            HashValue(13864411618449214495),
+            HashValue(2830033628787621803),
+            vec![
+                vec!["play".to_owned(), "river_5".to_owned()],
+                vec!["play".to_owned(), "river_1".to_owned()],
+                vec!["play".to_owned(), "ember_5".to_owned()],
+            ],
+        ),
+        vector(
+            "final_play",
+            &final_play,
+            PlainTricksSeat::Seat0,
+            932,
+            HashValue(10622526245863211658),
+            HashValue(12733681326737878192),
+            vec![vec!["play".to_owned(), "river_6".to_owned()]],
+        ),
+        vector(
+            "terminal_empty_tree",
+            &terminal,
+            PlainTricksSeat::Seat0,
+            64,
+            HashValue(17407510006563527667),
+            HashValue(117586594652395198),
+            Vec::new(),
+        ),
+    ]
+}
+
+fn vector(
+    name: &'static str,
+    state: &PlainTricksState,
+    seat: PlainTricksSeat,
+    expected_bytes_len: usize,
+    expected_hash: HashValue,
+    expected_local_hash: HashValue,
+    expected_paths: Vec<Vec<String>>,
+) -> ActionTreeV1Vector {
+    let actor = Actor {
+        seat_id: state.seats[seat.index()].clone(),
+    };
+    let tree = legal_action_tree(state, &actor);
+    let bytes = action_tree_v1_bytes(&tree);
+    ActionTreeV1Vector {
+        name,
+        hash: action_tree_v1_hash(&tree),
+        local_hash: action_tree_hash(&tree),
+        paths: action_paths(&tree.root.choices),
+        bytes,
+        expected_bytes_len,
+        expected_hash,
+        expected_local_hash,
+        expected_paths,
+    }
+}
+
+fn state_after_commands(
+    seed: u64,
+    commands: &[(PlainTricksSeat, TrickCardId)],
+) -> PlainTricksState {
+    let mut state = setup_state(seed);
+    for (seat, card) in commands {
+        let command = command_for_state_for_test(&state, *seat, *card);
+        let action = validate_command(&state, &command).expect("test command validates");
+        apply_action(&mut state, action).expect("test command applies");
+    }
+    state
+}
+
+fn command_for_state_for_test(
+    state: &PlainTricksState,
+    actor: PlainTricksSeat,
+    card: TrickCardId,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor: Actor {
+            seat_id: state.seats[actor.index()].clone(),
+        },
+        action_path: ActionPath {
+            segments: vec!["play".to_owned(), card.as_str().to_owned()],
+        },
+        freshness_token: state.freshness_token,
+        rules_version: RulesVersion(1),
+    }
+}
+
+fn action_paths(choices: &[engine_core::ActionChoice]) -> Vec<Vec<String>> {
+    let mut paths = Vec::new();
+    collect_action_paths(choices, &mut Vec::new(), &mut paths);
+    paths
+}
+
+fn collect_action_paths(
+    choices: &[engine_core::ActionChoice],
+    prefix: &mut Vec<String>,
+    paths: &mut Vec<Vec<String>>,
+) {
+    for choice in choices {
+        prefix.push(choice.segment.clone());
+        if let Some(next) = &choice.next {
+            collect_action_paths(&next.choices, prefix, paths);
+        } else {
+            paths.push(prefix.clone());
+        }
+        prefix.pop();
     }
 }
 
