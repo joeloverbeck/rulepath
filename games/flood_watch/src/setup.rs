@@ -75,8 +75,9 @@ pub fn build_event_deck(variant: &ScenarioVariant) -> Vec<EventCard> {
 
 pub fn shuffle_event_deck<R: DeterministicRng>(cards: &mut [EventCard], rng: &mut R) {
     for index in (1..cards.len()).rev() {
-        let swap_index =
-            next_bounded_index_unbiased(rng, index + 1).expect("shuffle upper bound is nonzero");
+        let swap_index = rng
+            .next_index_unbiased_v1(index + 1)
+            .expect("shuffle upper bound is nonzero");
         cards.swap(index, swap_index);
     }
 }
@@ -114,26 +115,6 @@ fn validate_variant(variant: &ScenarioVariant) -> Result<(), Diagnostic> {
         });
     }
     Ok(())
-}
-
-fn next_bounded_index_unbiased<R: DeterministicRng>(
-    rng: &mut R,
-    upper_bound: usize,
-) -> Option<usize> {
-    if upper_bound == 0 {
-        return None;
-    }
-
-    let upper = upper_bound as u128;
-    let range = u128::from(u64::MAX) + 1;
-    let accepted_zone = range - (range % upper);
-
-    loop {
-        let value = u128::from(rng.next_u64());
-        if value < accepted_zone {
-            return Some((value % upper) as usize);
-        }
-    }
 }
 
 #[cfg(test)]
@@ -199,7 +180,10 @@ mod tests {
             let mut options = SetupOptions::default();
             options.variant.seat_count = seat_count;
 
-            assert_eq!(setup_match(Seed(0), &seats(), &options), Err(expected.clone()));
+            assert_eq!(
+                setup_match(Seed(0), &seats(), &options),
+                Err(expected.clone())
+            );
         }
     }
 
@@ -281,6 +265,6 @@ mod tests {
         let rejected = accepted_zone_for_three as u64;
         let mut rng = FixedRng::new(vec![rejected, 4]);
 
-        assert_eq!(next_bounded_index_unbiased(&mut rng, 3), Some(1));
+        assert_eq!(rng.next_index_unbiased_v1(3), Some(1));
     }
 }

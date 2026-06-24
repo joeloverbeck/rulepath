@@ -1459,3 +1459,28 @@ Completed: 2026-06-24
   - `cargo run -p fixture-check -- --game plain_tricks` passed; all Plain
     Tricks fixtures passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-702 - Flood Watch unbiased-index migration
+
+Completed: 2026-06-24
+
+- Selected surface: `games/flood_watch/src/setup.rs`.
+- Change: replaced the local `next_bounded_index_unbiased` call inside
+  `shuffle_event_deck` with `DeterministicRng::next_index_unbiased_v1` and
+  removed the now-unused local helper.
+- Determinism evidence: the existing setup rejection-vector test now exercises
+  the shared RNG method directly, while the Flood crate tests, replay-check
+  golden traces, and fixture-check preserved event-deck order, forecast,
+  replay, export, and fixture surfaces.
+- ADR-0009 classification: `unchanged`; behavior-neutral adoption of the
+  shipped engine RNG helper. No event-deck policy, seed handling, game rule,
+  fixture bytes, replay hash, or export behavior changed.
+- Compatibility / rollback: restore the local helper and its single
+  `shuffle_event_deck` call if any downstream identity gate fails.
+- Verification:
+  - `cargo test -p flood_watch` passed.
+  - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
+    Watch traces passed.
+  - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
+    fixtures passed.
+  - `git diff --check` passed.
