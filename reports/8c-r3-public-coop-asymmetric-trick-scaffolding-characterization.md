@@ -1105,3 +1105,32 @@ Completed: 2026-06-24
     profile driver wrapper.
   - `cargo run -p fixture-check -- --game flood_watch` passed; all Flood Watch
     fixtures passed.
+
+### 8CR3PUBCOOASY-613 - Frontier Control setup-evidence profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/tests/replay.rs`.
+- Change: added a dev-only `SetupEvidenceV1Driver` wrapper test for the
+  existing standard and highlands Frontier Control setup fixtures. The test
+  validates `setup-evidence-v1` / `v1` / `public` metadata with owner
+  `fixture-check`, canonical byte authority `none`, and fields
+  `seat_grammar_version`, `setup_options`, and `expected_setup`, then delegates
+  to a game-owned setup fixture validator.
+- Delegated evidence: both fixtures remain read-only and are checked against
+  Rust setup output for game id, variant, rules version, action phase, active
+  seat/faction, action budget, round count, unit cap, graph edges, fort sites,
+  base camp, stake values, starting units, terminal outcome policy, seats,
+  faction order, and adjacency size.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, setup behavior, graph/unit semantics, movement/scoring policy, or
+  production code changed.
+- Compatibility / rollback: remove the setup profile-wrapper test/helper only;
+  the existing fixtures, serialization tests, and `fixture-check` path remain.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the new
+    setup-evidence-v1 profile driver wrapper.
+  - `cargo run -p fixture-check -- --game frontier_control` passed; all
+    Frontier Control fixtures passed.

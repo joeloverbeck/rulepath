@@ -3,12 +3,14 @@ use engine_core::{
 };
 use game_test_support::profiles::{
     ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    PROFILE_VERSION_V1, REPLAY_COMMAND_V1,
+    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 use frontier_control::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
-    export_public_replay, import_public_export, legal_action_tree, public_replay_step, setup_match,
-    FactionId, FrontierControlState, Phase, SetupOptions, SiteId, ACTION_END_TURN, ACTION_MARCH,
+    export_public_replay, import_public_export, legal_action_tree, load_highlands_fixture,
+    load_standard_fixture, public_replay_step, setup_match, FactionId, FrontierControlState, Phase,
+    SetupOptions, SiteId, VariantMap, ACTION_END_TURN, ACTION_MARCH, GAME_ID,
+    RULES_VERSION_LABEL,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -146,6 +148,89 @@ fn replay_command_v1_profile_driver_wraps_public_native_replay_evidence() {
             Some("public"),
             "frontier_control",
             &["commands", "export_steps"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
+fn setup_evidence_v1_profile_driver_wraps_standard_and_highlands_fixtures() {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    let artifact = setup_evidence_profile_artifact(
+        SETUP_EVIDENCE_V1,
+        PROFILE_VERSION_V1,
+        Some("public"),
+        "fixture-check",
+        &[
+            "seat_grammar_version",
+            "setup_options",
+            "expected_setup",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("setup metadata validates");
+    assert_eq!(report.profile_id, SETUP_EVIDENCE_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "fixture-check");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_setup_fixtures())
+        .expect("profile delegates to setup fixture validator");
+    assert_eq!(summary.fixture_count, 2);
+    assert_eq!(summary.site_count, SiteId::ALL.len());
+
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            "v2",
+            Some("public"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("private-source"),
+            "fixture-check",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "frontier_control",
+            &["expected_setup"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_setup_profile_rejects(
+        setup_evidence_profile_artifact(
+            SETUP_EVIDENCE_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "fixture-check",
+            &["expected_setup", "domain_input"],
         ),
         ProfileValidationErrorKind::UnknownField,
     );
@@ -444,6 +529,101 @@ fn native_replay_profile_hashes() -> Vec<HashValue> {
         action_tree_hash(&tree),
         export.stable_hash(),
     ]
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SetupEvidenceSummary {
+    fixture_count: usize,
+    site_count: usize,
+}
+
+fn setup_evidence_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_setup_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = SetupEvidenceV1Driver::new("fixture-check");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid setup-evidence-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_setup_fixtures() -> SetupEvidenceSummary {
+    let fixtures = [
+        load_standard_fixture().expect("standard fixture parses"),
+        load_highlands_fixture().expect("highlands fixture parses"),
+    ];
+
+    for fixture in fixtures {
+        let variant = VariantMap::resolve(&fixture.variant).expect("fixture variant resolves");
+        let state = setup_match(
+            &seats(),
+            &SetupOptions {
+                variant: variant.clone(),
+            },
+        )
+        .expect("fixture setup succeeds");
+
+        assert_eq!(fixture.game_id, GAME_ID);
+        assert_eq!(fixture.rules_version, RULES_VERSION_LABEL);
+        assert_eq!(fixture.phase, "action");
+        assert_eq!(fixture.active_seat, "seat_1");
+        assert_eq!(fixture.action_budget, variant.action_budget);
+        assert_eq!(fixture.round_count, variant.round_count);
+        assert_eq!(fixture.unit_cap_per_site, variant.unit_cap_per_site);
+        assert_eq!(fixture.edges, variant.edges);
+        assert_eq!(fixture.fort_sites, variant.fort_sites);
+        assert_eq!(fixture.base_camp, variant.base_camp);
+        assert_eq!(fixture.stake_values, variant.stake_values);
+        assert_eq!(fixture.start_units, variant.start_units);
+        assert_eq!(fixture.terminal_outcome, variant.terminal_outcomes);
+        assert_eq!(state.variant.id, fixture.variant);
+        assert_eq!(state.seats, seats());
+        assert_eq!(state.factions, variant.faction_order);
+        assert_eq!(state.active_faction, FactionId::Prospectors);
+        assert_eq!(
+            state.phase,
+            Phase::Action {
+                budget_remaining: variant.action_budget,
+            }
+        );
+        assert_eq!(state.adjacency.len(), SiteId::ALL.len());
+        for (site, guards) in &fixture.start_units.guards {
+            assert_eq!(state.site(*site).expect("guard site exists").guards, *guards);
+        }
+        for (site, crews) in &fixture.start_units.crews {
+            assert_eq!(state.site(*site).expect("crew site exists").crews, *crews);
+        }
+    }
+
+    SetupEvidenceSummary {
+        fixture_count: 2,
+        site_count: SiteId::ALL.len(),
+    }
 }
 
 fn action_paths(choices: &[engine_core::ActionChoice]) -> Vec<Vec<String>> {
