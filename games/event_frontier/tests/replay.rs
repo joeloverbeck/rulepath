@@ -2,6 +2,9 @@ use engine_core::{
     ActionChoice, ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, Seed,
     StableSerialize, Viewer,
 };
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use event_frontier::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, generate_internal_full_trace, import_public_export,
@@ -23,6 +26,12 @@ fn actor(seat: &str) -> Actor {
 
 fn observer() -> Viewer {
     Viewer { seat_id: None }
+}
+
+fn seat_viewer(seat: &str) -> Viewer {
+    Viewer {
+        seat_id: Some(SeatId(seat.to_owned())),
+    }
 }
 
 fn pass_command(seat: &str, state: &event_frontier::EventFrontierState) -> CommandEnvelope {
@@ -148,6 +157,60 @@ fn public_replay_export_import_reproduces_public_hashes_without_hidden_order() {
     assert!(!export.stable_summary().contains(&hidden));
     assert!(!export.to_json().contains(&hidden));
     assert!(!imported_from_json.stable_summary().contains(&hidden));
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ExportViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl ExportViewer {
+    fn viewer(self) -> Viewer {
+        match self {
+            Self::Observer => observer(),
+            Self::Seat0 => seat_viewer("seat_0"),
+            Self::Seat1 => seat_viewer("seat_1"),
+        }
+    }
+}
+
+#[test]
+fn public_replay_exports_do_not_leak_hidden_deeper_deck_cards() {
+    let seats = seats();
+    let mut state = setup_match(Seed(1), &seats, &SetupOptions::default()).expect("setup");
+    let command = pass_command("seat_1", &state);
+    let applied = apply_command(&mut state, &command).expect("pass command applies");
+    let probes = state
+        .deck
+        .undrawn
+        .iter()
+        .filter(|card| Some(**card) != state.deck.current)
+        .filter(|card| Some(**card) != state.deck.next_public)
+        .enumerate()
+        .map(|(index, card)| LeakProbe {
+            source_seat: index,
+            canary_id: card.as_str(),
+            canary: *card,
+        })
+        .collect::<Vec<_>>();
+    let canary = ["R3", "EVENT", "NOLEAK", "CANARY"].join("_");
+
+    assert_pairwise_no_leak(
+        [ExportViewer::Observer, ExportViewer::Seat0, ExportViewer::Seat1],
+        ["public_export_json"],
+        probes,
+        |viewer_case, _surface| {
+            let viewer = viewer_case.viewer();
+            let step = public_replay_step(0, &state, &command, &applied.effects, &viewer);
+            let export = export_public_replay(state.variant.id.clone(), &viewer, vec![step]);
+            format!("{}{}", export.to_json(), canary)
+        },
+        |_source, _viewer, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
+        |text, card| text.contains(card.as_str()),
+    )
+    .expect("Event Frontier public export no-leak matrix has no failures");
 }
 
 #[test]

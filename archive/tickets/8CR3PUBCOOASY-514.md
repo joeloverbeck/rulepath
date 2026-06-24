@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-514: C-07 Event Frontier hidden-deeper-deck no-leak matrix
 
-**Status**: PENDING
+**Status**: ✅ COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (no-leak test geometry) — `games/event_frontier/tests/{visibility,bots,replay}.rs`
@@ -102,3 +102,24 @@ deck-position source tokens × observer/seat0/seat1 × the surface set from spec
 2. `cargo run -p replay-check -- --game event_frontier --all`
 3. A per-game test + replay-check is the correct boundary: the matrix is
    game-owned and test-side.
+
+## Outcome
+
+Completed: 2026-06-24
+
+- Added Event Frontier hidden-tail pairwise no-leak coverage in
+  `games/event_frontier/tests/visibility.rs`,
+  `games/event_frontier/tests/bots.rs`, and
+  `games/event_frontier/tests/replay.rs`.
+- The matrix covers observer, seat0, and seat1 across public views, action
+  trees, diagnostics, effects, Level1 bot input/decision/rationale, and
+  viewer-scoped public replay exports. Current/next public cards are excluded
+  from the hidden-tail probes so the assertions target only still-hidden deeper
+  deck cards.
+- No production code changed; `engine-core` remains untouched and
+  `game-test-support` supplies enumeration only.
+- Verification:
+  - `cargo test -p event_frontier`
+  - `cargo run -p replay-check -- --game event_frontier --all`
+  - `rg -n "R3_EVENT_NOLEAK_CANARY" games/event_frontier/tests/golden_traces`
+    returned no matches.

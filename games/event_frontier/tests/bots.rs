@@ -1,4 +1,7 @@
 use engine_core::{SeatId, Seed};
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use event_frontier::{setup_match, EventFrontierState};
 use event_frontier::{
     validate_bot_decision, CardId, CardPhase, EventCharterLevel1Bot, EventFreeholdersLevel1Bot,
@@ -30,6 +33,96 @@ fn make_charter_first(state: &mut EventFrontierState) {
     state.card_phase = CardPhase::AwaitingFirstChoice {
         faction: FactionId::Charter,
     };
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BotSurface {
+    InputDebug,
+    DecisionDebug,
+    Rationale,
+}
+
+#[test]
+fn level1_bot_surfaces_do_not_leak_hidden_deeper_deck_cards() {
+    let mut charter_state = setup(1);
+    charter_state.deck.current = Some(CardId::LastLight);
+    make_charter_first(&mut charter_state);
+    assert_bot_no_leak(
+        &charter_state,
+        FactionId::Charter,
+        |state, seat, surface| match surface {
+            BotSurface::InputDebug => {
+                format!("{:?}", EventCharterLevel1Bot::input_for(state, seat))
+            }
+            BotSurface::DecisionDebug => format!(
+                "{:?}",
+                EventCharterLevel1Bot::new(Seed(1))
+                    .select_decision(state, seat)
+                    .expect("charter decision")
+            ),
+            BotSurface::Rationale => EventCharterLevel1Bot::new(Seed(1))
+                .select_decision(state, seat)
+                .expect("charter decision")
+                .rationale,
+        },
+    );
+
+    let mut freeholder_state = setup(1);
+    freeholder_state.deck.current = Some(CardId::LastLight);
+    make_freeholders_first(&mut freeholder_state);
+    assert_bot_no_leak(
+        &freeholder_state,
+        FactionId::Freeholders,
+        |state, seat, surface| match surface {
+            BotSurface::InputDebug => {
+                format!("{:?}", EventFreeholdersLevel1Bot::input_for(state, seat))
+            }
+            BotSurface::DecisionDebug => format!(
+                "{:?}",
+                EventFreeholdersLevel1Bot::new(Seed(1))
+                    .select_decision(state, seat)
+                    .expect("freeholder decision")
+            ),
+            BotSurface::Rationale => EventFreeholdersLevel1Bot::new(Seed(1))
+                .select_decision(state, seat)
+                .expect("freeholder decision")
+                .rationale,
+        },
+    );
+}
+
+fn assert_bot_no_leak<F>(state: &EventFrontierState, faction: FactionId, snapshot: F)
+where
+    F: Fn(&EventFrontierState, &SeatId, BotSurface) -> String,
+{
+    let seat = seat_for(faction);
+    let probes = state
+        .deck
+        .undrawn
+        .iter()
+        .filter(|card| Some(**card) != state.deck.current)
+        .filter(|card| Some(**card) != state.deck.next_public)
+        .enumerate()
+        .map(|(index, card)| LeakProbe {
+            source_seat: index,
+            canary_id: card.as_str(),
+            canary: *card,
+        })
+        .collect::<Vec<_>>();
+
+    assert_pairwise_no_leak(
+        [seat],
+        [
+            BotSurface::InputDebug,
+            BotSurface::DecisionDebug,
+            BotSurface::Rationale,
+        ],
+        probes,
+        |seat, surface| snapshot(state, seat, *surface),
+        |_source, _seat, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
+        |text, card| text.contains(card.as_str()),
+    )
+    .expect("Event Frontier bot no-leak matrix has no failures");
 }
 
 #[test]

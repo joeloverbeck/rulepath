@@ -924,3 +924,29 @@ Completed: 2026-06-24
     Frontier Control traces were accepted.
   - `rg -n "CANARY|NOLEAK_CANARY|ARTIFICIAL_SECRET" games/frontier_control/tests games/frontier_control/src`
     returned no matches.
+
+### 8CR3PUBCOOASY-514 - Event Frontier hidden-tail no-leak matrix
+
+Completed: 2026-06-24
+
+- Selected surfaces: `games/event_frontier/tests/visibility.rs`,
+  `games/event_frontier/tests/bots.rs`, and
+  `games/event_frontier/tests/replay.rs`.
+- Change: added game-owned pairwise no-leak probes via
+  `game_test_support::no_leak::assert_pairwise_no_leak` for Event Frontier's
+  still-hidden deeper deck tail across observer, seat0, and seat1 views,
+  action trees, diagnostics, effects, Level1 bot input/decision/rationale, and
+  viewer-scoped public replay exports. Current/next public cards are excluded
+  from the hidden probe set.
+- ADR-0009 classification: `unchanged`; tests only. No production behavior,
+  replay bytes, fixtures, exports, legal choices, bot policy, or visibility
+  rules were migrated.
+- Compatibility / rollback: remove the added matrix tests only; existing
+  event/edict/export, bot, replay, and visibility tests remain.
+- Verification:
+  - `cargo test -p event_frontier` passed, including the new hidden-tail
+    visibility, bot, and replay no-leak matrices.
+  - `cargo run -p replay-check -- --game event_frontier --all` passed; all
+    Event Frontier traces were accepted.
+  - `rg -n "R3_EVENT_NOLEAK_CANARY" games/event_frontier/tests/golden_traces`
+    returned no matches.

@@ -2,6 +2,9 @@ use engine_core::{
     ActionChoice, ActionNode, ActionPath, Actor, CommandEnvelope, RulesVersion, SeatId, Seed,
     Viewer,
 };
+use game_test_support::no_leak::{
+    assert_pairwise_no_leak, ExposureExpectation, LeakProbe,
+};
 use event_frontier::{
     apply_command, export_public_replay, legal_action_tree, project_view, public_replay_step,
     setup_match, validate_command, EventFrontierEffect, SetupOptions, ACTION_OPERATION,
@@ -32,6 +35,105 @@ fn pass_command(seat: &str, state: &event_frontier::EventFrontierState) -> Comma
         },
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixViewer {
+    Observer,
+    Seat0,
+    Seat1,
+}
+
+impl MatrixViewer {
+    fn viewer(self) -> Viewer {
+        match self {
+            Self::Observer => viewer(None),
+            Self::Seat0 => viewer(Some("seat_0")),
+            Self::Seat1 => viewer(Some("seat_1")),
+        }
+    }
+
+    fn actor(self) -> Actor {
+        match self {
+            Self::Observer | Self::Seat0 => actor("seat_0"),
+            Self::Seat1 => actor("seat_1"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MatrixSurface {
+    View,
+    ActionTree,
+    Diagnostic,
+    Effects,
+}
+
+#[test]
+fn pairwise_hidden_deeper_deck_matrix_covers_public_surfaces() {
+    let state = setup_match(Seed(1), &seats(), &SetupOptions::default()).expect("setup");
+    let probes = hidden_deck_probes(&state);
+
+    assert_pairwise_no_leak(
+        [MatrixViewer::Observer, MatrixViewer::Seat0, MatrixViewer::Seat1],
+        [
+            MatrixSurface::View,
+            MatrixSurface::ActionTree,
+            MatrixSurface::Diagnostic,
+            MatrixSurface::Effects,
+        ],
+        probes,
+        |viewer_case, surface| matrix_snapshot(&state, *viewer_case, *surface),
+        |_source, _viewer, _surface, _canary_id| ExposureExpectation::MustBeAbsent,
+        |snapshot, card| snapshot.contains(card.as_str()),
+    )
+    .expect("Event Frontier hidden-deck matrix has no failures");
+}
+
+fn hidden_deck_probes(
+    state: &event_frontier::EventFrontierState,
+) -> Vec<LeakProbe<usize, &'static str, event_frontier::CardId>> {
+    state
+        .deck
+        .undrawn
+        .iter()
+        .filter(|card| Some(**card) != state.deck.current)
+        .filter(|card| Some(**card) != state.deck.next_public)
+        .enumerate()
+        .map(|(index, card)| LeakProbe {
+            source_seat: index,
+            canary_id: card.as_str(),
+            canary: *card,
+        })
+        .collect()
+}
+
+fn matrix_snapshot(
+    state: &event_frontier::EventFrontierState,
+    viewer_case: MatrixViewer,
+    surface: MatrixSurface,
+) -> String {
+    match surface {
+        MatrixSurface::View => format!("{:?}", project_view(state, &viewer_case.viewer())),
+        MatrixSurface::ActionTree => {
+            format!("{:?}", legal_action_tree(state, &viewer_case.actor()))
+        }
+        MatrixSurface::Diagnostic => {
+            let malformed = CommandEnvelope {
+                actor: actor("seat_1"),
+                action_path: ActionPath {
+                    segments: vec!["operation/cache/site_charterhouse".to_owned()],
+                },
+                freshness_token: state.freshness_token,
+                rules_version: RulesVersion(1),
+            };
+            format!(
+                "{:?}",
+                validate_command(state, &malformed).expect_err("diagnostic")
+            )
+        }
+        MatrixSurface::Effects => "no_effects_before_command".to_owned(),
     }
 }
 
