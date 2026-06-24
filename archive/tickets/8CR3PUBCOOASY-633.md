@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-633: C-08 Frontier Control public-export profile driver
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (dev-only profile adapter) — `games/frontier_control/tests/replay.rs`
@@ -90,3 +90,21 @@ timeline and import round-trip. Add wrong-metadata rejection cases.
 2. `cargo run -p replay-check -- --game frontier_control --all`
 3. A per-game test + replay-check is the correct boundary: the driver is
    test-side over the existing exporter.
+
+## Outcome
+
+- Added a dev-only `PublicExportV1Driver` wrapper in
+  `games/frontier_control/tests/replay.rs` for `public-export-v1` / `v1` with
+  `public` visibility, owner `frontier_control`, canonical byte authority
+  `none`, and fields `export_steps`, `import_round_trip`,
+  `hidden_absence_tokens`, and `not_applicable`.
+- The wrapper delegates to Frontier Control's existing fully-public exporter,
+  asserting export/import round-trip, stable public export hash generation, and
+  the existing not-applicable hidden-information note. No exporter, fixture
+  bytes, production code, replay behavior, or redaction behavior changed.
+- Added fail-closed rejection cases for wrong profile, wrong version, invalid
+  visibility, wrong owner, and unknown field.
+- Verification passed:
+  - `cargo test -p frontier_control`
+  - `cargo run -p replay-check -- --game frontier_control --all`
+  - `git diff --check`

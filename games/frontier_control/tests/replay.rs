@@ -1,16 +1,16 @@
 use engine_core::{
     ActionPath, Actor, CommandEnvelope, HashValue, RulesVersion, SeatId, StableSerialize, Viewer,
 };
-use game_test_support::profiles::{
-    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, ReplayCommandV1Driver,
-    SetupEvidenceV1Driver, PROFILE_VERSION_V1, REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
-};
 use frontier_control::{
     action_tree_hash, action_tree_v1_bytes, action_tree_v1_hash, apply_command,
     export_public_replay, import_public_export, legal_action_tree, load_highlands_fixture,
     load_standard_fixture, public_replay_step, setup_match, FactionId, FrontierControlState, Phase,
-    SetupOptions, SiteId, VariantMap, ACTION_END_TURN, ACTION_MARCH, GAME_ID,
-    RULES_VERSION_LABEL,
+    SetupOptions, SiteId, VariantMap, ACTION_END_TURN, ACTION_MARCH, GAME_ID, RULES_VERSION_LABEL,
+};
+use game_test_support::profiles::{
+    ProfileArtifact, ProfileMetadata, ProfileValidationErrorKind, PublicExportV1Driver,
+    ReplayCommandV1Driver, SetupEvidenceV1Driver, PROFILE_VERSION_V1, PUBLIC_EXPORT_V1,
+    REPLAY_COMMAND_V1, SETUP_EVIDENCE_V1,
 };
 
 fn seats() -> [SeatId; 2] {
@@ -43,6 +43,13 @@ fn command(
         freshness_token: state.freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct PublicExportProfileSummary {
+    step_count: usize,
+    public_export_hash: HashValue,
+    hidden_redaction_note: String,
 }
 
 #[test]
@@ -154,6 +161,93 @@ fn replay_command_v1_profile_driver_wraps_public_native_replay_evidence() {
 }
 
 #[test]
+fn public_export_v1_profile_driver_wraps_frontier_control_public_exporter() {
+    let driver = PublicExportV1Driver::new("frontier_control");
+    let artifact = public_export_profile_artifact(
+        PUBLIC_EXPORT_V1,
+        PROFILE_VERSION_V1,
+        Some("public"),
+        "frontier_control",
+        &[
+            "export_steps",
+            "import_round_trip",
+            "hidden_absence_tokens",
+            "not_applicable",
+        ],
+    );
+
+    let report = driver
+        .validate(&artifact)
+        .expect("public export metadata validates");
+    assert_eq!(report.profile_id, PUBLIC_EXPORT_V1);
+    assert_eq!(report.profile_version, PROFILE_VERSION_V1);
+    assert_eq!(report.visibility_class, "public");
+    assert_eq!(report.validator_owner, "frontier_control");
+    assert_eq!(artifact.metadata.canonical_byte_authority, "none");
+    assert!(!artifact.canonical_byte_claim);
+
+    let summary = driver
+        .validate_with(&artifact, |_| validate_public_export_profile())
+        .expect("profile delegates to Frontier Control public exporter");
+    assert_eq!(summary.step_count, 1);
+    assert_ne!(summary.public_export_hash.0, 0);
+    assert!(summary
+        .hidden_redaction_note
+        .contains("perfect information"));
+
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            REPLAY_COMMAND_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "frontier_control",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileId,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            "v2",
+            Some("public"),
+            "frontier_control",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongProfileVersion,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("internal-dev"),
+            "frontier_control",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::InvalidVisibility,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "replay-check",
+            &["export_steps"],
+        ),
+        ProfileValidationErrorKind::WrongValidatorOwner,
+    );
+    assert_public_export_profile_rejects(
+        public_export_profile_artifact(
+            PUBLIC_EXPORT_V1,
+            PROFILE_VERSION_V1,
+            Some("public"),
+            "frontier_control",
+            &["export_steps", "commands"],
+        ),
+        ProfileValidationErrorKind::UnknownField,
+    );
+}
+
+#[test]
 fn setup_evidence_v1_profile_driver_wraps_standard_and_highlands_fixtures() {
     let driver = SetupEvidenceV1Driver::new("fixture-check");
     let artifact = setup_evidence_profile_artifact(
@@ -161,11 +255,7 @@ fn setup_evidence_v1_profile_driver_wraps_standard_and_highlands_fixtures() {
         PROFILE_VERSION_V1,
         Some("public"),
         "fixture-check",
-        &[
-            "seat_grammar_version",
-            "setup_options",
-            "expected_setup",
-        ],
+        &["seat_grammar_version", "setup_options", "expected_setup"],
     );
 
     let report = driver
@@ -509,6 +599,73 @@ fn assert_replay_profile_rejects(
     );
 }
 
+fn public_export_profile_artifact<'a>(
+    profile_id: &'a str,
+    profile_version: &'a str,
+    visibility_class: Option<&'a str>,
+    validator_owner: &'a str,
+    fields: &'a [&'a str],
+) -> ProfileArtifact<'a> {
+    ProfileArtifact {
+        metadata: ProfileMetadata {
+            profile_id,
+            profile_version,
+            visibility_class,
+            validator_owner,
+            canonical_byte_authority: "none",
+            migration_update_note: Some("profile migration reviewed"),
+        },
+        fields,
+        canonical_byte_claim: false,
+    }
+}
+
+fn assert_public_export_profile_rejects(
+    artifact: ProfileArtifact<'_>,
+    expected: ProfileValidationErrorKind,
+) {
+    let driver = PublicExportV1Driver::new("frontier_control");
+    assert_eq!(
+        driver
+            .validate(&artifact)
+            .expect_err("invalid public-export-v1 metadata rejects")
+            .kind,
+        expected
+    );
+}
+
+fn validate_public_export_profile() -> PublicExportProfileSummary {
+    let mut state = setup_match(&seats(), &SetupOptions::default()).unwrap();
+    let command = end_turn_command(&state, "seat_1");
+    let applied = apply_command(&mut state, &command).expect("profile command applies");
+    let step = public_replay_step(
+        0,
+        &state,
+        &command,
+        &applied.effects,
+        &Viewer { seat_id: None },
+    );
+    let export = export_public_replay(state.variant.id.clone(), vec![step]);
+    let imported = import_public_export(&export);
+    let json = export.to_json();
+
+    assert_eq!(imported.raw_json, json);
+    assert_eq!(export.game_id, GAME_ID);
+    assert_eq!(export.rules_version_label, RULES_VERSION_LABEL);
+    assert_eq!(
+        export.not_applicable.hidden_information_redaction,
+        "not applicable: Frontier Control is perfect information and all game state is public"
+    );
+    assert!(json.contains("public_view_summary"));
+    assert!(json.contains("not_applicable"));
+
+    PublicExportProfileSummary {
+        step_count: export.steps.len(),
+        public_export_hash: export.stable_hash(),
+        hidden_redaction_note: export.not_applicable.hidden_information_redaction,
+    }
+}
+
 fn native_replay_profile_hashes() -> Vec<HashValue> {
     let mut state = setup_match(&seats(), &SetupOptions::default()).unwrap();
     let command = end_turn_command(&state, "seat_1");
@@ -613,7 +770,10 @@ fn validate_setup_fixtures() -> SetupEvidenceSummary {
         );
         assert_eq!(state.adjacency.len(), SiteId::ALL.len());
         for (site, guards) in &fixture.start_units.guards {
-            assert_eq!(state.site(*site).expect("guard site exists").guards, *guards);
+            assert_eq!(
+                state.site(*site).expect("guard site exists").guards,
+                *guards
+            );
         }
         for (site, crews) in &fixture.start_units.crews {
             assert_eq!(state.site(*site).expect("crew site exists").crews, *crews);

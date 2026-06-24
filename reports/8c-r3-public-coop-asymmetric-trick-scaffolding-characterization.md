@@ -1346,3 +1346,32 @@ Completed: 2026-06-24
   - `cargo run -p replay-check -- --game flood_watch --all` passed; all Flood
     Watch traces passed.
   - `git diff --check` passed.
+
+### 8CR3PUBCOOASY-633 - Frontier Control public-export profile driver
+
+Completed: 2026-06-24
+
+- Selected surface: `games/frontier_control/tests/replay.rs`.
+- Change: added a dev-only `PublicExportV1Driver` wrapper test for Frontier
+  Control public export evidence. The test validates `public-export-v1` / `v1`
+  / `public` metadata with owner `frontier_control`, canonical byte authority
+  `none`, and fields `export_steps`, `import_round_trip`,
+  `hidden_absence_tokens`, and `not_applicable`, then delegates to the existing
+  game-owned public exporter.
+- Delegated evidence: the wrapper drives the existing fully-public replay step
+  and exporter, asserting export/import round-trip, stable public export hash
+  generation, and the existing not-applicable hidden-information note for a
+  perfect-information game.
+- Fail-closed cases: wrong profile, wrong version, wrong visibility, wrong
+  owner, and unknown field all reject through `game-test-support::profiles`.
+- ADR-0009 classification: `unchanged`; test-only metadata wrapper. No fixture
+  bytes, exporter code, replay behavior, or redaction behavior changed.
+- Compatibility / rollback: remove the public export profile-wrapper
+  test/helper only; the existing replay, export/import, and replay-check paths
+  remain.
+- Verification:
+  - `cargo test -p frontier_control` passed, including the new
+    public-export-v1 profile driver wrapper.
+  - `cargo run -p replay-check -- --game frontier_control --all` passed; all
+    Frontier Control traces passed.
+  - `git diff --check` passed.
