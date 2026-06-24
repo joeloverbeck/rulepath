@@ -450,3 +450,26 @@ Completed: 2026-06-24
     `rg -n "normalizeSeat|parseSeat|parse_seat|repairSeat|canonicalSeat|seatId.*replace|replace\\([^)]*seat-" apps/web --glob '*.{ts,tsx,js,jsx}'`
     returned no matches; no TypeScript seat normalization/repair path was
     found.
+
+### 8CR3PUBCOOASY-301 - Plain Tricks roster count
+
+Completed: 2026-06-24
+
+- Selected surface: `games/plain_tricks/src/setup.rs::setup_match` roster
+  predicate.
+- Change: replaced the bare `seats.len()` comparison with
+  `SeatCount::new(seats.len()).map(SeatCount::get)` compared against the
+  game-owned `STANDARD_SEAT_COUNT`.
+- ADR-0009 classification: `unchanged`; accepted/rejected counts, diagnostics,
+  setup state, replay hashes, fixtures, and exports were not intentionally
+  migrated.
+- Compatibility / rollback: restore only the bare roster-length predicate.
+  Variant policy, deal/leader rotation, RNG sampling, exact two-seat policy,
+  and diagnostics stay game-owned.
+- Verification:
+  - `cargo test -p plain_tricks` passed, including exact diagnostic checks for
+    0, 1, and 3 seats.
+  - `cargo run -p replay-check -- --game plain_tricks --all` passed; all Plain
+    Tricks traces passed with existing expected hashes.
+  - `cargo run -p fixture-check -- --game plain_tricks` passed.
+  - No golden trace, fixture, export, or setup policy file changed.

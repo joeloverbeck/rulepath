@@ -1,6 +1,6 @@
 # 8CR3PUBCOOASY-301: C-03 Plain Tricks roster count
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (deterministic evidence) — `games/plain_tricks/src/setup.rs`
@@ -99,3 +99,22 @@ policy, deal/leader rotation, and setup state.
 2. `cargo run -p replay-check -- --game plain_tricks --all`
 3. A per-game test + replay-check is the correct boundary: only the Plain roster
    predicate changes; the diagnostic and hashes are asserted unchanged.
+
+## Outcome
+
+Completed: 2026-06-24
+
+Changed `games/plain_tricks/src/setup.rs::setup_match` to wrap the roster
+length with `SeatCount::new(seats.len()).map(SeatCount::get)` before comparing
+to the game-owned `STANDARD_SEAT_COUNT`. The change is predicate-only; exact
+two-seat policy, diagnostics, variant policy, deal/leader rotation, RNG
+sampling, replay/export bytes, and fixtures were otherwise untouched.
+
+Deviations: none.
+
+Verification:
+
+- `cargo test -p plain_tricks` passed.
+- `cargo run -p replay-check -- --game plain_tricks --all` passed.
+- `cargo run -p fixture-check -- --game plain_tricks` passed.
+- No golden trace, fixture, export, or setup policy file changed.
