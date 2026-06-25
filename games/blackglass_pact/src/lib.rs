@@ -21,6 +21,10 @@ pub use bidding::{
     parse_blind_nil_action_path, BidAction, BlindNilAction, ACTION_BID, ACTION_BID_NIL,
     ACTION_BLIND_DECLARE, ACTION_BLIND_DECLINE, ACTION_BLIND_NIL, MAX_NUMERIC_BID, MIN_NUMERIC_BID,
 };
+pub use bots::{
+    bot_input_for, legal_action_paths, BlackglassBotInput, BlackglassL0Bot, BlackglassL1Bot,
+    BotDecision, L0_POLICY_ID, L1_POLICY_ID,
+};
 pub use cards::{canonical_deck, Card, CardId, Deck, Rank, Suit};
 pub use effects::BlackglassPactEffect;
 pub use ids::{

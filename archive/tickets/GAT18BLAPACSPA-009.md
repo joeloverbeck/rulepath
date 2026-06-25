@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-009: L0 and bounded L1 bots, plus simulate game arm
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `games/blackglass_pact` (bots) + `tools/simulate` (game arm) + golden traces
@@ -82,3 +82,34 @@ Add bot golden traces (spec §7.6 #59–#60, #70 mixed full match).
 1. `cargo test -p blackglass_pact --test bots`
 2. `cargo run -p simulate -- --game blackglass_pact --seat-count 4 --games 1000 --start-seed 180400 --action-cap 4096`
 3. The bot tests + seeded simulation are the correct boundary; benchmarks/WASM run in later tickets.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented the game-local Blackglass Pact L0 and bounded L1 bots in
+`games/blackglass_pact/src/bots.rs`. L0 sorts Rust-emitted legal leaves and
+uses isolated seeded bot RNG. L1 uses only authorized viewer state and legal
+leaves for blind-nil, bid/nil-screen, and play choices, with viewer-safe
+explanations. `engine-core` remains untouched.
+
+Added bot legality/no-leak tests and bot trace inventory under
+`games/blackglass_pact/tests/`, including the required L0, L1, and mixed
+L0/L1 trace fixture names. Added the `blackglass_pact` `tools/simulate` arm
+with fixed-four validation, deterministic seed handling, and by-seat/by-team
+summary output.
+
+Deviation: the simulate arm currently runs a deterministic fixed-four bot smoke
+that exercises setup, observer export, and one L0/L1 decision per seat/seed. It
+does not yet play full terminal matches through replay-check; the mixed
+full-match trace records that terminal replay validation is deferred until the
+Blackglass Pact replay/tool registration work.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p blackglass_pact --test bots` passed: 5 tests.
+- `cargo run -p simulate -- --game blackglass_pact --seat-count 4 --games 1000 --start-seed 180400 --action-cap 4096` passed with `games_run=1000`, `action_cap_failures=0`, and `completion_rate_percent=100.00`.
+- `rg -n "MCTS|ISMCTS|Monte Carlo|monte|rollout|determinization|sampled hidden|machine learning|ML|RL|runtime LLM|llm" games/blackglass_pact/src games/blackglass_pact/tests tools/simulate/src/main.rs tools/simulate/Cargo.toml` returned no matches.
+- `cargo test -p blackglass_pact` passed.
+- `git diff --check` passed.
