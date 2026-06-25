@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-015: Bot-strategy, competent-player, and AI documentation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — game-local docs (`AI.md`, `COMPETENT-PLAYER.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`)
@@ -78,3 +78,24 @@ Evidence-pack scaffold required before L2 admission; mark L2 `not admitted` for 
 1. `node scripts/check-doc-links.mjs`
 2. `grep -niE "mcts|ismcts|monte carlo|machine learning|reinforcement" games/meldfall_ledger/docs/AI.md` (confirm the exclusion is stated)
 3. A narrower doc-link + grep check is the correct boundary; no code changes here.
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+1. Added `games/meldfall_ledger/docs/AI.md` as the game bot registry. It records the shipped Level 0 policy `meldfall-ledger-l0-random-legal-v1`, marks Level 1 as `not_admitted_pending_strategy_evidence`, marks Level 2 as not admitted/deferred, and records the hidden-information and forbidden-method boundaries.
+2. Added `games/meldfall_ledger/docs/COMPETENT-PLAYER.md` with rummy competence notes for hand-shaping, meld timing, discard risk, discard-pile pickup risk/reward, high-card penalty management, and public-only opponent proximity inference.
+3. Added `games/meldfall_ledger/docs/BOT-STRATEGY-EVIDENCE-PACK.md` as the future Level 2 admission scaffold. It keeps Level 1 and Level 2 not admitted until a later accepted strategy/evidence task completes the required corpus, no-leak proof, replay/hash proof, benchmarks, and code/dependency review.
+
+Deviations:
+
+1. The ticket originally allowed `L1 if implemented`; GAT19MELLEDFIV-014 landed with `L1_POLICY_STATUS = not_admitted_pending_strategy_evidence`, so these docs intentionally record no admitted Level 1 policy.
+2. No Rust, engine, simulator, or test code changed in this ticket.
+
+Verification:
+
+1. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+2. `grep -niE "mcts|ismcts|monte carlo|machine learning|reinforcement" games/meldfall_ledger/docs/AI.md` confirmed the exclusion statement in `AI.md`.
+3. `rg -n "not admitted|not_admitted_pending_strategy_evidence|opponent hands|stock order|Level 2|L2|MCTS|ISMCTS|Monte Carlo|machine learning|reinforcement" games/meldfall_ledger/docs/*.md` confirmed the admission status, hidden-info boundary, and forbidden-method references across the Meldfall docs.
