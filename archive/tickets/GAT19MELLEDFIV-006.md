@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-006: Meld validation — sets and runs (first-use primitive)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{rules,cards}.rs`; meld golden traces; first-use ledger entry ML-PP-001
@@ -84,3 +84,20 @@ Rank-ordering helpers supporting ace-low and ace-high runs without around-the-co
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. `grep -rn "meld" crates/game-stdlib/src` must return no meld helper (first-use-stays-local proof).
+
+## Outcome
+
+Completed: 2026-06-26
+
+- Added local Rust meld validation in `games/meldfall_ledger/src/rules.rs` for 3-4 card same-rank sets with distinct suits and 3+ card same-suit runs.
+- Reused the existing game-local ace ordering helpers so `A-2-3` and `Q-K-A` validate while `K-A-2` and `Q-K-A-2` reject.
+- Added ownership validation plus an atomic `take_new_meld_from_hand` helper that validates selected cards, leaves the hand unchanged on rejection, removes accepted cards, and builds the ticket-005 `MeldGroup`/`TableCard` shape with per-card score-credit owner data.
+- Added rule tests, finite property-style tests, and meld golden traces for valid/invalid sets plus ace-low/high/no-wrap runs.
+- Recorded `ML-PP-001` in the meld golden traces as first official use, `local-only`; no `game-stdlib` helper was introduced.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p meldfall_ledger`
+- `cargo test --workspace`
+- `grep -rn "meld" crates/game-stdlib/src` returned no matches, proving no stdlib meld helper exists.

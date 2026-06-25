@@ -1,0 +1,36 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "meld-set-valid-and-invalid",
+  "rules": ["ML-MELD-001", "ML-MELD-004", "ML-MELD-005"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-001",
+    "shape": "meld validation: sets + runs, ace low/high/no-wrap",
+    "status": "first official use, local-only"
+  },
+  "cases": [
+    {
+      "name": "three-card set accepted",
+      "cards": ["seven_clubs", "seven_diamonds", "seven_hearts"],
+      "result": "accepted",
+      "kind": "set:seven"
+    },
+    {
+      "name": "four-card set accepted",
+      "cards": ["queen_clubs", "queen_diamonds", "queen_hearts", "queen_spades"],
+      "result": "accepted",
+      "kind": "set:queen"
+    },
+    {
+      "name": "too-small set rejected",
+      "cards": ["seven_clubs", "seven_diamonds"],
+      "result": "rejected",
+      "diagnostic": "ML_MELD_TOO_SMALL"
+    },
+    {
+      "name": "mixed-rank set rejected",
+      "cards": ["seven_clubs", "eight_diamonds", "seven_hearts"],
+      "result": "rejected",
+      "diagnostic": "ML_INVALID_MELD_SHAPE"
+    }
+  ]
+}
