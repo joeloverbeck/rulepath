@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-003: crate skeleton, fixed-four setup, seats/teams, card and state model
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — new crate `games/blackglass_pact` (lib, ids, cards, state, setup, partnerships), workspace `Cargo.toml`, `games/blackglass_pact/data/{manifest,variants}.toml`
@@ -83,3 +83,22 @@ Establish the `games/blackglass_pact` crate and its deterministic foundation: fi
 1. `cargo test -p blackglass_pact`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. Crate-scoped tests + boundary check are the correct boundary; full-pipeline tools run after behavior lands.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented the Blackglass Pact crate foundation:
+
+- Added `games/blackglass_pact` as a workspace crate with `engine-core` and `game-stdlib` dependencies.
+- Added game-local IDs, fixed team mapping, canonical 52-card deck/card IDs, setup validation, state/phase scaffolding, strict static-data parsing, non-behavioral `manifest.toml` and `variants.toml`, and stub modules for later behavior tickets.
+- Added seed tests for fixed-four setup rejection/acceptance, stable team mapping, stable card/seat/team order, static-data behavior-key rejection, card conservation, card ID round-trips, and the pre-deal no-private-hand setup state.
+
+Deviations from plan: the skeleton intentionally does not deal private hands at setup; it starts in `BlindNilCommitment` with no hands populated, matching the Gate 18 pre-deal blind-nil invariant. The deterministic full deal lands in GAT18BLAPACSPA-004.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p blackglass_pact` passed (1 lib test, 3 property tests, 3 rules tests, 2 serialization tests).
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`; `game-test-support dev-only boundary check passed`).
