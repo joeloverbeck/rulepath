@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-002: forward-v1 pre-code reuse-first audit and implementation admission
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance/admission docs (`games/blackglass_pact/docs/{MECHANICS,GAME-EVIDENCE,GAME-IMPLEMENTATION-ADMISSION,PRIMITIVE-PRESSURE-LEDGER}.md`)
@@ -81,3 +81,23 @@ Signed admission receipt (no active stop condition; required evidence profiles n
 1. `grep -oE "MSC-8C-0(0[1-9]|10)" games/blackglass_pact/docs/MECHANICS.md | sort -u`
 2. `node scripts/check-doc-links.mjs`
 3. Doc-side admission ticket — the CI receipt and `check-scaffolding-governance.mjs` are exercised at the closeout ticket, the correct boundary for the machine-validated artifact.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented the doc-side Gate 18 forward-v1 admission package:
+
+- Added `games/blackglass_pact/docs/MECHANICS.md` with the mechanic inventory, repeated-shape comparison, C-01 through C-10 mechanical-scaffolding reuse-first audit, and explicit no-unit/post-build closeout expectations.
+- Added `games/blackglass_pact/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the three required decisions: promoted trick helper reuse unchanged, numeric trick-contract second-use keep-local, and partnership/team first-use local-only.
+- Added `games/blackglass_pact/docs/GAME-IMPLEMENTATION-ADMISSION.md` admitting implementation under explicit constraints and recording the pending closeout-only machine receipt.
+- Added `games/blackglass_pact/docs/GAME-EVIDENCE.md` with the initialized `n-seat-hidden-information-release-candidate` receipt and planned proof surfaces.
+
+Deviations from plan: none. The machine `ci/scaffolding-audits.json` receipt and repo-level atlas/register updates remain intentionally deferred to GAT18BLAPACSPA-018, as planned.
+
+Verification:
+
+- `grep -oE "MSC-8C-0(0[1-9]|10)" games/blackglass_pact/docs/MECHANICS.md | sort -u` returned `MSC-8C-001` through `MSC-8C-010`.
+- `rg -n "trick helper|numeric.*keep local|partnership.*local-only|local-only.*partnership|Numeric.*local-only|Partnership.*local-only" games/blackglass_pact/docs/PRIMITIVE-PRESSURE-LEDGER.md` confirmed all three required decisions.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
