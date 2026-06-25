@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-018: scripts/check-scaffolding-governance.mjs validator
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (tooling/audit) — `scripts/check-scaffolding-governance.mjs` (new)
@@ -79,3 +79,23 @@ Add high-confidence promoted-shape fingerprints (excluding Non-Promotion List be
 1. `node scripts/check-scaffolding-governance.mjs` (green against the real repo)
 2. `node scripts/check-ci-games.mjs` (confirms the 17-game set the checker validates against)
 3. `grep -nE "process.env|branch|label|comment" scripts/check-scaffolding-governance.mjs` (no-bypass audit)
+
+## Outcome
+
+Completed. Added `scripts/check-scaffolding-governance.mjs`, a deterministic
+repository-wide checker for `ci/scaffolding-audits.json`. The checker rejects
+unknown fields, verifies schema version 1, freezes `legacy_8c_games` to the
+Unit 8C historical set, enforces set equality with `ci/games.json` and real
+`games/` directories, resolves evidence paths and MSC IDs, validates
+disposition/register requirements, prior-game scheduling, migration authority,
+behavior-looking receipt terms, and a narrow known-signal source scan for normal
+`game-test-support` dependency edges. It prints a compact success summary and
+has no environment, branch, label, comment, force, allowlist, or skip override.
+
+Verification:
+
+- `node scripts/check-scaffolding-governance.mjs`
+- `node scripts/check-ci-games.mjs`
+- `grep -nE "process.env|--force|allowlist|skip" scripts/check-scaffolding-governance.mjs` returned no matches.
+- `grep -nE "process.env|branch|label|comment" scripts/check-scaffolding-governance.mjs` returned no matches.
+- `git diff --check`
