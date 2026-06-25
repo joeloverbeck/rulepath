@@ -12,6 +12,11 @@ Last updated: 2026-06-25
 
 Evidence receipt: [GAME-EVIDENCE.md](GAME-EVIDENCE.md)
 
+Post-build status: behavior, WASM, web renderer, e2e catalog wiring, and
+trailing UI/release docs exist as of 2026-06-25. Repo-level atlas/register and
+machine `forward-v1` receipt finalization remain assigned to
+GAT18BLAPACSPA-018.
+
 ## Purpose
 
 This inventory records Blackglass Pact's game-local mechanic shapes, promoted
@@ -127,6 +132,22 @@ GAT18BLAPACSPA-018; this section is the doc-side admission predicate.
 | `specs/README.md` follow-on unit | not expected pre-code | No prior-game scaffolding refactor is identified pre-code; ticket 018 must queue or dispose any actual prior match. | GAT18BLAPACSPA-018 |
 | ADR | no | No kernel, DSL, YAML, trace/hash, visibility, or architecture exception is admitted. | not applicable |
 
+## Post-Build Mechanic Closeout
+
+| Surface | Final disposition | Evidence | Notes |
+|---|---|---|---|
+| follow-suit legality | reused promoted helper unchanged | `games/blackglass_pact/tests/rules.rs`, `rule-coverage`, [RULE-COVERAGE.md](RULE-COVERAGE.md) | Game-local phase, ownership, broken-spades, team, scoring, and visibility policy wrap the helper. |
+| trick comparator | reused promoted helper unchanged | comparator conformance tests, [GAME-EVIDENCE.md](GAME-EVIDENCE.md) | Caller supplies permanent spades trump; winner-to-seat/team mapping is local. |
+| numeric trick contracts | keep local after second-use review | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md) | Vow Tide and Blackglass differ materially; next trigger is a third close numeric trick-contract game. |
+| fixed partnerships/team scoring | first-use local-only | [RULES.md](RULES.md), [UI.md](UI.md) | No generic team helper or kernel noun growth. |
+| hidden-hand visibility | game-local policy with reused no-leak proof geometry | visibility tests, WASM tests, `blackglass-pact.smoke.mjs` | Partner relationship grants no private-hand visibility. |
+| outcome explanation surface | game-local Rust outcome projected to shared web panel | [UI.md](UI.md), `outcomeExplanationTemplates.ts`, `client.ts` | TypeScript formats Rust-projected winner, score, bag, and rationale fields only. |
+
+No post-build inspection found a need to widen `engine-core`, add static-data
+behavior, add YAML/DSL, or promote partnership, nil, bag, contract, or scoring
+logic. The central atlas/register receipt is still required in
+GAT18BLAPACSPA-018 before Gate 18 closeout.
+
 ## Review Checklist
 
 - `engine-core` remains noun-free.
@@ -135,4 +156,5 @@ GAT18BLAPACSPA-018; this section is the doc-side admission predicate.
 - Reused trick helpers stay behavior-free and unchanged.
 - Teams, bidding, scoring, visibility, bots, and UI policy stay game-local.
 - The forward-v1 C-01 through C-10 reuse-first audit is complete pre-code.
+- Post-build local mechanic closeout is complete for game-local docs.
 - Machine `ci/scaffolding-audits.json` receipt is intentionally deferred to closeout ticket GAT18BLAPACSPA-018.

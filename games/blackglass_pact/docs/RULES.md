@@ -143,7 +143,7 @@ cannot lead a spade. A legal off-suit spade or only-spades lead breaks spades.
 | `BP-PLAY-011` | `game-stdlib::trick_taking::follow_suit_indices` is reused unchanged after game-local phase, actor, ownership, and lead checks. | helper conformance | No partnership or scoring behavior is added to the helper. |
 | `BP-PLAY-012` | `game-stdlib::trick_taking::winning_play_index` is reused unchanged with `Some(Spades)` after four game-local plays exist. | helper conformance | Broken-spades, bidding, scoring, and visibility stay game-local. |
 
-## Scoring And Bags
+## Scoring and accounting
 
 For each team in a completed hand:
 
@@ -181,7 +181,7 @@ next_score = prior_score + hand_delta
 | `BP-SCORE-015` | Every completed hand exposes Rust-authored per-seat and per-team score components. | TypeScript renders supplied facts only. |
 | `BP-SCORE-016` | Integer arithmetic must remain within supported evidence budgets. | Boundary tests protect supported simulations and fixtures. |
 
-## Hand Transition And Terminal Outcome
+## Terminal conditions
 
 | Rule ID | Rule | Notes |
 |---|---|---|

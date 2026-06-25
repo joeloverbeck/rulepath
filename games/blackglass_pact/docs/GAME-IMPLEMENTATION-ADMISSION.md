@@ -26,6 +26,12 @@ Admission does not waive later rule coverage, tests, traces, benchmarks, UI
 polish, bot evidence, no-leak proof, forward-v1 machine receipt, release
 checklist, or capstone gates.
 
+Post-build note: implementation is now complete through the game, WASM, web,
+e2e catalog, and trailing game-local documentation layers. This document is
+extended here with final admission status; the central atlas/register machine
+receipt remains assigned to GAT18BLAPACSPA-018 and final gate closeout remains
+assigned to GAT18BLAPACSPA-019.
+
 ## Source, Scope, And Rule Readiness
 
 | Admission surface | Status | Evidence link | Notes/blockers |
@@ -73,9 +79,21 @@ checklist, or capstone gates.
 | post-implementation register freshness and prior-game refactor receipt | no | yes | GAT18BLAPACSPA-018 |
 | CI scaffolding-audit record | no | yes | `ci/scaffolding-audits.json` in GAT18BLAPACSPA-018 |
 
+## Post-Build Admission Status
+
+| Evidence area | Status | Evidence/notes |
+|---|---|---|
+| Rust rules and game crate | complete | `cargo test -p blackglass_pact`, fixture/replay/rule coverage evidence recorded in [GAME-EVIDENCE.md](GAME-EVIDENCE.md). |
+| visibility/no-leak | complete | Rust pairwise tests, WASM no-leak harness, and `blackglass-pact.smoke.mjs`. |
+| WASM/browser boundary | complete | `wasm-api` bridge, catalog, replay import/export, and public rules surfaces landed. |
+| grouped renderer | complete | `BlackglassPactBoard.tsx`, [UI.md](UI.md), `smoke:ui`, `smoke:effects`, and `smoke:e2e`. |
+| outcome explanation | complete | [UI.md](UI.md), [RULES.md](RULES.md), `client.ts`, `outcomeExplanationTemplates.ts`, and `check-outcome-explanations`. |
+| release checklist | prepared, human review pending | [PUBLIC-RELEASE-CHECKLIST.md](PUBLIC-RELEASE-CHECKLIST.md). |
+| repo-level forward-v1 receipt | pending ticket 018 | Not a blocker for game-local doc completion; required before Gate 18 closeout. |
+
 ## Admission Decision
 
-Decision: admitted with explicit constraints
+Decision: admitted and post-build complete with explicit constraints
 
 Decision rationale:
 
@@ -99,6 +117,14 @@ Explicit constraints:
 - Do not introduce trace/hash/fixture/export/RNG migration without explicit
   authority and evidence.
 - Human IP/public-release review remains pending before public release.
+
+Post-build constraints:
+
+- Do not reinterpret the web renderer as legality, score, or outcome authority.
+- Do not promote partnership, nil, blind nil, bag, contract, or scoring logic
+  without a future accepted mechanic-atlas review.
+- Do not claim public release until human IP/release review and the remaining
+  Gate 18 closeout tickets complete.
 
 ## Blocking Issues
 

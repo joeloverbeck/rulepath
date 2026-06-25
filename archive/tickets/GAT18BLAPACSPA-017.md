@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-017: trailing game docs — MECHANICS, UI (incl. outcome section), admission and release checklist
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Medium
 **Engine Changes**: None — game-local docs (`games/blackglass_pact/docs/{MECHANICS,UI,GAME-IMPLEMENTATION-ADMISSION,PUBLIC-RELEASE-CHECKLIST}.md`)
@@ -79,3 +79,29 @@ Public rules, IP/assets, catalog, UI, accessibility, no-leak, viewer exports, ou
 1. `node scripts/check-outcome-explanations.mjs`
 2. `node scripts/check-doc-links.mjs && node scripts/check-presentation-copy.mjs`
 3. Doc-only ticket — the outcome-explanation + doc-link/presentation checkers are the correct boundary.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added `games/blackglass_pact/docs/UI.md` with the grouped partnership table
+contract, legal-only blind/bid/play mapping, effect/replay boundaries,
+viewer/no-leak and accessibility matrices, and the required `Outcome / victory
+explanation` section. The outcome section names the
+`blackglass_pact.team_score_win` and `blackglass_pact.tied_threshold_continues`
+template keys and ties final team scores/bags/winner fields back to Rust.
+
+Added `games/blackglass_pact/docs/PUBLIC-RELEASE-CHECKLIST.md`, recording
+automated evidence as prepared while keeping human IP/public-release review and
+the remaining Gate 18 closeout receipts pending. Updated
+`MECHANICS.md` and `GAME-IMPLEMENTATION-ADMISSION.md` with post-build local
+mechanic/admission status. Renamed the Blackglass `RULES.md` scoring and
+terminal headings to the checker-required anchors without changing rule
+content.
+
+Verification:
+
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `node scripts/check-doc-links.mjs` passed.
+- `node scripts/check-presentation-copy.mjs` passed.
+- `git diff --check` passed.
