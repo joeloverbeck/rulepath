@@ -87,6 +87,7 @@ export function BlackglassPactBoard({
     ),
   );
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  const latestDetail = blackglassLatestDetail(latestEffect, feedback?.detail ?? null);
   const terminalTeam = view.phase.kind === "terminal" ? view.phase.winning_team : null;
   const outcomeExplanation =
     terminalTeam
@@ -266,7 +267,7 @@ export function BlackglassPactBoard({
       {feedback ? (
         <section className="blackglass-latest" aria-label="Latest event">
           <span>{feedback.title}</span>
-          <strong>{feedback.detail}</strong>
+          <strong>{latestDetail ?? feedback.detail}</strong>
         </section>
       ) : null}
 
@@ -375,6 +376,23 @@ function flattenActionTree(tree: ActionTree | null): PathChoice[] {
     }
   }
   return paths;
+}
+
+// The shared effect feedback falls back to a generic "Rust awarded the trick."
+// because Rust does not attach a summary string to the trick_captured effect.
+// The public payload does carry the winning seat, so name it here using the
+// board's own seat labels (UI.md: the latest event should name the trick winner).
+// Presentation-only: the winner and trick index are public Rust-projected facts.
+function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | null): string | null {
+  if (!entry) return fallback;
+  const payload = entry.effect.payload as { type?: string; winner?: unknown; trick_index?: unknown };
+  if (payload.type === "trick_captured" && typeof payload.winner === "string") {
+    const seat = payload.winner as BlackglassPactSeatId;
+    if (!SEATS.includes(seat)) return fallback;
+    const trickNumber = typeof payload.trick_index === "number" ? payload.trick_index + 1 : null;
+    return trickNumber ? `${seatLabel(seat)} won trick ${trickNumber}.` : `${seatLabel(seat)} won the trick.`;
+  }
+  return fallback;
 }
 
 function statusLabel(view: BlackglassPactPublicView): string {
