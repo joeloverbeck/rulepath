@@ -203,6 +203,20 @@ unless Rust has made those facts public or otherwise authorized for that viewer.
 - Third-use mechanic pressure is resolved before proceeding.
 - Mechanical-scaffolding candidates are behavior-free, registered, and rejected
   or rerouted when they encode game mechanics or hidden-state policy.
+- Every new official game completes a mechanical-scaffolding reuse-first audit
+  before serious implementation. The audit reviews the mechanical-scaffolding
+  register and the lawful shared homes, reuses matching promoted scaffolding or
+  records an accepted exception, and identifies any new behavior-free
+  scaffolding the game will introduce.
+- Every new behavior-free scaffolding shape introduced by an official game is
+  recorded in the mechanical-scaffolding register with behavior exclusions,
+  affected hash/visibility/determinism surfaces, a decision state, and a next
+  review trigger. First use does not authorize promotion.
+- When a new game's scaffolding makes an earlier official game a matching
+  duplicate, the new-game closeout either queues a named bounded follow-on
+  refactoring unit or records an accepted `local-only`, `deferred`, or `rejected`
+  disposition with rationale and next review trigger. Existing pre-third-copy
+  and promotion-debt blocking rules remain in force.
 - Static data is typed content/parameters/metadata/fixtures/traces only.
 - Unknown fields in hand-authored data are rejected by default.
 - Behavior-looking fields are blocked or escalated.
@@ -236,6 +250,15 @@ Stop and reassess before continuing when any of these happens:
 - a third repeated mechanic proceeds without ledger decision;
 - a promoted primitive leaves matching prior official games un-migrated without an explicit exception or recorded promotion-debt closure gate;
 - a new mechanic-ladder gate proceeds while promotion debt is still open;
+- a new official game starts serious implementation without a completed
+  mechanical-scaffolding reuse-first audit;
+- a new official game closes while a newly introduced behavior-free scaffolding
+  shape is absent from the mechanical-scaffolding register;
+- a new official game identifies matching prior-game scaffolding but leaves the
+  retrofit as an unnamed TODO instead of a tracker unit or an accepted
+  no-refactor disposition;
+- a known promoted scaffolding helper is reimplemented locally without a
+  register-backed exception;
 - a 3+ seat game cannot prove viewer-safe public and per-seat projections;
 - official games lack docs, traces, simulations, benchmarks, rule coverage, replay, or serialization tests;
 - public UI becomes debug-first;

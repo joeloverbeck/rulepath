@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-002: FOUNDATIONS §11 forward invariants + §12 stop conditions
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — governance/law doc edit (`docs/FOUNDATIONS.md`)
@@ -74,3 +74,27 @@ Insert, after the promotion-debt stop conditions, the four stops: no-audit start
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/FOUNDATIONS.md` (review: only additive bullets in §11/§12)
 3. `grep -n "Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md` (acceptance-gate precondition)
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/FOUNDATIONS.md` with the Unit 8F constitution-level forward
+scaffolding governance obligations:
+
+- added three §11 acceptance invariants after the existing
+  mechanical-scaffolding invariant;
+- added four §12 stop conditions after the existing promotion-debt stop
+  conditions;
+- left §4 behavioral first/second/third-use wording and §13 ADR triggers
+  unchanged.
+
+Deviation: none. The change landed after PREGAT18FORSCA-001 extended accepted
+ADR 0008, satisfying the constitution-change precondition.
+
+Verification:
+
+- `rg -n "reuse-first audit|Mechanical-scaffolding candidates are behavior-free|a promoted primitive leaves matching prior official games|a new mechanic-ladder gate proceeds|register-backed exception" docs/FOUNDATIONS.md` confirmed the new bullets sit after the existing invariant and promotion-debt stops.
+- `grep -n "Status: Accepted" docs/adr/0008-mechanical-scaffolding-governance.md` confirmed the accepted ADR precondition.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
