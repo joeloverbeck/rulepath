@@ -299,6 +299,23 @@ try {
     );
   }
 
+  // Shared effect fallbacks must stay game-neutral: a fallback that hardcodes one
+  // game's name leaks the wrong public copy into every other game that emits the
+  // same effect type without a Rust-supplied summary (e.g. blackglass_pact's
+  // match_completed previously rendered "Rust finalized Vow Tide standings.").
+  const fallbackNeutralityCases = [
+    { type: "match_completed", payload: { type: "match_completed" } },
+  ];
+  const gameNamePattern =
+    /\b(?:vow tide|blackglass pact|race to|three marks|column four|directional flip|draughts lite|high card duel|masked claims|flood watch|frontier control|event frontier|token bazaar|secret draft|veiled draft|poker lite|crest ledger|plain tricks|river ledger|briar circuit)\b/i;
+  for (const fallbackCase of fallbackNeutralityCases) {
+    const feedback = feedbackForEffect({ cursor: 0, effect: { payload: fallbackCase.payload } });
+    assert(
+      !gameNamePattern.test(feedback.detail),
+      `${fallbackCase.type} fallback must stay game-neutral, got: ${JSON.stringify(feedback)}`,
+    );
+  }
+
   const requiredCoverage = [
     ["masked_claims", "claim_turn_advanced"],
     ["masked_claims", "claim_score_changed"],

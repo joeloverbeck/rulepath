@@ -428,7 +428,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "match_completed":
       return {
         title: "Match completed",
-        detail: String(payload.summary ?? "Rust finalized Vow Tide standings."),
+        detail: String(payload.summary ?? "Rust finalized the match standings."),
         tone: "terminal",
       };
     case "trick_resolved":
