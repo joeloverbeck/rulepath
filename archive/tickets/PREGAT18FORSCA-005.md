@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-005: OFFICIAL-GAME-CONTRACT reuse-first audit + closeout steps
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/OFFICIAL-GAME-CONTRACT.md`)
@@ -77,3 +77,30 @@ Replace the existing mechanic/scaffolding acceptance bullet cluster with the for
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/OFFICIAL-GAME-CONTRACT.md` (review: workflow steps + subsection + §12 cluster)
 3. `grep -n "forward obligation" docs/OFFICIAL-GAME-CONTRACT.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/OFFICIAL-GAME-CONTRACT.md` so the official-game workflow carries
+the Unit 8F forward scaffolding lifecycle:
+
+- inserted the mechanical-scaffolding reuse-first audit before serious
+  implementation in the §3 workflow block;
+- changed the typed Rust implementation step to use accepted shared scaffolding;
+- added the mechanical-scaffolding closeout step before public polish review;
+- added the `Mechanical-scaffolding forward obligation` subsection;
+- replaced the §12 mechanic/scaffolding acceptance cluster with audit,
+  register-new, queue-or-dispose, and debt-disposition checks.
+
+Deviation: none. Behavioral primitive-pressure/atlas workflow remains parallel
+and authoritative for behavior-bearing mechanics.
+
+Verification:
+
+- `grep -ni "reuse-first audit" docs/OFFICIAL-GAME-CONTRACT.md` confirmed the
+  workflow and acceptance references.
+- `grep -n "forward obligation" docs/OFFICIAL-GAME-CONTRACT.md` confirmed the new subsection.
+- `rg -n "register-backed|new behavior-free scaffolding|follow-on tracker unit|promotion debt|mechanical-scaffolding closeout" docs/OFFICIAL-GAME-CONTRACT.md` confirmed the §12 cluster and closeout step.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
