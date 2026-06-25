@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-013: rule-coverage registration, RULE-COVERAGE finalize, GAME-EVIDENCE profile links
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence + docs) — `tools/rule-coverage`, `games/blackglass_pact/docs/{RULE-COVERAGE,GAME-EVIDENCE}.md`
@@ -80,3 +80,33 @@ Populate the five Evidence Fixture Contract profile rows + canonical byte author
 1. `cargo run -p rule-coverage -- --game blackglass_pact`
 2. `cargo run -p replay-check -- --game blackglass_pact --all`
 3. The rule-coverage tool is the correct boundary; it depends on the 011 evidence corpus + 012 benchmarks already landing.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Registered `blackglass_pact` in `tools/rule-coverage`, including the
+`games/blackglass_pact/docs/{RULES,RULE-COVERAGE,BENCHMARKS}.md` paths and
+`BP-*` rule-ID parsing. Finalized the Blackglass Pact coverage matrix for the
+current Gate 18 implementation state and populated the five required
+`GAME-EVIDENCE.md` profile rows:
+
+- `replay-command-v1`
+- `public-export-v1`
+- `seat-private-export-v1`
+- `setup-evidence-v1`
+- `domain-evidence-v1`
+
+Deviation: later WASM, web, release, and capstone tickets still own their
+named evidence surfaces. The coverage matrix records those owners while the
+tool-level matrix now passes.
+
+Verification:
+
+- `cargo run -p rule-coverage -- --game blackglass_pact` passed.
+- `cargo run -p replay-check -- --game blackglass_pact --all` passed
+  (`replay-check: all traces passed`).
+- `grep -c "BP-" games/blackglass_pact/docs/RULE-COVERAGE.md` returned `103`.
+- `rg -n "replay-command-v1|public-export-v1|seat-private-export-v1|setup-evidence-v1|domain-evidence-v1" games/blackglass_pact/docs/GAME-EVIDENCE.md` found all five profile rows.
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.

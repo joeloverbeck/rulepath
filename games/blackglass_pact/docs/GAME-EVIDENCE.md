@@ -60,21 +60,21 @@ admission/audit surfaces.
 
 | Evidence surface | Status | Artifact link | Notes |
 |---|---|---|---|
-| Rule coverage matrix | initialized | [RULE-COVERAGE.md](RULE-COVERAGE.md) | All rows open until implementation evidence lands. |
-| Unit and named rule tests | planned | `games/blackglass_pact/tests/` | Later tickets. |
-| Property/invariant tests | planned | `games/blackglass_pact/tests/` | Later tickets. |
-| Simulation/fuzz runs | planned | `cargo run -p simulate -- --game blackglass_pact --seat-count 4 --games 1000 --action-cap 4096` | Capstone evidence. |
-| Serialization coverage | planned | replay/support tests | Later tickets. |
+| Rule coverage matrix | pass | [RULE-COVERAGE.md](RULE-COVERAGE.md) | `cargo run -p rule-coverage -- --game blackglass_pact`. |
+| Unit and named rule tests | pass | `games/blackglass_pact/tests/` | Rules, property, replay, serialization, visibility, and bot suites. |
+| Property/invariant tests | pass | `games/blackglass_pact/tests/property.rs` | Card conservation, deal determinism, scoring, terminal, helper conformance. |
+| Simulation/fuzz runs | smoke | `cargo run -p simulate -- --game blackglass_pact --seat-count 4 --games 1000 --start-seed 180400 --action-cap 4096` | Fixed-four bot-smoke summary; full terminal command replay remains future work. |
+| Serialization coverage | pass | `games/blackglass_pact/tests/serialization.rs`; `games/blackglass_pact/tests/replay.rs` | Stable IDs and viewer-scoped export/import. |
 
 ## Named Trace Profiles
 
 | Profile ID | Profile version | Visibility class | Validator owner | Artifact link | Status | Notes |
 |---|---|---|---|---|---|---|
-| `replay-command-v1` | `v1` | internal-dev/public | replay-check | planned golden traces | planned | Ticket 011. |
-| `public-export-v1` | `v1` | public | Rust/WASM export/import smoke | planned export traces | planned | Ticket 011/014/016. |
-| `seat-private-export-v1` | `v1` | seat-private | Rust/WASM export/pairwise no-leak | planned export traces | planned | All four seat viewers. |
-| `setup-evidence-v1` | `v1` | internal-dev/public | fixture-check | planned setup fixtures | planned | Ticket 012. |
-| `domain-evidence-v1` | `v1` | internal-dev/public | game-local validator | planned scoring/domain fixtures | planned | Ticket 012. |
+| `replay-command-v1` | `v1` | internal-dev/public | replay-check | `games/blackglass_pact/tests/golden_traces/`; `cargo run -p replay-check -- --game blackglass_pact --all` | pass | Bounded metadata/setup/no-leak inventory validator; full terminal command replay remains future work. |
+| `public-export-v1` | `v1` | public | Rust export/import tests | `games/blackglass_pact/tests/replay.rs`; `public-export-v1-round-trip.trace.json` | pass | Observer export is viewer scoped. |
+| `seat-private-export-v1` | `v1` | seat-private | Rust export/import tests | `games/blackglass_pact/tests/replay.rs`; `seat-private-export-v1-round-trip.trace.json`; `seat-private-pairwise-no-leak-all-four.trace.json` | pass | All four seat viewers covered. |
+| `setup-evidence-v1` | `v1` | internal-dev/public | fixture-check | `games/blackglass_pact/data/fixtures/blackglass_pact_standard.fixture.json`; `cargo run -p fixture-check -- --game blackglass_pact` | pass | Static typed fixture keys only. |
+| `domain-evidence-v1` | `v1` | internal-dev/public | game-local validator | `games/blackglass_pact/data/fixtures/*`; `games/blackglass_pact/tests/{rules,property,serialization,replay,visibility,bots}.rs` | pass | Scoring, nil/bags, target tie, visibility, and bot evidence. |
 
 ## Viewer Matrix
 
