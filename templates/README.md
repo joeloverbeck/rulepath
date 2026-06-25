@@ -12,6 +12,7 @@ Foundation authority, in normal reading order:
 - `docs/ENGINE-GAME-DATA-BOUNDARY.md`
 - `docs/OFFICIAL-GAME-CONTRACT.md`
 - `docs/MECHANIC-ATLAS.md`
+- `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
 - `docs/AI-BOTS.md`
 - `docs/UI-INTERACTION.md`
 - `docs/TESTING-REPLAY-BENCHMARKING.md`
@@ -77,6 +78,13 @@ Two-seat games SHOULD still state their seat model explicitly and may use clear 
 
 This order is requirements-first. Do not start serious implementation because a UI sketch is tempting. Public polish wins over speculative engine research, but public polish must sit on Rust rule authority, deterministic replay, coverage, and IP-safe content.
 
+For every new official game, `GAME-MECHANICS.md` contains the pre-implementation
+mechanical-scaffolding reuse-first audit before implementation admission.
+`GAME-EVIDENCE.md` is initialized with that audit result and later receives the
+post-implementation register-freshness and prior-game-refactor closeout. No
+separate domain template is required: the register owns shared-scaffolding
+decisions, while the evidence receipt owns per-game status and links.
+
 ## Template index
 
 | Template | Purpose | Required when | Main foundation authority |
@@ -84,10 +92,10 @@ This order is requirements-first. Do not start serious implementation because a 
 | `GAME-SOURCES.md` | Source, variant, naming, asset, font, and IP notes. | Every official game before original rules prose. | `docs/IP-POLICY.md`, `docs/SOURCES.md`, `docs/OFFICIAL-GAME-CONTRACT.md` |
 | `GAME-RULES.md` | Original Rulepath rules summary keyed by stable rule IDs. | Every official game before coverage and implementation. | `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/SOURCES.md`, `docs/IP-POLICY.md` |
 | `GAME-RULE-COVERAGE.md` | Requirements traceability matrix from rule IDs to implementation, tests, traces, replay, UI smoke, bots, and benchmarks. | Every official game before and during implementation. | `docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/OFFICIAL-GAME-CONTRACT.md` |
-| `GAME-MECHANICS.md` | Per-game mechanic inventory and primitive-pressure review. | Every official game before implementation admission and whenever mechanics change. | `docs/MECHANIC-ATLAS.md`, `docs/ENGINE-GAME-DATA-BOUNDARY.md` |
-| `GAME-IMPLEMENTATION-ADMISSION.md` | Short gate receipt proving prerequisites are ready before serious coding. | Before serious implementation work starts for an official game. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/ROADMAP.md` |
-| `AGENT-TASK.md` | Universal bounded task packet for agents and humans. | Any bounded implementation, testing, docs, refactor, UI, bot, benchmark, or release-prep task. | `docs/AGENT-DISCIPLINE.md` |
-| `GAME-EVIDENCE.md` | Machine-friendly status and artifact-link receipt for completion profile, viewer matrix, trace profiles, replay/hash, benchmark, bot, mechanic, scaffolding, release, blocker, and artifact-link evidence. | Every official game; initialize at implementation admission and update whenever evidence changes. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/EVIDENCE-FIXTURE-CONTRACT.md` |
+| `GAME-MECHANICS.md` | Per-game mechanic inventory, behavioral primitive-pressure review, and mandatory mechanical-scaffolding reuse-first audit. | Every official game before implementation admission and whenever mechanics or scaffolding change. | `docs/MECHANIC-ATLAS.md`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `docs/ENGINE-GAME-DATA-BOUNDARY.md` |
+| `GAME-IMPLEMENTATION-ADMISSION.md` | Short gate receipt proving rules, behavioral pressure, scaffolding reuse-first audit, and boundary prerequisites are ready before serious coding. | Before serious implementation work starts for an official game. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/ROADMAP.md` |
+| `AGENT-TASK.md` | Universal bounded task packet, including mandatory new-game scaffolding reuse/track fields and the deeper scaffold-refactor profile when migration work is authorized. | Any bounded implementation, testing, docs, refactor, UI, bot, benchmark, or release-prep task. | `docs/AGENT-DISCIPLINE.md`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` |
+| `GAME-EVIDENCE.md` | Machine-friendly status and artifact-link receipt, including pre-code scaffolding audit, post-build register freshness, and prior-game refactor disposition. | Every official game; initialize at implementation admission and update whenever evidence or scaffolding disposition changes. | `docs/FOUNDATIONS.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/EVIDENCE-FIXTURE-CONTRACT.md` |
 | `GAME-HOW-TO-PLAY.md` | Player-facing rules prose rendered by the shared web How to Play / Rules surface. Distinct from formal `GAME-RULES.md` and strategy-oriented `COMPETENT-PLAYER.md`. | Every official catalog game. | `docs/OFFICIAL-GAME-CONTRACT.md`, `docs/UI-INTERACTION.md`, `docs/IP-POLICY.md` |
 | `COMPETENT-PLAYER.md` | Human/LLM-authored strategy analysis checked against rules. | When a game needs a competent bot or strategy-sensitive public UX. | `docs/AI-BOTS.md`, `docs/OFFICIAL-GAME-CONTRACT.md` |
 | `BOT-STRATEGY-EVIDENCE-PACK.md` | Formal Level 2 authored-policy design input. | Before coding any Level 2 bot. | `docs/AI-BOTS.md`, `docs/TESTING-REPLAY-BENCHMARKING.md` |

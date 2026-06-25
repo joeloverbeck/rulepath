@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-012: templates/README authority list + lifecycle paragraph + index rows
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: None — governance/template-doc edit (`templates/README.md`)
@@ -76,3 +76,28 @@ Replace the `GAME-MECHANICS` / `GAME-IMPLEMENTATION-ADMISSION` / `AGENT-TASK` / 
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- templates/README.md` (review: authority list + lifecycle paragraph + four rows)
 3. `grep -n "audit lifecycle" templates/README.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `templates/README.md` to make the forward scaffolding lifecycle
+discoverable from the template index:
+
+- added `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` to the foundation authority
+  list after `docs/MECHANIC-ATLAS.md`;
+- added the lifecycle paragraph explaining the pre-implementation
+  reuse-first audit and post-implementation register-freshness/prior-game
+  closeout flow;
+- refreshed the `GAME-MECHANICS.md`, `GAME-IMPLEMENTATION-ADMISSION.md`,
+  `AGENT-TASK.md`, and `GAME-EVIDENCE.md` index rows.
+
+Deviation: none. The per-game template bodies remain owned by later tickets.
+
+Verification:
+
+- `grep -n "MECHANICAL-SCAFFOLDING-REGISTER" templates/README.md` confirmed the authority-list and index-row references.
+- `grep -n "audit lifecycle\\|reuse-first audit\\|register-freshness\\|prior-game-refactor" templates/README.md` confirmed the lifecycle and row wording.
+- `rg -n "GAME-MECHANICS\\.md.*reuse-first|GAME-IMPLEMENTATION-ADMISSION\\.md.*scaffolding reuse-first|AGENT-TASK\\.md.*reuse/track|GAME-EVIDENCE\\.md.*post-build register" templates/README.md` confirmed all four refreshed rows.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
