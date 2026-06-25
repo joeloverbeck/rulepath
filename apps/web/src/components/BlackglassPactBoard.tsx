@@ -141,7 +141,7 @@ export function BlackglassPactBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, {phaseLabel(view)}, hand {view.hand_index + 1}, {paths.length} Rust legal choices.
+        {view.display_name}, {phaseLabel(view)}, hand {view.hand_index + 1}, {paths.length} legal choices.
       </p>
 
       <div className="blackglass-metrics" aria-label="Blackglass Pact status">
