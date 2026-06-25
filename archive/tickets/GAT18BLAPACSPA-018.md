@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-018: atlas, scaffolding register, and forward-v1 CI receipt closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (CI evidence receipt) — `ci/scaffolding-audits.json`, `docs/MECHANIC-ATLAS.md`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `games/blackglass_pact/docs/PRIMITIVE-PRESSURE-LEDGER.md`
@@ -81,3 +81,33 @@ Close the primitive-pressure and post-build forward-v1 governance: update `docs/
 1. `node scripts/check-scaffolding-governance.mjs`
 2. `node --test scripts/check-scaffolding-governance.test.mjs && node scripts/check-doc-links.mjs`
 3. The governance checker + its test suite are the correct boundary; the receipt is the gate-1 enforcement surface.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added the `blackglass_pact` `forward-v1` record to
+`ci/scaffolding-audits.json` with all `MSC-8C-001` through `MSC-8C-010`
+entries reviewed, no new register decisions, no follow-on unit, compatibility
+all `none`, and `migration_authority: "none"`.
+
+Updated `docs/MECHANIC-ATLAS.md` to record Gate 18 Blackglass Pact reuse of the
+promoted follow-suit and trick-comparator helpers, the Vow Tide to Blackglass
+numeric-contract second-use keep-local decision, and the first-use fixed
+competitive partnership/team scoring local-only row. Section 10A remains empty.
+
+Updated `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` with the Gate 18 forward-v1
+post-build receipt and finalized
+`games/blackglass_pact/docs/PRIMITIVE-PRESSURE-LEDGER.md` with post-build
+evidence. The atlas, register, ledger, game evidence paths, and CI receipt now
+agree that no helper was broadened and no promotion debt was created.
+
+Verification:
+
+- `node scripts/check-scaffolding-governance.mjs` passed.
+- `node --test scripts/check-scaffolding-governance.test.mjs` passed.
+- `node scripts/check-doc-links.mjs` passed.
+- `git diff --check` passed.
+- Grep truthing confirmed `blackglass_pact`, Gate 18 forward-v1 receipt, numeric
+  contract, partnership/team, and `Current debt: _None_` entries across the
+  atlas/register/ledger/receipt surfaces.

@@ -1043,6 +1043,44 @@ R4 N-seat/private/trick receipts, 2026-06-24:
   the final C-11 Gate 18 admission interlock. Gate 18 remains unstarted and
   unauthored.
 
+### Gate 18 forward-v1 Blackglass Pact receipt - 2026-06-25
+
+- Receipt state: Blackglass Pact is the first official game admitted after the
+  forward-v1 interlock. It reviewed `MSC-8C-001`...`MSC-8C-010` in
+  [../games/blackglass_pact/docs/MECHANICS.md](../games/blackglass_pact/docs/MECHANICS.md)
+  and records the machine receipt in `ci/scaffolding-audits.json` with
+  `coverage: "forward-v1"`.
+- C-01 checkpoint: effect envelopes are reused as existing scaffolding only;
+  blind, deal, bid, play, score, bag, and terminal effect meanings stay
+  `blackglass_pact` behavior.
+- C-02 checkpoint: canonical seat grammar fits `seat_0`...`seat_3`; team IDs
+  remain game-local and do not broaden seat identity.
+- C-03 checkpoint: exact-four setup and clockwise arithmetic reuse structural
+  count/ring helpers where applicable; dealer, blind order, bid order,
+  partnership, and winner-leads policy stay game-local.
+- C-04/C-05 checkpoint: action-tree and stable-byte helpers remain framing or
+  evidence surfaces only; legal leaves, accepted actions, replay authority, and
+  hashes are not migrated by this gate.
+- C-06 checkpoint: any `game-test-support` use remains dev/test-only; no
+  production edge is introduced.
+- C-07/C-08 checkpoint: pairwise no-leak and evidence-profile geometry is
+  reused as test scaffolding; Blackglass supplies the hidden datum taxonomy,
+  observer/seat expectations, and replay/export policy.
+- C-09 checkpoint: bounded-index sampling creates no migration authority for
+  Blackglass shuffle/deal bytes; any RNG migration would require separate
+  authority.
+- C-10 checkpoint: every behavior-bearing shape remains rejected/local-only:
+  partnerships, team scoring, nil/blind nil, bags, contracts, broken-spades
+  policy, bots, visibility, outcome, and UI behavior do not enter mechanical
+  scaffolding.
+- Prior-site disposition: Vow Tide is the numeric trick-contract comparison
+  point and earlier trick games are helper-conformance comparison points. No
+  prior-game migration or follow-on unit is required; the accepted no-unit
+  disposition is `MSC-8C-010`.
+- Artifact-diff result: no new `MSC-*` register entry is required, no existing
+  helper contract is broadened, no `engine-core` noun is added, and no
+  `game-stdlib` helper promotion debt is created.
+
 ## Review Checklist
 
 Before accepting a register entry, verify:

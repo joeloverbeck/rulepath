@@ -2,8 +2,9 @@
 
 Candidate name: `blackglass-pact-partnership-trick-contracts`
 
-Status: pre-code decisions recorded; reuse promoted trick helpers unchanged;
-numeric contract second use keep local; partnership/team first use local-only
+Status: post-build closeout recorded; reused promoted trick helpers unchanged;
+numeric contract second use kept local; partnership/team first use local-only;
+no promotion debt
 
 Decision date: 2026-06-25
 
@@ -20,6 +21,12 @@ behavior is recorded as `local-only`.
 
 No helper is added to `engine-core` or `game-stdlib`. No promotion debt is
 created.
+
+Post-build closeout: implementation, WASM bridge, grouped web renderer, e2e
+catalog smoke, UI/outcome docs, and public-release checklist are complete as
+of 2026-06-25. `docs/MECHANIC-ATLAS.md`,
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, and `ci/scaffolding-audits.json`
+record the matching forward-v1 receipt.
 
 ## Decision 1: Promoted Trick Helper Reuse
 
@@ -82,6 +89,15 @@ shape can be compared against both Vow Tide and Blackglass Pact.
 | numeric keep-local | bid/contract/scoring unit and property tests, Vow Tide contrast regression, rule coverage rows |
 | partnership first-use | setup/team mapping tests, partner no-leak rows, team score/outcome snapshots, UI grouping smoke |
 | no promotion debt | `docs/MECHANIC-ATLAS.md` §10A remains empty at closeout |
+
+## Post-Build Evidence
+
+| Decision | Evidence now recorded | Closeout result |
+|---|---|---|
+| trick helper reuse | helper conformance tests, `cargo test -p blackglass_pact`, `rule-coverage`, replay/fixture checks, and Gate 18 web smoke evidence | Helpers reused unchanged; no signature or policy broadening. |
+| numeric keep-local | bid/contract/scoring tests, [RULE-COVERAGE.md](RULE-COVERAGE.md), [GAME-EVIDENCE.md](GAME-EVIDENCE.md), and atlas second-use row | Second-use comparison complete; next review before a third close numeric contract game. |
+| partnership first-use | setup/team tests, visibility pairwise matrix, [UI.md](UI.md), `blackglass-pact.smoke.mjs`, and atlas first-use row | First-use `local-only`; no generic team/partnership helper. |
+| no promotion debt | [MECHANICS.md](MECHANICS.md), central atlas §10A, scaffolding register Gate 18 receipt, and `ci/scaffolding-audits.json` | §10A remains empty; forward-v1 receipt validates reuse/no-new-scaffolding. |
 
 ## Rejected Alternatives
 
