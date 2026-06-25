@@ -1,0 +1,5 @@
+{
+  "description": "legitimate behavior-bearing local code outside known fingerprints",
+  "expect": "pass",
+  "mutation": "false-positive-local-behavior"
+}

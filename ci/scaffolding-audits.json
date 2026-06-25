@@ -1,0 +1,673 @@
+{
+  "schema_version": 1,
+  "legacy_8c_games": [
+    "race_to_n",
+    "three_marks",
+    "column_four",
+    "directional_flip",
+    "draughts_lite",
+    "high_card_duel",
+    "masked_claims",
+    "flood_watch",
+    "frontier_control",
+    "event_frontier",
+    "token_bazaar",
+    "secret_draft",
+    "poker_lite",
+    "plain_tricks",
+    "river_ledger",
+    "briar_circuit",
+    "vow_tide"
+  ],
+  "games": [
+    {
+      "id": "race_to_n",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-mechanical-scaffolding-code-extraction.md",
+        "archive/specs/8c-r1-public-fixed-seat-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "three_marks",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r1-public-fixed-seat-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "column_four",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r1-public-fixed-seat-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "directional_flip",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r1-public-fixed-seat-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "draughts_lite",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-mechanical-scaffolding-code-extraction.md",
+        "archive/specs/8c-r1-public-fixed-seat-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "high_card_duel",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "masked_claims",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "flood_watch",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "frontier_control",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "event_frontier",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "token_bazaar",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r1-public-fixed-seat-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "secret_draft",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "poker_lite",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "plain_tricks",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "river_ledger",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/unit-8c-mechanical-scaffolding-code-extraction.md",
+        "archive/specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "briar_circuit",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    },
+    {
+      "id": "vow_tide",
+      "coverage": "legacy-8c-covered",
+      "evidence_paths": [
+        "archive/specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "legacy-8c-covered",
+      "prior_matching_games": [],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "legacy-8c-covered",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "legacy-reviewed",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
+    }
+  ]
+}

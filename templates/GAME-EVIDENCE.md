@@ -140,8 +140,12 @@ public release checklist.
 |---|---|---|---|
 | Mechanic inventory | complete/partial/blocker | `<GAME-MECHANICS.md>` | `<notes>` |
 | Primitive-pressure ledger | complete/not applicable: `<rationale>`/blocker | `<PRIMITIVE-PRESSURE-LEDGER.md or atlas link>` | `<notes>` |
-| Mechanical scaffolding register decision | accepted/rejected/deferred/not applicable: `<rationale>` | `<MECHANICAL-SCAFFOLDING-REGISTER.md link>` | `<notes>` |
-| Open promotion/scaffolding debt | none / blocker / deferred by accepted exception | `<artifact link>` | `<notes>` |
+| Pre-implementation mechanical-scaffolding reuse-first audit | complete/blocker | `<GAME-MECHANICS.md audit section>` | `<reused MSC ids, exceptions, anticipated new shapes>` |
+| Existing registered/promoted scaffolding adoption | complete/not applicable: `<rationale>`/blocker | `<MSC entries and code/test evidence>` | `<notes>` |
+| Post-implementation new-scaffolding/register-freshness receipt | no new scaffolding / register updated / blocker | `<MECHANICAL-SCAFFOLDING-REGISTER.md entry ids>` | `<new sites, decision states, next review triggers>` |
+| Prior-game duplication/refactor disposition | no prior match / follow-on unit queued / accepted local-only / accepted deferred / accepted rejected / blocker | `<specs/README.md unit or register decision>` | `<migration set, owner, next review trigger>` |
+| CI scaffolding-audit record | pass/fail/blocker | `<ci/scaffolding-audits.json row>` | `<known signal dispositions>` |
+| Open behavioral promotion/scaffolding debt | none / blocker / deferred by accepted exception | `<artifact link>` | `<notes>` |
 
 ## Release State and Blockers
 
@@ -180,3 +184,8 @@ public release checklist.
 - Every referenced artifact link resolves.
 - Completion profile selection does not waive any §11 invariant or §12 stop
   condition in [FOUNDATIONS.md](../docs/FOUNDATIONS.md).
+- The pre-implementation audit and post-implementation register receipt are distinct and both current.
+- Every new behavior-free shape has a register decision and next review trigger.
+- Every prior-game match has a tracker unit or accepted no-unit disposition.
+- The CI audit record agrees with this receipt and the register.
+- Any byte/hash/fixture/export/RNG/visibility change cites ADR 0009 migration authority.

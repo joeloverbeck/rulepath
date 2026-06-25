@@ -6,6 +6,12 @@ Status note: accepted on 2026-06-22 as part of the maintainer-requested
 PREGAT18REUDOC pre-Gate-18 realignment. The downstream foundation and area-doc
 updates named here are required before this lane is used for production code.
 
+Forward-obligation extension accepted on 2026-06-25 through Unit 8F. The
+extension does not change the lane, allowed homes, Non-Promotion List,
+second-use/pre-third-copy thresholds, or behavioral mechanic gate. It makes the
+lane a standing per-new-game workflow: reuse-first audit, first-use registration,
+and queue-or-dispose prior-game refactoring, with Gate 1 receipt enforcement.
+
 Date: 2026-06-22
 
 Decision owner: Rulepath maintainers
@@ -19,14 +25,35 @@ Related documents:
 - `docs/MECHANIC-ATLAS.md`
 - `docs/UI-INTERACTION.md`
 - `docs/TESTING-REPLAY-BENCHMARKING.md`
+- `docs/ROADMAP.md`
 - `docs/AGENT-DISCIPLINE.md`
+- `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+- `specs/README.md`
+- `templates/README.md`
+- `templates/GAME-IMPLEMENTATION-ADMISSION.md`
+- `templates/GAME-MECHANICS.md`
+- `templates/GAME-EVIDENCE.md`
+- `templates/AGENT-TASK.md`
 - `archive/specs/pre-gate-18-reuse-doctrine-and-evidence-realignment.md`
 
 Required scaling / supersession fields:
 
-- Affected foundation sections: `FOUNDATIONS.md` §4, §11, §12, §13;
-  `ENGINE-GAME-DATA-BOUNDARY.md` §13; `MECHANIC-ATLAS.md` §§4-8;
-  `ARCHITECTURE.md` ownership matrix; `UI-INTERACTION.md` §10A.
+- Affected foundation and governed sections:
+  `FOUNDATIONS.md` §4 (lane context unchanged), §11, and §12;
+  `ARCHITECTURE.md` §3A and new §3B;
+  `ENGINE-GAME-DATA-BOUNDARY.md` §2A and new §13A;
+  `OFFICIAL-GAME-CONTRACT.md` §3 and §12;
+  `MECHANIC-ATLAS.md` new §5B and §11, with §§4-5A unchanged;
+  `MECHANICAL-SCAFFOLDING-REGISTER.md` Decision States, Current Entries,
+  Forward Per-Game Maintenance Cadence, Automatic Prior-Game Refactor Trigger,
+  and Review Checklist;
+  `AGENT-DISCIPLINE.md` new §8B and §13;
+  `TESTING-REPLAY-BENCHMARKING.md` mechanical-scaffolding governance check and
+  §17 CI expectations;
+  `ROADMAP.md` pre-Gate-18 governance interlock and Gate 18 admission;
+  `specs/README.md` active tracker, spec format, and workflow;
+  `templates/README.md`, `GAME-IMPLEMENTATION-ADMISSION.md`,
+  `GAME-MECHANICS.md`, `GAME-EVIDENCE.md`, and `AGENT-TASK.md`.
 - Superseded decision, if any: none. This ADR adds a separate scaffolding lane;
   it does not supersede the behavioral mechanic third-use gate.
 - Hidden-information no-leak compatibility: the lane may only cover helpers whose
@@ -64,6 +91,11 @@ Migration matrix:
 | Foundation docs | Add the scaffolding lane and invariants named above | Pre-Gate-18 realignment | Before any code extraction uses the lane | Link check + boundary check |
 | Scaffolding register | Create `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` with decision entries | Pre-Gate-18 realignment | Before any helper promotion | Register review + link check |
 | Part C code extraction | Evaluate candidate helpers against this ADR and the register | Successor unit | After this spec is Done | Dedicated tickets, tests, no-leak/replay/hash proof |
+| Forward foundation/workflow wiring | Add the standing audit, first-use registration, queue-or-dispose closeout, and stop conditions in the named docs | Unit 8F | Before Gate 18 authoring or implementation | Doc-link check, authority review, exact third-use-text comparison |
+| New-game templates | Add mandatory pre-code audit and post-build register/refactor receipts | Unit 8F | Before Gate 18 admission | Filled-template fixture/review and link check |
+| CI audit receipt | Add `ci/scaffolding-audits.json`, bootstrap only the frozen 17-game legacy set, and require `forward-v1` for future games | Unit 8F | Before Gate 18 game directory lands | Checker tests + set-equality check |
+| Gate 1 enforcement | Add the repository-level scaffolding governance check | Unit 8F | Before Gate 18 implementation | Passing/failing checker fixtures + workflow run |
+| Prior-game refactor scheduling | Require a tracker row or accepted no-unit register disposition when a new game exposes matching prior sites | Every future game closeout | Same closeout as the new game | Register/evidence/CI/tracker cross-check |
 
 ## Context
 
@@ -143,6 +175,35 @@ Decision rule:
    surfaces.
 5. Any candidate that drifts into behavior returns to the mechanic-atlas process
    or a separate ADR.
+
+### Forward per-new-game obligation extension - 2026-06-25
+
+The mechanical-scaffolding lane is a standing obligation for every new official
+game, not only a reaction to a later extraction task.
+
+1. Before serious implementation, the game MUST complete a reuse-first audit of
+   the scaffolding register and the lawful shared homes.
+2. A matching promoted helper MUST be reused unless the register contains an
+   accepted exception for the exact game/path/symbol scope.
+3. Every newly invented behavior-free scaffolding shape MUST be registered on
+   first use as `candidate`, `local-only`, or `rejected`, with exclusions and a
+   next review trigger. First-use registration does not authorize promotion.
+4. Before game closeout, the game MUST identify earlier official games with
+   matching scaffolding. Real characterization or migration work MUST be queued
+   as a named bounded unit in `specs/README.md`.
+5. No follow-on unit is required only when the register records an accepted
+   `local-only`, `deferred`, or `rejected` disposition with rationale, evidence,
+   owner, and next review trigger.
+6. A Gate 1 check MUST validate per-game audit receipt freshness, register and
+   exception linkage, high-confidence known promoted-shape conformance, and
+   follow-on tracker linkage. The check does not claim to infer arbitrary
+   semantic equivalence.
+7. Any byte, hash, fixture, export, RNG, serialization, or visibility migration
+   remains governed by ADR 0009 and explicit migration evidence.
+
+The behavioral third-use gate remains word-for-word effective. This extension
+adds no new allowed home, changes no Non-Promotion List item, and authorizes no
+new helper.
 
 ## Alternatives considered
 

@@ -75,13 +75,16 @@ each archived spec carries its own Outcome section.
 ## Active epoch — public scaling phase (progress tracker)
 
 This table is the **living progress record** for the public scaling phase. A new
-brainstorm that wants to "produce the next spec to continue the roadmap" should
-read this first and pick the lowest unit whose status is not `Done`, honoring the
-interlocks below (open primitive-promotion debt in
+brainstorm that wants to "produce the next spec to continue the roadmap" reads
+this first and picks the lowest unit whose status is not `Done`, honoring both
+standing interlocks: open behavioral primitive-promotion debt in
 [`../docs/MECHANIC-ATLAS.md`](../docs/MECHANIC-ATLAS.md) closes before the next
-mechanic-ladder gate). Phase 0 is closed; every later unit is a forward seed
-authored when it becomes the lowest non-`Done` row. `docs/ROADMAP.md` is not
-edited to record progress; this table is.
+mechanic-ladder gate, and a new-game spec completes the mechanical-scaffolding
+reuse-first audit in
+[`../docs/MECHANICAL-SCAFFOLDING-REGISTER.md`](../docs/MECHANICAL-SCAFFOLDING-REGISTER.md)
+before serious implementation. Required prior-game scaffolding refactors must
+appear as named tracker units or accepted register dispositions.
+`docs/ROADMAP.md` records ladder law; this table records progress.
 
 | Order | Unit | Spec | Status | Interlock |
 |---:|---|---|---|---|
@@ -100,7 +103,8 @@ edited to record progress; this table is.
 | 8C-R2 | C-11 follow-on — two-seat hidden/reaction scaffolding | [`unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md`](../archive/specs/unit-8c-r2-two-seat-hidden-reaction-scaffolding-intermediate-spec.md) | Done | Completed 2026-06-23. High Card Duel residual audit plus Secret Draft, Poker Lite, and Masked Claims closed C-01...C-10 with register/report receipts, no behavior promotion, no unauthorized golden/fixture diffs, full §7 evidence, and explicit N/A/exception rows for non-applicable profile/RNG surfaces. `8C-R4` and Gate 18 remain pending. |
 | 8C-R3 | C-11 follow-on — public/co-op/asymmetric/trick support | [`8c-r3-public-coop-asymmetric-trick-scaffolding.md`](../archive/specs/8c-r3-public-coop-asymmetric-trick-scaffolding.md) | Done | Completed 2026-06-24. Plain Tricks, Flood Watch, Frontier Control, and Event Frontier closed C-01...C-10 with register/report receipts, no behavior promotion, no unauthorized golden/fixture/export diffs, full §7.1 evidence in [`../reports/8c-r3-public-coop-asymmetric-trick-scaffolding-characterization.md`](../reports/8c-r3-public-coop-asymmetric-trick-scaffolding-characterization.md), and explicit N/A/exception rows for non-applicable profile/RNG/visibility surfaces. `8C-R4` and Gate 18 remain pending. |
 | 8C-R4 | C-11 follow-on — N-seat/private/trick support | [`8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md`](../archive/specs/8c-r4-n-seat-private-trick-scaffolding-intermediate-spec.md) | Done | Completed 2026-06-24. River Ledger residual audit, Briar Circuit, and Vow Tide closed C-01...C-10 with register/report receipts, no behavior promotion, no unauthorized golden/fixture/export diffs, full §7.1 evidence in [`../reports/8c-r4-n-seat-private-trick-scaffolding-characterization.md`](../reports/8c-r4-n-seat-private-trick-scaffolding-characterization.md), and explicit N/A/exception rows for adjacent stable-byte, C-09 RNG, and local behavior surfaces. All four C-11 waves are now closed or explicitly disposed, clearing the final C-11 Gate 18 admission interlock while Gate 18 remains unstarted. |
-| 9 | Gate 18 — Spades (partnerships) | _(seed; unwritten)_ | Not started | Pending the **8M** realignment `Done` + **8C** scaffold/hash/profile/seat obligations closed, **8C-R1**...**8C-R4** closed / explicitly not applicable / accepted-excepted, ADRs 0008/0009 accepted, trace profiles + canonical seat grammar fixed, and the partnership/trick-taking atlas interlock resolved. Teams/partnership scoring + UI grouping stay game-local. |
+| 8F | Pre-Gate-18 — forward scaffolding-reuse governance | [`pre-gate-18-forward-scaffolding-reuse-governance.md`](../archive/specs/pre-gate-18-forward-scaffolding-reuse-governance.md) | Done | Completed 2026-06-25. Append-only ADR 0008 extension plus authority-ordered workflow/template/register/CI amendments landed a standing per-new-game reuse-first audit, register-new on first use, and queue-or-dispose prior-game refactor obligation. Governance only: no game/helper/trace/fixture/hash/visibility migration. Gate 18 remains `Not started` and becomes the first `forward-v1` audit user. |
+| 9 | Gate 18 — Spades (partnerships) | _(seed; unwritten)_ | Not started | Blocked until **8F** is `Done`, in addition to the already-closed **8M** realignment, **8C** scaffold/hash/profile/seat obligations, **8C-R1**...**8C-R4** closures, accepted ADRs 0008/0009, fixed trace profiles + canonical seat grammar, and the partnership/trick-taking atlas interlock. The Gate 18 spec must contain the first forward `forward-v1` reuse-first audit and name any new scaffolding register entries and prior-game follow-on units before implementation admission. Teams/partnership scoring + UI grouping stay game-local. |
 | 10 | Gate 19 — Five Hundred Rummy | _(seed; unwritten)_ | Not started | Pending Gate 18. Public meld tableau + private hands; meld/tableau primitive pressure. |
 | 11 | Gate 20 — Star Halma / Chinese Checkers | _(seed; unwritten)_ | Not started | Pending Gate 19. 121-space board topology; topology helper hard gate likely. |
 | 12 | Gate 21 — Pachisi-family race | _(seed; unwritten)_ | Not started | Pending Gate 20. Track topology + deterministic chance; capture/safety semantics. |
@@ -155,16 +159,29 @@ omissions.
 11. **Sequencing** — predecessor/successor gate; admission rule.
 12. **Assumptions** — one-line-correctable.
 
+For every new-game spec, the Scope/Deliverables/Acceptance Evidence sections MUST
+include a mechanical-scaffolding reuse-first audit, expected register updates,
+and a prior-game retrofit disposition. The spec is incomplete when those fields
+are silent. A `not applicable` result requires a rationale and evidence link.
+
 ## Workflow
 
-1. Pick the lowest non-`Done` unit from the active-epoch tracker. The public
-   scaling phase is admitted by accepted ADR 0007 and recorded in ROADMAP; the
-   next unit after Phase 0 is the combined Infra A–D unit (`15A`), now `Planned`.
-2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for
-   open promotion debt and close it first unless an accepted exception or ADR says
-   otherwise.
-3. Write its spec from the format above, grounded in ROADMAP + the foundation set.
-4. Decompose the work breakdown into `tickets/` AGENT-TASK packets via
-   `/reassess-spec` then `/spec-to-tickets` after the spec is accepted.
-5. Execute, gathering the acceptance evidence.
-6. When exit criteria pass, flip the index status to `Done` and admit the next unit.
+1. Pick the lowest non-`Done` unit from the active-epoch tracker.
+2. Before drafting a new mechanic-ladder game spec:
+   - check `docs/MECHANIC-ATLAS.md` for open behavioral promotion debt and close
+     it first unless an accepted exception or ADR says otherwise;
+   - run the mechanical-scaffolding reuse-first audit against
+     `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` and the accepted shared homes;
+   - identify existing helpers to reuse, new behavior-free scaffolding to
+     register, and prior official games that may require refactoring; and
+   - ensure every required prior-game refactor has a named tracker unit, or the
+     register carries an accepted no-refactor disposition.
+3. Write the spec from the format above, grounded in ROADMAP and the foundation
+   set. An advisory report is input to this step; it is not a substitute for the
+   reassessed spec.
+4. Run `/reassess-spec` on the saved spec in place, accept the corrected spec,
+   then decompose it into `tickets/` AGENT-TASK packets with `/spec-to-tickets`.
+5. Execute, gathering the acceptance evidence and keeping the scaffolding audit,
+   register, CI receipt, and tracker disposition current.
+6. When exit criteria pass, flip the index status to `Done` and admit the next
+   unit.

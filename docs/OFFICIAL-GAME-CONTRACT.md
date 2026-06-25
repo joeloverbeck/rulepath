@@ -90,18 +90,48 @@ rules research
   -> rule coverage matrix
   -> mechanic inventory
   -> primitive-pressure comparison
+  -> mechanical-scaffolding reuse-first audit
   -> competent-player analysis if useful
   -> Level 2 strategy evidence pack if Level 2 bot planned
-  -> typed Rust rules and tests
+  -> typed Rust rules and tests using accepted shared scaffolding
   -> semantic effects and visibility tests
   -> replay/golden traces/serialization
   -> random legal simulation and benchmarks
   -> bot implementation and bot tests
   -> UI metadata and UI smoke
+  -> mechanical-scaffolding closeout: reuse receipt, register update, and
+     prior-game retrofit decision
   -> public polish review
 ```
 
 Do not start with UI and backfill rules later. UI affordances are downstream of Rust legal actions, previews, effects, and viewer-safe views.
+
+### Mechanical-scaffolding forward obligation
+
+The reuse-first audit is mandatory for every new official game. Before serious
+implementation, the game compares its planned behavior-free plumbing against
+`MECHANICAL-SCAFFOLDING-REGISTER.md` and the accepted shared homes in
+`engine-core`, `game-stdlib`, `game-test-support`, and `wasm-api`.
+
+The audit records:
+
+- matching register entries and helpers that will be reused;
+- accepted exceptions or local-only decisions and their rationale;
+- newly invented behavior-free scaffolding that must receive a register entry;
+- earlier official games that may contain the same shape; and
+- expected replay/hash, visibility, determinism, and migration impact.
+
+Before the game is marked official, its scaffolding closeout MUST update the
+register for every new shape and decide every prior-game match. A real prior-game
+migration set creates a named bounded follow-on unit in `specs/README.md` in the
+same closeout. No unit is required only when the register records an accepted
+`local-only`, `deferred`, or `rejected` disposition with evidence and a next
+review trigger.
+
+This obligation does not authorize mechanical extraction of behavioral rules.
+The mechanic atlas and its behavioral third-use hard gate remain the governing
+process for legality, scoring, reveal, turn, trick, team, graph, accounting,
+reaction, outcome, and hidden-state policy.
 
 ## 4. Rules research and source notes
 
@@ -321,8 +351,18 @@ Before marking a game official, verify:
 - source notes are complete and IP-safe;
 - rule coverage has no silent gaps;
 - mechanic inventory is complete;
-- atlas/ledger pressure is updated;
-- any matching promoted `game-stdlib` primitive is used, or a named atlas exception explains why not;
+- behavioral atlas and primitive-pressure ledger evidence is current;
+- the mechanical-scaffolding reuse-first audit is complete and linked from
+  `GAME-EVIDENCE.md`;
+- every matching promoted scaffolding helper is used, or a named register-backed
+  exception explains why not;
+- every new behavior-free scaffolding shape is present in
+  `MECHANICAL-SCAFFOLDING-REGISTER.md` with a decision state and next review
+  trigger;
+- every matching prior-game site has a named follow-on tracker unit or an
+  accepted `local-only`, `deferred`, or `rejected` disposition;
+- open behavioral promotion debt and scaffolding promotion debt are closed or
+  governed by an accepted exception before later ladder advancement;
 - random legal bot exists;
 - non-random bots have evidence, tests, explanations, and benchmarks;
 - replay determinism passes;

@@ -22,6 +22,7 @@ Foundation documents to obey:
 - `docs/ENGINE-GAME-DATA-BOUNDARY.md`
 - `docs/OFFICIAL-GAME-CONTRACT.md`
 - `docs/MECHANIC-ATLAS.md`
+- `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
 - `docs/AI-BOTS.md`
 - `docs/UI-INTERACTION.md`
 - `docs/TESTING-REPLAY-BENCHMARKING.md`
@@ -70,6 +71,31 @@ Official-game lifecycle state:
 
 A third official game with the same mechanic shape MUST NOT proceed until the primitive-pressure ledger records reuse, promotion, explicit defer/reject, or ADR-required.
 
+## New-game scaffolding reuse/track status
+
+Complete this section for every task that creates or changes an official game's
+Rust-owned production, bridge, test, replay, serialization, or evidence
+plumbing. Mark the whole section `not applicable` only with a rationale.
+
+| Required field | Value/evidence |
+|---|---|
+| game/gate and lifecycle phase | `<game id / spec unit / admission, implementation, or closeout>` |
+| reuse-first audit receipt | `<GAME-MECHANICS.md section and GAME-EVIDENCE.md row>` |
+| matching registered helpers | `<MSC ids, symbols, and homes>` |
+| reuse plan | `<exact call sites/adapters>` |
+| accepted exceptions/local-only decisions | `<register link or none>` |
+| new behavior-free scaffolding introduced by this task | `<shape/sites or none>` |
+| register update owner | `<owner and expected entry id/status>` |
+| prior official-game matching sites | `<games/paths or none>` |
+| follow-on refactor disposition | `<tracker unit id / accepted no-unit register decision / none>` |
+| hash/visibility/determinism disposition | unchanged / `<ADR 0009 migration authority>` |
+| CI audit signal disposition | `<signal ids and receipt row>` |
+
+A new-game task MUST NOT implement a known promoted scaffolding shape locally
+until the accepted exception is linked. A task that discovers a new shape or
+prior-game match owns the register/evidence update or explicitly hands it to a
+named dependent task; it may not leave an unnamed cleanup note.
+
 ## Goal
 
 When complete, the following observable result MUST be true:
@@ -92,6 +118,7 @@ When complete, the following observable result MUST be true:
 | bot evidence/explanations | yes/no | `<docs/tests>` |
 | IP review | yes/no | `<source/IP evidence>` |
 | seat/surface scope | yes/no | `<supported seat counts, viewer pairs, surfaces, max topology/object count, outcome matrix>` |
+| scaffolding reuse/register/retrofit receipt | yes/no/not applicable: `<rationale>` | `<GAME-EVIDENCE.md rows, MSC ids, CI audit row, follow-on unit or no-unit decision>` |
 
 ## Non-goals
 
@@ -114,6 +141,9 @@ Do not do these things:
 - Do not weaken, delete, or rewrite tests merely to get green output.
 - Do not use copied rulebook prose, card text, screenshots, scans, fonts, icons, board art, or trade dress.
 - Do not turn a bounded task into a generic multiplayer mega-task; name exact seat counts, surfaces, viewer pairs, and files in scope.
+- Do not recreate a known promoted scaffolding helper behind a local wrapper or renamed copy without an accepted register exception.
+- Do not omit a new scaffolding shape or prior-game migration set from the register/evidence closeout.
+- Do not bypass the scaffolding governance CI check with an environment variable, branch label, or unreviewed allow list.
 - `<task_specific_forbidden_change>`
 
 ## Implementation boundaries
@@ -125,6 +155,7 @@ Do not do these things:
 | static data | Static data may contain typed content, parameters, metadata, fixtures, traces, and reports only. | `<schema/review>` |
 | `engine-core` | Generic contracts only; no game nouns or mechanics. | `<boundary review>` |
 | `game-stdlib` | Only earned typed helpers after primitive-pressure evidence. | `<ledger/atlas>` |
+| mechanical scaffolding | Reuse accepted behavior-free helpers first; register new shapes; queue or dispose prior-game refactors. No behavior may be reclassified as plumbing. | `<audit/register/CI/tracker evidence>` |
 | private content | Private licensed stress tests are isolated, optional, non-public, and non-architectural. | `<IP review>` |
 | seat/surface scope | This task covers only the named supported seat counts, viewer pairs, surfaces, topology/object counts, and outcome rows. | `<docs/tests>` |
 
@@ -205,6 +236,9 @@ Native Rust benchmark evidence is primary. WASM/browser smoke benchmark evidence
 | `GAME-BENCHMARKS.md` | yes/no | `<change>` |
 | `GAME-EVIDENCE.md` | yes/no | `<receipt row/artifact link>` |
 | `PRIMITIVE-PRESSURE-LEDGER.md` | yes/no | `<change>` |
+| `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` | yes/no | `<reuse evidence/new entry/prior-game disposition>` |
+| `ci/scaffolding-audits.json` | yes/no | `<game audit record change>` |
+| `specs/README.md` follow-on unit | yes/no | `<unit row or accepted no-unit rationale>` |
 | `PUBLIC-RELEASE-CHECKLIST.md` | yes/no | `<change>` |
 | foundation docs/ADR | no by default | ADR required only for architectural decisions |
 
@@ -288,4 +322,6 @@ Report:
 - Tests, traces, simulations, and benchmarks cover the work.
 - Public files are IP-safe.
 - Golden traces were preserved or intentionally updated with rationale.
+- New-game scaffolding reuse/track status is complete or explicitly not applicable with rationale.
+- Register, game evidence, CI audit record, and tracker disposition agree.
 - Output is bounded and reviewable.

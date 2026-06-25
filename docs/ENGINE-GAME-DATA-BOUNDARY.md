@@ -316,6 +316,41 @@ An exception MUST name the game, the primitive, the reason for non-migration, th
 
 A helper with many game-specific flags is not ready. A helper invented for a future private monster game is forbidden.
 
+## 13A. Forward mechanical-scaffolding conformance boundary
+
+The behavioral `game-stdlib` promotion process in §13 remains unchanged.
+Mechanical scaffolding follows the separate ADR 0008 lane and the mechanical-
+scaffolding register.
+
+Before serious implementation, every new official game MUST audit its planned
+behavior-free infrastructure against existing `engine-core` contract ergonomics,
+registered `game-stdlib` scaffolding, dev-only `game-test-support` harnesses, and
+thin `wasm-api` adapters. A matching lawful helper is reused unless the register
+records an accepted exception.
+
+A new behavior-free shape MUST be registered even on first use. Its entry names
+the narrowest lawful home, behavior exclusions, exact current site, affected
+hash/visibility/determinism surfaces, acceptance evidence, and next review
+trigger. First-use registration is inventory and boundary control; it is not
+promotion authority.
+
+When the new game creates or exposes matching scaffolding in earlier official
+games, its closeout MUST either queue a named bounded refactoring unit or record
+an accepted `local-only`, `deferred`, or `rejected` disposition with rationale
+and next review trigger. A third copy remains blocked by ADR 0008's hard
+decision rule.
+
+Any candidate that owns deal/reveal/projection policy, betting or pot semantics,
+trick lifecycle, teams, graph semantics, accounting, reaction windows, scoring,
+terminal outcome, legality, strategy, or hidden-state policy is not mechanical
+scaffolding. Reject it from this lane and route it to the game-local behavioral
+implementation, mechanic atlas, or an ADR.
+
+No conformance action may silently change replay bytes, hashes, fixture/export
+authority, RNG output, serialization order, or viewer authorization. Such a
+change requires the applicable ADR 0009 migration authority and explicit
+compatibility evidence.
+
 ## 14. Future DSL policy
 
 No DSL at project start.

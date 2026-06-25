@@ -54,7 +54,9 @@ Replay, fixture, export, and hash-surface debt is governed by
 [ADR 0009](adr/0009-replay-fixture-hash-taxonomy.md),
 [TESTING-REPLAY-BENCHMARKING.md](TESTING-REPLAY-BENCHMARKING.md),
 [TRACE-SCHEMA-v1.md](TRACE-SCHEMA-v1.md), and
-[EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md).
+[EVIDENCE-FIXTURE-CONTRACT.md](EVIDENCE-FIXTURE-CONTRACT.md). The forward
+standing obligation is specified below in
+[Pre-Gate-18: forward scaffolding-reuse governance](#pre-gate-18-forward-scaffolding-reuse-governance).
 
 ## 2. Per-stage requirements
 
@@ -537,7 +539,40 @@ Exit:
 - trick-taking and bidding helper decisions are resolved through the primitive
   pressure process.
 
+### Pre-Gate-18: forward scaffolding-reuse governance
+
+Purpose: convert the accepted ADR 0008 mechanical-scaffolding lane and completed
+8C/R1-R4 retrofits into a standing per-new-game reuse-and-tracking obligation
+before another official game is implemented. This extends the earlier
+Pre-Gate-18 debt interlock above from retroactive Gates 15-17 closure into the
+standing forward admission rule.
+
+Exit:
+
+- `FOUNDATIONS.md`, the boundary/architecture docs, official-game workflow,
+  register, agent law, testing/CI law, and templates require a reuse-first audit,
+  registration of new behavior-free scaffolding, and a named prior-game refactor
+  unit or accepted no-refactor disposition;
+- the mechanical-scaffolding CI check is present in Gate 1 and proves audit
+  receipt freshness, register linkage, accepted exceptions, known promoted-shape
+  conformance, and follow-on tracker linkage;
+- the 17 existing official games are represented by bounded legacy 8C/R1-R4
+  receipt pointers rather than re-audited or rewritten;
+- no game code, shared-helper API, trace, fixture, hash, RNG, export, visibility,
+  or benchmark threshold changes in this governance unit; and
+- `specs/README.md` marks the governance unit `Done` before Gate 18 can be
+  authored or implemented.
+
+Not allowed: re-proposing ADR 0008 or ADR 0009; weakening the behavioral
+third-use gate; promoting new scaffolding; implementing Spades; adding YAML or a
+DSL; putting game/mechanic nouns in `engine-core`; changing deterministic bytes
+or viewer authorization; or silently regenerating evidence artifacts.
+
 ### Gate 18: Spades
+
+Admission: the pre-Gate-18 forward scaffolding-reuse governance unit is `Done`,
+the Gate 18 spec contains a completed reuse-first audit, and any prior-game
+scaffolding impact has a named follow-on unit or accepted register disposition.
 
 Purpose: prove teams, partnerships, grouped UI, and team outcome explanations.
 
@@ -547,7 +582,10 @@ Exit:
   nil-style risk if scoped, bag/penalty rules if scoped, and terminal outcomes
   are covered;
 - UI and outcome surfaces clearly distinguish per-seat and per-team facts;
-- no hidden or teammate-only information leaks to unauthorized viewers.
+- no hidden or teammate-only information leaks to unauthorized viewers;
+- the game's mechanical-scaffolding closeout registers every new behavior-free
+  shape, records all reused promoted scaffolding, and queues any required
+  prior-game refactor unit before the game is marked official.
 
 ### Gate 19: Five Hundred Rummy
 

@@ -69,6 +69,27 @@ Use only these status labels:
 |---|---|---|---|---:|---|---|---|
 | `<shape>` | behavioral mechanic / production mechanical scaffolding / test scaffolding / presentation scaffolding / superficial similarity | mechanic atlas / mechanical scaffolding register / local-only / ADR | `<game_ids>` | yes/no/unclear | `<similarities>` | `<differences>` | none / compare / ledger / register / reuse / promote / defer / ADR |
 
+## Mechanical scaffolding reuse-first audit
+
+Complete this table for every new official game before implementation
+admission. A game with no relevant scaffolding surface records one explicit
+not-applicable row with rationale.
+
+| Planned surface | Existing MSC entry/shared symbol reviewed | Decision | Why the accepted boundary fits or does not fit | New register entry needed? | Earlier official-game matches | Expected follow-on unit or accepted no-unit disposition | Hash/visibility/determinism expectation |
+|---|---|---|---|---:|---|---|---|
+| `<effect/seat/action-tree/stable-byte/test/evidence/bridge surface>` | `<MSC id and symbol/path>` | reuse / accepted exception / local-only / new candidate / rejected-rerouted / not applicable | `<rationale>` | yes/no | `<game ids/sites or none>` | `<unit id / register decision / none>` | unchanged / ADR 0009 migration required: `<authority>` |
+
+Audit rules:
+
+- compare semantic responsibility, not only names or text;
+- reuse a matching promoted helper before writing a parallel local shape;
+- register every new behavior-free first-use shape without treating first use
+  as promotion authority;
+- route legality, scoring, reveal, turn, trick, team, graph, accounting,
+  reaction, outcome, strategy, effect meaning, renderer policy, and
+  hidden-state policy back to the behavioral lane; and
+- identify prior-game refactoring work now, not after the game ships.
+
 ## Second-use note
 
 If this is the second official game with a similar mechanic shape, the shape MUST be recorded as a `repeated-shape candidate` unless the comparison rejects the similarity with rationale.
@@ -131,22 +152,21 @@ and rule links here.
 | visibility/no-leak | `<surfaces>` | `<rule_ids>` | `<notes>` |
 | benchmark pressure | `<hot paths>` | `<rule_ids>` | `<notes>` |
 
-## Required repo atlas update
+## Required repo atlas/register update
 
-Update `docs/MECHANIC-ATLAS.md` and the relevant `PRIMITIVE-PRESSURE-LEDGER.md` instance when:
-
-- this game repeats a mechanic shape from another official game;
-- this game is the third official game with the same mechanic shape;
-- a primitive is reused, promoted, rejected, or deferred;
-- trace preservation or intentional trace migration changes primitive evidence;
-- benchmarks reveal mechanic-level pressure;
-- examples or anti-examples become clearer.
+Update `docs/MECHANIC-ATLAS.md` and the relevant
+`PRIMITIVE-PRESSURE-LEDGER.md` instance when behavioral mechanic pressure
+changes. Update `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` when scaffolding is
+reused with new evidence, newly invented, kept local by decision, deferred,
+rejected, promoted, or leaves prior-game migration work.
 
 | Update target | Required? | Reason | Owner |
 |---|---:|---|---|
-| `docs/MECHANIC-ATLAS.md` | yes/no | `<reason>` | `<owner>` |
-| `PRIMITIVE-PRESSURE-LEDGER.md` | yes/no | `<reason>` | `<owner>` |
-| ADR | yes/no | `<reason>` | `<owner>` |
+| `docs/MECHANIC-ATLAS.md` | yes/no | `<behavioral pressure reason>` | `<owner>` |
+| `PRIMITIVE-PRESSURE-LEDGER.md` | yes/no | `<behavioral pressure reason>` | `<owner>` |
+| `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` | yes/no | `<reuse/new shape/prior-game migration/no-unit disposition>` | `<owner>` |
+| `specs/README.md` follow-on unit | yes/no | `<prior-game migration set or accepted no-unit rationale>` | `<owner>` |
+| ADR | yes/no | `<boundary/hash/visibility reason>` | `<owner>` |
 
 ## Anti-patterns
 
@@ -174,3 +194,8 @@ The following are forbidden:
 - Effects, UI, bot, visibility, and benchmark impacts are recorded.
 - Cross-template mechanic/scaffolding decision status links from `GAME-EVIDENCE.md`.
 - Repo atlas and primitive-pressure ledger updates are identified.
+- The mechanical-scaffolding reuse-first audit is complete even when the result is not applicable.
+- Every known promoted scaffolding match is reused or covered by an accepted exception.
+- Every new behavior-free scaffolding shape has a planned register entry.
+- Every prior-game match has a planned tracker unit or accepted no-unit disposition.
+- The required repo update section names the scaffolding register explicitly.

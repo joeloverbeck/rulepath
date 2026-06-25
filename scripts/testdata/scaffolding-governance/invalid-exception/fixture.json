@@ -1,0 +1,5 @@
+{
+  "description": "accepted local-only disposition lacks a register decision",
+  "expect": "fail",
+  "mutation": "invalid-exception"
+}

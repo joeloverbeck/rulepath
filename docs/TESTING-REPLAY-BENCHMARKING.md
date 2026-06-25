@@ -471,6 +471,47 @@ For Gate 2 benchmark gates, `bench-report` owns threshold enforcement. It MUST
 fail non-zero when a stable operation falls below its committed threshold, and
 CI MUST treat that failure as blocking.
 
+## Mechanical-scaffolding governance check
+
+Gate 1 MUST run one repository-level mechanical-scaffolding governance check for
+every pull request and push covered by the existing game-smoke workflow.
+
+The check has two enforcement layers:
+
+1. **receipt and register freshness** — every official game in `ci/games.json`
+   has a scaffolding-audit record; new games use the current forward receipt;
+   referenced register entries, evidence paths, exceptions, and follow-on spec
+   units exist; and any hash/visibility migration names ADR 0009 authority; and
+2. **known-shape linting** — high-confidence fingerprints of already-promoted
+   generic scaffolding in game-local source are either absent, routed through the
+   shared helper, or explicitly covered by the game's register-backed audit
+   decision.
+
+The check MUST NOT claim to prove arbitrary semantic equivalence. Textual
+similarity, common control flow, or shared game nouns are not sufficient evidence
+that code is behavior-free scaffolding. Novel shapes remain a human-reviewed
+classification recorded in `GAME-MECHANICS.md`, `GAME-EVIDENCE.md`, and the
+register.
+
+False-positive control is mandatory:
+
+- lint only stable, high-confidence generic-contract fingerprints already named
+  by accepted register entries;
+- report the signal id, file, line, expected shared home, and governing register
+  entry;
+- exclude behavior on the register Non-Promotion List from automatic
+  scaffolding classification; and
+- permit an exception only through a committed register decision with owner,
+  rationale, evidence, and next review trigger.
+
+There is no environment-variable, branch-name, or CI-label bypass. A temporary
+or permanent exception is a repository decision and is reviewed in the same
+change that needs it.
+
+This check changes no game behavior, replay/hash bytes, visibility authority, or
+fixture/export authority. It validates governance receipts and source
+conformance only.
+
 ## 17. CI expectations
 
 CI SHOULD run:
@@ -488,6 +529,7 @@ CI SHOULD run:
 - rule-coverage drift checks;
 - static data validation;
 - docs link checks where practical;
+- mechanical-scaffolding governance receipt/register/fingerprint drift check;
 - WASM build smoke;
 - UI smoke for exposed games.
 
