@@ -120,6 +120,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::RiverLedger,
         RegisteredGame::BriarCircuit,
         RegisteredGame::VowTide,
+        RegisteredGame::BlackglassPact,
     ]
         .iter()
         .map(|game| {
@@ -276,10 +277,20 @@ pub fn list_games() -> Result<String, String> {
                 catalog_vow_tide_seat_labels_json(),
                 catalog_viewer_modes_json(7)
             ),
+            RegisteredGame::BlackglassPact => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"trick_taking\",\"bidding\",\"partnership\",\"multi_seat\"],\"min_seats\":4,\"max_seats\":4,\"default_seats\":4,\"supported_seats\":[4],\"seat_labels\":{},\"viewer_modes\":{}}}",
+                escape_json(GAME_BLACKGLASS_PACT),
+                escape_json(GAME_BLACKGLASS_PACT_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                variants_json(&[(VARIANT_BLACKGLASS_PACT_STANDARD, GAME_BLACKGLASS_PACT_DISPLAY_NAME, None)]),
+                catalog_blackglass_pact_seat_labels_json(),
+                catalog_viewer_modes_json(4)
+            ),
         };
             if matches!(
                 game,
-                RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit | RegisteredGame::VowTide
+                RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit | RegisteredGame::VowTide | RegisteredGame::BlackglassPact
             ) {
                 return catalog_json;
             }
@@ -295,6 +306,10 @@ pub fn list_games() -> Result<String, String> {
         .collect::<Vec<_>>()
         .join(",");
     Ok(format!("[{games}]"))
+}
+
+fn catalog_blackglass_pact_seat_labels_json() -> String {
+    "[{\"seat\":\"seat_0\",\"label\":\"North\"},{\"seat\":\"seat_1\",\"label\":\"East\"},{\"seat\":\"seat_2\",\"label\":\"South\"},{\"seat\":\"seat_3\",\"label\":\"West\"}]".to_owned()
 }
 
 fn catalog_vow_tide_seat_labels_json() -> String {

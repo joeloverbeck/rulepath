@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-014: WASM adapter, catalog, dispatch, and player-rules surfaces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api` (adapter/catalog/dispatch), `apps/web/public/rules`, `games/blackglass_pact/docs/HOW-TO-PLAY.md`, `scripts/check-player-rules.mjs`, `apps/web/scripts/smoke-load-wasm.mjs`
@@ -82,3 +82,37 @@ Expose Blackglass Pact through the Rust↔browser bridge: a `crates/wasm-api/src
 1. `cargo test -p wasm-api && npm --prefix apps/web run smoke:wasm`
 2. `node scripts/copy-player-rules.mjs && node scripts/check-player-rules.mjs`
 3. Expected red window: `check-catalog-docs` / `check-outcome-explanations` stay red until GAT18BLAPACSPA-016/017 land the README + UI.md surfaces.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added the `blackglass_pact` WASM adapter, fixed-four setup/catalog dispatch,
+viewer-safe views/effects, action-tree authorization, command replay
+export/import/step support, and L1 bot turn dispatch. Registered the game in the
+WASM catalog and API snapshot with public observer plus four seat viewer modes.
+
+Added player-facing rules source at
+`games/blackglass_pact/docs/HOW-TO-PLAY.md`, generated
+`apps/web/public/rules/blackglass_pact.md`, refreshed the player-rules manifest,
+and registered Blackglass Pact as a hidden-information game in the rules check.
+Extended `smoke-load-wasm.mjs` with the Blackglass catalog assertion.
+
+No-leak verification was extended through the existing pairwise harness for all
+four Blackglass private hands, covering views, effects, action trees, replay
+export, and inert browser-adjacent surfaces.
+
+Verification:
+
+- `cargo test -p wasm-api` passed.
+- `npm --prefix apps/web run smoke:wasm` passed after installing the missing
+  local `wasm32-unknown-unknown` Rust target with
+  `rustup target add wasm32-unknown-unknown`.
+- `node scripts/copy-player-rules.mjs && node scripts/check-player-rules.mjs`
+  passed.
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.
+
+Expected red window preserved: `check-catalog-docs` /
+`check-outcome-explanations` remain owned by GAT18BLAPACSPA-016/017 and were not
+run for this ticket.

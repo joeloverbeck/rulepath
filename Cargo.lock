@@ -313,6 +313,7 @@ name = "wasm-api"
 version = "0.1.0"
 dependencies = [
  "ai-core",
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",

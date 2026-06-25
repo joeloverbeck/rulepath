@@ -730,6 +730,7 @@ fn hidden_info_bridge_games_invoke_pairwise_no_leak_harness() {
         plain_tricks_pairwise_no_leak_case(),
         masked_claims_pairwise_no_leak_case(),
         river_ledger_pairwise_no_leak_case(),
+        blackglass_pact_pairwise_no_leak_case(),
     ] {
         assert_pairwise_no_leak(&case);
     }
@@ -1920,6 +1921,33 @@ fn river_ledger_pairwise_no_leak_case() -> PairwiseNoLeakCase {
             .map(|card| card.id().to_owned())
             .collect::<Vec<_>>();
         private_terms_by_seat.insert(seat.as_str(), cards);
+    }
+    bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
+}
+
+fn blackglass_pact_pairwise_no_leak_case() -> PairwiseNoLeakCase {
+    let seed = 767;
+    let created = new_match("blackglass_pact", seed).expect("match created");
+    let match_id = extract_match_id(&created);
+    let internal = blackglass_pact::setup_match(
+        Seed(seed),
+        &blackglass_pact::canonical_seat_ids(),
+        &blackglass_pact::SetupOptions::default(),
+    )
+    .expect("setup succeeds");
+    let mut private_terms_by_seat = BTreeMap::new();
+    for seat in blackglass_pact::BlackglassSeat::ALL {
+        let cards = internal
+            .hand_for_internal(seat)
+            .iter()
+            .map(|card| card.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            !cards.is_empty(),
+            "expected private hand for {}",
+            seat.as_str()
+        );
+        private_terms_by_seat.insert(seat.as_str().to_owned(), cards);
     }
     bridge_pairwise_no_leak_case(&match_id, private_terms_by_seat)
 }
