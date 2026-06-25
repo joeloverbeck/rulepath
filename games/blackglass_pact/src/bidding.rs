@@ -4,6 +4,7 @@ use crate::{
     effects::BlackglassPactEffect,
     ids::BlackglassSeat,
     partnerships::team_for_seat,
+    rules::{legal_play_cards, ACTION_PLAY},
     setup::{complete_blind_nil_and_deal, BLIND_NIL_DEFICIT_THRESHOLD},
     state::{Bid, BlackglassPactState, BlindNilChoice, Phase},
 };
@@ -36,6 +37,9 @@ pub fn legal_action_tree(state: &BlackglassPactState, actor: &Actor) -> ActionTr
 
     if active_bid_seat(state) == Some(actor_seat) {
         return bid_action_tree(state);
+    }
+    if active_play_seat(state) == Some(actor_seat) {
+        return play_action_tree(state, actor_seat);
     }
 
     ActionTree::flat(state.freshness_token, Vec::new())
@@ -83,6 +87,37 @@ fn bid_action_tree(state: &BlackglassPactState) -> ActionTree {
     ActionTree {
         root: ActionNode {
             choices: vec![bid_choice],
+        },
+        freshness_token: state.freshness_token,
+    }
+}
+
+fn play_action_tree(state: &BlackglassPactState, actor: BlackglassSeat) -> ActionTree {
+    let legal_cards = legal_play_cards(state, actor);
+    if legal_cards.is_empty() {
+        return ActionTree::flat(state.freshness_token, Vec::new());
+    }
+
+    let mut play_choice = ActionChoice::leaf(ACTION_PLAY, "Play", "Play a card");
+    play_choice.tags = vec!["play".to_owned(), "card-choice".to_owned()];
+    play_choice.preview = ActionPreview::Available;
+    play_choice.next = Some(Box::new(ActionNode {
+        choices: legal_cards
+            .into_iter()
+            .map(|card| {
+                let label = card.card().public_label();
+                let mut choice =
+                    ActionChoice::leaf(card.as_str(), label.clone(), format!("Play {label}"));
+                choice.tags = vec!["play".to_owned(), "card".to_owned()];
+                choice.preview = ActionPreview::Available;
+                choice
+            })
+            .collect(),
+    }));
+
+    ActionTree {
+        root: ActionNode {
+            choices: vec![play_choice],
         },
         freshness_token: state.freshness_token,
     }
@@ -223,6 +258,13 @@ pub fn actor_seat(state: &BlackglassPactState, actor: &Actor) -> Option<Blackgla
 pub fn active_bid_seat(state: &BlackglassPactState) -> Option<BlackglassSeat> {
     match state.phase {
         Phase::Bidding { next, .. } if state.bid_for(next).is_none() => Some(next),
+        _ => None,
+    }
+}
+
+pub fn active_play_seat(state: &BlackglassPactState) -> Option<BlackglassSeat> {
+    match state.phase {
+        Phase::PlayingTrick { next, .. } => Some(next),
         _ => None,
     }
 }

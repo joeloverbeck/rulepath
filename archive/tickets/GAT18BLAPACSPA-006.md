@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-006: trick play with promoted-helper reuse and broken-spades policy
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/blackglass_pact` (rules/state/effects), reuses `game-stdlib::trick_taking` unchanged + golden traces
@@ -80,3 +80,26 @@ Implement the `PlayingTrick` phase: first leader left of dealer; legal-lead / fo
 1. `cargo test -p blackglass_pact --test rules --test property`
 2. `cargo test -p game-stdlib && cargo test -p blackglass_pact`
 3. Crate + game-stdlib scope is correct; helper non-mutation is proven by game-stdlib staying green.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented trick play and promoted-helper reuse:
+
+- Added `play/<card-id>` parsing, legal play leaves, active-seat/ownership/follow-suit validation, and stable play diagnostics.
+- Added game-local broken-spades lead policy with the all-spades lead exception and off-suit-spade break mutation.
+- Reused `game_stdlib::trick_taking::follow_suit_indices` unchanged for follower legality and `winning_play_index(..., Some(Suit::Spades), ...)` unchanged for trick winners.
+- Added public `CardPlayed`, `SpadesBroken`, and `TrickCaptured` effects.
+- Added trick mutation: remove played cards from private hands, resolve after four plays, increment winner trick count, winner leads the next trick, and move to `HandScoring` after trick 13.
+- Added play/helper conformance golden trace JSON evidence.
+
+Deviations from plan: introduced a local `Phase::HandScoring { completed_tricks }` placeholder so the thirteenth trick has a truthful endpoint without implementing scoring early. Scoring and terminal behavior remain deferred to GAT18BLAPACSPA-007.
+
+Verification:
+
+- `cargo test -p blackglass_pact --test rules --test property` passed (14 rules tests, 11 property tests).
+- `cargo test -p game-stdlib` passed (28 unit tests, doc tests).
+- `cargo test -p blackglass_pact` passed (1 lib test, 11 property tests, 14 rules tests, 2 serialization tests, 1 visibility test).
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.

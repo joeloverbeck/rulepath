@@ -1,0 +1,8 @@
+{
+  "trace_id": "promoted-winner-index-helper-conformance",
+  "game_id": "blackglass_pact",
+  "helper": "game_stdlib::trick_taking::winning_play_index",
+  "trump_argument": "Some(Suit::Spades)",
+  "signature_changed": false,
+  "oracle_test": "spades_trump_helper_agrees_with_independent_oracle"
+}

@@ -16,7 +16,7 @@ pub mod variants;
 pub mod visibility;
 
 pub use bidding::{
-    active_bid_seat, apply_bid_action, apply_bid_choice, apply_blind_nil_action,
+    active_bid_seat, active_play_seat, apply_bid_action, apply_bid_choice, apply_blind_nil_action,
     apply_blind_nil_choice, legal_action_tree, opening_blind_nil_effect, parse_bid_action_path,
     parse_blind_nil_action_path, BidAction, BlindNilAction, ACTION_BID, ACTION_BID_NIL,
     ACTION_BLIND_DECLARE, ACTION_BLIND_DECLINE, ACTION_BLIND_NIL, MAX_NUMERIC_BID, MIN_NUMERIC_BID,
@@ -31,6 +31,10 @@ pub use ids::{
 };
 pub use partnerships::{
     canonical_team_ids, members_for_team, partner_for, team_for_seat, team_id_for_index,
+};
+pub use rules::{
+    apply_play_action, apply_play_choice, lead_is_legal, legal_leads, legal_play_cards,
+    parse_play_action_path, trick_winner, PlayAction, ACTION_PLAY,
 };
 pub use setup::{
     deal_for_hand, deal_order_after, eligible_blind_nil_order, seed_for_hand, setup_match,

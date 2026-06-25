@@ -1,0 +1,8 @@
+{
+  "trace_id": "only-spades-lead-exception-breaks-spades",
+  "game_id": "blackglass_pact",
+  "spades_broken_before": false,
+  "leader_hand_shape": ["spade"],
+  "accepted_action": "play/ace_spades",
+  "public_effect": "SpadesBroken"
+}

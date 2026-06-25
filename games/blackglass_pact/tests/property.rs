@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use blackglass_pact::{
     apply_bid_choice, apply_blind_nil_choice, canonical_deck, canonical_seat_ids,
     legal_action_tree, parse_bid_action_path, public_team_contracts, setup_match,
-    setup_match_with_scores, Bid, BlackglassSeat, BlindNilChoice, Card, CardId, Rank, SetupOptions,
-    Suit, TeamId, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
+    setup_match_with_scores, trick_winner, Bid, BlackglassSeat, BlindNilChoice, Card, CardId,
+    Phase, PlayedCard, Rank, SetupOptions, Suit, TeamId, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
 };
 use engine_core::{Actor, SeatId, Seed};
 
@@ -208,6 +208,88 @@ fn nil_and_blind_nil_contribute_zero_to_ordinary_contract() {
     assert_eq!(state.ordinary_team_contract(TeamId::EastWest), 6);
 }
 
+#[test]
+fn spades_trump_helper_agrees_with_independent_oracle() {
+    let seats = [
+        BlackglassSeat::East,
+        BlackglassSeat::South,
+        BlackglassSeat::West,
+        BlackglassSeat::North,
+    ];
+    for led_suit in Suit::ALL {
+        for second_suit in Suit::ALL {
+            for third_suit in Suit::ALL {
+                for fourth_suit in Suit::ALL {
+                    let suits = [led_suit, second_suit, third_suit, fourth_suit];
+                    let ranks = [Rank::Two, Rank::Seven, Rank::Ace, Rank::King];
+                    let plays = suits
+                        .into_iter()
+                        .zip(ranks)
+                        .zip(seats)
+                        .map(|((suit, rank), seat)| PlayedCard {
+                            seat,
+                            card: Card::new(rank, suit).id(),
+                        })
+                        .collect::<Vec<_>>();
+
+                    assert_eq!(trick_winner(&plays).expect("winner"), oracle_winner(&plays));
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn four_plays_on_thirteenth_trick_complete_the_hand() {
+    let mut state = setup_match(Seed(1817), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    state.private_hands = vec![
+        (BlackglassSeat::North, vec![card(Rank::Five, Suit::Clubs)]),
+        (BlackglassSeat::East, vec![card(Rank::Two, Suit::Clubs)]),
+        (BlackglassSeat::South, vec![card(Rank::Three, Suit::Clubs)]),
+        (BlackglassSeat::West, vec![card(Rank::Four, Suit::Clubs)]),
+    ];
+    state.phase = Phase::PlayingTrick {
+        leader: BlackglassSeat::East,
+        next: BlackglassSeat::East,
+        plays: Vec::new(),
+        trick_index: 12,
+    };
+
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::East,
+        card(Rank::Two, Suit::Clubs),
+    )
+    .expect("east plays");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::South,
+        card(Rank::Three, Suit::Clubs),
+    )
+    .expect("south plays");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::West,
+        card(Rank::Four, Suit::Clubs),
+    )
+    .expect("west plays");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::North,
+        card(Rank::Five, Suit::Clubs),
+    )
+    .expect("north plays");
+
+    assert_eq!(
+        state.phase,
+        Phase::HandScoring {
+            completed_tricks: 13
+        }
+    );
+    assert_eq!(state.tricks_won[BlackglassSeat::North.index()], 1);
+}
+
 fn state_hand_bytes(state: &blackglass_pact::BlackglassPactState, seat: BlackglassSeat) -> Vec<u8> {
     state
         .hand_for_internal(seat)
@@ -240,4 +322,25 @@ fn bid_path_segment(bid: Bid) -> String {
         Bid::Tricks(value) => value.to_string(),
         Bid::BlindNil => "blind_nil".to_owned(),
     }
+}
+
+fn oracle_winner(plays: &[PlayedCard]) -> BlackglassSeat {
+    let winning_suit = if plays
+        .iter()
+        .any(|play| play.card.card().suit == Suit::Spades)
+    {
+        Suit::Spades
+    } else {
+        plays[0].card.card().suit
+    };
+    plays
+        .iter()
+        .filter(|play| play.card.card().suit == winning_suit)
+        .max_by_key(|play| play.card.card().rank.value())
+        .expect("non-empty plays")
+        .seat
+}
+
+fn card(rank: Rank, suit: Suit) -> CardId {
+    Card::new(rank, suit).id()
 }

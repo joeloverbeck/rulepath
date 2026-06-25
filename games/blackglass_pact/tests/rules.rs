@@ -1,8 +1,9 @@
 use blackglass_pact::{
     apply_bid_choice, apply_blind_nil_choice, canonical_seat_ids, eligible_blind_nil_order,
-    legal_action_tree, parse_bid_action_path, partner_for, setup_match, setup_match_with_scores,
-    team_for_seat, validate_standard_seat_count, Bid, BlackglassSeat, BlindNilChoice, Phase,
-    SetupOptions, TeamId, ACTION_BID_NIL, STANDARD_HAND_SIZE,
+    legal_action_tree, legal_play_cards, parse_bid_action_path, partner_for, setup_match,
+    setup_match_with_scores, team_for_seat, validate_standard_seat_count, Bid, BlackglassSeat,
+    BlindNilChoice, Card, CardId, Phase, Rank, SetupOptions, Suit, TeamId, ACTION_BID_NIL,
+    STANDARD_HAND_SIZE,
 };
 use engine_core::{Actor, SeatId, Seed};
 
@@ -220,6 +221,153 @@ fn dealer_last_bid_has_no_total_thirteen_hook() {
     assert!(leaves.contains(&"13".to_owned()));
 }
 
+#[test]
+fn spade_lead_is_blocked_before_broken_when_non_spade_is_held() {
+    let mut state = playing_state([
+        vec![card(Rank::Ace, Suit::Spades), card(Rank::Two, Suit::Clubs)],
+        vec![card(Rank::Three, Suit::Clubs)],
+        vec![card(Rank::Four, Suit::Clubs)],
+        vec![card(Rank::Five, Suit::Clubs)],
+    ]);
+
+    assert_eq!(
+        legal_play_cards(&state, BlackglassSeat::East),
+        vec![card(Rank::Two, Suit::Clubs)]
+    );
+    let diagnostic = blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::East,
+        card(Rank::Ace, Suit::Spades),
+    )
+    .expect_err("spade lead blocked");
+    assert_eq!(diagnostic.code, "BP_SPADES_NOT_BROKEN");
+}
+
+#[test]
+fn only_spades_lead_exception_breaks_spades() {
+    let mut state = playing_state([
+        vec![card(Rank::Ace, Suit::Spades)],
+        vec![card(Rank::Three, Suit::Clubs)],
+        vec![card(Rank::Four, Suit::Clubs)],
+        vec![card(Rank::Five, Suit::Clubs)],
+    ]);
+
+    let effects = blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::East,
+        card(Rank::Ace, Suit::Spades),
+    )
+    .expect("only spade lead allowed");
+
+    assert!(state.spades_broken);
+    assert!(effects.iter().any(|effect| matches!(
+        effect,
+        blackglass_pact::BlackglassPactEffect::SpadesBroken { .. }
+    )));
+}
+
+#[test]
+fn follower_must_follow_suit_when_holding_led_suit() {
+    let mut state = playing_state([
+        vec![card(Rank::Two, Suit::Clubs)],
+        vec![
+            card(Rank::Ace, Suit::Spades),
+            card(Rank::Three, Suit::Clubs),
+        ],
+        vec![card(Rank::Four, Suit::Clubs)],
+        vec![card(Rank::Five, Suit::Clubs)],
+    ]);
+
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::East,
+        card(Rank::Two, Suit::Clubs),
+    )
+    .expect("east leads clubs");
+    assert_eq!(
+        legal_play_cards(&state, BlackglassSeat::South),
+        vec![card(Rank::Three, Suit::Clubs)]
+    );
+    let diagnostic = blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::South,
+        card(Rank::Ace, Suit::Spades),
+    )
+    .expect_err("must follow clubs");
+    assert_eq!(diagnostic.code, "BP_MUST_FOLLOW_SUIT");
+}
+
+#[test]
+fn void_follower_may_play_spade_off_suit_and_break_spades() {
+    let mut state = playing_state([
+        vec![card(Rank::Two, Suit::Clubs)],
+        vec![card(Rank::Ace, Suit::Spades)],
+        vec![card(Rank::Four, Suit::Clubs)],
+        vec![card(Rank::Five, Suit::Clubs)],
+    ]);
+
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::East,
+        card(Rank::Two, Suit::Clubs),
+    )
+    .expect("east leads clubs");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::South,
+        card(Rank::Ace, Suit::Spades),
+    )
+    .expect("void south may trump");
+
+    assert!(state.spades_broken);
+}
+
+#[test]
+fn highest_spade_wins_and_winner_leads_next() {
+    let mut state = playing_state([
+        vec![card(Rank::Two, Suit::Clubs)],
+        vec![card(Rank::Ace, Suit::Spades)],
+        vec![card(Rank::King, Suit::Clubs)],
+        vec![card(Rank::Three, Suit::Clubs)],
+    ]);
+
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::East,
+        card(Rank::Two, Suit::Clubs),
+    )
+    .expect("east leads");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::South,
+        card(Rank::Ace, Suit::Spades),
+    )
+    .expect("south trumps");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::West,
+        card(Rank::King, Suit::Clubs),
+    )
+    .expect("west follows");
+    blackglass_pact::apply_play_choice(
+        &mut state,
+        BlackglassSeat::North,
+        card(Rank::Three, Suit::Clubs),
+    )
+    .expect("north follows");
+
+    assert_eq!(state.tricks_won[BlackglassSeat::South.index()], 1);
+    assert_eq!(
+        state.phase,
+        Phase::PlayingTrick {
+            leader: BlackglassSeat::South,
+            next: BlackglassSeat::South,
+            plays: Vec::new(),
+            trick_index: 1,
+        }
+    );
+}
+
 trait BiddingTestExt {
     fn phase_active_bidder(&self) -> Option<BlackglassSeat>;
 }
@@ -256,4 +404,28 @@ fn actor_for(seat: BlackglassSeat) -> Actor {
     Actor {
         seat_id: SeatId::from_zero_based_index(seat.index() as u32),
     }
+}
+
+fn playing_state(hands_in_play_order: [Vec<CardId>; 4]) -> blackglass_pact::BlackglassPactState {
+    let mut state = setup_match(Seed(1816), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    let [east, south, west, north] = hands_in_play_order;
+    state.private_hands = vec![
+        (BlackglassSeat::North, north),
+        (BlackglassSeat::East, east),
+        (BlackglassSeat::South, south),
+        (BlackglassSeat::West, west),
+    ];
+    state.phase = Phase::PlayingTrick {
+        leader: BlackglassSeat::East,
+        next: BlackglassSeat::East,
+        plays: Vec::new(),
+        trick_index: 0,
+    };
+    state.spades_broken = false;
+    state
+}
+
+fn card(rank: Rank, suit: Suit) -> CardId {
+    Card::new(rank, suit).id()
 }

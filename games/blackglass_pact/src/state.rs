@@ -42,6 +42,9 @@ pub enum Phase {
         plays: Vec<PlayedCard>,
         trick_index: u8,
     },
+    HandScoring {
+        completed_tricks: u8,
+    },
     Terminal {
         winning_team: TeamId,
     },
@@ -133,6 +136,13 @@ impl BlackglassPactState {
             .find(|(candidate, _)| *candidate == seat)
             .map(|(_, hand)| hand.as_slice())
             .unwrap_or(&[])
+    }
+
+    pub fn hand_for_internal_mut(&mut self, seat: BlackglassSeat) -> Option<&mut Vec<CardId>> {
+        self.private_hands
+            .iter_mut()
+            .find(|(candidate, _)| *candidate == seat)
+            .map(|(_, hand)| hand)
     }
 
     pub fn stable_setup_summary(&self) -> String {

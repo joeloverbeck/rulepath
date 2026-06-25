@@ -1,0 +1,7 @@
+{
+  "trace_id": "promoted-follow-suit-helper-conformance",
+  "game_id": "blackglass_pact",
+  "helper": "game_stdlib::trick_taking::follow_suit_indices",
+  "signature_changed": false,
+  "caller_owned_policy": ["phase", "actor", "ownership", "broken_spades_lead_policy"]
+}

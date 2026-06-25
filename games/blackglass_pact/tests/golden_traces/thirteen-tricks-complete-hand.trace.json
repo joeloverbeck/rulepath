@@ -1,0 +1,10 @@
+{
+  "trace_id": "thirteen-tricks-complete-hand",
+  "game_id": "blackglass_pact",
+  "starting_trick_index": 12,
+  "after_fourth_play": {
+    "phase": "HandScoring",
+    "completed_tricks": 13
+  },
+  "scoring_deferred_to": "GAT18BLAPACSPA-007"
+}

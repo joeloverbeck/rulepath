@@ -1,0 +1,6 @@
+{
+  "trace_id": "invalid-spade-lead-diagnostic",
+  "game_id": "blackglass_pact",
+  "diagnostic": "BP_SPADES_NOT_BROKEN",
+  "safe_message": "does not enumerate hidden alternatives"
+}

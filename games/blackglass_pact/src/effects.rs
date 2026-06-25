@@ -1,7 +1,7 @@
 use crate::{
     cards::CardId,
     ids::{BlackglassSeat, TeamId},
-    state::Bid,
+    state::{Bid, PlayedCard},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,5 +31,20 @@ pub enum BlackglassPactEffect {
         seat: BlackglassSeat,
         team: TeamId,
         bid: Bid,
+    },
+    CardPlayed {
+        seat: BlackglassSeat,
+        card: CardId,
+        trick_index: u8,
+    },
+    SpadesBroken {
+        seat: BlackglassSeat,
+        card: CardId,
+        trick_index: u8,
+    },
+    TrickCaptured {
+        winner: BlackglassSeat,
+        trick_index: u8,
+        plays: Vec<PlayedCard>,
     },
 }
