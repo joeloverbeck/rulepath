@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-004: ENGINE-GAME-DATA-BOUNDARY §13A forward-conformance boundary
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — governance/area-doc edit (`docs/ENGINE-GAME-DATA-BOUNDARY.md`)
@@ -68,3 +68,29 @@ Insert the §13A section (plan §5.4 draft) after §13 and before §14: the forw
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. `git diff -- docs/ENGINE-GAME-DATA-BOUNDARY.md` (review: only §13A added)
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/ENGINE-GAME-DATA-BOUNDARY.md` by adding §13A
+`Forward mechanical-scaffolding conformance boundary` between §13
+`game-stdlib` promotion boundary and §14 Future DSL policy.
+
+The new section states the forward reuse-first audit, first-use registration,
+queue-or-dispose closeout, behavior-bearing exclusion list, and ADR 0009
+migration boundary for any replay/hash/fixture/export/RNG/serialization or
+visibility change.
+
+Deviation: none. §13 behavioral promotion-boundary text and §14 DSL policy were
+not edited.
+
+Verification:
+
+- `grep -n "13A" docs/ENGINE-GAME-DATA-BOUNDARY.md` confirmed the new section.
+- A safely quoted `rg` check for the §13 heading, §14 heading, behavior-exclusion
+  text, and ADR 0009 boundary text confirmed §13A is between §13 and §14.
+- `git diff -- docs/ENGINE-GAME-DATA-BOUNDARY.md` showed only the §13A insertion.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `bash scripts/boundary-check.sh` passed.
+- `git diff --check` passed.
