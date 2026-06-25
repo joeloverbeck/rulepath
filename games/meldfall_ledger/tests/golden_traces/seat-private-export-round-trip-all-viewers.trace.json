@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "trace_id": "seat-private-export-round-trip-all-viewers",
+  "fixture_kind": "viewer_export",
+  "purpose": "seat_private_export_round_trip_all_viewers",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "variant": "classic_500_single_deck_v1",
+  "viewers": ["observer", "seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"],
+  "export_class": "meldfall_ledger_viewer_scoped_observation_v1",
+  "hidden_information": "private hands and stock order",
+  "public_no_leak": true,
+  "deterministic_round_trip": true,
+  "evidence": "games/meldfall_ledger/tests/replay.rs viewer-scoped export round-trip"
+}

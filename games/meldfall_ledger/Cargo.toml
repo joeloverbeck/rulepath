@@ -9,6 +9,9 @@ repository.workspace = true
 engine-core = { path = "../../crates/engine-core" }
 game-stdlib = { path = "../../crates/game-stdlib" }
 
+[dev-dependencies]
+game-test-support = { path = "../../crates/game-test-support" }
+
 [lib]
 path = "src/lib.rs"
 bench = false

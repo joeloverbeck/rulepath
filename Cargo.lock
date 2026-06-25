@@ -159,6 +159,7 @@ version = "0.1.0"
 dependencies = [
  "engine-core",
  "game-stdlib",
+ "game-test-support",
 ]
 
 [[package]]

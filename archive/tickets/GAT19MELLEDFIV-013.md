@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-013: Viewer-scoped replay export/import and six-seat pairwise no-leak harness
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{replay_support,visibility}.rs`; no-leak golden traces; pairwise no-leak tests (ADR 0004/0009)
@@ -85,3 +85,19 @@ Pairwise source-seat × viewer-seat redaction utilities backing the six-seat mat
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. `cargo run -p replay-check -- --game meldfall_ledger --all` is fully wired in GAT19MELLEDFIV-016; until then export determinism is asserted by `cargo test`.
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented Meldfall Ledger viewer-scoped replay export/import support in `games/meldfall_ledger/src/replay_support.rs`. Exports are built from the Rust-owned viewer projection, redacted action tree, and viewer-filtered effects, carry stable export metadata, produce deterministic stable strings/hashes/JSON, and reject import when the requested viewer does not match the export scope.
+
+Added `games/meldfall_ledger/tests/replay.rs` coverage for public observer plus all six seat-private exports, deterministic round-trip, no privilege elevation, and hidden hand/stock absence from forbidden viewer exports. Added the repo-local `game-test-support` dev dependency and a six-seat pairwise matrix in `games/meldfall_ledger/tests/visibility.rs` over view, action-tree, effects, diagnostic, placeholder bot-explanation, and export surfaces.
+
+Added no-leak/export trace fixtures: `public-observer-no-leak-6p`, `seat-private-export-round-trip-all-viewers`, and `viewer-export-no-privilege-elevation`. `cargo run -p replay-check -- --game meldfall_ledger --all` remains intentionally deferred until GAT19MELLEDFIV-016 wires Meldfall Ledger into `replay-check`; current export determinism is covered by tests.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p meldfall_ledger`
+3. `cargo test --workspace`
