@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-010: ROADMAP pre-Gate-18 governance subsection + Gate 18 admission/exit
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/ROADMAP.md`)
@@ -77,3 +77,30 @@ Add the Gate 18 admission sentence (admitted only when `8F` is `Done`) and the G
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/ROADMAP.md` (review: subsection + interlock reconciliation + Gate 18 hooks)
 3. `grep -n "Pre-Gate-18" docs/ROADMAP.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/ROADMAP.md` to make Unit 8F a ladder-level pre-Gate-18 governance
+interlock:
+
+- cross-referenced the existing Pre-Gate-18 debt interlock to the new forward
+  governance subsection;
+- added `Pre-Gate-18: forward scaffolding-reuse governance` after Gate 17 and
+  before Gate 18;
+- added the Gate 18 admission sentence requiring the forward governance unit to
+  be `Done`, a completed reuse-first audit, and prior-game impact disposition;
+- added the Gate 18 exit bullet for mechanical-scaffolding closeout before the
+  game is marked official.
+
+Deviation: none. The roadmap remains ladder law, not a progress diary; progress
+state remains owned by `specs/README.md`.
+
+Verification:
+
+- `grep -ni "forward scaffolding-reuse governance" docs/ROADMAP.md` confirmed the cross-reference, subsection, and Gate 18 admission text.
+- `grep -n "Pre-Gate-18" docs/ROADMAP.md` confirmed the existing interlock and new subsection cross-reference each other.
+- `rg -n "Admission: the pre-Gate-18|mechanical-scaffolding closeout|8F|standing forward admission|debt interlock" docs/ROADMAP.md` confirmed the admission/exit hooks.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
