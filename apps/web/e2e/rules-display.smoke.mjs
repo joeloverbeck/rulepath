@@ -27,6 +27,7 @@ const expectedGames = [
   "River Ledger",
   "Briar Circuit",
   "Vow Tide",
+  "Blackglass Pact",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

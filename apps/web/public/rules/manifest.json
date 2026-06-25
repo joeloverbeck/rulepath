@@ -117,5 +117,12 @@
     "rules_asset_path": "/rules/vow_tide.md",
     "source_rules_version_checked": "vow-tide-rules-v1",
     "sha256": "a82918c8b99fabb6b2b5f6b2bf132edef7c88efb58e870194c6d65b5cabceb85"
+  },
+  {
+    "game_id": "blackglass_pact",
+    "display_name": "Blackglass Pact",
+    "rules_asset_path": "/rules/blackglass_pact.md",
+    "source_rules_version_checked": "blackglass-pact-rules-v1",
+    "sha256": "13e489cf3e305ace6dc55c942dfc8c8a3acd514ac3b8dc8e3860ff699437fa0f"
   }
 ]

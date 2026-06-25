@@ -252,6 +252,20 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["vow_tide"],
     ruleRefLabel: "VT-STANDINGS-001",
   },
+  "blackglass_pact.team_score_win": {
+    summary: "{winner} reached the terminal score condition with the higher team score.",
+    expandedHeading: "Team score result",
+    requiredParams: ["winner"],
+    allowedGameIds: ["blackglass_pact"],
+    ruleRefLabel: "BP-END-001 through BP-END-003",
+  },
+  "blackglass_pact.tied_threshold_continues": {
+    summary: "Both teams are tied at the threshold, so another complete hand is required.",
+    expandedHeading: "Tied threshold",
+    requiredParams: [],
+    allowedGameIds: ["blackglass_pact"],
+    ruleRefLabel: "BP-END-004",
+  },
   "masked_claims.score_win": {
     summary: "{winner} has the higher final score.",
     expandedHeading: "Final score",

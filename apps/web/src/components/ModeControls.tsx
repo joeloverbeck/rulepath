@@ -220,6 +220,9 @@ function isTerminalView(view: PublicView | null): boolean {
   if ("game_id" in view && view.game_id === "vow_tide") {
     return view.terminal.kind !== "non_terminal";
   }
+  if ("game_id" in view && view.game_id === "blackglass_pact") {
+    return view.phase.kind === "terminal";
+  }
   if ("game_id" in view && view.game_id === "masked_claims") {
     return view.terminal.kind !== "non_terminal";
   }

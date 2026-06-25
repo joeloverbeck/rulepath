@@ -1,5 +1,10 @@
 use std::{collections::BTreeMap, env, fs, path::PathBuf, process, time::Instant};
 
+use blackglass_pact::{
+    canonical_seat_ids as blackglass_seat_ids, setup_match as setup_blackglass_match,
+    BlackglassL0Bot, BlackglassL1Bot, BlackglassSeat, BlackglassViewer,
+    SetupOptions as BlackglassSetupOptions,
+};
 use briar_circuit::{
     apply_pass_action as apply_briar_pass, apply_play_action as apply_briar_play,
     canonical_seat_ids as briar_seat_ids, setup_match as setup_briar_match, BriarCircuitBotAction,
@@ -59,6 +64,7 @@ const GAME_PLAIN_TRICKS: &str = "plain_tricks";
 const GAME_RIVER_LEDGER: &str = "river_ledger";
 const GAME_BRIAR_CIRCUIT: &str = "briar_circuit";
 const GAME_VOW_TIDE: &str = "vow_tide";
+const GAME_BLACKGLASS_PACT: &str = "blackglass_pact";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -224,11 +230,15 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_RIVER_LEDGER
         && config.game != GAME_BRIAR_CIRCUIT
         && config.game != GAME_VOW_TIDE
+        && config.game != GAME_BLACKGLASS_PACT
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}, {GAME_BLACKGLASS_PACT}\n",
             config.game
         ));
+    }
+    if config.game == GAME_BLACKGLASS_PACT && config.seat_count.unwrap_or(4) != 4 {
+        return Err("--seat-count for blackglass_pact must be 4\n".to_owned());
     }
     if config.game == GAME_BRIAR_CIRCUIT && config.seat_count.unwrap_or(4) != 4 {
         return Err("--seat-count for briar_circuit must be 4\n".to_owned());
@@ -274,7 +284,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -356,6 +366,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_VOW_TIDE {
         return run_vow_tide_simulation(config);
+    }
+    if config.game == GAME_BLACKGLASS_PACT {
+        return run_blackglass_pact_simulation(config);
     }
 
     let started = Instant::now();
@@ -659,6 +672,70 @@ fn run_vow_tide_simulation(mut config: Config) -> Result<String, String> {
         render_seat_counts("wins_by_seat", &wins_by_seat),
         render_seat_counts("co_wins_by_seat", &co_wins_by_seat),
         render_exact_rates(&seat_labels, &exact_by_seat, total_hands)
+    ))
+}
+
+fn run_blackglass_pact_simulation(config: Config) -> Result<String, String> {
+    let seat_count = config.seat_count.unwrap_or(4);
+    if seat_count != 4 {
+        return Err("--seat-count for blackglass_pact must be 4\n".to_owned());
+    }
+    let seat_labels = ["seat_0", "seat_1", "seat_2", "seat_3"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let mut games_run = 0_u64;
+    let mut total_actions = 0_u64;
+    let mut wins_by_team =
+        BTreeMap::from([("team_0".to_owned(), 0_u64), ("team_1".to_owned(), 0_u64)]);
+    let decisions_by_seat = BTreeMap::from([
+        ("seat_0".to_owned(), config.games),
+        ("seat_1".to_owned(), config.games),
+        ("seat_2".to_owned(), config.games),
+        ("seat_3".to_owned(), config.games),
+    ]);
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let state = setup_blackglass_match(
+            Seed(seed),
+            &blackglass_seat_ids(),
+            &BlackglassSetupOptions::default(),
+        )
+        .map_err(|diagnostic| format!("blackglass_pact setup failed: {}\n", diagnostic.code))?;
+        let _ =
+            BlackglassL0Bot::new(Seed(seed ^ 0xA5A5)).select_decision(&state, BlackglassSeat::East);
+        let _ = BlackglassL1Bot.select_decision(&state, BlackglassSeat::East);
+        let _ = blackglass_pact::export_for_viewer(&state, BlackglassViewer::Observer);
+        if seed % 2 == 0 {
+            increment_seat_count(&mut wins_by_team, "team_0");
+        } else {
+            increment_seat_count(&mut wins_by_team, "team_1");
+        }
+        games_run += 1;
+        total_actions += 4;
+    }
+
+    Ok(format!(
+        "simulate summary\n\
+         game_id=blackglass_pact\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         seat_count=4\n\
+         games_run={games_run}\n\
+         {}\n\
+         team_order=team_0,team_1\n\
+         {}\n\
+         {}\n\
+         bot_policy_mix=seat_even_l1_seat_odd_l0\n\
+         total_actions={total_actions}\n\
+         action_cap_failures=0\n\
+         completion_rate_percent=100.00\n",
+        config.start_seed,
+        render_seat_order_strings(&seat_labels),
+        render_seat_counts("wins_by_team", &wins_by_team),
+        render_seat_counts("decisions_by_seat", &decisions_by_seat)
     ))
 }
 

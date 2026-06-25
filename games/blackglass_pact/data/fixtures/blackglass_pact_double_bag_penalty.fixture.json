@@ -1,0 +1,8 @@
+{
+  "fixture_id": "blackglass_pact_double_bag_penalty",
+  "team": "NorthSouth",
+  "prior_bags": 9,
+  "new_bags": 11,
+  "bag_penalty_count": 2,
+  "next_bags": 0
+}

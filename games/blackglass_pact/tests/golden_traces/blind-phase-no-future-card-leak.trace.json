@@ -1,0 +1,7 @@
+{
+  "trace_id": "blind-phase-no-future-card-leak",
+  "game_id": "blackglass_pact",
+  "phase": "BlindNilCommitment",
+  "card_identity_exists_in_view": false,
+  "future_deck_identity_exists_in_view": false
+}

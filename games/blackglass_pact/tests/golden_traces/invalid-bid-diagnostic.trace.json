@@ -1,0 +1,7 @@
+{
+  "trace_id": "invalid-bid-diagnostic",
+  "game_id": "blackglass_pact",
+  "invalid_paths": ["bid/0", "bid/14", "bid/pass"],
+  "diagnostic": "BP_BID_OUT_OF_RANGE",
+  "rebid_diagnostic": "BP_BID_LOCKED"
+}

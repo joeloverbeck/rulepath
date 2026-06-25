@@ -14,6 +14,14 @@ name = "bench-report"
 version = "0.1.0"
 
 [[package]]
+name = "blackglass_pact"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "game-stdlib",
+]
+
+[[package]]
 name = "briar_circuit"
 version = "0.1.0"
 dependencies = [
@@ -71,6 +79,7 @@ dependencies = [
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",
@@ -178,6 +187,7 @@ dependencies = [
 name = "replay-check"
 version = "0.1.0"
 dependencies = [
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",
@@ -238,6 +248,7 @@ name = "simulate"
 version = "0.1.0"
 dependencies = [
  "ai-core",
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",
@@ -302,6 +313,7 @@ name = "wasm-api"
 version = "0.1.0"
 dependencies = [
  "ai-core",
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",

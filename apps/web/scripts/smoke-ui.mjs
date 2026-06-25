@@ -181,7 +181,7 @@ assert(
   ]),
   "Rust catalog exposes Race player labels",
 );
-const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit", "vow_tide"].includes(game.game_id));
+const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit", "vow_tide", "blackglass_pact"].includes(game.game_id));
 assert(
   twoSeatGames.every(
     (game) =>
@@ -195,6 +195,17 @@ assert(
       game.seat_labels.length === 2,
   ),
   "Rust catalog exposes two-seat setup metadata for current two-seat games",
+);
+const blackglassCatalog = catalog.find((game) => game.game_id === "blackglass_pact");
+assert(blackglassCatalog, "Rust catalog includes blackglass_pact");
+assert(
+  blackglassCatalog.min_seats === 4 &&
+    blackglassCatalog.max_seats === 4 &&
+    blackglassCatalog.default_seats === 4 &&
+    JSON.stringify(blackglassCatalog.supported_seats) === JSON.stringify([4]) &&
+    Array.isArray(blackglassCatalog.seat_labels) &&
+    blackglassCatalog.seat_labels.length === 4,
+  "Rust catalog exposes Blackglass Pact fixed-four setup metadata",
 );
 const tokenBazaarCatalog = catalog.find((game) => game.game_id === "token_bazaar");
 assert(tokenBazaarCatalog, "Rust catalog includes token_bazaar");

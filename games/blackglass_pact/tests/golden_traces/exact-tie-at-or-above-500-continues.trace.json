@@ -1,0 +1,8 @@
+{
+  "trace_id": "exact-tie-at-or-above-500-continues",
+  "game_id": "blackglass_pact",
+  "scores_after_hand": [500, 500],
+  "terminal": false,
+  "next_dealer": "East",
+  "next_hand_index": 1
+}

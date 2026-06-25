@@ -76,6 +76,19 @@ families after that pass, stop and ask for the intended selector.
 5. Resolve the ticket selector and any reference selector to concrete paths.
    If there is no active spec, identify whether a triage, task, plan, or
    ticket-only series is the authoritative reference. Do not invent a spec.
+   Before implementation, classify the series closeout contract and keep that
+   classification visible through the capstone:
+   - `ticket-only`: no reference artifact exists; use ticket-only closeout.
+   - `reference-archive closeout required`: a spec, triage, task, plan, or
+     other reference artifact governs the series and must be closed after the
+     tickets unless the user explicitly forbids reference archival.
+   - `reference-status-only by explicit user instruction`: the user explicitly
+     asked not to archive the reference artifact; keep the reference active,
+     but still truth the final status, progress surfaces, stale paths, and
+     closeout evidence.
+   Re-state this classification before archiving the capstone ticket so a
+   ticket-local `Out of Scope` note cannot silently override the series-level
+   closeout contract.
 6. Read the resolved reference artifact and tickets. Determine dependency order
    from explicit dependency sections, numbering, ticket prose, and reference
    sequencing.
@@ -171,6 +184,12 @@ For each ticket:
    - add a bottom `Outcome` section for completed items;
    - include completion date, what changed, deviations from the plan, and
      verification results.
+   If accepted verification repairs exceed the ticket's original file/scope
+   claims, reconcile the ticket metadata before archival. Update fields and
+   sections such as `Engine Changes`, `Files to Touch`, `Out of Scope`,
+   `Invariants`, and `Outcome` so the archived ticket describes the work that
+   actually shipped, while still distinguishing behavioral changes from
+   non-behavioral maintenance or proof repairs.
 7. Archive the ticket:
    - Create `archive/tickets/` if absent.
    - Detect tracked state with `git ls-files --error-unmatch <ticket>`.
@@ -498,6 +517,11 @@ For second-pass reruns after a passing final commit, prefer `--summary` with
 summarize the rerun result instead of re-printing every archived-ticket or
 stale-path row into the final response. Expand the output only when a mismatch
 or unusual series shape needs detailed evidence.
+
+Keep regex patterns that contain Markdown backticks inside single quotes, or
+escape the backticks. For ad hoc status greps, prefer single-quoted patterns so
+text such as `` `Done` `` cannot trigger shell command substitution before `rg`
+runs.
 
 ```sh
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --summary

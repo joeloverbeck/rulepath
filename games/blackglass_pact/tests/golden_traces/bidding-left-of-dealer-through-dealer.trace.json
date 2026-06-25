@@ -1,0 +1,18 @@
+{
+  "trace_id": "bidding-left-of-dealer-through-dealer",
+  "game_id": "blackglass_pact",
+  "seed": 1808,
+  "dealer": "North",
+  "bidding_order": ["East", "South", "West", "North"],
+  "legal_leaves": ["bid/nil", "bid/1", "bid/2", "bid/3", "bid/4", "bid/5", "bid/6", "bid/7", "bid/8", "bid/9", "bid/10", "bid/11", "bid/12", "bid/13"],
+  "accepted_bids": [
+    ["East", "bid/4"],
+    ["South", "bid/nil"],
+    ["West", "bid/3"],
+    ["North", "bid/5"]
+  ],
+  "assertions": {
+    "dealer_bids_last": true,
+    "total_thirteen_hook": false
+  }
+}

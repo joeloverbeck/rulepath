@@ -1,0 +1,13 @@
+{
+  "trace_id": "trick-winner-leads-next",
+  "game_id": "blackglass_pact",
+  "plays": [
+    ["East", "two_clubs"],
+    ["South", "ace_spades"],
+    ["West", "king_clubs"],
+    ["North", "three_clubs"]
+  ],
+  "winner": "South",
+  "next_leader": "South",
+  "next_trick_index": 1
+}

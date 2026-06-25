@@ -1,0 +1,7 @@
+{
+  "trace_id": "public-export-v1-round-trip",
+  "game_id": "blackglass_pact",
+  "format": "blackglass_pact_public_export_v1",
+  "migration_note": "none",
+  "round_trip": true
+}

@@ -15,6 +15,20 @@ These sources inform Rulepath architecture, authoring discipline, bot policy, UI
 | `high_card_duel` | `games/high_card_duel/docs/SOURCES.md` | completed for Gate 8; covers original neutral card-game naming, War/Blackjack exclusion, variant choice, hidden-information posture, and public asset posture |
 | `briar_circuit` | `games/briar_circuit/docs/SOURCES.md` | opened for Gate 16; covers original Briar Circuit naming, classic Hearts rules-family references, selected variant choices, pass/visibility privacy, and asset/IP review posture |
 | `vow_tide` | `games/vow_tide/docs/SOURCES.md` | completed for Gate 17; covers original Vow Tide naming, classic Oh Hell rules-family references, 3-7-seat variant choices, bid/hook/scoring deviations, hidden-stock privacy, helper conformance, and asset/IP review posture |
+| `blackglass_pact` | `games/blackglass_pact/docs/SOURCES.md` | completed for Gate 18; covers original Blackglass Pact naming, classic partnership Spades rules-family references, fixed-four variant pinning, nil/blind-nil/bag deviations, public/private partnership signals, helper conformance, and human IP/public-release review posture |
+
+### Blackglass Pact source-use lessons
+
+Gate 18 records Blackglass Pact's detailed source bibliography in
+`games/blackglass_pact/docs/SOURCES.md`. The repo-level lesson is that
+partnership trick-taking sources disagree on mechanically significant edges, so
+Rulepath pins the variant in Rust-owned game docs before implementation:
+failed-nil bag attribution follows the selected Pagat/Trickster-style rule,
+blind nil is a pre-deal individual commitment that skips the later ordinary bid,
+and partnership identity is public while partner hands remain private. Source
+notes are evidence for variant choices, not permission to copy rules prose,
+table presentation, card art, or trade dress. Human IP/public-release review
+remains required before external release.
 
 ## Source-use rules
 

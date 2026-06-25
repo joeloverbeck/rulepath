@@ -1,0 +1,8 @@
+{
+  "trace_id": "spade-lead-blocked-before-broken",
+  "game_id": "blackglass_pact",
+  "spades_broken": false,
+  "leader_hand_shape": ["non_spade", "spade"],
+  "rejected_action": "play/ace_spades",
+  "diagnostic": "BP_SPADES_NOT_BROKEN"
+}

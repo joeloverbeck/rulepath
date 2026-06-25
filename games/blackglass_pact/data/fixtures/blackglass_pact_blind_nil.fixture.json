@@ -1,0 +1,15 @@
+{
+  "fixture_id": "blackglass_pact_blind_nil",
+  "game_id": "blackglass_pact",
+  "seed": 1804,
+  "hand_index": 0,
+  "dealer": "North",
+  "team_scores": [0, 100],
+  "pending_blind_nil_order": ["South", "North"],
+  "legal_action_paths": [["blind_nil", "declare"], ["blind_nil", "decline"]],
+  "public_pre_deal_surfaces": {
+    "card_identity": "absent",
+    "deck_order": "absent",
+    "rng_samples": "absent"
+  }
+}

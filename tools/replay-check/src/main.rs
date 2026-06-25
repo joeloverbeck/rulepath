@@ -187,6 +187,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "vow-tide-rules-v1",
             trace_dir: "games/vow_tide/tests/golden_traces",
         }),
+        "blackglass_pact" => Ok(RegisteredGame {
+            game_id: "blackglass_pact",
+            rules_version: "blackglass-pact-rules-v1",
+            trace_dir: "games/blackglass_pact/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -302,10 +307,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --all");
 }
 
 fn check_trace_path(
@@ -341,6 +346,17 @@ fn check_trace_path(
             ));
         }
         println!("{}: vow_tide trace accepted", path.display());
+        return Ok(());
+    }
+    if game.game_id == "blackglass_pact" {
+        let trace_id = validate_blackglass_pact_trace(game, path, &input)?;
+        if !seen_ids.insert(trace_id) {
+            return Err(format!(
+                "{}: duplicate trace_id in checked trace set",
+                path.display()
+            ));
+        }
+        println!("{}: blackglass_pact trace accepted", path.display());
         return Ok(());
     }
     if is_public_export_fixture(&input) {
@@ -618,6 +634,141 @@ fn validate_vow_tide_setup_projection(path: &Path, input: &str) -> Result<(), St
         }
     }
     Ok(())
+}
+
+fn validate_blackglass_pact_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<String, String> {
+    validate_json_object(path, input)?;
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let trace_id = string_field(input, "trace_id").map_err(with_path)?;
+    if trace_id.trim().is_empty() {
+        return Err(format!("{}: trace_id must be non-empty", path.display()));
+    }
+    if input.contains("\"game_id\"") {
+        let game_id = string_field(input, "game_id")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if game_id != game.game_id {
+            return Err(format!(
+                "{}: game_id must be {}, got `{}`",
+                path.display(),
+                game.game_id,
+                game_id
+            ));
+        }
+    }
+    if input.contains("\"rules_version\"") {
+        let rules_version = string_field(input, "rules_version")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if rules_version != game.rules_version {
+            return Err(format!(
+                "{}: rules_version must be {}, got `{}`",
+                path.display(),
+                game.rules_version,
+                rules_version
+            ));
+        }
+    }
+    if input.contains("\"schema_version\"") {
+        let schema_version = number_field(input, "schema_version")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if schema_version != 1 {
+            return Err(format!("{}: schema_version must be 1", path.display()));
+        }
+    }
+    if input.contains("\"seed\"") && input.contains("\"seat_count\"") {
+        validate_blackglass_pact_setup_projection(path, input)?;
+    }
+    if input.contains("\"hidden_information_policy\":\"viewer_authorized_only\"")
+        || input.contains("\"public_no_leak\":true")
+        || trace_id.contains("no-leak")
+    {
+        for card_id in blackglass_pact::canonical_deck() {
+            let card = card_id.as_str();
+            if input.contains(&card) {
+                return Err(format!(
+                    "{}: no-leak Blackglass trace leaks card identity `{card}`",
+                    path.display()
+                ));
+            }
+        }
+    }
+    Ok(trace_id)
+}
+
+fn validate_blackglass_pact_setup_projection(path: &Path, input: &str) -> Result<(), String> {
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let seed = number_field(input, "seed").map_err(with_path)?;
+    let seat_count = number_field(input, "seat_count").map_err(with_path)? as usize;
+    if seat_count != 4 {
+        return Err(format!(
+            "{}: blackglass_pact seat_count must be 4",
+            path.display()
+        ));
+    }
+    let state = blackglass_pact::setup_match(
+        Seed(seed),
+        &blackglass_pact::canonical_seat_ids(),
+        &blackglass_pact::SetupOptions::default(),
+    )
+    .map_err(|diagnostic| {
+        format!(
+            "{}: blackglass_pact setup replay failed: {}",
+            path.display(),
+            diagnostic.code
+        )
+    })?;
+
+    if input.contains("\"expected_dealer\"") {
+        let expected = string_field(input, "expected_dealer")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        let actual = state.dealer.as_str();
+        if actual != expected {
+            return Err(format!(
+                "{}: expected_dealer mismatch: expected {expected}, actual {actual}",
+                path.display()
+            ));
+        }
+    }
+    if input.contains("\"expected_phase\"") {
+        let expected = string_field(input, "expected_phase")
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        let actual = blackglass_pact_phase_label(&state.phase);
+        if actual != expected {
+            return Err(format!(
+                "{}: expected_phase mismatch: expected {expected}, actual {actual}",
+                path.display()
+            ));
+        }
+    }
+    if input.contains("\"expected_hand_count\"") {
+        let expected = number_field(input, "expected_hand_count")
+            .map_err(|error| format!("{}: {error}", path.display()))?
+            as usize;
+        for seat in blackglass_pact::BlackglassSeat::ALL {
+            let actual = state.hand_for_internal(seat).len();
+            if actual != expected {
+                return Err(format!(
+                    "{}: expected_hand_count mismatch for {}: expected {expected}, actual {actual}",
+                    path.display(),
+                    seat.as_str()
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn blackglass_pact_phase_label(phase: &blackglass_pact::Phase) -> &'static str {
+    match phase {
+        blackglass_pact::Phase::BlindNilCommitment { .. } => "blind_nil_commitment",
+        blackglass_pact::Phase::Bidding { .. } => "bidding",
+        blackglass_pact::Phase::PlayingTrick { .. } => "playing_trick",
+        blackglass_pact::Phase::HandScoring { .. } => "hand_scoring",
+        blackglass_pact::Phase::Terminal { .. } => "terminal",
+    }
 }
 
 fn validate_flood_watch_trace(

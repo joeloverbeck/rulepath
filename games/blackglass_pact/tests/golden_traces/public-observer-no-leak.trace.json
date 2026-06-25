@@ -1,0 +1,6 @@
+{
+  "trace_id": "public-observer-no-leak",
+  "game_id": "blackglass_pact",
+  "observer_receives": ["public phase", "hand counts", "bids", "scores", "bags", "played cards"],
+  "observer_never_receives": ["unplayed hand cards", "private controls"]
+}

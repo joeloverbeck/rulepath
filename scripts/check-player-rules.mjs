@@ -32,6 +32,7 @@ const HIDDEN_INFO_GAMES = new Set([
   "river_ledger",
   "briar_circuit",
   "vow_tide",
+  "blackglass_pact",
   "masked_claims",
   "flood_watch",
   "event_frontier",

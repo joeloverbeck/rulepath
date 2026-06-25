@@ -64,6 +64,7 @@ try {
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
 
   await waitForText(page, "Race to 21");
+  await clickText(page, "button", "Race to 21");
   await assertNamedControls(page);
   await assertRawIdentifierGuardTrips(page);
   await assertRawSeatIdGuardTrips(page);
@@ -741,7 +742,7 @@ function assertNoForbiddenTerms(surface, label, terms = forbiddenLeakTerms) {
 }
 
 async function focusByText(page, text) {
-  for (let index = 0; index < 40; index += 1) {
+  for (let index = 0; index < 120; index += 1) {
     const focused = await page.evaluate((expected) => {
       const element = document.activeElement;
       const focusable = element?.matches("button, input, select, textarea, a[href]") ?? false;

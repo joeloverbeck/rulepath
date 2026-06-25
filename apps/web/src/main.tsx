@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
 import { ActionControls } from "./components/ActionControls";
+import { BlackglassPactBoard } from "./components/BlackglassPactBoard";
 import { BriarCircuitBoard } from "./components/BriarCircuitBoard";
 import { ColumnFourBoard } from "./components/ColumnFourBoard";
 import { DevPanel } from "./components/DevPanel";
@@ -38,6 +39,7 @@ import {
   loadApi,
   type ActionChoice,
   type ApiError,
+  type BlackglassPactPublicView,
   type BriarCircuitPublicView,
   type ColumnFourPublicView,
   type DirectionalFlipPublicView,
@@ -694,6 +696,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
           />
+        ) : isBlackglassPactView(view) ? (
+          <BlackglassPactBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isMaskedClaimsView(view) ? (
           <MaskedClaimsBoard
             view={view}
@@ -760,6 +772,7 @@ function App() {
         isPlainTricksView(view) ||
         isBriarCircuitView(view) ||
         isVowTideView(view) ||
+        isBlackglassPactView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
         isFrontierControlView(view) ||
@@ -992,6 +1005,10 @@ function isVowTideView(view: PublicView | null): view is VowTidePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "vow_tide");
 }
 
+function isBlackglassPactView(view: PublicView | null): view is BlackglassPactPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "blackglass_pact");
+}
+
 function isMaskedClaimsView(view: PublicView | null): view is MaskedClaimsPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "masked_claims");
 }
@@ -1032,6 +1049,9 @@ function isTerminalView(view: PublicView): boolean {
   }
   if (isVowTideView(view)) {
     return view.terminal.kind !== "non_terminal";
+  }
+  if (isBlackglassPactView(view)) {
+    return view.phase.kind === "terminal";
   }
   if (isMaskedClaimsView(view)) {
     return view.terminal.kind !== "non_terminal";
@@ -1148,6 +1168,17 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
             ? "shared win"
             : `${view.terminal.winners[0] ?? "seat_0"} won`
           : `${view.phase}, hand ${view.hand_index + 1}, size ${view.hand_size}`,
+    };
+  }
+  if (view.game_id === "blackglass_pact") {
+    return {
+      game_id: view.game_id,
+      active_seat: view.active_seat ?? view.viewer_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status:
+        view.phase.kind === "terminal"
+          ? `${view.phase.winning_team} won`
+          : `${view.phase.kind}, scores ${view.team_scores.team_0}-${view.team_scores.team_1}`,
     };
   }
   if (view.game_id === "masked_claims") {

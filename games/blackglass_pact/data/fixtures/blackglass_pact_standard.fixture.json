@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "fixture_id": "blackglass_pact_standard",
+  "fixture_kind": "setup",
+  "purpose": "standard fixed-four setup evidence",
+  "game_id": "blackglass_pact",
+  "rules_version": "blackglass-pact-rules-v1",
+  "data_version": "blackglass-pact-data-v1",
+  "variant": "blackglass_pact_standard",
+  "seed": 180400,
+  "seat_count": 4,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "teams": ["team_0", "team_1"],
+  "expected_dealer": "seat_0",
+  "expected_phase": "bidding",
+  "expected_hand_count": 13,
+  "note": "Gate 18 additive standard setup fixture; typed data only."
+}

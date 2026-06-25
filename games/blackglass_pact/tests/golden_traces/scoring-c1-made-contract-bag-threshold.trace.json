@@ -1,0 +1,15 @@
+{
+  "trace_id": "scoring-c1-made-contract-bag-threshold",
+  "game_id": "blackglass_pact",
+  "team": "NorthSouth",
+  "prior_score": 240,
+  "prior_bags": 8,
+  "contract": 7,
+  "ordinary_tricks": 9,
+  "ordinary_base": 70,
+  "new_bags": 2,
+  "bag_penalty_count": 1,
+  "hand_delta": -28,
+  "next_score": 212,
+  "next_bags": 0
+}

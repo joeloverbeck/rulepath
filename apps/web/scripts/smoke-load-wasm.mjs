@@ -126,6 +126,22 @@ assert(
 assert(
   catalog.some(
     (game) =>
+      game.game_id === "blackglass_pact" &&
+      hasVariant(game, "blackglass_pact_standard", "Blackglass Pact") &&
+      game.hidden_information === true &&
+      game.min_seats === 4 &&
+      game.max_seats === 4 &&
+      game.default_seats === 4 &&
+      JSON.stringify(game.supported_seats) === JSON.stringify([4]) &&
+      game.viewer_modes.includes("seat_3") &&
+      game.tags.includes("trick_taking") &&
+      game.tags.includes("partnership"),
+  ),
+  "list_games includes blackglass_pact fixed-four hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
       game.game_id === "masked_claims" &&
       hasVariant(game, "masked_claims_standard", "Masked Claims") &&
       game.hidden_information === true &&

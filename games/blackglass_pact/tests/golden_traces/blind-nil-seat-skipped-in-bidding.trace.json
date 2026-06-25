@@ -1,0 +1,17 @@
+{
+  "trace_id": "blind-nil-seat-skipped-in-bidding",
+  "game_id": "blackglass_pact",
+  "seed": 1809,
+  "team_scores": [0, 100],
+  "blind_nil": [
+    ["South", "decline"],
+    ["North", "declare"]
+  ],
+  "bidding_order": ["East", "South", "West"],
+  "skipped": ["North"],
+  "fixed_bids": [["North", "BlindNil"]],
+  "assertions": {
+    "blind_nil_contributes_zero_to_ordinary_contract": true,
+    "blind_nil_bid_locked": true
+  }
+}
