@@ -203,8 +203,8 @@ async function assertBidOrPlayControls(page) {
 
 async function assertSeatNoLeak(page, consoleMessages, allowedLabels, label) {
   const normalizedAllowed = new Set(allowedLabels.map((value) => value.toLowerCase()));
-  const visibleCardLabels = await page.$$eval(".blackglass-card-face b", (nodes) =>
-    nodes.map((node) => (node.textContent ?? "").trim().toLowerCase()).filter(Boolean),
+  const visibleCardLabels = await page.$$eval(".blackglass-card-face", (nodes) =>
+    nodes.map((node) => (node.getAttribute("data-card-label") ?? "").trim().toLowerCase()).filter(Boolean),
   );
   const forbiddenVisible = visibleCardLabels.filter((value) => !normalizedAllowed.has(value));
   assert(forbiddenVisible.length === 0, `${label} rendered non-owner cards: ${forbiddenVisible.join(", ")}`);
@@ -212,8 +212,8 @@ async function assertSeatNoLeak(page, consoleMessages, allowedLabels, label) {
 }
 
 async function assertHandSorted(page, label) {
-  const faces = await page.$$eval(".blackglass-private .blackglass-card .blackglass-card-face b", (nodes) =>
-    nodes.map((node) => (node.textContent ?? "").trim()),
+  const faces = await page.$$eval(".blackglass-private .blackglass-card .blackglass-card-face", (nodes) =>
+    nodes.map((node) => (node.getAttribute("data-card-label") ?? "").trim()),
   );
   assert(faces.length > 0, `${label} renders owner card faces for sort check`);
   const suitOrder = { D: 0, C: 1, H: 2, S: 3 };

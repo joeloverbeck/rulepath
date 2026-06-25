@@ -1896,7 +1896,13 @@ h2 {
 }
 
 .blackglass-card-face small {
-  color: var(--blackglass-muted);
+  color: var(--blackglass-ink);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.blackglass-card-face.red small {
+  color: #a23b32;
 }
 
 .blackglass-facedown {

@@ -35,6 +35,7 @@ const TEAM_SEATS: Record<BlackglassPactTeamId, BlackglassPactSeatId[]> = {
   team_1: ["seat_1", "seat_3"],
 };
 const SUIT_GLYPH: Record<string, string> = { clubs: "C", diamonds: "D", hearts: "H", spades: "S" };
+const SUIT_PIP: Record<string, string> = { clubs: "♣", diamonds: "♦", hearts: "♥", spades: "♠" };
 // Presentation-only hand ordering. Spades are trump, so they group at one end;
 // colors alternate (red/black/red/black) so adjacent suits stay easy to tell apart.
 // Rust still owns card identity, legality, and every game decision.
@@ -386,11 +387,25 @@ function nilResultLabel(result: string | null): string {
 
 function CardFace({ card }: { card: BlackglassPactCardView }) {
   return (
-    <span className={`blackglass-card-face ${suitTone(card.suit)}`} aria-hidden="true">
-      <b>{card.label}</b>
-      <small>{SUIT_GLYPH[card.suit] ?? card.suit}</small>
+    <span
+      className={`blackglass-card-face ${suitTone(card.suit)}`}
+      data-card-label={card.label}
+      aria-hidden="true"
+    >
+      <b>{rankSymbol(card)}</b>
+      <small>{SUIT_PIP[card.suit] ?? SUIT_GLYPH[card.suit] ?? card.suit}</small>
     </span>
   );
+}
+
+// The Rust public label is rank+suit-letter (e.g. "7S", "10D", "AS"). Show the rank
+// prominently and render the suit as a standard pip, dropping the redundant letter.
+function rankSymbol(card: BlackglassPactCardView): string {
+  const glyph = SUIT_GLYPH[card.suit];
+  if (glyph && card.label.endsWith(glyph)) {
+    return card.label.slice(0, card.label.length - glyph.length);
+  }
+  return card.label;
 }
 
 function flattenActionTree(tree: ActionTree | null): PathChoice[] {
