@@ -1,0 +1,114 @@
+use engine_core::{FreshnessToken, Seed};
+use meldfall_ledger::{
+    bots::{
+        legal_action_paths, legal_action_tree_for_seat, parse_bot_action, MeldfallL0Bot,
+        L0_POLICY_ID, L1_POLICY_STATUS,
+    },
+    cards::{Card, CardId, Rank, Suit},
+    rules::{discard_card, draw_from_stock, finish_turn_after_table_plays},
+    setup::{default_seats, setup_match, SetupOptions},
+    state::{MatchState, TurnPhase},
+};
+
+#[test]
+fn l0_selects_deterministic_legal_actions_from_authorized_tree() {
+    let mut state = bot_state();
+    state.round.phase = TurnPhase::Discard;
+    state.round.active_seat_index = 0;
+    let bot = MeldfallL0Bot::new(Seed(42));
+
+    let first = bot
+        .select_decision(&state, 0)
+        .expect("discard action selected");
+    let second = bot
+        .select_decision(&state, 0)
+        .expect("discard action selected");
+    let legal = legal_action_paths(&legal_action_tree_for_seat(&state, 0, FreshnessToken(0)));
+
+    assert_eq!(first, second);
+    assert_eq!(first.policy_id, L0_POLICY_ID);
+    assert!(legal.contains(&first.action_path));
+    assert!(first.explanation.contains("viewer-authorized"));
+}
+
+#[test]
+fn l0_input_contains_own_hand_only_and_no_stock_order() {
+    let state = bot_state();
+    let input = MeldfallL0Bot::input_for(&state, 1);
+    let surface = format!("{input:?}");
+
+    for own in &state.round.seats[1].hand {
+        assert!(surface.contains(&own.as_str()));
+    }
+    for hidden_stock in &state.round.stock {
+        assert!(!surface.contains(&hidden_stock.as_str()));
+    }
+    for (seat_index, seat) in state.round.seats.iter().enumerate() {
+        if seat_index == 1 {
+            continue;
+        }
+        for hidden in &seat.hand {
+            assert!(!surface.contains(&hidden.as_str()));
+        }
+    }
+}
+
+#[test]
+fn selected_l0_actions_apply_through_rules_api_for_current_phases() {
+    let mut state = bot_state();
+    let bot = MeldfallL0Bot::new(Seed(7));
+
+    state.round.phase = TurnPhase::Draw;
+    state.round.active_seat_index = 0;
+    let draw = bot.select_action(&state, 0).expect("draw selected");
+    assert_eq!(
+        parse_bot_action(&draw).expect("parse draw"),
+        meldfall_ledger::actions::MeldfallAction::DrawFromStock
+    );
+    draw_from_stock(&mut state.round, 0).expect("draw applies");
+
+    let finish = bot.select_action(&state, 0).expect("finish selected");
+    assert_eq!(
+        parse_bot_action(&finish).expect("parse finish"),
+        meldfall_ledger::actions::MeldfallAction::FinishTurn
+    );
+    finish_turn_after_table_plays(&mut state.round, 0).expect("finish applies");
+
+    let discard = bot.select_action(&state, 0).expect("discard selected");
+    let meldfall_ledger::actions::MeldfallAction::Discard { card } =
+        parse_bot_action(&discard).expect("parse discard")
+    else {
+        panic!("expected discard action");
+    };
+    discard_card(&mut state.round, 0, card).expect("discard applies");
+}
+
+#[test]
+fn bot_trace_inventory_records_l1_not_admitted() {
+    let l0 = include_str!("golden_traces/l0-random-legal-full-match.trace.json");
+    let l1 = include_str!("golden_traces/l1-rule-informed-smoke.trace.json");
+
+    assert!(l0.contains("\"policy_id\": \"meldfall-ledger-l0-random-legal-v1\""));
+    assert!(l0.contains("\"public_no_leak\": true"));
+    assert!(l1.contains(L1_POLICY_STATUS));
+}
+
+fn bot_state() -> MatchState {
+    let seats = default_seats(4).expect("seat count supported");
+    let setup = setup_match(Seed(1915), &seats, &SetupOptions::default()).expect("setup succeeds");
+    let mut state = MatchState::from_initial_setup(setup);
+    state.round.stock = vec![
+        card(Rank::Ace, Suit::Spades),
+        card(Rank::King, Suit::Spades),
+    ];
+    state.round.discard = vec![card(Rank::Nine, Suit::Clubs)];
+    state.round.seats[0].hand = vec![card(Rank::Two, Suit::Clubs)];
+    state.round.seats[1].hand = vec![card(Rank::Three, Suit::Diamonds)];
+    state.round.seats[2].hand = vec![card(Rank::Four, Suit::Hearts)];
+    state.round.seats[3].hand = vec![card(Rank::Five, Suit::Spades)];
+    state
+}
+
+fn card(rank: Rank, suit: Suit) -> CardId {
+    Card::new(rank, suit).id()
+}

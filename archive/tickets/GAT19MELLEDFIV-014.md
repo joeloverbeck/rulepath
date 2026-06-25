@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-014: Bots — L0 random-legal, optional L1 rule-informed, and seeded simulation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/bots.rs`; `tools/simulate` game arm; bot legality tests
@@ -82,3 +82,22 @@ Add the `meldfall_ledger` game-id constant, the validation-chain entry, seat-cou
 1. `cargo test -p meldfall_ledger`
 2. `cargo run -p simulate -- --game meldfall_ledger --seat-count 2 --games 1000 --start-seed 1900 --action-cap 4096`
 3. `cargo run -p simulate -- --game meldfall_ledger --seat-count 6 --games 1000 --start-seed 1902 --action-cap 8192`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the Meldfall Ledger L0 random-legal bot in `games/meldfall_ledger/src/bots.rs` using `ai-core::RandomLegalBot` over Rust-owned, viewer-authorized legal action trees. The bot input contains the seat-private view plus legal actions for the current active phase, and tests assert deterministic legal selection, rule-API application, own-hand-only input, and no stock/opponent-hand access.
+
+L1 remains not admitted pending strategy evidence owned by GAT19MELLEDFIV-015; this is recorded in `l1-rule-informed-smoke.trace.json` rather than silently skipped. Added `l0-random-legal-full-match.trace.json` for the L0 policy.
+
+Registered `meldfall_ledger` in `tools/simulate` with 2-6 seat validation and an L0 bounded playout arm. The current simulator honestly reports bounded nonterminal outcomes (`bounded_nonterminal_at_cap`) because meld-generation strategy is not admitted in this ticket; the smoke commands complete and provide by-seat summaries without pretending terminal match completion.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p meldfall_ledger`
+3. `cargo run -p simulate -- --game meldfall_ledger --seat-count 2 --games 1000 --start-seed 1900 --action-cap 4096`
+4. `cargo run -p simulate -- --game meldfall_ledger --seat-count 4 --games 1000 --start-seed 1901 --action-cap 4096`
+5. `cargo run -p simulate -- --game meldfall_ledger --seat-count 6 --games 1000 --start-seed 1902 --action-cap 8192`
+6. `cargo test --workspace`
