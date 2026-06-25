@@ -383,6 +383,42 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.leader} leads this deal.`,
         tone: "turn",
       };
+    case "blind_nil_window_opened":
+      return {
+        title: "Blind nil window",
+        detail: "A trailing team may declare blind nil before the deal.",
+        tone: "turn",
+      };
+    case "blind_nil_declared":
+      return {
+        title: "Blind nil declared",
+        detail: `${payload.seat} committed to blind nil.`,
+        tone: "turn",
+      };
+    case "blind_nil_declined":
+      return {
+        title: "Blind nil declined",
+        detail: `${payload.seat} declined blind nil.`,
+        tone: "turn",
+      };
+    case "private_hand_received":
+      return {
+        title: "Hand dealt",
+        detail: "Your private hand was dealt.",
+        tone: "neutral",
+      };
+    case "bag_penalty_applied":
+      return {
+        title: "Bag penalty",
+        detail: `${payload.team} lost ${Math.abs(Number(payload.points_deducted) || 0)} points to a bag penalty.`,
+        tone: "turn",
+      };
+    case "dealer_advanced":
+      return {
+        title: "Dealer advanced",
+        detail: `${payload.dealer} deals the next hand.`,
+        tone: "turn",
+      };
     case "card_played":
       return {
         title: "Card played",

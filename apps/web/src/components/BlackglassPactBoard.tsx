@@ -445,7 +445,16 @@ function flattenActionTree(tree: ActionTree | null): PathChoice[] {
 // Presentation-only: the winner and trick index are public Rust-projected facts.
 function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | null): string | null {
   if (!entry) return fallback;
-  const payload = entry.effect.payload as { type?: string; winner?: unknown; seat?: unknown; trick_index?: unknown };
+  const payload = entry.effect.payload as {
+    type?: string;
+    winner?: unknown;
+    seat?: unknown;
+    dealer?: unknown;
+    team?: unknown;
+    hand_index?: unknown;
+    points_deducted?: unknown;
+    trick_index?: unknown;
+  };
   if (payload.type === "trick_captured" && typeof payload.winner === "string") {
     const seat = payload.winner as BlackglassPactSeatId;
     if (!SEATS.includes(seat)) return fallback;
@@ -455,6 +464,28 @@ function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | nu
   if (payload.type === "spades_broken" && typeof payload.seat === "string") {
     const seat = payload.seat as BlackglassPactSeatId;
     if (SEATS.includes(seat)) return `${seatLabel(seat)} broke spades; spades may now be led.`;
+  }
+  if (payload.type === "blind_nil_declared" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) return `${seatLabel(seat)} committed to blind nil.`;
+  }
+  if (payload.type === "blind_nil_declined" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) return `${seatLabel(seat)} declined blind nil.`;
+  }
+  if (payload.type === "dealer_advanced" && typeof payload.dealer === "string") {
+    const seat = payload.dealer as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) {
+      const handNumber = typeof payload.hand_index === "number" ? payload.hand_index + 1 : null;
+      return handNumber ? `${seatLabel(seat)} deals hand ${handNumber}.` : `${seatLabel(seat)} deals the next hand.`;
+    }
+  }
+  if (payload.type === "bag_penalty_applied" && typeof payload.team === "string") {
+    const team = payload.team as BlackglassPactTeamId;
+    if (TEAMS.includes(team)) {
+      const points = Math.abs(Number(payload.points_deducted) || 0);
+      return `${teamLabel(team)} lost ${points} points to a bag penalty.`;
+    }
   }
   return fallback;
 }
