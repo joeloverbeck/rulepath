@@ -451,10 +451,18 @@ function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | nu
     seat?: unknown;
     dealer?: unknown;
     team?: unknown;
+    card?: unknown;
     hand_index?: unknown;
     points_deducted?: unknown;
     trick_index?: unknown;
   };
+  if (payload.type === "card_played" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    const card = payload.card as BlackglassPactCardView | undefined;
+    if (SEATS.includes(seat) && card?.label) {
+      return `${seatLabel(seat)} played ${rankSymbol(card)}${SUIT_PIP[card.suit] ?? ""}.`;
+    }
+  }
   if (payload.type === "trick_captured" && typeof payload.winner === "string") {
     const seat = payload.winner as BlackglassPactSeatId;
     if (!SEATS.includes(seat)) return fallback;
