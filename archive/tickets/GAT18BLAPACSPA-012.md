@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-012: native benchmarks and BENCHMARKS.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (benchmark) — `games/blackglass_pact/benches`, `games/blackglass_pact/docs/BENCHMARKS.md`
@@ -77,3 +77,34 @@ Workload IDs, seed/fixture manifest, native + (provisional) browser measurements
 1. `cargo bench -p blackglass_pact`
 2. `cargo build --workspace`
 3. The bench crate is the correct boundary; rule-coverage consumes `BENCHMARKS.md` downstream in GAT18BLAPACSPA-013.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added the Blackglass Pact native benchmark target, provisional threshold file,
+and benchmark receipt:
+
+- `games/blackglass_pact/benches/blackglass_pact.rs` covers setup/blind/deal,
+  blind/bid/play legal trees, bid/play application, promoted-helper trick
+  resolution, scoring, observer and all-seat views, viewer-scoped exports,
+  L0/L1 bot decisions, and a fixed-four seeded bot-smoke match lane.
+- `games/blackglass_pact/benches/thresholds.json` records provisional
+  variance-aware smoke floors and the Gate 18 75 matches/s smoke floor.
+- `games/blackglass_pact/docs/BENCHMARKS.md` records workload IDs, seed/fixture
+  manifest, provisional posture, stable seat/team output, helper evidence, and
+  CI strategy.
+
+Deviation: the `full_seeded_match_smoke_4p` benchmark matches the current
+simulator/replay proof surface: setup, observer export, L0/L1 decisions, and
+stable team summary metadata. It is not a full terminal command-replay
+benchmark yet. Full terminal-match benchmarking remains future work once
+Blackglass has full command replay support.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo bench -p blackglass_pact` passed. The run emitted all 14 lanes; every
+  lane passed its provisional threshold, including
+  `full_seeded_match_smoke_4p` at `112968.82` matches/s against threshold `75`.
+- `cargo build --workspace` passed.

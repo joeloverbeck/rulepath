@@ -12,3 +12,8 @@ game-stdlib = { path = "../../crates/game-stdlib" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "blackglass_pact"
+path = "benches/blackglass_pact.rs"
+harness = false
