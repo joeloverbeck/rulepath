@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-003: Crate skeleton, workspace wiring, ids, and typed variant data
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new crate `games/meldfall_ledger` (workspace member; module stubs); `engine-core`/`game-stdlib` unchanged
@@ -47,6 +47,7 @@ Add `games/meldfall_ledger` to the root `Cargo.toml` `[workspace] members`. Crea
 ## Files to Touch
 
 - `Cargo.toml` (modify — add workspace member)
+- `Cargo.lock` (modify — workspace package lock entry)
 - `games/meldfall_ledger/Cargo.toml` (new)
 - `games/meldfall_ledger/src/lib.rs` (new)
 - `games/meldfall_ledger/src/ids.rs` (new)
@@ -84,3 +85,27 @@ Add `games/meldfall_ledger` to the root `Cargo.toml` `[workspace] members`. Crea
 1. `cargo build -p meldfall_ledger`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. A narrower per-crate build is the correct boundary; full `cargo test --workspace` belongs to later behavior tickets.
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+- Added `games/meldfall_ledger` to the Cargo workspace and lockfile.
+- Added a compile-clean `meldfall_ledger` crate manifest, module tree, `ids.rs` constants/helpers, local stub modules, and static typed data files for `manifest.toml` and `variants.toml`.
+- Added a small local static-data parser and tests that accept the typed constants while rejecting unknown and behavior-looking fields.
+
+Deviations from plan:
+
+- `Cargo.lock` was updated by the workspace build and is included as ticket-owned workspace metadata.
+- Added unit tests inside the skeleton for seat helpers and static-data parsing; no rule/setup/scoring behavior was implemented.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo build -p meldfall_ledger` passed.
+- `cargo build --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`; `game-test-support dev-only boundary check passed`).
+- `cargo test -p meldfall_ledger` passed (3 unit tests, 0 doctests).
+- `rg -n "^(when|if|then|else|selector|condition|trigger|script|loop|foreach|priority_expression|ai_condition|effect_script|rule|requires|valid_if|on_play|on_reveal|formula|score_formula|tie_break_formula|meld_formula|layoff_formula|discard_pickup_formula|deal_formula|rotation_formula|bot_policy)\\s*=" games/meldfall_ledger/data` found no behavior-looking static-data keys.
