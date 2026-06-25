@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-005: Match/round state, action tree, effect groups, and replay skeleton
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{state,actions,effects,replay_support}.rs`
@@ -81,3 +81,20 @@ Viewer-safe semantic effect groups (draw / meld / lay-off / discard / round-scor
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. Full replay-hash/no-leak assertions are the boundary of GAT19MELLEDFIV-013/016; this ticket verifies shape + stable serialization only.
+
+## Outcome
+
+Completed: 2026-06-26
+
+- Added game-local match/round state skeletons for seats, cumulative scores, dealer, active round, private hands, stock, discard pile, meld tableau, pending discard pickup, round-played scores, table-card score-credit owner, and terminal standings.
+- Added Rust-owned Meldfall action payloads and action-tree builders for stock/discard draw choices, meld creation, lay-off, discard, go-out-without-discard, finish-turn, and progressive draw-to-table nodes using `engine-core`'s generic `ActionTree` contract.
+- Added viewer-safe semantic effect payload groups plus deterministic stable-string helpers for draw, meld, lay-off, discard, round-score, and match-terminal effects.
+- Added Trace Schema v1 replay skeleton labels, export-format scaffolding, action-tree v1 hash use, effect hashing, and deterministic replay skeleton record output.
+- Added `games/meldfall_ledger/tests/serialization.rs` covering deterministic state summaries, action paths/tree shape, public effect envelopes, effect stable strings, and replay skeleton labels.
+- Deferred actual draw/meld/lay-off/discard/scoring legality plus full viewer redaction/export checks to the later tickets named by this ticket.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p meldfall_ledger`
+- `cargo build --workspace`
