@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-016: AGENT-TASK new-game scaffolding reuse/track section
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/template-doc edit (`templates/AGENT-TASK.md`)
@@ -72,3 +72,22 @@ Add the acceptance-evidence, implementation-boundary, and documentation-required
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- templates/AGENT-TASK.md` (review: authority list + reuse/track section + rows + checks; profile untouched)
 3. `grep -n "Scaffold-Refactor Profile" templates/AGENT-TASK.md`
+
+## Outcome
+
+Completed. `templates/AGENT-TASK.md` now names
+`docs/MECHANICAL-SCAFFOLDING-REGISTER.md` in the authority list, adds the
+standing "New-game scaffolding reuse/track status" section, and adds the
+scaffolding reuse/register/retrofit receipt, mechanical-scaffolding boundary,
+register/CI/follow-on documentation rows, forbidden-change bullets, and review
+checks required by the plan. The existing Scaffold-Refactor Profile section
+remains present and unmodified.
+
+Verification:
+
+- `grep -ni "reuse/track" templates/AGENT-TASK.md`
+- `grep -n "Scaffold-Refactor Profile" templates/AGENT-TASK.md`
+- `grep -n "MECHANICAL-SCAFFOLDING-REGISTER\\|scaffolding reuse/register/retrofit\\|mechanical scaffolding\\|ci/scaffolding-audits.json\\|Register, game evidence" templates/AGENT-TASK.md`
+- `git diff -- templates/AGENT-TASK.md`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
