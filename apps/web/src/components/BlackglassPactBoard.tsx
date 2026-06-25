@@ -325,11 +325,12 @@ function HandScorePanel({ view }: { view: BlackglassPactPublicView }) {
         <strong>Hand {score.hand_index + 1}</strong>
       </div>
       <table>
+        <caption>Teams</caption>
         <thead>
           <tr>
             <th>Team</th>
             <th>Contract</th>
-            <th>Tricks</th>
+            <th>Ord. tricks</th>
             <th>Delta</th>
             <th>Score</th>
             <th>Bags</th>
@@ -350,8 +351,37 @@ function HandScorePanel({ view }: { view: BlackglassPactPublicView }) {
           ))}
         </tbody>
       </table>
+      <table className="blackglass-seat-score">
+        <caption>Seats</caption>
+        <thead>
+          <tr>
+            <th>Seat</th>
+            <th>Team</th>
+            <th>Bid</th>
+            <th>Tricks</th>
+            <th>Nil result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {score.seats.map((seat) => (
+            <tr key={seat.seat}>
+              <th>{seatLabel(seat.seat)}</th>
+              <td>{teamLabel(seat.team)}</td>
+              <td>{bidLabel(seat.bid)}</td>
+              <td>{seat.tricks}</td>
+              <td>{nilResultLabel(seat.nil_result)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
+}
+
+function nilResultLabel(result: string | null): string {
+  if (result === "Made") return "Made";
+  if (result === "Failed") return "Failed";
+  return "—";
 }
 
 function CardFace({ card }: { card: BlackglassPactCardView }) {

@@ -1940,6 +1940,20 @@ h2 {
   text-align: left;
 }
 
+.blackglass-score-panel caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b6557;
+  padding: 4px 6px 2px;
+}
+
+.blackglass-score-panel .blackglass-seat-score {
+  margin-top: 12px;
+}
+
 .blackglass-board.reveal .blackglass-trick {
   border-color: var(--blackglass-gold);
 }
