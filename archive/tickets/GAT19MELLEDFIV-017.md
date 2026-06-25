@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-017: Benchmarks and BENCHMARKS.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — deterministic evidence + docs (`games/meldfall_ledger/benches/*`, `docs/BENCHMARKS.md`)
@@ -77,3 +77,26 @@ Seat-count profiles, max-6-seat/action-surface budgets, bot-vs-bot simulation bu
 1. `cargo bench -p meldfall_ledger`
 2. `node scripts/check-doc-links.mjs`
 3. `rule-coverage` consumption of `BENCHMARKS.md` is verified in GAT19MELLEDFIV-018 (its registration ticket).
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+1. Added `games/meldfall_ledger/benches/meldfall_ledger.rs` and registered it in `games/meldfall_ledger/Cargo.toml` as a custom `harness = false` native benchmark target.
+2. Added `games/meldfall_ledger/benches/thresholds.json` with all eight required profile names and provisional smoke thresholds.
+3. Added `games/meldfall_ledger/docs/BENCHMARKS.md` documenting the seat-count profiles, large discard-tail/tableau profiles, replay export/import profile, L0 bot profile, and L1-not-admitted profile.
+
+Deviations:
+
+1. `l1_bot_decision` is implemented as a status-check profile over `not_admitted_pending_strategy_evidence`, not as a strategic decision benchmark, because Gate 19 has no admitted Level 1 policy.
+2. Bench thresholds are baseline smoke floors pending repeated CI-runner calibration under ADR 0002/0003/0005. They are not tuned p95 performance gates yet.
+
+Verification:
+
+1. `cargo bench -p meldfall_ledger` passed and ran all eight profiles: `native_2p_short_round`, `native_4p_default`, `native_6p_large_surface`, `large_discard_tail`, `large_public_tableau`, `replay_export_import`, `l0_bot_decision`, and `l1_bot_decision`.
+2. `cargo run -p bench-report -- --input /tmp/meldfall_ledger_bench_report.txt --thresholds games/meldfall_ledger/benches/thresholds.json` passed (`bench-report: 8 operations passed thresholds for meldfall_ledger`).
+3. `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+4. `rg -n "native_2p_short_round|native_4p_default|native_6p_large_surface|large_discard_tail|large_public_tableau|replay_export_import|l0_bot_decision|l1_bot_decision|thresholds\\.json|not_admitted_pending_strategy_evidence" games/meldfall_ledger/docs/BENCHMARKS.md games/meldfall_ledger/benches/thresholds.json` confirmed the doc and threshold profile names.
+5. `cargo fmt --all --check` passed.

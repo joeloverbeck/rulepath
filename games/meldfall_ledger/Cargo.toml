@@ -16,3 +16,8 @@ game-test-support = { path = "../../crates/game-test-support" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "meldfall_ledger"
+path = "benches/meldfall_ledger.rs"
+harness = false
