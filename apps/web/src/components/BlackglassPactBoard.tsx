@@ -35,6 +35,26 @@ const TEAM_SEATS: Record<BlackglassPactTeamId, BlackglassPactSeatId[]> = {
   team_1: ["seat_1", "seat_3"],
 };
 const SUIT_GLYPH: Record<string, string> = { clubs: "C", diamonds: "D", hearts: "H", spades: "S" };
+const SUIT_PIP: Record<string, string> = { clubs: "♣", diamonds: "♦", hearts: "♥", spades: "♠" };
+// Presentation-only hand ordering. Spades are trump, so they group at one end;
+// colors alternate (red/black/red/black) so adjacent suits stay easy to tell apart.
+// Rust still owns card identity, legality, and every game decision.
+const SUIT_SORT: Record<string, number> = { diamonds: 0, clubs: 1, hearts: 2, spades: 3 };
+const RANK_SORT: Record<string, number> = {
+  two: 0,
+  three: 1,
+  four: 2,
+  five: 3,
+  six: 4,
+  seven: 5,
+  eight: 6,
+  nine: 7,
+  ten: 8,
+  jack: 9,
+  queen: 10,
+  king: 11,
+  ace: 12,
+};
 
 export function BlackglassPactBoard({
   view,
@@ -52,6 +72,15 @@ export function BlackglassPactBoard({
     [paths],
   );
   const nonCardChoices = paths.filter((entry) => entry.path[0] !== "play");
+  const sortedHand = useMemo(
+    () =>
+      [...(view.own_hand ?? [])].sort(
+        (a, b) =>
+          (SUIT_SORT[a.suit] ?? 0) - (SUIT_SORT[b.suit] ?? 0) ||
+          (RANK_SORT[a.rank] ?? 0) - (RANK_SORT[b.rank] ?? 0),
+      ),
+    [view.own_hand],
+  );
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase.kind !== "terminal");
   const changed = effects.some((entry) =>
     ["card_played", "trick_captured", "bid_accepted", "hand_scored", "deal_completed"].includes(
@@ -59,6 +88,7 @@ export function BlackglassPactBoard({
     ),
   );
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  const latestDetail = blackglassLatestDetail(latestEffect, feedback?.detail ?? null);
   const terminalTeam = view.phase.kind === "terminal" ? view.phase.winning_team : null;
   const outcomeExplanation =
     terminalTeam
@@ -111,7 +141,7 @@ export function BlackglassPactBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {view.display_name}, {phaseLabel(view)}, hand {view.hand_index + 1}, {paths.length} Rust legal choices.
+        {view.display_name}, {phaseLabel(view)}, hand {view.hand_index + 1}, {paths.length} legal choices.
       </p>
 
       <div className="blackglass-metrics" aria-label="Blackglass Pact status">
@@ -179,7 +209,13 @@ export function BlackglassPactBoard({
       <section className="blackglass-private" aria-label="Private hand">
         <div className="blackglass-section-heading">
           <span>Private hand</span>
-          <strong>{view.private_view_status === "seat" ? `${view.own_hand?.length ?? 0} cards` : "Hidden for observer"}</strong>
+          <strong>
+            {view.private_view_status !== "seat"
+              ? "Hidden for observer"
+              : view.phase.kind === "blind_nil_commitment"
+                ? "Not dealt yet"
+                : `${view.own_hand?.length ?? 0} cards`}
+          </strong>
         </div>
         <div className="blackglass-hand">
           {view.private_view_status !== "seat" ? (
@@ -187,8 +223,17 @@ export function BlackglassPactBoard({
               <span>Hidden</span>
               <strong>Seat hand only</strong>
             </div>
+          ) : sortedHand.length === 0 ? (
+            <div className="blackglass-facedown" data-testid="blackglass-private-empty">
+              <span>{view.phase.kind === "blind_nil_commitment" ? "No cards yet" : "No cards in hand"}</span>
+              <strong>
+                {view.phase.kind === "blind_nil_commitment"
+                  ? "Blind nil is committed before the deal"
+                  : "Your hand is empty"}
+              </strong>
+            </div>
           ) : (
-            (view.own_hand ?? []).map((card) => {
+            sortedHand.map((card) => {
               const action = playChoices.get(card.id);
               return (
                 <button
@@ -238,7 +283,7 @@ export function BlackglassPactBoard({
       {feedback ? (
         <section className="blackglass-latest" aria-label="Latest event">
           <span>{feedback.title}</span>
-          <strong>{feedback.detail}</strong>
+          <strong>{latestDetail ?? feedback.detail}</strong>
         </section>
       ) : null}
 
@@ -296,11 +341,12 @@ function HandScorePanel({ view }: { view: BlackglassPactPublicView }) {
         <strong>Hand {score.hand_index + 1}</strong>
       </div>
       <table>
+        <caption>Teams</caption>
         <thead>
           <tr>
             <th>Team</th>
             <th>Contract</th>
-            <th>Tricks</th>
+            <th>Ord. tricks</th>
             <th>Delta</th>
             <th>Score</th>
             <th>Bags</th>
@@ -321,17 +367,60 @@ function HandScorePanel({ view }: { view: BlackglassPactPublicView }) {
           ))}
         </tbody>
       </table>
+      <table className="blackglass-seat-score">
+        <caption>Seats</caption>
+        <thead>
+          <tr>
+            <th>Seat</th>
+            <th>Team</th>
+            <th>Bid</th>
+            <th>Tricks</th>
+            <th>Nil result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {score.seats.map((seat) => (
+            <tr key={seat.seat}>
+              <th>{seatLabel(seat.seat)}</th>
+              <td>{teamLabel(seat.team)}</td>
+              <td>{bidLabel(seat.bid)}</td>
+              <td>{seat.tricks}</td>
+              <td>{nilResultLabel(seat.nil_result)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
 
+function nilResultLabel(result: string | null): string {
+  if (result === "Made") return "Made";
+  if (result === "Failed") return "Failed";
+  return "—";
+}
+
 function CardFace({ card }: { card: BlackglassPactCardView }) {
   return (
-    <span className={`blackglass-card-face ${suitTone(card.suit)}`} aria-hidden="true">
-      <b>{card.label}</b>
-      <small>{SUIT_GLYPH[card.suit] ?? card.suit}</small>
+    <span
+      className={`blackglass-card-face ${suitTone(card.suit)}`}
+      data-card-label={card.label}
+      aria-hidden="true"
+    >
+      <b>{rankSymbol(card)}</b>
+      <small>{SUIT_PIP[card.suit] ?? SUIT_GLYPH[card.suit] ?? card.suit}</small>
     </span>
   );
+}
+
+// The Rust public label is rank+suit-letter (e.g. "7S", "10D", "AS"). Show the rank
+// prominently and render the suit as a standard pip, dropping the redundant letter.
+function rankSymbol(card: BlackglassPactCardView): string {
+  const glyph = SUIT_GLYPH[card.suit];
+  if (glyph && card.label.endsWith(glyph)) {
+    return card.label.slice(0, card.label.length - glyph.length);
+  }
+  return card.label;
 }
 
 function flattenActionTree(tree: ActionTree | null): PathChoice[] {
@@ -347,6 +436,75 @@ function flattenActionTree(tree: ActionTree | null): PathChoice[] {
     }
   }
   return paths;
+}
+
+// The shared effect feedback falls back to a generic "Rust awarded the trick."
+// because Rust does not attach a summary string to the trick_captured effect.
+// The public payload does carry the winning seat, so name it here using the
+// board's own seat labels (UI.md: the latest event should name the trick winner).
+// Presentation-only: the winner and trick index are public Rust-projected facts.
+function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | null): string | null {
+  if (!entry) return fallback;
+  const payload = entry.effect.payload as {
+    type?: string;
+    winner?: unknown;
+    seat?: unknown;
+    dealer?: unknown;
+    team?: unknown;
+    card?: unknown;
+    bid?: unknown;
+    hand_index?: unknown;
+    points_deducted?: unknown;
+    trick_index?: unknown;
+  };
+  if (payload.type === "bid_accepted" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    const bid = payload.bid as BlackglassPactBidView | undefined;
+    if (SEATS.includes(seat) && bid) {
+      const text = bid.kind === "blind_nil" ? "blind nil" : bid.kind === "nil" ? "nil" : String(bid.value);
+      return `${seatLabel(seat)} bid ${text}.`;
+    }
+  }
+  if (payload.type === "card_played" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    const card = payload.card as BlackglassPactCardView | undefined;
+    if (SEATS.includes(seat) && card?.label) {
+      return `${seatLabel(seat)} played ${rankSymbol(card)}${SUIT_PIP[card.suit] ?? ""}.`;
+    }
+  }
+  if (payload.type === "trick_captured" && typeof payload.winner === "string") {
+    const seat = payload.winner as BlackglassPactSeatId;
+    if (!SEATS.includes(seat)) return fallback;
+    const trickNumber = typeof payload.trick_index === "number" ? payload.trick_index + 1 : null;
+    return trickNumber ? `${seatLabel(seat)} won trick ${trickNumber}.` : `${seatLabel(seat)} won the trick.`;
+  }
+  if (payload.type === "spades_broken" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) return `${seatLabel(seat)} broke spades; spades may now be led.`;
+  }
+  if (payload.type === "blind_nil_declared" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) return `${seatLabel(seat)} committed to blind nil.`;
+  }
+  if (payload.type === "blind_nil_declined" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) return `${seatLabel(seat)} declined blind nil.`;
+  }
+  if (payload.type === "dealer_advanced" && typeof payload.dealer === "string") {
+    const seat = payload.dealer as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) {
+      const handNumber = typeof payload.hand_index === "number" ? payload.hand_index + 1 : null;
+      return handNumber ? `${seatLabel(seat)} deals hand ${handNumber}.` : `${seatLabel(seat)} deals the next hand.`;
+    }
+  }
+  if (payload.type === "bag_penalty_applied" && typeof payload.team === "string") {
+    const team = payload.team as BlackglassPactTeamId;
+    if (TEAMS.includes(team)) {
+      const points = Math.abs(Number(payload.points_deducted) || 0);
+      return `${teamLabel(team)} lost ${points} points to a bag penalty.`;
+    }
+  }
+  return fallback;
 }
 
 function statusLabel(view: BlackglassPactPublicView): string {

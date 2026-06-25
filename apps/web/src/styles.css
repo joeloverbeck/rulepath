@@ -1896,7 +1896,13 @@ h2 {
 }
 
 .blackglass-card-face small {
-  color: var(--blackglass-muted);
+  color: var(--blackglass-ink);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.blackglass-card-face.red small {
+  color: #a23b32;
 }
 
 .blackglass-facedown {
@@ -1938,6 +1944,20 @@ h2 {
   border-bottom: 1px solid #e5e1d7;
   padding: 7px 6px;
   text-align: left;
+}
+
+.blackglass-score-panel caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b6557;
+  padding: 4px 6px 2px;
+}
+
+.blackglass-score-panel .blackglass-seat-score {
+  margin-top: 12px;
 }
 
 .blackglass-board.reveal .blackglass-trick {

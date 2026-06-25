@@ -79,6 +79,7 @@ try {
   await advanceUntilOwnHand(page);
   const ownLabels = await ownCardLabels(page);
   assert(ownLabels.length === 13, `hotseat private view exposes 13 own cards after deal, got ${ownLabels.length}`);
+  await assertHandSorted(page, "hotseat dealt hand");
   await assertSeatNoLeak(page, consoleMessages, ownLabels, "hotseat dealt hand");
   await assertBidOrPlayControls(page);
 
@@ -202,12 +203,28 @@ async function assertBidOrPlayControls(page) {
 
 async function assertSeatNoLeak(page, consoleMessages, allowedLabels, label) {
   const normalizedAllowed = new Set(allowedLabels.map((value) => value.toLowerCase()));
-  const visibleCardLabels = await page.$$eval(".blackglass-card-face b", (nodes) =>
-    nodes.map((node) => (node.textContent ?? "").trim().toLowerCase()).filter(Boolean),
+  const visibleCardLabels = await page.$$eval(".blackglass-card-face", (nodes) =>
+    nodes.map((node) => (node.getAttribute("data-card-label") ?? "").trim().toLowerCase()).filter(Boolean),
   );
   const forbiddenVisible = visibleCardLabels.filter((value) => !normalizedAllowed.has(value));
   assert(forbiddenVisible.length === 0, `${label} rendered non-owner cards: ${forbiddenVisible.join(", ")}`);
   assertNoForbiddenTerms(consoleMessages.join("\n"), `${label} console`, internalTerms);
+}
+
+async function assertHandSorted(page, label) {
+  const faces = await page.$$eval(".blackglass-private .blackglass-card .blackglass-card-face", (nodes) =>
+    nodes.map((node) => (node.getAttribute("data-card-label") ?? "").trim()),
+  );
+  assert(faces.length > 0, `${label} renders owner card faces for sort check`);
+  const suitOrder = { D: 0, C: 1, H: 2, S: 3 };
+  const rankOrder = { 2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 10: 8, J: 9, Q: 10, K: 11, A: 12 };
+  const keys = faces.map((face) => [suitOrder[face.slice(-1)], rankOrder[face.slice(0, -1)]]);
+  for (let index = 1; index < keys.length; index += 1) {
+    const prev = keys[index - 1];
+    const next = keys[index];
+    const ordered = prev[0] < next[0] || (prev[0] === next[0] && prev[1] <= next[1]);
+    assert(ordered, `${label} hand not sorted by suit then rank: ${faces[index - 1]} before ${faces[index]}`);
+  }
 }
 
 async function ownCardLabels(page) {

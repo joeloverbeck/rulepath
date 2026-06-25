@@ -239,6 +239,10 @@ async function assertRulesDialog(page, gameName) {
   assert(summary.closeFocused, `${gameName} rules dialog initially focuses Close`);
   assert(summary.unnamedControls.length === 0, `${gameName} rules dialog controls are named`);
   assert(summary.ruleIdMentions.length === 0, `${gameName} rules dialog omits rule-ID validation tables`);
+  assert(
+    !summary.text.toLowerCase().includes("source notes for maintainers"),
+    `${gameName} rules dialog omits the maintainer source-notes section`,
+  );
   if (gameName === "Event Frontier") {
     await assertEventFrontierRulesRendering(page);
   }
