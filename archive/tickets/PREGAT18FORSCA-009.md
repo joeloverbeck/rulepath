@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-009: TESTING governance-check section + §17 CI-expectations bullet
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/TESTING-REPLAY-BENCHMARKING.md`)
@@ -72,3 +72,27 @@ Add the bullet naming `node scripts/check-scaffolding-governance.mjs` as a Gate 
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/TESTING-REPLAY-BENCHMARKING.md` (review: governance section + §17 bullet)
 3. `grep -n "no-bypass\|ADR 0009\|ADR-0009" docs/TESTING-REPLAY-BENCHMARKING.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/TESTING-REPLAY-BENCHMARKING.md` by adding the
+`Mechanical-scaffolding governance check` section before §17 and adding the §17
+CI-expectations bullet for the governance receipt/register/fingerprint drift
+check.
+
+The new section documents the two enforcement layers, false-positive controls,
+no environment/branch/label bypass, and ADR 0009 authority for any
+hash/visibility migration.
+
+Deviation: none. Existing CI-lane bullets were only extended by the new
+governance-check entry.
+
+Verification:
+
+- `grep -ni "scaffolding governance" docs/TESTING-REPLAY-BENCHMARKING.md` confirmed the new section and CI bullet.
+- `grep -n "no-bypass\\|ADR 0009\\|ADR-0009\\|environment-variable\\|CI-label bypass" docs/TESTING-REPLAY-BENCHMARKING.md` confirmed the no-bypass and ADR 0009 language.
+- `rg -n "receipt and register freshness|known-shape linting|arbitrary semantic equivalence|receipt/register/fingerprint" docs/TESTING-REPLAY-BENCHMARKING.md` confirmed the enforcement layers and CI drift-check bullet.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
