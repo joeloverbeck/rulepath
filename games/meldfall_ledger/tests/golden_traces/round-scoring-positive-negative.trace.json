@@ -1,0 +1,13 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "round-scoring-positive-negative",
+  "rules": ["ML-SCORE-001", "ML-SCORE-002", "ML-SCORE-003", "ML-SCORE-004", "ML-SCORE-006", "ML-VIS-006"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-005",
+    "shape": "multi-round cumulative scoring to 500 with in-hand penalties and tie continuation",
+    "status": "first official use, local-only"
+  },
+  "seat_0": { "tabled_positive": 45, "in_hand_penalty": 10, "remaining_hand_count": 1, "round_delta": 35 },
+  "seat_1": { "tabled_positive": 15, "in_hand_penalty": 2, "remaining_hand_count": 1, "round_delta": 13 },
+  "public_settlement": "totals-and-counts-only"
+}

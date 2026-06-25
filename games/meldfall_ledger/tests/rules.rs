@@ -11,6 +11,9 @@ use meldfall_ledger::{
         lay_off_card, table_new_meld, take_new_meld_from_hand, validate_new_meld,
         validate_owned_meld,
     },
+    scoring::{
+        apply_round_deltas, card_score, settle_round, terminal_outcome_for_scores_after_deltas,
+    },
     setup::{deal_for_round, default_seats, setup_match, validate_seat_count, SetupOptions},
     state::{MatchState, MeldId, MeldKind, TurnOrdinal},
     visibility::{project_public_tableau, project_tableau_for_viewer},
@@ -728,6 +731,98 @@ fn wrong_seat_draw_is_diagnostic() {
 
     let diagnostic = draw_from_stock(&mut state.round, 0).expect_err("wrong seat rejected");
     assert_eq!(diagnostic.code, "ML_WRONG_SEAT");
+}
+
+#[test]
+fn round_scoring_uses_tabled_credit_minus_hand_penalties_without_card_leak() {
+    let mut state = sample_state();
+    let base = vec![
+        Card::new(Rank::Ace, Suit::Clubs).id(),
+        Card::new(Rank::Ace, Suit::Diamonds).id(),
+        Card::new(Rank::Ace, Suit::Hearts).id(),
+    ];
+    let layoff = Card::new(Rank::Ace, Suit::Spades).id();
+    state.round.active_seat_index = 0;
+    state.round.seats[0].hand = vec![
+        base[0],
+        base[1],
+        base[2],
+        Card::new(Rank::King, Suit::Clubs).id(),
+    ];
+    state.round.seats[1].hand = vec![layoff, Card::new(Rank::Two, Suit::Hearts).id()];
+    table_new_meld(&mut state.round, 0, &base, TurnOrdinal(1)).expect("base set tables");
+    state.round.active_seat_index = 1;
+    lay_off_card(
+        &mut state.round,
+        1,
+        layoff,
+        MeldId(0),
+        LayoffPosition::Append,
+        TurnOrdinal(2),
+    )
+    .expect("layoff accepted");
+
+    let settlement = settle_round(&mut state);
+
+    assert_eq!(card_score(base[0]), 15);
+    assert_eq!(settlement.seats[0].tabled_positive, 45);
+    assert_eq!(settlement.seats[0].in_hand_penalty, 10);
+    assert_eq!(settlement.seats[0].round_delta, 35);
+    assert_eq!(settlement.seats[1].tabled_positive, 15);
+    assert_eq!(settlement.seats[1].in_hand_penalty, 2);
+    assert_eq!(settlement.seats[1].round_delta, 13);
+    assert!(!settlement.stable_public_string().contains("king_clubs"));
+    assert!(!settlement.stable_public_string().contains("two_hearts"));
+}
+
+#[test]
+fn scores_can_go_negative_and_cumulative_scores_update() {
+    let mut state = sample_state();
+    state.round.seats[0].hand = vec![
+        Card::new(Rank::Ace, Suit::Spades).id(),
+        Card::new(Rank::King, Suit::Spades).id(),
+    ];
+    let zeroes = vec![0, 0, 0, 0];
+    let penalties = vec![25, 0, 0, 0];
+    let deltas = vec![-25, 0, 0, 0];
+
+    let settlement = apply_round_deltas(&mut state, &deltas, &zeroes, &penalties);
+
+    assert_eq!(settlement.seats[0].round_delta, -25);
+    assert_eq!(settlement.seats[0].cumulative_score, -25);
+    assert_eq!(state.cumulative_scores[0], -25);
+    assert_eq!(state.terminal, None);
+}
+
+#[test]
+fn unique_highest_at_or_above_500_wins_with_stable_standings() {
+    let mut state = sample_state();
+    state.cumulative_scores = vec![490, 480, 100, -20];
+    let deltas = vec![20, 15, 0, 0];
+    let zeroes = vec![0, 0, 0, 0];
+
+    let settlement = apply_round_deltas(&mut state, &deltas, &zeroes, &zeroes);
+
+    let terminal = settlement.terminal.expect("unique eligible winner");
+    assert_eq!(terminal.winner, Some(0));
+    assert_eq!(state.cumulative_scores, vec![510, 495, 100, -20]);
+    assert_eq!(terminal.standings[0].rank, 1);
+    assert!(terminal.standings[0].winner);
+}
+
+#[test]
+fn tied_highest_at_or_above_500_continues_until_unique() {
+    let current = vec![490, 495, 100, 0];
+    let tied = vec![20, 15, 0, 0];
+    assert_eq!(
+        terminal_outcome_for_scores_after_deltas(&current, &tied),
+        None
+    );
+
+    let unique = vec![25, 15, 0, 0];
+    let outcome = terminal_outcome_for_scores_after_deltas(&current, &unique)
+        .expect("unique winner after later round");
+    assert_eq!(outcome.winner, Some(0));
 }
 
 fn sample_state() -> MatchState {

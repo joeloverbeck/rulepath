@@ -1,0 +1,12 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "scores-can-go-negative",
+  "rules": ["ML-SCORE-003", "ML-SCORE-005"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-005",
+    "shape": "multi-round cumulative scoring to 500 with in-hand penalties and tie continuation",
+    "status": "first official use, local-only"
+  },
+  "seat_0": { "round_delta": -25, "cumulative_score": -25 },
+  "terminal": "none"
+}

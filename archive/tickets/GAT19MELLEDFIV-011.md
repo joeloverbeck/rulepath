@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-011: Round and match scoring — 500 target with unique-winner tie continuation (first-use primitive)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/scoring.rs`; scoring golden traces; first-use ledger entry ML-PP-005
@@ -83,3 +83,19 @@ Public round-settlement output: positive tabled total, in-hand penalty total/cou
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. The full all-viewer settlement no-leak matrix is GAT19MELLEDFIV-013; this ticket asserts public settlement is total/count-only.
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented Rust-owned Meldfall Ledger round and match scoring in `games/meldfall_ledger/src/scoring.rs`: card values, tabled positive score credit, in-hand penalties, round deltas, cumulative scores that may go negative, 500 target eligibility, unique-highest terminal outcome, tied-highest continuation, and stable seat-order standings.
+
+Added public settlement structures and stable public strings that expose only per-seat totals/counts, round deltas, cumulative scores, ranks, and winner flags; remaining hand card identities stay out of public settlement output.
+
+Added scoring tests for positive table credit minus hand penalties, negative cumulative scores, unique winner at/above 500, and tied-highest continuation. Added golden traces for `round-scoring-positive-negative`, `scores-can-go-negative`, `multi-round-first-to-500`, and `target-tie-continues`. Recorded `ML-PP-005` as a local-only first-use primitive.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p meldfall_ledger`
+3. `cargo test --workspace`
