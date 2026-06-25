@@ -164,6 +164,12 @@ export function renderRulesMarkdown(markdown: string): { headings: Heading[]; no
     if (heading) {
       const level = heading[1].length;
       const text = stripInlineMarkdown(heading[2].trim());
+      // The "Source notes for maintainers" section is a pre-merge checklist for
+      // doc authors, not player-facing content; it is always the final section.
+      // Stop rendering here so it never reaches the player rules surface.
+      if (level === 2 && text.toLowerCase() === "source notes for maintainers") {
+        break;
+      }
       const id = uniqueSlug(text, headings);
       headings.push({ id, level, text });
       const HeadingTag = `h${Math.min(level + 1, 4)}` as "h2" | "h3" | "h4";
