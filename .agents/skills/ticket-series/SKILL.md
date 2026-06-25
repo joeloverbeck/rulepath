@@ -209,6 +209,11 @@ rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes" archive/
 10. Review the diff for unrelated changes. Before every per-ticket commit,
     inspect the staged index with `git diff --cached --name-status` or an
     equivalent path-scoped staged diff, and also check `git status --short`.
+    For untracked new files, review their contents before staging with a
+    targeted read such as `sed`, `jq`, or another format-aware command, or stage
+    them intentionally and inspect `git diff --cached` before committing. Do not
+    treat an empty `git diff -- <new-file>` as proof that an untracked file has
+    no content changes.
     Unstage or exclude unrelated user changes before committing.
     Run all git index-mutating commands serially, including `git add`,
     `git mv`, `git commit`, and `git restore --staged`; never run them through
@@ -512,6 +517,10 @@ git log --oneline --grep='TICKET_PREFIX' --all
 git status --short
 git diff --cached --name-status
 ```
+
+When adapting these commands, keep regex patterns that contain Markdown
+backticks inside single quotes, or escape the backticks. Double-quoted patterns
+such as `` `Done` `` can trigger shell command substitution before `rg` runs.
 
 Compare the archived ticket name list and count against the concrete ticket
 paths resolved at startup. Compare the commit ledger output against the archived
