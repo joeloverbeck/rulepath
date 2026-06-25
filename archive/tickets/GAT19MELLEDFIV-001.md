@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-001: Meldfall Ledger rules prose and source/IP notes
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: None — game-local docs (`games/meldfall_ledger/docs/RULES.md`, `SOURCES.md`)
@@ -74,3 +74,22 @@ Source summary for the Five Hundred Rummy / Rummy 500 family, the pinned single-
 1. `node scripts/check-doc-links.mjs`
 2. `grep -nE "^(###|- ).*(score-|match-)" games/meldfall_ledger/docs/RULES.md` (confirm stable scoring/terminal IDs exist)
 3. A narrower command is correct here: no crate exists yet, so `cargo` verification belongs to GAT19MELLEDFIV-003 onward.
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+- Added `games/meldfall_ledger/docs/RULES.md` with original Rulepath rules prose for the pinned `classic_500_single_deck_v1` variant, stable `ML-*` rule IDs, and the scoring/terminal tokens required by downstream coverage and outcome work.
+- Added `games/meldfall_ledger/docs/SOURCES.md` with source-use notes, variant decisions, deliberate exclusions, neutral-name rationale, IP/trade-dress posture, and a rule-source cross-reference.
+
+Deviations from plan:
+
+- None. This ticket remained documentation-only; no Rust, WASM, web, generated player-rules, or tool registration files were created.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `grep -nE "^(###|- ).*(score-|match-)" games/meldfall_ledger/docs/RULES.md` found all required scoring and terminal tokens.
+- A uniqueness pass confirmed each of `score-card-value`, `score-tabled`, `score-inhand-penalty`, `score-round-delta`, `score-cumulative`, `score-credit-owner`, `score-settlement-visibility`, `match-target-500`, and `match-tie-continue` appears exactly once in `RULES.md`.
