@@ -452,10 +452,19 @@ function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | nu
     dealer?: unknown;
     team?: unknown;
     card?: unknown;
+    bid?: unknown;
     hand_index?: unknown;
     points_deducted?: unknown;
     trick_index?: unknown;
   };
+  if (payload.type === "bid_accepted" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    const bid = payload.bid as BlackglassPactBidView | undefined;
+    if (SEATS.includes(seat) && bid) {
+      const text = bid.kind === "blind_nil" ? "blind nil" : bid.kind === "nil" ? "nil" : String(bid.value);
+      return `${seatLabel(seat)} bid ${text}.`;
+    }
+  }
   if (payload.type === "card_played" && typeof payload.seat === "string") {
     const seat = payload.seat as BlackglassPactSeatId;
     const card = payload.card as BlackglassPactCardView | undefined;
