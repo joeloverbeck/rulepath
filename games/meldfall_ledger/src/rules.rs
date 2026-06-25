@@ -11,8 +11,13 @@ use engine_core::Diagnostic;
 use crate::{
     actions::LayoffPosition,
     cards::{ranks_are_consecutive_low_or_high, CardId},
-    effects::{public_effect, LayoffEffectPosition, MeldfallEffect, MeldfallEffectEnvelope},
-    state::{MeldGroup, MeldId, MeldKind, RoundState, SeatIndex, TableCard, TurnOrdinal},
+    effects::{
+        public_effect, DrawSource, LayoffEffectPosition, MeldfallEffect, MeldfallEffectEnvelope,
+    },
+    state::{
+        DiscardPickupCommitment, MeldGroup, MeldId, MeldKind, RoundState, SeatIndex, TableCard,
+        TurnOrdinal, TurnPhase,
+    },
 };
 
 pub fn validate_new_meld(cards: &[CardId]) -> Result<MeldKind, Diagnostic> {
@@ -114,6 +119,7 @@ pub fn table_new_meld(
     }
 
     let meld_id = round.tableau.next_meld_id();
+    let satisfies_pickup = pending_pickup_satisfied_by_cards(round, seat_index, cards);
     let group = take_new_meld_from_hand(
         &mut round.seats[seat_index].hand,
         cards,
@@ -123,6 +129,9 @@ pub fn table_new_meld(
     )?;
     round.round_played_scores[seat_index] += tabled_score_for(&group);
     round.tableau.groups.push(group.clone());
+    if satisfies_pickup {
+        round.pending_pickup = None;
+    }
     Ok(group)
 }
 
@@ -165,6 +174,7 @@ pub fn lay_off_card(
             )
         })?;
     validate_lay_off_candidate(&round.tableau.groups[group_index], card, position)?;
+    let satisfies_pickup = pending_pickup_satisfied_by_card(round, seat_index, card);
 
     let hand_index = round.seats[seat_index]
         .hand
@@ -188,6 +198,9 @@ pub fn lay_off_card(
             .push(table_card.clone()),
     }
     round.round_played_scores[seat_index] += i32::from(card.card().rank.score_value());
+    if satisfies_pickup {
+        round.pending_pickup = None;
+    }
 
     Ok(public_effect(MeldfallEffect::LayOff {
         seat: seat_index,
@@ -195,6 +208,115 @@ pub fn lay_off_card(
         card: table_card,
         position: layoff_effect_position(position),
     }))
+}
+
+pub fn draw_from_stock(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+) -> Result<MeldfallEffectEnvelope, Diagnostic> {
+    validate_draw_actor_and_phase(round, seat_index)?;
+    if round.stock.is_empty() {
+        return Err(meld_diagnostic(
+            "ML_STOCK_EMPTY",
+            "meldfall_ledger cannot draw from an empty stock",
+        ));
+    }
+    let card = round
+        .stock
+        .pop()
+        .expect("stock emptiness checked before drawing");
+    round.seats[seat_index].hand.push(card);
+    round.phase = TurnPhase::Table;
+    Ok(public_effect(MeldfallEffect::Draw {
+        seat: seat_index,
+        source: DrawSource::Stock,
+        cards_moved: 1,
+        stock_count_after: round.stock.len(),
+        discard_count_after: round.discard.len(),
+    }))
+}
+
+pub fn draw_from_discard(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+    selected_discard_index: usize,
+) -> Result<MeldfallEffectEnvelope, Diagnostic> {
+    validate_draw_actor_and_phase(round, seat_index)?;
+    if selected_discard_index >= round.discard.len() {
+        return Err(meld_diagnostic(
+            "ML_INVALID_DISCARD_INDEX",
+            format!(
+                "meldfall_ledger discard index {selected_discard_index} is outside {} public cards",
+                round.discard.len()
+            ),
+        ));
+    }
+    let picked = round.discard.split_off(selected_discard_index);
+    let selected_card = picked[0];
+    let cards_moved = picked.len();
+    round.seats[seat_index].hand.extend(picked);
+    round.pending_pickup = Some(DiscardPickupCommitment {
+        selected_card,
+        source_discard_index: selected_discard_index,
+        required_by_seat: seat_index,
+    });
+    round.phase = TurnPhase::Table;
+
+    Ok(public_effect(MeldfallEffect::Draw {
+        seat: seat_index,
+        source: DrawSource::Discard {
+            selected_index: selected_discard_index,
+        },
+        cards_moved,
+        stock_count_after: round.stock.len(),
+        discard_count_after: round.discard.len(),
+    }))
+}
+
+pub fn discard_card(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+    card: CardId,
+) -> Result<MeldfallEffectEnvelope, Diagnostic> {
+    validate_seat_index(round, seat_index)?;
+    if pending_pickup_for(round, seat_index).is_some() {
+        return Err(meld_diagnostic(
+            "ML_PICKUP_COMMITMENT_UNSATISFIED",
+            "meldfall_ledger pickup commitment must be used in a meld or lay-off before discarding",
+        ));
+    }
+    let hand_index = round.seats[seat_index]
+        .hand
+        .iter()
+        .position(|held| *held == card)
+        .ok_or_else(|| {
+            meld_diagnostic(
+                "ML_DISCARD_CARD_NOT_OWNED",
+                "meldfall_ledger cannot discard a card outside the active hand",
+            )
+        })?;
+    round.seats[seat_index].hand.remove(hand_index);
+    round.discard.push(card);
+    round.phase = TurnPhase::Draw;
+    Ok(public_effect(MeldfallEffect::Discard {
+        seat: seat_index,
+        card,
+        discard_count_after: round.discard.len(),
+    }))
+}
+
+pub fn finish_turn_after_table_plays(
+    round: &RoundState,
+    seat_index: SeatIndex,
+) -> Result<(), Diagnostic> {
+    validate_seat_index(round, seat_index)?;
+    if pending_pickup_for(round, seat_index).is_some() {
+        return Err(meld_diagnostic(
+            "ML_PICKUP_COMMITMENT_UNSATISFIED",
+            "meldfall_ledger pickup commitment must be used in a meld or lay-off before finishing",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_set(cards: &[CardId]) -> Option<MeldKind> {
@@ -256,6 +378,69 @@ fn validate_lay_off_candidate(
         return Err(invalid_layoff(group.id));
     }
     Ok(())
+}
+
+fn validate_draw_actor_and_phase(
+    round: &RoundState,
+    seat_index: SeatIndex,
+) -> Result<(), Diagnostic> {
+    validate_seat_index(round, seat_index)?;
+    if round.phase != TurnPhase::Draw {
+        return Err(meld_diagnostic(
+            "ML_WRONG_PHASE",
+            format!(
+                "meldfall_ledger draw is only legal in draw phase; current phase is {}",
+                round.phase.as_str()
+            ),
+        ));
+    }
+    if round.pending_pickup.is_some() {
+        return Err(meld_diagnostic(
+            "ML_PICKUP_COMMITMENT_UNSATISFIED",
+            "meldfall_ledger cannot draw while a pickup commitment is pending",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_seat_index(round: &RoundState, seat_index: SeatIndex) -> Result<(), Diagnostic> {
+    if seat_index >= round.seats.len() {
+        return Err(meld_diagnostic(
+            "ML_INVALID_SEAT_INDEX",
+            format!(
+                "meldfall_ledger seat index {seat_index} is outside {} seats",
+                round.seats.len()
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn pending_pickup_satisfied_by_cards(
+    round: &RoundState,
+    seat_index: SeatIndex,
+    cards: &[CardId],
+) -> bool {
+    pending_pickup_for(round, seat_index)
+        .is_some_and(|pending| cards.contains(&pending.selected_card))
+}
+
+fn pending_pickup_satisfied_by_card(
+    round: &RoundState,
+    seat_index: SeatIndex,
+    card: CardId,
+) -> bool {
+    pending_pickup_for(round, seat_index).is_some_and(|pending| pending.selected_card == card)
+}
+
+fn pending_pickup_for(
+    round: &RoundState,
+    seat_index: SeatIndex,
+) -> Option<&DiscardPickupCommitment> {
+    round
+        .pending_pickup
+        .as_ref()
+        .filter(|pending| pending.required_by_seat == seat_index)
 }
 
 fn same_meld_kind(left: &MeldKind, right: &MeldKind) -> bool {

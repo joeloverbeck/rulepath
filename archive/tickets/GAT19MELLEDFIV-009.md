@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-009: Draw/discard zones and multi-card discard-pile pickup with immediate-use commitment (first-use primitive)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{actions,rules,effects}.rs`; draw/pickup golden traces; first-use ledger entry ML-PP-003
@@ -87,3 +87,20 @@ Public/seat-private effect groups for stock draw (public count change + acting-s
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. The full multi-viewer stock-order no-leak matrix is GAT19MELLEDFIV-013; this ticket asserts the single-trace no-leak + commitment legality.
+
+## Outcome
+
+Completed: 2026-06-26
+
+- Added `draw_source_action_tree` so Rust exposes stock draw and public discard-index choices from `RoundState`, without exposing stock card identities.
+- Added stock draw and discard-tail pickup rule helpers. Stock draw pops the hidden stock top into the acting hand and emits a public count-only draw effect; discard pickup takes the selected public discard plus all newer cards and records `pending_pickup`.
+- Enforced immediate-use commitments for both deep discard pickup and top-discard pickup. `table_new_meld` and `lay_off_card` clear the commitment only when the selected discard card is used.
+- Added discard and turn-finish guards that reject while a pickup commitment remains unsatisfied, preventing discarding the committed card before use.
+- Added draw/pickup tests for action tree shape, stock no-leak effect text, multi-card pickup, commitment clearing by meld, top-discard commitment, blocked discard, and blocked finish.
+- Added draw/pickup golden traces and recorded `ML-PP-003` as first official use, `local-only`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p meldfall_ledger`
+- `cargo test --workspace`

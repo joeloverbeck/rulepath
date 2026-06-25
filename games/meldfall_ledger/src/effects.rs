@@ -3,7 +3,7 @@
 //! Later tickets attach these payloads to full legality, redaction, and export
 //! flows. The group names and stable strings are intentionally established here.
 
-use engine_core::EffectEnvelope;
+use engine_core::{EffectEnvelope, SeatId};
 
 use crate::{
     cards::CardId,
@@ -20,6 +20,11 @@ pub enum MeldfallEffect {
         cards_moved: usize,
         stock_count_after: usize,
         discard_count_after: usize,
+    },
+    StockDrawPrivate {
+        seat: SeatIndex,
+        card: CardId,
+        stock_count_after: usize,
     },
     Meld {
         seat: SeatIndex,
@@ -81,6 +86,22 @@ pub fn public_effect(payload: MeldfallEffect) -> MeldfallEffectEnvelope {
     EffectEnvelope::public(payload)
 }
 
+pub fn private_stock_draw_effect(
+    owner: SeatId,
+    seat: SeatIndex,
+    card: CardId,
+    stock_count_after: usize,
+) -> MeldfallEffectEnvelope {
+    EffectEnvelope::private_to(
+        owner,
+        MeldfallEffect::StockDrawPrivate {
+            seat,
+            card,
+            stock_count_after,
+        },
+    )
+}
+
 pub fn effect_stable_string(effect: &MeldfallEffectEnvelope) -> String {
     match &effect.payload {
         MeldfallEffect::Draw {
@@ -92,6 +113,14 @@ pub fn effect_stable_string(effect: &MeldfallEffectEnvelope) -> String {
         } => format!(
             "Draw:seat={seat}:source={}:cards={cards_moved}:stock_after={stock_count_after}:discard_after={discard_count_after}",
             source.stable_string()
+        ),
+        MeldfallEffect::StockDrawPrivate {
+            seat,
+            card,
+            stock_count_after,
+        } => format!(
+            "StockDrawPrivate:seat={seat}:card={}:stock_after={stock_count_after}",
+            card.as_str()
         ),
         MeldfallEffect::Meld {
             seat,

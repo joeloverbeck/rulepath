@@ -1,0 +1,13 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "draw-source-choice-stock-vs-discard",
+  "rules": ["ML-TURN-001", "ML-TURN-002", "ML-TURN-003"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-003",
+    "shape": "draw/discard zones with public discard-tail pickup and stock hidden order",
+    "status": "first official use, local-only"
+  },
+  "action_tree_segments": ["draw-stock", "draw-discard-0", "draw-discard-1", "draw-discard-2"],
+  "stock_identity_in_action_tree": "hidden",
+  "discard_indices": "oldest-to-newest public order"
+}

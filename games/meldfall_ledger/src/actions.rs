@@ -7,7 +7,10 @@ use engine_core::{
     ActionChoice, ActionMetadata, ActionNode, ActionPath, ActionPreview, ActionTree, FreshnessToken,
 };
 
-use crate::{cards::CardId, state::MeldId};
+use crate::{
+    cards::CardId,
+    state::{MeldId, RoundState, TurnPhase},
+};
 
 pub const DRAW_STOCK_SEGMENT: &str = "draw-stock";
 pub const DRAW_DISCARD_SEGMENT_PREFIX: &str = "draw-discard";
@@ -102,6 +105,14 @@ pub fn draw_action_tree(
     }
     choices.extend(discard_indices.iter().copied().map(draw_discard_choice));
     ActionTree::flat(freshness_token, choices)
+}
+
+pub fn draw_source_action_tree(freshness_token: FreshnessToken, round: &RoundState) -> ActionTree {
+    if round.phase != TurnPhase::Draw || round.pending_pickup.is_some() {
+        return ActionTree::flat(freshness_token, Vec::new());
+    }
+    let discard_indices = (0..round.discard.len()).collect::<Vec<_>>();
+    draw_action_tree(freshness_token, !round.stock.is_empty(), &discard_indices)
 }
 
 pub fn table_action_tree(

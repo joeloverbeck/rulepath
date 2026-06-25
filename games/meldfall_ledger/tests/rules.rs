@@ -2,10 +2,12 @@ use std::collections::BTreeSet;
 
 use engine_core::{SeatId, Seed, Viewer};
 use meldfall_ledger::{
+    actions::draw_source_action_tree,
     actions::LayoffPosition,
     cards::{canonical_deck, ranks_are_consecutive_low_or_high, Card, CardId, Rank, Suit},
     effects::{effect_stable_string, MeldfallEffect},
     rules::{
+        discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays,
         lay_off_card, table_new_meld, take_new_meld_from_hand, validate_new_meld,
         validate_owned_meld,
     },
@@ -505,6 +507,117 @@ fn invalid_lay_off_gap_wrong_rank_and_missing_target_reject_without_mutation() {
     assert_eq!(diagnostic.code, "ML_INVALID_LAYOFF");
     assert!(!diagnostic.message.contains("ten_clubs"));
     assert_eq!(state.round, before_wrong_rank);
+}
+
+#[test]
+fn draw_source_action_tree_exposes_stock_and_public_discard_indices_only() {
+    let mut state = sample_state();
+    state.round.stock = vec![Card::new(Rank::Ace, Suit::Spades).id()];
+    state.round.discard = vec![
+        Card::new(Rank::Four, Suit::Clubs).id(),
+        Card::new(Rank::Five, Suit::Clubs).id(),
+        Card::new(Rank::Six, Suit::Clubs).id(),
+    ];
+
+    let tree = draw_source_action_tree(engine_core::FreshnessToken(9), &state.round);
+
+    assert_eq!(
+        tree.root
+            .choices
+            .iter()
+            .map(|choice| choice.segment.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "draw-stock",
+            "draw-discard-0",
+            "draw-discard-1",
+            "draw-discard-2"
+        ]
+    );
+    assert!(!format!("{tree:?}").contains("ace_spades"));
+}
+
+#[test]
+fn stock_draw_moves_hidden_top_card_and_public_effect_hides_identity() {
+    let mut state = sample_state();
+    let hidden_bottom = Card::new(Rank::Ace, Suit::Clubs).id();
+    let hidden_top = Card::new(Rank::King, Suit::Spades).id();
+    state.round.stock = vec![hidden_bottom, hidden_top];
+    state.round.discard = vec![Card::new(Rank::Four, Suit::Clubs).id()];
+    state.round.seats[0].hand.clear();
+
+    let effect = draw_from_stock(&mut state.round, 0).expect("stock draw accepted");
+
+    assert_eq!(state.round.stock, vec![hidden_bottom]);
+    assert_eq!(state.round.seats[0].hand, vec![hidden_top]);
+    assert_eq!(state.round.phase.as_str(), "table");
+    assert_eq!(
+        effect_stable_string(&effect),
+        "Draw:seat=0:source=stock:cards=1:stock_after=1:discard_after=1"
+    );
+    assert!(!effect_stable_string(&effect).contains("king_spades"));
+}
+
+#[test]
+fn discard_pickup_takes_selected_card_plus_newer_and_meld_clears_commitment() {
+    let mut state = sample_state();
+    let four = Card::new(Rank::Four, Suit::Hearts).id();
+    let five = Card::new(Rank::Five, Suit::Hearts).id();
+    let six = Card::new(Rank::Six, Suit::Hearts).id();
+    let seven = Card::new(Rank::Seven, Suit::Hearts).id();
+    state.round.discard = vec![four, five, six, seven];
+    state.round.seats[1].hand.clear();
+
+    let effect = draw_from_discard(&mut state.round, 1, 1).expect("discard pickup accepted");
+
+    assert_eq!(state.round.discard, vec![four]);
+    assert_eq!(state.round.seats[1].hand, vec![five, six, seven]);
+    assert_eq!(
+        state.round.pending_pickup.as_ref().map(|pending| (
+            pending.selected_card,
+            pending.source_discard_index,
+            pending.required_by_seat
+        )),
+        Some((five, 1, 1))
+    );
+    assert_eq!(
+        effect_stable_string(&effect),
+        "Draw:seat=1:source=discard:1:cards=3:stock_after=23:discard_after=1"
+    );
+
+    table_new_meld(&mut state.round, 1, &[five, six, seven], TurnOrdinal(2))
+        .expect("using selected discard in meld clears commitment");
+    assert_eq!(state.round.pending_pickup, None);
+}
+
+#[test]
+fn discard_pickup_commitment_blocks_finish_and_discard_until_used() {
+    let mut state = sample_state();
+    let seven_clubs = Card::new(Rank::Seven, Suit::Clubs).id();
+    let seven_diamonds = Card::new(Rank::Seven, Suit::Diamonds).id();
+    let seven_hearts = Card::new(Rank::Seven, Suit::Hearts).id();
+    state.round.discard = vec![seven_clubs];
+    state.round.seats[0].hand = vec![seven_diamonds, seven_hearts];
+
+    draw_from_discard(&mut state.round, 0, 0).expect("top discard pickup accepted");
+
+    let finish_diagnostic = finish_turn_after_table_plays(&state.round, 0)
+        .expect_err("top pickup must be used before finishing");
+    assert_eq!(finish_diagnostic.code, "ML_PICKUP_COMMITMENT_UNSATISFIED");
+
+    let discard_diagnostic = discard_card(&mut state.round, 0, seven_clubs)
+        .expect_err("committed pickup cannot be discarded");
+    assert_eq!(discard_diagnostic.code, "ML_PICKUP_COMMITMENT_UNSATISFIED");
+    assert_eq!(state.round.discard, Vec::<CardId>::new());
+
+    table_new_meld(
+        &mut state.round,
+        0,
+        &[seven_clubs, seven_diamonds, seven_hearts],
+        TurnOrdinal(3),
+    )
+    .expect("using top pickup in a meld clears commitment");
+    finish_turn_after_table_plays(&state.round, 0).expect("finish accepted after commitment use");
 }
 
 fn sample_state() -> MatchState {
