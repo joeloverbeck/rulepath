@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-008: public/seat visibility, pairwise no-leak harness, viewer-scoped replay export/import
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/blackglass_pact` (visibility/replay_support) + golden traces
@@ -81,3 +81,23 @@ Implement the public observer and four seat-private views, the pairwise no-leak 
 1. `cargo test -p blackglass_pact --test visibility --test replay --test serialization`
 2. `cargo test -p blackglass_pact`
 3. Crate-scoped exhaustive viewer tests are the boundary; `replay-check --all` (GAT18BLAPACSPA-011) validates the traces, browser no-leak is GAT18BLAPACSPA-016.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented viewer-safe projection and viewer-scoped replay export/import:
+
+- Added observer and four seat-private view projections with public facts, public hand counts, own-hand-only private data, and no team-private viewer.
+- Added pairwise no-leak tests over all 12 ordered seat pairs, including partner pairs, plus observer and blind no-future-card checks.
+- Added viewer-scoped replay exports for public and seat-private views, stable byte rendering, ADR 0009 migration note `none`, and import scope checks that reject privilege elevation.
+- Added visibility/export golden traces for observer no-leak, seat pairwise no-leak, blind no-future-card, round trips, and privilege-elevation rejection.
+
+Deviations from plan: export/import is implemented as a typed game-local view snapshot plus stable byte rendering for crate tests. Tool-level replay-check registration remains deferred to GAT18BLAPACSPA-011, and browser/DOM no-leak remains deferred to GAT18BLAPACSPA-016.
+
+Verification:
+
+- `cargo test -p blackglass_pact --test visibility --test replay --test serialization` passed (3 visibility tests, 3 replay tests, 3 serialization tests).
+- `cargo test -p blackglass_pact` passed (1 lib test, 15 property tests, 3 replay tests, 20 rules tests, 3 serialization tests, 3 visibility tests).
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.

@@ -1,0 +1,8 @@
+{
+  "trace_id": "seat-private-pairwise-no-leak-all-four",
+  "game_id": "blackglass_pact",
+  "viewer_pairs_checked": 12,
+  "partner_pairs_included": true,
+  "protected_surface": "unplayed private hands",
+  "team_private_viewer": false
+}

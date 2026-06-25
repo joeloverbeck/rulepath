@@ -32,6 +32,10 @@ pub use ids::{
 pub use partnerships::{
     canonical_team_ids, members_for_team, partner_for, team_for_seat, team_id_for_index,
 };
+pub use replay_support::{
+    export_for_viewer, export_stable_bytes, import_for_viewer, ViewerReplayExport,
+    ADR_0009_MIGRATION_NOTE, PUBLIC_EXPORT_V1, SEAT_PRIVATE_EXPORT_V1,
+};
 pub use rules::{
     apply_play_action, apply_play_choice, lead_is_legal, legal_leads, legal_play_cards,
     parse_play_action_path, trick_winner, PlayAction, ACTION_PLAY,
@@ -51,8 +55,9 @@ pub use state::{
 };
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
-    public_bid_rows, public_bidding_projection, public_team_contracts, PublicBidRow,
-    PublicBiddingProjection, PublicTeamContract,
+    observer_view, public_bid_rows, public_bidding_projection, public_team_contracts, seat_view,
+    viewer_view, BlackglassViewer, PublicBidRow, PublicBiddingProjection, PublicHandCount,
+    PublicPhase, PublicTeamContract, PublicView, SeatView, ViewerView,
 };
 
 pub fn load_manifest() -> Result<Manifest, String> {

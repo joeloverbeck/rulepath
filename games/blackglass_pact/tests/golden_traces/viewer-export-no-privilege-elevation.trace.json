@@ -1,0 +1,6 @@
+{
+  "trace_id": "viewer-export-no-privilege-elevation",
+  "game_id": "blackglass_pact",
+  "seat_export_import_as_other_seat": "BP_VIEWER_SCOPE_MISMATCH",
+  "seat_export_import_as_observer": "BP_VIEWER_SCOPE_MISMATCH"
+}

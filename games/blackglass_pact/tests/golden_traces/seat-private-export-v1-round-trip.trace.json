@@ -1,0 +1,7 @@
+{
+  "trace_id": "seat-private-export-v1-round-trip",
+  "game_id": "blackglass_pact",
+  "format": "blackglass_pact_seat_private_export_v1",
+  "seats_checked": ["North", "East", "South", "West"],
+  "round_trip": true
+}

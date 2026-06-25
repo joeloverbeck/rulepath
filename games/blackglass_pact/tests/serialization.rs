@@ -1,8 +1,10 @@
 use blackglass_pact::{
-    canonical_deck, canonical_seat_ids, canonical_team_ids, load_manifest, load_variants, Card,
-    CardId, Rank, Suit, TeamId, GAME_ID, RULES_VERSION_LABEL, VARIANT_ID,
+    canonical_deck, canonical_seat_ids, canonical_team_ids, export_for_viewer, export_stable_bytes,
+    load_manifest, load_variants, setup_match, BlackglassSeat, BlackglassViewer, Card, CardId,
+    Rank, SetupOptions, Suit, TeamId, ADR_0009_MIGRATION_NOTE, GAME_ID, RULES_VERSION_LABEL,
+    VARIANT_ID,
 };
-use engine_core::SeatId;
+use engine_core::{SeatId, Seed};
 
 #[test]
 fn static_data_matches_constants_and_rejects_behavior_fields() {
@@ -53,4 +55,14 @@ fn canonical_card_seat_and_team_order_is_stable() {
     );
     assert_eq!(team_ids, vec!["team_0", "team_1"]);
     assert_eq!(Card::new(Rank::Ace, Suit::Spades).public_label(), "AS");
+}
+
+#[test]
+fn viewer_export_stable_bytes_are_repeatable_and_unmigrated() {
+    let state = setup_match(Seed(1822), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    let export = export_for_viewer(&state, BlackglassViewer::Seat(BlackglassSeat::North));
+
+    assert_eq!(export.migration_note, ADR_0009_MIGRATION_NOTE);
+    assert_eq!(export_stable_bytes(&export), export_stable_bytes(&export));
 }
