@@ -1,6 +1,7 @@
 use crate::{
     cards::CardId,
     ids::{BlackglassSeat, TeamId},
+    state::Bid,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,5 +26,10 @@ pub enum BlackglassPactEffect {
     PrivateHandReceived {
         seat: BlackglassSeat,
         cards: Vec<CardId>,
+    },
+    BidAccepted {
+        seat: BlackglassSeat,
+        team: TeamId,
+        bid: Bid,
     },
 }

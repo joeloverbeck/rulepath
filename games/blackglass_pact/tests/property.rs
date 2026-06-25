@@ -1,11 +1,12 @@
 use std::collections::BTreeSet;
 
 use blackglass_pact::{
-    apply_blind_nil_choice, canonical_deck, canonical_seat_ids, setup_match_with_scores,
-    BlackglassSeat, BlindNilChoice, Card, CardId, Rank, SetupOptions, Suit, STANDARD_CARD_COUNT,
-    STANDARD_HAND_SIZE,
+    apply_bid_choice, apply_blind_nil_choice, canonical_deck, canonical_seat_ids,
+    legal_action_tree, parse_bid_action_path, public_team_contracts, setup_match,
+    setup_match_with_scores, Bid, BlackglassSeat, BlindNilChoice, Card, CardId, Rank, SetupOptions,
+    Suit, TeamId, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
 };
-use engine_core::Seed;
+use engine_core::{Actor, SeatId, Seed};
 
 #[test]
 fn canonical_deck_contains_fifty_two_unique_cards_in_stable_order() {
@@ -130,10 +131,113 @@ fn blind_nil_choices_do_not_perturb_deal_bytes_for_same_seed() {
     assert_eq!(declared_hands, declined_hands);
 }
 
+#[test]
+fn every_emitted_bid_leaf_validates_for_active_bidder() {
+    let state = setup_match(Seed(1812), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup enters bidding");
+    let tree = legal_action_tree(&state, &actor_for(BlackglassSeat::East));
+
+    let paths = two_segment_leaf_paths(&tree);
+    assert_eq!(paths.len(), 14);
+    for path in paths {
+        let action = parse_bid_action_path(&path).expect("emitted path parses");
+        let mut copy = state.clone();
+        apply_bid_choice(&mut copy, BlackglassSeat::East, action.bid)
+            .expect("emitted bid validates");
+    }
+}
+
+#[test]
+fn every_accepted_bid_action_was_emitted_for_active_bidder() {
+    let state = setup_match(Seed(1813), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup enters bidding");
+    let emitted =
+        two_segment_leaf_paths(&legal_action_tree(&state, &actor_for(BlackglassSeat::East)))
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+
+    let accepted = std::iter::once(Bid::Nil)
+        .chain((1..=13).map(Bid::Tricks))
+        .map(|bid| vec!["bid".to_owned(), bid_path_segment(bid)])
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(emitted, accepted);
+}
+
+#[test]
+fn ordinary_team_contract_sums_only_positive_numeric_partner_bids() {
+    let mut state = setup_match(Seed(1814), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup enters bidding");
+
+    apply_bid_choice(&mut state, BlackglassSeat::East, Bid::Tricks(4)).expect("east bids");
+    apply_bid_choice(&mut state, BlackglassSeat::South, Bid::Nil).expect("south bids nil");
+    apply_bid_choice(&mut state, BlackglassSeat::West, Bid::Tricks(3)).expect("west bids");
+    apply_bid_choice(&mut state, BlackglassSeat::North, Bid::Tricks(5)).expect("north bids");
+
+    assert_eq!(state.ordinary_team_contract(TeamId::NorthSouth), 5);
+    assert_eq!(state.ordinary_team_contract(TeamId::EastWest), 7);
+    assert_eq!(
+        public_team_contracts(&state)
+            .into_iter()
+            .map(|row| (row.team, row.ordinary_contract))
+            .collect::<Vec<_>>(),
+        vec![(TeamId::NorthSouth, 5), (TeamId::EastWest, 7)]
+    );
+}
+
+#[test]
+fn nil_and_blind_nil_contribute_zero_to_ordinary_contract() {
+    let mut state = setup_match_with_scores(
+        Seed(1815),
+        &canonical_seat_ids(),
+        &SetupOptions::default(),
+        [0, 100],
+    )
+    .expect("blind setup succeeds");
+
+    apply_blind_nil_choice(&mut state, BlackglassSeat::South, BlindNilChoice::Declared)
+        .expect("south declares blind nil");
+    apply_blind_nil_choice(&mut state, BlackglassSeat::North, BlindNilChoice::Declined)
+        .expect("north declines");
+
+    apply_bid_choice(&mut state, BlackglassSeat::East, Bid::Nil).expect("east bids nil");
+    apply_bid_choice(&mut state, BlackglassSeat::West, Bid::Tricks(6)).expect("west bids");
+    apply_bid_choice(&mut state, BlackglassSeat::North, Bid::Tricks(2)).expect("north bids");
+
+    assert_eq!(state.ordinary_team_contract(TeamId::NorthSouth), 2);
+    assert_eq!(state.ordinary_team_contract(TeamId::EastWest), 6);
+}
+
 fn state_hand_bytes(state: &blackglass_pact::BlackglassPactState, seat: BlackglassSeat) -> Vec<u8> {
     state
         .hand_for_internal(seat)
         .iter()
         .map(|card| card.index())
         .collect()
+}
+
+fn actor_for(seat: BlackglassSeat) -> Actor {
+    Actor {
+        seat_id: SeatId::from_zero_based_index(seat.index() as u32),
+    }
+}
+
+fn two_segment_leaf_paths(tree: &engine_core::ActionTree) -> Vec<Vec<String>> {
+    let mut paths = Vec::new();
+    for choice in &tree.root.choices {
+        if let Some(next) = &choice.next {
+            for leaf in &next.choices {
+                paths.push(vec![choice.segment.clone(), leaf.segment.clone()]);
+            }
+        }
+    }
+    paths
+}
+
+fn bid_path_segment(bid: Bid) -> String {
+    match bid {
+        Bid::Nil => "nil".to_owned(),
+        Bid::Tricks(value) => value.to_string(),
+        Bid::BlindNil => "blind_nil".to_owned(),
+    }
 }

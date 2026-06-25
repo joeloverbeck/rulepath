@@ -16,9 +16,10 @@ pub mod variants;
 pub mod visibility;
 
 pub use bidding::{
-    apply_blind_nil_action, apply_blind_nil_choice, legal_action_tree, opening_blind_nil_effect,
-    parse_blind_nil_action_path, BlindNilAction, ACTION_BLIND_DECLARE, ACTION_BLIND_DECLINE,
-    ACTION_BLIND_NIL,
+    active_bid_seat, apply_bid_action, apply_bid_choice, apply_blind_nil_action,
+    apply_blind_nil_choice, legal_action_tree, opening_blind_nil_effect, parse_bid_action_path,
+    parse_blind_nil_action_path, BidAction, BlindNilAction, ACTION_BID, ACTION_BID_NIL,
+    ACTION_BLIND_DECLARE, ACTION_BLIND_DECLINE, ACTION_BLIND_NIL, MAX_NUMERIC_BID, MIN_NUMERIC_BID,
 };
 pub use cards::{canonical_deck, Card, CardId, Deck, Rank, Suit};
 pub use effects::BlackglassPactEffect;
@@ -38,6 +39,10 @@ pub use setup::{
 };
 pub use state::{Bid, BlackglassPactState, BlindNilChoice, Phase, PlayedCard};
 pub use variants::{Manifest, Variant, VariantCatalog};
+pub use visibility::{
+    public_bid_rows, public_bidding_projection, public_team_contracts, PublicBidRow,
+    PublicBiddingProjection, PublicTeamContract,
+};
 
 pub fn load_manifest() -> Result<Manifest, String> {
     Manifest::parse(include_str!("../data/manifest.toml"))

@@ -3,6 +3,7 @@ use engine_core::{FreshnessToken, SeatId, Seed};
 use crate::{
     cards::CardId,
     ids::{BlackglassSeat, TeamId},
+    partnerships::team_for_seat,
     variants::Variant,
 };
 
@@ -105,6 +106,21 @@ impl BlackglassPactState {
 
     pub fn blind_nil_choice_for(&self, seat: BlackglassSeat) -> Option<BlindNilChoice> {
         self.blind_nil_choices[seat.index()]
+    }
+
+    pub fn bid_for(&self, seat: BlackglassSeat) -> Option<Bid> {
+        self.bids[seat.index()]
+    }
+
+    pub fn ordinary_team_contract(&self, team: TeamId) -> u8 {
+        BlackglassSeat::ALL
+            .into_iter()
+            .filter(|seat| team_for_seat(*seat) == team)
+            .filter_map(|seat| match self.bids[seat.index()] {
+                Some(Bid::Tricks(value)) => Some(value),
+                Some(Bid::Nil | Bid::BlindNil) | None => None,
+            })
+            .sum()
     }
 
     pub fn advance_freshness(&mut self) {

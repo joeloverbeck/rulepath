@@ -1,0 +1,19 @@
+{
+  "trace_id": "team-contract-sums-only-positive-numeric-bids",
+  "game_id": "blackglass_pact",
+  "accepted_bids": [
+    ["East", "bid/4"],
+    ["South", "bid/nil"],
+    ["West", "bid/3"],
+    ["North", "bid/5"]
+  ],
+  "ordinary_contracts": [
+    ["NorthSouth", 5],
+    ["EastWest", 7]
+  ],
+  "assertions": {
+    "nil_contributes_zero": true,
+    "blind_nil_contributes_zero": true,
+    "browser_sums_bids": false
+  }
+}

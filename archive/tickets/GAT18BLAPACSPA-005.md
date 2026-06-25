@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-005: public sequential bidding and team contract aggregation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/blackglass_pact` (bidding/state/effects/visibility) + golden traces
@@ -80,3 +80,25 @@ Implement the `Bidding` phase: after the deal, each non-blind seat submits one i
 1. `cargo test -p blackglass_pact --test rules --test property`
 2. `cargo test -p blackglass_pact`
 3. Crate-scoped tests are the boundary; trace validation runs at `replay-check` registration (GAT18BLAPACSPA-011).
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented public sequential bidding and ordinary contract aggregation:
+
+- Added `bid/nil` and `bid/1` through `bid/13` legal leaves for the active non-blind bidder.
+- Added bid action parsing, stable diagnostics for out-of-range bids and immutable accepted bids, and public `BidAccepted` effects.
+- Advanced bidding clockwise from left of dealer through dealer, skipping blind-nil declarers fixed as `Bid::BlindNil`.
+- Derived ordinary team contracts in Rust from positive numeric partner bids only; nil and blind nil contribute zero.
+- Added stable public bidding projection rows and team contract rows for later viewer/WASM work.
+- Added bidding golden trace JSON evidence for order, blind skip, invalid diagnostics, and contract aggregation.
+
+Deviations from plan: after the final bid, the state transitions to the first `PlayingTrick` placeholder with leader/next left of dealer. Actual play legality remains deferred to GAT18BLAPACSPA-006.
+
+Verification:
+
+- `cargo test -p blackglass_pact --test rules --test property` passed (9 rules tests, 9 property tests).
+- `cargo test -p blackglass_pact` passed (1 lib test, 9 property tests, 9 rules tests, 2 serialization tests, 1 visibility test).
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.
