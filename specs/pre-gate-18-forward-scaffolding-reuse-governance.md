@@ -1,6 +1,6 @@
 # Pre-Gate-18 — Forward Scaffolding-Reuse Governance
 
-**Status**: Planned (spec written; awaiting `/reassess-spec` before decomposition)
+**Status**: Done
 
 | Field | Value |
 |---|---|
@@ -8,7 +8,7 @@
 | Unit | `8F` (active-epoch tracker) |
 | Roadmap stage | Public scaling phase — pre-Gate-18 **non-feature** governance interlock |
 | Roadmap build gate | Pre-Gate-18 — forward scaffolding-reuse governance (blocks Gate 18) |
-| Status | Planned |
+| Status | Done |
 | Date | 2026-06-25 |
 | Owner | Rulepath maintainers |
 | Primary targets | `docs/adr/0008-*.md` (append-only), the foundation/area doc set, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `docs/ROADMAP.md`, `specs/README.md`, `templates/**`, new `ci/scaffolding-audits.json` + `scripts/check-scaffolding-governance.*` + Gate 1 wiring |
@@ -278,57 +278,57 @@ Mapped to the three forward gaps (plan §8.6) plus cross-cutting preservation.
 
 ### Gap 1 — reuse-first audit is standing and blocking
 
-- [ ] `FOUNDATIONS.md`, the official-game workflow, agent law, active tracker, and
+- [x] `FOUNDATIONS.md`, the official-game workflow, agent law, active tracker, and
       every affected new-game template require a pre-implementation
       mechanical-scaffolding reuse-first audit.
-- [ ] A `not applicable` audit requires a rationale and evidence link; omission is
+- [x] A `not applicable` audit requires a rationale and evidence link; omission is
       not accepted.
-- [ ] Gate 1 fails when an official game lacks a valid audit record or a post-8F
+- [x] Gate 1 fails when an official game lacks a valid audit record or a post-8F
       game claims frozen legacy coverage.
-- [ ] Known promoted-shape fingerprints fail when a parallel implementation has
+- [x] Known promoted-shape fingerprints fail when a parallel implementation has
       neither shared-helper use nor a valid register-backed exception.
 
 ### Gap 2 — register-new is standing and closed at game completion
 
-- [ ] The register and official-game closeout require every newly invented
+- [x] The register and official-game closeout require every newly invented
       behavior-free scaffolding shape to receive a first-use `candidate` /
       `local-only` / `rejected` entry before the game closes.
-- [ ] The mechanics and evidence templates name the register as a required update
+- [x] The mechanics and evidence templates name the register as a required update
       surface and carry a post-implementation freshness receipt.
-- [ ] First-use registration is explicitly non-promotional and cannot place a
+- [x] First-use registration is explicitly non-promotional and cannot place a
       Non-Promotion List behavior into a scaffolding home.
-- [ ] Gate 1 validates every cited register ID and declared source/evidence path
+- [x] Gate 1 validates every cited register ID and declared source/evidence path
       against committed files.
 
 ### Gap 3 — prior-game refactoring is queued or explicitly disposed
 
-- [ ] The register, official-game contract, roadmap, tracker workflow, evidence
+- [x] The register, official-game contract, roadmap, tracker workflow, evidence
       template, and CI receipt all require prior matching official games to be
       named.
-- [ ] Real characterization or migration work has a named bounded unit in
+- [x] Real characterization or migration work has a named bounded unit in
       `specs/README.md` before the new game closes.
-- [ ] No-unit cases are accepted only through a register-backed `local-only` /
+- [x] No-unit cases are accepted only through a register-backed `local-only` /
       `deferred` / `rejected` decision with rationale, owner, evidence, and a
       next-review trigger.
-- [ ] Gate 1 fails when a declared prior match has neither a tracker unit nor a
+- [x] Gate 1 fails when a declared prior match has neither a tracker unit nor a
       valid no-unit disposition.
 
 ### Cross-cutting preservation
 
-- [ ] The exact behavioral third-use hard-gate sentence in `MECHANIC-ATLAS.md` §4
+- [x] The exact behavioral third-use hard-gate sentence in `MECHANIC-ATLAS.md` §4
       is byte-for-byte unchanged (and §5A is unchanged).
-- [ ] ADR 0008's lane, allowed homes, Non-Promotion List, semantic-identity
+- [x] ADR 0008's lane, allowed homes, Non-Promotion List, semantic-identity
       requirement, second-use review, and pre-third-copy threshold are unchanged;
       the extension is visibly append-only and dated.
-- [ ] No game, helper, TypeScript behavior, trace, fixture, hash, RNG,
+- [x] No game, helper, TypeScript behavior, trace, fixture, hash, RNG,
       serialization, visibility, no-leak, benchmark-threshold, or catalog entry
       changes as part of Unit 8F.
-- [ ] `engine-core` remains noun-free and `game-test-support` remains dev-only.
-- [ ] No YAML, DSL, selector, condition, trigger language, or runtime governance
+- [x] `engine-core` remains noun-free and `game-test-support` remains dev-only.
+- [x] No YAML, DSL, selector, condition, trigger language, or runtime governance
       registry is introduced; `ci/scaffolding-audits.json` rejects unknown fields.
-- [ ] Every byte/hash/visibility migration field in the new receipt says `none` or
+- [x] Every byte/hash/visibility migration field in the new receipt says `none` or
       cites ADR 0009 plus an explicit migration artifact.
-- [ ] Gate 18 remains `Not started` until all Unit 8F criteria pass and the `8F`
+- [x] Gate 18 remains `Not started` until all Unit 8F criteria pass and the `8F`
       tracker row is `Done`.
 
 ## Acceptance evidence
@@ -520,11 +520,43 @@ author this spec under specs/
 
 ## Outcome
 
-_(Filled on completion. Expected: ADR 0008 carries a dated append-only forward-
-obligation extension; `FOUNDATIONS.md` §11/§12 carry the forward invariants and
-stop conditions; the architecture/boundary/contract/atlas/register/agent/testing/
-roadmap docs and the five per-game templates carry the standing lifecycle;
-`ci/scaffolding-audits.json` + `scripts/check-scaffolding-governance.*` exist with
-the frozen 17-game legacy bootstrap and Gate 1 wiring; `specs/README.md` marks
-`8F` `Done`; Gate 18 remains `Not started`; and no game/helper/trace/fixture/hash/
-RNG/serialization/benchmark/byte changed.)_
+Completed 2026-06-25. Unit 8F is closed as a governance-only interlock: ADR
+0008 carries the dated append-only forward-obligation extension; `FOUNDATIONS.md`
+§11/§12 carry the forward invariants and stop conditions; the
+architecture/boundary/contract/atlas/register/agent/testing/roadmap docs and the
+five per-game templates carry the standing lifecycle; `ci/scaffolding-audits.json`
+and `scripts/check-scaffolding-governance.*` exist with the frozen 17-game legacy
+bootstrap and Gate 1 wiring; `specs/README.md` marks `8F` `Done`; Gate 18 remains
+`Not started`.
+
+Three-gap closeout map:
+
+| Gap | Closed by |
+|---|---|
+| reuse-first audit | ADR/foundation stop conditions; official-game workflow; agent law; roadmap/tracker interlock; `GAME-IMPLEMENTATION-ADMISSION.md`, `GAME-MECHANICS.md`, `GAME-EVIDENCE.md`, and `AGENT-TASK.md`; Gate 1 checker receipt enforcement. |
+| register-new | register cadence and first-use-safe decision states; mechanics/evidence/admission template rows; `ci/scaffolding-audits.json` register fields; checker path/MSC validation and unknown-field rejection. |
+| queue-or-dispose | register prior-game trigger; official-game closeout and roadmap/tracker workflow; evidence/admission/template rows; checker prior-match follow-on/no-unit validation; Gate 18 blocked until `8F` is `Done`. |
+
+`templates/PRIMITIVE-PRESSURE-LEDGER.md` was intentionally unchanged. It already
+states behavioral-scope-only ownership, rejects behavior-free plumbing there, and
+routes mechanical scaffolding to `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`; adding
+forward-scaffolding lifecycle fields would create two competing owners and risk
+weakening the behavioral/scaffolding distinction.
+
+Verification transcript:
+
+- `node scripts/check-scaffolding-governance.mjs` — OK (`games=17`, `legacy=17`, `forward-v1=0`).
+- `node --test scripts/check-scaffolding-governance.test.mjs` — 9 tests passed.
+- `node scripts/check-ci-games.mjs` — 17 games in sync with `games/`.
+- `node scripts/check-doc-links.mjs` — checked 31 markdown files.
+- `node scripts/check-catalog-docs.mjs` — catalog/docs check passed for 17 games.
+- `bash scripts/boundary-check.sh` — `engine-core` boundary and `game-test-support` dev-only checks passed.
+- `cargo tree --workspace -e normal,build --invert game-test-support` — only `game-test-support v0.1.0` printed.
+- `git diff --check` — clean.
+- `git status --porcelain -- crates/ games/ tools/ apps/ '**/*.trace.json'` — no output.
+- `grep -Fx` confirmed the `MECHANIC-ATLAS.md` third-official-game hard-gate row still exactly matches the change-plan fixture.
+- `git diff -- docs/MECHANIC-ATLAS.md docs/adr/0008-mechanical-scaffolding-governance.md templates/PRIMITIVE-PRESSURE-LEDGER.md` — no output at capstone closeout.
+
+No game, helper, TypeScript behavior, trace, fixture, hash, RNG, serialization,
+visibility, no-leak, benchmark-threshold, catalog-entry, YAML, DSL, or runtime
+governance registry change was introduced by this capstone.

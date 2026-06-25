@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-021: Unit 8F closeout capstone — reconcile, verify, flip 8F→Done
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — docs/status-only (closeout reconciliation + `specs/README.md` `Done`-flip + verification)
@@ -81,3 +81,24 @@ Set the spec's own Status to `Done`.
 1. `node scripts/check-scaffolding-governance.mjs && node --test scripts/check-scaffolding-governance.test.mjs`
 2. `node scripts/check-ci-games.mjs && node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && bash scripts/boundary-check.sh`
 3. `git status --porcelain -- crates/ games/ tools/ apps/ '**/*.trace.json'` (must be empty) and `git diff --check`
+
+## Outcome
+
+Completed 2026-06-25. The Unit 8F spec now reads `Done`, all exit criteria are
+checked, the `Outcome` records the three-gap closeout map and explicit
+`templates/PRIMITIVE-PRESSURE-LEDGER.md` no-change proof, and `specs/README.md`
+marks `8F` `Done` while Gate 18 remains `Not started`.
+
+Verification:
+
+- `node scripts/check-scaffolding-governance.mjs`
+- `node --test scripts/check-scaffolding-governance.test.mjs`
+- `node scripts/check-ci-games.mjs`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `bash scripts/boundary-check.sh`
+- `cargo tree --workspace -e normal,build --invert game-test-support`
+- `git diff --check`
+- `git status --porcelain -- crates/ games/ tools/ apps/ '**/*.trace.json'`
+- `grep -Fx "| Third official game | Hard gate. The game MUST NOT proceed until a primitive-pressure ledger decides reuse, promotion, explicit deferral/rejection, or ADR. |" docs/MECHANIC-ATLAS.md`
+- `git diff -- docs/MECHANIC-ATLAS.md docs/adr/0008-mechanical-scaffolding-governance.md templates/PRIMITIVE-PRESSURE-LEDGER.md`
