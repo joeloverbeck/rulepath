@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-003: ARCHITECTURE forward-conformance section + truthfulness fix
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/ARCHITECTURE.md`)
@@ -77,3 +77,28 @@ Add the forward mechanical-scaffolding conformance acceptance-check bullet to §
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. `cargo tree --workspace -e normal,build --invert game-test-support` (confirms dev-only boundary the label now states)
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/ARCHITECTURE.md` to align the architecture ownership map with the
+Unit 8F forward scaffolding governance obligation:
+
+- changed the §3A dev-only evidence/test scaffolding owner from future
+  `game-test-support` to present-tense `game-test-support` crate;
+- added §3B `Forward mechanical-scaffolding conformance` between §3A and §3.1;
+- added the §14 acceptance-check bullet requiring new-game audit receipt,
+  current register disposition, and prior-game retrofit/no-refactor disposition.
+
+Deviation: none. §3.1 promoted-helper conformance remains unchanged and parallel
+to the new §3B scaffolding conformance section.
+
+Verification:
+
+- `grep -n "future .game-test-support" docs/ARCHITECTURE.md` returned no matches.
+- `rg -n "3B\\. Forward mechanical-scaffolding conformance|3\\.1 Promoted-helper conformance|game-test-support|mechanical-scaffolding audit receipt" docs/ARCHITECTURE.md` confirmed the present-tense row, §3B placement before §3.1, and the §14 bullet.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `bash scripts/boundary-check.sh` passed, including `game-test-support dev-only boundary check passed`.
+- `cargo tree --workspace -e normal,build --invert game-test-support` showed only `game-test-support v0.1.0`.
+- `git diff --check` passed.
