@@ -45,8 +45,11 @@ polish, bot evidence, no-leak proof, or release gates.
 | Surface | Status | Evidence link | Blocks implementation? |
 |---|---|---|---:|
 | mechanic inventory complete enough to start | ready/blocked/constrained | `<GAME-MECHANICS.md>` | yes/no |
-| primitive-pressure decision, if needed | ready/blocked/not applicable: `<rationale>` | `<PRIMITIVE-PRESSURE-LEDGER.md or atlas link>` | yes/no |
-| mechanical-scaffolding decision, if needed | ready/blocked/not applicable: `<rationale>` | `<MECHANICAL-SCAFFOLDING-REGISTER.md link>` | yes/no |
+| behavioral primitive-pressure decision, if needed | ready/blocked/not applicable: `<rationale>` | `<PRIMITIVE-PRESSURE-LEDGER.md or atlas link>` | yes/no |
+| mechanical-scaffolding reuse-first audit complete | ready/blocked | `<GAME-MECHANICS.md reuse-first audit section>` | yes |
+| matching registered/promoted scaffolding will be reused, or accepted exceptions are linked | ready/blocked/not applicable: `<rationale>` | `<MSC entry ids / register exception>` | yes |
+| newly anticipated behavior-free scaffolding has a planned register disposition | ready/blocked/not applicable: `<rationale>` | `<planned MSC entry or no-new-scaffolding rationale>` | yes |
+| expected prior-game matching sites and follow-on/no-follow-on disposition are identified | ready/blocked/not applicable: `<rationale>` | `<GAME-MECHANICS.md / register link>` | yes |
 | ADR needed for boundary-changing work | yes/no | `<docs/adr/... or rationale>` | yes/no |
 
 ## Boundary Risks
@@ -70,6 +73,9 @@ polish, bot evidence, no-leak proof, or release gates.
 | UI evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-UI.md>` |
 | bot evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-AI.md>` |
 | benchmark evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-BENCHMARKS.md>` |
+| pre-implementation scaffolding audit receipt | yes | yes | `<GAME-EVIDENCE.md mechanic/scaffolding rows>` |
+| post-implementation register freshness and prior-game refactor receipt | no | yes | `<GAME-EVIDENCE.md mechanic/scaffolding rows>` |
+| CI scaffolding-audit record | no | yes | `<ci/scaffolding-audits.json game row>` |
 
 ## Delta Admission
 
@@ -81,6 +87,11 @@ accumulate a second implementation report.
 | `<delta id>` | `<scope>` | `<risks>` | `<GAME-EVIDENCE.md/domain link>` | admitted / blocked / admitted with constraints |
 
 ## Admission Decision
+
+Admission is blocked when the reuse-first audit is missing, when a known matching
+helper is being reimplemented without an accepted exception, or when anticipated
+new scaffolding has no register/closeout plan. Admission does not require a
+first-use candidate to be promoted.
 
 Decision: admitted / blocked / admitted with explicit constraints
 
@@ -105,4 +116,3 @@ Prepared by: `<name/agent>`
 Reviewed by: `<name>`
 
 Date: YYYY-MM-DD
-

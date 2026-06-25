@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-013: GAME-IMPLEMENTATION-ADMISSION reuse-first-audit gating rows
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/template-doc edit (`templates/GAME-IMPLEMENTATION-ADMISSION.md`)
@@ -76,3 +76,29 @@ Add the paragraph stating admission is blocked when the audit record is missing 
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- templates/GAME-IMPLEMENTATION-ADMISSION.md` (review: gating rows + evidence-profile rows + blocked paragraph)
 3. `grep -n "not applicable" templates/GAME-IMPLEMENTATION-ADMISSION.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `templates/GAME-IMPLEMENTATION-ADMISSION.md` so new-game scaffolding
+reuse is a hard admission surface:
+
+- replaced the optional mechanical-scaffolding decision row with reuse-first
+  audit, matching-helper/exception, anticipated new-shape, and prior-game
+  disposition gating rows;
+- added Required Evidence Profile rows for pre-implementation audit,
+  post-implementation register freshness/prior-game refactor receipt, and CI
+  scaffolding-audit record;
+- added an admission-blocked paragraph for missing audit, local reimplementation
+  without accepted exception, or missing register/closeout plan.
+
+Deviation: none.
+
+Verification:
+
+- `grep -ni "reuse-first audit" templates/GAME-IMPLEMENTATION-ADMISSION.md` confirmed the gating row and blocked paragraph.
+- `grep -n "not applicable\\|Admission is blocked\\|first-use candidate" templates/GAME-IMPLEMENTATION-ADMISSION.md` confirmed rationale-bearing not-applicable rows and admission-blocked language.
+- `rg -n "register disposition|prior-game matching|pre-implementation scaffolding audit receipt|CI scaffolding-audit record|post-implementation register freshness" templates/GAME-IMPLEMENTATION-ADMISSION.md` confirmed all required rows.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
