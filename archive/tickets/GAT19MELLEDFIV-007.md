@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-007: Public meld tableau model and score-credit ownership (first-use primitive)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{state,rules}.rs`; tableau golden traces; first-use ledger entry ML-PP-002
@@ -81,3 +81,19 @@ Public tableau projection (all viewers see tabled cards + score-credit owner). G
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. Full multi-viewer no-leak assertions are the boundary of GAT19MELLEDFIV-013; this ticket verifies public-by-construction projection.
+
+## Outcome
+
+Completed: 2026-06-26
+
+- Added stable public meld id allocation on `MeldTableau` and a `table_new_meld` rule helper that validates ownership/legality, moves selected cards from the acting hand to public tableau, assigns `origin_seat`, and records per-card `played_by`/`score_credit_owner`.
+- Added the round-played score accumulation hook for tabled meld cards while keeping origin ownership separate from score-credit ownership for later lay-off support.
+- Added public tableau projection types in `visibility.rs`; public observer and all seat viewers receive the same tabled card identities, origin seat, played-by owner, score-credit owner, and play turn.
+- Added tableau tests proving stable ids, hand-safe tabling, score-credit ownership, and identical viewer projections that do not include the acting seat's remaining hand card.
+- Added `public-tableau-tabling.trace.json` with `ML-PP-002` recorded as first official use, `local-only`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p meldfall_ledger`
+- `cargo test --workspace`

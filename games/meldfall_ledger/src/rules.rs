@@ -10,7 +10,7 @@ use engine_core::Diagnostic;
 
 use crate::{
     cards::{ranks_are_consecutive_low_or_high, CardId},
-    state::{MeldGroup, MeldId, MeldKind, SeatIndex, TableCard, TurnOrdinal},
+    state::{MeldGroup, MeldId, MeldKind, RoundState, SeatIndex, TableCard, TurnOrdinal},
 };
 
 pub fn validate_new_meld(cards: &[CardId]) -> Result<MeldKind, Diagnostic> {
@@ -95,6 +95,35 @@ pub fn take_new_meld_from_hand(
     })
 }
 
+pub fn table_new_meld(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+    cards: &[CardId],
+    play_turn: TurnOrdinal,
+) -> Result<MeldGroup, Diagnostic> {
+    if seat_index >= round.seats.len() {
+        return Err(meld_diagnostic(
+            "ML_INVALID_SEAT_INDEX",
+            format!(
+                "meldfall_ledger cannot table meld for seat index {seat_index}; only {} seats exist",
+                round.seats.len()
+            ),
+        ));
+    }
+
+    let meld_id = round.tableau.next_meld_id();
+    let group = take_new_meld_from_hand(
+        &mut round.seats[seat_index].hand,
+        cards,
+        meld_id,
+        seat_index,
+        play_turn,
+    )?;
+    round.round_played_scores[seat_index] += tabled_score_for(&group);
+    round.tableau.groups.push(group.clone());
+    Ok(group)
+}
+
 fn validate_set(cards: &[CardId]) -> Option<MeldKind> {
     if cards.len() > 4 {
         return None;
@@ -130,6 +159,14 @@ fn validate_run(cards: &[CardId]) -> Option<MeldKind> {
 
 fn has_duplicate_cards(cards: &[CardId]) -> bool {
     cards.iter().copied().collect::<BTreeSet<_>>().len() != cards.len()
+}
+
+fn tabled_score_for(group: &MeldGroup) -> i32 {
+    group
+        .cards
+        .iter()
+        .map(|card| i32::from(card.card.card().rank.score_value()))
+        .sum()
 }
 
 fn meld_diagnostic(code: &str, message: impl Into<String>) -> Diagnostic {

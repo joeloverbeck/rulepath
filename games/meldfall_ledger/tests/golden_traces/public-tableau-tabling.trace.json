@@ -1,0 +1,29 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "public-tableau-tabling",
+  "rules": ["ML-VIS-005", "ML-MELD-004", "ML-MELD-005", "ML-SCORE-002", "ML-SCORE-006"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-002",
+    "shape": "public meld tableau / tabled-card score-credit model",
+    "status": "first official use, local-only"
+  },
+  "steps": [
+    {
+      "action": "table_new_meld",
+      "seat": 1,
+      "meld_id": "meld_0",
+      "origin_seat": 1,
+      "cards": ["nine_clubs", "nine_diamonds", "nine_hearts"],
+      "kind": "set:nine",
+      "score_credit_owner": 1,
+      "round_played_score_delta": 27
+    },
+    {
+      "projection": "public_tableau",
+      "observer": "public",
+      "visible_cards": ["nine_clubs", "nine_diamonds", "nine_hearts"],
+      "hidden_remainder": "not present",
+      "identical_for_all_viewers": true
+    }
+  ]
+}

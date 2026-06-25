@@ -179,6 +179,15 @@ pub struct MeldTableau {
 }
 
 impl MeldTableau {
+    pub fn next_meld_id(&self) -> MeldId {
+        MeldId(
+            self.groups
+                .len()
+                .try_into()
+                .expect("meld group count fits u32"),
+        )
+    }
+
     pub fn stable_string(&self) -> String {
         self.groups
             .iter()

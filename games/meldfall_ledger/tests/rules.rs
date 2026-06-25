@@ -1,11 +1,12 @@
 use std::collections::BTreeSet;
 
-use engine_core::Seed;
+use engine_core::{SeatId, Seed, Viewer};
 use meldfall_ledger::{
     cards::{canonical_deck, ranks_are_consecutive_low_or_high, Card, CardId, Rank, Suit},
-    rules::{take_new_meld_from_hand, validate_new_meld, validate_owned_meld},
+    rules::{table_new_meld, take_new_meld_from_hand, validate_new_meld, validate_owned_meld},
     setup::{deal_for_round, default_seats, setup_match, validate_seat_count, SetupOptions},
-    state::{MeldId, MeldKind, TurnOrdinal},
+    state::{MatchState, MeldId, MeldKind, TurnOrdinal},
+    visibility::{project_public_tableau, project_tableau_for_viewer},
     STANDARD_CARD_COUNT,
 };
 
@@ -290,4 +291,90 @@ fn owned_meld_validation_and_take_are_atomic() {
         .cards
         .iter()
         .all(|card| card.played_by == 2 && card.score_credit_owner == 2));
+}
+
+#[test]
+fn table_new_meld_moves_cards_to_public_tableau_with_stable_credit() {
+    let mut state = sample_state();
+    let meld_cards = vec![
+        Card::new(Rank::Nine, Suit::Clubs).id(),
+        Card::new(Rank::Nine, Suit::Diamonds).id(),
+        Card::new(Rank::Nine, Suit::Hearts).id(),
+    ];
+    let unplayed = Card::new(Rank::Ace, Suit::Spades).id();
+    state.round.seats[1].hand = vec![unplayed, meld_cards[0], meld_cards[1], meld_cards[2]];
+
+    let group =
+        table_new_meld(&mut state.round, 1, &meld_cards, TurnOrdinal(3)).expect("meld tables");
+
+    assert_eq!(group.id, MeldId(0));
+    assert_eq!(group.origin_seat, 1);
+    assert_eq!(group.kind, MeldKind::Set { rank: Rank::Nine });
+    assert_eq!(state.round.seats[1].hand, vec![unplayed]);
+    assert_eq!(state.round.tableau.groups, vec![group.clone()]);
+    assert_eq!(state.round.round_played_scores[1], 27);
+    assert!(group
+        .cards
+        .iter()
+        .all(|card| card.played_by == 1 && card.score_credit_owner == 1));
+
+    let next_cards = vec![
+        Card::new(Rank::Four, Suit::Spades).id(),
+        Card::new(Rank::Five, Suit::Spades).id(),
+        Card::new(Rank::Six, Suit::Spades).id(),
+    ];
+    state.round.seats[2].hand = next_cards.clone();
+    let next =
+        table_new_meld(&mut state.round, 2, &next_cards, TurnOrdinal(4)).expect("second meld");
+    assert_eq!(next.id, MeldId(1));
+    assert_eq!(state.round.round_played_scores[2], 15);
+}
+
+#[test]
+fn public_tableau_projection_is_identical_for_every_viewer_and_hand_safe() {
+    let mut state = sample_state();
+    let meld_cards = vec![
+        Card::new(Rank::Queen, Suit::Spades).id(),
+        Card::new(Rank::King, Suit::Spades).id(),
+        Card::new(Rank::Ace, Suit::Spades).id(),
+    ];
+    let hidden_remainder = Card::new(Rank::Two, Suit::Diamonds).id();
+    state.round.seats[3].hand = vec![
+        meld_cards[0],
+        hidden_remainder,
+        meld_cards[1],
+        meld_cards[2],
+    ];
+    table_new_meld(&mut state.round, 3, &meld_cards, TurnOrdinal(8)).expect("meld tables");
+
+    let public = project_public_tableau(&state.round.tableau);
+    let observer = project_tableau_for_viewer(&state.round.tableau, &Viewer { seat_id: None });
+    assert_eq!(observer, public);
+
+    for viewer in state.seats.iter().cloned() {
+        let seat_view = project_tableau_for_viewer(
+            &state.round.tableau,
+            &Viewer {
+                seat_id: Some(viewer),
+            },
+        );
+        assert_eq!(seat_view, public);
+    }
+
+    assert_eq!(
+        public.stable_string(),
+        "meld_0:run:spades:origin=3:cards=[queen_spades:played_by=3:credit=3:turn=8,king_spades:played_by=3:credit=3:turn=8,ace_spades:played_by=3:credit=3:turn=8]"
+    );
+    assert!(!public.stable_string().contains("two_diamonds"));
+}
+
+fn sample_state() -> MatchState {
+    let seats = vec![
+        SeatId("seat_0".to_owned()),
+        SeatId("seat_1".to_owned()),
+        SeatId("seat_2".to_owned()),
+        SeatId("seat_3".to_owned()),
+    ];
+    let setup = setup_match(Seed(1907), &seats, &SetupOptions::default()).expect("setup ok");
+    MatchState::from_initial_setup(setup)
 }
