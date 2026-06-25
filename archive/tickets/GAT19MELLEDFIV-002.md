@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-002: forward-v1 reuse-first scaffolding audit and implementation admission
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — game-local governance docs (`games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md`)
@@ -69,3 +69,23 @@ Author the admission checklist with: exact authority references (`docs/FOUNDATIO
 1. `for id in 001 002 003 004 005 006 007 008 009 010; do grep -q "MSC-8C-$id" games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md || echo "MISSING MSC-8C-$id"; done`
 2. `node scripts/check-doc-links.mjs`
 3. `node scripts/check-scaffolding-governance.mjs` is deferred to GAT19MELLEDFIV-022 (it validates the `ci/scaffolding-audits.json` receipt, not this doc).
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+- Added `games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md` as the Gate 19 pre-code admission record.
+- Recorded authority references, source/rules readiness, boundary risks, all `MSC-8C-001` through `MSC-8C-010` reuse-first audit dispositions, lawful shared-home review, first-use primitive decisions, and the `no-new-scaffolding` / no-prior-game-follow-on admission disposition.
+- Explicitly excluded `game_stdlib::trick_taking` / `game-stdlib::trick_taking` and kept meld/tableau/discard-pickup/scoring/bot/visibility behavior local to `games/meldfall_ledger`.
+
+Deviations from plan:
+
+- None. The ticket remained documentation-only; the machine `ci/scaffolding-audits.json` receipt and central atlas/register reconciliation remain deferred to GAT19MELLEDFIV-022 as planned.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `for id in 001 002 003 004 005 006 007 008 009 010; do grep -q "MSC-8C-$id" games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md || echo "MISSING MSC-8C-$id"; done` produced no missing IDs.
+- `rg -n "no-new-scaffolding|game_stdlib::trick_taking|game-stdlib::trick_taking|behavior, not scaffolding|Meld validation|discard-pickup|scoring|bot|visibility" games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md` confirmed the no-new-scaffolding disposition, trick-taking exclusion, and behavior-local boundary statements.
