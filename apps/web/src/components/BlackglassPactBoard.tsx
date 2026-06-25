@@ -209,13 +209,28 @@ export function BlackglassPactBoard({
       <section className="blackglass-private" aria-label="Private hand">
         <div className="blackglass-section-heading">
           <span>Private hand</span>
-          <strong>{view.private_view_status === "seat" ? `${view.own_hand?.length ?? 0} cards` : "Hidden for observer"}</strong>
+          <strong>
+            {view.private_view_status !== "seat"
+              ? "Hidden for observer"
+              : view.phase.kind === "blind_nil_commitment"
+                ? "Not dealt yet"
+                : `${view.own_hand?.length ?? 0} cards`}
+          </strong>
         </div>
         <div className="blackglass-hand">
           {view.private_view_status !== "seat" ? (
             <div className="blackglass-facedown" data-testid="blackglass-private-hidden">
               <span>Hidden</span>
               <strong>Seat hand only</strong>
+            </div>
+          ) : sortedHand.length === 0 ? (
+            <div className="blackglass-facedown" data-testid="blackglass-private-empty">
+              <span>{view.phase.kind === "blind_nil_commitment" ? "No cards yet" : "No cards in hand"}</span>
+              <strong>
+                {view.phase.kind === "blind_nil_commitment"
+                  ? "Blind nil is committed before the deal"
+                  : "Your hand is empty"}
+              </strong>
             </div>
           ) : (
             sortedHand.map((card) => {
