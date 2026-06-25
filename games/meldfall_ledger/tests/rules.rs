@@ -2,8 +2,13 @@ use std::collections::BTreeSet;
 
 use engine_core::{SeatId, Seed, Viewer};
 use meldfall_ledger::{
+    actions::LayoffPosition,
     cards::{canonical_deck, ranks_are_consecutive_low_or_high, Card, CardId, Rank, Suit},
-    rules::{table_new_meld, take_new_meld_from_hand, validate_new_meld, validate_owned_meld},
+    effects::{effect_stable_string, MeldfallEffect},
+    rules::{
+        lay_off_card, table_new_meld, take_new_meld_from_hand, validate_new_meld,
+        validate_owned_meld,
+    },
     setup::{deal_for_round, default_seats, setup_match, validate_seat_count, SetupOptions},
     state::{MatchState, MeldId, MeldKind, TurnOrdinal},
     visibility::{project_public_tableau, project_tableau_for_viewer},
@@ -366,6 +371,140 @@ fn public_tableau_projection_is_identical_for_every_viewer_and_hand_safe() {
         "meld_0:run:spades:origin=3:cards=[queen_spades:played_by=3:credit=3:turn=8,king_spades:played_by=3:credit=3:turn=8,ace_spades:played_by=3:credit=3:turn=8]"
     );
     assert!(!public.stable_string().contains("two_diamonds"));
+}
+
+#[test]
+fn lay_off_onto_own_meld_extends_run_and_credits_player() {
+    let mut state = sample_state();
+    let base = vec![
+        Card::new(Rank::Four, Suit::Clubs).id(),
+        Card::new(Rank::Five, Suit::Clubs).id(),
+        Card::new(Rank::Six, Suit::Clubs).id(),
+    ];
+    let layoff = Card::new(Rank::Seven, Suit::Clubs).id();
+    state.round.seats[0].hand = vec![base[0], base[1], base[2], layoff];
+    table_new_meld(&mut state.round, 0, &base, TurnOrdinal(1)).expect("base meld tables");
+
+    let effect = lay_off_card(
+        &mut state.round,
+        0,
+        layoff,
+        MeldId(0),
+        LayoffPosition::Append,
+        TurnOrdinal(2),
+    )
+    .expect("own lay-off accepted");
+
+    assert_eq!(state.round.seats[0].hand, Vec::<CardId>::new());
+    assert_eq!(state.round.round_played_scores[0], 22);
+    assert_eq!(state.round.tableau.groups[0].origin_seat, 0);
+    assert_eq!(state.round.tableau.groups[0].cards.len(), 4);
+    assert_eq!(
+        state.round.tableau.groups[0].cards[3].stable_string(),
+        "seven_clubs:played_by=0:credit=0:turn=2"
+    );
+    assert_eq!(
+        effect_stable_string(&effect),
+        "LayOff:seat=0:meld=meld_0:card=seven_clubs:played_by=0:credit=0:turn=2:position=append"
+    );
+}
+
+#[test]
+fn lay_off_onto_opponent_meld_preserves_origin_and_credits_laying_off_seat() {
+    let mut state = sample_state();
+    let base = vec![
+        Card::new(Rank::Nine, Suit::Clubs).id(),
+        Card::new(Rank::Nine, Suit::Diamonds).id(),
+        Card::new(Rank::Nine, Suit::Hearts).id(),
+    ];
+    let layoff = Card::new(Rank::Nine, Suit::Spades).id();
+    state.round.seats[0].hand = base.clone();
+    state.round.seats[2].hand = vec![layoff];
+    table_new_meld(&mut state.round, 0, &base, TurnOrdinal(1)).expect("base set tables");
+
+    let effect = lay_off_card(
+        &mut state.round,
+        2,
+        layoff,
+        MeldId(0),
+        LayoffPosition::Append,
+        TurnOrdinal(3),
+    )
+    .expect("opponent lay-off accepted");
+
+    let group = &state.round.tableau.groups[0];
+    assert_eq!(group.origin_seat, 0);
+    assert_eq!(group.cards[3].played_by, 2);
+    assert_eq!(group.cards[3].score_credit_owner, 2);
+    assert_eq!(state.round.round_played_scores[0], 27);
+    assert_eq!(state.round.round_played_scores[2], 9);
+    assert!(matches!(
+        effect.payload,
+        MeldfallEffect::LayOff { seat: 2, .. }
+    ));
+}
+
+#[test]
+fn invalid_lay_off_gap_wrong_rank_and_missing_target_reject_without_mutation() {
+    let mut state = sample_state();
+    let run = vec![
+        Card::new(Rank::Four, Suit::Hearts).id(),
+        Card::new(Rank::Five, Suit::Hearts).id(),
+        Card::new(Rank::Six, Suit::Hearts).id(),
+    ];
+    let gap = Card::new(Rank::Eight, Suit::Hearts).id();
+    state.round.seats[0].hand = run.clone();
+    state.round.seats[1].hand = vec![gap];
+    table_new_meld(&mut state.round, 0, &run, TurnOrdinal(1)).expect("base run tables");
+    let before = state.round.clone();
+
+    let diagnostic = lay_off_card(
+        &mut state.round,
+        1,
+        gap,
+        MeldId(0),
+        LayoffPosition::Append,
+        TurnOrdinal(2),
+    )
+    .expect_err("gap lay-off rejected");
+    assert_eq!(diagnostic.code, "ML_INVALID_LAYOFF");
+    assert!(!diagnostic.message.contains("eight_hearts"));
+    assert_eq!(state.round, before);
+
+    let wrong_rank = Card::new(Rank::Ten, Suit::Clubs).id();
+    state.round.seats[1].hand = vec![wrong_rank];
+    let diagnostic = lay_off_card(
+        &mut state.round,
+        1,
+        wrong_rank,
+        MeldId(99),
+        LayoffPosition::Append,
+        TurnOrdinal(3),
+    )
+    .expect_err("missing target rejected");
+    assert_eq!(diagnostic.code, "ML_UNKNOWN_MELD");
+
+    let set = vec![
+        Card::new(Rank::Queen, Suit::Clubs).id(),
+        Card::new(Rank::Queen, Suit::Diamonds).id(),
+        Card::new(Rank::Queen, Suit::Hearts).id(),
+    ];
+    state.round.seats[2].hand = set.clone();
+    table_new_meld(&mut state.round, 2, &set, TurnOrdinal(4)).expect("base set tables");
+    state.round.seats[1].hand = vec![wrong_rank];
+    let before_wrong_rank = state.round.clone();
+    let diagnostic = lay_off_card(
+        &mut state.round,
+        1,
+        wrong_rank,
+        MeldId(1),
+        LayoffPosition::Append,
+        TurnOrdinal(5),
+    )
+    .expect_err("wrong-rank lay-off rejected");
+    assert_eq!(diagnostic.code, "ML_INVALID_LAYOFF");
+    assert!(!diagnostic.message.contains("ten_clubs"));
+    assert_eq!(state.round, before_wrong_rank);
 }
 
 fn sample_state() -> MatchState {

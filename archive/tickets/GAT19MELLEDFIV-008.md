@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-008: Lay-off onto any player's meld with score-credit attribution (first-use primitive)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{rules,effects}.rs`; lay-off golden traces; first-use ledger entry ML-PP-004
@@ -83,3 +83,20 @@ Public lay-off effect group naming the played card, target meld, and score-credi
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. Cumulative score impact is verified in GAT19MELLEDFIV-011; this ticket verifies per-card credit attribution.
+
+## Outcome
+
+Completed: 2026-06-26
+
+- Added Rust-owned `lay_off_card` legality for extending any public meld owned by any seat, with target lookup, active-hand ownership validation, duplicate prevention, resulting-meld revalidation, and ordered run extension checks for prepend/append.
+- Preserved `origin_seat` while assigning the laid-off `TableCard`'s `played_by` and `score_credit_owner` to the laying-off seat.
+- Updated round-played score hooks for the laying-off seat and returned a public `MeldfallEffect::LayOff` naming only the now-public laid-off card, target meld, score-credit owner, and position.
+- Added viewer-safe invalid lay-off diagnostics for gaps, wrong-rank extensions, unknown target melds, and unowned cards; invalid lay-offs leave round state unchanged.
+- Added rule tests for own lay-off, opponent-meld lay-off with score credit, and invalid gap/wrong-rank cases.
+- Added lay-off golden traces for own tableau, opponent tableau score credit, and invalid gap/wrong-rank rejection, recording `ML-PP-004` as first official use, `local-only`.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p meldfall_ledger`
+- `cargo test --workspace`

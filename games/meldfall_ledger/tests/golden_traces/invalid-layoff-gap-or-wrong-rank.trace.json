@@ -1,0 +1,28 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "invalid-layoff-gap-or-wrong-rank",
+  "rules": ["ML-LAYOFF-001", "ML-LAYOFF-003", "ML-VIS-001"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-004",
+    "shape": "laying off onto any player's meld",
+    "status": "first official use, local-only"
+  },
+  "cases": [
+    {
+      "name": "gap cannot extend run",
+      "target_meld": "meld_0",
+      "public_target_cards": ["four_hearts", "five_hearts", "six_hearts"],
+      "submitted_card": "redacted in public diagnostic",
+      "result": "rejected",
+      "diagnostic": "ML_INVALID_LAYOFF"
+    },
+    {
+      "name": "wrong rank cannot extend set",
+      "target_meld": "meld_1",
+      "public_target_cards": ["queen_clubs", "queen_diamonds", "queen_hearts"],
+      "submitted_card": "redacted in public diagnostic",
+      "result": "rejected",
+      "diagnostic": "ML_INVALID_LAYOFF"
+    }
+  ]
+}

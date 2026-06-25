@@ -9,7 +9,9 @@ use std::collections::BTreeSet;
 use engine_core::Diagnostic;
 
 use crate::{
+    actions::LayoffPosition,
     cards::{ranks_are_consecutive_low_or_high, CardId},
+    effects::{public_effect, LayoffEffectPosition, MeldfallEffect, MeldfallEffectEnvelope},
     state::{MeldGroup, MeldId, MeldKind, RoundState, SeatIndex, TableCard, TurnOrdinal},
 };
 
@@ -124,6 +126,77 @@ pub fn table_new_meld(
     Ok(group)
 }
 
+pub fn lay_off_card(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+    card: CardId,
+    target_meld: MeldId,
+    position: LayoffPosition,
+    play_turn: TurnOrdinal,
+) -> Result<MeldfallEffectEnvelope, Diagnostic> {
+    if seat_index >= round.seats.len() {
+        return Err(meld_diagnostic(
+            "ML_INVALID_SEAT_INDEX",
+            format!(
+                "meldfall_ledger cannot lay off for seat index {seat_index}; only {} seats exist",
+                round.seats.len()
+            ),
+        ));
+    }
+    if !round.seats[seat_index].hand.contains(&card) {
+        return Err(meld_diagnostic(
+            "ML_LAYOFF_CARD_NOT_OWNED",
+            "meldfall_ledger cannot lay off a card outside the active hand",
+        ));
+    }
+
+    let group_index = round
+        .tableau
+        .groups
+        .iter()
+        .position(|group| group.id == target_meld)
+        .ok_or_else(|| {
+            meld_diagnostic(
+                "ML_UNKNOWN_MELD",
+                format!(
+                    "meldfall_ledger cannot lay off onto unknown meld {}",
+                    target_meld.as_string()
+                ),
+            )
+        })?;
+    validate_lay_off_candidate(&round.tableau.groups[group_index], card, position)?;
+
+    let hand_index = round.seats[seat_index]
+        .hand
+        .iter()
+        .position(|held| *held == card)
+        .expect("owned card was checked before mutation");
+    round.seats[seat_index].hand.remove(hand_index);
+
+    let table_card = TableCard {
+        card,
+        played_by: seat_index,
+        score_credit_owner: seat_index,
+        play_turn,
+    };
+    match position {
+        LayoffPosition::Prepend => round.tableau.groups[group_index]
+            .cards
+            .insert(0, table_card.clone()),
+        LayoffPosition::Append => round.tableau.groups[group_index]
+            .cards
+            .push(table_card.clone()),
+    }
+    round.round_played_scores[seat_index] += i32::from(card.card().rank.score_value());
+
+    Ok(public_effect(MeldfallEffect::LayOff {
+        seat: seat_index,
+        meld_id: target_meld,
+        card: table_card,
+        position: layoff_effect_position(position),
+    }))
+}
+
 fn validate_set(cards: &[CardId]) -> Option<MeldKind> {
     if cards.len() > 4 {
         return None;
@@ -157,6 +230,57 @@ fn validate_run(cards: &[CardId]) -> Option<MeldKind> {
     }
 }
 
+fn validate_lay_off_candidate(
+    group: &MeldGroup,
+    card: CardId,
+    position: LayoffPosition,
+) -> Result<(), Diagnostic> {
+    if group.cards.iter().any(|table_card| table_card.card == card) {
+        return Err(invalid_layoff(group.id));
+    }
+
+    let mut candidate = group
+        .cards
+        .iter()
+        .map(|table_card| table_card.card)
+        .collect::<Vec<_>>();
+    match position {
+        LayoffPosition::Prepend => candidate.insert(0, card),
+        LayoffPosition::Append => candidate.push(card),
+    }
+    let candidate_kind = validate_new_meld(&candidate).map_err(|_| invalid_layoff(group.id))?;
+    if !same_meld_kind(&group.kind, &candidate_kind) {
+        return Err(invalid_layoff(group.id));
+    }
+    if matches!(group.kind, MeldKind::Run { .. }) && !ordered_run_is_consecutive(&candidate) {
+        return Err(invalid_layoff(group.id));
+    }
+    Ok(())
+}
+
+fn same_meld_kind(left: &MeldKind, right: &MeldKind) -> bool {
+    match (left, right) {
+        (MeldKind::Set { rank: left }, MeldKind::Set { rank: right }) => left == right,
+        (MeldKind::Run { suit: left }, MeldKind::Run { suit: right }) => left == right,
+        (MeldKind::Unknown, MeldKind::Unknown) => true,
+        _ => false,
+    }
+}
+
+fn ordered_run_is_consecutive(cards: &[CardId]) -> bool {
+    ordered_run_is_consecutive_by(cards, |rank| rank.low_run_value())
+        || ordered_run_is_consecutive_by(cards, |rank| rank.high_run_value())
+}
+
+fn ordered_run_is_consecutive_by(
+    cards: &[CardId],
+    value: impl Fn(crate::cards::Rank) -> u8,
+) -> bool {
+    cards
+        .windows(2)
+        .all(|pair| value(pair[1].card().rank) == value(pair[0].card().rank) + 1)
+}
+
 fn has_duplicate_cards(cards: &[CardId]) -> bool {
     cards.iter().copied().collect::<BTreeSet<_>>().len() != cards.len()
 }
@@ -173,5 +297,22 @@ fn meld_diagnostic(code: &str, message: impl Into<String>) -> Diagnostic {
     Diagnostic {
         code: code.to_owned(),
         message: message.into(),
+    }
+}
+
+fn invalid_layoff(target_meld: MeldId) -> Diagnostic {
+    meld_diagnostic(
+        "ML_INVALID_LAYOFF",
+        format!(
+            "meldfall_ledger selected card cannot extend target meld {}",
+            target_meld.as_string()
+        ),
+    )
+}
+
+const fn layoff_effect_position(position: LayoffPosition) -> LayoffEffectPosition {
+    match position {
+        LayoffPosition::Prepend => LayoffEffectPosition::Prepend,
+        LayoffPosition::Append => LayoffEffectPosition::Append,
     }
 }
