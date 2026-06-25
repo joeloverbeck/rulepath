@@ -35,6 +35,25 @@ const TEAM_SEATS: Record<BlackglassPactTeamId, BlackglassPactSeatId[]> = {
   team_1: ["seat_1", "seat_3"],
 };
 const SUIT_GLYPH: Record<string, string> = { clubs: "C", diamonds: "D", hearts: "H", spades: "S" };
+// Presentation-only hand ordering. Spades are trump, so they group at one end;
+// colors alternate (red/black/red/black) so adjacent suits stay easy to tell apart.
+// Rust still owns card identity, legality, and every game decision.
+const SUIT_SORT: Record<string, number> = { diamonds: 0, clubs: 1, hearts: 2, spades: 3 };
+const RANK_SORT: Record<string, number> = {
+  two: 0,
+  three: 1,
+  four: 2,
+  five: 3,
+  six: 4,
+  seven: 5,
+  eight: 6,
+  nine: 7,
+  ten: 8,
+  jack: 9,
+  queen: 10,
+  king: 11,
+  ace: 12,
+};
 
 export function BlackglassPactBoard({
   view,
@@ -52,6 +71,15 @@ export function BlackglassPactBoard({
     [paths],
   );
   const nonCardChoices = paths.filter((entry) => entry.path[0] !== "play");
+  const sortedHand = useMemo(
+    () =>
+      [...(view.own_hand ?? [])].sort(
+        (a, b) =>
+          (SUIT_SORT[a.suit] ?? 0) - (SUIT_SORT[b.suit] ?? 0) ||
+          (RANK_SORT[a.rank] ?? 0) - (RANK_SORT[b.rank] ?? 0),
+      ),
+    [view.own_hand],
+  );
   const canAct = Boolean(interactive && !pending && view.private_view_status === "seat" && paths.length > 0 && view.phase.kind !== "terminal");
   const changed = effects.some((entry) =>
     ["card_played", "trick_captured", "bid_accepted", "hand_scored", "deal_completed"].includes(
@@ -188,7 +216,7 @@ export function BlackglassPactBoard({
               <strong>Seat hand only</strong>
             </div>
           ) : (
-            (view.own_hand ?? []).map((card) => {
+            sortedHand.map((card) => {
               const action = playChoices.get(card.id);
               return (
                 <button
