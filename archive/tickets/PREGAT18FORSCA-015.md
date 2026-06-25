@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-015: GAME-EVIDENCE pre-code-audit / register-freshness / disposition rows
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/template-doc edit (`templates/GAME-EVIDENCE.md`)
@@ -73,3 +73,23 @@ Append the receipt-review checks confirming each row cites committed register ID
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- templates/GAME-EVIDENCE.md` (review: four receipt rows + review checks)
 3. `grep -n "prior-game" templates/GAME-EVIDENCE.md`
+
+## Outcome
+
+Completed. `templates/GAME-EVIDENCE.md` now replaces the prior generic
+mechanic/scaffolding decision rows with explicit receipt rows for
+pre-implementation reuse-first audit, existing registered/promoted scaffolding
+adoption, post-implementation register freshness, prior-game disposition, CI
+scaffolding-audit evidence, and open behavioral/scaffolding debt. The receipt
+review checklist now requires distinct audit/register receipts, register
+decisions and review triggers for new behavior-free shapes, prior-game tracker
+or no-unit disposition, CI/register agreement, and ADR 0009 authority for byte,
+hash, fixture, export, RNG, or visibility changes.
+
+Verification:
+
+- `grep -ni "register-freshness\\|register freshness" templates/GAME-EVIDENCE.md`
+- `grep -ni "prior-game\\|CI scaffolding-audit\\|CI audit record" templates/GAME-EVIDENCE.md`
+- `git diff -- templates/GAME-EVIDENCE.md`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
