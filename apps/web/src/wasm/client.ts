@@ -1140,6 +1140,84 @@ export type VowTidePublicView = {
   };
 };
 
+export type BlackglassPactSeatId = BriarCircuitSeatId;
+export type BlackglassPactTeamId = "team_0" | "team_1";
+
+export type BlackglassPactCardView = {
+  id: string;
+  label: string;
+  rank: string;
+  suit: string;
+};
+
+export type BlackglassPactPlayedCardView = {
+  seat: BlackglassPactSeatId;
+  card: BlackglassPactCardView;
+};
+
+export type BlackglassPactBidView =
+  | { kind: "tricks"; value: number }
+  | { kind: "nil"; value: 0 }
+  | { kind: "blind_nil"; value: 0 };
+
+export type BlackglassPactPhaseView =
+  | { kind: "blind_nil_commitment"; active: BlackglassPactSeatId | null; pending_count: number }
+  | { kind: "bidding"; next: BlackglassPactSeatId }
+  | { kind: "playing_trick"; leader: BlackglassPactSeatId; next: BlackglassPactSeatId; trick_index: number }
+  | { kind: "hand_scoring"; completed_tricks: number }
+  | { kind: "terminal"; winning_team: BlackglassPactTeamId };
+
+export type BlackglassPactHandScoreView = {
+  hand_index: number;
+  teams: Array<{
+    team: BlackglassPactTeamId;
+    contract: number;
+    ordinary_tricks: number;
+    ordinary_made: boolean;
+    hand_delta: number;
+    prior_score: number;
+    next_score: number;
+    next_bags: number;
+  }>;
+  seats: Array<{
+    seat: BlackglassPactSeatId;
+    team: BlackglassPactTeamId;
+    bid: BlackglassPactBidView | null;
+    tricks: number;
+    nil_result: string | null;
+  }>;
+};
+
+export type BlackglassPactOutcomeRationale = OutcomeRationalePayload;
+
+export type BlackglassPactPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "blackglass_pact";
+  display_name: string;
+  variant_id: "blackglass_pact_standard";
+  rules_version_label: string;
+  viewer_seat: BlackglassPactSeatId | null;
+  phase: BlackglassPactPhaseView;
+  dealer: BlackglassPactSeatId;
+  hand_index: number;
+  spades_broken: boolean;
+  active_seat: BlackglassPactSeatId | null;
+  hand_counts: Array<{ seat: BlackglassPactSeatId; count: number }>;
+  bids: Array<{ seat: BlackglassPactSeatId; team: BlackglassPactTeamId; bid: BlackglassPactBidView | null }>;
+  team_contracts: Array<{ team: BlackglassPactTeamId; ordinary_contract: number }>;
+  team_scores: Record<BlackglassPactTeamId, number>;
+  team_bags: Record<BlackglassPactTeamId, number>;
+  current_trick: BlackglassPactPlayedCardView[];
+  last_hand_score: BlackglassPactHandScoreView | null;
+  outcome: string | null;
+  outcome_rationale?: BlackglassPactOutcomeRationale | null;
+  freshness_token: number;
+  private_view_status: "observer" | "seat";
+  hidden_fields: string[];
+  own_hand?: BlackglassPactCardView[];
+};
+
 export type MaskedClaimsOutcomeRationale = OutcomeRationalePayload;
 
 export type MaskedClaimsMaskView = {
@@ -1420,6 +1498,7 @@ export type PublicView =
   | PlainTricksPublicView
   | BriarCircuitPublicView
   | VowTidePublicView
+  | BlackglassPactPublicView
   | MaskedClaimsPublicView
   | FloodWatchPublicView
   | FrontierControlPublicView

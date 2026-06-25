@@ -1,6 +1,7 @@
 import { feedbackForEffect } from "./effectFeedback";
 import type { ReplaySessionState } from "../state/shellReducer";
 import type {
+  BlackglassPactPublicView,
   BriarCircuitPublicView,
   ColumnFourPublicView,
   DirectionalFlipPublicView,
@@ -18,6 +19,7 @@ import type {
   TokenBazaarPublicView,
   VowTidePublicView,
 } from "../wasm/client";
+import { BlackglassPactBoard } from "./BlackglassPactBoard";
 import { ColumnFourBoard } from "./ColumnFourBoard";
 import { DirectionalFlipBoard } from "./DirectionalFlipBoard";
 import { DraughtsLiteBoard } from "./DraughtsLiteBoard";
@@ -56,6 +58,8 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
   const eventFrontierView: EventFrontierPublicView | null =
     step && isEventFrontierView(step.view) ? step.view : null;
   const vowTideView: VowTidePublicView | null = step && isVowTideView(step.view) ? step.view : null;
+  const blackglassPactView: BlackglassPactPublicView | null =
+    step && isBlackglassPactView(step.view) ? step.view : null;
 
   return (
     <section className="replay-viewer" aria-labelledby="replay-viewer-heading">
@@ -178,6 +182,19 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
             <div className="replay-board">
               <VowTideBoard
                 view={vowTideView}
+                actionTree={null}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+                interactive={false}
+              />
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : blackglassPactView ? (
+            <div className="replay-board">
+              <BlackglassPactBoard
+                view={blackglassPactView}
                 actionTree={null}
                 latestEffect={latestEntry}
                 effects={replayEffectEntries}
@@ -345,6 +362,10 @@ function isBriarCircuitView(view: PublicView | null): view is BriarCircuitPublic
 
 function isVowTideView(view: PublicView | null): view is VowTidePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "vow_tide");
+}
+
+function isBlackglassPactView(view: PublicView | null): view is BlackglassPactPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "blackglass_pact");
 }
 
 function formatActionPath(path: string[]): string {
@@ -519,6 +540,14 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
       { label: "Hand", value: String(view.hand_index + 1) },
       { label: "Phase", value: view.phase },
       { label: "Scores", value: Object.values(view.cumulative_scores).join("-") },
+    ];
+  }
+  if (isBlackglassPactView(view)) {
+    return [
+      { label: "Game", value: "Blackglass Pact" },
+      { label: "Hand", value: String(view.hand_index + 1) },
+      { label: "Phase", value: view.phase.kind.replaceAll("_", " ") },
+      { label: "Scores", value: `${view.team_scores.team_0}-${view.team_scores.team_1}` },
     ];
   }
 

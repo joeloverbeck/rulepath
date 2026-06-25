@@ -1730,6 +1730,227 @@ h2 {
   animation: none !important;
 }
 
+.blackglass-board {
+  display: grid;
+  gap: var(--rp-space-4);
+  --blackglass-line: #d8d4ca;
+  --blackglass-panel: #ffffff;
+  --blackglass-muted: #5f635d;
+  --blackglass-ink: #26302d;
+  --blackglass-ns: #276a6f;
+  --blackglass-ew: #8c4f2f;
+  --blackglass-gold: #b38a2e;
+}
+
+.blackglass-banner,
+.blackglass-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rp-space-3);
+}
+
+.blackglass-banner {
+  border: 1px solid var(--blackglass-line);
+  border-radius: var(--rp-radius-md);
+  padding: var(--rp-space-4);
+  background: linear-gradient(135deg, #f9faf7, #eef5f2);
+}
+
+.blackglass-metrics,
+.blackglass-teams,
+.blackglass-seat-rail,
+.blackglass-action-grid,
+.blackglass-played-cards {
+  display: grid;
+  gap: var(--rp-space-3);
+}
+
+.blackglass-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.blackglass-teams {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.blackglass-table {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+  gap: var(--rp-space-4);
+}
+
+.blackglass-seat-rail {
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+}
+
+.blackglass-metric,
+.blackglass-team,
+.blackglass-seat,
+.blackglass-trick,
+.blackglass-private,
+.blackglass-actions,
+.blackglass-score-panel,
+.blackglass-latest {
+  display: grid;
+  gap: var(--rp-space-2);
+  border: 1px solid var(--blackglass-line);
+  border-radius: var(--rp-radius-md);
+  padding: var(--rp-space-3);
+  background: var(--blackglass-panel);
+}
+
+.blackglass-team.north-south {
+  border-color: rgba(39, 106, 111, 0.45);
+}
+
+.blackglass-team.east-west {
+  border-color: rgba(140, 79, 47, 0.45);
+}
+
+.blackglass-seat.active {
+  border-color: var(--blackglass-gold);
+  box-shadow: inset 0 0 0 2px rgba(179, 138, 46, 0.18);
+}
+
+.blackglass-seat.viewer {
+  background: #f8fbfa;
+}
+
+.blackglass-team dl,
+.blackglass-seat dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: var(--rp-space-2);
+  margin: 0;
+}
+
+.blackglass-team div,
+.blackglass-seat div {
+  min-width: 0;
+}
+
+.blackglass-team dt,
+.blackglass-seat dt,
+.blackglass-metric span,
+.blackglass-section-heading span,
+.blackglass-latest span,
+.blackglass-card small,
+.blackglass-action-grid span,
+.blackglass-facedown span {
+  color: var(--blackglass-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.blackglass-team dd,
+.blackglass-seat dd {
+  margin: 0;
+  color: var(--blackglass-ink);
+  font-weight: 800;
+}
+
+.blackglass-hand {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: var(--rp-space-2);
+}
+
+.blackglass-card,
+.blackglass-played-card,
+.blackglass-facedown {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--blackglass-line);
+  border-radius: var(--rp-radius-sm);
+  padding: var(--rp-space-2);
+  background: #fcfbf7;
+  text-align: left;
+}
+
+.blackglass-card.legal {
+  border-color: var(--blackglass-ns);
+  background: #edf6f4;
+}
+
+.blackglass-card-face {
+  display: inline-grid;
+  place-items: center;
+  min-height: 56px;
+  border: 1px solid #dedbd1;
+  border-radius: var(--rp-radius-sm);
+  background: #fffef9;
+}
+
+.blackglass-card-face b {
+  color: var(--blackglass-ink);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.blackglass-card-face.red b {
+  color: #a23b32;
+}
+
+.blackglass-card-face small {
+  color: var(--blackglass-muted);
+}
+
+.blackglass-facedown {
+  place-items: center;
+  min-height: 82px;
+  border-style: dashed;
+  text-align: center;
+}
+
+.blackglass-action-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
+.blackglass-action-grid button {
+  display: grid;
+  gap: 4px;
+  min-height: 60px;
+  border: 1px solid var(--blackglass-line);
+  border-radius: var(--rp-radius-sm);
+  padding: var(--rp-space-2);
+  background: #f9faf7;
+  text-align: left;
+}
+
+.blackglass-action-grid button:not(:disabled):hover,
+.blackglass-card.legal:not(:disabled):hover {
+  border-color: var(--blackglass-gold);
+  transform: translateY(-1px);
+}
+
+.blackglass-score-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.blackglass-score-panel th,
+.blackglass-score-panel td {
+  border-bottom: 1px solid #e5e1d7;
+  padding: 7px 6px;
+  text-align: left;
+}
+
+.blackglass-board.reveal .blackglass-trick {
+  border-color: var(--blackglass-gold);
+}
+
+.blackglass-board.reduced *,
+.blackglass-board.reduced *::before,
+.blackglass-board.reduced *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 .high-card-viewer-controls {
   display: flex;
   flex-wrap: wrap;

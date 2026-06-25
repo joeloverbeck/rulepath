@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-015: grouped partnership board renderer and outcome-explanation web surfaces
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/BlackglassPactBoard.tsx`, `apps/web/src/main.tsx`, `apps/web/src/components/ReplayViewer.tsx`, `apps/web/src/wasm/client.ts`, `apps/web/src/components/outcomeExplanationTemplates.ts`
@@ -80,3 +80,41 @@ Build the grouped partnership browser renderer and wire the outcome-explanation 
 1. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:effects`
 3. `check-outcome-explanations` fully greens only after GAT18BLAPACSPA-017 lands `UI.md`; flag the interim red window.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added `BlackglassPactBoard.tsx` and registered it in the live app and replay
+viewer. The board renders Rust-projected fixed partnerships, team score/bag and
+contract fields, four seat frames, current trick, owner-only hand cards, and
+Rust legal blind/bid/play controls. Observer views render a hidden-hand
+placeholder and do not mount non-owner hand cards.
+
+Added the Blackglass Pact TypeScript view mirror and outcome-rationale field in
+`apps/web/src/wasm/client.ts`, plus static outcome copy keys in
+`outcomeExplanationTemplates.ts`. Updated the UI smoke catalog assertion so
+fixed-four Blackglass metadata is checked separately from two-seat games.
+
+Component review:
+
+- No legality is computed in TypeScript; action buttons are flattened from the
+  Rust `ActionTree` only.
+- Team scores, bags, contracts, hand score rows, phase, active seat, and outcome
+  standing values are rendered from Rust-projected fields.
+- Partner/opponent private hands are not rendered; only `own_hand` for
+  `private_view_status === "seat"` is mounted.
+
+Verification:
+
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:effects` passed.
+- `git diff --check` passed.
+
+Expected red window preserved:
+
+- `RULEPATH_OUTCOME_GAME_IDS=blackglass_pact node scripts/check-outcome-explanations.mjs`
+  remains red until GAT18BLAPACSPA-017 adds `games/blackglass_pact/docs/UI.md`;
+  the current failures are the missing UI doc plus the checker's section-name
+  expectations for `RULES.md`.
