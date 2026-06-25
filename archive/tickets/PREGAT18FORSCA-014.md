@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-014: GAME-MECHANICS reuse-first audit table + register update
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/template-doc edit (`templates/GAME-MECHANICS.md`)
@@ -77,3 +77,19 @@ Append the review checks confirming the audit ran and new shapes are registered.
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- templates/GAME-MECHANICS.md` (review: audit table + atlas/register section + review checks)
 3. `grep -n "register" templates/GAME-MECHANICS.md`
+
+## Outcome
+
+Completed. `templates/GAME-MECHANICS.md` now includes the mechanical
+scaffolding reuse-first audit table and audit rules, replaces the old
+atlas-only update section with an atlas/register update section, and adds review
+checks for audit completion, promoted-helper reuse or accepted exceptions, new
+register entries, prior-game disposition, and explicit register coverage.
+
+Verification:
+
+- `grep -ni "reuse-first audit" templates/GAME-MECHANICS.md`
+- `grep -n "register" templates/GAME-MECHANICS.md`
+- `git diff -- templates/GAME-MECHANICS.md`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
