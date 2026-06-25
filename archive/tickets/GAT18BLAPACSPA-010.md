@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-010: bot-strategy documents (AI, competent-player, deferred L2 evidence pack)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — game-local docs (`games/blackglass_pact/docs/{AI,COMPETENT-PLAYER,BOT-STRATEGY-EVIDENCE-PACK}.md`)
@@ -78,3 +78,29 @@ Status `not admitted / intentionally deferred`; the complete Appendix D.9 eviden
 1. `grep -iE "not admitted|deferred" games/blackglass_pact/docs/BOT-STRATEGY-EVIDENCE-PACK.md`
 2. `node scripts/check-doc-links.mjs`
 3. Doc-only ticket — review + doc-link check is the correct boundary; bot behavior is verified in its own ticket.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added the Blackglass Pact bot-strategy document set:
+
+- `games/blackglass_pact/docs/AI.md` records shipped L0/L1 policy IDs,
+  authorized observations, deterministic decision orders, explanation safety,
+  evidence, known weaknesses, and explicit public v1/v2 forbidden methods.
+- `games/blackglass_pact/docs/COMPETENT-PLAYER.md` records original,
+  rules-checked strategy analysis for bidding, nil risk, partner coverage,
+  ordinary contracts, bag pressure, target posture, public void inference, and
+  novice errors.
+- `games/blackglass_pact/docs/BOT-STRATEGY-EVIDENCE-PACK.md` records Level 2
+  as `not admitted / intentionally deferred` with the full future evidence
+  gate before any L2 code.
+
+No engine or bot behavior changed.
+
+Verification:
+
+- `grep -iE "not admitted|deferred" games/blackglass_pact/docs/BOT-STRATEGY-EVIDENCE-PACK.md` passed and found the deferred L2 status.
+- `rg -n "blackglass-pact-l0-random-legal-v1|blackglass-pact-l1-bounded-v1|MCTS|ISMCTS|Monte Carlo|ML|RL|runtime LLM|not admitted" games/blackglass_pact/docs/AI.md games/blackglass_pact/docs/BOT-STRATEGY-EVIDENCE-PACK.md` confirmed policy IDs, forbidden-method prohibition, and L2 not-admitted status.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
