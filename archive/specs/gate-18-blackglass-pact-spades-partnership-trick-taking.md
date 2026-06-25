@@ -2408,10 +2408,53 @@ Each footnote below maps a spec claim to the in-repository file that grounds it.
 
 # Outcome
 
-**Specification status:** `Planned` / `Not started`.
+**Status**: ✅ COMPLETED — 2026-06-25.
 
-This file is the decompose-ready Gate 18 plan. After it is saved to
-`specs/gate-18-blackglass-pact-spades-partnership-trick-taking.md`, the repository
-workflow is `/reassess-spec` in place, then `/spec-to-tickets`. No implementation,
-status flip, foundation amendment, or ticket decomposition is claimed by this
-deliverable.
+Gate 18 shipped as **Blackglass Pact**, the fixed-four partnership
+Spades-family proof. The spec header `Status` field and the `specs/README.md`
+active-epoch tracker (Order 9) were flipped to `Done` on 2026-06-25. This
+section supersedes the original pre-implementation note (retained below for
+provenance).
+
+## Closeout receipt
+
+- **Implementation commit range**: `46615c1` (`GAT18BLAPACSPA-001`, rules docs)
+  through `8887f72` (`GAT18BLAPACSPA-019`, capstone) — 17 commits landing the
+  candidate-task ladder `001`–`019`.
+- **Accepted recommendations**: every §4 deliverable was implemented — the new
+  `games/blackglass_pact` crate (typed Rust rules, pre-deal blind-nil, public
+  sequential bidding, trick play via the reused promoted trick-taking helpers,
+  team scoring, bags, dealer rotation, and 500-point terminal), public plus four
+  seat-private views, fixtures, golden traces, the full test taxonomy, the WASM
+  bridge, `simulate`/`replay-check`/`fixture-check`/`rule-coverage`
+  registrations, the grouped web renderer, and the e2e smoke. No deliverable was
+  rejected or deferred.
+- **Foundation / ADR status**: consumes accepted ADR 0004, 0007, 0008, and 0009
+  without weakening or reopening them; Blackglass Pact is the first `forward-v1`
+  scaffolding-audit user under ADR 0008. No foundation section was amended and no
+  `engine-core` kernel noun was added.
+- **Open mechanic-atlas / scaffolding debt**: none opened. The promoted
+  trick-taking helpers were reused unchanged (no new third-use gate); the numeric
+  trick-contract second use was reviewed against Vow Tide and kept game-local;
+  one new partnership/team `local-only` primitive-pressure entry was recorded.
+  Owner: Rulepath maintainers.
+- **Checks run**: full §7.1 verification is recorded in
+  [`../../games/blackglass_pact/docs/GAME-EVIDENCE.md`](../../games/blackglass_pact/docs/GAME-EVIDENCE.md)
+  (rule coverage, golden traces, replay, pairwise no-leak across observer plus
+  four seats and all 12 ordered pairs, viewer-scoped exports, benchmarks,
+  catalog/doc checks, and the passing `forward-v1` receipt in
+  `ci/scaffolding-audits.json`). Doc-link integrity was re-checked at archival.
+- **Live tracker link**: `specs/README.md` Gate 18 row (Order 9) now points at
+  this archived path.
+- **Release blocker**: human IP/public-release review remains pending per
+  `docs/IP-POLICY.md`; that is a public-release gate, not a Gate 18
+  implementation blocker. Gate 19 is not marked active by this closeout.
+- Historical commit strings inside this archived spec are content, not
+  current-repository provenance.
+
+## Original pre-implementation note (superseded)
+
+This file was the decompose-ready Gate 18 plan. The repository workflow was
+`/reassess-spec` in place, then `/spec-to-tickets`; no implementation, status
+flip, foundation amendment, or ticket decomposition was claimed by the spec as
+authored.
