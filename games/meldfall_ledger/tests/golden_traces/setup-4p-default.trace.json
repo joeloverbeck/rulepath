@@ -1,0 +1,12 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "setup-4p-default",
+  "seed": 1901,
+  "seat_count": 4,
+  "public_observer": {
+    "hand_counts": [7, 7, 7, 7],
+    "discard_count": 1,
+    "stock_count": 23,
+    "hidden_cards": "count-only"
+  }
+}

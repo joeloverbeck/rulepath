@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-004: Variable 2–6 setup, deterministic single-deck deal, and card model
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{cards,setup}.rs`; setup golden traces
@@ -85,3 +85,25 @@ Variable 2–6 seat declaration reusing `game_stdlib::seat` validators, setup di
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. `replay-check` registration is GAT19MELLEDFIV-016; setup-trace determinism is asserted here via `cargo test` until then.
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+- Implemented the local Meldfall Ledger card model in `cards.rs`: `Suit`, `Rank`, `CardId`, deterministic 52-card deck construction, point values, card parsing/labels, and ace-low/ace-high/no-wrap run helper support.
+- Implemented deterministic setup/deal substrate in `setup.rs`: supported seat-count diagnostics for 2-6 seats, deterministic shuffle using `engine_core::SeededRng` and `next_index_unbiased_v1`, 13-card 2p deal, 7-card 3-6 deal, left-of-dealer clockwise deal order, initial public discard, hidden stock, and a count-only public setup view.
+- Added setup/deal tests in `games/meldfall_ledger/tests/rules.rs`.
+- Added setup trace artifacts for 2p, 4p, 6p, and invalid below/above seat counts under `games/meldfall_ledger/tests/golden_traces/`.
+
+Deviations from plan:
+
+- The replay-check command remains intentionally deferred to GAT19MELLEDFIV-016 because `meldfall_ledger` is not registered with `replay-check` yet; setup determinism and count-only public setup evidence are asserted in `cargo test -p meldfall_ledger`.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p meldfall_ledger` passed (10 unit/integration tests, 0 doctests).
+- `cargo test --workspace` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`; `game-test-support dev-only boundary check passed`).

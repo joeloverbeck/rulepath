@@ -1,0 +1,8 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "invalid-seat-count-above",
+  "seat_count": 7,
+  "diagnostic": {
+    "code": "ML_INVALID_SEAT_COUNT"
+  }
+}

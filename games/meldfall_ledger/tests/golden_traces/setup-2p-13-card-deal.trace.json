@@ -1,0 +1,12 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "setup-2p-13-card-deal",
+  "seed": 1900,
+  "seat_count": 2,
+  "public_observer": {
+    "hand_counts": [13, 13],
+    "discard_count": 1,
+    "stock_count": 25,
+    "hidden_cards": "count-only"
+  }
+}
