@@ -61,6 +61,6 @@ pub enum BlackglassPactEffect {
         hand_index: u32,
     },
     MatchCompleted {
-        outcome: MatchOutcome,
+        outcome: Box<MatchOutcome>,
     },
 }

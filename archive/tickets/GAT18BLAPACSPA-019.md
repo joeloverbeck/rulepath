@@ -1,9 +1,9 @@
 # GAT18BLAPACSPA-019: capstone — exit-criteria command suite, source bibliography, and Gate 18 Done flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
-**Engine Changes**: None — docs/status-only (`specs/README.md`, `specs/gate-18-blackglass-pact-spades-partnership-trick-taking.md`, `docs/SOURCES.md`, `games/blackglass_pact/docs/GAME-EVIDENCE.md`)
+**Engine Changes**: Acceptance-maintenance only — final closeout updated docs/status surfaces and applied non-behavioral clippy/smoke fixes exposed by the full suite.
 **Deps**: GAT18BLAPACSPA-010, GAT18BLAPACSPA-012, GAT18BLAPACSPA-013, GAT18BLAPACSPA-016, GAT18BLAPACSPA-017, GAT18BLAPACSPA-018
 
 ## Problem
@@ -52,7 +52,7 @@ Execute the §7.1 command suite and the §6.2/§6.3 rows; record the command/evi
 
 ## Out of Scope
 
-- Any production code/test/bench change (prior tickets own those).
+- Any behavioral production code/test/bench change (prior tickets own those).
 - Marking Gate 19 active or archiving the spec (separate later workflow per `docs/archival-workflow.md`).
 
 ## Acceptance Criteria
@@ -66,7 +66,7 @@ Execute the §7.1 command suite and the §6.2/§6.3 rows; record the command/evi
 ### Invariants
 
 1. Gate 18 flips to `Done` only after every exit/debt row is closed; Gate 19 is not marked active.
-2. No upstream implementation file is modified by this capstone; human IP/release review is recorded as the remaining blocker.
+2. No behavioral upstream implementation change is modified by this capstone; human IP/release review is recorded as the remaining blocker.
 
 ## Test Plan
 
@@ -79,3 +79,56 @@ Execute the §7.1 command suite and the §6.2/§6.3 rows; record the command/evi
 1. `cargo test --workspace && cargo run -p rule-coverage -- --game blackglass_pact && cargo run -p replay-check -- --game blackglass_pact --all`
 2. `npm --prefix apps/web run smoke:e2e && node scripts/check-catalog-docs.mjs && node scripts/check-scaffolding-governance.mjs`
 3. The whole-gate suite is the correct boundary for a capstone; it adds no production logic, only the status reconciliation.
+
+## Outcome
+
+Completed 2026-06-25.
+
+The full Gate 18 command suite passed and the gate was flipped to `Done` in
+both `specs/README.md` and the Gate 18 spec header. `GAME-EVIDENCE.md` now
+records final closeout status, command evidence, and the remaining
+human-owned IP/public-release review blocker. `docs/SOURCES.md` now links the
+Blackglass Pact source notes and records the Rulepath lessons for variant
+pinning, failed-nil bag attribution, pre-deal blind commitment, and public vs.
+private partnership signals.
+
+The capstone remained behaviorally closed, but the full acceptance run exposed
+two narrow maintenance fixes required to make the suite truthful:
+
+- `cargo clippy --workspace --all-targets -- -D warnings` required boxing the
+  large `MatchOutcome` effect payload and removing a useless WASM bridge
+  `format!` wrapper.
+- `npm --prefix apps/web run smoke:animation` exposed a stale catalog-sweep
+  count/list after Blackglass Pact joined the catalog; the smoke script now
+  derives its matrix count from the explicit game lists and treats Blackglass
+  Pact as generic-only for that sweep.
+
+Verification passed:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo build --workspace`
+- `cargo test --workspace`
+- `cargo test -p blackglass_pact`
+- `cargo test -p wasm-api`
+- `cargo run -p replay-check -- --game blackglass_pact --all`
+- `cargo run -p simulate -- --game blackglass_pact --seat-count 4 --games 1000 --start-seed 180400 --action-cap 4096`
+- `cargo bench -p blackglass_pact`
+- `cargo run -p fixture-check -- --game blackglass_pact`
+- `cargo run -p rule-coverage -- --game blackglass_pact`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-scaffolding-governance.mjs`
+- `node --test scripts/check-scaffolding-governance.test.mjs`
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `node scripts/check-ci-games.mjs`
+- `node scripts/check-player-rules.mjs`
+- `node scripts/check-presentation-copy.mjs`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:e2e`
+- `npm --prefix apps/web run smoke:preview`
+- `npm --prefix apps/web run smoke:animation`

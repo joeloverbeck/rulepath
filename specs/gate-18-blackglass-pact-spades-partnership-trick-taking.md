@@ -8,7 +8,7 @@
 | File | `specs/gate-18-blackglass-pact-spades-partnership-trick-taking.md` |
 | Roadmap stage | Stage 18 / Public scaling phase |
 | Roadmap build gate | Gate 18 |
-| Status | `Planned` / `Not started` |
+| Status | `Done` |
 | Date | 2026-06-25 |
 | Owner | Rulepath maintainers / implementation agents |
 | Primary crate | `games/blackglass_pact` |

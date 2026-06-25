@@ -47,7 +47,9 @@ pub fn score_completed_hand(
         let outcome = match_outcome(state, winning_team, breakdown);
         state.outcome = Some(outcome.clone());
         state.phase = Phase::Terminal { winning_team };
-        effects.push(BlackglassPactEffect::MatchCompleted { outcome });
+        effects.push(BlackglassPactEffect::MatchCompleted {
+            outcome: Box::new(outcome),
+        });
     } else {
         advance_to_next_hand(state)?;
         effects.push(BlackglassPactEffect::DealerAdvanced {

@@ -183,12 +183,9 @@ pub(crate) fn blackglass_view_json(view: &ViewerView, freshness_token: u64) -> S
 }
 
 fn blackglass_seat_view_json(view: &SeatView, freshness_token: u64) -> String {
-    format!(
-        "{}",
-        with_seat_private_fields(
-            blackglass_public_view_json(&view.public, Some(view.seat), freshness_token),
-            &view.own_hand
-        )
+    with_seat_private_fields(
+        blackglass_public_view_json(&view.public, Some(view.seat), freshness_token),
+        &view.own_hand,
     )
 }
 

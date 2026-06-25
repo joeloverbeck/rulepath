@@ -13,8 +13,12 @@ const GENERIC_ONLY_GAMES = [
   "masked_claims",
   "plain_tricks",
   "poker_lite",
+  "river_ledger",
   "secret_draft",
   "token_bazaar",
+  "briar_circuit",
+  "vow_tide",
+  "blackglass_pact",
 ];
 const ADOPTER_GAMES = ["event_frontier", "flood_watch"];
 
@@ -92,7 +96,11 @@ const matrix = readme.slice(
 for (const gameId of [...GENERIC_ONLY_GAMES, ...ADOPTER_GAMES]) {
   assert(matrix.includes(`| \`${gameId}\` |`), `adoption matrix includes ${gameId}`);
 }
-assert.equal((matrix.match(/\| `[^`]+` \| (adopt|generic-only|board-native mapping|not applicable) \|/g) ?? []).length, 14, "adoption matrix has 14 classified rows");
+assert.equal(
+  (matrix.match(/\| `[^`]+` \| (adopt|generic-only|board-native mapping|not applicable) \|/g) ?? []).length,
+  GENERIC_ONLY_GAMES.length + ADOPTER_GAMES.length,
+  "adoption matrix has one classified row for each catalog game",
+);
 
 console.log(JSON.stringify({ catalogSweep: "ok", genericOnly: GENERIC_ONLY_GAMES.length, adopters: ADOPTER_GAMES.length }));
 
