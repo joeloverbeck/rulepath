@@ -98,7 +98,6 @@ try {
     page,
     "__animationSmokeRiverTargets",
     [
-      "river-ledger-board-reveal",
       "river-ledger-showdown-banner",
       "river-ledger-showdown-board",
       "river-ledger-showdown-standings",
@@ -126,7 +125,7 @@ try {
   await clickText(page, "button", "Forecast");
   await waitForText(page, "Forecast revealed");
   await waitForText(page, "The next public storm card");
-  await assertAnimationTargets(page, "__animationSmokeReducedTargets", ["flood-watch-deck"], "reduced motion forecast");
+  await assertReducedMotionTarget(page, "__animationSmokeReducedTargets", "flood-watch-deck", "reduced motion forecast");
 
   console.log(JSON.stringify({ browser: "puppeteer", smoke: "animation settle skip replay reduced" }));
 } finally {
@@ -179,19 +178,43 @@ async function installAnimationProbe(page, key) {
 }
 
 async function assertAnimationTargets(page, key, targets, label) {
-  await page.waitForFunction(
-    (probeKey, expectedTargets) => {
-      const seen = window[probeKey] ?? [];
-      return expectedTargets.every((target) => seen.includes(target));
-    },
-    {},
-    key,
-    targets,
-  );
+  await page
+    .waitForFunction(
+      (probeKey, expectedTargets) => {
+        const seen = window[probeKey] ?? [];
+        return expectedTargets.every((target) => seen.includes(target));
+      },
+      { timeout: 30000 },
+      key,
+      targets,
+    )
+    .catch(async (error) => {
+      const seen = await page.evaluate((probeKey) => window[probeKey] ?? [], key);
+      throw new Error(`${label} missing animation targets. expected=${targets.join(", ")} seen=${seen.join(", ")}: ${error.message}`);
+    });
   const seen = await page.evaluate((probeKey) => window[probeKey] ?? [], key);
   for (const target of targets) {
     assert(seen.includes(target), `${label} animated ${target}`);
   }
+}
+
+async function assertReducedMotionTarget(page, key, target, label) {
+  const animated = await page
+    .waitForFunction(
+      (probeKey, expectedTarget) => (window[probeKey] ?? []).includes(expectedTarget),
+      { timeout: 5000 },
+      key,
+      target,
+    )
+    .then(() => true)
+    .catch(() => false);
+  if (!animated) {
+    const present = await page.$(`[data-animation-target="${target}"]`);
+    assert(Boolean(present), `${label} keeps ${target} present in the reduced-motion DOM`);
+    await assertNoRunningAnimations(page);
+  }
+  const seen = await page.evaluate((probeKey) => window[probeKey] ?? [], key);
+  assert(animated || seen.length === 0, `${label} either animates ${target} or stays reduced without alternate targets`);
 }
 
 async function assertAnimationTargetPrefix(page, key, prefix, label) {

@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-016: dedicated e2e smoke, ci/games.json, and catalog README reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (audit + e2e) — `apps/web/e2e/blackglass-pact.smoke.mjs`, `apps/web/package.json`, `ci/games.json`, `apps/web/README.md`, `README.md`
@@ -80,3 +80,36 @@ Add the dedicated browser e2e smoke and reconcile the catalog-enforced surfaces:
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-ci-games.mjs`
 3. The e2e smoke + catalog/CI checkers are the correct boundary; they close the GAT18BLAPACSPA-014 red window.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Added `apps/web/e2e/blackglass-pact.smoke.mjs` and wired it into
+`apps/web/package.json` `smoke:e2e`. The smoke covers fixed-four setup,
+partnership grouping, blind-phase no-card exposure, hotseat owner-only hand
+mounting, Rust-provided bid/play controls, replay import/export, reduced
+motion, responsive layout, a11y names, storage, DOM, and console no-leak
+checks.
+
+Added `blackglass_pact` to `ci/games.json` with
+`--seat-count 4 --action-cap 4096` and reconciled the root/web README catalog
+surfaces checked by `scripts/check-catalog-docs.mjs`.
+
+While integrating the 18th catalog game, updated existing browser harnesses that
+had catalog-size or stale animation assumptions:
+
+- `a11y-noleak.smoke.mjs` now explicitly selects Race to 21 and allows enough
+  tab traversal for the larger catalog.
+- `rules-display.smoke.mjs` includes Blackglass Pact in the expected rules
+  trigger list.
+- `animation.smoke.mjs` asserts the stable River Ledger staged-showdown targets
+  and treats reduced-motion Flood Watch as valid when the animation target is
+  present and settled without `Element.animate`.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `node scripts/check-catalog-docs.mjs` passed.
+- `node scripts/check-ci-games.mjs` passed.
+- `git diff --check` passed.

@@ -15,5 +15,6 @@
   { "id": "plain_tricks",     "sim_flags": "--action-cap 32", "e2e": "plain-tricks.smoke.mjs" },
   { "id": "river_ledger",     "sim_flags": "--action-cap 64", "e2e": "river-ledger.smoke.mjs" },
   { "id": "briar_circuit",    "sim_flags": "--seat-count 4",  "e2e": "briar-circuit.smoke.mjs" },
-  { "id": "vow_tide",         "sim_flags": "--seat-count 7 --action-cap 768", "e2e": "vow-tide.smoke.mjs" }
+  { "id": "vow_tide",         "sim_flags": "--seat-count 7 --action-cap 768", "e2e": "vow-tide.smoke.mjs" },
+  { "id": "blackglass_pact",  "sim_flags": "--seat-count 4 --action-cap 4096", "e2e": "blackglass-pact.smoke.mjs" }
 ]
