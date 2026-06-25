@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-012: Visibility — public-observer and seat-private view projection with action/preview/effect redaction
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/meldfall_ledger/src/visibility.rs`; no-leak view tests
@@ -78,3 +78,19 @@ Redact the legal action tree, action previews, and semantic effects per viewer s
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. The full six-seat pairwise matrix + replay-export no-leak is GAT19MELLEDFIV-013; this ticket fixes the in-state projection firewall.
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented Rust-owned Meldfall Ledger in-state visibility projection in `games/meldfall_ledger/src/visibility.rs`: public observer and seat-private views expose public tableau, discard identities, stock count, hand counts, scores, active/dealer seats, round-end, terminal standings, and only the authorized viewer's own private hand.
+
+Added action-tree projection that keeps active-seat card-bearing meld, lay-off, and discard choices visible only to the active seat while retaining public-safe draw source choices with stock identity hidden. Added semantic-effect filtering by `VisibilityScope` and diagnostic card-id redaction for forbidden viewers.
+
+Added `games/meldfall_ledger/tests/visibility.rs` coverage for observer no-leak, per-seat private view no-leak, active-hand action redaction, public draw action-tree stock-order redaction, private stock-draw effect filtering, and diagnostic redaction. The full six-seat pairwise replay/export matrix remains scoped to GAT19MELLEDFIV-013.
+
+Verification:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p meldfall_ledger`
+3. `cargo test --workspace`
