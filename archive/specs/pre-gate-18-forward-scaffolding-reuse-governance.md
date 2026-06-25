@@ -1,14 +1,12 @@
 # Pre-Gate-18 — Forward Scaffolding-Reuse Governance
 
-**Status**: Done
-
 | Field | Value |
 |---|---|
 | Spec ID | `pre-gate-18-forward-scaffolding-reuse-governance` |
 | Unit | `8F` (active-epoch tracker) |
 | Roadmap stage | Public scaling phase — pre-Gate-18 **non-feature** governance interlock |
 | Roadmap build gate | Pre-Gate-18 — forward scaffolding-reuse governance (blocks Gate 18) |
-| Status | Done |
+| Status | `Done` |
 | Date | 2026-06-25 |
 | Owner | Rulepath maintainers |
 | Primary targets | `docs/adr/0008-*.md` (append-only), the foundation/area doc set, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `docs/ROADMAP.md`, `specs/README.md`, `templates/**`, new `ci/scaffolding-audits.json` + `scripts/check-scaffolding-governance.*` + Gate 1 wiring |
