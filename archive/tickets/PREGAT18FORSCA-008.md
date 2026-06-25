@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-008: AGENT-DISCIPLINE §8B new-game scaffolding reuse-and-track protocol
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/AGENT-DISCIPLINE.md`)
@@ -73,3 +73,28 @@ Add the review-check bullets so a reviewer confirms the audit ran, new shapes ar
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/AGENT-DISCIPLINE.md` (review: §8B + §13 bullets)
 3. `grep -n "Task profile" docs/AGENT-DISCIPLINE.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/AGENT-DISCIPLINE.md` by adding §8B
+`New-game scaffolding reuse-and-track protocol` after §8A and adding the
+corresponding §13 review-check bullets.
+
+The new protocol applies even when `Task profile` is not `scaffold-refactor`,
+requires pre-implementation reuse-first audit work, keeps adapters narrow during
+implementation, and requires register/audit/follow-on disposition before
+closeout. It also preserves the boundary that legality, scoring, reveal, turn,
+trick, team, graph, accounting, reaction, outcome, strategy, effect meaning,
+renderer policy, and hidden-state policy remain behavioral.
+
+Deviation: none. §8A scaffold-refactor protocol was not changed.
+
+Verification:
+
+- `grep -n "8B" docs/AGENT-DISCIPLINE.md` confirmed the new section.
+- `grep -n "Task profile" docs/AGENT-DISCIPLINE.md` confirmed the profile-independent scope.
+- `rg -n "scaffolding reuse-first audit|known promoted scaffolding|prior-game migration set|required follow-on refactor unit|## 8A|## 8B|## 9\\. Bot" docs/AGENT-DISCIPLINE.md` confirmed §8B placement and §13 review checks.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.

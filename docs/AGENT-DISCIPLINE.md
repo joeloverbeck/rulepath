@@ -203,6 +203,46 @@ visibility authorization, scoring, hidden-state meaning, effect semantics,
 replay bytes, or public UI behavior without explicit migration authority, stop
 and reassess.
 
+## 8B. New-game scaffolding reuse-and-track protocol
+
+This protocol applies to every bounded task that creates or extends an official
+game's Rust-owned production, bridge, test, replay, serialization, or evidence
+plumbing. It applies even when `Task profile` is not `scaffold-refactor`.
+
+Before implementing such plumbing, agents MUST:
+
+1. read the relevant entries in `MECHANICAL-SCAFFOLDING-REGISTER.md` and inspect
+   the accepted shared home named by those entries;
+2. complete the task packet's reuse-first audit fields;
+3. reuse a matching promoted helper, or link the accepted register exception
+   before writing a parallel local shape; and
+4. identify any genuinely new behavior-free scaffolding and any prior official
+   games likely to contain the same shape.
+
+During implementation, agents MUST keep adapters narrow. An adapter may translate
+game-local types into a generic accepted API; it MUST NOT recreate generic seat
+syntax, effect-envelope construction, action-tree framing, stable-byte framing,
+visibility geometry, or evidence-profile driving behind a different name.
+
+Before closeout, agents MUST:
+
+1. update `GAME-EVIDENCE.md` with the reuse and new-scaffolding receipt;
+2. add or update the governing register entry for every new shape;
+3. update the machine scaffolding-audit record;
+4. name the prior-game migration set; and
+5. add the required follow-on unit to `specs/README.md`, or link the accepted
+   `local-only`, `deferred`, or `rejected` disposition.
+
+Agents MUST stop and reassess if the proposed scaffolding decides legality,
+scoring, reveal, turn, trick, team, graph, accounting, reaction, outcome,
+strategy, effect meaning, renderer policy, or hidden-state policy. Such work is
+behavioral and does not belong in this lane.
+
+Agents MUST NOT use a local wrapper, renamed copy, blanket `allow` list, skipped
+CI job, or broad golden update to evade this protocol. Any byte, hash, fixture,
+RNG, export, or visibility migration requires the authority and evidence
+required by ADR 0009.
+
 ## 9. Bot protocol
 
 Agents implementing bots MUST:
@@ -281,3 +321,7 @@ Before accepting agent work, verify:
 - tests/traces/simulations/benchmarks/docs were updated;
 - IP boundaries are preserved;
 - output is reviewable without reconstructing patches.
+- every new-game task completed the scaffolding reuse-first audit;
+- known promoted scaffolding was reused or covered by an accepted register exception;
+- every new behavior-free scaffolding shape and prior-game migration set is registered;
+- every required follow-on refactor unit is queued or explicitly disposed by an accepted register decision.
