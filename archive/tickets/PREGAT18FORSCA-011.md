@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-011: specs/README active-epoch intro + spec-format + workflow rewrite
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/index-doc edit (`specs/README.md`)
@@ -77,3 +77,29 @@ Rewrite the Workflow section to fold in the scaffolding reuse-first audit step a
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- specs/README.md` (review: intro + spec-format + workflow only; rows untouched)
 3. `grep -n "8F" specs/README.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `specs/README.md` process prose for the active public-scaling tracker:
+
+- replaced the active-epoch intro with dual-interlock wording for behavioral
+  promotion debt and mechanical-scaffolding reuse-first audits;
+- added a spec-format paragraph requiring new-game specs to carry audit,
+  register-update, and prior-game retrofit disposition fields;
+- rewrote the Workflow section to run the scaffolding audit before new
+  mechanic-ladder game spec drafting and to keep audit/register/CI/tracker
+  disposition current during execution.
+
+Deviation: none. The `8F` row remains `Planned`, and Gate 18 remains blocked
+until `8F` is `Done`; this ticket did not flip progress state.
+
+Verification:
+
+- `grep -ni "reuse-first audit" specs/README.md` confirmed the active-epoch,
+  row, spec-format, and workflow references.
+- `grep -n "8F" specs/README.md` confirmed the `8F` row still reads `Planned`.
+- `rg -n "\\| 8F \\|.*\\| Planned \\||\\| 9 \\| Gate 18.*Blocked until \\*\\*8F\\*\\*|mechanical-scaffolding reuse-first audit|accepted no-refactor disposition" specs/README.md` confirmed the rows stayed in scope and the workflow/interlock wording landed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.

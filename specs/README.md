@@ -75,13 +75,16 @@ each archived spec carries its own Outcome section.
 ## Active epoch — public scaling phase (progress tracker)
 
 This table is the **living progress record** for the public scaling phase. A new
-brainstorm that wants to "produce the next spec to continue the roadmap" should
-read this first and pick the lowest unit whose status is not `Done`, honoring the
-interlocks below (open primitive-promotion debt in
+brainstorm that wants to "produce the next spec to continue the roadmap" reads
+this first and picks the lowest unit whose status is not `Done`, honoring both
+standing interlocks: open behavioral primitive-promotion debt in
 [`../docs/MECHANIC-ATLAS.md`](../docs/MECHANIC-ATLAS.md) closes before the next
-mechanic-ladder gate). Phase 0 is closed; every later unit is a forward seed
-authored when it becomes the lowest non-`Done` row. `docs/ROADMAP.md` is not
-edited to record progress; this table is.
+mechanic-ladder gate, and a new-game spec completes the mechanical-scaffolding
+reuse-first audit in
+[`../docs/MECHANICAL-SCAFFOLDING-REGISTER.md`](../docs/MECHANICAL-SCAFFOLDING-REGISTER.md)
+before serious implementation. Required prior-game scaffolding refactors must
+appear as named tracker units or accepted register dispositions.
+`docs/ROADMAP.md` records ladder law; this table records progress.
 
 | Order | Unit | Spec | Status | Interlock |
 |---:|---|---|---|---|
@@ -156,16 +159,29 @@ omissions.
 11. **Sequencing** — predecessor/successor gate; admission rule.
 12. **Assumptions** — one-line-correctable.
 
+For every new-game spec, the Scope/Deliverables/Acceptance Evidence sections MUST
+include a mechanical-scaffolding reuse-first audit, expected register updates,
+and a prior-game retrofit disposition. The spec is incomplete when those fields
+are silent. A `not applicable` result requires a rationale and evidence link.
+
 ## Workflow
 
-1. Pick the lowest non-`Done` unit from the active-epoch tracker. The public
-   scaling phase is admitted by accepted ADR 0007 and recorded in ROADMAP; the
-   next unit after Phase 0 is the combined Infra A–D unit (`15A`), now `Planned`.
-2. Before drafting a new mechanic-ladder spec, check `docs/MECHANIC-ATLAS.md` for
-   open promotion debt and close it first unless an accepted exception or ADR says
-   otherwise.
-3. Write its spec from the format above, grounded in ROADMAP + the foundation set.
-4. Decompose the work breakdown into `tickets/` AGENT-TASK packets via
-   `/reassess-spec` then `/spec-to-tickets` after the spec is accepted.
-5. Execute, gathering the acceptance evidence.
-6. When exit criteria pass, flip the index status to `Done` and admit the next unit.
+1. Pick the lowest non-`Done` unit from the active-epoch tracker.
+2. Before drafting a new mechanic-ladder game spec:
+   - check `docs/MECHANIC-ATLAS.md` for open behavioral promotion debt and close
+     it first unless an accepted exception or ADR says otherwise;
+   - run the mechanical-scaffolding reuse-first audit against
+     `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` and the accepted shared homes;
+   - identify existing helpers to reuse, new behavior-free scaffolding to
+     register, and prior official games that may require refactoring; and
+   - ensure every required prior-game refactor has a named tracker unit, or the
+     register carries an accepted no-refactor disposition.
+3. Write the spec from the format above, grounded in ROADMAP and the foundation
+   set. An advisory report is input to this step; it is not a substitute for the
+   reassessed spec.
+4. Run `/reassess-spec` on the saved spec in place, accept the corrected spec,
+   then decompose it into `tickets/` AGENT-TASK packets with `/spec-to-tickets`.
+5. Execute, gathering the acceptance evidence and keeping the scaffolding audit,
+   register, CI receipt, and tracker disposition current.
+6. When exit criteria pass, flip the index status to `Done` and admit the next
+   unit.
