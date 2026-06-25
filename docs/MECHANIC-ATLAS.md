@@ -98,6 +98,28 @@ The next implementation spec before further mechanic-ladder advancement MUST clo
 
 A promoted primitive is not contract-clean merely because a new game uses it. It is contract-clean only when all matching official games are migrated, audited not applicable, or explicitly excepted.
 
+## 5B. Parallel mechanical-scaffolding check
+
+Sections 4 and 5A govern behavioral mechanic pressure and are not weakened or
+replaced by this section.
+
+Every new official game also completes the separate mechanical-scaffolding
+reuse-first audit governed by ADR 0008 and
+`MECHANICAL-SCAFFOLDING-REGISTER.md`. Behavior-free plumbing is not counted as a
+mechanic use and MUST NOT be added to the atlas merely to satisfy the scaffolding
+workflow.
+
+The game audit must:
+
+- reuse matching registered scaffolding or record an accepted exception;
+- register newly invented behavior-free scaffolding;
+- identify prior official games that now contain matching scaffolding; and
+- queue a bounded prior-game refactor unit or record an accepted no-refactor
+  disposition.
+
+If the candidate controls or interprets behavior, reject it from the scaffolding
+lane and return it to this atlas, game-local code, or ADR review.
+
 ## 6. Primitive-pressure ledger entry fields
 
 A ledger entry MUST include:
@@ -275,6 +297,12 @@ Before advancing a roadmap gate, verify:
 - repeated shapes are listed in this atlas;
 - third-use hard gates are resolved;
 - any `game-stdlib` promotions have tests, docs, examples, anti-examples, back-ports, and benchmarks;
+- the current game has a completed mechanical-scaffolding reuse-first audit;
+- every new behavior-free scaffolding shape is registered;
+- every prior-game scaffolding migration set has a named follow-on unit or an
+  accepted register disposition;
+- the scaffolding review did not reclassify a Non-Promotion List behavior as
+  plumbing or alter the behavioral third-use gate;
 - `engine-core` remains noun-free;
 - no helper creates a behavior language;
 - traces/replay effects are preserved or intentionally migrated;

@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-006: MECHANIC-ATLAS §5B parallel scaffolding check + §11 bullets
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/MECHANIC-ATLAS.md`)
@@ -74,3 +74,29 @@ Add the scaffolding-lane stage-advancement bullets to §11, alongside the existi
 1. `git show HEAD:docs/MECHANIC-ATLAS.md | sed -n '67,100p'` compared against the post-edit §4/§5A region (byte-exact preservation proof)
 2. `node scripts/check-doc-links.mjs`
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/MECHANIC-ATLAS.md` by adding the Unit 8F parallel
+mechanical-scaffolding seam while preserving the behavioral primitive-pressure
+path:
+
+- added §5B `Parallel mechanical-scaffolding check` after §5A and before §6;
+- added §11 stage-advancement bullets for a completed scaffolding audit,
+  registered new behavior-free shapes, prior-game follow-on or disposition, and
+  Non-Promotion List preservation.
+
+Deviation: none. §4 and §5A were not edited; the behavioral third-use hard-gate
+sentence remains byte-identical to the pre-ticket version.
+
+Verification:
+
+- `git show HEAD:docs/MECHANIC-ATLAS.md | sed -n '67,100p'` matched the post-edit
+  `sed -n '67,100p' docs/MECHANIC-ATLAS.md` output for §4/§5A.
+- `grep -n "5B" docs/MECHANIC-ATLAS.md` confirmed the new section.
+- `rg -n "mechanical-scaffolding reuse-first audit|prior-game scaffolding migration|Non-Promotion List behavior|## 5B|## 6\\. Primitive-pressure" docs/MECHANIC-ATLAS.md` confirmed §5B placement and §11 additions.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `bash scripts/boundary-check.sh` passed.
+- `git diff --check` passed.
