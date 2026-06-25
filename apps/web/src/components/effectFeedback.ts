@@ -389,6 +389,12 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: payload.summary ? String(payload.summary) : `${payload.seat} played a public card.`,
         tone: "movement",
       };
+    case "spades_broken":
+      return {
+        title: "Spades broken",
+        detail: "Spades are now broken and may be led.",
+        tone: "movement",
+      };
     case "bid_accepted":
       return {
         title: "Bid accepted",

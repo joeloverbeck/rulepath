@@ -445,12 +445,16 @@ function flattenActionTree(tree: ActionTree | null): PathChoice[] {
 // Presentation-only: the winner and trick index are public Rust-projected facts.
 function blackglassLatestDetail(entry: EffectEntry | null, fallback: string | null): string | null {
   if (!entry) return fallback;
-  const payload = entry.effect.payload as { type?: string; winner?: unknown; trick_index?: unknown };
+  const payload = entry.effect.payload as { type?: string; winner?: unknown; seat?: unknown; trick_index?: unknown };
   if (payload.type === "trick_captured" && typeof payload.winner === "string") {
     const seat = payload.winner as BlackglassPactSeatId;
     if (!SEATS.includes(seat)) return fallback;
     const trickNumber = typeof payload.trick_index === "number" ? payload.trick_index + 1 : null;
     return trickNumber ? `${seatLabel(seat)} won trick ${trickNumber}.` : `${seatLabel(seat)} won the trick.`;
+  }
+  if (payload.type === "spades_broken" && typeof payload.seat === "string") {
+    const seat = payload.seat as BlackglassPactSeatId;
+    if (SEATS.includes(seat)) return `${seatLabel(seat)} broke spades; spades may now be led.`;
   }
   return fallback;
 }
