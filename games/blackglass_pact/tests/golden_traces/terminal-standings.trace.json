@@ -1,0 +1,8 @@
+{
+  "trace_id": "terminal-standings",
+  "game_id": "blackglass_pact",
+  "scores_after_hand": [510, 470],
+  "winning_team_ids": ["NorthSouth"],
+  "standings_by_team_order": ["NorthSouth", "EastWest"],
+  "standings_by_seat_order": ["North", "East", "South", "West"]
+}

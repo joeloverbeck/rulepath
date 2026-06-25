@@ -368,6 +368,103 @@ fn highest_spade_wins_and_winner_leads_next() {
     );
 }
 
+#[test]
+fn scoring_c1_made_contract_crossing_bag_threshold() {
+    let score = score_team_case(
+        [240, 0],
+        [8, 0],
+        [Some(Bid::Tricks(4)), None, Some(Bid::Tricks(3)), None],
+        [4, 0, 5, 0],
+    );
+    assert_eq!(score.ordinary_base, 70);
+    assert_eq!(score.ordinary_overtricks, 2);
+    assert_eq!(score.bag_penalty_count, 1);
+    assert_eq!(score.hand_delta, -28);
+    assert_eq!(score.next_score, 212);
+    assert_eq!(score.next_bags, 0);
+}
+
+#[test]
+fn scoring_c2_set_contract_plus_failed_nil() {
+    let score = score_team_case(
+        [100, 0],
+        [1, 0],
+        [Some(Bid::Tricks(5)), None, Some(Bid::Nil), None],
+        [4, 0, 2, 0],
+    );
+    assert!(!score.ordinary_made);
+    assert_eq!(score.ordinary_tricks, 4);
+    assert_eq!(score.ordinary_base, -50);
+    assert_eq!(score.nil_delta, -100);
+    assert_eq!(score.failed_nil_bags, 2);
+    assert_eq!(score.hand_delta, -148);
+    assert_eq!(score.next_score, -48);
+}
+
+#[test]
+fn scoring_c3_successful_nil_beside_made_contract() {
+    let score = score_team_case(
+        [30, 0],
+        [4, 0],
+        [Some(Bid::Tricks(4)), None, Some(Bid::Nil), None],
+        [5, 0, 0, 0],
+    );
+    assert_eq!(score.ordinary_base, 40);
+    assert_eq!(score.ordinary_overtricks, 1);
+    assert_eq!(score.nil_delta, 100);
+    assert_eq!(score.new_bags, 1);
+    assert_eq!(score.hand_delta, 141);
+    assert_eq!(score.next_score, 171);
+}
+
+#[test]
+fn scoring_c4_failed_blind_nil_triggers_bag_penalty() {
+    let score = score_team_case(
+        [410, 0],
+        [9, 0],
+        [Some(Bid::Tricks(3)), None, Some(Bid::BlindNil), None],
+        [3, 0, 1, 0],
+    );
+    assert_eq!(score.ordinary_base, 30);
+    assert_eq!(score.nil_delta, -200);
+    assert_eq!(score.failed_nil_bags, 1);
+    assert_eq!(score.bag_penalty_count, 1);
+    assert_eq!(score.hand_delta, -269);
+    assert_eq!(score.next_score, 141);
+}
+
+#[test]
+fn scoring_c5_two_bag_thresholds_in_one_hand() {
+    let score = score_team_case(
+        [600, 0],
+        [9, 0],
+        [Some(Bid::Tricks(1)), None, Some(Bid::Tricks(1)), None],
+        [7, 0, 6, 0],
+    );
+    assert_eq!(score.ordinary_overtricks, 11);
+    assert_eq!(score.raw_bags, 20);
+    assert_eq!(score.bag_penalty_count, 2);
+    assert_eq!(score.hand_delta, -169);
+    assert_eq!(score.next_score, 431);
+}
+
+#[test]
+fn scoring_c6_two_failed_nils_with_no_ordinary_bid() {
+    let score = score_team_case(
+        [-20, 0],
+        [7, 0],
+        [Some(Bid::Nil), None, Some(Bid::BlindNil), None],
+        [1, 0, 2, 0],
+    );
+    assert_eq!(score.contract, 0);
+    assert_eq!(score.ordinary_base, 0);
+    assert_eq!(score.nil_delta, -300);
+    assert_eq!(score.failed_nil_bags, 3);
+    assert_eq!(score.bag_penalty_count, 1);
+    assert_eq!(score.hand_delta, -397);
+    assert_eq!(score.next_score, -417);
+}
+
 trait BiddingTestExt {
     fn phase_active_bidder(&self) -> Option<BlackglassSeat>;
 }
@@ -428,4 +525,22 @@ fn playing_state(hands_in_play_order: [Vec<CardId>; 4]) -> blackglass_pact::Blac
 
 fn card(rank: Rank, suit: Suit) -> CardId {
     Card::new(rank, suit).id()
+}
+
+fn score_team_case(
+    team_scores: [i32; 2],
+    team_bags: [u8; 2],
+    bids: [Option<Bid>; 4],
+    tricks_won: [u8; 4],
+) -> blackglass_pact::TeamScoreBreakdown {
+    let mut state = setup_match(Seed(1818), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    state.team_scores = team_scores;
+    state.team_bags = team_bags;
+    state.bids = bids;
+    state.tricks_won = tricks_won;
+    blackglass_pact::score_hand(&state)
+        .expect("scoring succeeds")
+        .team_breakdowns[TeamId::NorthSouth.index()]
+    .clone()
 }

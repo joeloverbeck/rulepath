@@ -21,6 +21,76 @@ pub enum Bid {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum NilResult {
+    Made,
+    Failed,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TeamScoreBreakdown {
+    pub team: TeamId,
+    pub contract: u8,
+    pub ordinary_tricks: u8,
+    pub ordinary_made: bool,
+    pub ordinary_base: i32,
+    pub ordinary_overtricks: u8,
+    pub failed_nil_bags: u8,
+    pub new_bags: u8,
+    pub prior_bags: u8,
+    pub raw_bags: u8,
+    pub bag_penalty_count: u8,
+    pub next_bags: u8,
+    pub nil_delta: i32,
+    pub hand_delta: i32,
+    pub prior_score: i32,
+    pub next_score: i32,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatScoreBreakdown {
+    pub seat: BlackglassSeat,
+    pub team: TeamId,
+    pub bid: Option<Bid>,
+    pub tricks: u8,
+    pub nil_result: Option<NilResult>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HandScoreBreakdown {
+    pub hand_index: u32,
+    pub team_breakdowns: [TeamScoreBreakdown; 2],
+    pub seat_breakdowns: [SeatScoreBreakdown; 4],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TeamStanding {
+    pub team_id: TeamId,
+    pub member_seat_ids: [SeatId; 2],
+    pub score: i32,
+    pub bags: u8,
+    pub competition_rank: u8,
+    pub is_winner: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SeatStanding {
+    pub seat_id: SeatId,
+    pub team_id: TeamId,
+    pub final_bid: Bid,
+    pub final_hand_tricks: u8,
+    pub nil_result: Option<NilResult>,
+    pub team_rank: u8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MatchOutcome {
+    pub winning_team_ids: Vec<TeamId>,
+    pub standings_by_team: [TeamStanding; 2],
+    pub standings_by_seat: [SeatStanding; 4],
+    pub final_hand: HandScoreBreakdown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct PlayedCard {
     pub seat: BlackglassSeat,
     pub card: CardId,
@@ -66,6 +136,8 @@ pub struct BlackglassPactState {
     pub private_hands: Vec<(BlackglassSeat, Vec<CardId>)>,
     pub freshness_token: FreshnessToken,
     pub seed: Seed,
+    pub last_hand_score: Option<HandScoreBreakdown>,
+    pub outcome: Option<MatchOutcome>,
 }
 
 impl BlackglassPactState {
@@ -94,6 +166,8 @@ impl BlackglassPactState {
             private_hands: Vec::new(),
             freshness_token: FreshnessToken(0),
             seed,
+            last_hand_score: None,
+            outcome: None,
         }
     }
 

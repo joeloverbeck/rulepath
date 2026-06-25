@@ -1,0 +1,9 @@
+{
+  "trace_id": "multiple-bag-thresholds-one-hand",
+  "game_id": "blackglass_pact",
+  "prior_bags": 9,
+  "new_bags": 11,
+  "raw_bags": 20,
+  "bag_penalty_count": 2,
+  "next_bags": 0
+}

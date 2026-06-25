@@ -1,0 +1,9 @@
+{
+  "trace_id": "failed-blind-nil-bag-penalty",
+  "game_id": "blackglass_pact",
+  "team": "NorthSouth",
+  "nil_delta": -200,
+  "failed_nil_bags": 1,
+  "bag_penalty_count": 1,
+  "hand_delta": -269
+}

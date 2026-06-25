@@ -2,9 +2,10 @@ use std::collections::BTreeSet;
 
 use blackglass_pact::{
     apply_bid_choice, apply_blind_nil_choice, canonical_deck, canonical_seat_ids,
-    legal_action_tree, parse_bid_action_path, public_team_contracts, setup_match,
-    setup_match_with_scores, trick_winner, Bid, BlackglassSeat, BlindNilChoice, Card, CardId,
-    Phase, PlayedCard, Rank, SetupOptions, Suit, TeamId, STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
+    legal_action_tree, parse_bid_action_path, public_team_contracts, score_completed_hand,
+    setup_match, setup_match_with_scores, terminal_winner, trick_winner, Bid, BlackglassSeat,
+    BlindNilChoice, Card, CardId, Phase, PlayedCard, Rank, SetupOptions, Suit, TeamId,
+    STANDARD_CARD_COUNT, STANDARD_HAND_SIZE,
 };
 use engine_core::{Actor, SeatId, Seed};
 
@@ -290,6 +291,72 @@ fn four_plays_on_thirteenth_trick_complete_the_hand() {
     assert_eq!(state.tricks_won[BlackglassSeat::North.index()], 1);
 }
 
+#[test]
+fn exact_tie_at_or_above_target_continues_to_next_hand() {
+    let mut state = scoring_state([500, 500], [0, 0], [None, None, None, None], [0, 0, 0, 0]);
+
+    let effects = score_completed_hand(&mut state).expect("tie hand scores");
+
+    assert!(state.outcome.is_none());
+    assert!(!matches!(state.phase, Phase::Terminal { .. }));
+    assert_eq!(state.dealer, BlackglassSeat::East);
+    assert_eq!(state.hand_index, 1);
+    assert!(effects.iter().any(|effect| matches!(
+        effect,
+        blackglass_pact::BlackglassPactEffect::DealerAdvanced { .. }
+    )));
+}
+
+#[test]
+fn unique_higher_team_at_target_terminal_has_stable_outcome_arrays() {
+    let mut state = scoring_state(
+        [490, 470],
+        [0, 0],
+        [Some(Bid::Tricks(1)), None, Some(Bid::Tricks(1)), None],
+        [2, 0, 0, 0],
+    );
+
+    score_completed_hand(&mut state).expect("terminal hand scores");
+
+    assert_eq!(
+        state.phase,
+        Phase::Terminal {
+            winning_team: TeamId::NorthSouth
+        }
+    );
+    let outcome = state.outcome.as_ref().expect("terminal outcome");
+    assert_eq!(outcome.winning_team_ids, vec![TeamId::NorthSouth]);
+    assert_eq!(outcome.standings_by_team[0].team_id, TeamId::NorthSouth);
+    assert_eq!(outcome.standings_by_team[0].competition_rank, 1);
+    assert!(outcome.standings_by_team[0].is_winner);
+    assert_eq!(
+        outcome.standings_by_seat[0].seat_id,
+        SeatId::from_zero_based_index(0)
+    );
+    assert_eq!(outcome.standings_by_seat[0].team_rank, 1);
+}
+
+#[test]
+fn terminal_winner_requires_target_and_non_tie() {
+    assert_eq!(terminal_winner([499, 300]), None);
+    assert_eq!(terminal_winner([500, 500]), None);
+    assert_eq!(terminal_winner([501, 500]), Some(TeamId::NorthSouth));
+    assert_eq!(terminal_winner([500, 520]), Some(TeamId::EastWest));
+}
+
+#[test]
+fn score_overflow_is_rejected_with_stable_diagnostic() {
+    let state = scoring_state(
+        [i32::MAX, 0],
+        [0, 0],
+        [Some(Bid::Tricks(13)), None, None, None],
+        [13, 0, 0, 0],
+    );
+
+    let diagnostic = blackglass_pact::score_hand(&state).expect_err("overflow rejected");
+    assert_eq!(diagnostic.code, "BP_SCORE_OVERFLOW");
+}
+
 fn state_hand_bytes(state: &blackglass_pact::BlackglassPactState, seat: BlackglassSeat) -> Vec<u8> {
     state
         .hand_for_internal(seat)
@@ -343,4 +410,22 @@ fn oracle_winner(plays: &[PlayedCard]) -> BlackglassSeat {
 
 fn card(rank: Rank, suit: Suit) -> CardId {
     Card::new(rank, suit).id()
+}
+
+fn scoring_state(
+    team_scores: [i32; 2],
+    team_bags: [u8; 2],
+    bids: [Option<Bid>; 4],
+    tricks_won: [u8; 4],
+) -> blackglass_pact::BlackglassPactState {
+    let mut state = setup_match(Seed(1819), &canonical_seat_ids(), &SetupOptions::default())
+        .expect("setup succeeds");
+    state.team_scores = team_scores;
+    state.team_bags = team_bags;
+    state.bids = bids;
+    state.tricks_won = tricks_won;
+    state.phase = Phase::HandScoring {
+        completed_tricks: 13,
+    };
+    state
 }

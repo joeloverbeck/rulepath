@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-007: team scoring, bags, terminal target, and outcome arrays
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `games/blackglass_pact` (scoring/state/effects) + golden traces
@@ -82,3 +82,24 @@ Implement the hand-scoring transition and terminal evaluation: ordinary base (±
 1. `cargo test -p blackglass_pact --test rules --test property`
 2. `cargo test -p blackglass_pact`
 3. Crate-scoped tests are the boundary; trace validation runs at `replay-check` registration (GAT18BLAPACSPA-011).
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented team scoring, bags, terminal detection, and outcome arrays:
+
+- Added Rust-authored `HandScoreBreakdown`, per-team and per-seat scoring breakdowns, nil result, standings, and match outcome structs.
+- Implemented §3.3 scoring order: ordinary contract/base, ordinary overtricks, nil/blind-nil deltas, failed-nil bag attribution, repeated 10-bag penalties, bag remainder, hand delta, and next score.
+- Added terminal detection for unique higher team at or above 500, exact-tie continuation, non-terminal dealer advancement, and fresh hand setup.
+- Added public `HandScored`, `BagPenaltyApplied`, `DealerAdvanced`, and `MatchCompleted` effects.
+- Added scoring/terminal golden traces and bag/target fixtures.
+
+Deviations from plan: Appendix C.1-C.6 arithmetic vectors are covered directly. Appendix C.7 terminal/tie behavior is covered through property tests and traces; later multi-hand replay registration remains deferred to GAT18BLAPACSPA-011.
+
+Verification:
+
+- `cargo test -p blackglass_pact --test rules --test property` passed (20 rules tests, 15 property tests).
+- `cargo test -p blackglass_pact` passed (1 lib test, 15 property tests, 20 rules tests, 2 serialization tests, 1 visibility test).
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.

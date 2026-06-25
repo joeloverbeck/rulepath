@@ -1,0 +1,6 @@
+{
+  "fixture_id": "blackglass_pact_target_tie",
+  "scores_after_hand": [500, 500],
+  "terminal": false,
+  "next_hand_required": true
+}

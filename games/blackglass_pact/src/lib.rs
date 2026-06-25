@@ -36,12 +36,19 @@ pub use rules::{
     apply_play_action, apply_play_choice, lead_is_legal, legal_leads, legal_play_cards,
     parse_play_action_path, trick_winner, PlayAction, ACTION_PLAY,
 };
+pub use scoring::{
+    match_outcome, score_completed_hand, score_hand, terminal_winner, BAG_PENALTY_POINTS,
+    BAG_THRESHOLD, TARGET_SCORE,
+};
 pub use setup::{
     deal_for_hand, deal_order_after, eligible_blind_nil_order, seed_for_hand, setup_match,
     setup_match_with_scores, validate_standard_seat_count, HandDeal, SetupOptions,
     BLIND_NIL_DEFICIT_THRESHOLD, HAND_SEED_DERIVATION_V1,
 };
-pub use state::{Bid, BlackglassPactState, BlindNilChoice, Phase, PlayedCard};
+pub use state::{
+    Bid, BlackglassPactState, BlindNilChoice, HandScoreBreakdown, MatchOutcome, NilResult, Phase,
+    PlayedCard, SeatScoreBreakdown, SeatStanding, TeamScoreBreakdown, TeamStanding,
+};
 pub use variants::{Manifest, Variant, VariantCatalog};
 pub use visibility::{
     public_bid_rows, public_bidding_projection, public_team_contracts, PublicBidRow,

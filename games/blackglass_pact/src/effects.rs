@@ -1,7 +1,7 @@
 use crate::{
     cards::CardId,
     ids::{BlackglassSeat, TeamId},
-    state::{Bid, PlayedCard},
+    state::{Bid, HandScoreBreakdown, MatchOutcome, PlayedCard},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,5 +46,21 @@ pub enum BlackglassPactEffect {
         winner: BlackglassSeat,
         trick_index: u8,
         plays: Vec<PlayedCard>,
+    },
+    HandScored {
+        breakdown: HandScoreBreakdown,
+    },
+    BagPenaltyApplied {
+        team: TeamId,
+        penalty_count: u8,
+        points_deducted: i32,
+        next_bags: u8,
+    },
+    DealerAdvanced {
+        dealer: BlackglassSeat,
+        hand_index: u32,
+    },
+    MatchCompleted {
+        outcome: MatchOutcome,
     },
 }

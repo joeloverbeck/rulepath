@@ -1,0 +1,10 @@
+{
+  "trace_id": "failed-nil-tricks-bag-even-when-team-set",
+  "game_id": "blackglass_pact",
+  "team": "NorthSouth",
+  "ordinary_made": false,
+  "ordinary_base": -50,
+  "nil_delta": -100,
+  "failed_nil_bags": 2,
+  "hand_delta": -148
+}
