@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-016: Golden-trace consolidation, fixtures, property/serialization tests, and replay-check/fixture-check registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — deterministic evidence (`games/meldfall_ledger/data/fixtures/*`, `tests/{property,serialization,replay}.rs`); `tools/{replay-check,fixture-check}` game arms
@@ -89,3 +89,28 @@ Add `meldfall_ledger` to the `replay-check` `trace_dir` table (`games/meldfall_l
 1. `cargo test -p meldfall_ledger`
 2. `cargo run -p replay-check -- --game meldfall_ledger --all && cargo run -p fixture-check -- --game meldfall_ledger`
 3. `cargo test --workspace`
+
+## Outcome
+
+Completed: 2026-06-26
+
+What changed:
+
+1. Added the six required Meldfall Ledger fixture profiles under `games/meldfall_ledger/data/fixtures/`: 2p standard, 4p standard, 6p standard, multi-discard pickup, layoff-any-tableau, and 500-tie-continues. The fixtures are typed evidence records only; they do not encode behavior formulas.
+2. Expanded `games/meldfall_ledger/tests/property.rs` with setup deck uniqueness, card ownership/no-double-zone conservation, public 52-count checks, legal apply smoke, score-delta accounting, and redacted view/action-tree no-leak coverage.
+3. Expanded `games/meldfall_ledger/tests/serialization.rs` with stable viewer export ordering for discard, tableau, seat-private hand, score ledger, and repeatable projection bytes.
+4. Registered `meldfall_ledger` in `tools/replay-check` with a narrow validator for the already-authored lightweight Gate 19 golden traces.
+5. Registered `meldfall_ledger` in `tools/fixture-check`, including manifest/variant validation, fixture directory validation, seat grammar checks, and fixture-purpose enforcement for the new fixture profiles.
+
+Deviations:
+
+1. The existing Meldfall golden traces are lightweight coverage traces rather than full replay-command hash fixtures, so `replay-check` uses a Meldfall-specific validator instead of forcing blanket golden regeneration. This preserves the ticket's no-regeneration constraint while making the current trace inventory CI-checked.
+2. The `l0-random-legal-full-match.trace.json` file remains the bounded L0 playout trace from GAT19MELLEDFIV-014; it is accepted as current L0 evidence, not reauthored into a terminal full-match proof in this ticket.
+
+Verification:
+
+1. `cargo fmt --all --check` passed.
+2. `cargo test -p meldfall_ledger` passed.
+3. `cargo run -p replay-check -- --game meldfall_ledger --all` passed (`replay-check: all traces passed`).
+4. `cargo run -p fixture-check -- --game meldfall_ledger` passed (`fixture-check: all fixtures passed`).
+5. `cargo test --workspace` passed.

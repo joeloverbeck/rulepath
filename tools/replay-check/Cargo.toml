@@ -17,6 +17,7 @@ flood_watch = { path = "../../games/flood_watch" }
 game-stdlib = { path = "../../crates/game-stdlib" }
 high_card_duel = { path = "../../games/high_card_duel" }
 masked_claims = { path = "../../games/masked_claims" }
+meldfall_ledger = { path = "../../games/meldfall_ledger" }
 poker_lite = { path = "../../games/poker_lite" }
 plain_tricks = { path = "../../games/plain_tricks" }
 race_to_n = { path = "../../games/race_to_n" }

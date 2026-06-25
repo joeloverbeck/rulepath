@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "fixture_id": "meldfall_ledger_6p_standard",
+  "fixture_kind": "setup",
+  "purpose": "max-seat export/no-leak and simulator setup evidence",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "data_version": "meldfall-ledger-data-v1",
+  "variant": "classic_500_single_deck_v1",
+  "seed": 1902,
+  "seat_count": 6,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"],
+  "expected_dealer": "seat_0",
+  "expected_active_seat": "seat_1",
+  "expected_phase": "draw",
+  "expected_hand_count": 7,
+  "expected_discard_count": 1,
+  "expected_stock_count": 9,
+  "expected_public_no_leak": true,
+  "note": "Typed fixture evidence only; no behavior formulas or hidden card identities."
+}

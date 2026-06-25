@@ -8,6 +8,7 @@ use meldfall_ledger::{
         effect_stable_string, public_effect, DrawSource, LayoffEffectPosition, MeldfallEffect,
     },
     replay_support::{replay_skeleton_record, TRACE_SCHEMA_VERSION},
+    scoring::apply_round_deltas,
     setup::{default_seats, setup_match, SetupOptions},
     state::{
         MatchOutcome, MatchState, MeldId, MeldKind, MeldTableau, SeatStanding, TableCard,
@@ -222,4 +223,56 @@ fn replay_skeleton_record_uses_trace_schema_v1_and_stable_labels() {
     assert!(record.stable_string().contains(
         "replay|schema=1|export=2|game=meldfall_ledger|rules=meldfall-ledger-rules-v1|data=meldfall-ledger-data-v1|action_encoding=action_tree_v1|"
     ));
+}
+
+#[test]
+fn viewer_export_surfaces_have_stable_discard_tableau_hand_score_and_effect_order() {
+    let mut state = sample_state();
+    state.round.discard = vec![ace_clubs(), two_clubs(), three_clubs()];
+    state.round.tableau = MeldTableau {
+        groups: vec![meldfall_ledger::state::MeldGroup {
+            id: MeldId(3),
+            kind: MeldKind::Run { suit: Suit::Clubs },
+            origin_seat: 0,
+            cards: vec![
+                TableCard {
+                    card: ace_clubs(),
+                    played_by: 0,
+                    score_credit_owner: 0,
+                    play_turn: TurnOrdinal(1),
+                },
+                TableCard {
+                    card: two_clubs(),
+                    played_by: 1,
+                    score_credit_owner: 1,
+                    play_turn: TurnOrdinal(2),
+                },
+            ],
+        }],
+    };
+    state.round.seats[0].hand = vec![three_clubs(), Card::new(Rank::Four, Suit::Clubs).id()];
+    apply_round_deltas(&mut state, &[3, -2, 0, 10], &[3, 0, 0, 10], &[0, 2, 0, 0]);
+
+    let view = meldfall_ledger::visibility::project_view(
+        &state,
+        &engine_core::Viewer {
+            seat_id: Some(state.seats[0].clone()),
+        },
+    );
+    let stable = view.stable_string();
+
+    assert!(stable.contains("discard=[ace_clubs,two_clubs,three_clubs]"));
+    assert!(stable.contains("meld_3:run:clubs:origin=0:cards=[ace_clubs:played_by=0:credit=0:turn=1,two_clubs:played_by=1:credit=1:turn=2]"));
+    assert!(stable.contains("private=seat=0:hand=[three_clubs,four_clubs]"));
+    assert!(stable.contains("scores=[3,-2,0,10]"));
+    assert_eq!(
+        stable,
+        meldfall_ledger::visibility::project_view(
+            &state,
+            &engine_core::Viewer {
+                seat_id: Some(state.seats[0].clone()),
+            },
+        )
+        .stable_string()
+    );
 }

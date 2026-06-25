@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "fixture_id": "meldfall_ledger_500_tie_continues",
+  "fixture_kind": "domain",
+  "purpose": "multi-round target and tie-continuation evidence",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "data_version": "meldfall-ledger-data-v1",
+  "variant": "classic_500_single_deck_v1",
+  "seed": 1912,
+  "seat_count": 4,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "expected_hand_count": 7,
+  "expected_target_shape": "equal highest scores at or above 500 continue to another round",
+  "rules_covered": ["ML-MATCH-001", "ML-MATCH-003", "ML-MATCH-004"],
+  "golden_trace": "games/meldfall_ledger/tests/golden_traces/target-tie-continues.trace.json",
+  "expected_public_no_leak": true,
+  "note": "Fixture points to validated trace evidence; it contains no executable rule formula."
+}

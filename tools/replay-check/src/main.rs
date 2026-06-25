@@ -192,6 +192,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "blackglass-pact-rules-v1",
             trace_dir: "games/blackglass_pact/tests/golden_traces",
         }),
+        "meldfall_ledger" => Ok(RegisteredGame {
+            game_id: "meldfall_ledger",
+            rules_version: "meldfall-ledger-rules-v1",
+            trace_dir: "games/meldfall_ledger/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -307,10 +312,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --all");
 }
 
 fn check_trace_path(
@@ -357,6 +362,17 @@ fn check_trace_path(
             ));
         }
         println!("{}: blackglass_pact trace accepted", path.display());
+        return Ok(());
+    }
+    if game.game_id == "meldfall_ledger" {
+        let trace_id = validate_meldfall_ledger_trace(game, path, &input)?;
+        if !seen_ids.insert(trace_id) {
+            return Err(format!(
+                "{}: duplicate trace_id in checked trace set",
+                path.display()
+            ));
+        }
+        println!("{}: meldfall_ledger trace accepted", path.display());
         return Ok(());
     }
     if is_public_export_fixture(&input) {
@@ -696,6 +712,105 @@ fn validate_blackglass_pact_trace(
         }
     }
     Ok(trace_id)
+}
+
+fn validate_meldfall_ledger_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<String, String> {
+    validate_json_object(path, input)?;
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let trace_id = optional_string_field(input, "trace_id")
+        .map_err(with_path)?
+        .or(optional_string_field(input, "trace").map_err(with_path)?)
+        .or(optional_string_field(input, "id").map_err(with_path)?)
+        .ok_or_else(|| with_path("missing trace id field".to_owned()))?;
+    if trace_id.trim().is_empty() {
+        return Err(with_path("trace id must be non-empty".to_owned()));
+    }
+    let game_id = optional_string_field(input, "game_id")
+        .map_err(with_path)?
+        .or(optional_string_field(input, "game").map_err(with_path)?);
+    if game_id.as_deref() != Some(game.game_id) {
+        return Err(with_path(format!("game_id must be {}", game.game_id)));
+    }
+    if input.contains("\"rules_version\"") {
+        let rules_version = string_field(input, "rules_version").map_err(with_path)?;
+        if rules_version != game.rules_version {
+            return Err(with_path(format!(
+                "rules_version must be {}, got `{rules_version}`",
+                game.rules_version
+            )));
+        }
+    }
+    if input.contains("\"schema_version\"") {
+        let schema_version = number_field(input, "schema_version").map_err(with_path)?;
+        if schema_version != 1 {
+            return Err(format!("{}: schema_version must be 1", path.display()));
+        }
+    }
+    if input.contains("\"seed\"") && input.contains("\"seat_count\"") {
+        validate_meldfall_ledger_setup_projection(path, input)?;
+    }
+    if input.contains("\"public_no_leak\": true")
+        || input.contains("\"public_no_leak\":true")
+        || trace_id.contains("no-leak")
+        || trace_id.contains("export")
+    {
+        for card_id in meldfall_ledger::cards::canonical_deck() {
+            let card = card_id.as_str();
+            let allowed_public = input.contains(&format!("\"public_cards_include\": \"{card}\""));
+            if !allowed_public && input.contains(&card) {
+                return Err(format!(
+                    "{}: no-leak Meldfall trace leaks hidden card identity `{card}`",
+                    path.display()
+                ));
+            }
+        }
+    }
+    Ok(trace_id)
+}
+
+fn validate_meldfall_ledger_setup_projection(path: &Path, input: &str) -> Result<(), String> {
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let seed = number_field(input, "seed").map_err(with_path)?;
+    let seat_count = number_field(input, "seat_count").map_err(with_path)? as usize;
+    let seats = meldfall_ledger::canonical_seat_ids(seat_count);
+    let setup = meldfall_ledger::setup::setup_match(
+        Seed(seed),
+        &seats,
+        &meldfall_ledger::setup::SetupOptions::default(),
+    )
+    .map_err(|diagnostic| {
+        format!(
+            "{}: meldfall_ledger setup replay failed: {}",
+            path.display(),
+            diagnostic.code
+        )
+    })?;
+    let public = setup.public_view();
+    let expected_hand_size = usize::from(
+        meldfall_ledger::hand_size_for_seats(seat_count)
+            .ok_or_else(|| with_path("unsupported seat count".to_owned()))?,
+    );
+    for (_, count) in public.hand_counts {
+        if count != expected_hand_size {
+            return Err(with_path(format!(
+                "hand count mismatch: expected {expected_hand_size}, actual {count}"
+            )));
+        }
+    }
+    if input.contains("\"stock_count\"") {
+        let expected = number_field(input, "stock_count").map_err(with_path)? as usize;
+        if public.stock_count != expected {
+            return Err(with_path(format!(
+                "stock_count mismatch: expected {expected}, actual {}",
+                public.stock_count
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn validate_blackglass_pact_setup_projection(path: &Path, input: &str) -> Result<(), String> {

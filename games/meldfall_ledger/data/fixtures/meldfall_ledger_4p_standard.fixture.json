@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "fixture_id": "meldfall_ledger_4p_standard",
+  "fixture_kind": "setup",
+  "purpose": "default 4-player setup and normal round segment evidence",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "data_version": "meldfall-ledger-data-v1",
+  "variant": "classic_500_single_deck_v1",
+  "seed": 1901,
+  "seat_count": 4,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "expected_dealer": "seat_0",
+  "expected_active_seat": "seat_1",
+  "expected_phase": "draw",
+  "expected_hand_count": 7,
+  "expected_discard_count": 1,
+  "expected_stock_count": 23,
+  "expected_public_no_leak": true,
+  "note": "Typed fixture evidence only; no behavior formulas or hidden card identities."
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "fixture_id": "meldfall_ledger_multi_discard_pickup",
+  "fixture_kind": "domain",
+  "purpose": "deep discard pickup and immediate-use commitment evidence",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "data_version": "meldfall-ledger-data-v1",
+  "variant": "classic_500_single_deck_v1",
+  "seed": 1910,
+  "seat_count": 4,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "expected_hand_count": 7,
+  "expected_pickup_shape": "selected discard plus every newer discard; selected card must be used immediately",
+  "rules_covered": ["ML-TURN-003", "ML-TURN-004"],
+  "golden_trace": "games/meldfall_ledger/tests/golden_traces/multi-card-discard-pickup-melds-deepest.trace.json",
+  "expected_public_no_leak": true,
+  "note": "Fixture points to validated trace evidence; it contains no executable rule formula."
+}
