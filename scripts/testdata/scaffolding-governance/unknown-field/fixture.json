@@ -1,0 +1,5 @@
+{
+  "description": "audit receipt contains an unknown field",
+  "expect": "fail",
+  "mutation": "unknown-field"
+}

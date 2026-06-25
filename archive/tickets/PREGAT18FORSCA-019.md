@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-019: check-scaffolding-governance test suite + synthetic fixtures
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (tooling/audit tests) — `scripts/check-scaffolding-governance.test.mjs` + `scripts/testdata/scaffolding-governance/**` (new)
@@ -73,3 +73,20 @@ Add `scripts/check-scaffolding-governance.test.mjs` (`node:test`) asserting the 
 
 1. `node --test scripts/check-scaffolding-governance.test.mjs`
 2. `node scripts/check-scaffolding-governance.mjs` (still green against the real repo)
+
+## Outcome
+
+Completed. Added `scripts/check-scaffolding-governance.test.mjs`, a
+`node:test` suite that materializes compact fixture descriptors into temporary
+synthetic repos and calls the checker directly. Added fixture descriptors for
+the passing case, missing game, missing path, unknown MSC id, unqueued prior
+site, invalid accepted exception, forbidden legacy claim, unknown field, and a
+false-positive local-behavior case that must pass. The fixtures encode static
+metadata and minimal source text only; no game behavior was added to the real
+repo.
+
+Verification:
+
+- `node --test scripts/check-scaffolding-governance.test.mjs`
+- `node scripts/check-scaffolding-governance.mjs`
+- `git diff --check`

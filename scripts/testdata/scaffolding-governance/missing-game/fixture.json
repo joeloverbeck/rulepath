@@ -1,0 +1,5 @@
+{
+  "description": "audit receipt omits a game from ci/games.json",
+  "expect": "fail",
+  "mutation": "missing-game"
+}

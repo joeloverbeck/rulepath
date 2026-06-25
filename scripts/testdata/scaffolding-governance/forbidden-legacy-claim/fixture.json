@@ -1,0 +1,5 @@
+{
+  "description": "new game claims frozen legacy coverage",
+  "expect": "fail",
+  "mutation": "forbidden-legacy-claim"
+}

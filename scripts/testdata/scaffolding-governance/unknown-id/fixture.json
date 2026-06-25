@@ -1,0 +1,5 @@
+{
+  "description": "audit receipt references an unknown MSC id",
+  "expect": "fail",
+  "mutation": "unknown-id"
+}
