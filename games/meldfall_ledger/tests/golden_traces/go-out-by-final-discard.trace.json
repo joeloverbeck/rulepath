@@ -1,0 +1,15 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "go-out-by-final-discard",
+  "rules": ["ML-TURN-006", "ML-TURN-008"],
+  "steps": [
+    {
+      "action": "discard",
+      "seat": 2,
+      "card": "two_spades",
+      "result": "round_settled",
+      "round_end": "go_out_by_final_discard:seat=2"
+    }
+  ],
+  "scoring": "deferred-to-GAT19MELLEDFIV-011"
+}

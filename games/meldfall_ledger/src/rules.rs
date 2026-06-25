@@ -14,9 +14,10 @@ use crate::{
     effects::{
         public_effect, DrawSource, LayoffEffectPosition, MeldfallEffect, MeldfallEffectEnvelope,
     },
+    ids::next_clockwise_index,
     state::{
-        DiscardPickupCommitment, MeldGroup, MeldId, MeldKind, RoundState, SeatIndex, TableCard,
-        TurnOrdinal, TurnPhase,
+        DiscardPickupCommitment, MeldGroup, MeldId, MeldKind, RoundEndReason, RoundEndSummary,
+        RoundState, SeatIndex, TableCard, TurnOrdinal, TurnPhase,
     },
 };
 
@@ -279,6 +280,7 @@ pub fn discard_card(
     card: CardId,
 ) -> Result<MeldfallEffectEnvelope, Diagnostic> {
     validate_seat_index(round, seat_index)?;
+    validate_active_seat(round, seat_index)?;
     if pending_pickup_for(round, seat_index).is_some() {
         return Err(meld_diagnostic(
             "ML_PICKUP_COMMITMENT_UNSATISFIED",
@@ -297,7 +299,12 @@ pub fn discard_card(
         })?;
     round.seats[seat_index].hand.remove(hand_index);
     round.discard.push(card);
-    round.phase = TurnPhase::Draw;
+    if round.seats[seat_index].hand.is_empty() {
+        end_round(round, RoundEndReason::GoOutByFinalDiscard, seat_index);
+    } else {
+        advance_active_seat(round)?;
+        round.phase = TurnPhase::Draw;
+    }
     Ok(public_effect(MeldfallEffect::Discard {
         seat: seat_index,
         card,
@@ -306,17 +313,40 @@ pub fn discard_card(
 }
 
 pub fn finish_turn_after_table_plays(
-    round: &RoundState,
+    round: &mut RoundState,
     seat_index: SeatIndex,
-) -> Result<(), Diagnostic> {
+) -> Result<TurnPhase, Diagnostic> {
     validate_seat_index(round, seat_index)?;
+    validate_active_seat(round, seat_index)?;
     if pending_pickup_for(round, seat_index).is_some() {
         return Err(meld_diagnostic(
             "ML_PICKUP_COMMITMENT_UNSATISFIED",
             "meldfall_ledger pickup commitment must be used in a meld or lay-off before finishing",
         ));
     }
-    Ok(())
+    if round.seats[seat_index].hand.is_empty() {
+        end_round(round, RoundEndReason::GoOutWithoutDiscard, seat_index);
+        Ok(TurnPhase::RoundSettled)
+    } else {
+        round.phase = TurnPhase::Discard;
+        Ok(TurnPhase::Discard)
+    }
+}
+
+pub fn settle_stock_exhaustion_if_no_discard_draw(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+) -> Result<bool, Diagnostic> {
+    validate_seat_index(round, seat_index)?;
+    validate_active_seat(round, seat_index)?;
+    if !round.stock.is_empty() {
+        return Ok(false);
+    }
+    if !round.discard.is_empty() {
+        return Ok(false);
+    }
+    end_round(round, RoundEndReason::StockExhausted, seat_index);
+    Ok(true)
 }
 
 fn validate_set(cards: &[CardId]) -> Option<MeldKind> {
@@ -385,6 +415,7 @@ fn validate_draw_actor_and_phase(
     seat_index: SeatIndex,
 ) -> Result<(), Diagnostic> {
     validate_seat_index(round, seat_index)?;
+    validate_active_seat(round, seat_index)?;
     if round.phase != TurnPhase::Draw {
         return Err(meld_diagnostic(
             "ML_WRONG_PHASE",
@@ -414,6 +445,35 @@ fn validate_seat_index(round: &RoundState, seat_index: SeatIndex) -> Result<(), 
         ));
     }
     Ok(())
+}
+
+fn validate_active_seat(round: &RoundState, seat_index: SeatIndex) -> Result<(), Diagnostic> {
+    if round.active_seat_index != seat_index {
+        return Err(meld_diagnostic(
+            "ML_WRONG_SEAT",
+            format!(
+                "meldfall_ledger active seat is {}; received seat {}",
+                round.active_seat_index, seat_index
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn advance_active_seat(round: &mut RoundState) -> Result<(), Diagnostic> {
+    round.active_seat_index = next_clockwise_index(round.active_seat_index, round.seats.len())
+        .ok_or_else(|| {
+            meld_diagnostic(
+                "ML_INVALID_TURN_RING",
+                "meldfall_ledger cannot advance active seat for current round",
+            )
+        })?;
+    Ok(())
+}
+
+fn end_round(round: &mut RoundState, reason: RoundEndReason, seat_index: SeatIndex) {
+    round.phase = TurnPhase::RoundSettled;
+    round.round_end = Some(RoundEndSummary { reason, seat_index });
 }
 
 fn pending_pickup_satisfied_by_cards(

@@ -91,6 +91,7 @@ pub struct RoundState {
     pub pending_pickup: Option<DiscardPickupCommitment>,
     pub round_played_scores: Vec<i32>,
     pub seats: Vec<SeatState>,
+    pub round_end: Option<RoundEndSummary>,
 }
 
 impl RoundState {
@@ -109,6 +110,7 @@ impl RoundState {
                 .into_iter()
                 .map(|hand| SeatState { hand })
                 .collect(),
+            round_end: None,
         }
     }
 
@@ -133,8 +135,13 @@ impl RoundState {
             .as_ref()
             .map(DiscardPickupCommitment::stable_string)
             .unwrap_or_else(|| "none".to_owned());
+        let round_end = self
+            .round_end
+            .as_ref()
+            .map(RoundEndSummary::stable_string)
+            .unwrap_or_else(|| "none".to_owned());
         format!(
-            "round|active={}|phase={}|stock=[{}]|discard=[{}]|tableau=[{}]|pending={}|played_scores=[{}]|hands=[{}]",
+            "round|active={}|phase={}|stock=[{}]|discard=[{}]|tableau=[{}]|pending={}|played_scores=[{}]|hands=[{}]|round_end={}",
             self.active_seat_index,
             self.phase.as_str(),
             stock,
@@ -142,7 +149,8 @@ impl RoundState {
             self.tableau.stable_string(),
             pending,
             scores,
-            hands
+            hands,
+            round_end
         )
     }
 }
@@ -171,6 +179,35 @@ impl TurnPhase {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SeatState {
     pub hand: Vec<CardId>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum RoundEndReason {
+    GoOutWithoutDiscard,
+    GoOutByFinalDiscard,
+    StockExhausted,
+}
+
+impl RoundEndReason {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::GoOutWithoutDiscard => "go_out_without_discard",
+            Self::GoOutByFinalDiscard => "go_out_by_final_discard",
+            Self::StockExhausted => "stock_exhausted",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct RoundEndSummary {
+    pub reason: RoundEndReason,
+    pub seat_index: SeatIndex,
+}
+
+impl RoundEndSummary {
+    pub fn stable_string(&self) -> String {
+        format!("{}:seat={}", self.reason.as_str(), self.seat_index)
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

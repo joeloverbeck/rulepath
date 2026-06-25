@@ -1,0 +1,11 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "stock-exhausted-round-settlement",
+  "rules": ["ML-TURN-009"],
+  "stock_count": 0,
+  "discard_count": 0,
+  "active_seat": 1,
+  "result": "round_settled",
+  "round_end": "stock_exhausted:seat=1",
+  "scoring": "deferred-to-GAT19MELLEDFIV-011"
+}

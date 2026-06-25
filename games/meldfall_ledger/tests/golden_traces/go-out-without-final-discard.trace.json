@@ -1,0 +1,20 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "go-out-without-final-discard",
+  "rules": ["ML-TURN-005", "ML-TURN-007"],
+  "steps": [
+    {
+      "action": "meld-new",
+      "seat": 0,
+      "cards": ["three_clubs", "three_diamonds", "three_hearts"],
+      "hand_count_after": 0
+    },
+    {
+      "action": "finish-table-plays",
+      "seat": 0,
+      "result": "round_settled",
+      "round_end": "go_out_without_discard:seat=0"
+    }
+  ],
+  "scoring": "deferred-to-GAT19MELLEDFIV-011"
+}

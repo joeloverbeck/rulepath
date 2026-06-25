@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-010: Turn lifecycle, going out, and stock-exhaustion round settlement
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger/src/{rules,state}.rs`; go-out / stock-exhaustion golden traces
@@ -84,3 +84,20 @@ Detect stock exhaustion; when the active seat cannot/will-not legally draw from 
 1. `cargo test -p meldfall_ledger`
 2. `cargo test --workspace`
 3. Score values at settlement are asserted in GAT19MELLEDFIV-011; this ticket asserts the round-end transition.
+
+## Outcome
+
+Completed: 2026-06-26
+
+- Added `RoundEndReason`/`RoundEndSummary` to `RoundState` for deterministic round-end transitions without scoring totals.
+- Added active-seat diagnostics to draw/discard/finish paths and preserved wrong-phase diagnostics for settled rounds.
+- Wired turn lifecycle transitions: draw enters table phase, table-finish enters discard phase when cards remain, normal discard advances active seat to the next draw phase, final discard settles the round, and empty-hand table-finish settles without requiring a final discard.
+- Added stock-exhaustion settlement when stock and discard are both empty for the active seat; scoring remains deferred to GAT19MELLEDFIV-011.
+- Added lifecycle tests for normal draw/table/discard, go-out without final discard, go-out by final discard, stock exhaustion, wrong phase, and wrong seat.
+- Added lifecycle golden traces for discard-after-draw, both go-out paths, and stock-exhaustion round settlement.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo test -p meldfall_ledger`
+- `cargo test --workspace`

@@ -542,6 +542,7 @@ fn stock_draw_moves_hidden_top_card_and_public_effect_hides_identity() {
     let mut state = sample_state();
     let hidden_bottom = Card::new(Rank::Ace, Suit::Clubs).id();
     let hidden_top = Card::new(Rank::King, Suit::Spades).id();
+    state.round.active_seat_index = 0;
     state.round.stock = vec![hidden_bottom, hidden_top];
     state.round.discard = vec![Card::new(Rank::Four, Suit::Clubs).id()];
     state.round.seats[0].hand.clear();
@@ -597,11 +598,12 @@ fn discard_pickup_commitment_blocks_finish_and_discard_until_used() {
     let seven_diamonds = Card::new(Rank::Seven, Suit::Diamonds).id();
     let seven_hearts = Card::new(Rank::Seven, Suit::Hearts).id();
     state.round.discard = vec![seven_clubs];
+    state.round.active_seat_index = 0;
     state.round.seats[0].hand = vec![seven_diamonds, seven_hearts];
 
     draw_from_discard(&mut state.round, 0, 0).expect("top discard pickup accepted");
 
-    let finish_diagnostic = finish_turn_after_table_plays(&state.round, 0)
+    let finish_diagnostic = finish_turn_after_table_plays(&mut state.round, 0)
         .expect_err("top pickup must be used before finishing");
     assert_eq!(finish_diagnostic.code, "ML_PICKUP_COMMITMENT_UNSATISFIED");
 
@@ -617,7 +619,115 @@ fn discard_pickup_commitment_blocks_finish_and_discard_until_used() {
         TurnOrdinal(3),
     )
     .expect("using top pickup in a meld clears commitment");
-    finish_turn_after_table_plays(&state.round, 0).expect("finish accepted after commitment use");
+    finish_turn_after_table_plays(&mut state.round, 0)
+        .expect("finish accepted after commitment use");
+}
+
+#[test]
+fn normal_draw_meld_discard_turn_advances_to_next_draw() {
+    let mut state = sample_state();
+    let draw = Card::new(Rank::Ace, Suit::Clubs).id();
+    let discard = Card::new(Rank::King, Suit::Spades).id();
+    state.round.active_seat_index = 0;
+    state.round.stock = vec![draw];
+    state.round.seats[0].hand = vec![discard];
+
+    draw_from_stock(&mut state.round, 0).expect("draw accepted");
+    let phase = finish_turn_after_table_plays(&mut state.round, 0).expect("discard phase entered");
+    assert_eq!(phase.as_str(), "discard");
+
+    let effect = discard_card(&mut state.round, 0, discard).expect("discard accepted");
+
+    assert_eq!(
+        effect_stable_string(&effect),
+        "Discard:seat=0:card=king_spades:discard_after=2"
+    );
+    assert_eq!(state.round.active_seat_index, 1);
+    assert_eq!(state.round.phase.as_str(), "draw");
+    assert_eq!(state.round.round_end, None);
+}
+
+#[test]
+fn go_out_without_final_discard_settles_round_after_emptying_hand() {
+    let mut state = sample_state();
+    let meld = vec![
+        Card::new(Rank::Three, Suit::Clubs).id(),
+        Card::new(Rank::Three, Suit::Diamonds).id(),
+        Card::new(Rank::Three, Suit::Hearts).id(),
+    ];
+    state.round.active_seat_index = 0;
+    state.round.phase = meldfall_ledger::state::TurnPhase::Table;
+    state.round.seats[0].hand = meld.clone();
+
+    table_new_meld(&mut state.round, 0, &meld, TurnOrdinal(1)).expect("meld tables");
+    let phase = finish_turn_after_table_plays(&mut state.round, 0).expect("round settles");
+
+    assert_eq!(phase.as_str(), "round_settled");
+    assert_eq!(
+        state
+            .round
+            .round_end
+            .expect("round end set")
+            .stable_string(),
+        "go_out_without_discard:seat=0"
+    );
+}
+
+#[test]
+fn go_out_by_final_discard_settles_round_after_discarding_last_card() {
+    let mut state = sample_state();
+    let final_card = Card::new(Rank::Two, Suit::Spades).id();
+    state.round.active_seat_index = 2;
+    state.round.phase = meldfall_ledger::state::TurnPhase::Discard;
+    state.round.seats[2].hand = vec![final_card];
+
+    discard_card(&mut state.round, 2, final_card).expect("final discard accepted");
+
+    assert_eq!(state.round.phase.as_str(), "round_settled");
+    assert_eq!(
+        state
+            .round
+            .round_end
+            .expect("round end set")
+            .stable_string(),
+        "go_out_by_final_discard:seat=2"
+    );
+    assert_eq!(state.round.discard.last().copied(), Some(final_card));
+}
+
+#[test]
+fn stock_exhaustion_with_no_discard_draw_settles_round_and_wrong_phase_is_diagnostic() {
+    let mut state = sample_state();
+    state.round.active_seat_index = 1;
+    state.round.stock.clear();
+    state.round.discard.clear();
+
+    assert!(
+        meldfall_ledger::rules::settle_stock_exhaustion_if_no_discard_draw(&mut state.round, 1)
+            .expect("stock exhaustion evaluated")
+    );
+    assert_eq!(state.round.phase.as_str(), "round_settled");
+    assert_eq!(
+        state
+            .round
+            .round_end
+            .expect("round end set")
+            .stable_string(),
+        "stock_exhausted:seat=1"
+    );
+
+    let diagnostic = draw_from_stock(&mut state.round, 1).expect_err("settled round rejects draw");
+    assert_eq!(diagnostic.code, "ML_WRONG_PHASE");
+}
+
+#[test]
+fn wrong_seat_draw_is_diagnostic() {
+    let mut state = sample_state();
+    state.round.active_seat_index = 1;
+    state.round.stock = vec![Card::new(Rank::Ace, Suit::Spades).id()];
+
+    let diagnostic = draw_from_stock(&mut state.round, 0).expect_err("wrong seat rejected");
+    assert_eq!(diagnostic.code, "ML_WRONG_SEAT");
 }
 
 fn sample_state() -> MatchState {
