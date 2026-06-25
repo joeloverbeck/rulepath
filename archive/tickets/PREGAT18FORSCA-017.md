@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-017: ci/scaffolding-audits.json receipt + 17-game legacy bootstrap
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (CI evidence receipt) — `ci/scaffolding-audits.json` (new)
@@ -71,3 +71,23 @@ Author the receipt (`schema_version: 1`) with one entry per the 17 `ci/games.jso
 1. `node -e "const a=JSON.parse(require('fs').readFileSync('ci/scaffolding-audits.json','utf8')); if(a.schema_version!==1) throw new Error('bad version')"`
 2. `node scripts/check-ci-games.mjs` (the 17-game source of truth the receipt mirrors)
 3. `bash scripts/boundary-check.sh`
+
+## Outcome
+
+Completed. Added `ci/scaffolding-audits.json` with `schema_version: 1`, a frozen
+`legacy_8c_games` set matching the 17 existing `ci/games.json` game IDs, and one
+`legacy-8c-covered` receipt per existing game. Each receipt points to committed
+Unit 8C/R1-R4 evidence plus `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, reviews
+the existing `MSC-8C-001` through `MSC-8C-010` register entries, records no
+pending follow-on unit, and marks hash, visibility, determinism, and migration
+authority as `none`.
+
+Verification:
+
+- `node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('ci/scaffolding-audits.json','utf8')); if(a.schema_version!==1) throw new Error('bad version'); console.log('schema_version', a.schema_version, 'games', a.games.length);"`
+- `node -e "const fs=require('fs'); const expected=JSON.parse(fs.readFileSync('ci/games.json','utf8')).map(g=>g.id).sort(); const actual=JSON.parse(fs.readFileSync('ci/scaffolding-audits.json','utf8')).games.map(g=>g.id).sort(); if(JSON.stringify(expected)!==JSON.stringify(actual)) throw new Error('id mismatch: '+JSON.stringify({expected,actual})); console.log('ids match', actual.length);"`
+- `node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('ci/scaffolding-audits.json','utf8')); const reg=fs.readFileSync('docs/MECHANICAL-SCAFFOLDING-REGISTER.md','utf8'); for (const g of a.games) { for (const p of g.evidence_paths) if (!fs.existsSync(p)) throw new Error(g.id+' missing '+p); for (const id of g.register_entries_reviewed) if (!reg.includes(id)) throw new Error(g.id+' missing '+id); } console.log('pointers resolve');"`
+- `grep -En "selector|condition|trigger|formula" ci/scaffolding-audits.json` returned no matches.
+- `node scripts/check-ci-games.mjs`
+- `bash scripts/boundary-check.sh`
+- `git diff --check`
