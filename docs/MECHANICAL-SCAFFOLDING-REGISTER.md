@@ -42,7 +42,7 @@ Each register entry must include these fields.
 
 | State | Meaning |
 |---|---|
-| `candidate` | Repetition is observed, but no reuse decision has landed. |
+| `candidate` | A new or repeated behavior-free scaffolding shape is recorded, but no shared-helper decision has landed. A first-use candidate MUST name its owning game/site, behavior exclusions, and second-use or other next review trigger. |
 | `local-only` | Keep all known sites local with rationale. |
 | `promoted` | A narrow behavior-free helper is adopted in the named home and all migration obligations are closed. |
 | `promotion-debt-open` | A helper is adopted, but one or more matching sites still require migration or accepted exception. |
@@ -73,13 +73,81 @@ If a proposed entry touches one of these shapes, the default decision is
 ADR. A future exception must cite accepted authority and explain why the helper
 is behavior-free despite the listed risk.
 
+## Forward Per-Game Maintenance Cadence
+
+Every new official game completes two linked register checkpoints.
+
+### Pre-implementation checkpoint
+
+The game's reuse-first audit records:
+
+| Field | Required content |
+|---|---|
+| Game and gate | Stable game id and roadmap/spec unit. |
+| Audit evidence | Link to the filled `GAME-MECHANICS.md` audit and initialized `GAME-EVIDENCE.md` receipt. |
+| Existing scaffolding reviewed | Matching MSC entry ids and accepted helpers in `engine-core`, `game-stdlib`, `game-test-support`, or `wasm-api`. |
+| Planned disposition | Reuse, accepted exception, local-only, new candidate, rejected/rerouted, or not applicable with rationale. |
+| Expected prior matches | Earlier official games/sites that may require characterization or migration. |
+| Compatibility expectation | Hash, visibility, determinism, fixture/export, and ADR 0009 migration expectation. |
+
+### Post-implementation checkpoint
+
+Before official-game closeout:
+
+1. update every reused entry whose migration evidence or next-review trigger
+   changed;
+2. add an entry for every newly invented behavior-free scaffolding shape;
+3. record exact new and prior matching sites;
+4. classify the prior-game migration set;
+5. link the game evidence receipt and the machine audit record; and
+6. name the follow-on tracker unit or accepted no-unit disposition.
+
+A first-use entry is inventory, not extraction authority. It normally remains
+`candidate`, `local-only`, or `rejected` until repeated evidence satisfies ADR
+0008.
+
+## Automatic Prior-Game Refactor Trigger
+
+A bounded follow-on refactoring unit is required when a new game or newly
+promoted helper leaves real characterization or migration work in earlier
+official games. This includes:
+
+- an exact semantic behavior-free shape now present in the new game and one or
+  more earlier official games;
+- a promoted helper whose migration set includes earlier games;
+- a register entry that becomes `promotion-debt-open`; or
+- a pre-third-copy decision whose accepted outcome requires consolidation.
+
+The same closeout that records the migration set MUST add a named unit to
+`specs/README.md`. The unit names the games, candidate/register entry, expected
+hash and visibility impact, characterization evidence, rollback boundary, and
+admission consequence.
+
+A follow-on unit is not required only when the governing entry is explicitly
+`local-only`, `deferred`, or `rejected` and records:
+
+- why the sites are not semantically identical or why extraction is not worth
+  the risk;
+- the evidence supporting that decision;
+- an owner; and
+- a concrete next review trigger.
+
+An unnamed TODO, issue reference without a tracker unit, or bare “review later”
+does not satisfy this rule. Existing third-copy and promotion-debt blocking law
+remains authoritative.
+
 ## Current Entries
 
-The Unit 8C code-extraction series adds candidate entries before any helper
-implementation. Entries remain `candidate` until their owning implementation
-ticket proves the acceptance evidence and updates this register. The behavioral
-policy bundle entry starts as `rejected / local-only` because it is not
-mechanical scaffolding.
+The MSC-8C-001...010 entries and their R1-R4 receipts are the historical
+baseline created by Unit 8C. Preserve them as shipped evidence.
+
+For every new official game after the forward-governance interlock becomes
+effective, register maintenance is part of the normal game lifecycle rather
+than an optional reaction to a later ticket. A new behavior-free shape receives
+a register entry before game closeout even when it remains a first-use
+`candidate` or `local-only` shape. A game that introduces no new scaffolding
+records that result in its game evidence and CI audit receipt; it does not need a
+no-op candidate entry.
 
 ### MSC-8C-001 - Generic effect-envelope constructors
 
@@ -991,3 +1059,8 @@ Before accepting a register entry, verify:
 - `game-stdlib` remains earned and narrow;
 - no YAML, DSL, selector, condition, trigger, formula, or rule behavior enters
   static data.
+- a new game's pre-implementation audit and post-implementation closeout are both linked;
+- every new first-use scaffolding shape is registered without implying premature promotion;
+- prior matching official-game sites are complete;
+- a required follow-on unit exists in `specs/README.md`, or the accepted no-unit disposition carries rationale, owner, evidence, and next review trigger;
+- the CI audit receipt agrees with the human evidence and register state.

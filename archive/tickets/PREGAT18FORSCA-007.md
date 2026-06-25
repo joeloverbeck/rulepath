@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-007: REGISTER first-use-safe candidate + forward cadence sections
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — governance/area-doc edit (`docs/MECHANICAL-SCAFFOLDING-REGISTER.md`)
@@ -77,3 +77,33 @@ Add the Current Entries intro paragraph and extend the Review Checklist with the
 1. `node scripts/check-doc-links.mjs`
 2. `git diff -- docs/MECHANICAL-SCAFFOLDING-REGISTER.md` (review: two new sections + candidate clarification + checklist)
 3. `grep -n "first use" docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+
+## Outcome
+
+Completed: 2026-06-25
+
+Changed `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` with the forward register
+cadence required by Unit 8F:
+
+- broadened the `candidate` decision state so first-use behavior-free
+  scaffolding can be registered without implying promotion;
+- inserted `Forward Per-Game Maintenance Cadence` and
+  `Automatic Prior-Game Refactor Trigger` between the Non-Promotion List and
+  Current Entries;
+- replaced the Current Entries intro with the frozen Unit 8C / R1-R4 baseline
+  and forward lifecycle note;
+- extended the Review Checklist with audit, first-use registration,
+  prior-game-site, follow-on-unit, and CI-receipt checks.
+
+Deviation: none. Existing MSC entries and the Non-Promotion List were not
+changed.
+
+Verification:
+
+- `grep -n "Forward Per-Game Maintenance Cadence\\|Automatic Prior-Game Refactor Trigger\\|## Current Entries" docs/MECHANICAL-SCAFFOLDING-REGISTER.md` confirmed both new sections before Current Entries.
+- `grep -n "first-use\\|first use\\|candidate" docs/MECHANICAL-SCAFFOLDING-REGISTER.md` confirmed the first-use-safe candidate wording.
+- A safely quoted `rg` check confirmed `candidate`, `local-only`, `deferred`,
+  `rejected`, `specs/README.md`, accepted no-unit disposition, and CI audit
+  receipt references.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
