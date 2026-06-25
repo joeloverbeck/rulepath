@@ -79,6 +79,7 @@ dependencies = [
 name = "fixture-check"
 version = "0.1.0"
 dependencies = [
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",
@@ -186,6 +187,7 @@ dependencies = [
 name = "replay-check"
 version = "0.1.0"
 dependencies = [
+ "blackglass_pact",
  "briar_circuit",
  "column_four",
  "directional_flip",

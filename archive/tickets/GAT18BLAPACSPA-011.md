@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-011: fixtures, cross-cutting tests, and replay-check / fixture-check registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (deterministic evidence + tooling) — `games/blackglass_pact/tests`, `games/blackglass_pact/data/fixtures`, `tools/replay-check`, `tools/fixture-check`
@@ -81,3 +81,32 @@ Finalize `data/fixtures/blackglass_pact_standard.fixture.json` (+ the four autho
 1. `cargo run -p fixture-check -- --game blackglass_pact && cargo run -p replay-check -- --game blackglass_pact --all`
 2. `cargo test -p blackglass_pact`
 3. The fixture/replay tools + crate tests are the correct boundary; rule-coverage finalize is GAT18BLAPACSPA-013.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Registered Blackglass Pact with the shared fixture and replay tool drivers.
+`fixture-check` now loads Blackglass static data, validates
+`games/blackglass_pact/data/fixtures`, rejects behavior-looking fixture keys,
+and uses a game-specific allowed-key list. Added
+`blackglass_pact_standard.fixture.json` as the standard fixed-four setup
+fixture.
+
+`replay-check` now resolves `blackglass_pact`, scans all Blackglass golden
+traces, rejects duplicate trace IDs, validates game/rules/schema metadata when
+present, checks no-leak trace surfaces for card identities, and verifies setup
+projection fields for traces that carry seed/seat-count setup evidence.
+
+Deviation: Blackglass Pact replay-check registration is a bounded metadata,
+setup-projection, no-leak, and inventory validator. It does not yet execute
+full Blackglass command streams to reproduce final state/effect/action/view
+hashes byte-for-byte; richer command replay support remains future replay work.
+No existing Blackglass golden trace was mass-regenerated.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo run -p fixture-check -- --game blackglass_pact` passed (`fixture-check: all fixtures passed`).
+- `cargo run -p replay-check -- --game blackglass_pact --all` passed (`replay-check: all traces passed`).
+- `cargo test -p blackglass_pact --test property --test serialization --test replay` passed: 15 property tests, 3 serialization tests, and 3 replay tests.

@@ -224,6 +224,53 @@ const VOW_TIDE_ALLOWED_JSON_KEYS: &[&str] = &[
     "canonical_byte_authority",
 ];
 
+const BLACKGLASS_PACT_ALLOWED_JSON_KEYS: &[&str] = &[
+    "schema_version",
+    "fixture_id",
+    "trace_id",
+    "fixture_kind",
+    "purpose",
+    "note",
+    "migration_update_note",
+    "game_id",
+    "rules_version",
+    "data_version",
+    "variant",
+    "seed",
+    "seat_count",
+    "seats",
+    "teams",
+    "dealer",
+    "hand_index",
+    "team",
+    "team_scores",
+    "pending_blind_nil_order",
+    "legal_action_paths",
+    "public_pre_deal_surfaces",
+    "card_identity",
+    "deck_order",
+    "rng_samples",
+    "prior_bags",
+    "new_bags",
+    "bag_penalty_count",
+    "next_bags",
+    "scores_after_hand",
+    "terminal",
+    "next_hand_required",
+    "expected_setup",
+    "expected_team_order",
+    "expected_seat_order",
+    "expected_dealer",
+    "expected_phase",
+    "expected_hand_count",
+    "profile_id",
+    "profile_version",
+    "visibility_class",
+    "validator_owner",
+    "hash_surface_version",
+    "canonical_byte_authority",
+];
+
 fn main() {
     if let Err(error) = run(env::args().skip(1).collect()) {
         eprintln!("{error}");
@@ -434,6 +481,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/vow_tide/data/variants.toml",
             variant_id: "vow_tide_standard",
         }),
+        "blackglass_pact" => Ok(RegisteredGame {
+            game_id: "blackglass_pact",
+            rules_version: "blackglass-pact-rules-v1",
+            trace_dir: "games/blackglass_pact/data/fixtures",
+            fixture_dir: "games/blackglass_pact/data/fixtures",
+            manifest_path: "games/blackglass_pact/data/manifest.toml",
+            variants_path: "games/blackglass_pact/data/variants.toml",
+            variant_id: "blackglass_pact_standard",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -487,9 +543,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -899,6 +955,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "blackglass_pact" => {
+            let manifest = blackglass_pact::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = blackglass_pact::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -996,6 +1067,9 @@ fn validate_trace(
     }
     if game.game_id == "vow_tide" {
         return validate_vow_tide_fixture(game, path, input, seen_ids);
+    }
+    if game.game_id == "blackglass_pact" {
+        return validate_blackglass_pact_fixture(game, path, input, seen_ids);
     }
     if input.contains("\"export_class\":") {
         return validate_public_export_fixture(game, path, input);
@@ -1321,6 +1395,68 @@ fn validate_vow_tide_fixture(
     if fixture_kind == "terminal_tie" {
         require_key(path, input, "expected_terminal_winners")?;
         require_key(path, input, "expected_competition_ranks")?;
+    }
+    Ok(())
+}
+
+fn validate_blackglass_pact_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+        if !BLACKGLASS_PACT_ALLOWED_JSON_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: unknown blackglass_pact field `{key}`",
+                path.display()
+            ));
+        }
+    }
+
+    let id = optional_string_field(input, "fixture_id")
+        .or_else(|| optional_string_field(input, "trace_id"))
+        .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().to_string());
+    if !seen_ids.insert(id.clone()) {
+        return Err(format!("{}: duplicate fixture id `{id}`", path.display()));
+    }
+    if id.trim().is_empty() {
+        return Err(format!("{}: fixture id must be non-empty", path.display()));
+    }
+    if input.contains("\"game_id\"") && required_string(path, input, "game_id")? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if input.contains("\"rules_version\"")
+        && required_string(path, input, "rules_version")? != game.rules_version
+    {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
+    if input.contains("\"variant\"") && required_string(path, input, "variant")? != game.variant_id
+    {
+        return Err(format!(
+            "{}: variant must be {}",
+            path.display(),
+            game.variant_id
+        ));
+    }
+    if input.contains("\"schema_version\"") && required_number(path, input, "schema_version")? != 1
+    {
+        return Err(format!("{}: schema_version must be 1", path.display()));
     }
     Ok(())
 }
