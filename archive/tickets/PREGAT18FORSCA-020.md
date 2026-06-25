@@ -1,6 +1,6 @@
 # PREGAT18FORSCA-020: wire scaffolding-governance check into Gate 1
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes (CI) — `.github/workflows/gate-1-game-smoke.yml` (modify)
@@ -73,3 +73,19 @@ Insert, immediately before the `Docs link check` step in the `repo-checks` job:
 1. `node scripts/check-scaffolding-governance.mjs`
 2. `node --test scripts/check-scaffolding-governance.test.mjs` (the suite the new step's checker is proven by)
 3. `git diff -- .github/workflows/gate-1-game-smoke.yml` (review: one additive step before `Docs link check`)
+
+## Outcome
+
+Completed. `.github/workflows/gate-1-game-smoke.yml` now runs
+`node scripts/check-scaffolding-governance.mjs` as a blocking `repo-checks` step
+immediately before `Docs link check`. Gate 0 and Gate 2 workflows were not
+modified.
+
+Verification:
+
+- `grep -n "Mechanical scaffolding governance\\|Docs link check" .github/workflows/gate-1-game-smoke.yml`
+- `node scripts/check-scaffolding-governance.mjs`
+- `node --test scripts/check-scaffolding-governance.test.mjs`
+- `git diff --name-only -- .github/workflows/gate-0-hygiene.yml .github/workflows/gate-1-game-smoke.yml .github/workflows/gate-2-benchmarks.yml`
+- `git diff -- .github/workflows/gate-1-game-smoke.yml`
+- `git diff --check`
