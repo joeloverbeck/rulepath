@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-001: Blackglass Pact rules and source documents
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — game-local docs (`games/blackglass_pact/docs/{RULES,SOURCES,RULE-COVERAGE}.md`)
@@ -79,3 +79,22 @@ Initial coverage skeleton: each `BP-*` ID with placeholder owner/test columns (f
 1. `grep -c "BP-" games/blackglass_pact/docs/RULES.md`
 2. `node scripts/check-doc-links.mjs`
 3. Doc-only ticket — the narrow grep + doc-link check is the correct verification boundary; rule-coverage tooling runs after the crate and coverage doc land.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented the Blackglass Pact rules/source/coverage documentation set:
+
+- Added `games/blackglass_pact/docs/RULES.md` with original Rulepath prose for every normative `BP-*` rule ID from the Gate 18 appendix.
+- Added `games/blackglass_pact/docs/SOURCES.md` with consulted source records, variant reconciliation, ambiguity/deviation notes, source/IP boundaries, and pending human IP/public-release review.
+- Added `games/blackglass_pact/docs/RULE-COVERAGE.md` with an initial open coverage skeleton for every `BP-*` rule ID and planned implementation/evidence surfaces for later tickets.
+
+Deviations from plan: none. No Rust, fixture, trace, WASM, or UI behavior landed in this documentation-only ticket.
+
+Verification:
+
+- `grep -oE "BP-[A-Z]+-[0-9]+" games/blackglass_pact/docs/RULES.md | sort -u` matched the Gate 18 spec appendix ID set.
+- `rg -n "pending human IP review|Human IP/public-release review is pending|Human IP/public-release review remains pending" games/blackglass_pact/docs/SOURCES.md` confirmed the pending human review note.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `git diff --check` passed.
