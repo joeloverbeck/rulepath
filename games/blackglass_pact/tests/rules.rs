@@ -1,6 +1,7 @@
 use blackglass_pact::{
-    canonical_seat_ids, partner_for, setup_match, team_for_seat, validate_standard_seat_count,
-    BlackglassSeat, Phase, SetupOptions, TeamId,
+    apply_blind_nil_choice, canonical_seat_ids, eligible_blind_nil_order, partner_for, setup_match,
+    setup_match_with_scores, team_for_seat, validate_standard_seat_count, Bid, BlackglassSeat,
+    BlindNilChoice, Phase, SetupOptions, TeamId, STANDARD_HAND_SIZE,
 };
 use engine_core::{SeatId, Seed};
 
@@ -15,11 +16,17 @@ fn setup_accepts_exactly_four_seats() {
     assert_eq!(state.team_bags, [0, 0]);
     assert_eq!(
         state.phase,
-        Phase::BlindNilCommitment {
-            pending: Vec::new(),
-            next_index: 0,
+        Phase::Bidding {
+            next: BlackglassSeat::East,
+            accepted: [None, None, None, None],
         }
     );
+    for seat in BlackglassSeat::ALL {
+        assert_eq!(
+            state.hand_for_internal(seat).len(),
+            STANDARD_HAND_SIZE as usize
+        );
+    }
 }
 
 #[test]
@@ -50,4 +57,55 @@ fn fixed_partnership_mapping_is_stable() {
 
     assert_eq!(partner_for(BlackglassSeat::North), BlackglassSeat::South);
     assert_eq!(partner_for(BlackglassSeat::East), BlackglassSeat::West);
+}
+
+#[test]
+fn blind_nil_eligibility_boundary_is_99_vs_100() {
+    assert_eq!(
+        eligible_blind_nil_order(BlackglassSeat::North, [1, 100]),
+        Vec::new()
+    );
+    assert_eq!(
+        eligible_blind_nil_order(BlackglassSeat::North, [0, 100]),
+        vec![BlackglassSeat::South, BlackglassSeat::North]
+    );
+}
+
+#[test]
+fn blind_nil_order_skips_ineligible_seats_clockwise() {
+    let mut state = setup_match_with_scores(
+        Seed(1804),
+        &canonical_seat_ids(),
+        &SetupOptions::default(),
+        [0, 100],
+    )
+    .expect("deficit setup succeeds");
+
+    assert_eq!(
+        state.phase,
+        Phase::BlindNilCommitment {
+            pending: vec![BlackglassSeat::South, BlackglassSeat::North],
+            next_index: 0,
+        }
+    );
+    assert_eq!(state.active_blind_nil_seat(), Some(BlackglassSeat::South));
+
+    apply_blind_nil_choice(&mut state, BlackglassSeat::South, BlindNilChoice::Declined)
+        .expect("south may resolve first");
+    assert_eq!(state.active_blind_nil_seat(), Some(BlackglassSeat::North));
+
+    let diagnostic =
+        apply_blind_nil_choice(&mut state, BlackglassSeat::East, BlindNilChoice::Declared)
+            .expect_err("ineligible east is skipped");
+    assert_eq!(diagnostic.code, "BP_WRONG_BLIND_NIL_SEAT");
+
+    apply_blind_nil_choice(&mut state, BlackglassSeat::North, BlindNilChoice::Declared)
+        .expect("north may resolve second");
+    assert_eq!(
+        state.phase,
+        Phase::Bidding {
+            next: BlackglassSeat::East,
+            accepted: [Some(Bid::BlindNil), None, None, None],
+        }
+    );
 }

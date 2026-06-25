@@ -1,0 +1,14 @@
+{
+  "trace_id": "deterministic-deal",
+  "game_id": "blackglass_pact",
+  "seed": 1805,
+  "hand_index": 0,
+  "dealer": "North",
+  "deal_order": ["East", "South", "West", "North"],
+  "assertions": {
+    "seat_count": 4,
+    "cards_per_seat": 13,
+    "tail_cards": 0,
+    "unique_cards": 52
+  }
+}

@@ -15,7 +15,13 @@ pub mod ui;
 pub mod variants;
 pub mod visibility;
 
+pub use bidding::{
+    apply_blind_nil_action, apply_blind_nil_choice, legal_action_tree, opening_blind_nil_effect,
+    parse_blind_nil_action_path, BlindNilAction, ACTION_BLIND_DECLARE, ACTION_BLIND_DECLINE,
+    ACTION_BLIND_NIL,
+};
 pub use cards::{canonical_deck, Card, CardId, Deck, Rank, Suit};
+pub use effects::BlackglassPactEffect;
 pub use ids::{
     canonical_seat_ids, BlackglassSeat, TeamId, DATA_VERSION_LABEL, GAME_ID, RULES_VERSION_LABEL,
     STANDARD_CARD_COUNT, STANDARD_DEFAULT_SEATS, STANDARD_HAND_SIZE, STANDARD_MAX_SEATS,
@@ -25,7 +31,11 @@ pub use ids::{
 pub use partnerships::{
     canonical_team_ids, members_for_team, partner_for, team_for_seat, team_id_for_index,
 };
-pub use setup::{setup_match, validate_standard_seat_count, SetupOptions};
+pub use setup::{
+    deal_for_hand, deal_order_after, eligible_blind_nil_order, seed_for_hand, setup_match,
+    setup_match_with_scores, validate_standard_seat_count, HandDeal, SetupOptions,
+    BLIND_NIL_DEFICIT_THRESHOLD, HAND_SEED_DERIVATION_V1,
+};
 pub use state::{Bid, BlackglassPactState, BlindNilChoice, Phase, PlayedCard};
 pub use variants::{Manifest, Variant, VariantCatalog};
 

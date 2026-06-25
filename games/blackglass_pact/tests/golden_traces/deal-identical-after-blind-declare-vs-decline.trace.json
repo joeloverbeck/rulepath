@@ -1,0 +1,24 @@
+{
+  "trace_id": "deal-identical-after-blind-declare-vs-decline",
+  "game_id": "blackglass_pact",
+  "seed": 1806,
+  "hand_index": 0,
+  "team_scores": [0, 100],
+  "scenario_a": {
+    "blind_nil": [
+      ["South", "declare"],
+      ["North", "declare"]
+    ]
+  },
+  "scenario_b": {
+    "blind_nil": [
+      ["South", "decline"],
+      ["North", "decline"]
+    ]
+  },
+  "assertions": {
+    "deal_bytes_identical": true,
+    "shuffle_inputs": ["match_seed", "hand_index", "rules_version_label", "data_version_label"],
+    "blind_choices_perturb_rng": false
+  }
+}

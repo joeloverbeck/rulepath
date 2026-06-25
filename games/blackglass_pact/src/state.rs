@@ -55,6 +55,7 @@ pub struct BlackglassPactState {
     pub phase: Phase,
     pub spades_broken: bool,
     pub bids: [Option<Bid>; 4],
+    pub blind_nil_choices: [Option<BlindNilChoice>; 4],
     pub tricks_won: [u8; 4],
     pub team_scores: [i32; 2],
     pub team_bags: [u8; 2],
@@ -82,6 +83,7 @@ impl BlackglassPactState {
             },
             spades_broken: false,
             bids: [None, None, None, None],
+            blind_nil_choices: [None, None, None, None],
             tricks_won: [0, 0, 0, 0],
             team_scores: [0, 0],
             team_bags: [0, 0],
@@ -89,6 +91,24 @@ impl BlackglassPactState {
             freshness_token: FreshnessToken(0),
             seed,
         }
+    }
+
+    pub fn active_blind_nil_seat(&self) -> Option<BlackglassSeat> {
+        match &self.phase {
+            Phase::BlindNilCommitment {
+                pending,
+                next_index,
+            } => pending.get(*next_index).copied(),
+            _ => None,
+        }
+    }
+
+    pub fn blind_nil_choice_for(&self, seat: BlackglassSeat) -> Option<BlindNilChoice> {
+        self.blind_nil_choices[seat.index()]
+    }
+
+    pub fn advance_freshness(&mut self) {
+        self.freshness_token = self.freshness_token.next();
     }
 
     pub fn hand_for_internal(&self, seat: BlackglassSeat) -> &[CardId] {

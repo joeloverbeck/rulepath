@@ -1,0 +1,24 @@
+{
+  "trace_id": "blind-nil-declare-before-deal-no-card-surface",
+  "game_id": "blackglass_pact",
+  "seed": 1807,
+  "hand_index": 0,
+  "team_scores": [0, 100],
+  "pre_deal_assertions": {
+    "private_hands": "empty",
+    "public_effects": [
+      {
+        "type": "BlindNilWindowOpened",
+        "pending": ["South", "North"],
+        "threshold": 100
+      },
+      {
+        "type": "BlindNilDeclared",
+        "seat": "South",
+        "team": "NorthSouth"
+      }
+    ],
+    "action_paths": [["blind_nil", "declare"], ["blind_nil", "decline"]],
+    "forbidden_public_identity": ["card_ids", "card_labels", "deck_order", "rng_samples"]
+  }
+}

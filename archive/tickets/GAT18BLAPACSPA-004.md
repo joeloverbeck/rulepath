@@ -1,6 +1,6 @@
 # GAT18BLAPACSPA-004: blind-nil commitment and deterministic deal
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/blackglass_pact` (setup/bidding/state/effects, RNG, owner-private hands) + golden traces
@@ -82,3 +82,24 @@ Implement the pre-deal `BlindNilCommitment` phase and the deterministic full dea
 1. `cargo test -p blackglass_pact --test visibility --test property --test rules`
 2. `cargo test -p blackglass_pact`
 3. Crate-scoped tests are the boundary; `replay-check` registration (GAT18BLAPACSPA-011) validates the traces cross-cuttingly.
+
+## Outcome
+
+Completed: 2026-06-25
+
+Implemented the blind-nil commitment and deterministic deal surface:
+
+- Added game-local blind-nil action parsing, active-seat legal action trees, immutable declare/decline recording, and stable diagnostics for wrong actors/seats/phases.
+- Added blind-nil eligibility by 100-point team deficit, clockwise pending order from left of dealer, and ineligible-seat skipping.
+- Added deterministic hand seed derivation from match seed, hand index, and pinned rules/data version labels, plus a full 52-card shuffle/deal into four 13-card owner-private hands with no tail.
+- Added public effects for `BlindNilWindowOpened`, `BlindNilDeclared`, `BlindNilDeclined`, and `DealCompleted`, with cards confined to `PrivateHandReceived`.
+- Added golden trace JSON evidence and the `blackglass_pact_blind_nil` fixture for later replay/check registration.
+
+Deviations from plan: golden traces are static evidence artifacts in this ticket. Cross-tool replay registration remains deferred to GAT18BLAPACSPA-011, as planned by the ticket's command notes.
+
+Verification:
+
+- `cargo test -p blackglass_pact --test visibility --test property --test rules` passed (1 visibility, 5 property, 5 rules tests).
+- `cargo test -p blackglass_pact` passed (1 lib test, 5 property tests, 5 rules tests, 2 serialization tests, 1 visibility test).
+- `cargo fmt --all --check` passed.
+- `git diff --check` passed.
