@@ -10,7 +10,7 @@
 | Spec ID | `GATE-19-1-MELDFALL-LEDGER-MULTI-ROUND-COMPLETION` |
 | Stage | Public scaling phase, Gate 19 follow-on (19.1) |
 | Gate | Gate 19 — Five Hundred Rummy / Rummy 500 family (completion of a shipped-deferred exit item) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-26 |
 | Owner | Rulepath maintainers |
 | Authority order | `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs → `docs/ROADMAP.md` → `games/meldfall_ledger/docs/RULES.md` → this spec → future tickets. Accepted ADRs supersede only the sections they name. |

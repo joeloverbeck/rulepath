@@ -1,6 +1,6 @@
 # GAT191MELLED-006: Evidence + docs + Gate 19.1 closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (deterministic evidence + docs) — new golden trace; `games/meldfall_ledger/docs/*`; `specs/*`
@@ -129,3 +129,28 @@ Flip the spec Status to `Done` and the `specs/README.md` row 10.1 to `Done`.
 3. `node scripts/check-doc-links.mjs` — doc-link integrity for the reconciled docs
    (the narrow gate for this docs/evidence closeout; full behavior is guarded by
    the prior tickets' suites).
+
+## Outcome
+
+Completed: 2026-06-26
+
+Added `round-transition-resets-table-state.trace.json` as the declarative
+reset/preserve contract for the Rust-owned multi-round transition. The trace
+records dealer rotation, active-seat selection, round-only state reset, score
+carry-forward, tie-continuation advancement, and no hidden new stock/private-hand
+leak claim.
+
+Reconciled Meldfall evidence docs: `RULE-COVERAGE.md` now marks `ML-MATCH-003`
+and `ML-MATCH-006` covered with the new trace/tests/host evidence, and
+`GAME-EVIDENCE.md` includes the Gate 19.1 multi-round completion receipt. Verified
+`MECHANICS.md` and `HOW-TO-PLAY.md` already matched the implemented multi-round
+flow, so no player-rules regeneration was needed.
+
+Flipped the Gate 19.1 spec status and `specs/README.md` row to `Done`.
+
+Verification:
+
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo run -p rule-coverage -- --game meldfall_ledger && cargo run -p fixture-check -- --game meldfall_ledger`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
