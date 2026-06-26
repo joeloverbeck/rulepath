@@ -1,6 +1,6 @@
 # GAT191MELLED-005: Web round-transition feedback + browser verification
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web` (`src/components/effectFeedback.ts`, `scripts/smoke-effect-feedback.mjs`)
@@ -112,3 +112,32 @@ screenshot as evidence (spec exit criterion 6).
 3. Manual runbook (not CI-runnable — the web shell has no browser-automation
    harness): launch bot-vs-bot Meldfall Ledger, autoplay, confirm advance past
    "Round settled" to the terminal panel, capture a screenshot.
+
+## Outcome
+
+Completed: 2026-06-26
+
+Added the Meldfall-owned `next_round_dealt` feedback case in the shared web
+effect presenter. The copy presents only Rust-authored fields:
+`next_round_number`, `new_dealer`, and `next_lead_seat`, using the existing
+Meldfall seat-label helper. The existing `refill_started` case remains intact for
+High Card Duel.
+
+Extended the effect feedback smoke with a focused Meldfall bot-turn runner that
+observes `next_round_dealt` from the WASM host and asserts the rendered copy:
+`Round 2 dealt - Seat 2 deals; Seat 3 leads off.`
+
+Browser evidence: launched the production web preview, selected Meldfall Ledger
+4-seat Bot vs bot, started autoplay, and captured the terminal outcome panel at
+`output/playwright/gat191melled-005-meldfall-terminal.png`. The browser run
+ended with `seat_1 won with 547`, visible `Match Complete`/`Seat 2 wins` copy,
+and no `No actions available` dead-end. To make the long autoplay run practical
+inside the browser harness, the evidence run capped page timers to collapse
+animation dwell while still using the app's Bot vs bot autoplay controls.
+
+Verification:
+
+- `npm --prefix apps/web run smoke:effects`
+- `npm --prefix apps/web run smoke:ui`
+- Browser screenshot evidence:
+  `output/playwright/gat191melled-005-meldfall-terminal.png`

@@ -831,6 +831,14 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: "Rust finalized Meldfall Ledger standings.",
         tone: "terminal",
       };
+    case "next_round_dealt":
+      return {
+        title: "Next round dealt",
+        detail: `Round ${payload.next_round_number ?? "next"} dealt - ${meldfallSeatLabel(
+          payload.new_dealer,
+        )} deals; ${meldfallSeatLabel(payload.next_lead_seat)} leads off.`,
+        tone: "turn",
+      };
     case "refill_started":
       return {
         title: "Next round",
