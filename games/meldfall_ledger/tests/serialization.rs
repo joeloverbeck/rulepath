@@ -73,8 +73,9 @@ fn match_state_summary_has_stable_field_order() {
     let summary = state.stable_internal_summary();
 
     assert!(summary.starts_with(
-        "match|variant=classic_500_single_deck_v1|seats=[seat_0,seat_1,seat_2,seat_3]|scores=[0,0,0,0]|dealer=0|round=round|active=1|phase=draw|"
+        "match|variant=classic_500_single_deck_v1|seats=[seat_0,seat_1,seat_2,seat_3]|scores=[0,0,0,0]|dealer=0|round_index=0|round=round|active=1|phase=draw|"
     ));
+    assert!(summary.contains("|round_index=0|"));
     assert!(
         summary.contains("meld_7:run:clubs:origin=1:cards=[ace_clubs:played_by=1:credit=1:turn=2]")
     );

@@ -56,10 +56,10 @@ evidence owners.
 | `ML-SCORE-007` | Public settlement exposes totals/counts without unauthorized unmelded identities. | `scoring.rs`, `visibility.rs`, `replay_support.rs` | no-leak matrix, round-scoring trace | `covered-by-trace` | Mirrors `ML-VIS-006`. |
 | `ML-MATCH-001` | Terminal eligibility is evaluated only after settlement and needs a score at/above 500. | `scoring.rs`, `state.rs` | multi-round-first-to-500, target-tie traces | `covered-by-trace` | No mid-turn terminal shortcut. |
 | `ML-MATCH-002` | Unique highest eligible seat wins. | `scoring.rs` | multi-round-first-to-500 trace, terminal tests | `covered-by-trace` | Winner is seat-indexed. |
-| `ML-MATCH-003` | Equal highest scores at/above 500 continue. | `scoring.rs` | target-tie-continues trace | `covered-by-trace` | Seat order is not a tiebreaker. |
+| `ML-MATCH-003` | Equal highest scores at/above 500 continue. | `scoring.rs`, `rules.rs` transition path | target-tie-continues trace, `round-transition-resets-table-state` trace, transition/full-play tests | `covered-by-trace` | Seat order is not a tiebreaker; tied eligible scores continue through the next-round transition. |
 | `ML-MATCH-004` | If no seat is at/above 500, match continues with next round. | `scoring.rs` | target-tie and scoring tests | `covered-by-trace` | Below-target scores remain ordinary. |
 | `ML-MATCH-005` | Terminal standings are stable in seat order with score, delta, rank, and winner. | `scoring.rs`, `visibility.rs` | multi-round trace, serialization tests | `covered-by-trace` | Rust-authored outcome only. |
-| `ML-MATCH-006` | Nonterminal settled round advances dealer and deals a fresh round. | `state.rs`, `setup.rs`, future round transition | rule docs and setup/dealer tests | `intentionally-deferred` | Full multi-round transition wiring is completed in later gate/tooling closeout. |
+| `ML-MATCH-006` | Nonterminal settled round advances dealer and deals a fresh round. | `state.rs`, `setup.rs`, `rules.rs`, WASM bridge, `tools/simulate` | `round-transition-resets-table-state` trace, transition tests, host full-play tests, simulator completion | `covered-by-trace` | Dealer rotates, round-only state resets, cumulative scores carry forward, and both hosts continue to terminal. |
 | `ML-REPLAY-001` | Same accepted command stream reproduces state, effects, views, and hashes. | `replay_support.rs`, tests | replay/serialization tests, `replay-check` registration | `covered` | Trace schema unchanged. |
 | `ML-REPLAY-002` | Viewer-scoped exports never elevate privilege on import. | `replay_support.rs`, `visibility.rs` | viewer export/import tests and traces | `covered-by-trace` | Public and seat exports stay scoped. |
 | `ML-REPLAY-003` | Trace Schema v1 records setup, draw, pickup, meld, layoff, scoring, terminal, visibility, and migration notes. | golden traces, `replay_support.rs`, `replay-check` | golden trace inventory and `replay-check --game meldfall_ledger --all` | `covered-by-trace` | No migration authorized. |
@@ -97,6 +97,7 @@ evidence owners.
 | `scores-can-go-negative.trace.json` | negative cumulative score | `ML-SCORE-003`, `ML-SCORE-005` |
 | `multi-round-first-to-500.trace.json` | unique highest target win | `ML-MATCH-001`, `ML-MATCH-002`, `ML-MATCH-005` |
 | `target-tie-continues.trace.json` | 500 tie continuation | `ML-MATCH-001`, `ML-MATCH-003`, `ML-MATCH-004` |
+| `round-transition-resets-table-state.trace.json` | nonterminal transition reset/preserve contract | `ML-MATCH-003`, `ML-MATCH-004`, `ML-MATCH-006`, `ML-SETUP-005`, `ML-VIS-003` |
 | `public-observer-no-leak-6p.trace.json` | max-seat public no-leak | `ML-VIS-001`, `ML-VIS-003` |
 | `seat-private-export-round-trip-all-viewers.trace.json` | all seat-private exports | `ML-REPLAY-002`, `ML-VIS-002`, `ML-VIS-003` |
 | `viewer-export-no-privilege-elevation.trace.json` | import scope cannot elevate | `ML-REPLAY-002` |

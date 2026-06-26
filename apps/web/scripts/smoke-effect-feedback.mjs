@@ -124,6 +124,13 @@ try {
     );
   }
 
+  function runBotTurn(matchId, actor, seed) {
+    return invoke(
+      (args) => wasm.rulepath_run_bot_turn(args[0].ptr, args[0].len, args[1].ptr, args[1].len, BigInt(seed)),
+      [matchId, actor],
+    );
+  }
+
   function firstLeafPath(choices, prefix = []) {
     for (const choice of choices) {
       const path = [...prefix, choice.segment];
@@ -243,6 +250,31 @@ try {
     assert(view.terminal?.terminal === true, "river_ledger reaches terminal showdown in effect feedback smoke");
   }
 
+  function playMeldfallTransition(matchId, seed) {
+    let view = getView(matchId);
+    for (let turn = 0; turn < 20_000 && activeSeat(view, null); turn += 1) {
+      const actor = activeSeat(view);
+      const result = runBotTurn(matchId, actor, seed);
+      recordEffects("meldfall_ledger", result.effects);
+      const transitionEffect = result.effects.find(
+        (effect) => (effect.payload?.type ?? effect.payload?.kind) === "next_round_dealt",
+      );
+      if (transitionEffect) {
+        const feedback = feedbackForEffect({
+          cursor: ++cursor,
+          effect: transitionEffect,
+        });
+        assert(
+          feedback.detail === "Round 2 dealt - Seat 2 deals; Seat 3 leads off.",
+          `meldfall_ledger next_round_dealt copy changed: ${JSON.stringify(feedback)}`,
+        );
+        return;
+      }
+      view = result.view;
+    }
+    throw new Error("meldfall_ledger did not emit next_round_dealt during effect feedback smoke");
+  }
+
   function playGame(gameId, seed, turns) {
     const created = newMatch(gameId, seed);
     let view = getView(created.match_id);
@@ -265,6 +297,10 @@ try {
     }
     if (gameId === "river_ledger") {
       playRiverLedgerShowdown(created.match_id);
+      return;
+    }
+    if (gameId === "meldfall_ledger") {
+      playMeldfallTransition(created.match_id, seed);
       return;
     }
     for (let turn = 0; turn < turns && activeSeat(view, null); turn += 1) {
@@ -338,6 +374,7 @@ try {
     ["river_ledger", "river_ledger_showdown_resolved"],
     ["vow_tide", "bid_accepted"],
     ["meldfall_ledger", "draw"],
+    ["meldfall_ledger", "next_round_dealt"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {

@@ -791,38 +791,38 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         title: "Card drawn",
         detail:
           payload.source === "stock"
-            ? `${payload.seat} drew from the hidden stock; stock ${payload.stock_count_after ?? 0}.`
-            : `${payload.seat} drew ${payload.cards_moved ?? 0} public discard card(s).`,
+            ? `${meldfallSeatLabel(payload.seat)} drew from the hidden stock; stock ${payload.stock_count_after ?? 0}.`
+            : `${meldfallSeatLabel(payload.seat)} drew ${payload.cards_moved ?? 0} public discard card(s).`,
         tone: "movement",
       };
     case "stock_draw_private":
       return {
         title: "Private draw",
-        detail: `${payload.seat} received one private stock card; stock ${payload.stock_count_after ?? 0}.`,
+        detail: `${meldfallSeatLabel(payload.seat)} received one private stock card; stock ${payload.stock_count_after ?? 0}.`,
         tone: "neutral",
       };
     case "meld":
       return {
         title: "Meld tabled",
-        detail: `${payload.seat} tabled ${Array.isArray(payload.cards) ? payload.cards.length : 0} public card(s).`,
+        detail: `${meldfallSeatLabel(payload.seat)} tabled ${Array.isArray(payload.cards) ? payload.cards.length : 0} public card(s).`,
         tone: "movement",
       };
     case "lay_off":
       return {
         title: "Lay-off tabled",
-        detail: `${payload.seat} extended ${String(payload.meld_id ?? "a public meld")}.`,
+        detail: `${meldfallSeatLabel(payload.seat)} extended ${String(payload.meld_id ?? "a public meld")}.`,
         tone: "movement",
       };
     case "discard":
       return {
         title: "Card discarded",
-        detail: `${payload.seat} discarded one public card; discard count ${payload.discard_count_after ?? 0}.`,
+        detail: `${meldfallSeatLabel(payload.seat)} discarded one public card; discard count ${payload.discard_count_after ?? 0}.`,
         tone: "turn",
       };
     case "round_score":
       return {
         title: "Round scored",
-        detail: `Rust scored round ${payload.round_index ?? "current"}.`,
+        detail: meldfallRoundScoreDetail(payload),
         tone: "turn",
       };
     case "match_terminal":
@@ -831,10 +831,18 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: "Rust finalized Meldfall Ledger standings.",
         tone: "terminal",
       };
+    case "next_round_dealt":
+      return {
+        title: "Next round dealt",
+        detail: `Round ${payload.next_round_number ?? "next"} dealt - ${meldfallSeatLabel(
+          payload.new_dealer,
+        )} deals; ${meldfallSeatLabel(payload.next_lead_seat)} leads off.`,
+        tone: "turn",
+      };
     case "refill_started":
       return {
         title: "Next round",
-        detail: `${payload.next_lead_seat} leads the next round.`,
+        detail: `${meldfallSeatLabel(payload.next_lead_seat)} leads the next round.`,
         tone: "turn",
       };
     case "terminal":
@@ -957,6 +965,47 @@ function factionLabel(value: unknown): string {
     return "Freeholders";
   }
   return typeof value === "string" ? value.replace(/^faction_/, "").replaceAll("_", " ") : "the faction";
+}
+
+function meldfallSeatLabel(value: unknown): string {
+  if (typeof value === "string") {
+    const match = /^seat_(\d+)$/.exec(value);
+    if (match) {
+      return `Seat ${Number(match[1]) + 1}`;
+    }
+    return value;
+  }
+  return "A seat";
+}
+
+function meldfallRoundScoreDetail(payload: Record<string, unknown>): string {
+  const roundNumber = typeof payload.round_index === "number" ? payload.round_index + 1 : null;
+  const roundLabel = roundNumber ? `Round ${roundNumber}` : "Round";
+  const deltas = Array.isArray(payload.deltas) ? (payload.deltas as unknown[]).map(Number) : [];
+  const cumulative = Array.isArray(payload.cumulative_scores)
+    ? (payload.cumulative_scores as unknown[]).map(Number)
+    : [];
+
+  if (deltas.length === 0 && cumulative.length === 0) {
+    return `${roundLabel} settled.`;
+  }
+
+  let leaderText = "";
+  if (cumulative.length > 0) {
+    const top = Math.max(...cumulative);
+    const leaders = cumulative.flatMap((score, index) => (score === top ? [index] : []));
+    leaderText =
+      leaders.length === 1
+        ? ` Seat ${leaders[0] + 1} leads at ${top}.`
+        : ` Tied at ${top}.`;
+  }
+
+  const deltaText =
+    deltas.length > 0
+      ? ` Round delta — ${deltas.map((delta, index) => `Seat ${index + 1} ${delta >= 0 ? "+" : ""}${delta}`).join(", ")}.`
+      : "";
+
+  return `${roundLabel} settled.${leaderText}${deltaText}`;
 }
 
 function cardLabel(value: unknown): string {

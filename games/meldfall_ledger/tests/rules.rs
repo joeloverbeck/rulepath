@@ -7,15 +7,21 @@ use meldfall_ledger::{
     cards::{canonical_deck, ranks_are_consecutive_low_or_high, Card, CardId, Rank, Suit},
     effects::{effect_stable_string, MeldfallEffect},
     rules::{
-        discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays,
-        lay_off_card, table_new_meld, take_new_meld_from_hand, validate_new_meld,
-        validate_owned_meld,
+        advance_to_next_round, discard_card, draw_from_discard, draw_from_stock,
+        finish_turn_after_table_plays, lay_off_card, table_new_meld, take_new_meld_from_hand,
+        validate_new_meld, validate_owned_meld,
     },
     scoring::{
         apply_round_deltas, card_score, settle_round, terminal_outcome_for_scores_after_deltas,
     },
-    setup::{deal_for_round, default_seats, setup_match, validate_seat_count, SetupOptions},
-    state::{MatchState, MeldId, MeldKind, TurnOrdinal},
+    setup::{
+        deal_for_round, deal_seed_for_round, default_seats, setup_match, validate_seat_count,
+        SetupOptions,
+    },
+    state::{
+        DiscardPickupCommitment, MatchState, MeldId, MeldKind, RoundEndReason, RoundEndSummary,
+        TurnOrdinal, TurnPhase,
+    },
     visibility::{project_public_tableau, project_tableau_for_viewer},
     STANDARD_CARD_COUNT,
 };
@@ -105,11 +111,128 @@ fn setup_is_deterministic_for_seed_and_seat_count() {
 }
 
 #[test]
+fn per_round_deal_seed_keeps_round_zero_and_derives_later_rounds() {
+    let base = Seed(1902);
+
+    assert_eq!(deal_seed_for_round(base, 0), base);
+    assert_eq!(deal_seed_for_round(base, 1), deal_seed_for_round(base, 1));
+    assert_ne!(deal_seed_for_round(base, 1), base);
+    assert_ne!(deal_seed_for_round(base, 1), deal_seed_for_round(base, 2));
+    assert_ne!(
+        deal_seed_for_round(base, 1),
+        deal_seed_for_round(Seed(1903), 1)
+    );
+}
+
+#[test]
 fn deal_order_starts_left_of_dealer_clockwise() {
     let deal = deal_for_round(Seed(1903), 2, 6, 7).expect("deal ok");
 
     assert_eq!(deal.dealer_index, 2);
     assert_eq!(deal.deal_order, vec![3, 4, 5, 0, 1, 2]);
+}
+
+#[test]
+fn advance_to_next_round_resets_round_only_state_and_preserves_match_scores() {
+    let mut state = sample_state();
+    let old_summary = state.round.stable_internal_summary();
+    let meld_cards = vec![
+        Card::new(Rank::Nine, Suit::Clubs).id(),
+        Card::new(Rank::Nine, Suit::Diamonds).id(),
+        Card::new(Rank::Nine, Suit::Hearts).id(),
+    ];
+    state.round.seats[0].hand = meld_cards.clone();
+    table_new_meld(&mut state.round, 0, &meld_cards, TurnOrdinal(7)).expect("meld tables");
+    state.round.pending_pickup = Some(DiscardPickupCommitment {
+        selected_card: Card::new(Rank::Ace, Suit::Spades).id(),
+        source_discard_index: 0,
+        required_by_seat: 0,
+    });
+    state.round.round_end = Some(RoundEndSummary {
+        reason: RoundEndReason::GoOutByFinalDiscard,
+        seat_index: 0,
+    });
+    state.round.phase = TurnPhase::RoundSettled;
+    state.cumulative_scores = vec![120, -15, 45, 0];
+
+    advance_to_next_round(&mut state).expect("non-terminal round advances");
+
+    assert_eq!(state.rounds_settled, 1);
+    assert_eq!(state.dealer_index, 1);
+    assert_eq!(state.round.active_seat_index, 2);
+    assert_eq!(state.round.phase, TurnPhase::Draw);
+    assert_eq!(state.cumulative_scores, vec![120, -15, 45, 0]);
+    assert!(state.round.pending_pickup.is_none());
+    assert!(state.round.round_end.is_none());
+    assert!(state.round.tableau.groups.is_empty());
+    assert_eq!(state.round.tableau.next_meld_id(), MeldId(0));
+    assert_eq!(state.round.round_played_scores, vec![0, 0, 0, 0]);
+    assert_eq!(state.round.discard.len(), 1);
+    assert_eq!(state.round.stock.len(), 23);
+    assert!(state.round.seats.iter().all(|seat| seat.hand.len() == 7));
+    assert_ne!(state.round.stable_internal_summary(), old_summary);
+    assert_round_conserves_deck(&state);
+}
+
+#[test]
+fn advance_to_next_round_rotates_dealer_and_lead_for_supported_seat_counts() {
+    for seat_count in 2..=6 {
+        let seats = default_seats(seat_count).expect("supported seats");
+        let setup = setup_match(
+            Seed(1905),
+            &seats,
+            &SetupOptions {
+                dealer_index: seat_count - 1,
+                ..SetupOptions::default()
+            },
+        )
+        .expect("setup ok");
+        let mut state = MatchState::from_initial_setup(setup);
+        state.round.phase = TurnPhase::RoundSettled;
+        state.round.round_end = Some(RoundEndSummary {
+            reason: RoundEndReason::StockExhausted,
+            seat_index: state.round.active_seat_index,
+        });
+
+        advance_to_next_round(&mut state).expect("advance ok");
+
+        assert_eq!(state.dealer_index, 0);
+        assert_eq!(state.round.active_seat_index, 1);
+        assert_eq!(state.rounds_settled, 1);
+        assert_round_conserves_deck(&state);
+    }
+}
+
+#[test]
+fn advance_to_next_round_is_deterministic_for_same_seed_and_round_index() {
+    fn settled_state(seed: u64) -> MatchState {
+        let seats = default_seats(4).expect("supported seats");
+        let setup = setup_match(Seed(seed), &seats, &SetupOptions::default()).expect("setup ok");
+        let mut state = MatchState::from_initial_setup(setup);
+        state.round.phase = TurnPhase::RoundSettled;
+        state.round.round_end = Some(RoundEndSummary {
+            reason: RoundEndReason::GoOutWithoutDiscard,
+            seat_index: state.round.active_seat_index,
+        });
+        state
+    }
+
+    let mut first = settled_state(1910);
+    let mut second = settled_state(1910);
+    let mut different = settled_state(1911);
+
+    advance_to_next_round(&mut first).expect("advance first");
+    advance_to_next_round(&mut second).expect("advance second");
+    advance_to_next_round(&mut different).expect("advance different");
+
+    assert_eq!(
+        first.stable_internal_summary(),
+        second.stable_internal_summary()
+    );
+    assert_ne!(
+        first.stable_internal_summary(),
+        different.stable_internal_summary()
+    );
 }
 
 #[test]
@@ -834,4 +957,20 @@ fn sample_state() -> MatchState {
     ];
     let setup = setup_match(Seed(1907), &seats, &SetupOptions::default()).expect("setup ok");
     MatchState::from_initial_setup(setup)
+}
+
+fn assert_round_conserves_deck(state: &MatchState) {
+    let mut cards = Vec::new();
+    cards.extend(state.round.stock.iter().copied());
+    cards.extend(state.round.discard.iter().copied());
+    for seat in &state.round.seats {
+        cards.extend(seat.hand.iter().copied());
+    }
+    for group in &state.round.tableau.groups {
+        cards.extend(group.cards.iter().map(|card| card.card));
+    }
+
+    let unique = cards.iter().copied().collect::<BTreeSet<_>>();
+    assert_eq!(cards.len(), STANDARD_CARD_COUNT as usize);
+    assert_eq!(unique.len(), STANDARD_CARD_COUNT as usize);
 }

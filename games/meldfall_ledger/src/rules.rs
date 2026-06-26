@@ -14,10 +14,12 @@ use crate::{
     effects::{
         public_effect, DrawSource, LayoffEffectPosition, MeldfallEffect, MeldfallEffectEnvelope,
     },
+    ids::hand_size_for_seats,
     ids::next_clockwise_index,
+    setup::{deal_for_round, deal_seed_for_round, InitialSetup},
     state::{
-        DiscardPickupCommitment, MeldGroup, MeldId, MeldKind, RoundEndReason, RoundEndSummary,
-        RoundState, SeatIndex, TableCard, TurnOrdinal, TurnPhase,
+        DiscardPickupCommitment, MatchState, MeldGroup, MeldId, MeldKind, RoundEndReason,
+        RoundEndSummary, RoundState, SeatIndex, TableCard, TurnOrdinal, TurnPhase,
     },
 };
 
@@ -362,6 +364,61 @@ pub fn settle_round_stock_exhausted(
     validate_seat_index(round, seat_index)?;
     validate_active_seat(round, seat_index)?;
     end_round(round, RoundEndReason::StockExhausted, seat_index);
+    Ok(())
+}
+
+pub fn advance_to_next_round(state: &mut MatchState) -> Result<(), Diagnostic> {
+    if state.round.phase != TurnPhase::RoundSettled {
+        return Err(meld_diagnostic(
+            "ML_ROUND_NOT_SETTLED",
+            format!(
+                "meldfall_ledger can only advance from round_settled; current phase is {}",
+                state.round.phase.as_str()
+            ),
+        ));
+    }
+
+    let seat_count = state.seats.len();
+    let next_round_index = state.rounds_settled.checked_add(1).ok_or_else(|| {
+        meld_diagnostic(
+            "ML_ROUND_INDEX_OVERFLOW",
+            "meldfall_ledger round index overflowed during round transition",
+        )
+    })?;
+    let new_dealer = next_clockwise_index(state.dealer_index, seat_count).ok_or_else(|| {
+        meld_diagnostic(
+            "ML_INVALID_TURN_RING",
+            "meldfall_ledger cannot rotate dealer for current match",
+        )
+    })?;
+    let active_seat_index = next_clockwise_index(new_dealer, seat_count).ok_or_else(|| {
+        meld_diagnostic(
+            "ML_INVALID_TURN_RING",
+            "meldfall_ledger cannot choose the next round lead seat",
+        )
+    })?;
+    let hand_size = hand_size_for_seats(seat_count).ok_or_else(|| {
+        meld_diagnostic(
+            "ML_INVALID_SEAT_COUNT",
+            format!("meldfall_ledger cannot deal a round for {seat_count} seats"),
+        )
+    })?;
+    let round_seed = deal_seed_for_round(state.base_seed, next_round_index);
+    let deal = deal_for_round(round_seed, new_dealer, seat_count, hand_size)?;
+
+    state.rounds_settled = next_round_index;
+    state.dealer_index = new_dealer;
+    state.round = RoundState::from_initial_setup(InitialSetup {
+        variant: state.variant.clone(),
+        seats: state.seats.clone(),
+        dealer_index: new_dealer,
+        active_seat_index,
+        deal_order: deal.deal_order,
+        private_hands: deal.private_hands,
+        initial_discard: deal.initial_discard,
+        stock: deal.stock,
+        seed: round_seed,
+    });
     Ok(())
 }
 

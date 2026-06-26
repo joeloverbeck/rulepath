@@ -1,0 +1,56 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "round-transition-resets-table-state",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "rules": ["ML-MATCH-003", "ML-MATCH-004", "ML-MATCH-006", "ML-SETUP-005", "ML-VIS-003"],
+  "seed": 1910,
+  "seat_count": 4,
+  "before_transition": {
+    "phase": "round_settled",
+    "round_index": 0,
+    "rounds_settled": 0,
+    "dealer": "seat_0",
+    "active_seat": "seat_3",
+    "round_end": "stock_exhausted:seat=3",
+    "tableau_groups": "non_empty",
+    "pending_pickup": "cleared_or_round_local",
+    "cumulative_scores": [120, 480, 480, -25],
+    "terminal": null
+  },
+  "transition": {
+    "operation": "advance_to_next_round",
+    "reason": "nonterminal settled round",
+    "effect_kind": "next_round_dealt",
+    "terminal_policy": "highest eligible score tied at or above target continues"
+  },
+  "after_transition": {
+    "phase": "draw",
+    "round_index": 1,
+    "rounds_settled": 1,
+    "dealer": "seat_1",
+    "active_seat": "seat_2",
+    "hand_counts": [7, 7, 7, 7],
+    "stock_count": 23,
+    "discard_count": 1,
+    "tableau_groups": 0,
+    "pending_pickup": null,
+    "round_end": null,
+    "round_played_scores": [0, 0, 0, 0],
+    "cumulative_scores": [120, 480, 480, -25],
+    "terminal": null
+  },
+  "assertions": [
+    "dealer rotates clockwise",
+    "active seat is left of the new dealer",
+    "round-only tableau, discard, hands, pending pickup, round_end, and played scores reset",
+    "cumulative scores carry forward unchanged",
+    "tie at or above target remains nonterminal and advances to the next round",
+    "new stock order and new private hands remain hidden"
+  ],
+  "evidence": [
+    "games/meldfall_ledger/tests/rules.rs transition tests",
+    "games/meldfall_ledger/tests/visibility.rs six_seat_transition_redeal_keeps_new_hands_and_stock_hidden",
+    "crates/wasm-api/src/tests.rs meldfall full-play determinism and score-ledger tests",
+    "tools/simulate completion run recorded in GAT191MELLED-004"
+  ]
+}

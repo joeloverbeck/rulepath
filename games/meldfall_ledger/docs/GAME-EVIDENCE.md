@@ -86,6 +86,18 @@ IP/public-release review remains pending before external public release.
 | `meldfall_ledger_layoff_any_tableau.fixture.json` | pass | Lay-off onto public tableau with score credit. |
 | `meldfall_ledger_500_tie_continues.fixture.json` | pass | Target threshold and tie-continuation behavior. |
 
+## Gate 19.1 Multi-Round Completion Receipt
+
+Completed: 2026-06-26
+
+| Surface | Status | Evidence | Notes |
+|---|---|---|---|
+| Rust-owned transition | pass | `games/meldfall_ledger/tests/rules.rs`; `round-transition-resets-table-state.trace.json` | Nonterminal settled rounds rotate dealer, clear round-only state, re-deal deterministically, preserve cumulative scores, and continue from the seat left of the new dealer. |
+| Host parity | pass | `crates/wasm-api/src/tests.rs`; `tools/simulate/src/main.rs`; `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000` | WASM and native simulator both route through `advance_to_next_round`; the recorded simulator run completed 1000/1000 games with `bounded_nonterminal_at_cap=0`. |
+| Replay and no-leak | pass | `cargo run -p replay-check -- --game meldfall_ledger --all`; `games/meldfall_ledger/tests/visibility.rs` | Re-dealt stock and new private hands remain hidden across view, action-tree, effect, and viewer-export surfaces. |
+| Web completion | pass | `apps/web/src/components/effectFeedback.ts`; `apps/web/scripts/smoke-effect-feedback.mjs`; `output/playwright/gat191melled-005-meldfall-terminal.png` | Browser Bot vs bot evidence reaches the terminal outcome panel with no `round_settled` dead-end. |
+| Coverage closeout | pass | [RULE-COVERAGE.md](RULE-COVERAGE.md); `cargo run -p rule-coverage -- --game meldfall_ledger`; `cargo run -p fixture-check -- --game meldfall_ledger` | `ML-MATCH-003` and `ML-MATCH-006` are covered by traces/tests; existing scoring-illustration fixtures remain intact. |
+
 ## Viewer Matrix
 
 | Viewer class | Public view evidence | Seat-private view evidence | Action/effect/diagnostic evidence | Replay/export evidence | Status |

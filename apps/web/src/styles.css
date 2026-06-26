@@ -5659,6 +5659,37 @@ svg g[data-effect-kind] {
   line-height: 1;
 }
 
+.meldfall-face {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  line-height: 1;
+}
+
+.meldfall-face .meldfall-rank {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+}
+
+.meldfall-face .meldfall-suit {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+}
+
+.meldfall-face.red {
+  color: #c0392b;
+}
+
+.meldfall-face.black {
+  color: var(--ml-ink);
+}
+
 .meldfall-card small,
 .meldfall-stock small,
 .meldfall-action small {
