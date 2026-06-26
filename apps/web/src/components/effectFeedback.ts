@@ -791,32 +791,32 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         title: "Card drawn",
         detail:
           payload.source === "stock"
-            ? `${payload.seat} drew from the hidden stock; stock ${payload.stock_count_after ?? 0}.`
-            : `${payload.seat} drew ${payload.cards_moved ?? 0} public discard card(s).`,
+            ? `${meldfallSeatLabel(payload.seat)} drew from the hidden stock; stock ${payload.stock_count_after ?? 0}.`
+            : `${meldfallSeatLabel(payload.seat)} drew ${payload.cards_moved ?? 0} public discard card(s).`,
         tone: "movement",
       };
     case "stock_draw_private":
       return {
         title: "Private draw",
-        detail: `${payload.seat} received one private stock card; stock ${payload.stock_count_after ?? 0}.`,
+        detail: `${meldfallSeatLabel(payload.seat)} received one private stock card; stock ${payload.stock_count_after ?? 0}.`,
         tone: "neutral",
       };
     case "meld":
       return {
         title: "Meld tabled",
-        detail: `${payload.seat} tabled ${Array.isArray(payload.cards) ? payload.cards.length : 0} public card(s).`,
+        detail: `${meldfallSeatLabel(payload.seat)} tabled ${Array.isArray(payload.cards) ? payload.cards.length : 0} public card(s).`,
         tone: "movement",
       };
     case "lay_off":
       return {
         title: "Lay-off tabled",
-        detail: `${payload.seat} extended ${String(payload.meld_id ?? "a public meld")}.`,
+        detail: `${meldfallSeatLabel(payload.seat)} extended ${String(payload.meld_id ?? "a public meld")}.`,
         tone: "movement",
       };
     case "discard":
       return {
         title: "Card discarded",
-        detail: `${payload.seat} discarded one public card; discard count ${payload.discard_count_after ?? 0}.`,
+        detail: `${meldfallSeatLabel(payload.seat)} discarded one public card; discard count ${payload.discard_count_after ?? 0}.`,
         tone: "turn",
       };
     case "round_score":
@@ -834,7 +834,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "refill_started":
       return {
         title: "Next round",
-        detail: `${payload.next_lead_seat} leads the next round.`,
+        detail: `${meldfallSeatLabel(payload.next_lead_seat)} leads the next round.`,
         tone: "turn",
       };
     case "terminal":
@@ -957,6 +957,17 @@ function factionLabel(value: unknown): string {
     return "Freeholders";
   }
   return typeof value === "string" ? value.replace(/^faction_/, "").replaceAll("_", " ") : "the faction";
+}
+
+function meldfallSeatLabel(value: unknown): string {
+  if (typeof value === "string") {
+    const match = /^seat_(\d+)$/.exec(value);
+    if (match) {
+      return `Seat ${Number(match[1]) + 1}`;
+    }
+    return value;
+  }
+  return "A seat";
 }
 
 function cardLabel(value: unknown): string {
