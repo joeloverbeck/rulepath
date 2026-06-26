@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-018: RULE-COVERAGE.md and rule-coverage tool registration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — deterministic evidence + docs (`games/meldfall_ledger/docs/RULE-COVERAGE.md`); `tools/rule-coverage` game arm
@@ -73,3 +73,22 @@ Register `meldfall_ledger` in `tools/rule-coverage/src/main.rs` (game allowlist 
 1. `cargo run -p rule-coverage -- --game meldfall_ledger`
 2. `node scripts/check-doc-links.mjs`
 3. `cargo test --workspace`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Added `games/meldfall_ledger/docs/RULE-COVERAGE.md` with a Gate 19 matrix that maps all stable `ML-*` rule IDs from `RULES.md` to implementation owners, tests, traces, fixture/tool evidence, docs, and benchmark coverage. The matrix also records the golden trace inventory, diagnostic coverage, variant decisions, and exclusions.
+
+Registered `meldfall_ledger` in `tools/rule-coverage/src/main.rs` with its `RULES.md`, `RULE-COVERAGE.md`, and `BENCHMARKS.md` paths, and extended the rule-id parser to accept the `ML` prefix.
+
+The coverage status is intentionally exact: `ML-MATCH-006` is marked `intentionally-deferred` because full nonterminal multi-round transition wiring is completed in later gate/tooling closeout, and `ML-UI-001` through `ML-UI-003` are marked `intentionally-deferred` for the later WASM/web tickets that own browser surfaces.
+
+Verification passed:
+
+1. `cargo run -p rule-coverage -- --game meldfall_ledger`
+2. `cargo fmt --all --check`
+3. `node scripts/check-doc-links.mjs`
+4. `cargo test --workspace`
+5. Two rule-id set comparisons between `RULES.md` and `RULE-COVERAGE.md` produced no output, confirming no missing or extra `ML-*` rule IDs.
+6. The trace filename set comparison between `RULE-COVERAGE.md` and `games/meldfall_ledger/tests/golden_traces/` produced no output, confirming every referenced trace file exists.
