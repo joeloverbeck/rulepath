@@ -1,6 +1,6 @@
 # GAT191MELLED-003: `NextRoundDealt` effect + `round_score_index` correction
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger` (`src/effects.rs`); `crates/wasm-api` (`src/games/meldfall.rs`)
@@ -127,3 +127,30 @@ before the first settlement and the settled count thereafter.
 3. The two crate-scoped test filters are the correct boundary (effect definition in
    the game crate, `round_score_index` in the bridge); end-to-end emission is
    verified in GAT191MELLED-004.
+
+## Outcome
+
+Completed: 2026-06-26
+
+Added the public `MeldfallEffect::NextRoundDealt` variant with stable-string and
+WASM JSON encodings using the distinct `next_round_dealt` kind. The payload
+contains only the next round number, new dealer seat, and next lead seat. Updated
+`round_score_index` to read `MatchState::rounds_settled` and removed the deferred
+single-round hardcode.
+
+Deviations: the initial in-module effect test was placed before a helper and
+triggered clippy's `items_after_test_module` lint; it was moved to the end of
+`effects.rs` and the affected checks were rerun successfully.
+
+Verification:
+
+- `cargo test -p meldfall_ledger effects`
+- `cargo test -p wasm-api meldfall_round_score_index_is_the_round_not_the_finishing_seat`
+- `cargo test -p wasm-api`
+- `cargo fmt --all --check`
+- `cargo build --workspace`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `rg -n 'refill_started' games/meldfall_ledger crates/wasm-api/src/games/meldfall.rs`
+  found no Meldfall encoder use of that kind
+- `rg -n 'next_round_dealt' games/meldfall_ledger crates/wasm-api/src/games/meldfall.rs`
+  confirmed the new bridge kind

@@ -227,12 +227,8 @@ pub(crate) fn meldfall_apply_command(
     Ok(effects)
 }
 
-pub(crate) fn round_score_index(_state: &MatchState) -> u32 {
-    // The multi-round transition (ML-MATCH-006) is intentionally deferred, so a
-    // match plays exactly one round, scored as round index 0. This must not be
-    // derived from the seat that ended the round. When multi-round wiring lands,
-    // this becomes the count of rounds settled before the current one.
-    0
+pub(crate) fn round_score_index(state: &MatchState) -> u32 {
+    state.rounds_settled
 }
 
 enum MeldfallCommand {
@@ -486,6 +482,16 @@ fn meldfall_effect_payload_json(effect: &MeldfallEffect) -> String {
             round_index,
             i32_array(deltas),
             i32_array(cumulative_scores)
+        ),
+        MeldfallEffect::NextRoundDealt {
+            next_round_number,
+            next_lead_seat,
+            new_dealer,
+        } => format!(
+            "{{\"kind\":\"next_round_dealt\",\"next_round_number\":{},\"next_lead_seat\":\"{}\",\"new_dealer\":\"{}\"}}",
+            next_round_number,
+            trace_meldfall_seat(*next_lead_seat),
+            trace_meldfall_seat(*new_dealer)
         ),
         MeldfallEffect::MatchTerminal { outcome } => {
             format!("{{\"kind\":\"match_terminal\",\"outcome\":{}}}", outcome_json(&PublicMatchOutcomeView {

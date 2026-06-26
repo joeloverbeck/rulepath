@@ -47,6 +47,11 @@ pub enum MeldfallEffect {
         deltas: Vec<i32>,
         cumulative_scores: Vec<i32>,
     },
+    NextRoundDealt {
+        next_round_number: u32,
+        next_lead_seat: SeatIndex,
+        new_dealer: SeatIndex,
+    },
     MatchTerminal {
         outcome: MatchOutcome,
     },
@@ -159,6 +164,13 @@ pub fn effect_stable_string(effect: &MeldfallEffectEnvelope) -> String {
             int_list(deltas),
             int_list(cumulative_scores)
         ),
+        MeldfallEffect::NextRoundDealt {
+            next_round_number,
+            next_lead_seat,
+            new_dealer,
+        } => format!(
+            "NextRoundDealt:round={next_round_number}:dealer={new_dealer}:lead={next_lead_seat}"
+        ),
         MeldfallEffect::MatchTerminal { outcome } => {
             format!("MatchTerminal:{}", outcome.stable_string())
         }
@@ -179,4 +191,25 @@ fn int_list(values: &[i32]) -> String {
         .map(i32::to_string)
         .collect::<Vec<_>>()
         .join(",")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn next_round_dealt_stable_string_is_public_counts_and_seats_only() {
+        let effect = public_effect(MeldfallEffect::NextRoundDealt {
+            next_round_number: 2,
+            new_dealer: 1,
+            next_lead_seat: 2,
+        });
+
+        let stable = effect_stable_string(&effect);
+        assert_eq!(stable, "NextRoundDealt:round=2:dealer=1:lead=2");
+        assert!(!stable.contains("card"));
+        assert!(!stable.contains("hand"));
+        assert!(!stable.contains("stock"));
+        assert!(!stable.contains("refill_started"));
+    }
 }

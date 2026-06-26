@@ -555,7 +555,7 @@ fn meldfall_round_score_index_is_the_round_not_the_finishing_seat() {
     use meldfall_ledger::state::{RoundEndReason, RoundEndSummary};
 
     let mut state = create_meldfall_match(7, 4).expect("meldfall match created");
-    // A non-zero seat ends the only round. The scored round is still round 0;
+    // A non-zero seat ends the first round. The scored round is still round 0;
     // the round index must not be confused with the finishing seat's index.
     state.round.round_end = Some(RoundEndSummary {
         reason: RoundEndReason::GoOutWithoutDiscard,
@@ -566,6 +566,13 @@ fn meldfall_round_score_index_is_the_round_not_the_finishing_seat() {
         round_score_index(&state),
         0,
         "round_score effect must report the round index (0), not the finishing seat"
+    );
+
+    state.rounds_settled = 2;
+    assert_eq!(
+        round_score_index(&state),
+        2,
+        "round_score effect must report the settled-round count once later rounds exist"
     );
 }
 
