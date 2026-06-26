@@ -32,6 +32,10 @@ type GroupedChoices = {
 
 const SEATS: MeldfallLedgerSeatId[] = ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"];
 
+// Cumulative match target for the pinned classic_500_single_deck_v1 variant
+// (ML-MATCH-001). A fixed variant constant surfaced for presentation only.
+const MATCH_TARGET = 500;
+
 export function MeldfallLedgerBoard({
   view,
   actionTree,
@@ -64,7 +68,7 @@ export function MeldfallLedgerBoard({
         templateKey: "meldfall_ledger.high_score_win",
         templateParams: {
           winner: winnerStanding(view.terminal.standings)?.seat ?? "winner",
-          target: 500,
+          target: MATCH_TARGET,
         },
         finalStanding: view.terminal.standings.map((standing) => ({
           id: standing.seat,
@@ -81,7 +85,7 @@ export function MeldfallLedgerBoard({
             id: "terminal-threshold",
             heading: "Target threshold",
             rows: [
-              { label: "Target", value: 500, ruleId: "ML-MATCH-001" },
+              { label: "Target", value: MATCH_TARGET, ruleId: "ML-MATCH-001" },
               { label: "Winner rule", value: "Unique highest eligible score", ruleId: "ML-MATCH-002" },
             ],
           },
@@ -122,6 +126,7 @@ export function MeldfallLedgerBoard({
         <Metric label="Dealer" value={seatLabel(view.dealer)} />
         <Metric label="Stock" value={`${view.stock_count} hidden`} />
         <Metric label="Discard" value={`${view.discard.length} public`} />
+        <Metric label="Target" value={`${MATCH_TARGET} to win`} />
       </div>
 
       <div className="meldfall-table-shell" aria-label="Meldfall Ledger table">
@@ -368,20 +373,55 @@ const RANK_SHORT: Record<string, string> = {
   Ace: "A",
 };
 
+// Constant Meldfall Ledger card values under meldfall-ledger-rules-v1 (ML-SCORE-001):
+// ace = 15; king, queen, jack, ten = 10; ranks 2-9 = pip value. These values are
+// constant in every scoring context (a low ace in a run still scores 15), so this is
+// a presentation-only readout of the viewer's already-authorized card identities.
+// Rust remains the scoring authority and TypeScript decides no legality (ML-UI-001).
+const RANK_VALUE: Record<string, number> = {
+  Two: 2,
+  Three: 3,
+  Four: 4,
+  Five: 5,
+  Six: 6,
+  Seven: 7,
+  Eight: 8,
+  Nine: 9,
+  Ten: 10,
+  Jack: 10,
+  Queen: 10,
+  King: 10,
+  Ace: 15,
+};
+
+function cardValue(card: string): number {
+  return RANK_VALUE[parseCard(card).rank] ?? 0;
+}
+
 function CardFace({ card }: { card: string }) {
   const parsed = parseCard(card);
   const glyph = SUIT_GLYPH[parsed.suit];
   const isRed = parsed.suit === "Hearts" || parsed.suit === "Diamonds";
   const rankShort = RANK_SHORT[parsed.rank] ?? parsed.rank;
+  const value = RANK_VALUE[parsed.rank];
   return (
     <span className={`meldfall-face ${isRed ? "red" : "black"}`}>
-      <span className="sr-only">{`${parsed.rank} of ${parsed.suit}`}</span>
+      <span className="sr-only">
+        {value === undefined
+          ? `${parsed.rank} of ${parsed.suit}`
+          : `${parsed.rank} of ${parsed.suit}, worth ${value} ${value === 1 ? "point" : "points"}`}
+      </span>
       <strong className="meldfall-rank" aria-hidden="true">
         {rankShort}
       </strong>
       <span className="meldfall-suit" aria-hidden="true">
         {glyph ?? parsed.suit}
       </span>
+      {value === undefined ? null : (
+        <span className="meldfall-value" aria-hidden="true">
+          {value}
+        </span>
+      )}
     </span>
   );
 }
@@ -424,7 +464,13 @@ function actionStatus(view: MeldfallLedgerPublicView, pending: boolean): string 
 }
 
 function privateHeading(view: MeldfallLedgerPublicView): string {
-  if (view.private_view_status === "seat") return `${view.own_hand.length} cards`;
+  if (view.private_view_status === "seat") {
+    // In-hand penalty if this round settled now: each held card subtracts its value
+    // (ML-SCORE-003). Presentation aggregation of the viewer's own authorized cards;
+    // opponent penalties stay hidden because only this seat's hand is visible.
+    const penalty = view.own_hand.reduce((sum, card) => sum + cardValue(card), 0);
+    return `${view.own_hand.length} cards · ${penalty} penalty if held`;
+  }
   return `${view.hand_counts.join(" / ")} public counts`;
 }
 

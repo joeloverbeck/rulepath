@@ -5615,6 +5615,7 @@ svg g[data-effect-kind] {
 .meldfall-card,
 .meldfall-empty,
 .meldfall-hidden-hand {
+  position: relative;
   min-height: 104px;
   display: grid;
   place-items: center;
@@ -5626,6 +5627,27 @@ svg g[data-effect-kind] {
   color: var(--ml-ink);
   padding: 10px;
   text-align: center;
+}
+
+/* Point-value chip on each card (ace 15, court/ten 10, pips by rank). Presentation
+   only: it labels the card's constant face value so the player can weigh penalties,
+   pickups, and tabled gains without leaving the board (ML-SCORE-001). */
+.meldfall-value {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-end: 6px;
+  min-inline-size: 18px;
+  block-size: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--ml-ink);
+  color: #fffaf0;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .meldfall-stock:not(:disabled),
