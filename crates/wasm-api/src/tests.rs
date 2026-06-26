@@ -216,6 +216,25 @@ fn briar_circuit_catalog_uses_one_based_default_seat_labels() {
 }
 
 #[test]
+fn meldfall_ledger_catalog_exposes_variable_hidden_info_metadata() {
+    let games = list_games().expect("games listed");
+    let meldfall_start = games
+        .find("\"game_id\":\"meldfall_ledger\"")
+        .expect("meldfall catalog entry present");
+    let meldfall = &games[meldfall_start..];
+    assert!(meldfall.contains("\"display_name\":\"Meldfall Ledger\""));
+    assert!(meldfall.contains(
+        "\"variants\":[{\"id\":\"classic_500_single_deck_v1\",\"label\":\"Meldfall Ledger\",\"description\":\"Single-deck public-meld race to 500\"}]"
+    ));
+    assert!(meldfall.contains("\"hidden_information\":true"));
+    assert!(meldfall.contains("\"min_seats\":2"));
+    assert!(meldfall.contains("\"max_seats\":6"));
+    assert!(meldfall.contains("\"default_seats\":4"));
+    assert!(meldfall.contains("\"supported_seats\":[2,3,4,5,6]"));
+    assert!(meldfall.contains("\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\",\"seat_2\",\"seat_3\",\"seat_4\",\"seat_5\"]"));
+}
+
+#[test]
 fn race_to_n_and_directional_flip_catalogs_use_player_labels() {
     let games = list_games().expect("games listed");
     let race_start = games
@@ -239,6 +258,55 @@ fn race_to_n_and_directional_flip_catalogs_use_player_labels() {
     assert!(directional.contains(
         "\"seat_labels\":[{\"seat\":\"seat_0\",\"label\":\"Player 1\"},{\"seat\":\"seat_1\",\"label\":\"Player 2\"}]"
     ));
+}
+
+#[test]
+fn meldfall_ledger_wasm_surface_filters_hidden_cards_and_authorizes_actor() {
+    let created =
+        new_match_with_seat_count("meldfall_ledger", 19019, 4).expect("meldfall match created");
+    let match_id = extract_match_id(&created);
+    assert!(created.contains("\"variant_id\":\"classic_500_single_deck_v1\""));
+
+    let observer = get_view(&match_id, None).expect("observer view returned");
+    let seat_1 = get_view(&match_id, Some("seat_1")).expect("seat view returned");
+    assert!(observer.contains("\"game_id\":\"meldfall_ledger\""));
+    assert!(observer.contains("\"private_view_status\":\"observer\""));
+    assert!(observer.contains("\"own_hand\":[]"));
+    assert!(observer.contains("\"stock_count\":"));
+    assert!(observer.contains("\"discard\":["));
+    assert!(seat_1.contains("\"private_view_status\":\"seat\""));
+    assert!(seat_1.contains("\"own_hand\":["));
+
+    let unauthorized = get_action_tree_for_viewer(&match_id, "seat_1", Some("seat_0"))
+        .expect("unauthorized tree returned");
+    assert!(unauthorized.contains("\"choices\":[]"));
+    let authorized = get_action_tree_for_viewer(&match_id, "seat_1", Some("seat_1"))
+        .expect("authorized tree returned");
+    assert!(authorized.contains("\"segment\":\"draw-stock\""));
+
+    let applied = apply_action(&match_id, "seat_1", "draw-stock", 0).expect("stock draw applies");
+    assert!(applied.contains("\"kind\":\"draw\""));
+    assert!(applied.contains("\"source\":\"stock\""));
+    assert!(applied.contains("\"phase\":\"table\""));
+    assert!(!applied.contains("\"stock_draw_private\""));
+
+    let observer_effects = get_effects(&match_id, 0, None).expect("observer effects returned");
+    assert!(observer_effects.contains("\"kind\":\"draw\""));
+    assert!(!observer_effects.contains("\"stock_draw_private\""));
+
+    let exported = export_replay(&match_id).expect("viewer replay exported");
+    assert!(exported.contains("\"game_id\":\"meldfall_ledger\""));
+    assert!(exported.contains("\"export_class\":\"meldfall_ledger_viewer_scoped_observation_v1\""));
+    let imported = import_replay(&exported).expect("viewer replay imported");
+    assert!(imported.contains("\"public_export\":true"));
+    assert!(imported.contains("\"game_id\":\"meldfall_ledger\""));
+
+    let bot_created =
+        new_match_with_seat_count("meldfall_ledger", 19020, 4).expect("meldfall bot match created");
+    let bot_match_id = extract_match_id(&bot_created);
+    let bot = run_bot_turn(&bot_match_id, "seat_1", 7).expect("bot turn applies");
+    assert!(bot.contains("\"ok\":true"));
+    assert!(bot.contains("\"policy_id\":\"meldfall-ledger-l0-random-legal-v1\""));
 }
 
 #[test]

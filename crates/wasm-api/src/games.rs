@@ -15,6 +15,7 @@ pub(crate) mod flood;
 pub(crate) mod frontier;
 pub(crate) mod high_card;
 pub(crate) mod masked;
+pub(crate) mod meldfall;
 pub(crate) mod plain;
 pub(crate) mod poker;
 pub(crate) mod race;

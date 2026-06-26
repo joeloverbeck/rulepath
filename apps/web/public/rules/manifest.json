@@ -49,6 +49,13 @@
     "sha256": "9be912dcffa8725bbdbeceaf8d8c3c7b202a289b8d963a809e6bc3f3e43d1a0a"
   },
   {
+    "game_id": "meldfall_ledger",
+    "display_name": "Meldfall Ledger",
+    "rules_asset_path": "/rules/meldfall_ledger.md",
+    "source_rules_version_checked": "meldfall-ledger-rules-v1",
+    "sha256": "bc8c709d4c45b15521d3ab66ee2041d0bdbf8c2ba765e71c696c90f2d580ad59"
+  },
+  {
     "game_id": "flood_watch",
     "display_name": "Flood Watch",
     "rules_asset_path": "/rules/flood_watch.md",

@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-019: WASM registration, HOW-TO-PLAY, and generated player-rules (hidden-info)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — WASM bridge (`crates/wasm-api/src/{constants,games,catalog,lib}.rs`, new `games/meldfall.rs`), player-rules generation, `check-player-rules` HIDDEN_INFO registration
@@ -88,3 +88,25 @@ Add a `meldfall_ledger` catalog assertion to `apps/web/scripts/smoke-load-wasm.m
 1. `cargo test -p wasm-api`
 2. `node scripts/copy-player-rules.mjs && node scripts/check-player-rules.mjs`
 3. `npm --prefix apps/web run smoke:wasm`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Registered `meldfall_ledger` in the WASM bridge with catalog constants, catalog metadata, `RegisteredGame::MeldfallLedger`, match setup for 2-6 seats, viewer-scoped views, authorized action trees, Rust-side action-path dispatch, effect filtering, L0 bot dispatch, and viewer-scoped replay export/import. The bridge consumes Rust-owned Meldfall legality and visibility; TypeScript still decides no legality.
+
+Added `crates/wasm-api/src/games/meldfall.rs` and focused `wasm-api` tests covering catalog metadata, setup, observer/seat view redaction, action-tree authorization, stock draw apply, observer effects, bot dispatch, and viewer-scoped replay import/export. Updated the API surface snapshot for the new catalog entry.
+
+Authored `games/meldfall_ledger/docs/HOW-TO-PLAY.md`, added `meldfall_ledger` to `HIDDEN_INFO_GAMES`, and regenerated `apps/web/public/rules/meldfall_ledger.md` plus the player-rules manifest with `node scripts/copy-player-rules.mjs`.
+
+Added `meldfall_ledger` catalog/setup/view/action/replay assertions to `apps/web/scripts/smoke-load-wasm.mjs` and `apps/web/scripts/smoke-ui.mjs`. Full web renderer, e2e smoke, catalog docs, and outcome explanations remain out of scope for GAT19MELLEDFIV-020/021 as planned.
+
+Verification passed:
+
+1. `cargo fmt --all --check`
+2. `cargo test -p wasm-api`
+3. `node scripts/copy-player-rules.mjs`
+4. `node scripts/check-player-rules.mjs`
+5. `npm --prefix apps/web run smoke:wasm`
+6. `cargo test --workspace`
+7. `npm --prefix apps/web run smoke:ui`

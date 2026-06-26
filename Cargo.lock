@@ -337,6 +337,7 @@ dependencies = [
  "frontier_control",
  "high_card_duel",
  "masked_claims",
+ "meldfall_ledger",
  "plain_tricks",
  "poker_lite",
  "race_to_n",

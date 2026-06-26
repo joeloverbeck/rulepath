@@ -142,6 +142,21 @@ assert(
 assert(
   catalog.some(
     (game) =>
+      game.game_id === "meldfall_ledger" &&
+      hasVariant(game, "classic_500_single_deck_v1", "Meldfall Ledger") &&
+      game.hidden_information === true &&
+      game.min_seats === 2 &&
+      game.max_seats === 6 &&
+      game.default_seats === 4 &&
+      JSON.stringify(game.supported_seats) === JSON.stringify([2, 3, 4, 5, 6]) &&
+      game.viewer_modes.includes("seat_5") &&
+      game.tags.includes("rummy"),
+  ),
+  "list_games includes meldfall_ledger 2-6 seat hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
       game.game_id === "masked_claims" &&
       hasVariant(game, "masked_claims_standard", "Masked Claims") &&
       game.hidden_information === true &&
