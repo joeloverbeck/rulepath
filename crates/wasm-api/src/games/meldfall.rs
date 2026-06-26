@@ -7,14 +7,14 @@ use meldfall_ledger::{
         FINISH_TURN_SEGMENT, GO_OUT_WITHOUT_DISCARD_SEGMENT, LAY_OFF_SEGMENT_PREFIX,
         MELD_NEW_SEGMENT_PREFIX,
     },
-    bots::{legal_action_tree_for_seat, MeldfallL0Bot},
+    bots::{legal_action_paths, legal_action_tree_for_seat, MeldfallL0Bot},
     cards::CardId,
     effects::{effect_stable_string, MeldfallEffect, MeldfallEffectEnvelope},
     ids::{canonical_seat_ids, supported_seat_count},
     replay_support::{export_viewer_snapshot, import_viewer_export, ViewerReplayExport},
     rules::{
         discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays,
-        lay_off_card, table_new_meld,
+        lay_off_card, settle_round_stock_exhausted, table_new_meld,
     },
     scoring::settle_round,
     setup::{setup_match, SetupOptions},
@@ -191,6 +191,17 @@ pub(crate) fn meldfall_apply_command(
             Vec::new()
         }
     };
+
+    // ML-TURN-009: if the action leaves the active seat in the draw phase with no
+    // legal draw (stock empty and no usable discard-pile pickup), the round can no
+    // longer continue and must settle rather than deadlock.
+    if state.round.phase == TurnPhase::Draw {
+        let active_seat = state.round.active_seat_index;
+        let draw_tree = legal_action_tree_for_seat(state, active_seat, FreshnessToken(0));
+        if legal_action_paths(&draw_tree).is_empty() {
+            settle_round_stock_exhausted(&mut state.round, active_seat).map_err(diagnostic_json)?;
+        }
+    }
 
     if state.round.phase == TurnPhase::RoundSettled {
         let round_index = round_score_index(state);

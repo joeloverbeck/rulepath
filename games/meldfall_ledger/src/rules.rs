@@ -349,6 +349,22 @@ pub fn settle_stock_exhaustion_if_no_discard_draw(
     Ok(true)
 }
 
+/// Settle the round because the active seat cannot continue play (ML-TURN-009).
+///
+/// The caller establishes that the stock is empty and no legal or accepted
+/// discard-pile draw remains for the seat (i.e. the seat has no legal draw
+/// action). The discard pile may still hold cards that simply cannot be picked
+/// up and used, so this does not require an empty discard pile.
+pub fn settle_round_stock_exhausted(
+    round: &mut RoundState,
+    seat_index: SeatIndex,
+) -> Result<(), Diagnostic> {
+    validate_seat_index(round, seat_index)?;
+    validate_active_seat(round, seat_index)?;
+    end_round(round, RoundEndReason::StockExhausted, seat_index);
+    Ok(())
+}
+
 fn validate_set(cards: &[CardId]) -> Option<MeldKind> {
     if cards.len() > 4 {
         return None;

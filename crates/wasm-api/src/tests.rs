@@ -310,6 +310,55 @@ fn meldfall_ledger_wasm_surface_filters_hidden_cards_and_authorizes_actor() {
 }
 
 #[test]
+fn meldfall_random_legal_play_always_settles_without_deadlock() {
+    use crate::games::meldfall::{
+        create_meldfall_match, meldfall_apply_command, meldfall_select_bot_decision,
+    };
+    use engine_core::FreshnessToken;
+    use meldfall_ledger::bots::{legal_action_paths, legal_action_tree_for_seat};
+    use meldfall_ledger::state::TurnPhase;
+
+    // Smaller stocks exhaust faster: 6 seats deal 42 cards, leaving a 9-card
+    // stock, so stock-exhaustion turns are reached quickly. Every round must end
+    // in a settled/terminal state (ML-TURN-009); the active seat must never be
+    // left in a draw/table/discard phase with zero legal actions.
+    for seat_count in [2, 4, 6] {
+        for seed in 0..120u64 {
+            let mut state = create_meldfall_match(seed, seat_count)
+                .unwrap_or_else(|err| panic!("seed {seed} seats {seat_count}: {err}"));
+            let mut steps = 0;
+            loop {
+                let phase = state.round.phase;
+                if matches!(phase, TurnPhase::RoundSettled | TurnPhase::MatchComplete) {
+                    break;
+                }
+                let active = state.round.active_seat_index;
+                let paths = legal_action_paths(&legal_action_tree_for_seat(
+                    &state,
+                    active,
+                    FreshnessToken(0),
+                ));
+                assert!(
+                    !paths.is_empty(),
+                    "seed {seed} seats {seat_count}: deadlock in phase {phase:?} at seat {active} after {steps} steps (stock {}, discard {})",
+                    state.round.stock.len(),
+                    state.round.discard.len(),
+                );
+                let decision = meldfall_select_bot_decision(&state, active, seed)
+                    .unwrap_or_else(|err| panic!("seed {seed}: bot decision failed: {err}"));
+                meldfall_apply_command(&mut state, active, decision.action_path)
+                    .unwrap_or_else(|err| panic!("seed {seed}: apply failed: {err}"));
+                steps += 1;
+                assert!(
+                    steps < 1000,
+                    "seed {seed} seats {seat_count}: round did not settle"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn meldfall_round_score_index_is_the_round_not_the_finishing_seat() {
     use crate::games::meldfall::{create_meldfall_match, round_score_index};
     use meldfall_ledger::state::{RoundEndReason, RoundEndSummary};
