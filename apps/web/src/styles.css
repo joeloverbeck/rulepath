@@ -5656,6 +5656,24 @@ svg g[data-effect-kind] {
   border-color: var(--ml-warm);
 }
 
+.meldfall-seat.near-goout {
+  border-color: #c0392b;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #c0392b 16%, transparent);
+}
+
+.meldfall-goout-flag {
+  margin: 8px 0 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #c0392b;
+  color: #fffaf0;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
 .meldfall-seat dl,
 .meldfall-tableau dl {
   display: grid;

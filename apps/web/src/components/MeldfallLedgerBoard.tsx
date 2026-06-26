@@ -401,8 +401,17 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; seat: MeldfallLedgerSeatId; index: number }) {
+  const handCount = view.hand_counts[index] ?? 0;
+  // Public go-out threat: a seat one or two cards from empty can end the round soon,
+  // settling everyone's in-hand penalties. Hand counts are public (ML-VIS-001), so
+  // flagging the threat surfaces a legal proximity signal the strategy guide calls out.
+  const nearGoOut = !view.terminal && handCount > 0 && handCount <= 2;
   return (
-    <article className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}`}>
+    <article
+      className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}${
+        nearGoOut ? " near-goout" : ""
+      }`}
+    >
       <header>
         <strong>{seatLabel(seat)}</strong>
         <span>{view.active_seat === seat ? "Turn" : view.dealer === seat ? "Dealer" : "Seat"}</span>
@@ -410,7 +419,7 @@ function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; sea
       <dl>
         <div>
           <dt>Hand</dt>
-          <dd>{view.hand_counts[index] ?? 0}</dd>
+          <dd>{handCount}</dd>
         </div>
         <div>
           <dt>Score</dt>
@@ -421,6 +430,7 @@ function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; sea
           <dd>{view.round_played_scores[index] ?? 0}</dd>
         </div>
       </dl>
+      {nearGoOut ? <p className="meldfall-goout-flag">Near go-out</p> : null}
     </article>
   );
 }
