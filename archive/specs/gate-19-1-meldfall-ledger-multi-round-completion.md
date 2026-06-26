@@ -333,3 +333,22 @@ after that one governed update, not byte-identical.
    unrelated artifact regeneration is implied.
 5. If any assumption is false against the codebase at execution time, correct this
    spec first (per the Ticket Execution Contract) before implementing.
+
+## Outcome
+
+Completed: 2026-06-26
+
+GAT191MELLED-001 through GAT191MELLED-006 completed the Gate 19.1 closeout:
+match state now retains base seed and settled-round identity; the Rust-owned
+round transition deterministically rotates dealer, clears round-only state,
+re-deals, and preserves cumulative scores; the transition effect and round-score
+index are encoded for WASM; both WASM and simulator hosts continue to terminal;
+the web presents `next_round_dealt` and browser Bot vs bot evidence reaches the
+terminal panel; and the Meldfall evidence docs/trace/index record `ML-MATCH-006`
+as covered.
+
+Acceptance evidence is recorded in
+`games/meldfall_ledger/docs/GAME-EVIDENCE.md` and the archived ticket outcomes.
+Final closeout gates included `replay-check`, `rule-coverage`, `fixture-check`,
+`check-doc-links`, web smoke checks, simulator completion, clippy/build/test
+lanes, and archive/reference truthing.
