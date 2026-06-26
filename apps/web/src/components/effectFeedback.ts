@@ -13,7 +13,8 @@ export type EffectFeedback = {
 
 export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
   const payload = entry.effect.payload;
-  switch (payload.type) {
+  const effectKind = String(payload.type ?? payload.kind ?? "effect");
+  switch (effectKind) {
     case "action_started":
       return {
         title: "Action started",
@@ -785,6 +786,51 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${factionLabel(payload.faction)} ended round ${payload.round ?? "current"}.`,
         tone: "turn",
       };
+    case "draw":
+      return {
+        title: "Card drawn",
+        detail:
+          payload.source === "stock"
+            ? `${payload.seat} drew from the hidden stock; stock ${payload.stock_count_after ?? 0}.`
+            : `${payload.seat} drew ${payload.cards_moved ?? 0} public discard card(s).`,
+        tone: "movement",
+      };
+    case "stock_draw_private":
+      return {
+        title: "Private draw",
+        detail: `${payload.seat} received one private stock card; stock ${payload.stock_count_after ?? 0}.`,
+        tone: "neutral",
+      };
+    case "meld":
+      return {
+        title: "Meld tabled",
+        detail: `${payload.seat} tabled ${Array.isArray(payload.cards) ? payload.cards.length : 0} public card(s).`,
+        tone: "movement",
+      };
+    case "lay_off":
+      return {
+        title: "Lay-off tabled",
+        detail: `${payload.seat} extended ${String(payload.meld_id ?? "a public meld")}.`,
+        tone: "movement",
+      };
+    case "discard":
+      return {
+        title: "Card discarded",
+        detail: `${payload.seat} discarded one public card; discard count ${payload.discard_count_after ?? 0}.`,
+        tone: "turn",
+      };
+    case "round_score":
+      return {
+        title: "Round scored",
+        detail: `Rust scored round ${payload.round_index ?? "current"}.`,
+        tone: "turn",
+      };
+    case "match_terminal":
+      return {
+        title: "Match completed",
+        detail: "Rust finalized Meldfall Ledger standings.",
+        tone: "terminal",
+      };
     case "refill_started":
       return {
         title: "Next round",
@@ -868,7 +914,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     default:
       return {
         title: "Effect",
-        detail: payload.type,
+        detail: effectKind,
         tone: "neutral",
       };
   }

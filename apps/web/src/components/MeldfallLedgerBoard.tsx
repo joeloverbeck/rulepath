@@ -1,0 +1,415 @@
+import { useMemo } from "react";
+import type {
+  ActionChoice,
+  ActionTree,
+  EffectEntry,
+  MeldfallLedgerMeldGroupView,
+  MeldfallLedgerPublicView,
+  MeldfallLedgerSeatId,
+  MeldfallLedgerStandingView,
+  MeldfallLedgerTableCardView,
+} from "../wasm/client";
+import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
+
+type MeldfallLedgerBoardProps = {
+  view: MeldfallLedgerPublicView;
+  actionTree: ActionTree | null;
+  latestEffect: EffectEntry | null;
+  effects?: EffectEntry[];
+  reducedMotion: boolean;
+  pending: boolean;
+  interactive?: boolean;
+  onPathSubmit?: (path: string[]) => void;
+};
+
+type GroupedChoices = {
+  draw: ActionChoice[];
+  table: ActionChoice[];
+  discard: ActionChoice[];
+  turn: ActionChoice[];
+};
+
+const SEATS: MeldfallLedgerSeatId[] = ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"];
+
+export function MeldfallLedgerBoard({
+  view,
+  actionTree,
+  latestEffect,
+  effects = latestEffect ? [latestEffect] : [],
+  reducedMotion,
+  pending,
+  interactive = true,
+  onPathSubmit,
+}: MeldfallLedgerBoardProps) {
+  const choices = useMemo(() => actionTree?.choices ?? [], [actionTree]);
+  const groupedChoices = useMemo(() => groupChoices(choices), [choices]);
+  const seats = SEATS.slice(0, view.hand_counts.length);
+  const canAct = Boolean(interactive && !pending && !view.terminal && choices.length > 0);
+  const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
+  const tableChanged = effects.some((entry) => {
+    const payload = entry.effect.payload;
+    const kind = String(payload.type ?? payload.kind ?? "");
+    return ["draw", "meld", "lay_off", "discard", "round_score", "match_terminal"].includes(kind);
+  });
+  const drawStockChoice = groupedChoices.draw.find((choice) => choice.segment === "draw-stock") ?? null;
+  const outcomeExplanation = view.terminal
+    ? outcomeSurfaceData({
+        gameId: "meldfall_ledger",
+        heading: terminalHeading(view.terminal.standings),
+        rationale: view.terminal_rationale ?? null,
+        resultKind: "win",
+        decisiveCause: "unique_high_score_at_target",
+        templateKey: "meldfall_ledger.high_score_win",
+        templateParams: {
+          winner: winnerStanding(view.terminal.standings)?.seat ?? "winner",
+          target: 500,
+        },
+        finalStanding: view.terminal.standings.map((standing) => ({
+          id: standing.seat,
+          label: seatLabel(standing.seat),
+          result: standing.winner ? "win" : `rank ${standing.rank}`,
+          emphasized: standing.winner,
+          values: [
+            { label: "Cumulative score", value: standing.cumulative_score, ruleId: "ML-MATCH-005" },
+            { label: "Latest round delta", value: standing.latest_round_delta, ruleId: "ML-SCORE-004" },
+          ],
+        })),
+        breakdownSections: [
+          {
+            id: "terminal-threshold",
+            heading: "Target threshold",
+            rows: [
+              { label: "Target", value: 500, ruleId: "ML-MATCH-001" },
+              { label: "Winner rule", value: "Unique highest eligible score", ruleId: "ML-MATCH-002" },
+            ],
+          },
+        ],
+        ruleIds: ["ML-MATCH-001", "ML-MATCH-002", "ML-MATCH-005"],
+      })
+    : null;
+
+  return (
+    <section
+      className={["meldfall-board", view.terminal ? "terminal" : "", tableChanged ? "reveal" : "", reducedMotion ? "reduced" : ""]
+        .filter(Boolean)
+        .join(" ")}
+      aria-labelledby="meldfall-heading"
+      data-testid="meldfall-ledger-board"
+      data-animation-target="meldfall-board"
+    >
+      <div className="meldfall-banner">
+        <div>
+          <p className="eyebrow">{view.display_name}</p>
+          <h2 id="meldfall-heading">{statusLabel(view)}</h2>
+        </div>
+        <span className="turn-pill" data-testid="turn">
+          {view.terminal ? terminalHeading(view.terminal.standings) : `${seatLabel(view.active_seat)} acts`}
+        </span>
+      </div>
+
+      <p className="sr-only" aria-live="polite">
+        {view.display_name}, {phaseLabel(view.phase)}, stock count {view.stock_count}, discard cards {view.discard.length}, meld groups {view.tableau.groups.length}.
+      </p>
+
+      <div className="meldfall-metrics" aria-label="Meldfall Ledger status">
+        <Metric label="Phase" value={phaseLabel(view.phase)} />
+        <Metric label="Dealer" value={seatLabel(view.dealer)} />
+        <Metric label="Stock" value={`${view.stock_count} hidden`} />
+        <Metric label="Discard" value={`${view.discard.length} public`} />
+      </div>
+
+      <div className="meldfall-table-shell" aria-label="Meldfall Ledger table">
+        <section className="meldfall-seat-rail" aria-label="Seat score ledger">
+          {seats.map((seat, index) => (
+            <SeatLedger key={seat} view={view} seat={seat} index={index} />
+          ))}
+        </section>
+
+        <div className="meldfall-layout">
+          <section className="meldfall-zones" aria-label="Stock and discard zones">
+            <div className="meldfall-section-heading">
+              <span>Draw zones</span>
+              <strong>{view.discard.length ? "Discard is public oldest to newest" : "Discard empty"}</strong>
+            </div>
+            <div className="meldfall-draw-zones">
+              <button
+                type="button"
+                className="meldfall-stock"
+                disabled={!canAct || !drawStockChoice}
+                aria-label={drawStockChoice?.accessibility_label ?? `${view.stock_count} hidden stock cards`}
+                data-testid="meldfall-stock"
+                onClick={() => drawStockChoice && onPathSubmit?.([drawStockChoice.segment])}
+              >
+                <span>Stock</span>
+                <strong>{view.stock_count}</strong>
+                <small>{drawStockChoice ? "Draw from stock" : "Hidden order"}</small>
+              </button>
+
+              <div className="meldfall-discard" aria-label="Public discard pile" data-animation-target="meldfall-discard">
+                {view.discard.length === 0 ? (
+                  <div className="meldfall-empty">No public discard cards</div>
+                ) : (
+                  view.discard.map((card, index) => {
+                    const choice = groupedChoices.draw.find((candidate) => candidate.segment === `draw-discard-${index}`) ?? null;
+                    return (
+                      <button
+                        type="button"
+                        className="meldfall-card discard"
+                        key={`${card}-${index}`}
+                        disabled={!canAct || !choice}
+                        aria-label={choice?.accessibility_label ?? `Public discard ${cardLabel(card)}`}
+                        data-testid="meldfall-discard-card"
+                        onClick={() => choice && onPathSubmit?.([choice.segment])}
+                      >
+                        <CardFace card={card} />
+                        <small>{index === view.discard.length - 1 ? "Top discard" : `Index ${index}`}</small>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </section>
+
+          <Tableau groups={view.tableau.groups} />
+        </div>
+
+        <div className="meldfall-action-band">
+          <section className="meldfall-private" aria-label="Private hand">
+            <div className="meldfall-section-heading">
+              <span>Private hand</span>
+              <strong>{privateHeading(view)}</strong>
+            </div>
+            {view.private_view_status === "seat" ? (
+              <div className="meldfall-hand" aria-label="Your private hand">
+                {view.own_hand.map((card, index) => (
+                  <div className="meldfall-card private" key={`${card}-${index}`} data-testid="meldfall-private-card">
+                    <CardFace card={card} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="meldfall-hidden-hand" data-testid="meldfall-private-hidden">
+                <span>Hidden</span>
+                <strong>Choose a seat view to see that seat's hand.</strong>
+              </div>
+            )}
+          </section>
+
+          <section className="meldfall-actions" aria-label="Meldfall Ledger legal actions">
+            <div className="meldfall-section-heading">
+              <span>Actions</span>
+              <strong>{canAct ? "Rust legal choices" : actionStatus(view, pending)}</strong>
+            </div>
+            <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup title="Discard" choices={groupedChoices.discard} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup title="Turn" choices={groupedChoices.turn} canAct={canAct} onPathSubmit={onPathSubmit} />
+          </section>
+
+          <div className="meldfall-latest" role="status" data-animation-target="meldfall-status">
+            <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+            <strong>
+              {outcomeExplanation
+                ? outcomeAnnouncementText(outcomeExplanation)
+                : feedback?.detail ?? "Rust effects will update this panel after each accepted action."}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
+    </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="meldfall-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; seat: MeldfallLedgerSeatId; index: number }) {
+  return (
+    <article className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}`}>
+      <header>
+        <strong>{seatLabel(seat)}</strong>
+        <span>{view.active_seat === seat ? "Turn" : view.dealer === seat ? "Dealer" : "Seat"}</span>
+      </header>
+      <dl>
+        <div>
+          <dt>Hand</dt>
+          <dd>{view.hand_counts[index] ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Score</dt>
+          <dd>{view.cumulative_scores[index] ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Round</dt>
+          <dd>{view.round_played_scores[index] ?? 0}</dd>
+        </div>
+      </dl>
+    </article>
+  );
+}
+
+function Tableau({ groups }: { groups: MeldfallLedgerMeldGroupView[] }) {
+  return (
+    <section className="meldfall-tableau" aria-label="Public meld tableau" data-animation-target="meldfall-tableau">
+      <div className="meldfall-section-heading">
+        <span>Tableau</span>
+        <strong>{groups.length ? `${groups.length} public groups` : "No melds tabled"}</strong>
+      </div>
+      {groups.length === 0 ? (
+        <div className="meldfall-empty">Public meld groups will appear here after Rust accepts table plays.</div>
+      ) : (
+        <div className="meldfall-groups">
+          {groups.map((group) => (
+            <article className="meldfall-group" key={group.id}>
+              <header>
+                <strong>{group.kind === "run" ? "Run" : group.kind === "set" ? "Set" : titleCase(group.kind)}</strong>
+                <span>
+                  {group.id} by {seatLabel(group.origin_seat)}
+                </span>
+              </header>
+              <div className="meldfall-group-cards" aria-label={`${group.id} public cards`}>
+                {group.cards.map((card, index) => (
+                  <TableCard card={card} key={`${group.id}-${card.card}-${index}`} />
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TableCard({ card }: { card: MeldfallLedgerTableCardView }) {
+  return (
+    <div className="meldfall-card tabled" data-testid="meldfall-table-card">
+      <CardFace card={card.card} />
+      <small>
+        Played by {seatLabel(card.played_by)}
+        {card.score_credit_owner !== card.played_by ? `; credit ${seatLabel(card.score_credit_owner)}` : ""}
+      </small>
+    </div>
+  );
+}
+
+function ActionGroup({
+  title,
+  choices,
+  canAct,
+  onPathSubmit,
+}: {
+  title: string;
+  choices: ActionChoice[];
+  canAct: boolean;
+  onPathSubmit?: (path: string[]) => void;
+}) {
+  if (choices.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="meldfall-action-group" aria-label={`${title} choices`}>
+      <h3>{title}</h3>
+      <div className="meldfall-action-grid">
+        {choices.map((choice, index) => (
+          <button
+            type="button"
+            className="meldfall-action"
+            key={choice.segment}
+            disabled={!canAct}
+            aria-label={choice.accessibility_label}
+            data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
+            onClick={() => onPathSubmit?.([choice.segment])}
+          >
+            <strong>{choice.label}</strong>
+            {choice.presentation?.helper_text ? <small>{choice.presentation.helper_text}</small> : null}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CardFace({ card }: { card: string }) {
+  const parsed = parseCard(card);
+  return (
+    <>
+      <span>{parsed.suit}</span>
+      <strong>{parsed.rank}</strong>
+    </>
+  );
+}
+
+function groupChoices(choices: ActionChoice[]): GroupedChoices {
+  return choices.reduce<GroupedChoices>(
+    (groups, choice) => {
+      if (choice.segment.startsWith("draw-")) groups.draw.push(choice);
+      else if (choice.segment.startsWith("meld-new-") || choice.segment.startsWith("lay-off-")) groups.table.push(choice);
+      else if (choice.segment.startsWith("discard-")) groups.discard.push(choice);
+      else groups.turn.push(choice);
+      return groups;
+    },
+    { draw: [], table: [], discard: [], turn: [] },
+  );
+}
+
+function statusLabel(view: MeldfallLedgerPublicView): string {
+  if (view.terminal) return terminalHeading(view.terminal.standings);
+  return `${phaseLabel(view.phase)} phase`;
+}
+
+function actionStatus(view: MeldfallLedgerPublicView, pending: boolean): string {
+  if (pending) return "Applying action";
+  if (view.terminal) return "Match complete";
+  return "No actions available";
+}
+
+function privateHeading(view: MeldfallLedgerPublicView): string {
+  if (view.private_view_status === "seat") return `${view.own_hand.length} cards`;
+  return `${view.hand_counts.join(" / ")} public counts`;
+}
+
+function terminalHeading(standings: MeldfallLedgerStandingView[]): string {
+  const winner = winnerStanding(standings);
+  return winner ? `${seatLabel(winner.seat)} wins` : "Match complete";
+}
+
+function winnerStanding(standings: MeldfallLedgerStandingView[]): MeldfallLedgerStandingView | null {
+  return standings.find((standing) => standing.winner) ?? null;
+}
+
+function phaseLabel(phase: string): string {
+  return titleCase(phase.replaceAll("_", " "));
+}
+
+function cardLabel(card: string): string {
+  const parsed = parseCard(card);
+  return `${parsed.rank} ${parsed.suit}`.trim();
+}
+
+function parseCard(card: string): { rank: string; suit: string } {
+  const parts = card.replaceAll("-", "_").split("_").filter(Boolean);
+  if (parts.length >= 2) {
+    return { rank: titleCase(parts.slice(0, -1).join(" ")), suit: titleCase(parts.at(-1) ?? "") };
+  }
+  return { rank: card.toUpperCase(), suit: "Card" };
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+}
+
+function seatLabel(seat: MeldfallLedgerSeatId): string {
+  const index = Number(seat.split("_")[1]);
+  return Number.isFinite(index) ? `Seat ${index + 1}` : seat;
+}

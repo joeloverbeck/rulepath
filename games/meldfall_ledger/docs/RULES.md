@@ -118,7 +118,7 @@ The only Gate 19 variant is `classic_500_single_deck_v1`.
 | `ML-LAYOFF-002` | A laid-off card scores to the seat that played it, not necessarily to the origin seat of the meld group. | score-credit rule | Each tabled card records its score-credit owner. |
 | `ML-LAYOFF-003` | Already tabled meld groups cannot be rearranged, split, merged, or remelded. | explicit exclusion | Gate 19 supports extension only. |
 
-## Scoring And Accounting
+## Scoring and accounting
 
 Card values are constant in every scoring context:
 
@@ -148,7 +148,7 @@ Stable scoring tokens for later coverage, outcome, and trace consumers:
 | `ML-SCORE-006` | The table-card `played_by` seat is the score-credit owner. The origin seat of a meld group is not a scoring shortcut. | This protects lay-off credit. |
 | `ML-SCORE-007` | Public settlement exposes public score totals/counts without exposing unauthorized unmelded card identities. | See `ML-VIS-006`. |
 
-## Terminal Conditions
+## Terminal conditions
 
 Stable terminal tokens for later coverage, outcome, and trace consumers:
 

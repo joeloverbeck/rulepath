@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-020: Web renderer, large-surface UI proof, UI.md, and outcome explanations
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/MeldfallLedgerBoard.tsx`, `GamePicker.tsx`, `main.tsx`, `wasm/client.ts`, `outcomeExplanationTemplates.ts`, `animation/registry.ts`; `games/meldfall_ledger/docs/UI.md`
@@ -85,3 +85,27 @@ Large-hand/tableau layout, keyboard-only operation, no-drag-required interaction
 1. `npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects`
 2. `node scripts/check-outcome-explanations.mjs`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the Meldfall Ledger browser renderer and shell integration:
+
+- Added `apps/web/src/components/MeldfallLedgerBoard.tsx` with public stock/discard zones, public meld tableau, seat score ledger, authorized private-hand rendering, Rust action-tree button groups, effect status copy, and terminal outcome explanation rendering.
+- Wired `meldfall_ledger` into `main.tsx`, the TypeScript WASM client view/replay mirrors, shared terminal checks, replay snapshot summaries, catalog icon/color identity, and web styles.
+- Added `games/meldfall_ledger/docs/UI.md` with the required Outcome / victory explanation section and no-leak/legal-only UI contract.
+- Added `meldfall_ledger.high_score_win` static outcome copy and extended effect feedback/smoke coverage for Meldfall `kind` payloads.
+
+Deviations:
+
+- Normalized the Meldfall `RULES.md` section headings to `Scoring and accounting` and `Terminal conditions` so the repository outcome-explanation checker can validate the game.
+- Updated shared web components (`ActionControls`, `ModeControls`, `ReplayViewer`) to recognize the Meldfall terminal shape after adding it to the `PublicView` union.
+
+Verification:
+
+- `node scripts/check-outcome-explanations.mjs` — passed; 19 catalog games validated.
+- `npm --prefix apps/web run build` — passed; Vite emitted the existing >500 kB chunk-size warning.
+- `npm --prefix apps/web run smoke:ui` — passed; output included `meldfall_ledger_match_id`.
+- `npm --prefix apps/web run smoke:effects` — passed; required coverage included `meldfall_ledger:draw` and animation smoke passed.
+- `node scripts/check-doc-links.mjs` — passed; checked 31 markdown files.
