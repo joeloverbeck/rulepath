@@ -20,7 +20,8 @@ use draughts_lite::{
 #[cfg(test)]
 use engine_core::{ActionPath, Actor, HashValue, SeatId, StableSerialize};
 use engine_core::{
-    CommandEnvelope, EffectCursor, EffectLog, RulesVersion, Seed, Viewer, VisibilityScope,
+    CommandEnvelope, EffectCursor, EffectLog, FreshnessToken, RulesVersion, Seed, Viewer,
+    VisibilityScope,
 };
 use event_frontier::visibility::public_effect_text as event_frontier_public_effect_text;
 use event_frontier::{
@@ -145,6 +146,7 @@ use games::flood::*;
 use games::frontier::*;
 use games::high_card::*;
 use games::masked::*;
+use games::meldfall::*;
 use games::plain::*;
 use games::poker::*;
 use games::race::*;
@@ -208,6 +210,12 @@ pub(crate) enum MatchRecord {
         game_id: String,
         state: MaskedClaimsState,
         effects: EffectLog<MaskedClaimsEffect>,
+        commands: Vec<AppliedCommand>,
+    },
+    MeldfallLedger {
+        game_id: String,
+        state: meldfall_ledger::state::MatchState,
+        effects: EffectLog<meldfall_ledger::effects::MeldfallEffect>,
         commands: Vec<AppliedCommand>,
     },
     FloodWatch {
@@ -310,6 +318,7 @@ pub(crate) enum RegisteredGame {
     DraughtsLite,
     HighCardDuel,
     MaskedClaims,
+    MeldfallLedger,
     FloodWatch,
     FrontierControl,
     EventFrontier,
@@ -353,7 +362,9 @@ pub fn new_match_for_variant(
 }
 
 fn default_seat_count_for_game(game_id: &str) -> usize {
-    if game_id == GAME_BRIAR_CIRCUIT {
+    if game_id == GAME_MELDFALL_LEDGER {
+        meldfall_ledger::STANDARD_DEFAULT_SEATS as usize
+    } else if game_id == GAME_BRIAR_CIRCUIT {
         briar_circuit::STANDARD_SEAT_COUNT as usize
     } else if game_id == GAME_VOW_TIDE {
         4
@@ -561,6 +572,27 @@ pub fn new_match_for_variant_with_seat_count(
                 escape_json(&match_id),
                 escape_json(game_id),
                 escape_json(VARIANT_MASKED_CLAIMS_STANDARD)
+            ))
+        }
+        RegisteredGame::MeldfallLedger => {
+            let state = create_meldfall_match(seed, seat_count)?;
+            let match_id = next_match_id(GAME_MELDFALL_LEDGER);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::MeldfallLedger {
+                        game_id: GAME_MELDFALL_LEDGER.to_owned(),
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(GAME_MELDFALL_LEDGER),
+                escape_json(VARIANT_MELDFALL_LEDGER_STANDARD)
             ))
         }
         RegisteredGame::FloodWatch => {
@@ -894,6 +926,14 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             let viewer = masked_viewer_for_seat(state, viewer_seat)?;
             Ok(masked_view_json(&masked_project_view(state, &viewer)))
         }
+        MatchRecord::MeldfallLedger { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = meldfall_viewer_for_seat(state, viewer_seat)?;
+            Ok(meldfall_view_json(
+                &meldfall_ledger::visibility::project_view(state, &viewer),
+                0,
+            ))
+        }
         MatchRecord::FloodWatch { game_id, state, .. } => {
             resolve_game(game_id)?;
             let viewer = flood_viewer_for_seat(state, viewer_seat)?;
@@ -1042,6 +1082,15 @@ pub fn get_action_tree_for_viewer(
             }
             let actor = masked_actor_for_seat(state, seat)?;
             Ok(action_tree_json(&masked_legal_action_tree(state, &actor)))
+        }
+        MatchRecord::MeldfallLedger { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_meldfall_seat(actor_seat)?;
+            let viewer = meldfall_viewer_for_seat(state, viewer_seat)?;
+            if !meldfall_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(FreshnessToken(0)));
+            }
+            meldfall_action_tree_json(state, seat, &viewer)
         }
         MatchRecord::FloodWatch { game_id, state, .. } => {
             resolve_game(game_id)?;
@@ -1378,6 +1427,36 @@ pub fn apply_action(
                 "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
                 effect_json,
                 masked_view_json(&masked_project_view(state, &viewer))
+            ))
+        }
+        MatchRecord::MeldfallLedger {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_meldfall_seat(actor_seat)?;
+            let command = parse_action_path(action_path);
+            let effects = meldfall_apply_command(state, seat, command.clone())?;
+            let viewer = meldfall_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = meldfall_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_meldfall_seat(seat),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                meldfall_view_json(
+                    &meldfall_ledger::visibility::project_view(state, &viewer),
+                    0,
+                )
             ))
         }
         MatchRecord::FloodWatch {
@@ -2005,6 +2084,41 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 masked_view_json(&masked_project_view(state, &viewer))
             ))
         }
+        MatchRecord::MeldfallLedger {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_meldfall_seat(actor_seat)?;
+            let decision = meldfall_select_bot_decision(state, seat, bot_seed)?;
+            let command = decision.action_path.clone();
+            let freshness_token = 0;
+            let effects = meldfall_apply_command(state, seat, command.clone())?;
+            let viewer = meldfall_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = meldfall_effects_json(&effects, &viewer);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_meldfall_seat(seat),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(decision.policy_id),
+                0,
+                escape_json(&decision.explanation),
+                effect_json,
+                meldfall_view_json(
+                    &meldfall_ledger::visibility::project_view(state, &viewer),
+                    0,
+                )
+            ))
+        }
         MatchRecord::FloodWatch {
             game_id,
             state,
@@ -2617,6 +2731,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::MeldfallLedger {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = meldfall_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        meldfall_effect_json(&logged.envelope, &viewer)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
         MatchRecord::FloodWatch {
             game_id,
             state,
@@ -2951,6 +3087,20 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
             )];
             Ok(masked_claims::PublicReplayExport::new("observer", steps).to_json())
         }
+        MatchRecord::MeldfallLedger {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let visible = effects
+                .since(EffectCursor(0), &Viewer { seat_id: None })
+                .into_iter()
+                .map(|logged| logged.envelope.clone())
+                .collect::<Vec<_>>();
+            Ok(meldfall_replay_document_json(state, &visible))
+        }
         MatchRecord::FloodWatch {
             game_id,
             state,
@@ -3207,6 +3357,9 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
     if is_vow_tide_public_export(doc) {
         return import_vow_tide_public_replay(doc);
     }
+    if is_meldfall_public_export(doc) {
+        return import_meldfall_public_replay(doc);
+    }
     let parsed = parse_replay_document(doc).map_err(|message| {
         diagnostic_string(
             "invalid_replay",
@@ -3226,6 +3379,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_DRAUGHTS_LITE
         && parsed.game_id != GAME_HIGH_CARD_DUEL
         && parsed.game_id != GAME_MASKED_CLAIMS
+        && parsed.game_id != GAME_MELDFALL_LEDGER
         && parsed.game_id != GAME_FLOOD_WATCH
         && parsed.game_id != GAME_FRONTIER_CONTROL
         && parsed.game_id != GAME_EVENT_FRONTIER
@@ -3323,6 +3477,17 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             (
                 masked_view_json(&masked_project_view(&state, &Viewer { seat_id: None })),
                 0,
+            )
+        }
+        RegisteredGame::MeldfallLedger => {
+            let (state, effects) =
+                meldfall_replay_to_cursor(parsed.seed, 4, &parsed.commands, command_count)?;
+            (
+                meldfall_view_json(
+                    &meldfall_ledger::visibility::project_view(&state, &Viewer { seat_id: None }),
+                    0,
+                ),
+                effects.len(),
             )
         }
         RegisteredGame::FloodWatch => {
@@ -3573,6 +3738,18 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     masked_view_json(&masked_project_view(&state, &Viewer { seat_id: None }))
                 ))
             }
+            RegisteredGame::MeldfallLedger => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let (state, effects) =
+                    meldfall_replay_to_cursor(record.seed, 4, &record.commands, bounded_cursor)?;
+                Ok(meldfall_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
             RegisteredGame::FloodWatch => {
                 let state = flood_setup_match(
                     Seed(record.seed),
@@ -3754,6 +3931,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_DRAUGHTS_LITE => Ok(RegisteredGame::DraughtsLite),
         GAME_HIGH_CARD_DUEL => Ok(RegisteredGame::HighCardDuel),
         GAME_MASKED_CLAIMS => Ok(RegisteredGame::MaskedClaims),
+        GAME_MELDFALL_LEDGER => Ok(RegisteredGame::MeldfallLedger),
         GAME_FLOOD_WATCH => Ok(RegisteredGame::FloodWatch),
         GAME_FRONTIER_CONTROL => Ok(RegisteredGame::FrontierControl),
         GAME_EVENT_FRONTIER => Ok(RegisteredGame::EventFrontier),
@@ -3781,6 +3959,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::DraughtsLite => DRAUGHTS_LITE_TRACE_RULES_VERSION,
         RegisteredGame::HighCardDuel => HIGH_CARD_DUEL_TRACE_RULES_VERSION,
         RegisteredGame::MaskedClaims => MASKED_CLAIMS_TRACE_RULES_VERSION,
+        RegisteredGame::MeldfallLedger => MELDFALL_LEDGER_TRACE_RULES_VERSION,
         RegisteredGame::FloodWatch => FLOOD_WATCH_TRACE_RULES_VERSION,
         RegisteredGame::FrontierControl => FRONTIER_CONTROL_TRACE_RULES_VERSION,
         RegisteredGame::EventFrontier => EVENT_FRONTIER_TRACE_RULES_VERSION,

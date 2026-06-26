@@ -490,6 +490,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/blackglass_pact/data/variants.toml",
             variant_id: "blackglass_pact_standard",
         }),
+        "meldfall_ledger" => Ok(RegisteredGame {
+            game_id: "meldfall_ledger",
+            rules_version: "meldfall-ledger-rules-v1",
+            trace_dir: "games/meldfall_ledger/tests/golden_traces",
+            fixture_dir: "games/meldfall_ledger/data/fixtures",
+            manifest_path: "games/meldfall_ledger/data/manifest.toml",
+            variants_path: "games/meldfall_ledger/data/variants.toml",
+            variant_id: "classic_500_single_deck_v1",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -543,9 +552,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -970,6 +979,21 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "meldfall_ledger" => {
+            let manifest = meldfall_ledger::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = meldfall_ledger::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            (
+                manifest.game_id,
+                manifest.rules_version,
+                manifest.data_version,
+                manifest.schema_version,
+                variants.selected.id,
+            )
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -1070,6 +1094,9 @@ fn validate_trace(
     }
     if game.game_id == "blackglass_pact" {
         return validate_blackglass_pact_fixture(game, path, input, seen_ids);
+    }
+    if game.game_id == "meldfall_ledger" {
+        return validate_meldfall_ledger_fixture(game, path, input, seen_ids);
     }
     if input.contains("\"export_class\":") {
         return validate_public_export_fixture(game, path, input);
@@ -1457,6 +1484,116 @@ fn validate_blackglass_pact_fixture(
     if input.contains("\"schema_version\"") && required_number(path, input, "schema_version")? != 1
     {
         return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    Ok(())
+}
+
+fn validate_meldfall_ledger_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+    }
+    let id = optional_string_field(input, "fixture_id")
+        .or_else(|| optional_string_field(input, "trace_id"))
+        .or_else(|| optional_string_field(input, "trace"))
+        .unwrap_or_else(|| path.file_stem().unwrap().to_string_lossy().to_string());
+    if !seen_ids.insert(id.clone()) {
+        return Err(format!("{}: duplicate fixture id `{id}`", path.display()));
+    }
+    if id.trim().is_empty() {
+        return Err(format!("{}: fixture id must be non-empty", path.display()));
+    }
+    let game_id =
+        optional_string_field(input, "game_id").or_else(|| optional_string_field(input, "game"));
+    if game_id.as_deref() != Some(game.game_id) {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    let rules_version = optional_string_field(input, "rules_version")
+        .or_else(|| optional_string_field(input, "rules"));
+    if let Some(rules_version) = rules_version {
+        if rules_version != game.rules_version {
+            return Err(format!(
+                "{}: rules_version must be {}",
+                path.display(),
+                game.rules_version
+            ));
+        }
+    }
+    if input.contains("\"variant\"") && required_string(path, input, "variant")? != game.variant_id
+    {
+        return Err(format!(
+            "{}: variant must be {}",
+            path.display(),
+            game.variant_id
+        ));
+    }
+    if input.contains("\"schema_version\"") && required_number(path, input, "schema_version")? != 1
+    {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if input.contains("\"seat_count\"") {
+        let seat_count = required_number(path, input, "seat_count")? as usize;
+        let fixture_id = id.as_str();
+        let invalid_seat_diagnostic =
+            fixture_id.contains("invalid-seat-count") || fixture_id.contains("invalid_seat_count");
+        if !meldfall_ledger::supported_seat_count(seat_count) && !invalid_seat_diagnostic {
+            return Err(format!(
+                "{}: unsupported meldfall_ledger seat_count {seat_count}",
+                path.display()
+            ));
+        }
+        if let Some(seats) = optional_string_array_field(input, "seats") {
+            if seats.len() != seat_count {
+                return Err(format!(
+                    "{}: seat_count must match seats length",
+                    path.display()
+                ));
+            }
+            for (index, seat) in seats.iter().enumerate() {
+                if seat != &format!("seat_{index}") {
+                    return Err(format!(
+                        "{}: meldfall_ledger seat order must be stable seat_N order",
+                        path.display()
+                    ));
+                }
+            }
+        }
+        if input.contains("\"expected_hand_count\"") && !invalid_seat_diagnostic {
+            let expected = required_number(path, input, "expected_hand_count")? as u8;
+            if meldfall_ledger::hand_size_for_seats(seat_count) != Some(expected) {
+                return Err(format!(
+                    "{}: expected_hand_count does not match variant hand size",
+                    path.display()
+                ));
+            }
+        }
+    }
+    if input.contains("\"purpose\"") && required_string(path, input, "purpose")?.trim().is_empty() {
+        return Err(format!("{}: purpose must be non-empty", path.display()));
+    }
+    if path
+        .components()
+        .any(|component| component.as_os_str() == "fixtures")
+        && !input.contains("\"purpose\"")
+    {
+        return Err(format!(
+            "{}: fixture files must include non-empty purpose",
+            path.display()
+        ));
     }
     Ok(())
 }

@@ -1,0 +1,29 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "layoff-onto-own-tableau",
+  "rules": ["ML-LAYOFF-001", "ML-LAYOFF-002", "ML-LAYOFF-003"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-004",
+    "shape": "laying off onto any player's meld",
+    "status": "first official use, local-only"
+  },
+  "steps": [
+    {
+      "action": "table_new_meld",
+      "seat": 0,
+      "meld_id": "meld_0",
+      "cards": ["four_clubs", "five_clubs", "six_clubs"],
+      "kind": "run:clubs"
+    },
+    {
+      "action": "lay_off_card",
+      "seat": 0,
+      "target_meld": "meld_0",
+      "card": "seven_clubs",
+      "position": "append",
+      "result": "accepted",
+      "played_by": 0,
+      "score_credit_owner": 0
+    }
+  ]
+}

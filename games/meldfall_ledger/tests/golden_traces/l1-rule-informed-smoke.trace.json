@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "trace_id": "l1-rule-informed-smoke",
+  "fixture_kind": "bot_smoke",
+  "purpose": "l1_rule_informed_policy_status",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "variant": "classic_500_single_deck_v1",
+  "policy_status": "not_admitted_pending_strategy_evidence",
+  "public_no_leak": true,
+  "not_applicable": "No L1 policy is admitted for this ticket; GAT19MELLEDFIV-015 owns bot strategy evidence."
+}

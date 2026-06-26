@@ -9,7 +9,7 @@ Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `flood_watch` / Flood Watch, `frontier_control` / Frontier Control,
 `event_frontier` / Event Frontier, `river_ledger` / River Ledger,
 `briar_circuit` / Briar Circuit, `vow_tide` / Vow Tide, and
-`blackglass_pact` / Blackglass Pact.
+`blackglass_pact` / Blackglass Pact, and `meldfall_ledger` / Meldfall Ledger.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -63,7 +63,7 @@ The shell includes:
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
-  River Ledger, Briar Circuit, Vow Tide, and Blackglass Pact;
+  River Ledger, Briar Circuit, Vow Tide, Blackglass Pact, and Meldfall Ledger;
 - shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
 - shared `SeatFrame` for catalog-projected seat labels, active/pending seat
   rail, observer mode, and viewer selection;
@@ -113,6 +113,7 @@ single-stage `ActionControls` surface is sufficient.
 | `briar_circuit` | board-native | Hand-card pass/play controls map to Rust legal paths while opponent hands and pass provenance remain hidden. |
 | `vow_tide` | board-native | Bid and hand-card controls map directly to Rust legal paths across the 3-7 seat public trick-taking surface. |
 | `blackglass_pact` | board-native | Blind, bid, and hand-card controls map to Rust legal paths while partner and opponent hands remain unmounted. |
+| `meldfall_ledger` | board-native | Stock/discard, meld, lay-off, finish, and discard controls render Rust legal choices while opponent hands and stock order remain unmounted. |
 
 ### Effect Animation Adoption Audit
 
@@ -141,6 +142,7 @@ presentations for the current catalog surface.
 | `briar_circuit` | generic-only | Pass, play, trick, and score feedback use the shared viewer-safe baseline pending authored motion. |
 | `vow_tide` | generic-only | Bid, play, trick-capture, hand-score, and terminal effects use board-local status copy plus the shared viewer-safe baseline. |
 | `blackglass_pact` | generic-only | Blind commitment, bidding, trick, scoring, and terminal feedback use board-local status copy plus the shared viewer-safe baseline. |
+| `meldfall_ledger` | generic-only | Draw, meld, lay-off, discard, round-score, and terminal feedback use board-local status copy plus the shared viewer-safe baseline. |
 
 ## Smoke Layers
 
@@ -156,6 +158,9 @@ presentations for the current catalog surface.
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
   River Ledger, Briar Circuit, Vow Tide, and Blackglass Pact.
+  Meldfall Ledger is also chained for variable-seat setup, stock/discard,
+  meld/lay-off/discard controls, replay import/export, and public-observer
+  no-leak coverage.
   The chain also runs `e2e/animation.smoke.mjs` for animate-and-settle, skip,
   replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard

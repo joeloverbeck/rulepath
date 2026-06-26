@@ -181,7 +181,9 @@ assert(
   ]),
   "Rust catalog exposes Race player labels",
 );
-const twoSeatGames = catalog.filter((game) => !["river_ledger", "briar_circuit", "vow_tide", "blackglass_pact"].includes(game.game_id));
+const twoSeatGames = catalog.filter(
+  (game) => !["river_ledger", "briar_circuit", "vow_tide", "blackglass_pact", "meldfall_ledger"].includes(game.game_id),
+);
 assert(
   twoSeatGames.every(
     (game) =>
@@ -258,6 +260,19 @@ assert(
     vowTideCatalog.seat_labels.length === 7,
   "Rust catalog exposes vow_tide 3-7 seat metadata",
 );
+const meldfallCatalog = catalog.find((game) => game.game_id === "meldfall_ledger");
+assert(meldfallCatalog, "Rust catalog includes meldfall_ledger");
+assertVariantDescription(meldfallCatalog, "classic_500_single_deck_v1", "Single-deck public-meld race to 500");
+assert(
+  meldfallCatalog.hidden_information === true &&
+    meldfallCatalog.min_seats === 2 &&
+    meldfallCatalog.max_seats === 6 &&
+    meldfallCatalog.default_seats === 4 &&
+    JSON.stringify(meldfallCatalog.supported_seats) === JSON.stringify([2, 3, 4, 5, 6]) &&
+    meldfallCatalog.viewer_modes.includes("seat_5") &&
+    meldfallCatalog.seat_labels.length === 6,
+  "Rust catalog exposes meldfall_ledger 2-6 seat metadata",
+);
 const floodWatchCatalog = catalog.find((game) => game.game_id === "flood_watch");
 assert(floodWatchCatalog, "Rust catalog includes flood_watch");
 assertVariantDescription(
@@ -332,6 +347,16 @@ assert(
       game.tags.includes("bidding"),
   ),
   "Rust catalog includes vow_tide standard hidden-information variant",
+);
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "meldfall_ledger" &&
+      hasVariant(game, "classic_500_single_deck_v1", "Meldfall Ledger") &&
+      game.hidden_information === true &&
+      game.tags.includes("rummy"),
+  ),
+  "Rust catalog includes meldfall_ledger standard hidden-information variant",
 );
 
 const riverLedger = invoke(
@@ -667,6 +692,94 @@ assert(
   "vow_tide emits bid effect",
 );
 
+for (const seatCount of [2, 4, 6]) {
+  const match = invoke(
+    (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, BigInt(190 + seatCount), seatCount),
+    ["meldfall_ledger"],
+  );
+  const view = invoke((args) => wasm.rulepath_get_view(args[0].ptr, args[0].len), [match.match_id]);
+  assert(view.game_id === "meldfall_ledger", `meldfall_ledger ${seatCount}-seat Rust view is returned`);
+  assert(view.hand_counts.length === seatCount, `meldfall_ledger ${seatCount}-seat view exposes hand counts`);
+  assert(view.private_view_status === "observer", "meldfall_ledger observer view is redacted");
+  assert(view.own_hand.length === 0, "meldfall_ledger observer omits private hand");
+}
+const meldfall = invoke(
+  (args) => wasm.rulepath_new_match_with_seat_count(args[0].ptr, args[0].len, 199n, 4),
+  ["meldfall_ledger"],
+);
+assert(meldfall.match_id, "meldfall_ledger start match returns a match id");
+assert(meldfall.variant_id === "classic_500_single_deck_v1", "meldfall_ledger standard variant starts");
+const meldfallObserver = invoke(
+  (args) => wasm.rulepath_get_view(args[0].ptr, args[0].len),
+  [meldfall.match_id],
+);
+assert(meldfallObserver.stock_count > 0, "meldfall_ledger observer sees stock count");
+assert(meldfallObserver.discard.length === 1, "meldfall_ledger observer sees public discard");
+const meldfallSeat1 = invoke(
+  (args) =>
+    wasm.rulepath_get_view_for_viewer(args[0].ptr, args[0].len, args[1].ptr, args[1].len),
+  [meldfall.match_id, "seat_1"],
+);
+assert(meldfallSeat1.own_hand.length === 7, "meldfall_ledger seat view exposes own hand");
+const meldfallBlockedTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [meldfall.match_id, "seat_1", "seat_0"],
+);
+assert(meldfallBlockedTree.choices.length === 0, "meldfall_ledger non-actor tree is empty");
+const meldfallTree = invoke(
+  (args) =>
+    wasm.rulepath_get_action_tree_for_viewer(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+    ),
+  [meldfall.match_id, "seat_1", "seat_1"],
+);
+assert(meldfallTree.choices.some((choice) => choice.segment === "draw-stock"), "meldfall_ledger action tree exposes Rust draw choices");
+const meldfallAfterDraw = invoke(
+  (args) =>
+    wasm.rulepath_apply_action(
+      args[0].ptr,
+      args[0].len,
+      args[1].ptr,
+      args[1].len,
+      args[2].ptr,
+      args[2].len,
+      BigInt(meldfallTree.freshness_token),
+    ),
+  [meldfall.match_id, "seat_1", "draw-stock"],
+);
+assert(meldfallAfterDraw.view.phase === "table", "meldfall_ledger stock draw enters table phase");
+assert(
+  meldfallAfterDraw.effects.some((effect) => effect.payload.kind === "draw" && effect.payload.source === "stock"),
+  "meldfall_ledger emits viewer-safe draw effect",
+);
+const meldfallExport = invoke(
+  (args) => wasm.rulepath_export_replay(args[0].ptr, args[0].len),
+  [meldfall.match_id],
+);
+assert(meldfallExport.game_id === "meldfall_ledger", "meldfall_ledger replay export preserves game id");
+assert(
+  meldfallExport.export_class === "meldfall_ledger_viewer_scoped_observation_v1",
+  "meldfall_ledger replay export is viewer scoped",
+);
+const meldfallImport = invoke(
+  (args) => wasm.rulepath_import_replay(args[0].ptr, args[0].len),
+  [JSON.stringify(meldfallExport)],
+);
+assert(meldfallImport.public_export === true, "meldfall_ledger public replay imports");
+
 const maskedClaims = invoke(
   (args) => wasm.rulepath_new_match(args[0].ptr, args[0].len, 13n),
   ["masked_claims"],
@@ -901,6 +1014,7 @@ console.log(
     replay_cursor: replayStep.cursor,
     token_bazaar_match_id: tokenBazaar.match_id,
     plain_tricks_match_id: plainTricks.match_id,
+    meldfall_ledger_match_id: meldfall.match_id,
     masked_claims_match_id: maskedClaims.match_id,
     flood_watch_match_id: floodWatch.match_id,
   }),

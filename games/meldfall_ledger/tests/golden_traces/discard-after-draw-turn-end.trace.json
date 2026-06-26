@@ -1,0 +1,16 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "discard-after-draw-turn-end",
+  "rules": ["ML-TURN-001", "ML-TURN-002", "ML-TURN-005", "ML-TURN-006"],
+  "steps": [
+    { "action": "draw-stock", "seat": 0, "phase_after": "table" },
+    { "action": "finish-table-plays", "seat": 0, "phase_after": "discard" },
+    {
+      "action": "discard",
+      "seat": 0,
+      "card": "king_spades",
+      "phase_after": "draw",
+      "next_active_seat": 1
+    }
+  ]
+}

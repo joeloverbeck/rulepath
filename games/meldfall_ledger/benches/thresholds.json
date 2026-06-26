@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "data_version": "meldfall-ledger-data-v1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    { "operation_name": "native_2p_short_round", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for setup plus 200 deterministic random-legal actions at 2 seats." },
+    { "operation_name": "native_4p_default", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for setup plus 500 deterministic random-legal actions at the default 4 seats." },
+    { "operation_name": "native_6p_large_surface", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for legal action tree, apply, and all-viewer projection at max 6 seats." },
+    { "operation_name": "large_discard_tail", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for discard-pile pickup action generation over a long visible discard tail." },
+    { "operation_name": "large_public_tableau", "unit": "viewer_sets_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for public plus all six seat-private view projection over a larger meld tableau." },
+    { "operation_name": "replay_export_import", "unit": "exports_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for viewer-scoped export/import across public and six seat-private viewers." },
+    { "operation_name": "l0_bot_decision", "unit": "decisions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for Level 0 random legal bot decisions." },
+    { "operation_name": "l1_bot_decision", "unit": "status_checks_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Gate 19 Level 1 is not admitted; this lane keeps the profile visible without claiming a strategic policy." }
+  ]
+}

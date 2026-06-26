@@ -89,6 +89,7 @@ dependencies = [
  "frontier_control",
  "high_card_duel",
  "masked_claims",
+ "meldfall_ledger",
  "plain_tricks",
  "poker_lite",
  "race_to_n",
@@ -154,6 +155,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "meldfall_ledger"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+ "game-test-support",
+]
+
+[[package]]
 name = "plain_tricks"
 version = "0.1.0"
 dependencies = [
@@ -198,6 +209,7 @@ dependencies = [
  "game-stdlib",
  "high_card_duel",
  "masked_claims",
+ "meldfall_ledger",
  "plain_tricks",
  "poker_lite",
  "race_to_n",
@@ -259,6 +271,7 @@ dependencies = [
  "frontier_control",
  "high_card_duel",
  "masked_claims",
+ "meldfall_ledger",
  "plain_tricks",
  "poker_lite",
  "race_to_n",
@@ -324,6 +337,7 @@ dependencies = [
  "frontier_control",
  "high_card_duel",
  "masked_claims",
+ "meldfall_ledger",
  "plain_tricks",
  "poker_lite",
  "race_to_n",

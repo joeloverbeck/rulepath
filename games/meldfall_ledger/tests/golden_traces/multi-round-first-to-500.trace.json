@@ -1,0 +1,14 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "multi-round-first-to-500",
+  "rules": ["ML-MATCH-001", "ML-MATCH-002", "ML-MATCH-005"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-005",
+    "shape": "multi-round cumulative scoring to 500 with in-hand penalties and tie continuation",
+    "status": "first official use, local-only"
+  },
+  "before": [490, 480, 100, -20],
+  "round_deltas": [20, 15, 0, 0],
+  "after": [510, 495, 100, -20],
+  "winner": 0
+}

@@ -147,7 +147,7 @@ try {
     for (const effect of effects) {
       const entry = { cursor: ++cursor, effect };
       entries.push({ gameId, entry });
-      const type = effect.payload?.type ?? "<missing>";
+      const type = effect.payload?.type ?? effect.payload?.kind ?? "<missing>";
       const games = observed.get(type) ?? new Set();
       games.add(gameId);
       observed.set(type, games);
@@ -307,7 +307,7 @@ try {
     { type: "match_completed", payload: { type: "match_completed" } },
   ];
   const gameNamePattern =
-    /\b(?:vow tide|blackglass pact|race to|three marks|column four|directional flip|draughts lite|high card duel|masked claims|flood watch|frontier control|event frontier|token bazaar|secret draft|veiled draft|poker lite|crest ledger|plain tricks|river ledger|briar circuit)\b/i;
+    /\b(?:vow tide|blackglass pact|meldfall ledger|race to|three marks|column four|directional flip|draughts lite|high card duel|masked claims|flood watch|frontier control|event frontier|token bazaar|secret draft|veiled draft|poker lite|crest ledger|plain tricks|river ledger|briar circuit)\b/i;
   for (const fallbackCase of fallbackNeutralityCases) {
     const feedback = feedbackForEffect({ cursor: 0, effect: { payload: fallbackCase.payload } });
     assert(
@@ -337,6 +337,7 @@ try {
     ["river_ledger", "river_ledger_street_advanced"],
     ["river_ledger", "river_ledger_showdown_resolved"],
     ["vow_tide", "bid_accepted"],
+    ["meldfall_ledger", "draw"],
   ];
 
   for (const [gameId, type] of requiredCoverage) {

@@ -17,14 +17,16 @@ foundation docs.
 
 ## Support Assets
 
-- `scripts/audit-series-closeout.mjs` collects the standard final closeout
-  audit surfaces for archived tickets, archived references, stale live paths,
-  commit ledger, and git status. Use it as directed in Completion Audit. It
-  also supports `--reference-only` for focused archived-reference truthing and
+- `.agents/skills/ticket-series/scripts/audit-series-closeout.mjs` collects the
+  standard final closeout audit surfaces for archived tickets, archived
+  references, stale live paths, commit ledger, and git status. Use this
+  skill-local path as directed in Completion Audit. It also supports
+  `--reference-only` for focused archived-reference truthing and
   `--expected-ticket-list <file>` for non-contiguous ticket families, plus
   `--ledger-format compact` for final-report-ready commit ledgers and
   `--summary` for low-noise successful long-series audits that still print
-  exact failure lines.
+  exact failure lines. If an invocation fails with `MODULE_NOT_FOUND`, check
+  the skill-local path above before falling back to manual audit commands.
 - `agents/openai.yaml` is an OpenAI-facing skill manifest and prompt stub. It
   does not change the main workflow and does not authorize skipping the
   `SKILL.md` instructions.
@@ -390,8 +392,10 @@ or mark the earlier result as preliminary.
    next section against the live checkout before any final response or
    `update_goal` call. A mental checklist is not enough for final reference
    truthing. For every spec or reference closeout commit, run the focused
-   archived-reference helper after the reference status/outcome edits and
-   before staging or committing the reference closeout:
+   archived-reference helper after the reference status/outcome edits and before
+   staging or committing the reference closeout. Do not stage or commit the
+   reference closeout until the helper, or an explicit grep fallback for valid
+   archived status plus `## Outcome`, passes:
 
 ```sh
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --summary
@@ -406,8 +410,12 @@ node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-
 
 Goal completion gate:
 
-1. Run `scripts/audit-series-closeout.mjs` or the manual Completion Audit
-   equivalent against the live checkout.
+1. Run `.agents/skills/ticket-series/scripts/audit-series-closeout.mjs` against
+   the live checkout. If the helper cannot run, the manual fallback must execute
+   and record every required surface: active ticket absence, archived ticket
+   count and list, archived ticket status/outcome, active reference absence,
+   archived reference status/outcome, stale live-path sweep, commit ledger,
+   `git status --short`, and `git diff --cached --name-status`.
 2. Fix every failure or explicitly classify it as out of scope with evidence.
 3. Commit any audit repair, including reference-status or stale-path fixes.
 4. Rerun the closeout audit after the final commit and inspect the output.
@@ -506,11 +514,15 @@ Run a concrete version of this checklist before reporting done or calling
 `update_goal`; adapt placeholders to the ticket prefix and reference path:
 
 When the ticket range and reference artifact are known, run
-`scripts/audit-series-closeout.mjs` by default to collect the standard audit
-surfaces, then inspect its output and run any repo-specific checks that the
-helper cannot infer. For non-contiguous or unusual series where the helper
-cannot express the expected set cleanly, run the manual audit commands below
-and explain why the helper was skipped.
+`.agents/skills/ticket-series/scripts/audit-series-closeout.mjs` by default to
+collect the standard audit surfaces, then inspect its output and run any
+repo-specific checks that the helper cannot infer. If a repo-root
+`scripts/audit-series-closeout.mjs` command fails with `MODULE_NOT_FOUND`, retry
+with the skill-local path before declaring the helper unavailable. For
+non-contiguous or unusual series where the helper cannot express the expected
+set cleanly, run the manual audit commands below and explain why the helper was
+skipped. A manual fallback is acceptable only when it covers every required
+surface named in the Goal completion gate.
 
 For second-pass reruns after a passing final commit, prefer `--summary` with
 `--ledger-format compact`, inspect failures and key `OK` surfaces first, and
@@ -565,6 +577,12 @@ the archived spec. Historical `reports/` may contain provenance-only live paths;
 do not hard-fail those unless the active reference or ticket requires report
 repair, but do retarget active characterization/evidence reports that remain
 part of closeout evidence and sweep active per-game docs under `games/*/docs/`.
+
+If a closeout defect is discovered after `update_goal` or a final completion
+response, report the defect immediately with the failing command and affected
+path. Do not rewrite history or make a repair commit unless the user asks for a
+follow-up fix. On follow-up, make a scoped repair commit, rerun the skill-local
+closeout helper after the commit, and report the repaired audit result.
 
 ## Reporting
 

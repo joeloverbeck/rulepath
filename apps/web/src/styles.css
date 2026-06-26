@@ -3495,6 +3495,14 @@ h2 {
   --game-card-art-line: #255865;
 }
 
+.game-card[data-game-id="meldfall_ledger"],
+.setup-hero[data-game-id="meldfall_ledger"] {
+  --game-accent: #567044;
+  --game-accent-2: #b7793e;
+  --game-card-art-bg: #f1f6ec;
+  --game-card-art-line: #465c37;
+}
+
 .game-card[data-game-id="masked_claims"],
 .setup-hero[data-game-id="masked_claims"] {
   --game-accent: #8a536b;
@@ -5462,6 +5470,289 @@ svg g[data-effect-kind] {
   animation: poker-lite-reveal 420ms ease-out;
 }
 
+.meldfall-board {
+  --ml-table-surface: #eef2e7;
+  --ml-table-rim: #6f7d61;
+  --ml-panel: #fffdf7;
+  --ml-panel-soft: #f3f6ee;
+  --ml-card-face: #fffaf0;
+  --ml-card-border: #8c937d;
+  --ml-ink: #2d3627;
+  --ml-muted: #636b5b;
+  --ml-accent: #5c7649;
+  --ml-accent-soft: #e8f0df;
+  --ml-warm: #9a6032;
+  --ml-warm-soft: #f3e3d4;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--ml-table-rim);
+  border-radius: 8px;
+  background: var(--ml-panel);
+  color: var(--ml-ink);
+  padding: 16px;
+}
+
+.meldfall-banner,
+.meldfall-section-heading,
+.meldfall-seat header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.meldfall-section-heading span,
+.meldfall-metric span,
+.meldfall-seat dt,
+.meldfall-card span,
+.meldfall-action h3,
+.meldfall-latest span,
+.meldfall-hidden-hand span {
+  color: var(--ml-muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.meldfall-metrics,
+.meldfall-seat-rail,
+.meldfall-action-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.meldfall-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.meldfall-table-shell {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--ml-table-rim);
+  border-radius: 8px;
+  background: var(--ml-table-surface);
+  padding: 12px;
+}
+
+.meldfall-seat-rail {
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+}
+
+.meldfall-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(360px, 1.2fr);
+  gap: 12px;
+}
+
+.meldfall-action-band {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.85fr) minmax(360px, 1.25fr) minmax(210px, 0.7fr);
+  gap: 12px;
+}
+
+.meldfall-metric,
+.meldfall-seat,
+.meldfall-zones,
+.meldfall-tableau,
+.meldfall-private,
+.meldfall-actions,
+.meldfall-latest {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 8px;
+  background: var(--ml-panel);
+  padding: 12px;
+}
+
+.meldfall-metric {
+  gap: 4px;
+  background: var(--ml-panel-soft);
+}
+
+.meldfall-seat.active {
+  border-color: var(--ml-accent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ml-accent) 18%, transparent);
+}
+
+.meldfall-seat.dealer:not(.active) {
+  border-color: var(--ml-warm);
+}
+
+.meldfall-seat dl,
+.meldfall-tableau dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.meldfall-seat dl > div {
+  display: grid;
+  grid-template-columns: minmax(58px, 0.45fr) minmax(0, 0.55fr);
+  gap: 8px;
+}
+
+.meldfall-seat dd {
+  margin: 0;
+  font-weight: 850;
+}
+
+.meldfall-draw-zones {
+  display: grid;
+  grid-template-columns: minmax(112px, 0.28fr) minmax(0, 0.72fr);
+  gap: 10px;
+}
+
+.meldfall-discard,
+.meldfall-hand,
+.meldfall-group-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+  gap: 8px;
+}
+
+.meldfall-stock,
+.meldfall-card,
+.meldfall-empty,
+.meldfall-hidden-hand {
+  min-height: 104px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 8px;
+  background: var(--ml-card-face);
+  color: var(--ml-ink);
+  padding: 10px;
+  text-align: center;
+}
+
+.meldfall-stock:not(:disabled),
+.meldfall-card.discard:not(:disabled),
+.meldfall-action:not(:disabled) {
+  cursor: pointer;
+}
+
+.meldfall-stock:not(:disabled):hover,
+.meldfall-card.discard:not(:disabled):hover,
+.meldfall-action:not(:disabled):hover {
+  border-color: var(--ml-accent);
+  transform: translateY(-1px);
+}
+
+.meldfall-stock:disabled,
+.meldfall-card.discard:disabled,
+.meldfall-action:disabled {
+  opacity: 0.62;
+}
+
+.meldfall-stock {
+  background: var(--ml-accent-soft);
+}
+
+.meldfall-stock strong,
+.meldfall-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.meldfall-card small,
+.meldfall-stock small,
+.meldfall-action small {
+  color: var(--ml-muted);
+  font-size: 0.7rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.meldfall-card.private {
+  border-color: var(--ml-accent);
+}
+
+.meldfall-card.tabled {
+  border-color: var(--ml-warm);
+  background: var(--ml-warm-soft);
+}
+
+.meldfall-empty,
+.meldfall-hidden-hand {
+  background: var(--ml-panel-soft);
+  color: var(--ml-muted);
+}
+
+.meldfall-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.meldfall-group {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 8px;
+  background: var(--ml-panel-soft);
+  padding: 10px;
+}
+
+.meldfall-group header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.meldfall-group header span {
+  color: var(--ml-muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.meldfall-action-group {
+  display: grid;
+  gap: 8px;
+}
+
+.meldfall-action-group h3 {
+  margin: 0;
+  color: var(--ml-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.meldfall-action-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.meldfall-action {
+  min-height: 70px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 6px;
+  background: var(--ml-card-face);
+  color: var(--ml-ink);
+  text-align: left;
+}
+
+.meldfall-latest {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.meldfall-latest strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meldfall-board.reveal:not(.reduced) .meldfall-tableau,
+.meldfall-board.reveal:not(.reduced) .meldfall-discard {
+  animation: poker-lite-reveal 420ms ease-out;
+}
+
 .river-ledger-board {
   --rl-table-surface: #e8eef0;
   --rl-table-rim: #697b80;
@@ -6207,6 +6498,13 @@ svg g[data-effect-kind] {
   .poker-lite-showdown-grid,
   .poker-lite-terminal,
   .poker-lite-latest,
+  .meldfall-metrics,
+  .meldfall-layout,
+  .meldfall-draw-zones,
+  .meldfall-seat-rail,
+  .meldfall-action-band,
+  .meldfall-action-grid,
+  .meldfall-latest,
   .river-ledger-metrics,
   .river-ledger-layout,
   .river-ledger-seat-rail,

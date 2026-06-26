@@ -45,7 +45,7 @@ export const outcomeExplanationTemplates = {
   "directional_flip.final_score_win": {
     summary: "{winner} has the higher final score.",
     expandedHeading: "Final score",
-    requiredParams: ["winner"],
+    requiredParams: ["winner", "target"],
     allowedGameIds: ["directional_flip"],
     ruleRefLabel: "Final score rule",
   },
@@ -252,6 +252,13 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["vow_tide"],
     ruleRefLabel: "VT-STANDINGS-001",
   },
+  "meldfall_ledger.high_score_win": {
+    summary: "{winner} reached the target with the unique highest cumulative score.",
+    expandedHeading: "Target score result",
+    requiredParams: ["winner"],
+    allowedGameIds: ["meldfall_ledger"],
+    ruleRefLabel: "ML-MATCH-001 through ML-MATCH-005",
+  },
   "blackglass_pact.team_score_win": {
     summary: "{winner} reached the terminal score condition with the higher team score.",
     expandedHeading: "Team score result",
@@ -410,6 +417,7 @@ const outcomeValueCopy: Record<string, string> = {
   loss: "Loss",
   low: "Low",
   masked_claims_draw: "Masked Claims draw",
+  meldfall_ledger: "Meldfall Ledger",
   non_terminal: "Non-terminal",
   opponent_no_legal_move: "Opponent has no legal move",
   opponent_no_pieces: "Opponent has no pieces",

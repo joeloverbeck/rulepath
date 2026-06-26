@@ -1,0 +1,16 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "multi-card-discard-pickup-melds-deepest",
+  "rules": ["ML-TURN-003", "ML-TURN-004", "ML-MELD-004"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-003",
+    "shape": "draw/discard zones with public discard-tail pickup and stock hidden order",
+    "status": "first official use, local-only"
+  },
+  "discard_before": ["four_hearts", "five_hearts", "six_hearts", "seven_hearts"],
+  "selected_discard_index": 1,
+  "picked_up": ["five_hearts", "six_hearts", "seven_hearts"],
+  "discard_after": ["four_hearts"],
+  "pending_pickup_required_card": "five_hearts",
+  "commitment_satisfied_by": "meld-new-five_hearts_six_hearts_seven_hearts"
+}

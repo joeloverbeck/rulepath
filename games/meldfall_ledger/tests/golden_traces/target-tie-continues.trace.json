@@ -1,0 +1,15 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "target-tie-continues",
+  "rules": ["ML-MATCH-001", "ML-MATCH-003", "ML-MATCH-004"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-005",
+    "shape": "multi-round cumulative scoring to 500 with in-hand penalties and tie continuation",
+    "status": "first official use, local-only"
+  },
+  "before": [490, 495, 100, 0],
+  "round_deltas": [20, 15, 0, 0],
+  "after": [510, 510, 100, 0],
+  "terminal": "none",
+  "reason": "highest_at_or_above_500_is_tied"
+}

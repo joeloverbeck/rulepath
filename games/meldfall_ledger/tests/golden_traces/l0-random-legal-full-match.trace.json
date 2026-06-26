@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "trace_id": "l0-random-legal-full-match",
+  "fixture_kind": "bot_smoke",
+  "purpose": "l0_random_legal_seeded_bounded_playout",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "variant": "classic_500_single_deck_v1",
+  "policy_id": "meldfall-ledger-l0-random-legal-v1",
+  "seeded": true,
+  "legal_action_api_only": true,
+  "public_no_leak": true,
+  "notes": "L0 selects from viewer-authorized Rust legal action trees; full terminal strategy remains out of scope for this bot floor."
+}

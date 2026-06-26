@@ -16,6 +16,7 @@ These sources inform Rulepath architecture, authoring discipline, bot policy, UI
 | `briar_circuit` | `games/briar_circuit/docs/SOURCES.md` | opened for Gate 16; covers original Briar Circuit naming, classic Hearts rules-family references, selected variant choices, pass/visibility privacy, and asset/IP review posture |
 | `vow_tide` | `games/vow_tide/docs/SOURCES.md` | completed for Gate 17; covers original Vow Tide naming, classic Oh Hell rules-family references, 3-7-seat variant choices, bid/hook/scoring deviations, hidden-stock privacy, helper conformance, and asset/IP review posture |
 | `blackglass_pact` | `games/blackglass_pact/docs/SOURCES.md` | completed for Gate 18; covers original Blackglass Pact naming, classic partnership Spades rules-family references, fixed-four variant pinning, nil/blind-nil/bag deviations, public/private partnership signals, helper conformance, and human IP/public-release review posture |
+| `meldfall_ledger` | `games/meldfall_ledger/docs/SOURCES.md` | completed for Gate 19; covers original Meldfall Ledger naming, Five Hundred Rummy / Rummy 500 rules-family references, one-deck 2-6 seat variant pinning, strict discard-pickup commitment, public meld tableau, cumulative scoring, hidden-stock/privacy posture, and human IP/public-release review posture |
 
 ### Blackglass Pact source-use lessons
 
@@ -29,6 +30,21 @@ and partnership identity is public while partner hands remain private. Source
 notes are evidence for variant choices, not permission to copy rules prose,
 table presentation, card art, or trade dress. Human IP/public-release review
 remains required before external release.
+
+### Meldfall Ledger source-use lessons
+
+Gate 19 records Meldfall Ledger's detailed source bibliography in
+`games/meldfall_ledger/docs/SOURCES.md`. The repo-level lesson is that
+Rummy 500-family sources agree on the broad draw/meld/lay-off/scoring shape but
+vary on implementation-relevant house rules. Rulepath pins one original public
+variant before implementation: one standard 52-card deck for 2-6 seats, strict
+immediate-use commitment for any discard-pile pickup including the top discard,
+ace-low or ace-high runs with no around-the-corner wrap, no opening minimum,
+no floating, no discard reshuffle, no jokers/wilds, no partnerships, and no
+tabled-meld rearrangement. Source notes are evidence for variant choices, not
+permission to copy rules prose, app layouts, card art, screenshots, icons, or
+trade dress. Human IP/public-release review remains required before external
+release.
 
 ## Source-use rules
 

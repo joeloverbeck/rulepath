@@ -1,0 +1,32 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "layoff-onto-opponent-tableau-score-credit",
+  "rules": ["ML-LAYOFF-001", "ML-LAYOFF-002", "ML-SCORE-006"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-004",
+    "shape": "laying off onto any player's meld",
+    "status": "first official use, local-only"
+  },
+  "steps": [
+    {
+      "action": "table_new_meld",
+      "seat": 0,
+      "meld_id": "meld_0",
+      "origin_seat": 0,
+      "cards": ["nine_clubs", "nine_diamonds", "nine_hearts"],
+      "kind": "set:nine"
+    },
+    {
+      "action": "lay_off_card",
+      "seat": 2,
+      "target_meld": "meld_0",
+      "card": "nine_spades",
+      "position": "append",
+      "result": "accepted",
+      "origin_seat_after": 0,
+      "played_by": 2,
+      "score_credit_owner": 2,
+      "round_played_score_delta_for_seat_2": 9
+    }
+  ]
+}

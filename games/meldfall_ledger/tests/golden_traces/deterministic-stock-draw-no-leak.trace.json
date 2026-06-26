@@ -1,0 +1,17 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "deterministic-stock-draw-no-leak",
+  "rules": ["ML-TURN-002", "ML-VIS-003"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-003",
+    "shape": "draw/discard zones with public discard-tail pickup and stock hidden order",
+    "status": "first official use, local-only"
+  },
+  "stock_draw": {
+    "cards_moved": 1,
+    "stock_count_after": 1,
+    "public_effect": "Draw:seat=0:source=stock:cards=1:stock_after=1:discard_after=1",
+    "public_effect_contains_drawn_card": false,
+    "acting_seat_receives_card": true
+  }
+}

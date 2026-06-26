@@ -12,6 +12,7 @@ import type {
   FrontierControlPublicView,
   GameCatalogEntry,
   MaskedClaimsPublicView,
+  MeldfallLedgerPublicView,
   PublicView,
   RiverLedgerPublicView,
   SecretDraftPublicView,
@@ -364,6 +365,10 @@ function isVowTideView(view: PublicView | null): view is VowTidePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "vow_tide");
 }
 
+function isMeldfallLedgerView(view: PublicView | null): view is MeldfallLedgerPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "meldfall_ledger");
+}
+
 function isBlackglassPactView(view: PublicView | null): view is BlackglassPactPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "blackglass_pact");
 }
@@ -540,6 +545,15 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
       { label: "Hand", value: String(view.hand_index + 1) },
       { label: "Phase", value: view.phase },
       { label: "Scores", value: Object.values(view.cumulative_scores).join("-") },
+    ];
+  }
+  if (isMeldfallLedgerView(view)) {
+    const winner = view.terminal?.standings.find((standing) => standing.winner) ?? null;
+    return [
+      { label: "Game", value: "Meldfall Ledger" },
+      { label: "Phase", value: view.phase },
+      { label: "Scores", value: view.cumulative_scores.join("-") },
+      { label: "Turn", value: winner ? `${winner.seat} won` : view.active_seat },
     ];
   }
   if (isBlackglassPactView(view)) {

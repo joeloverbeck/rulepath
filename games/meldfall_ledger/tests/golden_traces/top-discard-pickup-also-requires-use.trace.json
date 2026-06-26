@@ -1,0 +1,17 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "top-discard-pickup-also-requires-use",
+  "rules": ["ML-TURN-003", "ML-TURN-004"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-003",
+    "shape": "draw/discard zones with public discard-tail pickup and stock hidden order",
+    "status": "first official use, local-only"
+  },
+  "discard_before": ["seven_clubs"],
+  "selected_discard_index": 0,
+  "picked_up": ["seven_clubs"],
+  "top_pickup_requires_immediate_use": true,
+  "finish_before_use": "ML_PICKUP_COMMITMENT_UNSATISFIED",
+  "discard_before_use": "ML_PICKUP_COMMITMENT_UNSATISFIED",
+  "commitment_satisfied_by": "meld-new-seven_clubs_seven_diamonds_seven_hearts"
+}

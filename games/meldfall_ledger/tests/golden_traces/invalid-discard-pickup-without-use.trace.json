@@ -1,0 +1,20 @@
+{
+  "game": "meldfall_ledger",
+  "trace": "invalid-discard-pickup-without-use",
+  "rules": ["ML-TURN-004", "ML-TURN-006"],
+  "primitive_pressure_entry": {
+    "id": "ML-PP-003",
+    "shape": "draw/discard zones with public discard-tail pickup and stock hidden order",
+    "status": "first official use, local-only"
+  },
+  "selected_discard_index": 1,
+  "pending_pickup_required_card": "redacted outside acting-seat scope until used",
+  "attempted_finish": {
+    "result": "rejected",
+    "diagnostic": "ML_PICKUP_COMMITMENT_UNSATISFIED"
+  },
+  "attempted_discard": {
+    "result": "rejected",
+    "diagnostic": "ML_PICKUP_COMMITMENT_UNSATISFIED"
+  }
+}

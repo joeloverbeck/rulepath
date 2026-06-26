@@ -1140,6 +1140,71 @@ export type VowTidePublicView = {
   };
 };
 
+export type MeldfallLedgerSeatId = RiverLedgerSeatId;
+
+export type MeldfallLedgerTableCardView = {
+  card: string;
+  played_by: MeldfallLedgerSeatId;
+  played_by_index: number;
+  score_credit_owner: MeldfallLedgerSeatId;
+  score_credit_owner_index: number;
+  play_turn: number;
+};
+
+export type MeldfallLedgerMeldGroupView = {
+  id: string;
+  kind: "set" | "run" | string;
+  origin_seat: MeldfallLedgerSeatId;
+  origin_seat_index: number;
+  cards: MeldfallLedgerTableCardView[];
+};
+
+export type MeldfallLedgerTableauView = {
+  groups: MeldfallLedgerMeldGroupView[];
+};
+
+export type MeldfallLedgerStandingView = {
+  seat: MeldfallLedgerSeatId;
+  seat_index: number;
+  rank: number;
+  cumulative_score: number;
+  latest_round_delta: number;
+  winner: boolean;
+};
+
+export type MeldfallLedgerTerminalView = {
+  standings: MeldfallLedgerStandingView[];
+} | null;
+
+export type MeldfallLedgerOutcomeRationale = OutcomeRationalePayload;
+
+export type MeldfallLedgerPublicView = {
+  schema_version: number;
+  rules_version: number;
+  game_id: "meldfall_ledger";
+  display_name: string;
+  variant_id: "classic_500_single_deck_v1" | string;
+  rules_version_label: "meldfall-ledger-rules-v1" | string;
+  active_seat: MeldfallLedgerSeatId;
+  active_seat_index: number;
+  dealer: MeldfallLedgerSeatId;
+  dealer_index: number;
+  phase: "draw" | "table" | "discard" | "round_settled" | "terminal" | string;
+  stock_count: number;
+  discard: string[];
+  hand_counts: number[];
+  cumulative_scores: number[];
+  round_played_scores: number[];
+  tableau: MeldfallLedgerTableauView;
+  round_end: string | null;
+  terminal: MeldfallLedgerTerminalView;
+  terminal_rationale?: MeldfallLedgerOutcomeRationale | null;
+  freshness_token: number;
+  private_view_status: "observer" | "seat";
+  own_hand: string[];
+  hidden_fields: string[];
+};
+
 export type BlackglassPactSeatId = BriarCircuitSeatId;
 export type BlackglassPactTeamId = "team_0" | "team_1";
 
@@ -1498,6 +1563,7 @@ export type PublicView =
   | PlainTricksPublicView
   | BriarCircuitPublicView
   | VowTidePublicView
+  | MeldfallLedgerPublicView
   | BlackglassPactPublicView
   | MaskedClaimsPublicView
   | FloodWatchPublicView
@@ -1654,11 +1720,30 @@ export type MaskedClaimsPublicReplayExport = {
   }>;
 };
 
+export type MeldfallLedgerPublicReplayExport = {
+  schema_version: number;
+  export_format_version: number;
+  export_class: "meldfall_ledger_viewer_scoped_observation_v1";
+  viewer: "observer" | string;
+  game_id: "meldfall_ledger";
+  rules_version: string;
+  data_version: string;
+  variant: "classic_500_single_deck_v1" | string;
+  steps: Array<{
+    step_index: number;
+    public_view_summary: string;
+    public_effects: string[];
+    redacted_command_summary: string;
+    terminal: boolean;
+  }>;
+};
+
 export type ReplayExportDocument =
   | ReplayDocument
   | PublicObserverReplayExport
   | SecretDraftPublicReplayExport
-  | MaskedClaimsPublicReplayExport;
+  | MaskedClaimsPublicReplayExport
+  | MeldfallLedgerPublicReplayExport;
 
 export type ReplayImportSummary = {
   replay_id: string;

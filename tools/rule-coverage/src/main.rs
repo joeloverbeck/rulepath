@@ -158,6 +158,13 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             benchmarks_path: "games/blackglass_pact/docs/BENCHMARKS.md",
             benchmarks_required: true,
         }),
+        "meldfall_ledger" => Ok(RegisteredGame {
+            game_id: "meldfall_ledger",
+            rules_path: "games/meldfall_ledger/docs/RULES.md",
+            coverage_path: "games/meldfall_ledger/docs/RULE-COVERAGE.md",
+            benchmarks_path: "games/meldfall_ledger/docs/BENCHMARKS.md",
+            benchmarks_required: true,
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -186,7 +193,7 @@ impl Config {
                 "--help" | "-h" => {
                     println!("rule-coverage 0.1.0");
                     println!(
-                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact>"
+                        "usage: rule-coverage --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger>"
                     );
                     process::exit(0);
                 }
@@ -357,6 +364,7 @@ fn is_rule_id(value: &str) -> bool {
                 | "EF"
                 | "BC"
                 | "VT"
+                | "ML"
         )
         && !parts[1].is_empty()
         && parts[1].chars().all(|ch| ch.is_ascii_uppercase())

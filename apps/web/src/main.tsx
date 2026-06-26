@@ -18,6 +18,7 @@ import { GamePicker } from "./components/GamePicker";
 import { HighCardDuelBoard } from "./components/HighCardDuelBoard";
 import { MatchSetup, riverLedgerShortStackPreset } from "./components/MatchSetup";
 import { MaskedClaimsBoard } from "./components/MaskedClaimsBoard";
+import { MeldfallLedgerBoard } from "./components/MeldfallLedgerBoard";
 import { ModeControls } from "./components/ModeControls";
 import { PlainTricksBoard } from "./components/PlainTricksBoard";
 import { PokerLiteBoard } from "./components/PokerLiteBoard";
@@ -50,6 +51,7 @@ import {
   type GameCatalogEntry,
   type HighCardDuelPublicView,
   type MaskedClaimsPublicView,
+  type MeldfallLedgerPublicView,
   type PlainTricksPublicView,
   type PokerLitePublicView,
   type PublicView,
@@ -696,6 +698,16 @@ function App() {
             pending={state.pendingOperation !== null}
             onPathSubmit={playPath}
           />
+        ) : isMeldfallLedgerView(view) ? (
+          <MeldfallLedgerBoard
+            view={view}
+            actionTree={actionTree}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPathSubmit={playPath}
+          />
         ) : isBlackglassPactView(view) ? (
           <BlackglassPactBoard
             view={view}
@@ -772,6 +784,7 @@ function App() {
         isPlainTricksView(view) ||
         isBriarCircuitView(view) ||
         isVowTideView(view) ||
+        isMeldfallLedgerView(view) ||
         isBlackglassPactView(view) ||
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
@@ -1005,6 +1018,10 @@ function isVowTideView(view: PublicView | null): view is VowTidePublicView {
   return Boolean(view && "game_id" in view && view.game_id === "vow_tide");
 }
 
+function isMeldfallLedgerView(view: PublicView | null): view is MeldfallLedgerPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "meldfall_ledger");
+}
+
 function isBlackglassPactView(view: PublicView | null): view is BlackglassPactPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "blackglass_pact");
 }
@@ -1049,6 +1066,9 @@ function isTerminalView(view: PublicView): boolean {
   }
   if (isVowTideView(view)) {
     return view.terminal.kind !== "non_terminal";
+  }
+  if (isMeldfallLedgerView(view)) {
+    return view.terminal !== null;
   }
   if (isBlackglassPactView(view)) {
     return view.phase.kind === "terminal";
@@ -1168,6 +1188,20 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
             ? "shared win"
             : `${view.terminal.winners[0] ?? "seat_0"} won`
           : `${view.phase}, hand ${view.hand_index + 1}, size ${view.hand_size}`,
+    };
+  }
+  if (view.game_id === "meldfall_ledger") {
+    const winner = view.terminal?.standings.find((standing) => standing.winner);
+    return {
+      game_id: view.game_id,
+      variant_id: view.variant_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: view.terminal
+        ? winner
+          ? `${winner.seat} won with ${winner.cumulative_score}`
+          : "match complete"
+        : `${view.phase}, stock ${view.stock_count}, discard ${view.discard.length}`,
     };
   }
   if (view.game_id === "blackglass_pact") {

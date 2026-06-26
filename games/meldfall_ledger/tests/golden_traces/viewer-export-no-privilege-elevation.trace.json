@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "trace_id": "viewer-export-no-privilege-elevation",
+  "fixture_kind": "viewer_export",
+  "purpose": "viewer_export_no_privilege_elevation",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "variant": "classic_500_single_deck_v1",
+  "rejected_imports": ["observer_as_seat_0", "seat_0_as_observer", "seat_0_as_seat_1"],
+  "export_class": "meldfall_ledger_viewer_scoped_observation_v1",
+  "hidden_information": "private hands and stock order",
+  "public_no_leak": true,
+  "evidence": "games/meldfall_ledger/tests/replay.rs no privilege elevation"
+}

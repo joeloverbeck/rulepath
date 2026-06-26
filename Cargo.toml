@@ -24,6 +24,7 @@ members = [
     "games/briar_circuit",
     "games/vow_tide",
     "games/blackglass_pact",
+    "games/meldfall_ledger",
     "tools/simulate",
     "tools/replay-check",
     "tools/trace-viewer",

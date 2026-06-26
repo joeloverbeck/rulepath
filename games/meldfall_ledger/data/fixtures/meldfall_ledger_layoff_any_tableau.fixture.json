@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "fixture_id": "meldfall_ledger_layoff_any_tableau",
+  "fixture_kind": "domain",
+  "purpose": "opponent-tableau lay-off with score credit evidence",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "data_version": "meldfall-ledger-data-v1",
+  "variant": "classic_500_single_deck_v1",
+  "seed": 1911,
+  "seat_count": 4,
+  "seats": ["seat_0", "seat_1", "seat_2", "seat_3"],
+  "expected_hand_count": 7,
+  "expected_layoff_shape": "seat may extend any public meld; score credit belongs to the laying-off seat",
+  "rules_covered": ["ML-LAYOFF-001", "ML-LAYOFF-002", "ML-SCORE-006"],
+  "golden_trace": "games/meldfall_ledger/tests/golden_traces/layoff-onto-opponent-tableau-score-credit.trace.json",
+  "expected_public_no_leak": true,
+  "note": "Fixture points to validated trace evidence; it contains no executable rule formula."
+}

@@ -28,6 +28,12 @@ use frontier_control::{
     FrontierGarrisonLevel1Bot, FrontierProspectorLevel1Bot,
 };
 use masked_claims::{MaskedClaimsLevel1Bot, MaskedClaimsSeat};
+use meldfall_ledger::{
+    bots::{parse_bot_action as parse_meldfall_bot_action, MeldfallL0Bot},
+    rules as meldfall_rules,
+    setup::{default_seats as meldfall_default_seats, setup_match as setup_meldfall_match},
+    state::{MatchState as MeldfallMatchState, TurnPhase as MeldfallTurnPhase},
+};
 use plain_tricks::PlainTricksLevel2Bot;
 use poker_lite::PokerLiteLevel2Bot;
 use race_to_n::{
@@ -65,6 +71,7 @@ const GAME_RIVER_LEDGER: &str = "river_ledger";
 const GAME_BRIAR_CIRCUIT: &str = "briar_circuit";
 const GAME_VOW_TIDE: &str = "vow_tide";
 const GAME_BLACKGLASS_PACT: &str = "blackglass_pact";
+const GAME_MELDFALL_LEDGER: &str = "meldfall_ledger";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -231,11 +238,18 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_BRIAR_CIRCUIT
         && config.game != GAME_VOW_TIDE
         && config.game != GAME_BLACKGLASS_PACT
+        && config.game != GAME_MELDFALL_LEDGER
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}, {GAME_BLACKGLASS_PACT}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}, {GAME_BLACKGLASS_PACT}, {GAME_MELDFALL_LEDGER}\n",
             config.game
         ));
+    }
+    if config.game == GAME_MELDFALL_LEDGER {
+        let seat_count = config.seat_count.unwrap_or(4);
+        if !(2..=6).contains(&seat_count) {
+            return Err("--seat-count for meldfall_ledger must be 2, 3, 4, 5, or 6\n".to_owned());
+        }
     }
     if config.game == GAME_BLACKGLASS_PACT && config.seat_count.unwrap_or(4) != 4 {
         return Err("--seat-count for blackglass_pact must be 4\n".to_owned());
@@ -284,7 +298,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -369,6 +383,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_BLACKGLASS_PACT {
         return run_blackglass_pact_simulation(config);
+    }
+    if config.game == GAME_MELDFALL_LEDGER {
+        return run_meldfall_ledger_simulation(config);
     }
 
     let started = Instant::now();
@@ -737,6 +754,215 @@ fn run_blackglass_pact_simulation(config: Config) -> Result<String, String> {
         render_seat_counts("wins_by_team", &wins_by_team),
         render_seat_counts("decisions_by_seat", &decisions_by_seat)
     ))
+}
+
+struct MeldfallLedgerMatchOutcome {
+    winner: Option<usize>,
+    actions: u64,
+    capped_or_no_action: bool,
+}
+
+fn run_meldfall_ledger_simulation(config: Config) -> Result<String, String> {
+    let seat_count = config.seat_count.unwrap_or(4);
+    let seat_labels = (0..seat_count)
+        .map(|index| format!("seat_{index}"))
+        .collect::<Vec<_>>();
+    let mut games_run = 0_u64;
+    let mut total_actions = 0_u64;
+    let mut wins_by_seat = zero_counts_by_string_seat(&seat_labels);
+    let mut bounded_nonterminal = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let outcome = run_one_meldfall_ledger_match(&config, seed, seat_count)?;
+        games_run += 1;
+        total_actions += outcome.actions;
+        if let Some(winner) = outcome.winner {
+            increment_seat_count(&mut wins_by_seat, &format!("seat_{winner}"));
+        }
+        if outcome.capped_or_no_action {
+            bounded_nonterminal += 1;
+        }
+    }
+
+    let average_length = total_actions as f64 / games_run as f64;
+    let completion_rate = if games_run == 0 {
+        0.0
+    } else {
+        ((games_run - bounded_nonterminal) as f64 / games_run as f64) * 100.0
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=meldfall_ledger\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         start_seed={}\n\
+         seat_count={seat_count}\n\
+         games_run={games_run}\n\
+         {}\n\
+         bot_policy_mix=l0_random_legal_all_seats\n\
+         {}\n\
+         total_actions={total_actions}\n\
+         bounded_nonterminal_at_cap={bounded_nonterminal}\n\
+         average_length={average_length:.2}\n\
+         completion_rate_percent={completion_rate:.2}\n",
+        config.start_seed,
+        render_seat_order_strings(&seat_labels),
+        render_seat_counts("wins_by_seat", &wins_by_seat)
+    ))
+}
+
+fn run_one_meldfall_ledger_match(
+    config: &Config,
+    seed: u64,
+    seat_count: usize,
+) -> Result<MeldfallLedgerMatchOutcome, String> {
+    let setup = setup_meldfall_match(
+        Seed(seed),
+        &meldfall_default_seats(seat_count)
+            .map_err(|diagnostic| format!("meldfall_ledger seats failed: {}\n", diagnostic.code))?,
+        &meldfall_ledger::setup::SetupOptions::default(),
+    )
+    .map_err(|diagnostic| format!("meldfall_ledger setup failed: {}\n", diagnostic.code))?;
+    let mut state = MeldfallMatchState::from_initial_setup(setup);
+
+    for action_index in 0..config.action_cap {
+        if state.terminal.is_some() {
+            return Ok(MeldfallLedgerMatchOutcome {
+                winner: state.terminal.as_ref().and_then(|terminal| terminal.winner),
+                actions: action_index as u64,
+                capped_or_no_action: false,
+            });
+        }
+        if matches!(
+            state.round.phase,
+            MeldfallTurnPhase::RoundSettled | MeldfallTurnPhase::MatchComplete
+        ) {
+            return Ok(MeldfallLedgerMatchOutcome {
+                winner: state.terminal.as_ref().and_then(|terminal| terminal.winner),
+                actions: action_index as u64,
+                capped_or_no_action: state.terminal.is_none(),
+            });
+        }
+
+        let seat = state.round.active_seat_index;
+        let bot = MeldfallL0Bot::new(Seed(bot_seed(seed, action_index)));
+        let decision = match bot.select_decision(&state, seat) {
+            Ok(decision) => decision,
+            Err(diagnostic) if diagnostic.code == "no_legal_actions" => {
+                return Ok(MeldfallLedgerMatchOutcome {
+                    winner: None,
+                    actions: action_index as u64,
+                    capped_or_no_action: true,
+                });
+            }
+            Err(diagnostic) => {
+                return Err(format!(
+                    "meldfall_ledger bot failed at seed {seed} action {action_index}: {}\n",
+                    diagnostic.code
+                ));
+            }
+        };
+        match parse_meldfall_bot_action(&decision.action_path).map_err(|diagnostic| {
+            format!(
+                "meldfall_ledger bot action parse failed at seed {seed}: {}\n",
+                diagnostic.code
+            )
+        })? {
+            meldfall_ledger::actions::MeldfallAction::DrawFromStock => {
+                meldfall_rules::draw_from_stock(&mut state.round, seat).map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger draw failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            meldfall_ledger::actions::MeldfallAction::DrawFromDiscard { discard_index } => {
+                meldfall_rules::draw_from_discard(&mut state.round, seat, discard_index).map_err(
+                    |diagnostic| {
+                        format!(
+                            "meldfall_ledger discard draw failed at seed {seed}: {}\n",
+                            diagnostic.code
+                        )
+                    },
+                )?;
+            }
+            meldfall_ledger::actions::MeldfallAction::MeldNew { cards } => {
+                meldfall_rules::table_new_meld(
+                    &mut state.round,
+                    seat,
+                    &cards,
+                    meldfall_ledger::state::TurnOrdinal(action_index as u32),
+                )
+                .map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger meld failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            meldfall_ledger::actions::MeldfallAction::LayOff {
+                card,
+                target_meld,
+                position,
+            } => {
+                meldfall_rules::lay_off_card(
+                    &mut state.round,
+                    seat,
+                    card,
+                    target_meld,
+                    position,
+                    meldfall_ledger::state::TurnOrdinal(action_index as u32),
+                )
+                .map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger lay-off failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            meldfall_ledger::actions::MeldfallAction::FinishTurn => {
+                meldfall_rules::finish_turn_after_table_plays(&mut state.round, seat).map_err(
+                    |diagnostic| {
+                        format!(
+                            "meldfall_ledger finish failed at seed {seed}: {}\n",
+                            diagnostic.code
+                        )
+                    },
+                )?;
+            }
+            meldfall_ledger::actions::MeldfallAction::GoOutWithoutDiscard => {
+                let phase = meldfall_rules::finish_turn_after_table_plays(&mut state.round, seat)
+                    .map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger go-out failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+                if phase != MeldfallTurnPhase::RoundSettled {
+                    return Err(format!(
+                        "meldfall_ledger go-out did not settle round at seed {seed}\n"
+                    ));
+                }
+            }
+            meldfall_ledger::actions::MeldfallAction::Discard { card } => {
+                meldfall_rules::discard_card(&mut state.round, seat, card).map_err(
+                    |diagnostic| {
+                        format!(
+                            "meldfall_ledger discard failed at seed {seed}: {}\n",
+                            diagnostic.code
+                        )
+                    },
+                )?;
+            }
+        }
+    }
+
+    Ok(MeldfallLedgerMatchOutcome {
+        winner: None,
+        actions: config.action_cap as u64,
+        capped_or_no_action: true,
+    })
 }
 
 fn run_one_vow_tide_match(

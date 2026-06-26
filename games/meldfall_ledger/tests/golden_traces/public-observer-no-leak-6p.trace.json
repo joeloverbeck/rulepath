@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "trace_id": "public-observer-no-leak-6p",
+  "fixture_kind": "visibility",
+  "purpose": "public_observer_no_leak_6p",
+  "game_id": "meldfall_ledger",
+  "rules_version": "meldfall-ledger-rules-v1",
+  "variant": "classic_500_single_deck_v1",
+  "viewer": "observer",
+  "seat_count": 6,
+  "surfaces": ["view", "action_tree", "effects", "diagnostic", "bot_explanation", "export"],
+  "hidden_information": "private hands and stock order",
+  "public_no_leak": true,
+  "evidence": "games/meldfall_ledger/tests/visibility.rs six-seat pairwise matrix"
+}

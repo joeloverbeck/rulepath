@@ -110,6 +110,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::DraughtsLite,
         RegisteredGame::HighCardDuel,
         RegisteredGame::MaskedClaims,
+        RegisteredGame::MeldfallLedger,
         RegisteredGame::FloodWatch,
         RegisteredGame::FrontierControl,
         RegisteredGame::EventFrontier,
@@ -179,6 +180,16 @@ pub fn list_games() -> Result<String, String> {
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_MASKED_CLAIMS_STANDARD, GAME_MASKED_CLAIMS_DISPLAY_NAME, None)])
+            ),
+            RegisteredGame::MeldfallLedger => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"rummy\",\"multi_seat\"],\"min_seats\":2,\"max_seats\":6,\"default_seats\":4,\"supported_seats\":[2,3,4,5,6],\"seat_labels\":{},\"viewer_modes\":{},\"docs\":[\"games/meldfall_ledger/docs/RULES.md\",\"games/meldfall_ledger/docs/SOURCES.md\",\"games/meldfall_ledger/docs/HOW-TO-PLAY.md\"]}}",
+                escape_json(GAME_MELDFALL_LEDGER),
+                escape_json(GAME_MELDFALL_LEDGER_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                variants_json(&[(VARIANT_MELDFALL_LEDGER_STANDARD, GAME_MELDFALL_LEDGER_DISPLAY_NAME, Some("Single-deck public-meld race to 500"))]),
+                catalog_seat_labels_json(6),
+                catalog_viewer_modes_json(6)
             ),
             RegisteredGame::FloodWatch => format!(
                 "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"viewer_modes\":[\"observer\",\"seat_0\",\"seat_1\"],\"hidden_information\":true,\"cooperative\":true,\"tags\":[\"hidden_info\",\"viewer_filtered\",\"public_replay_export\",\"cooperative\",\"environment_automation\"],\"docs\":[\"games/flood_watch/docs/RULES.md\",\"games/flood_watch/docs/SOURCES.md\"]}}",
@@ -291,6 +302,7 @@ pub fn list_games() -> Result<String, String> {
             if matches!(
                 game,
                 RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit | RegisteredGame::VowTide | RegisteredGame::BlackglassPact
+                    | RegisteredGame::MeldfallLedger
             ) {
                 return catalog_json;
             }
