@@ -43,7 +43,7 @@ GAT19MELLEDFIV-022.
 | `docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md` | Public scaling phase and Gate 19 roadmap placement. |
 | `docs/adr/0008-mechanical-scaffolding-governance.md` | Reuse-first audit, register-new-on-first-use, and queue-or-dispose prior-game refactor obligation. |
 | `docs/adr/0009-replay-fixture-hash-taxonomy.md` | Replay/fixture/hash taxonomy and no migration without explicit authority. |
-| `specs/gate-19-meldfall-ledger-five-hundred-rummy.md` | Gate-local scope, variant pin, first-use primitive posture, and Appendix C audit matrix. |
+| `archive/specs/gate-19-meldfall-ledger-five-hundred-rummy.md` | Gate-local scope, variant pin, first-use primitive posture, and Appendix C audit matrix. |
 
 ## Source, Scope, And Rule Readiness
 

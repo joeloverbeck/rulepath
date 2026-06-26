@@ -1,6 +1,6 @@
 # Gate 19 Implementation Spec — Meldfall Ledger (Five Hundred Rummy / Rummy 500)
 
-> **Spec path:** `specs/gate-19-meldfall-ledger-five-hundred-rummy.md`  
+> **Spec path:** `archive/specs/gate-19-meldfall-ledger-five-hundred-rummy.md`
 > **Deliverable type:** new roadmap-gate implementation spec, not ticket decomposition  
 
 ## 1. Header

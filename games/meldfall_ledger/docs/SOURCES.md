@@ -45,7 +45,7 @@ source prose, code, APIs, assets, or presentation are copied.
 
 | Source name | URL/reference | Date consulted | Source quality | Used for | Copied prose/assets status | Notes |
 |---|---|---|---|---|---|---|
-| Rulepath Gate 19 Meldfall Ledger spec | `../../../specs/gate-19-meldfall-ledger-five-hundred-rummy.md` | 2026-06-26 | project authority | product scope, locked variant, rule IDs, scoring model, visibility taxonomy, command suite, docs, tests, replay, bot, WASM, UI, benchmark, and capstone obligations | none | Governs this gate until archived. |
+| Rulepath Gate 19 Meldfall Ledger spec | `../../../archive/specs/gate-19-meldfall-ledger-five-hundred-rummy.md` | 2026-06-26 | project authority | product scope, locked variant, rule IDs, scoring model, visibility taxonomy, command suite, docs, tests, replay, bot, WASM, UI, benchmark, and capstone obligations | none | Archived gate authority. |
 | Rulepath Official Game Contract | `../../../docs/OFFICIAL-GAME-CONTRACT.md` | 2026-06-26 | project authority | requirements-first workflow and official-game evidence | none | Governs rules summary, source notes, player rules, rule coverage, outcome docs, no-leak proof, and web exposure. |
 | Rulepath IP Policy | `../../../docs/IP-POLICY.md` | 2026-06-26 | project authority | naming, source-use limits, and public asset caution | none | Supports the original public name and forbids copied prose, assets, and trade dress. |
 | Rulepath repository source bibliography | `../../../docs/SOURCES.md` | 2026-06-26 | project authority | central bibliography pattern and source-use rules | none | The capstone adds the repo-level Meldfall Ledger entry. |
