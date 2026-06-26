@@ -200,7 +200,7 @@ export function MeldfallLedgerBoard({
           <section className="meldfall-actions" aria-label="Meldfall Ledger legal actions">
             <div className="meldfall-section-heading">
               <span>Actions</span>
-              <strong>{canAct ? "Rust legal choices" : actionStatus(view, pending)}</strong>
+              <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
             </div>
             <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
@@ -213,7 +213,7 @@ export function MeldfallLedgerBoard({
             <strong>
               {outcomeExplanation
                 ? outcomeAnnouncementText(outcomeExplanation)
-                : feedback?.detail ?? "Rust effects will update this panel after each accepted action."}
+                : feedback?.detail ?? "Visible state changes will update here."}
             </strong>
           </div>
         </div>

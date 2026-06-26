@@ -163,7 +163,7 @@ fn effect_groups_have_public_envelopes_and_stable_strings() {
         score_credit_owner: 0,
         play_turn: TurnOrdinal(1),
     };
-    let effects = vec![
+    let effects = [
         public_effect(MeldfallEffect::Draw {
             seat: 0,
             source: DrawSource::Stock,

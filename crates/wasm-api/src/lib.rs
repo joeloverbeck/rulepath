@@ -2109,7 +2109,7 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
             });
             Ok(format!(
                 "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
-                escape_json(&decision.policy_id),
+                escape_json(decision.policy_id),
                 0,
                 escape_json(&decision.explanation),
                 effect_json,
