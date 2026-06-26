@@ -822,7 +822,7 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
     case "round_score":
       return {
         title: "Round scored",
-        detail: `Rust scored round ${payload.round_index ?? "current"}.`,
+        detail: meldfallRoundScoreDetail(payload),
         tone: "turn",
       };
     case "match_terminal":
@@ -968,6 +968,36 @@ function meldfallSeatLabel(value: unknown): string {
     return value;
   }
   return "A seat";
+}
+
+function meldfallRoundScoreDetail(payload: Record<string, unknown>): string {
+  const roundNumber = typeof payload.round_index === "number" ? payload.round_index + 1 : null;
+  const roundLabel = roundNumber ? `Round ${roundNumber}` : "Round";
+  const deltas = Array.isArray(payload.deltas) ? (payload.deltas as unknown[]).map(Number) : [];
+  const cumulative = Array.isArray(payload.cumulative_scores)
+    ? (payload.cumulative_scores as unknown[]).map(Number)
+    : [];
+
+  if (deltas.length === 0 && cumulative.length === 0) {
+    return `${roundLabel} settled.`;
+  }
+
+  let leaderText = "";
+  if (cumulative.length > 0) {
+    const top = Math.max(...cumulative);
+    const leaders = cumulative.flatMap((score, index) => (score === top ? [index] : []));
+    leaderText =
+      leaders.length === 1
+        ? ` Seat ${leaders[0] + 1} leads at ${top}.`
+        : ` Tied at ${top}.`;
+  }
+
+  const deltaText =
+    deltas.length > 0
+      ? ` Round delta — ${deltas.map((delta, index) => `Seat ${index + 1} ${delta >= 0 ? "+" : ""}${delta}`).join(", ")}.`
+      : "";
+
+  return `${roundLabel} settled.${leaderText}${deltaText}`;
 }
 
 function cardLabel(value: unknown): string {
