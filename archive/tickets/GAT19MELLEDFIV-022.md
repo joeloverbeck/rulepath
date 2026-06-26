@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-022: forward-v1 governance closeout — scaffolding receipt, mechanic atlas, register, and primitive-pressure ledger
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (CI evidence receipt) — `ci/scaffolding-audits.json`; `docs/MECHANIC-ATLAS.md`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `games/meldfall_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md`
@@ -81,3 +81,24 @@ Record the Gate 19 `forward-v1` reuse-first audit: `no-new-scaffolding`, no prio
 1. `node scripts/check-scaffolding-governance.mjs`
 2. `node scripts/check-doc-links.mjs`
 3. `for id in 001 002 003 004 005 006; do grep -q "ML-PP-$id" games/meldfall_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md || echo "MISSING ML-PP-$id"; done`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the forward-v1 governance closeout:
+
+- Added the `meldfall_ledger` `forward-v1` receipt to `ci/scaffolding-audits.json` with `no-new-scaffolding`, reviewed `MSC-8C-001` through `MSC-8C-010`, known signal dispositions, no follow-on unit, and no compatibility migration.
+- Added `games/meldfall_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md` with `ML-PP-001` through `ML-PP-006` covering meld validation, public tableau, discard pickup, lay-off, cumulative scoring, and deterministic shuffle/private-hand export review.
+- Updated `docs/MECHANIC-ATLAS.md` with first-use local-only Meldfall rows, kept §10A empty, and added the §10B deterministic shuffle/private-hand note.
+- Updated `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` with the Gate 19 `forward-v1` no-new-scaffolding receipt and no-prior-game-retrofit disposition.
+
+Deviations:
+
+- The spec's example `ci/scaffolding-audits.json` evidence paths name `MECHANICS.md` and `GAME-EVIDENCE.md`, but those Meldfall docs do not exist yet and trailing docs are scoped to GAT19MELLEDFIV-023. The receipt uses existing Gate 19 evidence paths plus the new primitive-pressure ledger so `check-scaffolding-governance.mjs` can validate 022 without pulling 023 forward.
+
+Verification:
+
+- `node scripts/check-scaffolding-governance.mjs` — passed; 19 games, 2 `forward-v1` receipts.
+- `node scripts/check-doc-links.mjs` — passed; checked 31 markdown files.
+- `for id in 001 002 003 004 005 006; do grep -q "ML-PP-$id" games/meldfall_ledger/docs/PRIMITIVE-PRESSURE-LEDGER.md || echo "MISSING ML-PP-$id"; done` — passed with no missing IDs.

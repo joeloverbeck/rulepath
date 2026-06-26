@@ -1081,6 +1081,44 @@ R4 N-seat/private/trick receipts, 2026-06-24:
   helper contract is broadened, no `engine-core` noun is added, and no
   `game-stdlib` helper promotion debt is created.
 
+### Gate 19 forward-v1 Meldfall Ledger receipt - 2026-06-26
+
+- Receipt state: Meldfall Ledger is the second official game admitted after the
+  forward-v1 interlock. It reviewed `MSC-8C-001`...`MSC-8C-010` in
+  [../games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md](../games/meldfall_ledger/docs/GAME-IMPLEMENTATION-ADMISSION.md)
+  and records the machine receipt in `ci/scaffolding-audits.json` with
+  `coverage: "forward-v1"`.
+- C-01 checkpoint: effect envelopes are reused as existing scaffolding only;
+  draw, pickup, meld, lay-off, discard, score, round, and terminal effect
+  meanings stay `meldfall_ledger` behavior.
+- C-02 checkpoint: canonical seat grammar fits `seat_0`...`seat_5`; setup
+  admission, deal sizes, dealer/start policy, and score order remain
+  game-local.
+- C-03 checkpoint: seat-count validation and ring arithmetic reuse structural
+  helpers where applicable; round/turn order, stock exhaustion, scoring, and
+  match continuation stay game-owned.
+- C-04/C-05 checkpoint: action-tree and stable-byte helpers remain framing or
+  evidence surfaces only; Rust owns legal draw, meld, lay-off, go-out, discard,
+  replay authority, and hash/export bytes.
+- C-06 checkpoint: any `game-test-support` use remains dev/test-only; no
+  production edge is introduced.
+- C-07/C-08 checkpoint: pairwise no-leak and evidence-profile geometry is
+  reused as test scaffolding; Meldfall supplies the hidden datum taxonomy,
+  public observer, all-seat viewer expectations, and replay/export policy.
+- C-09 checkpoint: bounded-index sampling creates no migration authority for
+  Meldfall shuffle/deal bytes; any RNG migration would require separate
+  authority.
+- C-10 checkpoint: every behavior-bearing shape remains rejected/local-only:
+  meld validation, public tableau, discard-pile pickup, lay-off, cumulative
+  scoring, bot policy, visibility, outcome, and UI behavior do not enter
+  mechanical scaffolding.
+- Prior-site disposition: no prior official game has the same behavior-free
+  scaffolding shape requiring migration. Earlier card games are comparison
+  points only; the accepted no-unit disposition is `MSC-8C-010`.
+- Artifact-diff result: no new `MSC-*` register entry is required, no existing
+  helper contract is broadened, no `engine-core` noun is added, and no
+  `game-stdlib` helper promotion debt is created.
+
 ## Review Checklist
 
 Before accepting a register entry, verify:
