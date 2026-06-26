@@ -27,9 +27,10 @@
 Gate 19 shipped Meldfall Ledger with a single-round engine. The match-level
 multi-round transition required by the gate — `docs/ROADMAP.md` line 119
 ("multi-round target"), the archived Gate 19 spec §2.6, §6 "Round/match flow
-covered", and golden-trace item `multi-round-first-to-500.trace.json` — was
-**intentionally deferred at ship time** and never completed. The deferral is
-documented in code:
+covered" — was **intentionally deferred at ship time** and never completed. (The
+archived gate's `multi-round-first-to-500.trace.json` deliverable shipped only as
+a *static scoring-illustration fixture*, not an executable transition; see §7.3.)
+The deferral is documented in code:
 
 - `crates/wasm-api/src/games/meldfall.rs` → `round_score_index()` states: *"The
   multi-round transition (ML-MATCH-006) is intentionally deferred, so a match
@@ -78,29 +79,45 @@ change. `RULES.md`, `MECHANICS.md`, and the variant pin are unchanged.
    `MatchState` holds only `variant, seats, cumulative_scores, dealer_index, round,
    terminal`). These feed (a) deterministic per-round deal-seed derivation and (b)
    the `round_score` effect's `round_index`.
-3. **Deterministic per-round deal seed.** A documented, stable derivation of the
-   round deal seed from the base match seed and round index (and, consistent with
-   `ML-SETUP-006`, seat count / variant / rules / data version), using
-   `engine-core` RNG/seed primitives only. The function must be pure and
-   replay-stable; once golden traces exist it is effectively frozen.
+3. **Deterministic per-round deal seed.** A documented, stable, game-crate
+   derivation of the round deal seed from the base match seed and round index,
+   built on the existing `engine-core` seed primitives (`Seed(u64)` /
+   `SeededRng::from_seed`) — no seed-derivation helper exists in `engine-core`,
+   and none is added. Round 0 continues to use the existing
+   `setup_match`/`deal_for_round(seed)` path unchanged, so the first deal stays
+   byte-identical to the shipped single-round setup; the derivation governs
+   rounds 1+ only. Seat count, variant, rules version, and data version are fixed
+   variant pins (the determinism guarantee of `ML-SETUP-006`), not new RNG inputs
+   to fold in. The function must be pure and replay-stable; once evidence exists
+   it is effectively frozen.
 4. **`round_score_index` correction.** Replace the hardcoded `0` with the settled
    round count so the `RoundScore` effect reports the true round index.
-5. **Apply-path wiring (WASM bridge).** In `crates/wasm-api/src/games/meldfall.rs`,
-   after `settle_round` when `settlement.terminal` is `None`, perform the
-   round transition in the same apply transaction and emit a public
-   round-transition effect (a Meldfall refill/next-round effect; mirror the
-   shape used by other games' `refill_started` with a `next_round_number` and
-   `next_lead_seat`). The new round's action tree must be produced for the new
-   active seat so play continues without any player "advance" action.
+5. **Apply-path wiring (both hosts).** The round transition is the game-crate
+   `advance_to_next_round` operation (§3.1.1), invoked by **both** the WASM bridge
+   (`crates/wasm-api/src/games/meldfall.rs`) and the `tools/simulate` loop — the
+   two have independent apply paths (simulate does not route through the WASM
+   bridge; it currently returns at `RoundSettled`), so both must call the shared
+   operation for host parity. In the WASM bridge, after `settle_round` when
+   `settlement.terminal` is `None`, perform the transition in the same apply
+   transaction and emit a public round-transition effect. The effect mirrors the
+   **field shape** used by other games' `refill_started` (`next_round_number`,
+   `next_lead_seat`, plus the new dealer seat) but MUST use a distinct,
+   meldfall-owned effect `kind` — `next_round_dealt` — **not** `refill_started`:
+   the web `describeEffect` switch keys on `payload.type ?? payload.kind`, and
+   `high_card_duel` already owns `refill_started` there, so reusing that string
+   would collide with high_card_duel's case rather than add a new one. The new
+   round's action tree must be produced for the new active seat so play continues
+   without any player "advance" action.
 6. **Simulate host parity.** `tools/simulate` must drive matches to terminal:
    `completion_rate_percent` becomes > 0 for ordinary seeds, and
    `wins_by_seat` records real winners. The simulate loop and the WASM apply path
    must produce identical state/score/hash sequences for the same seed.
 7. **Effect feedback (web).** `apps/web/src/components/effectFeedback.ts` gains a
-   case for the new round-transition effect, using friendly seat labels
-   (consistent with the existing `meldfallSeatLabel` helper), e.g. "Round 2 dealt
-   — Seat 3 deals; Seat 4 leads off." The existing enriched `round_score`
-   settlement summary remains.
+   new `next_round_dealt` case (distinct from the existing `refill_started` case,
+   which belongs to `high_card_duel`), using friendly seat labels (consistent
+   with the existing `meldfallSeatLabel` helper), e.g. "Round 2 dealt — Seat 3
+   deals; Seat 4 leads off." The existing enriched `round_score` settlement
+   summary remains.
 8. **Web continuation.** Confirm the board advances out of `round_settled` into the
    next round automatically and that autoplay now reaches the terminal outcome
    panel. The `round_settled` heading/turn-pill copy added in the loop work
@@ -158,13 +175,13 @@ change. `RULES.md`, `MECHANICS.md`, and the variant pin are unchanged.
 
 | Area | Deliverable |
 |---|---|
-| Engine state | `MatchState` gains base-seed + round-index fields; constructors/threading updated; `stable_internal_summary` includes the round index. |
+| Engine state | `MatchState` gains base-seed + round-index fields; constructors/threading updated; `stable_internal_summary` includes the round index — this shifts the canonical summary string for all states incl. round 0, so the `starts_with` assertion in `games/meldfall_ledger/tests/serialization.rs` is updated to match (an ADR-0009-governed Meldfall artifact movement, not test-weakening). |
 | Engine logic | `advance_to_next_round` (deterministic, Rust-owned) + per-round seed derivation; reuse `deal_for_round`, `next_clockwise_index`. |
-| Effects | New public round-transition effect (`MeldfallEffect`) with stable string + JSON encoding and viewer projection; `round_score_index` corrected. |
-| WASM bridge | `crates/wasm-api/src/games/meldfall.rs` apply path drives settle → (terminal? finish : transition) and emits the new effect; new round's action tree served. |
-| Simulate | `tools/simulate` drives to terminal; summary shows real completion and winners. |
+| Effects | New public `MeldfallEffect::NextRoundDealt` (`kind` `next_round_dealt`, distinct from `high_card_duel`'s `refill_started`) with stable string + JSON encoding and viewer projection; `round_score_index` corrected. |
+| WASM bridge | `crates/wasm-api/src/games/meldfall.rs` apply path drives settle → (terminal? finish : `advance_to_next_round`) and emits the new effect; new round's action tree served. |
+| Simulate | `tools/simulate` (independent apply loop, currently returns at `RoundSettled`) calls the same `advance_to_next_round` and drives to terminal; summary shows real completion and winners. |
 | Web | `effectFeedback.ts` round-transition case; verify autoplay reaches the terminal panel; no `round_settled` dead-end. |
-| Tests | New/updated Rust tests (§7.2), golden traces (§7.4), no-leak matrix across rounds, host-parity test. |
+| Tests | New/updated Rust tests (§7.2), transition-evidence artifact(s) (§7.3), no-leak matrix across rounds, host-parity test. |
 | Docs | Update non-authoritative docs (§10) to record completion; remove/supersede the "intentionally deferred" code comment; `GAME-EVIDENCE.md` receipt; `specs/README.md` row. |
 
 ---
@@ -176,14 +193,16 @@ change. `RULES.md`, `MECHANICS.md`, and the variant pin are unchanged.
 2. **Transition logic + deterministic re-deal seed.** Implement
    `advance_to_next_round` and the seed derivation; unit-test reset/preserve,
    dealer rotation, active-seat, determinism, and meld-id policy.
-3. **Round-transition effect.** Add the `MeldfallEffect` variant, stable/JSON
-   encodings, viewer projection, and `round_score_index` fix; effect smoke.
+3. **Round-transition effect.** Add the `MeldfallEffect::NextRoundDealt` variant
+   (`kind` `next_round_dealt` — not `refill_started`), stable/JSON encodings,
+   viewer projection, and `round_score_index` fix; effect smoke.
 4. **WASM apply wiring + simulate parity.** Drive settle→transition/terminal in
    both hosts; add the host-parity determinism test; confirm simulate completion.
 5. **Web feedback + browser verification.** `effectFeedback.ts` case; Puppeteer
    verification that a full match reaches the terminal outcome panel.
-6. **Golden traces + docs + closeout.** Author the multi-round and tie-continue
-   traces; update docs/evidence; flip this spec and the `specs/README.md` note.
+6. **Evidence + docs + closeout.** Author the new transition-evidence artifact(s)
+   (§7.3) — leaving the existing scoring-illustration fixtures intact; update
+   docs/evidence; flip this spec and the `specs/README.md` note.
 
 Each seam is one reviewable diff with its own tests; decompose via
 `templates/AGENT-TASK.md` using the `spec-to-tickets` skill.
@@ -195,9 +214,9 @@ Each seam is one reviewable diff with its own tests; decompose via
 | # | Criterion | Evidence |
 |---|---|---|
 | 1 | A non-terminal settled round deterministically deals the next round (dealer rotated, round-only state cleared, active seat left of new dealer). | Round-transition unit tests; golden trace. |
-| 2 | Cumulative play reaches a real terminal: a unique seat ≥ 500 wins; ties at/above 500 continue (`ML-MATCH-002/003/004`). | `multi-round-first-to-500` and `tie-continues` golden traces; terminal standings test. |
+| 2 | Cumulative play reaches a real terminal: a unique seat ≥ 500 wins; ties at/above 500 continue (`ML-MATCH-002/003/004`). | Host-parity full-match test reaching a unique-500 terminal and a tie-continuation; `round-transition-resets-table-state` trace; terminal standings test. |
 | 3 | `simulate` completes ordinary matches. | `cargo run -p simulate -- --game meldfall_ledger --games 1000` shows `completion_rate_percent` > 0 and populated `wins_by_seat`. |
-| 4 | WASM apply path and simulate produce identical deterministic state/score/hash sequences for a seed across multiple rounds. | Host-parity test; `replay-check --all` green incl. new traces. |
+| 4 | WASM apply path and simulate produce identical deterministic state/score/hash sequences for a seed across multiple rounds. | Host-parity determinism test (the authoritative parity check — `replay-check` validates meldfall traces declaratively and does not compare cross-host hash sequences); `replay-check --all` green incl. any new trace. |
 | 5 | No hidden-info leak across the transition (stock order, opponent hands, private draws) in state, effects, DOM, storage, logs, replay export. | Pairwise no-leak matrix extended to a multi-round trace; web a11y/no-leak smoke. |
 | 6 | Browser: a full Bot-vs-bot match autoplays to the terminal outcome panel; no `round_settled` dead-end. | Puppeteer/e2e evidence + screenshot. |
 | 7 | No rule-text change; `rule-coverage` and `fixture-check` green; only legitimate Meldfall artifacts changed (ADR 0009). | CI gate 0/1 logs. |
@@ -235,15 +254,30 @@ npm --prefix apps/web run smoke:ui
 - no-leak across the transition (stock order / opponent hands / private draws);
 - meld-id policy assertion (per §3.4).
 
-### 7.3 Golden trace minimum set
+### 7.3 Evidence artifacts (minimum new set)
 
-| Trace | Asserts |
+The transition's *executable* proof is the host-parity full-match test (§7.2),
+**not** a declarative trace — `replay-check` validates meldfall traces by
+parsing / card-conservation / setup-projection, never by replaying commands. The
+one new declarative artifact records the reset/preserve contract:
+
+| Artifact | Asserts |
 |---|---|
-| `multi-round-first-to-500.trace.json` | Cumulative reaches/exceeds 500; unique highest wins; deterministic across the whole match. |
-| `tie-continues-past-500.trace.json` | Tie at/above 500 settles non-terminal and deals another round (`ML-MATCH-003`). |
-| `round-transition-resets-table-state.trace.json` | Dealer rotates, tableau/discard/hands/pending/round_end reset, scores carry forward. |
+| `round-transition-resets-table-state.trace.json` (new) | Dealer rotates, tableau/discard/hands/pending/round_end reset, scores carry forward. |
 
-(Existing single-round traces remain valid and must still pass.)
+The existing scoring-illustration fixtures
+`games/meldfall_ledger/tests/golden_traces/multi-round-first-to-500.trace.json`
+and `target-tie-continues.trace.json` (static `before`/`round_deltas`/`after`
+snapshots keyed to `ML-MATCH-001/002/003/004/005`) **predate this gate and are
+left intact** — they are not rewritten or clobbered. The unique-500-winner and
+tie-continuation *behaviors* are proved by the host-parity full-match test and
+`simulate` completion (exit criteria 2–3), not by those static fixtures.
+
+Existing single-round fixtures remain **semantically** valid; the only assertion
+that legitimately moves is the `stable_internal_summary` `starts_with` check in
+`games/meldfall_ledger/tests/serialization.rs`, updated (not weakened) to the
+round-index-extended format under ADR 0009. "Still valid" therefore means valid
+after that one governed update, not byte-identical.
 
 ---
 
