@@ -46,6 +46,7 @@ export function MeldfallLedgerBoard({
   const groupedChoices = useMemo(() => groupChoices(choices), [choices]);
   const seats = SEATS.slice(0, view.hand_counts.length);
   const canAct = Boolean(interactive && !pending && !view.terminal && choices.length > 0);
+  const roundSettled = !view.terminal && view.phase === "round_settled";
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
     const payload = entry.effect.payload;
@@ -104,7 +105,11 @@ export function MeldfallLedgerBoard({
           <h2 id="meldfall-heading">{statusLabel(view)}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
-          {view.terminal ? terminalHeading(view.terminal.standings) : `${seatLabel(view.active_seat)} acts`}
+          {view.terminal
+            ? terminalHeading(view.terminal.standings)
+            : roundSettled
+              ? roundEndLabel(view.round_end)
+              : `${seatLabel(view.active_seat)} acts`}
         </span>
       </div>
 
@@ -396,7 +401,20 @@ function groupChoices(choices: ActionChoice[]): GroupedChoices {
 
 function statusLabel(view: MeldfallLedgerPublicView): string {
   if (view.terminal) return terminalHeading(view.terminal.standings);
+  if (view.phase === "round_settled") return "Round settled";
   return `${phaseLabel(view.phase)} phase`;
+}
+
+function roundEndLabel(roundEnd: string | null): string {
+  if (!roundEnd) return "Round settled";
+  const [reason, seatPart] = roundEnd.split(":");
+  const seatMatch = /seat=(\d+)/.exec(seatPart ?? "");
+  const seat = seatMatch ? seatLabel(`seat_${seatMatch[1]}` as MeldfallLedgerSeatId) : null;
+  if (reason === "stock_exhausted") return "Stock exhausted";
+  if ((reason === "go_out_without_discard" || reason === "go_out_by_final_discard") && seat) {
+    return `${seat} went out`;
+  }
+  return "Round settled";
 }
 
 function actionStatus(view: MeldfallLedgerPublicView, pending: boolean): string {
