@@ -310,6 +310,266 @@ fn meldfall_ledger_wasm_surface_filters_hidden_cards_and_authorizes_actor() {
 }
 
 #[test]
+fn meldfall_full_play_replays_deterministically() {
+    // Replaying a recorded command stream from the same seed must reproduce the
+    // exact final match state (ML-REPLAY-001), across full random-legal games.
+    use crate::games::meldfall::{
+        create_meldfall_match, meldfall_apply_command, meldfall_replay_to_cursor,
+        meldfall_select_bot_decision,
+    };
+    use meldfall_ledger::state::TurnPhase;
+
+    for seat_count in [2, 3, 4, 6] {
+        for seed in 0..40u64 {
+            // Play a full game, recording the accepted command stream.
+            let mut state = create_meldfall_match(seed, seat_count).expect("match");
+            let mut commands: Vec<AppliedCommand> = Vec::new();
+            let mut steps = 0;
+            while !matches!(
+                state.round.phase,
+                TurnPhase::RoundSettled | TurnPhase::MatchComplete
+            ) {
+                let active = state.round.active_seat_index;
+                let decision =
+                    meldfall_select_bot_decision(&state, active, seed).expect("decision");
+                commands.push(AppliedCommand {
+                    actor_seat: format!("seat_{active}"),
+                    action_path: decision.action_path.segments.clone(),
+                    freshness_token: 0,
+                });
+                meldfall_apply_command(&mut state, active, decision.action_path).expect("apply");
+                steps += 1;
+                assert!(steps < 1000, "seed {seed}: no settle");
+            }
+            let played = state.stable_internal_summary();
+
+            // Replaying the same command stream from the same seed must reproduce
+            // the exact final state (ML-REPLAY-001).
+            let (replayed, _effects) =
+                meldfall_replay_to_cursor(seed, seat_count, &commands, commands.len())
+                    .expect("replay");
+            assert_eq!(
+                replayed.stable_internal_summary(),
+                played,
+                "seed {seed} seats {seat_count}: replay diverged from original play"
+            );
+        }
+    }
+}
+
+#[test]
+fn meldfall_random_legal_play_always_settles_without_deadlock() {
+    use crate::games::meldfall::{
+        create_meldfall_match, meldfall_apply_command, meldfall_select_bot_decision,
+    };
+    use engine_core::FreshnessToken;
+    use meldfall_ledger::bots::{legal_action_paths, legal_action_tree_for_seat};
+    use meldfall_ledger::state::TurnPhase;
+
+    // Smaller stocks exhaust faster: 6 seats deal 42 cards, leaving a 9-card
+    // stock, so stock-exhaustion turns are reached quickly. Every round must end
+    // in a settled/terminal state (ML-TURN-009); the active seat must never be
+    // left in a draw/table/discard phase with zero legal actions.
+    for seat_count in [2, 4, 6] {
+        for seed in 0..120u64 {
+            let mut state = create_meldfall_match(seed, seat_count)
+                .unwrap_or_else(|err| panic!("seed {seed} seats {seat_count}: {err}"));
+            let mut steps = 0;
+            loop {
+                let phase = state.round.phase;
+                if matches!(phase, TurnPhase::RoundSettled | TurnPhase::MatchComplete) {
+                    break;
+                }
+                let active = state.round.active_seat_index;
+                let paths = legal_action_paths(&legal_action_tree_for_seat(
+                    &state,
+                    active,
+                    FreshnessToken(0),
+                ));
+                assert!(
+                    !paths.is_empty(),
+                    "seed {seed} seats {seat_count}: deadlock in phase {phase:?} at seat {active} after {steps} steps (stock {}, discard {})",
+                    state.round.stock.len(),
+                    state.round.discard.len(),
+                );
+                let decision = meldfall_select_bot_decision(&state, active, seed)
+                    .unwrap_or_else(|err| panic!("seed {seed}: bot decision failed: {err}"));
+                meldfall_apply_command(&mut state, active, decision.action_path)
+                    .unwrap_or_else(|err| panic!("seed {seed}: apply failed: {err}"));
+                steps += 1;
+                assert!(
+                    steps < 1000,
+                    "seed {seed} seats {seat_count}: round did not settle"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn meldfall_full_play_conserves_cards_and_scores_correctly() {
+    // Plays full random-legal games across every seat count and asserts two
+    // invariants the per-move handlers must never break: the 52-card deck is
+    // conserved (no card lost, duplicated, or in two zones) at every step, and at
+    // settlement each seat's cumulative score equals tabled credit minus in-hand
+    // penalty (single round, ML-SCORE-002..004).
+    use crate::games::meldfall::{
+        create_meldfall_match, meldfall_apply_command, meldfall_select_bot_decision,
+    };
+    use meldfall_ledger::cards::CardId;
+    use meldfall_ledger::state::TurnPhase;
+
+    let mut sorted_canonical: Vec<CardId> = meldfall_ledger::cards::canonical_deck();
+    sorted_canonical.sort();
+
+    for seat_count in [2, 3, 4, 5, 6] {
+        for seed in 0..60u64 {
+            let mut state = create_meldfall_match(seed, seat_count).expect("match");
+            let mut steps = 0;
+            loop {
+                let mut all: Vec<CardId> = Vec::new();
+                all.extend(state.round.stock.iter().copied());
+                all.extend(state.round.discard.iter().copied());
+                for seat in &state.round.seats {
+                    all.extend(seat.hand.iter().copied());
+                }
+                for group in &state.round.tableau.groups {
+                    all.extend(group.cards.iter().map(|c| c.card));
+                }
+                all.sort();
+                assert_eq!(
+                    all,
+                    sorted_canonical,
+                    "seed {seed} seats {seat_count} step {steps}: card set not conserved (len {})",
+                    all.len()
+                );
+
+                let phase = state.round.phase;
+                if matches!(phase, TurnPhase::RoundSettled | TurnPhase::MatchComplete) {
+                    // score accounting: single round, so cumulative == tabled credit - penalty.
+                    let score = |c: CardId| -> i32 { i32::from(c.card().rank.score_value()) };
+                    for seat_index in 0..seat_count {
+                        let tabled: i32 = state
+                            .round
+                            .tableau
+                            .groups
+                            .iter()
+                            .flat_map(|g| g.cards.iter())
+                            .filter(|tc| tc.score_credit_owner == seat_index)
+                            .map(|tc| score(tc.card))
+                            .sum();
+                        let penalty: i32 = state.round.seats[seat_index]
+                            .hand
+                            .iter()
+                            .map(|c| score(*c))
+                            .sum();
+                        assert_eq!(
+                            state.cumulative_scores[seat_index],
+                            tabled - penalty,
+                            "seed {seed} seats {seat_count} seat {seat_index}: cumulative {} != tabled {tabled} - penalty {penalty}",
+                            state.cumulative_scores[seat_index],
+                        );
+                    }
+                    break;
+                }
+                let active = state.round.active_seat_index;
+                let decision =
+                    meldfall_select_bot_decision(&state, active, seed).expect("decision");
+                meldfall_apply_command(&mut state, active, decision.action_path).expect("apply");
+                steps += 1;
+                assert!(steps < 1000, "seed {seed}: no settle");
+            }
+        }
+    }
+}
+
+#[test]
+fn meldfall_full_play_never_leaks_hidden_cards() {
+    // Across full random-legal games, every viewer's projected view and action
+    // tree must omit cards hidden from that viewer: the entire stock and every
+    // other seat's private hand (ML-VIS-002, ML-VIS-003).
+    use crate::games::meldfall::{
+        create_meldfall_match, meldfall_apply_command, meldfall_select_bot_decision,
+    };
+    use engine_core::{FreshnessToken, Viewer};
+    use meldfall_ledger::bots::legal_action_tree_for_seat;
+    use meldfall_ledger::cards::CardId;
+    use meldfall_ledger::seat_id_for_index;
+    use meldfall_ledger::state::TurnPhase;
+    use meldfall_ledger::visibility::{project_action_tree_for_viewer, project_view};
+
+    for seat_count in [2, 4, 6] {
+        for seed in 0..25u64 {
+            let mut state = create_meldfall_match(seed, seat_count).expect("match");
+            let mut steps = 0;
+            loop {
+                let active = state.round.active_seat_index;
+                let tree = legal_action_tree_for_seat(&state, active, FreshnessToken(0));
+                // viewer = observer (None) and each real seat
+                let mut viewers: Vec<Option<usize>> = vec![None];
+                viewers.extend((0..seat_count).map(Some));
+                for viewer_seat in viewers {
+                    let viewer = Viewer {
+                        seat_id: viewer_seat.map(seat_id_for_index),
+                    };
+                    let surface = format!(
+                        "{:?}|{:?}",
+                        project_view(&state, &viewer),
+                        project_action_tree_for_viewer(&tree, &state, &viewer)
+                    );
+                    // forbidden = stock + every hand that isn't this viewer's own
+                    let mut forbidden: Vec<CardId> = state.round.stock.clone();
+                    for (idx, seat) in state.round.seats.iter().enumerate() {
+                        if Some(idx) != viewer_seat {
+                            forbidden.extend(seat.hand.iter().copied());
+                        }
+                    }
+                    for hidden in forbidden {
+                        assert!(
+                            !surface.contains(&hidden.as_str()),
+                            "seed {seed} seats {seat_count} step {steps} viewer {viewer_seat:?}: leaked {}",
+                            hidden.as_str()
+                        );
+                    }
+                }
+
+                if matches!(
+                    state.round.phase,
+                    TurnPhase::RoundSettled | TurnPhase::MatchComplete
+                ) {
+                    break;
+                }
+                let decision =
+                    meldfall_select_bot_decision(&state, active, seed).expect("decision");
+                meldfall_apply_command(&mut state, active, decision.action_path).expect("apply");
+                steps += 1;
+                assert!(steps < 1000, "seed {seed}: no settle");
+            }
+        }
+    }
+}
+
+#[test]
+fn meldfall_round_score_index_is_the_round_not_the_finishing_seat() {
+    use crate::games::meldfall::{create_meldfall_match, round_score_index};
+    use meldfall_ledger::state::{RoundEndReason, RoundEndSummary};
+
+    let mut state = create_meldfall_match(7, 4).expect("meldfall match created");
+    // A non-zero seat ends the only round. The scored round is still round 0;
+    // the round index must not be confused with the finishing seat's index.
+    state.round.round_end = Some(RoundEndSummary {
+        reason: RoundEndReason::GoOutWithoutDiscard,
+        seat_index: 3,
+    });
+
+    assert_eq!(
+        round_score_index(&state),
+        0,
+        "round_score effect must report the round index (0), not the finishing seat"
+    );
+}
+
+#[test]
 fn feature_report_lists_ops() {
     let report = feature_report().expect("feature report returned");
     assert!(report.contains("\"api_version\":\"rulepath-wasm-api/0.1.0\""));
