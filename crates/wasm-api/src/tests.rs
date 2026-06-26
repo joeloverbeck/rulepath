@@ -310,6 +310,54 @@ fn meldfall_ledger_wasm_surface_filters_hidden_cards_and_authorizes_actor() {
 }
 
 #[test]
+fn meldfall_full_play_replays_deterministically() {
+    // Replaying a recorded command stream from the same seed must reproduce the
+    // exact final match state (ML-REPLAY-001), across full random-legal games.
+    use crate::games::meldfall::{
+        create_meldfall_match, meldfall_apply_command, meldfall_replay_to_cursor,
+        meldfall_select_bot_decision,
+    };
+    use meldfall_ledger::state::TurnPhase;
+
+    for seat_count in [2, 3, 4, 6] {
+        for seed in 0..40u64 {
+            // Play a full game, recording the accepted command stream.
+            let mut state = create_meldfall_match(seed, seat_count).expect("match");
+            let mut commands: Vec<AppliedCommand> = Vec::new();
+            let mut steps = 0;
+            while !matches!(
+                state.round.phase,
+                TurnPhase::RoundSettled | TurnPhase::MatchComplete
+            ) {
+                let active = state.round.active_seat_index;
+                let decision =
+                    meldfall_select_bot_decision(&state, active, seed).expect("decision");
+                commands.push(AppliedCommand {
+                    actor_seat: format!("seat_{active}"),
+                    action_path: decision.action_path.segments.clone(),
+                    freshness_token: 0,
+                });
+                meldfall_apply_command(&mut state, active, decision.action_path).expect("apply");
+                steps += 1;
+                assert!(steps < 1000, "seed {seed}: no settle");
+            }
+            let played = state.stable_internal_summary();
+
+            // Replaying the same command stream from the same seed must reproduce
+            // the exact final state (ML-REPLAY-001).
+            let (replayed, _effects) =
+                meldfall_replay_to_cursor(seed, seat_count, &commands, commands.len())
+                    .expect("replay");
+            assert_eq!(
+                replayed.stable_internal_summary(),
+                played,
+                "seed {seed} seats {seat_count}: replay diverged from original play"
+            );
+        }
+    }
+}
+
+#[test]
 fn meldfall_random_legal_play_always_settles_without_deadlock() {
     use crate::games::meldfall::{
         create_meldfall_match, meldfall_apply_command, meldfall_select_bot_decision,
