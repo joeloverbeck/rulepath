@@ -109,6 +109,16 @@ export function MeldfallLedgerBoard({
   // a live draw decision we can explain why a disabled discard is not pickable.
   const drawDecision = canAct && !view.terminal && view.phase === "draw";
   const roundSettled = !view.terminal && view.phase === "round_settled";
+  // After a discard pickup, Rust offers only table plays that use the committed card
+  // and withholds finish/discard until the commitment is satisfied (ML-TURN-004). In
+  // the table phase that is the only reason finish is absent, so we can tell the player
+  // why their turn is locked. Inferred from the Rust action set, not computed here.
+  const pickupCommitmentPending =
+    canAct &&
+    view.phase === "table" &&
+    groupedChoices.table.length > 0 &&
+    groupedChoices.turn.length === 0 &&
+    groupedChoices.discard.length === 0;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
     const payload = entry.effect.payload;
@@ -286,6 +296,11 @@ export function MeldfallLedgerBoard({
               <span>Actions</span>
               <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
             </div>
+            {pickupCommitmentPending ? (
+              <p className="meldfall-commitment-note" role="status">
+                Pickup commitment: meld or lay off the discard you took before you can finish this turn.
+              </p>
+            ) : null}
             <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Discard" choices={groupedChoices.discard} canAct={canAct} onPathSubmit={onPathSubmit} />
