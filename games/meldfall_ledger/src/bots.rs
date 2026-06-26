@@ -11,13 +11,13 @@ use engine_core::{
 
 use crate::{
     actions::{
-        action_choice, draw_source_action_tree, LayoffPosition, MeldfallAction,
-        DISCARD_SEGMENT_PREFIX, FINISH_TURN_SEGMENT, GO_OUT_WITHOUT_DISCARD_SEGMENT,
-        LAY_OFF_SEGMENT_PREFIX, MELD_NEW_SEGMENT_PREFIX,
+        action_choice, draw_action_tree, LayoffPosition, MeldfallAction, DISCARD_SEGMENT_PREFIX,
+        FINISH_TURN_SEGMENT, GO_OUT_WITHOUT_DISCARD_SEGMENT, LAY_OFF_SEGMENT_PREFIX,
+        MELD_NEW_SEGMENT_PREFIX,
     },
     cards::CardId,
-    rules::{lay_off_card, validate_new_meld},
-    state::{MatchState, SeatIndex, TurnOrdinal, TurnPhase},
+    rules::{draw_from_discard, lay_off_card, validate_new_meld},
+    state::{MatchState, RoundState, SeatIndex, TurnOrdinal, TurnPhase},
     visibility::{project_action_tree_for_viewer, project_view, MeldfallView},
 };
 
@@ -108,7 +108,7 @@ pub fn legal_action_tree_for_seat(
         return ActionTree::flat(freshness_token, Vec::new());
     }
     match state.round.phase {
-        TurnPhase::Draw => draw_source_action_tree(freshness_token, &state.round),
+        TurnPhase::Draw => draw_phase_action_tree(&state.round, freshness_token),
         TurnPhase::Table => table_phase_action_tree(state, bot_seat, freshness_token),
         TurnPhase::Discard => discard_action_tree(state, bot_seat, freshness_token),
         TurnPhase::RoundSettled | TurnPhase::MatchComplete => {
@@ -183,6 +183,63 @@ pub fn parse_bot_action(path: &ActionPath) -> Result<MeldfallAction, Diagnostic>
     Err(Diagnostic {
         code: "ML_BOT_UNKNOWN_ACTION".to_owned(),
         message: "meldfall_ledger bot selected an unknown action".to_owned(),
+    })
+}
+
+fn draw_phase_action_tree(round: &RoundState, freshness_token: FreshnessToken) -> ActionTree {
+    if round.phase != TurnPhase::Draw || round.pending_pickup.is_some() {
+        return ActionTree::flat(freshness_token, Vec::new());
+    }
+    let seat = round.active_seat_index;
+    // A discard pickup commits the selected card to immediate use (ML-TURN-004).
+    // Only offer pickups whose selected card can actually be melded or laid off
+    // this turn; otherwise the seat would be left with no legal way to finish the
+    // turn, deadlocking the round.
+    let usable_discard_indices = (0..round.discard.len())
+        .filter(|index| discard_pickup_is_satisfiable(round, seat, *index))
+        .collect::<Vec<usize>>();
+    draw_action_tree(
+        freshness_token,
+        !round.stock.is_empty(),
+        &usable_discard_indices,
+    )
+}
+
+fn discard_pickup_is_satisfiable(round: &RoundState, seat: SeatIndex, index: usize) -> bool {
+    let mut probe = round.clone();
+    if draw_from_discard(&mut probe, seat, index).is_err() {
+        return false;
+    }
+    let Some(selected_card) = probe
+        .pending_pickup
+        .as_ref()
+        .map(|pending| pending.selected_card)
+    else {
+        return true;
+    };
+    let satisfied_by_meld = legal_new_melds(&probe.seats[seat].hand)
+        .iter()
+        .any(|action| match action {
+            MeldfallAction::MeldNew { cards } => cards.contains(&selected_card),
+            _ => false,
+        });
+    if satisfied_by_meld {
+        return true;
+    }
+    probe.tableau.groups.iter().any(|group| {
+        [LayoffPosition::Prepend, LayoffPosition::Append]
+            .into_iter()
+            .any(|position| {
+                lay_off_card(
+                    &mut probe.clone(),
+                    seat,
+                    selected_card,
+                    group.id,
+                    position,
+                    TurnOrdinal(0),
+                )
+                .is_ok()
+            })
     })
 }
 

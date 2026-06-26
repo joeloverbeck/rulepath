@@ -5,7 +5,10 @@ use meldfall_ledger::{
         L0_POLICY_ID, L1_POLICY_STATUS,
     },
     cards::{Card, CardId, Rank, Suit},
-    rules::{discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays},
+    rules::{
+        discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays,
+        table_new_meld,
+    },
     setup::{default_seats, setup_match, SetupOptions},
     state::{MatchState, TurnOrdinal, TurnPhase},
 };
@@ -113,6 +116,89 @@ fn bot_trace_inventory_records_l1_not_admitted() {
     assert!(l0.contains("\"policy_id\": \"meldfall-ledger-l0-random-legal-v1\""));
     assert!(l0.contains("\"public_no_leak\": true"));
     assert!(l1.contains(L1_POLICY_STATUS));
+}
+
+#[test]
+fn draw_phase_omits_unusable_discard_pickup_to_prevent_deadlock() {
+    // Active seat cannot meld or lay off the only discard card, but the stock is
+    // non-empty. Offering the unusable pickup would create an unsatisfiable
+    // immediate-use commitment (ML-TURN-004) with no legal way to continue the
+    // turn, deadlocking the round. The draw tree must therefore omit it.
+    let mut state = bot_state();
+    state.round.active_seat_index = 0;
+    state.round.phase = TurnPhase::Draw;
+    state.round.pending_pickup = None;
+    state.round.stock = vec![card(Rank::Ace, Suit::Spades)];
+    state.round.discard = vec![card(Rank::Nine, Suit::Clubs)];
+    state.round.seats[0].hand = vec![card(Rank::Two, Suit::Clubs), card(Rank::Five, Suit::Hearts)];
+
+    let segments = draw_segments(&state);
+    assert!(
+        segments.iter().any(|segment| segment == "draw-stock"),
+        "stock draw stays available: {segments:?}"
+    );
+    assert!(
+        !segments
+            .iter()
+            .any(|segment| segment.starts_with("draw-discard")),
+        "an unusable discard pickup must not be offered: {segments:?}"
+    );
+}
+
+#[test]
+fn draw_phase_offers_discard_pickup_usable_in_a_new_meld() {
+    let mut state = bot_state();
+    state.round.active_seat_index = 0;
+    state.round.phase = TurnPhase::Draw;
+    state.round.pending_pickup = None;
+    state.round.stock = vec![card(Rank::Ace, Suit::Spades)];
+    state.round.discard = vec![card(Rank::Nine, Suit::Clubs)];
+    state.round.seats[0].hand = vec![
+        card(Rank::Nine, Suit::Diamonds),
+        card(Rank::Nine, Suit::Hearts),
+    ];
+
+    let segments = draw_segments(&state);
+    assert!(
+        segments.iter().any(|segment| segment == "draw-discard-0"),
+        "a discard pickup that completes a new set must be offered: {segments:?}"
+    );
+}
+
+#[test]
+fn draw_phase_offers_discard_pickup_usable_as_a_layoff() {
+    let mut state = bot_state();
+    state.round.active_seat_index = 0;
+    state.round.phase = TurnPhase::Draw;
+    state.round.pending_pickup = None;
+    state.round.stock = vec![card(Rank::Ace, Suit::Spades)];
+    state.round.discard = vec![card(Rank::Five, Suit::Clubs)];
+    state.round.seats[0].hand = vec![card(Rank::King, Suit::Spades)];
+    // A public run 6-7-8 of clubs that the picked-up 5C extends at the low end.
+    let run = [
+        card(Rank::Six, Suit::Clubs),
+        card(Rank::Seven, Suit::Clubs),
+        card(Rank::Eight, Suit::Clubs),
+    ];
+    state.round.seats[1].hand = run.to_vec();
+    table_new_meld(&mut state.round, 1, &run, TurnOrdinal(0)).expect("run tables");
+
+    let segments = draw_segments(&state);
+    assert!(
+        segments.iter().any(|segment| segment == "draw-discard-0"),
+        "a discard pickup usable via lay-off must be offered: {segments:?}"
+    );
+}
+
+fn draw_segments(state: &MatchState) -> Vec<String> {
+    legal_action_paths(&legal_action_tree_for_seat(
+        state,
+        state.round.active_seat_index,
+        FreshnessToken(0),
+    ))
+    .iter()
+    .map(|path| path.segments.join("/"))
+    .collect()
 }
 
 fn bot_state() -> MatchState {
