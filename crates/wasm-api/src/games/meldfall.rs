@@ -18,7 +18,7 @@ use meldfall_ledger::{
     },
     scoring::settle_round,
     setup::{setup_match, SetupOptions},
-    state::{MatchState, MeldId, RoundEndSummary, TableCard, TurnOrdinal, TurnPhase},
+    state::{MatchState, MeldId, TableCard, TurnOrdinal, TurnPhase},
     visibility::{
         project_action_tree_for_viewer, project_effects_for_viewer, project_view, MeldfallView,
         PrivateView, PublicMatchOutcomeView, PublicMeldGroupView, PublicSeatStandingView,
@@ -193,7 +193,7 @@ pub(crate) fn meldfall_apply_command(
     };
 
     if state.round.phase == TurnPhase::RoundSettled {
-        let round_index = state.round.round_end.as_ref().map_or(0, round_index);
+        let round_index = round_score_index(state);
         let settlement = settle_round(state);
         let deltas = settlement
             .seats
@@ -216,8 +216,12 @@ pub(crate) fn meldfall_apply_command(
     Ok(effects)
 }
 
-fn round_index(summary: &RoundEndSummary) -> u32 {
-    summary.seat_index as u32
+pub(crate) fn round_score_index(_state: &MatchState) -> u32 {
+    // The multi-round transition (ML-MATCH-006) is intentionally deferred, so a
+    // match plays exactly one round, scored as round index 0. This must not be
+    // derived from the seat that ended the round. When multi-round wiring lands,
+    // this becomes the count of rounds settled before the current one.
+    0
 }
 
 enum MeldfallCommand {

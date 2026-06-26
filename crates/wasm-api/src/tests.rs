@@ -310,6 +310,26 @@ fn meldfall_ledger_wasm_surface_filters_hidden_cards_and_authorizes_actor() {
 }
 
 #[test]
+fn meldfall_round_score_index_is_the_round_not_the_finishing_seat() {
+    use crate::games::meldfall::{create_meldfall_match, round_score_index};
+    use meldfall_ledger::state::{RoundEndReason, RoundEndSummary};
+
+    let mut state = create_meldfall_match(7, 4).expect("meldfall match created");
+    // A non-zero seat ends the only round. The scored round is still round 0;
+    // the round index must not be confused with the finishing seat's index.
+    state.round.round_end = Some(RoundEndSummary {
+        reason: RoundEndReason::GoOutWithoutDiscard,
+        seat_index: 3,
+    });
+
+    assert_eq!(
+        round_score_index(&state),
+        0,
+        "round_score effect must report the round index (0), not the finishing seat"
+    );
+}
+
+#[test]
 fn feature_report_lists_ops() {
     let report = feature_report().expect("feature report returned");
     assert!(report.contains("\"api_version\":\"rulepath-wasm-api/0.1.0\""));
