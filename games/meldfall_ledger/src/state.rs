@@ -2,7 +2,7 @@
 //!
 //! The state meanings are game-local and are not engine-core vocabulary.
 
-use engine_core::SeatId;
+use engine_core::{SeatId, Seed};
 
 use crate::{
     cards::{CardId, Rank, Suit},
@@ -28,8 +28,10 @@ pub struct TurnOrdinal(pub u32);
 pub struct MatchState {
     pub variant: Variant,
     pub seats: Vec<SeatId>,
+    pub base_seed: Seed,
     pub cumulative_scores: Vec<i32>,
     pub dealer_index: SeatIndex,
+    pub rounds_settled: u32,
     pub round: RoundState,
     pub terminal: Option<MatchOutcome>,
 }
@@ -39,13 +41,16 @@ impl MatchState {
         let seat_count = setup.seats.len();
         let seats = setup.seats.clone();
         let variant = setup.variant.clone();
+        let base_seed = setup.seed;
         let dealer_index = setup.dealer_index;
         let round = RoundState::from_initial_setup(setup);
         Self {
             variant,
             seats,
+            base_seed,
             cumulative_scores: vec![0; seat_count],
             dealer_index,
+            rounds_settled: 0,
             round,
             terminal: None,
         }
@@ -70,11 +75,12 @@ impl MatchState {
             .map(MatchOutcome::stable_string)
             .unwrap_or_else(|| "none".to_owned());
         format!(
-            "match|variant={}|seats=[{}]|scores=[{}]|dealer={}|round={}|terminal={}",
+            "match|variant={}|seats=[{}]|scores=[{}]|dealer={}|round_index={}|round={}|terminal={}",
             self.variant.id,
             seats,
             scores,
             self.dealer_index,
+            self.rounds_settled,
             self.round.stable_internal_summary(),
             terminal
         )

@@ -1,6 +1,6 @@
 # GAT191MELLED-001: MatchState base-seed + round-index fields
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/meldfall_ledger` (`src/state.rs`); test `tests/serialization.rs`
@@ -122,3 +122,29 @@ an assertion that a fresh match renders the round index as 0.
 3. `cargo run -p replay-check -- --game meldfall_ledger --all` — confirms the
    summary-format change leaves the declarative traces valid (narrow trace-validity
    boundary; the broad regression guard is `cargo test --workspace`).
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the match-level base seed and `rounds_settled` fields on
+`MatchState`, initialized them from `InitialSetup`, and extended
+`stable_internal_summary` with a deterministic `round_index` field. Updated the
+serialization integration test to assert the new round-index field for fresh
+matches.
+
+Deviations: the literal `cargo test -p meldfall_ledger serialization` command
+matched no test names, so the acceptance proof used the actual integration target
+`cargo test -p meldfall_ledger --test serialization` in addition to the crate and
+workspace suites.
+
+Verification:
+
+- `cargo test -p meldfall_ledger serialization` (completed but ran zero tests due
+  to the filter shape)
+- `cargo test -p meldfall_ledger --test serialization`
+- `cargo test -p meldfall_ledger`
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo fmt --all --check`
+- `cargo clippy -p meldfall_ledger --all-targets -- -D warnings`
+- `cargo test --workspace`
