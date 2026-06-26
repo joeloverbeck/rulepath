@@ -340,13 +340,44 @@ function ActionGroup({
   );
 }
 
+const SUIT_GLYPH: Record<string, string> = {
+  Spades: "♠",
+  Hearts: "♥",
+  Diamonds: "♦",
+  Clubs: "♣",
+};
+
+const RANK_SHORT: Record<string, string> = {
+  Two: "2",
+  Three: "3",
+  Four: "4",
+  Five: "5",
+  Six: "6",
+  Seven: "7",
+  Eight: "8",
+  Nine: "9",
+  Ten: "10",
+  Jack: "J",
+  Queen: "Q",
+  King: "K",
+  Ace: "A",
+};
+
 function CardFace({ card }: { card: string }) {
   const parsed = parseCard(card);
+  const glyph = SUIT_GLYPH[parsed.suit];
+  const isRed = parsed.suit === "Hearts" || parsed.suit === "Diamonds";
+  const rankShort = RANK_SHORT[parsed.rank] ?? parsed.rank;
   return (
-    <>
-      <span>{parsed.suit}</span>
-      <strong>{parsed.rank}</strong>
-    </>
+    <span className={`meldfall-face ${isRed ? "red" : "black"}`}>
+      <span className="sr-only">{`${parsed.rank} of ${parsed.suit}`}</span>
+      <strong className="meldfall-rank" aria-hidden="true">
+        {rankShort}
+      </strong>
+      <span className="meldfall-suit" aria-hidden="true">
+        {glyph ?? parsed.suit}
+      </span>
+    </span>
   );
 }
 
