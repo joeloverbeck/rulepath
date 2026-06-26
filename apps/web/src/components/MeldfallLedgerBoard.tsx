@@ -250,7 +250,7 @@ function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; sea
           <dd>{view.cumulative_scores[index] ?? 0}</dd>
         </div>
         <div>
-          <dt>Round</dt>
+          <dt>Tabled</dt>
           <dd>{view.round_played_scores[index] ?? 0}</dd>
         </div>
       </dl>
