@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "npm run smoke:e2e",
     "build:wasm": "cargo build -p wasm-api --target wasm32-unknown-unknown --release && mkdir -p public && install -m 0644 ../../target/wasm32-unknown-unknown/release/wasm_api.wasm public/wasm_api.wasm",
     "build:rules": "node ../../scripts/copy-player-rules.mjs",
     "check:rules": "node ../../scripts/check-player-rules.mjs",

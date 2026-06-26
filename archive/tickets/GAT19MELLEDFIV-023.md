@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-023: Trailing docs, GAME-EVIDENCE, and Gate 19 closeout capstone
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs/status (`MECHANICS.md`, `PUBLIC-RELEASE-CHECKLIST.md`, `GAME-EVIDENCE.md`, `docs/SOURCES.md`, `specs/README.md`, spec Status)
@@ -81,3 +81,41 @@ Flip the `specs/README.md` Gate 19 row to the spec path + `Done`; flip the spec'
 1. `cargo test --workspace`
 2. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && node scripts/check-scaffolding-governance.mjs`
 3. `npm --prefix apps/web run smoke:e2e`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the Gate 19 docs/status capstone:
+
+- Added `games/meldfall_ledger/docs/MECHANICS.md`, `GAME-EVIDENCE.md`, and `PUBLIC-RELEASE-CHECKLIST.md`.
+- Updated the global `docs/SOURCES.md` with the Meldfall Ledger source-use summary.
+- Flipped the Gate 19 spec Status to `Done` and updated the `specs/README.md` Gate 19 row to the spec path + `Done`.
+- Added an `apps/web` `test` script that delegates to the existing full `smoke:e2e` chain so the spec's literal web test command exists.
+- Fixed `tools/simulate` to apply every Rust `MeldfallAction` variant that the L0 action tree can legally emit after the browser/action-tree completion work.
+
+Deviations:
+
+- This ticket was scoped as docs/status only, but the full capstone suite exposed a stale Meldfall simulator harness branch: it only applied stock/finish/discard while the Rust bot action tree now also emits discard draw, meld, lay-off, and go-out actions. The fix is tool-harness only and uses existing Rust rule APIs.
+- `npm --prefix apps/web test` initially failed because the package had no `test` script. A narrow alias to `smoke:e2e` was added, then the exact command was rerun. The first sandboxed run failed with `listen EPERM` on `127.0.0.1`; the approved localhost rerun passed.
+- The simulator lanes pass as bounded L0 legality smokes with `bounded_nonterminal_at_cap=1000`, not as competence or terminal-completion claims.
+
+Verification:
+
+- `cargo fmt --all --check` — passed.
+- `cargo test --workspace` — passed after the simulator harness fix.
+- `cargo run -p simulate -- --game meldfall_ledger --seat-count 2 --games 1000 --start-seed 1900 --action-cap 4096` — passed; bounded nonterminal L0 smoke.
+- `cargo run -p simulate -- --game meldfall_ledger --seat-count 4 --games 1000 --start-seed 1901 --action-cap 4096` — passed; bounded nonterminal L0 smoke.
+- `cargo run -p simulate -- --game meldfall_ledger --seat-count 6 --games 1000 --start-seed 1902 --action-cap 8192` — passed; bounded nonterminal L0 smoke.
+- `cargo run -p replay-check -- --game meldfall_ledger --all` — passed.
+- `cargo run -p fixture-check -- --game meldfall_ledger` — passed.
+- `cargo run -p rule-coverage -- --game meldfall_ledger` — passed.
+- `cargo bench -p meldfall_ledger` — passed all smoke thresholds.
+- `bash scripts/boundary-check.sh` — passed.
+- `node scripts/check-doc-links.mjs` — passed; checked 31 markdown files.
+- `node scripts/check-ci-games.mjs` — passed; 19 games in sync.
+- `node scripts/check-catalog-docs.mjs` — passed; 19 games reflected.
+- `node scripts/check-player-rules.mjs` — passed; 19 catalog games validated.
+- `node scripts/check-scaffolding-governance.mjs` — passed; 19 games, 2 `forward-v1` receipts.
+- `npm --prefix apps/web run smoke:e2e` — passed, including Meldfall and animation smoke; build emitted the existing >500 kB chunk warning.
+- `npm --prefix apps/web test` — passed after approved localhost rerun; delegates to `smoke:e2e`.

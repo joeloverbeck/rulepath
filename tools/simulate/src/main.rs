@@ -877,6 +877,50 @@ fn run_one_meldfall_ledger_match(
                     )
                 })?;
             }
+            meldfall_ledger::actions::MeldfallAction::DrawFromDiscard { discard_index } => {
+                meldfall_rules::draw_from_discard(&mut state.round, seat, discard_index).map_err(
+                    |diagnostic| {
+                        format!(
+                            "meldfall_ledger discard draw failed at seed {seed}: {}\n",
+                            diagnostic.code
+                        )
+                    },
+                )?;
+            }
+            meldfall_ledger::actions::MeldfallAction::MeldNew { cards } => {
+                meldfall_rules::table_new_meld(
+                    &mut state.round,
+                    seat,
+                    &cards,
+                    meldfall_ledger::state::TurnOrdinal(action_index as u32),
+                )
+                .map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger meld failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            meldfall_ledger::actions::MeldfallAction::LayOff {
+                card,
+                target_meld,
+                position,
+            } => {
+                meldfall_rules::lay_off_card(
+                    &mut state.round,
+                    seat,
+                    card,
+                    target_meld,
+                    position,
+                    meldfall_ledger::state::TurnOrdinal(action_index as u32),
+                )
+                .map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger lay-off failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
             meldfall_ledger::actions::MeldfallAction::FinishTurn => {
                 meldfall_rules::finish_turn_after_table_plays(&mut state.round, seat).map_err(
                     |diagnostic| {
@@ -887,6 +931,20 @@ fn run_one_meldfall_ledger_match(
                     },
                 )?;
             }
+            meldfall_ledger::actions::MeldfallAction::GoOutWithoutDiscard => {
+                let phase = meldfall_rules::finish_turn_after_table_plays(&mut state.round, seat)
+                    .map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger go-out failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+                if phase != MeldfallTurnPhase::RoundSettled {
+                    return Err(format!(
+                        "meldfall_ledger go-out did not settle round at seed {seed}\n"
+                    ));
+                }
+            }
             meldfall_ledger::actions::MeldfallAction::Discard { card } => {
                 meldfall_rules::discard_card(&mut state.round, seat, card).map_err(
                     |diagnostic| {
@@ -896,11 +954,6 @@ fn run_one_meldfall_ledger_match(
                         )
                     },
                 )?;
-            }
-            _ => {
-                return Err(format!(
-                    "meldfall_ledger L0 selected unsupported action at seed {seed}\n"
-                ));
             }
         }
     }

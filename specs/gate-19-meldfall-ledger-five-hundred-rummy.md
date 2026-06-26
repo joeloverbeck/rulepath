@@ -10,7 +10,7 @@
 | Spec ID | `GATE-19-MELDFALL-LEDGER-FIVE-HUNDRED-RUMMY` |
 | Stage | Public scaling phase, Gate 19 |
 | Gate | Gate 19 — Five Hundred Rummy / Rummy 500 family |
-| Status | `Planned` / implementation `Not started` |
+| Status | `Done` |
 | Date | 2026-06-25 |
 | Owner | Rulepath maintainers |
 | Authority order | `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs → `docs/ROADMAP.md` → this spec → future tickets. Accepted ADRs supersede only the sections they name. |
@@ -33,7 +33,7 @@
 | Kernel stance | Gate 19 consumes the foundation set. No foundation amendment is expected. |
 | Primitive stance | Meld validation, public meld tableau, draw/discard zones including multi-card discard pickup, laying off onto any player’s meld, and multi-round cumulative scoring to a 500 target are **first official uses** and stay game-local. |
 | Scaffolding stance | Gate 19 is the **second `forward-v1` reuse-first scaffolding audit user** after Gate 18. The audit, prior-game disposition, and `ci/scaffolding-audits.json` receipt are gate requirements. |
-| Delivery posture | Author this spec only. Future `/reassess-spec` and `/spec-to-tickets` steps decompose it into bounded `AGENT-TASK` packets. |
+| Delivery posture | Gate 19 implementation complete as of 2026-06-26; ticket-series evidence and closeout docs record the shipped state. |
 
 ---
 
@@ -41,7 +41,7 @@
 
 Gate 19 implements **Meldfall Ledger**, Rulepath’s neutral presentation of the Five Hundred Rummy / Rummy 500 family, as the next roadmap unit after Gate 18. The determination is settled and this spec only confirms it:
 
-- `specs/README.md` marks Gate 18 — Blackglass Pact / Spades — `Done` on 2026-06-25, and marks Gate 19 — Five Hundred Rummy — as the lowest not-done active-epoch unit.
+- `specs/README.md` now marks Gate 19 — Five Hundred Rummy — `Done` on 2026-06-26 after the full ticket-series evidence suite passed.
 - `docs/MECHANIC-ATLAS.md` §10A is empty at the Gate 18 closeout, so no open promotion debt blocks the next mechanic-ladder gate.
 - `docs/ROADMAP.md` admits Gate 19 as the public-scaling row for draw/discard piles, public meld tableau, private hands, multi-round score target, larger card-zone/action-surface proof, and meld/tableau primitive pressure.
 - Accepted ADRs 0004, 0007, 0008, and 0009 are already in force; Gate 19 consumes them rather than reopening them.
@@ -867,4 +867,3 @@ Source-code seams referenced for pattern transfer, validated against the current
 | `crates/game-stdlib/src/trick_taking.rs` | Confirmed not reused; no rummy/meld/tableau/draw-discard helper exists. |
 | `ci/scaffolding-audits.json` and checker | Receipt schema and `forward-v1` enforcement pattern. |
 | `apps/web` catalog and board components | Renderer/catalog/smoke registration shape; legality remains Rust/WASM. |
-
