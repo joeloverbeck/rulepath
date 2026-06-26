@@ -104,6 +104,10 @@ export function MeldfallLedgerBoard({
   }, [effects, settlement]);
   const seats = SEATS.slice(0, view.hand_counts.length);
   const canAct = Boolean(interactive && !pending && !view.terminal && choices.length > 0);
+  // A discard pickup is offered only when its chosen card has an immediate legal use
+  // this turn; Rust omits the choice otherwise (ML-TURN-004). When this seat is making
+  // a live draw decision we can explain why a disabled discard is not pickable.
+  const drawDecision = canAct && !view.terminal && view.phase === "draw";
   const roundSettled = !view.terminal && view.phase === "round_settled";
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
@@ -218,6 +222,14 @@ export function MeldfallLedgerBoard({
                 ) : (
                   view.discard.map((card, index) => {
                     const choice = groupedChoices.draw.find((candidate) => candidate.segment === `draw-discard-${index}`) ?? null;
+                    const position = index === view.discard.length - 1 ? "Top discard" : `Index ${index}`;
+                    // Picking up index i takes that card plus every newer card above it.
+                    const takeCount = view.discard.length - index;
+                    const hint = choice
+                      ? `Take ${takeCount} · use now`
+                      : drawDecision
+                        ? `${position} · no immediate use`
+                        : position;
                     return (
                       <button
                         type="button"
@@ -229,13 +241,19 @@ export function MeldfallLedgerBoard({
                         onClick={() => choice && onPathSubmit?.([choice.segment])}
                       >
                         <CardFace card={card} />
-                        <small>{index === view.discard.length - 1 ? "Top discard" : `Index ${index}`}</small>
+                        <small>{hint}</small>
                       </button>
                     );
                   })
                 )}
               </div>
             </div>
+            {drawDecision && view.discard.length ? (
+              <p className="meldfall-zone-hint">
+                Taking a discard also takes every newer card above it, and the card you choose must be melded or
+                laid off this turn before you can finish.
+              </p>
+            ) : null}
           </section>
 
           <Tableau groups={view.tableau.groups} />

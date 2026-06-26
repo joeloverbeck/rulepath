@@ -5798,6 +5798,16 @@ svg g[data-effect-kind] {
   overflow-wrap: anywhere;
 }
 
+.meldfall-zone-hint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ml-accent-soft);
+  color: var(--ml-ink);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 .meldfall-card.private {
   border-color: var(--ml-accent);
 }
