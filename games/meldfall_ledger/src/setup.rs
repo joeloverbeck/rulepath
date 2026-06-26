@@ -127,6 +127,24 @@ pub fn deal_for_round(
     deal_round(&mut rng, dealer_index, seat_count, hand_size)
 }
 
+/// Derives a stable per-round deal seed from the base match seed.
+///
+/// Round 0 keeps using the base setup seed directly; this helper exists for
+/// rounds 1+ so the original first deal remains byte-identical. The derivation
+/// is intentionally game-local and replay-stable.
+pub fn deal_seed_for_round(base_seed: Seed, round_index: u32) -> Seed {
+    if round_index == 0 {
+        return base_seed;
+    }
+
+    let mut rng = SeededRng::from_seed(Seed(base_seed.0 ^ 0x4d4c_4641_4c4c_5231));
+    let mut derived = base_seed.0;
+    for _ in 0..round_index {
+        derived = rng.next_u64();
+    }
+    Seed(derived ^ u64::from(round_index).wrapping_mul(0x9e37_79b9_7f4a_7c15))
+}
+
 pub fn deal_round<R: DeterministicRng>(
     rng: &mut R,
     dealer_index: usize,

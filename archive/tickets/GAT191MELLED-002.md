@@ -1,6 +1,6 @@
 # GAT191MELLED-002: `advance_to_next_round` transition + per-round deal seed
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/meldfall_ledger` (`src/rules.rs`, `src/setup.rs`); tests `tests/rules.rs`
@@ -136,3 +136,26 @@ Author the §7.2 matrix listed in Verification Layers.
 2. `cargo test --workspace`
 3. The crate-scoped `rules` filter is the correct boundary for the transition
    logic; `cargo test --workspace` is the full regression guard.
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the Rust-owned `advance_to_next_round` transition and a game-local
+stable per-round deal seed derivation. The transition now advances the
+round-settled counter, rotates the dealer clockwise, re-deals through the
+existing deal path, resets round-only state, preserves cumulative scores, and
+sets the new active seat to the seat left of the new dealer. Meld ids reset per
+round because the public tableau is round-only and is recreated empty.
+
+Deviations: `cargo fmt --all --check` initially failed on import ordering after
+the implementation. `cargo fmt --all` was applied, then the affected checks and
+the crate/workspace suites were rerun successfully.
+
+Verification:
+
+- `cargo test -p meldfall_ledger --test rules`
+- `cargo test -p meldfall_ledger`
+- `cargo clippy -p meldfall_ledger --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo fmt --all --check` (passed after rustfmt)
