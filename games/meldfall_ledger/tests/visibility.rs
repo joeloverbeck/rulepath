@@ -7,8 +7,9 @@ use meldfall_ledger::{
         effect_stable_string, private_stock_draw_effect, public_effect, DrawSource, MeldfallEffect,
     },
     replay_support::export_viewer_snapshot,
+    rules::advance_to_next_round,
     setup::{default_seats, setup_match, SetupOptions},
-    state::{MatchState, MeldId},
+    state::{MatchState, MeldId, RoundEndReason, RoundEndSummary, TurnPhase},
     visibility::{
         contains_card_id_in_debug, project_action_tree_for_viewer, project_effects_for_viewer,
         project_view, redact_diagnostic_for_viewer, PrivateView,
@@ -330,6 +331,58 @@ fn six_seat_pairwise_no_leak_matrix_covers_in_state_and_export_surfaces() {
                 "{viewer_case:?} export leaked stock card {}",
                 stock_card.as_str()
             );
+        }
+    }
+}
+
+#[test]
+fn six_seat_transition_redeal_keeps_new_hands_and_stock_hidden() {
+    let mut state = six_seat_matrix_state();
+    state.round.phase = TurnPhase::RoundSettled;
+    state.round.round_end = Some(RoundEndSummary {
+        reason: RoundEndReason::StockExhausted,
+        seat_index: state.round.active_seat_index,
+    });
+
+    advance_to_next_round(&mut state).expect("transition advances");
+
+    let action_tree = draw_source_action_tree(FreshnessToken(56), &state.round);
+    let effects = vec![public_effect(MeldfallEffect::NextRoundDealt {
+        next_round_number: state.rounds_settled + 1,
+        next_lead_seat: state.round.active_seat_index,
+        new_dealer: state.dealer_index,
+    })];
+
+    for viewer_case in matrix_viewers() {
+        let viewer = viewer_case.as_viewer();
+        let surface = format!(
+            "{:?}|{:?}|{}|{}|{}",
+            project_view(&state, &viewer),
+            project_action_tree_for_viewer(&action_tree, &state, &viewer),
+            filtered_effect_surface(&effects, &viewer),
+            export_viewer_snapshot(&state, &action_tree, &effects, &viewer).stable_string(),
+            export_viewer_snapshot(&state, &action_tree, &effects, &viewer).to_json()
+        );
+
+        for stock_card in &state.round.stock {
+            assert!(
+                !surface.contains(&stock_card.as_str()),
+                "{viewer_case:?} leaked transition stock card {}",
+                stock_card.as_str()
+            );
+        }
+        for (source_seat, seat) in state.round.seats.iter().enumerate() {
+            for hidden in &seat.hand {
+                if matches!(viewer_case, MatrixViewer::Seat(viewer_seat) if viewer_seat == source_seat)
+                {
+                    continue;
+                }
+                assert!(
+                    !surface.contains(&hidden.as_str()),
+                    "{viewer_case:?} leaked transition seat {source_seat} hand card {}",
+                    hidden.as_str()
+                );
+            }
         }
     }
 }

@@ -13,8 +13,8 @@ use meldfall_ledger::{
     ids::{canonical_seat_ids, supported_seat_count},
     replay_support::{export_viewer_snapshot, import_viewer_export, ViewerReplayExport},
     rules::{
-        discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays,
-        lay_off_card, settle_round_stock_exhausted, table_new_meld,
+        advance_to_next_round, discard_card, draw_from_discard, draw_from_stock,
+        finish_turn_after_table_plays, lay_off_card, settle_round_stock_exhausted, table_new_meld,
     },
     scoring::settle_round,
     setup::{setup_match, SetupOptions},
@@ -220,6 +220,13 @@ pub(crate) fn meldfall_apply_command(
             state.round.phase = TurnPhase::MatchComplete;
             effects.push(EffectEnvelope::public(MeldfallEffect::MatchTerminal {
                 outcome,
+            }));
+        } else {
+            advance_to_next_round(state).map_err(diagnostic_json)?;
+            effects.push(EffectEnvelope::public(MeldfallEffect::NextRoundDealt {
+                next_round_number: state.rounds_settled + 1,
+                next_lead_seat: state.round.active_seat_index,
+                new_dealer: state.dealer_index,
             }));
         }
     }

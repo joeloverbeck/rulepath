@@ -15,8 +15,8 @@ use column_four::{ColumnFourRandomBot, ColumnFourSeat};
 use directional_flip::{DirectionalFlipRandomBot, DirectionalFlipSeat};
 use draughts_lite::{DraughtsLiteRandomBot, DraughtsLiteSeat};
 use engine_core::{
-    ActionTree, Actor, CommandEnvelope, Diagnostic, EffectEnvelope, HashValue, RulesVersion,
-    SeatId, Seed, StableSerialize,
+    ActionTree, Actor, CommandEnvelope, Diagnostic, EffectEnvelope, FreshnessToken, HashValue,
+    RulesVersion, SeatId, Seed, StableSerialize,
 };
 use event_frontier::{
     command_for_decision as event_frontier_command_for_decision,
@@ -30,7 +30,7 @@ use frontier_control::{
 use masked_claims::{MaskedClaimsLevel1Bot, MaskedClaimsSeat};
 use meldfall_ledger::{
     bots::{parse_bot_action as parse_meldfall_bot_action, MeldfallL0Bot},
-    rules as meldfall_rules,
+    rules as meldfall_rules, scoring as meldfall_scoring,
     setup::{default_seats as meldfall_default_seats, setup_match as setup_meldfall_match},
     state::{MatchState as MeldfallMatchState, TurnPhase as MeldfallTurnPhase},
 };
@@ -834,10 +834,7 @@ fn run_one_meldfall_ledger_match(
                 capped_or_no_action: false,
             });
         }
-        if matches!(
-            state.round.phase,
-            MeldfallTurnPhase::RoundSettled | MeldfallTurnPhase::MatchComplete
-        ) {
+        if state.round.phase == MeldfallTurnPhase::MatchComplete {
             return Ok(MeldfallLedgerMatchOutcome {
                 winner: state.terminal.as_ref().and_then(|terminal| terminal.winner),
                 actions: action_index as u64,
@@ -954,6 +951,38 @@ fn run_one_meldfall_ledger_match(
                         )
                     },
                 )?;
+            }
+        }
+
+        if state.round.phase == MeldfallTurnPhase::Draw {
+            let active_seat = state.round.active_seat_index;
+            let draw_tree = meldfall_ledger::bots::legal_action_tree_for_seat(
+                &state,
+                active_seat,
+                FreshnessToken(0),
+            );
+            if meldfall_ledger::bots::legal_action_paths(&draw_tree).is_empty() {
+                meldfall_rules::settle_round_stock_exhausted(&mut state.round, active_seat)
+                    .map_err(|diagnostic| {
+                        format!(
+                            "meldfall_ledger stock exhaustion settlement failed at seed {seed}: {}\n",
+                            diagnostic.code
+                        )
+                    })?;
+            }
+        }
+
+        if state.round.phase == MeldfallTurnPhase::RoundSettled {
+            let settlement = meldfall_scoring::settle_round(&mut state);
+            if settlement.terminal.is_some() {
+                state.round.phase = MeldfallTurnPhase::MatchComplete;
+            } else {
+                meldfall_rules::advance_to_next_round(&mut state).map_err(|diagnostic| {
+                    format!(
+                        "meldfall_ledger round transition failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
             }
         }
     }

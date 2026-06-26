@@ -1,6 +1,6 @@
 # GAT191MELLED-004: Drive settle→transition in both hosts + host parity
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` (`src/games/meldfall.rs`), `tools/simulate` (`src/main.rs`); tests `tests/replay.rs`, `tests/visibility.rs`
@@ -134,3 +134,37 @@ viewer-scoped export stays deterministic and non-leaking across rounds.
 1. `cargo test -p meldfall_ledger`
 2. `cargo run -p simulate -- --game meldfall_ledger --games 1000`
 3. `cargo run -p replay-check -- --game meldfall_ledger --all`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Wired both hosts through the shared Rust-owned multi-round transition. The WASM
+apply path now settles a round, emits `round_score`, advances non-terminal
+rounds through `advance_to_next_round`, emits `next_round_dealt`, and continues
+until terminal. The native simulator now applies the same settle/terminal/advance
+logic instead of reporting every `round_settled` state as bounded nonterminal.
+
+Added/updated WASM full-match tests for deterministic replay, score-ledger
+effects, no-deadlock terminal completion, and hidden-card no-leak across
+multi-round play. Added a six-seat transition re-deal no-leak test covering view,
+action-tree, effect, and viewer-export surfaces.
+
+Deviations: full-terminal unit tests were narrowed to representative 2- and
+4-seat seeds because L0 random 6-seat playouts can exceed 60,000 actions and are
+not a practical unit-test terminal fixture. Six-seat transition visibility is
+still covered by the new re-deal no-leak test, and broad completion is covered by
+the explicit 1,000-game 4-seat simulator run with `--action-cap 20000`.
+
+Verification:
+
+- `cargo test -p wasm-api meldfall`
+- `cargo test -p meldfall_ledger --test visibility six_seat_transition_redeal_keeps_new_hands_and_stock_hidden`
+- `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000`
+  (`completion_rate_percent=100.00`, `bounded_nonterminal_at_cap=0`,
+  `wins_by_seat={seat_0:256,seat_1:281,seat_2:242,seat_3:221}`)
+- `cargo test -p meldfall_ledger`
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
