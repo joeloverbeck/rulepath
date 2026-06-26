@@ -469,6 +469,34 @@ function TableCard({ card }: { card: MeldfallLedgerTableCardView }) {
   );
 }
 
+// Rust action labels carry terse card codes (e.g. "Meld new 2C 3C 4C", "Discard QH").
+// Render those tokens with the same coloured suit glyphs used everywhere else so the
+// action buttons read like cards. Visual only: the spoken accessibility_label stays
+// the Rust string, and clicks still submit choice.segment unchanged.
+const SUIT_LETTER: Record<string, { glyph: string; red: boolean }> = {
+  C: { glyph: "♣", red: false },
+  D: { glyph: "♦", red: true },
+  H: { glyph: "♥", red: true },
+  S: { glyph: "♠", red: false },
+};
+const CARD_CODE = /^(10|[2-9JQKA])([CDHS])$/;
+
+function renderActionLabel(label: string) {
+  return label.split(" ").map((token, index) => {
+    const prefix = index === 0 ? "" : " ";
+    const match = CARD_CODE.exec(token);
+    const suit = match ? SUIT_LETTER[match[2]] : undefined;
+    if (!match || !suit) {
+      return <span key={index}>{`${prefix}${token}`}</span>;
+    }
+    return (
+      <span key={index} className={`meldfall-action-card ${suit.red ? "red" : "black"}`}>
+        {`${prefix}${match[1]}${suit.glyph}`}
+      </span>
+    );
+  });
+}
+
 function ActionGroup({
   title,
   choices,
@@ -498,7 +526,7 @@ function ActionGroup({
             data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
             onClick={() => onPathSubmit?.([choice.segment])}
           >
-            <strong>{choice.label}</strong>
+            <strong>{renderActionLabel(choice.label)}</strong>
             {choice.presentation?.helper_text ? <small>{choice.presentation.helper_text}</small> : null}
           </button>
         ))}

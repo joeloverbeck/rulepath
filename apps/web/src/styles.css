@@ -5808,6 +5808,18 @@ svg g[data-effect-kind] {
   line-height: 1.3;
 }
 
+.meldfall-action-card {
+  white-space: nowrap;
+}
+
+.meldfall-action-card.red {
+  color: #c0392b;
+}
+
+.meldfall-action-card.black {
+  color: var(--ml-ink);
+}
+
 .meldfall-commitment-note {
   margin: 0 0 4px;
   padding: 9px 11px;
