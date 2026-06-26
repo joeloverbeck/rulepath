@@ -166,8 +166,8 @@ pub fn action_choice(action: MeldfallAction) -> ActionChoice {
                 cards: cards.clone(),
             }
             .segment(),
-            "Meld new",
-            "Create a new meld with selected cards",
+            format!("Meld new {}", cards_short(&cards)),
+            format!("Create a new meld with {}", cards_words(&cards)),
             vec![
                 metadata("kind", "meld_new"),
                 metadata("cards", card_segment(&cards)),
@@ -184,8 +184,13 @@ pub fn action_choice(action: MeldfallAction) -> ActionChoice {
                 position,
             })
             .segment(),
-            "Lay off",
-            "Lay off a card onto an existing meld",
+            format!("Lay off {}", card_short(card)),
+            format!(
+                "Lay off {} onto {} ({} side)",
+                card_words(card),
+                target_meld.as_string(),
+                position.as_str()
+            ),
             vec![
                 metadata("kind", "lay_off"),
                 metadata("card", card.as_str()),
@@ -195,8 +200,8 @@ pub fn action_choice(action: MeldfallAction) -> ActionChoice {
         ),
         MeldfallAction::Discard { card } => choice(
             MeldfallAction::Discard { card }.segment(),
-            "Discard",
-            "Discard one card",
+            format!("Discard {}", card_short(card)),
+            format!("Discard {}", card_words(card)),
             vec![metadata("kind", "discard"), metadata("card", card.as_str())],
         ),
         MeldfallAction::GoOutWithoutDiscard => choice(
@@ -252,4 +257,45 @@ fn card_segment(cards: &[CardId]) -> String {
         .map(|card| card.as_str())
         .collect::<Vec<_>>()
         .join("_")
+}
+
+/// Compact human label for a single card, e.g. `10S`, `AH`.
+fn card_short(card: CardId) -> String {
+    card.card().public_label()
+}
+
+/// Spoken-friendly card name, e.g. `Ten of Spades`.
+fn card_words(card: CardId) -> String {
+    let card = card.card();
+    format!(
+        "{} of {}",
+        capitalize(card.rank.as_str()),
+        capitalize(card.suit.as_str())
+    )
+}
+
+/// Space-joined compact labels for a card list, e.g. `4D 4C 4H`.
+fn cards_short(cards: &[CardId]) -> String {
+    cards
+        .iter()
+        .map(|card| card_short(*card))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Comma-joined spoken card names for a card list.
+fn cards_words(cards: &[CardId]) -> String {
+    cards
+        .iter()
+        .map(|card| card_words(*card))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn capitalize(value: &str) -> String {
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
 }
