@@ -83,6 +83,11 @@ export function MeldfallLedgerBoard({
 }: MeldfallLedgerBoardProps) {
   const choices = useMemo(() => actionTree?.choices ?? [], [actionTree]);
   const groupedChoices = useMemo(() => groupChoices(choices), [choices]);
+  const [handSort, setHandSort] = useState<HandSort>("suit");
+  const sortedHand = useMemo(
+    () => [...view.own_hand].sort((a, b) => compareHandCards(a, b, handSort)),
+    [view.own_hand, handSort],
+  );
 
   // Persist the latest settled-round summary across renders. A new match restarts the
   // effect cursor low, so when the buffer's newest cursor drops below what we stored we
@@ -276,13 +281,36 @@ export function MeldfallLedgerBoard({
               <strong>{privateHeading(view)}</strong>
             </div>
             {view.private_view_status === "seat" ? (
-              <div className="meldfall-hand" aria-label="Your private hand">
-                {view.own_hand.map((card, index) => (
-                  <div className="meldfall-card private" key={`${card}-${index}`} data-testid="meldfall-private-card">
-                    <CardFace card={card} />
+              <>
+                {view.own_hand.length > 1 ? (
+                  <div className="meldfall-hand-sort" role="group" aria-label="Sort your hand">
+                    <span>Sort</span>
+                    <button
+                      type="button"
+                      className={handSort === "suit" ? "active" : ""}
+                      aria-pressed={handSort === "suit"}
+                      onClick={() => setHandSort("suit")}
+                    >
+                      By suit
+                    </button>
+                    <button
+                      type="button"
+                      className={handSort === "rank" ? "active" : ""}
+                      aria-pressed={handSort === "rank"}
+                      onClick={() => setHandSort("rank")}
+                    >
+                      By rank
+                    </button>
                   </div>
-                ))}
-              </div>
+                ) : null}
+                <div className="meldfall-hand" aria-label="Your private hand">
+                  {sortedHand.map((card, index) => (
+                    <div className="meldfall-card private" key={`${card}-${index}`} data-testid="meldfall-private-card">
+                      <CardFace card={card} />
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="meldfall-hidden-hand" data-testid="meldfall-private-hidden">
                 <span>Hidden</span>
@@ -525,6 +553,47 @@ const RANK_VALUE: Record<string, number> = {
 
 function cardValue(card: string): number {
   return RANK_VALUE[parseCard(card).rank] ?? 0;
+}
+
+// Display ordering for the viewer's own hand. Purely visual — actions are separate
+// buttons keyed by Rust segment, so reordering the hand rail never changes which plays
+// are legal. "By suit" groups runs together; "by rank" groups sets together, so the
+// player can organize for whichever meld they are hunting instead of reading the raw
+// deal/draw order. Ace sorts high.
+type HandSort = "suit" | "rank";
+
+const SUIT_ORDER: Record<string, number> = { Clubs: 0, Diamonds: 1, Hearts: 2, Spades: 3 };
+const RANK_ORDER: Record<string, number> = {
+  Two: 0,
+  Three: 1,
+  Four: 2,
+  Five: 3,
+  Six: 4,
+  Seven: 5,
+  Eight: 6,
+  Nine: 7,
+  Ten: 8,
+  Jack: 9,
+  Queen: 10,
+  King: 11,
+  Ace: 12,
+};
+
+function suitRank(card: { suit: string }): number {
+  return SUIT_ORDER[card.suit] ?? 9;
+}
+
+function rankOrder(card: { rank: string }): number {
+  return RANK_ORDER[card.rank] ?? 99;
+}
+
+function compareHandCards(a: string, b: string, sort: HandSort): number {
+  const left = parseCard(a);
+  const right = parseCard(b);
+  if (sort === "rank") {
+    return rankOrder(left) - rankOrder(right) || suitRank(left) - suitRank(right);
+  }
+  return suitRank(left) - suitRank(right) || rankOrder(left) - rankOrder(right);
 }
 
 function CardFace({ card }: { card: string }) {

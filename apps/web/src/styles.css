@@ -5820,6 +5820,37 @@ svg g[data-effect-kind] {
   line-height: 1.3;
 }
 
+.meldfall-hand-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+  color: var(--ml-muted);
+}
+
+.meldfall-hand-sort span {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.meldfall-hand-sort button {
+  padding: 3px 9px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 999px;
+  background: var(--ml-panel);
+  color: var(--ml-ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.meldfall-hand-sort button.active {
+  border-color: var(--ml-accent);
+  background: var(--ml-accent-soft);
+}
+
 .meldfall-card.private {
   border-color: var(--ml-accent);
 }
