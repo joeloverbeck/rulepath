@@ -363,8 +363,9 @@ function SettlementSummary({
     <section className="meldfall-settlement" aria-label={`Round ${settlement.roundNumber} settlement`}>
       <div className="meldfall-section-heading">
         <span>Last round settled</span>
-        <strong>Round {settlement.roundNumber} · tabled points minus cards held</strong>
+        <strong>Round {settlement.roundNumber}</strong>
       </div>
+      <p className="meldfall-settlement-note">Round delta = tabled card points minus the value of cards still held.</p>
       <div className="meldfall-settlement-grid">
         {seats.map((seat, index) => {
           const delta = settlement.deltas[index] ?? 0;
