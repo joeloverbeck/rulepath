@@ -1,6 +1,6 @@
 # GAT19MELLEDFIV-021: Web e2e smoke, ci/games.json, and catalog README reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (audit + e2e) — `apps/web/e2e/meldfall-ledger.smoke.mjs`, `ci/games.json`, `apps/web/package.json`; catalog README docs
@@ -81,3 +81,31 @@ Add `{ "id": "meldfall_ledger", "sim_flags": "--seat-count 4 --action-cap 4096",
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-ci-games.mjs`
 3. `npm --prefix apps/web run build`
+
+## Outcome
+
+Completed: 2026-06-26
+
+Implemented the browser e2e and catalog reconciliation capstone:
+
+- Added `apps/web/e2e/meldfall-ledger.smoke.mjs` covering 2/4/6 setup, large private-hand render, public observer redaction, keyboard-focusable non-drag controls, discard-pile pickup, meld, lay-off, finish/discard, replay export/import, responsive layout, storage/console no-leak checks, and a separate stock-draw path.
+- Added the smoke to `apps/web/package.json` `smoke:e2e` and registered `meldfall_ledger` in `ci/games.json`.
+- Reconciled `apps/web/README.md`, root `README.md`, and `rules-display.smoke.mjs` catalog expectations for the 19th browser catalog game.
+- Fixed the Rust Meldfall legal action tree to expose discard-pile draw choices and table-phase meld/lay-off/go-out/finish choices from Rust, with pending discard-pickup filtering so the browser can remain presentation-only.
+
+Deviations:
+
+- The ticket was scoped as e2e/docs, but the browser smoke exposed an incomplete Rust action tree from the prior WASM bridge work. A narrow `games/meldfall_ledger` fix was required to make the UI prove Rust-owned meld and lay-off controls without TypeScript legality.
+- Direct `node apps/web/e2e/meldfall-ledger.smoke.mjs` first failed inside the sandbox with `listen EPERM` on `127.0.0.1`; it passed after rerun through the approved localhost browser-smoke escalation.
+
+Verification:
+
+- `cargo fmt --all --check` — passed.
+- `cargo test -p meldfall_ledger` — passed.
+- `cargo test -p wasm-api` — passed.
+- `node scripts/check-catalog-docs.mjs` — passed; 19 games reflected.
+- `node scripts/check-ci-games.mjs` — passed; 19 games in sync.
+- `npm --prefix apps/web run build` — passed; Vite emitted the existing >500 kB chunk-size warning.
+- `node apps/web/e2e/meldfall-ledger.smoke.mjs` — passed after approved localhost rerun.
+- `npm --prefix apps/web run smoke:e2e` — passed, including `meldfall_ledger setup actions replay noleak responsive`.
+- `node scripts/check-doc-links.mjs` — passed; checked 31 markdown files.

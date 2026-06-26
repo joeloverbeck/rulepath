@@ -5,9 +5,9 @@ use meldfall_ledger::{
         L0_POLICY_ID, L1_POLICY_STATUS,
     },
     cards::{Card, CardId, Rank, Suit},
-    rules::{discard_card, draw_from_stock, finish_turn_after_table_plays},
+    rules::{discard_card, draw_from_discard, draw_from_stock, finish_turn_after_table_plays},
     setup::{default_seats, setup_match, SetupOptions},
-    state::{MatchState, TurnPhase},
+    state::{MatchState, TurnOrdinal, TurnPhase},
 };
 
 #[test]
@@ -61,11 +61,33 @@ fn selected_l0_actions_apply_through_rules_api_for_current_phases() {
     state.round.phase = TurnPhase::Draw;
     state.round.active_seat_index = 0;
     let draw = bot.select_action(&state, 0).expect("draw selected");
-    assert_eq!(
-        parse_bot_action(&draw).expect("parse draw"),
-        meldfall_ledger::actions::MeldfallAction::DrawFromStock
-    );
-    draw_from_stock(&mut state.round, 0).expect("draw applies");
+    match parse_bot_action(&draw).expect("parse draw") {
+        meldfall_ledger::actions::MeldfallAction::DrawFromStock => {
+            draw_from_stock(&mut state.round, 0).expect("draw applies");
+        }
+        meldfall_ledger::actions::MeldfallAction::DrawFromDiscard { discard_index } => {
+            draw_from_discard(&mut state.round, 0, discard_index).expect("discard draw applies");
+            let card = state
+                .round
+                .pending_pickup
+                .as_ref()
+                .expect("discard draw creates commitment")
+                .selected_card;
+            let supporting = Suit::ALL
+                .into_iter()
+                .filter(|suit| *suit != card.card().suit)
+                .take(2)
+                .map(|suit| Card::new(card.card().rank, suit).id())
+                .collect::<Vec<_>>();
+            let meld = vec![card, supporting[0], supporting[1]];
+            state.round.seats[0]
+                .hand
+                .extend(meld.iter().copied().skip(1));
+            meldfall_ledger::rules::table_new_meld(&mut state.round, 0, &meld, TurnOrdinal(0))
+                .expect("commitment meld applies");
+        }
+        other => panic!("expected draw action, got {other:?}"),
+    }
 
     let finish = bot.select_action(&state, 0).expect("finish selected");
     assert_eq!(
