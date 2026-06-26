@@ -5570,6 +5570,83 @@ svg g[data-effect-kind] {
   background: var(--ml-panel-soft);
 }
 
+/* Persistent summary of the round that just settled. Bots auto-deal the next round,
+   so this keeps last round's public deltas and cumulative scores readable. */
+.meldfall-settlement {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--ml-warm);
+  border-radius: 12px;
+  background: var(--ml-warm-soft);
+}
+
+.meldfall-settlement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.meldfall-settlement-seat {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 9px;
+  background: var(--ml-panel);
+}
+
+.meldfall-settlement-seat.leads {
+  border-color: var(--ml-accent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ml-accent) 18%, transparent);
+}
+
+.meldfall-settlement-seat header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.meldfall-settlement-seat header strong {
+  font-size: 0.85rem;
+}
+
+.meldfall-settlement-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ml-accent);
+}
+
+.meldfall-settlement-delta {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.meldfall-settlement-delta.gain {
+  color: var(--ml-accent);
+}
+
+.meldfall-settlement-delta.loss {
+  color: #c0392b;
+}
+
+.meldfall-settlement-total {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ml-ink);
+}
+
+.meldfall-settlement-total small {
+  color: var(--ml-muted);
+  font-weight: 600;
+}
+
 .meldfall-seat.active {
   border-color: var(--ml-accent);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ml-accent) 18%, transparent);

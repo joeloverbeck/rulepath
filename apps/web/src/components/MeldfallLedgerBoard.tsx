@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   ActionChoice,
   ActionTree,
@@ -30,6 +30,41 @@ type GroupedChoices = {
   turn: ActionChoice[];
 };
 
+// Summary of the most recently settled round, captured from the public `round_score`
+// effect. The shell only keeps the last 12 effects, and bots auto-deal the next round,
+// so the settlement feedback scrolls out of the status line before a human can read it.
+// Holding it in board state keeps last round's public deltas/cumulative scores visible
+// (ML-VIS-006 exposes these) until the next round settles. Presentation only.
+type RoundSettlement = {
+  cursor: number;
+  roundNumber: number;
+  deltas: number[];
+  cumulative: number[];
+};
+
+function effectKind(payload: Record<string, unknown>): string {
+  return String(payload.type ?? payload.kind ?? "");
+}
+
+function numberList(value: unknown): number[] {
+  return Array.isArray(value) ? value.map((entry) => Number(entry)).filter((entry) => Number.isFinite(entry)) : [];
+}
+
+function parseRoundSettlement(entry: EffectEntry): RoundSettlement | null {
+  const payload = entry.effect.payload;
+  if (effectKind(payload) !== "round_score") return null;
+  const deltas = numberList(payload.deltas);
+  const cumulative = numberList(payload.cumulative_scores);
+  if (deltas.length === 0 && cumulative.length === 0) return null;
+  const roundIndex = typeof payload.round_index === "number" ? payload.round_index : null;
+  return {
+    cursor: entry.cursor,
+    roundNumber: roundIndex === null ? 0 : roundIndex + 1,
+    deltas,
+    cumulative,
+  };
+}
+
 const SEATS: MeldfallLedgerSeatId[] = ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"];
 
 // Cumulative match target for the pinned classic_500_single_deck_v1 variant
@@ -48,6 +83,25 @@ export function MeldfallLedgerBoard({
 }: MeldfallLedgerBoardProps) {
   const choices = useMemo(() => actionTree?.choices ?? [], [actionTree]);
   const groupedChoices = useMemo(() => groupChoices(choices), [choices]);
+
+  // Persist the latest settled-round summary across renders. A new match restarts the
+  // effect cursor low, so when the buffer's newest cursor drops below what we stored we
+  // discard the stale summary instead of carrying it into the next match.
+  const [settlement, setSettlement] = useState<RoundSettlement | null>(null);
+  useEffect(() => {
+    const newestCursor = effects.reduce((max, entry) => Math.max(max, entry.cursor), -1);
+    if (settlement && newestCursor >= 0 && newestCursor < settlement.cursor) {
+      setSettlement(null);
+      return;
+    }
+    for (let index = effects.length - 1; index >= 0; index -= 1) {
+      const parsed = parseRoundSettlement(effects[index]);
+      if (parsed) {
+        if (!settlement || parsed.cursor > settlement.cursor) setSettlement(parsed);
+        break;
+      }
+    }
+  }, [effects, settlement]);
   const seats = SEATS.slice(0, view.hand_counts.length);
   const canAct = Boolean(interactive && !pending && !view.terminal && choices.length > 0);
   const roundSettled = !view.terminal && view.phase === "round_settled";
@@ -128,6 +182,8 @@ export function MeldfallLedgerBoard({
         <Metric label="Discard" value={`${view.discard.length} public`} />
         <Metric label="Target" value={`${MATCH_TARGET} to win`} />
       </div>
+
+      {settlement && !view.terminal ? <SettlementSummary settlement={settlement} seats={seats} /> : null}
 
       <div className="meldfall-table-shell" aria-label="Meldfall Ledger table">
         <section className="meldfall-seat-rail" aria-label="Seat score ledger">
@@ -230,6 +286,46 @@ export function MeldfallLedgerBoard({
       </div>
 
       {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
+    </section>
+  );
+}
+
+function SettlementSummary({
+  settlement,
+  seats,
+}: {
+  settlement: RoundSettlement;
+  seats: MeldfallLedgerSeatId[];
+}) {
+  const topScore = settlement.cumulative.length ? Math.max(...settlement.cumulative) : null;
+  return (
+    <section className="meldfall-settlement" aria-label={`Round ${settlement.roundNumber} settlement`}>
+      <div className="meldfall-section-heading">
+        <span>Last round settled</span>
+        <strong>Round {settlement.roundNumber} · tabled points minus cards held</strong>
+      </div>
+      <div className="meldfall-settlement-grid">
+        {seats.map((seat, index) => {
+          const delta = settlement.deltas[index] ?? 0;
+          const total = settlement.cumulative[index] ?? 0;
+          const leads = topScore !== null && total === topScore;
+          return (
+            <article className={`meldfall-settlement-seat${leads ? " leads" : ""}`} key={seat}>
+              <header>
+                <strong>{seatLabel(seat)}</strong>
+                {leads ? <span className="meldfall-settlement-tag">Leads</span> : null}
+              </header>
+              <p className={`meldfall-settlement-delta ${delta >= 0 ? "gain" : "loss"}`}>
+                {delta >= 0 ? `+${delta}` : `${delta}`}
+                <span className="sr-only"> round delta</span>
+              </p>
+              <p className="meldfall-settlement-total">
+                {total} <small>/ {MATCH_TARGET}</small>
+              </p>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
