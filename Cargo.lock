@@ -283,6 +283,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "starbridge_crossing"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+ "game-test-support",
+]
+
+[[package]]
 name = "three_marks"
 version = "0.1.0"
 dependencies = [

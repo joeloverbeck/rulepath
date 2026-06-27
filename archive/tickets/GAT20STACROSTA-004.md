@@ -1,6 +1,6 @@
 # GAT20STACROSTA-004: Crate skeleton, workspace wiring, and id types
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — new `games/starbridge_crossing` crate (`Cargo.toml`, `src/lib.rs`, `src/ids.rs`); workspace `Cargo.toml` member
@@ -77,3 +77,39 @@ With the topology hard gate (002) and forward-v1 admission (003) resolved, the g
 1. `cargo test -p starbridge_crossing`
 2. `cargo build --workspace && bash scripts/boundary-check.sh`
 3. Narrower command (`-p starbridge_crossing`) is the correct boundary for the crate-local id tests; the workspace build confirms member wiring.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing` to the workspace members.
+- Added `games/starbridge_crossing/Cargo.toml` with the same dependency shape
+  as sibling new-game crates: `engine-core`, `game-stdlib`, `ai-core`, and
+  dev-only `game-test-support`.
+- Added `games/starbridge_crossing/src/lib.rs` and `src/ids.rs` with game-local
+  constants, `StarSpaceId`, `StarPoint`, `StarZone`, supported-seat helpers,
+  active point mapping, canonical seat ids, and inline unit tests.
+
+Deviations from plan:
+
+- None.
+
+Verification:
+
+- `cargo test -p starbridge_crossing` passed: 4 unit tests, 0 doctests.
+- `cargo build -p starbridge_crossing` passed.
+- `cargo fmt --all --check` passed after rustfmt formatting.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `cargo build --workspace` passed.
+- `rg -n "StarSpaceId|StarPoint|StarZone" crates games tools apps --glob '!games/starbridge_crossing/**'`
+  produced no output, confirming the id types are source-local to the new game
+  crate. A broader repository grep still finds planned references in active
+  tickets/specs, which are not code ownership leaks.
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
