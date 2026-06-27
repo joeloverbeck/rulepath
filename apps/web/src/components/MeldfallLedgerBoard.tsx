@@ -62,6 +62,14 @@ export function MeldfallLedgerBoard({
   // a live draw decision we can explain why a disabled discard is not pickable.
   const drawDecision = canAct && !view.terminal && view.phase === "draw";
   const roundSettled = !view.terminal && view.phase === "round_settled";
+  // Stock-exhaustion pressure (ML-TURN-009): when the stock runs out and no seat has a
+  // legal draw, the round settles immediately and the discard pile is never reshuffled.
+  // The raw count is public, so flagging the endgame is a presentation-only proximity
+  // signal the strategy guide calls out. Threshold scales with table size: once fewer
+  // cards remain than seats, the next go-around cannot give everyone a stock draw.
+  const stockLive = !view.terminal && !roundSettled;
+  const stockEmpty = stockLive && view.stock_count === 0;
+  const stockLow = stockLive && view.stock_count > 0 && view.stock_count <= seats.length;
   // After a discard pickup, Rust offers only table plays that use the committed card
   // and withholds finish/discard until the commitment is satisfied (ML-TURN-004). In
   // the table phase that is the only reason finish is absent, so we can tell the player
@@ -178,7 +186,7 @@ export function MeldfallLedgerBoard({
             <div className="meldfall-draw-zones">
               <button
                 type="button"
-                className="meldfall-stock"
+                className={`meldfall-stock${stockLow || stockEmpty ? " low" : ""}`}
                 disabled={!canAct || !drawStockChoice}
                 aria-label={drawStockChoice?.accessibility_label ?? `${view.stock_count} hidden stock cards`}
                 data-testid="meldfall-stock"
@@ -186,7 +194,7 @@ export function MeldfallLedgerBoard({
               >
                 <span>Stock</span>
                 <strong>{view.stock_count}</strong>
-                <small>{drawStockChoice ? "Draw from stock" : "Hidden order"}</small>
+                <small>{drawStockChoice ? "Draw from stock" : stockEmpty ? "Stock empty" : "Hidden order"}</small>
               </button>
 
               <div className="meldfall-discard" aria-label="Public discard pile" data-animation-target="meldfall-discard">
@@ -225,6 +233,17 @@ export function MeldfallLedgerBoard({
               <p className="meldfall-zone-hint">
                 Taking a discard also takes every newer card above it, and the card you choose must be melded or
                 laid off this turn before you can finish.
+              </p>
+            ) : null}
+            {stockEmpty ? (
+              <p className="meldfall-stock-warning" role="status">
+                Stock is empty. The round ends the moment the active seat has no legal draw — the discard pile is
+                not reshuffled.
+              </p>
+            ) : stockLow ? (
+              <p className="meldfall-stock-warning" role="status">
+                Stock is running low ({view.stock_count} left). When no one can draw, the round ends by exhaustion
+                with no reshuffle — shed high cards or aim to go out.
               </p>
             ) : null}
           </section>

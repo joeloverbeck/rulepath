@@ -5803,6 +5803,23 @@ svg g[data-effect-kind] {
   background: var(--ml-accent-soft);
 }
 
+.meldfall-stock.low {
+  background: var(--ml-warm-soft);
+  border-color: var(--ml-warm);
+}
+
+.meldfall-stock-warning {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ml-warm);
+  border-radius: 8px;
+  background: var(--ml-warm-soft);
+  color: var(--ml-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 .meldfall-stock strong,
 .meldfall-card strong {
   min-width: 0;
