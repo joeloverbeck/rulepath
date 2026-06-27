@@ -1,6 +1,6 @@
 # GAT20STACROSTA-010: Public visibility, UI metadata, and all-public no-leak audit
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/starbridge_crossing/src/{visibility.rs,ui.rs}`, `tests/visibility.rs`
@@ -78,3 +78,41 @@ Viewer-facing UI metadata: seat-neutral coordinate labels, occupancy/zone tags, 
 1. `cargo test -p starbridge_crossing --test visibility`
 2. `cargo test -p starbridge_crossing && bash scripts/boundary-check.sh`
 3. `--test visibility` is the correct no-leak boundary; full crate run confirms view/state integration.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/src/visibility.rs` with an all-public view
+  projection for observers and seat viewers: board spaces, occupancy, seats,
+  active seat, finish ranks, terminal status, counters, and an explicit
+  no-redaction audit.
+- Added `games/starbridge_crossing/src/ui.rs` with seat-neutral coordinate,
+  zone, and space metadata for renderer-facing Rust labels.
+- Added `games/starbridge_crossing/tests/visibility.rs` proving public observer
+  completeness, seat-view parity across `{2,3,4,6}`, and absence of private,
+  hidden, or redacted visibility classes.
+- Updated `games/starbridge_crossing/src/lib.rs` exports for visibility and UI
+  metadata.
+
+Deviations from plan:
+
+- None. Browser DOM no-leak smoke, replay exports, and evidence cross-links
+  remain deferred to their later tickets.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --test visibility` passed: 3 integration
+  tests.
+- `cargo test -p starbridge_crossing` passed: 22 unit tests, 20 integration
+  tests, 0 doctests.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`

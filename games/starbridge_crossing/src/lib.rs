@@ -11,7 +11,9 @@ pub mod rules;
 pub mod setup;
 pub mod state;
 pub mod topology;
+pub mod ui;
 pub mod variants;
+pub mod visibility;
 
 pub use actions::{
     encode_jump_path, encode_step_path, legal_action_tree, parse_action_path, StarbridgeAction,
@@ -38,4 +40,9 @@ pub use topology::{
     spaces_by_stable_order, Manifest, StarCoord, StarDirection, StarSpace, StarUiAnchor,
     TOPOLOGY_GENERATOR,
 };
+pub use ui::{space_label, zone_label, SpaceUiMetadata};
 pub use variants::{load_variants, Variant, VariantCatalog};
+pub use visibility::{
+    filter_effects_for_viewer, project_view, AllPublicAudit, PegView, SeatView, SpaceView,
+    StarbridgePublicView,
+};
