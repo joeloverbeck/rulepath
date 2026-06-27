@@ -1,6 +1,6 @@
 # GAT20STACROSTA-013: Tool registration (replay-check / fixture-check / rule-coverage) + RULE-COVERAGE.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (tooling + deterministic evidence) — `tools/{replay-check,fixture-check,rule-coverage}/src/main.rs` arms, `games/starbridge_crossing/docs/RULE-COVERAGE.md`
@@ -76,3 +76,21 @@ Map each `RULES.md` rule/scoring/terminal ID to its covering test/trace.
 1. `cargo run -p replay-check -- --game starbridge_crossing --all`
 2. `cargo run -p fixture-check -- --game starbridge_crossing && cargo run -p rule-coverage -- --game starbridge_crossing`
 3. CLI validation is the correct boundary — these tools are the evidence harness; no new unit test is warranted for match-arm registration.
+
+## Outcome
+
+Registered `starbridge_crossing` in `replay-check`, `fixture-check`, and `rule-coverage`. The replay and fixture tools now validate the current Starbridge trace-receipt catalog with a game-specific path that checks JSON shape, schema version, game identity, duplicate trace ids, coverage receipts, and public no-leak assertions without forcing the lightweight receipts through older full-command trace schemas. `fixture-check` also validates Starbridge manifest/variant identity through the game crate loaders.
+
+Added `games/starbridge_crossing/docs/RULE-COVERAGE.md` with one coverage row for every `SC-*` rule in `RULES.md`, plus trace inventory and current deferred ownership for benchmark/WASM/UI proof. `rule-coverage` now recognizes the `SC` rule prefix and accepts Starbridge with benchmarks not required until GAT20STACROSTA-016 lands `BENCHMARKS.md`.
+
+Verification:
+
+1. `cargo run -p replay-check -- --game starbridge_crossing --all` — passed; all 21 Starbridge trace receipts accepted.
+2. `cargo run -p fixture-check -- --game starbridge_crossing` — passed.
+3. `cargo run -p rule-coverage -- --game starbridge_crossing` — passed.
+4. `cargo fmt --all --check` — passed.
+5. `bash scripts/boundary-check.sh` — passed.
+6. `node scripts/check-doc-links.mjs` — passed.
+7. `git diff --check` — passed.
+
+The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.
