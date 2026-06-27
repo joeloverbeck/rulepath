@@ -1,6 +1,6 @@
 # GAT20STACROSTA-006: Setup, seat validation, and deterministic state
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/starbridge_crossing/src/{setup.rs,state.rs,variants.rs}`, `data/variants.toml`
@@ -83,3 +83,44 @@ The public match state snapshot: per-space occupancy, active seat, finish-rank l
 1. `cargo test -p starbridge_crossing --test rules`
 2. `cargo test -p starbridge_crossing && bash scripts/boundary-check.sh`
 3. The `--test rules` boundary isolates setup/seat behavior; the full crate run confirms state/topology integration.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/src/variants.rs` and
+  `games/starbridge_crossing/data/variants.toml` for the classic Starbridge
+  variant: supported seats `{2,3,4,6}`, default 2, max plies 2000, and 10 pegs
+  per seat. The parser rejects unknown and behavior-looking fields.
+- Added `games/starbridge_crossing/src/setup.rs` with Rust-owned variant
+  validation, discontinuous seat-count validation, deterministic home/target
+  assignment, and initial public peg placement.
+- Added `games/starbridge_crossing/src/state.rs` with public state and snapshot
+  types for seats, occupancy, pegs, active seat, finish ranks, terminal status,
+  ply/command counters, freshness, and stable snapshot bytes.
+- Added `games/starbridge_crossing/tests/rules.rs` covering supported and
+  rejected seat counts, home/target assignment, peg placement, and empty
+  non-home spaces.
+- Updated `games/starbridge_crossing/src/lib.rs` to expose setup, state, and
+  variant APIs.
+
+Deviations from plan:
+
+- Golden setup traces remain deferred to GAT20STACROSTA-011 as planned. This
+  ticket pins deterministic setup through unit/integration tests and snapshot
+  stable bytes.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --test rules` passed: 5 integration tests.
+- `cargo test -p starbridge_crossing` passed: 14 unit tests, 6 integration
+  tests, 0 doctests.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`

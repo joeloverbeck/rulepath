@@ -5,7 +5,10 @@
 //! generic Rulepath contracts.
 
 pub mod ids;
+pub mod setup;
+pub mod state;
 pub mod topology;
+pub mod variants;
 
 pub use ids::{
     active_points_for_seat_count, canonical_seat_ids, seat_id_for_index, supported_seat_count,
@@ -13,8 +16,14 @@ pub use ids::{
     MAX_SPACE_INDEX, RULES_VERSION_LABEL, SPACE_COUNT, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS,
     STANDARD_MIN_SEATS, STANDARD_PEGS_PER_SEAT, SUPPORTED_SEAT_COUNTS, VARIANT_ID,
 };
+pub use setup::{setup_match, SetupOptions};
+pub use state::{
+    FinishRank, SeatAssignment, StarPeg, StarPegId, StarbridgeSnapshot, StarbridgeState,
+    TerminalStatus,
+};
 pub use topology::{
     coordinate_for_id, home_spaces, load_manifest, neighbor_in_direction, space_for_id, spaces,
     spaces_by_stable_order, Manifest, StarCoord, StarDirection, StarSpace, StarUiAnchor,
     TOPOLOGY_GENERATOR,
 };
+pub use variants::{load_variants, Variant, VariantCatalog};

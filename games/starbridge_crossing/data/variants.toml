@@ -1,0 +1,10 @@
+variant_id = "starbridge_crossing_classic_star_v1"
+display_name = "Starbridge Crossing"
+rules_version_label = "starbridge-crossing-rules-v1"
+data_version_label = "starbridge-crossing-data-v1"
+min_seats = 2
+default_seats = 2
+max_seats = 6
+supported_seats = "2,3,4,6"
+max_plies = 2000
+pegs_per_seat = 10
