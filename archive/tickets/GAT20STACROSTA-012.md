@@ -1,6 +1,6 @@
 # GAT20STACROSTA-012: L0 random-legal bot, seeded simulation, and AI.md
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/starbridge_crossing/src/bots.rs`, `tests/bots.rs`, `tools/simulate/src/main.rs` (arm), `games/starbridge_crossing/docs/AI.md`
@@ -86,3 +86,20 @@ Document the L0 floor; record L2/L3 as gated behind `COMPETENT-PLAYER.md` + `BOT
 1. `cargo test -p starbridge_crossing --test bots`
 2. `cargo run -p simulate -- --game starbridge_crossing --seat-count 2 --games 100 --start-seed 20 && cargo run -p simulate -- --game starbridge_crossing --seat-count 6 --games 100 --start-seed 20`
 3. The bots test + seeded simulate run are the correct legality boundary; CLI exercises the arm end-to-end.
+
+## Outcome
+
+Implemented the Starbridge Crossing L0 random-legal bot as a deterministic seeded selector over the Rust legal action tree, exported the parser/decision helpers, and added focused bot legality coverage across the supported seat counts `{2,3,4,6}`.
+
+Added the `starbridge_crossing` `simulate` arm and dependency so the CLI drives the Rust setup, L0 action selection, action parsing, and Rust rule application end to end. Added `games/starbridge_crossing/docs/AI.md` documenting the L0-only admitted bot policy, public-information boundary, and forbidden MCTS/ISMCTS/Monte Carlo/ML/RL/runtime-LLM techniques. Added `bot-l0-action.trace.json` as the versioned bot trace receipt.
+
+Verification:
+
+1. `cargo test -p starbridge_crossing --test bots` — passed, 3 tests.
+2. `cargo test -p starbridge_crossing` — passed, 53 tests/doc-tests across unit, property, replay, rules, serialization, visibility, and bot coverage.
+3. `cargo run -p simulate -- --game starbridge_crossing --seat-count 2 --games 100 --start-seed 20` — passed with no illegal actions; `capped_matches=100`, `total_actions=6400`, `average_length=64.00`.
+4. `cargo run -p simulate -- --game starbridge_crossing --seat-count 6 --games 100 --start-seed 20` — passed with no illegal actions; `capped_matches=100`, `total_actions=6400`, `average_length=64.00`.
+5. `bash scripts/boundary-check.sh` — passed.
+6. `git diff --check` — passed.
+
+The random simulations all reached the default short `action_cap=64`; this is expected for random movement on the full Star Halma board and is recorded as capped smoke evidence, not terminal-game strategy evidence. The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.

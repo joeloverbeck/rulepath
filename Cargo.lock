@@ -277,6 +277,7 @@ dependencies = [
  "race_to_n",
  "river_ledger",
  "secret_draft",
+ "starbridge_crossing",
  "three_marks",
  "token_bazaar",
  "vow_tide",

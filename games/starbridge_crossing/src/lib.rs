@@ -5,6 +5,7 @@
 //! generic Rulepath contracts.
 
 pub mod actions;
+pub mod bots;
 pub mod effects;
 pub mod ids;
 pub mod replay_support;
@@ -18,6 +19,10 @@ pub mod visibility;
 
 pub use actions::{
     encode_jump_path, encode_step_path, legal_action_tree, parse_action_path, StarbridgeAction,
+};
+pub use bots::{
+    legal_action_paths, parse_bot_action, StarbridgeCrossingL0Bot, StarbridgeL0Decision,
+    L0_POLICY_ID,
 };
 pub use effects::{public_effect, JumpSubstep, StarbridgeEffect, StarbridgeEffectEnvelope};
 pub use ids::{
