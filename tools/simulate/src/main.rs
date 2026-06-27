@@ -42,6 +42,13 @@ use race_to_n::{
 };
 use river_ledger::RiverLedgerLevel2Bot;
 use secret_draft::{SecretDraftRandomBot, SecretDraftSeat};
+use starbridge_crossing::{
+    apply_jump_command as apply_starbridge_jump,
+    apply_pass_blocked_command as apply_starbridge_pass,
+    apply_step_command as apply_starbridge_step, parse_bot_action as parse_starbridge_bot_action,
+    setup_match as setup_starbridge_match, StarbridgeAction, StarbridgeCrossingL0Bot,
+    TerminalStatus as StarbridgeTerminalStatus,
+};
 use three_marks::{ThreeMarksRandomBot, ThreeMarksSeat};
 use token_bazaar::{TokenBazaarRandomBot, TokenBazaarSeat};
 use vow_tide::{
@@ -72,6 +79,7 @@ const GAME_BRIAR_CIRCUIT: &str = "briar_circuit";
 const GAME_VOW_TIDE: &str = "vow_tide";
 const GAME_BLACKGLASS_PACT: &str = "blackglass_pact";
 const GAME_MELDFALL_LEDGER: &str = "meldfall_ledger";
+const GAME_STARBRIDGE_CROSSING: &str = "starbridge_crossing";
 const RULES_VERSION: u32 = 1;
 const DATA_VERSION: u32 = 1;
 const ENGINE_VERSION: &str = "engine-core-0.1.0";
@@ -239,11 +247,18 @@ fn parse_config(args: impl IntoIterator<Item = String>) -> Result<Config, String
         && config.game != GAME_VOW_TIDE
         && config.game != GAME_BLACKGLASS_PACT
         && config.game != GAME_MELDFALL_LEDGER
+        && config.game != GAME_STARBRIDGE_CROSSING
     {
         return Err(format!(
-            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}, {GAME_BLACKGLASS_PACT}, {GAME_MELDFALL_LEDGER}\n",
+            "unsupported game: {}\navailable games: {GAME_ID}, {GAME_THREE_MARKS}, {GAME_COLUMN_FOUR}, {GAME_DIRECTIONAL_FLIP}, {GAME_DRAUGHTS_LITE}, {GAME_HIGH_CARD_DUEL}, {GAME_MASKED_CLAIMS}, {GAME_FLOOD_WATCH}, {GAME_FRONTIER_CONTROL}, {GAME_EVENT_FRONTIER}, {GAME_TOKEN_BAZAAR}, {GAME_SECRET_DRAFT}, {GAME_POKER_LITE}, {GAME_PLAIN_TRICKS}, {GAME_RIVER_LEDGER}, {GAME_BRIAR_CIRCUIT}, {GAME_VOW_TIDE}, {GAME_BLACKGLASS_PACT}, {GAME_MELDFALL_LEDGER}, {GAME_STARBRIDGE_CROSSING}\n",
             config.game
         ));
+    }
+    if config.game == GAME_STARBRIDGE_CROSSING {
+        let seat_count = config.seat_count.unwrap_or(2);
+        if ![2, 3, 4, 6].contains(&seat_count) {
+            return Err("--seat-count for starbridge_crossing must be 2, 3, 4, or 6\n".to_owned());
+        }
     }
     if config.game == GAME_MELDFALL_LEDGER {
         let seat_count = config.seat_count.unwrap_or(4);
@@ -298,7 +313,7 @@ fn parse_usize(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<us
 
 fn help_text() -> String {
     "simulate 0.1.0\n\
-         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
+         Usage: simulate --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger|starbridge_crossing> [--seat-count N] [--games N] [--start-seed N] [--action-cap N] [--failure-report-out PATH]\n\
          Gate 1 native random legal simulation runner.\n"
         .to_owned()
 }
@@ -317,6 +332,165 @@ fn increment_seat_count(counts: &mut BTreeMap<String, u64>, seat: &str) {
 
 fn render_seat_order(seats: &[&str]) -> String {
     format!("seat_order=[{}]", seats.join(","))
+}
+
+fn render_counts(counts: &BTreeMap<String, u64>) -> String {
+    counts
+        .iter()
+        .map(|(seat, count)| format!("{seat}:{count}"))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn run_starbridge_crossing_simulation(config: Config) -> Result<String, String> {
+    let started = Instant::now();
+    let seat_count = config.seat_count.unwrap_or(2);
+    let seat_labels = (0..seat_count)
+        .map(|index| format!("seat_{index}"))
+        .collect::<Vec<_>>();
+    let mut wins_by_seat = seat_labels
+        .iter()
+        .map(|seat| (seat.clone(), 0_u64))
+        .collect::<BTreeMap<_, _>>();
+    let mut total_actions = 0_u64;
+    let mut capped_matches = 0_u64;
+
+    for offset in 0..config.games {
+        let seed = config.start_seed.wrapping_add(offset);
+        let outcome = run_one_starbridge_crossing_match(&config, seed, seat_count)?;
+        total_actions += outcome.actions;
+        if outcome.capped {
+            capped_matches += 1;
+        }
+        if let Some(winner) = outcome.winner {
+            increment_seat_count(&mut wins_by_seat, &format!("seat_{winner}"));
+        }
+    }
+
+    let elapsed_secs = started.elapsed().as_secs_f64();
+    let average_length = total_actions as f64 / config.games as f64;
+    let throughput = if elapsed_secs > 0.0 {
+        config.games as f64 / elapsed_secs
+    } else {
+        config.games as f64
+    };
+    Ok(format!(
+        "simulate summary\n\
+         game_id=starbridge_crossing\n\
+         rules_version={RULES_VERSION}\n\
+         data_version={DATA_VERSION}\n\
+         engine_version={ENGINE_VERSION}\n\
+         start_seed={}\n\
+         games_run={}\n\
+         seat_count={seat_count}\n\
+         seat_order=[{}]\n\
+         wins_by_seat={}\n\
+         capped_matches={capped_matches}\n\
+         total_actions={total_actions}\n\
+         average_length={average_length:.2}\n\
+         throughput_games_per_sec={throughput:.2}\n",
+        config.start_seed,
+        config.games,
+        seat_labels.join(","),
+        render_counts(&wins_by_seat)
+    ))
+}
+
+struct StarbridgeMatchOutcome {
+    winner: Option<u8>,
+    actions: u64,
+    capped: bool,
+}
+
+fn run_one_starbridge_crossing_match(
+    config: &Config,
+    seed: u64,
+    seat_count: usize,
+) -> Result<StarbridgeMatchOutcome, String> {
+    let seats = (0..seat_count)
+        .map(|index| SeatId::from_zero_based_index(index as u32))
+        .collect::<Vec<_>>();
+    let mut state = setup_starbridge_match(
+        Seed(seed),
+        &seats,
+        &starbridge_crossing::SetupOptions::default(),
+    )
+    .map_err(|diagnostic| format!("starbridge_crossing setup failed: {}\n", diagnostic.code))?;
+
+    for action_index in 0..config.action_cap {
+        if state.terminal_status.is_some() {
+            return Ok(StarbridgeMatchOutcome {
+                winner: state
+                    .finish_ranks
+                    .iter()
+                    .find(|rank| rank.rank == 1)
+                    .map(|rank| rank.seat_index),
+                actions: action_index as u64,
+                capped: false,
+            });
+        }
+        let bot = StarbridgeCrossingL0Bot::new(Seed(bot_seed(seed, action_index)));
+        let decision = bot.select_decision(&state).map_err(|diagnostic| {
+            format!(
+                "starbridge_crossing bot failed at seed {seed} action {action_index}: {}\n",
+                diagnostic.code
+            )
+        })?;
+        let command = CommandEnvelope {
+            actor: Actor {
+                seat_id: state.seats[usize::from(state.active_seat_index)]
+                    .seat_id
+                    .clone(),
+            },
+            action_path: decision.action_path.clone(),
+            freshness_token: state.freshness_token,
+            rules_version: RulesVersion(1),
+        };
+        match parse_starbridge_bot_action(&decision.action_path).map_err(|diagnostic| {
+            format!(
+                "starbridge_crossing bot parse failed at seed {seed}: {}\n",
+                diagnostic.code
+            )
+        })? {
+            StarbridgeAction::Step { .. } => {
+                apply_starbridge_step(&mut state, &command).map_err(|diagnostic| {
+                    format!(
+                        "starbridge_crossing step failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            StarbridgeAction::Jump { .. } => {
+                apply_starbridge_jump(&mut state, &command).map_err(|diagnostic| {
+                    format!(
+                        "starbridge_crossing jump failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+            StarbridgeAction::PassBlocked => {
+                apply_starbridge_pass(&mut state, &command).map_err(|diagnostic| {
+                    format!(
+                        "starbridge_crossing pass failed at seed {seed}: {}\n",
+                        diagnostic.code
+                    )
+                })?;
+            }
+        }
+    }
+
+    Ok(StarbridgeMatchOutcome {
+        winner: state
+            .finish_ranks
+            .iter()
+            .find(|rank| rank.rank == 1)
+            .map(|rank| rank.seat_index),
+        actions: config.action_cap as u64,
+        capped: !matches!(
+            state.terminal_status,
+            Some(StarbridgeTerminalStatus::Complete | StarbridgeTerminalStatus::TurnLimit { .. })
+        ),
+    })
 }
 
 fn render_seat_order_strings(seats: &[String]) -> String {
@@ -386,6 +560,9 @@ fn run_simulation(config: Config) -> Result<String, String> {
     }
     if config.game == GAME_MELDFALL_LEDGER {
         return run_meldfall_ledger_simulation(config);
+    }
+    if config.game == GAME_STARBRIDGE_CROSSING {
+        return run_starbridge_crossing_simulation(config);
     }
 
     let started = Instant::now();

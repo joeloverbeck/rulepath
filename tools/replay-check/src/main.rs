@@ -197,6 +197,11 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             rules_version: "meldfall-ledger-rules-v1",
             trace_dir: "games/meldfall_ledger/tests/golden_traces",
         }),
+        "starbridge_crossing" => Ok(RegisteredGame {
+            game_id: "starbridge_crossing",
+            rules_version: "starbridge-crossing-rules-v1",
+            trace_dir: "games/starbridge_crossing/tests/golden_traces",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -312,10 +317,10 @@ fn print_help() {
     println!("replay-check 0.1.0");
     println!("usage:");
     println!(
-        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --trace <path>"
+        "  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger|starbridge_crossing> --trace <path>"
     );
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --directory <dir>");
-    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --all");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger|starbridge_crossing> --directory <dir>");
+    println!("  replay-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger|starbridge_crossing> --all");
 }
 
 fn check_trace_path(
@@ -375,6 +380,17 @@ fn check_trace_path(
         println!("{}: meldfall_ledger trace accepted", path.display());
         return Ok(());
     }
+    if game.game_id == "starbridge_crossing" {
+        let trace_id = validate_starbridge_crossing_trace(game, path, &input)?;
+        if !seen_ids.insert(trace_id) {
+            return Err(format!(
+                "{}: duplicate trace_id in checked trace set",
+                path.display()
+            ));
+        }
+        println!("{}: starbridge_crossing trace accepted", path.display());
+        return Ok(());
+    }
     if is_public_export_fixture(&input) {
         validate_public_export_fixture(game, path, &input)?;
         println!("{}: public export fixture accepted", path.display());
@@ -412,6 +428,49 @@ fn check_trace_path(
         return Err(trace.failure("duplicate trace_id in checked trace set"));
     }
     trace.check(game)
+}
+
+fn validate_starbridge_crossing_trace(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+) -> Result<String, String> {
+    validate_json_object(path, input)?;
+    let with_path = |message: String| format!("{}: {message}", path.display());
+    let trace_id = string_field(input, "trace_id").map_err(with_path)?;
+    if trace_id.trim().is_empty() {
+        return Err(format!("{}: trace_id must be non-empty", path.display()));
+    }
+    if number_field(input, "schema_version").map_err(with_path)? != 1 {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if string_field(input, "game_id").map_err(with_path)? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if input.contains("\"rules_version\"") {
+        let rules_version = string_field(input, "rules_version").map_err(with_path)?;
+        if rules_version != game.rules_version {
+            return Err(format!(
+                "{}: rules_version must be {}",
+                path.display(),
+                game.rules_version
+            ));
+        }
+    }
+    if !input.contains("\"coverage\"") {
+        return Err(format!("{}: missing coverage receipt", path.display()));
+    }
+    if input.contains("\"public_no_leak\"") && !input.contains("\"public_no_leak\":true") {
+        return Err(format!(
+            "{}: public_no_leak receipts must be true",
+            path.display()
+        ));
+    }
+    Ok(trace_id)
 }
 
 fn validate_briar_circuit_trace(

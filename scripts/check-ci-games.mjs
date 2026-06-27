@@ -51,6 +51,9 @@ for (const entry of manifest) {
   } else if (entry.e2e.length > 0 && !existsSync(join(e2eDir, entry.e2e))) {
     errors.push(`"${entry.id}" names e2e file "${entry.e2e}" which does not exist in apps/web/e2e/`);
   }
+  if ("games" in entry && (!Number.isInteger(entry.games) || entry.games <= 0)) {
+    errors.push(`"${entry.id}" must have a positive integer "games" when present`);
+  }
 }
 
 // Set-equality drift check: every game dir has a manifest row and vice versa.

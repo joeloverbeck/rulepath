@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "game_id": "starbridge_crossing",
+  "rules_version": "starbridge-crossing-rules-v1",
+  "data_version": "starbridge-crossing-data-v1",
+  "engine_version": "engine-core-0.1.0",
+  "thresholds": [
+    { "operation_name": "setup_121_spaces_2p", "unit": "setups_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for 2-seat setup over the 121-space topology." },
+    { "operation_name": "setup_121_spaces_3p", "unit": "setups_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for 3-seat setup over the 121-space topology." },
+    { "operation_name": "setup_121_spaces_4p", "unit": "setups_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for 4-seat setup over the 121-space topology." },
+    { "operation_name": "setup_121_spaces_6p", "unit": "setups_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for 6-seat setup over the 121-space topology." },
+    { "operation_name": "legal_actions_start_6p", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for opening legal action tree generation at max seat count." },
+    { "operation_name": "legal_actions_midgame_6p", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for midgame legal action tree generation after deterministic L0 actions." },
+    { "operation_name": "jump_chain_enumeration_dense_6p", "unit": "trees_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for legal path collection from a prepared jump-bearing state." },
+    { "operation_name": "apply_single_step_6p", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for applying a Rust-validated single-step command." },
+    { "operation_name": "apply_multi_hop_6p", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for applying a Rust-validated jump command from a prepared state." },
+    { "operation_name": "apply_blocked_pass_6p", "unit": "actions_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for blocked-pass application on an active seat with no legal move." },
+    { "operation_name": "simulate_l0_6p_64_actions", "unit": "playouts_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for bounded 64-action max-seat Level 0 playout." },
+    { "operation_name": "serialize_public_view_6p", "unit": "views_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for stable serialization of the all-public max-seat view." },
+    { "operation_name": "replay_full_trace_6p", "unit": "replays_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for replaying a deterministic 24-command max-seat trace." },
+    { "operation_name": "wasm_public_view_bridge_6p", "unit": "views_per_second", "threshold": 1, "rationale_class": "baseline_pending_non_blocking", "rationale": "Smoke floor for the Rust public-view projection and serialization consumed by the WASM bridge." }
+  ]
+}

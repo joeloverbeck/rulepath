@@ -7039,7 +7039,203 @@ svg g[data-effect-kind] {
   color: #21352e;
 }
 
+.starbridge-board {
+  display: grid;
+  gap: 14px;
+  color: #16211f;
+}
+
+.starbridge-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.starbridge-header h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  line-height: 1.15;
+}
+
+.starbridge-status,
+.starbridge-legend,
+.starbridge-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.starbridge-status {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.starbridge-status > div,
+.starbridge-path,
+.starbridge-legend > div {
+  min-width: 0;
+  border: 1px solid #cfd8d2;
+  border-radius: 6px;
+  padding: 10px;
+  background: #f8faf8;
+}
+
+.starbridge-status span,
+.starbridge-path span {
+  display: block;
+  color: #51625b;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.starbridge-status strong,
+.starbridge-path strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.starbridge-stage {
+  overflow: auto;
+  border: 1px solid #becdc5;
+  border-radius: 8px;
+  background: #f6f8f4;
+}
+
+.starbridge-svg {
+  display: block;
+  width: min(100%, 980px);
+  min-width: 720px;
+  aspect-ratio: 10 / 9;
+  margin: 0 auto;
+}
+
+.starbridge-zone-lines .home {
+  fill: #dbe9ff;
+}
+
+.starbridge-zone-lines .target {
+  fill: #ffe1c2;
+}
+
+.starbridge-zone-lines .neutral {
+  fill: #eef1ec;
+}
+
+.starbridge-space {
+  cursor: default;
+  outline: none;
+}
+
+.starbridge-space.legal {
+  cursor: pointer;
+}
+
+.starbridge-space-dot {
+  fill: #ffffff;
+  stroke: #7c8c85;
+  stroke-width: 2;
+}
+
+.starbridge-space.focused .starbridge-space-dot {
+  stroke: #17221e;
+  stroke-width: 4;
+}
+
+.starbridge-legal-ring {
+  fill: none;
+  stroke: #1e6f5c;
+  stroke-width: 4;
+  stroke-dasharray: 6 5;
+}
+
+.starbridge-legal-ring.jump {
+  stroke: #8b4aa0;
+}
+
+.starbridge-peg {
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.starbridge-peg-label,
+.starbridge-space-label {
+  font-weight: 900;
+  text-anchor: middle;
+  pointer-events: none;
+  user-select: none;
+}
+
+.starbridge-peg-label {
+  fill: #ffffff;
+  font-size: 12px;
+}
+
+.starbridge-space-label {
+  fill: #52635c;
+  font-size: 9px;
+}
+
+.starbridge-space.recent-origin .starbridge-space-dot {
+  stroke: #a75b1b;
+}
+
+.starbridge-space.recent-landing .starbridge-space-dot {
+  stroke: #1f7b61;
+}
+
+.starbridge-space.recent-over .starbridge-space-dot {
+  stroke: #6e4aa3;
+  stroke-dasharray: 4 4;
+}
+
+.starbridge-control-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.starbridge-legend {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.starbridge-legend > div {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.starbridge-legend span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.starbridge-legend small {
+  grid-column: 2;
+  color: #55655f;
+  overflow-wrap: anywhere;
+}
+
+.starbridge-board.reduced .starbridge-legal-ring {
+  stroke-dasharray: none;
+}
+
 @media (max-width: 720px) {
+  .starbridge-status {
+    grid-template-columns: 1fr;
+  }
+
+  .starbridge-svg {
+    min-width: 620px;
+  }
+
   .turn-report-panel li {
     grid-template-columns: 1fr;
   }

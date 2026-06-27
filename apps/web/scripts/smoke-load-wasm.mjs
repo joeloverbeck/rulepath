@@ -212,6 +212,21 @@ assert(
   ),
   "list_games includes river_ledger 3-6 seat hidden-information variant",
 );
+assert(
+  catalog.some(
+    (game) =>
+      game.game_id === "starbridge_crossing" &&
+      hasVariant(game, "starbridge_crossing_classic_star_v1", "Starbridge Crossing") &&
+      game.hidden_information === false &&
+      game.min_seats === 2 &&
+      game.max_seats === 6 &&
+      game.default_seats === 2 &&
+      JSON.stringify(game.supported_seats) === JSON.stringify([2, 3, 4, 6]) &&
+      game.viewer_modes.includes("seat_5") &&
+      game.tags.includes("large_board"),
+  ),
+  "list_games includes starbridge_crossing classic perfect-information variant",
+);
 
 const riverOptionsCreated = invoke(
   (args) =>

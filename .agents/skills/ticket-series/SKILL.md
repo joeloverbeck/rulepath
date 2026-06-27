@@ -153,8 +153,11 @@ For each ticket:
    requires those surfaces. When a ticket changes Rust source or tests, run
    `cargo fmt --all --check` and at least the relevant crate clippy/test lane
    before archiving that ticket, unless the ticket records why a narrower proof
-   is sufficient. When touching web play-surface files, run the
-   repo's guard scripts when present and avoid introducing guard-trigger
+   is sufficient. When `RULES.md`, stable rule IDs, rule families,
+   outcome/score/end aliases, or rule-coverage receipts change, rerun
+   `cargo run -p rule-coverage -- --game <game_id>` and reconcile
+   `RULE-COVERAGE.md` before archiving. When touching web play-surface files,
+   run the repo's guard scripts when present and avoid introducing guard-trigger
    vocabulary such as debug payload terms into helper names, visible-adjacent
    strings, comments, or tests unless the checker is intentionally updated with
    a documented reason. When a ticket names a browser or e2e smoke as proof for
@@ -435,6 +438,14 @@ owned by an earlier archived ticket, fix it before closeout. Record the fix in
 the current ticket or reference `Outcome`. Amend the earlier archived ticket
 only when its recorded behavior, accepted surface, or verification claim became
 inaccurate.
+
+If a capstone verifier fails because a documentation or evidence receipt is
+missing a row, alias, status, link, or other proof surface, treat it as a
+capstone evidence repair rather than weakening the verifier. Fix the smallest
+owning receipt, rerun the failed verifier, decide whether the current capstone
+`Outcome` is sufficient or an earlier archived ticket needs an
+`Outcome amended: YYYY-MM-DD` note, then rerun doc-link or stale-path checks
+and the closeout helper before committing.
 
 For large capstones, record a compact evidence ledger in the reference artifact
 and/or final ticket before archival. Use headings that match the actual proof

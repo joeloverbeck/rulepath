@@ -152,6 +152,7 @@ use games::poker::*;
 use games::race::*;
 use games::river::*;
 use games::secret::*;
+use games::starbridge_crossing::*;
 use games::three::*;
 use games::token::*;
 use games::vow::*;
@@ -292,6 +293,13 @@ pub(crate) enum MatchRecord {
         effects: EffectLog<blackglass_pact::BlackglassPactEffect>,
         commands: Vec<AppliedCommand>,
     },
+    StarbridgeCrossing {
+        game_id: String,
+        seed: u64,
+        state: starbridge_crossing::StarbridgeState,
+        effects: EffectLog<starbridge_crossing::StarbridgeEffect>,
+        commands: Vec<AppliedCommand>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -330,6 +338,7 @@ pub(crate) enum RegisteredGame {
     BriarCircuit,
     VowTide,
     BlackglassPact,
+    StarbridgeCrossing,
 }
 
 pub fn placeholder_version() -> &'static str {
@@ -370,6 +379,8 @@ fn default_seat_count_for_game(game_id: &str) -> usize {
         4
     } else if game_id == GAME_BLACKGLASS_PACT {
         blackglass_pact::STANDARD_SEAT_COUNT as usize
+    } else if game_id == GAME_STARBRIDGE_CROSSING {
+        usize::from(starbridge_crossing::STANDARD_DEFAULT_SEATS)
     } else {
         DEFAULT_SEAT_COUNT
     }
@@ -843,6 +854,28 @@ pub fn new_match_for_variant_with_seat_count(
                 escape_json(VARIANT_BLACKGLASS_PACT_STANDARD)
             ))
         }
+        RegisteredGame::StarbridgeCrossing => {
+            let state = create_starbridge_match(seed, seat_count)?;
+            let match_id = next_match_id(GAME_STARBRIDGE_CROSSING);
+            MATCHES.with(|matches| {
+                matches.borrow_mut().insert(
+                    match_id.clone(),
+                    MatchRecord::StarbridgeCrossing {
+                        game_id: GAME_STARBRIDGE_CROSSING.to_owned(),
+                        seed,
+                        state,
+                        effects: EffectLog::new(),
+                        commands: Vec::new(),
+                    },
+                );
+            });
+            Ok(format!(
+                "{{\"match_id\":\"{}\",\"game_id\":\"{}\",\"variant_id\":\"{}\"}}",
+                escape_json(&match_id),
+                escape_json(GAME_STARBRIDGE_CROSSING),
+                escape_json(VARIANT_STARBRIDGE_CROSSING_STANDARD)
+            ))
+        }
     }
 }
 
@@ -1000,6 +1033,14 @@ pub fn get_view(match_id: &str, viewer_seat: Option<&str>) -> Result<String, Str
             );
             Ok(blackglass_view_json(
                 &blackglass_pact::viewer_view(state, viewer),
+                state.freshness_token.0,
+            ))
+        }
+        MatchRecord::StarbridgeCrossing { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let viewer = starbridge_viewer_for_seat(state, viewer_seat)?;
+            Ok(starbridge_view_json(
+                &starbridge_crossing::project_view(state, &viewer),
                 state.freshness_token.0,
             ))
         }
@@ -1189,6 +1230,14 @@ pub fn get_action_tree_for_viewer(
                 return Ok(empty_action_tree_json(state.freshness_token));
             }
             blackglass_action_tree_json(state, seat)
+        }
+        MatchRecord::StarbridgeCrossing { game_id, state, .. } => {
+            resolve_game(game_id)?;
+            let seat = parse_starbridge_seat(actor_seat)?;
+            if !starbridge_viewer_authorizes_actor(viewer_seat, seat)? {
+                return Ok(empty_action_tree_json(state.freshness_token));
+            }
+            starbridge_action_tree_json(state, seat)
         }
     })
 }
@@ -1819,6 +1868,36 @@ pub fn apply_action(
                         state,
                         blackglass_pact::BlackglassViewer::Seat(seat)
                     ),
+                    state.freshness_token.0,
+                )
+            ))
+        }
+        MatchRecord::StarbridgeCrossing {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_starbridge_seat(actor_seat)?;
+            let command = parse_action_path(action_path);
+            let effects = starbridge_apply_command(state, seat, command.clone(), freshness_token)?;
+            let viewer = starbridge_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = starbridge_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_starbridge_seat(seat),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"effects\":{},\"view\":{}}}",
+                effect_json,
+                starbridge_view_json(
+                    &starbridge_crossing::project_view(state, &viewer),
                     state.freshness_token.0,
                 )
             ))
@@ -2568,6 +2647,43 @@ pub fn run_bot_turn(match_id: &str, actor_seat: &str, bot_seed: u64) -> Result<S
                 )
             ))
         }
+        MatchRecord::StarbridgeCrossing {
+            game_id,
+            state,
+            effects: effect_log,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let seat = parse_starbridge_seat(actor_seat)?;
+            let decision = starbridge_crossing::StarbridgeCrossingL0Bot::new(Seed(bot_seed))
+                .select_decision(state)
+                .map_err(diagnostic_json)?;
+            let command = decision.action_path.clone();
+            let freshness_token = state.freshness_token.0;
+            let effects = starbridge_apply_command(state, seat, command.clone(), freshness_token)?;
+            let viewer = starbridge_viewer_for_seat(state, Some(actor_seat))?;
+            let effect_json = starbridge_effects_json(&effects);
+            for effect in effects {
+                effect_log.push(effect);
+            }
+            commands.push(AppliedCommand {
+                actor_seat: trace_starbridge_seat(seat),
+                action_path: command.segments,
+                freshness_token,
+            });
+            Ok(format!(
+                "{{\"ok\":true,\"policy_id\":\"{}\",\"policy_version\":{},\"rationale\":\"{}\",\"effects\":{},\"view\":{}}}",
+                escape_json(decision.policy_id),
+                0,
+                escape_json(&decision.explanation),
+                effect_json,
+                starbridge_view_json(
+                    &starbridge_crossing::project_view(state, &viewer),
+                    state.freshness_token.0,
+                )
+            ))
+        }
     })
 }
 
@@ -2992,6 +3108,28 @@ pub fn get_effects(
                 .join(",");
             Ok(format!("[{effects}]"))
         }
+        MatchRecord::StarbridgeCrossing {
+            game_id,
+            state,
+            effects,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            let viewer = starbridge_viewer_for_seat(state, viewer_seat)?;
+            let effects = effects
+                .since(EffectCursor(since_cursor), &viewer)
+                .into_iter()
+                .map(|logged| {
+                    format!(
+                        "{{\"cursor\":{},\"effect\":{}}}",
+                        logged.cursor.0,
+                        starbridge_effect_json(&logged.envelope)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            Ok(format!("[{effects}]"))
+        }
     })
 }
 
@@ -3317,6 +3455,21 @@ pub fn export_replay(match_id: &str) -> Result<String, String> {
                 commands,
             ))
         }
+        MatchRecord::StarbridgeCrossing {
+            game_id,
+            seed,
+            state,
+            commands,
+            ..
+        } => {
+            resolve_game(game_id)?;
+            Ok(starbridge_replay_document_json(
+                &format!("export-{match_id}"),
+                *seed,
+                state.seats.len(),
+                commands,
+            ))
+        }
     })
 }
 
@@ -3391,6 +3544,7 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
         && parsed.game_id != GAME_BRIAR_CIRCUIT
         && parsed.game_id != GAME_VOW_TIDE
         && parsed.game_id != GAME_BLACKGLASS_PACT
+        && parsed.game_id != GAME_STARBRIDGE_CROSSING
     {
         return Err(diagnostic_string(
             "unsupported_replay_game",
@@ -3617,6 +3771,21 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
                         &state,
                         blackglass_pact::BlackglassViewer::Observer,
                     ),
+                    state.freshness_token.0,
+                ),
+                effects.len(),
+            )
+        }
+        RegisteredGame::StarbridgeCrossing => {
+            let (state, effects) = starbridge_replay_to_cursor(
+                parsed.seed,
+                usize::from(starbridge_crossing::STANDARD_DEFAULT_SEATS),
+                &parsed.commands,
+                command_count,
+            )?;
+            (
+                starbridge_view_json(
+                    &starbridge_crossing::project_view(&state, &Viewer { seat_id: None }),
                     state.freshness_token.0,
                 ),
                 effects.len(),
@@ -3887,6 +4056,23 @@ pub fn replay_step(replay_id: &str, cursor: usize) -> Result<String, String> {
                     &effects,
                 ))
             }
+            RegisteredGame::StarbridgeCrossing => {
+                let bounded_cursor = cursor.min(record.commands.len());
+                let seat_count = starbridge_replay_seat_count(record);
+                let (state, effects) = starbridge_replay_to_cursor(
+                    record.seed,
+                    seat_count,
+                    &record.commands,
+                    bounded_cursor,
+                )?;
+                Ok(starbridge_replay_step_json(
+                    replay_id,
+                    bounded_cursor,
+                    record.commands.len(),
+                    &state,
+                    &effects,
+                ))
+            }
         }
     })
 }
@@ -3943,6 +4129,7 @@ fn resolve_game(game_id: &str) -> Result<RegisteredGame, String> {
         GAME_BRIAR_CIRCUIT => Ok(RegisteredGame::BriarCircuit),
         GAME_VOW_TIDE => Ok(RegisteredGame::VowTide),
         GAME_BLACKGLASS_PACT => Ok(RegisteredGame::BlackglassPact),
+        GAME_STARBRIDGE_CROSSING => Ok(RegisteredGame::StarbridgeCrossing),
         _ => Err(format!(
             "{{\"code\":\"unknown_game\",\"message\":\"unsupported game id: {}\"}}",
             escape_json(game_id)
@@ -3971,6 +4158,7 @@ fn trace_rules_version(game: RegisteredGame) -> &'static str {
         RegisteredGame::BriarCircuit => BRIAR_CIRCUIT_TRACE_RULES_VERSION,
         RegisteredGame::VowTide => VOW_TIDE_TRACE_RULES_VERSION,
         RegisteredGame::BlackglassPact => BLACKGLASS_PACT_TRACE_RULES_VERSION,
+        RegisteredGame::StarbridgeCrossing => STARBRIDGE_CROSSING_TRACE_RULES_VERSION,
     }
 }
 

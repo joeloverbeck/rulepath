@@ -28,6 +28,7 @@ import { ReplayViewer } from "./components/ReplayViewer";
 import { RiverLedgerBoard } from "./components/RiverLedgerBoard";
 import { SecretDraftBoard } from "./components/SecretDraftBoard";
 import { SeatFrame, type SeatFrameViewerMode } from "./components/SeatFrame";
+import { StarbridgeCrossingBoard } from "./components/StarbridgeCrossingBoard";
 import { ThreeMarksBoard } from "./components/ThreeMarksBoard";
 import { TokenBazaarBoard } from "./components/TokenBazaarBoard";
 import { TurnReportPanel } from "./components/TurnReportPanel";
@@ -62,6 +63,7 @@ import {
   type SeatId,
   type SeatDisplayLabel,
   type SecretDraftPublicView,
+  type StarbridgeCrossingPublicView,
   type ThreeMarksPublicView,
   type TokenBazaarPublicView,
   type VowTidePublicView,
@@ -760,6 +762,19 @@ function App() {
             seatRoleLabels={seatRoleLabelsForMode(state.setup.playMode)}
             onPathSubmit={playPath}
           />
+        ) : isStarbridgeCrossingView(view) ? (
+          <StarbridgeCrossingBoard
+            view={view}
+            actionTree={actionTree}
+            pendingPath={state.pendingActionPath}
+            latestEffect={latestEffect}
+            effects={state.effects}
+            reducedMotion={state.reducedMotion}
+            pending={state.pendingOperation !== null}
+            onPendingPathChange={(path) => dispatch({ type: "pendingActionPathChanged", path })}
+            onPendingPathClear={() => dispatch({ type: "pendingActionPathCleared" })}
+            onPathSubmit={playPath}
+          />
         ) : isThreeMarksView(view) ? (
           <ThreeMarksBoard
             view={view}
@@ -789,7 +804,8 @@ function App() {
         isMaskedClaimsView(view) ||
         isFloodWatchView(view) ||
         isFrontierControlView(view) ||
-        isEventFrontierView(view) ? null : (
+        isEventFrontierView(view) ||
+        isStarbridgeCrossingView(view) ? null : (
           <ActionControls
             actionTree={actionTree}
             view={view}
@@ -1042,6 +1058,10 @@ function isEventFrontierView(view: PublicView | null): view is EventFrontierPubl
   return Boolean(view && "game_id" in view && view.game_id === "event_frontier");
 }
 
+function isStarbridgeCrossingView(view: PublicView | null): view is StarbridgeCrossingPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "starbridge_crossing");
+}
+
 function isTerminalView(view: PublicView): boolean {
   if ("winner" in view) {
     return view.winner !== null;
@@ -1084,6 +1104,9 @@ function isTerminalView(view: PublicView): boolean {
   }
   if (isEventFrontierView(view)) {
     return view.terminal.kind !== "non_terminal";
+  }
+  if (isStarbridgeCrossingView(view)) {
+    return view.terminal !== null;
   }
   return view.terminal_kind !== "non_terminal";
 }
@@ -1262,6 +1285,15 @@ function textView(view: PublicView, fallbackGameId: string): AppTextState["view"
         view.terminal.kind !== "non_terminal"
           ? `${view.terminal.winner} won by ${view.terminal.victory_type}`
           : `epoch ${view.epoch}, card ${view.current_card?.label ?? "none"}, scores ${view.scores.charter}-${view.scores.freeholders}`,
+    };
+  }
+  if (view.game_id === "starbridge_crossing") {
+    return {
+      game_id: view.game_id,
+      variant_id: view.variant_id,
+      active_seat: view.active_seat ?? "seat_0",
+      freshness_token: view.freshness_token,
+      status: view.terminal ?? `ply ${view.ply_count}, commands ${view.command_count}, ranks ${view.finish_ranks.length}`,
     };
   }
   return {

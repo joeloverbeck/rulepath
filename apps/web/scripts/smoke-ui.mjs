@@ -182,7 +182,10 @@ assert(
   "Rust catalog exposes Race player labels",
 );
 const twoSeatGames = catalog.filter(
-  (game) => !["river_ledger", "briar_circuit", "vow_tide", "blackglass_pact", "meldfall_ledger"].includes(game.game_id),
+  (game) =>
+    !["river_ledger", "briar_circuit", "vow_tide", "blackglass_pact", "meldfall_ledger", "starbridge_crossing"].includes(
+      game.game_id,
+    ),
 );
 assert(
   twoSeatGames.every(
@@ -208,6 +211,18 @@ assert(
     Array.isArray(blackglassCatalog.seat_labels) &&
     blackglassCatalog.seat_labels.length === 4,
   "Rust catalog exposes Blackglass Pact fixed-four setup metadata",
+);
+const starbridgeCatalog = catalog.find((game) => game.game_id === "starbridge_crossing");
+assert(starbridgeCatalog, "Rust catalog includes starbridge_crossing");
+assert(
+    starbridgeCatalog.hidden_information === false &&
+    starbridgeCatalog.min_seats === 2 &&
+    starbridgeCatalog.max_seats === 6 &&
+    starbridgeCatalog.default_seats === 2 &&
+    JSON.stringify(starbridgeCatalog.supported_seats) === JSON.stringify([2, 3, 4, 6]) &&
+    starbridgeCatalog.viewer_modes.includes("seat_5") &&
+    starbridgeCatalog.seat_labels.length === 6,
+  "Rust catalog exposes Starbridge Crossing 2/3/4/6 setup metadata",
 );
 const tokenBazaarCatalog = catalog.find((game) => game.game_id === "token_bazaar");
 assert(tokenBazaarCatalog, "Rust catalog includes token_bazaar");

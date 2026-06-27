@@ -1,0 +1,7 @@
+game_id = "starbridge_crossing"
+topology_generator = "cube_star_order_4_v1"
+space_count = 121
+coordinate_system = "cube_qrs_sum_zero"
+point_order = "north,north_east,south_east,south,south_west,north_west"
+rules_version_label = "starbridge-crossing-rules-v1"
+data_version_label = "starbridge-crossing-data-v1"

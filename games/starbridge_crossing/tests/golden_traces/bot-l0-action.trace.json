@@ -1,0 +1,1 @@
+{"trace_id":"bot-l0-action","schema_version":1,"game_id":"starbridge_crossing","policy_id":"starbridge-crossing-l0-random-legal-v1","coverage":["bot-l0","random-legal","public-action-tree"],"public_no_leak":true}

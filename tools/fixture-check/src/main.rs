@@ -499,6 +499,15 @@ fn resolve_game(game: &str) -> Result<RegisteredGame, String> {
             variants_path: "games/meldfall_ledger/data/variants.toml",
             variant_id: "classic_500_single_deck_v1",
         }),
+        "starbridge_crossing" => Ok(RegisteredGame {
+            game_id: "starbridge_crossing",
+            rules_version: "starbridge-crossing-rules-v1",
+            trace_dir: "games/starbridge_crossing/tests/golden_traces",
+            fixture_dir: "games/starbridge_crossing/data/fixtures",
+            manifest_path: "games/starbridge_crossing/data/manifest.toml",
+            variants_path: "games/starbridge_crossing/data/variants.toml",
+            variant_id: "starbridge_crossing_classic_star_v1",
+        }),
         _ => Err(format!("unsupported game `{game}`")),
     }
 }
@@ -552,9 +561,9 @@ fn print_help() {
     println!("fixture-check 0.1.0");
     println!("usage:");
     println!(
-        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger>"
+        "  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger|starbridge_crossing>"
     );
-    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger> --trace <path>");
+    println!("  fixture-check --game <race_to_n|three_marks|column_four|directional_flip|draughts_lite|high_card_duel|masked_claims|flood_watch|frontier_control|event_frontier|token_bazaar|secret_draft|poker_lite|plain_tricks|river_ledger|briar_circuit|vow_tide|blackglass_pact|meldfall_ledger|starbridge_crossing> --trace <path>");
 }
 
 fn trace_paths(game: RegisteredGame) -> Result<Vec<PathBuf>, String> {
@@ -994,6 +1003,35 @@ fn validate_static_data(game: RegisteredGame) -> Result<(), String> {
                 variants.selected.id,
             )
         }
+        "starbridge_crossing" => {
+            let manifest = starbridge_crossing::load_manifest().map_err(|error| {
+                format!("{}: manifest parse failed: {error}", game.manifest_path)
+            })?;
+            let variants = starbridge_crossing::load_variants().map_err(|error| {
+                format!("{}: variants parse failed: {error}", game.variants_path)
+            })?;
+            if manifest.rules_version_label != game.rules_version {
+                return Err(format!(
+                    "{}: rules_version_label must be {}",
+                    game.manifest_path, game.rules_version
+                ));
+            }
+            if manifest.data_version_label != "starbridge-crossing-data-v1" {
+                return Err(format!(
+                    "{}: data_version_label must be starbridge-crossing-data-v1",
+                    game.manifest_path
+                ));
+            }
+            if variants.selected.rules_version_label != game.rules_version
+                || variants.selected.data_version_label != "starbridge-crossing-data-v1"
+            {
+                return Err(format!(
+                    "{}: selected variant version labels must match Starbridge v1",
+                    game.variants_path
+                ));
+            }
+            (manifest.game_id, 1, 1, 1, variants.selected.id)
+        }
         _ => unreachable!("resolved games only"),
     };
 
@@ -1097,6 +1135,9 @@ fn validate_trace(
     }
     if game.game_id == "meldfall_ledger" {
         return validate_meldfall_ledger_fixture(game, path, input, seen_ids);
+    }
+    if game.game_id == "starbridge_crossing" {
+        return validate_starbridge_crossing_fixture(game, path, input, seen_ids);
     }
     if input.contains("\"export_class\":") {
         return validate_public_export_fixture(game, path, input);
@@ -1265,6 +1306,62 @@ fn validate_trace(
         ));
     }
 
+    Ok(())
+}
+
+fn validate_starbridge_crossing_fixture(
+    game: RegisteredGame,
+    path: &Path,
+    input: &str,
+    seen_ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    let keys = all_json_keys(input).map_err(|error| format!("{}: {error}", path.display()))?;
+    for key in keys {
+        if BEHAVIOR_KEYS.contains(&key.as_str()) {
+            return Err(format!(
+                "{}: behavior-looking key `{key}` is not allowed",
+                path.display()
+            ));
+        }
+    }
+    let trace_id = required_string(path, input, "trace_id")?;
+    if trace_id.trim().is_empty() {
+        return Err(format!("{}: trace_id must be non-empty", path.display()));
+    }
+    if !seen_ids.insert(trace_id.clone()) {
+        return Err(format!(
+            "{}: duplicate trace_id `{trace_id}`",
+            path.display()
+        ));
+    }
+    if required_number(path, input, "schema_version")? != 1 {
+        return Err(format!("{}: schema_version must be 1", path.display()));
+    }
+    if required_string(path, input, "game_id")? != game.game_id {
+        return Err(format!(
+            "{}: game_id must be {}",
+            path.display(),
+            game.game_id
+        ));
+    }
+    if input.contains("\"rules_version\"")
+        && required_string(path, input, "rules_version")? != game.rules_version
+    {
+        return Err(format!(
+            "{}: rules_version must be {}",
+            path.display(),
+            game.rules_version
+        ));
+    }
+    if !input.contains("\"coverage\"") {
+        return Err(format!("{}: missing coverage receipt", path.display()));
+    }
+    if input.contains("\"public_no_leak\"") && !input.contains("\"public_no_leak\":true") {
+        return Err(format!(
+            "{}: public_no_leak receipts must be true",
+            path.display()
+        ));
+    }
     Ok(())
 }
 

@@ -30,6 +30,7 @@ const ICONS: Record<string, IconComponent> = {
   "flood_watch": FloodWatchIcon,
   "frontier_control": FrontierControlIcon,
   "event_frontier": EventFrontierIcon,
+  "starbridge_crossing": StarbridgeCrossingIcon,
 };
 
 export function GameCatalogIcon({ gameId, title, decorative = true, className }: GameCatalogIconProps) {
@@ -252,6 +253,16 @@ function EventFrontierIcon() {
       <path d="M6 19h12" stroke="var(--game-card-art-line)" strokeWidth="1.75" strokeLinecap="round" opacity="0.75" />
       <path d="M15 5h4M17 3v4" stroke="var(--game-card-art-line)" strokeWidth="1.7" strokeLinecap="round" />
       <AccentCircle cx={10} cy={16} r={1.55} />
+    </>
+  );
+}
+
+function StarbridgeCrossingIcon() {
+  return (
+    <>
+      <path d="M12 3l2.4 5.2 5.6.7-4.1 3.7 1.1 5.5-5-2.8-5 2.8 1.1-5.5L4 8.9l5.6-.7z" stroke="currentColor" strokeWidth="1.55" strokeLinejoin="round" />
+      <path d="M7.5 12h9M12 7.5v9" stroke="var(--game-card-art-line)" strokeWidth="1.45" strokeLinecap="round" opacity="0.78" />
+      <AccentCircle cx={12} cy={12} r={1.55} />
     </>
   );
 }

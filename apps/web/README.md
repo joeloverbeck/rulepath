@@ -9,7 +9,8 @@ Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 `flood_watch` / Flood Watch, `frontier_control` / Frontier Control,
 `event_frontier` / Event Frontier, `river_ledger` / River Ledger,
 `briar_circuit` / Briar Circuit, `vow_tide` / Vow Tide, and
-`blackglass_pact` / Blackglass Pact, and `meldfall_ledger` / Meldfall Ledger.
+`blackglass_pact` / Blackglass Pact, `meldfall_ledger` / Meldfall Ledger, and
+`starbridge_crossing` / Starbridge Crossing.
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
@@ -63,7 +64,8 @@ The shell includes:
 - first-class board renderers for Three Marks, Column Four, Directional Flip,
   Draughts Lite, High Card Duel, Token Bazaar, Veiled Draft, Crest Ledger, and
   Plain Tricks, Masked Claims, Flood Watch, Frontier Control, Event Frontier,
-  River Ledger, Briar Circuit, Vow Tide, Blackglass Pact, and Meldfall Ledger;
+  River Ledger, Briar Circuit, Vow Tide, Blackglass Pact, Meldfall Ledger, and
+  Starbridge Crossing;
 - shared `DeckFlowPanel` deck/pile presentation for Rust-projected card flows;
 - shared `SeatFrame` for catalog-projected seat labels, active/pending seat
   rail, observer mode, and viewer selection;
@@ -161,6 +163,9 @@ presentations for the current catalog surface.
   Meldfall Ledger is also chained for variable-seat setup, stock/discard,
   meld/lay-off/discard controls, replay import/export, and public-observer
   no-leak coverage.
+  Starbridge Crossing is chained for the 121-space board, Rust legal previews,
+  jump-chain path building, replay import/export, reduced motion, and no-leak
+  coverage.
   The chain also runs `e2e/animation.smoke.mjs` for animate-and-settle, skip,
   replay-step interruption, and reduced-motion animation behavior.
   The accessibility/no-leak layer includes a runtime raw-identifier DOM guard

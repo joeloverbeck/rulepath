@@ -122,6 +122,7 @@ pub fn list_games() -> Result<String, String> {
         RegisteredGame::BriarCircuit,
         RegisteredGame::VowTide,
         RegisteredGame::BlackglassPact,
+        RegisteredGame::StarbridgeCrossing,
     ]
         .iter()
         .map(|game| {
@@ -298,11 +299,21 @@ pub fn list_games() -> Result<String, String> {
                 catalog_blackglass_pact_seat_labels_json(),
                 catalog_viewer_modes_json(4)
             ),
+            RegisteredGame::StarbridgeCrossing => format!(
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":false,\"tags\":[\"perfect_information\",\"large_board\",\"race\",\"public_replay_export\"],\"min_seats\":2,\"max_seats\":6,\"default_seats\":2,\"supported_seats\":[2,3,4,6],\"seat_labels\":{},\"viewer_modes\":{},\"docs\":[\"games/starbridge_crossing/docs/RULES.md\",\"games/starbridge_crossing/docs/SOURCES.md\",\"games/starbridge_crossing/docs/HOW-TO-PLAY.md\"]}}",
+                escape_json(GAME_STARBRIDGE_CROSSING),
+                escape_json(GAME_STARBRIDGE_CROSSING_DISPLAY_NAME),
+                RULES_VERSION,
+                SCHEMA_VERSION,
+                variants_json(&[(VARIANT_STARBRIDGE_CROSSING_STANDARD, GAME_STARBRIDGE_CROSSING_DISPLAY_NAME, Some("Classic six-point star race with public pegs and hop chains"))]),
+                catalog_starbridge_seat_labels_json(),
+                catalog_viewer_modes_json(6)
+            ),
         };
             if matches!(
                 game,
                 RegisteredGame::RiverLedger | RegisteredGame::BriarCircuit | RegisteredGame::VowTide | RegisteredGame::BlackglassPact
-                    | RegisteredGame::MeldfallLedger
+                    | RegisteredGame::MeldfallLedger | RegisteredGame::StarbridgeCrossing
             ) {
                 return catalog_json;
             }
@@ -337,6 +348,10 @@ fn catalog_vow_tide_seat_labels_json() -> String {
             .collect::<Vec<_>>()
             .join(",")
     )
+}
+
+fn catalog_starbridge_seat_labels_json() -> String {
+    "[{\"seat\":\"seat_0\",\"label\":\"North\"},{\"seat\":\"seat_1\",\"label\":\"North East\"},{\"seat\":\"seat_2\",\"label\":\"South East\"},{\"seat\":\"seat_3\",\"label\":\"South\"},{\"seat\":\"seat_4\",\"label\":\"South West\"},{\"seat\":\"seat_5\",\"label\":\"North West\"}]".to_owned()
 }
 
 pub fn feature_report() -> Result<String, String> {

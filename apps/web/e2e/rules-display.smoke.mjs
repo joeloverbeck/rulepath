@@ -29,6 +29,7 @@ const expectedGames = [
   "Vow Tide",
   "Blackglass Pact",
   "Meldfall Ledger",
+  "Starbridge Crossing",
 ];
 const staticForbiddenTerms = [
   "hidden_state",

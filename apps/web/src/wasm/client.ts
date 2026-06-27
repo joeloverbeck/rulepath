@@ -172,6 +172,7 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
+export type StarbridgeCrossingOutcomeRationale = OutcomeRationalePayload;
 export type PlainTricksOutcomeRationale = {
   result_kind: string;
   decisive_cause: string;
@@ -1568,6 +1569,58 @@ export type EventFrontierPublicView = {
   ui: EventFrontierUiMetadata;
 };
 
+export type StarbridgeCrossingSpaceView = {
+  space: string;
+  coord: { q: number; r: number; s: number };
+  zone: string;
+  occupant: {
+    peg: string;
+    owner_seat: RiverLedgerSeatId;
+    owner_seat_index: number;
+  } | null;
+  ui: {
+    coordinate_label: string;
+    zone_label: string;
+    anchor: { x: number; y: number };
+  };
+};
+
+export type StarbridgeCrossingSeatView = {
+  seat_id: RiverLedgerSeatId;
+  seat_index: number;
+  home: string;
+  target: string;
+  finish_rank: number | null;
+};
+
+export type StarbridgeCrossingFinishRankView = {
+  seat: RiverLedgerSeatId;
+  seat_index: number;
+  rank: number;
+};
+
+export type StarbridgeCrossingPublicView = {
+  game_id: "starbridge_crossing";
+  display_name: string;
+  variant_id: string;
+  rules_version_label: string;
+  data_version_label: string;
+  freshness_token: number;
+  active_seat: RiverLedgerSeatId | null;
+  terminal: string | null;
+  ply_count: number;
+  command_count: number;
+  spaces: StarbridgeCrossingSpaceView[];
+  seats: StarbridgeCrossingSeatView[];
+  finish_ranks: StarbridgeCrossingFinishRankView[];
+  terminal_rationale?: StarbridgeCrossingOutcomeRationale | null;
+  audit: {
+    redaction_class: string;
+    private_fields: string[];
+    rationale: string;
+  };
+};
+
 export type PublicView =
   | RacePublicView
   | ThreeMarksPublicView
@@ -1587,7 +1640,8 @@ export type PublicView =
   | MaskedClaimsPublicView
   | FloodWatchPublicView
   | FrontierControlPublicView
-  | EventFrontierPublicView;
+  | EventFrontierPublicView
+  | StarbridgeCrossingPublicView;
 
 export type ActionChoice = {
   segment: string;

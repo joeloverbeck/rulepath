@@ -95,6 +95,7 @@ dependencies = [
  "race_to_n",
  "river_ledger",
  "secret_draft",
+ "starbridge_crossing",
  "three_marks",
  "token_bazaar",
  "vow_tide",
@@ -277,9 +278,20 @@ dependencies = [
  "race_to_n",
  "river_ledger",
  "secret_draft",
+ "starbridge_crossing",
  "three_marks",
  "token_bazaar",
  "vow_tide",
+]
+
+[[package]]
+name = "starbridge_crossing"
+version = "0.1.0"
+dependencies = [
+ "ai-core",
+ "engine-core",
+ "game-stdlib",
+ "game-test-support",
 ]
 
 [[package]]
@@ -343,6 +355,7 @@ dependencies = [
  "race_to_n",
  "river_ledger",
  "secret_draft",
+ "starbridge_crossing",
  "three_marks",
  "token_bazaar",
  "vow_tide",
