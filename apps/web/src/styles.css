@@ -5570,6 +5570,89 @@ svg g[data-effect-kind] {
   background: var(--ml-panel-soft);
 }
 
+/* Persistent summary of the round that just settled. Bots auto-deal the next round,
+   so this keeps last round's public deltas and cumulative scores readable. */
+.meldfall-settlement {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--ml-warm);
+  border-radius: 12px;
+  background: var(--ml-warm-soft);
+}
+
+.meldfall-settlement-note {
+  margin: -2px 0 0;
+  font-size: 0.72rem;
+  color: var(--ml-muted);
+}
+
+.meldfall-settlement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.meldfall-settlement-seat {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 9px;
+  background: var(--ml-panel);
+}
+
+.meldfall-settlement-seat.leads {
+  border-color: var(--ml-accent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ml-accent) 18%, transparent);
+}
+
+.meldfall-settlement-seat header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.meldfall-settlement-seat header strong {
+  font-size: 0.85rem;
+}
+
+.meldfall-settlement-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ml-accent);
+}
+
+.meldfall-settlement-delta {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.meldfall-settlement-delta.gain {
+  color: var(--ml-accent);
+}
+
+.meldfall-settlement-delta.loss {
+  color: #c0392b;
+}
+
+.meldfall-settlement-total {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ml-ink);
+}
+
+.meldfall-settlement-total small {
+  color: var(--ml-muted);
+  font-weight: 600;
+}
+
 .meldfall-seat.active {
   border-color: var(--ml-accent);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ml-accent) 18%, transparent);
@@ -5577,6 +5660,24 @@ svg g[data-effect-kind] {
 
 .meldfall-seat.dealer:not(.active) {
   border-color: var(--ml-warm);
+}
+
+.meldfall-seat.near-goout {
+  border-color: #c0392b;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #c0392b 16%, transparent);
+}
+
+.meldfall-goout-flag {
+  margin: 8px 0 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #c0392b;
+  color: #fffaf0;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
 }
 
 .meldfall-seat dl,
@@ -5615,6 +5716,7 @@ svg g[data-effect-kind] {
 .meldfall-card,
 .meldfall-empty,
 .meldfall-hidden-hand {
+  position: relative;
   min-height: 104px;
   display: grid;
   place-items: center;
@@ -5626,6 +5728,27 @@ svg g[data-effect-kind] {
   color: var(--ml-ink);
   padding: 10px;
   text-align: center;
+}
+
+/* Point-value chip on each card (ace 15, court/ten 10, pips by rank). Presentation
+   only: it labels the card's constant face value so the player can weigh penalties,
+   pickups, and tabled gains without leaving the board (ML-SCORE-001). */
+.meldfall-value {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-end: 6px;
+  min-inline-size: 18px;
+  block-size: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--ml-ink);
+  color: #fffaf0;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .meldfall-stock:not(:disabled),
@@ -5697,6 +5820,71 @@ svg g[data-effect-kind] {
   font-size: 0.7rem;
   line-height: 1.15;
   overflow-wrap: anywhere;
+}
+
+.meldfall-zone-hint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ml-accent-soft);
+  color: var(--ml-ink);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.meldfall-action-card {
+  white-space: nowrap;
+}
+
+.meldfall-action-card.red {
+  color: #c0392b;
+}
+
+.meldfall-action-card.black {
+  color: var(--ml-ink);
+}
+
+.meldfall-commitment-note {
+  margin: 0 0 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--ml-warm);
+  border-radius: 8px;
+  background: var(--ml-warm-soft);
+  color: var(--ml-ink);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.meldfall-hand-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+  color: var(--ml-muted);
+}
+
+.meldfall-hand-sort span {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.meldfall-hand-sort button {
+  padding: 3px 9px;
+  border: 1px solid var(--ml-card-border);
+  border-radius: 999px;
+  background: var(--ml-panel);
+  color: var(--ml-ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.meldfall-hand-sort button.active {
+  border-color: var(--ml-accent);
+  background: var(--ml-accent-soft);
 }
 
 .meldfall-card.private {

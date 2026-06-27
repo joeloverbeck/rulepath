@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   ActionChoice,
   ActionTree,
@@ -30,7 +30,46 @@ type GroupedChoices = {
   turn: ActionChoice[];
 };
 
+// Summary of the most recently settled round, captured from the public `round_score`
+// effect. The shell only keeps the last 12 effects, and bots auto-deal the next round,
+// so the settlement feedback scrolls out of the status line before a human can read it.
+// Holding it in board state keeps last round's public deltas/cumulative scores visible
+// (ML-VIS-006 exposes these) until the next round settles. Presentation only.
+type RoundSettlement = {
+  cursor: number;
+  roundNumber: number;
+  deltas: number[];
+  cumulative: number[];
+};
+
+function effectKind(fields: Record<string, unknown>): string {
+  return String(fields.type ?? fields.kind ?? "");
+}
+
+function numberList(value: unknown): number[] {
+  return Array.isArray(value) ? value.map((entry) => Number(entry)).filter((entry) => Number.isFinite(entry)) : [];
+}
+
+function parseRoundSettlement(entry: EffectEntry): RoundSettlement | null {
+  const payload = entry.effect.payload;
+  if (effectKind(entry.effect.payload) !== "round_score") return null;
+  const deltas = numberList(payload.deltas);
+  const cumulative = numberList(payload.cumulative_scores);
+  if (deltas.length === 0 && cumulative.length === 0) return null;
+  const roundIndex = typeof payload.round_index === "number" ? payload.round_index : null;
+  return {
+    cursor: entry.cursor,
+    roundNumber: roundIndex === null ? 0 : roundIndex + 1,
+    deltas,
+    cumulative,
+  };
+}
+
 const SEATS: MeldfallLedgerSeatId[] = ["seat_0", "seat_1", "seat_2", "seat_3", "seat_4", "seat_5"];
+
+// Cumulative match target for the pinned classic_500_single_deck_v1 variant
+// (ML-MATCH-001). A fixed variant constant surfaced for presentation only.
+const MATCH_TARGET = 500;
 
 export function MeldfallLedgerBoard({
   view,
@@ -44,9 +83,47 @@ export function MeldfallLedgerBoard({
 }: MeldfallLedgerBoardProps) {
   const choices = useMemo(() => actionTree?.choices ?? [], [actionTree]);
   const groupedChoices = useMemo(() => groupChoices(choices), [choices]);
+  const [handSort, setHandSort] = useState<HandSort>("suit");
+  const sortedHand = useMemo(
+    () => [...view.own_hand].sort((a, b) => compareHandCards(a, b, handSort)),
+    [view.own_hand, handSort],
+  );
+
+  // Persist the latest settled-round summary across renders. A new match restarts the
+  // effect cursor low, so when the buffer's newest cursor drops below what we stored we
+  // discard the stale summary instead of carrying it into the next match.
+  const [settlement, setSettlement] = useState<RoundSettlement | null>(null);
+  useEffect(() => {
+    const newestCursor = effects.reduce((max, entry) => Math.max(max, entry.cursor), -1);
+    if (settlement && newestCursor >= 0 && newestCursor < settlement.cursor) {
+      setSettlement(null);
+      return;
+    }
+    for (let index = effects.length - 1; index >= 0; index -= 1) {
+      const parsed = parseRoundSettlement(effects[index]);
+      if (parsed) {
+        if (!settlement || parsed.cursor > settlement.cursor) setSettlement(parsed);
+        break;
+      }
+    }
+  }, [effects, settlement]);
   const seats = SEATS.slice(0, view.hand_counts.length);
   const canAct = Boolean(interactive && !pending && !view.terminal && choices.length > 0);
+  // A discard pickup is offered only when its chosen card has an immediate legal use
+  // this turn; Rust omits the choice otherwise (ML-TURN-004). When this seat is making
+  // a live draw decision we can explain why a disabled discard is not pickable.
+  const drawDecision = canAct && !view.terminal && view.phase === "draw";
   const roundSettled = !view.terminal && view.phase === "round_settled";
+  // After a discard pickup, Rust offers only table plays that use the committed card
+  // and withholds finish/discard until the commitment is satisfied (ML-TURN-004). In
+  // the table phase that is the only reason finish is absent, so we can tell the player
+  // why their turn is locked. Inferred from the Rust action set, not computed here.
+  const pickupCommitmentPending =
+    canAct &&
+    view.phase === "table" &&
+    groupedChoices.table.length > 0 &&
+    groupedChoices.turn.length === 0 &&
+    groupedChoices.discard.length === 0;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
     const payload = entry.effect.payload;
@@ -64,7 +141,7 @@ export function MeldfallLedgerBoard({
         templateKey: "meldfall_ledger.high_score_win",
         templateParams: {
           winner: winnerStanding(view.terminal.standings)?.seat ?? "winner",
-          target: 500,
+          target: MATCH_TARGET,
         },
         finalStanding: view.terminal.standings.map((standing) => ({
           id: standing.seat,
@@ -81,7 +158,7 @@ export function MeldfallLedgerBoard({
             id: "terminal-threshold",
             heading: "Target threshold",
             rows: [
-              { label: "Target", value: 500, ruleId: "ML-MATCH-001" },
+              { label: "Target", value: MATCH_TARGET, ruleId: "ML-MATCH-001" },
               { label: "Winner rule", value: "Unique highest eligible score", ruleId: "ML-MATCH-002" },
             ],
           },
@@ -122,7 +199,10 @@ export function MeldfallLedgerBoard({
         <Metric label="Dealer" value={seatLabel(view.dealer)} />
         <Metric label="Stock" value={`${view.stock_count} hidden`} />
         <Metric label="Discard" value={`${view.discard.length} public`} />
+        <Metric label="Target" value={`${MATCH_TARGET} to win`} />
       </div>
+
+      {settlement && !view.terminal ? <SettlementSummary settlement={settlement} seats={seats} /> : null}
 
       <div className="meldfall-table-shell" aria-label="Meldfall Ledger table">
         <section className="meldfall-seat-rail" aria-label="Seat score ledger">
@@ -157,6 +237,14 @@ export function MeldfallLedgerBoard({
                 ) : (
                   view.discard.map((card, index) => {
                     const choice = groupedChoices.draw.find((candidate) => candidate.segment === `draw-discard-${index}`) ?? null;
+                    const position = index === view.discard.length - 1 ? "Top discard" : `Index ${index}`;
+                    // Picking up index i takes that card plus every newer card above it.
+                    const takeCount = view.discard.length - index;
+                    const hint = choice
+                      ? `Take ${takeCount} · use now`
+                      : drawDecision
+                        ? `${position} · no immediate use`
+                        : position;
                     return (
                       <button
                         type="button"
@@ -168,13 +256,19 @@ export function MeldfallLedgerBoard({
                         onClick={() => choice && onPathSubmit?.([choice.segment])}
                       >
                         <CardFace card={card} />
-                        <small>{index === view.discard.length - 1 ? "Top discard" : `Index ${index}`}</small>
+                        <small>{hint}</small>
                       </button>
                     );
                   })
                 )}
               </div>
             </div>
+            {drawDecision && view.discard.length ? (
+              <p className="meldfall-zone-hint">
+                Taking a discard also takes every newer card above it, and the card you choose must be melded or
+                laid off this turn before you can finish.
+              </p>
+            ) : null}
           </section>
 
           <Tableau groups={view.tableau.groups} />
@@ -187,13 +281,36 @@ export function MeldfallLedgerBoard({
               <strong>{privateHeading(view)}</strong>
             </div>
             {view.private_view_status === "seat" ? (
-              <div className="meldfall-hand" aria-label="Your private hand">
-                {view.own_hand.map((card, index) => (
-                  <div className="meldfall-card private" key={`${card}-${index}`} data-testid="meldfall-private-card">
-                    <CardFace card={card} />
+              <>
+                {view.own_hand.length > 1 ? (
+                  <div className="meldfall-hand-sort" role="group" aria-label="Sort your hand">
+                    <span>Sort</span>
+                    <button
+                      type="button"
+                      className={handSort === "suit" ? "active" : ""}
+                      aria-pressed={handSort === "suit"}
+                      onClick={() => setHandSort("suit")}
+                    >
+                      By suit
+                    </button>
+                    <button
+                      type="button"
+                      className={handSort === "rank" ? "active" : ""}
+                      aria-pressed={handSort === "rank"}
+                      onClick={() => setHandSort("rank")}
+                    >
+                      By rank
+                    </button>
                   </div>
-                ))}
-              </div>
+                ) : null}
+                <div className="meldfall-hand" aria-label="Your private hand">
+                  {sortedHand.map((card, index) => (
+                    <div className="meldfall-card private" key={`${card}-${index}`} data-testid="meldfall-private-card">
+                      <CardFace card={card} />
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="meldfall-hidden-hand" data-testid="meldfall-private-hidden">
                 <span>Hidden</span>
@@ -207,6 +324,11 @@ export function MeldfallLedgerBoard({
               <span>Actions</span>
               <strong>{canAct ? "Available choices" : actionStatus(view, pending)}</strong>
             </div>
+            {pickupCommitmentPending ? (
+              <p className="meldfall-commitment-note" role="status">
+                Pickup commitment: meld or lay off the discard you took before you can finish this turn.
+              </p>
+            ) : null}
             <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Discard" choices={groupedChoices.discard} canAct={canAct} onPathSubmit={onPathSubmit} />
@@ -229,6 +351,47 @@ export function MeldfallLedgerBoard({
   );
 }
 
+function SettlementSummary({
+  settlement,
+  seats,
+}: {
+  settlement: RoundSettlement;
+  seats: MeldfallLedgerSeatId[];
+}) {
+  const topScore = settlement.cumulative.length ? Math.max(...settlement.cumulative) : null;
+  return (
+    <section className="meldfall-settlement" aria-label={`Round ${settlement.roundNumber} settlement`}>
+      <div className="meldfall-section-heading">
+        <span>Last round settled</span>
+        <strong>Round {settlement.roundNumber}</strong>
+      </div>
+      <p className="meldfall-settlement-note">Round delta = tabled card points minus the value of cards still held.</p>
+      <div className="meldfall-settlement-grid">
+        {seats.map((seat, index) => {
+          const delta = settlement.deltas[index] ?? 0;
+          const total = settlement.cumulative[index] ?? 0;
+          const leads = topScore !== null && total === topScore;
+          return (
+            <article className={`meldfall-settlement-seat${leads ? " leads" : ""}`} key={seat}>
+              <header>
+                <strong>{seatLabel(seat)}</strong>
+                {leads ? <span className="meldfall-settlement-tag">Leads</span> : null}
+              </header>
+              <p className={`meldfall-settlement-delta ${delta >= 0 ? "gain" : "loss"}`}>
+                {delta >= 0 ? `+${delta}` : `${delta}`}
+                <span className="sr-only"> round delta</span>
+              </p>
+              <p className="meldfall-settlement-total">
+                {total} <small>/ {MATCH_TARGET}</small>
+              </p>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="meldfall-metric">
@@ -239,8 +402,17 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; seat: MeldfallLedgerSeatId; index: number }) {
+  const handCount = view.hand_counts[index] ?? 0;
+  // Public go-out threat: a seat one or two cards from empty can end the round soon,
+  // settling everyone's in-hand penalties. Hand counts are public (ML-VIS-001), so
+  // flagging the threat surfaces a legal proximity signal the strategy guide calls out.
+  const nearGoOut = !view.terminal && handCount > 0 && handCount <= 2;
   return (
-    <article className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}`}>
+    <article
+      className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}${
+        nearGoOut ? " near-goout" : ""
+      }`}
+    >
       <header>
         <strong>{seatLabel(seat)}</strong>
         <span>{view.active_seat === seat ? "Turn" : view.dealer === seat ? "Dealer" : "Seat"}</span>
@@ -248,7 +420,7 @@ function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; sea
       <dl>
         <div>
           <dt>Hand</dt>
-          <dd>{view.hand_counts[index] ?? 0}</dd>
+          <dd>{handCount}</dd>
         </div>
         <div>
           <dt>Score</dt>
@@ -259,6 +431,7 @@ function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; sea
           <dd>{view.round_played_scores[index] ?? 0}</dd>
         </div>
       </dl>
+      {nearGoOut ? <p className="meldfall-goout-flag">Near go-out</p> : null}
     </article>
   );
 }
@@ -307,6 +480,34 @@ function TableCard({ card }: { card: MeldfallLedgerTableCardView }) {
   );
 }
 
+// Rust action labels carry terse card codes (e.g. "Meld new 2C 3C 4C", "Discard QH").
+// Render those tokens with the same coloured suit glyphs used everywhere else so the
+// action buttons read like cards. Visual only: the spoken accessibility_label stays
+// the Rust string, and clicks still submit choice.segment unchanged.
+const SUIT_LETTER: Record<string, { glyph: string; red: boolean }> = {
+  C: { glyph: "♣", red: false },
+  D: { glyph: "♦", red: true },
+  H: { glyph: "♥", red: true },
+  S: { glyph: "♠", red: false },
+};
+const CARD_CODE = /^(10|[2-9JQKA])([CDHS])$/;
+
+function renderActionLabel(label: string) {
+  return label.split(" ").map((token, index) => {
+    const prefix = index === 0 ? "" : " ";
+    const match = CARD_CODE.exec(token);
+    const suit = match ? SUIT_LETTER[match[2]] : undefined;
+    if (!match || !suit) {
+      return <span key={index}>{`${prefix}${token}`}</span>;
+    }
+    return (
+      <span key={index} className={`meldfall-action-card ${suit.red ? "red" : "black"}`}>
+        {`${prefix}${match[1]}${suit.glyph}`}
+      </span>
+    );
+  });
+}
+
 function ActionGroup({
   title,
   choices,
@@ -336,7 +537,7 @@ function ActionGroup({
             data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
             onClick={() => onPathSubmit?.([choice.segment])}
           >
-            <strong>{choice.label}</strong>
+            <strong>{renderActionLabel(choice.label)}</strong>
             {choice.presentation?.helper_text ? <small>{choice.presentation.helper_text}</small> : null}
           </button>
         ))}
@@ -368,20 +569,96 @@ const RANK_SHORT: Record<string, string> = {
   Ace: "A",
 };
 
+// Constant Meldfall Ledger card values under meldfall-ledger-rules-v1 (ML-SCORE-001):
+// ace = 15; king, queen, jack, ten = 10; ranks 2-9 = pip value. These values are
+// constant in every scoring context (a low ace in a run still scores 15), so this is
+// a presentation-only readout of the viewer's already-authorized card identities.
+// Rust remains the scoring authority and TypeScript decides no legality (ML-UI-001).
+const RANK_VALUE: Record<string, number> = {
+  Two: 2,
+  Three: 3,
+  Four: 4,
+  Five: 5,
+  Six: 6,
+  Seven: 7,
+  Eight: 8,
+  Nine: 9,
+  Ten: 10,
+  Jack: 10,
+  Queen: 10,
+  King: 10,
+  Ace: 15,
+};
+
+function cardValue(card: string): number {
+  return RANK_VALUE[parseCard(card).rank] ?? 0;
+}
+
+// Display ordering for the viewer's own hand. Purely visual — actions are separate
+// buttons keyed by Rust segment, so reordering the hand rail never changes which plays
+// are legal. "By suit" groups runs together; "by rank" groups sets together, so the
+// player can organize for whichever meld they are hunting instead of reading the raw
+// deal/draw order. Ace sorts high.
+type HandSort = "suit" | "rank";
+
+const SUIT_ORDER: Record<string, number> = { Clubs: 0, Diamonds: 1, Hearts: 2, Spades: 3 };
+const RANK_ORDER: Record<string, number> = {
+  Two: 0,
+  Three: 1,
+  Four: 2,
+  Five: 3,
+  Six: 4,
+  Seven: 5,
+  Eight: 6,
+  Nine: 7,
+  Ten: 8,
+  Jack: 9,
+  Queen: 10,
+  King: 11,
+  Ace: 12,
+};
+
+function suitRank(card: { suit: string }): number {
+  return SUIT_ORDER[card.suit] ?? 9;
+}
+
+function rankOrder(card: { rank: string }): number {
+  return RANK_ORDER[card.rank] ?? 99;
+}
+
+function compareHandCards(a: string, b: string, sort: HandSort): number {
+  const left = parseCard(a);
+  const right = parseCard(b);
+  if (sort === "rank") {
+    return rankOrder(left) - rankOrder(right) || suitRank(left) - suitRank(right);
+  }
+  return suitRank(left) - suitRank(right) || rankOrder(left) - rankOrder(right);
+}
+
 function CardFace({ card }: { card: string }) {
   const parsed = parseCard(card);
   const glyph = SUIT_GLYPH[parsed.suit];
   const isRed = parsed.suit === "Hearts" || parsed.suit === "Diamonds";
   const rankShort = RANK_SHORT[parsed.rank] ?? parsed.rank;
+  const value = RANK_VALUE[parsed.rank];
   return (
     <span className={`meldfall-face ${isRed ? "red" : "black"}`}>
-      <span className="sr-only">{`${parsed.rank} of ${parsed.suit}`}</span>
+      <span className="sr-only">
+        {value === undefined
+          ? `${parsed.rank} of ${parsed.suit}`
+          : `${parsed.rank} of ${parsed.suit}, worth ${value} ${value === 1 ? "point" : "points"}`}
+      </span>
       <strong className="meldfall-rank" aria-hidden="true">
         {rankShort}
       </strong>
       <span className="meldfall-suit" aria-hidden="true">
         {glyph ?? parsed.suit}
       </span>
+      {value === undefined ? null : (
+        <span className="meldfall-value" aria-hidden="true">
+          {value}
+        </span>
+      )}
     </span>
   );
 }
@@ -424,7 +701,13 @@ function actionStatus(view: MeldfallLedgerPublicView, pending: boolean): string 
 }
 
 function privateHeading(view: MeldfallLedgerPublicView): string {
-  if (view.private_view_status === "seat") return `${view.own_hand.length} cards`;
+  if (view.private_view_status === "seat") {
+    // In-hand penalty if this round settled now: each held card subtracts its value
+    // (ML-SCORE-003). Presentation aggregation of the viewer's own authorized cards;
+    // opponent penalties stay hidden because only this seat's hand is visible.
+    const penalty = view.own_hand.reduce((sum, card) => sum + cardValue(card), 0);
+    return `${view.own_hand.length} cards · ${penalty} penalty if held`;
+  }
   return `${view.hand_counts.join(" / ")} public counts`;
 }
 
