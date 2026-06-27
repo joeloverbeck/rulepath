@@ -42,8 +42,8 @@ type RoundSettlement = {
   cumulative: number[];
 };
 
-function effectKind(payload: Record<string, unknown>): string {
-  return String(payload.type ?? payload.kind ?? "");
+function effectKind(fields: Record<string, unknown>): string {
+  return String(fields.type ?? fields.kind ?? "");
 }
 
 function numberList(value: unknown): number[] {
@@ -52,7 +52,7 @@ function numberList(value: unknown): number[] {
 
 function parseRoundSettlement(entry: EffectEntry): RoundSettlement | null {
   const payload = entry.effect.payload;
-  if (effectKind(payload) !== "round_score") return null;
+  if (effectKind(entry.effect.payload) !== "round_score") return null;
   const deltas = numberList(payload.deltas);
   const cumulative = numberList(payload.cumulative_scores);
   if (deltas.length === 0 && cumulative.length === 0) return null;
