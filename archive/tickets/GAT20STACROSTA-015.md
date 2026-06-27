@@ -1,6 +1,6 @@
 # GAT20STACROSTA-015: Large-board web renderer, previews, animation, and accessibility
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes (presentation-only) — `apps/web` board renderer + catalog/state + smoke harness modifications; no Rust/engine surface
@@ -84,3 +84,20 @@ Add Starbridge to `smoke-ui.mjs` custom-renderer set; add effect handling + disp
 1. `npm --prefix apps/web run smoke:ui`
 2. `npm --prefix apps/web run smoke:effects && npm --prefix apps/web run build`
 3. The build-step smoke harnesses are the correct boundary for renderer behavior; the full e2e lands in 017.
+
+## Outcome
+
+Added the Starbridge Crossing custom web renderer in `apps/web/src/components/StarbridgeCrossingBoard.tsx`. The renderer consumes the Rust/WASM public view, action tree metadata, and semantic effects: legal peg, step, jump, jumped-over, continue, and stop affordances are presented from Rust-supplied paths only, with no TypeScript adjacency or legality decisions.
+
+Wired Starbridge into the browser shell, replay viewer, public-view TypeScript types, effect feedback, catalog icon, and stable SVG/CSS board styling. The renderer includes keyboard path construction, explicit focus states, ARIA labels for all 121 spaces, non-color seat symbols, jump/step previews, and effect-driven recent-origin/landing/over highlighting with reduced-motion handling.
+
+Updated the UI and effect smoke harnesses for the new custom renderer and Starbridge effect coverage. The smoke coverage selects an explicit Rust-supplied Starbridge `step` path instead of relying on generic first-leaf action order.
+
+Verification:
+
+1. `npm --prefix apps/web run smoke:ui` — passed.
+2. `npm --prefix apps/web run smoke:effects` — passed, including Starbridge `step` effect feedback and animation settle smoke.
+3. `npm --prefix apps/web run build` — passed.
+4. `git diff --check` — passed.
+
+The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.

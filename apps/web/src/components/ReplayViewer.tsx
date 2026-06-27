@@ -16,6 +16,7 @@ import type {
   PublicView,
   RiverLedgerPublicView,
   SecretDraftPublicView,
+  StarbridgeCrossingPublicView,
   ThreeMarksPublicView,
   TokenBazaarPublicView,
   VowTidePublicView,
@@ -27,6 +28,7 @@ import { DraughtsLiteBoard } from "./DraughtsLiteBoard";
 import { EventFrontierBoard } from "./EventFrontierBoard";
 import { FrontierControlBoard } from "./FrontierControlBoard";
 import { SeatFrame } from "./SeatFrame";
+import { StarbridgeCrossingBoard } from "./StarbridgeCrossingBoard";
 import { ThreeMarksBoard } from "./ThreeMarksBoard";
 import { VowTideBoard } from "./VowTideBoard";
 
@@ -58,6 +60,8 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
     step && isFrontierControlView(step.view) ? step.view : null;
   const eventFrontierView: EventFrontierPublicView | null =
     step && isEventFrontierView(step.view) ? step.view : null;
+  const starbridgeCrossingView: StarbridgeCrossingPublicView | null =
+    step && isStarbridgeCrossingView(step.view) ? step.view : null;
   const vowTideView: VowTidePublicView | null = step && isVowTideView(step.view) ? step.view : null;
   const blackglassPactView: BlackglassPactPublicView | null =
     step && isBlackglassPactView(step.view) ? step.view : null;
@@ -177,6 +181,19 @@ export function ReplayViewer({ game, replay, reducedMotion, onStep, onReset }: R
                   <strong>{eventFrontierView.reckoning_count}</strong>
                 </div>
               </div>
+              {replay ? <PlacementSequence replay={replay} /> : null}
+            </div>
+          ) : starbridgeCrossingView ? (
+            <div className="replay-board">
+              <StarbridgeCrossingBoard
+                view={starbridgeCrossingView}
+                actionTree={null}
+                pendingPath={[]}
+                latestEffect={latestEntry}
+                effects={replayEffectEntries}
+                reducedMotion={reducedMotion}
+                pending={false}
+              />
               {replay ? <PlacementSequence replay={replay} /> : null}
             </div>
           ) : vowTideView ? (
@@ -351,6 +368,10 @@ function isFrontierControlView(view: PublicView | null): view is FrontierControl
 
 function isEventFrontierView(view: PublicView | null): view is EventFrontierPublicView {
   return Boolean(view && "game_id" in view && view.game_id === "event_frontier");
+}
+
+function isStarbridgeCrossingView(view: PublicView | null): view is StarbridgeCrossingPublicView {
+  return Boolean(view && "game_id" in view && view.game_id === "starbridge_crossing");
 }
 
 function isRiverLedgerView(view: PublicView | null): view is RiverLedgerPublicView {
@@ -562,6 +583,14 @@ function snapshotItems(view: PublicView | null, done: boolean | undefined): { la
       { label: "Hand", value: String(view.hand_index + 1) },
       { label: "Phase", value: view.phase.kind.replaceAll("_", " ") },
       { label: "Scores", value: `${view.team_scores.team_0}-${view.team_scores.team_1}` },
+    ];
+  }
+  if (isStarbridgeCrossingView(view)) {
+    return [
+      { label: "Game", value: "Starbridge Crossing" },
+      { label: "Spaces", value: String(view.spaces.length) },
+      { label: "Turn", value: view.terminal ?? view.active_seat ?? "terminal" },
+      { label: "Ranks", value: String(view.finish_ranks.length) },
     ];
   }
 

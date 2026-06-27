@@ -238,6 +238,9 @@ function isTerminalView(view: PublicView | null): boolean {
   if ("game_id" in view && view.game_id === "event_frontier") {
     return view.terminal.kind !== "non_terminal";
   }
+  if ("game_id" in view && view.game_id === "starbridge_crossing") {
+    return view.terminal !== null;
+  }
   if ("terminal" in view) {
     return view.terminal.terminal;
   }

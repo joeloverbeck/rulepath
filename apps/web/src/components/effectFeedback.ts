@@ -33,6 +33,30 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         detail: `${payload.next_actor} is now active.`,
         tone: "turn",
       };
+    case "step":
+      return {
+        title: "Step moved",
+        detail: `${payload.peg} moved from ${payload.from} to ${payload.to}.`,
+        tone: "movement",
+      };
+    case "jump_chain":
+      return {
+        title: "Jump chain",
+        detail: `${payload.peg} completed ${hopCount(payload.hops)} hop${hopCount(payload.hops) === 1 ? "" : "s"}.`,
+        tone: "movement",
+      };
+    case "finish_assigned":
+      return {
+        title: "Finish assigned",
+        detail: `${payload.seat} finished with rank ${payload.rank}.`,
+        tone: "terminal",
+      };
+    case "pass_blocked":
+      return {
+        title: "Blocked seat passed",
+        detail: `${payload.seat} had no legal Starbridge move.`,
+        tone: "turn",
+      };
     case "game_ended":
       return {
         title: "Game ended",
@@ -846,6 +870,13 @@ export function feedbackForEffect(entry: EffectEntry): EffectFeedback {
         tone: "turn",
       };
     case "terminal":
+      if ("reason" in payload && !("outcome" in payload)) {
+        return {
+          title: "Match complete",
+          detail: `Rust finalized the public result: ${payload.reason ?? "terminal"}.`,
+          tone: "terminal",
+        };
+      }
       if (isMaskedClaimsOutcome(payload.outcome)) {
         return {
           title: "Claims complete",
@@ -934,6 +965,10 @@ function formatPath(value: unknown): string {
 
 function flipCount(flips: unknown): number {
   return Array.isArray(flips) ? flips.length : 0;
+}
+
+function hopCount(hops: unknown): number {
+  return Array.isArray(hops) ? hops.length : 0;
 }
 
 function resourceCounts(value: unknown): string {

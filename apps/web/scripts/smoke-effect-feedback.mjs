@@ -146,6 +146,21 @@ try {
     return [];
   }
 
+  function firstLeafPathIncluding(choices, segment, prefix = []) {
+    for (const choice of choices) {
+      const path = [...prefix, choice.segment];
+      const child = choice.next?.choices ?? [];
+      if (child.length === 0 && path.includes(segment)) {
+        return path;
+      }
+      const nested = firstLeafPathIncluding(child, segment, path);
+      if (nested.length > 0) {
+        return nested;
+      }
+    }
+    return [];
+  }
+
   function activeSeat(view, fallback = "seat_0") {
     return view.active_seat ?? view.active_actor ?? view.current_actor ?? fallback;
   }
@@ -179,6 +194,16 @@ try {
     const result = applyAction(matchId, actor, segment, tree.freshness_token);
     recordEffects(gameId, result.effects);
     return result.view;
+  }
+
+  function playStarbridgeStep(matchId) {
+    const view = getView(matchId);
+    const actor = activeSeat(view);
+    const tree = getActionTree(matchId, actor);
+    const path = firstLeafPathIncluding(tree.choices, "step");
+    assert(path.length > 0, "starbridge_crossing exposes a Rust step path");
+    const result = applyAction(matchId, actor, path.join(">"), tree.freshness_token);
+    recordEffects("starbridge_crossing", result.effects);
   }
 
   function playPreferredSegment(matchId, gameId, view, preferredSegment) {
@@ -303,6 +328,10 @@ try {
       playMeldfallTransition(created.match_id, seed);
       return;
     }
+    if (gameId === "starbridge_crossing") {
+      playStarbridgeStep(created.match_id);
+      return;
+    }
     for (let turn = 0; turn < turns && activeSeat(view, null); turn += 1) {
       view = playFirstLegal(created.match_id, gameId, view);
     }
@@ -343,7 +372,7 @@ try {
     { type: "match_completed", payload: { type: "match_completed" } },
   ];
   const gameNamePattern =
-    /\b(?:vow tide|blackglass pact|meldfall ledger|race to|three marks|column four|directional flip|draughts lite|high card duel|masked claims|flood watch|frontier control|event frontier|token bazaar|secret draft|veiled draft|poker lite|crest ledger|plain tricks|river ledger|briar circuit)\b/i;
+    /\b(?:vow tide|blackglass pact|meldfall ledger|starbridge crossing|race to|three marks|column four|directional flip|draughts lite|high card duel|masked claims|flood watch|frontier control|event frontier|token bazaar|secret draft|veiled draft|poker lite|crest ledger|plain tricks|river ledger|briar circuit)\b/i;
   for (const fallbackCase of fallbackNeutralityCases) {
     const feedback = feedbackForEffect({ cursor: 0, effect: { payload: fallbackCase.payload } });
     assert(
@@ -369,6 +398,7 @@ try {
     ["frontier_control", "terminal"],
     ["event_frontier", "choice_taken"],
     ["event_frontier", "event_resolved"],
+    ["starbridge_crossing", "step"],
     ["river_ledger", "river_ledger_contribution_changed"],
     ["river_ledger", "river_ledger_street_advanced"],
     ["river_ledger", "river_ledger_showdown_resolved"],
