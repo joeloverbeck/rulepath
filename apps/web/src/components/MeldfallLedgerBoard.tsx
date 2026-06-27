@@ -97,7 +97,7 @@ export function MeldfallLedgerBoard({
   // mandatory discard rather than ending the turn, which the bare button label does
   // not convey. Derived only from the public phase and the Rust-offered action kinds.
   const turnGuidance =
-    canAct && !pickupCommitmentPending ? turnGuidanceText(view.phase, goOutAvailable) : null;
+    canAct && !pickupCommitmentPending ? turnGuidanceText(view.phase, goOutAvailable, stockEmpty) : null;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
     const payload = entry.effect.payload;
@@ -564,8 +564,13 @@ function ActionGroup({
 // The turn runs draw -> table -> discard; in the table phase "Finish turn" advances to
 // a mandatory discard, and "Go out" ends the round, neither of which the bare button
 // labels make obvious.
-function turnGuidanceText(phase: string, goOutAvailable: boolean): string | null {
+function turnGuidanceText(phase: string, goOutAvailable: boolean, stockEmpty: boolean): string | null {
   if (phase === "draw") {
+    // The stock pile is gone, so only a discard-pile pickup can start the turn — guiding
+    // the player to a disabled stock button would be misleading.
+    if (stockEmpty) {
+      return "Stock is empty — pick up a usable card from the discard pile (highlighted) to start your turn.";
+    }
     return "Start your turn: draw from the hidden stock, or pick up a card from the discard pile.";
   }
   if (phase === "table") {
