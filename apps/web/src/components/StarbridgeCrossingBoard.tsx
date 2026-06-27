@@ -48,7 +48,20 @@ export function StarbridgeCrossingBoard({
     [bounds, sortedSpaces],
   );
   const current = useMemo(() => currentChoices(actionTree, pendingPath), [actionTree, pendingPath]);
-  const spaceActions = useMemo(() => actionsBySpace(actionTree, pendingPath), [actionTree, pendingPath]);
+  const pegSpaces = useMemo(
+    () =>
+      new Map(
+        view.spaces
+          .filter((space) => space.occupant)
+          .map((space) => [space.occupant?.peg ?? "", space.space] as const),
+      ),
+    [view.spaces],
+  );
+  const spaceActions = useMemo(() => actionsBySpace(actionTree, pendingPath, pegSpaces), [actionTree, pendingPath, pegSpaces]);
+  const previewOvers = useMemo(
+    () => new Set([...spaceActions.values()].map((action) => action.over).filter((space): space is string => Boolean(space))),
+    [spaceActions],
+  );
   const legalSpaces = useMemo(() => new Set(spaceActions.keys()), [spaceActions]);
   const recent = useMemo(() => recentSpaces(effects), [effects]);
   const [focusedSpace, setFocusedSpace] = useState(() => sortedSpaces[0]?.space ?? "");
@@ -156,7 +169,7 @@ export function StarbridgeCrossingBoard({
               const ownerIndex = space.occupant?.owner_seat_index ?? null;
               const recentOrigin = recent.origins.has(space.space);
               const recentLanding = recent.landings.has(space.space);
-              const recentOver = recent.overs.has(space.space) || action?.over === space.space;
+              const recentOver = recent.overs.has(space.space) || previewOvers.has(space.space);
               return (
                 <g
                   key={space.space}
@@ -268,25 +281,28 @@ function currentChoices(actionTree: ActionTree | null, pendingPath: string[]) {
   return { choices, path, valid: true };
 }
 
-function actionsBySpace(actionTree: ActionTree | null, pendingPath: string[]) {
+function actionsBySpace(actionTree: ActionTree | null, pendingPath: string[], pegSpaces: Map<string, string>) {
   const actions = new Map<string, SpaceAction>();
   const current = currentChoices(actionTree, pendingPath);
-  addSpaceActions(actions, current.choices, current.path);
+  addSpaceActions(actions, current.choices, current.path, pegSpaces);
   if (actions.size === 0 && pendingPath.length === 0) {
     const move = current.choices.find((choice) => choice.segment === "move");
     if (move?.next?.choices) {
-      addSpaceActions(actions, move.next.choices, ["move"]);
+      addSpaceActions(actions, move.next.choices, ["move"], pegSpaces);
     }
   }
   return actions;
 }
 
-function addSpaceActions(actions: Map<string, SpaceAction>, choices: ActionChoice[], prefix: string[]) {
+function addSpaceActions(actions: Map<string, SpaceAction>, choices: ActionChoice[], prefix: string[], pegSpaces: Map<string, string>) {
   for (const choice of choices) {
     const tags = new Set(choice.tags ?? []);
     if (tags.has("peg")) {
       const peg = metadataValue(choice, "peg") ?? choice.segment;
-      actions.set(peg, { choice, path: [...prefix, choice.segment], kind: "peg", over: null });
+      const space = pegSpaces.get(peg);
+      if (space) {
+        actions.set(space, { choice, path: [...prefix, choice.segment], kind: "peg", over: null });
+      }
     } else if (tags.has("step")) {
       for (const destination of choice.next?.choices ?? []) {
         const space = metadataValue(destination, "destination") ?? destination.segment;

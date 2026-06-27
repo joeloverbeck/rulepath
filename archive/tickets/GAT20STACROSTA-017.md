@@ -1,6 +1,6 @@
 # GAT20STACROSTA-017: Web e2e smoke, CI registration, and catalog READMEs
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (audit + e2e) — `apps/web/e2e/starbridge-crossing.smoke.mjs`, `apps/web/package.json`, `ci/games.json`, `apps/web/README.md`, root `README.md`
@@ -82,3 +82,22 @@ Add Starbridge Crossing to the `apps/web/README.md` intro catalog list + Smoke L
 1. `npm --prefix apps/web run smoke:e2e`
 2. `node scripts/check-ci-games.mjs && node scripts/check-catalog-docs.mjs`
 3. The e2e run + catalog/CI checks are the correct boundary; this ticket is the gate-1 web acceptance surface.
+
+## Outcome
+
+Added `apps/web/e2e/starbridge-crossing.smoke.mjs` and wired it into the hardcoded `smoke:e2e` chain. The smoke covers 121-space rendering, Rust-supplied legal peg/step previews, keyboard path construction, bounded discovery and submission of a Rust-exposed jump path, replay export/import, reduced-motion styling, responsive layout, `render_game_to_text`, storage, console, and DOM no-leak checks.
+
+Registered Starbridge Crossing in `ci/games.json` with a representative max-seat simulation lane (`--seat-count 6 --action-cap 4096`) and the new e2e file. Updated the web and root README catalog surfaces required by `check-catalog-docs`, plus the web shell renderer/smoke descriptions.
+
+Fixed the Starbridge board renderer root-selection mapping so Rust peg choices are presented on the occupied board spaces instead of peg ids. This keeps TypeScript on presentation only: the legal peg, step, jump, over-space, continue, and stop affordances still come from the Rust action tree metadata.
+
+Verification:
+
+1. `node apps/web/e2e/starbridge-crossing.smoke.mjs` — passed.
+2. `node scripts/check-ci-games.mjs` — passed; 20 games in sync.
+3. `node scripts/check-catalog-docs.mjs` — passed; 20 games reflected.
+4. `npm --prefix apps/web run build` — passed.
+5. `npm --prefix apps/web run smoke:e2e` — passed, including Starbridge and animation settle.
+6. `git diff --check` — passed.
+
+The standalone and full e2e commands needed localhost/Chrome permission because the Puppeteer smokes serve built `dist` on `127.0.0.1`. The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.
