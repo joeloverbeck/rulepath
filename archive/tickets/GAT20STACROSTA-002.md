@@ -1,6 +1,6 @@
 # GAT20STACROSTA-002: Topology/path-jump third-use primitive-pressure ledger + atlas decision
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance docs (`games/starbridge_crossing/docs/PRIMITIVE-PRESSURE-LEDGER.md`, `docs/MECHANIC-ATLAS.md`)
@@ -76,3 +76,38 @@ Add the Gate 20 graph/topology/path-jump third-use decision (defer/reject, no he
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. Narrower command is correct: governance docs only; the boundary noun-check and doc-link gates are the relevant verification, no crate builds here.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/docs/PRIMITIVE-PRESSURE-LEDGER.md` with the
+  Gate 20 topology/path-jump hard-gate decision: `board_space` is not
+  applicable, Frontier Control and Event Frontier are useful but not close
+  enough helper precedents, topology/path/jump legality stays game-local Rust,
+  no helper is promoted, no prior-game conformance is required, and Gate 21 must
+  reopen the comparison before any track/topology helper proposal.
+- Updated `docs/MECHANIC-ATLAS.md` §10A to record the Gate 20 no-debt review and
+  §10B to add the Starbridge graph/topology/path-jump defer/reject row with the
+  Gate 21 reopen trigger.
+
+Deviations from plan:
+
+- None.
+
+Verification:
+
+- `grep -n "Current debt: None\|_None_" docs/MECHANIC-ATLAS.md` passed and
+  showed §10A remains `_None_`.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `git diff --stat crates/game-stdlib` produced no output, confirming no
+  `game-stdlib` graph/path/jump helper was introduced.
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
