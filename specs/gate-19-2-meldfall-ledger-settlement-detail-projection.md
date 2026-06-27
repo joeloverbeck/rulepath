@@ -10,7 +10,7 @@
 | Spec ID | `GATE-19-2-MELDFALL-LEDGER-SETTLEMENT-DETAIL-PROJECTION` |
 | Stage | Public scaling phase, Gate 19 follow-on (19.2) |
 | Gate | Gate 19 — Five Hundred Rummy / Rummy 500 family (presentation-completeness follow-on) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-26 |
 | Owner | Rulepath maintainers |
 | Authority order | `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs → `docs/ROADMAP.md` → `games/meldfall_ledger/docs/RULES.md` → this spec → future tickets. Accepted ADRs supersede only the sections they name. |
@@ -268,6 +268,45 @@ but not projected — hence this spec.
 | §11 Universal acceptance invariants | aligned | Viewer-safe totals/counts only (`ML-VIS-006`); no-leak proven by the `a11y-noleak` / `meldfall-ledger` smokes (§5, §7); determinism preserved by excluding the retained snapshot from `state_hash` (§3.3, §5). |
 | §13 ADR triggers | aligned | Replay/hash semantics unchanged by the pinned view carrier (§3.3); a hard gate stops and opens an ADR if serialization must change. |
 | §12 Stop conditions | clear | No stop condition crossed: no kernel noun, no TypeScript legality, no hidden-information leak, no replay/hash change on the default path. |
+
+## 10A. Outcome
+
+Completed: 2026-06-27
+
+Gate 19.2 closed through tickets `GAT192MELLEDSET-001` through
+`GAT192MELLEDSET-004`.
+
+- Rust now retains and projects a nullable `last_settlement` snapshot containing
+  round index, round-end reason, tabled-positive totals, in-hand penalties,
+  held-card counts, round deltas, cumulative scores, ranks, and winner flags.
+- The retained snapshot is excluded from `MatchState::stable_internal_summary()`,
+  preserving replay/hash semantics and avoiding any trace schema migration or
+  ADR.
+- WASM and TypeScript expose the field as nullable public view JSON.
+- The web board renders the persistent settlement breakdown directly from
+  `view.last_settlement`; the former effects-buffer settlement capture was
+  removed.
+- `RULES.md` was intentionally unchanged. `RULE-COVERAGE.md`, `UI.md`,
+  `GAME-EVIDENCE.md`, and `specs/README.md` record the closeout and evidence.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000`
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo run -p fixture-check -- --game meldfall_ledger`
+- `cargo run -p rule-coverage -- --game meldfall_ledger`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `node scripts/check-catalog-docs.mjs`
+- `node apps/web/e2e/meldfall-ledger.smoke.mjs`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+
+The simulator run used an explicit `--action-cap 20000` as a bounded
+multi-round verifier guard. No hidden-information leak, TypeScript legality
+move, rule-text change, or replay/hash change was required.
 
 ## 11. Assumptions
 

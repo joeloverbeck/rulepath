@@ -6,7 +6,7 @@ Rules version: `meldfall-ledger-rules-v1`
 
 Data version: `meldfall-ledger-data-v1`
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 ## Rule Coverage Matrix
 
@@ -29,7 +29,7 @@ evidence owners.
 | `ML-VIS-003` | Opponent hands, stock order, private labels, rankings, and hidden diagnostics never leak. | `visibility.rs`, `replay_support.rs`, `bots.rs` | visibility/replay/bot no-leak tests, no-leak traces | `covered-by-trace` | Browser DOM/storage/log proof lands later. |
 | `ML-VIS-004` | Discard pile is public and ordered oldest to newest. | `state.rs`, `visibility.rs`, `actions.rs` | draw-source and discard-pickup traces, serialization tests | `covered-by-trace` | Newest/top discard is last. |
 | `ML-VIS-005` | Melded and laid-off cards are public after tabled. | `visibility.rs`, `rules.rs` | public-tableau trace, tableau projection tests | `covered-by-trace` | Tabled cards remain public for every viewer. |
-| `ML-VIS-006` | Public settlement exposes totals/counts without unauthorized unmelded identities. | `scoring.rs`, `visibility.rs`, `replay_support.rs` | round-scoring trace, settlement no-leak tests | `covered-by-trace` | Seat-private export may include viewer's own remaining cards. |
+| `ML-VIS-006` | Public settlement exposes totals/counts without unauthorized unmelded identities. | `scoring.rs`, `state.rs`, `visibility.rs`, `crates/wasm-api`, web renderer | round-scoring trace, settlement no-leak tests, `last_settlement` projection tests, Meldfall browser settlement smoke | `covered-by-trace` | `last_settlement` carries round end, tabled totals, held penalties/counts, delta, cumulative score, rank, and winner flag; no exact opponent unmelded identities. |
 | `ML-TURN-001` | Turn starts with active seat choosing a draw source. | `actions.rs`, `rules.rs`, `state.rs` | draw-source-choice and discard-after-draw traces | `covered-by-trace` | Wrong-seat and wrong-phase diagnostics tested. |
 | `ML-TURN-002` | Active seat may draw one hidden stock card when stock is non-empty. | `rules.rs`, `effects.rs`, `visibility.rs` | deterministic-stock-draw no-leak trace, stock draw tests | `covered-by-trace` | Public effect hides drawn identity. |
 | `ML-TURN-003` | Active seat may draw selected discard plus all newer cards. | `rules.rs`, `actions.rs` | draw-source-choice, multi-card pickup, top-discard traces | `covered-by-trace` | Public discard indices are oldest-to-newest. |
@@ -48,12 +48,12 @@ evidence owners.
 | `ML-LAYOFF-002` | Laid-off card scores to the seat that played it. | `rules.rs`, `scoring.rs` | opponent-tableau score-credit trace, scoring tests | `covered-by-trace` | Per-card credit owner is authoritative. |
 | `ML-LAYOFF-003` | Tabled meld groups cannot be rearranged, split, merged, or remelded. | `rules.rs`, `state.rs` | invalid-layoff trace and layoff tests | `covered-by-trace` | Extension only. |
 | `ML-SCORE-001` | Card values are ace 15, face/tens 10, pips 2-9. | `cards.rs`, `scoring.rs` | card value tests, round-scoring trace | `covered-by-trace` | Low ace still scores 15. |
-| `ML-SCORE-002` | Tabled cards score positive to their credit owner. | `scoring.rs`, `rules.rs` | round-scoring and public-tableau traces | `covered-by-trace` | Includes meld and layoff cards. |
-| `ML-SCORE-003` | In-hand cards subtract from their holders at settlement. | `scoring.rs` | round-scoring and scores-can-go-negative traces | `covered-by-trace` | Public settlement redacts exact opponent identities. |
-| `ML-SCORE-004` | Round delta is tabled positives minus in-hand penalties. | `scoring.rs` | score-delta property, round-scoring trace | `covered-by-trace` | Stable settlement strings assert order. |
+| `ML-SCORE-002` | Tabled cards score positive to their credit owner. | `scoring.rs`, `rules.rs`, `visibility.rs` | round-scoring and public-tableau traces, `last_settlement` projection tests | `covered-by-trace` | Includes meld and layoff cards; projected as `tabled_positive`. |
+| `ML-SCORE-003` | In-hand cards subtract from their holders at settlement. | `scoring.rs`, `visibility.rs` | round-scoring and scores-can-go-negative traces, `last_settlement` no-leak tests | `covered-by-trace` | Public settlement exposes penalty total and held count, not exact opponent identities. |
+| `ML-SCORE-004` | Round delta is tabled positives minus in-hand penalties. | `scoring.rs`, `visibility.rs`, web renderer | score-delta property, round-scoring trace, Meldfall settlement smoke | `covered-by-trace` | Rust computes and projects `delta`; TypeScript renders only. |
 | `ML-SCORE-005` | Round deltas add to cumulative match scores. | `scoring.rs`, `state.rs` | scores-can-go-negative, multi-round traces | `covered-by-trace` | Negative cumulative scores allowed. |
 | `ML-SCORE-006` | Per-card `played_by` is score-credit owner; meld origin is not a shortcut. | `state.rs`, `rules.rs`, `scoring.rs` | opponent layoff score-credit trace | `covered-by-trace` | Protects layoff credit. |
-| `ML-SCORE-007` | Public settlement exposes totals/counts without unauthorized unmelded identities. | `scoring.rs`, `visibility.rs`, `replay_support.rs` | no-leak matrix, round-scoring trace | `covered-by-trace` | Mirrors `ML-VIS-006`. |
+| `ML-SCORE-007` | Public settlement exposes totals/counts without unauthorized unmelded identities. | `scoring.rs`, `state.rs`, `visibility.rs`, `crates/wasm-api`, web renderer | no-leak matrix, round-scoring trace, `last_settlement` projection tests, a11y no-leak settlement panel smoke | `covered-by-trace` | Mirrors `ML-VIS-006`; persistent view field survives the next round and stays count/total only. |
 | `ML-MATCH-001` | Terminal eligibility is evaluated only after settlement and needs a score at/above 500. | `scoring.rs`, `state.rs` | multi-round-first-to-500, target-tie traces | `covered-by-trace` | No mid-turn terminal shortcut. |
 | `ML-MATCH-002` | Unique highest eligible seat wins. | `scoring.rs` | multi-round-first-to-500 trace, terminal tests | `covered-by-trace` | Winner is seat-indexed. |
 | `ML-MATCH-003` | Equal highest scores at/above 500 continue. | `scoring.rs`, `rules.rs` transition path | target-tie-continues trace, `round-transition-resets-table-state` trace, transition/full-play tests | `covered-by-trace` | Seat order is not a tiebreaker; tied eligible scores continue through the next-round transition. |

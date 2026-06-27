@@ -1,6 +1,6 @@
 # GAT192MELLEDSET-004: Docs reconcile + Gate 19.2 `Done`-flip capstone
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — game-local docs + `specs/README.md` index + spec Status
@@ -134,3 +134,38 @@ Status field from `Planned` to `Done`, with a one-line completion note.
 2. `cargo run -p replay-check -- --game meldfall_ledger --all && cargo run -p fixture-check -- --game meldfall_ledger`
 3. `cargo run -p simulate -- --game meldfall_ledger --games 1000 && npm --prefix apps/web run smoke:ui && npm --prefix apps/web run smoke:effects && node scripts/check-catalog-docs.mjs`
 4. `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
+
+## Outcome
+
+Completed: 2026-06-27
+
+Reconciled the capstone docs and status surfaces after the `last_settlement`
+projection, WASM/TypeScript bridge, and web panel landed:
+
+- `RULE-COVERAGE.md` now maps the persistent settlement projection to
+  `ML-VIS-006` and `ML-SCORE-002` through `ML-SCORE-007`.
+- `UI.md` documents the Rust-owned `view.last_settlement` panel, its fields,
+  and the no-TypeScript-settlement-math boundary.
+- `GAME-EVIDENCE.md` records the Gate 19.2 receipt and verification commands.
+- `specs/README.md` and the Gate 19.2 spec header now mark the gate `Done`.
+- `RULES.md` was unchanged.
+
+Verification passed:
+
+- `cargo fmt --all --check`
+- `cargo run -p rule-coverage -- --game meldfall_ledger`
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo run -p fixture-check -- --game meldfall_ledger`
+- `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `node scripts/check-catalog-docs.mjs`
+- `node apps/web/e2e/meldfall-ledger.smoke.mjs`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+
+The simulator command used an explicit `--action-cap 20000` as the bounded
+multi-round verifier guard; it completed 1000/1000 games with
+`bounded_nonterminal_at_cap=0`. No replay/hash migration, ADR, or production code
+change was required for this capstone.
