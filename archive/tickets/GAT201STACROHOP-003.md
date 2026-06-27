@@ -1,9 +1,9 @@
 # GAT201STACROHOP-003: Governed determinism migration + evidence reconciliation
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
-**Engine Changes**: Yes (deterministic evidence) — golden traces, replay fixtures, benchmark baselines, `games/starbridge_crossing/docs/GAME-EVIDENCE.md`
+**Engine Changes**: Yes (deterministic evidence) — WASM API action-tree snapshot, golden trace / fixture verification, benchmark baseline review, `games/starbridge_crossing/docs/GAME-EVIDENCE.md`
 **Deps**: GAT201STACROHOP-001, GAT201STACROHOP-002
 
 ## Problem
@@ -116,10 +116,12 @@ harness beyond the smoke):
 
 ## Files to Touch
 
-- `games/starbridge_crossing/tests/golden_traces/` (modify — affected subset
-  only; implementation-discovered, candidates named in Assumption Reassessment 1)
-- `games/starbridge_crossing/data/fixtures/*.fixture.json` (modify — only replays
-  traversing an origin-return-offering state; as surfaced)
+- `crates/wasm-api/tests/snapshots/api_surface.tsv` (modify — affected
+  Starbridge public action-tree snapshot discovered by workspace test)
+- `games/starbridge_crossing/tests/golden_traces/` (modify only if affected
+  traces surface; current verification may prove unchanged)
+- `games/starbridge_crossing/data/fixtures/*.fixture.json` (modify only if
+  affected fixtures surface; current verification may prove unchanged)
 - `games/starbridge_crossing/benches/thresholds.json` (modify — only if
   enumeration counts shift)
 - `games/starbridge_crossing/docs/GAME-EVIDENCE.md` (modify)
@@ -173,3 +175,54 @@ harness beyond the smoke):
 3. `node apps/web/e2e/starbridge-crossing.smoke.mjs` (CI-runnable) plus the
    §What-to-Change manual Puppeteer runbook (no browser-automation harness exists
    for the interactive reproduction, so it is an implementer checklist).
+
+## Outcome
+
+Completed: 2026-06-27
+
+Resolved the governed evidence migration for the `SC-MOVE-010` legality
+narrowing. The full Starbridge crate tests, replay checker, and fixture checker
+initially passed without golden trace or setup-fixture diffs, proving the
+committed trace/fixture corpus did not contain an origin-return continuation
+that required Trace Schema v1 regeneration. The broad workspace test exposed the
+actual stale deterministic artifact: the WASM API public action-tree snapshot
+for `starbridge_crossing/action_tree/seat_0`, which still recorded the removed
+origin-return continuations. Regenerated that single snapshot with
+`UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface`, then verified
+it with the focused test and the full workspace suite.
+
+Updated `games/starbridge_crossing/docs/GAME-EVIDENCE.md` with a Gate 20.1
+Origin-Return Migration Receipt naming the migrated WASM snapshot and the
+unchanged golden trace, setup fixture, and benchmark-threshold surfaces. The
+receipt records the ADR 0009 authority note: this is a public action-tree
+contract migration only; no hidden-information, view-redaction, rule-version,
+data-version, golden-trace, fixture, or benchmark-threshold migration was
+needed.
+
+Deviations: the ticket expected golden traces or replay fixtures to be the
+changed artifacts. Current verification showed those surfaces were unchanged;
+the required migration was instead the WASM API action-tree snapshot discovered
+by `cargo test --workspace`. The browser smoke exercises Starbridge jump
+integration through Puppeteer, but the exact synthetic origin-return no-op is
+proved by `tests/rules.rs::hop_chain_cannot_return_to_origin_space` and the
+Rust-owned action-tree/validator checks from `GAT201STACROHOP-001`, not by a
+separate interactive browser fixture.
+
+Verification:
+
+- `cargo test -p starbridge_crossing` passed.
+- `cargo run -p replay-check -- --game starbridge_crossing --all` passed; all
+  traces accepted unchanged.
+- `cargo run -p fixture-check -- --game starbridge_crossing` passed; all setup
+  fixtures accepted unchanged.
+- `cargo run -p rule-coverage -- --game starbridge_crossing` passed.
+- `cargo run -p simulate -- --game starbridge_crossing --games 1000` passed
+  (1000 games, 2,000,000 total actions, zero capped matches).
+- `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` passed and
+  regenerated the single Starbridge API snapshot.
+- `cargo test -p wasm-api --test api_surface` passed after regeneration.
+- `cargo test --workspace` passed after regeneration.
+- `cargo bench -p starbridge_crossing` passed all 14 benchmark operations.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/starbridge-crossing.smoke.mjs` passed.
