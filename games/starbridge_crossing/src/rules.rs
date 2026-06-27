@@ -71,7 +71,7 @@ pub fn legal_step_moves(state: &StarbridgeState) -> Vec<StepMove> {
 }
 
 pub fn is_active_seat_blocked(state: &StarbridgeState) -> bool {
-    !state.terminal_status.is_some()
+    state.terminal_status.is_none()
         && legal_step_moves(state).is_empty()
         && state
             .pegs_for_seat(state.active_seat_index)
