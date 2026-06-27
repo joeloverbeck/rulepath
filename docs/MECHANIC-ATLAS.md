@@ -269,7 +269,9 @@ Current debt: _None_. Last reviewed during Gate 20 Starbridge Crossing
 topology/path-jump hard-gate review on 2026-06-27; the
 `game-stdlib::trick_taking` helper promotion remains conformed, Meldfall Ledger
 adds only first-use local rummy-family mechanics, Starbridge Crossing rejects
-topology/path-jump promotion, and no open promotion debt remains.
+topology/path-jump promotion, the forward-v1 scaffolding receipt records no new
+behavior-free helper or prior-game migration set, and no open promotion debt
+remains.
 
 | Primitive | Scope | Already conforming | Must retrofit | Audit/no-op | Accepted exceptions | Closure gate |
 |---|---|---|---|---|---|---|

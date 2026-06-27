@@ -1119,6 +1119,44 @@ R4 N-seat/private/trick receipts, 2026-06-24:
   helper contract is broadened, no `engine-core` noun is added, and no
   `game-stdlib` helper promotion debt is created.
 
+### Gate 20 forward-v1 Starbridge Crossing receipt - 2026-06-27
+
+- Receipt state: Starbridge Crossing is the third official game admitted after
+  the forward-v1 interlock. It reviewed `MSC-8C-001`...`MSC-8C-010` in
+  [../games/starbridge_crossing/docs/MECHANICS.md](../games/starbridge_crossing/docs/MECHANICS.md)
+  and records the machine receipt in `ci/scaffolding-audits.json` with
+  `coverage: "forward-v1"`.
+- C-01 checkpoint: effect envelopes are reused as existing scaffolding only;
+  setup, step, hop-chain, blocked-pass, finish, terminal, and turn-limit effect
+  meanings stay `starbridge_crossing` behavior.
+- C-02 checkpoint: canonical seat grammar fits `seat_0`...`seat_5`; supported
+  seat counts, point labels, home/target assignment, turn skipping, and finish
+  order remain game-local.
+- C-03 checkpoint: seat-count validation and ring arithmetic reuse structural
+  helpers where applicable; the exact `{2,3,4,6}` admission set and
+  opposite-target mapping stay game-owned.
+- C-04/C-05 checkpoint: action-tree and stable-byte helpers remain framing or
+  evidence surfaces only; Rust owns peg choices, step targets, hop
+  continuations, stop leaves, replay authority, and hash/export bytes.
+- C-06 checkpoint: any `game-test-support` use remains dev/test-only; no
+  production edge is introduced.
+- C-07/C-08 checkpoint: pairwise no-leak and evidence-profile geometry is
+  reused as test scaffolding; Starbridge supplies the all-public viewer matrix,
+  topology evidence, replay/export policy, and browser no-leak proof.
+- C-09 checkpoint: bounded-index sampling creates no migration authority for
+  setup, topology, movement, or jump-chain behavior; L0 bot tie-breaking uses
+  only Rust-provided legal actions.
+- C-10 checkpoint: every behavior-bearing shape remains rejected/local-only:
+  graph topology, adjacency, path and jump legality, finish ranking,
+  progress-vector standings, bot policy, visibility classification, outcome,
+  and UI behavior do not enter mechanical scaffolding.
+- Prior-site disposition: Frontier Control and Event Frontier are topology and
+  graph comparison points only. No prior-game migration or follow-on unit is
+  required; the accepted no-unit disposition is `MSC-8C-010`.
+- Artifact-diff result: no new `MSC-*` register entry is required, no existing
+  helper contract is broadened, no `engine-core` noun is added, and no
+  `game-stdlib` helper promotion debt is created.
+
 ## Review Checklist
 
 Before accepting a register entry, verify:

@@ -1,6 +1,6 @@
 # GAT20STACROSTA-019: forward-v1 governance closeout (scaffolding receipt + register reconciliation)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (CI evidence receipt) — `ci/scaffolding-audits.json`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `docs/MECHANIC-ATLAS.md`
@@ -80,3 +80,19 @@ Gate 20 forward-v1 summary; C-01…C-10 dispositions; any local-only/candidate f
 1. `node scripts/check-scaffolding-governance.mjs`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. The governance checker is the correct boundary; it validates the receipt against the register at run time.
+
+## Outcome
+
+Completed 2026-06-27. Added the `starbridge_crossing` forward-v1 machine
+receipt, reconciled the Gate 20 register closeout, and confirmed
+`docs/MECHANIC-ATLAS.md` section 10A still has no promotion debt. No new
+mechanical-scaffolding entry, prior-game follow-on unit, hash migration,
+visibility migration, determinism migration, `engine-core` noun, or
+`game-stdlib` helper promotion was introduced.
+
+Verification:
+
+1. `node scripts/check-scaffolding-governance.mjs`
+2. `node scripts/check-doc-links.mjs`
+3. `bash scripts/boundary-check.sh`
+4. `git diff --check`

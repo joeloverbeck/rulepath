@@ -794,6 +794,70 @@
         "determinism_migration": "none",
         "migration_authority": "none"
       }
+    },
+    {
+      "id": "starbridge_crossing",
+      "coverage": "forward-v1",
+      "evidence_paths": [
+        "games/starbridge_crossing/docs/MECHANICS.md",
+        "games/starbridge_crossing/docs/PRIMITIVE-PRESSURE-LEDGER.md",
+        "games/starbridge_crossing/docs/GAME-EVIDENCE.md",
+        "docs/MECHANIC-ATLAS.md",
+        "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+      ],
+      "register_entries_reviewed": [
+        "MSC-8C-001",
+        "MSC-8C-002",
+        "MSC-8C-003",
+        "MSC-8C-004",
+        "MSC-8C-005",
+        "MSC-8C-006",
+        "MSC-8C-007",
+        "MSC-8C-008",
+        "MSC-8C-009",
+        "MSC-8C-010"
+      ],
+      "register_decisions": [],
+      "disposition": "no-new-scaffolding",
+      "prior_matching_games": [
+        "frontier_control",
+        "event_frontier"
+      ],
+      "follow_on_unit": null,
+      "no_follow_on_decision": "MSC-8C-010",
+      "known_signal_dispositions": [
+        {
+          "signal": "MSC-8C-001.effect-envelope-literal",
+          "decision": "reused",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        },
+        {
+          "signal": "MSC-8C-002.local-seat-grammar",
+          "decision": "reused",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        },
+        {
+          "signal": "MSC-8C-004.local-action-tree-v1-framing",
+          "decision": "reused",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        },
+        {
+          "signal": "MSC-8C-005.local-stable-byte-writer",
+          "decision": "not-present",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        },
+        {
+          "signal": "MSC-8C-006.production-support-edge",
+          "decision": "not-present",
+          "evidence": "docs/MECHANICAL-SCAFFOLDING-REGISTER.md"
+        }
+      ],
+      "compatibility": {
+        "hash_migration": "none",
+        "visibility_migration": "none",
+        "determinism_migration": "none",
+        "migration_authority": "none"
+      }
     }
   ]
 }
