@@ -5691,6 +5691,16 @@ svg g[data-effect-kind] {
   border-color: var(--ml-warm);
 }
 
+.meldfall-seat.next:not(.active) {
+  border-color: var(--ml-accent);
+  border-style: dashed;
+}
+
+.meldfall-seat.next:not(.active) header span {
+  color: var(--ml-accent);
+  font-weight: 700;
+}
+
 .meldfall-seat.near-goout {
   border-color: #c0392b;
   box-shadow: inset 0 0 0 2px color-mix(in srgb, #c0392b 16%, transparent);

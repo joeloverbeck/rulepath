@@ -70,6 +70,14 @@ export function MeldfallLedgerBoard({
   const stockLive = !view.terminal && !roundSettled;
   const stockEmpty = stockLive && view.stock_count === 0;
   const stockLow = stockLive && view.stock_count > 0 && view.stock_count <= seats.length;
+  // Next seat to act, clockwise by seat index (advance_active_seat uses
+  // next_clockwise_index). Turn order is public (ML-SETUP-005), and the next seat is
+  // the first to see — and most likely to pick up — your discard, which the strategy
+  // guide flags as a discard-risk signal. Presentation-only derivation from public
+  // seat order; null when the round is not actively in play or at a single seat.
+  const activeIndex = seats.indexOf(view.active_seat);
+  const nextSeat =
+    stockLive && activeIndex >= 0 && seats.length > 1 ? seats[(activeIndex + 1) % seats.length] : null;
   // After a discard pickup, Rust offers only table plays that use the committed card
   // and withholds finish/discard until the commitment is satisfied (ML-TURN-004). In
   // the table phase that is the only reason finish is absent, so we can tell the player
@@ -173,7 +181,7 @@ export function MeldfallLedgerBoard({
       <div className="meldfall-table-shell" aria-label="Meldfall Ledger table">
         <section className="meldfall-seat-rail" aria-label="Seat score ledger">
           {seats.map((seat, index) => (
-            <SeatLedger key={seat} view={view} seat={seat} index={index} />
+            <SeatLedger key={seat} view={view} seat={seat} index={index} nextSeat={nextSeat} />
           ))}
         </section>
 
@@ -390,21 +398,32 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; seat: MeldfallLedgerSeatId; index: number }) {
+function SeatLedger({
+  view,
+  seat,
+  index,
+  nextSeat,
+}: {
+  view: MeldfallLedgerPublicView;
+  seat: MeldfallLedgerSeatId;
+  index: number;
+  nextSeat: MeldfallLedgerSeatId | null;
+}) {
   const handCount = view.hand_counts[index] ?? 0;
   // Public go-out threat: a seat one or two cards from empty can end the round soon,
   // settling everyone's in-hand penalties. Hand counts are public (ML-VIS-001), so
   // flagging the threat surfaces a legal proximity signal the strategy guide calls out.
   const nearGoOut = !view.terminal && handCount > 0 && handCount <= 2;
+  const isNext = nextSeat === seat;
   return (
     <article
       className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}${
-        nearGoOut ? " near-goout" : ""
-      }`}
+        isNext ? " next" : ""
+      }${nearGoOut ? " near-goout" : ""}`}
     >
       <header>
         <strong>{seatLabel(seat)}</strong>
-        <span>{view.active_seat === seat ? "Turn" : view.dealer === seat ? "Dealer" : "Seat"}</span>
+        <span>{view.active_seat === seat ? "Turn" : isNext ? "Up next" : view.dealer === seat ? "Dealer" : "Seat"}</span>
       </header>
       <dl>
         <div>
