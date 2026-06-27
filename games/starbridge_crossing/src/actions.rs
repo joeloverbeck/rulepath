@@ -259,7 +259,8 @@ fn peg_choice(
         .find(|candidate| candidate.id == peg)
         .expect("action tree peg exists")
         .space;
-    let jump_choices = jump_landing_choices(state, peg, current, Vec::new());
+    let mut visited = Vec::new();
+    let jump_choices = jump_landing_choices(state, peg, current, &mut visited);
     if !jump_choices.is_empty() {
         choices.push(ActionChoice {
             segment: ACTION_JUMP.to_owned(),
@@ -289,13 +290,11 @@ fn jump_landing_choices(
     state: &StarbridgeState,
     peg: StarPegId,
     current: StarSpaceId,
-    visited: Vec<StarSpaceId>,
+    visited: &mut Vec<StarSpaceId>,
 ) -> Vec<ActionChoice> {
-    legal_jump_landings(state, peg, current, &visited)
+    legal_jump_landings(state, peg, current, visited.as_slice())
         .into_iter()
         .map(|jump| {
-            let mut next_visited = visited.clone();
-            next_visited.push(jump.landing);
             let mut choices = vec![ActionChoice {
                 segment: ACTION_STOP.to_owned(),
                 label: "Stop".to_owned(),
@@ -305,7 +304,9 @@ fn jump_landing_choices(
                 preview: ActionPreview::Available,
                 next: None,
             }];
-            let continuation = jump_landing_choices(state, peg, jump.landing, next_visited);
+            visited.push(jump.landing);
+            let continuation = jump_landing_choices(state, peg, jump.landing, visited);
+            visited.pop();
             if !continuation.is_empty() {
                 choices.push(ActionChoice {
                     segment: ACTION_CONTINUE.to_owned(),
