@@ -19,6 +19,16 @@ pub enum StarbridgeEffect {
         from: StarSpaceId,
         hops: Vec<JumpSubstep>,
     },
+    FinishAssigned {
+        seat_index: u8,
+        rank: u8,
+    },
+    PassBlocked {
+        seat_index: u8,
+    },
+    Terminal {
+        reason: String,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -96,5 +106,23 @@ mod tests {
                 ],
             }
         );
+    }
+
+    #[test]
+    fn finish_pass_and_terminal_effects_are_public() {
+        for payload in [
+            StarbridgeEffect::FinishAssigned {
+                seat_index: 1,
+                rank: 2,
+            },
+            StarbridgeEffect::PassBlocked { seat_index: 0 },
+            StarbridgeEffect::Terminal {
+                reason: "terminal-turn-limit".to_owned(),
+            },
+        ] {
+            let effect = public_effect(payload);
+
+            assert_eq!(effect.visibility, VisibilityScope::Public);
+        }
     }
 }

@@ -5,7 +5,7 @@ use crate::{
     effects::{public_effect, JumpSubstep, StarbridgeEffect, StarbridgeEffectEnvelope},
     ids::StarSpaceId,
     state::{StarPegId, StarbridgeState},
-    topology::{neighbor_in_direction, StarDirection},
+    topology::{home_spaces, neighbor_in_direction, StarDirection},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -52,6 +52,9 @@ pub fn legal_step_moves(state: &StarbridgeState) -> Vec<StepMove> {
 
     let mut moves = Vec::new();
     for peg in state.pegs_for_seat(state.active_seat_index) {
+        if state.occupancy(peg.space) != Some(peg.id) {
+            continue;
+        }
         for direction in StarDirection::ALL {
             if let Some(destination) = neighbor_in_direction(peg.space, direction) {
                 if state.occupancy(destination).is_none() {
@@ -65,6 +68,14 @@ pub fn legal_step_moves(state: &StarbridgeState) -> Vec<StepMove> {
         }
     }
     moves
+}
+
+pub fn is_active_seat_blocked(state: &StarbridgeState) -> bool {
+    !state.terminal_status.is_some()
+        && legal_step_moves(state).is_empty()
+        && state
+            .pegs_for_seat(state.active_seat_index)
+            .all(|peg| legal_jump_landings(state, peg.id, peg.space, &[]).is_empty())
 }
 
 pub fn legal_jump_landings(
@@ -81,6 +92,9 @@ pub fn legal_jump_landings(
     else {
         return Vec::new();
     };
+    if state.occupancy(origin) != Some(peg) {
+        return Vec::new();
+    }
 
     let mut jumps = Vec::new();
     for direction in StarDirection::ALL {
@@ -153,6 +167,21 @@ pub fn validate_jump_command(
     })
 }
 
+pub fn validate_pass_blocked_command(
+    state: &StarbridgeState,
+    command: &CommandEnvelope,
+) -> Result<u8, Diagnostic> {
+    validate_common_command_state(state, command)?;
+    match parse_action_path(&command.action_path.segments)? {
+        StarbridgeAction::PassBlocked => {}
+        _ => return Err(actions::mixed_move_kind_diagnostic()),
+    }
+    if !is_active_seat_blocked(state) {
+        return Err(pass_not_blocked_diagnostic());
+    }
+    Ok(state.active_seat_index)
+}
+
 pub fn validate_step_command(
     state: &StarbridgeState,
     command: &CommandEnvelope,
@@ -206,17 +235,18 @@ pub fn apply_step_command(
     state.occupancy[usize::from(validated.step.from.index())] = None;
     state.occupancy[usize::from(validated.step.to.index())] = Some(validated.step.peg);
     peg.space = validated.step.to;
-    state.active_seat_index = next_active_seat_index(state);
     state.ply_count = state.ply_count.saturating_add(1);
     state.command_count = state.command_count.saturating_add(1);
     state.freshness_token = state.freshness_token.next();
-
-    Ok(vec![public_effect(StarbridgeEffect::Step {
+    let mut effects = vec![public_effect(StarbridgeEffect::Step {
         seat_index: validated.seat_index,
         peg: validated.step.peg,
         from: validated.step.from,
         to: validated.step.to,
-    })])
+    })];
+    resolve_end_of_turn(state, validated.seat_index, &mut effects);
+
+    Ok(effects)
 }
 
 pub fn apply_jump_command(
@@ -239,12 +269,10 @@ pub fn apply_jump_command(
     state.occupancy[usize::from(validated.chain.from.index())] = None;
     state.occupancy[usize::from(final_landing.index())] = Some(validated.chain.peg);
     peg.space = final_landing;
-    state.active_seat_index = next_active_seat_index(state);
     state.ply_count = state.ply_count.saturating_add(1);
     state.command_count = state.command_count.saturating_add(1);
     state.freshness_token = state.freshness_token.next();
-
-    Ok(vec![public_effect(StarbridgeEffect::JumpChain {
+    let mut effects = vec![public_effect(StarbridgeEffect::JumpChain {
         seat_index: validated.seat_index,
         peg: validated.chain.peg,
         from: validated.chain.from,
@@ -257,7 +285,23 @@ pub fn apply_jump_command(
                 to: hop.landing,
             })
             .collect(),
-    })])
+    })];
+    resolve_end_of_turn(state, validated.seat_index, &mut effects);
+
+    Ok(effects)
+}
+
+pub fn apply_pass_blocked_command(
+    state: &mut StarbridgeState,
+    command: &CommandEnvelope,
+) -> Result<Vec<StarbridgeEffectEnvelope>, Diagnostic> {
+    let seat_index = validate_pass_blocked_command(state, command)?;
+    state.ply_count = state.ply_count.saturating_add(1);
+    state.command_count = state.command_count.saturating_add(1);
+    state.freshness_token = state.freshness_token.next();
+    let mut effects = vec![public_effect(StarbridgeEffect::PassBlocked { seat_index })];
+    resolve_end_of_turn(state, seat_index, &mut effects);
+    Ok(effects)
 }
 
 fn validate_common_command_state(
@@ -303,14 +347,138 @@ fn occupancy_during_chain(
     }
 }
 
+fn resolve_end_of_turn(
+    state: &mut StarbridgeState,
+    acted_seat: u8,
+    effects: &mut Vec<StarbridgeEffectEnvelope>,
+) {
+    if seat_has_finished(state, acted_seat)
+        && !state
+            .finish_ranks
+            .iter()
+            .any(|rank| rank.seat_index == acted_seat)
+    {
+        let rank = next_finish_rank(state);
+        state.finish_ranks.push(crate::state::FinishRank {
+            seat_index: acted_seat,
+            rank,
+        });
+        effects.push(public_effect(StarbridgeEffect::FinishAssigned {
+            seat_index: acted_seat,
+            rank,
+        }));
+    }
+
+    if state.finish_ranks.len() + 1 >= state.seats.len() {
+        assign_remaining_ranks(state);
+        state.terminal_status = Some(crate::state::TerminalStatus::Complete);
+        effects.push(public_effect(StarbridgeEffect::Terminal {
+            reason: "terminal-all-but-one-finished".to_owned(),
+        }));
+        return;
+    }
+
+    if state.ply_count >= state.variant.max_plies {
+        assign_turn_limit_ranks(state);
+        state.terminal_status = Some(crate::state::TerminalStatus::TurnLimit {
+            max_plies: state.variant.max_plies,
+        });
+        effects.push(public_effect(StarbridgeEffect::Terminal {
+            reason: "terminal-turn-limit".to_owned(),
+        }));
+        return;
+    }
+
+    state.active_seat_index = next_active_seat_index(state);
+}
+
+fn seat_has_finished(state: &StarbridgeState, seat_index: u8) -> bool {
+    let Some(assignment) = state.seats.get(usize::from(seat_index)) else {
+        return false;
+    };
+    let target_spaces = home_spaces(assignment.target)
+        .map(|space| space.id)
+        .collect::<Vec<_>>();
+    let seat_pegs = state.pegs_for_seat(seat_index).collect::<Vec<_>>();
+    seat_pegs.len() == usize::from(state.variant.pegs_per_seat)
+        && seat_pegs
+            .iter()
+            .all(|peg| target_spaces.contains(&peg.space))
+}
+
+fn next_finish_rank(state: &StarbridgeState) -> u8 {
+    u8::try_from(state.finish_ranks.len() + 1).expect("supported seat count fits u8")
+}
+
+fn assign_remaining_ranks(state: &mut StarbridgeState) {
+    for seat_index in 0..state.seats.len() {
+        let seat_index = u8::try_from(seat_index).expect("supported seat count fits u8");
+        if !state
+            .finish_ranks
+            .iter()
+            .any(|rank| rank.seat_index == seat_index)
+        {
+            let rank = next_finish_rank(state);
+            state
+                .finish_ranks
+                .push(crate::state::FinishRank { seat_index, rank });
+        }
+    }
+}
+
+fn assign_turn_limit_ranks(state: &mut StarbridgeState) {
+    let mut unfinished = (0..state.seats.len())
+        .map(|seat_index| u8::try_from(seat_index).expect("supported seat count fits u8"))
+        .filter(|seat_index| {
+            !state
+                .finish_ranks
+                .iter()
+                .any(|rank| rank.seat_index == *seat_index)
+        })
+        .map(|seat_index| (seat_index, progress_score(state, seat_index)))
+        .collect::<Vec<_>>();
+    unfinished.sort_by_key(|(seat_index, score)| (std::cmp::Reverse(*score), *seat_index));
+    for (seat_index, _) in unfinished {
+        let rank = next_finish_rank(state);
+        state
+            .finish_ranks
+            .push(crate::state::FinishRank { seat_index, rank });
+    }
+}
+
+fn progress_score(state: &StarbridgeState, seat_index: u8) -> u8 {
+    let Some(assignment) = state.seats.get(usize::from(seat_index)) else {
+        return 0;
+    };
+    let target_spaces = home_spaces(assignment.target)
+        .map(|space| space.id)
+        .collect::<Vec<_>>();
+    u8::try_from(
+        state
+            .pegs_for_seat(seat_index)
+            .filter(|peg| target_spaces.contains(&peg.space))
+            .count(),
+    )
+    .expect("standard peg count fits u8")
+}
+
 fn next_active_seat_index(state: &StarbridgeState) -> u8 {
     if state.seats.is_empty() {
         return 0;
     }
-    (usize::from(state.active_seat_index) + 1)
-        .rem_euclid(state.seats.len())
-        .try_into()
-        .expect("supported seat count fits u8")
+    for offset in 1..=state.seats.len() {
+        let candidate =
+            (usize::from(state.active_seat_index) + offset).rem_euclid(state.seats.len());
+        let candidate = u8::try_from(candidate).expect("supported seat count fits u8");
+        if !state
+            .finish_ranks
+            .iter()
+            .any(|rank| rank.seat_index == candidate)
+        {
+            return candidate;
+        }
+    }
+    state.active_seat_index
 }
 
 pub fn stale_action_diagnostic() -> Diagnostic {
@@ -359,6 +527,13 @@ pub fn repeated_landing_diagnostic() -> Diagnostic {
     actions::diagnostic(
         "repeated_landing",
         "jump chain cannot revisit a landing in one turn",
+    )
+}
+
+pub fn pass_not_blocked_diagnostic() -> Diagnostic {
+    actions::diagnostic(
+        "pass_not_blocked",
+        "blocked pass is legal only with no moves",
     )
 }
 

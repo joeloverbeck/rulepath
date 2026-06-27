@@ -1,6 +1,6 @@
 # GAT20STACROSTA-009: Finish, rank, blocked pass, and turn-limit outcomes
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/starbridge_crossing/src/rules.rs` (finish/pass/terminal), `src/effects.rs`, `tests/rules.rs`
@@ -77,3 +77,45 @@ Finish detection at end of accepted move; continuing finish-rank ledger + finish
 1. `cargo test -p starbridge_crossing --test rules`
 2. `cargo test -p starbridge_crossing && bash scripts/boundary-check.sh`
 3. `--test rules` isolates terminal logic; full crate run confirms move-engine integration.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Extended `games/starbridge_crossing/src/rules.rs` with finish detection,
+  finish-rank assignment, finished-seat skipping, all-but-one terminal
+  completion, deterministic turn-limit rank projection, and forced
+  `pass_blocked` validation/application.
+- Extended `games/starbridge_crossing/src/actions.rs` so a blocked active seat
+  exposes exactly one `pass_blocked` action.
+- Extended `games/starbridge_crossing/src/effects.rs` with public finish,
+  blocked-pass, and terminal effects.
+- Extended `games/starbridge_crossing/tests/rules.rs` with finish assignment,
+  continuing finish order, terminal full standings, blocked pass, and
+  turn-limit cutoff coverage.
+- Updated `games/starbridge_crossing/src/lib.rs` exports for blocked pass and
+  terminal rule helpers.
+
+Deviations from plan:
+
+- Turn-limit progress projection is currently deterministic by completed
+  finish ranks, then unfinished target-home peg count, then clockwise seat
+  index. Broader distance-vector explanation surfaces remain for later
+  visibility/outcome tickets.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --test rules` passed: 16 integration
+  tests.
+- `cargo test -p starbridge_crossing` passed: 21 unit tests, 17 integration
+  tests, 0 doctests.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`

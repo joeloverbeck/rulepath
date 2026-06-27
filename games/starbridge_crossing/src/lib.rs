@@ -24,8 +24,9 @@ pub use ids::{
     STANDARD_MIN_SEATS, STANDARD_PEGS_PER_SEAT, SUPPORTED_SEAT_COUNTS, VARIANT_ID,
 };
 pub use rules::{
-    apply_jump_command, apply_step_command, legal_jump_landings, legal_step_moves,
-    validate_jump_command, validate_step_command, JumpChain, JumpLanding, StepMove,
+    apply_jump_command, apply_pass_blocked_command, apply_step_command, is_active_seat_blocked,
+    legal_jump_landings, legal_step_moves, validate_jump_command, validate_pass_blocked_command,
+    validate_step_command, JumpChain, JumpLanding, StepMove,
 };
 pub use setup::{setup_match, SetupOptions};
 pub use state::{

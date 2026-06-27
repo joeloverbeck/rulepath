@@ -2,10 +2,11 @@ use std::collections::BTreeSet;
 
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use starbridge_crossing::{
-    apply_jump_command, apply_step_command, encode_jump_path, encode_step_path, home_spaces,
-    legal_action_tree, legal_jump_landings, legal_step_moves, setup_match, validate_jump_command,
-    validate_step_command, SetupOptions, StarCoord, StarPegId, StarPoint, StarSpaceId, StarZone,
-    StarbridgeEffect, StarbridgeState, STANDARD_PEGS_PER_SEAT,
+    apply_jump_command, apply_pass_blocked_command, apply_step_command, encode_jump_path,
+    encode_step_path, home_spaces, legal_action_tree, legal_jump_landings, legal_step_moves,
+    setup_match, validate_jump_command, validate_step_command, SetupOptions, StarCoord, StarPegId,
+    StarPoint, StarSpaceId, StarZone, StarbridgeEffect, StarbridgeState, TerminalStatus, Variant,
+    STANDARD_PEGS_PER_SEAT,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -51,6 +52,10 @@ fn set_peg(state: &mut StarbridgeState, peg: StarPegId, space: StarSpaceId) {
     state.occupancy[usize::from(space.index())] = Some(peg);
 }
 
+fn clear_board(state: &mut StarbridgeState) {
+    state.occupancy = StarbridgeState::empty_occupancy();
+}
+
 fn jump_fixture() -> (
     Vec<SeatId>,
     StarbridgeState,
@@ -88,6 +93,71 @@ fn jump_fixture() -> (
         over_two,
         landing_two,
     )
+}
+
+fn finish_step_fixture(
+    seat_count: usize,
+    seat_index: u8,
+) -> (Vec<SeatId>, StarbridgeState, StarPegId, StarSpaceId) {
+    let seats = seats(seat_count);
+    let mut state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    clear_board(&mut state);
+    state.active_seat_index = seat_index;
+
+    let target = state.seats[usize::from(seat_index)].target;
+    let target_spaces = home_spaces(target)
+        .map(|space| space.id)
+        .collect::<Vec<_>>();
+    let landing = *target_spaces.first().unwrap();
+    let origin = starbridge_crossing::StarDirection::ALL
+        .into_iter()
+        .filter_map(|direction| starbridge_crossing::neighbor_in_direction(landing, direction))
+        .find(|space| !target_spaces.contains(space))
+        .expect("target edge has adjacent origin");
+
+    for (ordinal, target_space) in target_spaces.iter().copied().skip(1).enumerate() {
+        set_peg(
+            &mut state,
+            StarPegId::new(seat_index, u8::try_from(ordinal + 1).unwrap()),
+            target_space,
+        );
+    }
+    let peg = StarPegId::new(seat_index, 0);
+    set_peg(&mut state, peg, origin);
+    (seats, state, peg, landing)
+}
+
+fn blocked_fixture() -> (Vec<SeatId>, StarbridgeState) {
+    let seats = seats(2);
+    let mut state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    clear_board(&mut state);
+    let origin = starbridge_crossing::spaces()
+        .iter()
+        .find(|space| {
+            space
+                .neighbors
+                .iter()
+                .filter(|neighbor| neighbor.is_some())
+                .count()
+                == 2
+        })
+        .map(|space| space.id)
+        .expect("topology has degree-2 corners");
+    set_peg(&mut state, StarPegId::new(0, 0), origin);
+
+    let mut blockers = (0..10)
+        .map(|ordinal| StarPegId::new(1, ordinal))
+        .collect::<Vec<_>>()
+        .into_iter();
+    for direction in starbridge_crossing::StarDirection::ALL {
+        if let Some(neighbor) = starbridge_crossing::neighbor_in_direction(origin, direction) {
+            set_peg(&mut state, blockers.next().unwrap(), neighbor);
+            if let Some(beyond) = starbridge_crossing::neighbor_in_direction(neighbor, direction) {
+                set_peg(&mut state, blockers.next().unwrap(), beyond);
+            }
+        }
+    }
+    (seats, state)
 }
 
 #[test]
@@ -434,4 +504,117 @@ fn repeated_landing_and_mixed_step_jump_are_rejected_without_mutation() {
     )
     .expect_err("mixed move kind is rejected");
     assert_eq!(mixed.code, "mixed_move_kind");
+}
+
+#[test]
+fn finish_rank_is_assigned_after_all_pegs_reach_target_home() {
+    let (seats, mut state, peg, landing) = finish_step_fixture(2, 0);
+    let freshness_token = state.freshness_token;
+    let effects = apply_step_command(
+        &mut state,
+        &command(
+            actor(&seats[0]),
+            encode_step_path(peg, landing),
+            freshness_token,
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(state.finish_ranks[0].seat_index, 0);
+    assert_eq!(state.finish_ranks[0].rank, 1);
+    assert_eq!(state.terminal_status, Some(TerminalStatus::Complete));
+    assert!(matches!(
+        effects.last().unwrap().payload,
+        StarbridgeEffect::Terminal { .. }
+    ));
+}
+
+#[test]
+fn finished_seats_are_skipped_and_last_rank_is_assigned() {
+    let (seats, mut state, peg, landing) = finish_step_fixture(3, 1);
+    state.finish_ranks.push(starbridge_crossing::FinishRank {
+        seat_index: 0,
+        rank: 1,
+    });
+    let freshness_token = state.freshness_token;
+
+    apply_step_command(
+        &mut state,
+        &command(
+            actor(&seats[1]),
+            encode_step_path(peg, landing),
+            freshness_token,
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(
+        state
+            .finish_ranks
+            .iter()
+            .map(|rank| (rank.seat_index, rank.rank))
+            .collect::<Vec<_>>(),
+        vec![(0, 1), (1, 2), (2, 3)]
+    );
+    assert_eq!(state.terminal_status, Some(TerminalStatus::Complete));
+}
+
+#[test]
+fn blocked_pass_is_forced_when_active_seat_has_no_move() {
+    let (seats, mut state) = blocked_fixture();
+    let tree = legal_action_tree(&state, &actor(&seats[0]));
+
+    assert_eq!(tree.root.choices.len(), 1);
+    assert_eq!(tree.root.choices[0].segment, "pass_blocked");
+
+    let freshness_token = state.freshness_token;
+    let effects = apply_pass_blocked_command(
+        &mut state,
+        &command(
+            actor(&seats[0]),
+            vec!["pass_blocked".to_owned()],
+            freshness_token,
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(state.active_seat_index, 1);
+    assert_eq!(state.ply_count, 1);
+    assert!(matches!(
+        effects[0].payload,
+        StarbridgeEffect::PassBlocked { seat_index: 0 }
+    ));
+}
+
+#[test]
+fn turn_limit_assigns_deterministic_unfinished_ranks() {
+    let seats = seats(3);
+    let mut variant = Variant::starbridge_classic();
+    variant.max_plies = 1;
+    let mut state = setup_match(Seed(7), &seats, &SetupOptions { variant }).unwrap();
+    let step = legal_step_moves(&state)[0];
+    let freshness_token = state.freshness_token;
+
+    apply_step_command(
+        &mut state,
+        &command(
+            actor(&seats[0]),
+            encode_step_path(step.peg, step.to),
+            freshness_token,
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(
+        state.terminal_status,
+        Some(TerminalStatus::TurnLimit { max_plies: 1 })
+    );
+    assert_eq!(
+        state
+            .finish_ranks
+            .iter()
+            .map(|rank| (rank.seat_index, rank.rank))
+            .collect::<Vec<_>>(),
+        vec![(0, 1), (1, 2), (2, 3)]
+    );
 }

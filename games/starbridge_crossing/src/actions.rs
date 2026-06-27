@@ -8,7 +8,7 @@ use engine_core::{
 
 use crate::{
     ids::StarSpaceId,
-    rules::{legal_jump_landings, legal_step_moves},
+    rules::{is_active_seat_blocked, legal_jump_landings, legal_step_moves},
     state::{StarPegId, StarbridgeState},
 };
 
@@ -17,6 +17,7 @@ pub const ACTION_STEP: &str = "step";
 pub const ACTION_JUMP: &str = "jump";
 pub const ACTION_CONTINUE: &str = "continue";
 pub const ACTION_STOP: &str = "stop";
+pub const ACTION_PASS_BLOCKED: &str = "pass_blocked";
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum StarbridgeAction {
@@ -28,6 +29,7 @@ pub enum StarbridgeAction {
         peg: StarPegId,
         landings: Vec<StarSpaceId>,
     },
+    PassBlocked,
 }
 
 pub fn legal_action_tree(state: &StarbridgeState, actor: &Actor) -> ActionTree {
@@ -45,6 +47,20 @@ pub fn legal_action_tree(state: &StarbridgeState, actor: &Actor) -> ActionTree {
         .map(|peg| peg.id)
         .collect::<Vec<_>>();
     if step_moves.is_empty() && jump_pegs.is_empty() {
+        if is_active_seat_blocked(state) {
+            return ActionTree::flat(
+                state.freshness_token,
+                vec![ActionChoice {
+                    segment: ACTION_PASS_BLOCKED.to_owned(),
+                    label: "Pass blocked".to_owned(),
+                    accessibility_label: "Pass because no legal move is available".to_owned(),
+                    metadata: Vec::new(),
+                    tags: vec!["pass_blocked".to_owned()],
+                    preview: ActionPreview::Available,
+                    next: None,
+                }],
+            );
+        }
         return ActionTree::flat(state.freshness_token, Vec::new());
     }
 
@@ -135,6 +151,7 @@ pub fn parse_action_path(segments: &[String]) -> Result<StarbridgeAction, Diagno
         {
             Err(mixed_move_kind_diagnostic())
         }
+        [action] if action == ACTION_PASS_BLOCKED => Ok(StarbridgeAction::PassBlocked),
         _ => Err(malformed_action_diagnostic()),
     }
 }
