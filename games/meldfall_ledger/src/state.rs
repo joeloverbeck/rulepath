@@ -6,6 +6,7 @@ use engine_core::{SeatId, Seed};
 
 use crate::{
     cards::{CardId, Rank, Suit},
+    scoring::RoundSettlement,
     setup::InitialSetup,
     variants::Variant,
 };
@@ -32,6 +33,7 @@ pub struct MatchState {
     pub cumulative_scores: Vec<i32>,
     pub dealer_index: SeatIndex,
     pub rounds_settled: u32,
+    pub last_settlement: Option<LastSettlementSnapshot>,
     pub round: RoundState,
     pub terminal: Option<MatchOutcome>,
 }
@@ -51,9 +53,34 @@ impl MatchState {
             cumulative_scores: vec![0; seat_count],
             dealer_index,
             rounds_settled: 0,
+            last_settlement: None,
             round,
             terminal: None,
         }
+    }
+
+    pub fn retain_last_settlement(&mut self, round_index: u32, settlement: &RoundSettlement) {
+        let Some(round_end) = self.round.round_end else {
+            return;
+        };
+        self.last_settlement = Some(LastSettlementSnapshot {
+            round_index,
+            round_end_reason: round_end.stable_string(),
+            seats: settlement
+                .seats
+                .iter()
+                .map(|seat| LastSettlementSeatSnapshot {
+                    seat_index: seat.seat_index,
+                    tabled_positive: seat.tabled_positive,
+                    in_hand_penalty: seat.in_hand_penalty,
+                    remaining_hand_count: seat.remaining_hand_count,
+                    round_delta: seat.round_delta,
+                    cumulative_score: seat.cumulative_score,
+                    rank: seat.rank,
+                    winner: seat.winner,
+                })
+                .collect(),
+        });
     }
 
     pub fn stable_internal_summary(&self) -> String {
@@ -83,6 +110,56 @@ impl MatchState {
             self.rounds_settled,
             self.round.stable_internal_summary(),
             terminal
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LastSettlementSnapshot {
+    pub round_index: u32,
+    pub round_end_reason: String,
+    pub seats: Vec<LastSettlementSeatSnapshot>,
+}
+
+impl LastSettlementSnapshot {
+    pub fn stable_public_string(&self) -> String {
+        let seats = self
+            .seats
+            .iter()
+            .map(LastSettlementSeatSnapshot::stable_public_string)
+            .collect::<Vec<_>>()
+            .join(";");
+        format!(
+            "last_settlement|round={}:reason={}:seats=[{}]",
+            self.round_index, self.round_end_reason, seats
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LastSettlementSeatSnapshot {
+    pub seat_index: SeatIndex,
+    pub tabled_positive: i32,
+    pub in_hand_penalty: i32,
+    pub remaining_hand_count: usize,
+    pub round_delta: i32,
+    pub cumulative_score: i32,
+    pub rank: usize,
+    pub winner: bool,
+}
+
+impl LastSettlementSeatSnapshot {
+    pub fn stable_public_string(&self) -> String {
+        format!(
+            "{}:tabled={}:penalty={}:remaining={}:delta={}:cumulative={}:rank={}:winner={}",
+            self.seat_index,
+            self.tabled_positive,
+            self.in_hand_penalty,
+            self.remaining_hand_count,
+            self.round_delta,
+            self.cumulative_score,
+            self.rank,
+            self.winner
         )
     }
 }

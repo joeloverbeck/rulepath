@@ -12,7 +12,10 @@ use crate::{
     cards::CardId,
     effects::MeldfallEffect,
     ids::{GAME_ID, RULES_VERSION_LABEL, VARIANT_ID},
-    state::{MatchOutcome, MatchState, MeldGroup, MeldTableau, SeatIndex, TableCard},
+    state::{
+        LastSettlementSeatSnapshot, LastSettlementSnapshot, MatchOutcome, MatchState, MeldGroup,
+        MeldTableau, SeatIndex, TableCard,
+    },
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -30,6 +33,7 @@ pub struct MeldfallView {
     pub round_played_scores: Vec<i32>,
     pub tableau: PublicTableauView,
     pub round_end: Option<String>,
+    pub last_settlement: Option<MeldfallSettlementView>,
     pub terminal: Option<PublicMatchOutcomeView>,
     pub private: PrivateView,
 }
@@ -37,7 +41,7 @@ pub struct MeldfallView {
 impl MeldfallView {
     pub fn stable_string(&self) -> String {
         format!(
-            "game={};variant={};rules={};active={};dealer={};phase={};stock_count={};discard=[{}];hand_counts=[{}];scores=[{}];round_scores=[{}];tableau=[{}];round_end={};terminal={};private={}",
+            "game={};variant={};rules={};active={};dealer={};phase={};stock_count={};discard=[{}];hand_counts=[{}];scores=[{}];round_scores=[{}];tableau=[{}];round_end={};last_settlement={};terminal={};private={}",
             self.game_id,
             self.variant_id,
             self.rules_version_label,
@@ -51,11 +55,65 @@ impl MeldfallView {
             int_list(&self.round_played_scores),
             self.tableau.stable_string(),
             self.round_end.as_deref().unwrap_or("none"),
+            self.last_settlement
+                .as_ref()
+                .map(MeldfallSettlementView::stable_string)
+                .unwrap_or_else(|| "none".to_owned()),
             self.terminal
                 .as_ref()
                 .map(PublicMatchOutcomeView::stable_string)
                 .unwrap_or_else(|| "none".to_owned()),
             self.private.stable_string()
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MeldfallSettlementView {
+    pub round_index: u32,
+    pub round_end_reason: String,
+    pub seats: Vec<MeldfallSettlementSeatView>,
+}
+
+impl MeldfallSettlementView {
+    pub fn stable_string(&self) -> String {
+        let seats = self
+            .seats
+            .iter()
+            .map(MeldfallSettlementSeatView::stable_string)
+            .collect::<Vec<_>>()
+            .join(";");
+        format!(
+            "round={}:reason={}:seats=[{}]",
+            self.round_index, self.round_end_reason, seats
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MeldfallSettlementSeatView {
+    pub seat_index: SeatIndex,
+    pub tabled_positive: i32,
+    pub in_hand_penalty: i32,
+    pub remaining_hand_count: usize,
+    pub delta: i32,
+    pub cumulative_score: i32,
+    pub rank: usize,
+    pub winner: bool,
+}
+
+impl MeldfallSettlementSeatView {
+    pub fn stable_string(&self) -> String {
+        format!(
+            "{}:tabled={}:penalty={}:remaining={}:delta={}:cumulative={}:rank={}:winner={}",
+            self.seat_index,
+            self.tabled_positive,
+            self.in_hand_penalty,
+            self.remaining_hand_count,
+            self.delta,
+            self.cumulative_score,
+            self.rank,
+            self.winner
         )
     }
 }
@@ -210,6 +268,7 @@ pub fn project_view(state: &MatchState, viewer: &Viewer) -> MeldfallView {
             .round_end
             .as_ref()
             .map(|round| round.stable_string()),
+        last_settlement: state.last_settlement.as_ref().map(project_last_settlement),
         terminal: state.terminal.as_ref().map(project_match_outcome),
         private: private_view(state, viewer_seat_index),
     }
@@ -274,6 +333,33 @@ fn project_table_card(card: &TableCard) -> PublicTableCardView {
         played_by: card.played_by,
         score_credit_owner: card.score_credit_owner,
         play_turn: card.play_turn.0,
+    }
+}
+
+fn project_last_settlement(snapshot: &LastSettlementSnapshot) -> MeldfallSettlementView {
+    MeldfallSettlementView {
+        round_index: snapshot.round_index,
+        round_end_reason: snapshot.round_end_reason.clone(),
+        seats: snapshot
+            .seats
+            .iter()
+            .map(project_last_settlement_seat)
+            .collect(),
+    }
+}
+
+fn project_last_settlement_seat(
+    snapshot: &LastSettlementSeatSnapshot,
+) -> MeldfallSettlementSeatView {
+    MeldfallSettlementSeatView {
+        seat_index: snapshot.seat_index,
+        tabled_positive: snapshot.tabled_positive,
+        in_hand_penalty: snapshot.in_hand_penalty,
+        remaining_hand_count: snapshot.remaining_hand_count,
+        delta: snapshot.round_delta,
+        cumulative_score: snapshot.cumulative_score,
+        rank: snapshot.rank,
+        winner: snapshot.winner,
     }
 }
 

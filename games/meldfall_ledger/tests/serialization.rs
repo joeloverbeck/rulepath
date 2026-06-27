@@ -11,8 +11,8 @@ use meldfall_ledger::{
     scoring::apply_round_deltas,
     setup::{default_seats, setup_match, SetupOptions},
     state::{
-        MatchOutcome, MatchState, MeldId, MeldKind, MeldTableau, SeatStanding, TableCard,
-        TurnOrdinal,
+        LastSettlementSeatSnapshot, LastSettlementSnapshot, MatchOutcome, MatchState, MeldId,
+        MeldKind, MeldTableau, SeatStanding, TableCard, TurnOrdinal,
     },
 };
 
@@ -80,6 +80,32 @@ fn match_state_summary_has_stable_field_order() {
         summary.contains("meld_7:run:clubs:origin=1:cards=[ace_clubs:played_by=1:credit=1:turn=2]")
     );
     assert!(summary.ends_with("terminal=winner=1:standings=[1:505:40:1:true,0:410:-5:2:false]"));
+}
+
+#[test]
+fn retained_last_settlement_is_excluded_from_stable_internal_summary() {
+    let without_snapshot = sample_state();
+    let mut with_snapshot = without_snapshot.clone();
+    with_snapshot.last_settlement = Some(LastSettlementSnapshot {
+        round_index: 0,
+        round_end_reason: "go_out_by_final_discard:seat=2".to_owned(),
+        seats: vec![LastSettlementSeatSnapshot {
+            seat_index: 2,
+            tabled_positive: 40,
+            in_hand_penalty: 3,
+            remaining_hand_count: 1,
+            round_delta: 37,
+            cumulative_score: 115,
+            rank: 1,
+            winner: false,
+        }],
+    });
+
+    assert_eq!(
+        without_snapshot.stable_internal_summary(),
+        with_snapshot.stable_internal_summary()
+    );
+    assert_ne!(without_snapshot, with_snapshot);
 }
 
 #[test]

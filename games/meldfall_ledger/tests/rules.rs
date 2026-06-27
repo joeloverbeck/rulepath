@@ -884,6 +884,11 @@ fn round_scoring_uses_tabled_credit_minus_hand_penalties_without_card_leak() {
         TurnOrdinal(2),
     )
     .expect("layoff accepted");
+    state.round.round_end = Some(RoundEndSummary {
+        reason: RoundEndReason::GoOutWithoutDiscard,
+        seat_index: 0,
+    });
+    state.round.phase = TurnPhase::RoundSettled;
 
     let settlement = settle_round(&mut state);
 
@@ -896,6 +901,29 @@ fn round_scoring_uses_tabled_credit_minus_hand_penalties_without_card_leak() {
     assert_eq!(settlement.seats[1].round_delta, 13);
     assert!(!settlement.stable_public_string().contains("king_clubs"));
     assert!(!settlement.stable_public_string().contains("two_hearts"));
+
+    let retained = state
+        .last_settlement
+        .clone()
+        .expect("last settlement retained");
+    assert_eq!(retained.round_index, 0);
+    assert_eq!(retained.round_end_reason, "go_out_without_discard:seat=0");
+    assert_eq!(retained.seats[0].tabled_positive, 45);
+    assert_eq!(retained.seats[0].in_hand_penalty, 10);
+    assert_eq!(retained.seats[0].round_delta, 35);
+    assert_eq!(retained.seats[1].tabled_positive, 15);
+    assert_eq!(retained.seats[1].in_hand_penalty, 2);
+    assert_eq!(retained.seats[1].round_delta, 13);
+    assert!(!retained.stable_public_string().contains("king_clubs"));
+    assert!(!retained.stable_public_string().contains("two_hearts"));
+
+    advance_to_next_round(&mut state).expect("non-terminal round advances");
+    assert_eq!(
+        state.last_settlement.as_ref(),
+        Some(&retained),
+        "last settlement persists across the next round deal"
+    );
+    assert!(state.round.round_end.is_none());
 }
 
 #[test]

@@ -9,7 +9,10 @@ use meldfall_ledger::{
     replay_support::export_viewer_snapshot,
     rules::advance_to_next_round,
     setup::{default_seats, setup_match, SetupOptions},
-    state::{MatchState, MeldId, RoundEndReason, RoundEndSummary, TurnPhase},
+    state::{
+        LastSettlementSeatSnapshot, LastSettlementSnapshot, MatchState, MeldId, RoundEndReason,
+        RoundEndSummary, TurnPhase,
+    },
     visibility::{
         contains_card_id_in_debug, project_action_tree_for_viewer, project_effects_for_viewer,
         project_view, redact_diagnostic_for_viewer, PrivateView,
@@ -159,6 +162,72 @@ fn public_draw_action_tree_exposes_discard_indices_not_stock_identity() {
         assert!(surface.contains("draw-stock"));
         assert!(surface.contains("draw-discard-0"));
         assert!(!surface.contains(&stock_top.as_str()));
+    }
+}
+
+#[test]
+fn last_settlement_projection_is_public_count_only_and_same_for_every_viewer() {
+    let mut state = visibility_state();
+    state.last_settlement = Some(LastSettlementSnapshot {
+        round_index: 2,
+        round_end_reason: "stock_exhausted:seat=1".to_owned(),
+        seats: vec![
+            LastSettlementSeatSnapshot {
+                seat_index: 0,
+                tabled_positive: 30,
+                in_hand_penalty: 10,
+                remaining_hand_count: 1,
+                round_delta: 20,
+                cumulative_score: 120,
+                rank: 1,
+                winner: false,
+            },
+            LastSettlementSeatSnapshot {
+                seat_index: 1,
+                tabled_positive: 5,
+                in_hand_penalty: 14,
+                remaining_hand_count: 2,
+                round_delta: -9,
+                cumulative_score: 80,
+                rank: 2,
+                winner: false,
+            },
+            LastSettlementSeatSnapshot {
+                seat_index: 2,
+                tabled_positive: 0,
+                in_hand_penalty: 6,
+                remaining_hand_count: 1,
+                round_delta: -6,
+                cumulative_score: 40,
+                rank: 3,
+                winner: false,
+            },
+        ],
+    });
+
+    let observer = project_view(&state, &viewer(None))
+        .last_settlement
+        .expect("observer sees public settlement");
+    assert_eq!(observer.round_index, 2);
+    assert_eq!(observer.round_end_reason, "stock_exhausted:seat=1");
+    assert_eq!(observer.seats[0].tabled_positive, 30);
+    assert_eq!(observer.seats[0].in_hand_penalty, 10);
+    assert_eq!(observer.seats[0].delta, 20);
+
+    for viewer_seat in 0..state.seats.len() {
+        assert_eq!(
+            project_view(&state, &viewer(Some(viewer_seat))).last_settlement,
+            Some(observer.clone())
+        );
+    }
+
+    let surface = observer.stable_string();
+    for hidden in hidden_hand_and_stock_cards(&state) {
+        assert!(
+            !surface.contains(&hidden.as_str()),
+            "last settlement leaked hidden card {} in {surface}",
+            hidden.as_str()
+        );
     }
 }
 

@@ -1,6 +1,6 @@
 # GAT192MELLEDSET-001: Rust `last_settlement` retention + visibility projection
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/meldfall_ledger` (`src/state.rs`, `src/visibility.rs`, possibly `src/scoring.rs`); tests `tests/visibility.rs`, `tests/rules.rs`, `tests/serialization.rs`
@@ -181,3 +181,44 @@ and the opponent-hand-mutation no-leak invariant.
 4. The crate-scoped test filters are the correct boundary for the projection;
    `replay-check --all` is the determinism/hash guard and `--workspace` the
    regression guard.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added a game-local `MatchState.last_settlement` snapshot with round index,
+  public round-end reason, and per-seat `ML-VIS-006` settlement fields.
+- Populated the snapshot from `settle_round` after scoring, while keeping it out
+  of `MatchState::stable_internal_summary()` so the replay `state_hash` input
+  remains unchanged.
+- Added `MeldfallSettlementView` / `MeldfallSettlementSeatView` to the Rust
+  public projection and included it in `MeldfallView.stable_string()` for
+  deterministic view/export summaries.
+- Added tests for persistence across `advance_to_next_round`, public
+  count-only/no-card settlement projection, identical observer/seat projection,
+  and stable-summary exclusion.
+
+Deviations:
+
+- The ticket's grouped filter command
+  `cargo test -p meldfall_ledger visibility rules serialization` is not valid
+  Cargo syntax because `cargo test` accepts one test filter. The equivalent
+  truthful proof used the full crate lane `cargo test -p meldfall_ledger`,
+  which covers `visibility`, `rules`, and `serialization`.
+- The new field is intentionally included in `MeldfallView.stable_string()`.
+  `state_hash` remains unchanged by excluding the retained snapshot from
+  `stable_internal_summary()`; viewer/export stable summaries can now carry the
+  new public projection.
+
+Verification:
+
+- `cargo test -p meldfall_ledger visibility rules serialization` failed before
+  running tests with Cargo usage error `unexpected argument 'rules'`.
+- `cargo test -p meldfall_ledger` passed.
+- `cargo fmt --all --check` passed.
+- `cargo run -p replay-check -- --game meldfall_ledger --all` passed for all
+  Meldfall Ledger golden traces.
+- `cargo clippy -p meldfall_ledger --all-targets -- -D warnings` passed.
+- `cargo test --workspace` passed.
