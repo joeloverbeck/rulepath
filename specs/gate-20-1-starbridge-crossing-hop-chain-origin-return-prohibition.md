@@ -33,13 +33,16 @@ that contradicts the game's documented turn model.
 - Rust legality: hop-chain enumeration (`games/starbridge_crossing/src/actions.rs`)
   and validation (`games/starbridge_crossing/src/rules.rs`) must treat the
   moving peg's origin space as a forbidden landing for the entire chain.
-- Rule-text clarification of `SC-MOVE-007` in
-  `games/starbridge_crossing/docs/RULES.md` to state explicitly that the moving
-  peg's origin space is part of that turn's hop path and may not be re-landed
-  on, with a Rule-ID Migration Note.
-- `games/starbridge_crossing/docs/RULE-COVERAGE.md` row + evidence update for the
-  clarified `SC-MOVE-007` (and a cross-reference from `SC-TURN-002` /
-  `SC-MOVE-009`, whose intent this defect violated).
+- New rule `SC-MOVE-010` in `games/starbridge_crossing/docs/RULES.md` stating
+  that a hop chain may not land on the moving peg's own origin space (a committed
+  turn must change board occupancy unless Rust issues `pass_blocked`),
+  cross-referencing `SC-TURN-002` / `SC-MOVE-009`, with a Rule-ID Migration Note.
+  `SC-MOVE-007` (the action-tree-finiteness / no-revisit-landing rule) and its
+  `SOURCES.md` `SC-AMB-004` anchor are left unchanged — origin-return is a
+  distinct turn-model concern, not a finiteness concern.
+- `games/starbridge_crossing/docs/RULE-COVERAGE.md` row + evidence for the new
+  `SC-MOVE-010` (cross-referencing `SC-TURN-002` / `SC-MOVE-009`, whose intent
+  this defect violated).
 - TDD: a failing-first test asserting a return-to-origin chain is rejected by
   `validate_jump_command` and is absent from the enumerated action tree, plus a
   regression that legitimate multi-hop chains (including direction changes and
@@ -68,13 +71,16 @@ that contradicts the game's documented turn model.
 
 ## 4. Deliverables
 
-- Updated `games/starbridge_crossing/src/rules.rs::legal_jump_landings` (and/or
-  `actions.rs::add_jump_choices` seeding) so the origin space cannot be a
-  landing anywhere in the chain.
-- Updated `games/starbridge_crossing/docs/RULES.md` (`SC-MOVE-007` resolution +
+- Updated `games/starbridge_crossing/src/rules.rs::legal_jump_landings` with a
+  single internal `if landing == origin { continue; }` guard (the function
+  already computes `origin`) so the origin space cannot be a landing anywhere in
+  the chain. This one chokepoint covers both the action-tree enumeration
+  (`actions.rs::jump_landing_choices`) and validation (`validate_jump_command`).
+- Updated `games/starbridge_crossing/docs/RULES.md` (new `SC-MOVE-010` +
   Rule-ID Migration Note) and `RULE-COVERAGE.md`.
-- New/updated tests in `games/starbridge_crossing/tests/rules.rs` (and property
-  test coverage in `tests/property.rs` if the invariant is property-shaped).
+- New/updated tests in `games/starbridge_crossing/tests/rules.rs`, plus a
+  `tests/property.rs` assertion that every committed non-`pass_blocked` turn
+  changes board occupancy (A2's invariant is property-shaped).
 - Regenerated, authority-annotated evidence artifacts (golden traces, replay
   fixtures, benchmark baselines) strictly limited to those that changed, under
   ADR 0009.
@@ -85,13 +91,16 @@ that contradicts the game's documented turn model.
    to `tests/rules.rs` reproducing `origin → A → origin` and asserting rejection
    (`validate_jump_command` error) and action-tree absence. Confirm it fails on
    `main`.
-2. **STACROSORIG-002** — GREEN fix: forbid the origin landing in
-   `legal_jump_landings` (seed the visited/forbidden set with `origin`, or add an
-   explicit `landing != origin` guard), keeping `occupancy_during_chain`
-   semantics for genuine mid-chain spaces. Verify legitimate chains unchanged.
-3. **STACROSORIG-003** — Rules clarification: `SC-MOVE-007` resolution text +
-   Rule-ID Migration Note; `RULE-COVERAGE.md` evidence row; cross-reference
-   `SC-TURN-002` / `SC-MOVE-009`.
+2. **STACROSORIG-002** — GREEN fix: add an explicit `landing == origin` guard in
+   `legal_jump_landings` (the single chokepoint for both enumeration and
+   validation; it already computes `origin`), keeping `occupancy_during_chain`
+   semantics for genuine mid-chain spaces. Add the `tests/property.rs` assertion
+   that every committed non-`pass_blocked` turn changes board occupancy (A2).
+   Verify legitimate chains unchanged.
+3. **STACROSORIG-003** — Rules update: add new `SC-MOVE-010` rule text +
+   Rule-ID Migration Note; `RULE-COVERAGE.md` evidence row + trace; cross-reference
+   `SC-TURN-002` / `SC-MOVE-009`. Leave `SC-MOVE-007` and `SOURCES.md`
+   `SC-AMB-004` unchanged.
 4. **STACROSORIG-004** — Governed migration: run `fixture-check` / `replay-check`
    / `rule-coverage`, regenerate only changed artifacts with per-artifact ADR
    0009 authority notes; refresh `GAME-EVIDENCE.md`; capture CI receipts.
@@ -106,8 +115,9 @@ Dependency order: 001 → 002 → 003 → 004.
   proven by unchanged direction-change / stop-midway tests.
 - No turn can leave the board occupancy identical to its pre-turn state except a
   Rust-issued `pass_blocked` (`SC-MOVE-009`).
-- `RULES.md` `SC-MOVE-007` and `RULE-COVERAGE.md` reconciled with a migration
-  note; `node scripts/check-doc-links.mjs` passes.
+- `RULES.md` carries the new `SC-MOVE-010` and `RULE-COVERAGE.md` its evidence
+  row with a migration note; `SC-MOVE-007` is unchanged;
+  `node scripts/check-doc-links.mjs` passes.
 - CI gate 0 (`fmt`, `clippy -D warnings`, `build`, `test`) and gate 1
   (`simulate`, `replay-check --all`, `fixture-check`, `rule-coverage`,
   `boundary-check.sh`, web smokes) pass with only ADR-0009-authorized artifact
@@ -120,7 +130,7 @@ Dependency order: 001 → 002 → 003 → 004.
 - `cargo run -p replay-check -- --game starbridge_crossing --all` and
   `cargo run -p fixture-check -- --game starbridge_crossing` pass with annotated
   diffs only.
-- `cargo run -p rule-coverage -- --game starbridge_crossing` shows `SC-MOVE-007`
+- `cargo run -p rule-coverage -- --game starbridge_crossing` shows `SC-MOVE-010`
   covered by the new test/trace.
 - Web e2e (`node apps/web/e2e/starbridge-crossing.smoke.mjs`) still green; manual
   Puppeteer reproduction (the `origin → A → origin` no-op) no longer offered.
@@ -145,7 +155,7 @@ Dependency order: 001 → 002 → 003 → 004.
 
 ## 10. Documentation updates required
 
-- `games/starbridge_crossing/docs/RULES.md` — `SC-MOVE-007` + migration note.
+- `games/starbridge_crossing/docs/RULES.md` — new `SC-MOVE-010` + migration note.
 - `games/starbridge_crossing/docs/RULE-COVERAGE.md` — evidence rows.
 - `games/starbridge_crossing/docs/GAME-EVIDENCE.md` — fix receipt.
 - `specs/README.md` — add the Gate 20.1 tracker row; flip to `Done` at closeout.
