@@ -5556,6 +5556,7 @@ svg g[data-effect-kind] {
 .meldfall-tableau,
 .meldfall-private,
 .meldfall-actions,
+.meldfall-log,
 .meldfall-latest {
   display: grid;
   gap: 10px;
@@ -5563,6 +5564,38 @@ svg g[data-effect-kind] {
   border-radius: 8px;
   background: var(--ml-panel);
   padding: 12px;
+}
+
+.meldfall-status-col {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.meldfall-log {
+  gap: 8px;
+}
+
+.meldfall-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.meldfall-log-list li {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--ml-ink);
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--ml-panel-soft);
+}
+
+.meldfall-log-list li:first-child {
+  background: var(--ml-accent-soft);
+  font-weight: 600;
 }
 
 .meldfall-metric {
@@ -5691,6 +5724,16 @@ svg g[data-effect-kind] {
   border-color: var(--ml-warm);
 }
 
+.meldfall-seat.next:not(.active) {
+  border-color: var(--ml-accent);
+  border-style: dashed;
+}
+
+.meldfall-seat.next:not(.active) header span {
+  color: var(--ml-accent);
+  font-weight: 700;
+}
+
 .meldfall-seat.near-goout {
   border-color: #c0392b;
   box-shadow: inset 0 0 0 2px color-mix(in srgb, #c0392b 16%, transparent);
@@ -5803,6 +5846,23 @@ svg g[data-effect-kind] {
   background: var(--ml-accent-soft);
 }
 
+.meldfall-stock.low {
+  background: var(--ml-warm-soft);
+  border-color: var(--ml-warm);
+}
+
+.meldfall-stock-warning {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ml-warm);
+  border-radius: 8px;
+  background: var(--ml-warm-soft);
+  color: var(--ml-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 .meldfall-stock strong,
 .meldfall-card strong {
   min-width: 0;
@@ -5882,6 +5942,18 @@ svg g[data-effect-kind] {
   color: var(--ml-ink);
   font-size: 0.74rem;
   font-weight: 600;
+  line-height: 1.3;
+}
+
+.meldfall-phase-guide {
+  margin: 0 0 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--ml-card-border);
+  border-left: 3px solid var(--ml-accent);
+  border-radius: 8px;
+  background: var(--ml-accent-soft);
+  color: var(--ml-ink);
+  font-size: 0.74rem;
   line-height: 1.3;
 }
 

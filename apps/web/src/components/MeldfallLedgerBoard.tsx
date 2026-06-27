@@ -62,6 +62,22 @@ export function MeldfallLedgerBoard({
   // a live draw decision we can explain why a disabled discard is not pickable.
   const drawDecision = canAct && !view.terminal && view.phase === "draw";
   const roundSettled = !view.terminal && view.phase === "round_settled";
+  // Stock-exhaustion pressure (ML-TURN-009): when the stock runs out and no seat has a
+  // legal draw, the round settles immediately and the discard pile is never reshuffled.
+  // The raw count is public, so flagging the endgame is a presentation-only proximity
+  // signal the strategy guide calls out. Threshold scales with table size: once fewer
+  // cards remain than seats, the next go-around cannot give everyone a stock draw.
+  const stockLive = !view.terminal && !roundSettled;
+  const stockEmpty = stockLive && view.stock_count === 0;
+  const stockLow = stockLive && view.stock_count > 0 && view.stock_count <= seats.length;
+  // Next seat to act, clockwise by seat index (advance_active_seat uses
+  // next_clockwise_index). Turn order is public (ML-SETUP-005), and the next seat is
+  // the first to see — and most likely to pick up — your discard, which the strategy
+  // guide flags as a discard-risk signal. Presentation-only derivation from public
+  // seat order; null when the round is not actively in play or at a single seat.
+  const activeIndex = seats.indexOf(view.active_seat);
+  const nextSeat =
+    stockLive && activeIndex >= 0 && seats.length > 1 ? seats[(activeIndex + 1) % seats.length] : null;
   // After a discard pickup, Rust offers only table plays that use the committed card
   // and withholds finish/discard until the commitment is satisfied (ML-TURN-004). In
   // the table phase that is the only reason finish is absent, so we can tell the player
@@ -72,6 +88,16 @@ export function MeldfallLedgerBoard({
     groupedChoices.table.length > 0 &&
     groupedChoices.turn.length === 0 &&
     groupedChoices.discard.length === 0;
+  // Go-out is offered only when the hand can be emptied without a final discard
+  // (ML-TURN-007). Surfaced from the Rust action set so the board can explain that
+  // choosing it ends the round immediately rather than passing the turn.
+  const goOutAvailable = groupedChoices.turn.some((choice) => choice.segment === "go-out-without-discard");
+  // Plain-language guidance for the active seat's current step. The turn runs
+  // draw -> table -> discard, and in the table phase "Finish turn" advances to a
+  // mandatory discard rather than ending the turn, which the bare button label does
+  // not convey. Derived only from the public phase and the Rust-offered action kinds.
+  const turnGuidance =
+    canAct && !pickupCommitmentPending ? turnGuidanceText(view.phase, goOutAvailable, stockEmpty) : null;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
     const payload = entry.effect.payload;
@@ -155,7 +181,7 @@ export function MeldfallLedgerBoard({
       <div className="meldfall-table-shell" aria-label="Meldfall Ledger table">
         <section className="meldfall-seat-rail" aria-label="Seat score ledger">
           {seats.map((seat, index) => (
-            <SeatLedger key={seat} view={view} seat={seat} index={index} />
+            <SeatLedger key={seat} view={view} seat={seat} index={index} nextSeat={nextSeat} />
           ))}
         </section>
 
@@ -168,7 +194,7 @@ export function MeldfallLedgerBoard({
             <div className="meldfall-draw-zones">
               <button
                 type="button"
-                className="meldfall-stock"
+                className={`meldfall-stock${stockLow || stockEmpty ? " low" : ""}`}
                 disabled={!canAct || !drawStockChoice}
                 aria-label={drawStockChoice?.accessibility_label ?? `${view.stock_count} hidden stock cards`}
                 data-testid="meldfall-stock"
@@ -176,7 +202,7 @@ export function MeldfallLedgerBoard({
               >
                 <span>Stock</span>
                 <strong>{view.stock_count}</strong>
-                <small>{drawStockChoice ? "Draw from stock" : "Hidden order"}</small>
+                <small>{drawStockChoice ? "Draw from stock" : stockEmpty ? "Stock empty" : "Hidden order"}</small>
               </button>
 
               <div className="meldfall-discard" aria-label="Public discard pile" data-animation-target="meldfall-discard">
@@ -215,6 +241,17 @@ export function MeldfallLedgerBoard({
               <p className="meldfall-zone-hint">
                 Taking a discard also takes every newer card above it, and the card you choose must be melded or
                 laid off this turn before you can finish.
+              </p>
+            ) : null}
+            {stockEmpty ? (
+              <p className="meldfall-stock-warning" role="status">
+                Stock is empty. The round ends the moment the active seat has no legal draw — the discard pile is
+                not reshuffled.
+              </p>
+            ) : stockLow ? (
+              <p className="meldfall-stock-warning" role="status">
+                Stock is running low ({view.stock_count} left). When no one can draw, the round ends by exhaustion
+                with no reshuffle — shed high cards or aim to go out.
               </p>
             ) : null}
           </section>
@@ -277,19 +314,39 @@ export function MeldfallLedgerBoard({
                 Pickup commitment: meld or lay off the discard you took before you can finish this turn.
               </p>
             ) : null}
+            {turnGuidance ? (
+              <p className="meldfall-phase-guide" role="status">
+                {turnGuidance}
+              </p>
+            ) : null}
             <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
-            <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup
+              title="Table"
+              choices={groupedChoices.table}
+              canAct={canAct}
+              onPathSubmit={onPathSubmit}
+              fallbackHint={tablePlayHint}
+            />
             <ActionGroup title="Discard" choices={groupedChoices.discard} canAct={canAct} onPathSubmit={onPathSubmit} />
-            <ActionGroup title="Turn" choices={groupedChoices.turn} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup
+              title="Turn"
+              choices={groupedChoices.turn}
+              canAct={canAct}
+              onPathSubmit={onPathSubmit}
+              fallbackHint={turnChoiceHint}
+            />
           </section>
 
-          <div className="meldfall-latest" role="status" data-animation-target="meldfall-status">
-            <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
-            <strong>
-              {outcomeExplanation
-                ? outcomeAnnouncementText(outcomeExplanation)
-                : feedback?.detail ?? "Visible state changes will update here."}
-            </strong>
+          <div className="meldfall-status-col">
+            <div className="meldfall-latest" role="status" data-animation-target="meldfall-status">
+              <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+              <strong>
+                {outcomeExplanation
+                  ? outcomeAnnouncementText(outcomeExplanation)
+                  : feedback?.detail ?? "Visible state changes will update here."}
+              </strong>
+            </div>
+            <RecentActions effects={effects} />
           </div>
         </div>
       </div>
@@ -341,6 +398,39 @@ function SettlementSummary({
   );
 }
 
+// Public per-turn action kinds worth replaying. Draws (including discard pickups, shown
+// as "drew N discard cards"), melds, lay-offs, and discards are all public proximity
+// signals the strategy guide calls out (ML-VIS-001). Round-score/terminal effects are
+// omitted here because the persistent settlement and outcome panels already carry them.
+const RECENT_ACTION_KINDS = new Set(["draw", "stock_draw_private", "meld", "lay_off", "discard"]);
+
+function RecentActions({ effects }: { effects: EffectEntry[] }) {
+  // A short feed of recent public moves so the player can review what each opponent did
+  // between their own turns — the single latest-status line cannot show a full go-around.
+  // The shell already viewer-filters these effects, and we render the same public-safe
+  // copy used by the latest-status line, so no hidden card identities are exposed.
+  const recent = effects
+    .filter((entry) => RECENT_ACTION_KINDS.has(String(entry.effect.payload.type ?? entry.effect.payload.kind ?? "")))
+    .slice(-6)
+    .reverse();
+  if (recent.length === 0) {
+    return null;
+  }
+  return (
+    <section className="meldfall-log" aria-label="Recent public actions">
+      <div className="meldfall-section-heading">
+        <span>Recent actions</span>
+        <strong>Public moves</strong>
+      </div>
+      <ol className="meldfall-log-list">
+        {recent.map((entry, index) => (
+          <li key={index}>{feedbackForEffect(entry).detail}</li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="meldfall-metric">
@@ -350,21 +440,32 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SeatLedger({ view, seat, index }: { view: MeldfallLedgerPublicView; seat: MeldfallLedgerSeatId; index: number }) {
+function SeatLedger({
+  view,
+  seat,
+  index,
+  nextSeat,
+}: {
+  view: MeldfallLedgerPublicView;
+  seat: MeldfallLedgerSeatId;
+  index: number;
+  nextSeat: MeldfallLedgerSeatId | null;
+}) {
   const handCount = view.hand_counts[index] ?? 0;
   // Public go-out threat: a seat one or two cards from empty can end the round soon,
   // settling everyone's in-hand penalties. Hand counts are public (ML-VIS-001), so
   // flagging the threat surfaces a legal proximity signal the strategy guide calls out.
   const nearGoOut = !view.terminal && handCount > 0 && handCount <= 2;
+  const isNext = nextSeat === seat;
   return (
     <article
       className={`meldfall-seat${view.active_seat === seat ? " active" : ""}${view.dealer === seat ? " dealer" : ""}${
-        nearGoOut ? " near-goout" : ""
-      }`}
+        isNext ? " next" : ""
+      }${nearGoOut ? " near-goout" : ""}`}
     >
       <header>
         <strong>{seatLabel(seat)}</strong>
-        <span>{view.active_seat === seat ? "Turn" : view.dealer === seat ? "Dealer" : "Seat"}</span>
+        <span>{view.active_seat === seat ? "Turn" : isNext ? "Up next" : view.dealer === seat ? "Dealer" : "Seat"}</span>
       </header>
       <dl>
         <div>
@@ -462,11 +563,13 @@ function ActionGroup({
   choices,
   canAct,
   onPathSubmit,
+  fallbackHint,
 }: {
   title: string;
   choices: ActionChoice[];
   canAct: boolean;
   onPathSubmit?: (path: string[]) => void;
+  fallbackHint?: (choice: ActionChoice) => string | null;
 }) {
   if (choices.length === 0) {
     return null;
@@ -476,23 +579,102 @@ function ActionGroup({
     <section className="meldfall-action-group" aria-label={`${title} choices`}>
       <h3>{title}</h3>
       <div className="meldfall-action-grid">
-        {choices.map((choice, index) => (
-          <button
-            type="button"
-            className="meldfall-action"
-            key={choice.segment}
-            disabled={!canAct}
-            aria-label={choice.accessibility_label}
-            data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
-            onClick={() => onPathSubmit?.([choice.segment])}
-          >
-            <strong>{renderActionLabel(choice.label)}</strong>
-            {choice.presentation?.helper_text ? <small>{choice.presentation.helper_text}</small> : null}
-          </button>
-        ))}
+        {choices.map((choice, index) => {
+          const hint = choice.presentation?.helper_text ?? fallbackHint?.(choice) ?? null;
+          return (
+            <button
+              type="button"
+              className="meldfall-action"
+              key={choice.segment}
+              disabled={!canAct}
+              aria-label={choice.accessibility_label}
+              data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
+              onClick={() => onPathSubmit?.([choice.segment])}
+            >
+              <strong>{renderActionLabel(choice.label)}</strong>
+              {hint ? <small>{hint}</small> : null}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
+}
+
+// Plain-language explanation of the active seat's current step, derived only from the
+// public phase and Rust-offered action kinds (no legality decided here, ML-UI-001).
+// The turn runs draw -> table -> discard; in the table phase "Finish turn" advances to
+// a mandatory discard, and "Go out" ends the round, neither of which the bare button
+// labels make obvious.
+function turnGuidanceText(phase: string, goOutAvailable: boolean, stockEmpty: boolean): string | null {
+  if (phase === "draw") {
+    // The stock pile is gone, so only a discard-pile pickup can start the turn — guiding
+    // the player to a disabled stock button would be misleading.
+    if (stockEmpty) {
+      return "Stock is empty — pick up a usable card from the discard pile (highlighted) to start your turn.";
+    }
+    return "Start your turn: draw from the hidden stock, or pick up a card from the discard pile.";
+  }
+  if (phase === "table") {
+    if (goOutAvailable) {
+      return "Your hand is empty after tabling. Go out to end the round and settle every seat's held-card penalties now, or finish your turn.";
+    }
+    return "Optional: table new melds or lay off onto public melds. Then choose Finish turn to move on to your discard.";
+  }
+  if (phase === "discard") {
+    return "Choose one card to discard. Discarding ends your turn.";
+  }
+  return null;
+}
+
+// Per-button clarification for the turn-control choices, whose Rust labels are terse.
+function turnChoiceHint(choice: ActionChoice): string | null {
+  if (choice.segment === "finish-turn") {
+    return "Stop tabling and go to your discard.";
+  }
+  if (choice.segment === "go-out-without-discard") {
+    return "End the round now; all seats settle held-card penalties.";
+  }
+  return null;
+}
+
+// Compact rank -> point value for the card codes carried in action labels (e.g. "4D",
+// "10S", "AH"). Card values are constant in every scoring context (ML-SCORE-001), so a
+// table play scores exactly the sum of its card values regardless of meld shape.
+const SHORT_RANK_VALUE: Record<string, number> = {
+  "2": 2,
+  "3": 3,
+  "4": 4,
+  "5": 5,
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10,
+  J: 10,
+  Q: 10,
+  K: 10,
+  A: 15,
+};
+
+// Points a meld or lay-off button would score, summed from the card codes in its label.
+// Surfaces the immediate tabled-score value at the decision point — the "table points
+// now / shed penalty" trade-off the strategy guide centres on. Presentation-only readout
+// of already-authorized card identities; Rust stays the scoring authority (ML-UI-001).
+function tablePlayHint(choice: ActionChoice): string | null {
+  let sum = 0;
+  let cards = 0;
+  for (const token of choice.label.split(" ")) {
+    const match = CARD_CODE.exec(token);
+    if (match) {
+      sum += SHORT_RANK_VALUE[match[1]] ?? 0;
+      cards += 1;
+    }
+  }
+  if (cards === 0) {
+    return null;
+  }
+  return `Scores +${sum} ${sum === 1 ? "point" : "points"}`;
 }
 
 const SUIT_GLYPH: Record<string, string> = {
