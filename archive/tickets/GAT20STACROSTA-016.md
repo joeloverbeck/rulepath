@@ -1,6 +1,6 @@
 # GAT20STACROSTA-016: Benchmarks and thresholds
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (benchmarks + deterministic evidence) — `games/starbridge_crossing/benches/{starbridge_crossing.rs,thresholds.json}`, `games/starbridge_crossing/docs/BENCHMARKS.md`
@@ -80,3 +80,22 @@ Document the operations, native baselines, CI floors, and the large-board UI bud
 1. `cargo bench -p starbridge_crossing`
 2. `cargo run -p rule-coverage -- --game starbridge_crossing`
 3. The bench run + rule-coverage completion are the correct boundary; full CI benchmark gating runs in the gate-2 lane.
+
+## Outcome
+
+Added the Starbridge Crossing benchmark harness, smoke-floor threshold file, and benchmark documentation. The harness is registered as `cargo bench -p starbridge_crossing` and emits the stable JSON block `BEGIN_STARBRIDGE_CROSSING_BENCHMARK_JSON` / `END_STARBRIDGE_CROSSING_BENCHMARK_JSON`.
+
+The benchmark lanes cover setup at 2/3/4/6 seats, opening and midgame legal action tree generation, jump-chain path enumeration, single-step apply, jump apply, blocked-pass apply, bounded 64-action Level 0 playout, public-view stable hashing, deterministic replay, and the Rust public-view projection/serialization consumed by the WASM bridge.
+
+Added `games/starbridge_crossing/docs/BENCHMARKS.md`, closing the `rule-coverage` partial-green window from GAT20STACROSTA-013. Thresholds are provisional `baseline_pending_non_blocking` smoke floors until repeated CI-runner baselines exist.
+
+Verification:
+
+1. `cargo bench -p starbridge_crossing` — passed; all 14 lanes emitted results above smoke floors.
+2. `cargo run -p rule-coverage -- --game starbridge_crossing` — passed.
+3. `bash scripts/boundary-check.sh` — passed.
+4. `cargo fmt --all --check` — passed.
+5. `git diff --check` — passed.
+6. `node scripts/check-doc-links.mjs` — passed.
+
+The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.

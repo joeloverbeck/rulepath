@@ -16,3 +16,8 @@ game-test-support = { path = "../../crates/game-test-support" }
 [lib]
 path = "src/lib.rs"
 bench = false
+
+[[bench]]
+name = "starbridge_crossing"
+path = "benches/starbridge_crossing.rs"
+harness = false
