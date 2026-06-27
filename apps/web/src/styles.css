@@ -5556,6 +5556,7 @@ svg g[data-effect-kind] {
 .meldfall-tableau,
 .meldfall-private,
 .meldfall-actions,
+.meldfall-log,
 .meldfall-latest {
   display: grid;
   gap: 10px;
@@ -5563,6 +5564,38 @@ svg g[data-effect-kind] {
   border-radius: 8px;
   background: var(--ml-panel);
   padding: 12px;
+}
+
+.meldfall-status-col {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.meldfall-log {
+  gap: 8px;
+}
+
+.meldfall-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.meldfall-log-list li {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--ml-ink);
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--ml-panel-soft);
+}
+
+.meldfall-log-list li:first-child {
+  background: var(--ml-accent-soft);
+  font-weight: 600;
 }
 
 .meldfall-metric {

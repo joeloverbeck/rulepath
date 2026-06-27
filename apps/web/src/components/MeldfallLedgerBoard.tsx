@@ -331,13 +331,16 @@ export function MeldfallLedgerBoard({
             />
           </section>
 
-          <div className="meldfall-latest" role="status" data-animation-target="meldfall-status">
-            <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
-            <strong>
-              {outcomeExplanation
-                ? outcomeAnnouncementText(outcomeExplanation)
-                : feedback?.detail ?? "Visible state changes will update here."}
-            </strong>
+          <div className="meldfall-status-col">
+            <div className="meldfall-latest" role="status" data-animation-target="meldfall-status">
+              <span>{outcomeExplanation ? "Outcome" : feedback?.title ?? "Waiting"}</span>
+              <strong>
+                {outcomeExplanation
+                  ? outcomeAnnouncementText(outcomeExplanation)
+                  : feedback?.detail ?? "Visible state changes will update here."}
+              </strong>
+            </div>
+            <RecentActions effects={effects} />
           </div>
         </div>
       </div>
@@ -385,6 +388,39 @@ function SettlementSummary({
           );
         })}
       </div>
+    </section>
+  );
+}
+
+// Public per-turn action kinds worth replaying. Draws (including discard pickups, shown
+// as "drew N discard cards"), melds, lay-offs, and discards are all public proximity
+// signals the strategy guide calls out (ML-VIS-001). Round-score/terminal effects are
+// omitted here because the persistent settlement and outcome panels already carry them.
+const RECENT_ACTION_KINDS = new Set(["draw", "stock_draw_private", "meld", "lay_off", "discard"]);
+
+function RecentActions({ effects }: { effects: EffectEntry[] }) {
+  // A short feed of recent public moves so the player can review what each opponent did
+  // between their own turns — the single latest-status line cannot show a full go-around.
+  // The shell already viewer-filters these effects, and we render the same public-safe
+  // copy used by the latest-status line, so no hidden card identities are exposed.
+  const recent = effects
+    .filter((entry) => RECENT_ACTION_KINDS.has(String(entry.effect.payload.type ?? entry.effect.payload.kind ?? "")))
+    .slice(-6)
+    .reverse();
+  if (recent.length === 0) {
+    return null;
+  }
+  return (
+    <section className="meldfall-log" aria-label="Recent public actions">
+      <div className="meldfall-section-heading">
+        <span>Recent actions</span>
+        <strong>Public moves</strong>
+      </div>
+      <ol className="meldfall-log-list">
+        {recent.map((entry, index) => (
+          <li key={index}>{feedbackForEffect(entry).detail}</li>
+        ))}
+      </ol>
     </section>
   );
 }
