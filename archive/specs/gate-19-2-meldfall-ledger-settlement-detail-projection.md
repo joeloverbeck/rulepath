@@ -269,7 +269,7 @@ but not projected — hence this spec.
 | §13 ADR triggers | aligned | Replay/hash semantics unchanged by the pinned view carrier (§3.3); a hard gate stops and opens an ADR if serialization must change. |
 | §12 Stop conditions | clear | No stop condition crossed: no kernel noun, no TypeScript legality, no hidden-information leak, no replay/hash change on the default path. |
 
-## 10A. Outcome
+## Outcome
 
 Completed: 2026-06-27
 
