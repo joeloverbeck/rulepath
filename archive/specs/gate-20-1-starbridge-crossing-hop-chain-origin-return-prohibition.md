@@ -7,7 +7,7 @@
 | Spec ID | `gate-20-1-starbridge-crossing-hop-chain-origin-return-prohibition` |
 | Stage / unit | Public scaling phase — Gate 20 correctness follow-on (post-`Done`) |
 | Gate | Gate 20.1 (correctness fix on shipped Gate 20 `starbridge_crossing`) |
-| Status | Planned (spec written; not yet executed) |
+| Status | `Done` |
 | Date | 2026-06-27 |
 | Owner | TBD |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/adr/0009-*` (replay/fixture/hash taxonomy v2) → `games/starbridge_crossing/docs/RULES.md` → this spec |
@@ -178,3 +178,68 @@ Dependency order: 001 → 002 → 003 → 004.
   no-op; non-origin hop landings always net-displace the peg).
 - A3: Affected evidence artifacts are a small subset (only states that offered an
   origin-return continuation), so the ADR-0009 migration is bounded.
+
+## Outcome
+
+Completed: 2026-06-27
+
+Completed tickets:
+
+- `archive/tickets/GAT201STACROHOP-001.md` — committed as `b4a57ea`; added the
+  Rust legality guard in `legal_jump_landings`, the
+  `hop_chain_cannot_return_to_origin_space` rule regression, and the
+  committed-non-pass occupancy property.
+- `archive/tickets/GAT201STACROHOP-002.md` — committed as `5939da5`; added
+  `SC-MOVE-010`, rule coverage, and the rule-ID migration note while leaving
+  `SC-MOVE-007` / `SC-AMB-004` unchanged.
+- `archive/tickets/GAT201STACROHOP-003.md` — committed as `b6351e3`; migrated
+  the single affected WASM API public action-tree snapshot and updated
+  `GAME-EVIDENCE.md` with the ADR-0009 receipt.
+
+Implementation summary:
+
+- Starbridge Crossing no longer offers or validates a hop-chain landing on the
+  moving peg's own turn-origin space.
+- The no-op-turn invariant is covered by Rust rule/action-tree tests and a
+  setup-position property over generated non-pass action paths.
+- The governed migration touched only
+  `crates/wasm-api/tests/snapshots/api_surface.tsv`
+  (`starbridge_crossing/action_tree/seat_0`). Golden traces, setup fixtures, and
+  benchmark thresholds were verified unchanged.
+
+Deviations:
+
+- The planned affected golden trace / replay fixture subset was empty in the
+  live checkout. The stale deterministic artifact surfaced instead through
+  `cargo test --workspace` as the WASM API public action-tree snapshot.
+- The exact synthetic `origin -> A -> origin` browser reproduction has no
+  existing interactive fixture harness; the exact absence is proven at the
+  Rust action-tree/validator boundary, while Puppeteer web smoke proves the
+  rebuilt browser integration still presents Starbridge jump paths from Rust.
+
+Verification evidence:
+
+- `cargo fmt --all --check`
+- `cargo clippy -p starbridge_crossing --all-targets -- -D warnings`
+- `cargo test -p starbridge_crossing --test rules --test property`
+- `cargo test -p starbridge_crossing`
+- `cargo test -p wasm-api --test api_surface`
+- `cargo test --workspace`
+- `cargo run -p replay-check -- --game starbridge_crossing --all`
+- `cargo run -p fixture-check -- --game starbridge_crossing`
+- `cargo run -p rule-coverage -- --game starbridge_crossing`
+- `cargo run -p simulate -- --game starbridge_crossing --games 1000`
+- `cargo bench -p starbridge_crossing`
+- `node scripts/check-doc-links.mjs`
+- `npm --prefix apps/web run smoke:wasm`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/starbridge-crossing.smoke.mjs`
+
+Archive truthing:
+
+- Active tickets `tickets/GAT201STACROHOP-001.md` through
+  `tickets/GAT201STACROHOP-003.md` were moved to `archive/tickets/`.
+- This spec is archived to
+  `archive/specs/gate-20-1-starbridge-crossing-hop-chain-origin-return-prohibition.md`.
+- `specs/README.md` now points Gate 20.1 at the archived spec path and marks it
+  `Done`.
