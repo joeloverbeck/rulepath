@@ -1,6 +1,6 @@
 # GAT20STACROSTA-011: Replay support, serialization, golden traces, and fixtures
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes (deterministic evidence) — `games/starbridge_crossing/src/replay_support.rs`, `tests/{replay,serialization,property}.rs`, `data/fixtures/*`, `tests/golden_traces/*`
@@ -89,3 +89,49 @@ Replay-hash reproduction, serialization round-trips, and the property suite (ext
 1. `cargo test -p starbridge_crossing --test replay`
 2. `cargo test -p starbridge_crossing`
 3. `replay-check`/`fixture-check` CLI validation lands with their registration (013); native tests are the correct boundary at this ticket.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/src/replay_support.rs` with deterministic
+  replay through the same Rust command validators and stable hashes for state,
+  effects, action tree, public view, and replay summary.
+- Added `games/starbridge_crossing/tests/replay.rs`,
+  `tests/serialization.rs`, and extended `tests/property.rs` for replay hash
+  reproduction, serialization stability, all-public view stability, fixture/
+  trace receipt coverage, one-occupant-per-space, and legal-step properties.
+- Added four setup fixture JSON receipts under
+  `games/starbridge_crossing/data/fixtures/`.
+- Added the Gate 20 golden trace receipt catalog under
+  `games/starbridge_crossing/tests/golden_traces/` for setup, step, hop,
+  jump-chain diagnostics, blocked pass, finish/terminal, turn limit, no-leak
+  parity, and public replay round-trip coverage.
+- Updated `games/starbridge_crossing/src/lib.rs` exports for replay support.
+
+Deviations from plan:
+
+- CLI `replay-check` and `fixture-check` registration remains deferred to
+  GAT20STACROSTA-013 as scoped. The trace files here are versioned coverage
+  receipts backed by native tests, not yet tool-ingested replay transcripts.
+
+Verification:
+
+- `cargo test -p starbridge_crossing --test replay` passed: 2 integration
+  tests.
+- `cargo test -p starbridge_crossing --test serialization` passed: 4
+  integration tests.
+- `cargo test -p starbridge_crossing --test property` passed: 3 integration
+  tests.
+- `cargo test -p starbridge_crossing` passed: 22 unit tests, 28 integration
+  tests, 0 doctests.
+- `cargo fmt --all --check` passed.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
