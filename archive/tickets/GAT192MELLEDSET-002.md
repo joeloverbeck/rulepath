@@ -1,6 +1,6 @@
 # GAT192MELLEDSET-002: WASM bridge + `client.ts` settlement-view type
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (`src/games/meldfall.rs`); `apps/web/src/wasm/client.ts`
@@ -116,3 +116,35 @@ MeldfallLedgerSettlementView | null` to `MeldfallLedgerPublicView`.
 3. `cargo test --workspace`
 4. The wasm smoke + TS build are the correct boundary for the JSON↔type contract;
    end-to-end rendering is exercised in GAT192MELLEDSET-003.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Serialized `view.last_settlement` from `meldfall_view_json` as an additive
+  nullable JSON field.
+- Added structured settlement JSON with `round_index`, `round_end_reason`, and
+  per-seat `seat`, `seat_index`, `tabled_positive`, `in_hand_penalty`,
+  `remaining_hand_count`, `delta`, `cumulative_score`, `rank`, and `winner`.
+- Added matching `MeldfallLedgerSettlementView` and
+  `MeldfallLedgerSettlementSeatView` TypeScript types and attached
+  `last_settlement` to `MeldfallLedgerPublicView`.
+- Added a wasm-api regression test for both the `null` and populated settlement
+  JSON shapes.
+
+Deviations:
+
+- No rendering changes were made; GAT192MELLEDSET-003 owns the React panel and
+  e2e assertions.
+- The hidden-field marker list remains unchanged.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p wasm-api meldfall_view_json_serializes_nullable_last_settlement`
+  passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run build` passed.
+- `cargo test --workspace` passed.

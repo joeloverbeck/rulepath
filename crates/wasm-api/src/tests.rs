@@ -593,6 +593,45 @@ fn meldfall_round_score_index_is_the_round_not_the_finishing_seat() {
 }
 
 #[test]
+fn meldfall_view_json_serializes_nullable_last_settlement() {
+    use crate::games::meldfall::{create_meldfall_match, meldfall_view_json};
+    use engine_core::Viewer;
+    use meldfall_ledger::{
+        scoring::settle_round,
+        state::{RoundEndReason, RoundEndSummary, TurnPhase},
+        visibility::project_view,
+    };
+
+    let mut state = create_meldfall_match(19, 4).expect("meldfall match created");
+    let observer = Viewer { seat_id: None };
+
+    let initial = meldfall_view_json(&project_view(&state, &observer), 7);
+    assert!(initial.contains("\"last_settlement\":null"));
+    assert!(initial.contains(
+        "\"hidden_fields\":[\"opponent_hands\",\"stock_order\",\"private_drawn_cards\"]"
+    ));
+
+    state.round.round_end = Some(RoundEndSummary {
+        reason: RoundEndReason::StockExhausted,
+        seat_index: state.round.active_seat_index,
+    });
+    state.round.phase = TurnPhase::RoundSettled;
+    settle_round(&mut state);
+
+    let settled = meldfall_view_json(&project_view(&state, &observer), 8);
+    assert!(settled.contains("\"last_settlement\":{\"round_index\":0"));
+    assert!(settled.contains("\"round_end_reason\":\"stock_exhausted:seat="));
+    assert!(settled.contains("\"seat\":\"seat_0\",\"seat_index\":0"));
+    assert!(settled.contains("\"tabled_positive\":"));
+    assert!(settled.contains("\"in_hand_penalty\":"));
+    assert!(settled.contains("\"remaining_hand_count\":"));
+    assert!(settled.contains("\"delta\":"));
+    assert!(settled.contains("\"cumulative_score\":"));
+    assert!(settled.contains("\"rank\":"));
+    assert!(settled.contains("\"winner\":false"));
+}
+
+#[test]
 fn feature_report_lists_ops() {
     let report = feature_report().expect("feature report returned");
     assert!(report.contains("\"api_version\":\"rulepath-wasm-api/0.1.0\""));

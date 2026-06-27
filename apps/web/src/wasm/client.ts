@@ -1176,6 +1176,24 @@ export type MeldfallLedgerTerminalView = {
   standings: MeldfallLedgerStandingView[];
 } | null;
 
+export type MeldfallLedgerSettlementSeatView = {
+  seat: MeldfallLedgerSeatId;
+  seat_index: number;
+  tabled_positive: number;
+  in_hand_penalty: number;
+  remaining_hand_count: number;
+  delta: number;
+  cumulative_score: number;
+  rank: number;
+  winner: boolean;
+};
+
+export type MeldfallLedgerSettlementView = {
+  round_index: number;
+  round_end_reason: string;
+  seats: MeldfallLedgerSettlementSeatView[];
+};
+
 export type MeldfallLedgerOutcomeRationale = OutcomeRationalePayload;
 
 export type MeldfallLedgerPublicView = {
@@ -1197,6 +1215,7 @@ export type MeldfallLedgerPublicView = {
   round_played_scores: number[];
   tableau: MeldfallLedgerTableauView;
   round_end: string | null;
+  last_settlement: MeldfallLedgerSettlementView | null;
   terminal: MeldfallLedgerTerminalView;
   terminal_rationale?: MeldfallLedgerOutcomeRationale | null;
   freshness_token: number;

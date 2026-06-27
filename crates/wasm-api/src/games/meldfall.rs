@@ -20,9 +20,10 @@ use meldfall_ledger::{
     setup::{setup_match, SetupOptions},
     state::{MatchState, MeldId, TableCard, TurnOrdinal, TurnPhase},
     visibility::{
-        project_action_tree_for_viewer, project_effects_for_viewer, project_view, MeldfallView,
-        PrivateView, PublicMatchOutcomeView, PublicMeldGroupView, PublicSeatStandingView,
-        PublicTableCardView, PublicTableauView,
+        project_action_tree_for_viewer, project_effects_for_viewer, project_view,
+        MeldfallSettlementSeatView, MeldfallSettlementView, MeldfallView, PrivateView,
+        PublicMatchOutcomeView, PublicMeldGroupView, PublicSeatStandingView, PublicTableCardView,
+        PublicTableauView,
     },
 };
 
@@ -371,7 +372,7 @@ pub(crate) fn meldfall_view_json(view: &MeldfallView, freshness_token: u64) -> S
         PrivateView::Seat(private) => string_array(&private.hand),
     };
     format!(
-        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"active_seat\":\"{}\",\"active_seat_index\":{},\"dealer\":\"{}\",\"dealer_index\":{},\"phase\":\"{}\",\"stock_count\":{},\"discard\":[{}],\"hand_counts\":{},\"cumulative_scores\":{},\"round_played_scores\":{},\"tableau\":{},\"round_end\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"stock_order\",\"private_drawn_cards\"]}}",
+        "{{\"schema_version\":{},\"rules_version\":{},\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"active_seat\":\"{}\",\"active_seat_index\":{},\"dealer\":\"{}\",\"dealer_index\":{},\"phase\":\"{}\",\"stock_count\":{},\"discard\":[{}],\"hand_counts\":{},\"cumulative_scores\":{},\"round_played_scores\":{},\"tableau\":{},\"round_end\":{},\"last_settlement\":{},\"terminal\":{},\"freshness_token\":{},\"private_view_status\":\"{}\",\"own_hand\":[{}],\"hidden_fields\":[\"opponent_hands\",\"stock_order\",\"private_drawn_cards\"]}}",
         SCHEMA_VERSION,
         RULES_VERSION,
         escape_json(GAME_MELDFALL_LEDGER),
@@ -390,6 +391,7 @@ pub(crate) fn meldfall_view_json(view: &MeldfallView, freshness_token: u64) -> S
         i32_array(&view.round_played_scores),
         tableau_json(&view.tableau),
         view.round_end.as_ref().map_or_else(|| "null".to_owned(), |value| format!("\"{}\"", escape_json(value))),
+        view.last_settlement.as_ref().map_or_else(|| "null".to_owned(), settlement_json),
         view.terminal.as_ref().map_or_else(|| "null".to_owned(), outcome_json),
         freshness_token,
         private_status,
@@ -655,6 +657,35 @@ fn public_table_card_json(card: &PublicTableCardView) -> String {
         trace_meldfall_seat(card.score_credit_owner),
         card.score_credit_owner,
         card.play_turn
+    )
+}
+
+fn settlement_json(settlement: &MeldfallSettlementView) -> String {
+    format!(
+        "{{\"round_index\":{},\"round_end_reason\":\"{}\",\"seats\":[{}]}}",
+        settlement.round_index,
+        escape_json(&settlement.round_end_reason),
+        settlement
+            .seats
+            .iter()
+            .map(settlement_seat_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn settlement_seat_json(seat: &MeldfallSettlementSeatView) -> String {
+    format!(
+        "{{\"seat\":\"{}\",\"seat_index\":{},\"tabled_positive\":{},\"in_hand_penalty\":{},\"remaining_hand_count\":{},\"delta\":{},\"cumulative_score\":{},\"rank\":{},\"winner\":{}}}",
+        trace_meldfall_seat(seat.seat_index),
+        seat.seat_index,
+        seat.tabled_positive,
+        seat.in_hand_penalty,
+        seat.remaining_hand_count,
+        seat.delta,
+        seat.cumulative_score,
+        seat.rank,
+        seat.winner
     )
 }
 
