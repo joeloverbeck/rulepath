@@ -40,6 +40,10 @@ own Gate 20 tickets.
 | `SC-MOVE-007` | A hop chain may not revisit a landing in the same turn. | `actions.rs`, `rules.rs` | repeat-landing rejection tests and trace | `covered-by-trace` | This bounds the action tree. |
 | `SC-MOVE-008` | A move may not combine a step with a hop. | `actions.rs`, `rules.rs` | mixed-step-jump rejection tests and trace | `covered-by-trace` | Accepted paths are step-only or hop-only. |
 | `SC-MOVE-009` | A blocked active seat gets exactly one forced pass. | `actions.rs`, `rules.rs`, `effects.rs` | blocked-pass tests and trace | `covered-by-trace` | No optional strategic pass exists. |
+| `SC-SCORE-001` | Finish-rank accounting, not point scoring, determines standings. | `rules.rs`, `state.rs`, `effects.rs`, `visibility.rs` | finish assignment, terminal standings, and outcome rationale tests/traces | `covered-by-trace` | Alias surface for `SC-FINISH-001` through `SC-FINISH-004`. |
+| `SC-SCORE-002` | Turn-limit fallback accounts for unfinished seats by progress vector and clockwise order. | `rules.rs`, `state.rs` | turn-limit tests and trace | `covered-by-trace` | Alias surface for `SC-FINISH-005` and `SC-FINISH-006`. |
+| `SC-END-001` | Normal terminal condition is all-but-one seats finished. | `rules.rs`, `state.rs`, `effects.rs` | terminal standings tests and trace | `covered-by-trace` | Equivalent to `SC-FINISH-003`. |
+| `SC-END-002` | Turn-limit terminal condition records deterministic unfinished standings. | `rules.rs`, `state.rs` | turn-limit tests and trace | `covered-by-trace` | Equivalent to `SC-FINISH-006`. |
 | `SC-FINISH-001` | A seat receives next rank when all pegs reach target home. | `rules.rs`, `state.rs`, `effects.rs` | finish assignment tests and trace | `covered-by-trace` | Checked after accepted moves. |
 | `SC-FINISH-002` | Finish ranks are assigned in completion order. | `rules.rs`, `state.rs` | finish-order tests and traces | `covered-by-trace` | Lower rank is better. |
 | `SC-FINISH-003` | Match ends when all but one active seat are ranked. | `rules.rs`, `state.rs` | terminal standings tests and traces | `covered-by-trace` | Last unfinished seat receives final rank. |
@@ -72,8 +76,8 @@ own Gate 20 tickets.
 | `blocked-forced-pass.trace.json` | forced pass | `SC-MOVE-009` |
 | `reach-home-first-finish.trace.json` | first finish rank | `SC-FINISH-001`, `SC-FINISH-002` |
 | `finish-order-continues.trace.json` | finished-seat skip | `SC-TURN-003`, `SC-FINISH-002` |
-| `terminal-full-standings.trace.json` | terminal all-but-one standings | `SC-FINISH-003`, `SC-FINISH-004` |
-| `turn-limit-cutoff.trace.json` | deterministic turn-limit standings | `SC-FINISH-005`, `SC-FINISH-006` |
+| `terminal-full-standings.trace.json` | terminal all-but-one standings | `SC-END-001`, `SC-SCORE-001`, `SC-FINISH-003`, `SC-FINISH-004` |
+| `turn-limit-cutoff.trace.json` | deterministic turn-limit standings | `SC-END-002`, `SC-SCORE-002`, `SC-FINISH-005`, `SC-FINISH-006` |
 | `public-observer-all-public.trace.json` | all-public observer view | `SC-VIS-001`, `SC-VIS-003` |
 | `seat-viewer-parity.trace.json` | seat/public parity | `SC-VIS-002`, `SC-VIS-003` |
 | `public-replay-round-trip.trace.json` | replay and export round trip | `SC-REPLAY-001`, `SC-VIS-004` |

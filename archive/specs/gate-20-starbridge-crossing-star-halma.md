@@ -10,7 +10,7 @@
 | Source provenance | Spec authored against `joeloverbeck/rulepath` at commit `b3e7efd`; freshness caveat in Assumptions A-1 |
 | Stage | Public scaling phase, next topology/path proof |
 | Roadmap gate | Gate 20 — Star Halma / Chinese Checkers family |
-| Status | Planned / Not started |
+| Status | `Done` |
 | Date | 2026-06-27 |
 | Owner | Rulepath maintainers |
 | Authority order | `docs/README.md` authority order: `FOUNDATIONS.md` → `ARCHITECTURE.md` → `ENGINE-GAME-DATA-BOUNDARY.md` → area docs → `ROADMAP.md`; accepted ADRs supersede only explicitly named sections. |
@@ -653,3 +653,52 @@ Every accepted path is revalidated by Rust against current state and freshness t
 - Group multi-hop animation as one semantic turn with per-hop substeps, respecting reduced motion.
 - Keep 121-space render and preview updates profiled. If SVG pressure appears, document it; do not move legality into the renderer.
 
+## Outcome
+
+Completed 2026-06-27. Gate 20 shipped Starbridge Crossing as an official
+public, perfect-information board game with Rust-owned 121-space topology,
+2/3/4/6-seat setup, step and hop-chain legality, finish-rank outcomes,
+all-public replay/export evidence, L0 bot simulation, WASM/catalog/web
+registration, a Starbridge web renderer and e2e smoke, benchmark receipts, and
+the `forward-v1` scaffolding governance receipt.
+
+Implementation commits: `79e70cd` through `8ae467a`, plus the capstone closeout
+commit that archives this spec and ticket.
+
+Deviations and repairs:
+
+- The capstone found a `rule-coverage` receipt gap for the validator-visible
+  `SC-END-*` and `SC-SCORE-*` aliases added during trailing docs. The closeout
+  repaired `games/starbridge_crossing/docs/RULE-COVERAGE.md` with alias rows
+  pointing to the existing finish/terminal evidence, then reran
+  `cargo run -p rule-coverage -- --game starbridge_crossing` successfully.
+- Human public name/IP and asset release review remains pending maintainer
+  work before external public release; no human legal signoff was performed in
+  this implementation session.
+
+Verification completed on 2026-06-27:
+
+- `cargo test -p starbridge_crossing`
+- `cargo test -p wasm-api`
+- `cargo run -p simulate -- --game starbridge_crossing --seat-count 2 --games 100 --start-seed 20`
+- `cargo run -p simulate -- --game starbridge_crossing --seat-count 3 --games 100 --start-seed 20`
+- `cargo run -p simulate -- --game starbridge_crossing --seat-count 4 --games 100 --start-seed 20`
+- `cargo run -p simulate -- --game starbridge_crossing --seat-count 6 --games 100 --start-seed 20`
+- `cargo run -p replay-check -- --game starbridge_crossing --all`
+- `cargo run -p fixture-check -- --game starbridge_crossing`
+- `cargo run -p rule-coverage -- --game starbridge_crossing`
+- `cargo bench -p starbridge_crossing`
+- `node scripts/check-ci-games.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-scaffolding-governance.mjs`
+- `node scripts/check-outcome-explanations.mjs`
+- `node scripts/check-doc-links.mjs`
+- `bash scripts/boundary-check.sh`
+- `npm --prefix apps/web run build`
+- `npm --prefix apps/web run smoke:e2e`
+- `git diff --check`
+
+Closeout status: no `engine-core` noun, TypeScript legality, hidden-information
+leak, topology/path helper promotion, prior-game migration set, hash migration,
+visibility migration, determinism migration, or open §10A promotion debt was
+introduced.

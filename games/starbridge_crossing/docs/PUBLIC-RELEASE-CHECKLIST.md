@@ -42,7 +42,7 @@ TypeScript legality decisions.
 | supported player-count smoke | pass | 2, 3, 4, and 6 seat fixtures and simulation lanes. |
 | pairwise no-leak matrix | pass | Rust visibility tests, WASM tests, and Starbridge e2e canary scan. |
 | per-seat outcome explanation | pass | [UI.md](UI.md), `check-outcome-explanations.mjs`. |
-| scaffolding governance receipt | pending | GAT20STACROSTA-019 will add `ci/scaffolding-audits.json`. |
+| scaffolding governance receipt | pass | GAT20STACROSTA-019 added `ci/scaffolding-audits.json` and the register receipt. |
 
 ## Rule, Source, And IP Status
 
@@ -101,5 +101,5 @@ TypeScript legality decisions.
 | Blocker | Owner | Status |
 |---|---|---|
 | human public-name/IP review | maintainer | pending human review |
-| scaffolding governance receipt | GAT20STACROSTA-019 | pending |
-| final spec closeout | GAT20STACROSTA-020 | pending |
+| scaffolding governance receipt | GAT20STACROSTA-019 | complete |
+| final spec closeout | GAT20STACROSTA-020 | complete |

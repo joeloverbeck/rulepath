@@ -27,7 +27,7 @@ and the ADR 0008 `forward-v1` mechanical-scaffolding obligation.
 Admission does not waive later rule coverage, tests, traces, benchmarks, UI
 polish, bot evidence, all-public no-leak proof, forward-v1 machine receipt,
 release checklist, or capstone gates. The post-build `ci/scaffolding-audits.json`
-receipt and central register reconciliation are assigned to
+receipt and central register reconciliation were completed by
 GAT20STACROSTA-019.
 
 ## Authority References
@@ -43,7 +43,7 @@ GAT20STACROSTA-019.
 | `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` | `MSC-8C-001` through `MSC-8C-010` audit targets and forward per-game maintenance cadence. |
 | `docs/adr/0008-mechanical-scaffolding-governance.md` | Reuse-first audit, register-new-on-first-use, and queue-or-dispose prior-game refactor obligation. |
 | `docs/adr/0009-replay-fixture-hash-taxonomy.md` | Replay/fixture/hash taxonomy and no migration without explicit authority. |
-| `specs/gate-20-starbridge-crossing-star-halma.md` | Gate-local scope, variant pin, acceptance evidence, and Appendix A source/rule seed. |
+| `archive/specs/gate-20-starbridge-crossing-star-halma.md` | Gate-local scope, variant pin, acceptance evidence, and Appendix A source/rule seed. |
 
 ## Source, Scope, And Rule Readiness
 
@@ -63,7 +63,7 @@ GAT20STACROSTA-019.
 | behavioral primitive-pressure decision | defer/reject promotion | [PRIMITIVE-PRESSURE-LEDGER.md](PRIMITIVE-PRESSURE-LEDGER.md), [docs/MECHANIC-ATLAS.md](../../../docs/MECHANIC-ATLAS.md) | no |
 | mechanical-scaffolding reuse-first audit complete | ready | [MECHANICS.md](MECHANICS.md#mechanical-scaffolding-reuse-first-audit) | no |
 | matching registered/promoted scaffolding will be reused, or accepted exceptions are linked | ready | [MECHANICS.md](MECHANICS.md#mechanical-scaffolding-reuse-first-audit) | no |
-| newly anticipated behavior-free scaffolding has a planned register disposition | `no-new-scaffolding` expected | [MECHANICS.md](MECHANICS.md#mechanical-scaffolding-reuse-first-audit); machine receipt deferred to GAT20STACROSTA-019 | no |
+| newly anticipated behavior-free scaffolding has a register disposition | `no-new-scaffolding` | [MECHANICS.md](MECHANICS.md#mechanical-scaffolding-reuse-first-audit); `ci/scaffolding-audits.json`; [docs/MECHANICAL-SCAFFOLDING-REGISTER.md](../../../docs/MECHANICAL-SCAFFOLDING-REGISTER.md) | no |
 | expected prior-game matching sites and follow-on/no-follow-on disposition are identified | no follow-on unit expected | no new behavior-free shape; `MSC-8C-010` keeps topology/path behavior local | no |
 | ADR needed for boundary-changing work | no | No kernel, DSL, YAML, trace/hash, visibility, or architecture exception is admitted. | no |
 
@@ -113,8 +113,8 @@ Admission disposition: `no-new-scaffolding` expected.
 | UI evidence | no | yes | renderer/e2e docs and smoke tickets |
 | bot evidence | no | yes | bot tests and AI docs |
 | benchmark evidence | no | yes | benchmark ticket |
-| post-implementation register freshness and prior-game refactor receipt | no | yes | GAT20STACROSTA-019 |
-| CI scaffolding-audit record | no | yes | `ci/scaffolding-audits.json` in GAT20STACROSTA-019 |
+| post-implementation register freshness and prior-game refactor receipt | yes | yes | GAT20STACROSTA-019 |
+| CI scaffolding-audit record | yes | yes | `ci/scaffolding-audits.json` in GAT20STACROSTA-019 |
 
 ## Admission Decision
 
@@ -152,7 +152,7 @@ Explicit constraints:
 |---|---|---|---:|
 | none for implementation admission after this ticket is archived and committed | not applicable | not applicable | no |
 | human IP/public-release review pending | complete review before public release | Rulepath maintainers | no for coding; yes before release |
-| forward-v1 machine receipt absent | add `starbridge_crossing` row to `ci/scaffolding-audits.json` and pass checker | GAT20STACROSTA-019 | no for coding; yes before gate closeout |
+| forward-v1 machine receipt absent | completed: `starbridge_crossing` row exists in `ci/scaffolding-audits.json` and checker passes | GAT20STACROSTA-019 | no |
 
 ## Sign-off
 

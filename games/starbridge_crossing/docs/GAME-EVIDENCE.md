@@ -32,7 +32,7 @@ external public release.
 | Completion profile | `large-board-perfect-information-star-race-release-candidate` |
 | Profile rationale | 121-space public board, 2/3/4/6 seats, Rust-owned topology/path legality, jump chains, replay, benchmarks, L0 bot, WASM/web renderer, and all-public no-leak proof. |
 | Not applicable summary | Hidden hands, decks, commitments, teams, partnerships, tricks, melds, betting, ADR 0004 hidden-information review, and seat-private exports are not applicable. |
-| Deferred checker surface | Scaffolding governance receipt lands in GAT20STACROSTA-019. |
+| Deferred checker surface | none; scaffolding governance receipt completed in GAT20STACROSTA-019. |
 | Foundation invariants status | Rust owns legality, TypeScript presents Rust/WASM output, no hidden-state leak accepted, no helper promotion debt. |
 | Stop-condition review | no active stop condition; human IP/public-release review remains a release blocker, not a Gate 20 implementation blocker. |
 
@@ -73,7 +73,7 @@ external public release.
 | `public-export-v1` | `v1` | public | Rust/WASM export/import tests | `public-replay-round-trip.trace.json`; `wasm-exported.trace.json`; web replay smoke | pass | Starbridge exports are all-public. |
 | `setup-evidence-v1` | `v1` | internal-dev/public | fixture-check | `games/starbridge_crossing/data/fixtures/`; `cargo run -p fixture-check -- --game starbridge_crossing` | pass | 2p, 3p, 4p, and 6p fixtures. |
 | `domain-evidence-v1` | `v1` | internal-dev/public | game-local validator | `games/starbridge_crossing/tests/{rules,property,serialization,replay,visibility,bots}.rs` | pass | Topology, movement, jump chains, finish ranks, visibility, and bots. |
-| `scaffolding-forward-v1` | `v1` | governance | scaffolding checker | GAT20STACROSTA-019 | pending | Receipt not yet landed. |
+| `scaffolding-forward-v1` | `v1` | governance | scaffolding checker | `ci/scaffolding-audits.json`; [docs/MECHANICAL-SCAFFOLDING-REGISTER.md](../../../docs/MECHANICAL-SCAFFOLDING-REGISTER.md) | pass | Receipt landed in GAT20STACROSTA-019. |
 
 ## Fixture Profile
 
@@ -122,5 +122,5 @@ external public release.
 | Item | Status | Owner |
 |---|---|---|
 | Public name/IP review | pending human review | maintainer |
-| Scaffolding receipt | pending GAT20STACROSTA-019 | implementation series |
-| Final spec closeout | pending GAT20STACROSTA-020 | implementation series |
+| Scaffolding receipt | completed GAT20STACROSTA-019 | implementation series |
+| Final spec closeout | completed GAT20STACROSTA-020 | implementation series |

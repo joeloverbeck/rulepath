@@ -1,6 +1,6 @@
 # GAT20STACROSTA-020: Gate 20 capstone — exit-criteria verification and Done-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — docs/status only (`specs/README.md`, spec Status)
@@ -75,3 +75,43 @@ Execute the full acceptance suite (re-run, not copied) and record pass status fo
 1. `cargo test -p starbridge_crossing && cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game starbridge_crossing --all && cargo run -p rule-coverage -- --game starbridge_crossing && npm --prefix apps/web run smoke:e2e`
 3. The full cross-tool + web suite is the correct boundary for a gate closeout; it composes every prior ticket's evidence without modifying them.
+
+## Outcome
+
+Completed 2026-06-27. Re-ran the Gate 20 capstone acceptance suite, flipped the
+Gate 20 progress row to `Done`, archived the completed spec, and recorded the
+spec Outcome. No production logic was changed.
+
+Deviations from the original narrow files list:
+
+1. `cargo run -p rule-coverage -- --game starbridge_crossing` initially failed
+   because `SC-END-*` and `SC-SCORE-*` alias rule IDs existed in `RULES.md`
+   without rows in `RULE-COVERAGE.md`. The closeout repaired those alias rows
+   and reran the command successfully.
+2. Series-level closeout required archiving the spec despite this ticket's
+   local archival out-of-scope note.
+3. Active Starbridge docs that still pointed at the live spec path or pending
+   GAT20STACROSTA-019/GAT20STACROSTA-020 receipt status were reconciled to the
+   archived spec and completed receipt status.
+
+Verification:
+
+1. `cargo test -p starbridge_crossing`
+2. `cargo test -p wasm-api`
+3. `cargo run -p simulate -- --game starbridge_crossing --seat-count 2 --games 100 --start-seed 20`
+4. `cargo run -p simulate -- --game starbridge_crossing --seat-count 3 --games 100 --start-seed 20`
+5. `cargo run -p simulate -- --game starbridge_crossing --seat-count 4 --games 100 --start-seed 20`
+6. `cargo run -p simulate -- --game starbridge_crossing --seat-count 6 --games 100 --start-seed 20`
+7. `cargo run -p replay-check -- --game starbridge_crossing --all`
+8. `cargo run -p fixture-check -- --game starbridge_crossing`
+9. `cargo run -p rule-coverage -- --game starbridge_crossing`
+10. `cargo bench -p starbridge_crossing`
+11. `node scripts/check-ci-games.mjs`
+12. `node scripts/check-catalog-docs.mjs`
+13. `node scripts/check-scaffolding-governance.mjs`
+14. `node scripts/check-outcome-explanations.mjs`
+15. `node scripts/check-doc-links.mjs`
+16. `bash scripts/boundary-check.sh`
+17. `npm --prefix apps/web run build`
+18. `npm --prefix apps/web run smoke:e2e`
+19. `git diff --check`
