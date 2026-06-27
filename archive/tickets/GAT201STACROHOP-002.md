@@ -1,6 +1,6 @@
 # GAT201STACROHOP-002: Add rule SC-MOVE-010 (origin-return prohibition) + coverage
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — game-local docs (`games/starbridge_crossing/docs/RULES.md`, `RULE-COVERAGE.md`)
@@ -131,3 +131,31 @@ Do not edit the `SC-MOVE-007` row or its trace row.
 3. `rule-coverage` is the correct verification boundary here — it is the tool
    that consumes `RULES.md` + `RULE-COVERAGE.md`, so a green run proves the new
    rule is coverage-mapped without needing the full crate test suite.
+
+## Outcome
+
+Completed: 2026-06-27
+
+Added `SC-MOVE-010` to `games/starbridge_crossing/docs/RULES.md` in both the
+Legal Moves table and the Known Ambiguities / Chosen Resolutions table. The new
+rule documents the hop-chain origin-return prohibition as a turn-model no-op
+guard tied to `SC-TURN-002` and `SC-MOVE-009`, while leaving `SC-MOVE-007` and
+`SOURCES.md` `SC-AMB-004` unchanged as the separate finite-chain no-revisit
+rule.
+
+Added the `SC-MOVE-010` coverage row in
+`games/starbridge_crossing/docs/RULE-COVERAGE.md`, citing
+`tests/rules.rs::hop_chain_cannot_return_to_origin_space` and
+`tests/property.rs::committed_non_pass_turns_change_board_occupancy`. Added a
+Rule-ID Migration Note recording that the ADR-0009-governed trace/replay/hash
+artifact migration is owned by `GAT201STACROHOP-003`.
+
+Deviations: the ticket proposed the status text `covered-by-test`, but
+`rule-coverage` rejected that as an unknown status. The row uses the repo's
+accepted `covered` vocabulary while preserving the test evidence explicitly.
+
+Verification:
+
+- `cargo run -p rule-coverage -- --game starbridge_crossing` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `grep -n "SC-MOVE-010" games/starbridge_crossing/docs/RULES.md games/starbridge_crossing/docs/RULE-COVERAGE.md` returned the new rule, ambiguity, migration-note, and coverage rows.
