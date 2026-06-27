@@ -1,6 +1,6 @@
 # GAT20STACROSTA-018: Trailing game docs and outcome-explanation surface
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Medium
 **Engine Changes**: None — game-local docs (`games/starbridge_crossing/docs/{UI.md,COMPETENT-PLAYER.md,BOT-STRATEGY-EVIDENCE-PACK.md,PUBLIC-RELEASE-CHECKLIST.md,GAME-EVIDENCE.md}`)
@@ -75,3 +75,32 @@ Cross-link the all-public no-leak audit, trace profile, benchmark receipts, bot 
 1. `node scripts/check-outcome-explanations.mjs`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. The outcome-explanation + doc-link checks are the correct boundary; docs ship no code.
+
+## Outcome
+
+Added the trailing Starbridge Crossing official-game documentation set:
+`UI.md`, `COMPETENT-PLAYER.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`,
+`PUBLIC-RELEASE-CHECKLIST.md`, and `GAME-EVIDENCE.md`.
+
+`UI.md` includes the required `Outcome / victory explanation` section with the
+`starbridge_crossing.finish_order_complete` template key, finish-rank breakdown,
+turn-limit explanation posture, all-public redaction rules, and e2e/no-leak
+coverage references. `GAME-EVIDENCE.md` cross-links rules, sources, traces,
+fixtures, benchmarks, web e2e, bot status, and the pending scaffolding receipt.
+The bot evidence pack explicitly marks L1/L2 not started and L3 not applicable.
+
+Added the minimal Starbridge outcome rationale TypeScript mirror and static
+template key that the current tree was missing from the earlier renderer ticket.
+Also added `RULES.md` `Scoring and accounting` / `Terminal conditions` alias
+sections (`SC-SCORE-*`, `SC-END-*`) required by the outcome validator; these
+point to the existing finish-rank rules and do not change behavior.
+
+Verification:
+
+1. `node scripts/check-outcome-explanations.mjs` — passed; 20 catalog games validated.
+2. `node scripts/check-doc-links.mjs` — passed.
+3. `bash scripts/boundary-check.sh` — passed.
+4. `npm --prefix apps/web run build` — passed.
+5. `git diff --check` — passed.
+
+The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.

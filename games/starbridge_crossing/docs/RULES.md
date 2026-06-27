@@ -109,6 +109,20 @@ The only Gate 20 variant is `starbridge_crossing_classic_star_v1`.
 | `SC-MOVE-008` | A move may not combine a step with any hop. | diagnostic | The accepted command path is either step-only or hop-chain-only. |
 | `SC-MOVE-009` | If the active seat has no legal step and no legal hop, Rust exposes exactly one forced `pass_blocked` action. | `pass_blocked` | The pass records the no-move condition and advances the turn. |
 
+## Scoring and accounting
+
+| Rule ID | Rule | Notes |
+|---|---|---|
+| `SC-SCORE-001` | Starbridge Crossing has finish-rank accounting, not point scoring. Rank 1 is the winner, later ranks are ordered standings, and all rank data is Rust-authored public state. | This aliases `SC-FINISH-001` through `SC-FINISH-004` for outcome-explanation and score-surface validators. |
+| `SC-SCORE-002` | The turn-limit fallback accounts for unfinished seats by Rust-owned progress vector and clockwise seat order. | This aliases `SC-FINISH-005` and `SC-FINISH-006`. |
+
+## Terminal conditions
+
+| Rule ID | Rule | Notes |
+|---|---|---|
+| `SC-END-001` | The normal terminal condition is all-but-one seats finished; Rust assigns the last unfinished seat the final rank. | Equivalent to `SC-FINISH-003`. |
+| `SC-END-002` | The deterministic turn-limit terminal condition records completed ranks plus progress-vector standings for unfinished seats. | Equivalent to `SC-FINISH-006`. |
+
 ## Finish, Rankings, And Terminal Conditions
 
 Stable terminal tokens for later coverage, outcome, and trace consumers:

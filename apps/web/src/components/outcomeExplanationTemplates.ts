@@ -154,6 +154,13 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["secret_draft"],
     ruleRefLabel: "Draw rule",
   },
+  "starbridge_crossing.finish_order_complete": {
+    summary: "All Starbridge finish ranks are assigned.",
+    expandedHeading: "Finish order",
+    requiredParams: [],
+    allowedGameIds: ["starbridge_crossing"],
+    ruleRefLabel: "Finish ranking rule",
+  },
   "poker_lite.yield_win_no_reveal": {
     summary: "{winner} wins after {loser} yields.",
     expandedHeading: "Yield result",

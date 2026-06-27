@@ -172,6 +172,7 @@ export type HighCardDuelOutcomeRationale = OutcomeRationalePayload;
 export type TokenBazaarOutcomeRationale = OutcomeRationalePayload;
 export type SecretDraftOutcomeRationale = OutcomeRationalePayload;
 export type PokerLiteOutcomeRationale = OutcomeRationalePayload;
+export type StarbridgeCrossingOutcomeRationale = OutcomeRationalePayload;
 export type PlainTricksOutcomeRationale = {
   result_kind: string;
   decisive_cause: string;
@@ -1612,6 +1613,7 @@ export type StarbridgeCrossingPublicView = {
   spaces: StarbridgeCrossingSpaceView[];
   seats: StarbridgeCrossingSeatView[];
   finish_ranks: StarbridgeCrossingFinishRankView[];
+  terminal_rationale?: StarbridgeCrossingOutcomeRationale | null;
   audit: {
     redaction_class: string;
     private_fields: string[];
