@@ -1,6 +1,6 @@
 # GAT201STACROHOP-001: Forbid hop-chain return to the moving peg's origin space
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `games/starbridge_crossing` (`src/rules.rs` legality; `tests/rules.rs`, `tests/property.rs`)
@@ -162,3 +162,32 @@ occupancy (A2's invariant).
    their golden traces regenerate in `GAT201STACROHOP-003`, so the scoped
    `--test rules --test property` run is the correct verification boundary for
    this diff.
+
+## Outcome
+
+Completed: 2026-06-27
+
+Implemented the Starbridge Crossing origin-return legality fix at the single
+Rust chokepoint: `legal_jump_landings` now skips any landing equal to the moving
+peg's turn-origin space before occupancy checks, so both action-tree enumeration
+and `validate_jump_command` reject `origin -> A -> origin` chains without
+changing non-origin `occupancy_during_chain` semantics.
+
+Added `tests/rules.rs::hop_chain_cannot_return_to_origin_space`, covering
+validation rejection and action-tree absence for the origin-return continuation,
+while preserving the existing direction-changing / stop-midway multi-hop test.
+Added `tests/property.rs::committed_non_pass_turns_change_board_occupancy`,
+which enumerates generated legal setup-position action paths for supported seat
+counts and verifies every non-`pass_blocked` committed turn changes board
+occupancy.
+
+Deviations: none. Artifact regeneration, rule-text coverage, and
+`GAME-EVIDENCE.md` refresh remain intentionally deferred to
+`GAT201STACROHOP-002` / `GAT201STACROHOP-003` per the series plan.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --test rules --test property` passed
+  (17 rules tests, 4 property tests).
+- `cargo clippy -p starbridge_crossing --all-targets -- -D warnings` passed.

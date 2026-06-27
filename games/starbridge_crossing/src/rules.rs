@@ -107,6 +107,9 @@ pub fn legal_jump_landings(
         if visited_landings.contains(&landing) {
             continue;
         }
+        if landing == origin {
+            continue;
+        }
         if occupancy_during_chain(state, peg, origin, current, over).is_none() {
             continue;
         }
