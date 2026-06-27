@@ -1,6 +1,6 @@
 # GAT20STACROSTA-003: forward-v1 reuse-first scaffolding audit + implementation admission
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — game-local governance docs (`games/starbridge_crossing/docs/MECHANICS.md`, `GAME-IMPLEMENTATION-ADMISSION.md`)
@@ -76,3 +76,36 @@ Record that serious implementation is admitted once the topology hard gate (GAT2
 1. `node scripts/check-doc-links.mjs`
 2. `bash scripts/boundary-check.sh`
 3. Narrower command is correct: governance docs only; `check-scaffolding-governance.mjs` runs once the machine receipt lands in GAT20STACROSTA-019.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/docs/MECHANICS.md` with the game-local
+  mechanic inventory, primitive-pressure posture, C-01 through C-10 forward-v1
+  scaffolding reuse-first audit, lawful shared homes review, expected
+  `no-new-scaffolding` admission disposition, and no-follow-on-unit expectation
+  unless later implementation invents a pure scaffolding match.
+- Added `games/starbridge_crossing/docs/GAME-IMPLEMENTATION-ADMISSION.md` with
+  the pre-code admission receipt, authority references, source/rule readiness,
+  topology hard-gate evidence, C-01 through C-10 audit summary, boundary risks,
+  required evidence profile, and explicit constraints for later crate work.
+
+Deviations from plan:
+
+- None.
+
+Verification:
+
+- `grep -nE "C-0[1-9]|C-10" games/starbridge_crossing/docs/MECHANICS.md`
+  passed and showed all ten checkpoints.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
