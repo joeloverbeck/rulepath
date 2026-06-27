@@ -96,7 +96,7 @@ jobs:
         run: chmod +x ci-bin/*
 
       - name: Quick simulation
-        run: ./ci-bin/simulate --game ${{ matrix.id }} --games 1000 ${{ matrix.sim_flags }}
+        run: ./ci-bin/simulate --game ${{ matrix.id }} --games ${{ matrix.games || 1000 }} ${{ matrix.sim_flags }}
 
       - name: Replay drift check
         run: ./ci-bin/replay-check --game ${{ matrix.id }} --all
