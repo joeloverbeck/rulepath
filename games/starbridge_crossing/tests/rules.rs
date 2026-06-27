@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
+use engine_core::{
+    ActionChoice, ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed,
+};
 use starbridge_crossing::{
     apply_jump_command, apply_pass_blocked_command, apply_step_command, encode_jump_path,
     encode_step_path, home_spaces, legal_action_tree, legal_jump_landings, legal_step_moves,
@@ -93,6 +95,36 @@ fn jump_fixture() -> (
         over_two,
         landing_two,
     )
+}
+
+fn origin_return_fixture() -> (
+    Vec<SeatId>,
+    StarbridgeState,
+    StarPegId,
+    StarSpaceId,
+    StarSpaceId,
+) {
+    let seats = seats(2);
+    let mut state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    state.occupancy = StarbridgeState::empty_occupancy();
+
+    let peg = StarPegId::new(0, 0);
+    let blocker = StarPegId::new(1, 0);
+    let origin = space_at(StarCoord::new(0, 0, 0));
+    let over = space_at(StarCoord::new(1, -1, 0));
+    let landing = space_at(StarCoord::new(2, -2, 0));
+
+    set_peg(&mut state, peg, origin);
+    set_peg(&mut state, blocker, over);
+
+    (seats, state, peg, origin, landing)
+}
+
+fn find_choice<'a>(choices: &'a [ActionChoice], segment: &str) -> &'a ActionChoice {
+    choices
+        .iter()
+        .find(|choice| choice.segment == segment)
+        .expect("choice segment exists")
 }
 
 fn finish_step_fixture(
@@ -469,6 +501,61 @@ fn multi_hop_can_change_direction_and_stop_midway() {
     assert_eq!(chain.chain.hops.len(), 2);
     assert_eq!(chain.chain.hops[1].over, over_two);
     assert_eq!(chain.chain.hops[1].landing, landing_two);
+}
+
+#[test]
+fn hop_chain_cannot_return_to_origin_space() {
+    let (seats, state, peg, origin, landing) = origin_return_fixture();
+
+    let first_landings = legal_jump_landings(&state, peg, origin, &[]);
+    assert!(first_landings.iter().any(|jump| jump.landing == landing));
+    let return_landings = legal_jump_landings(&state, peg, landing, &[landing]);
+    assert!(
+        !return_landings.iter().any(|jump| jump.landing == origin),
+        "origin must not be offered as a hop-chain landing"
+    );
+
+    let diagnostic = validate_jump_command(
+        &state,
+        &command(
+            actor(&seats[0]),
+            encode_jump_path(peg, &[landing, origin]),
+            state.freshness_token,
+        ),
+    )
+    .expect_err("origin-return jump chain is rejected");
+    assert_eq!(diagnostic.code, "invalid_jump");
+
+    let tree = legal_action_tree(&state, &actor(&seats[0]));
+    let move_choice = find_choice(&tree.root.choices, "move");
+    let peg_choice = find_choice(
+        &move_choice.next.as_ref().unwrap().choices,
+        &peg.stable_id(),
+    );
+    let jump_choice = find_choice(&peg_choice.next.as_ref().unwrap().choices, "jump");
+    let first_landing_choice = find_choice(
+        &jump_choice.next.as_ref().unwrap().choices,
+        &landing.to_string(),
+    );
+    let continuation = first_landing_choice
+        .next
+        .as_ref()
+        .unwrap()
+        .choices
+        .iter()
+        .find(|choice| choice.segment == "continue");
+    if let Some(continuation_choice) = continuation {
+        assert!(
+            continuation_choice
+                .next
+                .as_ref()
+                .unwrap()
+                .choices
+                .iter()
+                .all(|choice| choice.segment != origin.to_string()),
+            "action tree must not expose the origin-return continuation"
+        );
+    }
 }
 
 #[test]

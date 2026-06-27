@@ -417,7 +417,16 @@ fn run_one_starbridge_crossing_match(
     )
     .map_err(|diagnostic| format!("starbridge_crossing setup failed: {}\n", diagnostic.code))?;
 
-    for action_index in 0..config.action_cap {
+    // A Star Halma race needs hundreds-to-thousands of plies to reach a finish
+    // terminal, and random L0 play almost always rides the deterministic turn
+    // limit (RULES.md SC-FINISH-005, default 2000 plies). The generic short-game
+    // default cap of 64 would cut every match off long before any terminal, so
+    // floor the action budget to the variant's turn limit (plus headroom to
+    // observe the turn-limit terminal on the following iteration). A larger
+    // explicit `--action-cap` still wins.
+    let cap = config.action_cap.max(state.variant.max_plies as usize + 2);
+
+    for action_index in 0..cap {
         if state.terminal_status.is_some() {
             return Ok(StarbridgeMatchOutcome {
                 winner: state
@@ -485,7 +494,7 @@ fn run_one_starbridge_crossing_match(
             .iter()
             .find(|rank| rank.rank == 1)
             .map(|rank| rank.seat_index),
-        actions: config.action_cap as u64,
+        actions: cap as u64,
         capped: !matches!(
             state.terminal_status,
             Some(StarbridgeTerminalStatus::Complete | StarbridgeTerminalStatus::TurnLimit { .. })
@@ -3577,6 +3586,33 @@ mod tests {
             assert!(
                 output.contains("action_cap_failures=0"),
                 "{seat_count}-seat run has no cap failures: {output}"
+            );
+        }
+    }
+
+    #[test]
+    fn starbridge_crossing_simulation_completes_at_default_action_cap() {
+        // A Starbridge Crossing race needs hundreds-to-thousands of plies to reach
+        // either a finish-order terminal or the deterministic 2000-ply turn limit
+        // (RULES.md SC-FINISH-005). The generic short-game default cap of 64 cuts
+        // every match off long before any terminal, so the documented
+        // `--game starbridge_crossing` command (with no explicit --action-cap)
+        // must floor the cap to reach a real terminal for every supported seat
+        // count instead of reporting only capped matches.
+        for seat_count in [2usize, 3, 4, 6] {
+            let output = run_starbridge_crossing_simulation(Config {
+                game: GAME_STARBRIDGE_CROSSING.to_owned(),
+                seat_count: Some(seat_count),
+                games: 2,
+                ..Config::default()
+            })
+            .unwrap_or_else(|error| {
+                panic!("starbridge {seat_count}-seat sim completes at default cap: {error}")
+            });
+
+            assert!(
+                output.contains("capped_matches=0"),
+                "{seat_count}-seat run reaches a terminal for every match: {output}"
             );
         }
     }

@@ -75,6 +75,15 @@ external public release.
 | `domain-evidence-v1` | `v1` | internal-dev/public | game-local validator | `games/starbridge_crossing/tests/{rules,property,serialization,replay,visibility,bots}.rs` | pass | Topology, movement, jump chains, finish ranks, visibility, and bots. |
 | `scaffolding-forward-v1` | `v1` | governance | scaffolding checker | `ci/scaffolding-audits.json`; [docs/MECHANICAL-SCAFFOLDING-REGISTER.md](../../../docs/MECHANICAL-SCAFFOLDING-REGISTER.md) | pass | Receipt landed in GAT20STACROSTA-019. |
 
+## Gate 20.1 Origin-Return Migration Receipt
+
+| Artifact/surface | ADR 0009 authority note | Status |
+|---|---|---|
+| `crates/wasm-api/tests/snapshots/api_surface.tsv` (`starbridge_crossing/action_tree/seat_0`) | Updated after `SC-MOVE-010` removed hop-chain continuations that landed back on the moving peg's turn-origin space. The snapshot remains a public action-tree contract; no hidden-information or view-redaction surface changed. Regenerated with `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface`, then verified by the same focused test. | migrated |
+| `games/starbridge_crossing/tests/golden_traces/*.trace.json` | Reviewed by `cargo run -p replay-check -- --game starbridge_crossing --all`; every trace passed without regeneration, so no committed command/replay trace recorded an origin-return continuation needing a hash update. | unchanged |
+| `games/starbridge_crossing/data/fixtures/*.fixture.json` | Reviewed by `cargo run -p fixture-check -- --game starbridge_crossing`; all setup fixtures passed unchanged. | unchanged |
+| `games/starbridge_crossing/benches/thresholds.json` | Reviewed by `cargo bench -p starbridge_crossing`; all 14 benchmark operations passed existing smoke floors, so no threshold migration was needed. | unchanged |
+
 ## Fixture Profile
 
 | Fixture | Status | Purpose |
@@ -114,6 +123,12 @@ external public release.
 | `cargo run -p replay-check -- --game starbridge_crossing --all` | pass | all trace receipts accepted. |
 | `cargo run -p fixture-check -- --game starbridge_crossing` | pass | fixture catalog accepted. |
 | `cargo run -p rule-coverage -- --game starbridge_crossing` | pass | coverage matrix and benchmark doc present. |
+| `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` | pass | regenerated the single Starbridge public action-tree snapshot after `SC-MOVE-010`. |
+| `cargo test -p wasm-api --test api_surface` | pass | focused snapshot verification after regeneration. |
+| `cargo run -p simulate -- --game starbridge_crossing --games 1000` | pass | 1000 games, 2 seats, 2,000,000 total actions, zero capped matches. |
+| `npm --prefix apps/web run smoke:wasm` | pass | rebuilt current Rust/WASM and loaded the browser API. |
+| `npm --prefix apps/web run build` | pass | copied 20 player-rule docs, rebuilt WASM, typechecked, and built Vite output. |
+| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge board, jump, replay, no-leak, and responsive Puppeteer smoke. |
 | `cargo bench -p starbridge_crossing` | pass | benchmark smoke floors pass. |
 | `npm --prefix apps/web run smoke:e2e` | pass | includes Starbridge browser smoke. |
 

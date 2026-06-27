@@ -108,6 +108,7 @@ The only Gate 20 variant is `starbridge_crossing_classic_star_v1`.
 | `SC-MOVE-007` | A hop chain may not revisit a landing space already present in that same turn's hop path. | finite-chain guard | This is a Rulepath deterministic action-tree resolution. |
 | `SC-MOVE-008` | A move may not combine a step with any hop. | diagnostic | The accepted command path is either step-only or hop-chain-only. |
 | `SC-MOVE-009` | If the active seat has no legal step and no legal hop, Rust exposes exactly one forced `pass_blocked` action. | `pass_blocked` | The pass records the no-move condition and advances the turn. |
+| `SC-MOVE-010` | A hop chain may not land on the moving peg's own origin space from the start of that turn. | hop action-tree guard | A committed turn must change board occupancy unless Rust issues `pass_blocked`; this reinforces `SC-TURN-002` and `SC-MOVE-009`. |
 
 ## Scoring and accounting
 
@@ -177,6 +178,7 @@ that browser code owns legality or that any hidden game fact exists.
 | `SC-MOVE-006` | Whether a player must continue a jump chain when another hop is available. | A player may stop after any legal hop landing. | Gate 20 source comparison and variant pin. | jump-stop-midway trace | Stop-anywhere must appear in the action tree. |
 | `SC-MOVE-007` | Cyclic hop paths can make naive action trees unbounded. | A single move cannot revisit a landing space already used in that hop chain. | Rulepath deterministic finite action-tree resolution. | repeat-landing rejected trace | This is documented as an implementation resolution. |
 | `SC-MOVE-009` | Physical play can stall through blocked positions. | Rust exposes a forced `pass_blocked` when no step or hop exists. | Replay/simulation explicitness. | blocked-pass trace | This does not create a strategic pass option. |
+| `SC-MOVE-010` | A stop-anywhere hop chain could otherwise leave and return to the same origin space. | A hop chain cannot land on the moving peg's own turn-origin space. | `SC-TURN-002` requires a turn to be one move, and `SC-MOVE-009` limits pass behavior to forced blocked positions. | origin-return rejection test and no-op-turn property | This is a turn-model no-op prohibition, distinct from the `SC-MOVE-007` finite-chain guard. |
 | `SC-FINISH-003` | Many casual rules focus on first finisher only. | Continue until all but one active seat have ranks, then assign the last rank. | Rulepath multi-seat outcome contract. | finish-order and terminal standings traces | Needed for 3+ seat standings. |
 | `SC-FINISH-006` | The rules family has no natural ply limit. | Official variants include a deterministic turn-limit terminal fallback. | Simulation and benchmark safeguard. | turn-limit trace | Normal play should end by finish ranks. |
 
@@ -198,5 +200,8 @@ allowed.
 
 ## Rule-ID Migration Notes
 
-None yet. Any migration must update this document, `RULE-COVERAGE.md`, traces,
-tests, player-facing docs, and consumers that name the affected rule IDs.
+2026-06-27: Added `SC-MOVE-010` to make the hop-chain origin-return prohibition
+explicit. This narrows the Gate 20 action tree by removing origin-return
+continuations that produced net-zero no-op turns; the ADR-0009-governed
+trace/replay/hash evidence migration is owned by `GAT201STACROHOP-003`.
+`SC-MOVE-007` remains the separate finite-chain no-revisit rule.
