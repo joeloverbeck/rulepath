@@ -67,6 +67,10 @@ try {
     await page.waitForSelector('[data-testid="meldfall-ledger-board"]');
     await assertSetupSurface(page, seatCount);
     await assertObserverNoPrivateHand(page);
+    if (seatCount === 2) {
+      await assertSettlementBreakdown(page);
+      assertNoForbiddenTerms(await fullBrowserSurface(page), "settlement DOM and attributes", cardIds);
+    }
   }
 
   await startMeldfall(page, baseUrl, "Hotseat", 216, 4);
@@ -136,6 +140,9 @@ async function startMeldfall(page, baseUrl, modeLabel, seed, seatCount) {
   await setSetupSeed(page, seed);
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
+  if (modeLabel === "Bot vs bot") {
+    await clickText(page, "button", "Start Autoplay");
+  }
 }
 
 async function assertSetupSurface(page, seatCount) {
@@ -193,6 +200,35 @@ async function assertTableauRendered(page) {
   assert(summary.groups >= 1, "meldfall_ledger renders a public meld group");
   assert(summary.cards >= 4, `meldfall_ledger renders meld plus lay-off cards, got ${summary.cards}`);
   assert(summary.actions > 0, "meldfall_ledger uses board-native Rust action buttons");
+}
+
+async function assertSettlementBreakdown(page) {
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector(".meldfall-settlement");
+      const text = panel?.textContent ?? "";
+      return (
+        text.includes("Last round settled") &&
+        (/Stock exhausted/.test(text) || /Seat \d+ went out/.test(text)) &&
+        text.includes("tabled") &&
+        text.includes("held penalty") &&
+        text.includes("cards held at settlement") &&
+        /[+-]\d+/.test(text)
+      );
+    },
+    { timeout: 20000 },
+  );
+
+  const summary = await page.evaluate(() => {
+    const panel = document.querySelector(".meldfall-settlement");
+    return {
+      text: panel?.textContent ?? "",
+      seats: panel?.querySelectorAll(".meldfall-settlement-seat").length ?? 0,
+      breakdowns: panel?.querySelectorAll(".meldfall-settlement-breakdown").length ?? 0,
+    };
+  });
+  assert(summary.seats >= 2, `settlement renders per-seat rows, got ${summary.seats}: ${summary.text}`);
+  assert(summary.breakdowns >= 2, `settlement renders per-seat breakdowns, got ${summary.breakdowns}: ${summary.text}`);
 }
 
 async function waitForTableCards(page, count) {

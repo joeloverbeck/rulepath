@@ -1,6 +1,6 @@
 # GAT192MELLEDSET-003: Web settlement panel + retire effects-buffer capture
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/components/MeldfallLedgerBoard.tsx`, `apps/web/src/styles.css`, `apps/web/e2e/meldfall-ledger.smoke.mjs`, `apps/web/e2e/a11y-noleak.smoke.mjs`
@@ -148,3 +148,46 @@ that no forbidden term leaks into DOM/a11y/testid/storage/console.
 3. `npm --prefix apps/web run build`
 4. The targeted e2e smokes are the correct boundary for render + no-leak; the build
    guards the TS contract.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Removed the local `RoundSettlement` type, `parseRoundSettlement`, and
+  `useEffect`/`useState` settlement capture path from
+  `MeldfallLedgerBoard.tsx`.
+- Rewired the "Last round settled" panel to render directly from
+  `view.last_settlement`, including round-end reason, per-seat tabled total,
+  held-card penalty, Rust-authored delta, cumulative score, rank, winner flag,
+  and held-card count.
+- Extended settlement panel styling for the reason, per-seat breakdown, held
+  card count, rank, and winner state.
+- Extended `apps/web/e2e/meldfall-ledger.smoke.mjs` to start Bot-vs-bot
+  autoplay, wait for a real settlement panel, assert the breakdown renders, and
+  assert no hidden card IDs appear in the browser surface.
+- Extended `apps/web/e2e/a11y-noleak.smoke.mjs` with a panel-scoped Meldfall
+  settlement no-leak check.
+
+Deviations:
+
+- The first e2e attempts timed out waiting for settlement because the smoke had
+  selected Bot-vs-bot mode but had not clicked `Start Autoplay`. The smoke now
+  starts autoplay explicitly before waiting for the panel.
+- The remaining `round_score` string in `MeldfallLedgerBoard.tsx` is only part
+  of table-change/effect animation detection; it is not a settlement data
+  transport or parser.
+
+Verification:
+
+- `npm --prefix apps/web run build` passed.
+- `cargo fmt --all --check` passed.
+- Initial `node apps/web/e2e/meldfall-ledger.smoke.mjs` and
+  `node apps/web/e2e/a11y-noleak.smoke.mjs` attempts failed with a 20s
+  settlement wait timeout before the smoke started autoplay explicitly.
+- `node apps/web/e2e/meldfall-ledger.smoke.mjs` passed after the autoplay fix.
+- `node apps/web/e2e/a11y-noleak.smoke.mjs` passed after the autoplay fix.
+- `npm --prefix apps/web run smoke:ui` passed.
+- Grep proof: `parseRoundSettlement`, `type RoundSettlement`, and
+  `setSettlement` no longer exist in `MeldfallLedgerBoard.tsx`.
