@@ -72,6 +72,16 @@ export function MeldfallLedgerBoard({
     groupedChoices.table.length > 0 &&
     groupedChoices.turn.length === 0 &&
     groupedChoices.discard.length === 0;
+  // Go-out is offered only when the hand can be emptied without a final discard
+  // (ML-TURN-007). Surfaced from the Rust action set so the board can explain that
+  // choosing it ends the round immediately rather than passing the turn.
+  const goOutAvailable = groupedChoices.turn.some((choice) => choice.segment === "go-out-without-discard");
+  // Plain-language guidance for the active seat's current step. The turn runs
+  // draw -> table -> discard, and in the table phase "Finish turn" advances to a
+  // mandatory discard rather than ending the turn, which the bare button label does
+  // not convey. Derived only from the public phase and the Rust-offered action kinds.
+  const turnGuidance =
+    canAct && !pickupCommitmentPending ? turnGuidanceText(view.phase, goOutAvailable) : null;
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const tableChanged = effects.some((entry) => {
     const payload = entry.effect.payload;
@@ -277,10 +287,21 @@ export function MeldfallLedgerBoard({
                 Pickup commitment: meld or lay off the discard you took before you can finish this turn.
               </p>
             ) : null}
+            {turnGuidance ? (
+              <p className="meldfall-phase-guide" role="status">
+                {turnGuidance}
+              </p>
+            ) : null}
             <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup title="Discard" choices={groupedChoices.discard} canAct={canAct} onPathSubmit={onPathSubmit} />
-            <ActionGroup title="Turn" choices={groupedChoices.turn} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup
+              title="Turn"
+              choices={groupedChoices.turn}
+              canAct={canAct}
+              onPathSubmit={onPathSubmit}
+              fallbackHint={turnChoiceHint}
+            />
           </section>
 
           <div className="meldfall-latest" role="status" data-animation-target="meldfall-status">
@@ -462,11 +483,13 @@ function ActionGroup({
   choices,
   canAct,
   onPathSubmit,
+  fallbackHint,
 }: {
   title: string;
   choices: ActionChoice[];
   canAct: boolean;
   onPathSubmit?: (path: string[]) => void;
+  fallbackHint?: (segment: string) => string | null;
 }) {
   if (choices.length === 0) {
     return null;
@@ -476,23 +499,58 @@ function ActionGroup({
     <section className="meldfall-action-group" aria-label={`${title} choices`}>
       <h3>{title}</h3>
       <div className="meldfall-action-grid">
-        {choices.map((choice, index) => (
-          <button
-            type="button"
-            className="meldfall-action"
-            key={choice.segment}
-            disabled={!canAct}
-            aria-label={choice.accessibility_label}
-            data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
-            onClick={() => onPathSubmit?.([choice.segment])}
-          >
-            <strong>{renderActionLabel(choice.label)}</strong>
-            {choice.presentation?.helper_text ? <small>{choice.presentation.helper_text}</small> : null}
-          </button>
-        ))}
+        {choices.map((choice, index) => {
+          const hint = choice.presentation?.helper_text ?? fallbackHint?.(choice.segment) ?? null;
+          return (
+            <button
+              type="button"
+              className="meldfall-action"
+              key={choice.segment}
+              disabled={!canAct}
+              aria-label={choice.accessibility_label}
+              data-testid={`meldfall-action-${title.toLowerCase()}-${index}`}
+              onClick={() => onPathSubmit?.([choice.segment])}
+            >
+              <strong>{renderActionLabel(choice.label)}</strong>
+              {hint ? <small>{hint}</small> : null}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
+}
+
+// Plain-language explanation of the active seat's current step, derived only from the
+// public phase and Rust-offered action kinds (no legality decided here, ML-UI-001).
+// The turn runs draw -> table -> discard; in the table phase "Finish turn" advances to
+// a mandatory discard, and "Go out" ends the round, neither of which the bare button
+// labels make obvious.
+function turnGuidanceText(phase: string, goOutAvailable: boolean): string | null {
+  if (phase === "draw") {
+    return "Start your turn: draw from the hidden stock, or pick up a card from the discard pile.";
+  }
+  if (phase === "table") {
+    if (goOutAvailable) {
+      return "Your hand is empty after tabling. Go out to end the round and settle every seat's held-card penalties now, or finish your turn.";
+    }
+    return "Optional: table new melds or lay off onto public melds. Then choose Finish turn to move on to your discard.";
+  }
+  if (phase === "discard") {
+    return "Choose one card to discard. Discarding ends your turn.";
+  }
+  return null;
+}
+
+// Per-button clarification for the turn-control choices, whose Rust labels are terse.
+function turnChoiceHint(segment: string): string | null {
+  if (segment === "finish-turn") {
+    return "Stop tabling and go to your discard.";
+  }
+  if (segment === "go-out-without-discard") {
+    return "End the round now; all seats settle held-card penalties.";
+  }
+  return null;
 }
 
 const SUIT_GLYPH: Record<string, string> = {
