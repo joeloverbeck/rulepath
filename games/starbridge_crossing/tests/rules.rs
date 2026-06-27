@@ -1,14 +1,35 @@
 use std::collections::BTreeSet;
 
-use engine_core::{SeatId, Seed};
+use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use starbridge_crossing::{
-    home_spaces, setup_match, SetupOptions, StarPoint, StarZone, STANDARD_PEGS_PER_SEAT,
+    apply_step_command, encode_step_path, home_spaces, legal_action_tree, legal_step_moves,
+    setup_match, validate_step_command, SetupOptions, StarPoint, StarSpaceId, StarZone,
+    STANDARD_PEGS_PER_SEAT,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
     (0..count)
         .map(|index| SeatId::from_zero_based_index(index as u32))
         .collect()
+}
+
+fn actor(seat: &SeatId) -> Actor {
+    Actor {
+        seat_id: seat.clone(),
+    }
+}
+
+fn command(
+    actor: Actor,
+    segments: Vec<String>,
+    freshness_token: FreshnessToken,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        actor,
+        action_path: ActionPath { segments },
+        freshness_token,
+        rules_version: RulesVersion(1),
+    }
 }
 
 #[test]
@@ -122,4 +143,140 @@ fn setup_leaves_non_home_spaces_empty() {
             assert_eq!(state.occupancy(space.id), None);
         }
     }
+}
+
+#[test]
+fn step_action_tree_lists_active_seat_step_paths_in_deterministic_order() {
+    let seats = seats(2);
+    let state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    let tree = legal_action_tree(&state, &actor(&seats[0]));
+
+    assert!(!tree.has_dead_branches());
+    assert_eq!(tree.freshness_token, state.freshness_token);
+    assert_eq!(tree.root.choices.len(), 1);
+    assert_eq!(tree.root.choices[0].segment, "move");
+
+    let moves = legal_step_moves(&state);
+    assert!(!moves.is_empty());
+    assert_eq!(moves[0].peg.seat_index, 0);
+}
+
+#[test]
+fn accepted_step_moves_one_peg_and_emits_step_effect() {
+    let seats = seats(2);
+    let mut state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    let before = state.clone();
+    let step = legal_step_moves(&state)[0];
+    let freshness_token = state.freshness_token;
+
+    let effects = apply_step_command(
+        &mut state,
+        &command(
+            actor(&seats[0]),
+            encode_step_path(step.peg, step.to),
+            freshness_token,
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(before.occupancy(step.from), Some(step.peg));
+    assert_eq!(before.occupancy(step.to), None);
+    assert_eq!(state.occupancy(step.from), None);
+    assert_eq!(state.occupancy(step.to), Some(step.peg));
+    assert_eq!(state.active_seat_index, 1);
+    assert_eq!(state.freshness_token, before.freshness_token.next());
+    assert_eq!(effects.len(), 1);
+}
+
+#[test]
+fn invalid_step_diagnostics_do_not_mutate_state() {
+    let seats = seats(2);
+    let state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    let active_peg = state.pegs_for_seat(0).next().unwrap();
+    let step = legal_step_moves(&state)[0];
+    let occupied_destination = state
+        .pegs_for_seat(0)
+        .find(|peg| peg.id != active_peg.id)
+        .unwrap()
+        .space;
+    let non_adjacent_empty = starbridge_crossing::spaces()
+        .iter()
+        .map(|space| space.id)
+        .find(|space| {
+            state.occupancy(*space).is_none()
+                && !starbridge_crossing::StarDirection::ALL
+                    .into_iter()
+                    .any(|direction| {
+                        starbridge_crossing::neighbor_in_direction(active_peg.space, direction)
+                            == Some(*space)
+                    })
+        })
+        .unwrap();
+
+    for (path, code) in [
+        (
+            encode_step_path(active_peg.id, occupied_destination),
+            "occupied_destination",
+        ),
+        (
+            encode_step_path(active_peg.id, non_adjacent_empty),
+            "non_adjacent_destination",
+        ),
+        (
+            vec![
+                "move".to_owned(),
+                active_peg.id.stable_id(),
+                "step".to_owned(),
+                "s999".to_owned(),
+            ],
+            "off_board_destination",
+        ),
+        (encode_step_path(step.peg, step.to), "wrong_seat"),
+    ] {
+        let mut candidate = state.clone();
+        let actor = if code == "wrong_seat" {
+            actor(&seats[1])
+        } else {
+            actor(&seats[0])
+        };
+        let diagnostic =
+            apply_step_command(&mut candidate, &command(actor, path, state.freshness_token))
+                .expect_err("invalid step is rejected");
+
+        assert_eq!(diagnostic.code, code);
+        assert_eq!(candidate, state);
+    }
+
+    let mut stale = state.clone();
+    let diagnostic = apply_step_command(
+        &mut stale,
+        &command(
+            actor(&seats[0]),
+            encode_step_path(step.peg, step.to),
+            FreshnessToken(99),
+        ),
+    )
+    .expect_err("stale command is rejected");
+    assert_eq!(diagnostic.code, "stale_action");
+    assert_eq!(stale, state);
+}
+
+#[test]
+fn validate_step_rejects_wrong_owner_peg_without_mutation() {
+    let seats = seats(2);
+    let state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    let wrong_peg = state.pegs_for_seat(1).next().unwrap();
+    let destination = StarSpaceId::new(60).unwrap();
+
+    let diagnostic = validate_step_command(
+        &state,
+        &command(
+            actor(&seats[0]),
+            encode_step_path(wrong_peg.id, destination),
+            state.freshness_token,
+        ),
+    )
+    .expect_err("wrong owner peg is rejected");
+
+    assert_eq!(diagnostic.code, "wrong_peg_seat");
 }

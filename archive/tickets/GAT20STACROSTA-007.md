@@ -1,6 +1,6 @@
 # GAT20STACROSTA-007: Single-step legal moves, validation, and step effects
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes — `games/starbridge_crossing/src/{rules.rs,actions.rs,effects.rs}`, `tests/rules.rs`
@@ -83,3 +83,41 @@ Semantic move effect (peg id, from, to) for renderer animation.
 1. `cargo test -p starbridge_crossing --test rules`
 2. `cargo test -p starbridge_crossing && bash scripts/boundary-check.sh`
 3. `--test rules` isolates step legality; full crate run confirms topology/state integration.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/src/actions.rs` with Rust-owned step action
+  tree generation and path encoding/parsing for
+  `move/<peg-id>/step/<dest-space>`.
+- Added `games/starbridge_crossing/src/rules.rs` with active-seat single-step
+  enumeration, freshness/seat/terminal/finished checks, occupied/off-board/
+  non-adjacent/wrong-peg diagnostics, and no-mutation validation failures.
+- Added `games/starbridge_crossing/src/effects.rs` with a public semantic step
+  effect naming seat, peg, origin, and destination.
+- Extended `games/starbridge_crossing/tests/rules.rs` with step action-tree,
+  accepted-step, occupied/non-adjacent/off-board/wrong-seat/stale, and
+  wrong-owner-peg cases.
+- Updated `games/starbridge_crossing/src/lib.rs` to expose action, rule, and
+  effect APIs.
+
+Deviations from plan:
+
+- None. Hop roots, blocked pass, finish assignment, and golden traces remain
+  deferred to their later tickets.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --test rules` passed: 9 integration tests.
+- `cargo test -p starbridge_crossing` passed: 18 unit tests, 10 integration
+  tests, 0 doctests.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
