@@ -320,7 +320,13 @@ export function MeldfallLedgerBoard({
               </p>
             ) : null}
             <ActionGroup title="Draw" choices={groupedChoices.draw} canAct={canAct} onPathSubmit={onPathSubmit} />
-            <ActionGroup title="Table" choices={groupedChoices.table} canAct={canAct} onPathSubmit={onPathSubmit} />
+            <ActionGroup
+              title="Table"
+              choices={groupedChoices.table}
+              canAct={canAct}
+              onPathSubmit={onPathSubmit}
+              fallbackHint={tablePlayHint}
+            />
             <ActionGroup title="Discard" choices={groupedChoices.discard} canAct={canAct} onPathSubmit={onPathSubmit} />
             <ActionGroup
               title="Turn"
@@ -563,7 +569,7 @@ function ActionGroup({
   choices: ActionChoice[];
   canAct: boolean;
   onPathSubmit?: (path: string[]) => void;
-  fallbackHint?: (segment: string) => string | null;
+  fallbackHint?: (choice: ActionChoice) => string | null;
 }) {
   if (choices.length === 0) {
     return null;
@@ -574,7 +580,7 @@ function ActionGroup({
       <h3>{title}</h3>
       <div className="meldfall-action-grid">
         {choices.map((choice, index) => {
-          const hint = choice.presentation?.helper_text ?? fallbackHint?.(choice.segment) ?? null;
+          const hint = choice.presentation?.helper_text ?? fallbackHint?.(choice) ?? null;
           return (
             <button
               type="button"
@@ -622,14 +628,53 @@ function turnGuidanceText(phase: string, goOutAvailable: boolean, stockEmpty: bo
 }
 
 // Per-button clarification for the turn-control choices, whose Rust labels are terse.
-function turnChoiceHint(segment: string): string | null {
-  if (segment === "finish-turn") {
+function turnChoiceHint(choice: ActionChoice): string | null {
+  if (choice.segment === "finish-turn") {
     return "Stop tabling and go to your discard.";
   }
-  if (segment === "go-out-without-discard") {
+  if (choice.segment === "go-out-without-discard") {
     return "End the round now; all seats settle held-card penalties.";
   }
   return null;
+}
+
+// Compact rank -> point value for the card codes carried in action labels (e.g. "4D",
+// "10S", "AH"). Card values are constant in every scoring context (ML-SCORE-001), so a
+// table play scores exactly the sum of its card values regardless of meld shape.
+const SHORT_RANK_VALUE: Record<string, number> = {
+  "2": 2,
+  "3": 3,
+  "4": 4,
+  "5": 5,
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10,
+  J: 10,
+  Q: 10,
+  K: 10,
+  A: 15,
+};
+
+// Points a meld or lay-off button would score, summed from the card codes in its label.
+// Surfaces the immediate tabled-score value at the decision point — the "table points
+// now / shed penalty" trade-off the strategy guide centres on. Presentation-only readout
+// of already-authorized card identities; Rust stays the scoring authority (ML-UI-001).
+function tablePlayHint(choice: ActionChoice): string | null {
+  let sum = 0;
+  let cards = 0;
+  for (const token of choice.label.split(" ")) {
+    const match = CARD_CODE.exec(token);
+    if (match) {
+      sum += SHORT_RANK_VALUE[match[1]] ?? 0;
+      cards += 1;
+    }
+  }
+  if (cards === 0) {
+    return null;
+  }
+  return `Scores +${sum} ${sum === 1 ? "point" : "points"}`;
 }
 
 const SUIT_GLYPH: Record<string, string> = {
