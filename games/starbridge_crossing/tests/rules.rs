@@ -2,9 +2,10 @@ use std::collections::BTreeSet;
 
 use engine_core::{ActionPath, Actor, CommandEnvelope, FreshnessToken, RulesVersion, SeatId, Seed};
 use starbridge_crossing::{
-    apply_step_command, encode_step_path, home_spaces, legal_action_tree, legal_step_moves,
-    setup_match, validate_step_command, SetupOptions, StarPoint, StarSpaceId, StarZone,
-    STANDARD_PEGS_PER_SEAT,
+    apply_jump_command, apply_step_command, encode_jump_path, encode_step_path, home_spaces,
+    legal_action_tree, legal_jump_landings, legal_step_moves, setup_match, validate_jump_command,
+    validate_step_command, SetupOptions, StarCoord, StarPegId, StarPoint, StarSpaceId, StarZone,
+    StarbridgeEffect, StarbridgeState, STANDARD_PEGS_PER_SEAT,
 };
 
 fn seats(count: usize) -> Vec<SeatId> {
@@ -30,6 +31,63 @@ fn command(
         freshness_token,
         rules_version: RulesVersion(1),
     }
+}
+
+fn space_at(coord: StarCoord) -> StarSpaceId {
+    starbridge_crossing::spaces()
+        .iter()
+        .find(|space| space.coord == coord)
+        .map(|space| space.id)
+        .expect("fixture coordinate exists")
+}
+
+fn set_peg(state: &mut StarbridgeState, peg: StarPegId, space: StarSpaceId) {
+    let piece = state
+        .pegs
+        .iter_mut()
+        .find(|candidate| candidate.id == peg)
+        .expect("fixture peg exists");
+    piece.space = space;
+    state.occupancy[usize::from(space.index())] = Some(peg);
+}
+
+fn jump_fixture() -> (
+    Vec<SeatId>,
+    StarbridgeState,
+    StarPegId,
+    StarSpaceId,
+    StarSpaceId,
+    StarSpaceId,
+    StarSpaceId,
+    StarSpaceId,
+) {
+    let seats = seats(2);
+    let mut state = setup_match(Seed(7), &seats, &SetupOptions::default()).unwrap();
+    state.occupancy = StarbridgeState::empty_occupancy();
+
+    let peg = StarPegId::new(0, 0);
+    let blocker_one = StarPegId::new(0, 1);
+    let blocker_two = StarPegId::new(1, 0);
+    let origin = space_at(StarCoord::new(0, 0, 0));
+    let over_one = space_at(StarCoord::new(1, -1, 0));
+    let landing_one = space_at(StarCoord::new(2, -2, 0));
+    let over_two = space_at(StarCoord::new(2, -1, -1));
+    let landing_two = space_at(StarCoord::new(2, 0, -2));
+
+    set_peg(&mut state, peg, origin);
+    set_peg(&mut state, blocker_one, over_one);
+    set_peg(&mut state, blocker_two, over_two);
+
+    (
+        seats,
+        state,
+        peg,
+        origin,
+        over_one,
+        landing_one,
+        over_two,
+        landing_two,
+    )
 }
 
 #[test]
@@ -279,4 +337,101 @@ fn validate_step_rejects_wrong_owner_peg_without_mutation() {
     .expect_err("wrong owner peg is rejected");
 
     assert_eq!(diagnostic.code, "wrong_peg_seat");
+}
+
+#[test]
+fn jump_chain_moves_peg_and_keeps_jumped_pegs() {
+    let (seats, mut state, peg, origin, over_one, landing_one, _, _) = jump_fixture();
+    let freshness_token = state.freshness_token;
+
+    let jumps = legal_jump_landings(&state, peg, origin, &[]);
+    assert!(jumps
+        .iter()
+        .any(|jump| jump.over == over_one && jump.landing == landing_one));
+
+    let effects = apply_jump_command(
+        &mut state,
+        &command(
+            actor(&seats[0]),
+            encode_jump_path(peg, &[landing_one]),
+            freshness_token,
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(state.occupancy(origin), None);
+    assert_eq!(state.occupancy(over_one), Some(StarPegId::new(0, 1)));
+    assert_eq!(state.occupancy(landing_one), Some(peg));
+    assert_eq!(state.active_seat_index, 1);
+    assert_eq!(effects.len(), 1);
+    assert!(matches!(
+        &effects[0].payload,
+        StarbridgeEffect::JumpChain { hops, .. } if hops.len() == 1 && hops[0].over == over_one && hops[0].to == landing_one
+    ));
+}
+
+#[test]
+fn multi_hop_can_change_direction_and_stop_midway() {
+    let (seats, state, peg, origin, _, landing_one, over_two, landing_two) = jump_fixture();
+
+    let single = validate_jump_command(
+        &state,
+        &command(
+            actor(&seats[0]),
+            encode_jump_path(peg, &[landing_one]),
+            state.freshness_token,
+        ),
+    )
+    .expect("stop after first landing is legal");
+    assert_eq!(single.chain.hops.len(), 1);
+
+    let chain = validate_jump_command(
+        &state,
+        &command(
+            actor(&seats[0]),
+            encode_jump_path(peg, &[landing_one, landing_two]),
+            state.freshness_token,
+        ),
+    )
+    .expect("direction-changing second hop is legal");
+
+    assert_eq!(chain.chain.from, origin);
+    assert_eq!(chain.chain.hops.len(), 2);
+    assert_eq!(chain.chain.hops[1].over, over_two);
+    assert_eq!(chain.chain.hops[1].landing, landing_two);
+}
+
+#[test]
+fn repeated_landing_and_mixed_step_jump_are_rejected_without_mutation() {
+    let (seats, state, peg, _, _, landing_one, _, _) = jump_fixture();
+
+    let repeated = validate_jump_command(
+        &state,
+        &command(
+            actor(&seats[0]),
+            encode_jump_path(peg, &[landing_one, landing_one]),
+            state.freshness_token,
+        ),
+    )
+    .expect_err("repeat landing is rejected");
+    assert_eq!(repeated.code, "repeated_landing");
+
+    let mixed = validate_jump_command(
+        &state,
+        &command(
+            actor(&seats[0]),
+            vec![
+                "move".to_owned(),
+                peg.stable_id(),
+                "step".to_owned(),
+                landing_one.to_string(),
+                "jump".to_owned(),
+                landing_one.to_string(),
+                "stop".to_owned(),
+            ],
+            state.freshness_token,
+        ),
+    )
+    .expect_err("mixed move kind is rejected");
+    assert_eq!(mixed.code, "mixed_move_kind");
 }

@@ -2,7 +2,7 @@ use engine_core::{CommandEnvelope, Diagnostic};
 
 use crate::{
     actions::{self, parse_action_path, StarbridgeAction},
-    effects::{public_effect, StarbridgeEffect, StarbridgeEffectEnvelope},
+    effects::{public_effect, JumpSubstep, StarbridgeEffect, StarbridgeEffectEnvelope},
     ids::StarSpaceId,
     state::{StarPegId, StarbridgeState},
     topology::{neighbor_in_direction, StarDirection},
@@ -16,9 +16,28 @@ pub struct StepMove {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct JumpLanding {
+    pub over: StarSpaceId,
+    pub landing: StarSpaceId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct JumpChain {
+    pub peg: StarPegId,
+    pub from: StarSpaceId,
+    pub hops: Vec<JumpLanding>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct ValidatedStep {
     pub seat_index: u8,
     pub step: StepMove,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ValidatedJump {
+    pub seat_index: u8,
+    pub chain: JumpChain,
 }
 
 pub fn legal_step_moves(state: &StarbridgeState) -> Vec<StepMove> {
@@ -48,33 +67,103 @@ pub fn legal_step_moves(state: &StarbridgeState) -> Vec<StepMove> {
     moves
 }
 
+pub fn legal_jump_landings(
+    state: &StarbridgeState,
+    peg: StarPegId,
+    current: StarSpaceId,
+    visited_landings: &[StarSpaceId],
+) -> Vec<JumpLanding> {
+    let Some(origin) = state
+        .pegs
+        .iter()
+        .find(|candidate| candidate.id == peg)
+        .map(|candidate| candidate.space)
+    else {
+        return Vec::new();
+    };
+
+    let mut jumps = Vec::new();
+    for direction in StarDirection::ALL {
+        let Some(over) = neighbor_in_direction(current, direction) else {
+            continue;
+        };
+        let Some(landing) = neighbor_in_direction(over, direction) else {
+            continue;
+        };
+        if visited_landings.contains(&landing) {
+            continue;
+        }
+        if occupancy_during_chain(state, peg, origin, current, over).is_none() {
+            continue;
+        }
+        if occupancy_during_chain(state, peg, origin, current, landing).is_some() {
+            continue;
+        }
+        jumps.push(JumpLanding { over, landing });
+    }
+    jumps
+}
+
+pub fn validate_jump_command(
+    state: &StarbridgeState,
+    command: &CommandEnvelope,
+) -> Result<ValidatedJump, Diagnostic> {
+    validate_common_command_state(state, command)?;
+    let StarbridgeAction::Jump { peg, landings } =
+        parse_action_path(&command.action_path.segments)?
+    else {
+        return Err(actions::mixed_move_kind_diagnostic());
+    };
+    let current = state
+        .pegs
+        .iter()
+        .find(|candidate| candidate.id == peg)
+        .ok_or_else(unknown_peg_diagnostic)?;
+    if current.owner_seat_index != state.active_seat_index {
+        return Err(wrong_peg_seat_diagnostic());
+    }
+
+    let origin = current.space;
+    let mut current_space = origin;
+    let mut visited = Vec::new();
+    let mut hops = Vec::new();
+    for landing in landings {
+        if visited.contains(&landing) {
+            return Err(repeated_landing_diagnostic());
+        }
+        let jump = legal_jump_landings(state, peg, current_space, &visited)
+            .into_iter()
+            .find(|candidate| candidate.landing == landing)
+            .ok_or_else(invalid_jump_diagnostic)?;
+        visited.push(landing);
+        current_space = landing;
+        hops.push(jump);
+    }
+
+    if hops.is_empty() {
+        return Err(invalid_jump_diagnostic());
+    }
+    Ok(ValidatedJump {
+        seat_index: state.active_seat_index,
+        chain: JumpChain {
+            peg,
+            from: origin,
+            hops,
+        },
+    })
+}
+
 pub fn validate_step_command(
     state: &StarbridgeState,
     command: &CommandEnvelope,
 ) -> Result<ValidatedStep, Diagnostic> {
-    if command.freshness_token != state.freshness_token {
-        return Err(stale_action_diagnostic());
-    }
-    if state.terminal_status.is_some() {
-        return Err(terminal_diagnostic());
-    }
-    let active_seat = state
-        .seats
-        .get(usize::from(state.active_seat_index))
-        .ok_or_else(wrong_seat_diagnostic)?;
-    if command.actor.seat_id != active_seat.seat_id {
-        return Err(wrong_seat_diagnostic());
-    }
-    if state
-        .finish_ranks
-        .iter()
-        .any(|rank| rank.seat_index == state.active_seat_index)
-    {
-        return Err(finished_seat_diagnostic());
-    }
+    validate_common_command_state(state, command)?;
 
     let StarbridgeAction::Step { peg, destination } =
-        parse_action_path(&command.action_path.segments)?;
+        parse_action_path(&command.action_path.segments)?
+    else {
+        return Err(actions::mixed_move_kind_diagnostic());
+    };
     let current = state
         .pegs
         .iter()
@@ -130,6 +219,90 @@ pub fn apply_step_command(
     })])
 }
 
+pub fn apply_jump_command(
+    state: &mut StarbridgeState,
+    command: &CommandEnvelope,
+) -> Result<Vec<StarbridgeEffectEnvelope>, Diagnostic> {
+    let validated = validate_jump_command(state, command)?;
+    let final_landing = validated
+        .chain
+        .hops
+        .last()
+        .expect("validated jump has at least one hop")
+        .landing;
+    let peg = state
+        .pegs
+        .iter_mut()
+        .find(|candidate| candidate.id == validated.chain.peg)
+        .expect("validated jump peg exists");
+
+    state.occupancy[usize::from(validated.chain.from.index())] = None;
+    state.occupancy[usize::from(final_landing.index())] = Some(validated.chain.peg);
+    peg.space = final_landing;
+    state.active_seat_index = next_active_seat_index(state);
+    state.ply_count = state.ply_count.saturating_add(1);
+    state.command_count = state.command_count.saturating_add(1);
+    state.freshness_token = state.freshness_token.next();
+
+    Ok(vec![public_effect(StarbridgeEffect::JumpChain {
+        seat_index: validated.seat_index,
+        peg: validated.chain.peg,
+        from: validated.chain.from,
+        hops: validated
+            .chain
+            .hops
+            .iter()
+            .map(|hop| JumpSubstep {
+                over: hop.over,
+                to: hop.landing,
+            })
+            .collect(),
+    })])
+}
+
+fn validate_common_command_state(
+    state: &StarbridgeState,
+    command: &CommandEnvelope,
+) -> Result<(), Diagnostic> {
+    if command.freshness_token != state.freshness_token {
+        return Err(stale_action_diagnostic());
+    }
+    if state.terminal_status.is_some() {
+        return Err(terminal_diagnostic());
+    }
+    let active_seat = state
+        .seats
+        .get(usize::from(state.active_seat_index))
+        .ok_or_else(wrong_seat_diagnostic)?;
+    if command.actor.seat_id != active_seat.seat_id {
+        return Err(wrong_seat_diagnostic());
+    }
+    if state
+        .finish_ranks
+        .iter()
+        .any(|rank| rank.seat_index == state.active_seat_index)
+    {
+        return Err(finished_seat_diagnostic());
+    }
+    Ok(())
+}
+
+fn occupancy_during_chain(
+    state: &StarbridgeState,
+    peg: StarPegId,
+    origin: StarSpaceId,
+    current: StarSpaceId,
+    space: StarSpaceId,
+) -> Option<StarPegId> {
+    if space == current {
+        Some(peg)
+    } else if space == origin {
+        None
+    } else {
+        state.occupancy(space)
+    }
+}
+
 fn next_active_seat_index(state: &StarbridgeState) -> u8 {
     if state.seats.is_empty() {
         return 0;
@@ -172,6 +345,20 @@ pub fn non_adjacent_destination_diagnostic() -> Diagnostic {
     actions::diagnostic(
         "non_adjacent_destination",
         "step destination is not adjacent",
+    )
+}
+
+pub fn invalid_jump_diagnostic() -> Diagnostic {
+    actions::diagnostic(
+        "invalid_jump",
+        "jump path is not legal from the current board",
+    )
+}
+
+pub fn repeated_landing_diagnostic() -> Diagnostic {
+    actions::diagnostic(
+        "repeated_landing",
+        "jump chain cannot revisit a landing in one turn",
     )
 }
 

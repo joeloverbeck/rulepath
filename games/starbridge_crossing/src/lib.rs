@@ -13,15 +13,20 @@ pub mod state;
 pub mod topology;
 pub mod variants;
 
-pub use actions::{encode_step_path, legal_action_tree, parse_action_path, StarbridgeAction};
-pub use effects::{public_effect, StarbridgeEffect, StarbridgeEffectEnvelope};
+pub use actions::{
+    encode_jump_path, encode_step_path, legal_action_tree, parse_action_path, StarbridgeAction,
+};
+pub use effects::{public_effect, JumpSubstep, StarbridgeEffect, StarbridgeEffectEnvelope};
 pub use ids::{
     active_points_for_seat_count, canonical_seat_ids, seat_id_for_index, supported_seat_count,
     StarPoint, StarSpaceId, StarSpaceIdError, StarZone, DATA_VERSION_LABEL, GAME_ID,
     MAX_SPACE_INDEX, RULES_VERSION_LABEL, SPACE_COUNT, STANDARD_DEFAULT_SEATS, STANDARD_MAX_SEATS,
     STANDARD_MIN_SEATS, STANDARD_PEGS_PER_SEAT, SUPPORTED_SEAT_COUNTS, VARIANT_ID,
 };
-pub use rules::{apply_step_command, legal_step_moves, validate_step_command, StepMove};
+pub use rules::{
+    apply_jump_command, apply_step_command, legal_jump_landings, legal_step_moves,
+    validate_jump_command, validate_step_command, JumpChain, JumpLanding, StepMove,
+};
 pub use setup::{setup_match, SetupOptions};
 pub use state::{
     FinishRank, SeatAssignment, StarPeg, StarPegId, StarbridgeSnapshot, StarbridgeState,

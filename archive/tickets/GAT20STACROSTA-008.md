@@ -1,6 +1,6 @@
 # GAT20STACROSTA-008: Jump-chain action-tree enumeration
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: Yes — `games/starbridge_crossing/src/{rules.rs,actions.rs,effects.rs}` (hop/chain), `tests/rules.rs`
@@ -82,3 +82,43 @@ Grouped jump-chain effect (ordered per-hop substeps; jumped-over spaces recorded
 1. `cargo test -p starbridge_crossing --test rules`
 2. `cargo test -p starbridge_crossing && bash scripts/boundary-check.sh`
 3. `--test rules` isolates jump-chain legality; full crate run confirms no step-path regression.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Extended `games/starbridge_crossing/src/actions.rs` with
+  `move/<peg-id>/jump/<landing>/continue/<landing>/.../stop` encoding,
+  parsing, mixed step/jump diagnostics, and progressive jump action-tree nodes.
+- Extended `games/starbridge_crossing/src/rules.rs` with hop landing
+  enumeration, dynamic chain occupancy, depth-first continuation validation,
+  stop-anywhere validation, repeated-landing rejection, and jump application.
+- Extended `games/starbridge_crossing/src/effects.rs` with a grouped public
+  jump-chain effect carrying ordered per-hop `over` and landing substeps.
+- Extended `games/starbridge_crossing/tests/rules.rs` with one-hop,
+  jumped-peg-retention, direction-changing multi-hop, stop-midway,
+  repeated-landing, and mixed step/jump rejection coverage.
+- Updated `games/starbridge_crossing/src/lib.rs` exports for jump actions,
+  rules, and effects.
+
+Deviations from plan:
+
+- None. Finish/rank, blocked pass, turn-limit, and golden jump traces remain
+  deferred to their later tickets.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --test rules` passed: 12 integration
+  tests.
+- `cargo test -p starbridge_crossing` passed: 20 unit tests, 13 integration
+  tests, 0 doctests.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `git diff --check` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
