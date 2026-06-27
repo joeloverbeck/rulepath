@@ -1,0 +1,1 @@
+{"trace_id":"wasm-exported","schema_version":1,"game_id":"starbridge_crossing","coverage":["wasm-exported","public-view","action-tree","effects","all-public"],"public_no_leak":true,"seat_count":2}

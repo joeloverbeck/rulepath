@@ -131,5 +131,12 @@
     "rules_asset_path": "/rules/blackglass_pact.md",
     "source_rules_version_checked": "blackglass-pact-rules-v1",
     "sha256": "13e489cf3e305ace6dc55c942dfc8c8a3acd514ac3b8dc8e3860ff699437fa0f"
+  },
+  {
+    "game_id": "starbridge_crossing",
+    "display_name": "Starbridge Crossing",
+    "rules_asset_path": "/rules/starbridge_crossing.md",
+    "source_rules_version_checked": "starbridge-crossing-rules-v1",
+    "sha256": "fb1c7fd402e98312cab9335995f1900e5c297361f32e91f92891aa0555b2416f"
   }
 ]

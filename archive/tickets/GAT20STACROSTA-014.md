@@ -1,6 +1,6 @@
 # GAT20STACROSTA-014: WASM/API + catalog registration and player rules
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `crates/wasm-api/src/{constants,lib,catalog,games}.rs` + `games/starbridge_crossing.rs`, `apps/web/scripts/smoke-load-wasm.mjs`; game-local `HOW-TO-PLAY.md` + generated `apps/web/public/rules/starbridge_crossing.md`
@@ -87,3 +87,26 @@ Add the `list_games includes starbridge_crossing` assertion (+ variant check).
 1. `cargo test -p wasm-api`
 2. `npm --prefix apps/web run smoke:wasm && node scripts/check-player-rules.mjs`
 3. `check-catalog-docs` is intentionally deferred to 017; the WASM + player-rules checks are the correct boundary here.
+
+## Outcome
+
+Registered `starbridge_crossing` across the WASM/API bridge: constants, catalog entry, game module exposure, match creation, public view projection, action-tree dispatch, action application, L0 bot turn, effects, replay export/import/step, API surface snapshot, and the web WASM smoke catalog assertion.
+
+Added the Starbridge bridge helper in `crates/wasm-api/src/games/starbridge_crossing.rs`. The bridge serializes Rust-owned all-public view/effect data only, applies Rust-validated step/jump/pass commands, and exports a replay document with the all-public not-applicable hidden-information rationale.
+
+Added `games/starbridge_crossing/docs/HOW-TO-PLAY.md`, generated `apps/web/public/rules/starbridge_crossing.md`, refreshed the rules manifest, and added the `wasm-exported.trace.json` receipt.
+
+Verification:
+
+1. `cargo test -p wasm-api` — passed, including the regenerated API surface snapshot.
+2. `npm --prefix apps/web run smoke:wasm` — passed; WASM catalog now reports 20 games and includes Starbridge.
+3. `node scripts/check-player-rules.mjs` — passed, 20 catalog games validated.
+4. `bash scripts/boundary-check.sh` — passed.
+5. `cargo fmt --all --check` — passed.
+6. `node scripts/check-doc-links.mjs` — passed.
+7. `cargo run -p replay-check -- --game starbridge_crossing --all` — passed, including `wasm-exported.trace.json`.
+8. `cargo run -p fixture-check -- --game starbridge_crossing` — passed.
+9. `cargo test -p starbridge_crossing --test serialization` — passed.
+10. `git diff --check` — passed.
+
+`check-catalog-docs` remains intentionally deferred to GAT20STACROSTA-017 per ticket scope. The unrelated dirty file `.claude/skills/spec-to-tickets/SKILL.md` was left untouched.

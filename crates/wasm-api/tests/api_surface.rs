@@ -42,6 +42,7 @@ const GAMES: &[&str] = &[
     "poker_lite",
     "plain_tricks",
     "river_ledger",
+    "starbridge_crossing",
 ];
 
 const SEED: u64 = 7;

@@ -21,6 +21,7 @@ pub(crate) mod poker;
 pub(crate) mod race;
 pub(crate) mod river;
 pub(crate) mod secret;
+pub(crate) mod starbridge_crossing;
 pub(crate) mod three;
 pub(crate) mod token;
 pub(crate) mod vow;
