@@ -17,6 +17,7 @@ These sources inform Rulepath architecture, authoring discipline, bot policy, UI
 | `vow_tide` | `games/vow_tide/docs/SOURCES.md` | completed for Gate 17; covers original Vow Tide naming, classic Oh Hell rules-family references, 3-7-seat variant choices, bid/hook/scoring deviations, hidden-stock privacy, helper conformance, and asset/IP review posture |
 | `blackglass_pact` | `games/blackglass_pact/docs/SOURCES.md` | completed for Gate 18; covers original Blackglass Pact naming, classic partnership Spades rules-family references, fixed-four variant pinning, nil/blind-nil/bag deviations, public/private partnership signals, helper conformance, and human IP/public-release review posture |
 | `meldfall_ledger` | `games/meldfall_ledger/docs/SOURCES.md` | completed for Gate 19; covers original Meldfall Ledger naming, Five Hundred Rummy / Rummy 500 rules-family references, one-deck 2-6 seat variant pinning, strict discard-pickup commitment, public meld tableau, cumulative scoring, hidden-stock/privacy posture, and human IP/public-release review posture |
+| `starbridge_crossing` | `games/starbridge_crossing/docs/SOURCES.md` | completed for Gate 20 source/IP intake; covers original Starbridge Crossing naming, Star Halma / Chinese Checkers rules-family references, 121-space star topology, `{2,3,4,6}` seat support, 10-peg homes, stop-anywhere hop chains, all-public visibility, and human IP/public-release review posture |
 
 ### Blackglass Pact source-use lessons
 

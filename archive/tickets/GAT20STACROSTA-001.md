@@ -1,6 +1,6 @@
 # GAT20STACROSTA-001: Starbridge Crossing rules + IP/source docs
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — game-local docs (`games/starbridge_crossing/docs/RULES.md`, `SOURCES.md`) + `docs/SOURCES.md` index row
@@ -79,3 +79,41 @@ Add `| \`starbridge_crossing\` | \`games/starbridge_crossing/docs/SOURCES.md\` |
 1. `node scripts/check-doc-links.mjs`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. Narrower command is correct: this ticket ships only markdown; doc-link integrity + boundary noun check are the relevant gates, no cargo build is affected.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/docs/RULES.md` with original Rulepath rules
+  prose, stable `SC-*` rule IDs, supported seat set `{2,3,4,6}`, 121-space
+  topology contract, step/hop-chain rules, blocked-pass behavior, finish-order
+  standings, deterministic turn-limit fallback, all-public visibility, replay,
+  bot, UI, diagnostics, ambiguity, and out-of-scope variant sections.
+- Added `games/starbridge_crossing/docs/SOURCES.md` with consulted source IDs,
+  consulted dates, variant pinning, naming/IP rationale, ambiguity log, asset
+  provenance, human-release-review posture, and rule-source-to-rule-ID mapping.
+- Added the `starbridge_crossing` row to `docs/SOURCES.md`, scoped as completed
+  for Gate 20 source/IP intake rather than full Gate 20 completion.
+
+Deviations from plan:
+
+- Kept the detailed `Chinese Checkers` family label in `SOURCES.md` and the
+  repo-level source index, but omitted that phrase from `RULES.md` so the
+  ticket's `grep -L "Chinese Checkers" games/starbridge_crossing/docs/RULES.md`
+  acceptance check proves the product-name guard.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+- `grep -L "Chinese Checkers" games/starbridge_crossing/docs/RULES.md` printed
+  `games/starbridge_crossing/docs/RULES.md`, confirming the phrase is absent
+  from `RULES.md`.
+- `test -f games/starbridge_crossing/docs/RULES.md && test -f games/starbridge_crossing/docs/SOURCES.md` passed.
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
