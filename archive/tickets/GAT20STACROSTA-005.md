@@ -1,6 +1,6 @@
 # GAT20STACROSTA-005: Typed board topology content (121-space six-pointed star)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: Yes — `games/starbridge_crossing/src/topology.rs`, `games/starbridge_crossing/data/manifest.toml` (typed static content)
@@ -77,3 +77,43 @@ Typed content: rules/data/trace version labels, per-space `id`/`q`/`r`/`s`/zone/
 1. `cargo test -p starbridge_crossing --lib`
 2. `cargo test -p starbridge_crossing && bash scripts/boundary-check.sh`
 3. The `--lib` boundary is correct for topology invariants; full crate test confirms no module regressions.
+
+## Outcome
+
+Completed: 2026-06-27
+
+What changed:
+
+- Added `games/starbridge_crossing/src/topology.rs` with game-local star-board
+  topology types, deterministic 121-space generation, cube coordinates,
+  stable id-to-coordinate lookup, six-direction neighbor lookup, home-zone
+  grouping, opposite-home checks, UI anchors, and manifest validation.
+- Added `games/starbridge_crossing/data/manifest.toml` as an inert typed
+  topology receipt with game id, generator id, space count, coordinate system,
+  point order, and version labels.
+- Updated `games/starbridge_crossing/src/lib.rs` to expose the topology module
+  and public topology accessors.
+- Added `games/starbridge_crossing/tests/property.rs` with a deterministic
+  stable-order check for the generated topology.
+
+Deviations from plan:
+
+- Used a deterministic Rust generator identified by
+  `topology_generator = "cube_star_order_4_v1"` instead of hand-authored
+  per-space manifest rows. The manifest remains typed static content and
+  rejects unknown or behavior-looking fields; Rust owns coordinate, zone, and
+  neighbor derivation so no legality, branch, selector, or trigger behavior is
+  encoded in data.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p starbridge_crossing --lib` passed: 10 unit tests.
+- `cargo test -p starbridge_crossing` passed: 10 unit tests, 1 integration
+  test, 0 doctests.
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
+
+Unrelated worktree changes left untouched:
+
+- `.claude/skills/spec-to-tickets/SKILL.md`
