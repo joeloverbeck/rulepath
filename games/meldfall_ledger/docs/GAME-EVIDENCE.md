@@ -14,7 +14,7 @@ Engine version: current Rulepath workspace
 
 Prepared by: `Codex`
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 ## Purpose
 
@@ -97,6 +97,19 @@ Completed: 2026-06-26
 | Replay and no-leak | pass | `cargo run -p replay-check -- --game meldfall_ledger --all`; `games/meldfall_ledger/tests/visibility.rs` | Re-dealt stock and new private hands remain hidden across view, action-tree, effect, and viewer-export surfaces. |
 | Web completion | pass | `apps/web/src/components/effectFeedback.ts`; `apps/web/scripts/smoke-effect-feedback.mjs`; `output/playwright/gat191melled-005-meldfall-terminal.png` | Browser Bot vs bot evidence reaches the terminal outcome panel with no `round_settled` dead-end. |
 | Coverage closeout | pass | [RULE-COVERAGE.md](RULE-COVERAGE.md); `cargo run -p rule-coverage -- --game meldfall_ledger`; `cargo run -p fixture-check -- --game meldfall_ledger` | `ML-MATCH-003` and `ML-MATCH-006` are covered by traces/tests; existing scoring-illustration fixtures remain intact. |
+
+## Gate 19.2 Settlement Detail Projection Receipt
+
+Completed: 2026-06-27
+
+| Surface | Status | Evidence | Notes |
+|---|---|---|---|
+| Rust-owned retained projection | pass | `games/meldfall_ledger/src/state.rs`; `games/meldfall_ledger/src/visibility.rs`; `cargo test -p meldfall_ledger` | `last_settlement` snapshots the already-public `ML-VIS-006` settlement totals/counts and persists across the next round until replaced. |
+| Replay/hash boundary | pass | `games/meldfall_ledger/src/state.rs`; `cargo run -p replay-check -- --game meldfall_ledger --all` | The retained snapshot is excluded from `MatchState::stable_internal_summary()`, so no trace schema or replay/hash migration was required. |
+| WASM/web projection | pass | `crates/wasm-api/src/games/meldfall.rs`; `apps/web/src/wasm/client.ts`; `npm --prefix apps/web run smoke:wasm`; `npm --prefix apps/web run build` | The bridge serializes `last_settlement` as nullable public JSON with stable per-seat rows. |
+| Browser settlement panel | pass | `apps/web/src/components/MeldfallLedgerBoard.tsx`; `node apps/web/e2e/meldfall-ledger.smoke.mjs` | The panel renders round-end reason, tabled-positive totals, in-hand penalties, held counts, deltas, cumulative scores, ranks, and winner flags from `view.last_settlement`. |
+| Browser no-leak | pass | `node apps/web/e2e/a11y-noleak.smoke.mjs`; `npm --prefix apps/web run smoke:ui`; `npm --prefix apps/web run smoke:effects` | DOM, accessible names, storage, logs, and effect feedback retain the hidden-card boundary while showing authorized totals/counts. |
+| Coverage closeout | pass | [RULE-COVERAGE.md](RULE-COVERAGE.md); `cargo run -p rule-coverage -- --game meldfall_ledger`; `cargo run -p fixture-check -- --game meldfall_ledger`; `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000` | `ML-VIS-006` and `ML-SCORE-002` through `ML-SCORE-007` now cite the persistent settlement projection evidence. |
 
 ## Viewer Matrix
 
@@ -193,6 +206,29 @@ Representative acceptance commands passed in the Gate 19 ticket series:
 - `npm --prefix apps/web run smoke:e2e`
 
 The simulator lanes are bounded L0 legality smokes, not competence claims.
+
+## Gate 19.2 Verification
+
+Completed: 2026-06-27
+
+The settlement-detail projection follow-on re-ran these acceptance commands:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000`
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo run -p fixture-check -- --game meldfall_ledger`
+- `cargo run -p rule-coverage -- --game meldfall_ledger`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `node scripts/check-catalog-docs.mjs`
+- `node apps/web/e2e/meldfall-ledger.smoke.mjs`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+
+The simulator run used an explicit `--action-cap 20000` for multi-round bounded
+proof. The cap is a verifier guard only; it is not a game rule or competence
+claim.
 
 ## Receipt Review Checklist
 

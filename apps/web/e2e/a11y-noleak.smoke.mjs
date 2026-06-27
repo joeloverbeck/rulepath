@@ -163,7 +163,11 @@ try {
   await startRiverLedgerMultiPotNoLeak(page);
   await assertRiverLedgerMultiPotNoLeak(page, consoleMessages);
 
-  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier river_ledger" }));
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await startMeldfallSettlement(page);
+  await assertMeldfallSettlementNoLeak(page);
+
+  console.log(JSON.stringify({ browser: "puppeteer", smoke: "a11y noleak keyboard reduced high_card_seat_frame directional_flip flood_watch event_frontier river_ledger meldfall_settlement" }));
 } finally {
   if (browser) {
     await browser.close();
@@ -270,6 +274,44 @@ async function startRiverLedgerBotWhy(page) {
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="river-ledger-board"]');
   await page.waitForSelector('[data-testid="river-ledger-bot-explanation"]');
+}
+
+async function startMeldfallSettlement(page) {
+  await clickText(page, "button", "Meldfall Ledger");
+  await page.select('select[aria-label="Supported seats from Rust catalog"]', "2");
+  await page.$eval('.setup-grid input[type="number"]', (input) => {
+    input.value = "192";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await clickLabel(page, "Bot vs bot");
+  await clickText(page, "button", "Start Match");
+  await page.waitForSelector('[data-testid="meldfall-ledger-board"]');
+  await clickText(page, "button", "Start Autoplay");
+}
+
+async function assertMeldfallSettlementNoLeak(page) {
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector(".meldfall-settlement");
+      const text = panel?.textContent ?? "";
+      return (
+        text.includes("Last round settled") &&
+        text.includes("tabled") &&
+        text.includes("held penalty") &&
+        text.includes("cards held at settlement")
+      );
+    },
+    { timeout: 20000 },
+  );
+  const surface = await page.$eval(".meldfall-settlement", (panel) => {
+    const attrs = Array.from(panel.querySelectorAll("*")).flatMap((element) =>
+      Array.from(element.attributes).map((attribute) => `${attribute.name}=${attribute.value}`),
+    );
+    return [panel.textContent ?? "", attrs.join("\n")].join("\n");
+  });
+  assertNoForbiddenTerms(surface, "meldfall settlement panel");
+  assertNoForbiddenTerms(surface, "meldfall settlement card ids", riverLedgerCardIds);
 }
 
 async function assertRiverLedgerBotWhy(page) {

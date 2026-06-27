@@ -62,6 +62,7 @@ impl SeatSettlement {
 }
 
 pub fn settle_round(state: &mut MatchState) -> RoundSettlement {
+    let round_index = state.rounds_settled;
     let tabled = tabled_positive_totals(state);
     let penalties = in_hand_penalties(state);
     let deltas = tabled
@@ -69,7 +70,9 @@ pub fn settle_round(state: &mut MatchState) -> RoundSettlement {
         .zip(&penalties)
         .map(|(positive, penalty)| positive - penalty)
         .collect::<Vec<_>>();
-    apply_round_deltas(state, &deltas, &tabled, &penalties)
+    let settlement = apply_round_deltas(state, &deltas, &tabled, &penalties);
+    state.retain_last_settlement(round_index, &settlement);
+    settlement
 }
 
 pub fn apply_round_deltas(

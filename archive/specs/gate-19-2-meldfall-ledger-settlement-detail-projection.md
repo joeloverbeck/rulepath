@@ -10,7 +10,7 @@
 | Spec ID | `GATE-19-2-MELDFALL-LEDGER-SETTLEMENT-DETAIL-PROJECTION` |
 | Stage | Public scaling phase, Gate 19 follow-on (19.2) |
 | Gate | Gate 19 — Five Hundred Rummy / Rummy 500 family (presentation-completeness follow-on) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-26 |
 | Owner | Rulepath maintainers |
 | Authority order | `docs/README.md` → `docs/FOUNDATIONS.md` → `docs/ARCHITECTURE.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → area docs → `docs/ROADMAP.md` → `games/meldfall_ledger/docs/RULES.md` → this spec → future tickets. Accepted ADRs supersede only the sections they name. |
@@ -38,8 +38,10 @@ persistently:
    exposure of "tabled-card totals, in-hand penalty totals, remaining hand
    counts, round deltas, cumulative scores, ranks, and winner flags". Rust
    already computes all of these per seat in `games/meldfall_ledger/src/scoring.rs`
-   (`RoundSettlement { tabled_positive, in_hand_penalty, remaining, delta,
-   cumulative, rank, winner }`). But the only public carrier of settlement data,
+   (`RoundSettlement { seats: Vec<SeatSettlement>, terminal }`, where each
+   `SeatSettlement` carries `tabled_positive`, `in_hand_penalty`,
+   `remaining_hand_count`, `round_delta`, `cumulative_score`, `rank`, and
+   `winner`). But the only public carrier of settlement data,
    the `round_score` effect (`games/meldfall_ledger/src/effects.rs`), exposes
    **only** `round_index`, `deltas`, and `cumulative_scores`. The
    tabled-positive / in-hand-penalty split, remaining counts, ranks, and winner
@@ -132,17 +134,27 @@ widening the `round_score` effect payload or the Trace Schema v1 record. Rationa
   facts already reach the renderer.
 
 **Hard gate.** Before implementation, confirm that the view projection is **not**
-an input to any persisted replay/outcome hash. If it is — or if the cleanest
-implementation requires widening the `round_score` effect payload or the trace
-schema — **stop and open an ADR** (replay/hash semantics) and a `ML-REPLAY-003`
-migration note before proceeding. Do not silently change serialization.
+an input to any persisted replay/outcome hash. The retained snapshot lands in
+`MatchState` (it must survive the `ML-MATCH-006` round reset; see §4/§5), and
+`MatchState::stable_internal_summary()` is the input to the replay record's
+`state_hash` (`games/meldfall_ledger/src/replay_support.rs` lines 67/95).
+Therefore the retained `last_settlement` snapshot **must be excluded from
+`stable_internal_summary()`** — it is a pure derived function of already-hashed
+cumulative state, so excluding it keeps `state_hash` and replay parity
+byte-identical. If the cleanest implementation instead requires folding it into
+the stable summary, widening the `round_score` effect payload, or widening the
+trace schema — **stop and open an ADR** (replay/hash semantics) and a
+`ML-REPLAY-003` migration note before proceeding. Do not silently change
+serialization.
 
 ---
 
 ## 4. Affected surfaces (survey, verify before editing)
 
 - `games/meldfall_ledger/src/scoring.rs` — source of the per-seat
-  `RoundSettlement` values (already computed).
+  `SeatSettlement` values (inside `RoundSettlement`; already computed). Its
+  `SeatSettlement::stable_public_string()` already emits the `ML-VIS-006`
+  public encoding and is the canonical encoding to reuse.
 - `games/meldfall_ledger/src/state.rs` — needs to retain the last settlement
   snapshot across the `ML-MATCH-006` transition (round-only state is cleared;
   the settlement snapshot must survive into the next round until replaced).
@@ -165,7 +177,10 @@ migration note before proceeding. Do not silently change serialization.
 
 1. **Determinism.** `last_settlement` is a pure function of settled-round state;
    identical across runs and replays of the same seed/seat-count/variant/rules/
-   data versions (`ML-REPLAY-001`, `ML-SETUP-006`).
+   data versions (`ML-REPLAY-001`, `ML-SETUP-006`). The retained snapshot is
+   excluded from `MatchState::stable_internal_summary()`, so the replay
+   `state_hash` (`replay_support.rs`) is byte-identical before and after this
+   change (see the §3.3 hard gate).
 2. **Replay parity.** Public and seat-private exports never elevate privilege on
    import (`ML-REPLAY-002`); the projected field is recomputed, never trusted from
    an imported blob.
@@ -182,7 +197,9 @@ migration note before proceeding. Do not silently change serialization.
 1. Rust `last_settlement` projection (state retention + visibility) with unit
    tests covering: go-out-by-final-discard, go-out-without-discard, stock
    exhaustion, multi-round persistence across `ML-MATCH-006`, and tie
-   continuation.
+   continuation. Reuse `SeatSettlement::stable_public_string()` (`scoring.rs`)
+   as the canonical `ML-VIS-006` public encoding rather than introducing a
+   parallel one.
 2. WASM bridge + `client.ts` types.
 3. Web settlement panel rendering the per-seat tabled/penalty breakdown and
    round-end reason; retire the effects-buffer capture heuristic.
@@ -190,7 +207,9 @@ migration note before proceeding. Do not silently change serialization.
    `last_settlement` field).
 5. Doc updates: `RULE-COVERAGE.md` (map to `ML-VIS-006`, `ML-SCORE-*`),
    `UI.md` (settlement surface), `GAME-EVIDENCE.md`.
-6. `specs/README.md` row for Gate 19.2.
+6. `specs/README.md` row for Gate 19.2 **already exists** (`specs/README.md`
+   line 110, Status `Planned`); at completion, flip its Status to `Done`
+   rather than authoring a new row.
 
 ---
 
@@ -237,3 +256,62 @@ sort toggle, action-label glyphs, near-go-out flag, round-delta clarification).
 The settlement-detail and round-end-reason gaps were the only deficiencies found
 that cannot be closed in presentation alone, because the data is computed in Rust
 but not projected — hence this spec.
+
+## 10. FOUNDATIONS & boundary alignment
+
+| Principle | Stance | Rationale |
+|---|---|---|
+| §2 Behavior authority | aligned | Rust owns the `last_settlement` projection; §3.1.4 forbids settlement math in TypeScript (`ML-UI-001`). TypeScript renders Rust-authored totals only. |
+| §3 `engine-core` is a contract kernel | aligned | No `engine-core` change; all new types are game-local in `games/meldfall_ledger` (§1 Kernel stance). No mechanic noun enters the kernel. |
+| §4 `game-stdlib` is earned | aligned | No helper promotion; no new shared `game-stdlib` surface (§3.2). |
+| §5 Static data is not behavior | aligned | No static-data change; the projection is computed Rust state, not authored data. |
+| §11 Universal acceptance invariants | aligned | Viewer-safe totals/counts only (`ML-VIS-006`); no-leak proven by the `a11y-noleak` / `meldfall-ledger` smokes (§5, §7); determinism preserved by excluding the retained snapshot from `state_hash` (§3.3, §5). |
+| §13 ADR triggers | aligned | Replay/hash semantics unchanged by the pinned view carrier (§3.3); a hard gate stops and opens an ADR if serialization must change. |
+| §12 Stop conditions | clear | No stop condition crossed: no kernel noun, no TypeScript legality, no hidden-information leak, no replay/hash change on the default path. |
+
+## Outcome
+
+Completed: 2026-06-27
+
+Gate 19.2 closed through tickets `GAT192MELLEDSET-001` through
+`GAT192MELLEDSET-004`.
+
+- Rust now retains and projects a nullable `last_settlement` snapshot containing
+  round index, round-end reason, tabled-positive totals, in-hand penalties,
+  held-card counts, round deltas, cumulative scores, ranks, and winner flags.
+- The retained snapshot is excluded from `MatchState::stable_internal_summary()`,
+  preserving replay/hash semantics and avoiding any trace schema migration or
+  ADR.
+- WASM and TypeScript expose the field as nullable public view JSON.
+- The web board renders the persistent settlement breakdown directly from
+  `view.last_settlement`; the former effects-buffer settlement capture was
+  removed.
+- `RULES.md` was intentionally unchanged. `RULE-COVERAGE.md`, `UI.md`,
+  `GAME-EVIDENCE.md`, and `specs/README.md` record the closeout and evidence.
+
+Verification:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game meldfall_ledger --games 1000 --action-cap 20000`
+- `cargo run -p replay-check -- --game meldfall_ledger --all`
+- `cargo run -p fixture-check -- --game meldfall_ledger`
+- `cargo run -p rule-coverage -- --game meldfall_ledger`
+- `npm --prefix apps/web run smoke:ui`
+- `npm --prefix apps/web run smoke:effects`
+- `node scripts/check-catalog-docs.mjs`
+- `node apps/web/e2e/meldfall-ledger.smoke.mjs`
+- `node apps/web/e2e/a11y-noleak.smoke.mjs`
+
+The simulator run used an explicit `--action-cap 20000` as a bounded
+multi-round verifier guard. No hidden-information leak, TypeScript legality
+move, rule-text change, or replay/hash change was required.
+
+## 11. Assumptions
+
+| # | Assumption | Correctable by |
+|---|---|---|
+| A-1 | The public view is a recomputed viewer projection and is **not** an input to the replay/outcome `state_hash`; only `MatchState::stable_internal_summary()` is (`replay_support.rs` lines 67/95). The retained `last_settlement` snapshot is therefore kept out of the stable summary. | Confirm at implementation per the §3.3 hard gate. |
+| A-2 | `round_end` (`MeldfallView.round_end`, populated from `RoundEndSummary`) is the only round-end-reason source after bot auto-deal clears round state (`ML-MATCH-006`); the projection snapshots it at settlement. | Verify the snapshot is taken before the next deal. |
+| A-3 | `SeatSettlement` (`scoring.rs`) already carries every `ML-VIS-006` field; no new scoring computation is required, only retention + projection. | Grep `scoring.rs` for the `SeatSettlement` struct fields. |
