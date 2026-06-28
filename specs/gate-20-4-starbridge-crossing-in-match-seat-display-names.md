@@ -7,7 +7,7 @@
 | Spec ID | `gate-20-4-starbridge-crossing-in-match-seat-display-names` |
 | Stage / unit | Public scaling phase — Gate 20 presentation/contract follow-on (post-`Done`) |
 | Gate | Gate 20.4 (presentation/contract fix on shipped Gate 20 `starbridge_crossing`) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-28 |
 | Owner | TBD |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/UI-INTERACTION.md` → `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → `games/starbridge_crossing/docs/RULES.md` → this spec |

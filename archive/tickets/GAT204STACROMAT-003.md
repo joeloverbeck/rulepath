@@ -1,6 +1,6 @@
 # GAT204STACROMAT-003: Gate 20.4 evidence + closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: None — docs/status-only (`games/starbridge_crossing/docs/UI.md`, `games/starbridge_crossing/docs/GAME-EVIDENCE.md`, `specs/README.md`, the Gate 20.4 spec Status)
@@ -78,3 +78,35 @@ Flip the Gate 20.4 row in `specs/README.md` and the Status field in `specs/gate-
 1. `node scripts/check-doc-links.mjs` (doc-link integrity after the UI.md/evidence edits)
 2. `cargo run -p replay-check -- --game starbridge_crossing --all` (confirms 001/002 left determinism intact)
 3. The gate-0 + gate-1 command sets above are the full acceptance boundary; this ticket runs them rather than adding a new test.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Closed the Gate 20.4 evidence and tracker surfaces:
+
+- Updated `games/starbridge_crossing/docs/UI.md` to state that in-match board, accessibility, legend destination, replay, and shared turn-bar seat labels come from Rust/WASM-projected `ui.seat_labels`, `seats[].label`, and `seats[].target_label`.
+- Added a Gate 20.4 receipt to `games/starbridge_crossing/docs/GAME-EVIDENCE.md`, including Rust/WASM projection, discontinuous seat-count regression, additive API snapshot, web consumption, shared turn-bar proof, and browser regression evidence.
+- Flipped the Gate 20.4 spec Status and `specs/README.md` tracker row to `Done`.
+
+Deviations from plan: none. This ticket made docs/status changes only.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo clippy --workspace --all-targets -- -D warnings` passed.
+- `cargo build --workspace` passed.
+- `cargo test --workspace` passed.
+- `cargo run -p simulate -- --game starbridge_crossing --games 1000` passed: 1000 games, 2 seats, 2,000,000 total actions, zero capped matches.
+- `cargo run -p replay-check -- --game starbridge_crossing --all` passed.
+- `cargo run -p fixture-check -- --game starbridge_crossing` passed.
+- `cargo run -p rule-coverage -- --game starbridge_crossing` passed.
+- `node scripts/check-doc-links.mjs` passed (`Checked 31 markdown files`).
+- `node scripts/check-catalog-docs.mjs` passed.
+- `npm --prefix apps/web run smoke:wasm` passed.
+- `npm --prefix apps/web run build` passed.
+- `npm --prefix apps/web run smoke:ui` passed.
+- `npm --prefix apps/web run smoke:effects` passed.
+- `npm --prefix apps/web run smoke:e2e` passed.
+- `rg -n "formatPoint" apps/web/src/components/StarbridgeCrossingBoard.tsx` returned no matches.
+- `rg -n '\\| Status \\| `Done` \\|' specs/gate-20-4-starbridge-crossing-in-match-seat-display-names.md` confirmed the spec Status is `Done`.
