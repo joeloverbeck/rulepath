@@ -217,4 +217,70 @@ Dependency order: 001 → 002 → 003.
   determinism migration is required beyond the additive catalog-snapshot diff.
 - A3: All other current games have contiguous active seats, so the retained
   "first *N*" fallback keeps them correct and unchanged.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Completed tickets:
+
+- `archive/tickets/GAT202STACROACT-001.md` — Rust catalog metadata
+  (`f98a32e`).
+- `archive/tickets/GAT202STACROACT-002.md` — web setup consumption and browser
+  smoke (`59f6bdd`).
+- `archive/tickets/GAT202STACROACT-003.md` — Starbridge docs/evidence and
+  tracker closeout (`e38d868`).
+
+Implementation summary:
+
+- Added additive Rust/WASM catalog metadata `active_seats_by_count` for
+  Starbridge Crossing, derived from `active_points_for_seat_count` via
+  `StarPoint::clockwise_index()`.
+- Updated the web setup preview to consume that Rust-provided mapping before
+  falling back to contiguous first-N labels for games without the field.
+- Extended the Starbridge browser smoke to assert the 2-, 3-, and 4-seat setup
+  preview labels before match start.
+- Reconciled `games/starbridge_crossing/docs/UI.md`,
+  `games/starbridge_crossing/docs/GAME-EVIDENCE.md`, and `specs/README.md`.
+
+Deviations:
+
+- The drafted four-item `GAT202STASEAT-*` task split was superseded by the live
+  three-ticket `GAT202STACROACT-*` series. The spec was reconciled to the actual
+  delivered split before archive.
+- The failing-first transcript called for in the draft acceptance evidence was
+  superseded by the live ticket split; regression proof is the wasm-api catalog
+  test plus the Starbridge browser smoke setup-preview assertions.
+
+Verification evidence:
+
+- Rust/catalog: `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface`,
+  `cargo fmt --all --check`, `cargo test -p wasm-api`,
+  `cargo clippy --workspace --all-targets -- -D warnings`,
+  `bash scripts/boundary-check.sh`, and `cargo test --workspace` passed.
+- Web: `npm --prefix apps/web run build`,
+  `node apps/web/e2e/starbridge-crossing.smoke.mjs`,
+  `npm --prefix apps/web run smoke:e2e`, and
+  `npm --prefix apps/web run smoke:ui` passed. The final `smoke:e2e` rerun
+  included a fresh build after the docs/spec closeout edits.
+- Docs/archive truthing before spec archive: `node scripts/check-doc-links.mjs`,
+  status/stale-stem greps, and `git diff --check` passed.
+
+Manual/non-command evidence:
+
+- The Starbridge Puppeteer smoke now performs the requested setup-screen check:
+  2-seat Players & roles shows North+South and excludes North East; 3- and
+  4-seat setup previews match `SC-SETUP-003`.
+
+Archive truthing:
+
+- Active ticket glob `tickets/GAT202STACROACT*` is empty.
+- Archived tickets `GAT202STACROACT-001..003` have `**Status**: COMPLETED` and
+  `## Outcome`.
+- `specs/README.md` is retargeted to the archived spec path during final
+  reference closeout.
+
+Unrelated worktree changes:
+
+- None observed during closeout.
 </content>
