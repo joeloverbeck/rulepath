@@ -1,6 +1,6 @@
 # PLP1RDY-002: Author and accept ADR 0011 — Constrained Typed Rust Event-Card Mechanism
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new governance doc (`docs/adr/0011-constrained-typed-rust-event-card-mechanism.md`)
@@ -108,3 +108,28 @@ Record `Status: Accepted` (Assumption A3). PLP1RDY-006 gates on this status.
 1. `grep -nE '^Status: Accepted' docs/adr/0011-constrained-typed-rust-event-card-mechanism.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: no code ships, so doc-link integrity + status/no-DSL-ban greps are the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Added `docs/adr/0011-constrained-typed-rust-event-card-mechanism.md` as an
+accepted ADR using the repository ADR template. The ADR authorizes only a
+game-local private typed Rust event-card mechanism: card identity, deck order,
+inert display metadata, and non-behavioral parameters may be typed static
+content, while every condition, selector, trigger, override, target choice,
+legality check, transition, visibility decision, diagnostic, and semantic
+effect remains Rust behavior. The ADR explicitly bans YAML, scripts, untyped
+JSON/TOML/RON effect rows, and declarative behavior languages, and it defers
+any public helper to later public-safe mechanic-atlas evidence.
+
+Deviations from plan: none. No private game crate, Rust source, web, CI,
+catalog, fixture, trace, replay, hash, RNG, or benchmark file changed.
+
+Verification:
+
+- `grep -nE '^Status: Accepted' docs/adr/0011-constrained-typed-rust-event-card-mechanism.md`
+  passed (`3:Status: Accepted`).
+- `grep -niE 'no (yaml|dsl)|bans? .*(yaml|dsl)|YAML|DSL' docs/adr/0011-constrained-typed-rust-event-card-mechanism.md`
+  passed and confirmed the no-YAML/no-DSL boundary is explicit.
+- `node scripts/check-doc-links.mjs` passed (`Checked 33 markdown files`).
