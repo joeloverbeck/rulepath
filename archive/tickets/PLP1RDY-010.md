@@ -1,6 +1,6 @@
 # PLP1RDY-010: SOURCES external prior-art notes (lessons + non-adoption)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: None — sources doctrine doc (`docs/SOURCES.md`)
@@ -85,3 +85,20 @@ each with the Rulepath lesson and the explicit non-adoption rationale (report `A
 1. `grep -niE 'non-adopt|not adopt|do(es)? not adopt' docs/SOURCES.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: a single docs edit, so the prior-art greps + doc-link gate are the correct verification boundary.
+
+## Outcome
+
+Completed the external prior-art notes in `docs/SOURCES.md`. Added a
+private-lane prior-art section for Rally the Troops / GMT-style hosted modules,
+VASSAL, boardgame.io, OpenSpiel, GitHub reusable workflows/checkout, and Cargo
+workspaces/git/registries. Each row records the Rulepath lesson and an explicit
+non-adoption rationale.
+
+No external pattern was adopted, and no external prose was copied.
+
+Verification:
+
+- `grep -qiE 'rally the troops|vassal|boardgame\.io|openspiel' docs/SOURCES.md`
+- `grep -niE 'non-adopt|not adopt|do(es)? not adopt' docs/SOURCES.md`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`

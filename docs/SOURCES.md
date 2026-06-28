@@ -2,7 +2,7 @@
 
 Status: researched bibliography for the foundation set.
 
-Last reviewed: 2026-06-21.
+Last reviewed: 2026-06-28.
 
 These sources inform Rulepath architecture, authoring discipline, bot policy, UI policy, data-format policy, replay model, and IP caution. They are precedents and warnings, not text to copy. Game-specific source notes must still document exact rules sources, chosen variants, naming rationale, and asset status.
 
@@ -76,6 +76,22 @@ notes.
 | `EXT-6` | [Proptest state-machine testing](https://proptest-rs.github.io/proptest/proptest/state-machine.html) | Shared test support can generate transitions and compare invariants while leaving game-specific legality and reference models in each game. | Non-adoption: Rulepath does not replace named rule tests, golden traces, replay/hash checks, simulations, or no-leak matrices with property testing alone. |
 | `EXT-7` | [Michael Nygard, Documenting Architecture Decisions](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions) | Explicit ADR status and supersession keep small consequential decisions reviewable. | Non-adoption: Rulepath does not make blog-style ADR prose itself binding; accepted repo ADRs and foundation docs remain the authority. |
 | `EXT-8` | [boardgame.io Game API](https://github.com/boardgameio/boardgame.io/blob/main/docs/documentation/api/Game.md) | Generic setup validation and per-player state projection are useful comparative patterns. | Non-adoption: Rulepath does not adopt JavaScript rule authority, boardgame.io plugin/state architecture, or weaker replay/export visibility taxonomy. |
+
+## Private-lane prior art and non-adoption notes
+
+These notes record the private-lane readiness prior art cited by the change
+plan. They are provenance and boundary notes only. Rulepath adopts the lesson,
+not the external system, workflow, license posture, hosting model, or source
+expression.
+
+| Source | Rulepath lesson | Non-adoption rationale |
+|---|---|---|
+| Rally the Troops / GMT-style hosted modules | Hosted modules can support complex licensed tabletop games when rights, hosting, account, and module boundaries are explicit. | Rulepath does not adopt a hosted private module marketplace, licensed title presentation, account/server runtime, or public artifact that names private games. Private licensed work stays in isolated private repositories/builds. |
+| VASSAL Engine | A mature module ecosystem shows that private/local tabletop modules can carry complex maps, decks, scenarios, and player-driven workflows. | Rulepath does not adopt VASSAL's broad module-authoring model or player-policed rules posture. Rulepath keeps Rust-owned legality, replay, hashes, visibility, and no-leak tests. |
+| boardgame.io | Public/private player views, phases, and web presentation are useful comparative shapes for catalog and renderer seams. | Rulepath does not adopt JavaScript rule authority, boardgame.io plugins, multiplayer/lobby assumptions, or a weaker replay/hash/export boundary. Rust/WASM remains behavior authority. |
+| OpenSpiel | Generic game APIs and observation/information-state separation are useful reminders for imperfect-information boundaries. | Rulepath does not adopt OpenSpiel's research stack, search/RL agenda, game abstraction layer, or public bot policy. Public v1/v2 still exclude MCTS, ISMCTS, Monte Carlo, ML, and RL bots. |
+| GitHub reusable workflows and checkout | Private CI can call public reusable checks against a pinned public commit without public CI knowing private game names. | Rulepath does not adopt a public workflow that fetches, names, or depends on the private repository. Public CI remains private-blind; private CI owns private overlay/drift proof. |
+| Cargo workspaces, git dependencies, and registries | Rust tooling can compose code across repositories, but dependency metadata is itself a leak surface. | Rulepath does not adopt public optional dependencies, public features, public workspace members, or public registry packages that name private games. The default is a separate private repository pinned to public Rulepath. |
 
 ## Comparable web and tabletop systems
 
