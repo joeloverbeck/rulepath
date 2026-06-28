@@ -216,6 +216,36 @@ fn briar_circuit_catalog_uses_one_based_default_seat_labels() {
 }
 
 #[test]
+fn starbridge_catalog_active_seat_indices_match_setup_authority() {
+    let expected_entries = [2_usize, 3, 4, 6]
+        .into_iter()
+        .map(|seat_count| {
+            let indices = starbridge_crossing::active_points_for_seat_count(seat_count)
+                .expect("supported Starbridge seat count")
+                .iter()
+                .map(|point| point.clockwise_index().to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("\"{seat_count}\":[{indices}]")
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let expected_json = format!("{{{expected_entries}}}");
+
+    assert_eq!(
+        crate::catalog::catalog_starbridge_active_seats_by_count_json(),
+        expected_json
+    );
+
+    let games = list_games().expect("games listed");
+    let starbridge_start = games
+        .find("\"game_id\":\"starbridge_crossing\"")
+        .expect("starbridge catalog entry present");
+    let starbridge = &games[starbridge_start..];
+    assert!(starbridge.contains(&format!("\"active_seats_by_count\":{expected_json}")));
+}
+
+#[test]
 fn meldfall_ledger_catalog_exposes_variable_hidden_info_metadata() {
     let games = list_games().expect("games listed");
     let meldfall_start = games

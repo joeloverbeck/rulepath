@@ -57,6 +57,8 @@ try {
   await page.setViewport({ width: 1180, height: 920 });
   await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
 
+  await assertStarbridgeSetupPreviewSeatLabels(page, baseUrl);
+
   await startStarbridge(page, baseUrl, "Hotseat", 20, 6);
   await assertBoardSurface(page, 6);
   await assertRenderedTextView(page, (view) => view?.game_id === "starbridge_crossing" && view.status?.includes("ply 0"));
@@ -124,6 +126,29 @@ async function startStarbridge(page, baseUrl, modeLabel, seed, seatCount) {
   await clickLabel(page, modeLabel);
   await clickText(page, "button", "Start Match");
   await page.waitForSelector('[data-testid="starbridge-board"]');
+}
+
+async function assertStarbridgeSetupPreviewSeatLabels(page, baseUrl) {
+  await page.goto(baseUrl, { waitUntil: "networkidle0" });
+  await waitForText(page, "Starbridge Crossing");
+  await clickText(page, "button", "Starbridge Crossing");
+
+  const cases = [
+    { seatCount: 2, expected: ["North", "South"], absent: ["North East"] },
+    { seatCount: 3, expected: ["North", "South East", "South West"], absent: ["North East"] },
+    { seatCount: 4, expected: ["North", "North East", "South", "South West"], absent: ["South East"] },
+  ];
+
+  for (const testCase of cases) {
+    await page.select('select[aria-label="Supported seats from Rust catalog"]', String(testCase.seatCount));
+    const labels = await page.$$eval(".players-roles .seat-roles div span", (nodes) =>
+      nodes.map((node) => node.textContent?.trim() ?? ""),
+    );
+    assertDeepEqual(labels, testCase.expected, `${testCase.seatCount}-seat Starbridge setup preview uses Rust active seats`);
+    for (const label of testCase.absent) {
+      assert(!labels.includes(label), `${testCase.seatCount}-seat Starbridge setup preview does not include ${label}`);
+    }
+  }
 }
 
 async function assertBoardSurface(page, seatCount) {
@@ -360,6 +385,12 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function assertDeepEqual(actual, expected, message) {
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  assert(actualJson === expectedJson, `${message}: expected ${expectedJson}, got ${actualJson}`);
 }
 
 function contentTypeFor(filePath) {

@@ -102,6 +102,7 @@ export type GameCatalogEntry = {
   default_seats?: number;
   supported_seats?: number[];
   seat_labels?: SeatDisplayLabel[];
+  active_seats_by_count?: Record<string, number[]>;
   variants?: GameVariantCatalogEntry[];
   viewer_modes?: ViewerModeId[];
   hidden_information?: boolean;
