@@ -6,13 +6,12 @@ Rules version: `starbridge-crossing-rules-v1`
 
 Data version: `starbridge-crossing-data-v1`
 
-Last updated: 2026-06-27
+Last updated: 2026-06-28
 
 ## Rule Coverage Matrix
 
-This matrix maps stable `SC-*` rules to current Rust, fixture, trace, and tool
-evidence. Browser and higher-bot rows remain intentionally deferred to their
-own Gate 20 tickets.
+This matrix maps stable `SC-*` rules to current Rust, fixture, trace, WASM, and
+browser evidence. Human public-release review remains outside rule coverage.
 
 | Rule ID | Rule summary | Implementation | Evidence | Status | Notes |
 |---|---|---|---|---|---|
@@ -48,17 +47,17 @@ own Gate 20 tickets.
 | `SC-FINISH-001` | A seat receives next rank when all pegs reach target home. | `rules.rs`, `state.rs`, `effects.rs` | finish assignment tests and trace | `covered-by-trace` | Checked after accepted moves. |
 | `SC-FINISH-002` | Finish ranks are assigned in completion order. | `rules.rs`, `state.rs` | finish-order tests and traces | `covered-by-trace` | Lower rank is better. |
 | `SC-FINISH-003` | Match ends when all but one active seat are ranked. | `rules.rs`, `state.rs` | terminal standings tests and traces | `covered-by-trace` | Last unfinished seat receives final rank. |
-| `SC-FINISH-004` | Terminal standings are stable and Rust-authored. | `rules.rs`, `visibility.rs`, `ui.rs` | terminal outcome tests and traces | `covered-by-trace` | TypeScript renders only. |
+| `SC-FINISH-004` | Terminal standings are stable and Rust-authored. | `rules.rs`, `visibility.rs`, `ui.rs`, `crates/wasm-api`, `StarbridgeCrossingBoard.tsx` | terminal standings traces, `tests/visibility.rs` terminal rationale regressions, wasm rationale serialization test, Starbridge terminal e2e panel smoke | `covered-by-trace` | TypeScript renders Rust-projected `terminal_rationale` only. |
 | `SC-FINISH-005` | Variants include deterministic max plies. | `variants.rs`, `rules.rs` | variant tests and turn-limit trace | `covered-by-trace` | Default max plies is 2000. |
-| `SC-FINISH-006` | Turn limit records deterministic unfinished standings. | `rules.rs`, `state.rs` | turn-limit tests and trace | `covered-by-trace` | Progress vector is public and Rust-owned. |
+| `SC-FINISH-006` | Turn limit records deterministic unfinished standings. | `rules.rs`, `state.rs`, `visibility.rs`, `crates/wasm-api`, `StarbridgeCrossingBoard.tsx` | turn-limit tests and trace, progress-vector rationale regressions, wasm serialization test, Starbridge terminal e2e panel smoke | `covered-by-trace` | Progress vector is public and Rust-owned. |
 | `SC-REPLAY-001` | Accepted command streams reproduce state, effects, views, and hashes. | `replay_support.rs`, `rules.rs`, `visibility.rs` | replay tests, public replay trace, `replay-check` | `covered-by-trace` | Trace receipts are versioned. |
 | `SC-REPLAY-002` | Trace Schema v1 records setup, moves, diagnostics, terminal, and visibility notes. | golden traces, `replay_support.rs` | trace inventory tests, `fixture-check`, `replay-check` | `covered-by-trace` | No trace migration is authorized. |
 | `SC-BOT-001` | L0 bots select deterministically from Rust legal actions. | `bots.rs`, `tools/simulate` | bot tests, L0 trace, simulator smoke | `covered-by-trace` | L0 submits through normal validation. |
 | `SC-BOT-002` | Higher bots may use only public facts and admitted evidence. | [AI.md](AI.md), `bots.rs` | AI docs and not-admitted policy constant | `covered` | Higher bots are not admitted in this gate. |
 | `SC-BOT-003` | MCTS, ISMCTS, Monte Carlo, ML, RL, and runtime LLM move selection are forbidden. | [AI.md](AI.md), `bots.rs` | AI docs, code review, bot tests | `covered` | Applies even for perfect-information play. |
-| `SC-UI-001` | Browser controls present Rust legal actions and previews only. | future WASM/web adapter | later WASM/UI tickets | `intentionally-deferred` | Owned by GAT20STACROSTA-014 and later web tickets. |
-| `SC-UI-002` | Public UI supports board, peg selection, hop chains, replay, and no-drag paths. | future web renderer | later UI smoke and browser evidence | `intentionally-deferred` | Owned by GAT20STACROSTA-015 and web tickets. |
-| `SC-UI-003` | DOM, a11y names, test IDs, storage, logs, and effects contain public facts only. | future web renderer and e2e smokes | later browser no-leak/a11y evidence | `intentionally-deferred` | Rust all-public surfaces are covered; browser proof lands later. |
+| `SC-UI-001` | Browser controls present Rust legal actions and previews only. | `crates/wasm-api`, `apps/web/src/components/StarbridgeCrossingBoard.tsx` | wasm API surface tests, Starbridge web smoke legal-action/preview flow, `boundary-check.sh` | `covered` | Rust/WASM provide legal actions; TypeScript presents them. |
+| `SC-UI-002` | Public UI supports board, peg selection, hop chains, replay, and no-drag paths. | `apps/web/src/components/StarbridgeCrossingBoard.tsx`, Starbridge e2e smoke | board/jump/replay/responsive smoke plus terminal outcome panel smoke | `covered` | Includes `OutcomeExplanationPanel` and `aria-live` terminal surface. |
+| `SC-UI-003` | DOM, a11y names, test IDs, storage, logs, and effects contain public facts only. | `visibility.rs`, `crates/wasm-api`, Starbridge e2e no-leak scan | visibility no-private regressions, wasm rationale serialization, Starbridge no-leak/browser smoke | `covered` | Starbridge remains all-public; terminal rationale adds no hidden facts. |
 
 ## Golden Trace Inventory
 
@@ -86,5 +85,5 @@ own Gate 20 tickets.
 
 ## Coverage Status
 
-This matrix is complete for current Rust/tooling evidence. Benchmarks, WASM, UI,
-and browser no-leak proof are owned by later Gate 20 tickets.
+This matrix is complete for current Rust, tooling, WASM, and browser outcome
+evidence. Human public-release review remains outside rule coverage.

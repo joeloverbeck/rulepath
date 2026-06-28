@@ -1,6 +1,6 @@
 # GAT203STACROTER-004: Starbridge outcome-explanation docs reconcile + `Done`-flip capstone
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: LOW
 **Effort**: Small
 **Engine Changes**: None — game-local docs (`UI.md`, `GAME-EVIDENCE.md`, `RULE-COVERAGE.md`), the `specs/README.md` index row, and the spec Status (docs/status-only)
@@ -75,3 +75,33 @@ Update `specs/README.md` row 11.3 to `Done` (with a one-line completion note) an
 1. `node scripts/check-outcome-explanations.mjs && node scripts/check-doc-links.mjs`
 2. `cargo test --workspace && cargo run -p replay-check -- --game starbridge_crossing --all && npm --prefix apps/web run smoke:e2e`
 3. The doc gates + full acceptance set are the correct boundary — this ticket introduces no production logic, only docs/status reconciliation gated on the prior tickets passing.
+
+## Outcome
+
+Completed 2026-06-28.
+
+Reconciled the Starbridge outcome-explanation documentation and status surfaces:
+`UI.md` now states that Rust projects terminal `terminal_rationale` and the
+browser renders it through `OutcomeExplanationPanel`; the outcome section names
+both fully-qualified template keys, including
+`starbridge_crossing.turn_limit_progress_vector`. `GAME-EVIDENCE.md` records the
+Gate 20.3 receipt, and `RULE-COVERAGE.md` now links `SC-FINISH-004`,
+`SC-FINISH-006`, and `SC-UI-001..003` to the Rust/WASM/browser evidence. The spec
+and `specs/README.md` were flipped to `Done`.
+
+Verification recorded for the capstone:
+
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo build --workspace`
+- `cargo test --workspace`
+- `cargo run -p simulate -- --game starbridge_crossing --games 1000`
+- `cargo run -p replay-check -- --game starbridge_crossing --all`
+- `cargo run -p fixture-check -- --game starbridge_crossing`
+- `cargo run -p rule-coverage -- --game starbridge_crossing`
+- `bash scripts/boundary-check.sh`
+- `node scripts/check-outcome-explanations.mjs`
+- `npm --prefix apps/web run build`
+- `node apps/web/e2e/starbridge-crossing.smoke.mjs`
+- `npm --prefix apps/web run smoke:e2e`
+- `node scripts/check-doc-links.mjs`

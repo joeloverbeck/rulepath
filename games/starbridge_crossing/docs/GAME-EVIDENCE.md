@@ -94,6 +94,17 @@ external public release.
 | Browser setup proof | pass | `node apps/web/e2e/starbridge-crossing.smoke.mjs` checks 2 seats as North+South, 3 as North+South East+South West, and 4 as North+North East+South+South West before starting a match. |
 | Cross-game regression | pass | `npm --prefix apps/web run smoke:e2e` includes `seat-label-consistency.smoke.mjs` and the Starbridge smoke; `npm --prefix apps/web run smoke:ui` passed. |
 
+## Gate 20.3 Terminal Outcome Explanation Receipt
+
+| Surface | Status | Evidence |
+|---|---|---|
+| Rust terminal rationale projection | pass | `games/starbridge_crossing/src/visibility.rs` projects `terminal_rationale` only for terminal views; `games/starbridge_crossing/tests/visibility.rs` covers live `None`, `finish_order_complete`, `turn_limit_progress_vector`, seat-ring order, winner flags, progress values, and stable-byte exclusion. |
+| WASM serialization | pass | `crates/wasm-api/src/games/starbridge_crossing.rs` serializes `terminal_rationale` as `null` while live and a shared outcome payload at terminal; `cargo test -p wasm-api` covers the populated terminal payload and API surface snapshot. |
+| Web terminal panel | pass | `apps/web/src/components/StarbridgeCrossingBoard.tsx` renders `OutcomeExplanationPanel` and an `aria-live` mirror from `view.terminal_rationale`; `node apps/web/e2e/starbridge-crossing.smoke.mjs` reaches `turn_limit:2000` and asserts the panel, rule ID, standings, progress values, no-leak scan, and live announcement. |
+| Outcome templates/docs enforcement | pass | [UI.md](UI.md#outcome--victory-explanation) names both `starbridge_crossing.finish_order_complete` and `starbridge_crossing.turn_limit_progress_vector`; `node scripts/check-outcome-explanations.mjs` passed for 20 catalog games. |
+| Determinism artifacts | pass | `cargo run -p replay-check -- --game starbridge_crossing --all` and `cargo run -p fixture-check -- --game starbridge_crossing` passed unchanged; `terminal_rationale` remains excluded from `stable_bytes`. |
+| Browser regression | pass | `npm --prefix apps/web run build`, `node apps/web/e2e/starbridge-crossing.smoke.mjs`, and `npm --prefix apps/web run smoke:e2e` passed. |
+
 ## Fixture Profile
 
 | Fixture | Status | Purpose |
@@ -135,11 +146,11 @@ external public release.
 | `cargo run -p rule-coverage -- --game starbridge_crossing` | pass | coverage matrix and benchmark doc present. |
 | `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` | pass | regenerated the additive `_global/list_games` catalog snapshot row for Gate 20.2; earlier Gate 20.1 action-tree migration remained covered by the same snapshot surface. |
 | `cargo test -p wasm-api --test api_surface` | pass | focused snapshot verification after regeneration, included in `cargo test -p wasm-api`. |
-| `cargo test -p wasm-api` | pass | Gate 20.2 catalog metadata regression and snapshot test pass. |
+| `cargo test -p wasm-api` | pass | Gate 20.2 catalog metadata regression, Gate 20.3 terminal rationale serialization regression, and snapshot test pass. |
 | `cargo run -p simulate -- --game starbridge_crossing --games 1000` | pass | 1000 games, 2 seats, 2,000,000 total actions, zero capped matches. |
 | `npm --prefix apps/web run smoke:wasm` | pass | rebuilt current Rust/WASM and loaded the browser API. |
 | `npm --prefix apps/web run build` | pass | copied 20 player-rule docs, rebuilt WASM, typechecked, and built Vite output. |
-| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge setup labels, board, jump, replay, no-leak, and responsive Puppeteer smoke. |
+| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge setup labels, board, jump, replay, terminal outcome panel, no-leak, and responsive Puppeteer smoke. |
 | `cargo bench -p starbridge_crossing` | pass | benchmark smoke floors pass. |
 | `npm --prefix apps/web run smoke:e2e` | pass | includes Starbridge browser smoke. |
 | `npm --prefix apps/web run smoke:ui` | pass | catalog/setup shell smoke after Gate 20.2 setup-label bridge change. |

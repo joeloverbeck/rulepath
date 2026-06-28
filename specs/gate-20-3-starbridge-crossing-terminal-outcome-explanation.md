@@ -7,7 +7,7 @@
 | Spec ID | `gate-20-3-starbridge-crossing-terminal-outcome-explanation` |
 | Stage / unit | Public scaling phase — Gate 20 correctness follow-on (post-`Done`) |
 | Gate | Gate 20.3 (presentation/contract fix on shipped Gate 20 `starbridge_crossing`) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-28 |
 | Owner | TBD |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → `games/starbridge_crossing/docs/RULES.md` → `games/starbridge_crossing/docs/UI.md` → this spec |
@@ -220,22 +220,31 @@ Dependency order: 001 → 002 → 003 → 004.
   `boundary-check.sh`, `check-doc-links.mjs`, `check-outcome-explanations.mjs`,
   web smokes/build) pass.
 
-## 7. Acceptance evidence (to be filled at closeout)
+## 7. Acceptance evidence
 
-- Failing-first transcript for the Rust rationale projection test and the web
-  terminal-panel smoke.
-- `cargo test -p starbridge_crossing`, `cargo test -p wasm-api`,
-  `cargo test --workspace`.
-- `cargo run -p replay-check -- --game starbridge_crossing --all`,
-  `cargo run -p fixture-check -- --game starbridge_crossing`,
-  `cargo run -p rule-coverage -- --game starbridge_crossing`,
-  `bash scripts/boundary-check.sh`.
-- `npm --prefix apps/web run build`,
-  `node apps/web/e2e/starbridge-crossing.smoke.mjs`,
-  `npm --prefix apps/web run smoke:e2e`,
-  `node scripts/check-outcome-explanations.mjs`.
-- Manual Puppeteer recheck: finished match shows the outcome-explanation panel
-  with both decisive causes exercised.
+- Rust game evidence: `cargo test -p starbridge_crossing` covers live
+  `terminal_rationale: None`, complete-terminal rationale, turn-limit rationale,
+  seat-ring standing order, rank-1 winner flags, progress values, and
+  `stable_bytes` exclusion.
+- WASM evidence: `cargo test -p wasm-api` covers `terminal_rationale: null`
+  while live and the populated terminal payload; `UPDATE_API_SNAPSHOT=1 cargo
+  test -p wasm-api --test api_surface` refreshed the additive Starbridge public
+  view rows.
+- Determinism evidence: `cargo run -p replay-check -- --game
+  starbridge_crossing --all`, `cargo run -p fixture-check -- --game
+  starbridge_crossing`, and `cargo run -p rule-coverage -- --game
+  starbridge_crossing` passed with no trace, fixture, or replay-hash migration.
+- Boundary/docs evidence: `bash scripts/boundary-check.sh`, `node
+  scripts/check-outcome-explanations.mjs`, and `node scripts/check-doc-links.mjs`
+  passed; `UI.md` names both fully-qualified Starbridge outcome template keys.
+- Browser evidence: `npm --prefix apps/web run build`, `node
+  apps/web/e2e/starbridge-crossing.smoke.mjs`, and `npm --prefix apps/web run
+  smoke:e2e` passed. The Starbridge smoke drives a bot-vs-bot match to
+  `turn_limit:2000` and asserts the outcome panel, rule ID `SC-FINISH-006`,
+  standing rows, progress values, no-leak scan, and `aria-live` announcement.
+- Failing-first notes: failing-first behavior was observed during development by
+  adding the Rust/WASM/web assertions before their implementation, but no
+  separate transcript artifact was preserved.
 
 ## 8. FOUNDATIONS & boundary alignment
 
@@ -317,3 +326,25 @@ Dependency order: 001 → 002 → 003 → 004.
   entry (`OutcomeRationaleStanding.values?: OutcomeRationaleField[]`), as river
   routes its per-seat facts — so no river-style `& { … }` extension of the alias
   is required.
+
+## Outcome
+
+Completed 2026-06-28.
+
+- `GAT203STACROTER-001` added the game-local Rust terminal rationale projection
+  on `StarbridgePublicView`, populated only for terminal views and excluded from
+  `stable_bytes`.
+- `GAT203STACROTER-002` serialized the Starbridge rationale through wasm-api and
+  refreshed the additive API surface snapshot. The additive snapshot touched six
+  Starbridge rows because replay import/step/reset rows also embed the public
+  view JSON; this is wider than the spec's expected three view rows but still an
+  additive view-field change only.
+- `GAT203STACROTER-003` added the `turn_limit_progress_vector` template, rendered
+  `OutcomeExplanationPanel` plus `aria-live` from Rust-projected rationale, and
+  extended the Starbridge smoke to a terminal match.
+- `GAT203STACROTER-004` reconciled `UI.md`, `GAME-EVIDENCE.md`,
+  `RULE-COVERAGE.md`, this spec, and the spec index.
+
+The shipped behavior remains presentation-only: no movement, finish-rank,
+turn-limit ranking, replay/hash, fixture, or trace migration was introduced. No
+ADR was required.
