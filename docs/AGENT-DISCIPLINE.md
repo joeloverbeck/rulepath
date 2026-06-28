@@ -106,6 +106,26 @@ Bad tasks are vague or architecture-seeking:
 - “clean up the architecture”;
 - “port a private licensed game into the public repo.”
 
+## 3A. Private-monster task discipline
+
+Private-monster or sanctioned private-lane work MUST be decomposed before any
+implementation begins. The first tasks are doctrine and admission tasks:
+author/accept the private-lane ADRs, place the private lane in the roadmap/spec
+trackers, and prove public-tree IP isolation.
+
+Private implementation specs then split by bounded surfaces such as setup/state,
+sequence and eligibility, operations, special activities, propaganda or scoring
+rounds, event-card behavior, visibility/replay/export, UI renderer overlay, CI,
+and release evidence. Each task packet MUST name source/IP handling, private
+artifact ownership, public-boundary impact, no-leak surfaces, forbidden public
+changes, and the exact verification commands.
+
+No task may ask an agent to implement a whole private licensed game as one
+packet. No task may copy licensed rules prose, card text, flowcharts, examples,
+art, screenshots, fixture names, e2e names, or catalog strings into the public
+repository. Public work created for private-lane support must be generic,
+private-free, and justified by the accepted ADR that authorizes the seam.
+
 ## 4. Failing-test protocol
 
 When tests fail, agents and humans MUST:

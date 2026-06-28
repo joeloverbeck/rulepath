@@ -1,6 +1,6 @@
 # PLP1RDY-005: Governance area docs — roadmap note, IP policy, agent discipline, docs map, archival
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — governance/area docs (`docs/ROADMAP.md`, `docs/IP-POLICY.md`, `docs/AGENT-DISCIPLINE.md`, `docs/README.md`, `docs/archival-workflow.md`)
@@ -119,3 +119,35 @@ Add the ADR-limited roadmap-text archival note (report `A-19`).
 1. `grep -nE 'sanctioned|no-leak|private-monster' docs/IP-POLICY.md docs/AGENT-DISCIPLINE.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: docs-only edits, so section-presence greps + doc-link integrity are the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Updated the PLP1-RDY governance area docs:
+
+- `docs/ROADMAP.md` now records that ADR 0010 limits accepted ADR 0007 for
+  timing only, while public Gates 21-23 remain the public roadmap order and
+  Gate P remains isolated, optional, non-public, and non-architectural.
+- `docs/IP-POLICY.md` now describes the sanctioned private lane as
+  authorized-now/isolated-always and adds a no-name/no-ID public no-leak
+  checklist.
+- `docs/AGENT-DISCIPLINE.md` now has private-monster decomposition law requiring
+  bounded private-lane tasks with source/IP handling, public-boundary impact,
+  no-leak surfaces, forbidden public changes, and exact verification commands.
+- `docs/README.md` now lists accepted ADRs 0010, 0011, and 0012 and records the
+  authority-map note for private-lane doctrine.
+- `docs/archival-workflow.md` now records how to handle ADR-limited roadmap text
+  without deleting older accepted ADR rationale.
+
+Deviations from plan: none. The full Private Lane P1 roadmap/tracker content
+remains out of scope for this ticket and is left to PLP1RDY-011. Existing
+unrelated `.claude/skills/*` worktree changes were left untouched and unstaged.
+
+Verification:
+
+- `grep -nE 'sanctioned|no-leak|private-monster|0010|0011|0012|ADR-Limited Roadmap Text|ADR 0010|ADR 0007' docs/IP-POLICY.md docs/AGENT-DISCIPLINE.md docs/README.md docs/archival-workflow.md docs/ROADMAP.md`
+  passed, confirming the requested governance sections and ADR index entries.
+- `grep -nE '^Status: Accepted' docs/adr/0010-*.md docs/adr/0011-*.md docs/adr/0012-*.md`
+  passed for all three prerequisite ADRs.
+- `node scripts/check-doc-links.mjs` passed (`Checked 34 markdown files`).

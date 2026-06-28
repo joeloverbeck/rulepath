@@ -42,6 +42,13 @@ V1/v2 exclude hosted multiplayer, accounts, databases, matchmaking, chat, ranked
 
 Every stage and gate must satisfy [OFFICIAL-GAME-CONTRACT.md](OFFICIAL-GAME-CONTRACT.md) for any official game and the universal invariants in [FOUNDATIONS.md](FOUNDATIONS.md).
 
+ADR 0010 limits accepted [ADR 0007](adr/0007-next-public-scaling-phase-and-gate-p-tail.md)
+for timing only: a sanctioned private-game lane may run in parallel after the
+ADR-authorized readiness interlocks land, but Gate P remains isolated, optional,
+non-public, and non-architectural. Public Gates 21-23 remain the public roadmap
+order, and private-lane work may not add public release blockers except when it
+reveals a public invariant violation in already-public seams.
+
 > Implementation progress and the per-gate spec for each gate are tracked in [`../specs/README.md`](../specs/README.md). The ladder above is law; that index is the mutable progress tracker. This document is not edited to record which gates are done.
 
 Pre-Gate-18 debt interlock: before opening Gate 18 implementation work, the

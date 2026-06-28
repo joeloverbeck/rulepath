@@ -160,7 +160,7 @@ Font licenses can differ for desktop, web, app embedding, redistribution, and mo
 
 ## 9. Private licensed experiments
 
-Private licensed experiments are late red-team tests only.
+Private licensed experiments are isolated red-team tests only.
 
 They MUST:
 
@@ -174,6 +174,32 @@ They MUST:
 - undergo kernel-contamination review.
 
 They MUST NOT be foundation cases, public tests, public assets, public WASM modules, or reasons to add game nouns to `engine-core`.
+
+### 9A. Sanctioned private lane
+
+A sanctioned private-game lane MAY begin before the public ladder completes only
+after accepted ADR approval and the readiness interlocks named by that ADR. The
+early timing exception does not weaken isolation: private work remains
+non-public, private-build-only, and unable to shape `engine-core` or public
+architecture except through generic, private-free seams.
+
+The private repository owns licensed rules references, private source notes,
+private docs, private e2e names, private trace and fixture artifacts, private
+card or event metadata, private renderers, private catalog entries, and private
+WASM/web builds. Public docs may contain only generic doctrine and opaque
+private-lane placeholders.
+
+No-name/no-ID public no-leak checklist:
+
+- no private game title, game id, module id, or catalog string in public files;
+- no private card, event, scenario, faction, setup, fixture, or e2e filename in
+  public files;
+- no copied private rules-page text, examples, screenshots, scans, art, icons,
+  trade dress, or flowchart text in public files;
+- no private renderer, private WASM/JS bundle, private CI artifact, private
+  trace, or private fixture in public builds;
+- no exception unless separately license-reviewed, explicitly approved, and
+  recorded in the relevant private release evidence.
 
 ## 10. Public web build rule
 
