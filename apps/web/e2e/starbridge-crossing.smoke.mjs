@@ -61,6 +61,7 @@ try {
 
   await startStarbridge(page, baseUrl, "Hotseat", 20, 6);
   await assertBoardSurface(page, 6);
+  await assertSeatDisplayNames(page);
   await assertRenderedTextView(page, (view) => view?.game_id === "starbridge_crossing" && view.status?.includes("ply 0"));
   await assertNoLeak(page, consoleMessages, "initial starbridge board");
 
@@ -179,6 +180,24 @@ async function assertBoardSurface(page, seatCount) {
   assert(summary.pegs === seatCount * 10, `starbridge renders ${seatCount * 10} public pegs, got ${summary.pegs}`);
   assert(summary.legend === seatCount, `starbridge renders ${seatCount} seat legend rows, got ${summary.legend}`);
   assert(summary.unnamed.length === 0, `buttons have accessible names: ${summary.unnamed.join(", ")}`);
+}
+
+async function assertSeatDisplayNames(page) {
+  const summary = await page.evaluate(() => ({
+    legend: Array.from(document.querySelectorAll(".starbridge-legend > div strong")).map((node) => node.textContent?.trim() ?? ""),
+    heading: document.querySelector("#starbridge-heading")?.textContent?.trim() ?? "",
+    active: document.querySelector(".starbridge-status strong")?.textContent?.trim() ?? "",
+  }));
+  assert(summary.legend.length === 6, `starbridge legend renders six seat rows, got ${summary.legend.length}`);
+  for (const label of summary.legend) {
+    assert(!/^Seat \d+$/.test(label), `starbridge legend names seats by home point, not seat index: got ${label}`);
+  }
+  assert(
+    summary.legend.includes("North") && summary.legend.includes("South"),
+    `starbridge legend names home points, got ${summary.legend.join(", ")}`,
+  );
+  assert(!/^Seat \d+ to move$/.test(summary.heading), `starbridge heading names the active seat by point, got ${summary.heading}`);
+  assert(!/^Seat \d+$/.test(summary.active), `starbridge active-seat status uses a point name, got ${summary.active}`);
 }
 
 async function assertLegalTargets(page) {
