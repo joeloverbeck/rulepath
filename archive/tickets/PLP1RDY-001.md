@@ -1,6 +1,6 @@
 # PLP1RDY-001: Author and accept ADR 0010 — Sanctioned Parallel Private-Game Lane
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new governance doc (`docs/adr/0010-sanctioned-parallel-private-game-lane.md`)
@@ -115,3 +115,25 @@ Record `Status: Accepted` (maintainer act, Assumption A3). Downstream tickets
 1. `grep -nE '^Status: Accepted' docs/adr/0010-sanctioned-parallel-private-game-lane.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: this ADR ships no code, so doc-link integrity + the status grep are the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Added `docs/adr/0010-sanctioned-parallel-private-game-lane.md` as an accepted
+ADR using the repository ADR template. The ADR creates the sanctioned parallel
+private-game lane as a timing-only carve-out, explicitly limits accepted ADR
+0007 only for Gate-P-tail timing, preserves the private isolation and
+non-public/non-architectural requirements, and names the downstream PLP1-RDY
+foundation, roadmap, IP-policy, agent-discipline, and spec-index updates.
+
+Deviations from plan: none. No Rust, web, CI, catalog, fixture, trace, replay,
+hash, RNG, or private implementation files changed.
+
+Verification:
+
+- `grep -nE '^Status: Accepted' docs/adr/0010-sanctioned-parallel-private-game-lane.md`
+  passed (`3:Status: Accepted`).
+- `grep -n '0007' docs/adr/0010-sanctioned-parallel-private-game-lane.md`
+  passed and confirms the limited-not-superseded note is present.
+- `node scripts/check-doc-links.mjs` passed (`Checked 32 markdown files`).
