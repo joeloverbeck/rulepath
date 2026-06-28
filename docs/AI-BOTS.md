@@ -107,6 +107,36 @@ inference, deterministic tie-breaks, and explanation redaction per viewer.
 Belief is allowed as documented human-plausible inference over legal public
 information; it is not a license to sample or inspect the real hidden world.
 
+## 4B. Private asymmetric sourcing and no-flowchart rule
+
+Sanctioned private licensed games may need bots for four or more asymmetric
+roles, factions, teams, or player powers. That scale does not change the bot
+boundary: every policy still uses the normal legal action API, validates through
+the normal engine path, receives only the allowed seat view, and remains
+deterministic under declared inputs.
+
+Bot strategy may be informed by:
+
+- original Rulepath analysis of the implemented rules;
+- public facts and the acting seat's authorized private view;
+- playtest observations recorded in original language;
+- human-plausible inference from legal public history;
+- private source receipts that prove consultation without copying expression.
+
+Bot strategy MUST NOT copy or transcribe publisher non-player flowcharts,
+priority charts, solitaire procedures, strategy tables, examples, or source
+prose into policy, tests, docs, fixtures, explanations, static data, candidate
+rankings, or benchmark names. Do not recreate a chart by renaming its rows. If a
+private source suggests a strategic idea, convert it into original Rulepath
+analysis tied to implemented rules and visible facts, and keep the receipt in
+the private repository.
+
+For asymmetric private roles, `COMPETENT-PLAYER.md`, `GAME-AI.md`, and any
+Level 2 evidence pack must record per-role policy status, opponent sets,
+visible-fact inputs, allowed inference, known weaknesses, and explicit
+no-flowchart compliance. A role may remain at Level 0 or be deferred only when
+the completion profile allows it and the closure gate is named.
+
 ## 5. Game-specific strategy modules
 
 Do not build “one bot plays every game.” The action-tree API is generic; strategy is game-specific.

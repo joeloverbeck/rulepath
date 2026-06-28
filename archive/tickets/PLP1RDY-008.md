@@ -1,6 +1,6 @@
 # PLP1RDY-008: Private milestone profiles + AI sourcing/deferral + evidence/admission
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: None — contract docs + templates (`docs/OFFICIAL-GAME-CONTRACT.md`, `docs/AI-BOTS.md`, `templates/GAME-AI.md`, `templates/COMPETENT-PLAYER.md`, `templates/BOT-STRATEGY-EVIDENCE-PACK.md`, `templates/GAME-EVIDENCE.md`, `templates/GAME-IMPLEMENTATION-ADMISSION.md`)
@@ -125,3 +125,24 @@ Add the four-faction sourcing limits + the no-flowchart-transcription rule
 1. `grep -nE 'private-(milestone|release)|public-release-candidate|flowchart' docs/OFFICIAL-GAME-CONTRACT.md docs/AI-BOTS.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: docs/templates only, so the profile/sourcing greps + doc-link gate are the correct verification boundary.
+
+## Outcome
+
+Completed the private milestone and bot-sourcing doctrine pass. Added
+`private-milestone-1-rule-complete`, `private-release-candidate`, and
+`public-release-candidate` completion profiles to
+`docs/OFFICIAL-GAME-CONTRACT.md`, including the bounded Level 0 bot deferral
+rule and closure gate. Added the private asymmetric sourcing and no-flowchart
+rule to `docs/AI-BOTS.md`.
+
+Updated the AI, competent-player, bot-strategy, evidence, and admission
+templates to carry per-role/faction policy status, multi-opponent inputs,
+private source receipts, no-flowchart compliance, Level 0 deferral closure, and
+private release/admission evidence fields.
+
+Verification:
+
+- `grep -nE 'private-milestone-1-rule-complete|private-release-candidate|public-release-candidate|flowchart|priority chart' docs/OFFICIAL-GAME-CONTRACT.md docs/AI-BOTS.md`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
+- `git status --porcelain -- '*.rs' '*.mjs' '*.yml' '*.toml' '*.json'`

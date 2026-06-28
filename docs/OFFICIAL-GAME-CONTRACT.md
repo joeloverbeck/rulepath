@@ -64,6 +64,36 @@ terms:
   gate that must close the deferred evidence before public release or later
   roadmap advancement.
 
+Private-lane profiles are additional, explicit profiles for sanctioned private
+licensed work. They do not authorize public release and do not weaken the
+ordinary official-game contract:
+
+- `private-milestone-1-rule-complete` means the private game has typed Rust
+  rules, setup, legal action generation, validation, transitions, scoring,
+  terminal detection, replay/hash proof, source/IP receipt, rule coverage,
+  fixture/evidence profiles, and no-leak proof sufficient for private rule
+  validation. It may defer Level 0 bot implementation only when the deferral is
+  recorded in `GAME-EVIDENCE.md`, linked to the private spec/ticket gate, and
+  blocked before private release-candidate or any web playtest that depends on
+  bot turns.
+- `private-release-candidate` means the private build is ready for the named
+  authorized audience only. It requires the private release checklist, private
+  build separation proof, public back-leak sweep, viewer-safety evidence, and at
+  least Level 0 random legal bot support unless an accepted private release
+  constraint explicitly removes bot play from that release.
+- `public-release-candidate` means a game is being considered for public
+  exposure. Private-lane status is not enough: all public IP, naming,
+  trade-dress, source, catalog, WASM/web, bot, UI, accessibility, no-leak, and
+  release checklist obligations must pass with no private licensed content in
+  public artifacts.
+
+Level 0 bot deferral is bounded. It is allowed only for
+`private-milestone-1-rule-complete`, only as a documented milestone constraint,
+and only when simulation/replay/rule validation do not rely on bot turns. The
+deferral must name the closure gate. It cannot survive into
+`private-release-candidate`, `public-release-candidate`, or any public official
+profile.
+
 ## 2. Readiness labels
 
 Use these labels honestly:

@@ -10,11 +10,13 @@ Roadmap stage/gate: `<stage_or_gate>`
 
 Public role: scaffolding | UI smoke | public showcase | hidden-info proof | original portfolio game | maintenance | other: `<role>`
 
+Completion profile target: full | minimal-perfect-information | hidden-information | n-seat | release-candidate | private-milestone-1-rule-complete | private-release-candidate | public-release-candidate | intentionally-deferred
+
 Prepared by: `<name/agent>`
 
 Date: YYYY-MM-DD
 
-Template realignment mapping: report `B-07 -> GAME-IMPLEMENTATION-ADMISSION.md`
+Template realignment mapping: report `B-14 -> GAME-IMPLEMENTATION-ADMISSION.md`
 
 Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
 
@@ -61,6 +63,9 @@ polish, bot evidence, no-leak proof, or release gates.
 | Rust remains the authority for legality, validation, effects, views, and bots | pass/fail/constrained | `<notes>` |
 | hidden-information risk has a named proof plan | pass/fail/not applicable: `<rationale>` | `<GAME-EVIDENCE.md planned row or coverage link>` |
 | private licensed content is excluded from public paths | pass/fail/not applicable: `<rationale>` | `<GAME-SOURCES.md or release-review link>` |
+| sanctioned private-lane ADR gates are satisfied | pass/fail/not applicable: `<rationale>` | `<ADR 0010/0011/0012 evidence>` |
+| private repository/build separation is planned | pass/fail/not applicable: `<rationale>` | `<PRIVATE-RELEASE-CHECKLIST.md or admission note>` |
+| publisher flowchart / priority chart content is excluded from bot policy/tests/docs | pass/fail/not applicable: `<rationale>` | `<GAME-AI.md / source review link>` |
 
 ## Required Evidence Profile
 
@@ -72,6 +77,7 @@ polish, bot evidence, no-leak proof, or release gates.
 | no-leak proof | yes/no/not applicable | yes/no/not applicable | `<GAME-EVIDENCE.md hidden-info matrix>` |
 | UI evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-UI.md>` |
 | bot evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-AI.md>` |
+| Level 0 bot deferral closure gate | yes/no/not applicable | yes/no | `<GAME-AI.md / ticket/spec gate>` |
 | benchmark evidence | yes/no/not applicable | yes/no/not applicable | `<GAME-BENCHMARKS.md>` |
 | pre-implementation scaffolding audit receipt | yes | yes | `<GAME-EVIDENCE.md mechanic/scaffolding rows>` |
 | post-implementation register freshness and prior-game refactor receipt | no | yes | `<GAME-EVIDENCE.md mechanic/scaffolding rows>` |

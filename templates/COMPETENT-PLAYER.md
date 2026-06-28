@@ -26,6 +26,11 @@ This document is not rule authority. Strategy claims MUST be checked against `GA
 
 Do not copy external strategy prose. Summarize in original language and record sources.
 
+For sanctioned private-lane games, record source receipts in the private
+repository and keep this analysis original. Do not copy or reconstruct publisher
+non-player flowcharts, priority charts, strategy tables, examples, or rules
+prose in public files.
+
 ## Sources and consulted strategy references
 
 | Source/reference | URL/reference | Date consulted | Source quality | Used for | Copied prose status | Notes |
@@ -52,6 +57,15 @@ In original Rulepath prose, summarize what competent play means for this game an
 | number of opponents | `<one opponent / multiple opponents / opposing teams / table competitors>` | `<rule_ids>` | `<notes>` |
 | partnership/team roles | none / `<team, partnership, coalition, asymmetric role>` | `<rule_ids>` | `<notes>` |
 | seat/turn-order pressure | `<first/last/leader/dealer/reaction/simultaneous implications>` | `<rule_ids>` | `<notes>` |
+
+## Per-role asymmetric strategy profile
+
+Required for private or public games with asymmetric roles, factions, teams, or
+player powers. Use `not applicable` with rationale for symmetric games.
+
+| Role/faction/seat class | Objectives/priorities in original prose | Opponent set | Visible facts used | Forbidden source/use notes | Bot policy candidate? |
+|---|---|---|---|---|---:|
+| `<role>` | `<original analysis>` | `<one opponent / all opponents / opposing team / table>` | `<public or own-seat facts>` | no flowchart/priority chart copy | yes/no |
 
 ## Phases and situations
 
@@ -122,6 +136,14 @@ Competent inference is allowed only from legal information: public information, 
 | Tempting shortcut | Why forbidden | Required bot guard/test | Notes |
 |---|---|---|---|
 | `<shortcut such as reading opponent hand, hidden role, deck order, private log, hidden commitment>` | unavailable to the acting seat | `<test>` | `<notes>` |
+
+## Private source and flowchart exclusion
+
+| Source pressure | Used for original analysis? | Copied/transcribed? | Required receipt | Notes |
+|---|---:|---:|---|---|
+| publisher non-player flowchart / priority chart | no by default / constrained original analysis only | no | `<private source receipt>` | `<notes>` |
+| publisher examples or strategy prose | constrained original analysis only | no | `<private source receipt>` | `<notes>` |
+| playtest observation | yes/no | no copied private source expression | `<observation receipt>` | `<notes>` |
 
 ## Inference allowed vs forbidden peeking
 
