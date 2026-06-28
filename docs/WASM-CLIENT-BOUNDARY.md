@@ -83,6 +83,27 @@ preview, effect, diagnostic, bot explanation, and replay export before any
 browser payload exists. TypeScript must not receive hidden state and hide it in
 CSS, DOM conditionals, local state, or dev toggles.
 
+## Private Catalog Semantics
+
+The public WASM catalog contains only public games. A sanctioned private lane
+uses a private repository and private WASM/web build for private catalog
+entries. Public `rulepath_list_games`, public catalog docs, public smoke output,
+and public web bundles must not contain private game titles, ids, module names,
+fixture names, e2e names, renderer keys, or source expressions.
+
+Catalog seam plan:
+
+1. keep the public registry private-free and deterministic;
+2. if a private build needs additional entries, add them through a private
+   overlay after the public registry has produced its public entries;
+3. keep setup metadata, display metadata, and renderer keys viewer-safe and
+   private-build-only for private games;
+4. prove public catalog cleanliness with public checks and prove private overlay
+   alignment only in private CI.
+
+This section is doctrine only. It does not change the current exported ABI or
+add an adapter in this readiness unit.
+
 ## Replay Safety
 
 Replay import is local-only. The authoritative import-size guard is Rust/WASM's

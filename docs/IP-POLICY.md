@@ -201,6 +201,39 @@ No-name/no-ID public no-leak checklist:
 - no exception unless separately license-reviewed, explicitly approved, and
   recorded in the relevant private release evidence.
 
+### 9B. Default private repository doctrine
+
+Accepted ADR 0012 makes a separate private repository the default home for a
+sanctioned private licensed game. The private repository pins a public Rulepath
+commit and owns the private game crates, licensed source notes, private docs,
+fixtures, traces, e2e names, renderer overlay, private catalog entries, private
+CI manifests, and private WASM/web build artifacts. Public Rulepath may gain
+only generic, private-free extension seams.
+
+Rejected alternatives:
+
+| Alternative | Decision | Reason |
+|---|---|---|
+| public submodule naming the private game | rejected as default | A public path, dependency name, or clone hint leaks private identity and makes public tooling aware of private work. |
+| public optional dependency or feature for the private game | rejected as default | Feature flags are not a content boundary; the public workspace and lock/build surfaces would know too much. |
+| hidden public catalog row or disabled web route | rejected | If a catalog string or route ships in a public bundle, it has shipped. |
+| private content behind credentials inside the public artifact | rejected | Authorization does not protect data already bundled into public JS/WASM or static assets. |
+| local-only folder inside the public checkout | temporary only | It may be used for unpublished experiments, but sanctioned lane work defaults to private repository isolation. |
+
+Seam plan doctrine:
+
+- catalog: public Rulepath keeps the public game registry private-free; any
+  later registry adapter must merge public entries with private entries only in
+  private builds;
+- renderer: public renderers stay public-game-only; private overlays register
+  private renderers in the private build without public names or assets;
+- CI federation: private CI may call public reusable workflows or run public
+  checks against a pinned public commit, but public CI must not fetch, name, or
+  require the private repository;
+- drift checks: public checks prove public catalog/build cleanliness; private
+  checks additionally prove overlay alignment and no back-leak into public
+  artifacts.
+
 ## 10. Public web build rule
 
 If it ships to an unauthorized browser, it has shipped.

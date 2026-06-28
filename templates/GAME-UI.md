@@ -72,6 +72,26 @@ React + SVG is the default renderer unless profiling evidence or ADR says otherw
 | keyboard-only desktop | yes/no | `<notes>` | `<test>` |
 | reduced-motion user | yes/no | `<notes>` | `<test>` |
 
+## Private overlay / large-map plan
+
+Use this section for sanctioned private-lane games or for public games with
+large asymmetric surfaces. Public games may mark it `not applicable` with
+rationale. Private games must keep private names, licensed source expression,
+card/event text, fixture names, e2e names, renderer keys, and assets in the
+private repository only.
+
+| Surface | Public-safe seam or private overlay? | Viewer-safe source | No-leak evidence | Notes |
+|---|---|---|---|---|
+| catalog entry and setup metadata | public-safe seam / private overlay / not applicable | Rust/WASM catalog or private overlay | `<evidence>` | `<notes>` |
+| renderer registration | public-safe seam / private overlay / not applicable | public renderer map or private overlay map | `<evidence>` | `<notes>` |
+| map/table renderer | public-safe seam / private overlay / not applicable | Rust view plus original assets | `<evidence>` | `<notes>` |
+| event/deck/component display | public-safe seam / private overlay / not applicable | Rust/static typed metadata | `<evidence>` | `<notes>` |
+| private smoke/e2e coverage | private overlay / not applicable | private CI only | `<evidence>` | `<notes>` |
+
+Private overlays are build boundaries, not runtime hiding. The public web build
+must not contain private catalog strings, renderer imports, routes, assets,
+fixture names, e2e names, or source-derived text.
+
 ## Multi-seat layout
 
 Required for every 3+ seat game. For two-seat games, either fill the table or add an explicit `not applicable` row with rationale.

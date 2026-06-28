@@ -1,6 +1,6 @@
 # PLP1RDY-007: Part C VCS/CI/catalog doctrine + seam plans (no code)
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — doctrine docs + templates (`docs/IP-POLICY.md`, `docs/ARCHITECTURE.md`, `docs/WASM-CLIENT-BOUNDARY.md`, `docs/UI-INTERACTION.md`, `apps/web/README.md`, `templates/GAME-UI.md`, `templates/PUBLIC-RELEASE-CHECKLIST.md`, `templates/PRIVATE-RELEASE-CHECKLIST.md`)
@@ -125,3 +125,27 @@ public-only catalog **doctrine** note.
 1. `git status --porcelain -- '*.rs' '*.mjs' '*.yml' '*.toml' '*.json'`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-doc-links.mjs`
 3. A narrower command suffices: doctrine/templates only, so the catalog-docs + doc-link gates plus the no-public-code-diff guard are the correct verification boundary.
+
+## Outcome
+
+Completed the Part C doctrine and seam-plan pass without source/config changes.
+Added the default separate-private-repository decision, rejected alternatives,
+and catalog/renderer/CI/drift seam plans to `docs/IP-POLICY.md` and
+`docs/ARCHITECTURE.md`. Added public-catalog/private-overlay semantics to
+`docs/WASM-CLIENT-BOUNDARY.md`, private renderer-overlay and large asymmetric UI
+guidance to `docs/UI-INTERACTION.md`, and a public-only catalog doctrine note to
+`apps/web/README.md`.
+
+Updated `templates/GAME-UI.md` for private overlay / large-map planning, linked
+the public release checklist to the private counterpart, and added
+`templates/PRIVATE-RELEASE-CHECKLIST.md` with authority, build separation,
+public back-leak, viewer-safety, and release-decision sections.
+
+Verification:
+
+- `grep -qiE 'separate private repositor|rejected alternativ|seam plan' docs/IP-POLICY.md docs/ARCHITECTURE.md`
+- `test -f templates/PRIVATE-RELEASE-CHECKLIST.md && grep -q '^Status: Accepted' docs/adr/0012-*.md`
+- `git status --porcelain -- '*.rs' '*.mjs' '*.yml' '*.toml' '*.json'`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`

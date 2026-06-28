@@ -24,6 +24,12 @@ Template realignment mapping: report `B-16 -> PUBLIC-RELEASE-CHECKLIST.md`
 
 Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
 
+Private-lane counterpart: sanctioned private games use
+[`PRIVATE-RELEASE-CHECKLIST.md`](PRIVATE-RELEASE-CHECKLIST.md). Do not adapt this
+public checklist by adding private game titles, private ids, private catalog
+strings, private fixture/e2e names, or licensed source expression to public
+files.
+
 ## Public Shipment Rule
 
 If content ships to an unauthorized browser, it has shipped.
@@ -105,4 +111,3 @@ Release constraints, if any:
 - Missing linked evidence is recorded as a blocker or accepted release constraint.
 - Non-delegable human checks are complete.
 - Public release decision is explicit.
-
