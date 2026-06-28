@@ -1,6 +1,6 @@
 # GAT203STACROTER-003: Web render of Starbridge outcome panel + terminal smoke
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web` (`src/components/outcomeExplanationTemplates.ts`, `src/components/StarbridgeCrossingBoard.tsx`, `e2e/starbridge-crossing.smoke.mjs`)
@@ -81,3 +81,41 @@ In `e2e/starbridge-crossing.smoke.mjs`, drive a bot-vs-bot match to terminal and
 1. `node apps/web/e2e/starbridge-crossing.smoke.mjs`
 2. `npm --prefix apps/web run build && npm --prefix apps/web run smoke:e2e && node scripts/check-outcome-explanations.mjs`
 3. The web smoke is the correct boundary — Rust/bridge correctness is owned by GAT203STACROTER-001/002.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Rendered the shared `OutcomeExplanationPanel` in
+`StarbridgeCrossingBoard.tsx` when Rust/WASM supplies
+`view.terminal_rationale`, with a dedicated `aria-live` outcome announcement
+via `outcomeAnnouncementText`. The board does not derive winners, decisive
+causes, rule IDs, or standings order in TypeScript; the panel rows come from the
+Rust-projected `terminal_rationale.final_standing`.
+
+Added the static
+`starbridge_crossing.turn_limit_progress_vector` outcome-template key, and
+extended `apps/web/e2e/starbridge-crossing.smoke.mjs` to run a 2-seat bot-vs-bot
+match to the deterministic `turn_limit:2000` terminal state, assert the
+Starbridge outcome panel, decisive rule ID, per-seat standing rows, progress
+values, `aria-live` mirror, and no-leak scan.
+
+During web wiring, the shared outcome adapter was confirmed to read
+`final_standing[].seat`; the Starbridge wasm serializer now emits `seat`
+alongside its river-shaped `id` field. The archived GAT203STACROTER-002 outcome
+was amended with that bridge-shape repair.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo clippy -p wasm-api --all-targets -- -D warnings` passed.
+- `cargo test -p wasm-api` passed.
+- `node scripts/check-outcome-explanations.mjs` passed.
+- `npm --prefix apps/web run build` passed.
+- `node apps/web/e2e/starbridge-crossing.smoke.mjs` passed, including the new
+  terminal outcome panel assertions.
+- `npm --prefix apps/web run smoke:e2e` passed.
+
+Deviations: included the small Starbridge wasm standing-row `seat` key repair
+needed for the shared panel to consume Rust-authored standings. No TypeScript
+legality or outcome computation was added.

@@ -284,13 +284,13 @@ fn starbridge_view_projects_terminal_rationale_payload() {
     assert!(terminal_json
         .contains("\"decisive_rule_ids\":[\"SC-FINISH-005\",\"SC-FINISH-006\",\"SC-END-002\"]"));
     assert!(terminal_json.contains(
-        "\"final_standing\":[{\"id\":\"seat_0\",\"label\":\"Seat 1\",\"result\":\"win\",\"emphasized\":true,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":1},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":3}]}"
+        "\"final_standing\":[{\"id\":\"seat_0\",\"seat\":\"seat_0\",\"label\":\"Seat 1\",\"result\":\"win\",\"emphasized\":true,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":1},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":3}]}"
     ));
     assert!(terminal_json.contains(
-        "{\"id\":\"seat_1\",\"label\":\"Seat 2\",\"result\":\"ranked\",\"emphasized\":false,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":2},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":1}]}"
+        "{\"id\":\"seat_1\",\"seat\":\"seat_1\",\"label\":\"Seat 2\",\"result\":\"ranked\",\"emphasized\":false,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":2},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":1}]}"
     ));
     assert!(terminal_json.contains(
-        "{\"id\":\"seat_2\",\"label\":\"Seat 3\",\"result\":\"ranked\",\"emphasized\":false,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":3},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":0}]}"
+        "{\"id\":\"seat_2\",\"seat\":\"seat_2\",\"label\":\"Seat 3\",\"result\":\"ranked\",\"emphasized\":false,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":3},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":0}]}"
     ));
 }
 

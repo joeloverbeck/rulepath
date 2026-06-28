@@ -111,3 +111,13 @@ Deviations: the original ticket expected only the three
 The actual additive snapshot diff is six Starbridge rows because replay
 import/step/reset rows embed the same Starbridge view JSON. No non-Starbridge
 snapshot row changed, and no game-side replay or fixture artifact changed.
+
+Outcome amended: 2026-06-28
+
+During GAT203STACROTER-003 web-panel wiring, the shared
+`OutcomeExplanationPanel` adapter was confirmed to read `final_standing[].seat`.
+The Starbridge standing serializer now emits `seat` alongside the river-shaped
+`id` field so the web panel consumes Rust-projected standings directly instead
+of falling back to undefined row ids. The repair preserves the same additive
+Starbridge-only bridge scope and is covered by the updated wasm-api projection
+test, refreshed API surface snapshot, web build, and Starbridge browser smoke.

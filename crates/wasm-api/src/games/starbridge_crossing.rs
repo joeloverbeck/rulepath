@@ -308,7 +308,8 @@ fn starbridge_rationale_standing_json(standing: &StarbridgeOutcomeStandingView) 
     }
 
     format!(
-        "{{\"id\":\"{}\",\"label\":\"Seat {}\",\"result\":\"{}\",\"emphasized\":{},\"strength\":null,\"values\":[{}]}}",
+        "{{\"id\":\"{}\",\"seat\":\"{}\",\"label\":\"Seat {}\",\"result\":\"{}\",\"emphasized\":{},\"strength\":null,\"values\":[{}]}}",
+        escape_json(&standing.seat.0),
         escape_json(&standing.seat.0),
         u16::from(standing.seat_index) + 1,
         if standing.winner { "win" } else { "ranked" },
