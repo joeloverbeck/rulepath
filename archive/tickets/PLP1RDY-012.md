@@ -1,6 +1,6 @@
 # PLP1RDY-012: Closeout capstone — doc gates, leak scan, Done-flip
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs/status-only (`specs/README.md`, `specs/private-lane-foundation-readiness.md`)
@@ -103,3 +103,31 @@ to `Done` (with evidence), and set the Status field in
 1. `node scripts/check-doc-links.mjs && node scripts/check-catalog-docs.mjs && bash scripts/boundary-check.sh`
 2. `grep -rniE '<licensed-title-token>|<private-id-token>' apps/ crates/ docs/ specs/ templates/ games/ tools/ scripts/ ci/ 2>/dev/null` — the manual leak-scan boundary (operator substitutes the opaque tokens being scanned for; expect zero matches).
 3. A narrower command suffices: this capstone runs only existing gates + a leak scan and flips status, so the gate trio + leak grep are the correct verification boundary.
+
+## Outcome
+
+Completed the closeout capstone. The required gate trio passed, the focused
+public-tree leak scan found and removed public licensed-title/source-token leaks
+from the seed reports and references, and the spec/tracker status surfaces were
+flipped to `Done`.
+
+Closeout changes:
+
+- renamed the public seed reports to opaque `private-lane-p1-*` filenames;
+- scrubbed the licensed title and private source-file tokens from the public
+  seed reports and one archived public spec example;
+- updated `specs/README.md` and
+  `specs/private-lane-foundation-readiness.md` references/status;
+- archived this capstone ticket.
+
+Verification:
+
+- `node scripts/check-doc-links.mjs`
+- `node scripts/check-catalog-docs.mjs`
+- `bash scripts/boundary-check.sh`
+- focused public-tree licensed-title/source-token scan, excluding dependency and
+  build-output directories, returned zero matches
+- focused public-path filename scan for licensed-title/source-token patterns
+  returned zero matches
+- `grep -nE 'PLP1-RDY|\| Status \|' specs/README.md specs/private-lane-foundation-readiness.md`
+- `git diff --check`

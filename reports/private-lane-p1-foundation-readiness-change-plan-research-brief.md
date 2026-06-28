@@ -1,4 +1,4 @@
-# Research Brief — Cuba Libre (Private COIN) Foundation-Readiness Change Plan
+# Research Brief — the first private licensed game (Private COIN) Foundation-Readiness Change Plan
 
 **For:** ChatGPT-Pro deep-research session (Session 2).
 **From:** Rulepath maintainer, via a repo-grounded authoring session (Session 1).
@@ -12,14 +12,14 @@ requirements interview already happened. Produce the deliverable directly.
 You are producing **one downloadable markdown document**: a *change plan* that
 tells the Rulepath maintainers exactly how to amend their repository's
 foundation documents, templates, and spec index so the repo can host a complex
-**private, licensed** game — **Cuba Libre**, a GMT *COIN*-series counter­insurgency
+**private, licensed** game — **the first private licensed game**, a GMT *COIN*-series counter­insurgency
 board game — as the project's **first private game**, started **now**.
 
 This is **preparatory doctrine work, not implementation.** You are not designing
 the game, not writing Rust, not writing the game's spec. You are deciding what
 must change in `docs/**`, `templates/**`, `specs/README.md`, plus the
 version-control / CI / app-catalog plumbing and any new ADRs, so that a later
-session *could* implement Cuba Libre without violating — or being blocked by —
+session *could* implement the first private licensed game without violating — or being blocked by —
 the existing constitution.
 
 Your inputs are three things, and only these:
@@ -30,9 +30,9 @@ Your inputs are three things, and only these:
    path in it as fetchable from that commit; treat any path *not* in it as
    nonexistent.
 3. **Two PDFs uploaded to you in the web app**:
-   - `CL-PLAYBOOK-2018.pdf` — the Cuba Libre playbook (extended examples, the
+   - `PRIVATE-PLAYBOOK-RECEIPT` — the the first private licensed game playbook (extended examples, the
      non-player faction flowcharts, designer notes).
-   - `CL-RULES-2019-LivingRules.pdf` — the Cuba Libre living rules (the rules of
+   - `PRIVATE-RULES-RECEIPT` — the the first private licensed game living rules (the rules of
      play and the full event-deck card details).
 
    **These PDFs are NOT in the repository and never will be** — they are private
@@ -116,7 +116,7 @@ this target*.
 
 ### Private / roadmap / AI / N-seat / evidence tier
 - `docs/ROADMAP.md` — the staged ladder; private red-team work is the "Gate P tail,"
-  admitted only after the public ladder completes. Starting Cuba Libre now contradicts
+  admitted only after the public ladder completes. Starting the first private licensed game now contradicts
   this ordering and needs an ADR.
 - `docs/IP-POLICY.md` — public/private content separation; private experiments are
   late, in private repos, excluded from public CI/builds/docs. Cataloging a private
@@ -167,7 +167,7 @@ single-faction assumption in `GAME-HOW-TO-PLAY.md`; 90-row scale in
 `PUBLIC-RELEASE-CHECKLIST.md` having **no private-release analogue**.
 
 ### Specs index + sibling cycle
-- `specs/README.md` — the living gate/progress index; where a private Cuba Libre
+- `specs/README.md` — the living gate/progress index; where a private the first private licensed game
   lane/gate and its spec fields must be placed.
 - `reports/RULEPATH-DOC-AND-TEMPLATE-CHANGE-PLAN.md` — **mirror this anatomy**; it is
   also your "already shipped, do not re-recommend" reference.
@@ -258,8 +258,8 @@ live in version control** so that:
   build-time feature flag) is needed so a private game appears only when its repo
   is present and never bundles into the public build.
 
-**D5 — Roadmap + specs placement is included.** Propose where the private Cuba
-Libre **milestone-1** sits: a roadmap lane/gate in `ROADMAP.md`, a
+**D5 — Roadmap + specs placement is included.** Propose where the private the private game
+private lane **milestone-1** sits: a roadmap lane/gate in `ROADMAP.md`, a
 `specs/README.md` index entry, and the private-game spec fields a future spec
 must carry (mechanical-scaffolding reuse audit, no-leak matrix scope, seat-range
 declaration, surface budgets, private-release readiness). **Do not write the game
@@ -320,7 +320,7 @@ list, and call out in the deliverable if any has drifted.
 ## 4. The core tensions to resolve (your analytical spine)
 
 Organize the plan so it visibly resolves each of these. These are the load-bearing
-conflicts between "what Cuba Libre needs" and "what the constitution currently
+conflicts between "what the first private licensed game needs" and "what the constitution currently
 says." For each, the plan must state: the conflict, the amendment(s), the
 doctrine-check (does the amendment preserve the non-negotiables?), and the ADR if
 any.
@@ -328,7 +328,7 @@ any.
 1. **Private-game timing vs. public-first priority.** FOUNDATIONS §1 ranks
    "later private stress tests" 5th and forbids private pressure shaping public
    architecture; ROADMAP makes private work the Gate-P tail after Gate 23;
-   IP-POLICY §9 says private experiments are late and isolated. Cuba Libre starts
+   IP-POLICY §9 says private experiments are late and isolated. the first private licensed game starts
    now. → Resolve via D2 (sanctioned private lane + ADR) while preserving "no
    private IP in public architecture/bundles/CI/docs."
 
@@ -369,7 +369,7 @@ any.
 
 Produce **one markdown file** named:
 
-`cuba-libre-private-game-foundation-readiness-change-plan.md`
+`private-lane-p1-foundation-readiness-change-plan.md`
 
 Mirror the anatomy of `reports/RULEPATH-DOC-AND-TEMPLATE-CHANGE-PLAN.md`, adapted
 to this target:
@@ -407,7 +407,7 @@ to this target:
      `docs/adr/ADR-TEMPLATE.md`. Expect at least: sanctioned-private-lane (amends
      §1 + ADR 0007), event-card mechanism (if recommended), private VCS/CI/catalog
      architecture. Do not write full ADR bodies.
-   - **Part E — Roadmap & specs placement** (D5): the Cuba Libre milestone-1
+   - **Part E — Roadmap & specs placement** (D5): the the first private licensed game milestone-1
      roadmap lane/gate and `specs/README.md` entry, plus the private-game spec
      field requirements.
 5. **Prioritized execution order** — a sequence honoring dependencies (e.g.
@@ -427,7 +427,7 @@ to this target:
 ## 6. Hard constraints that every recommendation must preserve
 
 These are Rulepath non-negotiables (FOUNDATIONS §11 invariants, §12 stop
-conditions). Any amendment you propose must keep them true. If a Cuba Libre need
+conditions). Any amendment you propose must keep them true. If a the first private licensed game need
 *genuinely* requires relaxing one, that is an explicit ADR with a doctrine-check —
 never a silent erosion.
 
@@ -450,8 +450,8 @@ never a silent erosion.
   ships to an unauthorized browser, it has shipped."
 - **No MCTS/ISMCTS/Monte Carlo/ML/RL bots** in v1/v2.
 - **Deliver complete, reviewable recommendations** — the plan itself is bounded and
-  reviewable; it does not hand a future implementer an unbounded "implement Cuba
-  Libre" task.
+  reviewable; it does not hand a future implementer an unbounded "implement the private game
+  private lane" task.
 
 ---
 
@@ -498,7 +498,7 @@ never a silent erosion.
 - Inputs are this brief + `manifest_2026-06-28_142ddfa.txt` + the two uploaded
   PDFs. Fetch repo files at commit `142ddfa`.
 - Output is **one** markdown change-plan:
-  `cuba-libre-private-game-foundation-readiness-change-plan.md`.
+  `private-lane-p1-foundation-readiness-change-plan.md`.
 - Honor the locked decisions D1–D8, resolve the six tensions in §4, preserve the
   §6 non-negotiables, keep IP discipline (§8), and re-recommend nothing from the
   §3 implemented baseline.
