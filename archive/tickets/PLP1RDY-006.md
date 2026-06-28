@@ -23,7 +23,7 @@ operationalize it so COIN-scale event decks are documented as typed Rust behavio
    `templates/PRIMITIVE-PRESSURE-LEDGER.md`. The new
    `templates/GAME-EVENT-COVERAGE.md` does not yet exist (confirmed; it is the
    `B-05` split deliverable).
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-3 +
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-3 +
    §Exit-criteria item 3 (typed-registry/effect-trait pattern documented; YAML/
    JSON/TOML/RON/table-row selectors/conditions/effect formulas explicitly banned).
 3. Cross-artifact boundary under audit: ADR 0011 (PLP1RDY-002) is the authorizing

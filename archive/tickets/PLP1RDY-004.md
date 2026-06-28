@@ -26,7 +26,7 @@ and private-architecture changes on accepted ADRs.
    them); the private-licensed-influence §13 trigger is L286 (§4.5 adds after it).
    Exact placement/wording may be refined at edit time; the **meaning** is fixed
    by spec §4.
-2. Spec source: `specs/private-lane-foundation-readiness.md` §4.1–§4.5 carry the
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` §4.1–§4.5 carry the
    verbatim draft blocks; §Exit-criteria item 2 requires Rust-owns-behavior,
    noun-free `engine-core`, no-DSL, no-leak, and determinism invariants to remain
    unchanged.
@@ -128,7 +128,7 @@ against the live constitution.
 Completed: 2026-06-28
 
 Updated `docs/FOUNDATIONS.md` with the five sanctioned private-lane
-constitution amendments from `specs/private-lane-foundation-readiness.md`:
+constitution amendments from `archive/specs/private-lane-foundation-readiness.md`:
 the §1.1 timing-only carve-out, the §10 private-stress timing paragraph, the
 §11 private-isolation invariant extension, two §12 stop conditions, and the §13
 ADR-trigger note naming ADRs 0010, 0011, and 0012.

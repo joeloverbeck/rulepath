@@ -12,7 +12,7 @@ Related documents:
 - `docs/ENGINE-GAME-DATA-BOUNDARY.md`
 - `docs/MECHANIC-ATLAS.md`
 - `docs/AGENT-DISCIPLINE.md`
-- `specs/private-lane-foundation-readiness.md`
+- `archive/specs/private-lane-foundation-readiness.md`
 
 Required scaling / supersession fields:
 

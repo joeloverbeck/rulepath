@@ -23,7 +23,7 @@ no-leak doctrine (PLP1RDY-005) being in place.
    `templates/GAME-IMPLEMENTATION-ADMISSION.md`. The `docs/AI-BOTS.md` edit
    (report `A-10`, four-faction sourcing limits + no-flowchart) was confirmed by
    `/reassess-spec` (2026-06-28) to belong in WB-5 (Issue I1 fix).
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-5 + §Exit-criteria
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-5 + §Exit-criteria
    item 5 (OFFICIAL-GAME-CONTRACT defines `private-milestone-1-rule-complete`,
    `private-release-candidate`, `public-release-candidate`, with Level-0 bot
    deferral explicit and bounded).

@@ -23,7 +23,7 @@ Rust behavior — before the ENGINE-GAME-DATA-BOUNDARY typed-registry section
    next integer after `0010` (PLP1RDY-001) — this ticket has no `Deps` because
    the three ADRs are authored independently and only the *integer* ordering is
    shared; if 001 has not yet created `0010`, `0011` is still correct and stable.
-2. Verbatim Decision is `specs/private-lane-foundation-readiness.md` §5.2; the
+2. Verbatim Decision is `archive/specs/private-lane-foundation-readiness.md` §5.2; the
    spec confines the mechanism to the private crate ("game-local/private until
    public-safe evidence justifies any public helper").
 3. Cross-artifact boundary under audit: the ADR amends FOUNDATIONS §5

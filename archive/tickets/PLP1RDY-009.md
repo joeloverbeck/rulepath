@@ -24,7 +24,7 @@ which the rules/event-deck template sections reference).
    `templates/GAME-HOW-TO-PLAY.md`, `templates/GAME-BENCHMARKS.md`. The
    `B-01`/`B-02` template README + AGENT-TASK edits were confirmed in scope by
    `/reassess-spec` (2026-06-28, Improvement M1: added to WB-6 Items).
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-6 + §Acceptance
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-6 + §Acceptance
    evidence ("Determinism / hash / RNG: Not applicable — TRACE-SCHEMA clarification
    is documentation only; report `A-15`").
 3. Cross-artifact boundary under audit: `docs/TRACE-SCHEMA-v1.md` is a

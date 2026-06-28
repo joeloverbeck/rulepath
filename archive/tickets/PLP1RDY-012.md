@@ -3,7 +3,7 @@
 **Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
-**Engine Changes**: None — docs/status-only (`specs/README.md`, `specs/private-lane-foundation-readiness.md`)
+**Engine Changes**: None — docs/status-only (`specs/README.md`, `archive/specs/private-lane-foundation-readiness.md`)
 **Deps**: PLP1RDY-007, PLP1RDY-009, PLP1RDY-010, PLP1RDY-011
 
 ## Problem
@@ -19,8 +19,8 @@ source, then marks the unit complete. This is the verification-only capstone.
 1. Verification surfaces verified present: `scripts/check-doc-links.mjs`,
    `scripts/check-catalog-docs.mjs`, `scripts/boundary-check.sh`. The status
    targets are `specs/README.md` (the `PLP1-RDY` row, currently `Planned`) and
-   `specs/private-lane-foundation-readiness.md` (Status field, currently `Planned`).
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-9 + §Exit-criteria
+   `archive/specs/private-lane-foundation-readiness.md` (Status field, currently `Planned`).
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-9 + §Exit-criteria
    item 7 + §Acceptance evidence (boundary-check / doc-link / catalog-docs all
    pass; manual public-tree no-leak scan).
 3. Cross-artifact boundary under audit: this capstone exercises the prior tickets'
@@ -67,12 +67,12 @@ string in any public file).
 
 After the gates pass, flip the `PLP1-RDY` row in `specs/README.md` from `Planned`
 to `Done` (with evidence), and set the Status field in
-`specs/private-lane-foundation-readiness.md` to `Done`.
+`archive/specs/private-lane-foundation-readiness.md` to `Done`.
 
 ## Files to Touch
 
 - `specs/README.md` (modify; flip `PLP1-RDY` row `Planned` → `Done`)
-- `specs/private-lane-foundation-readiness.md` (modify; Status `Planned` → `Done`)
+- `archive/specs/private-lane-foundation-readiness.md` (modify; Status `Planned` → `Done`)
 
 ## Out of Scope
 
@@ -117,7 +117,7 @@ Closeout changes:
 - scrubbed the licensed title and private source-file tokens from the public
   seed reports and one archived public spec example;
 - updated `specs/README.md` and
-  `specs/private-lane-foundation-readiness.md` references/status;
+  `archive/specs/private-lane-foundation-readiness.md` references/status;
 - archived this capstone ticket.
 
 Verification:
@@ -129,5 +129,5 @@ Verification:
   build-output directories, returned zero matches
 - focused public-path filename scan for licensed-title/source-token patterns
   returned zero matches
-- `grep -nE 'PLP1-RDY|\| Status \|' specs/README.md specs/private-lane-foundation-readiness.md`
+- `grep -nE 'PLP1-RDY|\| Status \|' specs/README.md archive/specs/private-lane-foundation-readiness.md`
 - `git diff --check`

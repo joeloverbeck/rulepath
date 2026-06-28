@@ -23,7 +23,7 @@ lists all three; the ROADMAP note is gated on ADR 0010 acceptance).
    IP-POLICY's current §10-aligned private paragraph ("Private licensed/
    commercial-game stress tests are late, isolated, optional, non-public…") is the
    sanctioned-lane edit target (report `A-03`).
-2. Spec source: `specs/private-lane-foundation-readiness.md` §Scope (in scope,
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` §Scope (in scope,
    foundation/area docs) + §Documentation-updates required; the README ADR index
    and ROADMAP ADR-0007-limited note are explicitly WB-2.
 3. Cross-artifact boundary under audit: `docs/IP-POLICY.md` is **also** edited by

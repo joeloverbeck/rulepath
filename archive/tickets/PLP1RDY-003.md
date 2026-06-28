@@ -22,7 +22,7 @@ This ticket authors and accepts that ADR.
 1. ADR template + numbering: `docs/adr/ADR-TEMPLATE.md` exists; `0012` is the
    next integer after `0011`. No `Deps`: the integer ordering is stable
    regardless of write order among 001–003.
-2. Verbatim Decision is `specs/private-lane-foundation-readiness.md` §5.3, which
+2. Verbatim Decision is `archive/specs/private-lane-foundation-readiness.md` §5.3, which
    ends "**Records doctrine + documented seam plans only — no public code/CI
    change in the readiness unit**" (the catalog/renderer/CI/drift seam
    implementations are seeded forward, spec §Out of scope).

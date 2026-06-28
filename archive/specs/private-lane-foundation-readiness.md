@@ -15,7 +15,7 @@
 
 Where this spec and a foundation document disagree, the foundation document
 wins. This spec is seeded from one advisory change plan —
-[`../reports/private-lane-p1-foundation-readiness-change-plan.md`](../reports/private-lane-p1-foundation-readiness-change-plan.md)
+[`../reports/private-lane-p1-foundation-readiness-change-plan.md`](../../reports/private-lane-p1-foundation-readiness-change-plan.md)
 — authored against target commit `142ddfa`, which is the current `main` at
 authoring time (`reports/manifest_2026-06-28_142ddfa.txt`). This spec does not
 assume the plan's per-file claims are permanent: AGENT-TASK decomposition

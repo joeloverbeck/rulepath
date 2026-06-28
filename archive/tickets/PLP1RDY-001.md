@@ -13,7 +13,7 @@ Lane P1) in parallel with the unfinished public ladder, but FOUNDATIONS §1
 priority order ranks "later private stress tests" below the public ladder and
 ADR 0007 places Gate P at the very tail. Changing the priority order is a §13
 ADR trigger ("changing the priority order"). The spec
-(`specs/private-lane-foundation-readiness.md`, WB-1a) requires an **accepted**
+(`archive/specs/private-lane-foundation-readiness.md`, WB-1a) requires an **accepted**
 ADR that sanctions a timing-only carve-out *before* any FOUNDATIONS/ROADMAP/IP
 edit that operationalizes it. This ticket authors and accepts that ADR.
 
@@ -22,7 +22,7 @@ edit that operationalizes it. This ticket authors and accepts that ADR.
 1. The ADR directory and template exist: `docs/adr/ADR-TEMPLATE.md` is present,
    and the highest accepted ID is `docs/adr/0009-replay-fixture-hash-taxonomy.md`,
    so `0010` is the correct next integer (verified: `ls docs/adr/`).
-2. The spec's verbatim Decision block is `specs/private-lane-foundation-readiness.md`
+2. The spec's verbatim Decision block is `archive/specs/private-lane-foundation-readiness.md`
    §5.1; the spec directs WB-1 to land it first (§Work breakdown: "WB-1 … must
    complete and be accepted before any other item"). Assumption A3 records that
    maintainer acceptance (`Status: Accepted`) is part of this unit.
@@ -55,7 +55,7 @@ edit that operationalizes it. This ticket authors and accepts that ADR.
 1. ADR exists with correct ID/status -> codebase grep-proof (`test -f
    docs/adr/0010-sanctioned-parallel-private-game-lane.md`; `grep '^Status: Accepted'`).
 2. Decision matches the spec's verbatim §5.1 block -> manual review against
-   `specs/private-lane-foundation-readiness.md` §5.1.
+   `archive/specs/private-lane-foundation-readiness.md` §5.1.
 3. Priority-order change is timing-only, no invariant weakened -> FOUNDATIONS
    alignment check (§1, §10, §11 isolation invariant preserved; §13 trigger satisfied).
 4. ADR 0007 limited, not superseded -> manual review of the partial-supersession

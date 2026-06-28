@@ -14,7 +14,7 @@ Related documents:
 - `docs/ARCHITECTURE.md`
 - `docs/AGENT-DISCIPLINE.md`
 - `apps/web/README.md`
-- `specs/private-lane-foundation-readiness.md`
+- `archive/specs/private-lane-foundation-readiness.md`
 
 Required scaling / supersession fields:
 

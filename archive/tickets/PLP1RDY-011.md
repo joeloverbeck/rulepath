@@ -22,7 +22,7 @@ bundles this as WB-8 (report `E-01`, `E-02`, `E-03`).
    session, 2026-06-28). Those are **verify-only**; this ticket lands the **new
    Private lane tracker section + the opaque `P1-M1` row** (`Doctrine pending`,
    linking only to the accepted ADRs).
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-8 +
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-8 +
    §Documentation-updates ("a new Private lane tracker section with the opaque
    `P1-M1` row at `Doctrine pending`") + §Exit-criteria item 6.
 3. Cross-artifact boundary under audit: `docs/ROADMAP.md` is **also** edited by

@@ -22,7 +22,7 @@ This is WB-4.
    `templates/GAME-UI.md`, `templates/PUBLIC-RELEASE-CHECKLIST.md`. The new
    `templates/PRIVATE-RELEASE-CHECKLIST.md` does not yet exist (confirmed; it is
    the `B-16` deliverable).
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-4 + §Scope "Part C
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-4 + §Scope "Part C
    VCS/CI/catalog doctrine + seam plans (report `C-01`–`C-08`)" + §Forbidden
    changes ("No edit to any `.rs`, `.mjs`, `.yml`, `.toml`, `.json`, or web/source
    file — Part C is doctrine + seam plans only").

@@ -12,7 +12,7 @@ Related documents:
 - `docs/ROADMAP.md`
 - `docs/IP-POLICY.md`
 - `docs/AGENT-DISCIPLINE.md`
-- `specs/private-lane-foundation-readiness.md`
+- `archive/specs/private-lane-foundation-readiness.md`
 - `specs/README.md`
 - `docs/adr/0007-next-public-scaling-phase-and-gate-p-tail.md`
 

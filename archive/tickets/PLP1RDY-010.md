@@ -19,7 +19,7 @@ independent docs edit with no dependency on the ADRs.
 1. Target verified present: `docs/SOURCES.md`. The prior-art set to record is
    enumerated in the spec WB-7 row: Rally the Troops/GMT, VASSAL, boardgame.io,
    OpenSpiel, GitHub reusable workflows/checkout, Cargo workspaces/git/registries.
-2. Spec source: `specs/private-lane-foundation-readiness.md` WB-7 + Assumption A7
+2. Spec source: `archive/specs/private-lane-foundation-readiness.md` WB-7 + Assumption A7
    ("No external research is needed … the change plan's already-cited prior art
    (report §2.4, Appendix B) is sufficient; the `B-*`/`A-16` work records those
    citations rather than re-researching them").
