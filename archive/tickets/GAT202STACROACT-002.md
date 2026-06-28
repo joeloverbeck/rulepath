@@ -1,6 +1,6 @@
 # GAT202STACROACT-002: Web shell consumes the Rust active-seat-by-count mapping
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes (presentation-only) — `apps/web` (`src/wasm/client.ts` bridge type, `src/components/MatchSetup.tsx` setup-label resolver, `e2e/starbridge-crossing.smoke.mjs`)
@@ -138,3 +138,33 @@ for a 2-seat Starbridge setup, the Players & roles list contains `South` and not
    regression for other games).
 3. `npm --prefix apps/web run build` (the e2e smoke requires a prior build; it is
    the correct boundary because the change is shell-only TypeScript).
+
+## Outcome
+
+Completed: 2026-06-28
+
+What changed:
+
+- Declared the additive `active_seats_by_count` field on `GameCatalogEntry`.
+- Updated `setupLabelsForCount` so setup previews use Rust-provided active ring
+  indices when present, and retain the existing first-N slice only for games
+  without the mapping.
+- Extended `apps/web/e2e/starbridge-crossing.smoke.mjs` to assert the pre-match
+  Players & roles labels for 2-, 3-, and 4-seat Starbridge setups before a match
+  starts.
+
+Deviations:
+
+- None. The in-match Starbridge view and legend remained unchanged; docs and
+  tracker closeout remain owned by GAT202STACROACT-003.
+
+Verification:
+
+- `npm --prefix apps/web run build` — passed.
+- `node apps/web/e2e/starbridge-crossing.smoke.mjs` — passed, including the new
+  setup-preview label assertions.
+- `npm --prefix apps/web run smoke:e2e` — passed, including
+  `seat-label-consistency.smoke.mjs` for contiguous-seat regression coverage and
+  `starbridge-crossing.smoke.mjs`.
+- `npm --prefix apps/web run smoke:ui` — passed.
+- `git diff --check` — passed.

@@ -341,6 +341,25 @@ function setupLabelsForCount(game: GameCatalogEntry | null, selectedSeatCount: n
   if (!selectedSeatCount) {
     return { labels, count: null, exact: true };
   }
+  const activeIndices = game?.active_seats_by_count?.[String(selectedSeatCount)];
+  if (activeIndices) {
+    const activeLabels = activeIndices.map((index) => labels[index]).filter((label): label is SeatDisplayLabel => Boolean(label));
+    if (activeLabels.length === activeIndices.length) {
+      return { labels: activeLabels, count: selectedSeatCount, exact: true };
+    }
+    console.assert(
+      false,
+      `Setup active-seat index mismatch: selected ${selectedSeatCount}, catalog supplied ${labels.length} labels for ${activeIndices.length} active indices.`,
+    );
+    return {
+      labels: Array.from({ length: selectedSeatCount }, (_, index) => ({
+        seat: `seat_${index}`,
+        label: `Seat ${index + 1}`,
+      })),
+      count: selectedSeatCount,
+      exact: false,
+    };
+  }
   if (labels.length >= selectedSeatCount) {
     return { labels: labels.slice(0, selectedSeatCount), count: selectedSeatCount, exact: true };
   }
