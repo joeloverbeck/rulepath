@@ -438,6 +438,33 @@ Complex games MAY require larger screens, but Rulepath should say so clearly and
 
 Side panels should collapse. Logs and action panels should remain readable. Touch targets should be safe. Board/card sizes should remain playable.
 
+## 18A. Private web overlay and large asymmetric UI
+
+Accepted ADR 0012 makes private renderer work a private-build overlay by
+default. Public `apps/web` may expose generic renderer seams only when they are
+private-free, useful to public games, and do not name private games, private
+renderer keys, private routes, private fixtures, private e2e files, private
+source material, or private assets.
+
+Private overlays may carry private map/table renderers, large asymmetric
+layouts, private event decks, private component art, private smoke fixtures, and
+private e2e names only in the private repository and private build artifact.
+The public shell remains catalog-public-only.
+
+Large asymmetric UI pressure should be planned around:
+
+- dense action trees rendered through Rust-owned progressive construction;
+- seat/faction/role orientation from Rust/static typed metadata, never inferred
+  from DOM state;
+- large map or table surfaces with original private-build assets;
+- event/effect narration from viewer-filtered Rust effects;
+- no-leak sweeps over visible text, hidden DOM, accessibility names, test IDs,
+  storage, logs, replay exports, and dev panels for every viewer class.
+
+Any reusable public UI seam extracted from private pressure must be described in
+generic terms and justified with sanitized evidence. Private overlay needs do not
+by themselves authorize public renderer architecture.
+
 ## 19. UI acceptance check
 
 A web-exposed game is acceptable only when:

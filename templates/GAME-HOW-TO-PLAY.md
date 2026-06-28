@@ -6,7 +6,7 @@ _Formal rules version checked: `<rules-version>`_
 _Evidence receipt: `games/<game_id>/docs/GAME-EVIDENCE.md`_  
 _Strategy guide: `games/<game_id>/docs/COMPETENT-PLAYER.md`_
 
-Template realignment mapping: report `B-09 -> GAME-HOW-TO-PLAY.md`. This page
+Template realignment mapping: report `B-07 -> GAME-HOW-TO-PLAY.md`. This page
 owns player-facing how-to prose. `GAME-EVIDENCE.md` owns source/version receipt
 status and release evidence links.
 
@@ -53,6 +53,16 @@ Explain seating and role assignment, including:
 For games with no teams, partnerships, coalitions, or special roles, write:
 
 `Not applicable - every supported seat has the same role and plays independently.`
+
+### Per-faction / per-role orientation
+
+Required for asymmetric faction, team, role, or player-power games. Keep the
+prose original and viewer-safe. Do not copy source examples, strategy text,
+card/event text, or private source expression.
+
+| Faction/role/seat class | What this player is trying to do | What they can see | What remains hidden | First-turn orientation |
+|---|---|---|---|---|
+| `<role>` | `<player-facing goal>` | `<viewer-safe facts>` | `<hidden categories>` | `<short onboarding note>` |
 
 ## Setup
 

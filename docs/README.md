@@ -44,6 +44,13 @@ used to supersede foundation documents unless maintainers later mark them
 | [0007](adr/0007-next-public-scaling-phase-and-gate-p-tail.md) | Accepted | Next public scaling phase and Gate P tail placement |
 | [0008](adr/0008-mechanical-scaffolding-governance.md) | Accepted | Mechanical scaffolding governance |
 | [0009](adr/0009-replay-fixture-hash-taxonomy.md) | Accepted | Replay, fixture, export, and hash taxonomy v2 |
+| [0010](adr/0010-sanctioned-parallel-private-game-lane.md) | Accepted | Sanctioned parallel private-game lane |
+| [0011](adr/0011-constrained-typed-rust-event-card-mechanism.md) | Accepted | Constrained typed Rust event-card mechanism |
+| [0012](adr/0012-private-repository-ci-catalog-overlay.md) | Accepted | Private repository, CI federation, and catalog overlay |
+
+Private-lane doctrine remains subordinate to [FOUNDATIONS.md](FOUNDATIONS.md).
+It may amend roadmap timing, IP policy, or public/private build doctrine only
+through accepted ADRs and matching foundation/area-document updates.
 
 ## What belongs in this set
 

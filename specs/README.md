@@ -117,7 +117,19 @@ appear as named tracker units or accepted register dispositions.
 | 12 | Gate 21 — Pachisi-family race | _(seed; unwritten)_ | Not started | Next after Gate 20. Track topology + deterministic chance; capture/safety semantics. |
 | 13 | Gate 22 — Four Winds Melds (scoped Mahjong-family) | _(seed; unwritten)_ | Not started | Pending Gate 21. Reaction-window hard gate; wall/concealed-set no-leak. |
 | 14 | Gate 23 — Commonwealth Frontier capstone | _(seed; unwritten)_ | Not started | Pending Gate 22 + all armed atlas promotions resolved. Medium-heavy original asymmetric map. |
-| 15 | Gate P — private monster-game red-team | _(private; non-public)_ | Not started | Last. Isolated, optional; must not drive public architecture. |
+| PLP1-RDY | Private-lane foundation readiness (opens Private Lane P1 parallel to the public ladder) | [`private-lane-foundation-readiness.md`](../archive/specs/private-lane-foundation-readiness.md) | Done | Completed 2026-06-28. Non-feature doctrine/law/template interlock authored + accepted ADRs 0010 (sanctioned private-game lane), 0011 (typed Rust event-card mechanism), and 0012 (private repo/CI/catalog overlay); amended FOUNDATIONS §1/§10/§11/§12/§13 for timing only; recorded Part C VCS/CI/catalog as doctrine + seam plans; reconciled docs/templates and private-lane tracker. No public code/CI/fixture/hash/game change. Evidence: `check-doc-links`, `check-catalog-docs`, `boundary-check`, and focused public-tree leak scan passed. Seeded from [`../reports/private-lane-p1-foundation-readiness-change-plan.md`](../reports/private-lane-p1-foundation-readiness-change-plan.md). Does not reorder public Gates 21–23. |
+| 15 | Gate P — private monster-game red-team | _(private; non-public)_ | Not started | Last. Isolated, optional; must not drive public architecture. Its parallel realization is **Private Lane P1**, opened by `PLP1-RDY` above (ADRs 0010/0011/0012); private implementation is admitted only after `PLP1-RDY` is `Done`. |
+
+## Private lane tracker
+
+This section tracks sanctioned private-lane doctrine and opaque private
+milestones only. It must not name private licensed titles, private game ids,
+catalog strings, fixture names, e2e names, source text, screenshots, or private
+build artifacts.
+
+| Lane order | Unit | Public tracker anchor | Status | Authority / interlock |
+|---:|---|---|---|---|
+| P1 | Private Lane P1 milestone 1 | `P1-M1` | Doctrine pending | Opaque first private milestone. Links only to accepted ADRs: [ADR 0010](../docs/adr/0010-sanctioned-parallel-private-game-lane.md), [ADR 0011](../docs/adr/0011-constrained-typed-rust-event-card-mechanism.md), and [ADR 0012](../docs/adr/0012-private-repository-ci-catalog-overlay.md). Private implementation spec lives outside this public repository. |
 
 Status values: `Not started` → `Planned` (spec written) → `In progress`
 (AGENT-TASKs executing) → `Done` (gate exit criteria pass). Flip a spec to

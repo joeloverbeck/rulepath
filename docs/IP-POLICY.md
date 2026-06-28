@@ -160,7 +160,7 @@ Font licenses can differ for desktop, web, app embedding, redistribution, and mo
 
 ## 9. Private licensed experiments
 
-Private licensed experiments are late red-team tests only.
+Private licensed experiments are isolated red-team tests only.
 
 They MUST:
 
@@ -174,6 +174,65 @@ They MUST:
 - undergo kernel-contamination review.
 
 They MUST NOT be foundation cases, public tests, public assets, public WASM modules, or reasons to add game nouns to `engine-core`.
+
+### 9A. Sanctioned private lane
+
+A sanctioned private-game lane MAY begin before the public ladder completes only
+after accepted ADR approval and the readiness interlocks named by that ADR. The
+early timing exception does not weaken isolation: private work remains
+non-public, private-build-only, and unable to shape `engine-core` or public
+architecture except through generic, private-free seams.
+
+The private repository owns licensed rules references, private source notes,
+private docs, private e2e names, private trace and fixture artifacts, private
+card or event metadata, private renderers, private catalog entries, and private
+WASM/web builds. Public docs may contain only generic doctrine and opaque
+private-lane placeholders.
+
+No-name/no-ID public no-leak checklist:
+
+- no private game title, game id, module id, or catalog string in public files;
+- no private card, event, scenario, faction, setup, fixture, or e2e filename in
+  public files;
+- no copied private rules-page text, examples, screenshots, scans, art, icons,
+  trade dress, or flowchart text in public files;
+- no private renderer, private WASM/JS bundle, private CI artifact, private
+  trace, or private fixture in public builds;
+- no exception unless separately license-reviewed, explicitly approved, and
+  recorded in the relevant private release evidence.
+
+### 9B. Default private repository doctrine
+
+Accepted ADR 0012 makes a separate private repository the default home for a
+sanctioned private licensed game. The private repository pins a public Rulepath
+commit and owns the private game crates, licensed source notes, private docs,
+fixtures, traces, e2e names, renderer overlay, private catalog entries, private
+CI manifests, and private WASM/web build artifacts. Public Rulepath may gain
+only generic, private-free extension seams.
+
+Rejected alternatives:
+
+| Alternative | Decision | Reason |
+|---|---|---|
+| public submodule naming the private game | rejected as default | A public path, dependency name, or clone hint leaks private identity and makes public tooling aware of private work. |
+| public optional dependency or feature for the private game | rejected as default | Feature flags are not a content boundary; the public workspace and lock/build surfaces would know too much. |
+| hidden public catalog row or disabled web route | rejected | If a catalog string or route ships in a public bundle, it has shipped. |
+| private content behind credentials inside the public artifact | rejected | Authorization does not protect data already bundled into public JS/WASM or static assets. |
+| local-only folder inside the public checkout | temporary only | It may be used for unpublished experiments, but sanctioned lane work defaults to private repository isolation. |
+
+Seam plan doctrine:
+
+- catalog: public Rulepath keeps the public game registry private-free; any
+  later registry adapter must merge public entries with private entries only in
+  private builds;
+- renderer: public renderers stay public-game-only; private overlays register
+  private renderers in the private build without public names or assets;
+- CI federation: private CI may call public reusable workflows or run public
+  checks against a pinned public commit, but public CI must not fetch, name, or
+  require the private repository;
+- drift checks: public checks prove public catalog/build cleanliness; private
+  checks additionally prove overlay alignment and no back-leak into public
+  artifacts.
 
 ## 10. Public web build rule
 

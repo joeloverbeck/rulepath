@@ -14,6 +14,8 @@ Prepared by: `<name/agent>`
 
 Last updated: YYYY-MM-DD
 
+Template realignment mapping: report `B-13 -> GAME-EVIDENCE.md`
+
 ## Purpose
 
 This receipt is a status and artifact-link index for official-game conformance.
@@ -27,7 +29,7 @@ not apply. Silent omissions are not allowed.
 
 | Field | Value |
 |---|---|
-| Completion profile | full / minimal-perfect-information / hidden-information / n-seat / release-candidate / intentionally-deferred |
+| Completion profile | full / minimal-perfect-information / hidden-information / n-seat / release-candidate / intentionally-deferred / private-milestone-1-rule-complete / private-release-candidate / public-release-candidate |
 | Profile rationale | `<why this profile applies>` |
 | Not applicable summary | `<links to explicit rows below; no silent omissions>` |
 | Deferred checker surface | future `GAME-EVIDENCE` checker / not applicable |
@@ -55,6 +57,8 @@ Completion profile selection never waives a
 | Public name/trade-dress review | pass/fail/not applicable: `<rationale>` | `<PUBLIC-RELEASE-CHECKLIST.md link>` | `<notes>` |
 | Assets/fonts/license review | pass/fail/not applicable: `<rationale>` | `<PUBLIC-RELEASE-CHECKLIST.md link>` | `<notes>` |
 | Private-source exclusion | pass/fail/blocker | `<PUBLIC-RELEASE-CHECKLIST.md link>` | `<notes>` |
+| Private build/source receipt | pass/fail/not applicable: `<rationale>` | `<PRIVATE-RELEASE-CHECKLIST.md or private receipt>` | `<notes>` |
+| No publisher flowchart/priority chart copied into bot docs/tests/policy | pass/fail/not applicable: `<rationale>` | `<source/bot review link>` | `<notes>` |
 
 ## Rule-Coverage Summary
 
@@ -133,6 +137,8 @@ public release checklist.
 | Bot levels shipped | Level 0 / Level 1 / Level 2 / not applicable: `<rationale>` | `<GAME-AI.md>` | `<notes>` |
 | Bot policy IDs | pass/fail/not applicable: `<rationale>` | `<GAME-AI.md or BOT-STRATEGY-EVIDENCE-PACK.md>` | `<ids>` |
 | Bot explanation safety | pass/fail/not applicable: `<rationale>` | `<test/report link>` | `<notes>` |
+| Level 0 deferral status | not deferred / deferred only for private-milestone-1-rule-complete / blocker | `<GAME-AI.md / ticket/spec gate>` | `<closure gate>` |
+| Asymmetric role bot coverage | pass/fail/not applicable: `<rationale>` | `<GAME-AI.md role matrix>` | `<roles/factions covered>` |
 
 ## Mechanic and Scaffolding Decisions
 
@@ -154,6 +160,7 @@ public release checklist.
 | Implementation admission | pass/fail/blocker | `<GAME-IMPLEMENTATION-ADMISSION.md>` | `<notes>` |
 | UI evidence | pass/fail/not applicable: `<rationale>` | `<GAME-UI.md or smoke link>` | `<notes>` |
 | Public release checklist | pass/fail/not applicable: `<rationale>` | `<PUBLIC-RELEASE-CHECKLIST.md>` | `<notes>` |
+| Private release checklist | pass/fail/not applicable: `<rationale>` | `<PRIVATE-RELEASE-CHECKLIST.md>` | `<notes>` |
 | Known blockers | none / `<blocker list>` | `<ticket/spec link>` | `<notes>` |
 | Human/legal review | complete/pending/not applicable: `<rationale>` | `<review link>` | `<notes>` |
 
@@ -174,6 +181,7 @@ public release checklist.
 | `GAME-BENCHMARKS.md` | yes | `<path>` | complete/partial/blocker |
 | `PRIMITIVE-PRESSURE-LEDGER.md` | when pressure exists | `<path or not applicable: rationale>` | complete/partial/not applicable/blocker |
 | `PUBLIC-RELEASE-CHECKLIST.md` | before public release | `<path or not applicable: rationale>` | complete/partial/not applicable/blocker |
+| `PRIVATE-RELEASE-CHECKLIST.md` | before private release | `<path or not applicable: rationale>` | complete/partial/not applicable/blocker |
 
 ## Receipt Review Checklist
 

@@ -67,11 +67,22 @@ multiple games use similar words or data paths.
 | Resource accounting, market costs, shared ledgers, scoring ledgers | stays behavioral; accounting semantics stay game-owned. |
 | Reaction windows, interrupts, pending responder policy | stays behavioral; response legality and resolution stay game-owned. |
 | Scoring, terminal outcome, ranking, tiebreakers, victory rationale | stays behavioral; scaffolding may transport typed evidence only. |
+| Event-card dispatch that selects targets, branches, or effects | stays behavioral; card/effect routing must be typed Rust game behavior under ADR 0011, not scaffolding. |
+| Faction eligibility, initiative, or action-menu policy | stays behavioral; scaffolding may carry generic actor/viewer ids but must not decide faction order or permissions. |
+| Operation and special-activity coupling | stays behavioral; action-combination legality and rule overrides stay game-owned. |
+| Periodic upkeep, propaganda, or phase-transition policy | stays behavioral; sequencing, scoring, resets, reveals, and victory checks stay game-owned. |
+| Persistent event expiry or rule override policy | stays behavioral; temporal effect meaning and expiry stay game-owned. |
+| Faction bot priorities or non-player flowchart policy | stays behavioral; bot strategy and source-derived priorities are not scaffolding. |
 
 If a proposed entry touches one of these shapes, the default decision is
 `rejected` for this register and rerouted to the mechanic atlas or a separate
 ADR. A future exception must cite accepted authority and explain why the helper
 is behavior-free despite the listed risk.
+
+Generic test harness geometry, typed stable-byte framing, generic evidence
+profile plumbing, and private fixture classification may still be scaffolding
+when they do not decide legality, scoring, reveal, routing, effect meaning,
+strategy, hidden-state policy, or private licensed content.
 
 ## Forward Per-Game Maintenance Cadence
 

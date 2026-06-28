@@ -343,6 +343,45 @@ layout. For the static-bundled path, `wasm-api` has no new operation; game
 behavior and runtime views continue to cross the JS boundary only through
 existing Rust/WASM operations.
 
+### 11A. Sanctioned private overlay lane
+
+Accepted ADR 0012 defaults sanctioned private licensed games to a separate
+private repository that pins a public Rulepath commit. The private repository is
+the owner for private game crates, private evidence, licensed source references,
+private fixtures/traces/e2e, private renderer overlays, private catalog entries,
+private CI manifests, and private WASM/web artifacts.
+
+The public repository may add only generic, private-free extension seams. It
+must not add a public Cargo workspace member, dependency, feature, catalog row,
+renderer import, route, smoke target, CI job, or docs entry that names or
+identifies a private game.
+
+Rejected architecture alternatives:
+
+| Alternative | Status | Reason |
+|---|---|---|
+| public submodule for the private game | rejected as default | Public paths and dependency metadata leak private identity. |
+| optional public feature/dependency | rejected as default | The public workspace and lock/build graph still know the private game. |
+| disabled public catalog or route entry | rejected | Public catalog strings and route names are shipped public surface. |
+| credentials around public bundled content | rejected | Credentials do not make bundled JS/WASM or static assets private. |
+
+Documented seam plans, not implemented by this readiness unit:
+
+- catalog seam: factor the public registry only when needed so a private build
+  can append private entries after the public list is produced;
+- renderer seam: keep public renderer mappings private-free and let a private
+  overlay provide additional mappings in the private web build;
+- CI federation seam: expose generic reusable workflow inputs or documented
+  commands that private CI can call against a pinned public commit;
+- drift seam: split public cleanliness checks from private overlay checks so
+  public CI remains blind to private work while private CI proves alignment.
+
+Large asymmetric games may stress action-tree depth, multi-seat layouts,
+event/effect volume, and no-leak evidence. That pressure belongs first in the
+private game crate and private overlay. Promotion into shared public seams
+requires sanitized, private-free rationale and the normal ADR/scaffolding
+process; private pressure alone is not public architecture authority.
+
 ## 12. Static local-first deployment
 
 Initial public deployment is static:

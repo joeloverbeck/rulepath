@@ -52,3 +52,15 @@ When the living spec index rolls to a new roadmap phase:
    changing roadmap law.
 6. Archive and commit the rollover as its own bounded change when practical,
    before executing the new phase's implementation tickets.
+
+## ADR-Limited Roadmap Text
+
+When a new accepted ADR limits or supersedes part of a prior accepted roadmap
+ADR, preserve the older ADR text as historical rationale. The current roadmap,
+spec index, and archived specs should name the superseding or limiting ADR
+rather than deleting the older decision history.
+
+Archive notes for affected specs, reports, or roadmap-progress entries should
+state which ADR carries the active law, what part of the older roadmap text was
+limited, and whether the limitation changes timing only or changes underlying
+architecture/product authority.

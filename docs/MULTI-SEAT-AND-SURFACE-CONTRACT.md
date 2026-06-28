@@ -130,6 +130,32 @@ ADR 0004 remains the replay/export authority. Internal full traces may carry
 omniscient evidence for native replay checks; browser/default exports for
 hidden-information games are viewer-scoped observation timelines.
 
+### 6A. Asymmetric faction and 5-viewer no-leak floor
+
+Large asymmetric faction games often have more viewer classes than "public" and
+"owning seat." A private large-game spec must name every viewer class before
+implementation starts. The default no-leak floor for a four-role/faction
+private game is the 5-viewer matrix:
+
+- public observer;
+- viewer for role/faction/seat 1;
+- viewer for role/faction/seat 2;
+- viewer for role/faction/seat 3;
+- viewer for role/faction/seat 4.
+
+If a game has teams, shared intelligence, eliminated seats, administrators, or
+scenario-specific viewers, the matrix grows; it does not replace the 5-viewer
+floor. Every asymmetric faction or role must prove pairwise redaction across
+view payloads, action trees, previews, diagnostics, effects, bot explanations,
+candidate rankings, replay exports, DOM/test IDs, logs, storage, screenshots,
+and any private fixture/export that claims to be viewer-scoped.
+
+Public observer safety is mandatory even when the private build is not publicly
+released, because private screenshots, replay exports, and playtest artifacts
+can otherwise leak into public surfaces. A private title, id, source token,
+card/event name, fixture name, or e2e name must never be the token used in a
+public proof artifact.
+
 ## 7. Public-Observer Rules
 
 A public observer is a viewer with no seat. Public observers must be safe for

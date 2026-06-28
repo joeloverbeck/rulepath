@@ -439,7 +439,7 @@ Explanations are viewer-safe and narrate the plan ("Laid a cache at High Meadow:
 
 Researched prior art is mechanics-only; mechanics are not copyrightable, but vocabulary, card text, art direction, and trade dress are protected. Named hazards to avoid in all public surfaces:
 
-- **GMT COIN series** (Fire in the Lake, Cuba Libre, etc.): the eligibility *mechanic* is safe; the vocabulary cluster `Propaganda`, `Coup`, `1st/2nd Eligible` presentation, eligibility-cylinder trade dress, and faction-board layouts are not. Use `initiative`/`eligibility` as plain descriptive terms with original presentation.
+- **GMT COIN series** (Fire in the Lake, the first private licensed game, etc.): the eligibility *mechanic* is safe; the vocabulary cluster `Propaganda`, `Coup`, `1st/2nd Eligible` presentation, eligibility-cylinder trade dress, and faction-board layouts are not. Use `initiative`/`eligibility` as plain descriptive terms with original presentation.
 - **Twilight Struggle / CDG lineage**: event-vs-ops choice is safe; `DEFCON`, scoring-card names, space-race tracks, and the map trade dress are not.
 - **El Grande**: periodic area scoring is safe; `Castillo`, caballero presentation, and score-round card art are not.
 - **Root / area-control trade dress** (carried from Gate 13): avoid woodland-faction theming and `clearing` vocabulary.

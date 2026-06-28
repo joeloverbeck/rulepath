@@ -18,7 +18,7 @@ Last updated: YYYY-MM-DD
 
 Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
 
-Template realignment mapping: report `B-14 -> GAME-BENCHMARKS.md`. This
+Template realignment mapping: report `B-12 -> GAME-BENCHMARKS.md`. This
 template owns benchmark workload definitions, compatibility anchors,
 measurement environments, commands, and results. `GAME-EVIDENCE.md` owns the
 benchmark workload ID rollup, bot policy IDs, release status, and blockers.
@@ -61,6 +61,24 @@ Every official seat count and the largest official surface fixture MUST be repre
 | Seat count | Surface fixture | Workload IDs | Legal-action benchmark | Preview benchmark | Apply benchmark | Project-view benchmark | Serialize benchmark | Replay-import benchmark | Bot-turn benchmark | WASM smoke benchmark | Status |
 |---:|---|---|---|---|---|---|---|---|---|---|---|
 | `<seat_count>` | `<min/typical/max-surface fixture>` | `BENCH-*` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | `<command/evidence>` | not started / partial / covered |
+
+## Large asymmetric / COIN-scale workload matrix
+
+Use for private large games or public games with comparable scale. Mark
+`not applicable` with rationale for smaller games.
+
+| Workload dimension | Maximum official value | Workload IDs | Evidence/profile | Notes |
+|---|---:|---|---|---|
+| role/faction count | `<count>` | `BENCH-*` | `<profile>` | `<notes>` |
+| event/deck size | `<count>` | `BENCH-*` | `<profile>` | `<notes>` |
+| largest upkeep/phase-transition batch | `<count>` | `BENCH-*` | `<profile>` | `<notes>` |
+| largest legal-action fanout/depth | `<fanout/depth>` | `BENCH-*` | `<profile>` | `<notes>` |
+| largest map/table/topology surface | `<count>` | `BENCH-*` | `<profile>` | `<notes>` |
+| largest private hand/zone per viewer | `<count>` | `BENCH-*` | `<profile>` | `<notes>` |
+| largest terminal settlement/outcome breakdown | `<count>` | `BENCH-*` | `<profile>` | `<notes>` |
+
+Private benchmark fixtures must use private-source or internal-dev evidence
+profiles and stay out of public CI/artifacts unless fully sanitized.
 
 ## Native benchmark section
 

@@ -46,6 +46,9 @@ Use these profile labels unless a spec defines a narrower gate-specific label:
 | `n-seat` | The game supports more than two seats, teams, partnerships, coalitions, asymmetric roles, or multiple viewer classes. | Every omitted seat-range, viewer matrix, outcome, UI, replay/export, and no-leak row needs a reason. |
 | `release-candidate` | A game is being prepared for public linking, hosting, tagging, screenshotting, or demo video capture. | Any pending human/legal review, public artifact inspection, or release checklist row must name the owner/blocker. |
 | `intentionally-deferred` | A bounded spec or gate explicitly defers completion of a surface. | Link the deferring ticket/spec and state what must happen before public release or the next gate. |
+| `private-milestone-1-rule-complete` | A sanctioned private lane needs rule-complete private validation before release. | Bot deferrals, private-source receipts, no-leak matrix, and release blockers must name closure gates. |
+| `private-release-candidate` | A sanctioned private build is being prepared for an authorized private audience. | Private release checklist, build separation, public back-leak sweep, viewer safety, and private-source receipts are required. |
+| `public-release-candidate` | A game is being considered for public exposure after private or internal work. | All public IP, catalog, WASM/web, bot, UI, accessibility, no-leak, and release rows must pass with no private licensed content. |
 
 Profile rows use explicit `not applicable: <rationale>` text. Do not leave
 blank rows, and do not use a profile to bypass Rust authority, viewer safety,
@@ -57,6 +60,21 @@ official-game evidence requirements.
 Every game with more than two seats MUST fill the seat-range, turn-order, view matrix, pairwise no-leak matrix, outcome matrix, and surface-scale fields across the relevant templates. This includes `GAME-RULES.md`, `GAME-RULE-COVERAGE.md`, `GAME-MECHANICS.md`, `GAME-IMPLEMENTATION-ADMISSION.md`, `GAME-UI.md`, `GAME-BENCHMARKS.md`, `GAME-AI.md`, `BOT-STRATEGY-EVIDENCE-PACK.md`, `COMPETENT-PLAYER.md`, `PUBLIC-RELEASE-CHECKLIST.md`, `PRIMITIVE-PRESSURE-LEDGER.md`, and `AGENT-TASK.md`.
 
 Two-seat games SHOULD still state their seat model explicitly and may use clear `not applicable` rows for N-seat-only obligations.
+
+## Private lane index guidance
+
+Sanctioned private-lane games use the same template set, but filled copies live
+in the private repository unless they contain only public-safe, opaque doctrine.
+Public templates may name private-lane profile labels and receipt shapes; they
+must not contain private titles, ids, catalog strings, source expression, card
+or event names, fixture names, e2e names, screenshots, or private build
+artifacts.
+
+Private-lane work should initialize `GAME-EVIDENCE.md`,
+`GAME-IMPLEMENTATION-ADMISSION.md`, `GAME-SOURCES.md`, `GAME-RULES.md`,
+`GAME-RULE-COVERAGE.md`, `GAME-EVENT-COVERAGE.md`, `GAME-BENCHMARKS.md`, and
+`PRIVATE-RELEASE-CHECKLIST.md` with private-source receipt IDs and public
+back-leak checks before implementation starts.
 
 ## Recommended lifecycle order
 
@@ -75,6 +93,7 @@ Two-seat games SHOULD still state their seat model explicitly and may use clear 
 13. `GAME-BENCHMARKS.md`
 14. `PRIMITIVE-PRESSURE-LEDGER.md` when repeated shape pressure exists
 15. `PUBLIC-RELEASE-CHECKLIST.md` before public release
+16. `PRIVATE-RELEASE-CHECKLIST.md` before private release
 
 This order is requirements-first. Do not start serious implementation because a UI sketch is tempting. Public polish wins over speculative engine research, but public polish must sit on Rust rule authority, deterministic replay, coverage, and IP-safe content.
 

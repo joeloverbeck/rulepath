@@ -41,6 +41,11 @@ omniscient state, no hidden-state shortcuts, no future random outcomes, no
 unbounded weight soup, no static-data tactical conditions, no random blunder
 injection by default, and no public v1/v2 MCTS/ISMCTS/Monte Carlo/ML/RL path.>`
 
+For private-lane bots, also confirm that no publisher non-player flowchart,
+priority chart, solitaire procedure, strategy table, example, or source prose is
+copied or reconstructed in the policy, tests, fixtures, explanations, candidate
+rankings, static data, or benchmark names.
+
 ## Source documents consumed
 
 | Document/source | Path/reference | Required? | Status | Notes |
@@ -82,6 +87,15 @@ Opponent set: `<all non-own seats / opposing team seats / table competitors / no
 | deterministic skip/advance order | `<passed/eliminated/waiting/non-acting seat order>` | `<tests>` |
 | multi-winner/split metrics | none / `<standings, team result, split allocation, side-pot, elimination order>` | `<tests>` |
 | own-private/public-only input list | `<public facts, own private facts, legal remembered observations>` | `<no-leak tests>` |
+| no-flowchart sourcing | `<original analysis only; no publisher priority chart transcription>` | `<review/tests>` |
+
+## Asymmetric role policy matrix
+
+Required when roles/factions/seat classes differ materially.
+
+| Role/faction/seat class | Policy level | Candidate groups | Priority differences | Opponent set | Deferral/closure gate |
+|---|---|---|---|---|---|
+| `<role>` | Level 0 / Level 1 / Level 2 / deferred | `<groups>` | `<differences>` | `<opponent set>` | `<gate or not applicable>` |
 
 ## Legal action API used
 

@@ -50,6 +50,22 @@ Every official game `MECHANICS.md` MUST answer these categories:
 | bot policy pattern | Random, rule-informed, authored priorities, search if allowed, hidden-info belief model? |
 | benchmark/performance pressure | Hot paths, branching factor, playout throughput, serialization/replay overhead? |
 
+Private large-event/asymmetric games SHOULD additionally inventory these
+COIN-scale pressure rows when applicable. These categories are review
+vocabulary, not promotion authority:
+
+| Additional private-stress category | Questions |
+|---|---|
+| card-driven initiative/eligibility | Do cards or event timing affect faction order, eligibility, temporary permissions, or pending responders, and where is that Rust-owned? |
+| asymmetric faction menus | Which operations, special activities, or local menus differ by faction/role, and how are they kept game-local? |
+| operation and special-activity coupling | Which actions can combine, chain, interrupt, or forbid each other, and which rule IDs prove the coupling? |
+| periodic upkeep/propaganda | Which recurring rounds reset state, score, reveal, pay, reshuffle, or check victory, and how are traces/replay kept deterministic? |
+| conditional event branches | Which event branches exist, who chooses them, and which typed Rust functions own conditions, targets, and effects? |
+| persistent/temporary effects | Which effects persist, expire, suspend, or override local rules, and which tests prove expiry and no-leak behavior? |
+| faction-specific victory tracks | Which faction/role-specific tracks, resources, control states, or victory checks exist, and how are public explanations projected? |
+| private stress evidence | Which pressure comes only from private licensed implementation, and what sanitized rationale is safe for public mechanic review? |
+| non-flowchart bot pressure | Which bot-policy pressures exist without copying publisher flowcharts, priority charts, examples, or private source expression? |
+
 Use game-specific words in game inventories. Use mechanic-shaped language in repo-level atlas entries.
 
 ## 3. Status labels
@@ -206,6 +222,13 @@ MUST NOT:
 - call a primitive generic when it only fits one game’s vocabulary;
 - smuggle TypeScript legality through UI metadata;
 - smuggle bot cheating through shared evaluator helpers.
+
+Private-stress evidence may inform future review, but it is not hidden
+promotion authority. If a primitive-pressure decision would depend on private
+licensed evidence, the public ledger must use sanitized rationale, cite the
+accepted private-lane ADR, and decide whether public-safe corroborating evidence
+is required before promotion. If private evidence is the only third-use evidence
+for a public helper, use `ADR-required` rather than silently promoting.
 
 ## 9A. Next-phase armed interlocks
 

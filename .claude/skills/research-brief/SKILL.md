@@ -20,7 +20,9 @@ This skill replaces **"Session 1"** of the user's two-stage routine:
 - **Session 1 (replaced by this skill)**: explore the repo, interview the user to 95% confidence about their *actual* intent, then author a requirements-style prompt.
 - **Session 2 (ChatGPT-Pro, the actual deep researcher)**: receives the uploaded manifest + the emitted prompt, explores and researches online as deeply as needed, and **produces the deliverable directly** — it does not re-interview.
 
-The emitted brief is **self-contained**: ChatGPT-Pro Session 2 has none of this session's context, so everything it needs must live in the prompt plus the uploaded manifest.
+The emitted brief is **self-contained**: ChatGPT-Pro Session 2 has none of this session's context, so everything it needs must live in the prompt, the uploaded manifest, and any out-of-band inputs the brief explicitly enumerates (e.g. uploaded source documents).
+
+**Out-of-band / private-IP-subject briefs.** Sometimes Session 2's inputs extend beyond the brief + repo manifest — most commonly uploaded source documents (PDFs, datasets) that this authoring session cannot itself read, and whose subject is **private licensed IP deliberately excluded from the repo and the manifest**. When this applies, the brief MUST: (a) enumerate every out-of-band input by name and role up front, so the locked Session 2 treats them as in-scope; (b) state plainly that the manifest excludes the subject material and why (it is private / not in the repo), so the absence reads as intentional, not a gap; and (c) carry an **IP-discipline section** directing Session 2 not to reproduce licensed prose, art, or component text into the deliverable and to keep the subject material out of the repo and every public surface (cite `docs/IP-POLICY.md` and FOUNDATIONS §10). This is the one case where the §2 manifest is *not* the whole of Session 2's repository-and-source picture — say so explicitly rather than relying on the default two-input model.
 
 <HARD-GATE>
 Do NOT Write the brief file or refresh the manifest until BOTH hold:
@@ -115,14 +117,14 @@ Resolve both paths against the worktree root if in a worktree. Do NOT commit.
 Report:
 
 - the two written files (brief + refreshed manifest) — the **upload bundle** for ChatGPT-Pro Session 2;
-- a one-line reminder that Session 2 is **locked / no-questions**: paste the brief, upload the manifest, and ChatGPT-Pro should produce the deliverable directly;
+- a one-line reminder that Session 2 is **locked / no-questions**: paste the brief, upload the manifest (and any out-of-band inputs the brief enumerates, e.g. uploaded source PDFs), and ChatGPT-Pro should produce the deliverable directly;
 - any labeled assumptions carried from an early exit (or surfaced at the approval gate), so the user can correct them before pasting.
 
 This is an inline-completion deliverable — no next-steps menu. Surface any adjacent improvement spotted during exploration as a flagged note with a concrete trigger, not as scope creep.
 
 ## Guardrails
 
-- **Self-containment is the contract.** Session 2 has none of this session's context. Every path, decision, constraint, and acceptance check it needs lives in the brief or the uploaded manifest — never implied.
+- **Self-containment is the contract.** Session 2 has none of this session's context. Every path, decision, constraint, and acceptance check it needs lives in the brief, the uploaded manifest, or an out-of-band input the brief explicitly enumerates — never implied.
 - **Claude authors; ChatGPT-Pro researches.** Don't perform the deep research here. The brief *commissions* it.
 - **Locked, no questions.** The emitted brief instructs Session 2 to produce directly and NOT interview or ask clarifying questions — the interview already happened here.
 - **Mutates only `reports/`.** Never touch `docs/`, `specs/`, `tickets/`, `templates/`, `.claude/skills/`, or source.

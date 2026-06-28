@@ -62,6 +62,15 @@ Use only these status labels:
 | UI interaction pattern | `<direct selection/progressive construction/drag optionality/previews/confirmations/replay>` | `<rule_ids>` | `<status>` | `<notes>` |
 | bot policy pattern | `<random/baseline/authored priorities/search/belief model>` | `<rule_ids>` | `<status>` | `<notes>` |
 | benchmark/performance pressure | `<hot paths/action branching/playout/serialization/replay>` | `<rule_ids>` | `<status>` | `<notes>` |
+| card-driven initiative/eligibility | `<event/card/round timing that affects actor order, eligibility, or pending responders; Rust-owned behavior only>` | `<rule_ids>` | `<status>` | `<notes>` |
+| asymmetric faction menus | `<per-faction/role operation menus, special activities, local restrictions, or none>` | `<rule_ids>` | `<status>` | `<notes>` |
+| operation and special-activity coupling | `<combine/chain/interrupt/forbid relationships; legality owner>` | `<rule_ids>` | `<status>` | `<notes>` |
+| periodic upkeep/propaganda | `<recurring reset/score/reveal/pay/reshuffle/victory phases>` | `<rule_ids>` | `<status>` | `<notes>` |
+| conditional event branches | `<branch owner, target choice owner, Rust function/match/trait owner; no static selectors>` | `<rule_ids>` | `<status>` | `<notes>` |
+| persistent/temporary effects | `<duration, expiry, suspension, rule override owner, replay/hash impact>` | `<rule_ids>` | `<status>` | `<notes>` |
+| faction-specific victory tracks | `<per-faction/role outcome checks, explanation payloads, tie/kingmaking risk>` | `<rule_ids>` | `<status>` | `<notes>` |
+| private stress evidence | `<private-only pressure, sanitized public rationale, accepted ADR if used for public review>` | `<private evidence ids or not applicable>` | `<status>` | `<notes>` |
+| non-flowchart bot pressure | `<bot pressure without copying publisher flowcharts/priority charts/examples>` | `<rule_ids or not applicable>` | `<status>` | `<notes>` |
 
 ## Repeated-shape comparison
 
@@ -181,6 +190,10 @@ The following are forbidden:
 - adding YAML for convenience;
 - using mechanic tags as a substitute for rule coverage;
 - treating a UI pattern as proof of rule correctness.
+- treating private-stress evidence as public promotion authority without
+  sanitized rationale and accepted ADR review;
+- treating event-card coverage rows as executable selectors, conditions,
+  triggers, or effect formulas.
 
 ## Review checklist
 

@@ -14,6 +14,13 @@ Four, `directional_flip` / Directional Flip, `draughts_lite` / Draughts Lite,
 Rust/WASM owns game behavior; TypeScript presents Rust-provided catalog entries,
 views, action trees, effects, diagnostics, bot turns, and replay projections.
 
+Private renderer-overlay doctrine: the public web shell and public
+`rulepath_list_games` catalog are public-game-only. Sanctioned private games use
+a private repository and private WASM/web build that may add private catalog
+entries and private renderer mappings only in private artifacts. Do not add
+private game names, ids, routes, renderer keys, fixtures, e2e names, source
+strings, or disabled catalog rows to this public app.
+
 ## Commands
 
 Run from the repository root:

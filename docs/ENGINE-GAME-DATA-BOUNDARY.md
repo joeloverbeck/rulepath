@@ -262,6 +262,35 @@ That defines selectors and mutation behavior. It is forbidden.
 
 Public static content IDs MUST NOT smuggle proprietary text or private module references into public builds.
 
+## 10A. Typed Rust card-effect registries
+
+Accepted ADR 0011 authorizes a constrained game-local typed Rust card-effect
+registry for sanctioned private-lane games. This is not a DSL and not a new
+static-data behavior lane.
+
+Allowed typed static content in the private game crate is limited to card/event
+identity, deck or sequence metadata, inert display metadata, private-source
+receipt references, and non-behavioral parameters. Those values may help Rust
+select already-compiled behavior, but they do not define that behavior.
+
+Rust code owns every condition, selector, trigger, rule override, target choice,
+legality hook, state transition, visibility filter, diagnostic, semantic effect,
+and persistence or expiry rule. Lawful implementation shapes include explicit
+Rust functions, match arms, trait implementations, or equivalent typed compiled
+Rust constructs inside the owning game crate.
+
+Forbidden card-effect data shapes include YAML, JSON, TOML, RON, CSV, table
+rows, markdown matrices, or naming conventions that encode selectors,
+conditions, triggers, effect formulas, rule overrides, target filters, action
+legality, state mutation, visibility decisions, or bot tactics. Coverage
+matrices may cite event IDs and evidence IDs; they MUST NOT become executable
+effect rows.
+
+The registry stays game-local/private until public-safe repeated evidence and
+the mechanic atlas justify a narrow public helper. Private stress evidence alone
+does not promote `game-stdlib`, and no event/card/faction vocabulary belongs in
+`engine-core`.
+
 ## 11. UI metadata boundary
 
 UI metadata MAY include labels, icon IDs, short help, layout hints, coordinate labels, visual tags, theme tokens, action grouping tags, accessibility labels, and explanation-template IDs.
