@@ -2032,6 +2032,44 @@ fn replay_round_trip_reproduces_hashes() {
 }
 
 #[test]
+fn starbridge_full_length_export_imports_above_legacy_size_cap() {
+    let created =
+        new_match_with_seat_count("starbridge_crossing", 20200628, 6).expect("match created");
+    let match_id = extract_match_id(&created);
+
+    for turn in 0..2000 {
+        let view = get_view(&match_id, None).expect("view returned");
+        let active_seat =
+            extract_optional_json_string(&view, "active_seat").expect("active seat is present");
+        let response =
+            run_bot_turn(&match_id, &active_seat, 20200628 + turn).expect("bot turn applies");
+        assert!(response.contains("\"ok\":true"));
+    }
+
+    let terminal_view = get_view(&match_id, None).expect("terminal view returned");
+    assert!(terminal_view.contains("\"terminal\":\"turn_limit:2000\""));
+    assert!(terminal_view.contains("\"command_count\":2000"));
+
+    let exported = export_replay(&match_id).expect("replay exported");
+    assert!(
+        exported.len() > 128 * 1024,
+        "full-length Starbridge export should exceed the old 128 KiB cap, got {} bytes",
+        exported.len()
+    );
+    assert!(
+        exported.len() < MAX_REPLAY_IMPORT_BYTES,
+        "full-length Starbridge export should fit the authoritative import cap"
+    );
+
+    let imported = import_replay(&exported).expect("full-length replay imported");
+    let replay_id = extract_replay_id(&imported);
+    let stepped = replay_step(&replay_id, 2000).expect("full-length replay stepped");
+    assert!(stepped.contains("\"cursor\":2000"));
+    assert!(stepped.contains("\"terminal\":\"turn_limit:2000\""));
+    assert!(stepped.contains("\"command_count\":2000"));
+}
+
+#[test]
 fn import_rejects_wrong_game_version_malformed_and_oversized() {
     let created = new_match("race_to_n", 22).expect("match created");
     let match_id = extract_match_id(&created);
@@ -2210,6 +2248,18 @@ fn extract_match_id(created: &str) -> String {
         .and_then(|rest| rest.split('"').next())
         .expect("match id is present")
         .to_owned()
+}
+
+fn extract_optional_json_string(input: &str, key: &str) -> Option<String> {
+    let needle = format!("\"{key}\":");
+    let rest = input.split(&needle).nth(1)?;
+    let rest = rest.trim_start();
+    if rest.starts_with("null") {
+        return None;
+    }
+    rest.strip_prefix('"')
+        .and_then(|value| value.split('"').next())
+        .map(ToOwned::to_owned)
 }
 
 fn high_card_pairwise_no_leak_case() -> PairwiseNoLeakCase {

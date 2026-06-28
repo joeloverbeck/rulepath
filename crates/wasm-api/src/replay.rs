@@ -34,6 +34,7 @@ pub(crate) struct ParsedReplayDocument {
     pub(crate) game_id: String,
     pub(crate) rules_version: String,
     pub(crate) seed: u64,
+    pub(crate) seats: Vec<String>,
     pub(crate) commands: Vec<AppliedCommand>,
 }
 
@@ -83,6 +84,7 @@ pub(crate) fn parse_replay_document(input: &str) -> Result<ParsedReplayDocument,
         game_id: string_field(input, "game_id")?,
         rules_version: string_field(input, "rules_version")?,
         seed: number_field(input, "seed")?,
+        seats: string_array_field(input, "seats").unwrap_or_default(),
         commands,
     })
 }
