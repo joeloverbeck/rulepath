@@ -1,6 +1,6 @@
 # GAT202STACROACT-001: Rust active-seat-index catalog metadata for Starbridge Crossing
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Small
 **Engine Changes**: Yes — `crates/wasm-api` (`src/catalog.rs` catalog JSON, `src/tests.rs` catalog test, `tests/snapshots/api_surface.tsv` golden snapshot)
@@ -164,3 +164,36 @@ Compare on indices, not on formatted label strings.
 1. `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` (regenerate snapshot), then `cargo test -p wasm-api` (assert green).
 2. `cargo test --workspace`.
 3. `bash scripts/boundary-check.sh` (confirms `engine-core` stays noun-free; the narrower per-crate test is the correct boundary because the change is confined to `wasm-api` catalog output).
+
+## Outcome
+
+Completed: 2026-06-28
+
+What changed:
+
+- Added the Starbridge `active_seats_by_count` catalog field to the Rust
+  `wasm-api` Starbridge catalog entry.
+- Derived the field from `active_points_for_seat_count` via each
+  `StarPoint::clockwise_index()`, preserving Rust setup authority and avoiding
+  re-authored TypeScript seat topology.
+- Added a wasm-api regression test that checks the emitted catalog metadata
+  against the Rust setup authority for seat counts 2, 3, 4, and 6.
+- Regenerated `crates/wasm-api/tests/snapshots/api_surface.tsv`; the expected
+  change is the additive Starbridge catalog field in `_global/list_games`.
+
+Deviations:
+
+- None. Web-shell consumption remains owned by GAT202STACROACT-002, and docs /
+  tracker closeout remains owned by GAT202STACROACT-003.
+
+Verification:
+
+- `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` — passed.
+- `cargo fmt --all --check` — passed after applying rustfmt to the new test
+  assertion.
+- `cargo test -p wasm-api` — passed, including
+  `starbridge_catalog_active_seat_indices_match_setup_authority` and the API
+  surface snapshot test.
+- `cargo clippy --workspace --all-targets -- -D warnings` — passed.
+- `bash scripts/boundary-check.sh` — passed.
+- `cargo test --workspace` — passed.

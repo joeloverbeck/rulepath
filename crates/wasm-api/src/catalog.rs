@@ -13,6 +13,7 @@ use crate::{
     event_frontier_catalog_seat_labels_json, event_frontier_catalog_ui_json,
     river_catalog_seat_labels_json, RegisteredGame,
 };
+use starbridge_crossing::active_points_for_seat_count;
 
 fn variant_json(id: &str, label: &str, description: Option<&str>) -> String {
     let description_field = description
@@ -300,13 +301,14 @@ pub fn list_games() -> Result<String, String> {
                 catalog_viewer_modes_json(4)
             ),
             RegisteredGame::StarbridgeCrossing => format!(
-                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":false,\"tags\":[\"perfect_information\",\"large_board\",\"race\",\"public_replay_export\"],\"min_seats\":2,\"max_seats\":6,\"default_seats\":2,\"supported_seats\":[2,3,4,6],\"seat_labels\":{},\"viewer_modes\":{},\"docs\":[\"games/starbridge_crossing/docs/RULES.md\",\"games/starbridge_crossing/docs/SOURCES.md\",\"games/starbridge_crossing/docs/HOW-TO-PLAY.md\"]}}",
+                "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"rules_version\":{},\"schema_version\":{},\"variants\":{},\"hidden_information\":false,\"tags\":[\"perfect_information\",\"large_board\",\"race\",\"public_replay_export\"],\"min_seats\":2,\"max_seats\":6,\"default_seats\":2,\"supported_seats\":[2,3,4,6],\"seat_labels\":{},\"active_seats_by_count\":{},\"viewer_modes\":{},\"docs\":[\"games/starbridge_crossing/docs/RULES.md\",\"games/starbridge_crossing/docs/SOURCES.md\",\"games/starbridge_crossing/docs/HOW-TO-PLAY.md\"]}}",
                 escape_json(GAME_STARBRIDGE_CROSSING),
                 escape_json(GAME_STARBRIDGE_CROSSING_DISPLAY_NAME),
                 RULES_VERSION,
                 SCHEMA_VERSION,
                 variants_json(&[(VARIANT_STARBRIDGE_CROSSING_STANDARD, GAME_STARBRIDGE_CROSSING_DISPLAY_NAME, Some("Classic six-point star race with public pegs and hop chains"))]),
                 catalog_starbridge_seat_labels_json(),
+                catalog_starbridge_active_seats_by_count_json(),
                 catalog_viewer_modes_json(6)
             ),
         };
@@ -352,6 +354,23 @@ fn catalog_vow_tide_seat_labels_json() -> String {
 
 fn catalog_starbridge_seat_labels_json() -> String {
     "[{\"seat\":\"seat_0\",\"label\":\"North\"},{\"seat\":\"seat_1\",\"label\":\"North East\"},{\"seat\":\"seat_2\",\"label\":\"South East\"},{\"seat\":\"seat_3\",\"label\":\"South\"},{\"seat\":\"seat_4\",\"label\":\"South West\"},{\"seat\":\"seat_5\",\"label\":\"North West\"}]".to_owned()
+}
+
+pub(crate) fn catalog_starbridge_active_seats_by_count_json() -> String {
+    let entries = [2_usize, 3, 4, 6]
+        .into_iter()
+        .map(|seat_count| {
+            let indices = active_points_for_seat_count(seat_count)
+                .expect("catalog supports only Starbridge seat counts")
+                .iter()
+                .map(|point| point.clockwise_index().to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("\"{seat_count}\":[{indices}]")
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{{{entries}}}")
 }
 
 pub fn feature_report() -> Result<String, String> {
