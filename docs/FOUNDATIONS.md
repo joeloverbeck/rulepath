@@ -19,6 +19,19 @@ Rulepath MUST NOT sacrifice visible product quality to speculative engine genera
 
 Rulepath MUST NOT pretend to be an arbitrary tabletop engine. Complexity is earned through the public staged ladder in [ROADMAP.md](ROADMAP.md).
 
+### 1.1 Sanctioned private-game lane (timing carve-out)
+
+A sanctioned private-game lane MAY begin licensed implementation work before
+the public staged ladder completes, but only after an accepted ADR names the
+private lane's scope, repository isolation, CI expectations, catalog/build
+boundary, and public-architecture non-contamination rule. This carve-out
+changes the priority order for **timing only**: priority item 5 (later private
+stress tests) may run in parallel with items 1-4 once authorized. It does not
+raise private work above polished public product quality, and it does not
+authorize private content in public files, public bundles, public docs, public
+CI artifacts, public traces, public WASM/JS, or `engine-core`. Public
+architecture may gain only generic, private-free extension seams.
+
 ## 2. Behavior authority
 
 Rust MUST own:
@@ -182,7 +195,11 @@ Public Rulepath MUST NOT copy rulebook prose, proprietary card text, board art, 
 
 Prefer neutral IDs/names where commercial trademark or trade-dress risk exists.
 
-Private licensed/commercial-game stress tests are late, isolated, optional, non-public, and forbidden from shaping `engine-core`. If code or data ships to an unauthorized browser, it has shipped.
+Private licensed/commercial-game stress tests are isolated, optional,
+non-public, and forbidden from shaping `engine-core`. They MAY begin early only
+inside a sanctioned private lane authorized by an accepted ADR (see §1.1);
+absent that authorization they remain late-tail work. If code or data ships to
+an unauthorized browser, it has shipped.
 
 ## 11. Universal acceptance invariants
 
@@ -229,7 +246,11 @@ unless Rust has made those facts public or otherwise authorized for that viewer.
 - Semantic effects drive animation; renderer diffs are diagnostics only.
 - Public UI is play-first, polished, responsive, accessible, and not debug-dominated.
 - V1/v2 remain static/local-first.
-- Private licensed experiments remain isolated and non-architectural.
+- Private licensed experiments remain isolated and non-architectural. A
+  sanctioned private lane, when an accepted ADR authorizes early timing, is
+  still isolated and non-architectural; the public repository gains only
+  generic, private-free extension seams, and no public file, bundle, doc, CI
+  artifact, trace, or WASM/JS carries private licensed content or identifiers.
 - Tests, traces, simulations, benchmarks, docs, and source notes cover the change.
 - Agent output is bounded, reviewable, and delivered as complete files or coherent complete sections, not diffs.
 
@@ -264,6 +285,11 @@ Stop and reassess before continuing when any of these happens:
 - public UI becomes debug-first;
 - private licensed content enters public files, public CI, public docs, public traces, public bundles, or public WASM/JS;
 - private monster-game work starts shaping public architecture;
+- a sanctioned private-lane implementation begins before its authorizing
+  ADR(s) are accepted;
+- a private game is added to public Cargo workspace members, public catalog
+  constants, public docs/CI manifests, or a public submodule/optional
+  dependency that names it;
 - agents are asked to “generalize,” “clean up the engine,” or “fix all tests” without bounded scope and forbidden changes.
 
 Stopping is not failure. Continuing through a stop condition is architectural debt.
@@ -284,3 +310,9 @@ ADR is required for architecture-changing decisions, including:
 - introducing public MCTS, ISMCTS, Monte Carlo bots, ML, or RL;
 - replacing React + SVG as default renderer without profiling evidence;
 - allowing private licensed experiments to influence public architecture.
+
+The sanctioned private-game lane (priority-order/timing change), the
+constrained typed Rust event-card mechanism (rule-like-data boundary), and the
+private repository / CI / catalog overlay (private-licensed influence on public
+architecture) are each landed through an accepted ADR: `0010`, `0011`, and
+`0012` respectively.

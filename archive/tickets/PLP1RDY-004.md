@@ -1,6 +1,6 @@
 # PLP1RDY-004: FOUNDATIONS constitution amendments — sanctioned private-lane timing
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — constitution doc (`docs/FOUNDATIONS.md`)
@@ -122,3 +122,32 @@ against the live constitution.
 1. `grep -nE 'private-game lane|sanctioned private' docs/FOUNDATIONS.md`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. A narrower command suffices: this is a constitution-text edit, so clause-presence greps plus the doc-link and boundary gates are the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Updated `docs/FOUNDATIONS.md` with the five sanctioned private-lane
+constitution amendments from `specs/private-lane-foundation-readiness.md`:
+the §1.1 timing-only carve-out, the §10 private-stress timing paragraph, the
+§11 private-isolation invariant extension, two §12 stop conditions, and the §13
+ADR-trigger note naming ADRs 0010, 0011, and 0012.
+
+Deviations from plan: none. The change is constitution text only. It did not
+change Rust, web, CI, catalog, fixture, trace, replay, hash, RNG, benchmark, or
+private implementation files. Existing unrelated `.claude/skills/*` worktree
+changes were left untouched and unstaged.
+
+Verification:
+
+- Clause grep passed for `Sanctioned private-game lane`, sanctioned private
+  timing, the generic private-free seam invariant, and ADRs `0010`/`0011`/`0012`
+  in `docs/FOUNDATIONS.md`.
+- Invariant-presence greps passed for Rust behavior authority, TypeScript
+  legality ban, noun-free `engine-core`, no YAML/DSL, deterministic replay/hash
+  wording, and the public v1/v2 bot-technique ban.
+- `grep -nE '^Status: Accepted' docs/adr/0010-*.md docs/adr/0011-*.md docs/adr/0012-*.md`
+  passed for all three prerequisite ADRs.
+- `node scripts/check-doc-links.mjs` passed (`Checked 34 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).
