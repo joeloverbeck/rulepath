@@ -85,10 +85,14 @@ CSS, DOM conditionals, local state, or dev toggles.
 
 ## Replay Safety
 
-Replay import is local-only and capped in the UI at 128 KiB before calling Rust.
-Rust remains the parser and projector. The UI does not mutate replay contents to make
-them legal; it passes the document to `rulepath_import_replay`, then displays
-Rust-projected reset/step output.
+Replay import is local-only. The authoritative import-size guard is Rust/WASM's
+`import_replay` path, backed by `MAX_REPLAY_IMPORT_BYTES` in `crates/wasm-api`;
+the shell imposes no stricter UI cap and defers oversize rejection to Rust. The
+bound is sized to admit the catalog's own full-length exports, including
+Starbridge Crossing 6-seat 2000-ply documents, while still rejecting
+pathological local input before Rust parsing. The UI does not mutate replay
+contents to make them legal; it passes the document to `rulepath_import_replay`,
+then displays Rust-projected reset/step output.
 
 Replay export/import is viewer-scoped for hidden-information games according to
 ADR 0004. Internal full traces remain native/dev evidence; browser exports are

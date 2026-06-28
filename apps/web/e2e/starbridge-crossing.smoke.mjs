@@ -98,6 +98,8 @@ try {
   );
   assert(reducedDash === "none", "reduced motion removes animated-style dashed legal rings");
 
+  await assertFullLengthSixSeatReplayRoundTrip(page, baseUrl, consoleMessages);
+
   await startStarbridge(page, baseUrl, "Bot vs bot", 1, 2);
   await playStarbridgeBotVsBotToTerminal(page);
   await assertTerminalOutcomePanel(page);
@@ -254,6 +256,32 @@ async function playStarbridgeBotVsBotToTerminal(page) {
     { timeout: 180000 },
   );
   await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="starbridge_crossing"]', { timeout: 10000 });
+}
+
+async function assertFullLengthSixSeatReplayRoundTrip(page, baseUrl, consoleMessages) {
+  await startStarbridge(page, baseUrl, "Bot vs bot", 20200628, 6);
+  await playStarbridgeBotVsBotToTerminal(page);
+  await clickText(page, "button", "Export Current Run");
+  const fullReplayText = await replayTextareaValue(page);
+  assert(
+    fullReplayText.length > 128 * 1024,
+    `full-length 6-seat Starbridge export exceeds old 128 KiB cap, got ${fullReplayText.length}`,
+  );
+  assert(
+    fullReplayText.includes('"game_id":"starbridge_crossing"') || fullReplayText.includes('"game_id": "starbridge_crossing"'),
+    "full-length export keeps starbridge_crossing game id",
+  );
+  assert(fullReplayText.includes('"seat_5"'), "full-length export records the 6-seat setup");
+  assertNoForbiddenTerms(fullReplayText, "full-length starbridge public replay export", forbiddenTerms);
+
+  await clickText(page, "button", "Import Replay");
+  await waitForText(page, "Replay viewer");
+  await waitForText(page, "Cursor 0 /");
+  await waitForText(page, "Starbridge Crossing");
+  const surface = await fullBrowserSurface(page);
+  assert(!surface.includes("replay_too_large"), "full-length self-export does not show replay_too_large");
+  assertNoForbiddenTerms(surface, "full-length imported starbridge replay surface", forbiddenTerms);
+  assertNoForbiddenTerms(consoleMessages.join("\n"), "full-length starbridge replay console", forbiddenTerms);
 }
 
 async function assertTerminalOutcomePanel(page) {

@@ -113,4 +113,8 @@ pub(crate) const VARIANT_BRIAR_CIRCUIT_STANDARD: &str = "briar_circuit_standard"
 pub(crate) const VARIANT_VOW_TIDE_STANDARD: &str = "vow_tide_standard";
 pub(crate) const VARIANT_BLACKGLASS_PACT_STANDARD: &str = "blackglass_pact_standard";
 pub(crate) const VARIANT_STARBRIDGE_CROSSING_STANDARD: &str = "starbridge_crossing_classic_star_v1";
-pub(crate) const MAX_REPLAY_IMPORT_BYTES: usize = 128 * 1024;
+// The browser shell must be able to import any replay it can legitimately
+// export. Starbridge Crossing 6-seat, 2000-ply public exports are about 549 KiB
+// today; 8 MiB leaves order-of-magnitude catalog headroom while still rejecting
+// pathological local paste/import payloads before parsing.
+pub(crate) const MAX_REPLAY_IMPORT_BYTES: usize = 8 * 1024 * 1024;

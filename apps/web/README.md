@@ -84,8 +84,12 @@ The shell includes:
 - local replay export/import/reset/step;
 - secondary developer panel with viewer-safe diagnostics and counters.
 
-Replay import is capped at 128 KiB in the UI before Rust parsing. The developer
-panel data whitelist is documented in
+Replay import delegates size rejection to Rust/WASM's `import_replay` guard,
+backed by `MAX_REPLAY_IMPORT_BYTES` in `crates/wasm-api`; the web shell imposes
+no stricter UI cap. The bound is sized so the shell can re-import its own
+full-length catalog exports, including Starbridge Crossing 6-seat 2000-ply
+documents, while Rust still rejects pathological local input before parsing. The
+developer panel data whitelist is documented in
 [`../../docs/WASM-CLIENT-BOUNDARY.md`](../../docs/WASM-CLIENT-BOUNDARY.md).
 
 ### Action Presentation Audit

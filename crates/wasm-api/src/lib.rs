@@ -3777,9 +3777,21 @@ pub fn import_replay(doc: &str) -> Result<String, String> {
             )
         }
         RegisteredGame::StarbridgeCrossing => {
+            let seat_count = parsed
+                .seats
+                .len()
+                .max(
+                    parsed
+                        .commands
+                        .iter()
+                        .filter_map(|command| parse_starbridge_seat(&command.actor_seat).ok())
+                        .max()
+                        .map_or(0, |seat| seat + 1),
+                )
+                .max(usize::from(starbridge_crossing::STANDARD_DEFAULT_SEATS));
             let (state, effects) = starbridge_replay_to_cursor(
                 parsed.seed,
-                usize::from(starbridge_crossing::STANDARD_DEFAULT_SEATS),
+                seat_count,
                 &parsed.commands,
                 command_count,
             )?;

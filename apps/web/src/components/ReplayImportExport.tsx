@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ApiError, ReplayExportDocument } from "../wasm/client";
 
 type ReplayImportExportProps = {
@@ -7,12 +7,12 @@ type ReplayImportExportProps = {
   onImport: (documentText: string) => void;
 };
 
-const MAX_IMPORT_CHARS = 128 * 1024;
+const MAX_COMMAND_SUMMARY_CHARS = 512 * 1024;
 
 export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImportExportProps) {
   const [documentText, setDocumentText] = useState("");
   const [diagnostic, setDiagnostic] = useState<ApiError | null>(null);
-  const commandSummary = replayCommandSummary(documentText);
+  const commandSummary = useMemo(() => replayCommandSummary(documentText), [documentText]);
 
   const exportReplay = () => {
     setDiagnostic(null);
@@ -22,13 +22,6 @@ export function ReplayImportExport({ canExport, onExport, onImport }: ReplayImpo
 
   const importReplay = () => {
     setDiagnostic(null);
-    if (documentText.length > MAX_IMPORT_CHARS) {
-      setDiagnostic({
-        code: "replay_too_large",
-        message: "Replay document exceeds the local import size limit.",
-      });
-      return;
-    }
     try {
       onImport(normalizeJsonDocument(documentText));
     } catch (error: unknown) {
@@ -85,6 +78,9 @@ function normalizeJsonDocument(documentText: string): string {
 
 function replayCommandSummary(documentText: string): { index: number; actor: string; path: string }[] {
   if (!documentText.trim()) {
+    return [];
+  }
+  if (documentText.length > MAX_COMMAND_SUMMARY_CHARS) {
     return [];
   }
   try {
