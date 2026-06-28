@@ -89,6 +89,20 @@ Changing any field name, root field, nested field, hash meaning, or
 `schema_version` still requires an accepted ADR or explicit migration note as
 defined by this document.
 
+### Large-event trace clarification
+
+Large event-card or phase-driven games do not require a Trace Schema v1
+migration merely because one action produces many semantic effects, a long
+event chain, a multi-role upkeep phase, or a large terminal settlement. Use the
+existing `commands`, `checkpoints`, expected hash maps, outcome fields, and
+`not_applicable` rationale. Record checkpoints at meaningful replay points and
+let Rust-owned semantic effects provide ordered, viewer-filtered evidence.
+
+This is a no migration clarification. It adds no root field, nested field,
+schema version, hash surface, serialization order, RNG rule, or trace-consumer
+requirement. Any future change to trace fields, hash meaning, or compatibility
+still requires its own migration authority.
+
 ## 3. Command Records
 
 Each command in `commands` is a JSON object.

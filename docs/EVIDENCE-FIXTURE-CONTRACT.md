@@ -50,6 +50,12 @@ hidden-state-derived explanations, or private-source content, it must be
 classified as `internal-dev` or `private-source` and kept out of browser/public
 export paths unless Rust has made those facts public for that viewer.
 
+Private-source evidence must live in the private repository or another
+authorized private store. Public artifacts may cite only opaque receipt IDs,
+profile IDs, and sanitized status; they must not contain private titles, card or
+event names, rules prose, source excerpts, fixture names, e2e names, screenshots,
+or catalog strings.
+
 ## Profiles
 
 ### `replay-command-v1`
@@ -199,6 +205,28 @@ Canonical-byte authority:
 - `none` unless the named domain validator defines stable bytes.
 - Domain evidence must not become rule behavior, procedural configuration, or a
   DSL.
+
+### Private-source evidence profiles
+
+Private-source evidence reuses the profile system with
+`visibility_class = private-source`. The profile id should still describe the
+validator owner and semantic purpose, such as `setup-evidence-v1` for private
+setup receipts or `domain-evidence-v1` for private event/effect coverage. A
+private-source artifact may support public-safe doctrine only through an opaque
+receipt and sanitized rationale.
+
+For private large games, source/evidence receipts should identify:
+
+- source receipt id and consult date;
+- owning private repository or private evidence store;
+- validator owner;
+- whether the artifact is setup, domain, event/effect, no-leak, benchmark, or
+  release evidence;
+- public-safe status summary;
+- explicit statement that no public artifact contains private source expression.
+
+The presence of private-source evidence never authorizes public helper
+promotion, public trace updates, or public schema migration by itself.
 
 ## Hash Surface Rules
 

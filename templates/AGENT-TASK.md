@@ -10,6 +10,8 @@ Prepared by: `<name/agent>`
 
 Date: YYYY-MM-DD
 
+Template realignment mapping: report `B-02 -> AGENT-TASK.md`
+
 ## Context
 
 This task is bounded. It is not a request to redesign Rulepath.
@@ -158,6 +160,22 @@ Do not do these things:
 | mechanical scaffolding | Reuse accepted behavior-free helpers first; register new shapes; queue or dispose prior-game refactors. No behavior may be reclassified as plumbing. | `<audit/register/CI/tracker evidence>` |
 | private content | Private licensed stress tests are isolated, optional, non-public, and non-architectural. | `<IP review>` |
 | seat/surface scope | This task covers only the named supported seat counts, viewer pairs, surfaces, topology/object counts, and outcome rows. | `<docs/tests>` |
+
+## Private-source fields
+
+Complete for any sanctioned private-lane, private-source, or private-release
+task. Mark `not applicable` only with rationale.
+
+| Field | Value/evidence |
+|---|---|
+| private lane / opaque id | `<private_lane_id or not applicable>` |
+| accepted ADR gates | `<ADR 0010/0011/0012 status or not applicable>` |
+| private repository or private evidence store | `<private reference, not public path>` |
+| private-source receipt IDs | `<receipt ids, not source text>` |
+| public back-leak sweep terms owner | `<private owner; terms not copied here>` |
+| private build artifact boundary | `<private artifact/checklist evidence>` |
+| 5-viewer or larger no-leak matrix | `<viewer classes and evidence link>` |
+| no public trace/hash/schema migration | unchanged / `<migration authority>` |
 
 ## Scaffold-Refactor Profile
 

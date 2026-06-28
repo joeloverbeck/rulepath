@@ -16,7 +16,7 @@ Last updated: YYYY-MM-DD
 
 Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
 
-Template realignment mapping: report `B-04 -> GAME-RULES.md`. This template
+Template realignment mapping: report `B-03 -> GAME-RULES.md`. This template
 owns original formal rules prose and stable rule IDs. `GAME-EVIDENCE.md` owns
 cross-template conformance status and artifact links.
 
@@ -25,6 +25,10 @@ cross-template conformance status and artifact links.
 This document is the original Rulepath rules summary for the implemented variant. It MUST be written in original Rulepath prose.
 
 Do not copy rulebook prose, card text, UI text, source examples, screenshots, scans, or proprietary presentation. Sources belong in `GAME-SOURCES.md`; this document states the Rulepath implementation contract.
+
+For sanctioned private-lane games, private source references, receipt IDs, and
+licensed source material stay in the private repository. This rules document may
+use only original Rulepath prose and opaque private-source receipt links.
 
 Stable rule IDs are requirements. They MUST remain stable after implementation unless intentionally migrated with a migration note and corresponding updates in `GAME-RULE-COVERAGE.md`, traces, tests, and docs.
 
@@ -92,6 +96,17 @@ Define only terms needed for this game. Game nouns belong here or in `games/*`, 
 | Rule ID | Term/component | Original Rulepath definition | Visibility | Notes |
 |---|---|---|---|---|
 | `R-COMP-001` | `<term>` | `<definition>` | public / private / mixed / not applicable | `<notes>` |
+
+## Event deck and large-event structure
+
+Required for event-card, event-deck, upkeep/propaganda-style, or large
+phase-driven games. Use original Rulepath prose. Do not copy card text, event
+names, source examples, selectors, conditions, triggers, effect formulas, or
+procedural source expression.
+
+| Rule ID | Event/deck/phase surface | Rule statement | Visibility | Event coverage link |
+|---|---|---|---|---|
+| `R-EVENT-001` | `<event deck / event row / upkeep phase / not applicable>` | `<original prose rule>` | public/private/mixed | `GAME-EVENT-COVERAGE.md#...` |
 
 ## Setup
 

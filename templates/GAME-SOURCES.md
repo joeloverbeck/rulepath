@@ -16,7 +16,7 @@ Rules version connected to this source note: `<rules_version>`
 
 Evidence receipt: [`GAME-EVIDENCE.md`](GAME-EVIDENCE.md)
 
-Template realignment mapping: report `B-03 -> GAME-SOURCES.md`. This template
+Template realignment mapping: report `B-06 -> GAME-SOURCES.md`. This template
 owns source/IP narrative detail. `GAME-EVIDENCE.md` owns the source/IP receipt
 status and release evidence links.
 
@@ -130,6 +130,17 @@ Never ship font files unless their license and redistribution status are reviewe
 | source screenshots/scans | no by default | `<path>` | `<notes>` |
 
 Private licensed stress tests are late, isolated, optional, non-public, and non-architectural. They MUST NOT contaminate `engine-core`, public assets, public docs, or public web bundles.
+
+## Private-source receipts
+
+Use only for sanctioned private-lane work, and keep filled copies in the private
+repository. Public files may contain opaque receipt IDs and sanitized status
+only; they must not contain private titles, ids, card/event names, rules prose,
+source excerpts, fixture names, e2e names, screenshots, or catalog strings.
+
+| Receipt ID | Private source class | Date consulted | Used for | Public-safe summary | Public leak check |
+|---|---|---|---|---|---|
+| `PSRC-001` | rules / event deck / scenario / component / strategy / art / other | YYYY-MM-DD | rule verification / setup / event coverage / benchmark fixture / no-leak proof | `<sanitized status only>` | pass/fail/blocker |
 
 ## Human/legal review triggers
 

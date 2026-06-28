@@ -1,6 +1,6 @@
 # PLP1RDY-009: Scale multi-seat / testing / fixtures / trace docs + templates
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Large
 **Engine Changes**: None — contract docs + templates (`docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`, `docs/TESTING-REPLAY-BENCHMARKING.md`, `docs/EVIDENCE-FIXTURE-CONTRACT.md`, `docs/TRACE-SCHEMA-v1.md`, `templates/README.md`, `templates/AGENT-TASK.md`, `templates/GAME-RULES.md`, `templates/GAME-SOURCES.md`, `templates/GAME-HOW-TO-PLAY.md`, `templates/GAME-BENCHMARKS.md`)
@@ -131,3 +131,25 @@ event-deck sections (`B-03`); `templates/GAME-SOURCES.md` private-source receipt
 1. `git status --porcelain -- 'games/**/tests/**' 'docs/TRACE-SCHEMA-v1.md'`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: docs/templates only with an explicit no-trace-change guard, so the scaling greps + doc-link gate are the correct verification boundary.
+
+## Outcome
+
+Completed the multi-seat, large-game evidence, fixture, trace, and template
+scaling pass. Added asymmetric faction and 5-viewer no-leak guidance to
+`docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`, private large-game coverage and
+COIN-scale workload guidance to `docs/TESTING-REPLAY-BENCHMARKING.md`,
+private-source evidence profile guidance to `docs/EVIDENCE-FIXTURE-CONTRACT.md`,
+and a large-event Trace Schema v1 clarification that explicitly requires no
+migration.
+
+Updated the templates for private-lane index guidance, private-source task
+fields, event-deck rules coverage, private-source receipts, per-faction
+How-to-Play orientation, and large asymmetric benchmark workload dimensions.
+
+Verification:
+
+- `grep -qiE '5[- ]viewer|asymmetric faction|pairwise' docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`
+- `grep -qi 'no migration' docs/TRACE-SCHEMA-v1.md`
+- `git status --porcelain -- 'games/**/tests/**'`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`

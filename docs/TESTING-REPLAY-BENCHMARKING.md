@@ -287,6 +287,27 @@ source-seat private tokens should route their bridge no-leak proof through that
 harness in addition to any game-specific trace, serialization, or visibility
 tests needed for hidden deck/order, commitment, or reveal semantics.
 
+### Private large-game coverage
+
+Sanctioned private large games must scale the ordinary test taxonomy rather than
+invent a weaker private lane. A private large-game proof plan should name:
+
+- every supported seat count and the largest official surface fixture;
+- the 5-viewer no-leak matrix, or a larger matrix when roles, teams, eliminated
+  seats, or shared-intelligence viewers require it;
+- public-observer export/import proof and seat-private export/import proof for
+  each materially different role/faction;
+- event-deck, large-action-tree, large-effect-batch, upkeep/phase-transition,
+  and terminal/outcome traces where applicable;
+- native replay/hash checks and browser/WASM smoke checks for the private build;
+- benchmark workloads for setup, legal actions, preview, apply, projection,
+  serialization, replay import, bot turns, and largest-viewer payloads.
+
+Private-source material used to build these tests must stay in private-source
+or internal-dev evidence profiles. Public CI may prove public cleanliness; it
+must not depend on private traces, private source strings, private fixture
+names, private e2e names, or private build artifacts.
+
 ## 9. Serialization tests
 
 Serialization tests MUST cover:
@@ -394,6 +415,13 @@ fanout/depth, maximum semantic-effect batch size, and largest viewer payload.
 When a game supports multiple materially different seat counts, benchmark at the
 default public count and at the largest official count unless the spec records a
 smaller representative fixture with rationale.
+
+Private COIN-scale or similarly large asymmetric workloads must additionally
+name the event/deck size, maximum role/faction count, largest upkeep or
+propaganda-style phase, largest legal-action fanout/depth, largest visible map
+or table surface, largest private hand/zone per viewer, and largest terminal
+settlement. These dimensions are benchmark labels and fixture metadata only;
+they are not rule behavior or a static-data language.
 
 ## 15. Provisional performance budgets
 
