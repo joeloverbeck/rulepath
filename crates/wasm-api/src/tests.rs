@@ -295,6 +295,62 @@ fn starbridge_view_projects_terminal_rationale_payload() {
 }
 
 #[test]
+fn starbridge_view_projects_point_index_seat_labels() {
+    use crate::games::starbridge_crossing::{create_starbridge_match, starbridge_view_json};
+
+    let ring_labels = [
+        "North",
+        "North East",
+        "South East",
+        "South",
+        "South West",
+        "North West",
+    ];
+
+    for seat_count in [2_usize, 3, 4, 6] {
+        let state = create_starbridge_match(17, seat_count).expect("starbridge match created");
+        let view = ::starbridge_crossing::project_view(&state, &Viewer { seat_id: None });
+        let json = starbridge_view_json(&view, state.freshness_token.0);
+        let points = ::starbridge_crossing::active_points_for_seat_count(seat_count)
+            .expect("supported starbridge seat count");
+
+        for (seat_index, home) in points.iter().copied().enumerate() {
+            let target = home.opposite();
+            let label = ring_labels[home.clockwise_index()];
+            let target_label = ring_labels[target.clockwise_index()];
+            let home_token = home.label();
+            let target_token = target.label();
+            assert!(
+                json.contains(&format!(
+                    "\"seat_id\":\"seat_{seat_index}\",\"seat_index\":{seat_index},\"home\":\"{home_token}\",\"target\":\"{target_token}\",\"label\":\"{label}\",\"target_label\":\"{target_label}\""
+                )),
+                "{seat_count}-seat Starbridge view labels seat_{seat_index} by home/target point index"
+            );
+            assert!(
+                json.contains(&format!(
+                    "{{\"seat\":\"seat_{seat_index}\",\"label\":\"{label}\"}}"
+                )),
+                "{seat_count}-seat Starbridge ui.seat_labels maps seat_{seat_index} to point label {label}"
+            );
+        }
+    }
+
+    let two_seat = create_starbridge_match(17, 2).expect("starbridge match created");
+    let two_json = starbridge_view_json(
+        &::starbridge_crossing::project_view(&two_seat, &Viewer { seat_id: None }),
+        two_seat.freshness_token.0,
+    );
+    assert!(two_json.contains("\"seat_id\":\"seat_1\",\"seat_index\":1,\"home\":\"south\",\"target\":\"north\",\"label\":\"South\",\"target_label\":\"North\""));
+
+    let three_seat = create_starbridge_match(17, 3).expect("starbridge match created");
+    let three_json = starbridge_view_json(
+        &::starbridge_crossing::project_view(&three_seat, &Viewer { seat_id: None }),
+        three_seat.freshness_token.0,
+    );
+    assert!(three_json.contains("\"seat_id\":\"seat_1\",\"seat_index\":1,\"home\":\"south_east\",\"target\":\"north_west\",\"label\":\"South East\",\"target_label\":\"North West\""));
+}
+
+#[test]
 fn meldfall_ledger_catalog_exposes_variable_hidden_info_metadata() {
     let games = list_games().expect("games listed");
     let meldfall_start = games

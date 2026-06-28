@@ -1,6 +1,6 @@
 # GAT204STACROMAT-001: Rust-owned Starbridge in-match seat display labels on the public view
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `crates/wasm-api` (`src/games/starbridge_crossing.rs`: public-view projection gains `ui.seat_labels` + per-seat `label`/`target_label`; `src/catalog.rs`: ring-label lookup helper; `src/tests.rs`: discontinuity view-label test; `tests/snapshots/api_surface.tsv`: additive snapshot refresh)
@@ -83,3 +83,24 @@ Add the discontinuity view-label test in `crates/wasm-api/src/tests.rs` (reuse `
 1. `cargo test -p wasm-api`
 2. `cargo run -p replay-check -- --game starbridge_crossing --all`
 3. `cargo test -p wasm-api` is the correct boundary — the projection and its snapshot are wasm-api-local; web consumption is verified in GAT204STACROMAT-002.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Implemented the Rust/WASM public-view projection for Starbridge in-match seat display names:
+
+- Added `catalog_starbridge_ring_labels()` as the indexable authored label source used by the Starbridge catalog JSON and view serialization.
+- Added Starbridge `ui.seat_labels` plus per-seat `label` and `target_label` fields to the WASM public view, resolved from the seat home/target point index rather than a flat play-time seat index.
+- Added `starbridge_view_projects_point_index_seat_labels`, including explicit discontinuity assertions for 2-seat `seat_1 == South` and 3-seat `seat_1 == South East`.
+- Refreshed `crates/wasm-api/tests/snapshots/api_surface.tsv` for the additive Starbridge public-view/import/replay-step shape.
+
+Deviations from plan: none. No game rules, state, effects, stable bytes, trace fixtures, or hash surfaces changed.
+
+Verification:
+
+- `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` passed after the expected additive snapshot refresh.
+- `cargo test -p wasm-api` passed.
+- `cargo run -p replay-check -- --game starbridge_crossing --all` passed; all Starbridge traces were accepted unchanged.
+- `cargo fmt --all --check` passed.
+- `cargo clippy -p wasm-api --all-targets -- -D warnings` passed.
