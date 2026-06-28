@@ -118,8 +118,12 @@ the panel unrendered.
   object when terminal — reusing the existing river projection's rationale JSON
   shape conventions (`crates/wasm-api/src/games/river.rs::river_rationale_json`)
   rather than inventing a divergent shape. Refresh the additive wasm-api snapshot
-  `crates/wasm-api/tests/snapshots/api_surface.tsv` if (and only if) the view
-  shape appears there; the single expected diff is the added field.
+  `crates/wasm-api/tests/snapshots/api_surface.tsv`: the Starbridge public view
+  **does** appear there (`starbridge_crossing/view/{observer,seat_0,seat_1}`),
+  none of which carries `terminal_rationale` today, so the refresh is
+  **mandatory** — the expected diff is the single additive `terminal_rationale`
+  field (serialized `null` at the non-terminal new-match snapshot state) on those
+  three view rows, and nothing else.
 - **Web template key.** Add the missing
   `"starbridge_crossing.turn_limit_progress_vector"` key to
   `apps/web/src/components/outcomeExplanationTemplates.ts` (the
@@ -129,7 +133,7 @@ the panel unrendered.
   `outcomeSurfaceData({ gameId: "starbridge_crossing", … , rationale:
   view.terminal_rationale ?? null, … })` and render `OutcomeExplanationPanel`
   plus the `aria-live` `outcomeAnnouncementText` mirror, following the established
-  board pattern (e.g. `BlackglassPactBoard.tsx:93`–`120`, `:290`–`296`). The
+  board pattern (e.g. `BlackglassPactBoard.tsx:95`–`120`, `:292`–`296`). The
   panel's `finalStanding` is sourced from the Rust-projected `final_standing`
   (TypeScript renders Rust-authored standings only — `SC-FINISH-004`), not
   recomputed from `seats`/`finish_ranks` in TS.
@@ -181,13 +185,16 @@ the panel unrendered.
    determinism-guard tests.
 2. **GAT203STACROOUT-002** — wasm-api serialization: emit `terminal_rationale`
    in the Starbridge projection JSON (river-shaped), refresh the additive
-   `api_surface.tsv` snapshot if affected, and add the projection test.
+   `api_surface.tsv` snapshot (the three `starbridge_crossing/view/*` rows gain
+   `terminal_rationale:null`), and add the projection test.
 3. **GAT203STACROOUT-003** — Web rendering: add the
    `turn_limit_progress_vector` template key, render `OutcomeExplanationPanel` +
    `aria-live` mirror in `StarbridgeCrossingBoard.tsx` from
    `view.terminal_rationale`, and extend the browser smoke to a terminal match.
 4. **GAT203STACROOUT-004** — Evidence and closeout: update
-   `games/starbridge_crossing/docs/UI.md`,
+   `games/starbridge_crossing/docs/UI.md` (add the fully-qualified
+   `starbridge_crossing.turn_limit_progress_vector` key literal to the outcome
+   section so `check-outcome-explanations.mjs` enforces it),
    `games/starbridge_crossing/docs/GAME-EVIDENCE.md`,
    `games/starbridge_crossing/docs/RULE-COVERAGE.md` (if it tracks the
    outcome-explanation surface), `specs/README.md`, and this spec's status.
@@ -206,8 +213,8 @@ Dependency order: 001 → 002 → 003 → 004.
   order; the shell renders Rust-provided rationale fields only.
 - Determinism artifacts unchanged: `replay-check --all`, `fixture-check`,
   `rule-coverage`, and benchmark thresholds show no diff; the only Rust snapshot
-  diff (if any) is the single additive `terminal_rationale` field in
-  `api_surface.tsv`.
+  diff is the single additive `terminal_rationale` field on the three
+  `starbridge_crossing/view/*` rows in `api_surface.tsv`.
 - CI gate 0 (`fmt`, `clippy -D warnings`, `build`, `test`) and gate 1
   (`simulate`, `replay-check --all`, `fixture-check`, `rule-coverage`,
   `boundary-check.sh`, `check-doc-links.mjs`, `check-outcome-explanations.mjs`,
@@ -264,7 +271,14 @@ Dependency order: 001 → 002 → 003 → 004.
 
 - `games/starbridge_crossing/docs/UI.md` — note that the terminal outcome
   explanation is now projected by Rust (`terminal_rationale`) and rendered via
-  `OutcomeExplanationPanel`, naming both decisive causes.
+  `OutcomeExplanationPanel`, naming both decisive causes. The outcome section
+  must carry the **fully-qualified** template-key literal
+  `starbridge_crossing.turn_limit_progress_vector` (alongside the existing
+  `starbridge_crossing.finish_order_complete`), because
+  `scripts/check-outcome-explanations.mjs` `extractTemplateKeys` greps the UI.md
+  outcome body for `starbridge_crossing.<key>` literals and only then requires
+  each in `outcomeExplanationTemplates.ts` — today the turn-limit variant is
+  named as a bare cause, so the gate does not yet enforce the new key.
 - `games/starbridge_crossing/docs/GAME-EVIDENCE.md` — fix receipt / outcome-
   explanation row.
 - `games/starbridge_crossing/docs/RULE-COVERAGE.md` — if it tracks the
@@ -297,3 +311,9 @@ Dependency order: 001 → 002 → 003 → 004.
   rationale (as `BlackglassPactBoard` passes `rationale: view.outcome_rationale
   ?? null`), so the web change degrades safely if the field is absent, but the
   populated Rust path is the contract target.
+- A5: No web type extension is needed. `StarbridgeCrossingOutcomeRationale` is the
+  bare alias `= OutcomeRationalePayload` (`apps/web/src/wasm/client.ts`), and the
+  per-seat turn-limit progress-vector count rides in a `final_standing[].values`
+  entry (`OutcomeRationaleStanding.values?: OutcomeRationaleField[]`), as river
+  routes its per-seat facts — so no river-style `& { … }` extension of the alias
+  is required.
