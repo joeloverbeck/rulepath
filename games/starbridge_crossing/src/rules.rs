@@ -449,7 +449,7 @@ fn assign_turn_limit_ranks(state: &mut StarbridgeState) {
     }
 }
 
-fn progress_score(state: &StarbridgeState, seat_index: u8) -> u8 {
+pub(crate) fn progress_score(state: &StarbridgeState, seat_index: u8) -> u8 {
     let Some(assignment) = state.seats.get(usize::from(seat_index)) else {
         return 0;
     };

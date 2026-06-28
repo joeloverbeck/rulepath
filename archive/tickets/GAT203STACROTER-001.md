@@ -1,6 +1,6 @@
 # GAT203STACROTER-001: Rust-owned Starbridge terminal outcome rationale
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: Yes — `games/starbridge_crossing` (`src/visibility.rs`: new game-local `StarbridgeOutcomeRationaleView` + per-seat standing type, projected on `StarbridgePublicView` as `terminal_rationale`; `tests/visibility.rs`)
@@ -76,3 +76,33 @@ Add `fn outcome_rationale(state: &StarbridgeState) -> Option<StarbridgeOutcomeRa
 1. `cargo test -p starbridge_crossing`
 2. `cargo run -p replay-check -- --game starbridge_crossing --all` (confirms hashes/traces unchanged)
 3. `cargo test -p starbridge_crossing` is the correct boundary — the field is game-local; cross-crate serialization is verified in GAT203STACROTER-002.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Implemented the game-local `StarbridgeOutcomeRationaleView` and
+`StarbridgeOutcomeStandingView` on `StarbridgePublicView`, populated only for
+terminal Starbridge states. The rationale is Rust-authored from existing public
+terminal state: `finish_order_complete` for `TerminalStatus::Complete` and
+`turn_limit_progress_vector` for `TerminalStatus::TurnLimit`, with decisive rule
+IDs and seat-ring-ordered standings. The turn-limit progress count now reuses
+the same crate-local `progress_score` helper used by rank assignment.
+
+Added visibility tests for live `None`, complete terminal rationale, turn-limit
+progress-vector rationale, rank-1 winner flags, seat order, and stable-byte
+exclusion. `stable_summary` / `stable_bytes` were intentionally left unchanged,
+so the additive view field does not enter replay/hash bytes.
+
+Verification:
+
+- `cargo fmt --all --check` passed.
+- `cargo clippy -p starbridge_crossing --all-targets -- -D warnings` passed.
+- `cargo test -p starbridge_crossing` passed.
+- `cargo run -p replay-check -- --game starbridge_crossing --all` passed; all
+  Starbridge golden traces were accepted.
+
+Deviations: exposed `rules::progress_score` as `pub(crate)` so the rationale and
+turn-limit rank assignment share the exact progress metric. No movement,
+finish-rank, terminal-status, replay, fixture, `engine-core`, or `game-stdlib`
+behavior changed.
