@@ -1,5 +1,7 @@
 # web-shell-replay-import-size-roundtrip — Replay import/export round-trip for full-length games
 
+**Status**: COMPLETED
+
 - **Filename:** `specs/web-shell-replay-import-size-roundtrip.md`
 - **File operation:** Create as a new living spec. Do not overwrite any archived spec.
 - **Spec ID:** `web-shell-replay-import-size-roundtrip`
@@ -7,7 +9,7 @@
 - **Target type:** New implementation spec (non-gate, shared web-shell + WASM-importer correctness fix)
 - **Roadmap stage:** Non-gate correctness fix for the shared replay import/export surface. Surfaced by the shipped Gate 20 game `starbridge_crossing`, but the defect lives in the shared component and its authoritative Rust importer guard, used by every game.
 - **Roadmap build gate:** None. Independent of Gate 21. Blocks no other gate, but the documented replay round-trip is currently broken for any full-length game.
-- **Status:** Done
+- **Lifecycle:** Done
 - **Date:** 2026-06-28
 - **Owner:** joeloverbeck
 - **Provenance:** Authored against `main` @ `b652a45` (`joeloverbeck/rulepath`), the current `HEAD` when the defect was observed during a Starbridge Crossing playtest. Reassessment confirmed the import-size cap is enforced in **two** layers — a TypeScript pre-check and the authoritative Rust importer guard — both at `128 * 1024`. Re-verify repo-relative references if `main` advances before decomposition.
