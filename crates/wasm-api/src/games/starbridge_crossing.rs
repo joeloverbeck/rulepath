@@ -6,7 +6,8 @@ use engine_core::{
 use starbridge_crossing::{
     apply_jump_command, apply_pass_blocked_command, apply_step_command, legal_action_tree,
     parse_bot_action, setup_match, StarbridgeAction, StarbridgeEffect, StarbridgeEffectEnvelope,
-    StarbridgePublicView, StarbridgeState,
+    StarbridgeOutcomeRationaleView, StarbridgeOutcomeStandingView, StarbridgePublicView,
+    StarbridgeState,
 };
 
 use crate::action_tree::action_tree_json;
@@ -244,8 +245,12 @@ pub(crate) fn starbridge_view_json(view: &StarbridgePublicView, freshness_token:
         || "null".to_owned(),
         |value| format!("\"{}\"", escape_json(value)),
     );
+    let terminal_rationale = view
+        .terminal_rationale
+        .as_ref()
+        .map_or_else(|| "null".to_owned(), starbridge_rationale_json);
     format!(
-        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"data_version_label\":\"{}\",\"freshness_token\":{},\"active_seat\":{},\"terminal\":{},\"ply_count\":{},\"command_count\":{},\"spaces\":[{}],\"seats\":[{}],\"finish_ranks\":[{}],\"audit\":{{\"redaction_class\":\"{}\",\"private_fields\":[],\"rationale\":\"{}\"}}}}",
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"data_version_label\":\"{}\",\"freshness_token\":{},\"active_seat\":{},\"terminal\":{},\"terminal_rationale\":{},\"ply_count\":{},\"command_count\":{},\"spaces\":[{}],\"seats\":[{}],\"finish_ranks\":[{}],\"audit\":{{\"redaction_class\":\"{}\",\"private_fields\":[],\"rationale\":\"{}\"}}}}",
         escape_json(&view.game_id),
         escape_json(GAME_STARBRIDGE_CROSSING_DISPLAY_NAME),
         escape_json(&view.variant_id),
@@ -254,6 +259,7 @@ pub(crate) fn starbridge_view_json(view: &StarbridgePublicView, freshness_token:
         freshness_token,
         active_seat,
         terminal,
+        terminal_rationale,
         view.ply_count,
         view.command_count,
         spaces,
@@ -261,6 +267,54 @@ pub(crate) fn starbridge_view_json(view: &StarbridgePublicView, freshness_token:
         finish_ranks,
         escape_json(&view.audit.redaction_class),
         escape_json(&view.audit.rationale)
+    )
+}
+
+fn starbridge_rationale_json(rationale: &StarbridgeOutcomeRationaleView) -> String {
+    let decisive_rule_ids = rationale
+        .decisive_rule_ids
+        .iter()
+        .map(|rule_id| format!("\"{}\"", escape_json(rule_id)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let final_standing = rationale
+        .final_standing
+        .iter()
+        .map(starbridge_rationale_standing_json)
+        .collect::<Vec<_>>()
+        .join(",");
+
+    format!(
+        "{{\"result_kind\":\"{}\",\"decisive_cause\":\"{}\",\"template_key\":\"{}\",\"headline\":null,\"decisive_comparison\":null,\"comparison_basis\":null,\"decisive_rule_ids\":[{}],\"final_standing\":[{}]}}",
+        escape_json(&rationale.result_kind),
+        escape_json(&rationale.decisive_cause),
+        escape_json(&rationale.template_key),
+        decisive_rule_ids,
+        final_standing
+    )
+}
+
+fn starbridge_rationale_standing_json(standing: &StarbridgeOutcomeStandingView) -> String {
+    let mut values = Vec::new();
+    if let Some(rank) = standing.finish_rank {
+        values.push(format!("{{\"label\":\"Rank\",\"value\":{rank}}}"));
+    }
+    values.push(format!(
+        "{{\"label\":\"Finished\",\"value\":\"{}\"}}",
+        if standing.finished { "yes" } else { "no" }
+    ));
+    if let Some(progress) = standing.progress {
+        values.push(format!("{{\"label\":\"Progress\",\"value\":{progress}}}"));
+    }
+
+    format!(
+        "{{\"id\":\"{}\",\"seat\":\"{}\",\"label\":\"Seat {}\",\"result\":\"{}\",\"emphasized\":{},\"strength\":null,\"values\":[{}]}}",
+        escape_json(&standing.seat.0),
+        escape_json(&standing.seat.0),
+        u16::from(standing.seat_index) + 1,
+        if standing.winner { "win" } else { "ranked" },
+        standing.winner,
+        values.join(",")
     )
 }
 

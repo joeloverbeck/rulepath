@@ -98,6 +98,11 @@ try {
   );
   assert(reducedDash === "none", "reduced motion removes animated-style dashed legal rings");
 
+  await startStarbridge(page, baseUrl, "Bot vs bot", 1, 2);
+  await playStarbridgeBotVsBotToTerminal(page);
+  await assertTerminalOutcomePanel(page);
+  await assertNoLeak(page, consoleMessages, "terminal starbridge outcome panel");
+
   await page.setViewport({ width: 390, height: 820 });
   await page.waitForSelector('[data-testid="starbridge-board"]');
   const stageMetrics = await page.$eval('[data-testid="starbridge-board"]', (element) => ({
@@ -236,6 +241,42 @@ async function findAndPlayJump(page, maxTurns) {
     await page.waitForFunction(() => (window.render_game_to_text ? JSON.parse(window.render_game_to_text()).view.freshness_token : 0) > 0);
   }
   throw new Error(`starbridge smoke did not find a Rust jump path within ${maxTurns} turns`);
+}
+
+async function playStarbridgeBotVsBotToTerminal(page) {
+  await page.select(".speed-field select", "2");
+  await clickText(page, "button", "Start Autoplay");
+  await page.waitForFunction(
+    () => {
+      const state = window.render_game_to_text ? JSON.parse(window.render_game_to_text()) : null;
+      return state?.view?.game_id === "starbridge_crossing" && state.view.status === "turn_limit:2000";
+    },
+    { timeout: 180000 },
+  );
+  await page.waitForSelector('.outcome-explanation-panel[data-outcome-game="starbridge_crossing"]', { timeout: 10000 });
+}
+
+async function assertTerminalOutcomePanel(page) {
+  const outcome = await page.evaluate(() => {
+    const panel = document.querySelector('.outcome-explanation-panel[data-outcome-game="starbridge_crossing"]');
+    const liveText = Array.from(document.querySelectorAll('[aria-live="polite"]'))
+      .map((node) => node.textContent ?? "")
+      .join("\n");
+    return {
+      text: panel?.textContent ?? "",
+      standings: panel?.querySelectorAll(".outcome-standing-row").length ?? 0,
+      liveText,
+      status: window.render_game_to_text ? JSON.parse(window.render_game_to_text()).view?.status ?? "" : "",
+    };
+  });
+
+  assert(outcome.status === "turn_limit:2000", `Starbridge terminal status is turn limit, got ${outcome.status}`);
+  assert(outcome.text.includes("Outcome"), "Starbridge terminal outcome panel renders");
+  assert(outcome.text.includes("turn limit was reached") || outcome.text.includes("turn-limit"), "outcome panel explains turn-limit cause");
+  assert(outcome.text.includes("SC-FINISH-006"), "outcome panel renders decisive Starbridge rule id");
+  assert(outcome.standings === 2, `outcome panel renders one standing row per seat, got ${outcome.standings}`);
+  assert(outcome.text.includes("Progress"), "outcome panel renders Rust-projected progress values");
+  assert(outcome.liveText.includes("Starbridge Crossing result"), "aria-live mirror announces the outcome");
 }
 
 async function selectPegWithJump(page) {

@@ -29,7 +29,9 @@ The pre-match setup preview uses the Rust catalog's
 seat count. This matters for 2-, 3-, and 4-seat Starbridge setups because the
 active points are discontinuous around the six-point ring; TypeScript presents
 the Rust-provided mapping and does not derive the active homes by slicing the
-first N labels.
+first N labels. Terminal matches render the Rust/WASM-projected
+`terminal_rationale` through `OutcomeExplanationPanel` plus an `aria-live`
+outcome announcement.
 
 ## Interaction
 
@@ -72,8 +74,9 @@ Terminal result variants:
 
 - `starbridge_crossing.finish_order_complete` when all but one active seat has
   finished and Rust assigns the final remaining rank.
-- The deterministic turn-limit fallback is a terminal ranking surface with the
-  same public-finish-order explanation class and an explicit terminal reason.
+- `starbridge_crossing.turn_limit_progress_vector` when the deterministic
+  turn-limit fallback ranks seats by the public target-home progress vector and
+  clockwise seat order.
 
 Decisive cause variants:
 
@@ -114,4 +117,5 @@ Web smoke coverage:
 - `node apps/web/e2e/starbridge-crossing.smoke.mjs` validates 121-space render,
   Rust legal previews, setup-preview active-seat labels for 2/3/4 seats,
   jump-chain path building, replay import/export, reduced-motion behavior,
-  responsive layout, and no-leak scans.
+  terminal `OutcomeExplanationPanel` rendering for the turn-limit rationale,
+  outcome `aria-live` announcement, responsive layout, and no-leak scans.

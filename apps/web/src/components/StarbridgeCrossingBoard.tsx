@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { ActionChoice, ActionTree, EffectEntry, StarbridgeCrossingPublicView } from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
+import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
 type StarbridgeCrossingBoardProps = {
   view: StarbridgeCrossingPublicView;
@@ -68,6 +69,19 @@ export function StarbridgeCrossingBoard({
   const refs = useRef(new Map<string, SVGElement>());
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
   const controls = current.choices.filter((choice) => !spaceSegment(choice));
+  const outcomeExplanation =
+    terminal && view.terminal_rationale
+      ? outcomeSurfaceData({
+          gameId: "starbridge_crossing",
+          heading: "Starbridge Crossing result",
+          rationale: view.terminal_rationale,
+          resultKind: "terminal",
+          decisiveCause: view.terminal ?? "terminal",
+          templateKey: "starbridge_crossing.finish_order_complete",
+          finalStanding: [],
+          ruleIds: [],
+        })
+      : null;
 
   const chooseSpace = (spaceId: string) => {
     if (!canPlay) {
@@ -132,6 +146,12 @@ export function StarbridgeCrossingBoard({
       <p className="sr-only" aria-live="polite">
         {liveSummary(view, pendingPath, legalSpaces.size, feedback)}
       </p>
+
+      {outcomeExplanation ? (
+        <p className="sr-only" aria-live="polite">
+          {outcomeAnnouncementText(outcomeExplanation)}
+        </p>
+      ) : null}
 
       <div className="starbridge-status" aria-label="Match status">
         <div>
@@ -229,6 +249,8 @@ export function StarbridgeCrossingBoard({
           </g>
         </svg>
       </div>
+
+      {outcomeExplanation ? <OutcomeExplanationPanel reducedMotion={reducedMotion} explanation={outcomeExplanation} /> : null}
 
       <div className="starbridge-controls">
         <div className="starbridge-path">

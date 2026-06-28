@@ -246,6 +246,55 @@ fn starbridge_catalog_active_seat_indices_match_setup_authority() {
 }
 
 #[test]
+fn starbridge_view_projects_terminal_rationale_payload() {
+    use crate::games::starbridge_crossing::{create_starbridge_match, starbridge_view_json};
+
+    let live_state = create_starbridge_match(7, 2).expect("starbridge match created");
+    let live_view = ::starbridge_crossing::project_view(&live_state, &Viewer { seat_id: None });
+    let live_json = starbridge_view_json(&live_view, live_state.freshness_token.0);
+    assert!(live_json.contains("\"terminal_rationale\":null"));
+
+    let mut terminal_state = create_starbridge_match(7, 3).expect("starbridge match created");
+    set_starbridge_progress(&mut terminal_state, 0, 3);
+    set_starbridge_progress(&mut terminal_state, 1, 1);
+    terminal_state.finish_ranks = vec![
+        ::starbridge_crossing::FinishRank {
+            seat_index: 0,
+            rank: 1,
+        },
+        ::starbridge_crossing::FinishRank {
+            seat_index: 1,
+            rank: 2,
+        },
+        ::starbridge_crossing::FinishRank {
+            seat_index: 2,
+            rank: 3,
+        },
+    ];
+    terminal_state.terminal_status =
+        Some(::starbridge_crossing::TerminalStatus::TurnLimit { max_plies: 2000 });
+
+    let terminal_view =
+        ::starbridge_crossing::project_view(&terminal_state, &Viewer { seat_id: None });
+    let terminal_json = starbridge_view_json(&terminal_view, terminal_state.freshness_token.0);
+
+    assert!(terminal_json.contains(
+        "\"terminal_rationale\":{\"result_kind\":\"turn_limit\",\"decisive_cause\":\"turn_limit_progress_vector\",\"template_key\":\"starbridge_crossing.turn_limit_progress_vector\""
+    ));
+    assert!(terminal_json
+        .contains("\"decisive_rule_ids\":[\"SC-FINISH-005\",\"SC-FINISH-006\",\"SC-END-002\"]"));
+    assert!(terminal_json.contains(
+        "\"final_standing\":[{\"id\":\"seat_0\",\"seat\":\"seat_0\",\"label\":\"Seat 1\",\"result\":\"win\",\"emphasized\":true,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":1},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":3}]}"
+    ));
+    assert!(terminal_json.contains(
+        "{\"id\":\"seat_1\",\"seat\":\"seat_1\",\"label\":\"Seat 2\",\"result\":\"ranked\",\"emphasized\":false,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":2},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":1}]}"
+    ));
+    assert!(terminal_json.contains(
+        "{\"id\":\"seat_2\",\"seat\":\"seat_2\",\"label\":\"Seat 3\",\"result\":\"ranked\",\"emphasized\":false,\"strength\":null,\"values\":[{\"label\":\"Rank\",\"value\":3},{\"label\":\"Finished\",\"value\":\"no\"},{\"label\":\"Progress\",\"value\":0}]}"
+    ));
+}
+
+#[test]
 fn meldfall_ledger_catalog_exposes_variable_hidden_info_metadata() {
     let games = list_games().expect("games listed");
     let meldfall_start = games
@@ -2484,6 +2533,25 @@ fn json_string_array(values: &[String]) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!("[{body}]")
+}
+
+fn set_starbridge_progress(
+    state: &mut ::starbridge_crossing::StarbridgeState,
+    seat_index: u8,
+    progress: u8,
+) {
+    let target = state.seats[usize::from(seat_index)].target;
+    let target_spaces = ::starbridge_crossing::home_spaces(target)
+        .map(|space| space.id)
+        .collect::<Vec<_>>();
+    state.occupancy = ::starbridge_crossing::StarbridgeState::empty_occupancy();
+
+    for peg in &mut state.pegs {
+        if peg.owner_seat_index == seat_index && peg.id.ordinal < progress {
+            peg.space = target_spaces[usize::from(peg.id.ordinal)];
+        }
+        state.occupancy[usize::from(peg.space.index())] = Some(peg.id);
+    }
 }
 
 fn get_terminal_poker_view(seed: u64, action_paths: &[&str]) -> String {

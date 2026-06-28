@@ -161,6 +161,13 @@ export const outcomeExplanationTemplates = {
     allowedGameIds: ["starbridge_crossing"],
     ruleRefLabel: "Finish ranking rule",
   },
+  "starbridge_crossing.turn_limit_progress_vector": {
+    summary: "The turn limit was reached; Starbridge ranks are ordered by target-home progress.",
+    expandedHeading: "Turn-limit progress",
+    requiredParams: [],
+    allowedGameIds: ["starbridge_crossing"],
+    ruleRefLabel: "Turn-limit ranking rule",
+  },
   "poker_lite.yield_win_no_reveal": {
     summary: "{winner} wins after {loser} yields.",
     expandedHeading: "Yield result",

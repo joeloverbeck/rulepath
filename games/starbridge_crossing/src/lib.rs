@@ -51,5 +51,5 @@ pub use ui::{space_label, zone_label, SpaceUiMetadata};
 pub use variants::{load_variants, Variant, VariantCatalog};
 pub use visibility::{
     filter_effects_for_viewer, project_view, AllPublicAudit, PegView, SeatView, SpaceView,
-    StarbridgePublicView,
+    StarbridgeOutcomeRationaleView, StarbridgeOutcomeStandingView, StarbridgePublicView,
 };
