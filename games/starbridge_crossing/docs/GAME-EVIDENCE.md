@@ -13,7 +13,7 @@ Engine version: current Rulepath workspace
 
 Prepared by: `Codex`
 
-Last updated: 2026-06-27
+Last updated: 2026-06-28
 
 ## Purpose
 
@@ -84,6 +84,16 @@ external public release.
 | `games/starbridge_crossing/data/fixtures/*.fixture.json` | Reviewed by `cargo run -p fixture-check -- --game starbridge_crossing`; all setup fixtures passed unchanged. | unchanged |
 | `games/starbridge_crossing/benches/thresholds.json` | Reviewed by `cargo bench -p starbridge_crossing`; all 14 benchmark operations passed existing smoke floors, so no threshold migration was needed. | unchanged |
 
+## Gate 20.2 Setup-Preview Active-Seat Receipt
+
+| Surface | Status | Evidence |
+|---|---|---|
+| Rust catalog active-seat metadata | pass | `crates/wasm-api/src/catalog.rs` adds `active_seats_by_count` for Starbridge, derived from `active_points_for_seat_count` via `StarPoint::clockwise_index()`. |
+| Catalog metadata regression | pass | `cargo test -p wasm-api` includes `starbridge_catalog_active_seat_indices_match_setup_authority`; `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` refreshed the additive `_global/list_games` catalog row. |
+| Web setup-preview consumption | pass | `apps/web/src/components/MatchSetup.tsx` consumes the Rust index map before falling back to contiguous first-N labels for games without the field. |
+| Browser setup proof | pass | `node apps/web/e2e/starbridge-crossing.smoke.mjs` checks 2 seats as North+South, 3 as North+South East+South West, and 4 as North+North East+South+South West before starting a match. |
+| Cross-game regression | pass | `npm --prefix apps/web run smoke:e2e` includes `seat-label-consistency.smoke.mjs` and the Starbridge smoke; `npm --prefix apps/web run smoke:ui` passed. |
+
 ## Fixture Profile
 
 | Fixture | Status | Purpose |
@@ -123,14 +133,16 @@ external public release.
 | `cargo run -p replay-check -- --game starbridge_crossing --all` | pass | all trace receipts accepted. |
 | `cargo run -p fixture-check -- --game starbridge_crossing` | pass | fixture catalog accepted. |
 | `cargo run -p rule-coverage -- --game starbridge_crossing` | pass | coverage matrix and benchmark doc present. |
-| `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` | pass | regenerated the single Starbridge public action-tree snapshot after `SC-MOVE-010`. |
-| `cargo test -p wasm-api --test api_surface` | pass | focused snapshot verification after regeneration. |
+| `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` | pass | regenerated the additive `_global/list_games` catalog snapshot row for Gate 20.2; earlier Gate 20.1 action-tree migration remained covered by the same snapshot surface. |
+| `cargo test -p wasm-api --test api_surface` | pass | focused snapshot verification after regeneration, included in `cargo test -p wasm-api`. |
+| `cargo test -p wasm-api` | pass | Gate 20.2 catalog metadata regression and snapshot test pass. |
 | `cargo run -p simulate -- --game starbridge_crossing --games 1000` | pass | 1000 games, 2 seats, 2,000,000 total actions, zero capped matches. |
 | `npm --prefix apps/web run smoke:wasm` | pass | rebuilt current Rust/WASM and loaded the browser API. |
 | `npm --prefix apps/web run build` | pass | copied 20 player-rule docs, rebuilt WASM, typechecked, and built Vite output. |
-| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge board, jump, replay, no-leak, and responsive Puppeteer smoke. |
+| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge setup labels, board, jump, replay, no-leak, and responsive Puppeteer smoke. |
 | `cargo bench -p starbridge_crossing` | pass | benchmark smoke floors pass. |
 | `npm --prefix apps/web run smoke:e2e` | pass | includes Starbridge browser smoke. |
+| `npm --prefix apps/web run smoke:ui` | pass | catalog/setup shell smoke after Gate 20.2 setup-label bridge change. |
 
 ## Pending Human/Follow-Up Items
 

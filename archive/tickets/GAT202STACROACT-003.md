@@ -1,6 +1,6 @@
 # GAT202STACROACT-003: Gate 20.2 docs reconciliation + closeout
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Small
 **Engine Changes**: None — docs/status-only (`games/starbridge_crossing/docs/UI.md`, `games/starbridge_crossing/docs/GAME-EVIDENCE.md`, `specs/README.md`, the spec's own Status)
@@ -115,3 +115,36 @@ to `Done`.
 3. A docs/status-only capstone has no narrower production-code boundary; the doc
    gates plus a re-run of the 001/002 acceptance commands are the correct
    verification surface.
+
+## Outcome
+
+Completed: 2026-06-28
+
+What changed:
+
+- Updated `games/starbridge_crossing/docs/UI.md` to document that the pre-match
+  setup preview uses Rust catalog `active_seats_by_count` metadata.
+- Added the Gate 20.2 setup-preview active-seat receipt to
+  `games/starbridge_crossing/docs/GAME-EVIDENCE.md` and updated its command
+  evidence rows for the catalog snapshot, wasm-api regression, Starbridge
+  browser smoke, full e2e smoke, and UI smoke.
+- Flipped the Gate 20.2 row in `specs/README.md` to `Done`.
+- Flipped the Gate 20.2 spec status to `Done` and reconciled the work breakdown
+  from the obsolete `GAT202STASEAT-*` draft stem to the live
+  `GAT202STACROACT-001..003` ticket series.
+
+Deviations:
+
+- The original spec's four candidate task split was superseded by the live
+  three-ticket `GAT202STACROACT` series; the status/spec prose now records the
+  actual delivered split.
+
+Verification:
+
+- `rg -n 'active_seats_by_count|setup-preview active-seat labels|setup-preview seat source|Rust active-seat' games/starbridge_crossing/docs/UI.md games/starbridge_crossing/docs/GAME-EVIDENCE.md` — passed.
+- `rg -n 'Gate 20\.2|Status \| `Done`|Completed 2026-06-28' specs/README.md specs/gate-20-2-starbridge-crossing-active-seat-setup-labels.md` — passed.
+- `rg -n 'GAT202STASEAT|\(`Planned`\)|currently `Planned`|Gate 20\.2 tracker row already exists' specs/gate-20-2-starbridge-crossing-active-seat-setup-labels.md specs/README.md` — no matches.
+- `node scripts/check-doc-links.mjs` — passed.
+- `cargo test --workspace` — passed.
+- `npm --prefix apps/web run smoke:e2e` — passed, including a fresh build.
+- `git diff --check` — passed.

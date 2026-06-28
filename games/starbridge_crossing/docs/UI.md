@@ -24,6 +24,13 @@ The board uses fixed regions:
 - semantic effect feedback for step, jump-chain, finish, blocked-pass, and
   terminal effects.
 
+The pre-match setup preview uses the Rust catalog's
+`active_seats_by_count` metadata to resolve the active labels for each supported
+seat count. This matters for 2-, 3-, and 4-seat Starbridge setups because the
+active points are discontinuous around the six-point ring; TypeScript presents
+the Rust-provided mapping and does not derive the active homes by slicing the
+first N labels.
+
 ## Interaction
 
 Users build paths on the board: choose a Rust-marked peg, choose a Rust-marked
@@ -105,5 +112,6 @@ Web smoke coverage:
 - `npm --prefix apps/web run smoke:ui` validates catalog and view shape.
 - `npm --prefix apps/web run smoke:effects` validates `step` feedback.
 - `node apps/web/e2e/starbridge-crossing.smoke.mjs` validates 121-space render,
-  Rust legal previews, jump-chain path building, replay import/export,
-  reduced-motion behavior, responsive layout, and no-leak scans.
+  Rust legal previews, setup-preview active-seat labels for 2/3/4 seats,
+  jump-chain path building, replay import/export, reduced-motion behavior,
+  responsive layout, and no-leak scans.

@@ -7,7 +7,7 @@
 | Spec ID | `gate-20-2-starbridge-crossing-active-seat-setup-labels` |
 | Stage / unit | Public scaling phase — Gate 20 correctness follow-on (post-`Done`) |
 | Gate | Gate 20.2 (presentation/contract fix on shipped Gate 20 `starbridge_crossing`) |
-| Status | `Planned` |
+| Status | `Done` |
 | Date | 2026-06-27 |
 | Owner | TBD |
 | Authority order | `docs/FOUNDATIONS.md` → `docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md` → `docs/ENGINE-GAME-DATA-BOUNDARY.md` → `games/starbridge_crossing/docs/RULES.md` → this spec |
@@ -121,30 +121,23 @@ Rust-owned setup fact, contrary to `SC-UI-001` and the
   mapping stays game-local in `games/starbridge_crossing` and is surfaced through
   the existing catalog plumbing.
 
-## 5. Work breakdown (candidate AGENT-TASKs)
+## 5. Work breakdown
 
-1. **GAT202STASEAT-001** — RED: add a web-shell unit/smoke test asserting that
-   Starbridge 2/3/4-seat setup previews name the Rust-correct active seats, and a
-   wasm-api test asserting the new catalog metadata's active indices equal the
-   `clockwise_index()` of `active_points_for_seat_count` for `{2,3,4,6}` (compare
-   on indices, not formatted labels). Confirm both fail on `main`.
-2. **GAT202STASEAT-002** — GREEN (Rust): add the Rust-owned active-seat-by-count
-   metadata (active ring indices) to the Starbridge catalog entry, editing the
-   early-return inline JSON at `crates/wasm-api/src/catalog.rs:302`–`311` and/or
-   its `catalog_starbridge_seat_labels_json` neighbor (`catalog.rs:353`–`355`) —
-   not the shared `with_catalog_seat_metadata` path Starbridge bypasses — sourced
-   from `active_points_for_seat_count` via `StarPoint::clockwise_index()`; keep it
-   additive and deterministic.
-3. **GAT202STASEAT-003** — GREEN (web): declare the new field on `GameCatalogEntry`
-   (`apps/web/src/wasm/client.ts:95`), then make `setupLabelsForCount` consume the
-   Rust mapping (fallback to slice only when absent); verify contiguous-seat
-   games unchanged; turn the RED tests green.
-4. **GAT202STASEAT-004** — Evidence: refresh the catalog snapshot test (single
-   additive Starbridge row), `games/starbridge_crossing/docs/UI.md` (note the
-   setup-preview seat source), `GAME-EVIDENCE.md` receipt, and `specs/README.md`
-   tracker row.
+1. **GAT202STACROACT-001** — Rust catalog metadata: add the Rust-owned
+   active-seat-by-count metadata (active ring indices) to the Starbridge catalog
+   entry, sourced from `active_points_for_seat_count` via
+   `StarPoint::clockwise_index()`; refresh the additive catalog snapshot and add
+   the wasm-api metadata regression test.
+2. **GAT202STACROACT-002** — Web consumption: declare the new field on
+   `GameCatalogEntry`, make `setupLabelsForCount` consume the Rust mapping
+   before falling back to contiguous first-N labels for games without it, and
+   extend the Starbridge browser smoke to cover 2/3/4-seat setup previews.
+3. **GAT202STACROACT-003** — Evidence and closeout: update
+   `games/starbridge_crossing/docs/UI.md`,
+   `games/starbridge_crossing/docs/GAME-EVIDENCE.md`, `specs/README.md`, and this
+   spec's status after the code/web tickets pass.
 
-Dependency order: 001 → 002 → 003 → 004.
+Dependency order: 001 → 002 → 003.
 
 ## 6. Exit criteria
 
@@ -162,7 +155,9 @@ Dependency order: 001 → 002 → 003 → 004.
 
 ## 7. Acceptance evidence
 
-- Failing-first transcript (GAT202STASEAT-001), then green.
+- Failing-first transcript was superseded by the live GAT202STACROACT split;
+  regression coverage landed in the wasm-api catalog test and Starbridge browser
+  smoke, then passed.
 - `cargo test -p wasm-api` (catalog metadata matches `active_points_for_seat_count`).
 - `cargo test --workspace`.
 - `npm --prefix apps/web run build` and `node apps/web/e2e/starbridge-crossing.smoke.mjs`.
@@ -199,8 +194,8 @@ Dependency order: 001 → 002 → 003 → 004.
 - `games/starbridge_crossing/docs/UI.md` — note the setup-preview seat source is
   the Rust active-seat-by-count catalog metadata.
 - `games/starbridge_crossing/docs/GAME-EVIDENCE.md` — fix receipt.
-- `specs/README.md` — the Gate 20.2 tracker row already exists (`Planned`); flip
-  it to `Done` at closeout.
+- `specs/README.md` — the Gate 20.2 tracker row exists and is flipped to `Done`
+  at closeout.
 - Web-shell catalog docs: confirm no renderer-list/smoke-list membership change
   (game already listed); only setup-label sourcing changes.
 
