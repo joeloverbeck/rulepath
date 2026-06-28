@@ -59,21 +59,42 @@ Rust-owned setup fact, contrary to `SC-UI-001` and the
 
 **In scope**
 
-- Rust-owned catalog metadata: extend the catalog entry so that, for each
-  supported seat count, Rust declares the active seat indices (or active seat
-  labels) drawn from its own `active_points_for_seat_count` mapping. The data is
-  identity/metadata only (no formulas, selectors, or behavior language) and is
-  sourced from the existing Rust setup authority, not re-authored.
+- Rust-owned catalog metadata: extend the Starbridge catalog entry so that, for
+  each supported seat count, Rust declares the active **ring indices** (the
+  clockwise positions into the existing six-point `seat_labels` ring) drawn from
+  its own `active_points_for_seat_count` mapping via
+  `StarPoint::clockwise_index()` (`games/starbridge_crossing/src/ids.rs:119`).
+  The data is identity/metadata only (no formulas, selectors, or behavior
+  language) and is sourced from the existing Rust setup authority, not
+  re-authored. The concrete edit site is the early-return inline catalog JSON
+  for `RegisteredGame::StarbridgeCrossing`
+  (`crates/wasm-api/src/catalog.rs:302`–`311`) and its
+  `catalog_starbridge_seat_labels_json` neighbor (`catalog.rs:353`–`355`) —
+  **not** the shared `with_catalog_seat_metadata`/`catalog_seat_metadata_fields`
+  path, which Starbridge bypasses via the early return at `catalog.rs:313`–`318`.
+  Indices (not formatted label strings) are the canonical form because
+  `StarPoint::label()` emits lowercase-underscore (`"north_east"`,
+  `ids.rs:99`) while the catalog ring labels are title-case-with-space
+  (`"North East"`); deriving by index keeps the Rust↔catalog bridge format-free.
+  Where the metadata is surfaced as resolved labels, reuse the existing
+  `active_seat_labels` / `SeatDisplayLabel[]` shape already projected by the
+  in-match public view (e.g. `crates/wasm-api/src/games/river.rs:94`,
+  `apps/web/src/wasm/client.ts:925`) rather than inventing a divergent shape.
 - Web shell consumption: `setupLabelsForCount` (and any sibling setup-label
   resolution) must consume the Rust-provided active-seat mapping when present and
   use it for `modeDetail`, `setupSeatRoles`, and any other setup-preview surface
-  that names seats. The "first *N*" slice remains **only** as a fallback for
+  that names seats. This requires declaring the new field on the `GameCatalogEntry`
+  bridge type (`apps/web/src/wasm/client.ts:95`, alongside `seat_labels?` /
+  `supported_seats?` at 103–104) so it is typed and available to the consumer.
+  The "first *N*" slice remains **only** as a fallback for
   games that do not provide the mapping (all current games except Starbridge,
   whose active seats are contiguous so the fallback is already correct).
 - Tests: a failing-first assertion that Starbridge 2/3/4-seat setup previews name
   the Rust-correct seats (North+South for 2, etc.), plus a regression that
   contiguous-seat games are unchanged. A wasm-api/catalog test that the new
-  metadata matches `active_points_for_seat_count` for `{2,3,4,6}`.
+  metadata's active indices equal the `clockwise_index()` of
+  `active_points_for_seat_count` for `{2,3,4,6}` (compare on indices, not on
+  formatted label strings).
 - A web e2e/smoke assertion (extend `apps/web/e2e/starbridge-crossing.smoke.mjs`
   or a setup-focused smoke) that the Players & roles list for a 2-seat Starbridge
   setup contains `South` and not `North East`.
@@ -85,9 +106,10 @@ Rust-owned setup fact, contrary to `SC-UI-001` and the
 - Re-labelling seats or changing the six-point ring names.
 - Replay/hash/fixture/trace determinism artifacts — this is additive catalog
   metadata and presentation; it does not change any accepted command stream,
-  state, effect, or hash. (If the catalog snapshot test
-  `crates/wasm-api/tests/.../api_surface.tsv` carries the catalog JSON, its
-  Starbridge row is the single expected additive diff.)
+  state, effect, or hash. The catalog snapshot test
+  `crates/wasm-api/tests/snapshots/api_surface.tsv` carries the full catalog JSON
+  (in its `_global/list_games` row); the Starbridge entry's added field is the
+  single expected additive diff.
 
 **Not allowed**
 
@@ -103,12 +125,18 @@ Rust-owned setup fact, contrary to `SC-UI-001` and the
 
 1. **GAT202STASEAT-001** — RED: add a web-shell unit/smoke test asserting that
    Starbridge 2/3/4-seat setup previews name the Rust-correct active seats, and a
-   wasm-api test asserting the new catalog metadata equals
-   `active_points_for_seat_count`. Confirm both fail on `main`.
+   wasm-api test asserting the new catalog metadata's active indices equal the
+   `clockwise_index()` of `active_points_for_seat_count` for `{2,3,4,6}` (compare
+   on indices, not formatted labels). Confirm both fail on `main`.
 2. **GAT202STASEAT-002** — GREEN (Rust): add the Rust-owned active-seat-by-count
-   metadata to the Starbridge catalog entry, sourced from
-   `active_points_for_seat_count`; keep it additive and deterministic.
-3. **GAT202STASEAT-003** — GREEN (web): make `setupLabelsForCount` consume the
+   metadata (active ring indices) to the Starbridge catalog entry, editing the
+   early-return inline JSON at `crates/wasm-api/src/catalog.rs:302`–`311` and/or
+   its `catalog_starbridge_seat_labels_json` neighbor (`catalog.rs:353`–`355`) —
+   not the shared `with_catalog_seat_metadata` path Starbridge bypasses — sourced
+   from `active_points_for_seat_count` via `StarPoint::clockwise_index()`; keep it
+   additive and deterministic.
+3. **GAT202STASEAT-003** — GREEN (web): declare the new field on `GameCatalogEntry`
+   (`apps/web/src/wasm/client.ts:95`), then make `setupLabelsForCount` consume the
    Rust mapping (fallback to slice only when absent); verify contiguous-seat
    games unchanged; turn the RED tests green.
 4. **GAT202STASEAT-004** — Evidence: refresh the catalog snapshot test (single
@@ -145,6 +173,10 @@ Dependency order: 001 → 002 → 003 → 004.
 
 - **Behavior authority / `SC-UI-001`** — which seats are active for a seat count
   is Rust setup behavior; the shell must present it, not recompute it.
+- **§12 stop condition closed** — the shipped slice heuristic has the shell
+  decide a Rust-owned setup fact, which is a live `docs/FOUNDATIONS.md §12`
+  "TypeScript decides … behavior" crossing. This fix removes that crossing rather
+  than introducing one; it is a contract correction, not a cosmetic relabel.
 - **`docs/MULTI-SEAT-AND-SURFACE-CONTRACT.md`** — "Rust owns setup"; the browser
   "may present setup controls" but must source assignments from Rust. Discontinuous
   supported sets are explicitly contemplated (Supported sets row).
@@ -167,7 +199,8 @@ Dependency order: 001 → 002 → 003 → 004.
 - `games/starbridge_crossing/docs/UI.md` — note the setup-preview seat source is
   the Rust active-seat-by-count catalog metadata.
 - `games/starbridge_crossing/docs/GAME-EVIDENCE.md` — fix receipt.
-- `specs/README.md` — add the Gate 20.2 tracker row; flip to `Done` at closeout.
+- `specs/README.md` — the Gate 20.2 tracker row already exists (`Planned`); flip
+  it to `Done` at closeout.
 - Web-shell catalog docs: confirm no renderer-list/smoke-list membership change
   (game already listed); only setup-label sourcing changes.
 
@@ -180,9 +213,10 @@ Dependency order: 001 → 002 → 003 → 004.
 
 ## 12. Assumptions (one-line-correctable)
 
-- A1: `active_points_for_seat_count` (`games/starbridge_crossing/src/ids.rs`) is
-  the single ground-truth active-seat mapping; the catalog metadata must be
-  derived from it, not re-authored.
+- A1: `active_points_for_seat_count` (`games/starbridge_crossing/src/ids.rs:151`)
+  is the single ground-truth active-seat mapping; the catalog metadata (active
+  ring indices) must be derived from it via `StarPoint::clockwise_index()`
+  (`ids.rs:119`), not re-authored.
 - A2: The defect is presentation-only (pre-match setup preview); no accepted
   command stream, state, effect, view, or hash changes, so no ADR-0009
   determinism migration is required beyond the additive catalog-snapshot diff.

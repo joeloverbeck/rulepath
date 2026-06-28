@@ -8,7 +8,7 @@ Before checking FOUNDATIONS, scan for contradictions between the spec's Objectiv
 
 ## 4.1 Alignment Section Verification
 
-Rulepath specs carry a **FOUNDATIONS & boundary alignment** section (see `gate-0-repository-skeleton.md` §7) as a table of `Principle | Stance | Rationale` rows. Verify each entry:
+Rulepath specs carry a **FOUNDATIONS & boundary alignment** section (see `gate-0-repository-skeleton.md` §7) as a table of `Principle | Stance | Rationale` rows — or, as the post-gate correctness/contract follow-on specs do, as equivalent prose bullets naming the same per-principle mechanism. Either form is acceptable; the named-mechanism specificity check below applies to both. Verify each entry:
 
 - Principle names must match `docs/FOUNDATIONS.md` headings (e.g. `§3 engine-core is a contract kernel`, `§11 Universal acceptance invariants`, `§12 Stop conditions`).
 - Each rationale must be specific — a bare `aligns` without a named mechanism (which deliverable, which boundary, which invariant) is a MEDIUM Improvement finding.
