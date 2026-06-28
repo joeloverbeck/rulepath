@@ -27,6 +27,12 @@ Silent gaps are not allowed. Use explicit `not applicable`, `intentionally defer
 
 UI smoke tests do not prove rule correctness. Rust tests, named rule tests, golden traces, replay/hash checks, serialization checks, visibility/no-leak checks, and simulations are primary.
 
+For games with large card/event effect sets, keep this file as the rule-ID to
+proof index and use [`GAME-EVENT-COVERAGE.md`](GAME-EVENT-COVERAGE.md) for the
+event-effect branch matrix. Event coverage rows are evidence only: selectors,
+conditions, triggers, target filters, rule overrides, and effect formulas remain
+typed Rust behavior and MUST NOT be encoded in this matrix or the event matrix.
+
 ## Status labels
 
 | Status | Meaning |
@@ -152,6 +158,14 @@ links rules to benchmark evidence without duplicating benchmark receipts.
 |---|---|---|---|
 | `BENCH-001` | `<rule_ids>` | `<reason>` | `GAME-EVIDENCE.md#benchmarks-and-bot-policy` |
 
+## Event-effect coverage link
+
+Use this section when a separate event-effect matrix exists.
+
+| Event coverage artifact | Event evidence ID range | Rule IDs covered | What remains in this matrix | Status |
+|---|---|---|---|---|
+| `GAME-EVENT-COVERAGE.md` | `<EVT-001...EVT-NNN>` | `<rule_ids>` | stable rule-to-proof rows, visibility rows, replay/hash rows, benchmark links | not started / partial / covered / not applicable |
+
 ## Rule-ID migration notes
 
 | Old rule ID | New rule ID(s) | Reason | Coverage rows updated? | Traces/tests updated? | Date |
@@ -172,4 +186,7 @@ links rules to benchmark evidence without duplicating benchmark receipts.
 - Visibility/no-leak surfaces are covered or explicitly `not applicable`.
 - Bot coverage uses legal action APIs and allowed views.
 - Benchmark relevance links are recorded for hot rules/mechanics; current workload status lives in `GAME-EVIDENCE.md`.
+- Large event/effect branches link to `GAME-EVENT-COVERAGE.md` when applicable,
+  and neither matrix encodes selectors, conditions, triggers, or effect
+  formulas.
 - Rule-ID migrations update rules, coverage, tests, traces, docs, and release notes.

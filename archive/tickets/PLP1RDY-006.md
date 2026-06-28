@@ -1,6 +1,6 @@
 # PLP1RDY-006: Typed event-card boundary + mechanic/scaffolding safety + templates
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Large
 **Engine Changes**: None — boundary/mechanic docs + templates (`docs/ENGINE-GAME-DATA-BOUNDARY.md`, `docs/MECHANIC-ATLAS.md`, `docs/MECHANICAL-SCAFFOLDING-REGISTER.md`, `templates/GAME-MECHANICS.md`, `templates/GAME-RULE-COVERAGE.md`, `templates/GAME-EVENT-COVERAGE.md`, `templates/PRIMITIVE-PRESSURE-LEDGER.md`)
@@ -126,3 +126,50 @@ split into rule + event-effect matrices and add new `templates/GAME-EVENT-COVERA
 1. `grep -niE 'no (yaml|dsl)|untyped effect|selectors?|conditions?' docs/ENGINE-GAME-DATA-BOUNDARY.md`
 2. `node scripts/check-doc-links.mjs && bash scripts/boundary-check.sh`
 3. A narrower command suffices: docs/templates only, so pattern greps + the doc-link and boundary gates are the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Operationalized ADR 0011 across the boundary, mechanic, scaffolding, and
+template surfaces:
+
+- `docs/ENGINE-GAME-DATA-BOUNDARY.md` now defines the typed Rust card-effect
+  registry pattern and explicitly bans YAML/JSON/TOML/RON/CSV/table-row or
+  markdown-matrix selectors, conditions, triggers, effect formulas, target
+  filters, rule overrides, legality, mutation, visibility decisions, and bot
+  tactics.
+- `docs/MECHANIC-ATLAS.md` now includes COIN-scale/private large-event review
+  categories and records that private-stress evidence is not hidden promotion
+  authority.
+- `docs/MECHANICAL-SCAFFOLDING-REGISTER.md` now rejects event-card dispatch,
+  faction eligibility, operation/special-activity coupling, propaganda/upkeep,
+  persistent event expiry, and faction bot priorities as behavior rather than
+  scaffolding.
+- `templates/GAME-MECHANICS.md`, `templates/GAME-RULE-COVERAGE.md`, and
+  `templates/PRIMITIVE-PRESSURE-LEDGER.md` now carry the private-stress/event
+  coverage guidance.
+- Added `templates/GAME-EVENT-COVERAGE.md` as a placeholder-only event-effect
+  coverage matrix that records evidence without becoming executable behavior or
+  copying private licensed text.
+
+Deviations from plan: none. This ticket changed only docs/templates. It did not
+add a private game crate, Rust registry, effect trait, CI, catalog, trace,
+fixture, replay, hash, RNG, benchmark, or web source change. Existing unrelated
+`.claude/skills/*` worktree changes were left untouched and unstaged.
+
+Verification:
+
+- `grep -niE 'typed (rust )?(card-effect )?registr|no (yaml|dsl)|untyped effect|selectors?|conditions?|effect formulas|table rows' docs/ENGINE-GAME-DATA-BOUNDARY.md`
+  passed and confirmed the typed-registry pattern plus no-untyped-effect-row
+  boundary.
+- `grep -niE 'event-card dispatch|faction eligibility|operation and special-activity|propaganda|persistent event expiry|faction bot priorities|not scaffolding|stays behavioral' docs/MECHANICAL-SCAFFOLDING-REGISTER.md`
+  passed, confirming the behavior-vs-scaffolding anti-examples.
+- `test -f templates/GAME-EVENT-COVERAGE.md` passed, and focused template greps
+  confirmed the event matrix is evidence-only with unknown-field/no-selector
+  guardrails.
+- `grep -nE '^Status: Accepted' docs/adr/0011-*.md` passed (`Status:
+  Accepted`).
+- `node scripts/check-doc-links.mjs` passed (`Checked 34 markdown files`).
+- `bash scripts/boundary-check.sh` passed (`engine-core boundary check passed`;
+  `game-test-support dev-only boundary check passed`).

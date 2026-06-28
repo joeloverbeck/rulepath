@@ -47,6 +47,15 @@ plumbing around existing generic contracts.
 |---|---:|---|---|---|---|
 | `<game_id>` | `<stage>` | `<module/helper>` | first / second / third / benchmark / bug / maintenance | `<status>` | `<notes>` |
 
+`private-stress-only` is an allowed pressure type only for sanctioned
+private-lane evidence. It may identify stress on a public mechanic shape, but it
+does not silently count as public promotion evidence. Before private evidence is
+used in a public primitive decision, record a sanitized rationale, the accepted
+private-lane ADR, what public-safe evidence exists, and whether fresh ADR review
+is required. If the only third-use evidence is private licensed work, mark the
+decision `ADR-required` or `rejected/deferred with rationale`; do not promote a
+public helper from hidden evidence alone.
+
 ## Local implementations compared
 
 | Aspect | Game A | Game B | Game C | Same shape? | Notes |
@@ -88,6 +97,7 @@ Decision: reuse / promote / defer / reject / ADR-required
 | helper belongs in `game-stdlib`? | yes/no/unclear |
 | would contaminate `engine-core`? | yes/no/unclear |
 | static-data behavior risk? | none/low/medium/high |
+| private-stress-only evidence involved? | yes/no; if yes, sanitized rationale and ADR authority |
 | replay/hash impact acceptable? | yes/no/unclear |
 | visibility/no-leak impact acceptable? | yes/no/unclear/not applicable |
 | examples and anti-examples known? | yes/no |
@@ -213,6 +223,8 @@ Not a fit:
 - large static maps used as a behavior language
 - one-off UI layout similarity without shared Rust behavior pressure
 - broad hidden-information abstraction that cannot state pairwise no-leak tests
+- private licensed implementation evidence used as the hidden reason to promote
+  a public helper
 
 ## ADR need
 
