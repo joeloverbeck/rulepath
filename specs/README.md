@@ -117,7 +117,8 @@ appear as named tracker units or accepted register dispositions.
 | 12 | Gate 21 — Pachisi-family race | _(seed; unwritten)_ | Not started | Next after Gate 20. Track topology + deterministic chance; capture/safety semantics. |
 | 13 | Gate 22 — Four Winds Melds (scoped Mahjong-family) | _(seed; unwritten)_ | Not started | Pending Gate 21. Reaction-window hard gate; wall/concealed-set no-leak. |
 | 14 | Gate 23 — Commonwealth Frontier capstone | _(seed; unwritten)_ | Not started | Pending Gate 22 + all armed atlas promotions resolved. Medium-heavy original asymmetric map. |
-| 15 | Gate P — private monster-game red-team | _(private; non-public)_ | Not started | Last. Isolated, optional; must not drive public architecture. |
+| PLP1-RDY | Private-lane foundation readiness (opens Private Lane P1 parallel to the public ladder) | [`private-lane-foundation-readiness.md`](private-lane-foundation-readiness.md) | Planned | Non-feature doctrine/law/template interlock. Authors + accepts ADRs 0010 (sanctioned private-game lane), 0011 (typed Rust event-card mechanism), 0012 (private repo/CI/catalog overlay); amends FOUNDATIONS §1/§10/§11/§12/§13 for timing only; records Part C VCS/CI/catalog as doctrine + seam plans. No public code/CI/fixture/hash/game change. Seeded from [`../reports/cuba-libre-private-game-foundation-readiness-change-plan.md`](../reports/cuba-libre-private-game-foundation-readiness-change-plan.md). Does not reorder public Gates 21–23. |
+| 15 | Gate P — private monster-game red-team | _(private; non-public)_ | Not started | Last. Isolated, optional; must not drive public architecture. Its parallel realization is **Private Lane P1**, opened by `PLP1-RDY` above (ADRs 0010/0011/0012); private implementation is admitted only after `PLP1-RDY` is `Done`. |
 
 Status values: `Not started` → `Planned` (spec written) → `In progress`
 (AGENT-TASKs executing) → `Done` (gate exit criteria pass). Flip a spec to

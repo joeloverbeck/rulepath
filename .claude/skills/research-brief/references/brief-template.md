@@ -8,9 +8,13 @@ research-target → load-bearing-reads map. The SKILL.md flow references both.
 ## A. Canonical brief anatomy
 
 The emitted file `reports/<topic>-research-brief.md` is the *prompt the user pastes into
-ChatGPT-Pro Session 2*. It is self-contained: Session 2 sees only this prompt plus the
-uploaded manifest. Use these eight sections, in order. Scale each to the target; omit a
-section only when genuinely N/A and say so.
+ChatGPT-Pro Session 2*. It is self-contained: Session 2 sees this prompt, the uploaded
+manifest, and any out-of-band inputs the brief explicitly enumerates (e.g. uploaded source
+documents — see SKILL "Out-of-band / private-IP-subject briefs"). Use these eight sections,
+in order, as the backbone. Scale each to the target; omit a section only when genuinely N/A
+and say so — and you MAY *add* target-specific sections beyond the eight when the target
+warrants (e.g. an inputs/how-to-use preamble for out-of-band uploads, or an IP-discipline
+section for a private-IP subject; see "Optional target-specific sections" below).
 
 ### 1. Context
 
@@ -164,6 +168,21 @@ e.g. every replacement preserves the load-bearing content of the original; no ne
 weakens an upstream foundation doc or silently amends an accepted ADR; every external claim
 is cited; the deliverable set matches §7 exactly; the §1 fetch-baseline commit contains every
 file named in the §2 read-in-full list.
+
+### Optional target-specific sections
+
+The eight sections above are the backbone, not a ceiling. Add sections when the target
+warrants:
+
+- **Inputs preamble** — when Session 2 receives out-of-band uploads beyond the manifest
+  (PDFs, datasets), open with a short block enumerating *exactly* its inputs (this prompt;
+  the named manifest; each uploaded document by name and role) and the fetch-baseline
+  commit, so the locked Session 2 knows its full input set rather than assuming the default
+  brief-plus-manifest pair.
+- **IP discipline** — when the subject is private licensed IP, add a section instructing
+  Session 2 not to reproduce licensed prose, art, or component text into the deliverable, to
+  keep the subject material out of the repo and every public surface, and noting that the
+  manifest deliberately excludes it. Cite `docs/IP-POLICY.md` and FOUNDATIONS §10.
 
 ---
 
