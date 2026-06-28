@@ -1591,6 +1591,8 @@ export type StarbridgeCrossingSeatView = {
   seat_index: number;
   home: string;
   target: string;
+  label?: string;
+  target_label?: string;
   finish_rank: number | null;
 };
 
@@ -1609,6 +1611,9 @@ export type StarbridgeCrossingPublicView = {
   freshness_token: number;
   active_seat: RiverLedgerSeatId | null;
   terminal: string | null;
+  ui?: {
+    seat_labels?: SeatDisplayLabel[];
+  };
   ply_count: number;
   command_count: number;
   spaces: StarbridgeCrossingSpaceView[];

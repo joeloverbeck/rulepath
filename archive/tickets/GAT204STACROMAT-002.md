@@ -1,6 +1,6 @@
 # GAT204STACROMAT-002: Consume Rust seat labels in the Starbridge board + turn bar; drop `formatPoint`
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: Yes (presentation-only) — `apps/web/src/wasm/client.ts` (Starbridge view types), `apps/web/src/components/StarbridgeCrossingBoard.tsx` (consume labels, remove `formatPoint`), `apps/web/e2e/starbridge-crossing.smoke.mjs` (turn-bar assertion)
@@ -80,3 +80,23 @@ Confirm (no code change) that `ModeControls` renders the point name through `sea
 1. `npm --prefix apps/web run build`
 2. `npm --prefix apps/web run smoke:e2e` (Starbridge browser smoke, incl. the extended `assertSeatDisplayNames`)
 3. `grep -n "formatPoint" apps/web/src/components/StarbridgeCrossingBoard.tsx` — narrow grep-proof that the interim helper is gone; the e2e smoke is the full presentation boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Implemented the web consumption half of Gate 20.4:
+
+- Added additive Starbridge TypeScript view fields for `seats[].label`, `seats[].target_label`, and `ui.seat_labels`.
+- Updated `StarbridgeCrossingBoard` to render seat names and legend target names from Rust-projected labels and removed the interim `formatPoint` helper entirely.
+- Extended `apps/web/e2e/starbridge-crossing.smoke.mjs` so `assertSeatDisplayNames` checks the board legend targets and the shared `ModeControls` turn-status text for point names with no `Seat N` fallback.
+
+Deviations from plan: none. No `ModeControls` or `seatLabels.ts` code was changed; the turn bar resolves through the existing shared `view.ui.seat_labels` path.
+
+Verification:
+
+- `npm --prefix apps/web run build` passed after the final source changes.
+- `node apps/web/e2e/starbridge-crossing.smoke.mjs` passed after the final source changes.
+- `npm --prefix apps/web run smoke:ui` passed after the final source changes.
+- `npm --prefix apps/web run smoke:e2e` passed before the final no-behavior type-helper cleanup; the affected Starbridge entry and build were rerun afterward as listed above.
+- `rg -n "formatPoint" apps/web/src/components/StarbridgeCrossingBoard.tsx` returned no matches.

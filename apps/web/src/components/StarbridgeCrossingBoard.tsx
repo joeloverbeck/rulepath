@@ -287,7 +287,7 @@ export function StarbridgeCrossingBoard({
             </span>
             <strong>{nameForSeat(seat.seat_id)}</strong>
             <small>
-              to {formatPoint(seat.target)}
+              to {seat.target_label}
               {seat.finish_rank ? `, rank ${seat.finish_rank}` : ""}
             </small>
           </div>
@@ -458,7 +458,7 @@ function terminalLabel(view: StarbridgeCrossingPublicView) {
 }
 
 function seatNameMap(seats: StarbridgeCrossingSeatView[]): Map<string, string> {
-  return new Map(seats.map((seat) => [seat.seat_id, formatPoint(seat.home)]));
+  return new Map(seats.flatMap((seat) => (seat.label ? [[seat.seat_id, seat.label] as const] : [])));
 }
 
 function resolveSeatName(seat: string | null, names: Map<string, string>): string {
@@ -471,14 +471,6 @@ function resolveSeatName(seat: string | null, names: Map<string, string>): strin
   }
   const suffix = Number(seat.replace("seat_", ""));
   return Number.isFinite(suffix) ? `Seat ${suffix + 1}` : seat;
-}
-
-function formatPoint(point: string): string {
-  return point
-    .split(/[_\s]+/)
-    .filter(Boolean)
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
 }
 
 function zoneClass(zone: string) {
