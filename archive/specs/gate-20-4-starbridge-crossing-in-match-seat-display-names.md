@@ -284,4 +284,48 @@ falls back to the seat index.
 - Successor: does not block Gate 21; an independent presentation/contract
   follow-on on the shipped Gate 20 game, executable any time before public
   release (Gate 20 closeout already notes IP/public-release review pending).
+
+## Outcome
+
+Completed: 2026-06-28
+
+Completed tickets:
+
+- `archive/tickets/GAT204STACROMAT-001.md`
+- `archive/tickets/GAT204STACROMAT-002.md`
+- `archive/tickets/GAT204STACROMAT-003.md`
+
+Implementation summary:
+
+- Starbridge's WASM public view now projects `ui.seat_labels`, `seats[].label`,
+  and `seats[].target_label` from the authored catalog ring labels by each
+  seat's home/target point index, including discontinuous 2/3/4-seat configs.
+- The web board consumes those Rust-projected labels and removed the interim
+  TypeScript `formatPoint` title-casing helper.
+- The shared `ModeControls` turn bar resolves Starbridge's acting-seat point
+  label through the existing `view.ui.seat_labels` path with no Gate 20.4
+  shared-component code change.
+- `games/starbridge_crossing/docs/UI.md`, `GAME-EVIDENCE.md`, and
+  `specs/README.md` record the completed behavior and evidence.
+
+Deviations:
+
+- None. The work remained an additive public-view/presentation-contract fix.
+  No command, state, effect, trace, replay, fixture, or hash migration was
+  authorized beyond the additive public API snapshot refresh.
+
+Verification evidence:
+
+- Rust: `cargo fmt --all --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo build --workspace`; `cargo test --workspace`.
+- Starbridge: `cargo run -p simulate -- --game starbridge_crossing --games 1000`; `cargo run -p replay-check -- --game starbridge_crossing --all`; `cargo run -p fixture-check -- --game starbridge_crossing`; `cargo run -p rule-coverage -- --game starbridge_crossing`.
+- Docs/catalog: `node scripts/check-doc-links.mjs`; `node scripts/check-catalog-docs.mjs`.
+- Web: `npm --prefix apps/web run smoke:wasm`; `npm --prefix apps/web run build`; `npm --prefix apps/web run smoke:ui`; `npm --prefix apps/web run smoke:effects`; `npm --prefix apps/web run smoke:e2e`.
+- Grep proof: `rg -n "formatPoint" apps/web/src/components/StarbridgeCrossingBoard.tsx` returned no matches.
+
+Archive truthing:
+
+- Active ticket glob `tickets/GAT204STACROMAT*` is empty after ticket archival.
+- Archived tickets have final `COMPLETED` status and `## Outcome`.
+- This spec is archived under `archive/specs/`, and `specs/README.md` points to
+  the archived artifact.
 </content>
