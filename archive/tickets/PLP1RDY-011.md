@@ -1,6 +1,6 @@
 # PLP1RDY-011: Roadmap & specs placement — Private Lane P1 + tracker + M1 note
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: MEDIUM
 **Effort**: Medium
 **Engine Changes**: None — roadmap/contract/index docs (`docs/ROADMAP.md`, `docs/OFFICIAL-GAME-CONTRACT.md`, `specs/README.md`)
@@ -107,3 +107,21 @@ private-spec field set (report `E-03`).
 1. `grep -nE 'Private Lane P1|P1-M1|Doctrine pending' docs/ROADMAP.md specs/README.md`
 2. `node scripts/check-catalog-docs.mjs && node scripts/check-doc-links.mjs`
 3. A narrower command suffices: index/roadmap/contract docs only, so the placement greps + the catalog-docs and doc-link gates are the correct verification boundary.
+
+## Outcome
+
+Completed the roadmap, spec-index, and official-contract placement pass. Added a
+Private Lane P1 roadmap section beside the public gate order without reordering
+Gates 21-23. Added the `P1-M1` opaque private-lane tracker row at `Doctrine
+pending` in `specs/README.md`, linking only to accepted ADRs 0010, 0011, and
+0012. Added the Private Lane P1 milestone 1 capability target, explicit
+non-goals, and required private-spec field set to
+`docs/OFFICIAL-GAME-CONTRACT.md`.
+
+Verification:
+
+- `grep -nE 'Private Lane P1|P1-M1|Doctrine pending' docs/ROADMAP.md specs/README.md docs/OFFICIAL-GAME-CONTRACT.md`
+- `node scripts/check-catalog-docs.mjs`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
+- diff review confirmed the added lines use opaque identifiers only; the existing public PLP1-RDY report filename context was not introduced by this ticket.

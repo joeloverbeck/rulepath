@@ -51,6 +51,27 @@ reveals a public invariant violation in already-public seams.
 
 > Implementation progress and the per-gate spec for each gate are tracked in [`../specs/README.md`](../specs/README.md). The ladder above is law; that index is the mutable progress tracker. This document is not edited to record which gates are done.
 
+### 1A. Private Lane P1
+
+Private Lane P1 is a sanctioned parallel private-game lane, not a public ladder
+stage and not a reorder of Gates 21-23. It may proceed only after the readiness
+interlocks authorized by ADR 0010, ADR 0011, and ADR 0012 are complete.
+
+Private Lane P1 exists to validate a first private licensed game in an isolated
+private repository and private build while keeping public Rulepath clean:
+
+- no private title, id, catalog string, fixture name, e2e name, source text, or
+  build artifact in public files, public CI, public docs, public traces, public
+  bundles, or public WASM/JS;
+- public architecture may gain only generic, private-free seams;
+- public Gates 21-23 remain the public product sequence;
+- any public release candidate must satisfy the ordinary public IP, catalog,
+  WASM/web, bot, UI, accessibility, no-leak, and release gates from scratch.
+
+The mutable private-lane progress record lives in
+[`../specs/README.md`](../specs/README.md). This roadmap section records the
+lane's placement beside the public order only.
+
 Pre-Gate-18 debt interlock: before opening Gate 18 implementation work, the
 current gate spec must confirm that mechanical scaffolding debt and trace debt
 from Gates 15-17 are either closed, explicitly not applicable, or deferred by an

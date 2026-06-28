@@ -94,6 +94,48 @@ deferral must name the closure gate. It cannot survive into
 `private-release-candidate`, `public-release-candidate`, or any public official
 profile.
 
+### Private Lane P1 milestone 1 target
+
+`P1-M1` is the opaque public tracker label for the first private-lane milestone.
+It targets private rule-complete validation for a first sanctioned private
+licensed game, not public release. The capability target is:
+
+- private repository pinned to a public Rulepath commit;
+- typed Rust game-local rules, setup, legal action tree, validation,
+  transitions, scoring, terminal detection, visibility projection, semantic
+  effects, replay/hash evidence, and fixture/evidence profiles;
+- private event/card coverage when event-card pressure exists, using typed Rust
+  behavior rather than YAML, DSL, or untyped effect rows;
+- 5-viewer or larger no-leak proof for asymmetric roles/factions;
+- private-source receipts and public back-leak sweep;
+- Level 0 bot support, or a bounded deferral allowed only by the
+  `private-milestone-1-rule-complete` profile.
+
+Explicit non-goals:
+
+- no public catalog entry, public renderer, public route, public CI dependency,
+  public trace, public fixture, public e2e, public source text, or public build
+  artifact for the private game;
+- no `engine-core` nouns or public behavior promotion from private pressure;
+- no public helper promotion unless a later public-safe rationale and accepted
+  governance path justify it;
+- no private implementation spec in the public repository.
+
+Required private-spec field set:
+
+| Field | Requirement |
+|---|---|
+| opaque private lane id | Public-safe identifier only; no licensed title or private game id in public files. |
+| pinned public Rulepath commit | Exact public commit used by the private repository. |
+| accepted ADR gates | ADR 0010, ADR 0011 when event-card pressure exists, and ADR 0012. |
+| completion profile target | `private-milestone-1-rule-complete`, `private-release-candidate`, or later public candidate with public gates. |
+| private repository/build boundary | Private crates, docs, fixtures, e2e, traces, catalog, renderer, CI, and WASM/web artifacts. |
+| private-source receipt plan | Opaque receipt IDs and private evidence store; no copied source expression in public artifacts. |
+| 5-viewer or larger no-leak matrix | Public observer plus each materially distinct role/faction/seat viewer. |
+| event/card coverage plan | Typed Rust owner, event coverage evidence, and no behavior encoded in matrices. |
+| bot plan and deferral status | Level 0 or higher evidence, or named bounded closure gate if M1 defers Level 0. |
+| public back-leak sweep | Private-owned search terms and evidence that public files/builds remain private-free. |
+
 ## 2. Readiness labels
 
 Use these labels honestly:
