@@ -1,6 +1,6 @@
 # PLP1RDY-003: Author and accept ADR 0012 — Private Repository, CI Federation, and Catalog Overlay
 
-**Status**: PENDING
+**Status**: COMPLETED
 **Priority**: HIGH
 **Effort**: Medium
 **Engine Changes**: None — new governance doc (`docs/adr/0012-private-repository-ci-catalog-overlay.md`)
@@ -110,3 +110,29 @@ Record `Status: Accepted` (Assumption A3). PLP1RDY-007 gates on this status.
 1. `grep -nE '^Status: Accepted' docs/adr/0012-private-repository-ci-catalog-overlay.md`
 2. `node scripts/check-doc-links.mjs`
 3. A narrower command suffices: the ADR ships only markdown, so doc-link integrity, the status grep, and the no-public-code-diff guard are the correct verification boundary.
+
+## Outcome
+
+Completed: 2026-06-28
+
+Added `docs/adr/0012-private-repository-ci-catalog-overlay.md` as an accepted
+ADR using the repository ADR template. The ADR defaults private games to a
+separate private repository pinned to a public Rulepath commit, with private
+game crates, docs, fixtures, renderer overlay, e2e, CI manifests, and WASM/web
+build artifacts owned privately. Public catalog entries remain public-only, and
+public repository changes are limited to later generic, private-free seams and
+reusable-workflow inputs.
+
+Deviations from plan: none. This ticket recorded doctrine and seam plans only;
+no public Rust, JavaScript, CI, TOML, catalog, renderer, fixture, trace, replay,
+hash, RNG, benchmark, or private repository implementation changed. An
+unrelated dirty file, `.claude/skills/spec-to-tickets/SKILL.md`, was present
+after verification and left untouched.
+
+Verification:
+
+- `grep -nE '^Status: Accepted' docs/adr/0012-private-repository-ci-catalog-overlay.md`
+  passed (`3:Status: Accepted`).
+- `git status --porcelain -- '*.rs' '*.mjs' '*.yml' '*.toml'` passed with no
+  output, confirming no public code/CI/TOML diff for this unit.
+- `node scripts/check-doc-links.mjs` passed (`Checked 34 markdown files`).
