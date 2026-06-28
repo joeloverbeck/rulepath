@@ -11,6 +11,7 @@ use starbridge_crossing::{
 };
 
 use crate::action_tree::action_tree_json;
+use crate::catalog::catalog_starbridge_ring_labels;
 use crate::commands::command_record_json;
 use crate::constants::*;
 use crate::json::{diagnostic_json, diagnostic_string, escape_json};
@@ -215,13 +216,29 @@ pub(crate) fn starbridge_view_json(view: &StarbridgePublicView, freshness_token:
             let finish_rank = seat
                 .finish_rank
                 .map_or_else(|| "null".to_owned(), |rank| rank.to_string());
+            let label = starbridge_point_display_label(&seat.home);
+            let target_label = starbridge_point_display_label(&seat.target);
             format!(
-                "{{\"seat_id\":\"{}\",\"seat_index\":{},\"home\":\"{}\",\"target\":\"{}\",\"finish_rank\":{}}}",
+                "{{\"seat_id\":\"{}\",\"seat_index\":{},\"home\":\"{}\",\"target\":\"{}\",\"label\":\"{}\",\"target_label\":\"{}\",\"finish_rank\":{}}}",
                 escape_json(&seat.seat_id),
                 seat.seat_index,
                 escape_json(&seat.home),
                 escape_json(&seat.target),
+                escape_json(label),
+                escape_json(target_label),
                 finish_rank
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let seat_labels = view
+        .seats
+        .iter()
+        .map(|seat| {
+            format!(
+                "{{\"seat\":\"{}\",\"label\":\"{}\"}}",
+                escape_json(&seat.seat_id),
+                escape_json(starbridge_point_display_label(&seat.home))
             )
         })
         .collect::<Vec<_>>()
@@ -250,7 +267,7 @@ pub(crate) fn starbridge_view_json(view: &StarbridgePublicView, freshness_token:
         .as_ref()
         .map_or_else(|| "null".to_owned(), starbridge_rationale_json);
     format!(
-        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"data_version_label\":\"{}\",\"freshness_token\":{},\"active_seat\":{},\"terminal\":{},\"terminal_rationale\":{},\"ply_count\":{},\"command_count\":{},\"spaces\":[{}],\"seats\":[{}],\"finish_ranks\":[{}],\"audit\":{{\"redaction_class\":\"{}\",\"private_fields\":[],\"rationale\":\"{}\"}}}}",
+        "{{\"game_id\":\"{}\",\"display_name\":\"{}\",\"variant_id\":\"{}\",\"rules_version_label\":\"{}\",\"data_version_label\":\"{}\",\"freshness_token\":{},\"active_seat\":{},\"terminal\":{},\"terminal_rationale\":{},\"ply_count\":{},\"command_count\":{},\"ui\":{{\"seat_labels\":[{}]}},\"spaces\":[{}],\"seats\":[{}],\"finish_ranks\":[{}],\"audit\":{{\"redaction_class\":\"{}\",\"private_fields\":[],\"rationale\":\"{}\"}}}}",
         escape_json(&view.game_id),
         escape_json(GAME_STARBRIDGE_CROSSING_DISPLAY_NAME),
         escape_json(&view.variant_id),
@@ -262,12 +279,26 @@ pub(crate) fn starbridge_view_json(view: &StarbridgePublicView, freshness_token:
         terminal_rationale,
         view.ply_count,
         view.command_count,
+        seat_labels,
         spaces,
         seats,
         finish_ranks,
         escape_json(&view.audit.redaction_class),
         escape_json(&view.audit.rationale)
     )
+}
+
+fn starbridge_point_display_label(point_label: &str) -> &'static str {
+    let labels = catalog_starbridge_ring_labels();
+    match point_label {
+        "north" => labels[0],
+        "north_east" => labels[1],
+        "south_east" => labels[2],
+        "south" => labels[3],
+        "south_west" => labels[4],
+        "north_west" => labels[5],
+        _ => "Unknown",
+    }
 }
 
 fn starbridge_rationale_json(rationale: &StarbridgeOutcomeRationaleView) -> String {

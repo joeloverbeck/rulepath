@@ -33,6 +33,14 @@ first N labels. Terminal matches render the Rust/WASM-projected
 `terminal_rationale` through `OutcomeExplanationPanel` plus an `aria-live`
 outcome announcement.
 
+In-match seat names are also Rust/WASM-projected display labels, not browser
+derivations from seat ids or lowercase point tokens. The public view carries
+`ui.seat_labels` for shared shell surfaces plus `seats[].label` and
+`seats[].target_label` for the board legend. The board heading, active-seat
+status, screen-reader summary, per-space accessibility labels, seat legend
+including the destination point, replay viewer, and shared turn-status bar all
+present those display labels.
+
 ## Interaction
 
 Users build paths on the board: choose a Rust-marked peg, choose a Rust-marked
@@ -116,6 +124,7 @@ Web smoke coverage:
 - `npm --prefix apps/web run smoke:effects` validates `step` feedback.
 - `node apps/web/e2e/starbridge-crossing.smoke.mjs` validates 121-space render,
   Rust legal previews, setup-preview active-seat labels for 2/3/4 seats,
-  jump-chain path building, replay import/export, reduced-motion behavior,
+  in-match Rust seat labels for the board and shared turn bar, jump-chain path
+  building, replay import/export, reduced-motion behavior,
   terminal `OutcomeExplanationPanel` rendering for the turn-limit rationale,
   outcome `aria-live` announcement, responsive layout, and no-leak scans.

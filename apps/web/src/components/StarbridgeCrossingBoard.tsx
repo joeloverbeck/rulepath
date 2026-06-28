@@ -1,5 +1,11 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
-import type { ActionChoice, ActionTree, EffectEntry, StarbridgeCrossingPublicView } from "../wasm/client";
+import type {
+  ActionChoice,
+  ActionTree,
+  EffectEntry,
+  StarbridgeCrossingPublicView,
+  StarbridgeCrossingSeatView,
+} from "../wasm/client";
 import { feedbackForEffect } from "./effectFeedback";
 import { OutcomeExplanationPanel, outcomeAnnouncementText, outcomeSurfaceData } from "./OutcomeExplanationPanel";
 
@@ -65,6 +71,8 @@ export function StarbridgeCrossingBoard({
   );
   const legalSpaces = useMemo(() => new Set(spaceActions.keys()), [spaceActions]);
   const recent = useMemo(() => recentSpaces(effects), [effects]);
+  const seatNames = useMemo(() => seatNameMap(view.seats), [view.seats]);
+  const nameForSeat = (seat: string | null) => resolveSeatName(seat, seatNames);
   const [focusedSpace, setFocusedSpace] = useState(() => sortedSpaces[0]?.space ?? "");
   const refs = useRef(new Map<string, SVGElement>());
   const feedback = latestEffect ? feedbackForEffect(latestEffect) : null;
@@ -136,7 +144,7 @@ export function StarbridgeCrossingBoard({
       <div className="starbridge-header">
         <div>
           <p className="eyebrow">Starbridge Crossing</p>
-          <h2 id="starbridge-heading">{terminal ? terminalLabel(view) : `${seatLabel(view.active_seat)} to move`}</h2>
+          <h2 id="starbridge-heading">{terminal ? terminalLabel(view) : `${nameForSeat(view.active_seat)} to move`}</h2>
         </div>
         <span className="turn-pill" data-testid="turn">
           {terminal ? "Complete" : `Ply ${view.ply_count}`}
@@ -144,7 +152,7 @@ export function StarbridgeCrossingBoard({
       </div>
 
       <p className="sr-only" aria-live="polite">
-        {liveSummary(view, pendingPath, legalSpaces.size, feedback)}
+        {liveSummary(view, pendingPath, legalSpaces.size, feedback, seatNames)}
       </p>
 
       {outcomeExplanation ? (
@@ -156,7 +164,7 @@ export function StarbridgeCrossingBoard({
       <div className="starbridge-status" aria-label="Match status">
         <div>
           <span>Active</span>
-          <strong>{seatLabel(view.active_seat)}</strong>
+          <strong>{nameForSeat(view.active_seat)}</strong>
         </div>
         <div>
           <span>Legal targets</span>
@@ -203,7 +211,7 @@ export function StarbridgeCrossingBoard({
                   }}
                   role="gridcell"
                   tabIndex={focusedSpace === space.space ? 0 : -1}
-                  aria-label={spaceLabel(space, action)}
+                  aria-label={spaceLabel(space, action, seatNames)}
                   aria-disabled={!action || !canPlay}
                   data-starbridge-space={space.space}
                   className={`starbridge-space${action ? " legal" : ""}${focusedSpace === space.space ? " focused" : ""}${
@@ -277,9 +285,9 @@ export function StarbridgeCrossingBoard({
             <span style={{ background: SEAT_COLORS[seat.seat_index] ?? "#33433d" }} aria-hidden="true">
               {SEAT_SYMBOLS[seat.seat_index] ?? seat.seat_index}
             </span>
-            <strong>{seatLabel(seat.seat_id)}</strong>
+            <strong>{nameForSeat(seat.seat_id)}</strong>
             <small>
-              {seat.home} to {seat.target}
+              to {seat.target_label}
               {seat.finish_rank ? `, rank ${seat.finish_rank}` : ""}
             </small>
           </div>
@@ -414,8 +422,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function spaceLabel(space: StarbridgeCrossingPublicView["spaces"][number], action: SpaceAction | null) {
-  const occupant = space.occupant ? `${space.occupant.peg} owned by ${seatLabel(space.occupant.owner_seat)}` : "empty";
+function spaceLabel(
+  space: StarbridgeCrossingPublicView["spaces"][number],
+  action: SpaceAction | null,
+  names: Map<string, string>,
+) {
+  const occupant = space.occupant ? `${space.occupant.peg} owned by ${resolveSeatName(space.occupant.owner_seat, names)}` : "empty";
   const legal = action ? ` Legal ${action.kind}${action.over ? ` over ${action.over}` : ""}.` : "";
   return `${space.space}, ${space.ui.coordinate_label}, ${space.ui.zone_label}, ${occupant}.${legal}`;
 }
@@ -425,6 +437,7 @@ function liveSummary(
   pendingPath: string[],
   legalCount: number,
   feedback: ReturnType<typeof feedbackForEffect> | null,
+  names: Map<string, string>,
 ) {
   if (feedback) {
     return `${feedback.title}. ${feedback.detail}`;
@@ -432,7 +445,7 @@ function liveSummary(
   if (view.terminal) {
     return terminalLabel(view);
   }
-  return `${seatLabel(view.active_seat)} active. ${legalCount} legal board target${legalCount === 1 ? "" : "s"}. Path ${
+  return `${resolveSeatName(view.active_seat, names)} active. ${legalCount} legal board target${legalCount === 1 ? "" : "s"}. Path ${
     pendingPath.length > 0 ? pendingPath.join(" ") : "ready"
   }.`;
 }
@@ -444,9 +457,17 @@ function terminalLabel(view: StarbridgeCrossingPublicView) {
   return "In progress";
 }
 
-function seatLabel(seat: string | null) {
+function seatNameMap(seats: StarbridgeCrossingSeatView[]): Map<string, string> {
+  return new Map(seats.flatMap((seat) => (seat.label ? [[seat.seat_id, seat.label] as const] : [])));
+}
+
+function resolveSeatName(seat: string | null, names: Map<string, string>): string {
   if (!seat) {
     return "No active seat";
+  }
+  const name = names.get(seat);
+  if (name) {
+    return name;
   }
   const suffix = Number(seat.replace("seat_", ""));
   return Number.isFinite(suffix) ? `Seat ${suffix + 1}` : seat;

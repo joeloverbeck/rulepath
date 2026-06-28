@@ -105,6 +105,17 @@ external public release.
 | Determinism artifacts | pass | `cargo run -p replay-check -- --game starbridge_crossing --all` and `cargo run -p fixture-check -- --game starbridge_crossing` passed unchanged; `terminal_rationale` remains excluded from `stable_bytes`. |
 | Browser regression | pass | `npm --prefix apps/web run build`, `node apps/web/e2e/starbridge-crossing.smoke.mjs`, and `npm --prefix apps/web run smoke:e2e` passed. |
 
+## Gate 20.4 In-Match Seat Display Names Receipt
+
+| Surface | Status | Evidence |
+|---|---|---|
+| Rust/WASM label projection | pass | `crates/wasm-api/src/games/starbridge_crossing.rs` serializes `ui.seat_labels`, `seats[].label`, and `seats[].target_label` from the authored catalog ring labels resolved by each seat's home/target point index. |
+| Discontinuous seat-count regression | pass | `cargo test -p wasm-api` includes `starbridge_view_projects_point_index_seat_labels`, with explicit 2-seat `seat_1 == South` and 3-seat `seat_1 == South East` assertions. |
+| Public API snapshot | pass | `crates/wasm-api/tests/snapshots/api_surface.tsv` carries the additive Starbridge public-view/import/replay-step diff; no command, state, effect, trace, replay, or hash migration was authorized. |
+| Web consumption | pass | `apps/web/src/components/StarbridgeCrossingBoard.tsx` consumes `seats[].label` and `seats[].target_label`; the interim `formatPoint` token title-casing helper was removed. |
+| Shared turn bar | pass | `ModeControls` consumes the existing shared `view.ui.seat_labels` path with no Gate 20.4 code change; `node apps/web/e2e/starbridge-crossing.smoke.mjs` asserts the turn-status text uses a point label and not `Seat N`. |
+| Browser regression | pass | `npm --prefix apps/web run build`, `npm --prefix apps/web run smoke:ui`, `npm --prefix apps/web run smoke:e2e`, and a final `node apps/web/e2e/starbridge-crossing.smoke.mjs` pass covered the label path. |
+
 ## Fixture Profile
 
 | Fixture | Status | Purpose |
@@ -144,13 +155,13 @@ external public release.
 | `cargo run -p replay-check -- --game starbridge_crossing --all` | pass | all trace receipts accepted. |
 | `cargo run -p fixture-check -- --game starbridge_crossing` | pass | fixture catalog accepted. |
 | `cargo run -p rule-coverage -- --game starbridge_crossing` | pass | coverage matrix and benchmark doc present. |
-| `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` | pass | regenerated the additive `_global/list_games` catalog snapshot row for Gate 20.2; earlier Gate 20.1 action-tree migration remained covered by the same snapshot surface. |
+| `UPDATE_API_SNAPSHOT=1 cargo test -p wasm-api --test api_surface` | pass | regenerated the additive `_global/list_games` catalog snapshot row for Gate 20.2 and the additive Starbridge public-view/import/replay-step rows for Gate 20.4; earlier Gate 20.1 action-tree migration remained covered by the same snapshot surface. |
 | `cargo test -p wasm-api --test api_surface` | pass | focused snapshot verification after regeneration, included in `cargo test -p wasm-api`. |
-| `cargo test -p wasm-api` | pass | Gate 20.2 catalog metadata regression, Gate 20.3 terminal rationale serialization regression, and snapshot test pass. |
+| `cargo test -p wasm-api` | pass | Gate 20.2 catalog metadata regression, Gate 20.3 terminal rationale serialization regression, Gate 20.4 in-match seat label regression, and snapshot test pass. |
 | `cargo run -p simulate -- --game starbridge_crossing --games 1000` | pass | 1000 games, 2 seats, 2,000,000 total actions, zero capped matches. |
 | `npm --prefix apps/web run smoke:wasm` | pass | rebuilt current Rust/WASM and loaded the browser API. |
 | `npm --prefix apps/web run build` | pass | copied 20 player-rule docs, rebuilt WASM, typechecked, and built Vite output. |
-| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge setup labels, board, jump, replay, terminal outcome panel, no-leak, and responsive Puppeteer smoke. |
+| `node apps/web/e2e/starbridge-crossing.smoke.mjs` | pass | Starbridge setup labels, in-match board/turn-bar labels, board, jump, replay, terminal outcome panel, no-leak, and responsive Puppeteer smoke. |
 | `cargo bench -p starbridge_crossing` | pass | benchmark smoke floors pass. |
 | `npm --prefix apps/web run smoke:e2e` | pass | includes Starbridge browser smoke. |
 | `npm --prefix apps/web run smoke:ui` | pass | catalog/setup shell smoke after Gate 20.2 setup-label bridge change. |

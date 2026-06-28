@@ -352,8 +352,32 @@ fn catalog_vow_tide_seat_labels_json() -> String {
     )
 }
 
+pub(crate) fn catalog_starbridge_ring_labels() -> [&'static str; 6] {
+    [
+        "North",
+        "North East",
+        "South East",
+        "South",
+        "South West",
+        "North West",
+    ]
+}
+
 fn catalog_starbridge_seat_labels_json() -> String {
-    "[{\"seat\":\"seat_0\",\"label\":\"North\"},{\"seat\":\"seat_1\",\"label\":\"North East\"},{\"seat\":\"seat_2\",\"label\":\"South East\"},{\"seat\":\"seat_3\",\"label\":\"South\"},{\"seat\":\"seat_4\",\"label\":\"South West\"},{\"seat\":\"seat_5\",\"label\":\"North West\"}]".to_owned()
+    format!(
+        "[{}]",
+        catalog_starbridge_ring_labels()
+            .iter()
+            .enumerate()
+            .map(|(index, label)| {
+                format!(
+                    "{{\"seat\":\"seat_{index}\",\"label\":\"{}\"}}",
+                    escape_json(label)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
 }
 
 pub(crate) fn catalog_starbridge_active_seats_by_count_json() -> String {
