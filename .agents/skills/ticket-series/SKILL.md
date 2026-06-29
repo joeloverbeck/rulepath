@@ -23,7 +23,8 @@ foundation docs.
   skill-local path as directed in Completion Audit. It also supports
   `--reference-only` for focused archived-reference truthing and
   `--expected-ticket-list <file>` for non-contiguous ticket families, plus
-  `--ledger-format compact` for final-report-ready commit ledgers and
+  `--ledger-format compact` for final-report-ready commit ledgers,
+  `--forbidden-token-file <file>` for redacted literal-token leak scans, and
   `--summary` for low-noise successful long-series audits that still print
   exact failure lines. If an invocation fails with `MODULE_NOT_FOUND`, check
   the skill-local path above before falling back to manual audit commands.
@@ -67,6 +68,14 @@ families after that pass, stop and ask for the intended selector.
    current ticket read, reference/index status, staged index, unrelated dirty
    paths, and the next exact action. Treat conversation summaries and resume
    ledgers as orientation, not proof of current checkout state.
+   If the user names a dependent or private implementation repository that is
+   different from the public Rulepath checkout, make that repository the
+   implementation cwd for ticket/spec/code/status work. Still load the public
+   Rulepath orientation and foundation docs from the public checkout when the
+   dependent repository does not carry its own copies, and run the skill-local
+   helper by absolute path if needed. Keep `git status --short`,
+   `git diff --cached --name-status`, ticket glob resolution, archive truthing,
+   and unrelated-dirt classification anchored in the implementation repository.
 4. Read the always-required Rulepath orientation and workflow docs:
    - `AGENTS.md`
    - `docs/README.md`
@@ -164,6 +173,13 @@ For each ticket:
    a game-specific or UI-specific path, inspect the smoke enough to confirm it
    actually exercises that game/path. If it does not, extend the smoke or record
    why another proof surface is sufficient before claiming acceptance.
+   When a private/IP/no-leak ticket requires scanning for licensed titles,
+   private IDs, source-file tokens, catalog strings, fixture names, or other
+   forbidden strings, do not paste those raw terms into public tickets, specs,
+   reports, command ledgers, final responses, filenames, or helper output. Record
+   token classes, scan roots, and zero-match results only. Use placeholders in
+   archived command examples, and scan the archived ticket/reference plus public
+   filenames before committing.
    If a browser smoke fails before assertions because the environment cannot
    bind its local `127.0.0.1` server, for example `listen EPERM`, rerun through
    the approved escalation path for localhost binding and record both the
@@ -363,7 +379,10 @@ or mark the earlier result as preliminary.
    local scope, do not let that ticket-local note override the series-level
    closeout. Finish, archive, and commit the capstone ticket first; then perform
    the reference artifact archival and truthing as a separate final closeout
-   step unless the user explicitly forbids reference archival.
+   step unless the user explicitly forbids reference archival. When the capstone
+   ticket is committed before reference archival, record in the capstone
+   `Outcome` that series reference closeout remains pending so the ticket archive
+   does not imply the whole series is already closed.
 5. Repair active references and progress surfaces, especially `specs/README.md`
    when a spec was closed, and any active tickets, repo docs, per-game docs
    under `games/*/docs/`, app README tables, catalog/smoke lists, or scripts
@@ -458,6 +477,8 @@ surface, for example:
   boundary checks.
 - Archive truthing: active glob empty, archived ticket count/status/outcome,
   archived reference status/outcome, stale live-path sweep.
+- Private/IP no-leak: redacted token labels scanned, roots or tracked-file
+  scope, content and filename/path zero-match results.
 
 For long series, build the ledger from the archived ticket `Outcome` sections
 instead of memory. A compact checklist is enough:
@@ -468,6 +489,8 @@ instead of memory. A compact checklist is enough:
 - Note intentionally skipped gates with reasons.
 - Note surprising-but-passing command output that narrows the evidence claim.
 - Confirm the archived reference status/outcome and stale-path sweep.
+- For private/IP/no-leak work, confirm archived outcomes and filenames do not
+  contain the raw forbidden terms; never include those terms in the ledger.
 
 For long-running or resumed series that may span context compaction, keep an
 optional resume ledger in the conversation or a repo-approved run-state file
@@ -527,7 +550,11 @@ Run a concrete version of this checklist before reporting done or calling
 When the ticket range and reference artifact are known, run
 `.agents/skills/ticket-series/scripts/audit-series-closeout.mjs` by default to
 collect the standard audit surfaces, then inspect its output and run any
-repo-specific checks that the helper cannot infer. If a repo-root
+repo-specific checks that the helper cannot infer. The helper filters absent
+optional roots such as `docs`, `apps`, or `scripts` during path sweeps so
+dependent/private repositories with smaller layouts do not emit false `rg`
+errors; manual fallback sweeps should likewise restrict roots to existing
+directories. If a repo-root
 `scripts/audit-series-closeout.mjs` command fails with `MODULE_NOT_FOUND`, retry
 with the skill-local path before declaring the helper unavailable. For
 non-contiguous or unusual series where the helper cannot express the expected
@@ -551,6 +578,7 @@ node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-count N
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-list /tmp/expected-tickets.txt --ledger-format compact --summary
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact --summary
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --forbidden-token-file /tmp/forbidden-token-labels.txt --summary
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
@@ -588,6 +616,13 @@ the archived spec. Historical `reports/` may contain provenance-only live paths;
 do not hard-fail those unless the active reference or ticket requires report
 repair, but do retarget active characterization/evidence reports that remain
 part of closeout evidence and sweep active per-game docs under `games/*/docs/`.
+For `--forbidden-token-file`, use a temporary file with one redacted label and
+literal token per line, such as `licensed-title=<raw-token>` or
+`private-id<TAB><raw-token>`. The helper prints labels and counts only, never
+raw token values or matching paths. By default it scans tracked files under the
+public project roots plus archive/report surfaces; override with
+`--forbidden-scan-roots root1,root2` only when the ticket/reference defines a
+narrower truthful boundary.
 
 If a closeout defect is discovered after `update_goal` or a final completion
 response, report the defect immediately with the failing command and affected
