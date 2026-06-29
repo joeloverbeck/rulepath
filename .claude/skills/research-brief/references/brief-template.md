@@ -33,6 +33,13 @@ contains the §2 read-list):
 > (If a referenced report cites a different "commit of record," note the divergence here and
 > use the verified HEAD, not the report's string.)
 
+**Access pattern.** The raw-URL form above is the **public-repo default**. A private
+repository — or any repo Session 2 cannot reach by raw URL — is read **via the ChatGPT
+GitHub connector by commit SHA** (the same SHA you pin here), with its manifest as the
+inventory; say so explicitly in §0/§1 rather than giving a raw URL that will 404. When
+Session 2 reads **more than one repository**, give one manifest pointer + fetch baseline +
+access pattern **per repo** (see SKILL Step 6 *Multi-repository briefs*).
+
 ### 2. Read in full (authority order)
 
 An explicit, tiered path list — every file Session 2 must read before producing — each
@@ -147,7 +154,18 @@ Exactly what Session 2 outputs — leave no ambiguity:
   `/reassess-spec` reassesses it **in place** against the codebase, then `/spec-to-tickets`
   decomposes it into `tickets/`. (`/reassess-spec` takes a `spec_path` under `specs/` — it
   does **not** convert a `reports/` draft, so name `specs/<gate>-<slug>.md` as the save target,
-  not `reports/`.) For an intermediate artifact, name the eventual target path but state plainly
+  not `reports/`.) **Private-lane exception:** when the subject is private licensed IP (per
+  the SKILL "Out-of-band / private-IP-subject briefs" rule) and the deliverable is bound for a
+  *separate private repository* — e.g. an ADR-sanctioned private game lane — the public
+  `specs/`→`/reassess-spec`→`/spec-to-tickets` pipeline does **not** apply, because those skills
+  operate only on the public `specs/`/`tickets/` trees. Name the **private repository's** spec
+  directory as the save target, keep the deliverable's emitted filename **opaque**, and state
+  that the user runs the project's private analog of reassess/decompose (so the spec must still
+  be bounded and reassessable). **When the private-lane deliverable is not a spec** — an
+  advisory change-plan, audit, or other intermediate artifact — name the private repo's
+  appropriate non-spec directory instead (e.g. its `reports/`), still opaque-stemmed and still
+  bounded/decomposable so the user can run the project's private reassess/decompose analog on it.
+  For an intermediate artifact, name the eventual target path but state plainly
   that the deliverable is **not yet final** — so Session 2 doesn't present a ready-to-decompose
   file and skip the reassess step. Name the artifact's **own** emitted filename with a kebab-case
   stem that mirrors the brief's `<topic>-research-brief.md` slug — e.g. `<topic>-change-plan.md`
@@ -182,7 +200,11 @@ warrants:
 - **IP discipline** — when the subject is private licensed IP, add a section instructing
   Session 2 not to reproduce licensed prose, art, or component text into the deliverable, to
   keep the subject material out of the repo and every public surface, and noting that the
-  manifest deliberately excludes it. Cite `docs/IP-POLICY.md` and FOUNDATIONS §10.
+  manifest deliberately excludes it. The **emitted brief and manifest themselves stay opaque**
+  (they land in tracked `reports/`): name the subject opaquely and let the out-of-band uploads
+  convey its identity, never writing the licensed title or source filenames into either — see
+  SKILL "Out-of-band / private-IP-subject briefs" clause (d). Cite `docs/IP-POLICY.md` and
+  FOUNDATIONS §10.
 
 ---
 

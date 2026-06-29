@@ -20,6 +20,8 @@ const expectedTicketList = args["expected-ticket-list"];
 const ledgerFormat = args["ledger-format"];
 const referenceOnly = args["reference-only"] === true;
 const summary = args.summary === true;
+const forbiddenTokenFile = args["forbidden-token-file"];
+const forbiddenScanRoots = args["forbidden-scan-roots"];
 
 if (!prefix && !referenceOnly) {
   printUsage(console.error);
@@ -69,11 +71,15 @@ function printUsage(write = console.log) {
       "[--expected-count N] " +
       "[--expected-ticket-list FILE] " +
       "[--expected-ticket-range PREFIX-001..020] " +
+      "[--forbidden-token-file FILE] " +
+      "[--forbidden-scan-roots roots,comma,separated] " +
       "[--summary] " +
       "[--ledger-format compact]\n" +
       "       audit-series-closeout.mjs --reference-only " +
       "[--active-reference specs/name.md] " +
       "--archived-reference archive/specs/name.md " +
+      "[--forbidden-token-file FILE] " +
+      "[--forbidden-scan-roots roots,comma,separated] " +
       "[--summary]",
   );
 }
@@ -271,6 +277,139 @@ function normalizeExpectedTicketName(value) {
   return path.join("archive", "tickets", basename);
 }
 
+function readForbiddenTokenFile(file) {
+  const lines = readLines(file);
+  if (!lines) {
+    console.error(`Missing --forbidden-token-file: ${file}`);
+    process.exit(2);
+  }
+  const tokens = [];
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+    const separator = trimmed.includes("\t") ? "\t" : "=";
+    const separatorIndex = trimmed.indexOf(separator);
+    if (separatorIndex <= 0 || separatorIndex === trimmed.length - 1) {
+      console.error(
+        `Invalid --forbidden-token-file line ${index + 1}; expected label=literal or label<TAB>literal`,
+      );
+      process.exit(2);
+    }
+    const label = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1);
+    if (!/^[A-Za-z0-9_.:-]+$/.test(label)) {
+      console.error(
+        `Invalid --forbidden-token-file label on line ${index + 1}; use letters, numbers, dot, underscore, colon, or dash`,
+      );
+      process.exit(2);
+    }
+    if (value.length === 0) {
+      console.error(`Empty forbidden token value on line ${index + 1}`);
+      process.exit(2);
+    }
+    tokens.push({ label, value });
+  });
+  if (tokens.length === 0) {
+    console.error(`Empty --forbidden-token-file: ${file}`);
+    process.exit(2);
+  }
+  return tokens;
+}
+
+function existingRoots(roots) {
+  return roots.filter((root) => fs.existsSync(root));
+}
+
+function publicScanRoots() {
+  const defaultRoots = [
+    ".github",
+    "apps",
+    "archive",
+    "ci",
+    "crates",
+    "docs",
+    "games",
+    "reports",
+    "scripts",
+    "specs",
+    "templates",
+    "tickets",
+    "tools",
+  ];
+  const roots = forbiddenScanRoots
+    ? forbiddenScanRoots
+        .split(",")
+        .map((root) => root.trim())
+        .filter(Boolean)
+    : defaultRoots;
+  return existingRoots(roots);
+}
+
+function collectTrackedFiles(roots) {
+  if (roots.length === 0) return [];
+  const result = spawnSync("git", ["ls-files", "--", ...roots], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.stderr) process.stderr.write(result.stderr);
+  if (result.status !== 0) {
+    fail(`git ls-files exited ${result.status} while preparing redacted forbidden-token scan`);
+    return [];
+  }
+  return result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function runForbiddenTokenScan(file) {
+  section("Redacted Forbidden Token Scan");
+  const tokens = readForbiddenTokenFile(file);
+  const roots = publicScanRoots();
+  console.log(`tokens=${tokens.length}`);
+  console.log(`roots=${roots.length}`);
+  const trackedFiles = collectTrackedFiles(roots);
+  console.log(`tracked_files=${trackedFiles.length}`);
+  if (trackedFiles.length === 0) {
+    fail("redacted forbidden-token scan found no tracked files to inspect");
+    return;
+  }
+
+  const matches = new Map(tokens.map(({ label }) => [label, { path: 0, content: 0 }]));
+  trackedFiles.forEach((trackedFile) => {
+    tokens.forEach(({ label, value }) => {
+      if (trackedFile.includes(value)) {
+        matches.get(label).path += 1;
+      }
+    });
+    let content;
+    try {
+      content = fs.readFileSync(trackedFile, "utf8");
+    } catch {
+      return;
+    }
+    tokens.forEach(({ label, value }) => {
+      if (content.includes(value)) {
+        matches.get(label).content += 1;
+      }
+    });
+  });
+
+  let matched = false;
+  for (const [label, counts] of matches) {
+    if (counts.path > 0 || counts.content > 0) {
+      matched = true;
+      fail(
+        `forbidden token label ${label} matched path_count=${counts.path} content_file_count=${counts.content}`,
+      );
+    }
+  }
+  if (!matched) {
+    ok("redacted forbidden-token scan found zero path or content matches");
+  }
+}
+
 if (!referenceOnly) {
   section("Active Ticket References");
   const activeTicketRefs = run("rg", ["-n", prefix, "tickets"], { allowExitCodes: [0, 1] });
@@ -340,29 +479,43 @@ const livePatterns = [];
 if (activeReference) livePatterns.push(`(?<!archive/)${escapeRegex(activeReference)}`);
 if (prefix) livePatterns.push(`(?<!archive/)tickets/${escapeRegex(prefix)}`);
 if (livePatterns.length > 0) {
-  const staleSweep = run(
-    "rg",
-    ["-n", "-P", livePatterns.join("|"), "specs", "tickets", "docs", "apps", "games", "scripts"],
-    { allowExitCodes: [0, 1, 2], quietStdout: summary },
-  );
-  if (staleSweep.status === 0) fail("stale live-path references were found");
-  if (summary && staleSweep.stdout) process.stdout.write(staleSweep.stdout);
+  const sweepRoots = existingRoots(["specs", "tickets", "docs", "apps", "games", "scripts"]);
+  if (sweepRoots.length === 0) {
+    fail("stale live-path sweep found no existing roots to inspect");
+  } else {
+    const staleSweep = run(
+      "rg",
+      ["-n", "-P", livePatterns.join("|"), ...sweepRoots],
+      { allowExitCodes: [0, 1, 2], quietStdout: summary },
+    );
+    if (staleSweep.status === 0) fail("stale live-path references were found");
+    if (summary && staleSweep.stdout) process.stdout.write(staleSweep.stdout);
+  }
 } else {
   console.log("SKIP: no --active-reference or --ticket-prefix provided");
+}
+
+if (forbiddenTokenFile) {
+  runForbiddenTokenScan(forbiddenTokenFile);
 }
 
 if (!referenceOnly) {
   section("Archive Reference Sweep");
   const archivePatterns = [`archive/tickets/${escapeRegex(prefix)}`];
   if (archivedReference) archivePatterns.push(escapeRegex(archivedReference));
-  const archiveSweep = run(
-    "rg",
-    ["-n", "-P", archivePatterns.join("|"), "specs", "docs", "apps", "games", "scripts"],
-    { allowExitCodes: [0, 1, 2], quietStdout: summary },
-  );
-  if (summary) {
-    const count = (archiveSweep.stdout ?? "").trim().split(/\r?\n/).filter(Boolean).length;
-    console.log(`matches=${count}`);
+  const sweepRoots = existingRoots(["specs", "docs", "apps", "games", "scripts"]);
+  if (sweepRoots.length === 0) {
+    fail("archive reference sweep found no existing roots to inspect");
+  } else {
+    const archiveSweep = run(
+      "rg",
+      ["-n", "-P", archivePatterns.join("|"), ...sweepRoots],
+      { allowExitCodes: [0, 1, 2], quietStdout: summary },
+    );
+    if (summary) {
+      const count = (archiveSweep.stdout ?? "").trim().split(/\r?\n/).filter(Boolean).length;
+      console.log(`matches=${count}`);
+    }
   }
 
   section("Commit Ledger");
