@@ -200,11 +200,14 @@ warrants:
 - **IP discipline** — when the subject is private licensed IP, add a section instructing
   Session 2 not to reproduce licensed prose, art, or component text into the deliverable, to
   keep the subject material out of the repo and every public surface, and noting that the
-  manifest deliberately excludes it. The **emitted brief and manifest themselves stay opaque**
-  (they land in tracked `reports/`): name the subject opaquely and let the out-of-band uploads
-  convey its identity, never writing the licensed title or source filenames into either — see
-  SKILL "Out-of-band / private-IP-subject briefs" clause (d). Cite `docs/IP-POLICY.md` and
-  FOUNDATIONS §10.
+  manifest deliberately excludes it. By default the **emitted brief and manifest stay opaque**
+  (they land in the public repo's tracked `reports/`): name the subject opaquely and let the
+  out-of-band uploads convey its identity, never writing the licensed title or source filenames
+  into either. **When the brief is instead directed into a separate private repository's
+  `reports/`** (the private-game-lane case), its body MAY name the subject — like the
+  private-lane deliverable — while its filename stem stays opaque and every public-surface
+  artifact (the public manifest) stays fully opaque — see SKILL "Out-of-band /
+  private-IP-subject briefs" clause (d). Cite `docs/IP-POLICY.md` and FOUNDATIONS §10.
 
 ---
 
