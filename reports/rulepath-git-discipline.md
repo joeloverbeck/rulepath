@@ -6,7 +6,7 @@ Target repository:
 
 Target commit:
 
-`a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1`
+`a0c466daed6c36d9b482d2272d14a85687292df9`
 
 ## Purpose
 
@@ -16,7 +16,7 @@ This workflow does **not** prove that the target commit is the latest `main`.
 
 It proves only this narrower claim:
 
-> The repository analysis uses files fetched from `joeloverbeck/rulepath` at exact commit `a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1`.
+> The repository analysis uses files fetched from `joeloverbeck/rulepath` at exact commit `a0c466daed6c36d9b482d2272d14a85687292df9`.
 
 If latest-`main` verification is required, the user must provide an independently generated current-`main` SHA and matching manifest.
 
@@ -114,7 +114,7 @@ For each target-repository file, the only trusted fetch target is an exact file 
 
 1. `joeloverbeck`
 2. `rulepath`
-3. `a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1`
+3. `a0c466daed6c36d9b482d2272d14a85687292df9`
 4. the exact repository path from the uploaded manifest
 
 A stale or misleading tool namespace label does not invalidate a fetch when the tool accepts the full URL and the requested and resolved file provenance are verified independently.
@@ -126,19 +126,19 @@ Do not follow a repository link found inside fetched content and then treat the 
 Use one of these exact-commit URL forms only:
 
 ```text
-https://raw.githubusercontent.com/joeloverbeck/rulepath/a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1/<path>
+https://raw.githubusercontent.com/joeloverbeck/rulepath/a0c466daed6c36d9b482d2272d14a85687292df9/<path>
 ```
 
 or:
 
 ```text
-https://github.com/joeloverbeck/rulepath/blob/a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1/<path>
+https://github.com/joeloverbeck/rulepath/blob/a0c466daed6c36d9b482d2272d14a85687292df9/<path>
 ```
 
 or:
 
 ```text
-https://api.github.com/repos/joeloverbeck/rulepath/contents/<path>?ref=a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1
+https://api.github.com/repos/joeloverbeck/rulepath/contents/<path>?ref=a0c466daed6c36d9b482d2272d14a85687292df9
 ```
 
 Prefer `raw.githubusercontent.com` for plain-text files.
@@ -150,7 +150,7 @@ Do not replace the commit with `main`, `master`, `HEAD`, a tag, or an abbreviate
 For each required path from the manifest, construct the raw URL mechanically:
 
 ```text
-base = https://raw.githubusercontent.com/joeloverbeck/rulepath/a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1/
+base = https://raw.githubusercontent.com/joeloverbeck/rulepath/a0c466daed6c36d9b482d2272d14a85687292df9/
 url  = base + <manifest path>
 ```
 
@@ -168,7 +168,7 @@ Before using a fetched repository file, verify:
 3. The requested URL contains the exact repository:
    `rulepath`
 4. The requested URL contains the full exact commit:
-   `a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1`
+   `a0c466daed6c36d9b482d2272d14a85687292df9`
 5. The requested URL contains the exact manifest path.
 6. The fetch tool was called with the full URL rather than repository-scoped metadata.
 7. If the tool exposes a final or resolved URL, it still identifies the same owner, repository, commit, and path.
@@ -211,7 +211,7 @@ Before substantive analysis, report:
 
 ```text
 Requested repository: joeloverbeck/rulepath
-Target commit: a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1
+Target commit: a0c466daed6c36d9b482d2272d14a85687292df9
 Freshness claim: user-supplied target commit only; not independently verified as latest main
 Manifest role: path inventory only
 Repository metadata used: no
@@ -332,7 +332,7 @@ Use this wording when beginning acquisition:
 
 ```markdown
 Target repository: `joeloverbeck/rulepath`
-Target commit: `a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1`
+Target commit: `a0c466daed6c36d9b482d2272d14a85687292df9`
 
 Use exact-commit URL provenance discipline.
 
@@ -340,7 +340,7 @@ Do not clone. Do not use GitHub code search or repository snippets. Do not fetch
 
 Use the uploaded manifest only as path inventory. Fetch each needed repository file only by a full exact URL of this form:
 
-`https://raw.githubusercontent.com/joeloverbeck/rulepath/a0117ec6097c1b980bbc0f0c3b6bcbc864deb4e1/<path>`
+`https://raw.githubusercontent.com/joeloverbeck/rulepath/a0c466daed6c36d9b482d2272d14a85687292df9/<path>`
 
 Before substantive analysis, report an evidence ledger listing every exact repository-file URL fetched.
 
