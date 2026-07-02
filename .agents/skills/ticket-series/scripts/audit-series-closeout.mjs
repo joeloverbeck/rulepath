@@ -22,8 +22,13 @@ const referenceOnly = args["reference-only"] === true;
 const summary = args.summary === true;
 const forbiddenTokenFile = args["forbidden-token-file"];
 const forbiddenScanRoots = args["forbidden-scan-roots"];
+const contractPreview = args["contract-preview"] === true;
 
-if (!prefix && !referenceOnly) {
+if (!prefix && !referenceOnly && !contractPreview) {
+  printUsage(console.error);
+  process.exit(2);
+}
+if (contractPreview && !prefix && !activeReference && !archivedReference) {
   printUsage(console.error);
   process.exit(2);
 }
@@ -73,6 +78,7 @@ function printUsage(write = console.log) {
       "[--expected-ticket-range PREFIX-001..020] " +
       "[--forbidden-token-file FILE] " +
       "[--forbidden-scan-roots roots,comma,separated] " +
+      "[--contract-preview] " +
       "[--summary] " +
       "[--ledger-format compact]\n" +
       "       audit-series-closeout.mjs --reference-only " +
@@ -163,12 +169,14 @@ function reportArchivedReference(file) {
 
   const validStatus = /^\*\*Status\*\*: .*?(COMPLETED|REJECTED|DEFERRED|NOT IMPLEMENTED)$|^\| Status \| `?Done`? \|/;
   const informalStatus = /^\s*-?\s*\*\*Status\*\*:\s*(Done|ACCEPTED)|^\s*- \*\*Status:\*\*/;
-  const boldSpecStatus = /^\| \*\*Status\*\* \| `?Done`? \|/;
+  const boldSpecStatus = /^\| \*\*Status\*\* \|.*\|/;
+  const numberedOutcome = /^## .+Outcome\b/;
   const matches = [];
   let hasValidStatus = false;
   let hasOutcome = false;
   let informal = false;
   let nearMiss = false;
+  let outcomeNearMiss = false;
 
   lines.forEach((line, index) => {
     if (validStatus.test(line) || /^## Outcome/.test(line)) {
@@ -184,6 +192,10 @@ function reportArchivedReference(file) {
       nearMiss = true;
       console.log(`${file}:${index + 1}:NEAR_MISS_STATUS:${line}`);
     }
+    if (numberedOutcome.test(line) && !/^## Outcome/.test(line)) {
+      outcomeNearMiss = true;
+      console.log(`${file}:${index + 1}:NEAR_MISS_OUTCOME:${line}`);
+    }
   });
 
   if (!summary && matches.length > 0) console.log(matches.join("\n"));
@@ -195,12 +207,21 @@ function reportArchivedReference(file) {
       `${file} uses a bolded spec status label; use exact row: | Status | \`Done\` |`,
     );
   }
-  const referenceOk = hasValidStatus && hasOutcome && !informal && !nearMiss;
+  if (outcomeNearMiss) {
+    fail(`${file} uses a numbered Outcome heading; use exact heading: ## Outcome`);
+  }
+  const referenceOk =
+    hasValidStatus && hasOutcome && !informal && !nearMiss && !outcomeNearMiss;
   if (summary) {
     if (referenceOk) {
       ok(`archived reference status/outcome present for ${file}`);
     } else if (matches.length > 0) {
       console.log(matches.join("\n"));
+    }
+    if (!referenceOk) {
+      console.log(
+        `repair_hint=${file}: archived specs require | Status | \`Done\` | and exact ## Outcome`,
+      );
     }
   }
   return referenceOk;
@@ -208,7 +229,7 @@ function reportArchivedReference(file) {
 
 function parseArgs(argv) {
   const parsed = {};
-  const flagArgs = new Set(["reference-only", "summary"]);
+  const flagArgs = new Set(["contract-preview", "reference-only", "summary"]);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (!arg.startsWith("--")) {
@@ -229,6 +250,86 @@ function parseArgs(argv) {
     i += 1;
   }
   return parsed;
+}
+
+function inferArchivedReference(activeReferencePath) {
+  if (!activeReferencePath) return null;
+  if (activeReferencePath.startsWith("specs/")) {
+    return path.join("archive", activeReferencePath);
+  }
+  if (activeReferencePath.startsWith("docs/triage/")) {
+    return path.join("archive", "triage", path.basename(activeReferencePath));
+  }
+  if (activeReferencePath.startsWith("tasks/")) {
+    return path.join("archive", "tasks", path.basename(activeReferencePath));
+  }
+  if (activeReferencePath.startsWith("plans/")) {
+    return path.join("archive", "plans", path.basename(activeReferencePath));
+  }
+  return null;
+}
+
+function countActiveTicketFiles() {
+  if (!prefix) return null;
+  const dir = path.join(process.cwd(), "tickets");
+  if (!fs.existsSync(dir)) return 0;
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.startsWith(prefix) && name.endsWith(".md")).length;
+}
+
+function printContractPreview() {
+  section("Closeout Contract Preview");
+  const activeTicketCount = countActiveTicketFiles();
+  if (activeTicketCount === null) {
+    console.log("ticket_prefix=(none)");
+    console.log("active_ticket_count=unknown");
+  } else {
+    console.log(`ticket_prefix=${prefix}`);
+    console.log(`active_ticket_count=${activeTicketCount}`);
+  }
+
+  const expectedArchivedReference =
+    archivedReference ?? inferArchivedReference(activeReference);
+  const activeReferenceExists = activeReference
+    ? fs.existsSync(activeReference)
+    : null;
+  const archivedReferenceExists = expectedArchivedReference
+    ? fs.existsSync(expectedArchivedReference)
+    : null;
+
+  console.log(`active_reference=${activeReference ?? "(none)"}`);
+  console.log(
+    `active_reference_exists=${
+      activeReferenceExists === null ? "unknown" : String(activeReferenceExists)
+    }`,
+  );
+  console.log(`expected_archived_reference=${expectedArchivedReference ?? "(none)"}`);
+  console.log(
+    `archived_reference_exists=${
+      archivedReferenceExists === null ? "unknown" : String(archivedReferenceExists)
+    }`,
+  );
+
+  let contract;
+  if (!activeReference && !expectedArchivedReference) {
+    contract = "ticket-only";
+  } else if (activeReferenceExists === false && archivedReferenceExists === true) {
+    contract = "reference-archive closeout appears complete";
+  } else if (activeReferenceExists === true) {
+    contract = "reference-archive closeout required or explicit status-only instruction needed";
+  } else if (activeReferenceExists === false && archivedReferenceExists === false) {
+    contract = "reference path absent but archived reference missing";
+  } else {
+    contract = "undetermined";
+  }
+  console.log(`contract=${contract}`);
+  console.log(
+    `reference_archival_pending=${String(
+      activeReferenceExists === true || (activeReferenceExists === false && archivedReferenceExists === false),
+    )}`,
+  );
+  console.log("note=preview only; final closeout audit must still pass after final commit");
 }
 
 function expandTicketRange(range) {
@@ -410,6 +511,19 @@ function runForbiddenTokenScan(file) {
   }
 }
 
+function nonEmptyLines(output) {
+  return (output ?? "").trim().split(/\r?\n/).filter(Boolean);
+}
+
+function uniqueRgPaths(output) {
+  return [...new Set(nonEmptyLines(output).map((line) => line.split(":")[0]))];
+}
+
+if (contractPreview) {
+  printContractPreview();
+  process.exit(0);
+}
+
 if (!referenceOnly) {
   section("Active Ticket References");
   const activeTicketRefs = run("rg", ["-n", prefix, "tickets"], { allowExitCodes: [0, 1] });
@@ -513,8 +627,13 @@ if (!referenceOnly) {
       { allowExitCodes: [0, 1, 2], quietStdout: summary },
     );
     if (summary) {
-      const count = (archiveSweep.stdout ?? "").trim().split(/\r?\n/).filter(Boolean).length;
+      const count = nonEmptyLines(archiveSweep.stdout).length;
       console.log(`matches=${count}`);
+      if (count > 0 && count <= 10) {
+        uniqueRgPaths(archiveSweep.stdout).forEach((file) => {
+          console.log(`match_path=${file}`);
+        });
+      }
     }
   }
 

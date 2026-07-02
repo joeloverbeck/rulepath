@@ -30,6 +30,8 @@ Present in this format:
 ### Classification
 <spec type (a)-(d)> — <one-line description>. Steps applied: <list>. Steps skipped: <list>.
 Redesign count: <N/total> deliverables materially changed (<above | below> 50% threshold; Substantial Redesign Flag <included | omitted>).
+Reference count: <N — tracking decision> · Source-document engagement: <doc: N enumerated / M adjudicated | N/A — no external source cited>
+(restate the two mandatory Step-2 checkpoints — SKILL.md "Reference-count checkpoint" and "Source-document engagement checkpoint" — here so the report surface enforces them; in a long audit they are easy to skip when left only in Step-2 prose.)
 
 ### Issues (must fix)
 [If none: "No issues found."]
