@@ -15,6 +15,12 @@ Rulepath is Rust-first. Rust owns game behavior; TypeScript/React presents
 Rust/WASM output only. Keep every ticket inside the boundaries in the live
 foundation docs.
 
+## Hard Stops
+
+- Never run git index-mutating commands through parallel tool calls. This
+  includes `git add`, `git mv`, `git commit`, and `git restore --staged`, even
+  when the other parallel commands are read-only.
+
 ## Support Assets
 
 - `.agents/skills/ticket-series/scripts/audit-series-closeout.mjs` collects the
@@ -25,12 +31,39 @@ foundation docs.
   `--expected-ticket-list <file>` for non-contiguous ticket families, plus
   `--ledger-format compact` for final-report-ready commit ledgers,
   `--forbidden-token-file <file>` for redacted literal-token leak scans, and
+  `--contract-preview` to print the inferred ticket-only/reference-closeout
+  contract before final archival work begins. The preview reports active ticket
+  count, active and archived reference path state, expected archive target, and
+  whether reference archival appears pending; it is advisory and does not
+  replace the final closeout audit.
   `--summary` for low-noise successful long-series audits that still print
   exact failure lines. If an invocation fails with `MODULE_NOT_FOUND`, check
   the skill-local path above before falling back to manual audit commands.
+  Canonical series form:
+  `node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --summary`.
+  The helper accepts ticket prefixes and expected ticket sets; it does not
+  accept ticket globs such as `tickets/TICKET_PREFIX*.md`.
 - `agents/openai.yaml` is an OpenAI-facing skill manifest and prompt stub. It
   does not change the main workflow and does not authorize skipping the
   `SKILL.md` instructions.
+
+## Final Response Blocker
+
+Do not call `update_goal`, report a series done, or send a final response until the
+skill-local closeout helper or the full manual fallback has passed after the
+final commit. In dependent/private implementation repositories, run the helper
+from the public Rulepath skill path by absolute path if the implementation repo
+does not contain `.agents/skills/ticket-series/`.
+
+Before the final response or `update_goal`, confirm all of these are true:
+
+- the helper or full manual fallback passed after the final commit;
+- the compact commit ledger was captured when per-ticket commits exist;
+- the final response will include every per-ticket commit ID, the archived
+  reference state or ticket-only reason, verification actually run, skipped
+  checks with reasons, and unrelated dirty paths left untouched;
+- `git status --short` and `git diff --cached --name-status` show no unhandled
+  series work.
 
 ## Inputs
 
@@ -76,6 +109,14 @@ families after that pass, stop and ask for the intended selector.
    helper by absolute path if needed. Keep `git status --short`,
    `git diff --cached --name-status`, ticket glob resolution, archive truthing,
    and unrelated-dirt classification anchored in the implementation repository.
+   Reference closeout and archival also occur in the implementation repository
+   unless the user explicitly forbids reference archival.
+   If private-lane ticket prose also asks for a clean public Rulepath checkout
+   but the public checkout has unrelated pre-existing dirt, do not treat that
+   public status as a hard failure by itself. Capture the public dirty baseline,
+   prove the series did not touch public paths with a path-scoped
+   status/diff/sweep when needed, and record the unrelated public dirt in the
+   ticket/reference `Outcome` or final report.
 4. Read the always-required Rulepath orientation and workflow docs:
    - `AGENTS.md`
    - `docs/README.md`
@@ -97,6 +138,13 @@ families after that pass, stop and ask for the intended selector.
      asked not to archive the reference artifact; keep the reference active,
      but still truth the final status, progress surfaces, stale paths, and
      closeout evidence.
+   When the contract is unclear or the run is resumed, use the helper's
+   `--contract-preview` mode to print the active ticket/reference state before
+   continuing. The preview is advisory; the final closeout helper must still
+   pass after the final commit. For dependent/private implementation
+   repositories with a resolved reference artifact, prefer a contract preview
+   before the final capstone or reference-closeout phase, especially after
+   compaction or resume.
    Re-state this classification before archiving the capstone ticket so a
    ticket-local `Out of Scope` note cannot silently override the series-level
    closeout contract.
@@ -136,6 +184,13 @@ families after that pass, stop and ask for the intended selector.
 
 Complete exactly one ticket before starting the next.
 
+If your own uncommitted work already spans the current ticket and one or more
+future tickets, pause before staging or committing. Split the work at a truthful
+ticket boundary: stage only the current-ticket scope, adjust any intermediate
+state so it satisfies the current ticket on its own, leave future-ticket work
+unstaged or defer it, rerun the current-ticket acceptance checks, and record any
+scope deviation in the ticket `Outcome`.
+
 For each ticket:
 
 1. Reassess assumptions against current code, docs, templates, specs, and crate
@@ -144,6 +199,12 @@ For each ticket:
    implementation. Commit material ticket/reference correction separately when
    it changes scope or acceptance.
 3. Identify the narrow implementation surface and exact acceptance criteria.
+   If the ticket removes or deletes any file, verify that file's tracked state
+   before deletion with `git ls-files --error-unmatch <path>` or an equivalent
+   path-scoped check. Use tracked/untracked-aware removal, stage tracked
+   deletions intentionally, and reconcile ticket assumptions before archival if
+   the ticket called a file untracked but the live checkout says it is tracked
+   or vice versa.
 4. Make the minimal code/doc/test changes that satisfy the ticket while
    preserving Rulepath invariants:
    - `engine-core` stays generic and free of mechanic nouns.
@@ -173,6 +234,9 @@ For each ticket:
    a game-specific or UI-specific path, inspect the smoke enough to confirm it
    actually exercises that game/path. If it does not, extend the smoke or record
    why another proof surface is sufficient before claiming acceptance.
+   For any ticket-level `rg` or `grep` proof over Markdown prose or code spans,
+   single-quote patterns that include backticks so the shell cannot perform
+   command substitution before the search runs.
    When a private/IP/no-leak ticket requires scanning for licensed titles,
    private IDs, source-file tokens, catalog strings, fixture names, or other
    forbidden strings, do not paste those raw terms into public tickets, specs,
@@ -196,6 +260,8 @@ For each ticket:
    complete-match `--action-cap`, and record cap retries separately from rules
    failures.
 6. Update the ticket following `docs/archival-workflow.md`:
+   Before editing the status line, remember that implemented archived tickets
+   use `COMPLETED`, never `DONE`, `COMPLETE`, or `ACCEPTED`.
    - mark final status at the top using exactly the archival workflow vocabulary:
      `**Status**: COMPLETED`, `**Status**: REJECTED`,
      `**Status**: DEFERRED`, or `**Status**: NOT IMPLEMENTED`
@@ -210,7 +276,14 @@ For each ticket:
    sections such as `Engine Changes`, `Files to Touch`, `Out of Scope`,
    `Invariants`, and `Outcome` so the archived ticket describes the work that
    actually shipped, while still distinguishing behavioral changes from
-   non-behavioral maintenance or proof repairs.
+   non-behavioral maintenance or proof repairs. For capstone tickets, repeat
+   this metadata check immediately after any gate-discovered defect repair and
+   before the capstone archive commit; do not leave the ticket claiming
+   verification-only work if the capstone shipped code or test changes. Before
+   committing a capstone ticket, re-check the series closeout contract. If a
+   reference archive remains required after the capstone commit, record that
+   pending reference closeout in the capstone `Outcome` so the archived ticket
+   does not imply the entire series is already closed.
 7. Archive the ticket:
    - Create `archive/tickets/` if absent.
    - Detect tracked state with `git ls-files --error-unmatch <ticket>`.
@@ -231,16 +304,21 @@ git add <other-ticket-owned-files>
    - Before committing, run a strict archived-ticket truth check against the
      archived ticket path. It must have an archival final status and `## Outcome`,
      and it must not have informal statuses such as `DONE`, `COMPLETE`,
-     `ACCEPTED`, or `## Completion Notes`:
+     `ACCEPTED`, or `## Completion Notes`. Run this check for each archived
+     ticket before that ticket's commit, not only during final closeout. Use
+     single-quoted `rg` patterns for Markdown/status checks by default; backticks
+     inside double-quoted patterns can trigger shell command substitution:
 
 ```sh
-rg -n "^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^## Outcome" archive/tickets/TICKET_ID.md
-rg -n "^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes" archive/tickets/TICKET_ID.md && exit 1 || true
+rg -n '^\*\*Status\*\*: (✅ )?COMPLETED$|^\*\*Status\*\*: (❌ )?REJECTED$|^\*\*Status\*\*: (⏸️ )?DEFERRED$|^\*\*Status\*\*: (🚫 )?NOT IMPLEMENTED$|^## Outcome' archive/tickets/TICKET_ID.md
+rg -n '^\*\*Status\*\*: (DONE|COMPLETE|ACCEPTED)$|^## Completion Notes' archive/tickets/TICKET_ID.md && exit 1 || true
 ```
 
 8. Sweep active specs, tickets, docs, indexes, README tables, and scripts for
    stale live ticket paths. Update references that should now point to
-   `archive/tickets/`.
+   `archive/tickets/`. In dependent/private implementation repositories,
+   restrict manual sweeps to roots that exist in that checkout so optional
+   public-repo roots do not turn a stale-path check into missing-path noise.
 9. If current changes refine behavior, ownership, or verification facts from an
    already archived ticket in the same series, amend that archived ticket's
    `Outcome` before finalization. Follow `docs/archival-workflow.md` and add
@@ -310,6 +388,19 @@ npm --prefix apps/web run smoke:effects
 npm --prefix apps/web run smoke:e2e
 ```
 
+For dependent/private implementation repositories, public-repo scripts may be
+absent or structurally incompatible with the private checkout. If a ticket names
+one of those commands and it cannot run from the implementation repository, run
+the private equivalent when present, record the unavailable command and exact
+reason in the ticket/reference `Outcome`, and add targeted proof for the edited
+surfaces. Do not silently count an unavailable public script as passed.
+
+If a package install or build dependency script fails because of sandbox
+permissions, rerun it through the approved escalation path and record both the
+sandbox failure and the successful rerun in the owning ticket/reference
+`Outcome` or final report. Treat dependency resolution errors, compiler errors,
+build assertion failures, and test assertion failures as real failures.
+
 When adding or renaming e2e smoke scripts, check whether each script represents
 a catalog game or a non-game/app-level proof. Non-game smokes may need explicit
 whitelisting in catalog/doc checker scripts and corresponding README smoke-list
@@ -355,8 +446,15 @@ or mark the earlier result as preliminary.
    ``| Status | `Done` |``). Do not use bolded labels such as
    ``| **Status** | `Done` |``; the closeout helper intentionally rejects that
    near-miss. The archived spec still must have a truthful final status and a
-   bottom `## Outcome`. Before the reference archive commit, the archived spec
-   should contain this exact shape:
+   bottom `## Outcome`. If prior archived specs in the live repo use the
+   table-style convention, the archived spec should contain this exact shape
+   before the reference archive commit:
+
+   If the source spec already has a bolded table row such as
+   `| **Status** | Planned ... |` or `| **Status** | COMPLETED |`, replace that
+   row with the repo-valid archived-spec status row. Ticket or spec prose that
+   says "flip Status to COMPLETED" does not override the archived-spec table
+   convention when the helper expects ``| Status | `Done` |``.
 
 ```markdown
 | Field | Value |
@@ -383,10 +481,27 @@ or mark the earlier result as preliminary.
    ticket is committed before reference archival, record in the capstone
    `Outcome` that series reference closeout remains pending so the ticket archive
    does not imply the whole series is already closed.
+   Capstone handoff checklist after the capstone commit:
+   - confirm the closeout contract is `ticket-only`, `reference-archive
+     closeout required`, or `reference-status-only by explicit user instruction`;
+   - if a reference archive is required, confirm the active reference path is
+     absent and the archived reference path exists before claiming the series
+     done;
+   - for table-style archived specs, confirm the archived file uses the exact
+     status row ``| Status | `Done` |`` and exact `## Outcome` heading;
+     active-spec rows such as `| **Status** | COMPLETED ... |` and numbered
+     headings such as `## 15. Outcome` are helper failures, even when the prose
+     is otherwise truthful;
+   - for non-table-style archived specs, confirm the archived file has the
+     repo-valid archival status accepted by the helper plus exact `## Outcome`;
+   - run the focused reference helper after the reference move/status edits and
+     the full closeout helper after the final commit.
 5. Repair active references and progress surfaces, especially `specs/README.md`
    when a spec was closed, and any active tickets, repo docs, per-game docs
    under `games/*/docs/`, app README tables, catalog/smoke lists, or scripts
-   that referenced the live reference path.
+   that referenced the live reference path. In dependent/private repositories,
+   also check implementation indexes, spec-set status trackers, and rows that
+   name the downstream ticket prefix.
    For report artifacts, distinguish current evidence reports from historical
    provenance reports. Retarget live-path references in active characterization
    or acceptance reports that remain part of the closeout evidence. Historical
@@ -432,13 +547,25 @@ node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-
 
 Goal completion gate:
 
-1. Run `.agents/skills/ticket-series/scripts/audit-series-closeout.mjs` against
-   the live checkout. If the helper cannot run, the manual fallback must execute
-   and record every required surface: active ticket absence, archived ticket
-   count and list, archived ticket status/outcome, active reference absence,
-   archived reference status/outcome, stale live-path sweep, commit ledger,
-   `git status --short`, and `git diff --cached --name-status`.
+1. Run the skill-local closeout helper against the live checkout. In a
+   dependent/private implementation repository that lacks
+   `.agents/skills/ticket-series/`, first run the helper from the public
+   Rulepath skill path by absolute path, for example
+   `node "$PUBLIC_RULEPATH/.agents/skills/ticket-series/scripts/audit-series-closeout.mjs" ...`.
+   If the helper cannot run or cannot express the series, the manual fallback
+   must execute and record every required surface: active ticket absence,
+   archived ticket count and list, archived ticket status/outcome, active
+   reference absence, archived reference status/outcome, stale live-path sweep,
+   commit ledger, `git status --short`, and `git diff --cached --name-status`.
 2. Fix every failure or explicitly classify it as out of scope with evidence.
+   For reference-related helper failures, use a tight repair loop: inspect the
+   failing archived path, patch only the owning status/outcome/stale-reference
+   defect, run the focused `--reference-only` helper for reference defects,
+   commit the repair, rerun the full closeout helper, then re-check
+   `git status --short` and `git diff --cached --name-status`.
+   Keep any ad hoc `rg` or shell checks in this repair loop single-quoted when
+   the pattern contains Markdown backticks; this warning applies beyond the
+   sample commands below.
 3. Commit any audit repair, including reference-status or stale-path fixes.
 4. Rerun the closeout audit after the final commit and inspect the output.
 5. Confirm `git status --short` shows only unrelated worktree changes and
@@ -554,7 +681,9 @@ repo-specific checks that the helper cannot infer. The helper filters absent
 optional roots such as `docs`, `apps`, or `scripts` during path sweeps so
 dependent/private repositories with smaller layouts do not emit false `rg`
 errors; manual fallback sweeps should likewise restrict roots to existing
-directories. If a repo-root
+directories. In dependent/private implementation repositories that do not carry
+`.agents/skills/ticket-series/`, run the public Rulepath helper by absolute
+path before falling back to manual audit commands. If a repo-root
 `scripts/audit-series-closeout.mjs` command fails with `MODULE_NOT_FOUND`, retry
 with the skill-local path before declaring the helper unavailable. For
 non-contiguous or unusual series where the helper cannot express the expected
@@ -569,9 +698,10 @@ stale-path row into the final response. Expand the output only when a mismatch
 or unusual series shape needs detailed evidence.
 
 Keep regex patterns that contain Markdown backticks inside single quotes, or
-escape the backticks. For ad hoc status greps, prefer single-quoted patterns so
-text such as `` `Done` `` cannot trigger shell command substitution before `rg`
-runs.
+escape the backticks. For any ad hoc `rg` or grep pattern that includes Markdown
+code spans or backticks, including status, doc, and prose verification checks,
+prefer single-quoted patterns so text such as `` `Done` `` cannot trigger shell
+command substitution before the search runs.
 
 ```sh
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --reference-only --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --summary
@@ -579,6 +709,8 @@ node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-pre
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-list /tmp/expected-tickets.txt --ledger-format compact --summary
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact --summary
 node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --forbidden-token-file /tmp/forbidden-token-labels.txt --summary
+node .agents/skills/ticket-series/scripts/audit-series-closeout.mjs --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --contract-preview
+node "$PUBLIC_RULEPATH/.agents/skills/ticket-series/scripts/audit-series-closeout.mjs" --ticket-prefix TICKET_PREFIX --active-reference ACTIVE_REFERENCE_PATH --archived-reference archive/specs/ARCHIVED_REFERENCE.md --expected-ticket-range TICKET_PREFIX-001..020 --ledger-format compact --summary
 rg -n "TICKET_PREFIX" tickets || true
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort
 find archive/tickets -maxdepth 1 -name "TICKET_PREFIX*.md" -print | sort | wc -l
@@ -639,7 +771,9 @@ Final responses must include:
 - Tickets completed and archived.
 - Per-ticket commit IDs when commits were made as part of the series.
   For long contiguous series, use a compact ledger instead of summarizing only
-  the latest commits, for example:
+  the latest commits. Do not replace this with a commit range or latest-SHA
+  summary when per-ticket commits exist; paste the helper's compact ledger when
+  it is available, for example:
 
 ```text
 001 4119f20, 002 cb5bea1, 003 a88b254, 004 1c02d99, 005 e32f411

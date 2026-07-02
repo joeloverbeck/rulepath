@@ -38,7 +38,11 @@ repository — or any repo Session 2 cannot reach by raw URL — is read **via t
 GitHub connector by commit SHA** (the same SHA you pin here), with its manifest as the
 inventory; say so explicitly in §0/§1 rather than giving a raw URL that will 404. When
 Session 2 reads **more than one repository**, give one manifest pointer + fetch baseline +
-access pattern **per repo** (see SKILL Step 6 *Multi-repository briefs*).
+access pattern **per repo** (see SKILL Step 6 *Multi-repository briefs*). **Local-consumer
+variant:** when Session 2 is a local session with direct filesystem access (e.g.
+`/brainstorm`; see SKILL *Consumer variants*), there is no upload or raw-URL/connector
+fetch — §0/§1 says it reads each repo's files directly from disk at the pinned commit, and
+the manifest is its read-checklist, not an upload bundle.
 
 ### 2. Read in full (authority order)
 
@@ -95,6 +99,13 @@ gates → a perfect-information board game), flag the shift in §3 and re-derive
 (all-surfaces-public no-leak audit, hidden-info export ADR `not applicable`, bounded
 perfect-information search bots permissible) rather than mirroring the sibling's posture.
 
+A **deliverable-type pivot** is a distinct axis: "section anatomy" here means the **brief's**
+own sections, not the deliverable's internal backbone. When the immediate sibling's *deliverable
+type* differs from the target's (e.g. a change-plan sibling but a spec target), mirror the brief
+anatomy but **re-derive the deliverable's §7 backbone from the target type** — a spec follows
+`specs/README.md` + `OFFICIAL-GAME-CONTRACT.md` §1A; an advisory change-plan / audit keeps its
+own backbone — rather than carrying the sibling's deliverable structure over.
+
 ### 4. The task
 
 A precise statement of what Session 2 must achieve — the goal behind the deliverable. One
@@ -116,6 +127,16 @@ the optional angles (e.g. characterization-testing discipline, canonical/version
 serialization, dev-only test scaffolding, information-flow/no-leak geometry) and instruct it not
 to let online research expand the locked scope — so research effort matches the target rather
 than over-authorizing a literal open-ended sweep.
+
+A **third case sits between these two**: a *bounded game-behavior fix or small mechanism
+design* — a single-card or single-rule remediation, a typed primitive derived from an
+existing shape, an event→phase invocation — where external prior art genuinely *exists* but
+is **thin and bounded**, not the wide design space a full new game gate opens. This is
+neither "behavior-free infra" (it changes product behavior) nor a "novel mechanic" warranting
+the stock open-ended block (the prior art won't shape the design wholesale). Calibrate it the
+same way as behavior-free infra — name the bounded external angles that actually sharpen the
+one or two design decisions, mark prior art a *sharpening aid, not the crux*, and forbid scope
+expansion — so the mandate doesn't over-authorize a sweep the bounded mechanism can't use.
 
 ### 6. Doctrine & constraints
 
@@ -179,6 +200,19 @@ Exactly what Session 2 outputs — leave no ambiguity:
 > contradiction makes a requirement impossible, state it in the deliverable and proceed
 > with the most faithful interpretation.
 
+**Iterating-consumer variant.** A direct-filesystem consumer is **not** automatically
+iterating — access mode and locking mode are independent (SKILL *Consumer variants*). Keep the
+locked "do not ask" instruction above by default: a session asked to produce the deliverable
+directly is a **locked producer** regardless of access mode, and any single open design axis is
+handled by a Step 4 bounded delegation (recommend-with-default), not iteration. Only when the
+consumer is *directed to iterate* (e.g. a `/brainstorm`-class session) replace the "do not ask"
+line with a "locked intentions + open axes" instruction:
+
+> Produce the deliverable directly as a downloadable markdown document. The settled
+> intentions in §3 are final — do not reopen them. You MAY surface the open design axes
+> for discussion and iteration, but treat §3 as decided. If a genuine contradiction makes
+> a requirement impossible, state it and proceed with the most faithful interpretation.
+
 ### 8. Self-check
 
 A short acceptance checklist Session 2 runs against its own output before returning —
@@ -222,4 +256,4 @@ and `docs/README.md` are load-bearing for every type.
 | **thorny-fix** | the area doc(s) for the affected subsystem (`ARCHITECTURE.md`, `ENGINE-GAME-DATA-BOUNDARY.md`, `TESTING-REPLAY-BENCHMARKING.md`, etc.); the relevant code seams in `crates/`, `games/`, `tools/`, or `apps/web/`; any `reports/**` or `archive/**` audit touching the defect; any accepted `docs/adr/**` the fix must still satisfy. |
 | **hardening / boundary-enforcement / anti-leak** | `docs/ENGINE-GAME-DATA-BOUNDARY.md` (engine-core / game-stdlib / static-data boundary) and `docs/AI-BOTS.md` (hidden-information safety); `docs/TESTING-REPLAY-BENCHMARKING.md` (no-leak tests, determinism, replay/hash); `docs/IP-POLICY.md` (public/private leak boundary); `docs/AGENT-DISCIPLINE.md`; prior hardening specs in `archive/specs/**` and any audit `reports/**`. |
 | **foundational / doc-overhaul** | the full doc being overhauled plus every document above it in the `docs/README.md` order (authority flows downward); `docs/README.md` for the authority table and layering rule; any staleness/downstream `reports/**`; cross-references in lower docs/specs that the overhaul will invalidate; relevant `docs/adr/**` that pin the affected doctrine. |
-| **other** (incl. audit / review / presentation-overhaul) | derive from exploration; default to the universal two plus whatever the target names. For an audit / review / UX-overhaul target: the area doc(s) for the touched subsystem; the game's or subsystem's own `docs/` and its `tests/` + golden traces as the correctness oracle; `docs/IP-POLICY.md` and `docs/UI-INTERACTION.md` when presentation is in scope; and — for presentation/behavior-facing targets — exercise the running artifact, not source alone. |
+| **other** (incl. audit / review / presentation-overhaul) | derive from exploration; default to the universal two plus whatever the target names. For an audit / review / UX-overhaul target: the area doc(s) for the touched subsystem; the game's or subsystem's own `docs/` and its `tests/` + golden traces as the correctness oracle; `docs/IP-POLICY.md` and `docs/UI-INTERACTION.md` when presentation is in scope; and — for presentation/behavior-facing targets — exercise the running artifact, not source alone (for a **greenfield** presentation design — the target artifact doesn't exist yet — exercise the *reference/predecessor* artifact being modeled on instead, or state why source-level grounding of it suffices; see SKILL Step 2). |

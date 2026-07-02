@@ -1,4 +1,0 @@
-interface:
-  display_name: "Skill Audit"
-  short_description: "Audit Codex skills for gaps and friction."
-  default_prompt: "$skill-audit .agents/skills/SKILL_NAME"
